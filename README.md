@@ -53,8 +53,11 @@ Xbox bitmap resources. Vulkan material passes, remaining runtime consumers and
 the full parity audit remain unfinished; the active launcher still uses the
 Xbox gameplay source described below.
 
-The built launcher is `Halo2-Launcher` in the project root. Run it directly or
-use the **Halo 2 Native** desktop/app-menu shortcut. First launch requires a
+The repository includes an x86-64 Linux `Halo2-Launcher` executable in the
+project root for first-run game-file setup. Rebuilding creates
+`build/Halo2-Launcher` (or uses your chosen build directory).
+Installing the rebuilt launcher also creates `Halo2-Launcher` in the project root and
+the **Halo 2 Native** desktop/app-menu shortcut. First launch requires a
 Halo 2 Vista installer for HUD/menu artwork and an original Halo 2 Xbox ISO
 or extracted disc folder for gameplay, models and in-game textures. Select
 both once; setup prepares the needed files automatically. It keeps the current
@@ -159,18 +162,39 @@ nlohmann-json 3.10+, and a Vulkan-capable GPU.
 The current runtime was built and tested on Linux. Other desktop systems have
 not been validated.
 
-From the project root:
+For a fresh checkout, build and run the launcher from the project root:
+
+```bash
+./Halo2-Launcher --setup-only
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build --target halo2_launcher -j
+./build/Halo2-Launcher
+```
+
+The first launch opens the game-file setup window. Select your Xbox ISO or
+extracted disc folder and Vista installer, then choose **Prepare game files**.
+The launcher saves that selection and starts the game after setup succeeds.
+Configuring CMake after setup uses the selected Xbox source for the menu and
+particle shaders, including sources imported outside `assets/disc`.
+
+The bundled executable uses `python3` from your PATH and requires SDL2 and Tk.
+To regenerate it after changing launcher source:
+
+```bash
+cmake --build build --target halo2_onboarding
+install -m 755 build/onboarding/Halo2-Launcher Halo2-Launcher
+```
+
+For direct runtime development, extract an Xbox disc into the conventional
+local path before using the examples below:
 
 ```bash
 python3 tools/disc.py extract 'Halo 2 (USA, Europe) (En,Ja,Fr,De,Es,It,Zh,Ko).iso' --output assets/disc
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build -j
-./build/halo2_native
 ```
 
-Extraction refuses to overwrite existing files; skip the first command if the
-disc has already been extracted locally. The default launch is the title screen. Explicit level/simulation commands
-use Lockout unless `--map` selects another level:
+Extraction refuses to overwrite existing files; skip it if the disc has already
+been extracted locally. Direct `halo2_native` commands bypass launcher setup.
+Explicit level/simulation commands use Lockout unless `--map` selects another level:
 
 ```bash
 ./build/halo2_native --map assets/disc/maps/ascension.map --overview

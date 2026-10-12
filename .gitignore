@@ -50,6 +50,7 @@ compile_commands.json
 # Installed launcher copies and generated desktop shortcuts.
 # Reusable launcher sources and installation scripts live in src/ and tools/.
 /Halo2-*
+!/Halo2-Launcher
 /Halo 2 Native*.desktop
 
 # Local keys, credentials, service databases, and Python environments/caches.

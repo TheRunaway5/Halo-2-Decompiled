@@ -1,5 +1,5 @@
 #include "halo2/original_data.hpp"
-#include "halo2/full_scoreboard_painter.hpp"
+#include "halo2/full_scoreboard_paint_constants.hpp"
 #include <algorithm>
 #include <bit>
 #include <fstream>

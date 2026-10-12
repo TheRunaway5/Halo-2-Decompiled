@@ -1,19 +1,13 @@
 #pragma once
 #include "halo2/frontend.hpp"
 #include "halo2/full_scoreboard.hpp"
+#include "halo2/full_scoreboard_paint_constants.hpp"
 #include <array>
 #include <cstdint>
 #include <optional>
 #include <functional>
 
 namespace halo2 {
-// Import these words from the selected original image. Font assets and label
-// payloads remain caller-owned; this module contains neither.
-struct FullScoreboardPaintConstants {
-  std::uint32_t bright_rgb_threshold{}, pixel_scale{};
-  std::uint32_t pulse_phase{}, pulse_one{}, pulse_half{};
-  std::array<std::uint32_t, 4> shadow{}; // A,R,G,B
-};
 struct FullScoreboardPaintFrame {
   FullScoreboardRect clip;
   FullScoreboardClock clock;

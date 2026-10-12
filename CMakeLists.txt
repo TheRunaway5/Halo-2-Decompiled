@@ -1131,7 +1131,23 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/menu_world.frag.sp
         shaders/world_depth_fragment.glsl VERBATIM)
 add_custom_target(menu_world_fragment_shader
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/shaders/menu_world.frag.spv)
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map)
+set(HALO2_MAINMENU_CACHE "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/asset-sources.tsv")
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/asset-sources.tsv")
+    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/assets/asset-sources.tsv" asset_source_rows)
+    list(POP_FRONT asset_source_rows asset_source_schema)
+    if(asset_source_schema STREQUAL "H2_ASSET_SOURCES_V1")
+        foreach(row IN LISTS asset_source_rows)
+            if(row MATCHES "^xbox\t(.+)$")
+                set(xbox_source_root "${CMAKE_MATCH_1}")
+                cmake_path(ABSOLUTE_PATH xbox_source_root BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
+                set(HALO2_MAINMENU_CACHE "${xbox_source_root}/maps/mainmenu.map")
+            endif()
+        endforeach()
+    endif()
+endif()
+if(EXISTS "${HALO2_MAINMENU_CACHE}")
     if(NOT CMAKE_CROSSCOMPILING)
         find_program(SPIRV_VALIDATOR spirv-val REQUIRED)
         add_executable(generate_menu_world_vertex_catalog tools/generate_menu_world_vertex_catalog.cpp)
@@ -1140,14 +1156,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map)
         set(MENU_WORLD_VERTEX_CATALOG_HEADER ${MENU_WORLD_VERTEX_CATALOG_DIR}/menu_world_vertex_catalog.generated.hpp)
         add_custom_command(OUTPUT ${MENU_WORLD_VERTEX_CATALOG_HEADER} ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json
             COMMAND $<TARGET_FILE:generate_menu_world_vertex_catalog>
-                --map ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map
+                --map "${HALO2_MAINMENU_CACHE}"
                 --output ${MENU_WORLD_VERTEX_CATALOG_DIR}
             COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_menu_world_vertex_catalog.py
                 --sources ${MENU_WORLD_VERTEX_CATALOG_DIR}/sources.json
                 --compiler ${GLSLANG_VALIDATOR} --validator ${SPIRV_VALIDATOR}
                 --header ${MENU_WORLD_VERTEX_CATALOG_HEADER}
                 --manifest ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json
-            DEPENDS generate_menu_world_vertex_catalog assets/disc/maps/mainmenu.map
+            DEPENDS generate_menu_world_vertex_catalog "${HALO2_MAINMENU_CACHE}"
                 tools/compile_menu_world_vertex_catalog.py ${GLSLANG_VALIDATOR} ${SPIRV_VALIDATOR}
             VERBATIM)
         add_custom_target(menu_world_vertex_catalog
@@ -1157,16 +1173,18 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map)
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.json
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
+            --cache "${HALO2_MAINMENU_CACHE}"
             --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl
         DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
-            tools/audit_rendering.py assets/disc/maps/mainmenu.map VERBATIM)
+            tools/audit_rendering.py "${HALO2_MAINMENU_CACHE}" VERBATIM)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.json
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
+            --cache "${HALO2_MAINMENU_CACHE}"
             --classification 8 --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl
         DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
-            tools/audit_rendering.py assets/disc/maps/mainmenu.map VERBATIM)
+            tools/audit_rendering.py "${HALO2_MAINMENU_CACHE}" VERBATIM)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
         COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_DIRECTIONAL=1
             -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
@@ -1898,12 +1916,24 @@ target_compile_definitions(halo2_title_launcher PRIVATE HALO2_TITLE_FIRST=1
     HALO2_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
     HALO2_RUNTIME_DIR="${CMAKE_CURRENT_BINARY_DIR}")
 add_dependencies(halo2_title_launcher halo2_native)
+# Relocatable first-run executable shipped at the repository root. It can
+# prepare game files before any native runtime or generated shader exists.
+add_executable(halo2_onboarding src/launcher.cpp)
+set_target_properties(halo2_onboarding PROPERTIES OUTPUT_NAME "Halo2-Launcher"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/onboarding")
+target_link_libraries(halo2_onboarding PRIVATE SDL2::SDL2)
+target_compile_definitions(halo2_onboarding PRIVATE HALO2_PYTHON_EXECUTABLE="python3"
+    HALO2_PROJECT_DIR="." HALO2_RUNTIME_DIR="build")
 if(NOT MSVC)
     target_compile_options(halo2_native PRIVATE -Wall -Wextra -Wpedantic -Wno-missing-field-initializers)
 endif()
 
 include(CTest)
 if(BUILD_TESTING)
+    add_test(NAME launcher_first_run COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/launcher_first_run_test.py $<TARGET_FILE:halo2_launcher>)
+    add_test(NAME bundled_launcher_first_run COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/launcher_first_run_test.py $<TARGET_FILE:halo2_onboarding>)
     add_executable(pause_gameplay_completion_tests tests/pause_gameplay_completion_tests.cpp)
     target_link_libraries(pause_gameplay_completion_tests PRIVATE halo2_renderer)
     add_test(NAME native_pause_gameplay_completion COMMAND pause_gameplay_completion_tests
