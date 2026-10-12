@@ -111,7 +111,7 @@ class LauncherHome(LauncherCanvas):
             self.poll_id = self.window.after(50, self.poll)
 
     def play(self):
-        if not self.working and str(self.play_button.cget("state")) == "normal":
+        if not self.working and str(self.play_button.cget("state")) != "disabled":
             self.result = 0
             self.close()
 

@@ -89,6 +89,15 @@ class LauncherHomeTests(unittest.TestCase):
         self.assertEqual(self.home.result, CANCELLED)
         self.assertEqual(self.calls, [])
 
+    def test_pointer_click_on_play_starts_game(self):
+        button = self.home.play_button
+        button.event_generate("<Enter>", x=10, y=10)
+        self.window.update()
+        button.event_generate("<ButtonPress-1>", x=10, y=10)
+        button.event_generate("<ButtonRelease-1>", x=10, y=10)
+        self.assertTrue(self.home.closed, "A real pointer click must hand off to the game")
+        self.assertEqual(self.home.result, 0)
+
     def test_reopening_an_incomplete_update_requires_retry(self):
         import tkinter as tk
         self.home.close()
