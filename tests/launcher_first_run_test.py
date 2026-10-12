@@ -82,6 +82,58 @@ class LauncherFirstRunTests(unittest.TestCase):
         (self.root / "assets/asset-sources.tsv").write_text(
             "H2_ASSET_SOURCES_V1\nxbox\tassets/xbox\nvista\tassets/vista\n"
         )
+        self.loading_assets(self.root / "assets/vista/loading")
+
+    def loading_assets(self, directory):
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "loading-textures.tsv").write_text("H2V_LOADING_TEXTURES_V1\n" + "row\n" * 12)
+        (directory / "loading-tone.xbox-adpcm").write_bytes(bytes(18396))
+        for index in range(12):
+            (directory / f"loading-{index:02d}.dds").write_bytes(bytes(132))
+
+    def test_missing_loading_resources_do_not_launch_an_existing_runtime(self):
+        self.ready_assets()
+        script = self.root / "tools/create_runtime.py"
+        script.write_text(self.runtime_fixture())
+        subprocess.run([sys.executable, str(script)], check=True)
+        (self.root / "assets/vista/loading/loading-11.dds").unlink()
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 23, result.stderr)
+        self.assertFalse((self.root / "runtime-call.json").exists())
+        call = json.loads((self.root / "tools/setup-call.json").read_text())
+        self.assertIn("--interactive", call)
+        self.assertIn(str(self.root / "assets/xbox"), call)
+
+    def test_old_import_repairs_loading_before_launch_without_rebuilding(self):
+        self.ready_assets()
+        script = self.root / "tools/create_runtime.py"
+        script.write_text(self.runtime_fixture())
+        subprocess.run([sys.executable, str(script)], check=True)
+        target = self.root / "assets/vista/loading/loading-11.dds"
+        target.unlink()
+        (self.root / "build-call.json").unlink()
+        (self.root / "tools/setup_assets.py").write_text(
+            "import pathlib,sys\nassert sys.argv[1:] == "
+            f"{['--root', str(self.root), '--repair-loading']!r}\n"
+            f"pathlib.Path({str(target)!r}).write_bytes(bytes(132))\n")
+        result = self.run_launcher("--skip-intro")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = json.loads((self.root / "runtime-call.json").read_text())
+        self.assertEqual(args[args.index("--menu-loading-assets") + 1], str(target.parent))
+        self.assertFalse((self.root / "build-call.json").exists())
+
+    def test_complete_legacy_loading_export_remains_usable(self):
+        self.ready_assets()
+        shutil.rmtree(self.root / "assets/vista/loading")
+        legacy = self.root / "assets/menu-ui/vista/loading"
+        self.loading_assets(legacy)
+        script = self.root / "tools/create_runtime.py"
+        script.write_text(self.runtime_fixture())
+        subprocess.run([sys.executable, str(script)], check=True)
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = json.loads((self.root / "runtime-call.json").read_text())
+        self.assertEqual(args[args.index("--menu-loading-assets") + 1], str(legacy))
 
     def successful_setup(self):
         self.ready_assets()
@@ -129,6 +181,8 @@ class LauncherFirstRunTests(unittest.TestCase):
         self.assertEqual(build_arguments, ["--root", str(self.root), "--build-dir", str(self.root / "build")])
         runtime_arguments = json.loads((self.root / "runtime-call.json").read_text())
         self.assertIn("--menu-screen", runtime_arguments)
+        self.assertEqual(runtime_arguments[runtime_arguments.index("--menu-loading-assets") + 1],
+                         str(self.root / "assets/vista/loading"))
 
     def test_prepared_checkout_builds_and_forwards_runtime_arguments(self):
         self.ready_assets()

@@ -384,7 +384,7 @@ class SourceSelector:
 
 def run(root, vista=None, xbox=None):
     terminal_setup = (
-        'Terminal setup requires both paths: ./Halo2-Launcher --setup-only '
+        'Terminal setup requires both paths: ./Halo2-Launcher '
         '--vista-source "/path/to/Vista installer.zip" --xbox-source "/path/to/Halo 2.iso"'
     )
     try:

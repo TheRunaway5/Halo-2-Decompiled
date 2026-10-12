@@ -19,6 +19,7 @@ import zipfile
 from audit_rendering import Cache, FormatError, file_sha
 from disc import Disc, inspect_xbe
 from export_vista_menu_ui import dds_image, expand_resource, mip_shapes, safe_asset_path
+from prepare_vista_loading import prepare as prepare_loading
 
 SCHEMA = "H2_ASSET_SOURCES_V1"
 VISTA_BUILD = "11081.07.04.30.0934.main"
@@ -90,26 +91,34 @@ def regular(path):
     return path
 
 
-def selected_member(name, gameplay=False):
+def selected_member(name, gameplay=False, loading_only=False):
     """Select UI inputs, or all Vista maps for the checked conversion tool."""
     p = PurePosixPath(name)
     if p.is_absolute() or any(x in ("..", ".") for x in p.parts) or "\\" in name:
         raise FormatError("unsafe Vista archive path")
+    if name in ("loading.bin", "halo2.exe"):
+        return True
+    if loading_only:
+        return False
     return (gameplay and len(p.parts) == 2 and p.parts[0] == "maps" and
             p.suffix == ".map") or name in ("maps/mainmenu.map", "maps/shared.map") or (
         len(p.parts) == 3 and p.parts[:2] == ("maps", "fonts"))
 
 
-def extract_vista(source, target, progress=print, *, gameplay=False):
+def extract_vista(source, target, progress=print, *, gameplay=False, loading_only=False):
     source = source.resolve()
     target.mkdir(parents=True)
     if source.is_dir():
         # A previously extracted installer or installed game is also a donor.
         base = source if (source / "maps/mainmenu.map").is_file() else source.parent
-        if (base / "maps/mainmenu.map").is_file():
-            selected = ([regular(p) for p in sorted((base / "maps").glob("*.map"))] if gameplay else
+        if (base / "maps/mainmenu.map").is_file() or (loading_only and (source / "loading.bin").is_file()):
+            if loading_only and (source / "loading.bin").is_file():
+                base = source
+            selected = [] if loading_only else ([regular(p) for p in sorted((base / "maps").glob("*.map"))] if gameplay else
                         [regular(base / "maps" / name) for name in ("mainmenu.map", "shared.map")])
-            selected += [regular(p) for p in sorted((base / "maps/fonts").iterdir())]
+            if not loading_only:
+                selected += [regular(p) for p in sorted((base / "maps/fonts").iterdir())]
+            selected += [regular(base / name) for name in ("loading.bin", "halo2.exe") if (base / name).exists()]
             for path in selected:
                 relative = path.relative_to(base)
                 destination = target / relative
@@ -134,14 +143,14 @@ def extract_vista(source, target, progress=print, *, gameplay=False):
                     payload = Path(temporary) / "h2pc_data.bin"
                     with archive.open(nested[0]) as inp, payload.open("xb") as out:
                         shutil.copyfileobj(inp, out, 1024 * 1024)
-                    extract_vista(payload, target / "nested", progress, gameplay=gameplay)
+                    extract_vista(payload, target / "nested", progress, gameplay=gameplay, loading_only=loading_only)
                     for child in (target / "nested").iterdir():
                         child.rename(target / child.name)
                     (target / "nested").rmdir()
                     return dict(path=str(source), kind="installer-zip", sha256=file_sha(source))
             seen = set()
             for row in rows:
-                if row.is_dir() or not selected_member(row.filename, gameplay):
+                if row.is_dir() or not selected_member(row.filename, gameplay, loading_only):
                     continue
                 if row.filename in seen or row.file_size > 512 * 1024**2 or ((row.external_attr >> 16) & 0xf000) == 0xa000:
                     raise FormatError("invalid or duplicate Vista archive member")
@@ -162,7 +171,7 @@ def extract_vista(source, target, progress=print, *, gameplay=False):
             name = fields.get("Path", "")
             if name == str(source) or not name or fields.get("Folder") == "+":
                 continue
-            if selected_member(name, gameplay):
+            if selected_member(name, gameplay, loading_only):
                 if int(fields.get("Size", "0")) > 512 * 1024**2 or "Symbolic Link" in fields:
                     raise FormatError("invalid Vista archive member")
                 names.append(name)
@@ -175,8 +184,9 @@ def extract_vista(source, target, progress=print, *, gameplay=False):
                        stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for name in names:
             regular(target / name)
-    for name in ("mainmenu.map", "shared.map"):
-        regular(target / "maps" / name)
+    if not loading_only:
+        for name in ("mainmenu.map", "shared.map"):
+            regular(target / "maps" / name)
     return dict(path=str(source), kind="archive", sha256=file_sha(source))
 
 
@@ -465,6 +475,8 @@ def setup(root, vista_source, xbox_source, progress=print):
         validate_xbox(xbox)
         ui = stage / "vista"
         ui.mkdir()
+        progress("Preparing original Vista loading textures and ambience…")
+        loading = prepare_loading(donor, ui / "loading", progress)
         progress("Matching Vista artwork to the existing menu and HUD layouts…")
         with ExitStack() as stack:
             caches = []
@@ -494,7 +506,7 @@ def setup(root, vista_source, xbox_source, progress=print):
         report = dict(schema=SCHEMA, complete=True,
             xbox=dict(root=str(xbox_final), source=xbox_source_record, files=xbox_files),
             vista=dict(root=str(final / "vista"), source=vista_source_record, donor_maps=donor_maps,
-                       files=ui_files, menu=menu, hud=hud),
+                       files=ui_files, menu=menu, hud=hud, loading=loading),
             policy=dict(gameplay="xbox", world_models_textures="xbox", ui_pixels_fonts="vista",
                 match_announcer_audio="vista",
                 ui_layout="existing", shaders="independently implemented Vulkan GLSL; Xbox behavior reference",
@@ -521,17 +533,65 @@ def setup(root, vista_source, xbox_source, progress=print):
             shutil.rmtree(stage)
 
 
+def repair_loading(root, progress=print):
+    """Backfill an older import from its recorded donor, without copying maps/disc."""
+    root = Path(root).resolve()
+    lines = (root / "assets/asset-sources.tsv").read_text().splitlines()
+    if not lines or lines[0] != SCHEMA:
+        raise FormatError("Invalid game-file source registry")
+    sources = dict(line.split("\t") for line in lines[1:])
+    vista = (root / sources["vista"]).resolve()
+    # Only our own private import has provenance that can be updated safely.
+    if vista.parent.parent != (root / "assets/imported").resolve() or vista.name != "vista":
+        raise FormatError("Select the Vista installer again to prepare its loading resources")
+    provenance = vista.parent / "provenance.json"
+    report = json.loads(provenance.read_text())
+    source = Path(report["vista"]["source"]["path"])
+    if not source.exists():
+        raise FormatError(f"The saved Vista installer is unavailable: {source}")
+    with tempfile.TemporaryDirectory(prefix=".loading-", dir=vista) as temporary:
+        stage = Path(temporary)
+        extract_vista(source, stage / "donor", progress, loading_only=True)
+        loading = prepare_loading(stage / "donor", stage / "loading", progress)
+        entries = {"loading/" + name: value for name, value in inventory(stage / "loading").items()}
+        destination = vista / "loading"
+        backup = None
+        if destination.exists():
+            backup = vista / ("loading.previous-" + uuid.uuid4().hex)
+            destination.rename(backup)
+        try:
+            (stage / "loading").rename(destination)
+        except BaseException:
+            if backup:
+                backup.rename(destination)
+            raise
+        report["vista"]["loading"] = loading
+        report["vista"]["files"].update(entries)
+        pending = stage / "provenance.json"
+        pending.write_text(json.dumps(report, indent=2) + "\n")
+        os.replace(pending, provenance)
+    progress("Original Vista loading resources are ready.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--vista", type=Path, help="Vista installer ZIP/data archive, setup EXE with data, or extracted folder")
     parser.add_argument("--xbox", type=Path, help="Original Halo 2 Xbox ISO or complete extracted game folder")
     parser.add_argument("--interactive", action="store_true")
+    parser.add_argument("--repair-loading", action="store_true", help="repair a saved import's missing loading resources from its recorded installer")
     parser.add_argument("--import-mcc-hud", action="store_true", help="Import and select the installed MCC Halo 2 Classic HUD/fonts")
     parser.add_argument("--mcc-root", type=Path, help="MCC installation; implies --import-mcc-hud")
     parser.add_argument("--prepare-vista-gameplay", action="store_true",
         help="prepare Vista maps/tags with verified TU1.5 corrections; does not activate unsupported native playback")
     args = parser.parse_args()
+    if args.repair_loading:
+        try:
+            repair_loading(args.root)
+            return 0
+        except (OSError, ValueError, KeyError, subprocess.SubprocessError, zipfile.BadZipFile) as error:
+            print(f"Loading resource repair needs source selection: {error}", file=sys.stderr)
+            return 2
     if args.import_mcc_hud or args.mcc_root:
         if args.interactive or args.prepare_vista_gameplay:
             parser.error("MCC HUD import requires the normal game sources to be set up first")

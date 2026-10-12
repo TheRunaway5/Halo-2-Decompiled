@@ -1,5 +1,6 @@
 """Source-selection and archive boundaries; real-source checks are separate."""
 import io
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -155,7 +156,8 @@ class SetupTests(unittest.TestCase):
         rows = [("maps/mainmenu.map", b"menu"), ("maps/shared.map", b"audio"),
                 ("maps/lockout.map", b"lockout responses"),
                 ("maps/ascension.map", b"ascension responses"),
-                ("maps/fonts/conduit-13", b"font"), ("setup.exe", b"excluded")]
+                ("maps/fonts/conduit-13", b"font"), ("setup.exe", b"excluded"),
+                ("loading.bin", b"loading images"), ("halo2.exe", b"loading audio")]
         for archive in (False, True):
             with self.subTest(archive=archive), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
@@ -177,9 +179,17 @@ class SetupTests(unittest.TestCase):
                 # Bitmap decoding and Xbox validation have independent tests.
                 # Leave the actual extraction, copy, provenance and registry
                 # commit in place to catch discarded source cache owners.
+                def loading(donor, output, progress):
+                    self.assertEqual((donor / "loading.bin").read_bytes(), b"loading images")
+                    self.assertEqual((donor / "halo2.exe").read_bytes(), b"loading audio")
+                    output.mkdir()
+                    (output / "loading-textures.tsv").write_text("prepared loading bank")
+                    (output / "loading-tone.xbox-adpcm").write_bytes(b"prepared ambience")
+                    return {"complete": True}
                 with patch.object(assets, "validate_xbox"), \
                      patch.object(assets, "Cache"), \
                      patch.object(assets, "VistaUiCache"), \
+                     patch.object(assets, "prepare_loading", side_effect=loading), \
                      patch.object(assets, "export_pack", return_value={"banks": 0}):
                     report = assets.setup(root, source, xbox, lambda _: None)
                 registry = dict(line.split("\t") for line in
@@ -194,6 +204,45 @@ class SetupTests(unittest.TestCase):
                     self.assertEqual(report["vista"]["files"][name]["sha256"],
                                      assets.file_sha(installed / name))
                 self.assertFalse((installed / "setup.exe").exists())
+                self.assertTrue(report["vista"]["loading"]["complete"])
+                for name in ("loading-textures.tsv", "loading-tone.xbox-adpcm"):
+                    self.assertIn("loading/" + name, report["vista"]["files"])
+                    self.assertTrue((installed / "loading" / name).is_file())
+
+    def test_loading_repair_extracts_only_loading_inputs_and_preserves_selection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            vista = root / "assets/imported/original/vista"
+            vista.mkdir(parents=True)
+            (vista / "pack.tsv").write_bytes(b"existing menu")
+            (vista / "loading").mkdir()
+            (vista / "loading/keep.txt").write_text("previous incomplete export")
+            registry = root / "assets/asset-sources.tsv"
+            registry.write_text(f"{assets.SCHEMA}\nxbox\tunchanged-xbox\nvista\t{vista}\n")
+            before = registry.read_bytes()
+            source = root / "installer.zip"
+            source.write_bytes(archive_bytes([("h2pc_data.bin", archive_bytes([
+                ("maps/mainmenu.map", b"do not copy"), ("maps/shared.map", b"do not copy"),
+                ("loading.bin", b"images"), ("halo2.exe", b"audio"), ("setup.exe", b"do not run")]))]))
+            provenance = vista.parent / "provenance.json"
+            provenance.write_text(json.dumps({"vista": {"source": {"path": str(source)},
+                                                        "files": {"pack.tsv": {"existing": True}}}}))
+            def loading(donor, output, progress):
+                self.assertEqual({p.name for p in donor.iterdir()}, {"loading.bin", "halo2.exe"})
+                output.mkdir()
+                (output / "loading-textures.tsv").write_text("complete")
+                return {"complete": True}
+            with patch.object(assets, "prepare_loading", side_effect=loading):
+                assets.repair_loading(root, lambda _: None)
+            self.assertEqual(registry.read_bytes(), before)
+            self.assertEqual((vista / "pack.tsv").read_bytes(), b"existing menu")
+            self.assertEqual((vista / "loading/loading-textures.tsv").read_text(), "complete")
+            report = json.loads(provenance.read_text())
+            self.assertIn("loading/loading-textures.tsv", report["vista"]["files"])
+            self.assertTrue(report["vista"]["files"]["pack.tsv"]["existing"])
+            backups = list(vista.glob("loading.previous-*"))
+            self.assertEqual(len(backups), 1)
+            self.assertTrue((backups[0] / "keep.txt").is_file())
 
     @unittest.skipUnless(shutil.which("7z") or shutil.which("7zz"), "7-Zip not installed")
     def test_solid_archive_extracts_exact_allowlist_in_one_pass(self):

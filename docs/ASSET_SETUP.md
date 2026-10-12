@@ -10,7 +10,8 @@ First launch requires two user-supplied sources:
 
 * **Halo 2 Vista installer**: the inspected installer ZIP, `h2pc_data.bin`,
   its setup EXE alongside that data archive, or an already extracted folder.
-  Supplies HUD/menu artwork, compiled fonts and original match announcer audio.
+  Supplies HUD/menu artwork, compiled fonts, original match announcer audio,
+  and the loading textures/ambience from `loading.bin` and `halo2.exe`.
 * **Halo 2 for Xbox**: the original retail ISO or a complete extracted disc
   folder. Supplies gameplay caches, models, world/weapon textures, material
   definitions, audio, movies and original executable reference data.
@@ -96,6 +97,17 @@ source/archive and asset hashes, admitted banks, exclusions and policy.
 `assets/asset-sources.tsv` is replaced atomically only after success. Failed or
 cancelled setup cannot select incomplete files or overwrite the prior registry.
 Original inputs and older imports are preserved.
+
+The selected Vista import owns `loading/`: twelve DDS textures, their manifest,
+and the original loading ambience. Preparation verifies every texture payload
+against the captured Microsoft D3DX9_31 output and validates the source bank and
+executable fingerprints. It requires no DirectX or Wine. NumPy can accelerate
+this step when installed; a matching standard-library decoder is included.
+The launcher checks the complete loading bank before starting the game.
+Older imports missing it are repaired automatically from the installer path
+saved in their provenance, without importing the Xbox disc or Vista maps again.
+If that installer was moved or removed, source selection opens again. A complete
+legacy export under `assets/menu-ui/vista/loading` also remains supported.
 
 The supported Xbox cache build is `02.09.27.09809`, with the inspected original
 retail executable fingerprint. The supported Vista donor build is

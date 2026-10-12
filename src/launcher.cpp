@@ -111,8 +111,8 @@ Installation locate() {
       "including tools/setup_assets.py and tools/setup_assets_ui.py.");
 }
 struct AssetSources {
-  fs::path xbox, vista;
-  bool ready() const {
+  fs::path xbox, vista, loading;
+  bool base_ready() const {
     return !xbox.empty() && !vista.empty() &&
         fs::is_regular_file(xbox/"default.xbe") &&
         fs::is_regular_file(xbox/"maps/mainmenu.map") &&
@@ -124,6 +124,24 @@ struct AssetSources {
         fs::is_regular_file(vista/"maps/shared.map") &&
         fs::is_regular_file(vista/"maps/lockout.map") && fs::is_directory(vista/"fonts");
   }
+  static bool loading_ready(const fs::path &directory) {
+    std::error_code error;
+    if(!fs::is_regular_file(directory/"loading-tone.xbox-adpcm",error) ||
+        fs::file_size(directory/"loading-tone.xbox-adpcm",error)!=18396 || error)return false;
+    std::ifstream manifest(directory/"loading-textures.tsv");
+    std::string line;
+    if(!std::getline(manifest,line) || line!="H2V_LOADING_TEXTURES_V1")return false;
+    unsigned rows{};
+    while(std::getline(manifest,line))++rows;
+    if(rows!=12)return false;
+    for(unsigned index=0;index<12;++index) {
+      const auto name="loading-"+std::string(index<10?"0":"")+std::to_string(index)+".dds";
+      if(!fs::is_regular_file(directory/name,error) ||
+          fs::file_size(directory/name,error)<132 || error)return false;
+    }
+    return true;
+  }
+  bool ready() const {return base_ready() && loading_ready(loading);}
 };
 AssetSources read_sources(const fs::path &root) {
   std::ifstream file(root/"assets/asset-sources.tsv");
@@ -142,6 +160,12 @@ AssetSources read_sources(const fs::path &root) {
     else if(name=="vista" && result.vista.empty())result.vista=value;
     else return {};
   }
+  result.loading=result.vista/"loading";
+  // Previously prepared developer checkouts used the separate legacy export.
+  // Fresh and repaired imports own their complete bank beside the Vista UI.
+  const auto legacy=root/"assets/menu-ui/vista/loading";
+  if(!AssetSources::loading_ready(result.loading) && AssetSources::loading_ready(legacy))
+    result.loading=legacy;
   return result;
 }
 fs::path read_hud_source(const fs::path &root,const AssetSources &sources) {
@@ -276,7 +300,7 @@ int main(int argc, char **argv) {
                 << "Selected menus/fonts: " << read_menu_source(installation.root,sources).string() << '\n'
                 << "ONLINE/clan UI/fonts: " << sources.vista.string() << '\n'
                 << "Default pause UI/fonts: " << sources.vista.string() << '\n'
-                << "Vista loading assets: " << (installation.root/"assets/menu-ui/vista/loading").string() << '\n'
+                << "Vista loading assets: " << sources.loading.string() << '\n'
                 << "Default gameplay XBE: " << (gameplay.empty()?
                     "disc default.xbe (or explicit --gameplay-xbe override)":gameplay.string()) << '\n'
                 << "Shaders: native Vulkan GLSL; Xbox material behavior reference\n";
@@ -287,11 +311,20 @@ int main(int argc, char **argv) {
     if(help)std::cout<<"MCC Classic HUD: --import-mcc-hud [--mcc-source PATH] [--setup-only]\n";
     if(help)std::cout<<"MCC Classic menus: --import-mcc-menus [--mcc-source PATH] [--setup-only]\n";
     if(help && installation.runtime.empty())return 0;
+    if(!help && !setup && sources.base_ready() && !sources.ready()) {
+      // Older imports discarded loading.bin/halo2.exe. Reopen only those
+      // recorded installer members; keep the prepared maps and Xbox disc.
+      const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,
+          (installation.root/"tools/setup_assets.py").string(),"--root",
+          installation.root.string(),"--repair-loading"});
+      if(status==0)sources=read_sources(installation.root);
+      if(!sources.ready() && xbox_source.empty())xbox_source=sources.xbox.string();
+    }
     if(!help && ((setup && !import_mcc && !import_menus) || !sources.ready() || !vista_source.empty() || !xbox_source.empty())) {
       const auto status=prepare_sources(installation,vista_source,xbox_source);
       if(status)return status;
       sources=read_sources(installation.root);
-      if(!sources.ready())throw std::runtime_error("Setup did not provide both Vista UI and Xbox game files");
+      if(!sources.ready())throw std::runtime_error("Setup did not provide complete Vista UI/loading and Xbox game files");
       prepared_sources=true;
     }
     if(!help && import_mcc) {
@@ -343,7 +376,7 @@ int main(int argc, char **argv) {
     }
     if(menu_route && !has("--menu-loading-assets")) {
       arguments.push_back("--menu-loading-assets");
-      arguments.push_back((installation.root/"assets/menu-ui/vista/loading").string());
+      arguments.push_back(sources.loading.string());
     }
     const auto vista_settings=sources.vista/"maps/mainmenu.map";
     if(menu_route && fs::is_regular_file(vista_settings) && !has("--menu-vista-settings")) {
