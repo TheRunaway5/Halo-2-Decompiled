@@ -222,13 +222,14 @@ int main(int argc, char **argv) {
       const std::string argument=argv[i];
       if(argument=="--setup" || argument=="--setup-only") {
         setup=true;setup_only|=argument=="--setup-only";
-      } else if(argument=="--vista-source" || argument=="--xbox-source") {
-        if(++i>=argc)throw std::runtime_error("missing value for "+argument);
-        (argument=="--vista-source"?vista_source:xbox_source)=argv[i];
-        setup=true;
-      } else if(argument=="--mcc-source") {
-        if(++i>=argc)throw std::runtime_error("missing value for "+argument);
-        mcc_source=argv[i];
+      } else if(argument=="--vista-source" || argument=="--xbox-source" || argument=="--mcc-source") {
+        if(++i>=argc || !*argv[i] || std::string(argv[i]).starts_with("--"))
+          throw std::runtime_error("missing value for "+argument+" (expected a file or folder path)");
+        if(argument=="--mcc-source")mcc_source=argv[i];
+        else {
+          (argument=="--vista-source"?vista_source:xbox_source)=argv[i];
+          setup=true;
+        }
       } else if(argument=="--import-mcc-hud")import_mcc=true;
       else if(argument=="--import-mcc-menus")import_menus=true;
       else supplied.push_back(argument);

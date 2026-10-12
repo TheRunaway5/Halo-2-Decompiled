@@ -178,6 +178,15 @@ Configuring CMake after setup uses the selected Xbox source for the menu and
 particle shaders, including sources imported outside `assets/disc`.
 
 The bundled executable uses `python3` from your PATH and requires SDL2 and Tk.
+If the setup window cannot open, run `python3 -m tkinter` to check Tk in that
+interpreter. A missing Tk module requires your distribution's Python Tk package.
+Terminal setup works without Tk when both source flags have a file or folder
+path after them (quote paths containing spaces):
+
+```bash
+./Halo2-Launcher --setup-only --vista-source "/path/to/Vista installer.zip" --xbox-source "/path/to/Halo 2.iso"
+```
+
 To regenerate it after changing launcher source:
 
 ```bash

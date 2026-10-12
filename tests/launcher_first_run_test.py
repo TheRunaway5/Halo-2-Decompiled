@@ -47,6 +47,26 @@ class LauncherFirstRunTests(unittest.TestCase):
                 arguments = json.loads((self.root / "tools/setup-call.json").read_text())
                 self.assertEqual(arguments, ["--root", str(self.root), "--interactive"])
 
+    def test_source_flags_require_paths_before_running_setup(self):
+        for flag in ("--vista-source", "--xbox-source", "--mcc-source"):
+            for value in ((), ("",), ("--setup-only",), ("--xbox-source",)):
+                with self.subTest(flag=flag, value=value):
+                    result = self.run_launcher("--setup-only", flag, *value)
+                    self.assertEqual(result.returncode, 1, result.stderr)
+                    self.assertIn("missing value for " + flag, result.stderr)
+                    self.assertIn("file or folder path", result.stderr)
+                    self.assertFalse((self.root / "tools/setup-call.json").exists())
+
+    def test_explicit_source_paths_skip_the_gui(self):
+        vista = str(Path(self.temporary.name) / "Vista installer.zip")
+        xbox = str(Path(self.temporary.name) / "Halo 2.iso")
+        result = self.run_launcher(
+            "--setup-only", "--vista-source", vista, "--xbox-source", xbox,
+        )
+        self.assertEqual(result.returncode, 23, result.stderr)
+        arguments = json.loads((self.root / "tools/setup-call.json").read_text())
+        self.assertEqual(arguments, ["--root", str(self.root), "--vista", vista, "--xbox", xbox])
+
 
 if __name__ == "__main__":
     unittest.main()

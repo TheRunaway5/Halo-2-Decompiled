@@ -5,6 +5,7 @@ external fonts, or generated images are loaded by this window.
 """
 import math
 import queue
+import sys
 import threading
 from pathlib import Path
 
@@ -382,14 +383,21 @@ class SourceSelector:
 
 
 def run(root, vista=None, xbox=None):
+    terminal_setup = (
+        'Terminal setup requires both paths: ./Halo2-Launcher --setup-only '
+        '--vista-source "/path/to/Vista installer.zip" --xbox-source "/path/to/Halo 2.iso"'
+    )
     try:
         import tkinter as tk
     except ImportError as error:
-        raise RuntimeError("The source selector requires Python Tk. Alternatively use --vista-source and --xbox-source.") from error
+        raise RuntimeError(
+            f"The source selector requires Python Tk, which could not load in {sys.executable}: {error}\n"
+            f"Install Tk for this Python interpreter and retry.\n{terminal_setup}"
+        ) from error
     try:
         window = tk.Tk()
     except tk.TclError as error:
-        raise RuntimeError("Cannot open the source selector. Use --vista-source and --xbox-source for terminal setup.") from error
+        raise RuntimeError(f"Cannot open the source selector: {error}\n{terminal_setup}") from error
     selector = SourceSelector(window, root, vista, xbox)
     window.mainloop()
     return selector.result

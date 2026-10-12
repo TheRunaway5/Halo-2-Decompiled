@@ -48,6 +48,19 @@ def archive_bytes(rows):
     return stream.getvalue()
 
 
+class SourceSelectorStartupTests(unittest.TestCase):
+    def test_missing_tk_names_the_interpreter_and_both_source_paths(self):
+        from setup_assets_ui import run
+        with patch.dict(sys.modules, {"tkinter": None}):
+            with self.assertRaises(RuntimeError) as failure:
+                run(ROOT)
+        message = str(failure.exception)
+        self.assertIn(sys.executable, message)
+        self.assertIn(str(failure.exception.__cause__), message)
+        self.assertIn('--vista-source "/path/to/Vista installer.zip"', message)
+        self.assertIn('--xbox-source "/path/to/Halo 2.iso"', message)
+
+
 class SetupTests(unittest.TestCase):
     @unittest.skipUnless((ROOT / "Halo 2 Vista installer/maps/shared.map").is_file(), "owned Vista donor unavailable")
     def test_all_vista_crosshair_pages(self):
