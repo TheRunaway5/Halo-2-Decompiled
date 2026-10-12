@@ -11,7 +11,7 @@ import threading
 def current_cache(root, build):
     cache = build / "CMakeCache.txt"
     if not cache.is_file():
-        return not build.exists() or not any(build.iterdir())
+        return (not build.exists() and not build.is_symlink()) or (build.is_dir() and not any(build.iterdir()))
     values = {}
     for line in cache.read_text(errors="replace").splitlines():
         if "=" in line and not line.startswith(("#", "//")):
@@ -27,6 +27,8 @@ def build_runtime(root, build=None, progress=print):
     build = Path(build).absolute() if build is not None else root / "build"
     if not (root / "CMakeLists.txt").is_file():
         raise RuntimeError(f"Project CMakeLists.txt is missing: {root}")
+    if build.resolve() == root or build.resolve() in root.parents:
+        raise RuntimeError("Automatic builds require a separate build directory outside the source files.")
     cmake = shutil.which("cmake")
     if cmake is None:
         raise RuntimeError("CMake is required to build Halo 2. Install CMake, then launch again.")
@@ -50,7 +52,13 @@ def build_runtime(root, build=None, progress=print):
     compile_command = [cmake, "--build", str(build), "--target", "halo2_launcher",
                        "halo2_title_launcher", "--parallel"]
     if not os.environ.get("CMAKE_BUILD_PARALLEL_LEVEL"):
-        compile_command.append(str(min(os.cpu_count() or 1, 8)))
+        jobs = min(os.cpu_count() or 1, 8)
+        try:
+            available = os.sysconf("SC_AVPHYS_PAGES") * os.sysconf("SC_PAGE_SIZE")
+            jobs = min(jobs, max(1, available // (2 * 1024 ** 3)))
+        except (AttributeError, OSError, ValueError):
+            pass
+        compile_command.append(str(jobs))
     with log_path.open("w") as log:
         for stage, command in (("Configuring Halo 2", configure), ("Building Halo 2", compile_command)):
             progress(stage + "…")
@@ -84,28 +92,30 @@ class BuildWindow:
         window.protocol("WM_DELETE_WINDOW", self.close)
         frame = tk.Frame(window, background=PANEL, padx=24, pady=20)
         frame.pack(fill="both", expand=True)
+        frame.columnconfigure(0, weight=1)
+        frame.rowconfigure(4, weight=1)
         tk.Label(frame, text="Building Halo 2", background=PANEL, foreground=INK,
-                 font=("TkDefaultFont", 22), anchor="w").pack(fill="x")
+                 font=("TkDefaultFont", 22), anchor="w").grid(row=0, column=0, sticky="ew")
         tk.Label(frame, text="Your files are ready. The game will start when the build completes.",
-                 background=PANEL, foreground=MUTED, anchor="w", wraplength=width - 48).pack(fill="x", pady=(8, 16))
+                 background=PANEL, foreground=MUTED, anchor="w", wraplength=width - 48).grid(row=1, column=0, sticky="ew", pady=(8, 16))
         self.status = tk.Label(frame, text="Preparing the build…", background=PANEL,
                                foreground=CYAN, anchor="w", wraplength=width - 48)
-        self.status.pack(fill="x")
+        self.status.grid(row=2, column=0, sticky="ew")
         self.bar = ttk.Progressbar(frame, mode="indeterminate")
-        self.bar.pack(fill="x", pady=(10, 16))
+        self.bar.grid(row=3, column=0, sticky="ew", pady=(10, 16))
         self.bar.start(14)
         output = tk.Frame(frame, background=FIELD)
-        output.pack(fill="both", expand=True)
+        output.grid(row=4, column=0, sticky="nsew")
         scrollbar = tk.Scrollbar(output)
         scrollbar.pack(side="right", fill="y")
         self.output = tk.Text(output, background=FIELD, foreground=MUTED, font="TkFixedFont",
-                              wrap="word", relief="flat", padx=10, pady=10,
+                              wrap="word", relief="flat", padx=10, pady=10, height=8, width=1,
                               yscrollcommand=scrollbar.set, state="disabled")
         self.output.pack(fill="both", expand=True)
         scrollbar.configure(command=self.output.yview)
         self.button = tk.Button(frame, text="Building…", state="disabled", command=self.close,
                                 background="#a6e4ef", foreground="#092335", relief="flat", padx=18, pady=8)
-        self.button.pack(anchor="e", pady=(16, 0))
+        self.button.grid(row=5, column=0, sticky="e", pady=(16, 0))
 
         def progress(message):
             print(message, flush=True)

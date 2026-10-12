@@ -162,20 +162,25 @@ nlohmann-json 3.10+, and a Vulkan-capable GPU.
 The current runtime was built and tested on Linux. Other desktop systems have
 not been validated.
 
-For a fresh checkout, build and run the launcher from the project root:
+For a fresh checkout, run the included launcher from the project root:
 
 ```bash
-./Halo2-Launcher --setup-only
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
-cmake --build build --target halo2_launcher -j
-./build/Halo2-Launcher
+./Halo2-Launcher
 ```
 
 The first launch opens the game-file setup window. Select your Xbox ISO or
 extracted disc folder and Vista installer, then choose **Prepare game files**.
-The launcher saves that selection and starts the game after setup succeeds.
-Configuring CMake after setup uses the selected Xbox source for the menu and
-particle shaders, including sources imported outside `assets/disc`.
+The launcher saves that selection, configures CMake, builds the runtime, and
+starts the game automatically. A build window shows progress and compiler
+output; the full log is saved as `build/launcher-build.log`. Later launches
+reuse the prepared files and built runtime. Selecting new sources reconfigures
+and rebuilds the runtime so menu and particle shaders use the selected Xbox
+source, including sources imported outside `assets/disc`.
+
+If a checkout was moved or copied, an incompatible CMake build directory is
+preserved as `build.previous` (with a numeric suffix when needed), and the
+launcher creates a fresh `build` directory automatically. CMake, Ninja and the
+development dependencies listed above must be installed for the first build.
 
 The bundled executable uses `python3` from your PATH and requires SDL2 and Tk.
 If the setup window cannot open, run `python3 -m tkinter` to check Tk in that
@@ -184,7 +189,16 @@ Terminal setup works without Tk when both source flags have a file or folder
 path after them (quote paths containing spaces):
 
 ```bash
-./Halo2-Launcher --setup-only --vista-source "/path/to/Vista installer.zip" --xbox-source "/path/to/Halo 2.iso"
+./Halo2-Launcher --vista-source "/path/to/Vista installer.zip" --xbox-source "/path/to/Halo 2.iso"
+```
+
+Use `--setup-only` when you want to prepare files and exit. For a manual build:
+
+```bash
+./Halo2-Launcher --setup-only
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build --target halo2_launcher -j
+./build/Halo2-Launcher
 ```
 
 To regenerate it after changing launcher source:

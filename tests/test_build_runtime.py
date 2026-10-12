@@ -1,8 +1,6 @@
 """Exercise automatic configuration and stale-cache recovery with real CMake."""
-import os
 from pathlib import Path
 import shutil
-import subprocess
 import sys
 import tempfile
 import unittest
@@ -104,6 +102,13 @@ class RuntimeBuildTests(unittest.TestCase):
                 self.run_build()
         self.assertTrue((self.root / "build/keep-me").is_file())
         self.assertFalse((self.root / "build.previous").exists())
+
+    def test_source_directory_cannot_be_replaced_by_a_build(self):
+        for directory in (self.root, self.root.parent):
+            with self.subTest(directory=directory):
+                with self.assertRaisesRegex(RuntimeError, "separate build directory"):
+                    build_runtime(self.root, directory, self.messages.append)
+                self.assertTrue((self.root / "CMakeLists.txt").is_file())
 
 
 if __name__ == "__main__":

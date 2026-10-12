@@ -100,7 +100,8 @@ Installation locate() {
                         return fs::is_regular_file(shader_dir / name);
                       });
       if (shaders)
-        return {project, fs::canonical(binary), binary.parent_path()};
+        return {project, fs::canonical(binary),
+            fs::is_regular_file(binary.parent_path()/"CMakeCache.txt")?binary.parent_path():build};
     }
     // First-run source selection also works before the runtime is built.
     return {project, {}, build};

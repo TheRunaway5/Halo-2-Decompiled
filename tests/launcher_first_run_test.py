@@ -78,7 +78,7 @@ class LauncherFirstRunTests(unittest.TestCase):
             path = self.root / "assets" / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.touch()
-        (self.root / "assets/vista/fonts").mkdir()
+        (self.root / "assets/vista/fonts").mkdir(exist_ok=True)
         (self.root / "assets/asset-sources.tsv").write_text(
             "H2_ASSET_SOURCES_V1\nxbox\tassets/xbox\nvista\tassets/vista\n"
         )
@@ -151,6 +151,48 @@ class LauncherFirstRunTests(unittest.TestCase):
         self.assertTrue((self.root / "setup-finished").exists())
         self.assertFalse((self.root / "build-call.json").exists())
         self.assertFalse((self.root / "runtime-call.json").exists())
+
+    def test_existing_runtime_launches_without_requiring_build_tools(self):
+        self.ready_assets()
+        script = self.root / "tools/create_runtime.py"
+        script.write_text(self.runtime_fixture())
+        subprocess.run([sys.executable, str(script)], check=True)
+        (self.root / "build-call.json").unlink()
+        result = self.run_launcher("--inspect")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.root / "build-call.json").exists())
+        self.assertTrue((self.root / "runtime-call.json").exists())
+
+    def test_selecting_sources_rebuilds_an_existing_runtime(self):
+        self.ready_assets()
+        script = self.root / "tools/build_runtime.py"
+        script.write_text(self.runtime_fixture())
+        subprocess.run([sys.executable, str(script)], check=True)
+        (self.root / "build-call.json").unlink()
+        self.successful_setup()
+        result = self.run_launcher("--setup")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.root / "build-call.json").exists())
+        self.assertTrue((self.root / "runtime-call.json").exists())
+
+    @unittest.skipUnless(shutil.which("cmake") and shutil.which("ninja"), "CMake and Ninja required")
+    def test_real_cmake_build_is_followed_by_runtime_launch(self):
+        self.ready_assets()
+        source = Path(__file__).resolve().parents[1] / "tools/build_runtime.py"
+        shutil.copy2(source, self.root / "tools/build_runtime.py")
+        (self.root / "tools/create_runtime.py").write_text(self.runtime_fixture())
+        (self.root / "CMakeLists.txt").write_text(
+            "cmake_minimum_required(VERSION 3.24)\nproject(LauncherFixture LANGUAGES NONE)\n"
+            "find_package(Python3 REQUIRED COMPONENTS Interpreter)\n"
+            'add_custom_target(halo2_launcher COMMAND "${Python3_EXECUTABLE}" '
+            '"${CMAKE_SOURCE_DIR}/tools/create_runtime.py" VERBATIM)\n'
+            "add_custom_target(halo2_title_launcher)\n"
+        )
+        result = self.run_launcher("--inspect")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue((self.root / "build/CMakeCache.txt").is_file())
+        self.assertTrue((self.root / "build/launcher-build.log").is_file())
+        self.assertIn("--inspect", json.loads((self.root / "runtime-call.json").read_text()))
 
     def test_moved_build_is_rebuilt_instead_of_launching_the_old_runtime(self):
         self.ready_assets()

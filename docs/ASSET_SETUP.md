@@ -15,8 +15,14 @@ First launch requires two user-supplied sources:
   folder. Supplies gameplay caches, models, world/weapon textures, material
   definitions, audio, movies and original executable reference data.
 
-Select both in the first-run window and choose **Prepare game files**. The
-installer executable is never run. Subsequent launches use the saved selection.
+Run `./Halo2-Launcher`, select both in the first-run window, and choose
+**Prepare game files**. The launcher then configures and builds the runtime
+with CMake and starts the game automatically. Build progress and compiler
+output appear in a window and are saved to `build/launcher-build.log`.
+An incompatible build cache left by moving or copying the checkout is
+preserved in `build.previous` before a clean build is configured.
+The installer executable is never run. Subsequent launches use the saved
+selection and built runtime. Selecting new sources rebuilds the runtime.
 The setup window uses hand-drawn vector lettering, orbital geometry, and blue
 menu panels. It loads no game artwork, image files, or bundled fonts. Both
 launchers use the same window; `python3 tools/setup_assets_ui.py` opens a visual
@@ -25,13 +31,13 @@ The window needs Python 3.11+ with Tk; the supplied installer data format needs
 7-Zip (`7z` or `7zz`). Terminal setup works without Tk:
 
 ```sh
-./Halo2-Launcher --setup-only \
+./Halo2-Launcher \
   --vista-source '/path/to/h2pc_installer_2.1.zip' \
   --xbox-source '/path/to/Halo 2.iso'
-./Halo2-Launcher
 ```
 
-`--setup` reopens selection. `--launcher-info` reports saved roots and readiness.
+`--setup` reopens selection and rebuilds before launch. `--setup-only` prepares
+files and exits. `--launcher-info` reports saved roots and readiness.
 Help works before import. Selecting an extracted Xbox folder avoids another
 disc copy; it remains a read-only reference and must remain available. An ISO
 is extracted into a new private import directory.
