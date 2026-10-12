@@ -2825,6 +2825,12 @@ if(BUILD_TESTING)
     target_link_libraries(sound_sdk_notifications_tests PRIVATE halo2_cache halo2_native_synchronization)
     add_test(NAME original_sound_sdk_notifications COMMAND sound_sdk_notifications_tests
         ${CMAKE_SOURCE_DIR}/tests/fixtures/sound_sdk_notifications.original.json)
+    add_executable(sound_base_constants_tests tests/sound_base_constants_tests.cpp)
+    target_link_libraries(sound_base_constants_tests PRIVATE halo2_cache)
+    add_test(NAME original_sound_base_constants COMMAND sound_base_constants_tests
+        ${CMAKE_SOURCE_DIR}/analysis/multiplayer/integration/base-sound-parameters-20261012/constants.tsv
+        ${CMAKE_SOURCE_DIR}/assets/disc/default.xbe)
+    set_tests_properties(original_sound_base_constants PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(sound_create_constants_tests tests/sound_create_constants_tests.cpp)
     target_link_libraries(sound_create_constants_tests PRIVATE halo2_cache)
     add_test(NAME original_sound_create_constants COMMAND sound_create_constants_tests
@@ -3024,6 +3030,10 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
     set_tests_properties(original_sound_driver_parameters PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_sound_base_parameters COMMAND sound_driver_parameters_tests --selected-image
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/integration/sound-platform-voice-contract/scalar-fixtures.tsv
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/default.xbe)
+    set_tests_properties(original_sound_base_parameters PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_tag_metadata_store_tests tests/source_tag_metadata_store_tests.cpp)
     target_link_libraries(source_tag_metadata_store_tests PRIVATE halo2_cache)
     add_test(NAME original_source_tag_metadata_store COMMAND source_tag_metadata_store_tests

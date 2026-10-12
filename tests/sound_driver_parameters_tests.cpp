@@ -29,22 +29,27 @@ std::uint16_t control_word(){std::uint16_t out;asm volatile("fnstcw %0":"=m"(out
 }
 int main(int argc,char **argv){
   try{
-    check(argc==6,"Supply scalar/operand fixtures and base/1.1/u5 executables");
-    for(int i=1;i<argc;++i)if(!std::filesystem::exists(argv[i]))return 77;
-    check(!OriginalData::load_xbe(argv[3])->sound_driver_parameter_constants,"Unverified base driver constants invented");
-    std::array<std::shared_ptr<const OriginalData>,2> images{
-      OriginalData::load_xbe(argv[4]),OriginalData::load_xbe(argv[5])};
-    std::ifstream operands(argv[2]);std::size_t constants=0;
-    for(std::string line;std::getline(operands,line);){
-      std::istringstream row(line);char kind;unsigned image;
-      check(bool(row>>kind>>image) && kind=='C' && image==constants+1 && image<=2,"Incomplete original operands");
-      check(bool(images[image-1]->sound_driver_parameter_constants),"Verified driver operands unavailable");
-      const auto actual=words(*images[image-1]->sound_driver_parameter_constants);
-      for(auto value:actual){std::string raw;check(bool(row>>raw) && value==word(raw),"Original driver operand differs");}
-      ++constants;
+    const bool single_image=argc==4 && std::string(argv[1])=="--selected-image";
+    check(single_image || argc==6,"Supply scalar/operand fixtures and base/1.1/u5 executables, or --selected-image scalars executable");
+    for(int i=single_image?2:1;i<argc;++i)if(!std::filesystem::exists(argv[i]))return 77;
+    const auto selected=OriginalData::load_xbe(argv[3]);
+    check(bool(selected->sound_driver_parameter_constants),"Verified selected-image driver constants unavailable");
+    std::vector<std::shared_ptr<const OriginalData>> images;
+    if(!single_image)images={OriginalData::load_xbe(argv[4]),OriginalData::load_xbe(argv[5])};
+    images.push_back(selected);
+    if(!single_image){
+      std::ifstream operands(argv[2]);std::size_t constants=0;
+      for(std::string line;std::getline(operands,line);){
+        std::istringstream row(line);char kind;unsigned image;
+        check(bool(row>>kind>>image) && kind=='C' && image==constants+1 && image<=2,"Incomplete original operands");
+        check(bool(images[image-1]->sound_driver_parameter_constants),"Verified driver operands unavailable");
+        const auto actual=words(*images[image-1]->sound_driver_parameter_constants);
+        for(auto value:actual){std::string raw;check(bool(row>>raw) && value==word(raw),"Original driver operand differs");}
+        ++constants;
+      }
+      check(constants==2,"Missing verified original operands");
     }
-    check(constants==2,"Missing verified original operands");
-    std::ifstream input(argv[1]);std::array<std::size_t,4> counts{};std::size_t index=0;
+    std::ifstream input(argv[single_image?2:1]);std::array<std::size_t,4> counts{};std::size_t index=0;
     for(std::string line;std::getline(input,line);){
       if(line.empty() || line[0]=='#')continue;
       std::istringstream row(line);std::string kind;row>>kind;
@@ -98,8 +103,8 @@ int main(int argc,char **argv){
       ++index;
     }
     check(counts==std::array<std::size_t,4>{3168,4096,2048,2048},"Incomplete original scalar coverage");
-    std::cout<<"supportedImages=2 importedOperandBytes=128 scalarRows="<<index
-             <<" pairedNativeChecks="<<index*2<<" callerFpContext=preserved missingInputs=passed "
+    std::cout<<"supportedImages="<<images.size()<<" scalarRows="<<index
+             <<" pairedNativeChecks="<<index*images.size()<<" callerFpContext=preserved missingInputs=passed "
                "driverRoutingAdmissionAndPlayback=unverified\n";
   }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}
 }

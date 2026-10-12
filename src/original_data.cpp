@@ -422,6 +422,56 @@ std::shared_ptr<const OriginalData> OriginalData::load_xbe(const std::filesystem
         u32(section_data(data,later?0x456918:0x452000,4),0),
         u32(section_data(data,later?0x46a4c0:0x465420,4),0)};
   }
+  // Complete original base/TU1.5 audio consumers and their immutable operand
+  // locations are verified by tools/research_base_sound_parameters.py.
+  // Import only these words; mutable device/source state stays with its owner.
+  auto &driver = result->sound_driver_parameter_constants.emplace();
+  // Literal operand order from the complete paired driver-body authority.
+  // Runtime driver/stream state, format choices and voice indices are absent.
+  constexpr std::array<std::uint32_t,16> driver_addresses_base{
+      0x45dc4c,0x45dc48,0x45dc44,0x45e008,0x44a0b4,0x45dc68,
+      0x43ff08,0x45de54,0x44a04c,0x45dbc0,0x45dc0c,0x44a0bc,
+      0x45dc1c,0x45dc08,0x45dbdc,0x44a23c};
+  constexpr std::array<std::uint32_t,16> driver_addresses_11{
+      0x4650bc,0x4650b8,0x4650b4,0x46549c,0x45120c,0x4650d8,
+      0x446548,0x4652ec,0x4511a4,0x465030,0x46507c,0x451214,
+      0x46508c,0x465078,0x46504c,0x451394};
+  constexpr std::array<std::uint32_t,16> driver_addresses_15{
+      0x46a15c,0x46a158,0x46a154,0x46a53c,0x455b0c,0x46a178,
+      0x449fd4,0x46a38c,0x455aa4,0x46a0d0,0x46a11c,0x455b14,
+      0x46a12c,0x46a118,0x46a0ec,0x455c94};
+  const std::array<std::uint32_t *,16> driver_fields{
+      &driver.source_pitch_to_driver_pitch_bits,&driver.driver_pitch_min_bits,
+      &driver.driver_pitch_max_bits,&driver.gain_normalized_to_driver_volume_bits,
+      &driver.minimum_source_gain_bits,&driver.parameter_change_threshold_bits,
+      &driver.driver_pitch_change_threshold_bits,&driver.driver_pitch_octave_scale_bits,
+      &driver.relative_rate_ln2_bits,&driver.mono_channel_count_bits,
+      &driver.stereo_channel_count_bits,&driver.routing_db_ln10_bits,
+      &driver.routing_db_scale_bits,&driver.routing_linear_db_scale_bits,
+      &driver.normalized_parameter_range_epsilon_bits,&driver.silent_source_gain_bits};
+  const auto &driver_addresses = result->image == Image::Base ? driver_addresses_base
+      : result->image == Image::TitleUpdate15 ? driver_addresses_15 : driver_addresses_11;
+  for (std::size_t i = 0; i < driver_fields.size(); ++i)
+    *driver_fields[i] = u32(section_data(data, driver_addresses[i], 4), 0);
+  auto &create = result->sound_create_constants.emplace();
+  const std::array<std::uint32_t,11> create_addresses_base{
+      0x440c48,0x44a0b4,0x44aed4,0x45dc50,0x45dbb8,0x45dbc0,
+      0x45dbd8,0x45dc1c,0x44a0bc,0x45dc08,0x45dc70};
+  const std::array<std::uint32_t,11> create_addresses_11{
+      0x447298,0x45120c,0x452044,0x4650c0,0x465028,0x465030,
+      0x465048,0x46508c,0x451214,0x465078,0x4650e0};
+  const std::array<std::uint32_t,11> create_addresses_15{
+      0x44ad40,0x455b0c,0x45695c,0x46a160,0x46a0c8,0x46a0d0,
+      0x46a0e8,0x46a12c,0x455b14,0x46a118,0x46a180};
+  const std::array<std::uint32_t *,11> create_fields{
+      &create.default_extra_gain_bits,&create.minimum_gain_bits,&create.maximum_float_bits,
+      &create.rng_scale_bits,&create.unsigned_conversion_correction_bits,&create.one_bits,
+      &create.upper_gain_bits,&create.db_exponent_scale_bits,&create.db_exponent_log_bits,
+      &create.linear_db_scale_bits,&create.fade_epsilon_bits};
+  const auto &create_addresses = result->image == Image::Base ? create_addresses_base
+      : result->image == Image::TitleUpdate15 ? create_addresses_15 : create_addresses_11;
+  for (std::size_t i = 0; i < create_fields.size(); ++i)
+    *create_fields[i] = u32(section_data(data, create_addresses[i], 4), 0);
   if (result->image != Image::Base) {
     auto &constants = result->first_person_sound_constants.emplace();
     const bool later = result->image == Image::TitleUpdate15;
@@ -521,29 +571,6 @@ std::shared_ptr<const OriginalData> OriginalData::load_xbe(const std::filesystem
     for (std::size_t row = 0; row < tail.activity_pairs.size(); ++row)
       for (std::size_t column = 0; column < 2; ++column)
         tail.activity_pairs[row][column] = u32(pairs, row * 8 + column * 4);
-    auto &driver = result->sound_driver_parameter_constants.emplace();
-    // Literal operand order from the complete paired driver-body authority.
-    // Runtime driver/stream state, format choices and voice indices are absent.
-    constexpr std::array<std::uint32_t,16> driver_addresses_11{
-        0x4650bc,0x4650b8,0x4650b4,0x46549c,0x45120c,0x4650d8,
-        0x446548,0x4652ec,0x4511a4,0x465030,0x46507c,0x451214,
-        0x46508c,0x465078,0x46504c,0x451394};
-    constexpr std::array<std::uint32_t,16> driver_addresses_15{
-        0x46a15c,0x46a158,0x46a154,0x46a53c,0x455b0c,0x46a178,
-        0x449fd4,0x46a38c,0x455aa4,0x46a0d0,0x46a11c,0x455b14,
-        0x46a12c,0x46a118,0x46a0ec,0x455c94};
-    const std::array<std::uint32_t *,16> driver_fields{
-        &driver.source_pitch_to_driver_pitch_bits,&driver.driver_pitch_min_bits,
-        &driver.driver_pitch_max_bits,&driver.gain_normalized_to_driver_volume_bits,
-        &driver.minimum_source_gain_bits,&driver.parameter_change_threshold_bits,
-        &driver.driver_pitch_change_threshold_bits,&driver.driver_pitch_octave_scale_bits,
-        &driver.relative_rate_ln2_bits,&driver.mono_channel_count_bits,
-        &driver.stereo_channel_count_bits,&driver.routing_db_ln10_bits,
-        &driver.routing_db_scale_bits,&driver.routing_linear_db_scale_bits,
-        &driver.normalized_parameter_range_epsilon_bits,&driver.silent_source_gain_bits};
-    const auto &driver_addresses = later ? driver_addresses_15 : driver_addresses_11;
-    for (std::size_t i = 0; i < driver_fields.size(); ++i)
-      *driver_fields[i] = u32(section_data(data, driver_addresses[i], 4), 0);
     auto &startup = result->sound_startup_constants.emplace();
     startup.ambient_transition_bits = u32(section_data(data, later ? 0x44923c : 0x4457bc, 4), 0);
     const auto policy = section_data(data, later ? 0x455b20 : 0x451220, 16);
@@ -586,21 +613,6 @@ std::shared_ptr<const OriginalData> OriginalData::load_xbe(const std::filesystem
     promotion.milliseconds_per_second_bits = u32(section_data(data, later ? 0x46a1dc : 0x46513c, 4), 0);
     promotion.seconds_per_millisecond_bits = u32(section_data(data, later ? 0x46a180 : 0x4650e0, 4), 0);
     promotion.one_bits = u32(section_data(data, later ? 0x46a0d0 : 0x465030, 4), 0);
-    auto &create = result->sound_create_constants.emplace();
-    const std::array<std::uint32_t,11> create_addresses_11{
-        0x447298,0x45120c,0x452044,0x4650c0,0x465028,0x465030,
-        0x465048,0x46508c,0x451214,0x465078,0x4650e0};
-    const std::array<std::uint32_t,11> create_addresses_15{
-        0x44ad40,0x455b0c,0x45695c,0x46a160,0x46a0c8,0x46a0d0,
-        0x46a0e8,0x46a12c,0x455b14,0x46a118,0x46a180};
-    const std::array<std::uint32_t *,11> create_fields{
-        &create.default_extra_gain_bits,&create.minimum_gain_bits,&create.maximum_float_bits,
-        &create.rng_scale_bits,&create.unsigned_conversion_correction_bits,&create.one_bits,
-        &create.upper_gain_bits,&create.db_exponent_scale_bits,&create.db_exponent_log_bits,
-        &create.linear_db_scale_bits,&create.fade_epsilon_bits};
-    const auto &create_addresses = later ? create_addresses_15 : create_addresses_11;
-    for (std::size_t i = 0; i < create_fields.size(); ++i)
-      *create_fields[i] = u32(section_data(data, create_addresses[i], 4), 0);
     auto &admission = result->sound_admission_constants.emplace();
     admission.shared = create;
     admission.occlusion_threshold_bits = u32(section_data(data, later ? 0x46a26c : 0x4651cc, 4), 0);

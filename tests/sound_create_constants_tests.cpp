@@ -18,8 +18,8 @@ int main(int argc,char **argv) {
   try {
     require(argc==5,"Supply owned constants fixture and base/1.1/u5 images");
     for(int i=1;i<argc;++i)if(!std::filesystem::exists(argv[i]))return 77;
-    require(!halo2::OriginalData::load_xbe(argv[2])->sound_create_constants,
-            "Unverified base sound-create constants were supplied");
+    require(bool(halo2::OriginalData::load_xbe(argv[2])->sound_create_constants),
+            "Verified base sound-create constants unavailable");
     const std::array images{halo2::OriginalData::load_xbe(argv[3]),
                             halo2::OriginalData::load_xbe(argv[4])};
     std::ifstream input(argv[1]);std::size_t count=0;
@@ -36,7 +36,7 @@ int main(int argc,char **argv) {
       require(!(row>>text),"Unexpected original sound-create operand");++count;
     }
     require(count==2,"Incomplete source image coverage");
-    std::cout<<"supportedImages=2 immutableSoundCreateBytes=88 baseUnknown=absent mutableDelayScalePoolsAndRng=separate\n";
+    std::cout<<"supportedImages=2 immutableSoundCreateBytes=88 baseVerified=separately-tested mutableDelayScalePoolsAndRng=separate\n";
     return 0;
   }catch(const std::exception &error) {std::cerr<<error.what()<<'\n';return 1;}
 }
