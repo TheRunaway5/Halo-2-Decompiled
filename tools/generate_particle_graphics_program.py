@@ -26,8 +26,9 @@ float clampAwayZeroInf(float t) {
 '''
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
+ p.add_argument('--cache',type=Path,default=ROOT/'assets/disc/maps/mainmenu.map')
  p.add_argument('--classification',type=int,choices=[7,8],default=7);a=p.parse_args()
- c=Cache(ROOT/'assets/disc/maps/mainmenu.map');_,root=c.tag(0xe20e0099,'vrtx');at=c.block(root+4,28)[a.classification]
+ c=Cache(a.cache);_,root=c.tag(0xe20e0099,'vrtx');at=c.block(root+4,28)[a.classification]
  size=c.u32(at+12);start=c.pointer(c.u32(at+16),c.magic,size);code=bytes(c.data[start:start+size])
  source=HELPERS+translate(code,'particleProgram',attribute_expression='particleAttributes[i]',corner_expression='particleCorner')+'\n'
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(source)

@@ -1,7 +1,7 @@
 #pragma once
-#include <SDL.h>
 #include <array>
 #include <cstdint>
+typedef struct _SDL_GameController SDL_GameController;
 namespace halo2 {
 struct ControllerSettings {
   unsigned sticks{}, buttons{}, sensitivity = 3;

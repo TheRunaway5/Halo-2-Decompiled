@@ -1,4 +1,5 @@
 #include "halo2/frontend.hpp"
+#include <SDL.h>
 #include <algorithm>
 #include <atomic>
 

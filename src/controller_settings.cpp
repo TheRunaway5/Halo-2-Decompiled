@@ -1,4 +1,5 @@
 #include "halo2/controller_settings.hpp"
+#include <SDL.h>
 #include <algorithm>
 #include <cmath>
 namespace halo2 {
