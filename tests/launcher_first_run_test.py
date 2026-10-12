@@ -25,6 +25,10 @@ class LauncherFirstRunTests(unittest.TestCase):
             "pathlib.Path(__file__).with_name('setup-call.json').write_text(json.dumps(sys.argv[1:]))\n"
             "raise SystemExit(23)\n"
         )
+        (self.root / "tools/launcher_ui.py").write_text(
+            "import json, pathlib, sys\n"
+            "pathlib.Path(__file__).with_name('home-call.json').write_text(json.dumps(sys.argv[1:]))\n"
+        )
 
     def run_launcher(self, *arguments):
         environment = {**os.environ, "SDL_VIDEODRIVER": "dummy"}
@@ -216,6 +220,95 @@ class LauncherFirstRunTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertFalse((self.root / "build-call.json").exists())
         self.assertTrue((self.root / "runtime-call.json").exists())
+
+    def existing_runtime(self):
+        self.ready_assets()
+        script = self.root / "tools/create_runtime.py"
+        script.write_text(self.runtime_fixture())
+        subprocess.run([sys.executable, str(script)], check=True)
+        (self.root / "build-call.json").unlink()
+
+    def test_installed_launcher_opens_home_before_play(self):
+        self.existing_runtime()
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        arguments = json.loads((self.root / "tools/home-call.json").read_text())
+        self.assertEqual(arguments, ["--root", str(self.root), "--build-dir", str(self.root / "build")])
+        self.assertTrue((self.root / "runtime-call.json").exists())
+        self.assertFalse((self.root / "build-call.json").exists())
+
+    def test_closing_home_does_not_launch_the_runtime(self):
+        self.existing_runtime()
+        (self.root / "tools/launcher_ui.py").write_text("raise SystemExit(20)\n")
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.root / "runtime-call.json").exists())
+
+    def test_home_failure_does_not_launch_the_runtime(self):
+        self.existing_runtime()
+        (self.root / "tools/launcher_ui.py").write_text("raise SystemExit(19)\n")
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 19, result.stderr)
+        self.assertFalse((self.root / "runtime-call.json").exists())
+
+    def test_explicit_launch_skips_home_and_does_not_forward_launcher_flag(self):
+        self.existing_runtime()
+        result = self.run_launcher("--launch-game")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.root / "tools/home-call.json").exists())
+        self.assertNotIn("--launch-game", json.loads((self.root / "runtime-call.json").read_text()))
+
+    def test_update_works_before_setup_and_does_not_launch(self):
+        (self.root / "tools/update_runtime.py").write_text(
+            "import json, pathlib, sys\n"
+            "pathlib.Path(__file__).with_name('update-call.json').write_text(json.dumps(sys.argv[1:]))\n"
+        )
+        result = self.run_launcher("--update")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads((self.root / "tools/update-call.json").read_text()),
+                         ["--root", str(self.root), "--build-dir", str(self.root / "build")])
+        self.assertFalse((self.root / "tools/setup-call.json").exists())
+        self.assertFalse((self.root / "runtime-call.json").exists())
+
+    def test_update_failure_is_returned_without_launching(self):
+        self.existing_runtime()
+        (self.root / "tools/update_runtime.py").write_text("raise SystemExit(18)\n")
+        result = self.run_launcher("--update")
+        self.assertEqual(result.returncode, 18, result.stderr)
+        self.assertFalse((self.root / "tools/home-call.json").exists())
+        self.assertFalse((self.root / "runtime-call.json").exists())
+
+    def test_pending_update_is_rebuilt_before_a_direct_launch(self):
+        self.existing_runtime()
+        (self.root / "launcher-update.pending").touch()
+        (self.root / "tools/build_runtime.py").write_text(self.runtime_fixture())
+        result = self.run_launcher("--launch-game")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.root / "build-call.json").exists())
+        self.assertFalse((self.root / "launcher-update.pending").exists())
+        self.assertTrue((self.root / "runtime-call.json").exists())
+
+    def test_pending_build_failure_stops_a_direct_launch(self):
+        self.existing_runtime()
+        (self.root / "launcher-update.pending").touch()
+        (self.root / "tools/build_runtime.py").write_text("raise SystemExit(17)\n")
+        result = self.run_launcher("--launch-game")
+        self.assertEqual(result.returncode, 17, result.stderr)
+        self.assertTrue((self.root / "launcher-update.pending").exists())
+        self.assertFalse((self.root / "runtime-call.json").exists())
+
+    def test_play_reloads_sources_changed_while_the_home_was_open(self):
+        self.existing_runtime()
+        selected = self.root / "assets/selected-update.xbe"
+        registry = self.root / "assets/gameplay-source.tsv"
+        (self.root / "tools/launcher_ui.py").write_text(
+            "from pathlib import Path\n"
+            f"Path({str(selected)!r}).touch()\n"
+            f"Path({str(registry)!r}).write_text('H2_GAMEPLAY_SOURCE_V1\\nxbe\\tassets/selected-update.xbe\\n')\n")
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        arguments = json.loads((self.root / "runtime-call.json").read_text())
+        self.assertEqual(arguments[arguments.index("--gameplay-xbe") + 1], str(selected))
 
     def test_selecting_sources_rebuilds_an_existing_runtime(self):
         self.ready_assets()

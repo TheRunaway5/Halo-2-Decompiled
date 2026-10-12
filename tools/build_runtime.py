@@ -73,7 +73,7 @@ def build_runtime(root, build=None, progress=print):
                 status = process.wait()
             if status:
                 raise RuntimeError(f"{stage} failed (exit {status}). Full build output: {log_path}")
-    progress("Build complete. Starting Halo 2…")
+    progress("Build complete.")
 
 
 class BuildWindow:

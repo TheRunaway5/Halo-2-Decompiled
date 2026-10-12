@@ -173,8 +173,18 @@ extracted disc folder and Vista installer, then choose **Prepare game files**.
 The launcher saves that selection, configures CMake, builds the runtime, and
 starts the game automatically. A build window shows progress and compiler
 output; the full log is saved as `build/launcher-build.log`. Later launches
-reuse the prepared files and built runtime. Selecting new sources reconfigures
-and rebuilds the runtime so menu and particle shaders use the selected Xbox
+open the launcher home in place of the setup form, with **Play** and **Update**
+buttons. **Play** uses the prepared files and built runtime. **Update** pulls
+the current branch's upstream changes with Git, then configures and rebuilds
+the runtime, even if the changes were already pulled manually. Progress stays
+in the launcher; select **Play** after the update completes. Imported game
+files and settings are kept. Local source changes or diverged branches stop
+the update without discarding anything. Update output is saved as
+`launcher-update.log`, with compiler output in `build/launcher-build.log`.
+If a build fails or is interrupted, the launcher keeps Play disabled until a
+successful rebuild. Select **Update** to retry.
+Selecting new sources reconfigures and rebuilds the runtime so menu and particle
+shaders use the selected Xbox
 source, including sources imported outside `assets/disc`.
 
 If a checkout was moved or copied, an incompatible CMake build directory is
@@ -192,7 +202,13 @@ path after them (quote paths containing spaces):
 ./Halo2-Launcher --vista-source "/path/to/Vista installer.zip" --xbox-source "/path/to/Halo 2.iso"
 ```
 
-Use `--setup-only` when you want to prepare files and exit. For a manual build:
+Use `--setup-only` when you want to prepare files and exit.
+
+For terminal use, `./Halo2-Launcher --update` downloads and builds changes,
+then exits. `./Halo2-Launcher --launch-game` starts the game without opening
+the launcher home. Explicit runtime arguments also bypass the home screen.
+
+For a manual build:
 
 ```bash
 ./Halo2-Launcher --setup-only

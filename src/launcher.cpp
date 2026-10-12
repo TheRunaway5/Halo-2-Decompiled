@@ -263,6 +263,7 @@ int main(int argc, char **argv) {
     std::vector<std::string> supplied;
     std::string vista_source,xbox_source,mcc_source;
     bool setup=false,setup_only=false,import_mcc=false,import_menus=false,prepared_sources=false;
+    bool update=false,launch_game=false;
     for(int i=1;i<argc;++i) {
       const std::string argument=argv[i];
       if(argument=="--setup" || argument=="--setup-only") {
@@ -275,7 +276,9 @@ int main(int argc, char **argv) {
           (argument=="--vista-source"?vista_source:xbox_source)=argv[i];
           setup=true;
         }
-      } else if(argument=="--import-mcc-hud")import_mcc=true;
+      } else if(argument=="--update")update=true;
+      else if(argument=="--launch-game")launch_game=true;
+      else if(argument=="--import-mcc-hud")import_mcc=true;
       else if(argument=="--import-mcc-menus")import_menus=true;
       else supplied.push_back(argument);
     }
@@ -286,7 +289,7 @@ int main(int argc, char **argv) {
     };
     auto sources=read_sources(installation.root);
     const bool help=has("--help") || has("-h");
-    const auto gameplay=(!help && !has("--gameplay-xbe"))?
+    auto gameplay=(!help && !has("--gameplay-xbe"))?
         read_gameplay_source(installation.root):fs::path{};
     if (has("--launcher-info")) {
       std::cout << "Project: " << installation.root.string() << '\n'
@@ -307,10 +310,18 @@ int main(int argc, char **argv) {
       return 0;
     }
     if(help)std::cout<<"Launcher setup: --setup [--vista-source PATH --xbox-source PATH] [--setup-only]\n";
-    if(help)std::cout<<"Normal launch prepares game files, builds the runtime when needed, and starts the game. --setup-only prepares files and exits.\n";
+    if(help)std::cout<<"Normal launch opens Play/Update when installed. First setup prepares files, builds and starts the game. --setup-only prepares files and exits.\n";
+    if(help)std::cout<<"Launcher: --update downloads changes and rebuilds, then exits; --launch-game skips the launcher home.\n";
     if(help)std::cout<<"MCC Classic HUD: --import-mcc-hud [--mcc-source PATH] [--setup-only]\n";
     if(help)std::cout<<"MCC Classic menus: --import-mcc-menus [--mcc-source PATH] [--setup-only]\n";
     if(help && installation.runtime.empty())return 0;
+    if(update && !help) {
+      if(setup || import_mcc || import_menus || launch_game || !supplied.empty())
+        throw std::runtime_error("Use --update by itself to download changes and rebuild the game");
+      return run_tool({HALO2_PYTHON_EXECUTABLE,
+          (installation.root/"tools/update_runtime.py").string(),"--root",
+          installation.root.string(),"--build-dir",installation.build.string()});
+    }
     if(!help && !setup && sources.base_ready() && !sources.ready()) {
       // Older imports discarded loading.bin/halo2.exe. Reopen only those
       // recorded installer members; keep the prepared maps and Xbox disc.
@@ -336,13 +347,27 @@ int main(int argc, char **argv) {
       if(status)return status;
     }
     if(setup_only)return 0;
-    if(!help && (prepared_sources || installation.runtime.empty())) {
+    const auto update_pending=installation.root/"launcher-update.pending";
+    if(!help && (prepared_sources || installation.runtime.empty() ||
+        ((launch_game || !supplied.empty()) && fs::exists(update_pending)))) {
       const auto tool=installation.root/"tools/build_runtime.py";
       if(!fs::is_regular_file(tool))throw std::runtime_error("Automatic build tool is missing: "+tool.string());
       const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,tool.string(),"--root",
           installation.root.string(),"--build-dir",installation.build.string()});
       if(status)return status;
       installation=locate();
+      if(!installation.runtime.empty())fs::remove(update_pending);
+    }
+    if(!help && !launch_game && supplied.empty() && !setup && !prepared_sources && !import_mcc && !import_menus) {
+      const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,
+          (installation.root/"tools/launcher_ui.py").string(),"--root",
+          installation.root.string(),"--build-dir",installation.build.string()});
+      if(status==20)return 0; // Closing the launcher does not start the game.
+      if(status)return status;
+      installation=locate();
+      sources=read_sources(installation.root);
+      gameplay=read_gameplay_source(installation.root);
+      if(!sources.ready())throw std::runtime_error("The selected game files are incomplete. Run --setup to prepare them again.");
     }
     if(installation.runtime.empty())throw std::runtime_error(
         "The automatic build finished, but the runtime or required shaders are missing. See "+

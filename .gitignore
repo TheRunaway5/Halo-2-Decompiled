@@ -71,6 +71,7 @@ node_modules/
 # Runtime caches, logs, editor backups, and desktop metadata.
 *.dxvk-cache
 *.log
+/launcher-update.pending
 *.swp
 *.swo
 *~

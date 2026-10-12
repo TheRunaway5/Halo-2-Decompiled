@@ -24,27 +24,15 @@ def _color(a, b, amount):
                          for i in (1, 3, 5))
 
 
-class SourceSelector:
-    """Own the window so previews can exercise the actual controls safely."""
+class LauncherCanvas:
+    """Shared canvas, typography and controls for setup and the launcher home."""
 
-    def __init__(self, window, root, vista=None, xbox=None, setup_function=None):
+    def __init__(self, window, root, title):
         import tkinter as tk
-        from tkinter import filedialog, font, ttk
+        from tkinter import filedialog, font
 
         self.window, self.root = window, root
         self.tk, self.filedialog = tk, filedialog
-        if setup_function is None:
-            from setup_assets import setup
-            setup_function = setup
-        self.setup = setup_function
-        self.events = queue.Queue()
-        self.result = 1
-        self.working = False
-        self.closed = False
-        self.error = False
-        self.controls = []
-        self.entries = []
-        self.source_indicators = []
         self.scale = min(1.0, (window.winfo_screenwidth() - 40) / WIDTH,
                          (window.winfo_screenheight() - 80) / HEIGHT)
         self.scale = max(0.4, self.scale)
@@ -52,7 +40,7 @@ class SourceSelector:
         self.family = next((name for name in ("Bahnschrift", "DejaVu Sans", "Arial") if name in families), "TkDefaultFont")
         self.mono = next((name for name in ("Consolas", "DejaVu Sans Mono") if name in families), "TkFixedFont")
         w, h = self.px(WIDTH), self.px(HEIGHT)
-        window.title("Halo 2 — Game file setup")
+        window.title(title)
         window.configure(background=FIELD)
         window.resizable(False, False)
         # Let the window manager choose the monitor; centering on Tk's virtual
@@ -63,61 +51,6 @@ class SourceSelector:
         self.canvas.pack(fill="both", expand=True)
         self._backdrop()
         self._wordmark(48, 65)
-        self.text(51, 158, "G A M E   F I L E   S E T U P", 12, CYAN)
-        self.line(50, 193, 318, 193, fill=EDGE)
-        self.text(49, 225, "Welcome back.", 29, INK)
-        self.text(51, 274, "Bring your copy.\nWe’ll prepare the rest.", 17, MUTED, width=280)
-        self.text(51, 354, "G E T   S T A R T E D", 11, MUTED)
-        self.steps = []
-        for i, (title, detail) in enumerate((("Select your sources", "Xbox disc + Vista installer"),
-                                           ("Build the game cache", "Prepared automatically"),
-                                           ("Ready to play", "Launch into Halo 2"))):
-            y = 397 + i * 66
-            number = self.text(52, y, f"0{i + 1}", 14, MUTED, mono=True)
-            heading = self.text(88, y - 2, title, 16, MUTED)
-            caption = self.text(88, y + 23, detail, 12, MUTED)
-            self.steps.append((number, heading, caption))
-        self.step_marker = self.canvas.create_rectangle(37, 395, 40, 436, fill=CYAN, outline="", tags="art")
-        self._set_step(0)
-        self.line(365, 223, 365, 660, fill="#29475b")
-        self.text(400, 119, "Prepare your game", 30, INK)
-        self.text(402, 163, "Choose both sources to build your cache.", 15, MUTED)
-        # Keep the importer's Vista/Xbox argument order, while presenting the
-        # original game disc first in the visual reading and keyboard order.
-        self.values = [tk.StringVar(window, value=str(vista or "")),
-                       tk.StringVar(window, value=str(xbox or ""))]
-        self._source(1, 209, "01", "Xbox game disc", "Original gameplay, models and world textures", "Browse ISO…")
-        self._source(0, 383, "02", "Vista installer", "Menus, HUD, fonts and match announcer audio", "Browse file…")
-        self.status_label = tk.Label(window, text="Select your Xbox disc image and Halo 2 Vista installer.",
-                                     background="#0d263b", foreground=MUTED, font=self.font(13),
-                                     anchor="nw", justify="left", wraplength=self.px(563), borderwidth=0)
-        self.place(self.status_label, 402, 562, 585, 44)
-        style = ttk.Style(window)
-        # Clam uses colorable elements on Windows as well as Linux/macOS.
-        style.theme_use("clam")
-        style.layout("Halo.Horizontal.TProgressbar", [
-            ("Horizontal.Progressbar.trough", {"sticky": "nswe", "children": [
-                ("Horizontal.Progressbar.pbar", {"side": "left", "sticky": "ns"})]})])
-        style.configure("Halo.Horizontal.TProgressbar", troughcolor=FIELD, background=CYAN,
-                        bordercolor=FIELD, lightcolor=CYAN, darkcolor=CYAN,
-                        borderwidth=0, thickness=self.px(3))
-        self.bar = ttk.Progressbar(window, style="Halo.Horizontal.TProgressbar", mode="indeterminate")
-        self.place(self.bar, 401, 614, 587, 3)
-        self.cancel = self.button("Cancel", self.close, 400, 641, 124, 43)
-        self.prepare = self.button("Prepare game files  ›", self.start, 696, 641, 292, 43, primary=True)
-        self.text(52, 651, "YOUR ORIGINAL FILES STAY INTACT", 10, MUTED, mono=True)
-        self.text(52, 672, "Select once. Play from your local cache.", 12, MUTED)
-        self.line(26, 701, 1014, 701, fill=EDGE)
-        # Scale geometry once; text uses pixel fonts and widgets have scaled
-        # placement so Tk's platform-specific DPI setting cannot cause overlaps.
-        self.canvas.scale("art", 0, 0, self.scale, self.scale)
-        for value in self.values:
-            value.trace_add("write", self._selection_changed)
-        self._selection_changed()
-        window.protocol("WM_DELETE_WINDOW", self.close)
-        window.bind("<Escape>", lambda event: self.close())
-        self.poll_id = window.after(100, self.poll)
-        self.entries[0].focus_set()
 
     def px(self, value):
         return max(1, round(value * self.scale))
@@ -155,6 +88,20 @@ class SourceSelector:
         button.bind("<Return>", lambda event: button.invoke())
         self.place(button, x, y, width, height)
         return button
+
+    def progressbar(self):
+        from tkinter import ttk
+
+        style = ttk.Style(self.window)
+        # Clam uses colorable elements on Windows as well as Linux/macOS.
+        style.theme_use("clam")
+        style.layout("Halo.Horizontal.TProgressbar", [
+            ("Horizontal.Progressbar.trough", {"sticky": "nswe", "children": [
+                ("Horizontal.Progressbar.pbar", {"side": "left", "sticky": "ns"})]})])
+        style.configure("Halo.Horizontal.TProgressbar", troughcolor=FIELD, background=CYAN,
+                        bordercolor=FIELD, lightcolor=CYAN, darkcolor=CYAN,
+                        borderwidth=0, thickness=self.px(3))
+        return ttk.Progressbar(self.window, style="Halo.Horizontal.TProgressbar", mode="indeterminate")
 
     def _backdrop(self):
         c = self.canvas
@@ -209,6 +156,72 @@ class SourceSelector:
             c.create_oval(x + 202, y, x + 251, y + 53, outline=color, width=width, tags="art")
         self.line(x + 279, y + 57, x + 315, y + 57, fill="#6c9caf")
         self.line(x, y + 63, x + 252, y + 63, fill="#466a7e")
+
+
+class SourceSelector(LauncherCanvas):
+    """Own the window so previews can exercise the actual controls safely."""
+
+    def __init__(self, window, root, vista=None, xbox=None, setup_function=None):
+        super().__init__(window, root, "Halo 2 — Game file setup")
+        tk = self.tk
+        if setup_function is None:
+            from setup_assets import setup
+            setup_function = setup
+        self.setup = setup_function
+        self.events = queue.Queue()
+        self.result = 1
+        self.working = False
+        self.closed = False
+        self.error = False
+        self.controls = []
+        self.entries = []
+        self.source_indicators = []
+        self.text(51, 158, "G A M E   F I L E   S E T U P", 12, CYAN)
+        self.line(50, 193, 318, 193, fill=EDGE)
+        self.text(49, 225, "Welcome back.", 29, INK)
+        self.text(51, 274, "Bring your copy.\nWe’ll prepare the rest.", 17, MUTED, width=280)
+        self.text(51, 354, "G E T   S T A R T E D", 11, MUTED)
+        self.steps = []
+        for i, (title, detail) in enumerate((("Select your sources", "Xbox disc + Vista installer"),
+                                           ("Build the game cache", "Prepared automatically"),
+                                           ("Ready to play", "Launch into Halo 2"))):
+            y = 397 + i * 66
+            number = self.text(52, y, f"0{i + 1}", 14, MUTED, mono=True)
+            heading = self.text(88, y - 2, title, 16, MUTED)
+            caption = self.text(88, y + 23, detail, 12, MUTED)
+            self.steps.append((number, heading, caption))
+        self.step_marker = self.canvas.create_rectangle(37, 395, 40, 436, fill=CYAN, outline="", tags="art")
+        self._set_step(0)
+        self.line(365, 223, 365, 660, fill="#29475b")
+        self.text(400, 119, "Prepare your game", 30, INK)
+        self.text(402, 163, "Choose both sources to build your cache.", 15, MUTED)
+        # Keep the importer's Vista/Xbox argument order, while presenting the
+        # original game disc first in the visual reading and keyboard order.
+        self.values = [tk.StringVar(window, value=str(vista or "")),
+                       tk.StringVar(window, value=str(xbox or ""))]
+        self._source(1, 209, "01", "Xbox game disc", "Original gameplay, models and world textures", "Browse ISO…")
+        self._source(0, 383, "02", "Vista installer", "Menus, HUD, fonts and match announcer audio", "Browse file…")
+        self.status_label = tk.Label(window, text="Select your Xbox disc image and Halo 2 Vista installer.",
+                                     background="#0d263b", foreground=MUTED, font=self.font(13),
+                                     anchor="nw", justify="left", wraplength=self.px(563), borderwidth=0)
+        self.place(self.status_label, 402, 562, 585, 44)
+        self.bar = self.progressbar()
+        self.place(self.bar, 401, 614, 587, 3)
+        self.cancel = self.button("Cancel", self.close, 400, 641, 124, 43)
+        self.prepare = self.button("Prepare game files  ›", self.start, 696, 641, 292, 43, primary=True)
+        self.text(52, 651, "YOUR ORIGINAL FILES STAY INTACT", 10, MUTED, mono=True)
+        self.text(52, 672, "Select once. Play from your local cache.", 12, MUTED)
+        self.line(26, 701, 1014, 701, fill=EDGE)
+        # Scale geometry once; text uses pixel fonts and widgets have scaled
+        # placement so Tk's platform-specific DPI setting cannot cause overlaps.
+        self.canvas.scale("art", 0, 0, self.scale, self.scale)
+        for value in self.values:
+            value.trace_add("write", self._selection_changed)
+        self._selection_changed()
+        window.protocol("WM_DELETE_WINDOW", self.close)
+        window.bind("<Escape>", lambda event: self.close())
+        self.poll_id = window.after(100, self.poll)
+        self.entries[0].focus_set()
 
     def _source(self, index, y, number, title, hint, browse_label):
         c = self.canvas

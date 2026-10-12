@@ -1936,6 +1936,13 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/launcher_first_run_test.py $<TARGET_FILE:halo2_onboarding>)
     add_test(NAME launcher_automatic_build COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_build_runtime.py)
+    add_test(NAME launcher_update COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_update_runtime.py)
+    find_program(HALO2_LAUNCHER_XVFB xvfb-run)
+    if(HALO2_LAUNCHER_XVFB)
+        add_test(NAME launcher_home_ui COMMAND ${HALO2_LAUNCHER_XVFB} -a ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_launcher_ui.py)
+    endif()
     add_executable(pause_gameplay_completion_tests tests/pause_gameplay_completion_tests.cpp)
     target_link_libraries(pause_gameplay_completion_tests PRIVATE halo2_renderer)
     add_test(NAME native_pause_gameplay_completion COMMAND pause_gameplay_completion_tests
