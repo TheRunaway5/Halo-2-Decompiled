@@ -128,8 +128,6 @@ struct Unit {
   std::int8_t grenade_current = -1, grenade_requested = -1;
   NativeGrenadeAction grenade_action;
   NativeMeleeAction melee_action;
-  NativeMeleeLunge melee_lunge;
-  std::uint8_t melee_cooldown{},sword_cooldown{},melee_air_ticks{};
   float yaw{}, crouch{}, awareness{};
   JumpState jump;
   SourceLandingState landing;

@@ -259,6 +259,63 @@ processes complete automatic results and the full countdown. The host submits
 9,619 frames and the client 9,510; the retained report is
 `object-prediction/two-process-final/report.json`.
 
+## Fresh engine snapshot and campaign device diagnosis
+
+The later `current-engine/` snapshot builds the complete production dependencies
+and all four live verification/prediction targets successfully. Its 14,712
+regular source files were rehashed after testing with no changes. This records
+that snapshot; the concurrently edited checkout can have later build errors.
+`current-engine/report.json` records its binaries, commands and remaining work.
+
+The snapshot completes a new ordinary-time Coagulation Slayer match, 3–2:
+1,943 ticks and 7,588 rendered frames. A separate two-process Team Slayer match
+also passes, 3–1: host and client reach identical final identity/score records
+and complete the results countdown. These results are in
+`current-engine/coagulation-ffa.json` and
+`current-engine/two-process-match/report.json`.
+
+Normal Cairo startup still fails before combat. The first actual device call
+sets machine handle `e37d010e` to position zero immediately; the campaign
+import excludes machine owners, producing `map::at`. The unchanged startup
+failure and read-only debugger capture are retained. All 133 admitted initial
+Cairo machines can be prepared through the shared tag API, but none receives
+a live device owner in this snapshot.
+
+A wider read-only comparison covers 984 initial machines across all 15 owned
+campaign caches. All 15,744 compared initialization fields match unchanged
+retail constructor/controller execution. The oracle supplies an explicit
+30 Hz delta for the consumed primary-constructor clock and retains fixture
+RNG state; it does not establish live launch chronology. Independent recreation
+cases deliberately change named groups, then restore their saved bytes before
+the next cold initialization case. The initial mixed-fixture mismatch report
+and the earlier missing-clock failure are retained separately. The Great
+Journey scarab selects a 120-frame primary animation, so these results do not
+justify freezing every campaign machine at its initial pose.
+
+An isolated diagnostic candidate enables machine definition admission and
+gets past the device call, then fails on unimplemented `objects_attach` before
+combat. Its first actual attachment request is captured read-only. The
+candidate is not a production fix: campaign rendering, primary animation,
+proximity and physics integration remain unfinished.
+
+The fresh focused reference suite passes seven of nine tests, with no skips.
+`source_device_world` and `retail_source_machine_scene` fail with
+`Resident source tag metadata is unavailable`. Their cause remains unresolved;
+neither a migration regression nor an external-asset cause is established.
+`current-engine/reference-tests.xml` and `.log` retain both failures. The
+earlier twenty-test pass below belongs to its earlier pinned build.
+
+During this work the active asset directory was moved into a cache-reset
+backup by separate work. The current snapshot uses the preserved owned files
+directly after verifying their hashes, without restoring the active asset
+directory. `current-engine/asset-source.json` records the location and hashes;
+the individual run reports contain the exact usable commands. Initial missing
+asset skips are retained and are not counted as passes.
+
+At the user's request, testing is now paused to hand back the build. No
+additional production engine edits were made in this continuation. Actual
+campaign combat and complete original behavior parity remain unverified.
+
 ## Original-reference and lifecycle checks
 
 Twenty selected CTests pass without skips on the fixed build: tag contracts,

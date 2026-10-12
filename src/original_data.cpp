@@ -418,22 +418,6 @@ std::shared_ptr<const OriginalData> OriginalData::load_xbe(const std::filesystem
     melee.impact_scale_bits=u32(section_data(data,later?0x46a0c4:0x465024,4),0);
     melee.moving_threshold_bits=u32(section_data(data,later?0x46a194:0x4650f4,4),0);
     melee.special_seconds_bits=u32(section_data(data,later?0x46a11c:0x46507c,4),0);
-    melee.release_seconds_bits={u32(section_data(data,later?0x44a8a0:0x446df8,4),0),u32(section_data(data,later?0x44a8d4:0x446e2c,4),0)};
-    // Complete paired1EF030/1EF290 operand correspondence, retained in
-    // analysis/player-animations-20261012/melee-physics-pairing.json.
-    constexpr std::array<std::array<std::uint32_t,3>,22> physics_operands{{
-      {0x446548,0x449fd4,4},{0x46502c,0x46a0cc,4},{0x465030,0x46a0d0,4},
-      {0x465044,0x46a0e4,4},{0x465048,0x46a0e8,4},{0x465060,0x46a100,4},
-      {0x465064,0x46a104,4},{0x46506c,0x46a10c,4},{0x465080,0x46a120,4},
-      {0x465084,0x46a124,4},{0x465088,0x46a128,4},{0x465090,0x46a130,4},
-      {0x4650cc,0x46a16c,4},{0x4650d4,0x46a174,4},{0x4650e0,0x46a180,4},
-      {0x4651a0,0x46a240,4},{0x465278,0x46a318,4},{0x465470,0x46a510,4},
-      {0x465670,0x46a728,4},{0x465678,0x46a730,8},{0x465680,0x46a738,8},{0x465688,0x46a740,8}}};
-    for(const auto &row:physics_operands){const auto bytes=section_data(data,row[later?1:0],row[2]);
-      melee.physics.literals.emplace_back(row[0],std::vector<std::byte>(bytes.begin(),bytes.end()));}
-    for(unsigned i=0;i<3;++i){constexpr std::array<std::array<std::uint32_t,2>,3> pointers{{{0x46fc28,0x474ce8},{0x46fc44,0x474d04},{0x46fc48,0x474d08}}};
-      const auto ptr=u32(section_data(data,pointers[i][later?1:0],4),0);const auto bytes=section_data(data,ptr,12);
-      std::copy(bytes.begin(),bytes.end(),melee.physics.basis[i].begin());}
     result->grenade_constants=NativeGrenadeConstants{
         u32(section_data(data,later?0x456918:0x452000,4),0),
         u32(section_data(data,later?0x46a4c0:0x465420,4),0)};

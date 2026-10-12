@@ -396,8 +396,7 @@ struct NativeWorldEffects::Impl {
               cache.load_particle_material(out.render.particle_datum, 15, 0,
                                            0));
           if (out.material->vertex.classification != 7 &&
-              out.material->vertex.classification != 8 &&
-              out.material->vertex.classification != 9)
+              out.material->vertex.classification != 8)
             throw FormatError(
                 "World effect requires particle vertex class" +
                 std::to_string(out.material->vertex.classification));

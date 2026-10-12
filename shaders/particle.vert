@@ -24,9 +24,7 @@ layout(location=9) flat out vec4 v_vtxPos0;
 vec4 v_vtxPos1;
 vec4 v_vtxPos2;
 float v_triMZ;
-#if defined(PARTICLE_PERPENDICULAR)
-#include "particle_perpendicular_program.glsl"
-#elif defined(PARTICLE_DIRECTIONAL)
+#ifdef PARTICLE_DIRECTIONAL
 #include "particle_directional_program.glsl"
 #else
 #include "particle_program.glsl"

@@ -1131,10 +1131,8 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/menu_world.frag.sp
         shaders/world_depth_fragment.glsl VERBATIM)
 add_custom_target(menu_world_fragment_shader
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/shaders/menu_world.frag.spv)
-set(HALO2_PARTICLE_SHADER_CACHE "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map" CACHE FILEPATH
-    "Imported Xbox cache supplying authored particle vertex programs")
-if(EXISTS ${HALO2_PARTICLE_SHADER_CACHE})
-    if(NOT CMAKE_CROSSCOMPILING AND EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map)
+    if(NOT CMAKE_CROSSCOMPILING)
         find_program(SPIRV_VALIDATOR spirv-val REQUIRED)
         add_executable(generate_menu_world_vertex_catalog tools/generate_menu_world_vertex_catalog.cpp)
         target_link_libraries(generate_menu_world_vertex_catalog PRIVATE halo2_cache)
@@ -1159,33 +1157,16 @@ if(EXISTS ${HALO2_PARTICLE_SHADER_CACHE})
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.json
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
-            --cache ${HALO2_PARTICLE_SHADER_CACHE}
             --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl
         DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
-            tools/audit_rendering.py ${HALO2_PARTICLE_SHADER_CACHE} VERBATIM)
+            tools/audit_rendering.py assets/disc/maps/mainmenu.map VERBATIM)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.hpp
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.json
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
-            --cache ${HALO2_PARTICLE_SHADER_CACHE}
             --classification 8 --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl
         DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
-            tools/audit_rendering.py ${HALO2_PARTICLE_SHADER_CACHE} VERBATIM)
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular_program.glsl
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular_program.hpp
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular_program.json
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
-            --cache ${HALO2_PARTICLE_SHADER_CACHE}
-            --classification 9 --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular_program.glsl
-        DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
-            tools/audit_rendering.py ${HALO2_PARTICLE_SHADER_CACHE} VERBATIM)
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular.vert.spv
-        COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_PERPENDICULAR=1
-            -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
-            ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.vert
-            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular.vert.spv
-        DEPENDS shaders/particle.vert shaders/particle_vertex_output.glsl
-            ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular_program.glsl VERBATIM)
+            tools/audit_rendering.py assets/disc/maps/mainmenu.map VERBATIM)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
         COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_DIRECTIONAL=1
             -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
@@ -1202,7 +1183,6 @@ if(EXISTS ${HALO2_PARTICLE_SHADER_CACHE})
                 ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl VERBATIM)
     endforeach()
     add_custom_target(particle_graphics_shaders DEPENDS
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.geom.spv)
@@ -6130,11 +6110,11 @@ if(BUILD_TESTING)
 endif()
 
 # Native mover presentation adapter; original channel clock and material sounds.
-target_sources(halo2_systems PRIVATE src/native_locomotion.cpp src/native_player_animation.cpp src/biped_landing.cpp src/native_melee_animation.cpp src/native_melee_physics.cpp src/melee_physics_runtime.cpp)
+target_sources(halo2_systems PRIVATE src/native_locomotion.cpp src/native_player_animation.cpp src/biped_landing.cpp src/native_melee_animation.cpp)
 if(MSVC)
-  set_source_files_properties(src/native_locomotion.cpp src/native_player_animation.cpp src/biped_landing.cpp src/native_melee_animation.cpp src/native_melee_physics.cpp src/melee_physics_runtime.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+  set_source_files_properties(src/native_locomotion.cpp src/native_player_animation.cpp src/biped_landing.cpp src/native_melee_animation.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-  set_source_files_properties(src/native_locomotion.cpp src/native_player_animation.cpp src/biped_landing.cpp src/native_melee_animation.cpp src/native_melee_physics.cpp src/melee_physics_runtime.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+  set_source_files_properties(src/native_locomotion.cpp src/native_player_animation.cpp src/biped_landing.cpp src/native_melee_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
 endif()
 if(BUILD_TESTING)
   add_executable(native_melee_gameplay_tests tests/native_melee_gameplay_tests.cpp)

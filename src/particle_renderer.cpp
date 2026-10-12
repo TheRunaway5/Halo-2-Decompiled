@@ -2,7 +2,6 @@
 #include "halo2/sampler.hpp"
 #include "particle_program.hpp"
 #include "particle_directional_program.hpp"
-#include "particle_perpendicular_program.hpp"
 #include <cstring>
 #include <fstream>
 #include <map>
@@ -28,7 +27,7 @@ struct ParticleRenderer::Impl {
   VkPhysicalDevice physical;VkDevice device;VkQueue queue;VkRenderPass pass;
   VkPhysicalDeviceProperties properties{};VkCommandPool uploads{};
   VkDescriptorSetLayout set_layout{};VkPipelineLayout layout{};VkBuffer corners{};VkDeviceMemory corner_memory{};
-  std::array<VkShaderModule,5> shaders{};
+  std::array<VkShaderModule,4> shaders{};
   struct Buffer {VkBuffer handle{};VkDeviceMemory memory{};};
   struct Image {VkImage handle{};VkDeviceMemory memory{};VkImageView view{};VkSampler sampler{};};
   struct MaterialGpu {
@@ -62,7 +61,7 @@ struct ParticleRenderer::Impl {
     constexpr std::array<std::array<std::int16_t,4>,4> original_corners{{{0,0,0,0},{1,0,0,0},{1,1,0,0},{0,1,0,0}}};
     const auto buffer=make_buffer(sizeof(original_corners),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,original_corners.data());
     corners=buffer.handle;corner_memory=buffer.memory;
-    const char *names[]{"particle.vert.spv","particle.geom.spv","particle.frag.spv","particle_directional.vert.spv","particle_perpendicular.vert.spv"};
+    const char *names[]{"particle.vert.spv","particle.geom.spv","particle.frag.spv","particle_directional.vert.spv"};
     for(unsigned n=0;n<shaders.size();++n) {
       std::ifstream file(directory/names[n],std::ios::binary|std::ios::ate);
       if(!file || file.tellg()<=0 || file.tellg()%4)throw FormatError("compiled original particle shader missing");
@@ -156,7 +155,6 @@ struct ParticleRenderer::Impl {
     const VkShaderStageFlagBits flags[]{VK_SHADER_STAGE_VERTEX_BIT,VK_SHADER_STAGE_GEOMETRY_BIT,VK_SHADER_STAGE_FRAGMENT_BIT};
     for(unsigned n=0;n<3;++n)stages[n]={VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,flags[n],shaders[n],"main",nullptr};
     if(classification==8)stages[0].module=shaders[3];
-    if(classification==9)stages[0].module=shaders[4];
     const VkVertexInputBindingDescription binding{0,8,VK_VERTEX_INPUT_RATE_VERTEX};
     const VkVertexInputAttributeDescription attribute{0,0,VK_FORMAT_R16G16B16A16_SSCALED,0};
     VkPipelineVertexInputStateCreateInfo vi{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};vi.vertexBindingDescriptionCount=vi.vertexAttributeDescriptionCount=1;vi.pVertexBindingDescriptions=&binding;vi.pVertexAttributeDescriptions=&attribute;
@@ -178,15 +176,13 @@ struct ParticleRenderer::Impl {
     VkPipeline pipeline;check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&pi,nullptr,&pipeline));return pipeline;
   }
   MaterialGpu &material(std::shared_ptr<const ParticleMaterial> source) {
-    if(!source || source->vertex.classification<7 || source->vertex.classification>9)throw FormatError("unsupported original particle vertex classification");
+    if(!source || (source->vertex.classification!=7 && source->vertex.classification!=8))throw FormatError("unsupported original particle vertex classification");
     const auto modes=source->pass.program.words[54];
     if(source->textures[2] || source->textures[3] || (modes>>10u)!=0u ||
        (modes&31u)>1u || ((modes>>5u)&31u)>1u)
       throw FormatError("original particle texture modes require an unimplemented sampling path");
     std::uint64_t hash=14695981039346656037ull;for(auto byte:source->vertex.program)hash=(hash^std::to_integer<unsigned>(byte))*1099511628211ull;
-    const auto expected=source->vertex.classification==7?particle_program_hash:
-        source->vertex.classification==8?particle_directional_program_hash:particle_perpendicular_program_hash;
-    if(hash!=expected)throw FormatError("particle program differs from compiled original disc tokens");
+    if(hash!=(source->vertex.classification==7?particle_program_hash:particle_directional_program_hash))throw FormatError("particle program differs from compiled original disc tokens");
     auto [entry,inserted]=materials.try_emplace(source.get());auto &gpu=entry->second;
     if(!inserted) {
       if(!gpu.pipeline)throw FormatError("particle material initialization previously failed");

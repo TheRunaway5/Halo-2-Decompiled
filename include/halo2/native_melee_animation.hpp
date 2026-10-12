@@ -1,6 +1,5 @@
 #pragma once
 #include "halo2/fp_registration.hpp"
-#include "halo2/native_melee_physics.hpp"
 #include <array>
 #include <functional>
 #include <map>
@@ -14,8 +13,6 @@ struct NativeMeleeConstants {
   std::array<std::array<std::uint32_t,3>,4> candidates;
   std::uint32_t frame_seconds_bits;
   std::uint32_t impact_scale_bits{},moving_threshold_bits{},special_seconds_bits{};
-  std::array<std::uint32_t,2> release_seconds_bits{};
-  NativeMeleePhysicsOperands physics;
 };
 struct NativeMeleeAction {
   std::uint32_t activity=0xffffffffu,started{};
@@ -54,8 +51,7 @@ public:
   NativeMeleeAnimation(std::shared_ptr<const Cache>,const LevelContent &,NativeMeleeConstants);
   void update(Unit &,bool pressed,std::uint32_t tick,std::uint32_t &rng,
       const std::function<void(std::uint32_t)> &activity,
-      const std::function<void(const NativeMeleeAction&)> &impact={},int kind=1,
-      const std::function<void()> &special_begin={});
+      const std::function<void(const NativeMeleeAction&)> &impact={},int kind=1);
   Vec3 pyramid(const Unit &)const;
   std::shared_ptr<const PropAreaDamageDefinition> damage_definition(const Unit &,std::uint32_t activity);
 private:
