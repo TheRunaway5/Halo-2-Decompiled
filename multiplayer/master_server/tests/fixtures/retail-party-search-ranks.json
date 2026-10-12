@@ -1,0 +1,446 @@
+{
+  "xbe_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "control_count": 21,
+  "controls": [
+    {
+      "name": "integer_mean_(0, 1)",
+      "actual": [
+        3,
+        true,
+        0,
+        1,
+        0
+      ],
+      "expected": [
+        3,
+        true,
+        0,
+        1,
+        0
+      ],
+      "inputs": {
+        "ranks": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "name": "integer_mean_(1, 2)",
+      "actual": [
+        3,
+        true,
+        1,
+        2,
+        1
+      ],
+      "expected": [
+        3,
+        true,
+        1,
+        2,
+        1
+      ],
+      "inputs": {
+        "ranks": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "name": "integer_mean_(2, 3, 8)",
+      "actual": [
+        3,
+        true,
+        2,
+        8,
+        4
+      ],
+      "expected": [
+        3,
+        true,
+        2,
+        8,
+        4
+      ],
+      "inputs": {
+        "ranks": [
+          2,
+          3,
+          8
+        ]
+      }
+    },
+    {
+      "name": "integer_mean_(1, 2, 2)",
+      "actual": [
+        3,
+        true,
+        1,
+        2,
+        1
+      ],
+      "expected": [
+        3,
+        true,
+        1,
+        2,
+        1
+      ],
+      "inputs": {
+        "ranks": [
+          1,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "name": "integer_mean_(49, 48)",
+      "actual": [
+        3,
+        true,
+        48,
+        49,
+        48
+      ],
+      "expected": [
+        3,
+        true,
+        48,
+        49,
+        48
+      ],
+      "inputs": {
+        "ranks": [
+          49,
+          48
+        ]
+      }
+    },
+    {
+      "name": "integer_mean_(80, 100)",
+      "actual": [
+        3,
+        true,
+        80,
+        100,
+        90
+      ],
+      "expected": [
+        3,
+        true,
+        80,
+        100,
+        90
+      ],
+      "inputs": {
+        "ranks": [
+          80,
+          100
+        ]
+      }
+    },
+    {
+      "name": "integer_mean_(127, 126)",
+      "actual": [
+        3,
+        true,
+        126,
+        127,
+        126
+      ],
+      "expected": [
+        3,
+        true,
+        126,
+        127,
+        126
+      ],
+      "inputs": {
+        "ranks": [
+          127,
+          126
+        ]
+      }
+    },
+    {
+      "name": "integer_mean_(112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127)",
+      "actual": [
+        3,
+        true,
+        112,
+        127,
+        119
+      ],
+      "expected": [
+        3,
+        true,
+        112,
+        127,
+        119
+      ],
+      "inputs": {
+        "ranks": [
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126,
+          127
+        ]
+      }
+    },
+    {
+      "name": "guest_flag_1_excluded",
+      "actual": [
+        3,
+        true,
+        15,
+        [
+          10,
+          -1,
+          20
+        ]
+      ],
+      "expected": [
+        3,
+        true,
+        15,
+        [
+          10,
+          -1,
+          20
+        ]
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "guest_flag_2_excluded",
+      "actual": [
+        3,
+        true,
+        15,
+        [
+          10,
+          -1,
+          20
+        ]
+      ],
+      "expected": [
+        3,
+        true,
+        15,
+        [
+          10,
+          -1,
+          20
+        ]
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "missing_raw_rank",
+      "actual": [
+        3,
+        false,
+        404
+      ],
+      "expected": [
+        3,
+        false,
+        404
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "stale_selected_hopper",
+      "actual": [
+        3,
+        false,
+        404
+      ],
+      "expected": [
+        3,
+        false,
+        404
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "missing_property_xp",
+      "actual": [
+        3,
+        false,
+        404
+      ],
+      "expected": [
+        3,
+        false,
+        404
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "missing_cached_xp",
+      "actual": [
+        3,
+        false,
+        404
+      ],
+      "expected": [
+        3,
+        false,
+        404
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "recover_raw_property_and_ignore_adjusted",
+      "actual": [
+        3,
+        true,
+        12,
+        [
+          10,
+          7,
+          20
+        ]
+      ],
+      "expected": [
+        3,
+        true,
+        12,
+        [
+          10,
+          7,
+          20
+        ]
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "all_guests_no_rated_players",
+      "actual": [
+        1,
+        true,
+        404
+      ],
+      "expected": [
+        1,
+        true,
+        404
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "unavailable_map_blocks_average",
+      "actual": [
+        6,
+        404
+      ],
+      "expected": [
+        6,
+        404
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "clan_published_raw_rank_repeated",
+      "actual": [
+        5,
+        3,
+        true,
+        15,
+        [
+          15,
+          15,
+          15
+        ]
+      ],
+      "expected": [
+        5,
+        3,
+        true,
+        15,
+        [
+          15,
+          15,
+          15
+        ]
+      ],
+      "inputs": {}
+    },
+    {
+      "name": "clan_generic_helper_still_integer_divides",
+      "actual": 15,
+      "expected": 15,
+      "inputs": {
+        "boundary": "Intentionally inconsistent synthetic cached clan ranks; no service conflict policy inferred."
+      }
+    },
+    {
+      "name": "gathered_raw_not_adjusted_average",
+      "actual": [
+        true,
+        3,
+        [
+          1,
+          2,
+          8
+        ],
+        [
+          7,
+          7,
+          8
+        ]
+      ],
+      "expected": [
+        true,
+        3,
+        [
+          1,
+          2,
+          8
+        ],
+        [
+          7,
+          7,
+          8
+        ]
+      ],
+      "inputs": {
+        "boundary": "Synthetic monotone adjustment table, not a historical coefficient claim."
+      }
+    },
+    {
+      "name": "gathered_incomplete_nonguest_summary_literal",
+      "actual": [
+        true,
+        9
+      ],
+      "expected": [
+        true,
+        9
+      ],
+      "inputs": {
+        "boundary": "Intentionally incomplete synthetic summary; 72540 separately prevents searching readiness."
+      }
+    }
+  ],
+  "unique_original_instructions": 2773,
+  "trace_sha256": "fa18dbd19bc1f999ce0dc451c14b969cf36e9c5c3387041e6a8f23164070536e",
+  "oracle_sha256": "30c4b0f21fa0c72a445e780ec6b7d9688d994689f5ac9d1f374d0563ec148506",
+  "scope": "Complete original 72540 and 7E210 with synthetic party/cache/summary records; no instructions or callees replaced."
+}

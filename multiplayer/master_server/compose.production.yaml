@@ -1,0 +1,48 @@
+# One independent master per host. Only Caddy publishes network ports.
+services:
+  init:
+    build: .
+    image: halo2-master-local:v1
+    profiles: [tools]
+    command: [python, -m, multiplayer.master_server.cli, init-master, --directory, /state]
+    volumes: [master-data:/state]
+    healthcheck: {disable: true}
+  directory:
+    build: .
+    image: halo2-master-local:v1
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    environment:
+      H2_MASTER_STATE: /state
+      H2_MASTER_BIND: 0.0.0.0
+      H2_MASTER_PUBLIC_URL: https://${MASTER_DOMAIN:?Set MASTER_DOMAIN}
+      H2_MASTER_BEHIND_TLS_PROXY: "1"
+      # Enrollment uses Discord. Operator enrollment stays disabled publicly.
+    volumes: [master-data:/state]
+    networks: [private]
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment: {MASTER_DOMAIN: "${MASTER_DOMAIN:?Set MASTER_DOMAIN}"}
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks: [private, public]
+    depends_on:
+      directory: {condition: service_healthy}
+
+networks:
+  # Internal transport is isolated from host-published ports. Egress is needed
+  # for fixed Discord HTTPS validation and configured peer synchronization.
+  private:
+  public:
+volumes:
+  master-data:
+  caddy-data:
+  caddy-config:

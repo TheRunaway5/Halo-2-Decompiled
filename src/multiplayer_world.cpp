@@ -1,0 +1,98 @@
+#include "halo2/multiplayer_world.hpp"
+#include "halo2/native_player_profile.hpp"
+#include <algorithm>
+
+namespace halo2 {
+namespace {
+TagSystem world_tags(std::shared_ptr<const Cache> cache, std::size_t bsp) {
+  TagSystem tags(std::move(cache));
+  tags.load_bsp(bsp);
+  return tags;
+}
+SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options) {
+  auto variant=options.variant;
+  if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
+  auto rules=slayer_rules(variant,true);
+  if(!options.selected_profiles.empty() && options.selected_profiles.size()!=options.local_players)
+    throw FormatError("Selected profiles must provide one complete record per local player");
+  if((!options.selected_teams.empty() || rules.team_mode) &&
+      (options.selected_teams.size()!=options.local_players ||
+       std::any_of(options.selected_teams.begin(),options.selected_teams.end(),
+           [](auto team){return team<0 || team>7;})))
+    throw FormatError("Team selections must provide one source team 0..7 per local player");
+  rules.weapon=cache.slayer_starting_weapon(rules.starting_weapon,rules.source_engine);
+  if(options.session_random_seed)rules.random_seed=*options.session_random_seed;
+  return rules;
+}
+std::unique_ptr<MultiplayerObjectRuntime> object_world(
+    const Cache &cache,const MultiplayerOptions &options,const SlayerRules &rules) {
+  if(!options.source_object_world)return {};
+  if(options.gameplay_xbe.empty() || options.source_object_savegame_directory.empty())
+    throw FormatError("Source object-world integration requires its authenticated executable and an owned savegame directory");
+  std::filesystem::create_directories(options.source_object_savegame_directory);
+  auto world=std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,
+      options.bsp,options.source_object_savegame_directory);
+  auto variant=options.variant;
+  if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
+  world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
+  return world;
+}
+}
+MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options)
+  :cache(std::make_shared<const Cache>(options.map,options.shared_maps,
+       options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:
+           OriginalData::load_xbe(options.gameplay_xbe))),
+   tags(world_tags(cache,options.bsp)),
+   content(cache->load_content(options.bsp,true)),rules(world_rules(*cache,options)),
+   source_objects(object_world(*cache,options,rules)),
+   match(content,options.bsp,options.native_spawn_inputs.empty()?cache->spawns():
+       std::span<const Spawn>(options.native_spawn_inputs),rules,{}, {},source_objects.get()),map_(options.map),shared_(options.shared_maps),
+   xbe_(options.gameplay_xbe),bsp_(options.bsp),players_(options.local_players),
+   starting_weapon_(options.starting_weapon),variant_(source_game_variant(options.variant)),
+   teams_(options.selected_teams),profiles_(options.selected_profiles),seed_(options.session_random_seed),
+   source_object_world_(options.source_object_world),source_object_savegame_directory_(options.source_object_savegame_directory),
+   native_spawn_inputs_(options.native_spawn_inputs) {
+  if(!options.native_spawn_inputs.empty() && (options.online_match || options.host_port || !options.join.empty() || options.dedicated))
+    throw FormatError("Declared native spawn inputs require an offline acceptance world");
+  if(options.local_players>4 || (!options.dedicated && !options.local_players))
+    throw FormatError("Multiplayer needs 1..4 local players");
+  if(options.defer_initial_player_spawn || options.player_birth_owner || options.pre_player_update_owner) {
+    if(options.online_match || options.host_port || !options.join.empty() || options.dedicated)
+      throw FormatError("Source player activation policy requires an offline local roster");
+    match.set_source_player_activation_owner(options.defer_initial_player_spawn,options.player_birth_owner,options.pre_player_update_owner);
+  }
+  match.configure_weapon_pickups();
+  if(cache->original_data() && cache->original_data()->melee_constants)
+    match.configure_melee_animation(cache,*cache->original_data()->melee_constants);
+  if(cache->original_data() && cache->original_data()->grenade_constants)
+    match.configure_grenades(cache,*cache->original_data()->grenade_constants);
+  if(options.host_port || options.online_match)
+    for(unsigned representation:{2u,3u})
+      if(representation<content.player_representations.size() &&
+          content.player_representations[representation].biped.datum!=null_datum)
+        for(const auto &[datum,weapon]:content.weapons)if(!weapon.first_person_models.empty() && weapon.first_person_models.front().model!=null_datum && weapon.first_person_models.front().animation!=null_datum)
+          match.configure_replicated_first_person(cache->load_first_person_binding(datum,representation));
+  if(!options.online_match && options.join.empty())
+    for(unsigned i=0;i<options.local_players;++i)
+      local_slots.push_back(match.join(options.selected_profiles.empty()?"Player "+std::to_string(i+1):
+          native_player_configuration_name(options.selected_profiles[i]),
+          options.selected_teams.empty()?-1:options.selected_teams[i],
+          options.selected_profiles.empty()?std::nullopt:std::optional(options.selected_profiles[i])));
+}
+bool MultiplayerPreparedWorld::matches(const MultiplayerOptions& options) const {
+  const bool same_spawns=native_spawn_inputs_.size()==options.native_spawn_inputs.size() &&
+      std::equal(native_spawn_inputs_.begin(),native_spawn_inputs_.end(),options.native_spawn_inputs.begin(),[](const auto&a,const auto&b){
+        return a.position.x==b.position.x && a.position.y==b.position.y && a.position.z==b.position.z &&
+            a.facing==b.facing && a.bsp==b.bsp && a.team==b.team && a.player_type==b.player_type &&
+            a.game_types==b.game_types && a.spawn_types==b.spawn_types;
+      });
+  // Constructor-only birth/defer/pre-step policy already belongs to this Match.
+  // Runtime reuses that owner and cannot replace or replay the callbacks.
+  return map_==options.map && shared_==options.shared_maps && xbe_==options.gameplay_xbe &&
+      bsp_==options.bsp && players_==options.local_players && starting_weapon_==options.starting_weapon &&
+      variant_.bytes==source_game_variant(options.variant).bytes && teams_==options.selected_teams &&
+      profiles_==options.selected_profiles && seed_==options.session_random_seed &&
+      source_object_world_==options.source_object_world &&
+      source_object_savegame_directory_==options.source_object_savegame_directory && same_spawns;
+}
+} // namespace halo2

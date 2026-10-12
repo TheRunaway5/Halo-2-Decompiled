@@ -1,0 +1,39 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct Fixture {uvec4 control;vec4 coordinates[4];vec4 normal;vec4 bumpMatrices[4];};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 results[];};
+uint fixture;
+vec4 stageCoordinates[4];
+uint word(uint index) {
+    if(index==54u)return fixtures[fixture].control.x;
+    if(index==55u)return fixtures[fixture].control.y;
+    if(index==56u)return fixtures[fixture].control.z;
+    return 0u;
+}
+// Return the requested lookup coordinates so the test observes addressing
+// independently of the Vulkan texture interpolation implementation.
+vec4 fetchStage2D(uint stage,vec2 p) {
+    return stage==0u?fixtures[fixture].normal:vec4(p,0,1);
+}
+vec4 fetchStageCube(uint stage,vec3 p) {return vec4(p,1);}
+vec4 fetchStage3D(uint stage,vec3 p) {return vec4(p,1);}
+#define TEXTURE_VOLUME(stage) ((fixtures[fixture].control.w&0x100u)!=0u && ((fixtures[fixture].control.w>>(stage))&1u)!=0u)
+#define TEXTURE_REJECT() return
+#define TEXTURE_BUMP_MATRIX(stage) fixtures[fixture].bumpMatrices[stage]
+#define TEXTURE_COLOR_SIGN(stage) (fixtures[fixture].control.w==2u?14u:0u)
+#include "texture_program.glsl"
+#include "render_view.glsl"
+void main() {
+    fixture=gl_GlobalInvocationID.x;
+    if(fixtures[fixture].control.w==1u) {
+        vec4 settings=fixtures[fixture].coordinates[1];
+        for(uint i=0u;i<4u;++i)results[fixture*4u+i]=retailViewportConstant(8u+i,
+            fixtures[fixture].coordinates[0],settings.x,settings.y!=0.0,settings.z!=0.0,uint(settings.w));
+        return;
+    }
+    for(uint i=0u;i<4u;++i)stageCoordinates[i]=fixtures[fixture].coordinates[i];
+    vec4 samples[4];runTextureStages(samples);
+    for(uint i=0u;i<4u;++i)results[fixture*4u+i]=samples[i];
+}

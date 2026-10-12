@@ -1,0 +1,12 @@
+# Source-owned roots must reach scene interpolation without Euler conversion.
+target_sources(halo2_systems PRIVATE src/source_scene_physics.cpp src/source_world_pose_wire.cpp)
+if(MSVC)
+    set_source_files_properties(src/source_scene_physics.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+else()
+    set_source_files_properties(src/source_scene_physics.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
+if(BUILD_TESTING)
+    add_executable(source_scene_physics_tests tests/source_scene_physics_tests.cpp)
+    target_link_libraries(source_scene_physics_tests PRIVATE halo2_systems)
+    add_test(NAME native_source_scene_physics COMMAND source_scene_physics_tests)
+endif()

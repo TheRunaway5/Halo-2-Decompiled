@@ -1,0 +1,48 @@
+#pragma once
+#include "halo2/frontend.hpp"
+#include <SDL.h>
+
+namespace halo2 {
+class Renderer;
+class AudioEngine;
+class DesktopSession;
+UiStrings load_campaign_pause_objectives(const Cache &,const std::filesystem::path &);
+// Native game overlay using the source-local Vista gameplay widgets/fonts.
+// Session commands remain explicit callbacks of the actual game owner.
+class GamePauseMenu {
+public:
+  GamePauseMenu(const std::filesystem::path &xbox_maps,
+                const std::filesystem::path &vista_assets, Mesh &, bool campaign,
+                const std::filesystem::path &preferences = {},
+                const std::filesystem::path &menu_assets = {});
+  ~GamePauseMenu();
+  void bind(SDL_Window *, DesktopSession &, Renderer &);
+  void audio(AudioEngine *);
+  void audio_layout(std::function<std::string(unsigned)> value){audio_layout_=std::move(value);}
+  bool event(const SDL_Event &);
+  UiDraw draw(unsigned width,unsigned height);
+  bool visible() const { return visible_; }
+  bool captures_game_input();
+  bool quit_requested() const { return quit_; }
+  void command(std::function<std::string(GamePauseAction)> value) { command_=std::move(value); }
+  MenuState &state() { return *state_; }
+private:
+  void show();
+  void refresh();
+  std::optional<FrontendPointerTarget> pointer(int,int) const;
+  FrontendContent content_;
+  std::unique_ptr<MenuState> state_;
+  std::unique_ptr<FrontendPainter> painter_;
+  SDL_Window *window_{};
+  DesktopSession *desktop_{};
+  Renderer *renderer_{};
+  std::function<std::string(unsigned)> audio_layout_;
+  SDL_Cursor *previous_cursor_{},*hand_cursor_{};
+  bool campaign_{},visible_{},quit_{};
+  bool await_release_{};
+  unsigned screen_{};
+  std::uint32_t entered_{};
+  std::uint32_t axis_repeat_{};
+  std::function<std::string(GamePauseAction)> command_;
+};
+} // namespace halo2

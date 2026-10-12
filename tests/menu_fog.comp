@@ -1,0 +1,51 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+// Retain the complete native material ABI: the fog array follows texture
+// effects, rather than a test-only shortcut directly to c12..17.
+struct MaterialData {
+    uvec4 program[15]; vec4 transforms[3]; uvec4 flags;
+    vec4 forwardTransforms[8]; vec4 diffuseColor; vec4 specularColor;
+    uvec4 vertexInstructions[136]; vec4 vertexConstants[16]; vec4 vertexAttributes[16];
+    uvec4 alphaTest; uvec4 textureEffects[4]; vec4 fogConstants[6];
+};
+struct CameraData {mat4 viewProjection;vec4 eyeForward;vec4 eyePosition;vec4 viewport;};
+struct Fixture {MaterialData material;CameraData camera;vec4 vertex[7];vec4 gradients[512];};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 results[];};
+MaterialData material;
+CameraData camera;
+vec3 position,normal,tangent,binormal,incident;
+vec2 texcoord,lightmapCoord;
+#include "vertex_program.glsl"
+#include "combiner.glsl"
+uint fixture;
+vec4 planarLookup(int stage,vec2 uv) {
+    vec2 p=clamp(uv,0.0,1.0)*16.0-.5;
+    ivec2 a=ivec2(floor(p)),b=a+1;vec2 f=fract(p);
+    a=clamp(a,ivec2(0),ivec2(15));b=clamp(b,ivec2(0),ivec2(15));
+    int base=stage*256;
+    return mix(mix(fixtures[fixture].gradients[base+a.y*16+a.x],fixtures[fixture].gradients[base+a.y*16+b.x],f.x),
+               mix(fixtures[fixture].gradients[base+b.y*16+a.x],fixtures[fixture].gradients[base+b.y*16+b.x],f.x),f.y);
+}
+void main() {
+    uint index=gl_GlobalInvocationID.x;
+    fixture=index;
+    material=fixtures[index].material;camera=fixtures[index].camera;
+    position=fixtures[index].vertex[0].xyz;
+    texcoord=fixtures[index].vertex[1].xy;
+    normal=fixtures[index].vertex[2].xyz;
+    tangent=fixtures[index].vertex[3].xyz;
+    binormal=fixtures[index].vertex[4].xyz;
+    incident=fixtures[index].vertex[5].xyz;
+    lightmapCoord=fixtures[index].vertex[6].xy;
+    runVertexProgram();
+    if(material.flags.z==5u) {
+        vec4 samples[4];
+        samples[0]=planarLookup(0,vpOut[9].xy/vpOut[9].w);
+        samples[1]=planarLookup(1,vpOut[10].xy/vpOut[10].w);
+        samples[2]=samples[3]=vec4(0,0,0,1);
+        vpOut[14]=runCombiners(samples,clamp(vpOut[3],0.0,1.0),clamp(vpOut[4],0.0,1.0));
+    }
+    for(uint i=0u;i<16u;++i)results[index*16u+i]=vpOut[i];
+}

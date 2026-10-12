@@ -1,0 +1,45 @@
+# Local two-master demonstration. Public deployments use compose.production.yaml.
+x-master: &master
+  build: .
+  image: halo2-master-local:v1
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  tmpfs: [/tmp]
+  mem_limit: 256m
+  stop_grace_period: 10s
+  environment: &environment
+    H2_MASTER_STATE: /state
+    H2_MASTER_BIND: 0.0.0.0
+    H2_MASTER_ALLOW_HTTP: "1"
+    H2_MASTER_ADMIN_TOKEN_FILE: /state/admin-token
+    H2_MASTER_SYNC_SECONDS: "1"
+    H2_MASTER_LEASE_SECONDS: "${H2_MASTER_LEASE_SECONDS:-90}"
+
+services:
+  init:
+    build: .
+    image: halo2-master-local:v1
+    profiles: [tools]
+    command: [python, -m, multiplayer.master_server.cli, init-demo, --a, /state/a, --b, /state/b, --a-url, "http://master-a:8080", --b-url, "http://master-b:8080"]
+    volumes: [master-a:/state/a, master-b:/state/b]
+    healthcheck: {disable: true}
+  master-a:
+    <<: *master
+    environment:
+      <<: *environment
+      H2_MASTER_PUBLIC_URL: http://127.0.0.1:18081
+    ports: ["127.0.0.1:18081:8080"]
+    volumes: [master-a:/state]
+  master-b:
+    <<: *master
+    environment:
+      <<: *environment
+      H2_MASTER_PUBLIC_URL: http://127.0.0.1:18082
+    ports: ["127.0.0.1:18082:8080"]
+    volumes: [master-b:/state]
+
+volumes:
+  master-a:
+  master-b:

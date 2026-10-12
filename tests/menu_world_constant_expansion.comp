@@ -1,0 +1,29 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=32) in;
+// Actual production Material program prefix: std140 byte0..239 at set0/4.
+// The test binds a full3712-byte native-sized allocation; other members are
+// intentionally not consumed by this arithmetic/descriptor gate.
+layout(set=0,binding=4,std140) uniform Material {uvec4 program[15];} material;
+layout(set=1,binding=0,std430) writeonly buffer Results {uvec4 words[54];} result;
+layout(set=1,binding=1,std140) uniform MenuWorldFragmentUniforms {
+    vec4 clipRange;ivec4 clipRegion[8];float depthFactor;float depthOffset;
+    ivec2 surfaceScale;vec4 combinerConstants[18];
+} sourcePacket;
+// The baseline calls the unchanged production word()/argb() definitions.
+#include "combiner.glsl"
+void main() {
+    uint i=gl_GlobalInvocationID.x;
+    if(i>=18u)return;
+    uint slot=i<16u?((i&1u)==0u?10u+i/2u:18u+i/2u):43u+i-16u;
+    uint packedColor=word(slot);
+    result.words[i]=floatBitsToUint(argb(packedColor));
+    // Explicit diagnostic control, never a production replacement. This
+    // rounded-reciprocal product has13 independently retained wrong words.
+    precise vec4 reciprocal=vec4((packedColor>>16u)&255u,(packedColor>>8u)&255u,
+        packedColor&255u,packedColor>>24u)*uintBitsToFloat(0x3B808081u);
+    result.words[18u+i]=floatBitsToUint(reciprocal);
+    // Separate measured candidate: actual CPU-completed production packet,
+    // not a shader reconstruction of packed colors.
+    result.words[36u+i]=floatBitsToUint(sourcePacket.combinerConstants[i]);
+}

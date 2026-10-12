@@ -1,0 +1,13 @@
+{$MASTER_DOMAIN} {
+	request_body {
+		max_size 16KB
+	}
+	reverse_proxy directory:8080 {
+		transport http {
+			# Bound HTTP admission without imposing a read deadline on upgraded
+			# voice/match WebSockets. An idle voice heartbeat starts at 10s.
+			response_header_timeout 10s
+			write_timeout 10s
+		}
+	}
+}

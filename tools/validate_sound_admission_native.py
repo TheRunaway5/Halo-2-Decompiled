@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+"""Build independent current-source snapshots for sound admission controls."""
+import argparse,os,re,shutil,subprocess
+from pathlib import Path
+from oracle_mp_title_update_display import ROOT,sha,save,encoded
+ROOTS=('include/halo2/sound_admission.hpp','src/sound_admission.cpp','tests/sound_admission_tests.cpp','src/sound_driver_parameters.cpp')
+def source_files():
+    found=set(ROOTS);pending=list(ROOTS)
+    while pending:
+        for name in re.findall(r'#include\s+"(halo2/[^\"]+)"',(ROOT/pending.pop()).read_text()):
+            rel='include/'+name
+            if rel not in found:found.add(rel);pending.append(rel)
+    return sorted(found)
+def main():
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--directory',type=Path,required=True);p.add_argument('--fixture-directory',type=Path,required=True);a=p.parse_args();d=a.directory.resolve();fixture=a.fixture_directory.resolve();native=d/'native';native.mkdir(parents=True,exist_ok=True);sources=source_files()
+    for rel in sources:
+        dst=native/'source'/rel;dst.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(ROOT/rel,dst)
+    commands=[]
+    def run(argv,label,env=None):
+        r=subprocess.run(argv,cwd=ROOT,env=env,capture_output=True,text=True);save(native/(label+'.stdout'),r.stdout.encode());save(native/(label+'.stderr'),r.stderr.encode())
+        commands.append(dict(argv=argv,cwd=str(ROOT),exit_code=r.returncode,label=label,environment_overrides={k:env[k]for k in('ASAN_OPTIONS','UBSAN_OPTIONS')}if env else{},stdout_sha256=sha(native/(label+'.stdout')),stderr_sha256=sha(native/(label+'.stderr'))));assert r.returncode==0,(label,r.stdout,r.stderr);return r.stdout
+    version=run(['g++','--version'],'compiler-version');inputs=[str(native/'source'/q)for q in sources if q.endswith('.cpp')];common=['g++','-std=c++20','-pthread','-Wall','-Wextra','-Wpedantic','-ffp-contract=off','-fno-fast-math','-frounding-math','-I'+str(native/'source/include')];normal=native/'sound_admission_tests';san=native/'sound_admission_tests_asan'
+    run([*common,'-O2',*inputs,'-o',str(normal)],'normal-build');run([str(normal),str(fixture/'fixtures.tsv')],'normal')
+    run([*common,'-O1','-g','-fsanitize=address,undefined','-fno-omit-frame-pointer',*inputs,'-o',str(san)],'sanitizer-build');run([str(san),str(fixture/'fixtures.tsv')],'sanitizer',dict(os.environ,ASAN_OPTIONS='detect_leaks=1:halt_on_error=1',UBSAN_OPTIONS='halt_on_error=1:print_stacktrace=1'))
+    for rel in sources:assert(ROOT/rel).read_bytes()==(native/'source'/rel).read_bytes(),rel
+    save(native/'commands.json',encoded(dict(schema='sound-admission-validation-v1',validator_sha256=sha(__file__),commands=commands,compiler_version=version,observed_source_files={rel:sha(ROOT/rel)for rel in sources},fixture_sha256=sha(fixture/'fixtures.tsv'),scope='Fresh isolated complete admission CPU owner sources, actual unavailable full owners plus explicitly declared direct query/slice ABIs; no successful admission/listener/voice defaults.')))
+    print(dict(commands_sha256=sha(native/'commands.json'),normal_sha256=sha(normal),sanitizer_sha256=sha(san)))
+if __name__=='__main__':main()

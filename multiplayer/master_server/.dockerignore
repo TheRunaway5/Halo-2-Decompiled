@@ -1,0 +1,11 @@
+__pycache__
+**/__pycache__
+.local
+*.sqlite3*
+*-key.json
+admin-token
+.env
+.env.*
+.venv
+state
+*.lock

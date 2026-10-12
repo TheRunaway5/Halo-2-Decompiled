@@ -1,0 +1,273 @@
+{
+  "version": 1,
+  "playlists": [
+    {
+      "revision": "lab-3-gathering-1",
+      "description": "Two-player Lockout Slayer with recovered retail skill search and XP. Custom validation rotation.",
+      "team_size": 0,
+      "minimum_players": 2,
+      "maximum_players": 2,
+      "maximum_party": 1,
+      "games": [
+        {
+          "id": "slayer",
+          "map": "lockout",
+          "variant": "Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "ranked",
+      "name": "Ranked Lab Slayer",
+      "ranked": true,
+      "quickmatch": true,
+      "skill": {
+        "kind": "bungie-2007",
+        "high_rank_radius": 14
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "retail_hopper": 2
+      }
+    },
+    {
+      "revision": "casual-lab-4-gathering-1",
+      "description": "Two-player Lockout Slayer with hidden skill and recovered query-driven casual widening. Custom validation rotation.",
+      "team_size": 0,
+      "minimum_players": 2,
+      "maximum_players": 2,
+      "maximum_party": 1,
+      "games": [
+        {
+          "id": "slayer",
+          "map": "lockout",
+          "variant": "Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "casual",
+      "name": "Casual Lab Slayer",
+      "ranked": false,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "retail_hopper": 2
+      }
+    },
+    {
+      "revision": "party-lab-2-gathering-1",
+      "description": "Four-player Lockout Team Slayer with recovered retail skill search and XP. Parties stay together; all members choose this playlist. Custom validation dimensions and rotation.",
+      "team_size": 2,
+      "minimum_players": 4,
+      "maximum_players": 4,
+      "maximum_party": 2,
+      "games": [
+        {
+          "id": "team-slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "ranked-party",
+      "name": "Ranked Lab Team Slayer",
+      "ranked": true,
+      "quickmatch": false,
+      "skill": {
+        "kind": "bungie-2007",
+        "high_rank_radius": 14
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "countdown_ms": [
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647
+        ],
+        "timeout_ms": 150000,
+        "provenance": "Native four-player validation dimensions; launch at full capacity. Original getter maximum-count override applies."
+      }
+    },
+    {
+      "revision": "casual-party-lab-3-gathering-1",
+      "description": "Four-player Lockout Team Slayer with hidden skill and recovered query-driven casual widening. Parties stay together; all members choose this playlist. Custom validation dimensions and rotation.",
+      "team_size": 2,
+      "minimum_players": 4,
+      "maximum_players": 4,
+      "maximum_party": 2,
+      "games": [
+        {
+          "id": "team-slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "casual-party",
+      "name": "Casual Lab Team Slayer",
+      "ranked": false,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "countdown_ms": [
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647,
+          2147483647
+        ],
+        "timeout_ms": 150000,
+        "provenance": "Native four-player validation dimensions; launch at full capacity. Original getter maximum-count override applies."
+      }
+    },
+    {
+      "revision": "clan-lab-1-gathering-1",
+      "description": "Two clan parties of 3 or 4; equal opposing sizes. Every member belongs to the same clan and chooses this playlist. Recovered retail lineup, countdown and clan XP. Lockout Team Slayer validation rotation.",
+      "team_size": 4,
+      "minimum_players": 6,
+      "maximum_players": 8,
+      "maximum_party": 4,
+      "games": [
+        {
+          "id": "slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "minor-clan",
+      "name": "Minor Clan Lab Slayer",
+      "ranked": true,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "clan_match": "minor-retail-launch-2004",
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "retail_hopper": 4
+      }
+    },
+    {
+      "revision": "clan-lab-1-gathering-1",
+      "description": "Two clan parties of 6 to 8; opposing sizes differ by at most two. Every member belongs to the same clan and chooses this playlist. Recovered retail lineup, countdown and clan XP. Lockout Team Slayer validation rotation.",
+      "team_size": 8,
+      "minimum_players": 12,
+      "maximum_players": 16,
+      "maximum_party": 8,
+      "games": [
+        {
+          "id": "slayer",
+          "map": "lockout",
+          "variant": "Team Slayer",
+          "weight": 1
+        }
+      ],
+      "stages": [
+        {
+          "after_seconds": 0,
+          "rank_numerator": 1,
+          "rank_denominator": 1,
+          "minimum_connection": 50
+        }
+      ],
+      "provenance": "Lab rotation. Retail launch raw skill, mapped extrema, candidate scoring, query-driven widening, role clocks and XP recovered from original executable. Server ordering, relay transport, admission and team balancing remain native policies.",
+      "id": "major-clan",
+      "name": "Major Clan Lab Slayer",
+      "ranked": true,
+      "quickmatch": false,
+      "skill": {
+        "kind": "custom",
+        "radius": 6
+      },
+      "clan_match": "major-retail-launch-2004",
+      "rank_configuration": "retail-launch-2004",
+      "candidate_selection": "retail-candidates-native-relay-v1",
+      "gathering": {
+        "retail_hopper": 5
+      }
+    }
+  ]
+}

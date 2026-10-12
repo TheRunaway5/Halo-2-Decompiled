@@ -1,0 +1,16 @@
+#version 450
+layout(local_size_x=8,local_size_y=8,local_size_z=1) in;
+// The candidate is the actual native BC1/BC3/RGBA image. Cube-compatible
+// images use a 2D-array view so face coordinates do not enter this decode gate.
+layout(set=0,binding=0) uniform sampler2DArray nativeImage;
+// Independent original sampled-view RGBA8 expectations, uploaded unchanged.
+layout(set=0,binding=1) uniform sampler2DArray originalImage;
+layout(set=0,binding=2,std430) writeonly buffer Results {uvec4 words[];} result;
+layout(push_constant) uniform Dispatch {uint width,height,layers,level,base;} job;
+void main() {
+    uvec3 at=gl_GlobalInvocationID;
+    if(at.x>=job.width || at.y>=job.height || at.z>=job.layers)return;
+    uint index=job.base+(at.z*job.height+at.y)*job.width+at.x;
+    result.words[index*2u]=floatBitsToUint(texelFetch(nativeImage,ivec3(at),int(job.level)));
+    result.words[index*2u+1u]=floatBitsToUint(texelFetch(originalImage,ivec3(at),int(job.level)));
+}

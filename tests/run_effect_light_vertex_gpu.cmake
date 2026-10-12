@@ -1,0 +1,12 @@
+string(TIMESTAMP stamp "%Y%m%dT%H%M%S" UTC)
+string(RANDOM LENGTH 8 ALPHABET 0123456789abcdef suffix)
+set(output "${OUTPUT_ROOT}/${stamp}-${suffix}")
+execute_process(COMMAND "${TEST_BINARY}" --sphere "${MAP}" "${FIXTURES}"
+    "${REFERENCES}" "${CAPTURE_SHADER}" "${output}" RESULT_VARIABLE result)
+if(result EQUAL 77)
+    message("SKIP: sphere shader Vulkan features unavailable")
+elseif(NOT result EQUAL 0)
+    message(FATAL_ERROR "Sphere shader comparison failed (${result}); results: ${output}")
+else()
+    message("Sphere shader results: ${output}")
+endif()

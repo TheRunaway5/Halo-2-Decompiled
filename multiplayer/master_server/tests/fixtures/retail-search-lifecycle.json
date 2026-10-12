@@ -1,0 +1,241 @@
+{
+  "original_xbe": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "original_runner": "ad94f29e7afe6ea598c81f88fa3dabb35c0f4bbed7c92a94deed93b8985ed90b",
+  "original_trace": "7043fd304d008d5dfcda02c289a01542a7aab78ae334143c180900d644c9b78b",
+  "original_report_sha256": "fdc9ff54326c964d456204b376226a39da237ae32fbe9a7d2b268d604c15ae53",
+  "jitter": [
+    {
+      "name": "default_signed_short_jitter_seed_0",
+      "actual": [
+        -1307,
+        -1543
+      ],
+      "expected": [
+        -1307,
+        -1543
+      ],
+      "inputs": {
+        "seed": 0
+      }
+    },
+    {
+      "name": "default_signed_short_jitter_seed_1",
+      "actual": [
+        -1309,
+        -2045
+      ],
+      "expected": [
+        -1309,
+        -2045
+      ],
+      "inputs": {
+        "seed": 1
+      }
+    },
+    {
+      "name": "default_signed_short_jitter_seed_1234",
+      "actual": [
+        -3955,
+        -1146
+      ],
+      "expected": [
+        -3955,
+        -1146
+      ],
+      "inputs": {
+        "seed": 1234
+      }
+    },
+    {
+      "name": "default_signed_short_jitter_seed_4294967295",
+      "actual": [
+        -1305,
+        -1040
+      ],
+      "expected": [
+        -1305,
+        -1040
+      ],
+      "inputs": {
+        "seed": 4294967295
+      }
+    }
+  ],
+  "roles": [
+    {
+      "name": "first_role_searches",
+      "actual": "0x70c00",
+      "expected": "0x70c00",
+      "inputs": {
+        "search_start": 0,
+        "gather_start": 0,
+        "capacity": 8
+      }
+    },
+    {
+      "name": "newer_search_then_gather",
+      "actual": "0x70c90",
+      "expected": "0x70c90",
+      "inputs": {
+        "search_start": 9000,
+        "gather_start": 8000,
+        "capacity": 8
+      }
+    },
+    {
+      "name": "older_search_then_search",
+      "actual": "0x70c00",
+      "expected": "0x70c00",
+      "inputs": {
+        "search_start": 8000,
+        "gather_start": 9000,
+        "capacity": 8
+      }
+    },
+    {
+      "name": "equal_role_start_searches",
+      "actual": "0x70c00",
+      "expected": "0x70c00",
+      "inputs": {
+        "search_start": 9000,
+        "gather_start": 9000,
+        "capacity": 8
+      }
+    },
+    {
+      "name": "capacity_none_forces_search",
+      "actual": "0x70c00",
+      "expected": "0x70c00",
+      "inputs": {
+        "search_start": 9000,
+        "gather_start": 8000,
+        "capacity": -1
+      }
+    }
+  ],
+  "queries": [
+    {
+      "name": "completed_empty_query_advances",
+      "radius": 0,
+      "maximum": 4,
+      "total": 0,
+      "count": 0,
+      "ranked": true,
+      "expected": [
+        1,
+        0,
+        1
+      ]
+    },
+    {
+      "name": "ranked_max_empty_finishes",
+      "radius": 4,
+      "maximum": 4,
+      "total": 0,
+      "count": 0,
+      "ranked": true,
+      "expected": [
+        4,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "casual_max_becomes_unbounded",
+      "radius": 4,
+      "maximum": 4,
+      "total": 0,
+      "count": 0,
+      "ranked": false,
+      "expected": [
+        -1,
+        0,
+        1
+      ]
+    },
+    {
+      "name": "ranked_max_full_page_repeats",
+      "radius": 4,
+      "maximum": 4,
+      "total": 0,
+      "count": 50,
+      "ranked": true,
+      "expected": [
+        4,
+        50,
+        1
+      ]
+    },
+    {
+      "name": "unbounded_partial_finishes",
+      "radius": -1,
+      "maximum": 4,
+      "total": 0,
+      "count": 49,
+      "ranked": false,
+      "expected": [
+        -1,
+        49,
+        0
+      ]
+    },
+    {
+      "name": "total_149_can_advance",
+      "radius": 0,
+      "maximum": 4,
+      "total": 100,
+      "count": 49,
+      "ranked": true,
+      "expected": [
+        1,
+        149,
+        1
+      ]
+    },
+    {
+      "name": "total_150_finishes",
+      "radius": 0,
+      "maximum": 4,
+      "total": 100,
+      "count": 50,
+      "ranked": true,
+      "expected": [
+        0,
+        150,
+        0
+      ]
+    }
+  ],
+  "growth": [
+    {
+      "name": "new_peak_resets_growth_clock",
+      "peak": 1,
+      "players": 2,
+      "expected": [
+        2,
+        10000,
+        0
+      ]
+    },
+    {
+      "name": "same_peak_preserves_growth_clock",
+      "peak": 2,
+      "players": 2,
+      "expected": [
+        2,
+        5000,
+        5000
+      ]
+    },
+    {
+      "name": "drop_preserves_growth_clock",
+      "peak": 2,
+      "players": 1,
+      "expected": [
+        2,
+        5000,
+        5000
+      ]
+    }
+  ]
+}

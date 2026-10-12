@@ -1,0 +1,23 @@
+# Original scenery bounds and lighting query state
+
+`SourceSceneryInitialState` retains the constructor's regular `BDEF0` sphere for an actual full object handle and definition. `SourceSceneryScene` must capture the constructor's final WORLD node0 before animation advance. A change to the node0 or object scale requires an explicit `refresh_cached_bounds` call admitted by a real pose/bounds update; physics advancement remains a separate boundary. A reused placement ordinal cannot reuse a retired full handle's cache.
+
+The untouched retail `BF0F0 → B7B40 → 10A1B0 → BD020/BD090/BDEF0` path was executed for all **278** automatically created Slayer scenery placements across all 21 supplied multiplayer maps. Before `B8890` registration every placement has physics datum NONE, C0 bit6 clear, C1 bit0 frozen, zero velocity, D1850 runtime bit13 clear, object flag bit19 clear, and control byte `+10A` zero. There are 351 constructor bounds calls: 205 placements call once and 73 graph owners call again during `10A3F0 → 10A660` idle initialization. All 73 second spheres and node0 matrices equal their first outputs.
+
+The allocator services are explicit successful, zeroed fixture allocations. Animation resources are supplied as completed authored `jmad` raw-resource banks using the original `1237E0/1237A0` existing-handle layout. The graph controller, animation decoder, constructor, posing, bounds and math instructions are not replaced. This proves the resident-resource constructor path; original asynchronous resource timing is outside the fixture.
+
+## Frozen physics and animated bounds
+
+Frozen C1 bit0 does **not** freeze the bounds cache. After the controller's `1CB710` service, `10A2F0` requires a controller, a valid graph and current animation binding, and a current clip frame count greater than one. It calls `BBA20`; for an active root header (bit0), `B7360` and `BBA20` set header bits1/2. `BC820` calls `BD090` and then `BDEF0` without a C1 bit0 check. The type6 `BDEF0` path is always regular; its Havok sphere override is restricted to type11.
+
+The original callback is frozen in 1,390 fixtures (278 owners × five explicit header states). There are 42 multi-frame owners: 26 teleporters, eight holographic signs and eight Gemini lilypad bunches. Active header states 1/3 become 7; state0 remains0; the callback still returns true for a multi-frame clip. The other 236 owners return false. All retain frozen C1 bit0. The cold factory header is 0x0A (bits1/3) at `B8890` entry after `B7360`; `B7B40` sets bit3 after allocation. Its later clearing producer is not established by this prefix; the registration-disabled fixture does not establish source activation bit0. An alive native full handle is not an original active-header predicate. A native admitted pose update may refresh the regular bounds kernel through the explicit callback while original scheduler equality remains unproved.
+
+Another 556 untouched `BDEF0` updates prove identical regular sphere output for frozen and unfrozen states using explicit changed WORLD translations. Current controller phase, root ownership and `BC820` scheduling are supplied runtime inputs, not inferred from render time or visibility.
+
+## Native comparison and remaining precision boundary
+
+All **278 native initial placement spheres and complete 13-word WORLD node0 banks** now match the original constructor exactly using `load_initialized_object_idle` and `pose_model_node` at zero seconds. The eight historical differences (Midship13/19/20, Waterworks6/9/10/12 and Gemini2) were isolated to scenario Euler conversion before local posing. Original `141CE0` stores x87 trigonometric results to float before its SSE products; native float libm calls rounded differently for four owners. The four Waterworks differences came from unary minus producing negative zero where the source performs zero minus sine. The shared `source_euler_basis` correction removes all eight differences. Their old fixture is retained as evidence, while the exact-count assertion rejects a regression. This constructor node0 proof does not establish every animated node, skin matrix or actual Xbox reciprocal instruction result.
+
+Four Zanzibar pillars still need the actual session's primary RNG chronology to resolve their initial region selections. The bounds fixture uses an explicit local seed solely to run and compare the source constructor. It does not resolve their live session geometry choices.
+
+Evidence: `analysis/multiplayer-shading/scenery-cold-bounds-original.py`, its JSON report, `tests/fixtures/retail_scenery_initial_bounds*`, `retail_scenery_animation_refresh.tsv`, `retail_scenery_bounds_refresh.tsv`, and `tests/source_scenery_initial_state_tests.cpp`.

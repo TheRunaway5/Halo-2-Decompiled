@@ -1,0 +1,314 @@
+#include "halo2/unit_local_transition.hpp"
+#ifdef HALO2_LOCAL_TRANSITION_CACHE
+#include "halo2/original_data.hpp"
+#include "halo2/source_tag_metadata_store.hpp"
+#endif
+#include <algorithm>
+#include <bit>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <vector>
+
+namespace {
+void check(bool b, const std::string &s) {
+  if (!b)
+    throw std::runtime_error(s);
+}
+std::uint32_t num(const std::string &s) { return std::stoul(s, nullptr, 16); }
+std::vector<std::byte> decode(const std::string &s) {
+  check(s.size() % 2 == 0, "Truncated literal buffer");
+  std::vector<std::byte> b(s.size() / 2);
+  for (std::size_t i = 0; i < b.size(); ++i)
+    b[i] = std::byte(num(s.substr(i * 2, 2)));
+  return b;
+}
+using State = std::map<std::string, std::vector<std::byte>>;
+using Store = halo2::UnitLocalTransitionStore;
+struct Tag {
+  std::uint32_t address;
+  std::vector<std::byte> raw;
+};
+struct Case {
+  std::string label;
+  std::uint32_t entry, unit, capacity, result, clocks = 0;
+  std::vector<std::uint32_t> args;
+  halo2::SourceLocalTransitionClock clock;
+  State before, after;
+  std::map<std::uint32_t, std::vector<std::byte>> objects_before, objects_after;
+  std::map<std::string, std::size_t> locations;
+  std::vector<Store> stores;
+};
+template <class F> void rejects(F &&f) {
+  bool caught = false;
+  try {
+    f();
+  } catch (const std::exception &) {
+    caught = true;
+  }
+  check(caught, "Unavailable original owner did not stop");
+}
+void run(const Case &c, const halo2::UnitConstructorTailMetadata &tags,
+         std::uint32_t one, std::uint32_t zero, unsigned &stores_total,
+         unsigned &clock_total) {
+  auto state = c.before;
+  auto objects = c.objects_before;
+  auto visible = [&](const std::string &name) -> std::span<std::byte> {
+    if (name == "H" && state.contains("POOL"))
+      return std::span<std::byte>(state.at("POOL"))
+          .subspan(std::size_t(c.unit & 65535) * 12, 12);
+    if (name == "U" && !objects.empty())
+      return objects.at(c.unit);
+    if (c.locations.contains(name))
+      return std::span<std::byte>(state.at("U"))
+          .subspan(c.locations.at(name), state.at(name).size());
+    return state.at(name);
+  };
+  auto compare = [&](const State &expected) {
+    for (const auto &[k, v] : expected) {
+      auto b = visible(k);
+      check(b.size() == v.size() && std::equal(b.begin(), b.end(), v.begin()),
+            c.label + " Complete buffer differs: " + k);
+    }
+  };
+  compare(c.before);
+  unsigned clocks = 0;
+  halo2::SourceUnitLocalTransitionServices s{};
+  s.tags = tags;
+  s.one_bits = one;
+  s.zero_bits = zero;
+  s.clock = [&] {
+    ++clocks;
+    return c.clock;
+  };
+  if (state.contains("POOL")) {
+    s.objects.headers = state.at("POOL");
+    s.objects.capacity = c.capacity;
+    s.objects.body = [&](std::uint16_t index) -> std::span<std::byte> {
+      for (auto &[id, b] : objects)
+        if (std::uint16_t(id) == index)
+          return b;
+      throw std::runtime_error("Unowned original body lookup");
+    };
+  }
+  std::vector<Store> stores;
+  auto observer = [&](const Store &v) { stores.push_back(v); };
+  std::uint32_t result = 0;
+  switch (c.entry) {
+  case 0xbb240:
+    halo2::capture_source_object_transition(c.unit, c.args.at(0), s, observer);
+    break;
+  case 0x1cefe0:
+    result = halo2::save_source_unit_local_transition(
+        visible("M"), std::bit_cast<std::int32_t>(c.args.at(0)), c.args.at(1),
+        visible("S"), visible("L"), s, observer);
+    break;
+  case 0x1dce20:
+    result = halo2::source_transition_remaining_seconds(visible("C"), s.clock);
+    break;
+  case 0x1dcc30:
+    halo2::start_source_transition_counter(visible("C"), c.args.at(0),
+                                           std::uint8_t(c.args.at(1)), one,
+                                           s.clock, observer);
+    break;
+  default:
+    throw std::runtime_error("Unknown complete source owner");
+  }
+  check(result == c.result, c.label + " Defined return differs");
+  compare(c.after);
+  check(objects == c.objects_after,
+        c.label + " Complete other-object bodies differ");
+  check(clocks == c.clocks, c.label + " Actual clock read count differs");
+  if (stores != c.stores) {
+    std::size_t i = 0;
+    while (i < std::min(stores.size(), c.stores.size()) &&
+           stores[i] == c.stores[i])
+      ++i;
+    std::ostringstream ss;
+    ss << c.label << " Store order differs at " << i << " sizes "
+       << stores.size() << "/" << c.stores.size();
+    if (i < stores.size())
+      ss << " native " << std::hex << stores[i].instruction << ":"
+         << stores[i].offset;
+    if (i < c.stores.size())
+      ss << " source " << std::hex << c.stores[i].instruction << ":"
+         << c.stores[i].offset;
+    throw std::runtime_error(ss.str());
+  }
+  stores_total += stores.size();
+  clock_total += clocks;
+  // Host boundary checks reuse captured source-owned storage. No body, pose,
+  // component offset or clock fields are generated by these tests.
+  if (c.entry == 0x1dcc30) {
+    auto b = visible("C");
+    auto missing = s;
+    missing.clock = {};
+    rejects([&] {
+      halo2::start_source_transition_counter(
+          b, c.args.at(0), std::uint8_t(c.args.at(1)), one, missing.clock);
+    });
+    rejects([&] {
+      halo2::start_source_transition_counter(
+          b.first(3), c.args.at(0), std::uint8_t(c.args.at(1)), one, s.clock);
+    });
+    auto unsupported_context = [&] {
+      auto context = c.clock;
+      context.mxcsr |= 0x8000; // A declared unsupported FTZ provider context.
+      return context;
+    };
+    rejects([&] {
+      halo2::start_source_transition_counter(b, c.args.at(0),
+                                             std::uint8_t(c.args.at(1)), one,
+                                             unsupported_context);
+    });
+  }
+  if (c.entry == 0xbb240) {
+    auto missing = s;
+    missing.tags.read = {};
+    rejects([&] {
+      halo2::capture_source_object_transition(c.unit, c.args.at(0), missing);
+    });
+    missing = s;
+    missing.objects.headers = {};
+    rejects([&] {
+      halo2::capture_source_object_transition(c.unit, c.args.at(0), missing);
+    });
+  }
+}
+} // namespace
+int main(int argc, char **argv) {
+  try {
+    check(argc == 2 || argc == 3 || argc == 4,
+          "Supply literal transition fixture, optional Lockout cache and "
+          "selected update image");
+    for (int i = 1; i < argc; ++i)
+      if (!std::filesystem::exists(argv[i]))
+        return 77;
+    std::ifstream in(argv[1]);
+    std::map<std::uint32_t, Tag> packets;
+    std::vector<Case> cases;
+    std::uint32_t one = 0, zero = 0;
+    Case *c = nullptr;
+    for (std::string line; std::getline(in, line);) {
+      std::istringstream row(line);
+      std::string kind;
+      row >> kind;
+      auto word = [&] {
+        std::string v;
+        check(bool(row >> v), "Incomplete fixture row");
+        return num(v);
+      };
+      if (kind == "TAG") {
+        auto d = word(), at = word();
+        std::string raw;
+        row >> raw;
+        packets.emplace(d, Tag{at, decode(raw)});
+      } else if (kind == "CONSTANTS") {
+        one = word();
+        zero = word();
+      } else if (kind == "CASE") {
+        cases.emplace_back();
+        c = &cases.back();
+        row >> c->label;
+        c->entry = word();
+        c->unit = word();
+        c->capacity = word();
+        c->result = word();
+        auto n = word();
+        for (unsigned i = 0; i < n; ++i)
+          c->args.push_back(word());
+      } else if (kind == "CLOCK") {
+        std::string raw;
+        row >> raw;
+        auto b = decode(raw);
+        check(b.size() == 12, "Clock owner extent");
+        std::copy(b.begin(), b.end(), c->clock.record.begin());
+        c->clock.fpcw = std::uint16_t(word());
+        c->clock.mxcsr = word();
+      } else if (kind == "LOCATION") {
+        std::string k;
+        row >> k;
+        c->locations.emplace(k, word());
+      } else if (kind == "BEFORE" || kind == "AFTER") {
+        std::string k, raw;
+        row >> k >> raw;
+        (kind == "BEFORE" ? c->before : c->after).emplace(k, decode(raw));
+      } else if (kind == "OBJECTBEFORE" || kind == "OBJECTAFTER") {
+        auto d = word();
+        std::string raw;
+        row >> raw;
+        (kind == "OBJECTBEFORE" ? c->objects_before : c->objects_after)
+            .emplace(d, decode(raw));
+      } else if (kind == "CLOCKCOUNT")
+        c->clocks = word();
+      else if (kind == "STORE") {
+        Store v{};
+        v.instruction = word();
+        std::string k;
+        row >> k;
+        v.buffer = k == "POOL" ? halo2::UnitLocalTransitionBuffer::Headers
+                   : k == "U"  ? halo2::UnitLocalTransitionBuffer::Body
+                   : k == "M"  ? halo2::UnitLocalTransitionBuffer::Manager
+                   : k == "S"  ? halo2::UnitLocalTransitionBuffer::Saved
+                               : halo2::UnitLocalTransitionBuffer::Counter;
+        v.offset = word();
+        v.bytes = word();
+        v.before = word();
+        v.after = word();
+        c->stores.push_back(v);
+      }
+    }
+    halo2::UnitConstructorTailMetadata tags;
+    tags.address = [&](std::uint32_t d) { return packets.at(d).address; };
+    tags.read = [&](std::uint32_t at,
+                    std::size_t n) -> std::span<const std::byte> {
+      const Tag *owner = nullptr;
+      for (const auto &[d, t] : packets)
+        if (at >= t.address && std::uint64_t(at) - t.address <= t.raw.size() &&
+            n <= t.raw.size() - (std::uint64_t(at) - t.address)) {
+          check(!owner, "Ambiguous source backing");
+          owner = &t;
+        }
+      check(owner, "Unowned source metadata span");
+      return std::span<const std::byte>(owner->raw)
+          .subspan(at - owner->address, n);
+    };
+    bool actual_cache = false;
+#ifdef HALO2_LOCAL_TRANSITION_CACHE
+    if (argc >= 3) {
+      auto cache = std::make_shared<halo2::Cache>(argv[2]);
+      halo2::SourceTagMetadataStore store(cache, {"bipd", "weap"});
+      auto p = store.providers();
+      tags = {p.address, p.read};
+      actual_cache = true;
+    }
+    if (argc == 4) {
+      auto image = halo2::OriginalData::load_xbe(argv[3]);
+      check(image->unit_animation_constants.has_value(),
+            "Missing selected-image constants");
+      auto &k = *image->unit_animation_constants;
+      check(one == k.one_bits && zero == k.zero_bits,
+            "Original selected-image one/zero words differ");
+      one = k.one_bits;
+      zero = k.zero_bits;
+    }
+#else
+    check(argc == 2, "Actual-cache mode requires registered provider build");
+#endif
+    unsigned stores = 0, clocks = 0;
+    for (const auto &c : cases)
+      run(c, tags, one, zero, stores, clocks);
+    check(cases.size() == 31 && stores == 2195 && clocks == 29,
+          "Incomplete original owning-case coverage");
+    std::cout << "PASS " << cases.size() << " complete original buffers, "
+              << stores << " ordered stores, " << clocks
+              << " literal clock reads"
+              << (actual_cache ? ", actual Cache metadata" : "") << "\n";
+    return 0;
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
+    return 1;
+  }
+}

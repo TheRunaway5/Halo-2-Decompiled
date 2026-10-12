@@ -1,0 +1,77 @@
+# User-supplied game images, installers, executables, and extracted game data.
+# Keep imports local; the readers, exporters, and setup tools stay in Git.
+*.[iI][sS][oO]
+*.7z
+*.zip
+*.rar
+*.cab
+*.xbe
+*.xbe.*
+*.xex
+*.map
+*.lvl
+/assets/
+/Halo 2 Vista installer/
+/resources/ui/
+
+# Generated reference captures and oracle payloads can contain original bytes.
+# Keep the fixture documentation and Python generators with the tests.
+/tests/fixtures/*
+!/tests/fixtures/*.md
+!/tests/fixtures/*.py
+
+# Builds, downloaded tools/references, and local analysis workspaces.
+/build*/
+/cmake-build*/
+/out/
+/dist/
+/.tools/
+/analysis/
+/tools/reference/
+/.ark-*/
+CMakeFiles/
+CMakeCache.txt
+Testing/
+compile_commands.json
+.ninja_deps
+.ninja_log
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.pdb
+*.spv
+
+# Installed launcher copies and generated desktop shortcuts.
+# Reusable launcher sources and installation scripts live in src/ and tools/.
+/Halo2-*
+/Halo 2 Native*.desktop
+
+# Local keys, credentials, service databases, and Python environments/caches.
+.local/
+.env
+.env.*
+!.env.example
+!.env.sample
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+node_modules/
+
+# Runtime caches, logs, editor backups, and desktop metadata.
+*.dxvk-cache
+*.log
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+{
+  "name": "Simulated Halo 2 Community Server",
+  "host": "203.0.113.10",
+  "port": 2002,
+  "map": "lockout",
+  "gametype": "Slayer",
+  "players": 0,
+  "max_players": 16,
+  "game_version": "halo2-native-directory-simulator-v1",
+  "visibility": "public",
+  "server_type": "dedicated",
+  "region": "US-EAST"
+}

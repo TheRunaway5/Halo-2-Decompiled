@@ -1,0 +1,13 @@
+# Whole original sound-driver cleanup composition
+
+`source_sound_driver_cleanup` is a public native entry for original `220BF0`/u5 `2254F0`. It directly composes the already verified `2213A0`/`225CA0` stream-flush and `2B4470`/`2B7E80` queue owners. Calling cleanup requires no invented startup-failure HRESULT.
+
+The caller supplies the actual mutable driver and hardware-queue pointer-cell addresses, the retained source-created cache address, and the selected static queue address. The module preserves the original driver re-reads after real release calls, retains the original stream/static slot across those calls, and performs the final queue-pointer and driver-byte stores in source order. Nonempty stream release requires the actual identity/vtable/slot/method; direct buffer/device release requires a real native provider. Neither is silently completed when unavailable. No device identity, cache pin, voice, readiness or callback success is generated.
+
+Authority is the earlier frozen complete-body correspondence, 74 rows per image, and independently repeated unchanged whole-cleanup witnesses in `sound-driver-owners-native`. Each witness retains the complete prior driver allocation-prefix arena, complete original cache-constructor pool, literal image static-queue bytes and explicit current global bindings. This is an empty allocation-prefix state, not successful audio-driver initialization.
+
+`export_mp_sound_driver_cleanup.py` verifies the prior report pins, reconstructs each complete output from the actual original ordered stores, and checks every original output-region SHA-256 before export. It uses the literal paired driver and hardware-queue operands. No message transcription is used as an operand source. Its two cases contain six ordered stores and 311,344 complete output bytes, including the pointer cells. They execute the real native flush/queue helpers with `NativeSoundStorage` mappings and no helper callbacks or platform results.
+
+Fresh production normal and GCC ASan/UBSan builds and the registered cleanup/driver-owner comparisons pass. Commands, logs, source snapshots, observed Cache archives and freshly linked tests are retained under `analysis/multiplayer/integration/sound-driver-cleanup-production-20261009`. An initial command-log serialization used a literal trailing backslash-n; that initial text is retained and the valid JSON record preserves the same commands and exits. No test result was changed.
+
+Nonempty voice/release execution, complete startup/DSP/platform construction, live reload playback and all-map audible effects remain unfinished. No launcher build or live gameplay parity is claimed.

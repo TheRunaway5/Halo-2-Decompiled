@@ -1,0 +1,7 @@
+# Apply after compose.production.yaml to enable an explicitly chosen catalog.
+services:
+  directory:
+    environment:
+      H2_MATCHMAKING_CATALOG: /config/playlists.json
+    volumes:
+      - ${MATCHMAKING_CATALOG:?Set MATCHMAKING_CATALOG}:/config/playlists.json:ro

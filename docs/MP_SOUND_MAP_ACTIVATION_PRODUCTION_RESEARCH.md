@@ -1,0 +1,9 @@
+# Sound map CPU owner in the production cache library
+
+The production cache library now includes the frozen `source_sound_map_activation` implementation. Its registered original differential test passes in normal GCC and GCC ASan/UBSan builds: three genuine original prefix cases, 38 ordered writes and complete retained startup arenas/globals. The implementation, complete body correspondence and genuine driver/environment stops are documented in [the map activation contract](MP_SOUND_MAP_ACTIVATION_NATIVE_INTEGRATION.md).
+
+`OriginalData::load_xbe` separately imports only its two verified immutable operands. The actual `one_bits` word is at `465030→46A0D0`, raw `0000803F`; `ambient_transition_bits` is at `4457BC→44923C`, raw `DB0FC940`. The ambient word is the same verified operand already owned by startup. The independent exporter authenticates the complete paired packet and both original executable hashes, then reads the actual words from their mapped sections. Measured and repeated exports match byte for byte.
+
+`original_sound_map_activation_constants` compares all 16 imported bytes across both supported images and verifies that no unverified base-image provider is created. Both production normal and sanitizer checks pass. Mutable runtime environment packet `477548→47C77C`, saved output settings, driver/plugin state, current `matg` binding and class fades are not immutable constants and are not populated by this importer.
+
+The original CPU owner writes system`+7A` before requesting clocks and real plugin/environment/effect services. A partially written flag is not completed map activation. This registered checkpoint still retains the original missing-driver boundary; it supplies no successful platform return or cache-ready state. The canonical launcher remains unchanged, and live reload sound playback and all-map sound correctness remain unfinished.

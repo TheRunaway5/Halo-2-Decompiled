@@ -1,0 +1,2 @@
+# Preserve source-verified bitmap/font bytes and portable bundle hash records.
+/resources/ui/** -text

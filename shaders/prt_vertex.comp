@@ -1,0 +1,27 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+// The source fixture supplies every bound register, including the compression,
+// object palette, incident direction and relative PRT coefficient bank.
+struct Fixture {
+    uvec4 instructions[136]; vec4 attributes[16]; uvec4 flags;
+    vec4 constants[192]; vec4 inputs[7];
+};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 results[];};
+struct MaterialData {uvec4 vertexInstructions[136];vec4 vertexAttributes[16];uvec4 flags;};
+MaterialData material;
+uint fixtureIndex;
+#define H2_VERTEX_REFERENCE_CONSTANTS
+#define H2_VERTEX_REFERENCE_INPUTS
+#define H2_EXTENDED_VERTEX_BANK
+vec4 vpConstant(uint index) {return fixtures[fixtureIndex].constants[index];}
+#include "vertex_program.glsl"
+void main() {
+    fixtureIndex=gl_GlobalInvocationID.x;
+    for(uint i=0u;i<136u;++i)material.vertexInstructions[i]=fixtures[fixtureIndex].instructions[i];
+    for(uint i=0u;i<16u;++i)material.vertexAttributes[i]=i<7u?fixtures[fixtureIndex].inputs[i]:fixtures[fixtureIndex].attributes[i];
+    material.flags=fixtures[fixtureIndex].flags;
+    runVertexProgram();
+    for(uint i=0u;i<16u;++i)results[fixtureIndex*16u+i]=vpOut[i];
+}

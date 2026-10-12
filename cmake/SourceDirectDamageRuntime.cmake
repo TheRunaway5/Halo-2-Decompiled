@@ -1,0 +1,51 @@
+add_library(halo2_source_direct_damage STATIC src/source_direct_damage_runtime_generated.cpp)
+target_include_directories(halo2_source_direct_damage PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(halo2_source_direct_damage PUBLIC cxx_std_20)
+target_link_libraries(halo2_systems PUBLIC halo2_source_direct_damage)
+target_sources(halo2_systems PRIVATE src/source_damage_runtime.cpp)
+if(MSVC)
+    target_compile_options(halo2_source_direct_damage PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_source_direct_damage PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+endif()
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(halo2_source_direct_damage PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(halo2_source_direct_damage PUBLIC -fsanitize=address,undefined)
+endif()
+if(BUILD_TESTING)
+    add_executable(source_direct_damage_runtime_tests tests/source_direct_damage_runtime_tests.cpp)
+    target_link_libraries(source_direct_damage_runtime_tests PRIVATE halo2_source_direct_damage nlohmann_json::nlohmann_json)
+    foreach(image IN ITEMS disc u5)
+        add_test(NAME original_source_direct_damage_${image} COMMAND source_direct_damage_runtime_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/direct-damage-runtime/original-v7/${image}.json)
+        set_tests_properties(original_source_direct_damage_${image} PROPERTIES SKIP_RETURN_CODE 77)
+    endforeach()
+    add_executable(source_damage_composition_tests tests/source_direct_damage_runtime_tests.cpp)
+    target_compile_definitions(source_damage_composition_tests PRIVATE HALO2_DAMAGE_COMPOSITION_TEST=1)
+    target_link_libraries(source_damage_composition_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME original_source_damage_composition_disc COMMAND source_damage_composition_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/live-region-delivery/composition-v3/disc.json)
+    add_test(NAME original_source_vitality_composition_disc COMMAND source_damage_composition_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/live-region-delivery/vitality-composition-v3/disc.json)
+    add_test(NAME original_source_region_delivery_disc COMMAND source_damage_composition_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/live-region-delivery/regions-v2/disc.json)
+    add_test(NAME original_source_fatal_state_initializer_disc COMMAND source_damage_composition_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/live-fatal-cleanup/final-owner-captures-v1/state/disc.json)
+    foreach(row IN ITEMS 0 1 12)
+        add_test(NAME original_source_item_scale_reset_row${row}_disc COMMAND source_damage_composition_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/live-fatal-cleanup/final-owner-captures-v1/item-scale${row}/disc.json)
+        set_tests_properties(original_source_item_scale_reset_row${row}_disc PROPERTIES SKIP_RETURN_CODE 77)
+    endforeach()
+    add_test(NAME original_source_item_entity_detach_disc COMMAND source_damage_composition_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/live-fatal-cleanup/final-owner-captures-v1/item-entity/disc.json)
+    set_tests_properties(original_source_item_entity_detach_disc PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_source_item_drop_flags_disc COMMAND source_damage_composition_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/live-fatal-cleanup/final-owner-captures-v1/item-drop/disc.json)
+    set_tests_properties(original_source_item_drop_flags_disc PROPERTIES SKIP_RETURN_CODE 77)
+    foreach(type IN ITEMS 22 27)
+        add_test(NAME original_source_fatal_interrupt${type}_disc COMMAND source_damage_composition_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/analysis/damage-shields-goal-20261011/live-fatal-cleanup/final-owner-captures-v1/action${type}/disc.json)
+        set_tests_properties(original_source_fatal_interrupt${type}_disc PROPERTIES SKIP_RETURN_CODE 77)
+    endforeach()
+    set_tests_properties(original_source_damage_composition_disc original_source_vitality_composition_disc original_source_region_delivery_disc original_source_fatal_state_initializer_disc PROPERTIES SKIP_RETURN_CODE 77)
+endif()

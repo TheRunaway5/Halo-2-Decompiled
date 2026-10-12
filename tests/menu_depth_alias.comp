@@ -1,0 +1,28 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+layout(set=0,binding=0,std430) readonly buffer Inputs { uvec4 ranges[]; } inputs;
+layout(set=0,binding=1,std430) writeonly buffer Outputs { vec4 results[]; } outputs;
+#include "particle_depth.glsl"
+// Exercise the production alias decoder without a texture or combiner. The
+// returned four bytes are the original D24-as-A8R8G8B8 fog input, independently
+// expected from the integer W supplied by this test.
+struct FogMaterial { vec4 lookup[2]; } material;
+uint word(uint index) { return 1u; }
+vec4 fogGradient(vec2 coordinate) { return vec4(0); }
+vec4 runCombiners(vec4 samples[4],vec4 d0,vec4 d1) { return samples[0]; }
+#include "fog_color.glsl"
+void main() {
+    uvec4 range=inputs.ranges[gl_GlobalInvocationID.x];
+    uint differences=0u,first=0u,observed=0u;
+    for(uint n=range.x;n<range.y;++n) {
+        float normalized=particleD24Depth(float(n));
+        uvec4 aliased=uvec4(round(titleFogColor(normalized)*255.0));
+        uvec4 expected=uvec4((n>>8u)&255u,n&255u,0u,n>>16u);
+        if(any(notEqual(aliased,expected))) {
+            if(differences==0u) {first=n;observed=aliased.y|(aliased.x<<8u)|(aliased.w<<16u);}
+            ++differences;
+        }
+    }
+    outputs.results[gl_GlobalInvocationID.x]=vec4(differences,first,observed,range.y-range.x);
+}

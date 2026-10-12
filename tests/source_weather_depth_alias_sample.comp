@@ -1,0 +1,15 @@
+#version 450
+layout(local_size_x=64) in;
+layout(set=0,binding=0) uniform sampler2D alias_image;
+layout(set=0,binding=1,std430) writeonly buffer Output { uint words[]; } output_words;
+layout(push_constant) uniform Extent { uint width; uint height; } extent;
+void main() {
+    uint i=gl_GlobalInvocationID.x, count=extent.width*extent.height;
+    if(i>=count+2u) return;
+    vec2 uv;
+    if(i==count) uv=vec2(-10.0);
+    else if(i==count+1u) uv=vec2(10.0);
+    else uv=(vec2(i%extent.width,i/extent.width)+vec2(.25,.75))/vec2(extent.width,extent.height);
+    uvec4 bytes=uvec4(round(textureLod(alias_image,uv,0.0)*255.0));
+    output_words.words[i]=bytes.x|(bytes.y<<8u)|(bytes.z<<16u)|(bytes.w<<24u);
+}

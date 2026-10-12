@@ -1,0 +1,20 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct Fog {uvec4 program[15];vec4 lookup[2];};
+struct Fixture {Fog material;vec4 depth;vec4 gradient[256];};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 pixels[];};
+Fog material;
+uint fixture;
+#include "combiner.glsl"
+vec4 fogGradient(vec2 uv) {
+    vec2 p=clamp(uv,0.0,1.0)*16.0-.5;
+    ivec2 a=ivec2(floor(p)),b=a+1;
+    vec2 f=fract(p);a=clamp(a,ivec2(0),ivec2(15));b=clamp(b,ivec2(0),ivec2(15));
+    return mix(mix(fixtures[fixture].gradient[a.y*16+a.x],fixtures[fixture].gradient[a.y*16+b.x],f.x),
+               mix(fixtures[fixture].gradient[b.y*16+a.x],fixtures[fixture].gradient[b.y*16+b.x],f.x),f.y);
+}
+#include "fog_color.glsl"
+void main(){fixture=gl_GlobalInvocationID.x;material=fixtures[fixture].material;
+    pixels[fixture]=titleFogColor(fixtures[fixture].depth.x);}

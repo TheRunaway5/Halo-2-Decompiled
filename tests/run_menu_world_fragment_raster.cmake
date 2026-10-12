@@ -1,0 +1,17 @@
+# Preserve the actual attachment readbacks for every native draw comparison.
+string(TIMESTAMP stamp "%Y%m%dT%H%M%S" UTC)
+string(RANDOM LENGTH 8 ALPHABET 0123456789abcdef suffix)
+set(output "${OUTPUT_ROOT}/${stamp}-${suffix}")
+set(import_arguments)
+if(DEFINED NATIVE_IMPORT_FIXTURES)
+    list(APPEND import_arguments --native-cache-textures "${NATIVE_IMPORT_FIXTURES}")
+endif()
+execute_process(COMMAND "${TEST_BINARY}" "${MAP}" "${FIXTURES}"
+    "${GEOMETRY_SHADER}" "${FRAGMENT_SHADER}" "${output}" ${import_arguments} RESULT_VARIABLE result)
+if(result EQUAL 77)
+    message("SKIP: fragment raster fixtures or required validated Vulkan device unavailable")
+elseif(NOT result EQUAL 0)
+    message(FATAL_ERROR "Native fragment raster comparison failed (${result}); results: ${output}")
+else()
+    message("Native fragment raster results: ${output}")
+endif()

@@ -1,0 +1,1828 @@
+{
+  "schema_version": 1,
+  "executable": "assets/disc/default.xbe",
+  "executable_sha256": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+  "provenance": "Unchanged original retail Xbox executable; synthetic data and clock inputs; no instruction/callee stubs.",
+  "hoppers": [
+    {
+      "index": 0,
+      "name": "Rumble Pit",
+      "type": 2,
+      "minimum": 4,
+      "maximum": 8,
+      "timeout_ms": 150000,
+      "countdown_ms_by_players_0_through_17": [
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        30000,
+        22500,
+        15000,
+        7500,
+        0,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647
+      ]
+    },
+    {
+      "index": 1,
+      "name": "Team Slayer",
+      "type": 4,
+      "minimum": 6,
+      "maximum": 8,
+      "timeout_ms": 150000,
+      "countdown_ms_by_players_0_through_17": [
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        30000,
+        30000,
+        0,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647
+      ]
+    },
+    {
+      "index": 2,
+      "name": "Head to Head",
+      "type": 2,
+      "minimum": 2,
+      "maximum": 2,
+      "timeout_ms": 120000,
+      "countdown_ms_by_players_0_through_17": [
+        2147483647,
+        2147483647,
+        0,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647
+      ]
+    },
+    {
+      "index": 3,
+      "name": "Team Skirmish",
+      "type": 4,
+      "minimum": 10,
+      "maximum": 16,
+      "timeout_ms": 300000,
+      "countdown_ms_by_players_0_through_17": [
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        45000,
+        45000,
+        30000,
+        30000,
+        15000,
+        15000,
+        0,
+        2147483647
+      ]
+    },
+    {
+      "index": 4,
+      "name": "Minor Clan Match",
+      "type": 5,
+      "minimum": 6,
+      "maximum": 8,
+      "timeout_ms": 120000,
+      "countdown_ms_by_players_0_through_17": [
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        0,
+        0,
+        0,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647
+      ]
+    },
+    {
+      "index": 5,
+      "name": "Major Clan Match",
+      "type": 5,
+      "minimum": 12,
+      "maximum": 16,
+      "timeout_ms": 120000,
+      "countdown_ms_by_players_0_through_17": [
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2147483647
+      ]
+    },
+    {
+      "index": 6,
+      "name": "Team Training",
+      "type": 3,
+      "minimum": 4,
+      "maximum": 8,
+      "timeout_ms": 150000,
+      "countdown_ms_by_players_0_through_17": [
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        30000,
+        30000,
+        15000,
+        15000,
+        0,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647,
+        2147483647
+      ]
+    }
+  ],
+  "nat_return_block": [
+    {
+      "nat_return": 3,
+      "old_counter": 0,
+      "limit": 5,
+      "role": "search",
+      "counter": 1
+    },
+    {
+      "nat_return": 3,
+      "old_counter": 1,
+      "limit": 5,
+      "role": "search",
+      "counter": 2
+    },
+    {
+      "nat_return": 3,
+      "old_counter": 2,
+      "limit": 5,
+      "role": "search",
+      "counter": 3
+    },
+    {
+      "nat_return": 3,
+      "old_counter": 3,
+      "limit": 5,
+      "role": "search",
+      "counter": 4
+    },
+    {
+      "nat_return": 3,
+      "old_counter": 4,
+      "limit": 5,
+      "role": "search",
+      "counter": 5
+    },
+    {
+      "nat_return": 3,
+      "old_counter": 5,
+      "limit": 5,
+      "role": "gather",
+      "counter": 0
+    },
+    {
+      "nat_return": 3,
+      "old_counter": 6,
+      "limit": 5,
+      "role": "gather",
+      "counter": 0
+    },
+    {
+      "nat_return": 3,
+      "old_counter": 0,
+      "limit": 0,
+      "role": "gather",
+      "counter": 0
+    },
+    {
+      "nat_return": 3,
+      "old_counter": -1,
+      "limit": 5,
+      "role": "search",
+      "counter": 0
+    },
+    {
+      "nat_return": 3,
+      "old_counter": 2147483647,
+      "limit": 5,
+      "role": "gather",
+      "counter": 0
+    },
+    {
+      "nat_return": 0,
+      "old_counter": 4,
+      "limit": 5,
+      "role": "gather",
+      "counter": 4
+    },
+    {
+      "nat_return": 1,
+      "old_counter": 4,
+      "limit": 5,
+      "role": "gather",
+      "counter": 4
+    },
+    {
+      "nat_return": 2,
+      "old_counter": 4,
+      "limit": 5,
+      "role": "gather",
+      "counter": 4
+    }
+  ],
+  "tick_subtraction": [
+    {
+      "now_u32": 256,
+      "start_u32": 4294967040,
+      "elapsed_i32": 512
+    },
+    {
+      "now_u32": 2147483664,
+      "start_u32": 2147483632,
+      "elapsed_i32": 32
+    },
+    {
+      "now_u32": 2147483648,
+      "start_u32": 0,
+      "elapsed_i32": -2147483648
+    },
+    {
+      "now_u32": 0,
+      "start_u32": 4294967295,
+      "elapsed_i32": 1
+    },
+    {
+      "now_u32": 2147483647,
+      "start_u32": 0,
+      "elapsed_i32": 2147483647
+    }
+  ],
+  "countdown_gate": [
+    {
+      "index": 0,
+      "players": 4,
+      "elapsed_i32": 29999,
+      "countdown_ms": 30000,
+      "passed": false
+    },
+    {
+      "index": 0,
+      "players": 4,
+      "elapsed_i32": 30000,
+      "countdown_ms": 30000,
+      "passed": true
+    },
+    {
+      "index": 0,
+      "players": 4,
+      "elapsed_i32": 30001,
+      "countdown_ms": 30000,
+      "passed": true
+    },
+    {
+      "index": 1,
+      "players": 6,
+      "elapsed_i32": 29999,
+      "countdown_ms": 30000,
+      "passed": false
+    },
+    {
+      "index": 1,
+      "players": 6,
+      "elapsed_i32": 30000,
+      "countdown_ms": 30000,
+      "passed": true
+    },
+    {
+      "index": 1,
+      "players": 6,
+      "elapsed_i32": 30001,
+      "countdown_ms": 30000,
+      "passed": true
+    },
+    {
+      "index": 2,
+      "players": 2,
+      "elapsed_i32": -1,
+      "countdown_ms": 0,
+      "passed": false
+    },
+    {
+      "index": 2,
+      "players": 2,
+      "elapsed_i32": 0,
+      "countdown_ms": 0,
+      "passed": true
+    },
+    {
+      "index": 2,
+      "players": 2,
+      "elapsed_i32": 1,
+      "countdown_ms": 0,
+      "passed": true
+    },
+    {
+      "index": 3,
+      "players": 10,
+      "elapsed_i32": 44999,
+      "countdown_ms": 45000,
+      "passed": false
+    },
+    {
+      "index": 3,
+      "players": 10,
+      "elapsed_i32": 45000,
+      "countdown_ms": 45000,
+      "passed": true
+    },
+    {
+      "index": 3,
+      "players": 10,
+      "elapsed_i32": 45001,
+      "countdown_ms": 45000,
+      "passed": true
+    },
+    {
+      "index": 4,
+      "players": 6,
+      "elapsed_i32": -1,
+      "countdown_ms": 0,
+      "passed": false
+    },
+    {
+      "index": 4,
+      "players": 6,
+      "elapsed_i32": 0,
+      "countdown_ms": 0,
+      "passed": true
+    },
+    {
+      "index": 4,
+      "players": 6,
+      "elapsed_i32": 1,
+      "countdown_ms": 0,
+      "passed": true
+    },
+    {
+      "index": 5,
+      "players": 12,
+      "elapsed_i32": -1,
+      "countdown_ms": 0,
+      "passed": false
+    },
+    {
+      "index": 5,
+      "players": 12,
+      "elapsed_i32": 0,
+      "countdown_ms": 0,
+      "passed": true
+    },
+    {
+      "index": 5,
+      "players": 12,
+      "elapsed_i32": 1,
+      "countdown_ms": 0,
+      "passed": true
+    },
+    {
+      "index": 6,
+      "players": 4,
+      "elapsed_i32": 29999,
+      "countdown_ms": 30000,
+      "passed": false
+    },
+    {
+      "index": 6,
+      "players": 4,
+      "elapsed_i32": 30000,
+      "countdown_ms": 30000,
+      "passed": true
+    },
+    {
+      "index": 6,
+      "players": 4,
+      "elapsed_i32": 30001,
+      "countdown_ms": 30000,
+      "passed": true
+    }
+  ],
+  "gather_timeout_gate": [
+    {
+      "index": 0,
+      "elapsed_i32": 149999,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": false
+    },
+    {
+      "index": 0,
+      "elapsed_i32": 150000,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 0,
+      "elapsed_i32": 150001,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 1,
+      "elapsed_i32": 149999,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": false
+    },
+    {
+      "index": 1,
+      "elapsed_i32": 150000,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 1,
+      "elapsed_i32": 150001,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 2,
+      "elapsed_i32": 119999,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": false
+    },
+    {
+      "index": 2,
+      "elapsed_i32": 120000,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 2,
+      "elapsed_i32": 120001,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 3,
+      "elapsed_i32": 299999,
+      "timeout_ms": 300000,
+      "jitter_ms": 0,
+      "expired": false
+    },
+    {
+      "index": 3,
+      "elapsed_i32": 300000,
+      "timeout_ms": 300000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 3,
+      "elapsed_i32": 300001,
+      "timeout_ms": 300000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 4,
+      "elapsed_i32": 119999,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": false
+    },
+    {
+      "index": 4,
+      "elapsed_i32": 120000,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 4,
+      "elapsed_i32": 120001,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 5,
+      "elapsed_i32": 119999,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": false
+    },
+    {
+      "index": 5,
+      "elapsed_i32": 120000,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 5,
+      "elapsed_i32": 120001,
+      "timeout_ms": 120000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 6,
+      "elapsed_i32": 149999,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": false
+    },
+    {
+      "index": 6,
+      "elapsed_i32": 150000,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": true
+    },
+    {
+      "index": 6,
+      "elapsed_i32": 150001,
+      "timeout_ms": 150000,
+      "jitter_ms": 0,
+      "expired": true
+    }
+  ],
+  "search_owner": [
+    {
+      "search_state": 0,
+      "party_mode": 6,
+      "matchmaking_state": 3,
+      "changed": true
+    },
+    {
+      "search_state": 1,
+      "party_mode": 7,
+      "matchmaking_state": 3,
+      "changed": false
+    },
+    {
+      "search_state": 4,
+      "party_mode": 7,
+      "matchmaking_state": 15,
+      "changed": true
+    },
+    {
+      "search_state": 5,
+      "party_mode": 7,
+      "matchmaking_state": 15,
+      "changed": true
+    },
+    {
+      "search_state": 17,
+      "party_mode": 7,
+      "matchmaking_state": 15,
+      "changed": true
+    }
+  ],
+  "query_tasks": [
+    {
+      "flags": 0,
+      "salt": 1,
+      "status": 4,
+      "search_task": -1,
+      "search_state": 1,
+      "pool_count": 0
+    },
+    {
+      "flags": 1,
+      "salt": 1,
+      "status": 0,
+      "search_task": 65536,
+      "search_state": 1,
+      "pool_count": 1
+    },
+    {
+      "flags": 2,
+      "salt": 1,
+      "status": 1,
+      "search_task": 65536,
+      "search_state": 1,
+      "pool_count": 1
+    },
+    {
+      "flags": 4,
+      "salt": 1,
+      "status": 2,
+      "search_task": -1,
+      "search_state": 1,
+      "pool_count": 0
+    },
+    {
+      "flags": 36,
+      "salt": 1,
+      "status": 3,
+      "search_task": -1,
+      "search_state": 1,
+      "pool_count": 0
+    },
+    {
+      "flags": 0,
+      "salt": 2,
+      "status": 5,
+      "search_task": -1,
+      "search_state": 1,
+      "pool_count": 1
+    }
+  ],
+  "qos_targets": [
+    {
+      "name": "uncontacted_complete",
+      "flags": 1,
+      "kind": 0,
+      "cached": false,
+      "payload_mode": "valid",
+      "result": {
+        "eligible": false,
+        "seen": true,
+        "full_ready": false,
+        "brief_ready": false,
+        "details": false,
+        "target_index": 0,
+        "status": 3,
+        "seen_count": 1,
+        "qos_handle": 65536,
+        "detail_tick": 123,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "target_disabled_complete",
+      "flags": 5,
+      "kind": 0,
+      "cached": false,
+      "payload_mode": "valid",
+      "result": {
+        "eligible": false,
+        "seen": true,
+        "full_ready": false,
+        "brief_ready": false,
+        "details": false,
+        "target_index": 0,
+        "status": 4,
+        "seen_count": 1,
+        "qos_handle": 65536,
+        "detail_tick": 123,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "contacted_complete_without_data",
+      "flags": 3,
+      "kind": 0,
+      "cached": false,
+      "payload_mode": "none",
+      "result": {
+        "eligible": false,
+        "seen": true,
+        "full_ready": false,
+        "brief_ready": false,
+        "details": false,
+        "target_index": 0,
+        "status": 5,
+        "seen_count": 1,
+        "qos_handle": 65536,
+        "detail_tick": 123,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "contacted_complete_invalid_payload",
+      "flags": 11,
+      "kind": 0,
+      "cached": false,
+      "payload_mode": "invalid",
+      "result": {
+        "eligible": false,
+        "seen": true,
+        "full_ready": false,
+        "brief_ready": false,
+        "details": false,
+        "target_index": 0,
+        "status": 5,
+        "seen_count": 1,
+        "qos_handle": 65536,
+        "detail_tick": 123,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "refresh_failure_rejects_cached_candidate",
+      "flags": 1,
+      "kind": 0,
+      "cached": true,
+      "payload_mode": "valid",
+      "result": {
+        "eligible": false,
+        "seen": true,
+        "full_ready": true,
+        "brief_ready": false,
+        "details": true,
+        "target_index": 0,
+        "status": 3,
+        "seen_count": 1,
+        "qos_handle": 65536,
+        "detail_tick": 123,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "contacted_complete_valid_full",
+      "flags": 11,
+      "kind": 0,
+      "cached": false,
+      "payload_mode": "valid",
+      "result": {
+        "eligible": true,
+        "seen": false,
+        "full_ready": true,
+        "brief_ready": false,
+        "details": true,
+        "target_index": -1,
+        "status": 5,
+        "seen_count": 0,
+        "qos_handle": 65536,
+        "detail_tick": 10000,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "contacted_complete_valid_brief",
+      "flags": 11,
+      "kind": 1,
+      "cached": false,
+      "payload_mode": "valid",
+      "result": {
+        "eligible": true,
+        "seen": false,
+        "full_ready": false,
+        "brief_ready": true,
+        "details": true,
+        "target_index": -1,
+        "status": 5,
+        "seen_count": 0,
+        "qos_handle": 65536,
+        "detail_tick": 10000,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "partial_contacted_with_data_not_ready",
+      "flags": 26,
+      "kind": 0,
+      "cached": false,
+      "payload_mode": "valid",
+      "result": {
+        "eligible": true,
+        "seen": false,
+        "full_ready": false,
+        "brief_ready": false,
+        "details": false,
+        "target_index": 0,
+        "status": 2,
+        "seen_count": 0,
+        "qos_handle": 65536,
+        "detail_tick": 123,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "pending_probes_not_ready",
+      "flags": 0,
+      "kind": 0,
+      "cached": false,
+      "payload_mode": "valid",
+      "result": {
+        "eligible": true,
+        "seen": false,
+        "full_ready": false,
+        "brief_ready": false,
+        "details": false,
+        "target_index": 0,
+        "status": 1,
+        "seen_count": 0,
+        "qos_handle": 65536,
+        "detail_tick": 123,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    },
+    {
+      "name": "disabled_subsystem_complete_batch",
+      "result": {
+        "eligible": false,
+        "seen": true,
+        "full_ready": false,
+        "brief_ready": false,
+        "details": false,
+        "target_index": 0,
+        "status": 3,
+        "seen_count": 1,
+        "qos_handle": -1,
+        "detail_tick": 123,
+        "data_size": 0,
+        "data_pointer": 0
+      }
+    }
+  ],
+  "seen_bank": {
+    "config_absolute": "0x4CE1F8",
+    "config_offset_from_4ce040": "0x1B8",
+    "capacity": 150,
+    "append_controls": [
+      {
+        "id": 1,
+        "count": 1,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 2,
+        "count": 2,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 3,
+        "count": 3,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 4,
+        "count": 4,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 5,
+        "count": 5,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 6,
+        "count": 6,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 7,
+        "count": 7,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 8,
+        "count": 8,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 9,
+        "count": 9,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 10,
+        "count": 10,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 11,
+        "count": 11,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 12,
+        "count": 12,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 13,
+        "count": 13,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 14,
+        "count": 14,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 15,
+        "count": 15,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 16,
+        "count": 16,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 17,
+        "count": 17,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 18,
+        "count": 18,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 19,
+        "count": 19,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 20,
+        "count": 20,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 21,
+        "count": 21,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 22,
+        "count": 22,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 23,
+        "count": 23,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 24,
+        "count": 24,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 25,
+        "count": 25,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 26,
+        "count": 26,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 27,
+        "count": 27,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 28,
+        "count": 28,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 29,
+        "count": 29,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 30,
+        "count": 30,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 31,
+        "count": 31,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 32,
+        "count": 32,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 33,
+        "count": 33,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 34,
+        "count": 34,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 35,
+        "count": 35,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 36,
+        "count": 36,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 37,
+        "count": 37,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 38,
+        "count": 38,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 39,
+        "count": 39,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 40,
+        "count": 40,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 41,
+        "count": 41,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 42,
+        "count": 42,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 43,
+        "count": 43,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 44,
+        "count": 44,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 45,
+        "count": 45,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 46,
+        "count": 46,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 47,
+        "count": 47,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 48,
+        "count": 48,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 49,
+        "count": 49,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 50,
+        "count": 50,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 51,
+        "count": 51,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 52,
+        "count": 52,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 53,
+        "count": 53,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 54,
+        "count": 54,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 55,
+        "count": 55,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 56,
+        "count": 56,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 57,
+        "count": 57,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 58,
+        "count": 58,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 59,
+        "count": 59,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 60,
+        "count": 60,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 61,
+        "count": 61,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 62,
+        "count": 62,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 63,
+        "count": 63,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 64,
+        "count": 64,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 65,
+        "count": 65,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 66,
+        "count": 66,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 67,
+        "count": 67,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 68,
+        "count": 68,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 69,
+        "count": 69,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 70,
+        "count": 70,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 71,
+        "count": 71,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 72,
+        "count": 72,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 73,
+        "count": 73,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 74,
+        "count": 74,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 75,
+        "count": 75,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 76,
+        "count": 76,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 77,
+        "count": 77,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 78,
+        "count": 78,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 79,
+        "count": 79,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 80,
+        "count": 80,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 81,
+        "count": 81,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 82,
+        "count": 82,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 83,
+        "count": 83,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 84,
+        "count": 84,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 85,
+        "count": 85,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 86,
+        "count": 86,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 87,
+        "count": 87,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 88,
+        "count": 88,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 89,
+        "count": 89,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 90,
+        "count": 90,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 91,
+        "count": 91,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 92,
+        "count": 92,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 93,
+        "count": 93,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 94,
+        "count": 94,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 95,
+        "count": 95,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 96,
+        "count": 96,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 97,
+        "count": 97,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 98,
+        "count": 98,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 99,
+        "count": 99,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 100,
+        "count": 100,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 101,
+        "count": 101,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 102,
+        "count": 102,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 103,
+        "count": 103,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 104,
+        "count": 104,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 105,
+        "count": 105,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 106,
+        "count": 106,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 107,
+        "count": 107,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 108,
+        "count": 108,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 109,
+        "count": 109,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 110,
+        "count": 110,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 111,
+        "count": 111,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 112,
+        "count": 112,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 113,
+        "count": 113,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 114,
+        "count": 114,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 115,
+        "count": 115,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 116,
+        "count": 116,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 117,
+        "count": 117,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 118,
+        "count": 118,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 119,
+        "count": 119,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 120,
+        "count": 120,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 121,
+        "count": 121,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 122,
+        "count": 122,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 123,
+        "count": 123,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 124,
+        "count": 124,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 125,
+        "count": 125,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 126,
+        "count": 126,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 127,
+        "count": 127,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 128,
+        "count": 128,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 129,
+        "count": 129,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 130,
+        "count": 130,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 131,
+        "count": 131,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 132,
+        "count": 132,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 133,
+        "count": 133,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 134,
+        "count": 134,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 135,
+        "count": 135,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 136,
+        "count": 136,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 137,
+        "count": 137,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 138,
+        "count": 138,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 139,
+        "count": 139,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 140,
+        "count": 140,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 141,
+        "count": 141,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 142,
+        "count": 142,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 143,
+        "count": 143,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 144,
+        "count": 144,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 145,
+        "count": 145,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 146,
+        "count": 146,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 147,
+        "count": 147,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 148,
+        "count": 148,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 149,
+        "count": 149,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 150,
+        "count": 150,
+        "eligible": false,
+        "seen": true
+      },
+      {
+        "id": 151,
+        "count": 150,
+        "eligible": false,
+        "seen": true
+      }
+    ],
+    "eviction": false,
+    "query_preserves_seen": true,
+    "new_search_resets_count": true
+  }
+}

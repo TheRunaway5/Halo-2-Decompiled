@@ -1,0 +1,28 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct Patchy {uvec4 program[15];vec4 rows[8];vec4 controls;vec4 lookup;};
+struct Fixture {Patchy material;uvec4 composite[15];vec4 coordinate;vec4 samples[4];vec4 gradient[256];};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 pixels[];};
+Patchy material;uint fixture;vec4 target;
+#include "combiner.glsl"
+vec4 patchyNoiseLookup(int layer,vec2 uv) {return fixtures[fixture].samples[layer];}
+vec4 patchyTargetLookup(vec2 uv) {return target;}
+vec4 patchyGradientLookup(vec2 uv) {
+    vec2 p=clamp(uv,0.0,1.0)*16.0-.5;
+    ivec2 a=ivec2(floor(p)),b=a+1;vec2 f=fract(p);
+    a=clamp(a,ivec2(0),ivec2(15));b=clamp(b,ivec2(0),ivec2(15));
+    return mix(mix(fixtures[fixture].gradient[a.y*16+a.x],fixtures[fixture].gradient[a.y*16+b.x],f.x),
+        mix(fixtures[fixture].gradient[b.y*16+a.x],fixtures[fixture].gradient[b.y*16+b.x],f.x),f.y);
+}
+#include "patchy_color.glsl"
+void main() {
+    fixture=gl_GlobalInvocationID.x;material=fixtures[fixture].material;
+    vec2 uv=fixtures[fixture].coordinate.xy;
+    for(int i=0;i<4;++i)pixels[fixture*6+i]=vec4(titlePatchyCoordinates(i,uv),0,0);
+    vec4 noise=titlePatchyNoise(uv);pixels[fixture*6+4]=noise;
+    target=roundEven(noise*255.0)/255.0;
+    for(int i=0;i<15;++i)material.program[i]=fixtures[fixture].composite[i];
+    pixels[fixture*6+5]=titlePatchyComposite(fixtures[fixture].coordinate.z,uv);
+}

@@ -1,0 +1,26 @@
+add_library(halo2_source_tu15_settings STATIC src/source_tu15_settings.cpp src/source_tu15_settings_runtime_generated.cpp)
+target_include_directories(halo2_source_tu15_settings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(halo2_source_tu15_settings PUBLIC cxx_std_20)
+target_link_libraries(halo2_source_tu15_settings PUBLIC halo2_source_tu15_startup_records)
+if(MSVC)
+    target_compile_options(halo2_source_tu15_settings PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_source_tu15_settings PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+endif()
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(halo2_source_tu15_settings PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(halo2_source_tu15_settings PUBLIC -fsanitize=address,undefined)
+endif()
+if(TARGET halo2_systems)
+    target_link_libraries(halo2_systems PUBLIC halo2_source_tu15_settings)
+endif()
+if(BUILD_TESTING)
+    add_executable(source_tu15_settings_tests tests/source_tu15_settings_tests.cpp
+        src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+    target_link_libraries(source_tu15_settings_tests PRIVATE halo2_source_tu15_settings nlohmann_json::nlohmann_json)
+    add_test(NAME original_tu15_fresh_startup_settings COMMAND source_tu15_settings_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-settings-startup-20261012/original-v2/fixture.json
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-kernel-hardware-20261012/boot-v3/eeprom.bin)
+    set_tests_properties(original_tu15_fresh_startup_settings PROPERTIES SKIP_RETURN_CODE 77)
+endif()

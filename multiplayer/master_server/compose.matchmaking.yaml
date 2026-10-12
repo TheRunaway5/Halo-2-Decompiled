@@ -1,0 +1,8 @@
+# Opt-in local queue owner. This lab catalog is not an original hopper restore.
+# docker compose -f compose.yaml -f compose.matchmaking.yaml up -d --build master-a master-b
+services:
+  master-a:
+    environment:
+      H2_MATCHMAKING_CATALOG: /config/playlists.json
+    volumes:
+      - ./examples/matchmaking-lab.json:/config/playlists.json:ro

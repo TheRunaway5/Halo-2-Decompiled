@@ -1,0 +1,40 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct Fixture {
+    uvec4 instructions[136];vec4 attributes[16];uvec4 flags;
+    vec4 constants[192];vec4 streams[5];vec4 localPosition;uvec4 declaration;
+};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 results[];};
+struct MaterialData {uvec4 vertexInstructions[136];vec4 vertexAttributes[16];uvec4 flags;uvec4 vertexDeclaration;};
+MaterialData material;
+struct VertexBankData {uvec4 range;};
+VertexBankData vertexBank;
+uint fixtureIndex;
+vec3 position,normal,tangent,binormal,incident,sourceLocalPosition;
+vec2 texcoord,lightmapCoord;
+float prtCluster;
+vec4 prtWeights;
+#define H2_VERTEX_REFERENCE_CONSTANTS
+#define H2_EXTENDED_VERTEX_BANK
+#define H2_SOURCE_VERTEX_DECLARATION
+vec4 vpConstant(uint index){return fixtures[fixtureIndex].constants[index];}
+// Production declaration loader and production post-pose lowering, with
+// explicit constant banks. No reference-input macro bypasses those owners.
+#include "vertex_program.glsl"
+#include "source_cpu_skin_outputs.glsl"
+void main() {
+    fixtureIndex=gl_GlobalInvocationID.x;
+    for(uint i=0u;i<136u;++i)material.vertexInstructions[i]=fixtures[fixtureIndex].instructions[i];
+    for(uint i=0u;i<16u;++i)material.vertexAttributes[i]=fixtures[fixtureIndex].attributes[i];
+    material.flags=fixtures[fixtureIndex].flags;
+    material.vertexDeclaration=fixtures[fixtureIndex].declaration;
+    vertexBank.range=uvec4(0);
+    position=fixtures[fixtureIndex].streams[0].xyz;normal=fixtures[fixtureIndex].streams[1].xyz;
+    tangent=fixtures[fixtureIndex].streams[2].xyz;binormal=fixtures[fixtureIndex].streams[3].xyz;
+    texcoord=fixtures[fixtureIndex].streams[4].xy;incident=vec3(0);lightmapCoord=vec2(0);
+    prtCluster=0;prtWeights=vec4(0);sourceLocalPosition=fixtures[fixtureIndex].localPosition.xyz;
+    runVertexProgram();applySourceCPUSkinTextureCoordinates();
+    for(uint i=0u;i<16u;++i)results[fixtureIndex*16u+i]=vpOut[i];
+}

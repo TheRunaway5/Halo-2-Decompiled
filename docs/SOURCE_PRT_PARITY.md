@@ -1,0 +1,116 @@
+# Original Xbox PRT and initial machine rendering
+
+This document records the recovered Xbox path for precomputed radiance transfer (PRT). The authority is the supplied original version-8 caches, the retail executable, and retained original xemu capture/RAM fixtures. CPU arithmetic and captured shader inputs have separate proofs. These results do not establish complete pixel parity, physical Xbox arithmetic precision, later device scripts, or unseen rendering states.
+
+## Source path and native API
+
+| Original routine | Recovered behavior | Native implementation |
+| --- | --- | --- |
+| `24490` | Select `min(LOD count-1, 5-source LOD)`, locate the exact section, bind its source PRT stream | `Cache::load_source_prt_vertex_stream`, `source_prt_vertex_stream` |
+| `137800` | Resolve the section node map; absent maps use the source section/model fallback count | `Cache::source_prt_section_nodes` |
+| `1376C0` | Compose current WORLD node transform with authored inverse bind; emit the scaled render palette | `source_prt_node_lighting` |
+| `23540` | Allocate coefficient ranges in selected section order, using at most two nodes per section | `source_prt_section_banks` |
+| `23600` | Query the actual current world position of the selected model node | `source_prt_node_lighting` |
+| `22CF0`, `22C30` | Find nearest SH record and nearest opposite halfspace record; project and interpolate | `source_prt_sample` |
+| `239BA`, `142BF0` | Original determinant and inverse matrix arithmetic | `source_prt_inverse_basis` |
+| `143600`, `143250` | Rotate order-3 SH with the source signed-axis ordering | `source_prt_rotate` |
+| `23CA0` | Project each channel onto the authored cluster/PCA basis using original SIMD reduction order | `source_prt_project` |
+| `23690`, `24040` | Cache object incident plus independent section/node coefficients, then bind `c68` onward | `source_prt_bank`, `source_prt_section_banks` |
+| `16B90`, `2BCD0` | Resolve the highest authored LOD/pass implementation; submit layer 5 after 3 and before 8/7 | `prepare_prt_material` |
+
+The headers are `include/halo2/source_prt.hpp`, `include/halo2/source_device.hpp`, and `include/halo2/world_material.hpp`. The respective source modules keep the source metadata, object pose production, and material submission separate. `Cache::apply_source_prt_vertices` joins each original `(section, vertex)` identity to its source stream; it does not reuse incident vectors or lightmap UVs for PRT inputs.
+
+The caller supplies the actual posed WORLD node bank and the source collector's selected section order to `source_prt_section_banks`. The helper samples every selected section/node in that order, builds separate coefficient banks, and uses the final sampled incident for every section of the object. This shared incident is important: `23690` overwrites one object cache field while processing its sections, and `24040` later binds that field for each section. Sharing section coefficient banks between different node palettes is incorrect.
+
+## Cache layout and vertex declaration
+
+The render-model PRT block is at `mode+0x74`, with one `0x58`-byte record in every supplied PRT model. Order, cluster count, and PCA count occupy `+0`, `+2`, and `+4`. The LOD block is at `+0x14`, stride 12; each entry contains cluster-basis offset and a block of `(section, stream offset)` pairs. The cluster basis is the float block at `+0x1C`. The raw resource descriptor starts at `+0x34`; the authored vertex buffer descriptor is retained from raw-header `+8`.
+
+All 13 supplied records use order 3, 10 clusters, 4 PCA vectors, source declaration 57, and a 10-byte vertex stride. Source resource type 2, primary locator 0, secondary `FFFF` supplies the stream. `24490` addresses declaration 57 at `(authored offset / 5) * 10`; it does not interpret that offset as bytes directly.
+
+The captured declaration is:
+
+| Source input | Exact format | Native value |
+| --- | --- | --- |
+| `v5` | Signed scaled `SHORT1` (`R16_SSCALED`) | Signed integer-valued float cluster |
+| `v6` | Signed normalized `SHORT4` (`R16G16B16A16_SNORM`) | `max(-1, short / 32767)` per component |
+
+The two attributes share a buffer and stride 10, with byte offsets differing by 2. Dedicated `Vertex::prt_cluster` and `Vertex::prt_weights` fields feed them only when the pass has an explicit PRT bank. The normalized weights are authored PCA coefficients; they are not skin weights and are not renormalized.
+
+The full metadata/stream test covers 34 section streams and 22,525 source vertices across these models:
+
+| Map | Authored PRT models |
+| --- | --- |
+| Containment | `base_shield`, `base_gate`, `base_shield_blue`, `base_gate_blue` |
+| Triplicate | `ze_train`, `ze_train_west` |
+| Turf | `scarab`, `scarab_upper_gun`, `scarab_rear_gun` |
+| Zanzibar | `main_crane`, `big_wheel`, `flywheel`, `blades` |
+
+This is a loaded-tag inventory. It is not a claim that all 13 models are placed or drawn in the initial match. The contact inventory retains 10 initial bit-31 placements; Turf's scarab family and Containment's shields are loaded definitions without those scenario placements.
+
+## SH sampling and coefficient binding
+
+Active BSP lightmap-group SH records are the `+0x38` block with stride `0xDC`. Each record contains position, three nine-float SH channels, and incident at `+0xA4`. All 21 maps contain 20 such records in total. The admitted machine PRT path requires the original active structure-checksum/bitmap conditions and a nonempty SH bank. An invalid bank needs the source white-SH branch and retained caller incident; that branch remains explicitly gated rather than substituting a fabricated direction.
+
+`c68.xyz` is the retained object incident. `c68.w` contains adjacent cache metadata in the original and is not read by the admitted shaders. `c69` is retained as literal source bits:
+
+```
+3F800000 40800000 461F6200 3B80A166
+```
+
+`c70..109` contains node 0's 40 vectors; a second node occupies `c110..149`. Each cluster has ambient RGB, one unwritten padding word, and four PCA coefficients per channel. The native bank sets only unconsumed padding to zero; the bit-exact fixtures exclude those original unwritten words and `c68.w`. Original capture18 reads only node-0 ranges, while both ranges are retained in the source binding fixtures.
+
+The renderer uses a separate `VertexProgramBank` beginning at constant 68, with `prt_inputs=true`. That avoids enlarging or overwriting the regular camera/material uniform bank. `prepare_prt_material` preserves the source base accumulation pass and authored textures/raster states, places the PRT child in `environment_pass` with vertex category 9, and preserves independent layer 2, 8, 7, and 17 submissions. The supplied machine family admits 7 PRT material uses: 5 Zanzibar uses and 2 Triplicate trains. The trains use the authored `prt_lightmap` program; Zanzibar uses `prt`.
+
+## Initial machine state and pose
+
+The initial machine decoder is separate from scenery initialization. All 49 supplied type-7 placements match original group initialization fixtures. Thirty-seven have a position overlay, none has a power overlay, and every primary initialized idle selection is NONE. Source `107A30` and `1076E0` resolve authored named/private device groups; no blanket position-0/power-1 assumption is made. The 49 placements contain 38 unnamed and 11 named objects, with 48 origin-BSP-0 records and one origin-BSP-NONE record.
+
+Source `2818E0` combines an overlay with the existing pose: quaternion multiplication, translation addition, and scale multiplication for the selected channel mask. The machine channel frame uses `1C6620`'s source endpoint arithmetic. `1152E0` advances gear position with the original rates and subtracts one period once. Generic `2D000` lighting implementation selection applies to ordinary machine model geometry; scenery lightmapping policy is not reused to select it. The initial material audit admits 97 ordinary implementation-2 uses and the 7 PRT uses, with zero unresolved uses.
+
+The paused Zanzibar live fixture checks six actual machine world-node banks: 18 matrices and 234 components, maximum absolute error below `1.90e-6`. It uses the retained source object transform, scale/mirror state, actual position/power channel values, authored overlay, and full hierarchy composition. It does not prove subsequent power-group scripts or game mechanisms.
+
+## Independent validation
+
+`tests/source_prt_tests.cpp` checks source metadata and the retained full-object bank fixture. `tests/fixtures/retail_prt_object_banks.tsv` contains six independently paused original objects, literal current WORLD node matrices, and eight original section banks. All 1,256 consumed coefficient/incident/scale words match float bits through the complete section-bank helper. The preceding coefficient-only comparison checks 1,200 words.
+
+`analysis/multiplayer-shading/prt-original.py` executes the unmodified retail routines from executable SHA-256 `03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d`, without routine stubs:
+
+| Original arithmetic | Fixtures | Float components | Result |
+| --- | ---: | ---: | --- |
+| Determinant/inverse | 512 | 4,608 | Bit exact |
+| SH rotation | 512 | 4,608 | Bit exact |
+| SH sampling/interpolation | 512 | 15,360 | Bit exact |
+| Cluster/PCA projection | 256 | 17,376 | Bit exact |
+
+Reports are `prt-differential.json`, `prt-live-bank-comparison.json`, and `prt-stream-gpu-proof.json` under `analysis/multiplayer-shading`. The stream/GPU proof compares 51,140 bytes across all nine captured18 PRT buffer prefixes to the original authored section streams and offsets.
+
+Sky's independent capture18 export contains 118 original shader-debug input/output cases across nine draws. All 590 cluster/weight/address input components match their original raw SHORT values. The actual shader is authored `vrtx E93707C2`, compiled class 1, 55 instructions, SHA-256 `98429107aa68a684da22d6117e2f6c78a1a4ef4f203c4d76d1cbc1a183525850`, retained in `tests/fixtures/retail_prt_rigid_local.vp`. It decodes local positions with `c170/c171`. The world-space class-0 variant is 41 instructions, SHA-256 `f18351bc6c5ba40a04f931001b7fccd14dc465f6ff418d799f570bcffa76b235`; these are different authored wrappers and must not be labeled as the same captured program.
+
+Address-register floor semantics are supported by the [NVIDIA primary specification](https://developer.download.nvidia.com/opengl/specs/nvOpenGLspecs.pdf), `NV_vertex_program` section `2.14.1.10.1`, and the actual captured address-register trace. The original capture's CPU debugger, xemu post-VS output, native CPU interpreter, and Vulkan execution have distinct precision boundaries. A debugger comparison does not establish physical NV2A reciprocal/RSQ precision or complete screen-image equality.
+
+## Live admission constraints
+
+The source machine CPU decoder and source coefficient/stream path are implemented. Live callers must provide selected sections in original order, actual channel state and posed world nodes, and one independent material bank per section/palette. Admission must retain the original active-bank conditions, actual source LOD, exact PRT resource declaration, and supported authored material program. Missing or invalid metadata throws; authored NONE remains optional. Unverified invalid-bank incident retention, later scripted channel progression, model/permutation transitions, and source shadow/filter passes are not covered by the initial machine proof. The separate renderer/interpreter GPU tests and live integration must pass before claiming that this CPU/metadata work establishes an on-screen PRT result.
+
+## SourceMachineScene integration seam
+
+`SourceMachineScene` is implemented in `include/halo2/source_machine_scene.hpp` and `src/source_machine_scene.cpp`, registered with `halo2_renderer`. Construct it with the cache, retained scenario object metadata, active BSP index, the material mesh, and existing collision service before renderer allocation. It allocates stable material ranges and separate PRT children keyed by exact LOD/section/source shader. Production `update_pose` receives the simulation tick/render frame and refreshes posed geometry and coefficient banks; `append_view` selects each view's geometry using source camera distance, flags and retained per-player LOD bytes, then evaluates the owner lighting cache at that view's unmodified source distance before part shader selection, including empty resident collectors. The actual last-query-frame guard deduplicates completed queries; a later view can query when an earlier view skipped for cadence. Only nonempty ordinary selections receive a lighting binding. Legacy `update`/`append` remain explicit LOD5 diagnostics.
+
+Only the recovered type-2 gear producer advances automatically, in discrete `1/30`-second steps. All 19 supplied gears have private power/position groups; named gear groups throw until the shared-group write producer is implemented. Door/platform later state progression remains an explicit initial-state-only limitation (30 initial records). Ordinary lighting queries use actual posed node0 bounds, constructor-derived runtime flags, original type7 query admission and the existing source temporal cache. The shared light-query service currently omits live dynamic-object contact ownership; a native unresolved attribution is not promoted to a source success.
+
+PRT shader bindings do not suppress the owner's ordinary lighting cache.
+Original `4B5D0` performs `3DD10` / `3DB00` after optional `23690` and before
+part shader selection. Its geometry-cache reuse and context gates remain
+separate from the material implementation. Complete original tail fixtures
+for the retained wheel, blades and crane prove that initial invalid caches
+reach `D1850`, even when frozen, while a valid frozen cache, repeated query
+frame or reused geometry can skip that query. The 27-case instruction report
+is `analysis/multiplayer-shading/prt-object-light-admission-original.json`;
+the cache allocator and earlier geometry/PRT services remain explicit caller
+boundaries. `ViewDraw::ordinary_lighting` describes ordinary shader uniform
+binding only. See [owner cache admission](SOURCE_MODEL_SHADER_PARITY.md#owner-lighting-cache-admission).
+
+The initial variant/permutation and resident section-collector ordering are now independently verified for all 49 MACH placements. The machine scene requires a resolved `Cache::load_initial_model_selection`, retains the actual fixed model-region permutation bytes, and obtains its ordered sections from `source_initial_model_sections` (source `4C2B0`/`137800`, every LOD0..5). Duplicate section entries remain duplicated. Every expanded mesh vertex's source section must belong to that literal collector array; section order is no longer inferred from triangle expansion or sorted IDs. The collector oracle supplies residency=true, so asynchronous cache-residency fallback remains outside this proof. The immutable bank may be shared by multiple materials within the same section; distinct object/LOD/section palettes retain separate banks. The machine union has 89 ordinary and 66 PRT material slots; 78 section banks are calculated from authored metadata, including banks with no material consumer. Captured source bank assertions inspect actually submitted IDs rather than all same-name resident slots. Per-frame shader/bitmap animation remains in the common runtime animation scheduler, after scene pose/bank updates and before uploading material constants.
+
+Machine lifetime synchronization now consumes the simulation's actual `SceneObjects` full generation handles, global content placement indices, visibility and creation ticks before posing. Destroyed machines stop submitting geometry and lighting bindings; fresh private-group generations reset controller/group state and lighting cache, then advance from their actual birth tick. Original `106680` destruction and fresh construction are tested for all 49 records. Named groups preserve current shared state in the original, so native recreation requires that producer rather than resetting them. Triplicate's four scripted machines use private groups. Detailed HS chronology, shared primary random semantics and remaining activation boundaries are recorded in [SOURCE_MAP_SCRIPT_PARITY.md](SOURCE_MAP_SCRIPT_PARITY.md).

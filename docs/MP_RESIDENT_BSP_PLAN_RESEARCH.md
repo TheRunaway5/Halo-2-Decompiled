@@ -1,0 +1,45 @@
+# Source-selected resident BSP binding plan
+
+The isolated `SourceBspResidentPlan` reproduces the existing ordinary BSP material-bank construction, per-view selection, full draw-key order and vertex attributes while retaining unchanged BSP vertices in a resident atlas. Its normal execution, independent normal repeat and ASan/UBSan execution produce identical reports. This is a production module ready for the renderer's buffer-routing consumer; this freeze does **not** establish live Vulkan output, performance improvement or full frame rate.
+
+## Verified inputs and comparisons
+
+The tool uses the user's Lockout map, SHA-256 `14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9`, and authenticated supplied `u5English/default.xbe`, SHA-256 `21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`. It loads the current native cache and source-derived helpers unchanged. This comparison executes native code against the pinned prior native implementation; it does not newly execute the original Xbox selection instructions or establish unrelated gameplay parity.
+
+The unchanged reference is `SourceBspShaderScene` in `src/source_bsp_shader_scene.cpp`, SHA-256 `0ddba509b539a8c416b4463b63235040d78187aea7ae297c0ccba8f4c828c0bc`. The earlier 80-case stipple comparison and original helper authorities remain separate. The new comparator repeats those 16 ordinary native match states with one and four local views, deriving their actual camera, portal/fog admission, coverage, LOD and stipple inputs through the existing helpers. It compares all 132 bytes of every selected vertex and all seven fields of every ordered accepted record: geometry, section, part, shader LOD, selected material, coverage byte and instance alpha.
+
+Two additional admission controls explicitly supply an empty admission and duplicated actual admission records. They test the consumer algorithm; they are not claimed to be produced by ordinary game input. Across all 82 cases / 18,040 catalogue decisions, the plan records 14,615 untouched, 3,265 accepted and 160 suppressed decisions. All measured suppressions are actual zero-alpha instance suppressions. The separate rejected/negative-LOD branch is retained literally but has **zero positive cases** in this suite. No authored threshold, camera or flag was changed to manufacture a rejection.
+
+Constructor equality checks the complete resident material count and LOD/lightmap pairs, imported program words/fragment offsets, vertex-program words, all 128 constant bits, texture bytes/mips/dimensions, sampler/raster/blend/category/lighting flags, environment admission and recursively ordered before/after overlays and bloom banks. The new raw atlas also matches the renderer's original encounter-order catalogue, physical first/count ranges and complete packed vertex bytes.
+
+## Capture consumer evidence is separate
+
+The preceding immutable run-packing capture contains 19 actual native four-view grouping calls and 368,076 vertices. Its TSV hash is `a314eaa8c178d242384b61735b7b825da7d9df088a751f8f0f09561dbafd97a6`; its vertex-binary hash is `3fb5da21552c4ffcb585d295616560db215e16e8366494051359338f08134ae6`. The capture's producer and limits remain in `docs/MP_VERTEX_RUN_PACK_RESEARCH.md` and `analysis/multiplayer/integration/render-run-packing-20261008`.
+
+That capture records selected **outputs**, not the original per-view camera/admission inputs. It cannot distinguish accepted LOD0 from an untouched raw binding when their outputs coincide. The comparator reconstructs only explicit constant material/stipple bindings from each captured part and compares their complete attribute stream. It does not infer admission decisions or camera inputs from the capture.
+
+All 870 captured BSP part submissions / 172,596 vertices match. The mixed plan expands to the exact old all-dynamic output across **all 1,070 sorted draw and descriptor requests / 368,076 complete vertices**, including actual dynamic objects, foreground and separately alpha-ordered sky calls. Of that particular capture, 868 BSP draw tokens / 172,452 vertices can retain the raw resident stream; two partial-stipple tokens / 144 vertices remain dynamic. Total actual dynamic staging becomes 195,624 vertices. These are input-volume counts, not timing or GPU-output evidence. UI/shadow appends outside this capture are not covered by its total.
+
+Another 267 explicitly declared merge controls cover same-key BSP/object collisions, reversed object streams, nonzero physical/logical prefixes, no objects, all BSP removed, invalid material/lightmap indices, wrong catalogue size and all 260 ordered descriptor prefixes of captured world call 3. Prefix checks compare request order and ranges; they do not fabricate descriptor handles, provider failures or successful GPU service returns.
+
+## Native integration contract
+
+Use `include/halo2/source_bsp_resident_plan.hpp` and `src/source_bsp_resident_plan.cpp`. Construct one plan **instead of** the old `SourceBspShaderScene` constructor for that mesh: both append the same resident LOD/material bank, so running both on one mesh would import it twice. The constructor retains immutable raw geometry and an encounter-order atlas matching the existing renderer's raw BSP upload. It creates no GPU resource or handle.
+
+Call `select` with the actual view's existing `SourceBspShaderView`. Its catalogue-sized `bindings` and `decisions` explicitly preserve accepted, suppressed and untouched parts. A missing material suppresses a part; a missing stipple override preserves its raw per-vertex stipple. `selected_parts` retains the old ordered accepted-result vector, including duplicate admissions even when the earlier emplaced binding wins. An accepted-only list is insufficient to replace selection because it loses untouched/suppressed distinction.
+
+Append the actual dynamic water/scenery/props/body/gun vertices in the existing input order, then call `merge`. It emits one combined lexicographically sorted `(material, lightmap, geometry, section, part)` token stream and descriptor-request stream. Preserve this single stream for every existing world, environment, before/after overlay, fog, water, transparency and bloom consumer. Do not submit all resident tokens before all dynamic tokens. Preserve each token's existing material/pass/view constants, source animation state and stipple origin.
+
+Each token's `storage` selects the actual buffer. `first` is either an offset into the raw resident atlas, or `dynamic_first + offset` into this merge's dynamic staging. `logical_first` records the old all-dynamic packed offset for comparison; it is **not** the new physical draw offset. `logical_vertices` counts the expanded old stream. The renderer must use the actual storage/first/count in every pass and restore the correct dynamic buffer for later foreground/HUD consumers.
+
+Residency is admitted only for one retained catalogue part with no same-key appended object and no changed stipple attribute. Material is a draw binding, not a world Vulkan vertex input. Therefore the raw atlas can carry its original `Vertex::material` while the token uses the selected material; the comparator restores that field only to compare all CPU-record bytes. Stipple is a GPU input at location 11: a changed/unknown/nonuniform stipple keeps the exact dynamic fallback. Same-key objects and collapsed bindings also keep one stable dynamic group, with raw BSP order before appended objects. Out-of-range material/lightmap and catalogue mismatches throw rather than fabricate a draw.
+
+`expand` exists for differential checks/fallback; it reconstructs the old selected raw-input order and is not needed to prepare every live frame. All source camera/admission/LOD/stipple calculations still run per view. Dynamic objects, authored sky ordering, first-person, HUD, shadows, shader programs, effects, quality and LOD choices are not replaced or omitted by this module.
+
+## Freeze and reproduction
+
+The separate freeze is `analysis/multiplayer/integration/resident-bsp-plan-20261008`: three identical reports, final normal/sanitizer binaries, exact compile/run arrays, source snapshots, prior-freeze audit and a SHA-256 manifest. It preserves the earlier 16-pin run-packing and 15-pin residency-audit manifests unchanged. The sanitizer binary instruments the new module/comparator; linked cache/system libraries are the normal build and do not receive a blanket sanitizer claim.
+
+Run the frozen comparator with `MAP SHARED UPDATE_XBE COMPLETE_GROUP_CAPTURE_STEM OUTPUT_JSON`; the exact local paths and compiler arguments are stored in `reproduction.json`. The comparator reuses the frozen run-packing capture reader/reference grouping without executing its renamed benchmark entry point.
+
+Before enabling a live resident path, the owning renderer work must validate every mixed-pass buffer/range selection and actual old/new Vulkan captures, including partial stipple and per-view source decisions. Then measure actual frame timing at the same drawable and quality. Those integration checks belong to a subsequent live freeze; none is claimed here.

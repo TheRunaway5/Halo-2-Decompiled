@@ -1,0 +1,15 @@
+#version 450
+layout(local_size_x=8,local_size_y=8) in;
+layout(set=0,binding=0,std430) readonly buffer Depth { uint words[]; } depth;
+layout(set=0,binding=1,std430) readonly buffer Stencil { uint words[]; } stencil;
+layout(set=0,binding=2,rgba8ui) uniform writeonly uimage2D alias_image;
+layout(push_constant) uniform Extent { uint width; uint height; } extent;
+void main() {
+    uvec2 xy=gl_GlobalInvocationID.xy;
+    if(xy.x>=extent.width || xy.y>=extent.height) return;
+    uint i=xy.y*extent.width+xy.x;
+    // Native depth copy has N in low24; the upper byte is unspecified.
+    uint n=depth.words[i]&0x00ffffffu;
+    uint s=(stencil.words[i>>2u]>>((i&3u)*8u))&255u;
+    imageStore(alias_image,ivec2(xy),uvec4((n>>8u)&255u,n&255u,s,(n>>16u)&255u));
+}

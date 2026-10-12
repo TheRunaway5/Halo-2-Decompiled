@@ -1,0 +1,9 @@
+# Sound metadata payload containment
+
+`Cache::load_source_sound_definition` now reads the complete 20-byte `snd!` definition through its actual owned `SourceTagMetadata` payload. `Cache::load_source_sound_classes` requires one resident `sncl`, then reads its eight-byte header and complete count × 92-byte record bank through the same payload boundary. A pointer into another tag or outside the owned payload is unavailable; adjacent cache bytes cannot satisfy it. Ambiguous resident class selections are rejected.
+
+These are host data-ownership checks. They do not select a sound permutation, activate a map, construct a device, admit a voice, or replace an original gameplay return value. The public provider interface and copied source records retain their existing layouts.
+
+The existing independently exported original-data fixtures validate all 23 owned multiplayer maps: 29,780 complete sound definitions and 1,242 complete sound-class records. Retained callback lifetime and independent caller copies still pass. The original object-sound owner also passes 30 comparisons using real Lockout cache metadata and imported 1.1/u5 operands: 24 accepted owner requests, six original rejections and 240 ordered stores. Its world/header/body/local-association inputs remain explicitly retained original fixtures; these comparisons do not prove live world ownership or voice admission.
+
+Fresh production normal and GCC ASan/UBSan builds and both registered tests pass. Commands, full diagnostics and test output are retained under `analysis/multiplayer/integration/sound-metadata-payload-bounds-20261009/validation`. The frozen snapshot retains the observed Cache archives, matching source files and test binaries separately from all earlier immutable checkpoints. No launcher was published and live reload/all-map playback remains unresolved.

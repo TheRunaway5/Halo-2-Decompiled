@@ -1,0 +1,969 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Halo 2 directory protocol v1",
+  "description": "Use the endpoint-specific named $defs. Cryptographic, byte-size, clock, sequence, and cross-field constraints also apply as documented in discovery-api.md.",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/metadata"
+    },
+    {
+      "$ref": "#/$defs/metadataPatch"
+    },
+    {
+      "$ref": "#/$defs/publicListing"
+    },
+    {
+      "$ref": "#/$defs/discovery"
+    },
+    {
+      "$ref": "#/$defs/enrollment"
+    },
+    {
+      "$ref": "#/$defs/operatorEnrollment"
+    },
+    {
+      "$ref": "#/$defs/credential"
+    },
+    {
+      "$ref": "#/$defs/credentialList"
+    },
+    {
+      "$ref": "#/$defs/revocation"
+    },
+    {
+      "$ref": "#/$defs/announcementEnvelope"
+    },
+    {
+      "$ref": "#/$defs/originListingEnvelope"
+    },
+    {
+      "$ref": "#/$defs/syncEnvelope"
+    },
+    {
+      "$ref": "#/$defs/snapshotEnvelope"
+    },
+    {
+      "$ref": "#/$defs/masters"
+    },
+    {
+      "$ref": "#/$defs/health"
+    },
+    {
+      "$ref": "#/$defs/error"
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "publicKey": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "signature": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{128}$"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "description": "Runtime validates an IP literal (not unspecified/multicast) or DNS hostname, never a URL."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "map": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "gametype": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "players": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "max_players": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "game_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "visibility": {
+          "enum": [
+            "public",
+            "private"
+          ]
+        },
+        "server_type": {
+          "enum": [
+            "dedicated",
+            "player-hosted"
+          ]
+        },
+        "region": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,16}$"
+        }
+      },
+      "required": [
+        "name",
+        "host",
+        "port",
+        "map",
+        "gametype",
+        "players",
+        "max_players",
+        "game_version",
+        "visibility",
+        "server_type"
+      ],
+      "description": "Canonical ASCII JSON is at most 2048 bytes. Runtime additionally enforces players <= max_players."
+    },
+    "metadataPatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "description": "Runtime validates an IP literal (not unspecified/multicast) or DNS hostname, never a URL."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "map": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "gametype": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "players": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "max_players": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "game_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "visibility": {
+          "enum": [
+            "public",
+            "private"
+          ]
+        },
+        "server_type": {
+          "enum": [
+            "dedicated",
+            "player-hosted"
+          ]
+        },
+        "region": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,16}$"
+        }
+      },
+      "required": []
+    },
+    "publicListing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "server_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "owner_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "origin_master_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "registered_at": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "last_heartbeat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "expires_at": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "reachability": {
+          "const": "unverified"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "host": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 253,
+          "description": "Runtime validates an IP literal (not unspecified/multicast) or DNS hostname, never a URL."
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "map": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "gametype": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "players": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16
+        },
+        "max_players": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "game_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        },
+        "visibility": {
+          "enum": [
+            "public",
+            "private"
+          ]
+        },
+        "server_type": {
+          "enum": [
+            "dedicated",
+            "player-hosted"
+          ]
+        },
+        "region": {
+          "type": "string",
+          "pattern": "^[A-Z0-9-]{2,16}$"
+        }
+      },
+      "required": [
+        "server_id",
+        "owner_id",
+        "origin_master_id",
+        "registered_at",
+        "last_heartbeat",
+        "expires_at",
+        "reachability",
+        "name",
+        "host",
+        "port",
+        "map",
+        "gametype",
+        "players",
+        "max_players",
+        "game_version",
+        "visibility",
+        "server_type"
+      ]
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "servers": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/publicListing"
+              },
+              {
+                "properties": {
+                  "visibility": {
+                    "const": "public"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "servers"
+      ]
+    },
+    "enrollment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "server_public_key": {
+          "$ref": "#/$defs/publicKey"
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7776000
+        }
+      },
+      "required": [
+        "server_public_key"
+      ]
+    },
+    "operatorEnrollment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "server_public_key": {
+          "$ref": "#/$defs/publicKey"
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7776000
+        },
+        "owner_label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+          "description": "Runtime additionally caps UTF-8 encoding at 64 bytes."
+        }
+      },
+      "required": [
+        "server_public_key"
+      ]
+    },
+    "credential": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "credential_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "server_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "owner_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "origin_master_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "expires_at": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "credential_id",
+        "server_id",
+        "owner_id",
+        "origin_master_id",
+        "expires_at"
+      ]
+    },
+    "credentialList": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "credentials": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "credential_id": {
+                "$ref": "#/$defs/uuid"
+              },
+              "server_id": {
+                "$ref": "#/$defs/uuid"
+              },
+              "expires_at": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "revoked": {
+                "enum": [
+                  0,
+                  1
+                ]
+              }
+            },
+            "required": [
+              "credential_id",
+              "server_id",
+              "expires_at",
+              "revoked"
+            ]
+          }
+        }
+      },
+      "required": [
+        "credentials"
+      ]
+    },
+    "revocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "revoked": {
+          "const": true
+        }
+      },
+      "required": [
+        "revoked"
+      ]
+    },
+    "announcement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "kind": {
+          "const": "announcement"
+        },
+        "master_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "server_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "credential_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "issued_at": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "method": {
+          "enum": [
+            "POST",
+            "PATCH",
+            "DELETE"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^/v1/servers(?:/[0-9a-f-]{36}(?:/heartbeat)?)?$"
+        },
+        "metadata": {
+          "$ref": "#/$defs/metadataPatch"
+        }
+      },
+      "required": [
+        "v",
+        "kind",
+        "master_id",
+        "server_id",
+        "credential_id",
+        "sequence",
+        "issued_at",
+        "method",
+        "path",
+        "metadata"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "method": {
+                "const": "DELETE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "metadata": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "path": {
+                "const": "/v1/servers"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "method": {
+                "const": "POST"
+              },
+              "metadata": {
+                "$ref": "#/$defs/metadata"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "path": {
+                "pattern": "/heartbeat$"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "method": {
+                "const": "POST"
+              },
+              "metadata": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {},
+                "required": []
+              }
+            }
+          }
+        }
+      ]
+    },
+    "announcementEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/announcement"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        }
+      },
+      "required": [
+        "payload",
+        "signature"
+      ]
+    },
+    "originListing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "kind": {
+          "const": "listing"
+        },
+        "origin_master_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "server_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "server_public_key": {
+          "$ref": "#/$defs/publicKey"
+        },
+        "owner_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "credential_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "registered_at": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "last_heartbeat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "expires_at": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "state": {
+          "enum": [
+            "active",
+            "deleted",
+            "revoked"
+          ]
+        },
+        "metadata": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/metadata"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {},
+              "required": []
+            }
+          ]
+        }
+      },
+      "required": [
+        "v",
+        "kind",
+        "origin_master_id",
+        "server_id",
+        "server_public_key",
+        "owner_id",
+        "credential_id",
+        "revision",
+        "registered_at",
+        "last_heartbeat",
+        "expires_at",
+        "state",
+        "metadata"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "active"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "metadata": {
+                "$ref": "#/$defs/metadata"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "originListingEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/originListing"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        }
+      },
+      "required": [
+        "payload",
+        "signature"
+      ]
+    },
+    "sync": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "kind": {
+          "const": "sync"
+        },
+        "sender_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "recipient_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "issued_at": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "nonce": {
+          "$ref": "#/$defs/uuid"
+        }
+      },
+      "required": [
+        "v",
+        "kind",
+        "sender_id",
+        "recipient_id",
+        "issued_at",
+        "nonce"
+      ]
+    },
+    "syncEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/sync"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        }
+      },
+      "required": [
+        "payload",
+        "signature"
+      ]
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "v": {
+          "const": 1
+        },
+        "kind": {
+          "const": "snapshot"
+        },
+        "sender_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "recipient_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "issued_at": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "nonce": {
+          "$ref": "#/$defs/uuid"
+        },
+        "records": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/originListingEnvelope"
+          }
+        }
+      },
+      "required": [
+        "v",
+        "kind",
+        "sender_id",
+        "recipient_id",
+        "issued_at",
+        "nonce",
+        "records"
+      ]
+    },
+    "snapshotEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "payload": {
+          "$ref": "#/$defs/snapshot"
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        }
+      },
+      "required": [
+        "payload",
+        "signature"
+      ]
+    },
+    "peer": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "public_key": {
+          "$ref": "#/$defs/publicKey"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 2048,
+          "description": "HTTPS base URL required outside explicit development HTTP mode. No credentials/query/fragment/path."
+        }
+      },
+      "required": [
+        "id",
+        "public_key",
+        "url"
+      ]
+    },
+    "masters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "master": {
+          "$ref": "#/$defs/peer"
+        },
+        "peers": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/peer"
+          }
+        }
+      },
+      "required": [
+        "master",
+        "peers"
+      ]
+    },
+    "health": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "ok"
+        },
+        "ready": {
+          "const": true
+        },
+        "master_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "uptime_seconds": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "peers": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "last_success": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "failures": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "last_success",
+              "failures"
+            ]
+          }
+        }
+      },
+      "required": [
+        "status",
+        "ready",
+        "master_id",
+        "uptime_seconds",
+        "peers"
+      ]
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "error"
+      ]
+    }
+  }
+}

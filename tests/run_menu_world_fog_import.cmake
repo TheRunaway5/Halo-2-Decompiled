@@ -1,0 +1,10 @@
+string(TIMESTAMP stamp "%Y%m%dT%H%M%S" UTC)
+string(RANDOM LENGTH 8 ALPHABET 0123456789abcdef suffix)
+set(output "${OUTPUT_ROOT}/${stamp}-${suffix}")
+execute_process(COMMAND "${TEST_BINARY}" "${MAP}" "${FIXTURES}" "${output}"
+    RESULT_VARIABLE result)
+if(NOT result EQUAL 0)
+    message(FATAL_ERROR "Actual Cache fog image import failed (${result}); results: ${output}")
+else()
+    message("Actual Cache fog image import results: ${output}")
+endif()

@@ -1,0 +1,17 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct Bloom {uvec4 program[15];vec4 controls;};
+struct Fixture {Bloom material;vec4 coordinate;vec4 samples[4];};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 pixels[];};
+Bloom material;uint fixture;
+#include "combiner.glsl"
+vec4 bloomLookup(int stage,vec2 uv) {return fixtures[fixture].samples[stage];}
+#include "bloom_color.glsl"
+void main() {
+    fixture=gl_GlobalInvocationID.x;material=fixtures[fixture].material;
+    vec2 uv=fixtures[fixture].coordinate.xy;
+    for(int i=0;i<4;++i)pixels[fixture*5+i]=vec4(titleBloomCoordinates(i,uv),0,0);
+    pixels[fixture*5+4]=titleBloomColor(uv);
+}

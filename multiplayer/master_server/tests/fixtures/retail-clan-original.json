@@ -1,0 +1,191 @@
+{
+  "xbe": {
+    "path": "assets/disc/default.xbe",
+    "pin": "03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d",
+    "globals": 5112652,
+    "init": 1692192,
+    "setter": 2323390,
+    "getter": 2323696,
+    "normalize": 1693264,
+    "table": 4655144
+  },
+  "source_spans": {
+    "0x63280": {
+      "size": 81,
+      "sha256": "de78da8e2ed929b695631be852598e7e953d6b92b622025a4e2971910f5acc9b"
+    },
+    "0x66050": {
+      "size": 652,
+      "sha256": "0a2ed58e6dce5124d437dac9ffa5392d414fd8f58f4ce2cc59ea08eb46a317e2"
+    },
+    "0x6d4c0": {
+      "size": 1492,
+      "sha256": "78e0f71812c1be55176ff81f8fc8a21743496155dd2855baa28b9403ffb14e2f"
+    },
+    "0x73e00": {
+      "size": 997,
+      "sha256": "5fdb62f6a7cc798e72e48a6304257ff017c934eeb21b12e9b01f0a5f2a8446cc"
+    },
+    "0x741f0": {
+      "size": 1212,
+      "sha256": "4c2586eed894675f1520a5dde0812ebea05d5fd3d80831a120be24821505b260"
+    },
+    "0x746b0": {
+      "size": 108,
+      "sha256": "e01144c4054dd2c8275e002b88f0c7b2876bba05a97078bff502f1094dfbc694"
+    },
+    "0x74720": {
+      "size": 214,
+      "sha256": "b9ace764ae92386f81fffd705494e6d3e8a87cdba73a0ff6bc5d341839c9c601"
+    },
+    "0x74aa0": {
+      "size": 2862,
+      "sha256": "dc16cc153cc7357aa061a3ea4b64f3be0b977ce6e3922c665a325cc9ba326a27"
+    },
+    "0x7e100": {
+      "size": 261,
+      "sha256": "8f60659eb70623a908bedd46550fe9c17f491a5adfaa78f744c5ec4bc32fe237"
+    },
+    "0x7e210": {
+      "size": 2828,
+      "sha256": "d32102827ff9d836468bcff34f3a395863f83969b3f907d73a96316c2aed86d9"
+    },
+    "0x7ed20": {
+      "size": 235,
+      "sha256": "b5541a5e65e8c0a2a3be0a4cacfc9cc9be572ed27c6389a82423690268ab56b5"
+    },
+    "0x90d90": {
+      "size": 372,
+      "sha256": "31caa487e4f4e68e6da7b431d0d08ef4364efa9d725469e91cfed4cf84cbe625"
+    },
+    "0x91fc0": {
+      "size": 603,
+      "sha256": "4670f97b182c3e55351b5beed2201f07053d01019f31d957b9e2d8ce4a00aa27"
+    },
+    "0x18fd94": {
+      "size": 266,
+      "sha256": "9ee80e6a466396a1eba20dc35e3bcafdc8db626ed31aea14f3bd9631b6e9bc52"
+    },
+    "0x1936a0": {
+      "size": 61,
+      "sha256": "2476024db2c1736c85201d25e4dd48067a6c0bf3c3bb6c08507b8eaf0fc401df"
+    },
+    "0x1936e0": {
+      "size": 782,
+      "sha256": "e9564002a242fb2394dd26a137a5c25d8199a8fdb1783952c7b26989d441fa81"
+    },
+    "0x193c00": {
+      "size": 105,
+      "sha256": "ee5b059887b1d4b6e62dcd37fe4a66a1d43def5e1ab7885e2cccb8e287cabe38"
+    },
+    "0x193c70": {
+      "size": 728,
+      "sha256": "2d3a8669399219b1965b54aba96f4000dac91ec39fc2283ccab160633740f3b1"
+    },
+    "0x195a40": {
+      "size": 1100,
+      "sha256": "6ef581d3f1556cbca66cc2f98eaa2a04fa8fcf028b5889ed5871b66bfa9cc1dd"
+    }
+  },
+  "instruction_trace_sha256": "2babcc88b6fd7e8d64681fe93da37ae4c129dc0fd8e30ce2f3ca275c612c06a3",
+  "limits": "Unchanged retail instructions with synthetic fixtures. No Xbox Live membership service, TMS/downloaded configurations, authenticated report arbitration, full gathering/join path, title-update comparison, live match or GPU presentation is executed.",
+  "controls": [
+    {
+      "name": "equal clan skill win/loss",
+      "actual": [
+        100,
+        -100
+      ],
+      "expected": [
+        100,
+        -100
+      ]
+    },
+    {
+      "name": "equal clan standing tie",
+      "actual": [
+        0,
+        0
+      ],
+      "expected": [
+        0,
+        0
+      ]
+    },
+    {
+      "name": "clan higher skill differential",
+      "actual": [
+        90,
+        -90
+      ],
+      "expected": [
+        90,
+        -90
+      ]
+    },
+    {
+      "name": "clan bottom XP clamp",
+      "actual": [
+        -3,
+        100
+      ],
+      "expected": [
+        -3,
+        100
+      ]
+    },
+    {
+      "name": "clan top XP clamp",
+      "actual": [
+        3,
+        -100
+      ],
+      "expected": [
+        3,
+        -100
+      ]
+    },
+    {
+      "name": "unknown opposing clan skill ignored",
+      "actual": [
+        0
+      ],
+      "expected": [
+        0
+      ]
+    },
+    {
+      "name": "clan pair loop includes zero identity without admission",
+      "actual": [
+        100
+      ],
+      "expected": [
+        100
+      ]
+    },
+    {
+      "name": "clan pair loop averages extra active entries",
+      "actual": [
+        50,
+        50,
+        -100
+      ],
+      "expected": [
+        50,
+        50,
+        -100
+      ]
+    },
+    {
+      "name": "clan configured delta limits",
+      "actual": [
+        7,
+        -9
+      ],
+      "expected": [
+        7,
+        -9
+      ]
+    }
+  ]
+}

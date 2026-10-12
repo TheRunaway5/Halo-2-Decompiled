@@ -1,0 +1,61 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct VertexBankData {uvec4 range;vec4 constants[158];};
+struct CameraData {mat4 viewProjection;vec4 eyeForward;vec4 eyePosition;vec4 viewport;};
+struct Fixture {
+    uvec4 instructions[136];vec4 attributes[16];uvec4 flags;
+    vec4 fogConstants[6];vec4 vertexConstants[16];
+    VertexBankData bank;CameraData camera;uvec4 control;
+    vec4 decodedPosition;vec4 decodedUV;vec4 decodedNormal;
+    uvec4 declaration;
+};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 results[];};
+struct MaterialData {
+    uvec4 vertexInstructions[136];vec4 vertexAttributes[16];uvec4 flags;
+    vec4 fogConstants[6];vec4 vertexConstants[16];
+    vec4 sourceCameraWorld[7];vec4 sourceCameraReflection[7];
+    vec4 sourceCameraForeground[4];uvec4 sourceCameraControl;
+    uvec4 vertexDeclaration;
+};
+MaterialData material;
+VertexBankData vertexBank;
+CameraData camera;
+#ifdef H2_VERTEX_PRODUCTION_INPUTS
+// Feed the same decoded attributes as world_vertex.glsl. This variant must
+// exercise the production phase-dependent declaration inside runVertexProgram.
+vec3 position,normal,tangent,binormal,incident;
+vec2 texcoord,lightmapCoord;
+float prtCluster;
+vec4 prtWeights;
+#define H2_SOURCE_VERTEX_DECLARATION
+#else
+#define H2_VERTEX_REFERENCE_INPUTS
+#endif
+#define H2_EXTENDED_VERTEX_BANK
+#define H2_SOURCE_VIEW_SHADER_CONSTANTS
+// Constants are resolved by the production function, including camera-bank
+// priority, fog/material consumers, synthetic viewport and extended globals.
+#include "vertex_program.glsl"
+void main() {
+    uint n=gl_GlobalInvocationID.x;
+    vertexBank=fixtures[n].bank;camera=fixtures[n].camera;
+    material.flags=fixtures[n].flags;
+    material.sourceCameraControl=fixtures[n].control;
+    material.vertexDeclaration=fixtures[n].declaration;
+    for(uint i=0u;i<136u;++i)material.vertexInstructions[i]=fixtures[n].instructions[i];
+    for(uint i=0u;i<16u;++i){material.vertexAttributes[i]=fixtures[n].attributes[i];material.vertexConstants[i]=fixtures[n].vertexConstants[i];}
+    for(uint i=0u;i<6u;++i)material.fogConstants[i]=fixtures[n].fogConstants[i];
+    for(uint i=0u;i<7u;++i){material.sourceCameraWorld[i]=camera.eyePosition;material.sourceCameraReflection[i]=camera.eyeForward;}
+    for(uint i=0u;i<4u;++i)material.sourceCameraForeground[i]=camera.viewport;
+#ifdef H2_VERTEX_PRODUCTION_INPUTS
+    position=fixtures[n].decodedPosition.xyz;texcoord=fixtures[n].decodedUV.xy;
+    normal=fixtures[n].decodedNormal.xyz;
+    tangent=vec3(0);binormal=vec3(0);incident=vec3(0);
+    lightmapCoord=vec2(0);prtCluster=0;prtWeights=vec4(0);
+#endif
+    runVertexProgram();
+    for(uint i=0u;i<16u;++i)results[n*208u+i]=vpOut[i];
+    for(uint i=0u;i<192u;++i)results[n*208u+16u+i]=vpConstant(i);
+}

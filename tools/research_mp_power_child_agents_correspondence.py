@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Complete retained child-cache/agent authenticated update correspondence."""
+import argparse,json,sys
+from pathlib import Path
+from capstone import Cs,CS_ARCH_X86,CS_MODE_32
+from capstone.x86 import X86_OP_IMM
+import research_mp_sandbox_update_functions as base
+from oracle_mp_power_child_agents_1_1 import ROOT,OUT,verify,sha
+from oracle_mp_power_body_prepare_1_1 import OUT as WRAPPER_OUT
+from oracle_smg_firing_1_1 import Xbe,_Code,_trace
+from oracle_mp_item_current_producers_1_1 import encoded,frozen_write
+ENTRIES={0x300870,0x2efc30,0x2ef8f0,0x2ef970,0x2efa10,0x1c6c30,0x2e5e20,0x2ef680,0x2e13b0,0x2f48a0,0x305560,0x2e0ba0,0x2e0cc0,0x2e22b0,0x3037f0,0x1f1d20,0x3037c0,0x2e42a0,0x1ee380}
+SHORT={0x307fe0,0x2e22a0,0x2e4360,0xa0120,0x9ddc0,0x253ee0,0x9d5a0}
+def main():
+ ap=argparse.ArgumentParser();ap.add_argument('--output',type=Path,default=OUT/'final/later-correspondence/report.json');a=ap.parse_args();verify()
+ base.ENTRIES=tuple(sorted(ENTRIES));sys.argv=[sys.argv[0],'--output',str(a.output)];base.main();r=json.loads(a.output.read_text())
+ old=Xbe(ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03');new=Xbe(base.NEW_DEFAULT);oc,nc=_Code(old,'.text'),_Code(new,'.text')
+ mapped={int(q['disc_1_1_entry'],16):int(q['later_entry'],16)for q in r['routines']if q.get('normalized_instruction_and_internal_branch_topology_equal')}
+ starts=set(mapped.values());md=Cs(CS_ARCH_X86,CS_MODE_32);md.detail=True;md.skipdata=True;sec=new.section('.text')
+ for i in md.disasm(new.section_bytes(sec),sec.va):
+  if i.mnemonic=='call'and len(i.operands)==1 and i.operands[0].type==X86_OP_IMM:starts.add(i.operands[0].imm)
+ while True:
+  before=len(mapped)
+  for left,right in list(mapped.items()):
+   oi=[oc.at(p)for p in sorted(_trace(oc,left,ENTRIES|SHORT).code)];ni=[nc.at(p)for p in sorted(_trace(nc,right,starts).code)]
+   assert base.full_tokens(oi,old)==base.full_tokens(ni,new),(hex(left),hex(right))
+   for x,y in zip(oi,ni):
+    if x.mnemonic=='call'and x.operands[0].type==y.operands[0].type==X86_OP_IMM and x.operands[0].imm in ENTRIES|SHORT:
+     p,q=x.operands[0].imm,y.operands[0].imm;assert p not in mapped or mapped[p]==q;mapped[p]=q
+  if before==len(mapped):break
+ assert ENTRIES<=mapped.keys(),[hex(p)for p in ENTRIES-mapped.keys()]
+ # Genuine constructors' paired vtable immediates own the short virtual paths.
+ wp=WRAPPER_OUT/'final/later-correspondence/complete-report.json';w=json.loads(wp.read_text());vt=int(w['constructed_wrapper_type_getter']['later_vtable'],16)
+ virtual=[dict(owner='paired complete2E2530 wrapper constructor',old_vtable='00418930',later_vtable=f'{vt:08x}')]
+ for slot,p in((0x14,0xa0120),(0x38,0x2e22a0),(0x3c,0x253ee0)):
+  assert int.from_bytes(old.read(0x418930+slot,4),'little')==p;mapped[p]=int.from_bytes(new.read(vt+slot,4),'little')
+ bp=ROOT/'analysis/multiplayer/sandbox-source/power-bsp-children/final/later-correspondence/complete-report.json';br=json.loads(bp.read_text());tr=next(q for q in br['routines']if q['disc_1_1_entry']=='001f16f0')
+ oi=[oc.at(p)for p in sorted(_trace(oc,0x1f16f0,{0x1f16f0}).code)];ni=[nc.at(p)for p in sorted(_trace(nc,int(tr['later_entry'],16),starts).code)]
+ assert base.full_tokens(oi,old)==base.full_tokens(ni,new)
+ pair=[(x,y)for x,y in zip(oi,ni)if x.mnemonic=='mov'and x.op_str=='dword ptr [ecx], 0x45d238'];assert len(pair)==1
+ vt=pair[0][1].operands[1].imm;virtual.append(dict(owner='paired complete1F16F0 BSP triangle constructor',old_vtable='0045d238',later_vtable=f'{vt:08x}'))
+ for slot,p in((0x14,0x9ddc0),(0x38,0x2e4360),(0x3c,0x253ee0)):
+  assert int.from_bytes(old.read(0x45d238+slot,4),'little')==p;q=int.from_bytes(new.read(vt+slot,4),'little');assert p not in mapped or mapped[p]==q;mapped[p]=q
+ # Actual source phmo capsule initialization owns the endpoint-count method.
+ oi=[oc.at(p)for p in sorted(_trace(oc,0x1ee380,ENTRIES|SHORT).code)];ni=[nc.at(p)for p in sorted(_trace(nc,mapped[0x1ee380],starts).code)]
+ assert base.full_tokens(oi,old)==base.full_tokens(ni,new)
+ pairs=[(x,y)for x,y in zip(oi,ni)if x.mnemonic=='mov'and x.operands[-1].type==X86_OP_IMM and x.operands[-1].imm==0x45c6b0]
+ assert pairs and len({y.operands[-1].imm for _,y in pairs})==1
+ vt=pairs[0][1].operands[-1].imm;assert int.from_bytes(old.read(0x45c6b0+0x3c,4),'little')==0x9d5a0
+ mapped[0x9d5a0]=int.from_bytes(new.read(vt+0x3c,4),'little');virtual.append(dict(owner='paired complete1EE380 physical-tag capsule initialization',old_vtable='0045c6b0',later_vtable=f'{vt:08x}'))
+ assert ENTRIES|SHORT==mapped.keys()
+ previous={int(q['disc_1_1_entry'],16):q for q in r['routines']};rows=[]
+ for p,b in sorted(mapped.items()):
+  oi=[oc.at(x)for x in sorted(_trace(oc,p,ENTRIES|SHORT).code)];ni=[nc.at(x)for x in sorted(_trace(nc,b,starts|set(mapped.values())).code)]
+  assert base.full_tokens(oi,old)==base.full_tokens(ni,new),(hex(p),hex(b))
+  q=previous.get(p,dict(disc_1_1_entry=f'{p:08x}',mapped_from_original_constructor_or_direct_call=True))
+  q.update(later_entry=f'{b:08x}',old_instructions=len(oi),later_instructions=len(ni),normalized_instruction_and_internal_branch_topology_equal=True)
+  for label,ins,image,entry in(('disc',oi,old,p),('later',ni,new,b)):
+   dst=a.output.parent/'instructions'/f'{p:08x}-{label}-{entry:08x}.asm'
+   for i in ins:assert image.read(i.address,len(i.bytes))==i.bytes
+   frozen_write(dst,''.join(f'{i.address:08x} {i.bytes.hex()} {i.mnemonic} {i.op_str}\n'for i in ins).encode());q[label+'_listing']=dict(file=dst.name,sha256=sha(dst))
+  of,nf=_trace(oc,p,ENTRIES|SHORT),_trace(nc,b,starts|set(mapped.values()));assert len(of.tables)==len(nf.tables)
+  op={i.address:n for n,i in enumerate(oi)};np={i.address:n for n,i in enumerate(ni)};tables=[]
+  for left,right in zip(of.tables,nf.tables):
+   at,width,count=left;bt,nwidth,ncount=right;assert(width,count)==(nwidth,ncount)
+   ob,nb=old.read(at,width*count),new.read(bt,width*count)
+   if width==4:
+    keys=lambda raw,positions:[positions.get(int.from_bytes(raw[k:k+4],'little'),'ZERO'if int.from_bytes(raw[k:k+4],'little')==0 else'EXTERNAL')for k in range(0,len(raw),4)]
+    assert keys(ob,op)==keys(nb,np)
+   else:assert ob==nb
+   tables.append(dict(old_address=f'{at:08x}',later_address=f'{bt:08x}',width=width,entries=count,old_hex=ob.hex(),later_hex=nb.hex(),mapped_table_equal=True))
+  refs=[];calls=[]
+  for x,y in zip(oi,ni):
+   for xo,yo in zip(x.operands,y.operands):
+    if xo.type==yo.type==3 and not xo.mem.base and not yo.mem.base and base.containing(old,xo.mem.disp)and base.containing(new,yo.mem.disp):
+     assert xo.size==yo.size;ob,nb=old.read(xo.mem.disp,xo.size),new.read(yo.mem.disp,yo.size)
+     refs.append(dict(old_site=f'{x.address:08x}',later_site=f'{y.address:08x}',old_address=f'{xo.mem.disp:08x}',later_address=f'{yo.mem.disp:08x}',width=xo.size,old_hex=ob.hex(),later_hex=nb.hex(),bytes_equal=ob==nb))
+   if x.mnemonic=='call'and x.operands[0].type==y.operands[0].type==X86_OP_IMM:
+    target=x.operands[0].imm;actual=y.operands[0].imm;calls.append(dict(old_site=f'{x.address:08x}',later_site=f'{y.address:08x}',old_target=f'{target:08x}',later_target=f'{actual:08x}',mapped_target_matches=mapped.get(target)==actual if target in mapped else None))
+  q.update(switch_tables=tables,switch_table_topology_equal=True,paired_image_memory_operands=refs,paired_direct_calls=calls);rows.append(q)
+ r.update(routines=rows,correspondence_tool_sha256=sha(__file__),source_measured_sha256=sha(OUT/'final/measured/report.json'),complete_bodies=len(mapped),original_vtable_owners=virtual,wrapper_prior_report_sha256=sha(wp),bsp_prior_report_sha256=sha(bp),later_gameplay_executed=False)
+ frozen_write(a.output.parent/'complete-report.json',encoded(r));print(json.dumps(dict(complete_bodies=len(mapped),report=sha(a.output.parent/'complete-report.json'))))
+if __name__=='__main__':main()

@@ -1,0 +1,24 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+// Test-only dispatch. Arbitrary source definitions never reach the public
+// typed weather renderer. Arithmetic oracle coverage is not original raster.
+layout(local_size_x=64) in;
+struct Probe {uvec4 program[15];vec4 constants[18];vec4 samples[4];};
+layout(set=0,binding=0,std430) readonly buffer Input {Probe probes[];};
+layout(set=0,binding=1,std430) writeonly buffer Output {vec4 results[];};
+Probe material;
+// Same separately expanded host constant bank and index mapping as the
+// unchanged plate fragment path, so every varying packed color is exercised.
+vec4 originalConstant(uint i) {
+    if(i>=10u && i<18u)return material.constants[(i-10u)*2u];
+    if(i>=18u && i<26u)return material.constants[(i-18u)*2u+1u];
+    return material.constants[16u+(i-43u)];
+}
+#define H2_COMBINER_CONSTANT(index) originalConstant(index)
+#include "combiner.glsl"
+void main() {
+    uint index=gl_GlobalInvocationID.x;
+    if(index>=probes.length())return;
+    material=probes[index];
+    results[index]=runCombiners(material.samples,vec4(0,0,0,1),vec4(0,0,0,1));
+}
