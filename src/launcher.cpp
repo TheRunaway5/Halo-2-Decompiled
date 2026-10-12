@@ -43,8 +43,24 @@ constexpr auto native_name = "halo2_native.exe";
 constexpr auto native_name = "halo2_native";
 #endif
 struct Installation {
-  fs::path root, runtime;
+  fs::path root, runtime, build;
 };
+bool current_build(const fs::path &root,const fs::path &build) {
+  const auto cache=build/"CMakeCache.txt";
+  if(!fs::exists(cache))return true;
+  std::ifstream file(cache);
+  std::string line,source,directory;
+  while(std::getline(file,line)) {
+    if(!line.empty() && line.back()=='\r')line.pop_back();
+    const std::string source_key="CMAKE_HOME_DIRECTORY:INTERNAL=";
+    const std::string directory_key="CMAKE_CACHEFILE_DIR:INTERNAL=";
+    if(line.starts_with(source_key))source=line.substr(source_key.size());
+    if(line.starts_with(directory_key))directory=line.substr(directory_key.size());
+  }
+  return !source.empty() && !directory.empty() &&
+      fs::weakly_canonical(source)==root &&
+      fs::weakly_canonical(directory)==fs::weakly_canonical(build);
+}
 Installation locate() {
   const std::unique_ptr<char, decltype(&SDL_free)> base(SDL_GetBasePath(),
                                                         SDL_free);
@@ -68,10 +84,14 @@ Installation locate() {
     // A relocated launcher only searches the project beside it.
     std::error_code configured_error;
     const auto configured_project = fs::canonical(HALO2_PROJECT_DIR, configured_error);
-    if (!configured_error && configured_project == project)
-      binaries.insert(binaries.begin() + 1, fs::path(HALO2_RUNTIME_DIR) / native_name);
+    auto build=project/"build";
+    if (!configured_error && configured_project == project) {
+      build=fs::path(HALO2_RUNTIME_DIR);
+      if(build.is_relative())build=project/build;
+      binaries.insert(binaries.begin() + 1, build / native_name);
+    }
     for (const auto &binary : binaries) {
-      if (!fs::is_regular_file(binary))
+      if (!fs::is_regular_file(binary) || !current_build(project,binary.parent_path()))
         continue;
       const auto shader_dir = binary.parent_path() / "shaders";
       const bool shaders =
@@ -80,10 +100,10 @@ Installation locate() {
                         return fs::is_regular_file(shader_dir / name);
                       });
       if (shaders)
-        return {project, fs::canonical(binary)};
+        return {project, fs::canonical(binary), binary.parent_path()};
     }
     // First-run source selection also works before the runtime is built.
-    return {project, {}};
+    return {project, {}, build};
   }
   throw std::runtime_error(
       "Setup tools were not found. Keep the launcher with the project folder, "
@@ -168,7 +188,7 @@ fs::path read_gameplay_source(const fs::path &root) {
         ". Select it again with tools/select_gameplay_source.py.");
   return fs::canonical(selected);
 }
-int run_setup_tool(std::vector<std::string> arguments) {
+int run_tool(std::vector<std::string> arguments) {
   std::vector<char*> pointers;
   for(auto &value:arguments)pointers.push_back(value.data());
   pointers.push_back(nullptr);
@@ -182,12 +202,12 @@ int run_setup_tool(std::vector<std::string> arguments) {
   if(child>0) {
     int status{};
     while(waitpid(child,&status,0)<0) {
-      if(errno!=EINTR)throw std::runtime_error("Could not wait for game-file setup");
+      if(errno!=EINTR)throw std::runtime_error("Could not wait for "+arguments.front());
     }
     return WIFEXITED(status)?WEXITSTATUS(status):1;
   }
 #endif
-  throw std::runtime_error("Could not open game-file setup");
+  throw std::runtime_error("Could not start "+arguments.front());
 }
 int prepare_sources(const Installation &installation,const std::string &vista,
                     const std::string &xbox) {
@@ -196,28 +216,28 @@ int prepare_sources(const Installation &installation,const std::string &vista,
   if(!vista.empty())arguments.insert(arguments.end(),{"--vista",vista});
   if(!xbox.empty())arguments.insert(arguments.end(),{"--xbox",xbox});
   if(vista.empty() || xbox.empty())arguments.push_back("--interactive");
-  return run_setup_tool(std::move(arguments));
+  return run_tool(std::move(arguments));
 }
 int prepare_mcc_hud(const Installation &installation,const std::string &source) {
   std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
       (installation.root/"tools/import_mcc_hud.py").string(),"--root",installation.root.string(),"--activate"};
   if(!source.empty())arguments.insert(arguments.end(),{"--mcc-root",source});
-  return run_setup_tool(std::move(arguments));
+  return run_tool(std::move(arguments));
 }
 int prepare_mcc_menus(const Installation &installation,const std::string &source) {
   std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
       (installation.root/"tools/import_mcc_menus.py").string(),"--root",installation.root.string(),"--activate"};
   if(!source.empty())arguments.insert(arguments.end(),{"--mcc-root",source});
-  return run_setup_tool(std::move(arguments));
+  return run_tool(std::move(arguments));
 }
 } // namespace
 
 int main(int argc, char **argv) {
   try {
-    const auto installation = locate();
+    auto installation = locate();
     std::vector<std::string> supplied;
     std::string vista_source,xbox_source,mcc_source;
-    bool setup=false,setup_only=false,import_mcc=false,import_menus=false;
+    bool setup=false,setup_only=false,import_mcc=false,import_menus=false,prepared_sources=false;
     for(int i=1;i<argc;++i) {
       const std::string argument=argv[i];
       if(argument=="--setup" || argument=="--setup-only") {
@@ -262,6 +282,7 @@ int main(int argc, char **argv) {
       return 0;
     }
     if(help)std::cout<<"Launcher setup: --setup [--vista-source PATH --xbox-source PATH] [--setup-only]\n";
+    if(help)std::cout<<"Normal launch prepares game files, builds the runtime when needed, and starts the game. --setup-only prepares files and exits.\n";
     if(help)std::cout<<"MCC Classic HUD: --import-mcc-hud [--mcc-source PATH] [--setup-only]\n";
     if(help)std::cout<<"MCC Classic menus: --import-mcc-menus [--mcc-source PATH] [--setup-only]\n";
     if(help && installation.runtime.empty())return 0;
@@ -270,6 +291,7 @@ int main(int argc, char **argv) {
       if(status)return status;
       sources=read_sources(installation.root);
       if(!sources.ready())throw std::runtime_error("Setup did not provide both Vista UI and Xbox game files");
+      prepared_sources=true;
     }
     if(!help && import_mcc) {
       const auto status=prepare_mcc_hud(installation,mcc_source);
@@ -280,10 +302,17 @@ int main(int argc, char **argv) {
       if(status)return status;
     }
     if(setup_only)return 0;
+    if(!help && (prepared_sources || installation.runtime.empty())) {
+      const auto tool=installation.root/"tools/build_runtime.py";
+      if(!fs::is_regular_file(tool))throw std::runtime_error("Automatic build tool is missing: "+tool.string());
+      const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,tool.string(),"--root",
+          installation.root.string(),"--build-dir",installation.build.string()});
+      if(status)return status;
+      installation=locate();
+    }
     if(installation.runtime.empty())throw std::runtime_error(
-        "Game files are prepared. Build the runtime from the project root with: "
-        "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo, then "
-        "cmake --build build --target halo2_launcher -j. Run the launcher again after the build.");
+        "The automatic build finished, but the runtime or required shaders are missing. See "+
+        (installation.build/"launcher-build.log").string());
     std::vector<std::string> arguments{installation.runtime.string()};
     if(!gameplay.empty())arguments.insert(arguments.end(),{"--gameplay-xbe",gameplay.string()});
     const bool custom =
