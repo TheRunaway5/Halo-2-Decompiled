@@ -171,12 +171,16 @@ AnimationClip Cache::load_unit_weapon_action(std::uint32_t graph,std::uint32_t m
     weapon_class=source_animation_weapon_class(tag->address,weapon_class,weapon_type,memory);
     // Read-only authored lookup. Runtime resource admission remains with the
     // retained manager; this query does not supply readiness or demand success.
-    std::array<std::byte,28> iterator{};
-    const auto put=[&](unsigned at,std::uint32_t v){for(unsigned i=0;i<4;++i)iterator[at+i]=std::byte(v>>(i*8));};
-    put(0,tag->address);put(4,mode);put(8,weapon_class);put(12,weapon_type);
-    std::array<std::uint32_t,3> resolved{};
-    while(const auto weapon=next_source_animation_weapon(iterator,resolved,memory)) {
-        const auto row=find_source_animation_record(weapon+(overlay?12:4),action,8,memory);if(!row)continue;
+    //1CF4C0 exhausts overlay fallbacks before trying ordinary action rows.
+    // Some full-body melee actions are authored only in that second bank.
+    for(const unsigned table:{12u,4u}) {
+     if(table==12 && !overlay)continue;
+     std::array<std::byte,28> iterator{};
+     const auto put=[&](unsigned at,std::uint32_t v){for(unsigned i=0;i<4;++i)iterator[at+i]=std::byte(v>>(i*8));};
+     put(0,tag->address);put(4,mode);put(8,weapon_class);put(12,weapon_type);
+     std::array<std::uint32_t,3> resolved{};
+     while(const auto weapon=next_source_animation_weapon(iterator,resolved,memory)) {
+        const auto row=find_source_animation_record(weapon+table,action,8,memory);if(!row)continue;
         const auto a=metadata_offset(row,8);
         const int inheritance=std::int16_t(data.u16(a+4)),index=std::int16_t(data.u16(a+6));
         if(index==-1)continue;
@@ -188,6 +192,7 @@ AnimationClip Cache::load_unit_weapon_action(std::uint32_t graph,std::uint32_t m
             resolved_graph=data.u32(inherited.offset+std::size_t(inheritance)*32+4);
         }
         return load_animation(resolved_graph,unsigned(index));
+     }
     }
     throw FormatError("authored unit weapon action missing: "+string_id(action));
 }

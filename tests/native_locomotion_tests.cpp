@@ -101,12 +101,55 @@ int main(int argc,char**argv){try{
  check(gait.frame().clip->source_graph==crouched.source_graph &&
        gait.frame().clip->source_index==crouched.source_index,"Crouch walk incorrectly plays standing run");
  const auto render_model=cache.load_model(content.player_representations[representation].biped.datum,false);
+ NativePlayerAnimation smg_pose(cache,graph,weapon);
+ const auto *smg_idle=smg_pose.action(0x0400000cu,false,false);
+ const auto *smg_grip=smg_pose.action(0x0400060bu,false,false);
+ const auto expected_idle=cache.load_unit_weapon_action(graph,0x06000086u,ids[0],ids[1],0x0400000cu);
+ check(smg_idle && smg_idle->source_graph==expected_idle.source_graph && smg_idle->source_index==expected_idle.source_index,
+     "Pose action lookup lost the authored primary bank fallback");
+ check(smg_idle->source_index==(representation==2?185u:156u),"SMG selected the wrong species-specific base stance");
+ check(smg_grip && smg_grip->source_index==(representation==2?213u:201u),
+     "SMG body selected the wrong species-specific weapon grip");
+ for(float angle:{-1.5707963268f,0.f,1.5707963268f}) {
+  auto expected=frontend_model_locals(render_model,*smg_idle,0,{},nullptr,true);
+  // The actual standing SMG screens have one +/-90-degree column and row.
+  // At grid endpoints no host interpolation can conceal a missing channel.
+  const float column=angle<0?0.f:angle>0?2.f:1.f;
+  for(auto activity:{0x0c000026u,0x0e000028u}) {
+   const auto *screen=smg_pose.action(activity,false,false);check(screen,"Standing SMG aim screen missing");
+   apply_native_player_overlay(render_model,expected,*screen,column+3);
+  }
+  apply_native_player_overlay(render_model,expected,*smg_grip,0);
+  const auto actual=smg_pose.pose(render_model,*smg_idle,0,0,false,false,false,nullptr,0,nullptr,0,angle);
+  for(unsigned n=0;n<expected.size();++n)
+   check(actual[n].rotation==expected[n].rotation && actual[n].scale==expected[n].scale &&
+       actual[n].translation.x==expected[n].translation.x && actual[n].translation.y==expected[n].translation.y &&
+       actual[n].translation.z==expected[n].translation.z,"SMG stance omitted or reordered its authored aim/grip channels");
+ }
  std::vector<unsigned> legs;
  for(unsigned n=0;n<render_model.bones.size();++n) {
   const auto name=cache.string_id(render_model.bones[n].name);
   if(name.ends_with("thigh") || name.ends_with("calf") || name.ends_with("foot"))legs.push_back(n);
  }
  check(legs.size()>=6,"Actual body model lost its authored leg nodes");
+ for(bool crouch:{false,true})for(float target:{1.8f,-1.8f}) {
+  NativeLocomotion turning(cache,graph,weapon,{0x12345678,0x23456789});
+  turning.bind_facing(content.player_representations[representation].biped.datum,0);
+  std::set<unsigned> turn_frames;bool changed_heading=false,returned_idle=false;
+  for(unsigned tick=0;tick<90;++tick) {
+   turning.tick(0,0,true,crouch,{}, {},nullptr,&target);
+   const auto frame=turning.frame();
+   if(frame.activity==(target>0?0x0900000eu:0x0a00000fu))turn_frames.insert(unsigned(frame.frame));
+   changed_heading|=std::abs(turning.facing())>.2f;
+   if(changed_heading && frame.activity==0x0400000cu)returned_idle=true;
+  }
+  if(!(turn_frames.size()>1 && changed_heading && returned_idle))
+   std::cerr<<"Turn representation="<<representation<<" crouch="<<crouch<<" target="<<target
+       <<" frames="<<turn_frames.size()<<" facing="<<turning.facing()<<" returned_idle="<<returned_idle
+       <<" activity="<<std::hex<<turning.frame().activity<<std::dec<<'\n';
+  check(turn_frames.size()>1 && changed_heading && returned_idle,
+      "Stationary left/right turn failed to animate, rotate the body and recover to idle");
+ }
  // A descending capsule can gain support through the solver's short floor
  // probe without penetrating a triangle. That contact must still deliver its
  // incoming speed to E5960 and select the authored landing channel.
@@ -201,6 +244,11 @@ int main(int argc,char**argv){try{
    const auto up=body.pose(render_model,*start.clip,0,1,crouch,dual,true);
    const auto down=body.pose(render_model,*start.clip,0,-1,crouch,dual,true);
    check(differs(flat,up)&&differs(flat,down)&&differs(up,down),"Player aim pitch never reaches body bones");
+   const auto left=body.pose(render_model,*start.clip,0,0,crouch,dual,true,nullptr,0,nullptr,0,-.5f);
+   const auto right=body.pose(render_model,*start.clip,0,0,crouch,dual,true,nullptr,0,nullptr,0,.5f);
+   if(datum==weapon && !(differs(flat,left)&&differs(flat,right)&&differs(left,right)))
+    std::cerr<<"Aim yaw representation="<<representation<<" weapon="<<std::hex<<datum<<std::dec<<" crouch="<<crouch<<" dual="<<dual<<'\n';
+   if(datum==weapon)check(differs(flat,left)&&differs(flat,right)&&differs(left,right),"Player aim yaw never reaches body bones");
    for(auto activity:{0x0400060bu,0x06000006u,0x08000002u,0x05000024u,0x08000025u,0x0e000607u,0x0d000021u,0x1000006cu,0x0b00053eu,0x0d00053au})if(const auto *action=body.action(activity,crouch,dual)) {
     if(verified.emplace(action->source_graph,action->source_index).second)float_tracks+=verify_float_tracks(cache,*action);
     bool changed=false;

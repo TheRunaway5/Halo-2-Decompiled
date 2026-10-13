@@ -2,6 +2,7 @@
 #include "halo2/frontend_model_locals.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/unit_animation.hpp"
+#include "halo2/original_data.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -72,12 +73,11 @@ std::vector<BonePose> NativePlayerAnimation::pose(const RenderModel &model,
     const AnimationClip *secondary,float secondary_frame,const AnimationClip *offhand,float offhand_frame,float relative_yaw) {
   auto locals=frontend_model_locals(model,primary,
       std::clamp(frame,0.f,float(primary.frame_count-1)),{},nullptr,true);
-  if(const auto *grip=action(0x0400060bu,crouch,dual))
-    apply_native_player_overlay(model,locals,*grip,0);
-  // 114BD0 chooses standing/moving upper aim. 1DE920 supplies the screen
-  // selected by the inherited clip, and2800F0 maps angles to its authored
-  // grid. Retained body facing supplies the relative horizontal aim angle.
-  if(const auto *aim=action(moving?0x0b000027u:0x0c000026u,crouch,dual)) {
+  // 114BD0 publishes both standing/moving aim channels. The lower screen
+  // must be composed too: several upper screens contain only pitch motion.
+  // 1DE920 resolves each inherited screen;2800F0 maps its angle grid.
+  const auto aim_screen=[&](std::uint32_t activity) {
+   if(const auto *aim=action(activity,crouch,dual)) {
     auto [entry,inserted]=screens_.try_emplace(std::pair(aim->source_graph,aim->source_index));
     if(inserted) {
     const auto tag=cache_.load_source_tag_metadata(aim->source_graph);
@@ -94,9 +94,12 @@ std::vector<BonePose> NativePlayerAnimation::pose(const RenderModel &model,
     const auto &screen=entry->second;
     const float step=pitch<0?screen.negative_step:screen.positive_step;
     const float yaw_step=relative_yaw<0?screen.yaw_negative_step:screen.yaw_positive_step;
-    if(!(step>0) || !(yaw_step>0) || !std::isfinite(pitch) || !std::isfinite(relative_yaw))throw FormatError("Invalid body aim screen angle");
-    const float row=float(screen.pitch_negative)+std::clamp(pitch/step,-float(screen.pitch_negative),float(screen.pitch_positive));
-    const float column=float(screen.yaw_negative)+std::clamp(relative_yaw/yaw_step,-float(screen.yaw_negative),float(screen.width-1-screen.yaw_negative));
+    if(!std::isfinite(step) || !std::isfinite(yaw_step) || !std::isfinite(pitch) || !std::isfinite(relative_yaw))throw FormatError("Invalid body aim screen angle");
+    const auto image=cache_.original_data();
+    if(!image || !image->unit_animation_constants)throw FormatError("Missing original aim screen epsilon");
+    const float epsilon=std::bit_cast<float>(image->unit_animation_constants->frame_subtractor_bits);
+    const float row=float(screen.pitch_negative)+std::clamp(step>=epsilon?pitch/step:0.f,-float(screen.pitch_negative),float(screen.pitch_positive));
+    const float column=float(screen.yaw_negative)+std::clamp(yaw_step>=epsilon?relative_yaw/yaw_step:0.f,-float(screen.yaw_negative),float(screen.width-1-screen.yaw_negative));
     // Bilinear screen sampling keeps yaw columns separate from pitch rows.
     const float low=std::floor(row),high=std::ceil(row),weight=row-low;
     const float stride=float(screen.width);
@@ -109,7 +112,13 @@ std::vector<BonePose> NativePlayerAnimation::pose(const RenderModel &model,
       a.scale=a.scale*(1-weight)+b.scale*weight;
     }
     apply_sampled_overlay(model,locals,*aim,sampled,1);
-  }
+   }
+  };
+  aim_screen(moving?0x0b000027u:0x0c000026u);
+  aim_screen(moving?0x0d000029u:0x0e000028u);
+  //113BC0 composes the weapon grip after both aim screens (11447B..114568).
+  if(const auto *grip=action(0x0400060bu,crouch,dual))
+    apply_native_player_overlay(model,locals,*grip,0);
   if(secondary)apply_native_player_overlay(model,locals,*secondary,secondary_frame);
   if(offhand)apply_native_player_overlay(model,locals,*offhand,offhand_frame);
   return locals;

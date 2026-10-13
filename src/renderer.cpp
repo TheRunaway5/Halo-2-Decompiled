@@ -3416,6 +3416,7 @@ struct Renderer::Impl {
         const auto *copy_frame=std::getenv("HALO2_REFERENCE_COPY_FRAME_VERTICES");
         const bool borrowed_frame=!(copy_frame && *copy_frame);
         const bool verify_frame=std::getenv("HALO2_VERIFY_BORROWED_FRAME_VERTICES")!=nullptr;
+        const bool verify_geometry=std::getenv("HALO2_VERIFY_FRAME_GEOMETRY")!=nullptr;
         const bool copy_vertices=!borrowed_frame || verify_frame;
         const bool plan_vertices=borrowed_frame || verify_frame;
         if(copy_vertices)dynamic.reserve(required);
@@ -3424,6 +3425,16 @@ struct Renderer::Impl {
         FrameVertexUploadPlan<DrawKey> upload_plan(!(unshared && *unshared));
         const auto vertex_count=[&]{return copy_vertices?dynamic.size():upload_plan.size();};
         const auto append_frame_parts=[&](const DrawKey &key,const auto &parts) {
+            if(verify_geometry)for(const auto part:parts) {
+                if(part.size()%3)throw FormatError("Frame geometry splits a triangle between draw ranges");
+                for(const auto &vertex:part) {
+                    const auto p=vertex.position;
+                    if(!std::isfinite(p.x)||!std::isfinite(p.y)||!std::isfinite(p.z))
+                        throw FormatError("Frame geometry contains a nonfinite position");
+                    if(draw_key(vertex)!=key)
+                        throw FormatError("Frame geometry groups a vertex under a different draw identity");
+                }
+            }
             std::size_t first{};
             if(copy_vertices)first=vertex_reuse.append_parts(key,parts);
             if(plan_vertices) {

@@ -1097,7 +1097,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   };
   update_sensors();
   std::array<std::uint32_t,4> uploaded_sensor_tick{~0u,~0u,~0u,~0u};
-  const auto compose_native_body=[&](const MultiplayerState::Player &a,NativeLocomotionFrame presentation,double body_tick,float relative_yaw) {
+  const auto compose_native_body=[&](const MultiplayerState::Player &a,NativeLocomotionFrame presentation,double body_tick,float relative_yaw,
+      NativeLocomotionFrame *posed=nullptr) {
     const auto &body=species_for(a);const auto &player=body.player;
     const AnimationClip *primary=presentation.clip;
     const bool body_moving=presentation.activity==0x0a000014u || presentation.activity==0x09000015u ||
@@ -1150,7 +1151,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
                   }
                 }
               }
+    const auto composed_activity=action && a.melee_action.active()?a.melee_action.activity:presentation.activity;
     if(action && action->animation_type==0){primary=action;presentation.frame=action_frame;action=nullptr;}
+    if(posed)*posed={primary,presentation.frame,composed_activity};
     const float frame=presentation.frame;
               auto locals=body.body_animation->pose(player.model,*primary,frame,a.pitch,
                   a.native_crouching,dual,body_moving,
@@ -1208,9 +1211,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
                 std::bit_cast<std::int16_t>(p.native_support_material),event.kind,v.foot_variant))
               if(sound!=null_datum)audio->impulse_at(sound,position,1,MultiplayerAudioKind::Footstep,p.source_unit);
           },&p.landing,&p.yaw);
-      const auto locals=compose_native_body(p,gait[id]->frame(),double(current.tick),std::remainder(p.yaw-gait[id]->facing(),6.283185307179586f));
+      NativeLocomotionFrame composed;
+      const auto locals=compose_native_body(p,gait[id]->frame(),double(current.tick),std::remainder(p.yaw-gait[id]->facing(),6.283185307179586f),&composed);
       if(cache.original_data()->unit_constructor_tail_constants)
-        body_transitions[id].tick(gait[id]->frame().activity,p.native_crouching,locals,*cache.original_data()->unit_constructor_tail_constants);
+        body_transitions[id].tick(composed.activity,p.native_crouching,locals,*cache.original_data()->unit_constructor_tail_constants);
     }catch(const std::exception&e){gait_unavailable[id]=true;gait[id].reset();std::cerr<<"Native gait/footstep owner: "<<e.what()<<'\n';}
   };
   std::optional<std::uint64_t> world_effect_tick;
@@ -2298,7 +2302,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
                 source_object_camouflage(view.hands[hand].weapon,context));
           }
     }
-    struct BodyFramePose {std::vector<Vertex> body,weapon;std::vector<Transform> nodes;};
+    struct BodyFramePose {
+      std::vector<Vertex> body,weapon;std::vector<Transform> nodes;
+      const AnimationClip *primary{};std::optional<float> frame;
+    };
     // Frame-local undecorated geometry. Animation/root/time are common to all
     // views; shader choice and material offsets are still applied to each copy.
     // Single-view draws retain their direct path without an extra cache copy.
@@ -2836,14 +2843,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           const float body_time=float(body_tick)*tick_seconds;
           const AnimationClip *body_clip=player.idle?&*player.idle:nullptr;
           std::optional<float> body_source_frame;
-          bool body_moving=false;
           if(gait[j]&&gait_units[j]==a.source_unit) {
             const auto presentation=gait[j]->sample(animation_blend);
             body_clip=presentation.clip;body_source_frame=presentation.frame;
-            body_moving=presentation.activity==0x0a000014u || presentation.activity==0x09000015u ||
-                presentation.activity==0x09000016u || presentation.activity==0x0a000017u;
           }
-          const AnimationClip *grenade_overlay=nullptr;
           if((a.source_action_word&(1u<<22))&&a.grenade_action.animation_active) {
             const auto *grenade=match.grenade_clip(a.grenade_action.graph,a.grenade_action.clip);
             if(!grenade)throw FormatError("Actual grenade action has no decoded body clip");
@@ -2851,7 +2854,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             // Preserve the native gait underneath its unauthored leg bones.
             if(grenade->animation_type==0) {
               body_clip=grenade;body_source_frame=a.grenade_action.frame;
-            }else grenade_overlay=grenade;
+            }
           }
           const auto collector=source_model_shader_collector(object_owner_spheres[j].center,
               object_owner_spheres[j].radius,*object_view.shader);
@@ -2863,6 +2866,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           if(options.local_players>1 && cached) {
             if(!direct_pose) {body_vertices=cached->body;gun_vertices=cached->weapon;}
             body_nodes=cached->nodes;
+            body_clip=cached->primary;body_source_frame=cached->frame;
           } else {
             ++timing.body_pose_builds;
             if(current.source_body_poses_authoritative)
@@ -2870,8 +2874,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             else if(body_clip && body.body_animation && !reference_player && !a.dead) {
               const float frame=body_source_frame.value_or(std::fmod(float(body_tick),float(body_clip->frame_count)));
               const float heading=gait[j]?gait[j]->facing(animation_blend):a.yaw;
+              NativeLocomotionFrame composed;
               auto locals=compose_native_body(a,{body_clip,frame,gait[j]?gait[j]->frame().activity:0x0400000cu},body_tick,
-                  std::remainder(a.yaw-heading,6.283185307179586f));
+                  std::remainder(a.yaw-heading,6.283185307179586f),&composed);
+              body_clip=composed.clip;body_source_frame=composed.frame;
               body_transitions[j].apply(locals,animation_blend);
               body_nodes=pose_model_locals_nodes_world(player.model,body_frame,locals);
             } else body_nodes=pose_model_nodes_world(player.model,body_frame,body_clip,body_time);
@@ -2893,8 +2899,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
                 body_gun.idle?&*body_gun.idle:nullptr,body_time);
             }
             if(options.local_players>1) {
-              if(direct_pose)cached=BodyFramePose{std::move(body_vertices),std::move(gun_vertices),body_nodes};
-              else cached=BodyFramePose{body_vertices,gun_vertices,body_nodes};
+              if(direct_pose)cached=BodyFramePose{std::move(body_vertices),std::move(gun_vertices),body_nodes,body_clip,body_source_frame};
+              else cached=BodyFramePose{body_vertices,gun_vertices,body_nodes,body_clip,body_source_frame};
             }
           }
           const auto &posed_body=direct_pose && cached?cached->body:body_vertices;
@@ -2903,7 +2909,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           if(options.animation_observer)options.animation_observer(i,j,
               {current.tick,a.source_unit,a.source_weapon,body_clip?body_clip->source_graph:player.model.animation,
                 body_clip?body_clip->source_index:null_datum,animation_blend,body_source_frame.value_or(float(body_tick)),false,
-                same_body && pose_tick!=double(current.tick),posed_body,null_datum,0,{},body_nodes});
+                same_body && pose_tick!=double(current.tick),posed_body,null_datum,0,{},body_nodes,
+                gait[j]?gait[j]->facing(animation_blend):a.yaw,gait[j]?gait[j]->frame().activity:null_datum});
           if(direct_pose) {
             player.shaders->append_selected(world,posed_body,collector,*object_view.shader,body.player_materials[j]);
             if(!a.dead)body_gun.shaders->append_selected(world,posed_gun,collector,*object_view.shader,body_gun_materials[j*2]);
