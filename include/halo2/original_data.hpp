@@ -69,8 +69,8 @@ struct OriginalData {
   std::optional<FullScoreboardColorBits> full_scoreboard_palette_fallback;
   std::shared_ptr<const FullScoreboardPaintConstants> full_scoreboard_paint_constants;
   std::optional<HudBitmapGeometryConstants> hud_bitmap_geometry_constants;
-  // Complete selector operand mappings are verified for 1.1 and 1.5. Base
-  // addresses remain unavailable until verified; no values are substituted.
+  // Original player animation operands are verified for disc, 1.1 and 1.5.
+  // Each image supplies its own immutable words; no values are substituted.
   std::optional<UnitAnimationConstants> unit_animation_constants;
   std::optional<NativeGrenadeConstants> grenade_constants;
   std::optional<NativeMeleeConstants> melee_constants;

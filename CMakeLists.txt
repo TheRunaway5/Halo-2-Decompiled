@@ -6225,6 +6225,12 @@ if(BUILD_TESTING)
     "${CMAKE_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03"
     "${CMAKE_SOURCE_DIR}/analysis/multiplayer/integration/live-authored-audio-20261010/footstep-original/fixtures.tsv")
   set_tests_properties(native_authored_footsteps PROPERTIES SKIP_RETURN_CODE 77 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+  add_test(NAME native_disc_player_animations COMMAND native_locomotion_tests
+    "${CMAKE_SOURCE_DIR}/assets/disc/maps/lockout.map"
+    "${CMAKE_SOURCE_DIR}/assets/disc/maps"
+    "${CMAKE_SOURCE_DIR}/assets/disc/default.xbe"
+    "${CMAKE_SOURCE_DIR}/analysis/multiplayer/integration/live-authored-audio-20261010/footstep-original/fixtures.tsv")
+  set_tests_properties(native_disc_player_animations PROPERTIES SKIP_RETURN_CODE 77 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
 endif()
 
 # Opt-in profiler for the actual interactive multiplayer/renderer path.

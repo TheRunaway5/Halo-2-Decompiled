@@ -52,7 +52,7 @@ unsigned verify_float_tracks(const Cache &cache,const AnimationClip &clip) {
  return comparisons;
 }
 int main(int argc,char**argv){try{
- check(argc==5,"Supply MAP SHARED UPDATE FOOTSTEP_FIXTURE");
+ check(argc==5,"Supply MAP SHARED GAMEPLAY_XBE FOOTSTEP_FIXTURE");
  if(!std::filesystem::exists(argv[1])||!std::filesystem::exists(argv[3]))return 77;
  SDL_SetMainReady();auto data=OriginalData::load_xbe(argv[3]);Cache cache(argv[1],argv[2],data);
  check(data->unit_locomotion_deadzone_bits==0x3c23d70bu,"Original source deadzone operand changed");
@@ -80,6 +80,7 @@ int main(int argc,char**argv){try{
  const auto model=cache.load_source_tag_metadata(b.u32(0x38));const Bytes m(model.bytes_at(model.source_address(),0x94));
  const auto graph=m.u32(0x14);const auto ids=cache.load_weapon_animation_identifiers(weapon);
  NativeLocomotion gait(cache,graph,weapon,{0x12345678,0x23456789});
+ gait.bind_facing(content.player_representations[representation].biped.datum,0);
  unsigned action_index=0;
  constexpr std::array<std::uint32_t,5> actions{0x0400000c,0x0a000017,0x09000016,0x0a000014,0x09000015};
  for(const auto &v:std::array<std::array<float,3>,5>{{{0,0,185},{1,0,189},{-1,0,188},{0,-1,190},{0,1,191}}}){

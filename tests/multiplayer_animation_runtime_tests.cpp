@@ -33,6 +33,9 @@ void key(Uint32 window,SDL_Scancode code,bool down) {
   e.key.state=down?SDL_PRESSED:SDL_RELEASED;push(e);
 }
 struct Sample {unsigned view{},player{};std::uint32_t tick{},animation{};float fraction{},frame{};bool first_person{},interpolated{};std::uint64_t positions{};bool sneaking{};float body_height{};std::uint64_t legs{};};
+std::shared_ptr<const OriginalData> selected_image(const MultiplayerOptions &options) {
+  return options.gameplay_xbe.empty()?nullptr:OriginalData::load_xbe(options.gameplay_xbe);
+}
 struct NativeLanHost {
   Cache cache;
   LevelContent content;
@@ -45,7 +48,7 @@ struct NativeLanHost {
     auto rules=slayer_rules({"Slayer",0,{{0x59,5}}});rules.weapon=cache.slayer_starting_weapon(5);return rules;
   }
   NativeLanHost(const MultiplayerOptions &options):
-      cache(options.map,options.shared_maps,OriginalData::load_xbe(options.gameplay_xbe)),
+      cache(options.map,options.shared_maps,selected_image(options)),
       content(cache.load_content(0,true)),match(content,0,cache.spawns(),rules(cache)),
       host(match,0,multiplayer_fingerprint(options.map,cache.shared_directory(),0,
           cache.slayer_starting_weapon(5),options.gameplay_xbe)) {
@@ -80,16 +83,23 @@ struct NativeLanHost {
 }
 int main(int argc,char **argv) {
   try {
-    if(argc<4 || argc>7)throw FormatError("Supply MAP SHARED_MAPS UPDATE_XBE [--split4] [--lan] [--elite]");
+    if(argc<4 || argc>8)throw FormatError("Supply MAP SHARED_MAPS GAMEPLAY_XBE [--split2|--split4] [--lan] [--elite] [--disc-default]");
     if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[3]))return 77;
     SDL_SetMainReady();MultiplayerOptions options;
     options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
-    options.width=640;options.height=480;options.local_players=1;options.starting_weapon=5;options.mute=true;
+    options.width=640;options.height=480;options.local_players=1;options.starting_weapon=5;
+    options.mute=!std::getenv("HALO2_ANIMATION_AUDIO");
     bool lan{},elite{};
     for(int at=4;at<argc;++at) {
-      if(std::string(argv[at])=="--split4")options.local_players=4;
+      if(std::string(argv[at])=="--split2")options.local_players=2;
+      else if(std::string(argv[at])=="--split4")options.local_players=4;
       else if(std::string(argv[at])=="--lan")lan=true;
       else if(std::string(argv[at])=="--elite")elite=true;
+      else if(std::string(argv[at])=="--disc-default") {
+        check(std::filesystem::equivalent(argv[3],options.shared_maps.parent_path()/"default.xbe"),
+            "Default-disc probe requires the actual adjacent disc executable");
+        options.gameplay_xbe.clear();
+      }
       else throw FormatError("Unknown animation probe mode");
     }
     const unsigned representation=elite?3:2;
@@ -97,11 +107,12 @@ int main(int argc,char **argv) {
       const std::array<std::uint8_t,9> appearance{10,0,0,10,std::uint8_t(i?i%2:elite),0,0,0,0};
       options.selected_profiles.push_back(native_selected_player_configuration("Animation "+std::to_string(i),appearance,-1));
     }
-    const Cache pose_cache(options.map,options.shared_maps,OriginalData::load_xbe(options.gameplay_xbe));
+    const Cache pose_cache(options.map,options.shared_maps,selected_image(options));
     const auto pose_content=pose_cache.load_content(0,true);
     const auto pose_model=pose_cache.load_model(pose_content.player_representations[representation].biped.datum,false);
     const auto ids=pose_cache.load_weapon_animation_identifiers(pose_cache.slayer_starting_weapon(5));
     const auto standing_idle=pose_cache.load_unit_weapon_action(pose_model.animation,0x06000086,ids[0],ids[1],0x0400000c);
+    const auto walking_clip=pose_cache.load_unit_weapon_action(pose_model.animation,0x06000086,ids[0],ids[1],0x0a000014);
     const auto sneaking_idle=pose_cache.load_unit_weapon_action(pose_model.animation,0x06000087,ids[0],ids[1],0x0400000c);
     const auto jump_clip=pose_cache.load_unit_weapon_action(pose_model.animation,0x06000086,ids[0],ids[1],0x0800001e);
     const auto landing_clip=pose_cache.load_unit_weapon_action(pose_model.animation,0x06000086,ids[0],ids[1],0x0900001f);
@@ -133,6 +144,8 @@ int main(int argc,char **argv) {
     std::set<std::uint64_t> melee_body_poses;
     std::set<std::uint64_t> airborne_leg_poses,landing_leg_poses;
     std::set<unsigned> airborne_frames,landing_frames;
+    std::set<std::uint64_t> walking_leg_poses;
+    std::set<unsigned> walking_frames;
     bool returned_from_landing{};
     std::array<std::set<std::uint64_t>,4> sneak_leg_poses;
     std::array<std::set<unsigned>,4> sneak_frames;
@@ -158,10 +171,13 @@ int main(int argc,char **argv) {
       if(held_start && step==*held_start+11)key(window_id,SDL_SCANCODE_SPACE,false);
       if(held_start && step==*held_start+60)key(window_id,SDL_SCANCODE_LSHIFT,true);
       if(held_start && step==*held_start+68)key(window_id,SDL_SCANCODE_LSHIFT,false);
-      if(held_start && step==*held_start+94)key(window_id,SDL_SCANCODE_W,true);
-      if(held_start && step==*held_start+95)key(window_id,SDL_SCANCODE_Q,true);
-      if(held_start && step==*held_start+96)key(window_id,SDL_SCANCODE_Q,false);
-      if(held_start && step==*held_start+102)key(window_id,SDL_SCANCODE_W,false);
+      // Exercise moving throw after the stance/melee checks. This is a real
+      // damaging grenade; an earlier throw can kill the LAN test participant
+      // before those later inputs, which cannot establish animation playback.
+      if(held_start && step==*held_start+345)key(window_id,SDL_SCANCODE_W,true);
+      if(held_start && step==*held_start+346)key(window_id,SDL_SCANCODE_Q,true);
+      if(held_start && step==*held_start+347)key(window_id,SDL_SCANCODE_Q,false);
+      if(held_start && step==*held_start+355)key(window_id,SDL_SCANCODE_W,false);
       if(held_start && step==*held_start+200)key(window_id,SDL_SCANCODE_LSHIFT,true);
       if(held_start && step==*held_start+225)key(window_id,SDL_SCANCODE_W,true);
       if(held_start && step==*held_start+250){key(window_id,SDL_SCANCODE_W,false);key(window_id,SDL_SCANCODE_S,true);}
@@ -222,6 +238,9 @@ int main(int argc,char **argv) {
         }
         const auto &p=current.players[0];
         const auto matches=[&](const AnimationClip &clip){return sample.graph==clip.source_graph && sample.animation==clip.source_index;};
+        if(p.native_grounded && !p.native_crouching && p.native_forward>0 && matches(walking_clip)) {
+          walking_leg_poses.insert(legs);walking_frames.insert(unsigned(sample.frame));
+        }
         if(!p.native_grounded && matches(jump_clip)) {
           airborne_leg_poses.insert(legs);airborne_frames.insert(unsigned(sample.frame));
         }
@@ -263,7 +282,7 @@ int main(int argc,char **argv) {
     check(threw_grenade,"Actual SDL grenade request did not reach the admitted unit animation");
     if(options.local_players>1)check(drew_throw_overlay,"Grenade body overlay replaced the locomotion base channel");
     if(options.local_players>1)check(moving_throw_frames.size()>2,"Run cycle stopped while the grenade overlay was active");
-    const Cache melee_cache(options.map,options.shared_maps,OriginalData::load_xbe(options.gameplay_xbe));
+    const Cache melee_cache(options.map,options.shared_maps,selected_image(options));
     const auto melee_binding=melee_cache.load_first_person_binding(melee_cache.slayer_starting_weapon(5),representation);
     bool drew_melee=false;
     for(const auto &clip:melee_binding.clock_clips)if(clip.activity==0x0e000607)
@@ -277,7 +296,7 @@ int main(int argc,char **argv) {
     check(intermediate>10 && views.size()==options.local_players,"Actual first-person draw still samples whole tick frames");
     if(options.local_players>1)check(body>10,"Actual remote body/hand-marker draw stayed on whole ticks");
     if(options.local_players>1) {
-      const auto cache=Cache(options.map,options.shared_maps,OriginalData::load_xbe(options.gameplay_xbe));
+      const auto cache=Cache(options.map,options.shared_maps,selected_image(options));
       const auto content=cache.load_content(0,true);
       const auto model=cache.load_model(content.player_representations[representation].biped.datum,false);
       const auto ids=cache.load_weapon_animation_identifiers(cache.slayer_starting_weapon(5));
@@ -287,6 +306,10 @@ int main(int argc,char **argv) {
       bool drew_run=false,drew_jump=false,drew_land=false;
       for(const auto &s:samples)if(s.player==0&&!s.first_person){drew_run|=s.animation==run.source_index;drew_jump|=s.animation==jump.source_index;drew_land|=s.animation==land.source_index;}
       check(drew_run&&drew_jump,"Run/jump input reached simulation but body renderer submitted idle");
+      check(walking_frames.size()>3 && walking_leg_poses.size()>3,
+          "Third-person walk cycle submitted frozen leg poses");
+      std::cout<<"PASS representation="<<representation<<" walk frames="<<walking_frames.size()
+          <<" animated leg poses="<<walking_leg_poses.size()<<'\n';
       check(drew_land,"Actual jump contact never selected the authored landing channel");
       if(airborne_frames.size()<=8 || airborne_leg_poses.size()<=8 || landing_frames.size()<=1 || landing_leg_poses.size()<=1)
         std::cerr<<"Jump frames="<<airborne_frames.size()<<" leg_poses="<<airborne_leg_poses.size()

@@ -504,7 +504,6 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     std::optional<WeaponAttachmentMarkers> secondary_attachment;
     std::shared_ptr<NativePlayerAnimation> body_animation;
     std::array<unsigned,multiplayer_capacity> player_materials;
-    std::optional<AnimationClip> unit_fire,unit_reload;
     AnimationClip fp_idle;
     FirstPersonIkDefinition fp_ik;
     std::optional<FirstPersonBindingDefinition> fp_definition;
@@ -553,18 +552,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     if(weapon.dual_wieldable) {
       v.secondary_attachment=select_weapon_attachment(cache.load_weapon_attachment(authored.biped.datum,weapon.datum,1),parent_selection.permutations,child_selection.permutations);
     }
-    const auto unit_action=[&](std::uint32_t action,bool overlay=false)->std::optional<AnimationClip> {
-      try {
-        return cache.load_unit_weapon_action(v.player.model.animation,0x06000086u,
-            weapon_animation[0],weapon_animation[1],action,overlay);
-      } catch(const FormatError &e) {
-        std::cerr<<"Player animation (representation "<<representation<<"): "<<e.what()<<'\n';
-        return std::nullopt;
-      }
-    };
-    v.player.idle=unit_action(0x0400000cu);
-    v.unit_fire=unit_action(0x06000006u,true);
-    v.unit_reload=unit_action(0x08000002u,true);
+    v.player.idle=cache.load_unit_weapon_action(v.player.model.animation,0x06000086u,
+        weapon_animation[0],weapon_animation[1],0x0400000cu);
     v.body_animation=std::make_shared<NativePlayerAnimation>(cache,v.player.model.animation,weapon.datum);
     // Original169D8A selects weapon record1 for Elite, falling back to0
     // only when the weapon has no second authored record.
@@ -1328,8 +1317,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       if(!p.connected || p.dead){aim_alive[id]=false;continue;}
       const auto &v=species_for(p);
       const auto &player=v.player;
-      const auto &unit_fire=v.unit_fire;
-      const auto &unit_reload=v.unit_reload;
+      // Use the same optional authored actions as the body composer. Missing
+      // fire/reload rows are legitimate for some weapon/species bindings;
+      // resource/decoder failures still propagate from this shared lookup.
+      const bool dual=p.secondary_weapon.datum!=null_datum;
+      const auto *unit_fire=v.body_animation->action(0x06000006u,p.native_crouching,dual);
+      const auto *unit_reload=v.body_animation->action(0x08000002u,p.native_crouching,dual);
       if(!aim_alive[id]){aim_blends[id]={};aim_alive[id]=true;}
       auto &blend=aim_blends[id];
       FirstPersonAimEligibility input;

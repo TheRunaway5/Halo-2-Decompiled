@@ -56,6 +56,10 @@ constexpr std::array<std::uint32_t,24> scope_addresses_15{
     0x46a0d0,0x47da8c,0x46a458,0x475288,0x46a0cc,0x46a0e4,0x46a100,
     0x46a108,0x46a10c,0x46a110,0x46a118,0x46a11c,0x46a120,0x46a124,
     0x46a2b8,0x44eac8,0x46a1d0};
+// Base consumers/relocations are verified by
+// tools/research_base_player_animation_operands.py, not a fixed image offset.
+constexpr std::array<std::uint32_t,5> animation_addresses_base{
+    0x45dbc0, 0x45dbd8, 0x45dbdc, 0x45dc50, 0x45dbb8};
 constexpr std::array<std::uint32_t,5> animation_addresses_11{
     0x465030, 0x465048, 0x46504c, 0x4650c0, 0x465028};
 constexpr std::array<std::uint32_t,5> animation_addresses_15{
@@ -138,6 +142,7 @@ std::shared_ptr<const OriginalData> OriginalData::load_xbe(const std::filesystem
   std::span<const std::uint32_t> animation_addresses;
   if (hash == 0x9c29175742280993ull) {
     directions = 0x4417f0; fade = 0x46d148; projection=0x440b94;
+    animation_addresses = animation_addresses_base;
   } else if (hash == 0x598bf549dd8fb828ull) {
     result->image = Image::MapPack11;
     directions = 0x447e40; fade = 0x4745e8; projection=0x4471e4;
@@ -402,25 +407,50 @@ std::shared_ptr<const OriginalData> OriginalData::load_xbe(const std::filesystem
     constants.rng_scale_bits = u32(section_data(data, animation_addresses[3], 4), 0);
     constants.unsigned_conversion_correction_bits =
         u32(section_data(data, animation_addresses[4], 4), 0);
-    // Complete DE960/DF880 pairing: source COMISS after the three-axis sum.
-    result->unit_locomotion_deadzone_bits = u32(section_data(data,
-        result->image == Image::TitleUpdate15 ? 0x46a560 : 0x4654c0, 4), 0);
+    const bool base=result->image==Image::Base;
     const bool later=result->image==Image::TitleUpdate15;
+    const auto address=[&](std::uint32_t disc,std::uint32_t update11,std::uint32_t update15) {
+      return base?disc:later?update15:update11;
+    };
+    const auto operand=[&](std::uint32_t disc,std::uint32_t update11,std::uint32_t update15) {
+      return u32(section_data(data,address(disc,update11,update15),4),0);
+    };
+    // DD360/DE960/DF880: original COMISS after the three-axis squared sum.
+    result->unit_locomotion_deadzone_bits=operand(0x45e02c,0x4654c0,0x46a560);
     result->unit_facing_constants=std::array{
-      u32(section_data(data,later?0x46a0ec:0x46504c,4),0),
-      u32(section_data(data,later?0x46a8fc:0x465844,4),0),
-      u32(section_data(data,later?0x46a63c:0x465584,4),0)};
+      operand(0x45dbdc,0x46504c,0x46a0ec),
+      operand(0x45e3a4,0x465844,0x46a8fc),
+      operand(0x45e0dc,0x465584,0x46a63c)};
     auto &melee=result->melee_constants.emplace();
-    const auto melee_table=section_data(data,later?0x44a8dc:0x446e34,48);
+    const auto melee_table=section_data(data,address(0x4407f4,0x446e34,0x44a8dc),48);
     for(unsigned i=0;i<4;++i)for(unsigned j=0;j<3;++j)
       melee.candidates[i][j]=u32(melee_table,i*12+j*4);
-    melee.frame_seconds_bits=u32(section_data(data,later?0x46a17c:0x4650dc,4),0);
-    melee.impact_scale_bits=u32(section_data(data,later?0x46a0c4:0x465024,4),0);
-    melee.moving_threshold_bits=u32(section_data(data,later?0x46a194:0x4650f4,4),0);
-    melee.special_seconds_bits=u32(section_data(data,later?0x46a11c:0x46507c,4),0);
+    melee.frame_seconds_bits=operand(0x45dc6c,0x4650dc,0x46a17c);
+    melee.impact_scale_bits=operand(0x45dbb4,0x465024,0x46a0c4);
+    melee.moving_threshold_bits=operand(0x45dc84,0x4650f4,0x46a194);
+    melee.special_seconds_bits=operand(0x45dc0c,0x46507c,0x46a11c);
     result->grenade_constants=NativeGrenadeConstants{
-        u32(section_data(data,later?0x456918:0x452000,4),0),
-        u32(section_data(data,later?0x46a4c0:0x465420,4),0)};
+        operand(0x44ae90,0x452000,0x456918),
+        operand(0x45df88,0x465420,0x46a4c0)};
+    auto &tail=result->unit_constructor_tail_constants.emplace();
+    tail.one_bits=constants.one_bits;tail.zero_bits=constants.zero_bits;
+    tail.normal_blend_bits=operand(0x4454e4,0x44c6b4,0x450170);
+    tail.special_blend_bits=operand(0x45dcd0,0x465140,0x46a1e0);
+    const auto pairs=section_data(data,address(0x468684,0x46fb24,0x474be4),32);
+    for(std::size_t row=0;row<tail.activity_pairs.size();++row)
+      for(std::size_t column=0;column<2;++column)
+        tail.activity_pairs[row][column]=u32(pairs,row*8+column*4);
+    // Only immutable basis data; no driver/platform startup is admitted here.
+    auto &driver_startup=result->sound_driver_startup_operands.emplace();
+    driver_startup.one_bits=constants.one_bits;
+    const auto forward_address=operand(0x4687a8,0x46fc48,0x474d08);
+    const auto up_address=operand(0x4687b0,0x46fc50,0x474d10);
+    if(forward_address!=address(0x440b30,0x447180,0x44ac28) ||
+       up_address!=address(0x440b48,0x447198,0x44ac40))
+      throw FormatError("Original driver immutable basis forwarding pointers unavailable");
+    const auto forward=section_data(data,forward_address,12),up=section_data(data,up_address,12);
+    std::copy(forward.begin(),forward.end(),driver_startup.basis_forward.begin());
+    std::copy(up.begin(),up.end(),driver_startup.basis_up.begin());
   }
   // Complete original base/TU1.5 audio consumers and their immutable operand
   // locations are verified by tools/research_base_sound_parameters.py.
@@ -562,15 +592,6 @@ std::shared_ptr<const OriginalData> OriginalData::load_xbe(const std::filesystem
     scenario_request.zero_bits = u32(section_data(data,later ? 0x46a0e8 : 0x465048,4),0);
     scenario_request.one_bits = request.one_bits;
     scenario_request.color_scale_bits = u32(section_data(data,later ? 0x46a0c4 : 0x465024,4),0);
-    auto &tail = result->unit_constructor_tail_constants.emplace();
-    tail.one_bits = result->unit_animation_constants->one_bits;
-    tail.zero_bits = result->unit_animation_constants->zero_bits;
-    tail.normal_blend_bits = u32(section_data(data, later ? 0x450170 : 0x44c6b4, 4), 0);
-    tail.special_blend_bits = u32(section_data(data, later ? 0x46a1e0 : 0x465140, 4), 0);
-    const auto pairs = section_data(data, later ? 0x474be4 : 0x46fb24, 32);
-    for (std::size_t row = 0; row < tail.activity_pairs.size(); ++row)
-      for (std::size_t column = 0; column < 2; ++column)
-        tail.activity_pairs[row][column] = u32(pairs, row * 8 + column * 4);
     auto &startup = result->sound_startup_constants.emplace();
     startup.ambient_transition_bits = u32(section_data(data, later ? 0x44923c : 0x4457bc, 4), 0);
     const auto policy = section_data(data, later ? 0x455b20 : 0x451220, 16);
@@ -589,17 +610,6 @@ std::shared_ptr<const OriginalData> OriginalData::load_xbe(const std::filesystem
     auto &map_activation = result->sound_map_activation_constants.emplace();
     map_activation.one_bits = u32(section_data(data, later ? 0x46a0d0 : 0x465030, 4), 0);
     map_activation.ambient_transition_bits = startup.ambient_transition_bits;
-    auto &driver_startup = result->sound_driver_startup_operands.emplace();
-    driver_startup.one_bits = map_activation.one_bits;
-    const auto forward_address = u32(section_data(data, later ? 0x474d08 : 0x46fc48, 4), 0);
-    const auto up_address = u32(section_data(data, later ? 0x474d10 : 0x46fc50, 4), 0);
-    if (forward_address != (later ? 0x44ac28u : 0x447180u) ||
-        up_address != (later ? 0x44ac40u : 0x447198u))
-      throw FormatError("Original driver immutable basis forwarding pointers unavailable");
-    const auto driver_forward_bytes = section_data(data, forward_address, 12);
-    const auto driver_up_bytes = section_data(data, up_address, 12);
-    std::copy(driver_forward_bytes.begin(), driver_forward_bytes.end(), driver_startup.basis_forward.begin());
-    std::copy(driver_up_bytes.begin(), driver_up_bytes.end(), driver_startup.basis_up.begin());
     auto &listener = result->sound_driver_listener_constants.emplace();
     listener.orientation_epsilon_bits = u32(section_data(data, later ? 0x46a12c : 0x46508c, 4), 0);
     listener.environment_epsilon_bits = u32(section_data(data, later ? 0x46a0ec : 0x46504c, 4), 0);

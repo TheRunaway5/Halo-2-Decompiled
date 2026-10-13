@@ -19,8 +19,8 @@ int main(int argc,char **argv){
   try{
     check(argc==5,"Supply original operands and base/1.1/u5 images");
     for(int i=1;i<argc;++i)if(!std::filesystem::exists(argv[i]))return 77;
-    check(!halo2::OriginalData::load_xbe(argv[2])->unit_constructor_tail_constants,
-          "Unverified base constructor operands invented");
+    const auto base=halo2::OriginalData::load_xbe(argv[2]);
+    check(bool(base->unit_constructor_tail_constants),"Verified disc blend operands unavailable");
     std::ifstream input(argv[1]);std::size_t images=0;
     for(std::string line;std::getline(input,line);){
       std::istringstream row(line);char kind;unsigned image;std::string one,zero,normal,special,pairs;
@@ -35,9 +35,18 @@ int main(int argc,char **argv){
       const auto bytes=raw(pairs);check(bytes.size()==32,"Incomplete original activity pairs");
       for(std::size_t r=0;r<4;++r)for(std::size_t c=0;c<2;++c)
         check(actual.activity_pairs[r][c]==halo2::Bytes(bytes).u32(r*8+c*4),"Full original activity bank differs");
+      if(image==1) {
+        // The separately paired original disc consumers use the same bytes,
+        // at different verified addresses. Compare the whole imported packet.
+        const auto &disc=*base->unit_constructor_tail_constants;
+        check(disc.one_bits==actual.one_bits && disc.zero_bits==actual.zero_bits &&
+              disc.normal_blend_bits==actual.normal_blend_bits &&
+              disc.special_blend_bits==actual.special_blend_bits &&
+              disc.activity_pairs==actual.activity_pairs,"Original disc blend operands differ");
+      }
       ++images;
     }
     check(images==2,"Missing verified update operands");
-    std::cout<<"supportedImages=2 scalarWords=8 activityPairs=8 exactBytes=96 unavailableBase=passed liveConstructorState=absent\n";
+    std::cout<<"supportedImages=3 scalarWords=12 activityPairs=12 exactBytes=144 liveConstructorState=absent\n";
   }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}
 }

@@ -26,8 +26,8 @@ int main(int argc,char **argv) {
   try {
     check(argc==5,"Supply original driver operands and base/1.1/u5 images");
     for (int i=1;i<argc;++i) if (!std::filesystem::exists(argv[i])) return 77;
-    check(!halo2::OriginalData::load_xbe(argv[2])->sound_driver_startup_operands,
-          "Unverified base driver operands were supplied");
+    const auto base=halo2::OriginalData::load_xbe(argv[2]);
+    check(bool(base->sound_driver_startup_operands),"Verified original disc basis operands unavailable");
     const std::array<std::shared_ptr<const halo2::OriginalData>,2> images{
         halo2::OriginalData::load_xbe(argv[3]),halo2::OriginalData::load_xbe(argv[4])};
     std::ifstream input(argv[1]);unsigned count=0;
@@ -42,10 +42,15 @@ int main(int argc,char **argv) {
             std::equal(raw_forward.begin(),raw_forward.end(),actual->basis_forward.begin()) &&
             std::equal(raw_up.begin(),raw_up.end(),actual->basis_up.begin()),
             "Imported driver immutable operand bytes differ");
+      if(image==1) {
+        const auto &disc=*base->sound_driver_startup_operands;
+        check(disc.one_bits==actual->one_bits && disc.basis_forward==actual->basis_forward &&
+              disc.basis_up==actual->basis_up,"Imported original disc immutable basis bytes differ");
+      }
       ++count;
     }
     check(count==2,"Incomplete original driver image coverage");
-    std::cout<<"supportedImages=2 exactImmutableDriverOperandBytes=56 baseUnknown=absent "
+    std::cout<<"supportedImages=3 exactImmutableDriverOperandBytes=84 "
                  "mutablePluginEnvironmentSavedSettingsCapsAndStartup=separate\n";
   } catch (const std::exception &error) { std::cerr<<error.what()<<'\n';return 1; }
 }

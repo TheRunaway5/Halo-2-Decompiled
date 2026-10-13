@@ -108,10 +108,7 @@ int main(int argc, char **argv) {
     rejects([&] { (void)memory.graph_address(0xffffffffu); });
     rejects([&] { (void)memory.read(0xffffffffu, 1); });
     rejects([&] { (void)definition(0xffffffffu, 0x0000ffffu); });
-    auto base = halo2::OriginalData::load_xbe(argv[4]);
-    check(!base->unit_animation_constants,
-          "Unverified base-image animation words were invented");
-    for (int image = 5; image <= 6; ++image) {
+    for (int image = 4; image <= 6; ++image) {
       const auto data = halo2::OriginalData::load_xbe(argv[image]);
       check(bool(data->unit_animation_constants), "Verified executable operands unavailable");
       const auto &c = *data->unit_animation_constants;
@@ -128,7 +125,7 @@ int main(int argc, char **argv) {
     std::cout << "originalGraphs=" << graph_rows << " originalDefinitions="
               << definition_rows << " stableReferences=" << retained.size()
               << " graphBounds=" << boundaries
-              << " providerLifetime=passed supportedImages=2 unavailableBase=passed\n";
+              << " providerLifetime=passed supportedImages=3\n";
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';
     return 1;

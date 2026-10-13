@@ -48,6 +48,30 @@ void balance_words(const halo2::OriginalData &data) {
       hash = (hash ^ ((word >> shift) & 255)) * 0x100000001b3ull;
   check(hash == 0x488cd915e8c2e81full, "original balance words/order differ");
 }
+void player_animation_words(const halo2::OriginalData &data) {
+  // Base consumers and all relocated bytes are independently verified by
+  // research_base_player_animation_operands.py, including the deadzone block.
+  check(data.unit_animation_constants && data.unit_locomotion_deadzone_bits &&
+        data.unit_facing_constants && data.unit_constructor_tail_constants,
+        "Supported gameplay image disables player walk/crouch/turn/blend animation");
+  const auto &a=*data.unit_animation_constants;
+  check(a.one_bits==0x3f800000 && a.zero_bits==0 && a.frame_subtractor_bits==0x38d1b717 &&
+        a.rng_scale_bits==0x37800080 && a.unsigned_conversion_correction_bits==0x4f800000 &&
+        *data.unit_locomotion_deadzone_bits==0x3c23d70b &&
+        *data.unit_facing_constants==std::array<std::uint32_t,3>{0x38d1b717,0xbf666666,0x3f7d70a4},
+        "Original player animation arithmetic operands differ");
+  check(data.melee_constants && data.grenade_constants && data.sound_driver_startup_operands,
+        "Supported gameplay image disables admitted melee/grenade animations");
+  const auto &m=*data.melee_constants;
+  check(m.candidates==std::array<std::array<std::uint32_t,3>,4>{{
+          {0x0e000607,0x21,0x0e000607},{0x0e000608,0x22,0x0e000608},
+          {0x0e000609,0x23,0x0e000609},{0x0e00060a,0x24,0x0e00060a}}} &&
+        m.frame_seconds_bits==0x3d088889 && m.impact_scale_bits==0x3b808081 &&
+        m.moving_threshold_bits==0x3f666666 && m.special_seconds_bits==0x40000000 &&
+        data.grenade_constants->contact_up_threshold_bits==0x3e99999a &&
+        data.grenade_constants->rest_speed_squared_bits==0x3db851ec,
+        "Original player action operands differ");
+}
 std::uint64_t word_hash(std::span<const std::uint32_t> words) {
   std::uint64_t hash = 0xcbf29ce484222325ull;
   for (const auto word : words)
@@ -107,6 +131,8 @@ int main(int argc, char **argv) {
     check(base->image == halo2::OriginalData::Image::Base &&
           update->image == halo2::OriginalData::Image::MapPack11, "image provenance mismatch");
     same_tables(*base, *update);
+    player_animation_words(*base);
+    player_animation_words(*update);
     check(!base->multiplayer_balance_constants, "base executable received a patch");
     check(!base->multiplayer_netgame_postprocess_constants, "base executable received a netgame patch");
     check(!base->full_scoreboard_constants, "base executable received unverified scoreboard addresses");
@@ -119,6 +145,7 @@ int main(int argc, char **argv) {
       check(latest->image == halo2::OriginalData::Image::TitleUpdate15 &&
             latest->source == std::filesystem::path(argv[3]), "1.5 image provenance mismatch");
       same_tables(*update, *latest);
+      player_animation_words(*latest);
       balance_words(*latest);
       netgame_words(*latest);
       check(latest->multiplayer_balance_constants == update->multiplayer_balance_constants,

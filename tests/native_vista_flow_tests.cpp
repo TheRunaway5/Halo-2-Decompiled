@@ -4,6 +4,7 @@
 #include "halo2/desktop_session.hpp"
 #include "halo2/native_vista_loading_audio.hpp"
 #include "halo2/frontend_canvas.hpp"
+#include "halo2/original_data.hpp"
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
@@ -214,7 +215,7 @@ int main(int argc,char** argv)try {
       unsigned black_draws{};
       unsigned partial_draws{};
       bool accelerated{};
-      bool captured_scoreboard{};
+      bool checked_scoreboard{};
       std::optional<std::uint32_t> captured_black;
       rendered.session_view_black=[&](unsigned view) {
         const auto packed=flow.world_view_black(view);
@@ -239,15 +240,26 @@ int main(int argc,char** argv)try {
         };
       }
       if(round) {
+        const auto original=prepared.cache->original_data();
+        const bool source_scoreboard=original && original->full_scoreboard_constants &&
+            original->full_scoreboard_name_mappings && original->full_scoreboard_palette_fallback &&
+            original->full_scoreboard_paint_constants;
         rendered.capture_tick=options.prepared_world->rules.time_ticks+135;
         rendered.input_observer=[](auto,auto,const auto&){};
-        rendered.scoreboard_observer=[&](unsigned view,bool normal_hud,const auto& layout,const auto& paint) {
+        rendered.scoreboard_observer=[&,source_scoreboard](unsigned view,bool normal_hud,const auto& layout,const auto& paint) {
           if(options.prepared_world->match.state().tick==rendered.capture_tick) {
-            check(view<player_count && !normal_hud && layout.status==FullScoreboardStatus::Ready &&
-                !paint.draw.vertices.empty(),"Actual game-over scoreboard did not remain above the world fade");
-            captured_scoreboard=true;
+            check(view<player_count,"Scoreboard callback has no selected local view");
+            if(source_scoreboard)
+              check(!normal_hud && layout.status==FullScoreboardStatus::Ready && !paint.draw.vertices.empty(),
+                  "Actual game-over scoreboard did not remain above the world fade");
+            else
+              check(normal_hud && paint.draw.vertices.empty(),
+                  "Game-over scoreboard invented missing original executable operands");
+            checked_scoreboard=true;
           }
         };
+        if(!source_scoreboard)
+          std::cout<<"LIMIT selected executable has no verified full-scoreboard operands; checking its absent-owner path\n";
         rendered.session_world_update=[&](const auto& actual) {
           ++updates;
           const auto close=flow.world_update(actual);observe_initial_view(actual);
@@ -275,15 +287,16 @@ int main(int argc,char** argv)try {
       }
       check(run_multiplayer(rendered,outcome)==0 && black_draws && loaded==1 &&
           outcome.reason==((round || two_players)?MultiplayerExitReason::captured_tick:MultiplayerExitReason::frame_limit) &&
-          (!round || (captured_scoreboard && partial_draws && captured_black && (*captured_black>>24)>0 &&
+          (!round || (checked_scoreboard && partial_draws && captured_black && (*captured_black>>24)>0 &&
               (*captured_black>>24)<255)),"Actual viewport did not render its source fade");
       for(unsigned view=0;view<player_count;++view)check(presented_views[view],"GPU runtime omitted a selected local view");
       check(!two_players || round || independent_input,"GPU round missed independent two-controller input");
-      // The GPU runtime's borrowed muzzle-effect consumer has ended. CPU
-      // continuation uses its ordinary absent-consumer path, never a callback
-      // into destroyed rendering/audio resources.
+      // The GPU runtime's borrowed effect/audio consumers have ended. CPU
+      // continuation has no muzzle consumer and an explicit silent animation
+      // event consumer, so it cannot call destroyed rendering/audio resources.
       options.prepared_world->match.configure_weapon_effect_owner({});
-      options.prepared_world->match.configure_first_person_event_owner({});
+      options.prepared_world->match.configure_first_person_event_owner(
+          [](auto,auto,const auto&,const auto&){});
       options.session_world_loaded={};
       options.ticks=options.prepared_world->rules.time_ticks+600-outcome.state->tick;
     }
