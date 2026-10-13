@@ -65,14 +65,18 @@ int main(int argc,char** argv)try {
   choose(state,0,14);
   check(state.lobby_view()->input.player_count==int(player_count),"Actual lobby lost its local roster");
   const auto name=state.signed_in_profile();
-  MultiplayerOptions defaults;defaults.gameplay_xbe=argv[3];defaults.mute=true;
+  MultiplayerOptions defaults;defaults.gameplay_xbe=argv[3];
+  defaults.mute=std::getenv("H2_TEST_DAMAGE_AUDIO")==nullptr;
   if(argc==5) {
     defaults.desktop=std::make_shared<DesktopSession>();
-    defaults.desktop->configure_loading("assets/menu-ui/vista/loading");
+    const std::filesystem::path loading=std::getenv("H2_TEST_LOADING_ASSETS")?
+        std::getenv("H2_TEST_LOADING_ASSETS"):"assets/menu-ui/vista/loading";
+    defaults.desktop->configure_loading(loading);
     // Exercise the application's actual loading-audio adapter lifetime. This
-    // capture remains muted; separate dummy-device tests verify PCM streams.
+    // loading-tone capture stays muted; H2_TEST_DAMAGE_AUDIO enables world
+    // audio so the absent-unit HUD interval is exercised after the fade.
     auto loading_audio=std::make_shared<NativeVistaLoadingAudio>(
-        std::filesystem::path("assets/menu-ui/vista/loading/loading-tone.xbox-adpcm"));
+        loading/"loading-tone.xbox-adpcm");
     defaults.desktop->set_loading_audio_services({
         [loading_audio]{loading_audio->begin(true);},
         [loading_audio](std::uint32_t gain){loading_audio->gain(gain);},
@@ -277,9 +281,9 @@ int main(int argc,char** argv)try {
       check(!two_players || round || independent_input,"GPU round missed independent two-controller input");
       // The GPU runtime's borrowed muzzle-effect consumer has ended. CPU
       // continuation uses its ordinary absent-consumer path, never a callback
-      // into the destroyed rendering resources. This capture is muted, so no
-      // first-person audio consumer was installed.
+      // into destroyed rendering/audio resources.
       options.prepared_world->match.configure_weapon_effect_owner({});
+      options.prepared_world->match.configure_first_person_event_owner({});
       options.session_world_loaded={};
       options.ticks=options.prepared_world->rules.time_ticks+600-outcome.state->tick;
     }

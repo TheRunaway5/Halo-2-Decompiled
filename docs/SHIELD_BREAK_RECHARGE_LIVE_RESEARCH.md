@@ -1,5 +1,7 @@
 # Shield depletion and recharge: live integration boundary
 
+Later implementation and validation: [2026-10-12 shield presentation/audio integration](SHIELD_PRESENTATION_AUDIO_20261012.md). The native-gap descriptions below document the frozen research snapshot.
+
 Research date: 2026-10-12. This research reads the intentionally relocated owned assets at `/home/eric/.local/share/halo2-native/cache-reset-backups/20261012T201413Z/assets`; it does not restore root assets or modify production/tests. **A typed, ordered effect request from the actual damage/recharge owner is the smallest reusable integration. Complete visible delivery additionally requires attached marker/node frames, the authored particle families, and their original admission/render owners. The present world-root effect API cannot render these complete graphs faithfully.**
 
 ## Original request and timing

@@ -100,6 +100,29 @@ void player_damage_audio(const Cache &cache,const LevelContent &content) {
   }
   std::cout<<"PASS both species: authored pain selection, actual PCM and death-priority preemption\n";
 }
+void shield_hud_player_handoff(const Cache &cache) {
+  std::uint32_t random=0x5821b36d;
+  MultiplayerAudio audio(cache,random,{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}}, {}, &random);
+  NativeUnitDamageAudio damage(cache,audio,random);
+  damage.advance(0);
+  // The frontend's prepared split-screen world can publish an absent current
+  // unit before actual player birth. These are the real HUD call operands.
+  for(unsigned view=0;view<2;++view)damage.hud(view,null_datum,true,0,0,0,false,false);
+  check(audio.voices()==0,"Absent split-screen players requested shield audio");
+  damage.advance(1);
+  for(unsigned view=0;view<2;++view)damage.hud(view,0xe2820013u+view,false,1,1,70,false,false);
+  check(audio.voices()==0,"Player birth invented shield damage audio");
+  damage.advance(2);
+  for(unsigned view=0;view<2;++view)damage.hud(view,0xe2820013u+view,false,1,0,70,false,false);
+  check(audio.voices()>0,"Live shield break after handoff did not request audio");
+  damage.advance(3);
+  for(unsigned view=0;view<2;++view)damage.hud(view,null_datum,true,0,0,0,false,false);
+  check(audio.voices()==0,"Removed split-screen units retained shield-warning loops");
+  damage.advance(4);
+  for(unsigned view=0;view<2;++view)damage.hud(view,0xe2840013u+view,false,1,1,70,false,view==1);
+  check(audio.voices()==0,"Respawn inherited a previous lifetime's shield audio");
+  std::cout<<"PASS actual split-screen HUD handoff: absent unit, birth, break, removal and respawn\n";
+}
 void completion_ownership(const Cache &cache,std::uint32_t sound){
   static_assert(std::is_same_v<MultiplayerAudio::Voice,std::uint64_t>);
   std::vector<MultiplayerAudioSubmission> submitted;
@@ -212,6 +235,7 @@ int main(int argc,char **argv){
     shared_variation_ownership(cache,*reload_tags.begin());
     completion_ownership(cache,*reload_tags.begin());
     shield_recharge_fade(cache);
+    shield_hud_player_handoff(cache);
     player_damage_audio(cache,content);
     unsigned reloads=0,callbacks=0,ambient_submissions=0;double reload_peak=0,ambient_peak=0;
     for(const auto count:{1u,4u}){

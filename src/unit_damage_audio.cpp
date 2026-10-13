@@ -149,8 +149,11 @@ void NativeUnitDamageAudio::advance(std::uint64_t tick) {
 }
 void NativeUnitDamageAudio::hud(unsigned view,std::uint32_t unit,bool dead,float health,
     float shield,float maximum,bool charging,bool elite) {
-  auto &i=*impl_;auto &h=i.hud[view];
-  if(h.unit!=unit || h.elite!=elite) {
+  auto &i=*impl_;auto [at,inserted]=i.hud.try_emplace(view);auto &h=at->second;
+  // A prepared frontend world can publish NONE before player birth. The
+  // default handle also equals NONE, so handle equality cannot prove that
+  // this view's authored sound slots have been initialized.
+  if(inserted || h.unit!=unit || h.elite!=elite) {
     for(auto &row:h.voices)for(const auto id:row)i.audio.stop_voice(id);
     h={};h.unit=unit;h.elite=elite;h.voices.resize(i.hud_entries.size());h.playing.resize(i.hud_entries.size());
   }
