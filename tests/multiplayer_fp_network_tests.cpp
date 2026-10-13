@@ -170,6 +170,28 @@ int main(int argc,char **argv) {
       }
     }
     check(maximum_fragments>=3 && sampled>10000 && fractional>1000 && cuts>0,"Full roster fragmentation and high-refresh LAN coverage missing");
+    // Explicit tiny area requests exercise the real report/journal producer
+    // without killing the roster. Only the amount/radius are fixture inputs.
+    PropAreaDamageDefinition area;area.damage=content.weapons.at(rules.weapon);
+    area.damage.damage_amount=DamageAmountDefinition{.000001f,.000001f,.000001f};
+    area.radius_minimum=area.radius_maximum=1000;area.core_radius=1000;
+    auto &simulation=const_cast<Simulation&>(server.simulation());
+    for(unsigned n=0;n<64;++n)simulation.area_damage(area,server.unit(0).body.position,{},-2);
+    server.step(commands);
+    const auto journal=server.simulation().unit_damage_voices();
+    check(journal.size()==64,"Actual damage report producer did not fill its retained journal");
+    host.broadcast();proxy.deliver(proxy.pump(),true,true);client.receive();
+    check(client.state().unit_damage_voices.size()==64,"Fragmented damage voice journal was truncated");
+    for(unsigned n=0;n<64;++n) {
+      const auto &a=journal[n],&b=client.state().unit_damage_voices[n];
+      check(a.serial==b.serial && a.tick==b.tick && a.target==b.target && a.definition==b.definition &&
+          a.report_flags==b.report_flags && a.position.x==b.position.x && a.position.y==b.position.y &&
+          a.position.z==b.position.z && a.recent_body==b.recent_body && a.recent_shield==b.recent_shield &&
+          a.visible_body==b.visible_body,"Damage voice transport changed source selection operands");
+    }
+    for(unsigned id=0;id<16;++id)
+      check(client.state().players[id].shield_recharging==server.unit(id).vitality.shield_recharging,
+          "LAN shield charge sound state differs from authoritative vitality");
     check(activities[0].contains(0x0b000065) && activities[0].contains(0x06000006) &&
         activities[1].contains(0x0c000064) && activities[2].size()==1 && activities[3].contains(0x0b000065),
         "Real independent fire/manual reload/empty reload/idle channels missing");

@@ -27,16 +27,17 @@ float clampAwayZeroInf(float t) {
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True)
  p.add_argument('--cache',type=Path,default=ROOT/'assets/disc/maps/mainmenu.map')
- p.add_argument('--classification',type=int,choices=[7,8],default=7);a=p.parse_args()
- c=Cache(a.cache);_,root=c.tag(0xe20e0099,'vrtx');at=c.block(root+4,28)[a.classification]
+ p.add_argument('--classification',type=int,choices=[1,7,8,9],default=7);a=p.parse_args()
+ datum=0xe1ec0077 if a.classification==1 else 0xe20e0099
+ c=Cache(a.cache);_,root=c.tag(datum,'vrtx');at=c.block(root+4,28)[a.classification]
  size=c.u32(at+12);start=c.pointer(c.u32(at+16),c.magic,size);code=bytes(c.data[start:start+size])
- source=HELPERS+translate(code,'particleProgram',attribute_expression='particleAttributes[i]',corner_expression='particleCorner')+'\n'
+ source=HELPERS+translate(code,'particleProgram',attribute_expression='particleAttributes[i]',corner_expression=None if a.classification==1 else 'particleCorner')+'\n'
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(source)
  fnv=14695981039346656037
  for byte in code:fnv=((fnv^byte)*1099511628211)&0xffffffffffffffff
- symbol='particle_program_hash' if a.classification==7 else 'particle_directional_program_hash'
+ symbol={1:'particle_model_program_hash',7:'particle_program_hash',8:'particle_directional_program_hash',9:'particle_perpendicular_program_hash'}[a.classification]
  a.output.with_suffix('.hpp').write_text('#pragma once\n#include <cstdint>\nnamespace halo2 {\ninline constexpr std::uint64_t '+symbol+'='+hex(fnv)+'ull;\n}\n')
- a.output.with_suffix('.json').write_text(json.dumps({'vertex_datum':'e20e0099','classification':a.classification,
+ a.output.with_suffix('.json').write_text(json.dumps({'vertex_datum':f'{datum:08x}','classification':a.classification,
   'instructions':struct.unpack_from('<H',code,2)[0],'original_program_sha256':hashlib.sha256(code).hexdigest(),
   'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'expected_vertices_embedded':False},indent=2)+'\n')
 if __name__=='__main__':main()

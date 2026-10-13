@@ -59,7 +59,8 @@ def translate(code,name,attribute_expression='fixtures[fixtureIndex].attributes[
         c=source(t,2)if ilu or mac in (3,4)else 'vec4(0)'
         m={0:'vec4(0)',1:'a',2:'multiply(a,b)',3:'a+c',4:'multiply(a,b)+c',
            5:'vec4(dot(a.xyz,b.xyz))',6:'vec4(dot(vec4(a.xyz,1),b))',
-           7:'vec4(dot(a,b))',9:'min(a,b)',10:'max(a,b)',13:'vec4(0)'}.get(mac)
+           7:'vec4(dot(a,b))',9:'min(a,b)',10:'max(a,b)',
+           11:'vec4(lessThan(a,b))',12:'vec4(greaterThanEqual(a,b))',13:'vec4(0)'}.get(mac)
         l={0:'vec4(0)',1:'c',2:'vec4(1.0/c.x)',3:'vec4(clampAwayZeroInf(1.0/c.x))',
            4:'vec4(inversesqrt(abs(c.x)))',
            5:'vec4(exp2(floor(c.x)),c.x-floor(c.x),exp2(c.x),1)'}.get(ilu)

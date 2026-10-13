@@ -73,6 +73,39 @@ SlayerRules rules() {
   r.weapon = 3;
   return r;
 }
+void sneaking_presentation() {
+  for(bool ceiling:{false,true}) {
+    auto content=arena();
+    if(ceiling) {
+      content.collision.push_back({{1,-10,.8f},{8,10,.8f},{8,-10,.8f},0,0});
+      content.collision.push_back({{1,-10,.8f},{1,10,.8f},{8,10,.8f},0,0});
+    }
+    auto selected=rules();selected.time_ticks=selected.score_limit=0;
+    MultiplayerMatch match(content,0,starts(),selected);match.join("Sneaking");
+    std::array<Controls,multiplayer_capacity> controls{};
+    controls[0].crouch=true;
+    for(unsigned tick=0;tick<30;++tick)match.step(controls);
+    check(match.state().players[0].native_crouching && match.unit(0).crouch==1,
+        "Held sneak did not publish its third-person stance");
+    if(ceiling) {
+      controls[0].forward=1;
+      for(unsigned tick=0;tick<90;++tick)match.step(controls);
+      check(match.unit(0).body.position.x>1.5f && match.unit(0).body.position.x<7,
+          "Sneaking fixture never entered its low ceiling");
+      controls[0].forward=0;
+    }
+    controls[0].crouch=false;match.step(controls);
+    check(match.unit(0).crouch>0 && match.state().players[0].native_crouching,
+        "Releasing sneak made the third-person stance stand before its capsule");
+    for(unsigned tick=0;tick<30;++tick)match.step(controls);
+    if(ceiling)
+      check(match.unit(0).crouch>0 && match.state().players[0].native_crouching,
+          "A blocked stand-up lost the third-person sneaking stance");
+    else
+      check(match.unit(0).crouch==0 && !match.state().players[0].native_crouching,
+          "Completed stand-up retained the third-person sneaking stance");
+  }
+}
 void rules_and_match() {
   auto r = rules();
   check(slayer_rules({"Score Alias",0,{{1,7}}}).score_limit==7 &&
@@ -546,11 +579,17 @@ void retail(const std::filesystem::path &maps) {
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if(argc==2 && std::string(argv[1])=="--crouch") {
+      sneaking_presentation();
+      std::cout<<"Sneaking stance follows actual capsule release and blocked stand-up\n";
+      return 0;
+    }
     if(argc==2 && std::string(argv[1])=="--startup-delay") {
       network_startup_delay();
       std::cout<<"Actual UDP joined after preparation exceeded the connection deadline\n";
       return 0;
     }
+    sneaking_presentation();
     rules_and_match();
     asset_identity();
     network();

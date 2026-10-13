@@ -1,8 +1,13 @@
 #version 450
 // Captured original QUADS lowering. Input order is the original four corners;
 // each output triangle keeps its own three perspective-depth positions.
+#ifdef PARTICLE_MODEL
+layout(triangles) in;
+layout(triangle_strip,max_vertices=3) out;
+#else
 layout(lines_adjacency) in;
 layout(triangle_strip,max_vertices=6) out;
+#endif
 layout(location=0) in vec4 v_vtxD0[];
 layout(location=1) in vec4 v_vtxD1[];
 layout(location=5) in vec4 v_vtxT0[];
@@ -38,7 +43,10 @@ void emit(int i,mat4 depth) {
     EmitVertex();
 }
 void main() {
-    mat4 a=triangleDepth(0,1,2),b=triangleDepth(0,2,3);
+    mat4 a=triangleDepth(0,1,2);
     emit(1,a);emit(2,a);emit(0,a);EndPrimitive();
+#ifndef PARTICLE_MODEL
+    mat4 b=triangleDepth(0,2,3);
     emit(2,b);emit(3,b);emit(0,b);EndPrimitive();
+#endif
 }

@@ -29,8 +29,14 @@ ParticleMaterial Cache::load_particle_material(std::uint32_t datum,unsigned laye
   };
   ParticleMaterial result;
   result.vertex=load_particle_vertex_selection(datum,layer,layer_pass);
-  const auto &particle=find(datum,"prt3");
-  const auto pp=metadata_block(metadata_offset(particle.address,0x94)+0x8c, 124);
+  const auto particle=query_tag({.handle=TagHandle{datum},.require_address=true});
+  if(!particle || (particle->group!="prt3" && particle->group!="PRTM"))
+    throw FormatError("original particle material owner missing");
+  const bool model=particle->group=="PRTM";
+  if(model && implementation!=1)throw FormatError("Particle model requires original implementation1");
+  const auto root=metadata_offset(particle->address,model?0xe0:0x94);
+  const auto shader=model?metadata_offset(find(b.u32(root+0x1c),"shad").address,0x28):root;
+  const auto pp=metadata_block(shader+(model?0x20:0x8c),124);
   if(!pp.count)throw FormatError("original particle material definition missing");
   const auto bitmaps=metadata_block(pp.offset+4, 12),pixel=metadata_block(pp.offset+12, 4),
     vertex=metadata_block(pp.offset+20, 16);

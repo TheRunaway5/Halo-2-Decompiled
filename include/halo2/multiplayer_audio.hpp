@@ -31,7 +31,7 @@ std::vector<MultiplayerAmbientTarget> multiplayer_ambient_targets(
     const MultiplayerAudioBsp &,const BspAtmosphere &,Vec3 listener,
     int cluster,float weather_intensity,bool weather_enabled);
 
-enum class MultiplayerAudioKind {Impulse,FirstPerson,Ambient,Footstep};
+enum class MultiplayerAudioKind {Impulse,FirstPerson,Ambient,Footstep,Shield,DamageVoice};
 struct MultiplayerAudioSubmission {
   MultiplayerAudioKind kind{};
   std::uint32_t sound=0xffffffffu,owner=0xffffffffu;
@@ -89,6 +89,12 @@ public:
   void impulse_at(std::uint32_t sound,Vec3 position,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
       std::uint32_t owner=0xffffffffu);
+  std::vector<Voice> interface_loop(std::uint32_t looping_sound,
+      std::uint32_t owner,unsigned view);
+  void stop_voice(Voice);
+  bool voice_active(Voice) const;
+  std::optional<Voice> play_impulse_at(std::uint32_t sound,Vec3 position,float control=1,
+      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,std::uint32_t owner=0xffffffffu);
   void ambient(std::span<const MultiplayerAmbientTarget>,float elapsed);
   void master_volume(float);
   std::string speaker_layout(unsigned);

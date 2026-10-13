@@ -100,6 +100,38 @@ int main(int argc,char**argv){try{
  check(gait.frame().clip->source_graph==crouched.source_graph &&
        gait.frame().clip->source_index==crouched.source_index,"Crouch walk incorrectly plays standing run");
  const auto render_model=cache.load_model(content.player_representations[representation].biped.datum,false);
+ std::vector<unsigned> legs;
+ for(unsigned n=0;n<render_model.bones.size();++n) {
+  const auto name=cache.string_id(render_model.bones[n].name);
+  if(name.ends_with("thigh") || name.ends_with("calf") || name.ends_with("foot"))legs.push_back(n);
+ }
+ check(legs.size()>=6,"Actual body model lost its authored leg nodes");
+ // A descending capsule can gain support through the solver's short floor
+ // probe without penetrating a triangle. That contact must still deliver its
+ // incoming speed to E5960 and select the authored landing channel.
+ const auto &biped_definition=content.player_representations[representation].biped;
+ CollisionWorld support_world({{{-10,-10,0},{10,-10,0},{10,10,0},0,0},
+                               {{-10,-10,0},{10,10,0},{-10,10,0},0,0}});
+ for(const float impact:{(biped_definition.landing.soft_speed+biped_definition.landing.hard_speed)*.5f,
+                         (biped_definition.landing.hard_speed+biped_definition.landing.maximum_speed)*.5f}) {
+  Body contact{{0,0,impact/30.f+.003f},{0,0,-impact},biped_definition.height,biped_definition.radius,false};
+  support_world.move(contact,1.f/30.f);
+  check(contact.grounded,"Landing fixture did not reach the native floor support probe");
+  check(std::abs(contact.landing_speed-impact)<.0001f,
+      "Floor support contact lost the incoming speed and skipped its landing animation");
+  SourceLandingState expected,actual;bool forced=false;
+  begin_source_landing(expected,biped_definition.landing,impact,30,forced);
+  // Multiplayer bipeds intentionally author zero hard-landing recovery time.
+  // Preserve that omission rather than inventing a duration for the clip.
+  begin_source_landing(actual,biped_definition.landing,contact.landing_speed,30,forced);
+  check(actual.kind==expected.kind && actual.duration==expected.duration,
+      "Floor support contact lost the incoming speed and skipped its landing animation");
+  NativeLocomotion contact_gait(cache,graph,weapon,{0x12345678,0x23456789});
+  contact_gait.tick(0,0,false,false,{0,0,-impact},{});
+  contact_gait.tick(0,0,true,false,contact.velocity,{},&actual);
+  check(contact_gait.frame().activity==source_landing_activity(expected,0x0400000c),
+      "Actual support contact did not reach its authored body landing channel");
+ }
  unsigned body_cases=0,float_tracks=0;std::set<std::pair<std::uint32_t,unsigned>> verified;
  const auto differs=[](const auto &a,const auto &b){
    for(std::size_t i=0;i<a.size();++i)if(a[i].rotation!=b[i].rotation ||
@@ -114,14 +146,36 @@ int main(int argc,char**argv){try{
   NativeLocomotion cycle(cache,graph,datum,{0x12345678,0x23456789},dual);
   NativePlayerAnimation body(cache,graph,datum);
   for(bool crouch:{false,true}) {
+   for(const auto axes:std::array<std::array<float,2>,4>{{{1,0},{-1,0},{0,-1},{0,1}}}) {
+    cycle.tick(axes[0],axes[1],true,crouch,{2,0,0},{});
+    const auto start=cycle.frame();
+    const auto first=body.pose(render_model,*start.clip,start.frame,0,crouch,dual,true);
+    std::set<unsigned> selected_frames;bool animated_legs=false,looped=false;float previous_frame=start.frame;
+    for(unsigned tick=0;tick<90;++tick){
+     cycle.tick(axes[0],axes[1],true,crouch,{2,0,0},{});
+     const auto frame=cycle.frame();selected_frames.insert(unsigned(frame.frame));
+     looped|=frame.frame<previous_frame;previous_frame=frame.frame;
+     const auto posed=body.pose(render_model,*frame.clip,frame.frame,0,crouch,dual,true);
+     for(auto n:legs)animated_legs|=posed[n].rotation!=first[n].rotation ||
+         posed[n].translation.x!=first[n].translation.x || posed[n].translation.y!=first[n].translation.y ||
+         posed[n].translation.z!=first[n].translation.z;
+    }
+    check(selected_frames.size()>5 && looped,"Directional walk/sneak cycle did not advance and loop");
+    check(animated_legs,"Directional walk/sneak clock advanced without animating the body legs");
+   }
    cycle.tick(1,0,true,crouch,{2,0,0},{});
    const auto start=cycle.frame();
-   std::set<unsigned> selected_frames;
-   for(unsigned tick=0;tick<90;++tick){cycle.tick(1,0,true,crouch,{2,0,0},{});selected_frames.insert(unsigned(cycle.frame().frame));}
-   check(selected_frames.size()>5,"Player run cycle remains stuck on one frame");
    cycle.tick(1,0,false,crouch,{0,0,3},{});
    check(cycle.frame().activity==0x0800001e,"Weapon/crouch/dual jump fell back to idle");
-   for(unsigned tick=0;tick<8;++tick)cycle.tick(1,0,false,crouch,{0,0,2},[&](const auto&){throw FormatError("Airborne player emitted a footstep");});
+   const auto takeoff=cycle.frame();
+   const auto takeoff_locals=body.pose(render_model,*takeoff.clip,takeoff.frame,0,crouch,dual,false);
+   std::set<unsigned> air_frames;bool airborne_pose_changed=false;
+   for(unsigned tick=0;tick<16;++tick) {
+    cycle.tick(1,0,false,crouch,{0,0,tick<8?2.f:-2.f},[&](const auto&){throw FormatError("Airborne player emitted a footstep");});
+    const auto frame=cycle.frame();air_frames.insert(unsigned(frame.frame));
+    airborne_pose_changed|=differs(takeoff_locals,body.pose(render_model,*frame.clip,frame.frame,0,crouch,dual,false));
+   }
+   check(air_frames.size()>8 && airborne_pose_changed,"Jump clock advanced without animating its authored body pose");
    for(std::int16_t kind:{std::int16_t(0),std::int16_t(1)}) {
     const SourceLandingState landing{kind,0,8};
     cycle.tick(0,0,true,crouch,{}, {},&landing);
@@ -131,6 +185,16 @@ int main(int argc,char**argv){try{
     for(const auto &bone:locals)check(std::isfinite(bone.rotation[0]),"Authored landing resource produced a nonfinite pose");
     if(landed.clip->source_index==139 && representation==2)
       check(landed.clip->frame_count==29 && landed.clip->loop_frame==30,"Loader rewrote the authored hard landing loop marker");
+    bool landing_pose_changed=false;auto recovery=landing;
+    for(unsigned tick=0;tick<8;++tick) {
+     advance_source_landing(recovery,false);
+     cycle.tick(0,0,true,crouch,{}, {},&recovery);
+     const auto frame=cycle.frame();
+     if(recovery.kind!=-1)landing_pose_changed|=differs(locals,
+         body.pose(render_model,*frame.clip,frame.frame,0,crouch,dual,false));
+    }
+    check(landing_pose_changed,"Landing clock advanced without animating its authored body pose");
+    check(cycle.frame().activity==0x0400000c,"Landing recovery did not return the body to idle");
    }
    const auto flat=body.pose(render_model,*start.clip,0,0,crouch,dual,true);
    const auto up=body.pose(render_model,*start.clip,0,1,crouch,dual,true);

@@ -337,6 +337,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
       put_float(p,recent.visible);put_float(p,recent.accumulated);
       put(p,std::uint8_t(recent.ticks),1);
     }
+    put(p,u.shield_recharging,1);
     for (auto v : {u.weapon, std::uint32_t(u.loaded), std::uint32_t(u.reserve)})
       put(p, v, 4);
     for (int value : {u.score, u.kills, u.deaths, u.assists, u.suicides}) {
@@ -490,6 +491,12 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,unsigned(e.effect.kind),1);put(p,e.effect.datum,4);
     put(p,e.owner.player,4);put(p,e.owner.unit,4);put(p,std::uint16_t(e.owner.designator),2);
   }
+  validate_unit_damage_voice_events(s.unit_damage_voices,s.tick);
+  put(p,s.unit_damage_voices.size(),1);
+  for(const auto &e:s.unit_damage_voices) {
+    put(p,e.serial,8);put(p,e.tick,8);put(p,e.target,4);put(p,e.definition,4);put(p,e.report_flags,4);
+    for(const auto f:{e.position.x,e.position.y,e.position.z,e.recent_body,e.recent_shield,e.visible_body})put_float(p,f);
+  }
   const auto poses=encode_source_world_poses(s.source_body_poses_authoritative,s.source_body_poses,body_pose_owners(s));
   p.insert(p.end(),poses.begin(),poses.end());
 }
@@ -568,6 +575,8 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
       recent->visible=r.real();recent->accumulated=r.real();
       recent->ticks=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
     }
+    const auto recharging=r.get(1);if(recharging>1)throw FormatError("Invalid shield recharge state");
+    u.shield_recharging=bool(recharging);
     u.weapon = r.get(4);
     u.loaded = r.integer();
     u.reserve = r.integer();
@@ -811,6 +820,14 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     s.unit_damage_effects.push_back(e);
   }
   validate_unit_damage_effect_events(s.unit_damage_effects,s.tick);
+  const auto voice_count=r.get(1);
+  if(voice_count>64)throw FormatError("Unit damage voice journal exceeds retention");
+  for(unsigned n=0;n<voice_count;++n) {
+    UnitDamageVoiceEvent e;e.serial=r.get(8);e.tick=r.get(8);e.target=r.get(4);e.definition=r.get(4);e.report_flags=r.get(4);
+    e.position={r.real(),r.real(),r.real()};e.recent_body=r.real();e.recent_shield=r.real();e.visible_body=r.real();
+    s.unit_damage_voices.push_back(e);
+  }
+  validate_unit_damage_voice_events(s.unit_damage_voices,s.tick);
   auto poses=decode_source_world_poses(std::span(r.p).subspan(r.at),body_pose_owners(s));
   r.at+=poses.consumed;s.source_body_poses_authoritative=poses.authoritative;
   s.source_body_poses=std::move(poses.poses);

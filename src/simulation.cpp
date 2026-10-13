@@ -224,6 +224,7 @@ void Simulation::restore_checkpoint() {
   multiplayer_script_lists_=saved.multiplayer_script_lists;
   rumble_events_.clear();
   unit_damage_effects_.clear();
+  unit_damage_voices_.clear();
   // Original restore 188AC0 consumes this one-shot flag. Portal ambience
   // traversal remains a separate dependency of the native listener service.
   suppress_ambience_rebuild_ = false;
@@ -680,6 +681,12 @@ void Simulation::damage(Unit &unit, const WeaponDefinition &w, const DamageOwner
     ++unit.zoom_reset_serial;
   }
   report_damage_feedback(unit.damage_feedback,result.body,result.shield,result.report_flags);
+  if(result.body>0 || result.shield>0 || (result.report_flags&1)) {
+    unit_damage_voices_.push_back({++unit_damage_voice_serial_,ticks_+1,unit.source_datum,w.damage,
+        result.report_flags,unit.body.position,unit.damage_feedback.body.accumulated,
+        unit.damage_feedback.shield.visible,unit.damage_feedback.body.visible});
+    if(unit_damage_voices_.size()>64)unit_damage_voices_.erase(unit_damage_voices_.begin());
+  }
   if((result.body>0 || result.shield>0) && w.damage!=null_datum)
     if(rumble_events_.size()<256)rumble_events_.push_back({w.damage,unit.vitality.shield>0,1.f,&unit==&player_?-1:int(&unit-actors_.data())});
   if (unit.vitality.dead) {

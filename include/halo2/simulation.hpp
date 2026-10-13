@@ -245,6 +245,7 @@ public:
   std::span<const PropRemoval> prop_removals()const{return prop_removals_;}
   std::span<const BulletImpact> bullet_impacts()const{return bullet_impacts_;}
   std::span<const UnitDamageEffectEvent> unit_damage_effects()const{return unit_damage_effects_;}
+  std::span<const UnitDamageVoiceEvent> unit_damage_voices()const{return unit_damage_voices_;}
   void replicate_prop_removals(std::span<const PropRemoval>);
   // Source spherical damage/visibility consumer composed with the declared
   // host geometry backend. Call only from an admitted authored area event.
@@ -375,6 +376,8 @@ private:
   std::vector<BulletImpact> bullet_impacts_;
   std::uint64_t bullet_impact_serial_{};
   std::vector<UnitDamageEffectEvent> unit_damage_effects_;
+  std::vector<UnitDamageVoiceEvent> unit_damage_voices_;
+  std::uint64_t unit_damage_voice_serial_{};
   std::uint64_t unit_damage_effect_serial_{};
   void record_unit_damage_effect(const Unit &,const UnitDamageEffect &,const DamageOwner &);
   std::uint64_t ticks_{}, shots_{}, hits_{};

@@ -1,5 +1,18 @@
 #include "halo2/unit_damage.hpp"
+#include <cmath>
 namespace halo2 {
+void validate_unit_damage_voice_events(std::span<const UnitDamageVoiceEvent> events,std::uint64_t snapshot_tick) {
+  if(events.size()>64)throw FormatError("Unit damage voice journal exceeds retention");
+  std::uint64_t serial{},tick{};
+  for(const auto &e:events) {
+    if(!e.serial || e.serial<=serial || e.tick<tick || e.tick>snapshot_tick || e.target==null_datum ||
+        !std::isfinite(e.position.x) || !std::isfinite(e.position.y) || !std::isfinite(e.position.z) ||
+        !std::isfinite(e.recent_body) || !std::isfinite(e.recent_shield) || !std::isfinite(e.visible_body) ||
+        e.recent_body<0 || e.recent_shield<0 || e.visible_body<0)
+      throw FormatError("Invalid unit damage voice journal");
+    serial=e.serial;tick=e.tick;
+  }
+}
 void validate_unit_damage_effect_events(std::span<const UnitDamageEffectEvent> events,
     std::uint64_t snapshot_tick) {
   if(events.size()>64)throw FormatError("Unit damage effect journal exceeds retention");

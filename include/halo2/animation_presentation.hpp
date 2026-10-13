@@ -16,6 +16,7 @@ struct AnimationRenderObservation {
   std::uint32_t ammunition_animation=0xffffffffu;
   float ammunition_frame{};
   std::span<const Transform> weapon_nodes; // Actual shared posed bank, read-only.
+  std::span<const Transform> body_nodes; // Actual third-person skinning bank, read-only.
 };
 // Native high-refresh presentation policy. Endpoints are the actual clock input
 // after action selection and completed output, never predicted gameplay states.

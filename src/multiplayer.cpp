@@ -1535,6 +1535,7 @@ MultiplayerState MultiplayerMatch::state() const {
       result.players[i].weapon_shader=u.weapon.shader;
       result.players[i].ammunition_available=native_weapon_ammunition_available(u,u.weapon);
       result.players[i].damage_feedback=u.damage_feedback;
+      result.players[i].shield_recharging=u.vitality.shield_recharging;
       if(const auto *offhand=native_hand_weapon(u,1)) {
         auto &out=result.players[i].secondary_weapon;
         out.definition=offhand->definition;out.datum=offhand->source_datum;
@@ -1550,7 +1551,9 @@ MultiplayerState MultiplayerMatch::state() const {
       result.players[i].velocity=u.body.velocity;
       result.players[i].native_forward=std::clamp(native_presentation_controls_[i].forward,-1.f,1.f);
       result.players[i].native_right=std::clamp(native_presentation_controls_[i].right,-1.f,1.f);
-      result.players[i].native_crouching=native_presentation_controls_[i].crouch;
+      // The native capsule owns accepted crouch, including a stand-up blocked
+      // by a ceiling. Presentation must not stand merely because the key rose.
+      result.players[i].native_crouching=u.crouch>0;
       result.players[i].native_grounded=u.body.grounded;
       result.players[i].landing=u.landing;
       if(u.body.support_triangle && *u.body.support_triangle<content_.collision.size())
@@ -1608,6 +1611,8 @@ MultiplayerState MultiplayerMatch::state() const {
   const auto impacts=simulation_.bullet_impacts();result.bullet_impacts.assign(impacts.begin(),impacts.end());
   const auto damage_effects=simulation_.unit_damage_effects();
   result.unit_damage_effects.assign(damage_effects.begin(),damage_effects.end());
+  const auto voices=simulation_.unit_damage_voices();
+  result.unit_damage_voices.assign(voices.begin(),voices.end());
   for(const auto &projectile:simulation_.projectiles_)
     result.weapon_projectiles.push_back({projectile.source_datum,
         content_.weapons.at(projectile.weapon).projectile,projectile.position,

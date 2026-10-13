@@ -1,6 +1,7 @@
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/sound_variation.hpp"
+#include "halo2/unit_damage_audio.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -50,6 +51,46 @@ void shared_variation_ownership(const Cache &cache,std::uint32_t sound) {
       "Shared audio variation lost its actual owner or overwrote a subsequent consumer");
   audio.stop();
   std::cout<<"PASS shared auxiliary gain/pitch, private post-pitch impulse seed and callback publication\n";
+}
+void shield_recharge_fade(const Cache &cache) {
+  const auto definition=cache.load_looping_sound(0xe81a0695u);
+  check(definition.tracks.size()==1 && definition.tracks[0].flags==2 &&
+      definition.tracks[0].fade_out==.1f,"Elite recharge fade fixture differs from its original tag");
+  MultiplayerAudio audio(cache,0x5821b36d,{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}});
+  const auto voices=audio.interface_loop(0xe81a0695u,0x28a13b04,1);
+  check(voices.size()==1 && peak(audio.render(480))>0,"Elite recharge authored loop is silent");
+  audio.stop_voice(voices[0]);audio.update();
+  check(audio.voice_active(voices[0]),"Elite recharge was flushed before its authored fade");
+  //12A810 resolves relative end=-1 at the first update; its closed interval
+  //places the terminal point at start+101 for this authored100ms duration.
+  for(unsigned ms=0;ms<101;++ms) {
+    audio.render(48);audio.update();
+    if(ms<100)check(audio.voice_active(voices[0]),"Elite recharge fade ended early");
+  }
+  check(!audio.voice_active(voices[0]) && peak(audio.render(480))==0,
+      "Elite recharge did not retire after its authored 100ms fade");
+  std::cout<<"PASS Elite recharge loop retains its actual 100ms fade and retires to silence\n";
+}
+void player_damage_audio(const Cache &cache,const LevelContent &content) {
+  for(unsigned species=0;species<2;++species) {
+    std::uint32_t random=0;
+    while(float((random*1664525u+1013904223u)>>16)*(1.f/65535.f)<.6667f)++random;
+    std::vector<std::uint32_t> submitted;
+    MultiplayerAudio audio(cache,0x5821b36d,{SdlSoundPlatformConfiguration::Delivery::Manual,256,{}},
+        [&](const auto &s){if(s.kind==MultiplayerAudioKind::DamageVoice)submitted.push_back(s.sound);},&random);
+    const std::array<Vec3,1> listener{{{0,0,0}}};audio.listeners(listener);
+    NativeUnitDamageAudio damage(cache,audio,random);damage.advance(1);
+    const auto &biped=content.player_representations.at(species?3:2).biped;
+    UnitDamageVoiceEvent report{1,1,0xe2820013u,content.weapons.at(cache.slayer_starting_weapon(5)).damage,
+        0,{0,0,0},1,0,1};
+    damage.damage(biped,report);
+    check(submitted.size()==1 && submitted.back()==(species?0xea93090eu:0xe96d07e8u) &&
+        peak(audio.render(4800))>0,"Authored hurt request failed to select/mix actual species pain PCM");
+    report.serial=2;report.tick=2;report.report_flags=1;damage.advance(2);damage.damage(biped,report);
+    check(submitted.size()==2 && submitted.back()==(species?0xea91090cu:0xe96b07e6u) &&
+        peak(audio.render(4800))>0,"Authored death did not preempt pain with actual species death PCM");
+  }
+  std::cout<<"PASS both species: authored pain selection, actual PCM and death-priority preemption\n";
 }
 void completion_ownership(const Cache &cache,std::uint32_t sound){
   static_assert(std::is_same_v<MultiplayerAudio::Voice,std::uint64_t>);
@@ -162,6 +203,8 @@ int main(int argc,char **argv){
     world_distance_handoff(cache,*reload_tags.begin());
     shared_variation_ownership(cache,*reload_tags.begin());
     completion_ownership(cache,*reload_tags.begin());
+    shield_recharge_fade(cache);
+    player_damage_audio(cache,content);
     unsigned reloads=0,callbacks=0,ambient_submissions=0;double reload_peak=0,ambient_peak=0;
     for(const auto count:{1u,4u}){
       SlayerRules rules;rules.weapon=weapon;rules.time_ticks=rules.score_limit=0;

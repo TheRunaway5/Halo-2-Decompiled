@@ -3,6 +3,7 @@
 #include "halo2/sound_driver_parameters.hpp"
 #include "halo2/sound_variation.hpp"
 #include "halo2/sound_spatial.hpp"
+#include "halo2/sound_fade.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/math.hpp"
 #include <algorithm>
@@ -158,7 +159,7 @@ struct MultiplayerAudio::State {
     MultiplayerAudioKind kind{};float gain_db{},relative_rate=1,ambient_gain=1;unsigned sound_class{};
     bool loop{};Completion completion;unsigned pitch_range{};std::uint32_t source_pitch_bits{};
     std::int8_t permutation_gain_db{};std::optional<std::uint32_t> permutation_seed;
-    std::optional<Vec3> position;};
+    std::optional<Vec3> position;std::optional<SoundPlaybackFade> fade;float fade_db{};};
   struct RetiredCompletion {Completion owner;SdlSoundCompletion packet;};
   struct Ambient {float gain{},linear_db{};MultiplayerAmbientTarget target;std::vector<std::uint64_t> voices;};
   const Cache &cache;SoundLocalRandom random;SdlSoundPlatform platform;MultiplayerAudioObserver observer;
@@ -220,7 +221,7 @@ struct MultiplayerAudio::State {
     const float spatial=distance_gain(v);
     const SoundSpatialConstants gain_constants{distance_constants.one_bits,distance_constants.minimum_gain_bits,distance_constants.linear_db_scale_bits};
     const float spatial_db=std::bit_cast<float>(source_sound_spatial_gain_db(std::bit_cast<std::uint32_t>(spatial),gain_constants,{0x027f,0x1f80}));
-    const float source_gain=v.gain_db+sound_linear_to_db(v.ambient_gain)+class_gain.at(v.sound_class)+spatial_db;
+    const float source_gain=v.gain_db+sound_linear_to_db(v.ambient_gain)+class_gain.at(v.sound_class)+spatial_db+v.fade_db;
     // Original12A603..12A650 adds the selected permutation's signed gain
     // before the driver attenuation conversion. This must follow selection,
     // including every new ambient packet, rather than using permutation0.
@@ -347,11 +348,51 @@ void MultiplayerAudio::listeners(std::span<const Vec3> positions){
 }
 void MultiplayerAudio::impulse_at(std::uint32_t sound,Vec3 position,float control,
     MultiplayerAudioKind kind,std::uint32_t owner){
-  if(sound==none)return;
+  (void)play_impulse_at(sound,position,control,kind,owner);
+}
+std::optional<MultiplayerAudio::Voice> MultiplayerAudio::play_impulse_at(std::uint32_t sound,Vec3 position,float control,
+    MultiplayerAudioKind kind,std::uint32_t owner){
+  if(sound==none)return {};
   if(!std::isfinite(position.x)||!std::isfinite(position.y)||!std::isfinite(position.z)||!std::isfinite(control)||control<0)
     throw FormatError("Invalid world audio emitter or caller control");
-  state_->play(sound,0,kind,owner,0,false,none,0,1,{},control,position);
+  const auto id=state_->play(sound,0,kind,owner,0,false,none,0,1,{},control,position);
+  return id?std::optional<Voice>(id):std::nullopt;
 }
+std::vector<MultiplayerAudio::Voice> MultiplayerAudio::interface_loop(std::uint32_t tag,std::uint32_t owner,unsigned view) {
+  const auto definition=state_->cache.load_looping_sound(tag);
+  if(definition.flags&2u)throw FormatError("Interface loop requires ordinary retained looping sound");
+  std::vector<Voice> voices;
+  try {
+    for(unsigned n=0;n<definition.tracks.size();++n) {
+      const auto &track=definition.tracks[n];
+      if(track.start!=none || track.end!=none || track.fade_in!=0)
+        throw FormatError("Interface loop requires additional authored start/end/fade-in owner");
+      if(track.loop!=none)voices.push_back(state_->play(track.loop,track.gain_db,
+          MultiplayerAudioKind::Shield,owner,view,true,tag,n));
+    }
+  }catch(...) {for(const auto id:voices)stop_voice(id);throw;}
+  return voices;
+}
+void MultiplayerAudio::stop_voice(Voice id) {
+  if(auto found=state_->voices.find(id);found!=state_->voices.end()) {
+    auto &v=found->second;
+    if(v.fade)return;
+    if(v.loop && v.loop_tag!=none) {
+      const auto track=state_->cache.load_looping_sound(v.loop_tag).tracks.at(v.track);
+      if((track.flags&2u) && track.fade_out>0) {
+        //21A250 phase2 retains the authored track fade.12A810 chooses the
+        //playback curve from sound-class bit10 and uses the sound clock.
+        const auto &bank=state_->bank(v.sound,v.pitch_range);
+        const auto curve=std::uint16_t(!(Bytes(bank.definition.sound_class).u16(10)&0x400u));
+        v.fade=SoundPlaybackFade{curve,v.fade_db,std::int32_t(track.fade_out*1000.f),-1,true};
+        return;
+      }
+    }
+    state_->erase(id);
+  }
+  state_->complete();
+}
+bool MultiplayerAudio::voice_active(Voice id) const {return state_->voices.contains(id);}
 void MultiplayerAudio::ambient(std::span<const MultiplayerAmbientTarget> targets,float elapsed){
   if(!std::isfinite(elapsed)||elapsed<0)throw FormatError("Invalid ambient elapsed time");
   std::set<std::uint32_t> selected;
@@ -395,7 +436,16 @@ void MultiplayerAudio::class_gains(const std::array<float,sound_class_count> &ga
   state_->class_gain=gains;for(const auto &[id,v]:state_->voices)state_->platform.parameters(id,state_->parameters(v));
 }
 void MultiplayerAudio::update(){
+  const auto time=std::bit_cast<std::int32_t>(std::uint32_t(state_->platform.rendered_frames()/48));
   for(auto it=state_->voices.begin();it!=state_->voices.end();){auto &v=it->second;
+    if(v.fade) {
+      v.fade_db=source_sound_playback_fade(*v.fade,time);
+      const auto elapsed=std::bit_cast<std::int32_t>(std::uint32_t(time)-std::uint32_t(v.fade->start));
+      if(v.fade_db+v.gain_db<=-64.f || elapsed>=0) {
+        const auto id=v.id;++it;state_->erase(id);continue;
+      }
+      state_->platform.parameters(v.id,state_->parameters(v));
+    }
     bool completed=false,failed=false;
     std::optional<SdlSoundCompletion> packet;
     while(auto c=state_->platform.completion(v.id)){completed=true;packet=*c;failed|=c->status!=SdlSoundCompletionStatus::Success;state_->platform.acknowledge(v.id,c->submission);}

@@ -8,6 +8,7 @@
 #include "halo2/effect_light_receiver.hpp"
 #include "halo2/muzzle_effects.hpp"
 #include <memory>
+#include <map>
 
 namespace halo2 {
 struct WorldEffectFrame {
@@ -58,6 +59,14 @@ public:
   void impact(const BulletImpact &);
   void spawn(std::uint32_t effect, std::uint32_t owner, std::uint64_t tick,
              const WorldEffectFrame &);
+  // Preload attached graphs before renderer construction; reject incomplete
+  // graphs rather than silently omitting a shield system.
+  void preload_attached(std::uint32_t effect);
+  using ObjectMarkers=std::map<std::string,std::vector<WorldEffectFrame>>;
+  void object_markers(std::uint32_t full_handle,ObjectMarkers);
+  void remove_object(std::uint32_t full_handle);
+  void spawn_attached(std::uint32_t effect,std::uint32_t full_handle,
+      std::uint32_t owner,std::uint64_t tick);
   // Original object attachment creator1766B0 sets the retained repeat flag.
   // Import static scenery's actual effe attachments and root transforms.
   std::size_t attach_scenery(const LevelContent &);

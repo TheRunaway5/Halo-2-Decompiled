@@ -65,9 +65,9 @@ else()
 endif()
 target_sources(halo2_cache PRIVATE src/source_weapon_shader_input.cpp)
 if(MSVC)
-    set_source_files_properties(src/world_effects.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+    set_source_files_properties(src/world_effects.cpp src/particle_model.cpp src/unit_damage_audio.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-    set_source_files_properties(src/world_effects.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+    set_source_files_properties(src/world_effects.cpp src/particle_model.cpp src/unit_damage_audio.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
 endif()
 target_sources(halo2_cache PRIVATE src/source_weapon_magazine.cpp)
 target_sources(halo2_cache PRIVATE src/source_bsp_resident_plan.cpp)
@@ -383,6 +383,7 @@ target_sources(halo2_cache PRIVATE src/menu_screen_effect.cpp)
 target_sources(halo2_cache PRIVATE src/menu_noise_texture.cpp)
 target_sources(halo2_cache PRIVATE src/light_volume.cpp)
 target_sources(halo2_cache PRIVATE src/particle_sprite.cpp)
+target_sources(halo2_cache PRIVATE src/particle_model.cpp)
 target_sources(halo2_cache PRIVATE src/particle_values.cpp)
 target_sources(halo2_cache PRIVATE src/particle_render_inputs.cpp)
 target_sources(halo2_cache PRIVATE src/particle_birth.cpp)
@@ -768,6 +769,11 @@ target_sources(halo2_cache PRIVATE src/model_markers.cpp)
 target_sources(halo2_systems PRIVATE src/weapon_effect.cpp)
 target_sources(halo2_systems PRIVATE src/muzzle_effects.cpp)
 target_sources(halo2_systems PRIVATE src/world_effects.cpp)
+target_sources(halo2_systems PRIVATE src/unit_damage_audio.cpp)
+if(BUILD_TESTING)
+    add_executable(particle_model_tests tests/particle_model_tests.cpp)
+    target_link_libraries(particle_model_tests PRIVATE halo2_cache)
+endif()
 target_sources(halo2_systems PRIVATE src/prop_sandbox.cpp src/source_device_world.cpp)
 target_sources(halo2_systems PRIVATE src/menu_music.cpp src/sound_fade.cpp)
 target_sources(halo2_systems PRIVATE src/multiplayer_audio.cpp)
@@ -1200,7 +1206,42 @@ if(EXISTS "${HALO2_MAINMENU_CACHE}")
             DEPENDS shaders/particle.${particle_stage} shaders/particle_vertex_output.glsl
                 ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl VERBATIM)
     endforeach()
+    foreach(particle_family perpendicular model)
+        if(particle_family STREQUAL "model")
+            set(particle_class 1)
+            set(particle_macro PARTICLE_MODEL)
+            get_filename_component(particle_map_directory "${HALO2_MAINMENU_CACHE}" DIRECTORY)
+            set(particle_program_cache "${particle_map_directory}/lockout.map")
+        else()
+            set(particle_class 9)
+            set(particle_macro PARTICLE_PERPENDICULAR)
+            set(particle_program_cache "${HALO2_MAINMENU_CACHE}")
+        endif()
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl
+            ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.hpp
+            ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.json
+            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
+                --cache "${particle_program_cache}" --classification ${particle_class}
+                --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl
+            DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
+                tools/audit_rendering.py "${particle_program_cache}" VERBATIM)
+        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}.vert.spv
+            COMMAND ${GLSLANG_VALIDATOR} -V -D${particle_macro}=1
+                -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
+                ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.vert
+                -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}.vert.spv
+            DEPENDS shaders/particle.vert shaders/particle_vertex_output.glsl
+                ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl VERBATIM)
+    endforeach()
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
+        COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_MODEL=1
+            ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.geom
+            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
+        DEPENDS shaders/particle.geom VERBATIM)
     add_custom_target(particle_graphics_shaders DEPENDS
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular.vert.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.vert.spv
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.vert.spv
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.geom.spv)
@@ -1839,6 +1880,10 @@ add_executable(source_shield_live_runtime_tests tests/source_shield_live_runtime
 target_link_libraries(source_shield_live_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
 target_compile_definitions(source_shield_live_runtime_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
 add_dependencies(source_shield_live_runtime_tests halo2_shaders)
+add_executable(source_shield_cycle_runtime_tests tests/source_shield_cycle_runtime_tests.cpp src/multiplayer_runtime.cpp)
+target_link_libraries(source_shield_cycle_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+target_compile_definitions(source_shield_cycle_runtime_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
+add_dependencies(source_shield_cycle_runtime_tests halo2_shaders)
 target_compile_definitions(source_shield_live_runtime_tests PRIVATE HALO2_SHIELD_MATERIAL_TRACE)
 add_executable(player_armor_emblem_runtime_tests tests/player_armor_emblem_runtime_tests.cpp src/multiplayer_runtime.cpp)
 target_link_libraries(player_armor_emblem_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)

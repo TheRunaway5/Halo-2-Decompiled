@@ -25,12 +25,16 @@ ParticleVertexSelection Cache::load_particle_vertex_selection(std::uint32_t datu
     return *t;
   };
 
-  const auto &particle=find(datum,"prt3");
-  const auto root=metadata_offset(particle.address,0x94);
-  const auto definitions=metadata_block(root+0x8c, 124);
+  const auto particle=query_tag({.handle=TagHandle{datum},.require_address=true});
+  if(!particle || (particle->group!="prt3" && particle->group!="PRTM"))
+    throw FormatError("original particle shader owner missing");
+  const bool model=particle->group=="PRTM";
+  const auto root=metadata_offset(particle->address,model?0xe0:0x94);
+  const auto shader=model?metadata_offset(find(b.u32(root+0x1c),"shad").address,0x28):root;
+  const auto definitions=metadata_block(shader+(model?0x20:0x8c),124);
   if(!definitions.count)throw FormatError("original particle has no shader definition");
   ParticleVertexSelection result;
-  result.classification=unsigned(b.u16(root+4))+7u; // 2243C0 -> 23EA80.
+  result.classification=model?1u:unsigned(b.u16(root+4))+7u; //224DB0 /2243C0.
   result.template_datum=b.u32(definitions.offset);
   const auto &stem=find(result.template_datum,"stem");
   const auto templates=metadata_block(metadata_offset(stem.address,0x60)+0x58, 40);
@@ -54,7 +58,8 @@ ParticleVertexSelection Cache::load_particle_vertex_selection(std::uint32_t datu
   if(!implementations.count)throw FormatError("original particle implementation missing");
   // 23EA80 obtains the declaration from the first pass implementation before
   // the style-specific override. Pixel implementation choice is separate.
-  result.vertex_datum=b.u32(implementations.offset+256);
+  if(model && implementations.count<2)throw FormatError("Particle model requires authored implementation1");
+  result.vertex_datum=b.u32(implementations.offset+(model?306:0)+256);
   result.program=load_vertex_shader_code(result.vertex_datum,result.classification);
   if(result.program.empty())throw FormatError("original particle vertex classification is not resident");
   return result;

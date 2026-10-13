@@ -20,6 +20,15 @@ struct UnitDamageEffectEvent {
   UnitDamageEffect effect;
   DamageOwner owner;
 };
+// CA0B0 ->1147E0 consumes the completed normalized damage report, including
+// recent damage after D9640. Retain it independently of threshold effects.
+struct UnitDamageVoiceEvent {
+  std::uint64_t serial{},tick{};
+  std::uint32_t target=null_datum,definition=null_datum,report_flags{};
+  Vec3 position;
+  float recent_body{},recent_shield{},visible_body{};
+};
+void validate_unit_damage_voice_events(std::span<const UnitDamageVoiceEvent>,std::uint64_t tick);
 void validate_unit_damage_effect_events(std::span<const UnitDamageEffectEvent>,
     std::uint64_t snapshot_tick);
 struct UnitDamageResult {

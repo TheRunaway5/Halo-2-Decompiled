@@ -98,6 +98,7 @@ struct NativeWorldEffects::Impl {
   std::uint64_t tick{}, identity{};
   std::vector<std::int16_t> parents;
   std::map<std::uint32_t, std::uint32_t> projectiles;
+  std::map<std::uint32_t,NativeWorldEffects::ObjectMarkers> object_markers;
   std::set<std::string> unavailable;
   std::vector<WorldEffectSound> sounds;
   std::map<std::uint32_t,EffectLightDefinition> light_definitions;
@@ -148,6 +149,7 @@ struct NativeWorldEffects::Impl {
   struct SystemDefinition {
     ParticleSystemRenderDefinition render;
     ParticleSpriteDefinition sprite;
+    std::shared_ptr<const ParticleModelDefinition> model;
     std::shared_ptr<const ParticleMaterial> material;
     std::vector<ParticleMovementDefinition> movement;
     std::string location;
@@ -173,6 +175,7 @@ struct NativeWorldEffects::Impl {
     std::int16_t loop_start=-1;
     std::vector<EventDefinition> events;
     std::vector<SourceEffectEventDefinition> clocks;
+    bool complete=true;
   };
   std::map<std::uint32_t, Definition> definitions;
   struct Emitter {
@@ -187,6 +190,8 @@ struct NativeWorldEffects::Impl {
     std::uint8_t random_location{};
     ParticleRenderValueCache values;
     std::vector<Emitter> emitters;
+    unsigned marker_index{};
+    WorldEffectFrame frame;
   };
   struct Event {
     const EventDefinition *definition{};
@@ -203,8 +208,30 @@ struct NativeWorldEffects::Impl {
     std::vector<Event> events;
     bool attached{},finished{};
     SourceEffectEventState clock;
+    std::uint32_t target=none;
+    bool initial_attached_step{};
   };
   std::deque<Effect> effects;
+  std::vector<WorldEffectFrame> frames(const Effect &e,const std::string &name) const {
+    if(e.target==none) {
+      auto f=e.frame;const auto b=location(name,f);f.forward=b.forward;f.up=b.up;
+      return {f};
+    }
+    const auto object=object_markers.find(e.target);
+    if(object==object_markers.end())return {};
+    const auto found=object->second.find(name);
+    return found==object->second.end()?std::vector<WorldEffectFrame>{}:found->second;
+  }
+  void refresh(Effect &e,System &s) {
+    const auto current=frames(e,s.definition->location);
+    if(s.marker_index>=current.size())return;
+    s.frame=current[s.marker_index];
+    if(s.definition->render.coordinates)
+      for(auto &emitter:s.emitters) {
+        emitter.state.position=s.frame.position;
+        emitter.state.rotation=basis(s.frame.forward,s.frame.up);
+      }
+  }
   Impl(const Cache &c, Mesh &mesh, const CollisionWorld &w, std::uint32_t s,
        std::optional<SourceEffectRandom> streams={})
       : cache(c), collision(std::vector<CollisionTriangle>(
@@ -377,13 +404,15 @@ struct NativeWorldEffects::Impl {
           out.render =
               cache.load_particle_system_render_definition(datum, n, j);
           out.sort_bias = std::int16_t(systems.u16(a + 0x14));
-          if (out.render.coordinates != 0)
+          if (out.render.coordinates < 0 || out.render.coordinates > 2)
             throw FormatError(
                 "World effect coordinates require a parent frame owner");
           out.location = marker(std::int16_t(systems.u16(a + 8)));
-          out.sprite = cache.load_particle_sprite(out.render.particle_datum);
           Packet particle(cache, out.render.particle_datum);
-          if (particle.root.u32(0x78) != none) {
+          if(particle.tag.group=="PRTM") {
+            out.model=std::make_shared<const ParticleModelDefinition>(load_particle_model(cache,out.render.particle_datum));
+          }else out.sprite = cache.load_particle_sprite(out.render.particle_datum);
+          if (!out.model && particle.root.u32(0x78) != none) {
             const auto group=particle.root.u32(0x74);
             if(group==0x736e6421u)
               out.death_sound=particle.root.u32(0x78);
@@ -394,9 +423,9 @@ struct NativeWorldEffects::Impl {
           }
           out.material = std::make_shared<const ParticleMaterial>(
               cache.load_particle_material(out.render.particle_datum, 15, 0,
-                                           0));
-          if (out.material->vertex.classification != 7 &&
-              out.material->vertex.classification != 8)
+                                           out.model?1:0));
+          if (out.material->vertex.classification != (out.model?1:7) &&
+              (out.model || (out.material->vertex.classification != 8 && out.material->vertex.classification != 9)))
             throw FormatError(
                 "World effect requires particle vertex class" +
                 std::to_string(out.material->vertex.classification));
@@ -415,7 +444,7 @@ struct NativeWorldEffects::Impl {
                             out.movement.back().controllers.end(),
                             [](const auto &v) { return v.type == 1; })) {
               Packet particle(cache, out.render.particle_datum);
-              if (particle.root.u32(0x70) != none) {
+              if (!out.model && particle.root.u32(0x70) != none) {
                 // 2BF380 dispatches an independent sound leaf2490D0 after
                 // bounce arithmetic, then sets the same first-contact bit.
                 // Missing audio must not discard the particle's visual owner.
@@ -432,6 +461,7 @@ struct NativeWorldEffects::Impl {
           }
           event.systems.push_back(std::move(out));
         } catch (const FormatError &e) {
+          d.complete=false;
           unavailable.insert(cache.string_id(locs.u32(0)) + ": " + e.what());
         }
     }
@@ -595,25 +625,28 @@ struct NativeWorldEffects::Impl {
   }
   void begin_parts(Effect &e, Event &event, std::uint64_t t) {
       for (const auto &part : event.definition->parts) {
+        const auto markers=frames(e,part.location);
+        for(const auto &marker:markers) {
         if(part.light!=none){
-          const auto &d=light_definitions.at(part.light);const auto frame=location(part.location,e.frame);
+          const auto &d=light_definitions.at(part.light);const auto frame=basis(marker.forward,marker.up);
           // 17A8A0's world branch calls C0350 with object/node NONE. C0350
           // also always initializes attached-owner+4C to NONE; an effect's
           // transport projectile is not an attached-light owner.
           if(!light_world)light_world=std::make_unique<LightWorld>(cache);
           const auto id=source_standalone_effect_light_create(light_world->pool,light_world->spatial,
             d,part.light,source_effect_part_control(part.light_scale_a,part.light_scale_b,e.frame.scale_a,e.frame.scale_b),
-            e.frame.position,frame.forward,frame.up,light_inputs(t));
+            marker.position,frame.forward,frame.up,light_inputs(t));
           if(id!=none)light_world->deliveries[id&0xffffu]={e.owner,t};
           continue;
         }
         if (part.sound != none) {
-          sounds.push_back({part.sound, e.owner, t, e.frame.position, 1});
+          sounds.push_back({part.sound, e.owner, t, marker.position, 1});
           continue;
         }
         std::set<std::uint32_t> chain;
-        decal(part.decal, e.frame, range(part.radius_low, part.radius_high), t,
+        decal(part.decal, marker, range(part.radius_low, part.radius_high), t,
               chain);
+        }
       }
   }
   void emit(Effect &e, Event &event, float interval, float seconds,
@@ -621,6 +654,8 @@ struct NativeWorldEffects::Impl {
     if (!event.begun) {
       event.begun = true;
       for (const auto &d : event.definition->systems) {
+        const auto markers=frames(e,d.location);
+        for(unsigned marker_index=0;marker_index<markers.size();++marker_index) {
         System s;
         s.definition = &d;
         s.identity = ++identity;
@@ -628,18 +663,21 @@ struct NativeWorldEffects::Impl {
         s.random_b = fraction();
         s.random_location = std::uint8_t(((random() >> 16) * 255u) >> 16);
         s.emitters.resize(d.render.emitters.size());
+        s.marker_index=marker_index;s.frame=markers[marker_index];
         event.systems.push_back(std::move(s));
+        }
       }
     }
     for (auto &s : event.systems) {
+      refresh(e,s);
       const auto &d = *s.definition;
       s.fraction =
           event.duration > 0 ? (event.emitted + interval) / event.duration : 1;
       auto owners = sources(s, t, seconds, e.frame);
       s.values.values.evaluated = 0;
       complete_particle_values(s.values.values, 0x107f0, owners);
-      const ParticleEmitterFrame frame{1, location(d.location, e.frame),
-                                       e.frame.position};
+      const ParticleEmitterFrame frame{1, basis(s.frame.forward,s.frame.up),
+                                       s.frame.position};
       for (unsigned j = 0; j < s.emitters.size(); ++j) {
         auto &emitter = s.emitters[j];
         update_particle_emitter(
@@ -670,6 +708,31 @@ NativeWorldEffects::NativeWorldEffects(const Cache &c,Mesh &m,const CollisionWor
                                       SourceEffectRandom streams)
     :impl_(std::make_unique<Impl>(c,m,w,0,streams)) {}
 NativeWorldEffects::~NativeWorldEffects() = default;
+void NativeWorldEffects::preload_attached(std::uint32_t datum) {
+  if(datum==none)return;
+  if(!impl_->definition(datum).complete) {
+    std::string reason;
+    for(const auto &gap:impl_->unavailable)reason+="; "+gap;
+    throw FormatError("Attached effect graph could not preload every authored particle system: "+std::to_string(datum)+reason);
+  }
+}
+void NativeWorldEffects::object_markers(std::uint32_t handle,ObjectMarkers markers) {
+  if(handle==none)throw FormatError("Attached effect requires a full object handle");
+  for(auto &[name,frames]:markers)for(auto &f:frames)f.scale_a=f.scale_b=0;
+  impl_->object_markers[handle]=std::move(markers);
+}
+void NativeWorldEffects::remove_object(std::uint32_t handle) {
+  impl_->object_markers.erase(handle);
+  for(auto &e:impl_->effects)if(e.target==handle)e.finished=true;
+}
+void NativeWorldEffects::spawn_attached(std::uint32_t datum,std::uint32_t target,
+    std::uint32_t owner,std::uint64_t tick) {
+  if(datum==none || !impl_->object_markers.contains(target))return;
+  preload_attached(datum);
+  spawn(datum,owner,tick,{});
+  auto &e=impl_->effects.back();e.target=target;e.frame.scale_a=e.frame.scale_b=0;
+  e.initial_attached_step=true;
+}
 std::size_t NativeWorldEffects::attach_scenery(const LevelContent &content) {
   std::size_t count{};
   for (unsigned index = 0; index < content.objects.size(); ++index) {
@@ -779,7 +842,8 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
                 i.random_streams.event(e.definition->flags),select_services))e.finished=true;
         }
         for (auto &event : e.events) {
-          for (auto &s : event.systems)
+          for (auto &s : event.systems) {
+            i.refresh(e,s);
             for (unsigned j = 0; j < s.emitters.size(); ++j) {
               auto &emitter = s.emitters[j];
               emitter.previous_particles=emitter.particles;
@@ -862,6 +926,7 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
                       });
               }
             }
+          }
         }
         if(!e.finished) {
           const SourceEffectEventServices services{
@@ -885,8 +950,12 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
               e.clock.flags|=0x44u;
               return false;
             }};
+          //175FA0/179850: attached damage effects with definition bit1
+          //start with a one-second event update; recharge starts at zero.
+          const float interval=e.initial_attached_step?((e.definition->flags&2u)?1.f:0.f):seconds;
+          e.initial_attached_step=false;
           source_effect_event_advance(e.clock,e.definition->clocks,e.definition->loop_start,
-              seconds,i.random_streams.event(e.definition->flags),services);
+              interval,i.random_streams.event(e.definition->flags),services);
         }
       }
     }
@@ -998,7 +1067,11 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
         for (const auto &emitter : s.emitters)
           for (const auto &[identity, current] : emitter.particles) {
             const auto old=emitter.previous_particles.find(identity);
-            const auto p=particle_presentation(old==emitter.previous_particles.end()?nullptr:&old->second,current,fraction);
+            auto p=particle_presentation(old==emitter.previous_particles.end()?nullptr:&old->second,current,fraction);
+            if(a.render.coordinates) {
+              const auto &r=emitter.state.rotation;const auto v=p.position;
+              p.position=emitter.state.position+r.forward*v.x+r.left*v.y+r.up*v.z;
+            }
             if (!bounded) { low = high = p.position; bounded = true; }
             else {
               low = {std::min(low.x,p.position.x),std::min(low.y,p.position.y),std::min(low.z,p.position.z)};
@@ -1044,9 +1117,6 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
             [&](auto, const ParticleSpriteInput &input,
                 ParticleValueCache &cache,
                 const ParticleValueSources &sources) {
-              const auto sprite =
-                  particle_sprite_submission(a.sprite, input, cache, sources,
-                                             *i.cache.shader_function_tables());
               ParticleDraw d;
               d.material = a.material;
               std::copy(a.material->pass.constants[1].begin(),
@@ -1063,7 +1133,17 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
               d.vertex.constants[174] = {1, 0, 0, 0};
               d.vertex.constants[175] = {0, 1, 0, 0};
               d.vertex.constants[176] = {0, 0, 1, 0};
-              d.vertex.attributes = particle_sprite_vertex_attributes(sprite);
+              if(a.model) {
+                if(!sources.particle)throw FormatError("Particle model lost its simulation seed owner");
+                const auto model=particle_model_submission(*a.model,input,sources.particle->random[3],
+                    cache,sources,*i.cache.shader_function_tables());
+                d.model=a.model;d.model_first=model.first;d.model_count=model.count;
+                std::copy(model.transform.begin(),model.transform.end(),d.vertex.attributes.begin()+12);
+                d.vertex.attributes[2]=input.color; //1C330: authored radiance semantic ordinal2.
+              }else {
+                const auto sprite=particle_sprite_submission(a.sprite,input,cache,sources,*i.cache.shader_function_tables());
+                d.vertex.attributes = particle_sprite_vertex_attributes(sprite);
+              }
               d.vertex.clip_range = view.clip_range;
               d.vertex.surface_fog = {float(view.width), float(view.height), 1,
                                       1};

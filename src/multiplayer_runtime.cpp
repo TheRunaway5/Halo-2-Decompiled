@@ -6,6 +6,7 @@
 #include "halo2/audio.hpp"
 #include "halo2/rumble.hpp"
 #include "halo2/world_effects.hpp"
+#include "halo2/unit_damage_audio.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/multiplayer_audio.hpp"
 #include "halo2/source_device_event.hpp"
@@ -511,6 +512,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     std::map<std::uint32_t,AnimationClip> fp_clips;
     std::vector<ObjectAttachmentMarker> muzzle_markers;
     std::map<std::uint32_t,std::vector<ObjectAttachmentMarker>> effect_markers;
+    std::map<std::string,std::vector<ObjectAttachmentMarker>> shield_markers;
     std::uint32_t foot_effects{};
     std::int8_t foot_variant{};
     std::vector<std::vector<ObjectAttachmentMarker>> foot_markers;
@@ -657,7 +659,20 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   const SourceEffectRandom effect_random{visual_event_primary,auxiliary_random};
   NativeMuzzleEffects muzzle_effects(cache,effect_random);
   NativeWorldEffects world_effects(cache,mesh,match.simulation().collision(),effect_random);
-  std::uint64_t world_impact_serial{},world_detonation_serial{};
+  for(auto &[key,v]:species) {
+    const auto &vitality=content.player_representations.at(key.first).biped.vitality;
+    for(const auto effect:{vitality.shield_damaged_effect,vitality.shield_depleted_effect,vitality.shield_recharging_effect})
+      world_effects.preload_attached(effect);
+    const auto mode=cache.load_initial_model_definition(content.player_representations.at(key.first).biped.datum).render_model;
+    const auto metadata=cache.load_source_tag_metadata(mode);
+    const Bytes root(metadata.bytes_at(metadata.source_address(),0x60));
+    const Bytes groups(metadata.bytes_at(root.u32(0x5c),std::size_t(root.u32(0x58))*12));
+    for(unsigned n=0;n<root.u32(0x58);++n) {
+      const auto name=groups.u32(n*12);
+      v.shield_markers.emplace(cache.string_id(name),source_model_markers(metadata,name));
+    }
+  }
+  std::uint64_t world_impact_serial{},world_detonation_serial{},world_unit_effect_serial{},world_voice_serial{};
   bool world_effect_baseline=!client;
   std::set<std::string> reported_world_effect_gaps;
   NativeEffectSounds effect_sounds(cache);
@@ -1040,6 +1055,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     }
     std::cout<<"ONLINE match started with "<<options.online_match->roster().size()<<" real players"<<std::endl;
   }
+  std::unique_ptr<NativeUnitDamageAudio> damage_audio;
+  if(audio)damage_audio=std::make_unique<NativeUnitDamageAudio>(cache,*audio,auxiliary_random);
   MultiplayerState current = client && client->ready() ? client->state() : match.state(), previous = current;
   const auto update_audio_listeners=[&]{
     if(!audio)return;
@@ -1206,6 +1223,100 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       if(cache.original_data()->unit_constructor_tail_constants)
         body_transitions[id].tick(gait[id]->frame().activity,p.native_crouching,locals,*cache.original_data()->unit_constructor_tail_constants);
     }catch(const std::exception&e){gait_unavailable[id]=true;gait[id].reset();std::cerr<<"Native gait/footstep owner: "<<e.what()<<'\n';}
+  };
+  std::optional<std::uint64_t> world_effect_tick;
+  std::set<std::uint32_t> attached_effect_objects;
+  const auto update_world_effects=[&] {
+    std::set<std::uint32_t> present;
+    for(unsigned id=0;id<multiplayer_capacity;++id) {
+      const auto &p=current.players[id];
+      const auto handle=p.dead?p.source_previous_unit:p.source_unit;
+      if(!p.connected || handle==null_datum)continue;
+      const auto &v=species_for(p);
+      std::vector<Transform> nodes;
+      if(current.source_body_poses_authoritative) {
+        const auto found=std::find_if(current.source_body_poses.begin(),current.source_body_poses.end(),
+            [&](const auto &pose){return pose.object==handle;});
+        if(found==current.source_body_poses.end())continue;
+        nodes=found->nodes;
+      }else if(!p.dead) {
+        const float heading=gait[id]?gait[id]->facing():p.yaw;
+        const auto b=authored_basis({heading,0,0});
+        const auto root=source_object_transform(p.position,b.forward,b.up,1,false);
+        if(gait[id] && v.body_animation && !reference_player) {
+          auto locals=compose_native_body(p,gait[id]->frame(),double(current.tick),
+              std::remainder(p.yaw-heading,6.283185307179586f));
+          body_transitions[id].apply(locals,1);
+          nodes=pose_model_locals_nodes_world(v.player.model,root,locals);
+        }else nodes=pose_model_nodes_world(v.player.model,root,v.player.idle?&*v.player.idle:nullptr,
+            float(current.tick)*tick_seconds);
+      }else if(attached_effect_objects.contains(handle)) {
+        // Retain the last completed node bank until the corpse gets its actual
+        // source pose or its full handle disappears; do not bind a new unit.
+        present.insert(handle);continue;
+      }
+      if(nodes.empty())continue;
+      NativeWorldEffects::ObjectMarkers markers;
+      const auto append=[&](const std::string &name,const Transform &t) {
+        markers[name].push_back({t.position,t.basis[2],t.basis[0],t.basis[0],t.basis[2],false,0,0});
+      };
+      for(const auto &[name,authored]:v.shield_markers)
+        for(const auto &marker:pose_model_markers(authored,nodes))append(name,marker.world);
+      //178360 grants only literal root a node-zero fallback. Missing body,
+      //head or shield_recharge markers never receive a fabricated location.
+      if(!markers.contains("root"))append("root",nodes.front());
+      world_effects.object_markers(handle,std::move(markers));present.insert(handle);
+    }
+    for(const auto handle:attached_effect_objects)if(!present.contains(handle))world_effects.remove_object(handle);
+    attached_effect_objects=std::move(present);
+    if(!world_effect_baseline){
+      if(!current.bullet_impacts.empty())world_impact_serial=current.bullet_impacts.back().serial;
+      if(!current.grenade_detonations.empty())world_detonation_serial=current.grenade_detonations.back().serial;
+      if(!current.unit_damage_effects.empty())world_unit_effect_serial=current.unit_damage_effects.back().serial;
+      world_effect_baseline=true;
+    }
+    for(const auto&event:current.bullet_impacts)if(event.serial>world_impact_serial){
+      world_impact_serial=event.serial;
+      try{world_effects.impact(event);}catch(const FormatError&error){
+        if(reported_world_effect_gaps.insert(error.what()).second)std::cerr<<"Authored impact visual: "<<error.what()<<'\n';
+      }
+    }
+    for(const auto&event:current.grenade_detonations)if(event.serial>world_detonation_serial){
+      world_detonation_serial=event.serial;
+      try{world_effects.spawn(event.effect,event.projectile,event.tick,
+          {event.position,event.up,event.forward,event.forward,event.up,false});}catch(const FormatError&error){
+        if(reported_world_effect_gaps.insert(error.what()).second)std::cerr<<"Authored grenade visual: "<<error.what()<<'\n';
+      }
+    }
+    for(const auto &event:current.unit_damage_effects)if(event.serial>world_unit_effect_serial) {
+      world_unit_effect_serial=event.serial;
+      world_effects.spawn_attached(event.effect.datum,event.target,event.owner.unit,event.tick);
+    }
+    if(damage_audio) {
+      damage_audio->advance(current.tick);
+      if(!world_effect_tick && !current.unit_damage_voices.empty())world_voice_serial=current.unit_damage_voices.back().serial;
+      for(const auto &event:current.unit_damage_voices)if(event.serial>world_voice_serial) {
+        world_voice_serial=event.serial;
+        const auto target=std::find_if(current.players.begin(),current.players.end(),[&](const auto &p) {
+          return p.connected && (p.source_unit==event.target || p.source_previous_unit==event.target);
+        });
+        if(target!=current.players.end())damage_audio->damage(biped_for(*target),event);
+      }
+      for(unsigned view=0;view<ids.size();++view) {
+        const auto &p=current.players[ids[view]];
+        damage_audio->hud(view,p.source_unit,p.dead || !p.connected,p.health,p.shield,
+            biped_for(p).vitality.shield,p.shield_recharging,multiplayer_representation(p.source_configuration)==3);
+      }
+    }
+    world_effects.advance(current.tick,tick_seconds);
+    for(const auto &sound:world_effects.take_sounds())
+      if(audio)try{audio->impulse_at(sound.sound,sound.position,sound.gain,
+          MultiplayerAudioKind::Impulse,sound.owner);}
+      catch(const FormatError &error){
+        if(reported_world_effect_gaps.insert(error.what()).second)
+          std::cerr<<"Authored world effect audio: "<<error.what()<<'\n';
+      }
+    world_effect_tick=current.tick;
   };
   std::array<ObjectLightingCache,multiplayer_capacity> object_light_cache;
   std::array<ShadowCasterSphere,multiplayer_capacity> object_owner_spheres;
@@ -1728,6 +1839,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             if(previous.tick && current.tick-previous.tick!=1)gait[id].reset();
             update_native_gait(id);
           }
+          update_world_effects();
           if(!local_definitions.empty())
             for(unsigned view=0;view<ids.size();++view) {
               const auto &fp_definition=species_for(current.players[ids[view]]).fp_definition;
@@ -1876,6 +1988,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         update_sensors();
         for(unsigned id=0;id<multiplayer_capacity;++id)
           if(current.players[id].connected)update_native_gait(id);
+        update_world_effects();
         synchronize_zoom();
         update_aim(current,1);
         if (host)
@@ -1977,32 +2090,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     hud_vertices.clear();
     for(auto *banks:{&worlds,&foregrounds,&backgrounds,&reflection_backgrounds})
       for(auto &vertices:*banks)vertices.clear();
-    if(!world_effect_baseline){
-      if(!current.bullet_impacts.empty())world_impact_serial=current.bullet_impacts.back().serial;
-      if(!current.grenade_detonations.empty())world_detonation_serial=current.grenade_detonations.back().serial;
-      world_effect_baseline=true;
-    }
-    for(const auto&event:current.bullet_impacts)if(event.serial>world_impact_serial){
-      world_impact_serial=event.serial;
-      try{world_effects.impact(event);}catch(const FormatError&error){
-        if(reported_world_effect_gaps.insert(error.what()).second)std::cerr<<"Authored impact visual: "<<error.what()<<'\n';
-      }
-    }
-    for(const auto&event:current.grenade_detonations)if(event.serial>world_detonation_serial){
-      world_detonation_serial=event.serial;
-      try{world_effects.spawn(event.effect,event.projectile,event.tick,
-          {event.position,event.up,event.forward,event.forward,event.up,false});}catch(const FormatError&error){
-        if(reported_world_effect_gaps.insert(error.what()).second)std::cerr<<"Authored grenade visual: "<<error.what()<<'\n';
-      }
-    }
-    world_effects.advance(current.tick,tick_seconds);
-    for(const auto &sound:world_effects.take_sounds())
-      if(audio)try{audio->impulse_at(sound.sound,sound.position,sound.gain,
-          MultiplayerAudioKind::Impulse,sound.owner);}
-      catch(const FormatError &error){
-        if(reported_world_effect_gaps.insert(error.what()).second)
-          std::cerr<<"Authored world effect audio: "<<error.what()<<'\n';
-      }
+    if(!world_effect_tick || *world_effect_tick!=current.tick)update_world_effects();
     const auto world_decals=world_effects.decals(current.tick,animation_blend,tick_seconds);
     for(const auto&gap:world_effects.diagnostics().unavailable)
       if(reported_world_effect_gaps.insert(gap).second)std::cerr<<"World effect boundary: "<<gap<<'\n';
@@ -2519,6 +2607,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         effects_view.clip_range={0,16777215.f,depth.minimum_w,depth.maximum_w};
         effects_view.width=drawable_w;effects_view.height=drawable_h;
         world_particles[i]=world_effects.draw(effects_view,blend,tick_seconds);
+        if(options.effect_observer)options.effect_observer(i,current.tick,world_particles[i]);
       }
       auto &bindings=light_bindings[i];
       //3DFE0 deduplicates an actual query, not a visit by an earlier view.
@@ -2821,7 +2910,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           if(options.animation_observer)options.animation_observer(i,j,
               {current.tick,a.source_unit,a.source_weapon,body_clip?body_clip->source_graph:player.model.animation,
                 body_clip?body_clip->source_index:null_datum,animation_blend,body_source_frame.value_or(float(body_tick)),false,
-                same_body && pose_tick!=double(current.tick),posed_body});
+                same_body && pose_tick!=double(current.tick),posed_body,null_datum,0,{},body_nodes});
           if(direct_pose) {
             player.shaders->append_selected(world,posed_body,collector,*object_view.shader,body.player_materials[j]);
             if(!a.dead)body_gun.shaders->append_selected(world,posed_gun,collector,*object_view.shader,body_gun_materials[j*2]);

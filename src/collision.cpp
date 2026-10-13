@@ -242,6 +242,9 @@ void CollisionWorld::move(Body &b, float dt) const {
     const auto support =
         raycast(b.position + Vec3{0, 0, .001f}, {0, 0, -1}, .006f);
     if (support && support->normal.z >= b.maximum_slope_cosine) {
+      // This is also an admitted support contact, even without triangle
+      // penetration. Preserve its incoming speed for the native landing owner.
+      b.landing_speed=std::max(b.landing_speed,-b.velocity.z);
       b.grounded = true;
       b.support_normal = support->normal;
       b.support_triangle = support->triangle;

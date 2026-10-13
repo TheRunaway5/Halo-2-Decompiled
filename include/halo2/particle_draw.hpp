@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/particle_material.hpp"
+#include "halo2/particle_model.hpp"
 
 namespace halo2 {
 // Completed original draw state. Emission/simulation and 23E460 camera/fog
@@ -22,5 +23,7 @@ struct ParticleDraw {
   // Live world-location collector's negative camera depth (175EA0/1E4C0).
   // Captured diagnostic submissions can retain their explicit boundary.
   std::optional<float> scene_sort_depth;
+  std::shared_ptr<const ParticleModelDefinition> model;
+  unsigned model_first{},model_count{};
 };
 } // namespace halo2

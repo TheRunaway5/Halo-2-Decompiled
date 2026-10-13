@@ -166,6 +166,7 @@ struct MultiplayerState {
       int ammunition_available{}; // Authoritative104CF0 inventory read for FP reload pose.
     } secondary_weapon;
     DamageFeedbackState damage_feedback;
+    bool shield_recharging{};
     SourceWeaponShaderState weapon_shader;
     int ammunition_available{};
   };
@@ -204,6 +205,7 @@ struct MultiplayerState {
   std::vector<NativeGrenadeDetonation> grenade_detonations;
   std::vector<BulletImpact> bullet_impacts;
   std::vector<UnitDamageEffectEvent> unit_damage_effects;
+  std::vector<UnitDamageVoiceEvent> unit_damage_voices;
   std::vector<WorldWeaponPresentation> world_weapons;
   std::vector<WorldVehiclePresentation> world_vehicles;
   std::vector<NativeWeaponProjectile> weapon_projectiles;

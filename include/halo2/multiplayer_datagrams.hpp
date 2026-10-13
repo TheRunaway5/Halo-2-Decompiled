@@ -11,7 +11,7 @@ namespace halo2 {
 //40 carries the original round selector used by the limit-one HUD query.
 //43 admits the original ally-trade, seat and vehicle-flip prompt kinds.
 //45 carries completed source WORLD body poses and their retained spheres.
-inline constexpr unsigned native_multiplayer_protocol = 50;
+inline constexpr unsigned native_multiplayer_protocol = 51;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {
