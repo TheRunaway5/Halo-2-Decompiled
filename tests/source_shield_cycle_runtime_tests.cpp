@@ -147,20 +147,21 @@ int main(int argc,char **argv)try {
   }
   for(unsigned n=0;n<30;++n){controls={};step();}
   const auto final_tick=match.state().tick;
+  const unsigned capture_victim=stage.starts_with("elite")?1:0;
+  const auto capture_limit=stage=="full"?final_tick:
+      stage.ends_with("pop")?pop_tick[capture_victim]+1:charge_tick[capture_victim]+10;
   {std::ofstream timeline(output/"timeline.tsv");timeline<<"species\tpop\trecharge\tdeath\n";
     for(unsigned v=0;v<2;++v)timeline<<(v?"elite":"spartan")<<'\t'<<pop_tick[v]<<'\t'<<charge_tick[v]<<'\t'<<death_tick[v]<<'\n';}
   options.input_script=output/"shield-cycle-controls.tsv";
   {std::ofstream script(options.input_script);script<<std::setprecision(9);
-    for(unsigned tick=0;tick<plan.size();++tick)for(unsigned p=0;p<2;++p) {
+    for(unsigned tick=0;tick<capture_limit;++tick)for(unsigned p=0;p<2;++p) {
       const auto &c=plan[tick][p];script<<tick<<' '<<p<<' '<<c.fire<<' '<<c.reload
           <<" 0 "<<c.yaw<<' '<<c.pitch<<" move "<<c.forward<<' '<<c.right<<'\n';
     }
   }
   options.prepared_world.reset();options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
   auto &live=options.prepared_world->match;
-  options.frames=0;options.capture_tick=final_tick;options.reference_tick_cadence=true;
-  const unsigned capture_victim=stage.starts_with("elite")?1:0;
-  if(stage!="full")options.capture_tick=stage.ends_with("pop")?pop_tick[capture_victim]+1:charge_tick[capture_victim]+10;
+  options.frames=0;options.capture_tick=capture_limit;options.reference_tick_cadence=true;
   options.screenshot=output/(stage+".ppm");
   std::array<std::array<unsigned,2>,2> model_draws{},pop_draws{},perpendicular{};
   std::array<bool,2> popped{},charged{},dead{};

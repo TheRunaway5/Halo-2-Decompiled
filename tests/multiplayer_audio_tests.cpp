@@ -72,6 +72,14 @@ void shield_recharge_fade(const Cache &cache) {
   std::cout<<"PASS Elite recharge loop retains its actual 100ms fade and retires to silence\n";
 }
 void player_damage_audio(const Cache &cache,const LevelContent &content) {
+  DamageVoiceState state;std::uint32_t selection_random=0x5821b36d;
+  UnitDamageVoiceEvent selection{};selection.report_flags=1;
+  check(select_player_damage_voice(state,selection,1,false,0,0,selection_random,false)==1 &&
+      select_player_damage_voice(state,selection,1,false,0,0,selection_random,true)==0,
+      "Original options mode4 falling-voice branch was replaced by a game-type gate");
+  selection.report_flags=0x21;
+  check(!select_player_damage_voice(state,selection,0,false,0,0,selection_random),
+      "CA0B0 suppressed damage report still requested a voice");
   for(unsigned species=0;species<2;++species) {
     std::uint32_t random=0;
     while(float((random*1664525u+1013904223u)>>16)*(1.f/65535.f)<.6667f)++random;

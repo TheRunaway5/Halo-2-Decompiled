@@ -681,7 +681,7 @@ void Simulation::damage(Unit &unit, const WeaponDefinition &w, const DamageOwner
     ++unit.zoom_reset_serial;
   }
   report_damage_feedback(unit.damage_feedback,result.body,result.shield,result.report_flags);
-  if(result.body>0 || result.shield>0 || (result.report_flags&1)) {
+  if(!(result.report_flags&0x20u) && (result.body>0 || result.shield>0 || (result.report_flags&1))) {
     unit_damage_voices_.push_back({++unit_damage_voice_serial_,ticks_+1,unit.source_datum,w.damage,
         result.report_flags,unit.body.position,unit.damage_feedback.body.accumulated,
         unit.damage_feedback.shield.visible,unit.damage_feedback.body.visible});

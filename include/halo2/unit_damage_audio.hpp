@@ -15,7 +15,7 @@ void advance_damage_voice_state(DamageVoiceState &);
 // dialogue and campaign suppression have separate owners.
 std::optional<unsigned> select_player_damage_voice(DamageVoiceState &,
     const UnitDamageVoiceEvent &,int damage_type,bool special,float first_limit,
-    float second_limit,std::uint32_t &random,bool multiplayer=true);
+    float second_limit,std::uint32_t &random,bool source_mode_four=false);
 class NativeUnitDamageAudio {
 public:
   NativeUnitDamageAudio(const Cache &,MultiplayerAudio &,std::uint32_t &random);

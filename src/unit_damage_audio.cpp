@@ -29,13 +29,14 @@ void advance_damage_voice_state(DamageVoiceState &s) {
 }
 std::optional<unsigned> select_player_damage_voice(DamageVoiceState &s,
     const UnitDamageVoiceEvent &e,int type,bool special,float first,float second,
-    std::uint32_t &random,bool multiplayer) {
+    std::uint32_t &random,bool source_mode_four) {
+  if(e.report_flags&0x20u)return {}; //CA0B0 suppresses the request before1147E0.
   const bool hard=e.report_flags&1u;
   bool outside=false;unsigned selection{};
   if(hard) {
     const bool strong=e.recent_body>e.visible_body+.2f;
     if(type==7 || special)selection=3;
-    else if(type==1)selection=multiplayer?1:0;
+    else if(type==1)selection=source_mode_four?0:1; //1147E0 tests options+0C, not game type+08.
     else if(type==3 || type==4 || type==9)selection=2;
     else if(!strong && type==6)selection=5;
     else selection=(e.report_flags&0x40u)?4:0;
@@ -160,7 +161,8 @@ void NativeUnitDamageAudio::hud(unsigned view,std::uint32_t unit,bool dead,float
     if(entry.mask&mask) {
       const bool active=std::any_of(voices.begin(),voices.end(),[&](auto id){return i.audio.voice_active(id);});
       if(ref.group==0x736e6421u && (!active || !h.playing[n])) {
-        for(const auto id:voices)i.audio.stop_voice(id);voices.clear();
+        for(const auto id:voices)i.audio.stop_voice(id);
+        voices.clear();
         if(const auto id=i.audio.play_impulse(ref.tag,entry.control,MultiplayerAudioKind::Shield,unit,view))voices.push_back(*id);
       }else if(ref.group==0x6c736e64u && voices.empty() && ref.tag!=none)
         voices=i.audio.interface_loop(ref.tag,unit,view);
