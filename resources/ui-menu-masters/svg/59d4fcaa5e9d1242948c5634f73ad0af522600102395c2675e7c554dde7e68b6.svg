@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="524" height="124" viewBox="0 0 131 31" version="1.1">
+  <title>Vista ui\screens\game_shell\xbox_live\voice_mail_record\done page 1: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="voice-control-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.8" />
+    </filter>
+    <clipPath id="control-inset">
+      <path d="M15 4 H120 V23 L117 26 H11 V8 Z" />
+    </clipPath>
+    <pattern id="control-engraving" patternUnits="userSpaceOnUse" width="1" height="4" x="0" y="0">
+      <rect width="1" height="2.0" fill="#c9dbf9" fill-opacity="0.3686274509803922" />
+      <rect y="2.0" width="1" height="2.0" fill="#c9dbf9" fill-opacity="0.2627450980392157" />
+    </pattern>
+    <filter id="voice-inset-light" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+  </defs>
+  <g id="voice-control">
+    <path d="M12 3 H121 L124 6 V11 L121 14.5 L124 18 V24 L121 27 H12 L7 22 V18 L10 14.5 L7 11 V7 Z" fill="none" stroke="#2e9aff" stroke-width="5" filter="url(#voice-control-glow)" />
+    <path d="M15 4 H120 V23 L117 26 H11 V8 Z" fill="url(#control-engraving)" />
+    <path d="M15 4 H120 V23 L117 26 H11 V8 Z" fill="none" stroke="#2e9aff" stroke-width="3.5" filter="url(#voice-inset-light)" clip-path="url(#control-inset)" />
+    <path d="M12 3 H121 L124 6 V11 L121 14.5 L124 18 V24 L121 27 H12 L7 22 V18 L10 14.5 L7 11 V7 Z M15 4 H120 V23 L117 26 H11 V8 Z" fill="#ffffff" fill-rule="evenodd" />
+    <path d="M2 10 L8 14.5 L2 19 Z M129 10 L123 14.5 L129 19 Z" fill="white" />
+  </g>
+</svg>

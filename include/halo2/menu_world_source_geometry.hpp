@@ -7,7 +7,10 @@
 namespace halo2 {
 // Local resource identity, independent of a material or a selected runtime view.
 enum class MenuWorldSourceSectionKind { bsp_cluster, bsp_instance_definition, render_model };
-enum class MenuWorldSourceFormat { float32x3, float32x2, snorm16x3, snorm16x2, packed_signed_11_11_10 };
+enum class MenuWorldSourceFormat {
+  float32x3, float32x2, snorm16x3, snorm16x2, packed_signed_11_11_10,
+  unorm8x1, unorm8x2, unorm8x3, unorm8x4
+};
 enum class MenuWorldSourceTopology { triangle_list, triangle_strip };
 struct MenuWorldSourceResource {
   std::uint16_t type{}, channel{};
@@ -49,6 +52,9 @@ public:
   // fields retain their file values: no relocation or count reconstruction.
   // Model header equivalence is unproved, so model sections return empty.
   std::span<const std::byte> raw_header() const { return raw_header_; }
+  // Model allocations retain their independently consumed range header in a
+  // separate bank. It must not acquire the BSP-only raw_header() contract.
+  std::span<const std::byte> raw_model_header() const { return model_raw_header_; }
   std::span<const std::uint16_t> part_indices(unsigned part) const;
 private:
   friend class MenuWorldSourceSectionBuilder;
@@ -65,11 +71,14 @@ private:
   std::vector<std::uint16_t> indices_;
   std::vector<std::uint8_t> node_map_;
   std::vector<std::byte> raw_header_;
+  std::vector<std::byte> model_raw_header_;
 };
 MenuWorldSourceSection load_menu_world_source_bsp_section(const Cache &, std::size_t bsp,
     MenuWorldSourceSectionKind, unsigned section);
 // Actual mode datum and actual selected section; objects/variants/LOD are not chosen.
-// Only the proved rigid class1, descriptor types1/2/24/25/27 path is admitted.
+// Rigid, rigid-boned and skinned resources retain their original interleaved
+// position/index/weight bytes. Shader-class selection and palette production
+// remain separate; loading skin streams does not admit a GPU consumer.
 MenuWorldSourceSection load_menu_world_source_model_section(const Cache &,
     std::uint32_t render_model, unsigned section);
 struct MenuWorldSourceBspOwner {

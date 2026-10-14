@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/cache.hpp"
 #include "halo2/source_object_view.hpp"
+#include "halo2/source_scene_effect_owner.hpp"
 #include <memory>
 #include <functional>
 
@@ -50,6 +51,8 @@ public:
     SourcePropScene(const SourcePropScene &)=delete;
     SourcePropScene &operator=(const SourcePropScene &)=delete;
     void synchronize(const SceneObjects &);
+    // Observe completed authority/client region choices without re-running RNG.
+    void region_state(std::function<const SourceInitialModelSelection *(std::uint32_t)>);
     void interpolate(const SceneObjects &,const class SceneInterpolation &,float fraction);
     //BDEF0 may consume a cached regular sphere or a successful1D44F0
     //physics override. The source physics/cache producer owns that decision,
@@ -60,6 +63,7 @@ public:
     //Production pose/banks only; append_view evaluates the original cache
     //cadence for each admitted view. update retains diagnostic behavior.
     void update_pose(std::int32_t render_frame,Mesh &);
+    std::vector<SourceSceneEffectOwner> effect_owners() const;
     void append(std::vector<Vertex> &,std::vector<ObjectLightingBinding> &) const;
     //Uses each source player's retained LOD byte and explicit camera/flag
     //inputs. Empty exact collectors emit no geometry or lighting bindings.

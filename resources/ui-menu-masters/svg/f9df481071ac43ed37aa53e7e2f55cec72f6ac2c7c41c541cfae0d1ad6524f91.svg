@@ -1,0 +1,138 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="4096" height="2606" viewBox="0 0 2048 1303" version="1.1">
+  <title>Vista ui\global_bitmaps\framing_center page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="upper-band-bounds">
+      <path d="M0 70 H1055 L1080 95 H1132 L1107 122 H0 Z" fill-rule="evenodd" clip-rule="evenodd" />
+    </clipPath>
+    <linearGradient id="upper-blue" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="1132" y2="0">
+      <stop offset="0" stop-color="#054f96" stop-opacity="1" />
+      <stop offset="1" stop-color="#2f7cb8" stop-opacity="1" />
+    </linearGradient>
+    <pattern id="upper-short-engraving" patternUnits="userSpaceOnUse" x="394" y="112" width="10.5" height="6">
+      <rect width="5.3" height="6" fill="#193d64" opacity="0.065" />
+    </pattern>
+    <linearGradient id="upper-short-engraving-fade" gradientUnits="userSpaceOnUse" x1="394" y1="0" x2="1108" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.015" stop-color="white" stop-opacity="1" />
+      <stop offset="0.985" stop-color="white" stop-opacity="1" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <mask id="upper-short-engraving-envelope" maskUnits="userSpaceOnUse" x="394" y="112" width="714" height="6">
+      <rect x="394" y="112" width="714" height="6" fill="url(#upper-short-engraving-fade)" />
+    </mask>
+    <pattern id="upper-tall-engraving" patternUnits="userSpaceOnUse" x="782" y="95" width="24" height="22">
+      <rect width="14" height="22" fill="#193d64" opacity="0.08" />
+    </pattern>
+    <linearGradient id="upper-tall-engraving-fade" gradientUnits="userSpaceOnUse" x1="782" y1="0" x2="1108" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.015" stop-color="white" stop-opacity="1" />
+      <stop offset="0.985" stop-color="white" stop-opacity="1" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <mask id="upper-tall-engraving-envelope" maskUnits="userSpaceOnUse" x="782" y="95" width="326" height="22">
+      <rect x="782" y="95" width="326" height="22" fill="url(#upper-tall-engraving-fade)" />
+    </mask>
+    <linearGradient id="upper-circuit-0" gradientUnits="userSpaceOnUse" x1="0" y1="104.5" x2="0" y2="117.5">
+      <stop offset="0" stop-color="#b0e2fa" stop-opacity="0.2" />
+      <stop offset="1" stop-color="#b0e2fa" stop-opacity="0.235" />
+    </linearGradient>
+    <clipPath id="lower-band-bounds">
+      <path d="M548 1093 H977 L1010 1060 H2048 V1134 H1250 L1228 1112 H566 Z" fill-rule="evenodd" clip-rule="evenodd" />
+    </clipPath>
+    <linearGradient id="lower-blue" gradientUnits="userSpaceOnUse" x1="1010" y1="0" x2="2048" y2="0">
+      <stop offset="0" stop-color="#2166a6" stop-opacity="1" />
+      <stop offset="1" stop-color="#024d94" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient id="lower-wide-face" gradientUnits="userSpaceOnUse" x1="1150" x2="1300" y1="0" y2="0">
+      <stop offset="0" stop-color="#1c6aae" />
+      <stop offset="1" stop-color="#1866ab" />
+    </linearGradient>
+    <linearGradient id="lower-right-face" gradientUnits="userSpaceOnUse" x1="1440" x2="1560" y1="0" y2="0">
+      <stop offset="0" stop-color="#1165ad" />
+      <stop offset="1" stop-color="#0d63aa" />
+    </linearGradient>
+    <linearGradient id="lower-overlap-face" gradientUnits="userSpaceOnUse" x1="1240" x2="1360" y1="0" y2="0">
+      <stop offset="0" stop-color="#1a72b8" />
+      <stop offset="1" stop-color="#166fb6" />
+    </linearGradient>
+    <pattern id="lower-short-engraving" patternUnits="userSpaceOnUse" x="710" y="1094" width="10.5" height="11">
+      <rect width="5.3" height="11" fill="#193d64" opacity="0.065" />
+    </pattern>
+    <linearGradient id="lower-short-engraving-fade" gradientUnits="userSpaceOnUse" x1="710" y1="0" x2="1002" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.015" stop-color="white" stop-opacity="1" />
+      <stop offset="0.985" stop-color="white" stop-opacity="1" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <mask id="lower-short-engraving-envelope" maskUnits="userSpaceOnUse" x="710" y="1094" width="292" height="11">
+      <rect x="710" y="1094" width="292" height="11" fill="url(#lower-short-engraving-fade)" />
+    </mask>
+    <pattern id="lower-tall-engraving" patternUnits="userSpaceOnUse" x="981" y="1072" width="10.5" height="33">
+      <rect width="5.3" height="33" fill="#193d64" opacity="0.065" />
+    </pattern>
+    <linearGradient id="lower-tall-engraving-fade" gradientUnits="userSpaceOnUse" x1="981" y1="0" x2="1118" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.015" stop-color="white" stop-opacity="1" />
+      <stop offset="0.985" stop-color="white" stop-opacity="1" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <mask id="lower-tall-engraving-envelope" maskUnits="userSpaceOnUse" x="981" y="1072" width="137" height="33">
+      <rect x="981" y="1072" width="137" height="33" fill="url(#lower-tall-engraving-fade)" />
+    </mask>
+    <linearGradient id="lower-circuit-0" gradientUnits="userSpaceOnUse" x1="0" y1="1095.7" x2="0" y2="1106.2">
+      <stop offset="0" stop-color="#b0e2fa" stop-opacity="0.1" />
+      <stop offset="1" stop-color="#b0e2fa" stop-opacity="0.163" />
+    </linearGradient>
+    <clipPath id="outside-central-paint">
+      <path d="M0 0 H2048 V1303 H0 Z M0 122 H1107 L1144 84 H2048 V1060 H1010 L977 1092.67 H0 Z M0 70 H1055 L1080 95 H1132 L1107 122 H0 Z M548 1093 H977 L1010 1060 H2048 V1134 H1250 L1228 1112 H566 Z" fill-rule="evenodd" clip-rule="evenodd" />
+    </clipPath>
+    <filter id="central-edge-light" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="13" />
+    </filter>
+    <clipPath id="central-band-light">
+      <path d="M0 70 H1055 L1080 95 H1132 L1107 122 H0 Z M548 1093 H977 L1010 1060 H2048 V1134 H1250 L1228 1112 H566 Z" fill-rule="evenodd" clip-rule="evenodd" />
+    </clipPath>
+    <linearGradient id="central-band-reflection" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="2048" y2="0">
+      <stop offset="0" stop-color="#2e84c4" stop-opacity="1" />
+      <stop offset="0.54" stop-color="#4a98cf" stop-opacity="1" />
+      <stop offset="1" stop-color="#2e84c4" stop-opacity="1" />
+    </linearGradient>
+  </defs>
+  <path id="outer-field" d="M0 0 H2048 V1303 H0 Z M0 122 H1107 L1144 84 H2048 V1060 H1010 L977 1092.67 H0 Z M0 70 H1055 L1080 95 H1132 L1107 122 H0 Z M548 1093 H977 L1010 1060 H2048 V1134 H1250 L1228 1112 H566 Z" fill="#09152a" fill-opacity="0.42745098039215684" fill-rule="evenodd" />
+  <g id="upper-band" clip-path="url(#upper-band-bounds)" opacity="0.7490196078431373">
+    <path d="M0 70 H1055 L1080 95 H1132 L1107 122 H0 Z" fill="url(#upper-blue)" />
+    <path d="M294 122 L326 88 H632 L652 108 L640 122 Z" fill="#174878" opacity="0.13" />
+    <path d="M640 122 L688 70 H900 L884 88 H696 L664 122 Z" fill="#174878" opacity="0.13" />
+    <path d="M856 122 L900 70 H976 L1020 122 Z" fill="#174878" opacity="0.13" />
+    <rect x="394" y="112" width="714" height="6" fill="url(#upper-short-engraving)" mask="url(#upper-short-engraving-envelope)" />
+    <rect x="782" y="95" width="326" height="22" fill="url(#upper-tall-engraving)" mask="url(#upper-tall-engraving-envelope)" />
+    <path d="M507.5 122 L512 117.5 H870.5 L883.5 104.5 H1106.5 L1124 122" fill="none" stroke="url(#upper-circuit-0)" stroke-width="1.4" stroke-opacity="1" />
+    <path d="M908.3 70 L938.5 100.2 H1135" fill="none" stroke="#b0e2fa" stroke-width="1.4" stroke-opacity="0.24" />
+    <path d="M0 70 H1055 L1080 95 H1132" fill="none" stroke="#6cafe9" stroke-width="2" stroke-opacity="0.8" />
+  </g>
+  <g id="lower-band" clip-path="url(#lower-band-bounds)" opacity="0.7490196078431373">
+    <path d="M548 1093 H977 L1010 1060 H2048 V1134 H1250 L1228 1112 H566 Z" fill="url(#lower-blue)" />
+    <path d="M694 1093 H730 L744 1112 H708 Z" fill="#4293c0" opacity="0.24" />
+    <path d="M1152 1060 H1412 L1346 1126 H1086 Z" fill="url(#lower-wide-face)" />
+    <path d="M1199 1060 H1619 L1563.25 1115.75 H1427.75 L1405 1093 H1232 Z" fill="url(#lower-right-face)" />
+    <path d="M1199 1060 H1412 L1379 1093 H1232 Z" fill="url(#lower-overlap-face)" />
+    <rect x="710" y="1094" width="292" height="11" fill="url(#lower-short-engraving)" mask="url(#lower-short-engraving-envelope)" />
+    <rect x="981" y="1072" width="137" height="33" fill="url(#lower-tall-engraving)" mask="url(#lower-tall-engraving-envelope)" />
+    <path d="M689 1093 L702.2 1106.2 H1082.7 L1093.2 1095.7 H1157.5 L1174 1112" fill="none" stroke="url(#lower-circuit-0)" stroke-width="1.4" stroke-opacity="1" />
+    <path d="M548 1101.5 H1001.5 L1037.5 1065.5 H1185.5 L1191 1060" fill="none" stroke="#b0e2fa" stroke-width="1.4" stroke-opacity="0.185" />
+    <path d="M548 1093 L566 1112 H1228 L1250 1134 H2048" fill="none" stroke="#4087cb" stroke-width="2" stroke-opacity="0.8" />
+  </g>
+  <g clip-path="url(#outside-central-paint)">
+    <path d="M0 122 H1107 L1144 84 H2048 V1060 H1010 L977 1092.67 H0 Z" fill="none" stroke="#2e567c" stroke-width="20" stroke-opacity="0.52" filter="url(#central-edge-light)" />
+  </g>
+  <g clip-path="url(#central-band-light)">
+    <path d="M0 122 H1107 L1144 84 H2048 V1060 H1010 L977 1092.67 H0 Z" fill="none" stroke="url(#central-band-reflection)" stroke-width="20" stroke-opacity="0.6" filter="url(#central-edge-light)" />
+  </g>
+  <g id="central-window" opacity="0.9490196078431372">
+    <path d="M0 122 H1107 L1144 84 H2048 V1060 H1010 L977 1092.67 H0 Z" fill="#09152a" />
+    <path d="M0 122 H1107 L1144 84 H2048 M977 1092.67 L1010 1060 H2048" fill="none" stroke="#3e9ffa" stroke-width="2" />
+    <path d="M0 1092.67 H977" fill="none" stroke="#3e9ffa" stroke-width="2.67" />
+  </g>
+</svg>

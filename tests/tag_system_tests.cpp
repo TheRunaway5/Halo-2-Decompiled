@@ -136,8 +136,25 @@ int main() {
         rejects([&] { weapon.data(32); });
         rejects([&] { weapon.data(40); });
         rejects([&] { weapon.read(64,1); });
-        rejects([&] { tags.read(0x100fff,2); });
-        rejects([&] { tags.read(0x100000,std::numeric_limits<std::size_t>::max()); });
+        rejects([&] { tags.read_source(0x100fff,2); });
+        rejects([&] { tags.read_source(0x100000,std::numeric_limits<std::size_t>::max()); });
+        check(weapon.address().value>0xffffffffull && weapon.source_address()==0x100000,
+              "Native tag address was truncated to the serialized address width");
+        check(Bytes(tags.read(weapon.address(),4)).u32(0)==2 &&
+              tags.source_address(weapon.address(),64)==0x100000,
+              "64-bit tag owner mapping changed the original bytes/address");
+        check(block.element(0).address().value>0xffffffffull &&
+              block.element(1).address().value==block.element(0).address().value+4 &&
+              block.element(0).source_address()==0x100100,"Nested block retained 32-bit engine addresses");
+        rejects([&] { tags.read(NativeTagAddress{0x100000},4); });
+        rejects([&] { tags.read(NativeTagAddress{std::numeric_limits<std::uint64_t>::max()},2); });
+        {
+            TagSystem other(std::make_shared<const Cache>(path));
+            const auto foreign=other.get({0xe0000000u}).address();
+            check(foreign!=weapon.address(),"Independent native owners aliased their address identity");
+            rejects([&] { tags.read(foreign,4); });
+            rejects([&] { tags.source_address(foreign,4); });
+        }
         check(weapon.block(48,4).size()==0 && weapon.data(48).empty(),"Empty descriptors must ignore their pointer");
         check(Bytes(weapon.data(8)).u32(0)==0xdecafbad,"Data reference read");
         check(tags.resolve(weapon.reference(16))->info().datum==0xe1000001u,"Tag reference resolution");

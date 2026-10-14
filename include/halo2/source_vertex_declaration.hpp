@@ -8,7 +8,7 @@ namespace halo2 {
 // Literal vrtx class+8 semantic IDs. Original1C330 assigns a vertex register
 // by ordinal in this list; a shader's name does not determine that register.
 enum class SourceVertexSemantic : std::uint16_t {
-    Position=0, UV=3, Normal=4, Tangent=5, Binormal=6, Incident=8,
+    Position=0, BlendIndices=1, BlendWeights=2, UV=3, Normal=4, Tangent=5, Binormal=6, Incident=8,
     LightmapUV=9, Radiance=14, PrtCluster=19, PrtWeights=20
 };
 struct SourceVertexDeclaration {

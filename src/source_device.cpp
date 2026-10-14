@@ -78,7 +78,7 @@ SourceMachineDefinition Cache::load_source_machine_definition(std::uint32_t datu
     return load_source_device_pose_definition(datum);
 }
 SourceMachineDefinition Cache::load_source_device_pose_definition(std::uint32_t datum)const {
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto tag_root=[&](std::uint32_t id,const char*group,std::size_t size){
         const auto t=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
         if(!t)throw FormatError("source machine tag missing");
@@ -87,12 +87,15 @@ SourceMachineDefinition Cache::load_source_device_pose_definition(std::uint32_t 
     const auto tag=query_tag({.handle=TagHandle{datum}});
     if(!tag || (tag->group!="mach" && tag->group!="ctrl"))
         throw FormatError("source device pose requires mach or ctrl");
-    const auto p=tag_root(datum,tag->group.c_str(),0x120);
+    const auto p=tag_root(datum,tag->group.c_str(),tag->group=="mach"?0x124:0x120);
     SourceMachineDefinition result;
     result.name=query_tag({.handle=TagHandle{datum}})->name;
     if(data.u16(p)!=(tag->group=="mach"?7:8))throw FormatError("source device object type mismatch");
     result.model=data.u32(p+0x38);
-    if(tag->group=="mach") {result.type=data.u16(p+0x11c);result.machine_flags=data.u16(p+0x11e);}
+    if(tag->group=="mach") {
+        result.type=data.u16(p+0x11c);result.machine_flags=data.u16(p+0x11e);
+        result.door={data.f32(p+0x118),data.f32(p+0x120)};
+    }
     result.object_flags=data.u16(p+2);
     result.powered_position_rate=data.f32(p+0xc8);result.unpowered_position_rate=data.f32(p+0xd0);
     result.initialized_idle=load_initialized_object_idle(datum);
@@ -159,7 +162,7 @@ SourceMachineDefinition Cache::load_source_device_pose_definition(std::uint32_t 
     result.position=selected(0x08000080u);result.power=selected(0x05000081u);return result;
 }
 SourceMachinePlacement Cache::load_source_machine_placement(unsigned ordinal)const {
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto tag=query_tag({.group=tag_groups::scenario, .require_address=true});
     if(!tag)throw FormatError("source machine scenario missing");
     const auto s=metadata_offset(tag->address,0xb0);const auto count=data.u32(s+0xa8);

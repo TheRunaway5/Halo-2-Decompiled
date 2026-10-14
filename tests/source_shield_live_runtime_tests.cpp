@@ -3,12 +3,16 @@
 #include "halo2/native_player_profile.hpp"
 #include "halo2/math.hpp"
 #include "halo2/model_selection.hpp"
+#include "halo2/model.hpp"
 #include <SDL.h>
+#include <bit>
 #include <fstream>
 #include <iostream>
 #include <limits>
 #include <iomanip>
+#include <map>
 #include <set>
+#include <tuple>
 
 using namespace halo2;
 namespace {
@@ -18,6 +22,36 @@ void aim(Controls &control,const Unit &shooter,const Unit &target) {
   const auto delta=target.body.position+Vec3{0,0,target.body.height*.5f}-eye(shooter);
   control.yaw=std::atan2(delta.y,delta.x);
   control.pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));
+}
+using SurfaceVertex=std::tuple<std::uint32_t,std::uint32_t,std::array<std::uint32_t,3>>;
+SurfaceVertex surface_vertex(const Vertex &v) {
+  return {v.source_section,v.source_part,{std::bit_cast<std::uint32_t>(v.source_local_position.x),
+      std::bit_cast<std::uint32_t>(v.source_local_position.y),std::bit_cast<std::uint32_t>(v.source_local_position.z)}};
+}
+// Classify the actual authored skin, including every descendant of l_hand /
+// r_hand. The shield observer must receive forearms, palms and finger geometry;
+// merely seeing a nonempty first-person draw would miss a hand-only omission.
+std::map<SurfaceVertex,unsigned> first_person_surfaces(const Cache &cache,std::uint32_t datum) {
+  const auto model=cache.load_model(datum,false);
+  std::vector<unsigned> masks(model.bones.size());
+  for(unsigned i=0;i<model.bones.size();++i) {
+    const auto name=cache.string_id(model.bones[i].name);
+    if(name=="l_upperarm" || name=="l_forearm")masks[i]|=1;
+    if(name=="r_upperarm" || name=="r_forearm")masks[i]|=2;
+    for(int node=int(i);node>=0;node=model.bones.at(node).parent) {
+      const auto ancestor=cache.string_id(model.bones.at(node).name);
+      if(ancestor=="l_hand")masks[i]|=4|(node!=int(i)?16:0);
+      if(ancestor=="r_hand")masks[i]|=8|(node!=int(i)?32:0);
+    }
+  }
+  check(model.skin.size()==model.mesh.vertices.size(),"First-person authored skin coverage missing");
+  std::map<SurfaceVertex,unsigned> result;
+  for(unsigned i=0;i<model.skin.size();++i) {
+    const auto &skin=model.skin[i];unsigned mask=0;
+    for(unsigned n=0;n<4;++n)if(skin.weights[n]>0)mask|=masks.at(skin.bones[n]);
+    result[surface_vertex(model.mesh.vertices[i])]|=mask;
+  }
+  return result;
 }
 }
 int main(int argc,char **argv)try {
@@ -40,12 +74,15 @@ int main(int argc,char **argv)try {
   // firing line. Placement is an explicit offline input before object birth;
   // no unit position, health, shield, readiness or feedback is ever assigned.
   std::array<std::uint32_t,2> hands_models{},body_models{};
+  std::array<std::map<SurfaceVertex,unsigned>,2> fp_surfaces;
+  std::array<bool,2> reported_fp_surfaces{};
   {
     Cache cache(options.map,options.shared_maps,OriginalData::load_xbe(options.gameplay_xbe));
     const auto content=cache.load_content(0,true);
     for(unsigned player=0;player<2;++player) {
       const auto &representation=content.player_representations.at(player?3:2);
       hands_models[player]=representation.hands;
+      fp_surfaces[player]=first_person_surfaces(cache,representation.hands);
       body_models[player]=cache.load_initial_model_definition(representation.biped.datum).render_model;
     }
     CollisionWorld collision(content.collision);
@@ -99,6 +136,21 @@ int main(int argc,char **argv)try {
   check(length(match.unit(0).body.position-match.unit(1).body.position)>1,"Actual initial spawns overlap");
   std::ofstream report(output/"live-layers.tsv");
   report<<"stage\ttick\tplayer\thealth\tshield\trecent\tworld_vertices\tfp_vertices\n";
+  const auto check_fp_surfaces=[&](unsigned owner,std::span<const Vertex> vertices) {
+    std::array<unsigned,6> counts{};
+    for(const auto &vertex:vertices) {
+      const auto found=fp_surfaces.at(owner).find(surface_vertex(vertex));
+      check(found!=fp_surfaces.at(owner).end(),"FP shield submitted geometry outside its authored arms/hands model");
+      for(unsigned n=0;n<counts.size();++n)if(found->second&(1u<<n))++counts[n];
+    }
+    for(const auto count:counts)check(count>0,"FP shield omitted an arm, hand or finger skin branch");
+    if(!reported_fp_surfaces[owner]) {
+      std::cout<<"PASS "<<(owner?"Elite":"Spartan")<<" FP shield skin: left_arm="<<counts[0]
+          <<" right_arm="<<counts[1]<<" left_hand="<<counts[2]<<" right_hand="<<counts[3]
+          <<" left_fingers="<<counts[4]<<" right_fingers="<<counts[5]<<'\n';
+      reported_fp_surfaces[owner]=true;
+    }
+  };
   const auto capture=[&](const char *name,std::optional<unsigned> damaged) {
     std::array<std::size_t,2> world{},fp{};
     std::array<std::set<unsigned>,2> materials;
@@ -111,7 +163,10 @@ int main(int argc,char **argv)try {
           definition.shield_damaged_shader),"Actual layer selected a different owner's authored shader");
       check(render_model==(first_person?hands_models[owner]:body_models[owner]),
           "Shield layer escaped its owned arms/body model onto held-weapon geometry");
-      if(first_person)check(view==owner,"First-person shield is in another player's view");
+      if(first_person) {
+        check(view==owner,"First-person shield is in another player's view");
+        check_fp_surfaces(owner,vertices);
+      }
       (first_person?fp[owner]:world[owner])+=vertices.size();
       for(const auto &vertex:vertices) {
         check(std::isfinite(vertex.position.x) && std::isfinite(vertex.position.y) &&
@@ -186,7 +241,10 @@ int main(int argc,char **argv)try {
           "Continuous renderer lost authored shield identity");
       check(render_model==(fp?hands_models[owner]:body_models[owner]),
           "Continuous shield escaped its owned arms/body model onto held-weapon geometry");
-      if(fp)check(view==owner,"Continuous FP shield belongs to another view");
+      if(fp) {
+        check(view==owner,"Continuous FP shield belongs to another view");
+        check_fp_surfaces(owner,vertices);
+      }
       if(state.tick==options.capture_tick)(fp?final_fp[owner]:final_world[owner])+=vertices.size();
     };
     check(run_multiplayer(options)==0,"Continuous native shield rendering failed");

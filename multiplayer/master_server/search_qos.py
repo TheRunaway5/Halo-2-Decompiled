@@ -15,6 +15,7 @@ import time
 
 from aiohttp import web, WSMsgType
 from .protocol import fields, parse, require
+from .couch_players import NATIVE_GATHERING
 
 
 @dataclass
@@ -79,6 +80,7 @@ class SearchQos:
                     self.samples.pop(pair, None)
 
     def ready(self, player):
+        player = self.api.connection_owner(player)
         peer = self.peers.get(player)
         return (peer is not None and not peer.socket.closed and
                 self.api.sessions.get(peer.key) is peer.session and peer.session.expires > self.api.clock())
@@ -87,6 +89,9 @@ class SearchQos:
         self.cleanup()
         if not self.ready(a) or not self.ready(b) or self.api.ticket(a) is None or self.api.ticket(b) is None:
             return None
+        a, b = self.api.connection_owner(a), self.api.connection_owner(b)
+        if a == b:
+            return Measurement(0, self.clock() + self.lease)
         value = self.measurements.get(tuple(sorted((a, b))))
         return value if value and value.expires > self.clock() else None
 
@@ -97,6 +102,10 @@ class SearchQos:
         active = {p.id for t in self.api.core.tickets.values() for p in t.players}
         if a == b or not set(pair) <= active or not all(self.ready(p) for p in pair):
             return
+        a, b = self.api.connection_owner(a), self.api.connection_owner(b)
+        if a == b:
+            return
+        pair = tuple(sorted((a, b)))
         if pair in self.probes or pair in self.measurements:
             return True
         # A busy gathering host cannot allocate unbounded queues or challenges.
@@ -175,7 +184,7 @@ class SearchQos:
 
     async def connect(self, request):
         key, session = self.api.session(request)
-        require(session.compatibility == "halo2-native-queue-v8", "Update Halo 2 for gathering QoS", 409)
+        require(session.compatibility in NATIVE_GATHERING, "Update Halo 2 for gathering QoS", 409)
         require(session.player not in self.peers, "Search connection already open", 409)
         socket = web.WebSocketResponse(max_msg_size=256, compress=False, autoping=True)
         await socket.prepare(request)

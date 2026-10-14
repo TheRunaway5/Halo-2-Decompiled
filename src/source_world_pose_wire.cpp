@@ -6,7 +6,7 @@
 
 namespace halo2 {
 namespace {
-constexpr unsigned maximum_bodies=16;
+constexpr unsigned maximum_bodies=2048; // Actual object header pool capacity.
 // WORLD descriptor+114 is a signed byte size and each matrix occupies34h.
 constexpr unsigned maximum_nodes=0x7fff/0x34;
 void validate(bool authoritative,std::span<const SourceWorldPose> poses,
@@ -37,7 +37,7 @@ std::vector<std::byte> encode_source_world_poses(bool authoritative,
     const auto put=[&](std::uint32_t v,unsigned n){for(unsigned i=0;i<n;++i)result.push_back(std::byte(v>>(8*i)));};
     const auto scalar=[&](float f){put(std::bit_cast<std::uint32_t>(f),4);};
     const auto vector=[&](Vec3 v){scalar(v.x);scalar(v.y);scalar(v.z);};
-    put(authoritative,1);put(unsigned(poses.size()),1);
+    put(authoritative,1);put(unsigned(poses.size()),2);
     for(const auto &pose:poses) {
         put(pose.object,4);put(unsigned(pose.nodes.size()),2);
         vector(pose.sphere.center);scalar(pose.sphere.radius);
@@ -57,7 +57,7 @@ SourceWorldPoseBank decode_source_world_poses(std::span<const std::byte> bytes,
     };
     const auto scalar=[&]{return std::bit_cast<float>(get(4));};
     const auto vector=[&]{return Vec3{scalar(),scalar(),scalar()};};
-    const auto authoritative=get(1),count=get(1);
+    const auto authoritative=get(1),count=get(2);
     if(authoritative>1 || count>maximum_bodies)throw FormatError("Invalid native source WORLD pose header");
     bank.authoritative=authoritative;
     for(unsigned n=0;n<count;++n) {

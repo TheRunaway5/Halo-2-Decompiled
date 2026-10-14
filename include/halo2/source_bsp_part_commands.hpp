@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/source_bsp_ranges.hpp"
 #include "halo2/source_shader_lod.hpp"
+#include "halo2/source_model_palette.hpp"
 #include <functional>
 
 namespace halo2 {
@@ -24,6 +25,13 @@ struct SourceBspCommandShader {
     SourceShaderLodDefinition lod;
     std::vector<std::uint32_t> layers; // Actual10-byte template LOD+2.
 };
+struct SourceModelCommandGeometry {
+    SourceBspCommandGeometry geometry;
+    std::vector<SourceBspCommandMaterial> materials;
+    SourceModelPalette palette; // Actual current1D6A0 cache palette.
+    std::uint16_t model_flags{};
+    std::int16_t rigid_node=-1; // Actual selected mode section+2C.
+};
 struct SourceBspPartCommandWorld {
     std::span<const SourceBspCommandGeometry> clusters,definitions;
     std::span<const std::int16_t> instance_definitions;
@@ -31,6 +39,9 @@ struct SourceBspPartCommandWorld {
     std::span<const std::byte> material_visibility; // Actual4ED280 allocation.
     std::int16_t bsp_selector{}; // Actual4686C4 signed-short selector.
     std::function<const SourceBspCommandShader&(std::uint32_t)> shader;
+    // Current449E0/model-material/1D6A0 results, supplied only after genuine
+    // native resource admission and pose production. Absence is unresolved.
+    std::function<const SourceModelCommandGeometry&(const SourceCullDrawUnit&)> model;
 };
 struct SourceBspPartCommandState {
     std::array<SourcePartCommandBank,3> banks; // Actual4C1A48,+18,+30.
@@ -62,8 +73,10 @@ std::uint32_t source_part_commands_begin(SourceBspPartCommandState&,
     std::uint32_t mode,std::uint32_t selector);
 // Project whole44AC0→45CE0/460D0→41040/40E30/3B9D0 onto the secondary
 // command/special-unit banks. Existing commands and untouched bytes survive.
-// Main mode0, dynamic model geometry and dynamic MTPR/prt3 shader services
-// require their actual owners; this BSP-only entry rejects consumed branches.
+// Main mode0 and dynamic MTPR/prt3 shader services
+// require their actual owners; this entry rejects unowned consumed branches.
+// Ordinary model sections use the same secondary projection through the
+// explicit model bank. Unconsumed45CE0 outputs are not claimed as live state.
 //40E90 resets/41C80 object queues and final opaque sorting are separate owners.
 void source_bsp_append_part_commands(SourceBspPartCommandState&,
     std::span<const SourceCullDrawUnit>,const SourceBspRangeArena&,

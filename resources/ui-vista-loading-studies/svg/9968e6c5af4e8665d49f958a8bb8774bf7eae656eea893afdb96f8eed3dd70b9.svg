@@ -1,0 +1,215 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="4096" height="128" viewBox="0 0 2048 64" version="1.1">
+  <title>Vista executable\loading\10 page 0: authored menu vectors</title>
+  <desc>Unfinished hand-authored Vista loading-marker study: shared vector tick bodies, measured cadences and grouped gaps. No source pixel row, raster mask, font substitution or per-pixel geometry.</desc>
+  <defs>
+    <filter id="tick-optical-softness" filterUnits="userSpaceOnUse" x="-4" y="-4" width="2056" height="72" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation=".80 .45" />
+    </filter>
+    <linearGradient id="tick-edge-colour" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="23.8" y2="25.3">
+      <stop offset="0" stop-color="#0204fa" />
+      <stop offset="1" stop-color="#314d9c" />
+    </linearGradient>
+  </defs>
+  <g id="tick-runs" fill="url(#tick-edge-colour)" opacity="0.1843137254901961" filter="url(#tick-optical-softness)">
+    <g id="tick-run-0">
+      <rect x="315.85" y="24.55" width="3.9" height="6.18" />
+      <rect x="323.6967432950192" y="24.55" width="3.9" height="6.18" />
+      <rect x="331.54348659003836" y="24.55" width="3.9" height="6.18" />
+      <rect x="339.3902298850575" y="24.55" width="3.9" height="6.18" />
+      <rect x="347.23697318007663" y="24.55" width="3.9" height="6.18" />
+      <rect x="355.0837164750958" y="24.55" width="3.9" height="6.18" />
+      <rect x="362.93045977011496" y="24.55" width="3.9" height="6.18" />
+      <rect x="370.77720306513413" y="24.55" width="3.9" height="6.18" />
+      <rect x="378.6239463601533" y="24.55" width="3.9" height="6.18" />
+      <rect x="386.4706896551724" y="24.55" width="3.9" height="6.18" />
+      <rect x="394.3174329501916" y="24.55" width="3.9" height="6.18" />
+      <rect x="402.16417624521074" y="24.55" width="3.9" height="6.18" />
+      <rect x="410.0109195402299" y="24.55" width="3.9" height="6.18" />
+      <rect x="417.8576628352491" y="24.55" width="3.9" height="6.18" />
+      <rect x="425.7044061302682" y="24.55" width="3.9" height="6.18" />
+      <rect x="433.5511494252874" y="24.55" width="3.9" height="6.18" />
+      <rect x="441.3978927203065" y="24.55" width="3.9" height="6.18" />
+      <rect x="449.2446360153257" y="24.55" width="3.9" height="6.18" />
+      <rect x="457.09137931034485" y="24.55" width="3.9" height="6.18" />
+      <rect x="464.93812260536396" y="24.55" width="3.9" height="6.18" />
+      <rect x="472.7848659003832" y="24.55" width="3.9" height="6.18" />
+      <rect x="480.6316091954023" y="24.55" width="3.9" height="6.18" />
+      <rect x="488.47835249042146" y="24.55" width="3.9" height="6.18" />
+      <rect x="496.3250957854406" y="24.55" width="3.9" height="6.18" />
+      <rect x="504.1718390804598" y="24.55" width="3.9" height="6.18" />
+      <rect x="512.0185823754789" y="24.55" width="3.9" height="6.18" />
+      <rect x="519.865325670498" y="24.55" width="3.9" height="6.18" />
+      <rect x="527.7120689655172" y="24.55" width="3.9" height="6.18" />
+      <rect x="535.5588122605363" y="24.55" width="3.9" height="6.18" />
+      <rect x="543.4055555555556" y="24.55" width="3.9" height="6.18" />
+      <rect x="551.2522988505747" y="24.55" width="3.9" height="6.18" />
+      <rect x="559.0990421455938" y="24.55" width="3.9" height="6.18" />
+      <rect x="566.945785440613" y="24.55" width="3.9" height="6.18" />
+      <rect x="574.7925287356321" y="24.55" width="3.9" height="6.18" />
+      <rect x="582.6392720306512" y="24.55" width="3.9" height="6.18" />
+      <rect x="590.4860153256705" y="24.55" width="3.9" height="6.18" />
+      <rect x="598.3327586206897" y="24.55" width="3.9" height="6.18" />
+      <rect x="606.1795019157088" y="24.55" width="3.9" height="6.18" />
+      <rect x="614.0262452107279" y="24.55" width="3.9" height="6.18" />
+      <rect x="621.8729885057471" y="24.55" width="3.9" height="6.18" />
+      <rect x="629.7197318007662" y="24.55" width="3.9" height="6.18" />
+      <rect x="637.5664750957853" y="24.55" width="3.9" height="6.18" />
+      <rect x="645.4132183908046" y="24.55" width="3.9" height="6.18" />
+      <rect x="653.2599616858238" y="24.55" width="3.9" height="6.18" />
+      <rect x="661.1067049808428" y="24.55" width="3.9" height="6.18" />
+      <rect x="668.953448275862" y="24.55" width="3.9" height="6.18" />
+      <rect x="676.8001915708812" y="24.55" width="3.9" height="6.18" />
+      <rect x="684.6469348659003" y="24.55" width="3.9" height="6.18" />
+      <rect x="692.4936781609194" y="24.55" width="3.9" height="6.18" />
+      <rect x="700.3404214559387" y="24.55" width="3.9" height="6.18" />
+      <rect x="708.1871647509578" y="24.55" width="3.9" height="6.18" />
+      <rect x="716.0339080459769" y="24.55" width="3.9" height="6.18" />
+      <rect x="723.8806513409961" y="24.55" width="3.9" height="6.18" />
+      <rect x="731.7273946360153" y="24.55" width="3.9" height="6.18" />
+      <rect x="739.5741379310344" y="24.55" width="3.9" height="6.18" />
+      <rect x="747.4208812260536" y="24.55" width="3.9" height="6.18" />
+      <rect x="755.2676245210728" y="24.55" width="3.9" height="6.18" />
+      <rect x="763.1143678160919" y="24.55" width="3.9" height="6.18" />
+      <rect x="770.961111111111" y="24.55" width="3.9" height="6.18" />
+      <rect x="778.8078544061302" y="24.55" width="3.9" height="6.18" />
+      <rect x="786.6545977011494" y="24.55" width="3.9" height="6.18" />
+      <rect x="794.5013409961686" y="24.55" width="3.9" height="6.18" />
+      <rect x="802.3480842911877" y="24.55" width="3.9" height="6.18" />
+      <rect x="810.1948275862069" y="24.55" width="3.9" height="6.18" />
+      <rect x="818.041570881226" y="24.55" width="3.9" height="6.18" />
+      <rect x="825.8883141762451" y="24.55" width="3.9" height="6.18" />
+      <rect x="833.7350574712643" y="24.55" width="3.9" height="6.18" />
+      <rect x="841.5818007662835" y="24.55" width="3.9" height="6.18" />
+      <rect x="849.4285440613025" y="24.55" width="3.9" height="6.18" />
+      <rect x="857.2752873563218" y="24.55" width="3.9" height="6.18" />
+      <rect x="865.122030651341" y="24.55" width="3.9" height="6.18" />
+      <rect x="872.96877394636" y="24.55" width="3.9" height="6.18" />
+      <rect x="880.8155172413792" y="24.55" width="3.9" height="6.18" />
+      <rect x="888.6622605363984" y="24.55" width="3.9" height="6.18" />
+      <rect x="896.5090038314177" y="24.55" width="3.9" height="6.18" />
+      <rect x="904.3557471264367" y="24.55" width="3.9" height="6.18" />
+      <rect x="912.2024904214559" y="24.55" width="3.9" height="6.18" />
+      <rect x="920.0492337164751" y="24.55" width="3.9" height="6.18" />
+      <rect x="927.8959770114941" y="24.55" width="3.9" height="6.18" />
+      <rect x="935.7427203065133" y="24.55" width="3.9" height="6.18" />
+      <rect x="943.5894636015325" y="24.55" width="3.9" height="6.18" />
+      <rect x="951.4362068965518" y="24.55" width="3.9" height="6.18" />
+      <rect x="959.2829501915708" y="24.55" width="3.9" height="6.18" />
+      <rect x="967.12969348659" y="24.55" width="3.9" height="6.18" />
+      <rect x="974.9764367816092" y="24.55" width="3.9" height="6.18" />
+      <rect x="982.8231800766282" y="24.55" width="3.9" height="6.18" />
+    </g>
+    <g id="tick-run-1">
+      <rect x="1031.86" y="24.55" width="3.9" height="6.18" />
+      <rect x="1039.7067432950191" y="24.55" width="3.9" height="6.18" />
+      <rect x="1047.5534865900381" y="24.55" width="3.9" height="6.18" />
+      <rect x="1055.4002298850573" y="24.55" width="3.9" height="6.18" />
+      <rect x="1063.2469731800766" y="24.55" width="3.9" height="6.18" />
+      <rect x="1071.0937164750958" y="24.55" width="3.9" height="6.18" />
+      <rect x="1078.9404597701148" y="24.55" width="3.9" height="6.18" />
+      <rect x="1086.787203065134" y="24.55" width="3.9" height="6.18" />
+      <rect x="1094.6339463601532" y="24.55" width="3.9" height="6.18" />
+      <rect x="1102.4806896551722" y="24.55" width="3.9" height="6.18" />
+      <rect x="1110.3274329501915" y="24.55" width="3.9" height="6.18" />
+      <rect x="1118.1741762452107" y="24.55" width="3.9" height="6.18" />
+      <rect x="1126.0209195402297" y="24.55" width="3.9" height="6.18" />
+      <rect x="1133.867662835249" y="24.55" width="3.9" height="6.18" />
+      <rect x="1141.7144061302681" y="24.55" width="3.9" height="6.18" />
+      <rect x="1149.5611494252873" y="24.55" width="3.9" height="6.18" />
+      <rect x="1157.4078927203063" y="24.55" width="3.9" height="6.18" />
+      <rect x="1165.2546360153256" y="24.55" width="3.9" height="6.18" />
+      <rect x="1173.1013793103448" y="24.55" width="3.9" height="6.18" />
+      <rect x="1180.9481226053638" y="24.55" width="3.9" height="6.18" />
+      <rect x="1188.794865900383" y="24.55" width="3.9" height="6.18" />
+      <rect x="1196.6416091954022" y="24.55" width="3.9" height="6.18" />
+      <rect x="1204.4883524904214" y="24.55" width="3.9" height="6.18" />
+      <rect x="1212.3350957854404" y="24.55" width="3.9" height="6.18" />
+    </g>
+    <g id="tick-run-2">
+      <rect x="1247.6499999999999" y="24.55" width="3.9" height="6.18" />
+      <rect x="1255.496743295019" y="24.55" width="3.9" height="6.18" />
+      <rect x="1263.343486590038" y="24.55" width="3.9" height="6.18" />
+      <rect x="1271.1902298850573" y="24.55" width="3.9" height="6.18" />
+      <rect x="1279.0369731800765" y="24.55" width="3.9" height="6.18" />
+      <rect x="1286.8837164750958" y="24.55" width="3.9" height="6.18" />
+      <rect x="1294.7304597701147" y="24.55" width="3.9" height="6.18" />
+      <rect x="1302.577203065134" y="24.55" width="3.9" height="6.18" />
+      <rect x="1310.4239463601532" y="24.55" width="3.9" height="6.18" />
+      <rect x="1318.2706896551722" y="24.55" width="3.9" height="6.18" />
+      <rect x="1326.1174329501914" y="24.55" width="3.9" height="6.18" />
+      <rect x="1333.9641762452106" y="24.55" width="3.9" height="6.18" />
+      <rect x="1341.8109195402296" y="24.55" width="3.9" height="6.18" />
+      <rect x="1349.6576628352489" y="24.55" width="3.9" height="6.18" />
+      <rect x="1357.504406130268" y="24.55" width="3.9" height="6.18" />
+      <rect x="1365.3511494252873" y="24.55" width="3.9" height="6.18" />
+      <rect x="1373.1978927203063" y="24.55" width="3.9" height="6.18" />
+      <rect x="1381.0446360153255" y="24.55" width="3.9" height="6.18" />
+      <rect x="1388.8913793103447" y="24.55" width="3.9" height="6.18" />
+      <rect x="1396.7381226053637" y="24.55" width="3.9" height="6.18" />
+      <rect x="1404.584865900383" y="24.55" width="3.9" height="6.18" />
+      <rect x="1412.4316091954022" y="24.55" width="3.9" height="6.18" />
+      <rect x="1420.2783524904214" y="24.55" width="3.9" height="6.18" />
+      <rect x="1428.1250957854404" y="24.55" width="3.9" height="6.18" />
+      <rect x="1435.9718390804596" y="24.55" width="3.9" height="6.18" />
+      <rect x="1443.8185823754789" y="24.55" width="3.9" height="6.18" />
+      <rect x="1451.6653256704979" y="24.55" width="3.9" height="6.18" />
+      <rect x="1459.512068965517" y="24.55" width="3.9" height="6.18" />
+      <rect x="1467.3588122605363" y="24.55" width="3.9" height="6.18" />
+      <rect x="1475.2055555555555" y="24.55" width="3.9" height="6.18" />
+      <rect x="1483.0522988505745" y="24.55" width="3.9" height="6.18" />
+    </g>
+    <g id="tick-run-3">
+      <rect x="1567.3899999999999" y="24.55" width="3.9" height="6.18" />
+      <rect x="1575.236743295019" y="24.55" width="3.9" height="6.18" />
+      <rect x="1583.083486590038" y="24.55" width="3.9" height="6.18" />
+      <rect x="1590.9302298850573" y="24.55" width="3.9" height="6.18" />
+      <rect x="1598.7769731800765" y="24.55" width="3.9" height="6.18" />
+      <rect x="1606.6237164750958" y="24.55" width="3.9" height="6.18" />
+      <rect x="1614.4704597701148" y="24.55" width="3.9" height="6.18" />
+      <rect x="1622.317203065134" y="24.55" width="3.9" height="6.18" />
+      <rect x="1630.1639463601532" y="24.55" width="3.9" height="6.18" />
+      <rect x="1638.0106896551722" y="24.55" width="3.9" height="6.18" />
+      <rect x="1645.8574329501914" y="24.55" width="3.9" height="6.18" />
+    </g>
+    <g id="tick-run-4">
+      <rect x="1692.93" y="24.55" width="3.9" height="6.18" />
+      <rect x="1700.7767432950193" y="24.55" width="3.9" height="6.18" />
+    </g>
+    <g id="tick-run-5">
+      <rect x="1740.03" y="24.55" width="3.9" height="6.18" />
+      <rect x="1747.8767432950192" y="24.55" width="3.9" height="6.18" />
+    </g>
+    <g id="tick-run-6">
+      <rect x="1796.9199999999998" y="24.55" width="3.9" height="6.18" />
+      <rect x="1804.766743295019" y="24.55" width="3.9" height="6.18" />
+      <rect x="1812.613486590038" y="24.55" width="3.9" height="6.18" />
+      <rect x="1820.4602298850573" y="24.55" width="3.9" height="6.18" />
+      <rect x="1828.3069731800765" y="24.55" width="3.9" height="6.18" />
+      <rect x="1836.1537164750957" y="24.55" width="3.9" height="6.18" />
+      <rect x="1844.0004597701147" y="24.55" width="3.9" height="6.18" />
+      <rect x="1851.847203065134" y="24.55" width="3.9" height="6.18" />
+      <rect x="1859.6939463601532" y="24.55" width="3.9" height="6.18" />
+      <rect x="1867.5406896551722" y="24.55" width="3.9" height="6.18" />
+      <rect x="1875.3874329501914" y="24.55" width="3.9" height="6.18" />
+      <rect x="1883.2341762452106" y="24.55" width="3.9" height="6.18" />
+      <rect x="1891.0809195402296" y="24.55" width="3.9" height="6.18" />
+      <rect x="1898.9276628352488" y="24.55" width="3.9" height="6.18" />
+      <rect x="1906.774406130268" y="24.55" width="3.9" height="6.18" />
+      <rect x="1914.6211494252873" y="24.55" width="3.9" height="6.18" />
+      <rect x="1922.4678927203063" y="24.55" width="3.9" height="6.18" />
+      <rect x="1930.3146360153255" y="24.55" width="3.9" height="6.18" />
+      <rect x="1938.1613793103447" y="24.55" width="3.9" height="6.18" />
+      <rect x="1946.0081226053637" y="24.55" width="3.9" height="6.18" />
+      <rect x="1953.854865900383" y="24.55" width="3.9" height="6.18" />
+      <rect x="1961.7016091954022" y="24.55" width="3.9" height="6.18" />
+      <rect x="1969.5483524904214" y="24.55" width="3.9" height="6.18" />
+      <rect x="1977.3950957854404" y="24.55" width="3.9" height="6.18" />
+      <rect x="1985.2418390804596" y="24.55" width="3.9" height="6.18" />
+    </g>
+    <g id="tick-run-7">
+      <rect x="2016.61" y="24.55" width="3.9" height="6.18" />
+      <rect x="2024.4567432950191" y="24.55" width="3.9" height="6.18" />
+    </g>
+  </g>
+</svg>

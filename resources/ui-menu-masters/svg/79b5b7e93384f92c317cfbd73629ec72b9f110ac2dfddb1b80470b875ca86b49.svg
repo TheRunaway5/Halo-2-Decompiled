@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3072" height="2014" viewBox="0 0 1536 1007" version="1.1">
+  <title>Vista ui\screens\game_shell\network_squad_browser_screen\list_frame page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="frame-metal" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="1007">
+      <stop offset="0" stop-color="#cde2f6" />
+      <stop offset="0.5" stop-color="#adc3d8" />
+      <stop offset="1" stop-color="#adc3d8" />
+    </linearGradient>
+    <filter id="frame-blue-light" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5" />
+    </filter>
+  </defs>
+  <g id="chrome-frame">
+    <path d="M40 120 L52 108 H100 L110 118 H74 L67 125 V148 Z" fill="#4195e2" stroke="#4195e2" stroke-width="4" opacity="0.35" filter="url(#frame-blue-light)" fill-rule="evenodd" />
+    <path d="M40 120 L52 108 H100 L110 118 H74 L67 125 V148 Z" fill="url(#frame-metal)" fill-rule="evenodd" opacity="0.6" />
+    <path d="M1384 118 L1394 108 H1462 L1500 146 L1480 166 V148 L1454 122 H1384 Z" fill="#4195e2" stroke="#4195e2" stroke-width="4" opacity="0.35" filter="url(#frame-blue-light)" fill-rule="evenodd" />
+    <path d="M1384 118 L1394 108 H1462 L1500 146 L1480 166 V148 L1454 122 H1384 Z" fill="url(#frame-metal)" fill-rule="evenodd" opacity="0.6" />
+    <path d="M67 596 L39 624 V674 L47 682 V760 L67 782 L100 750 H264 L269 744 H75 L67 735 Z" fill="#4195e2" stroke="#4195e2" stroke-width="4" opacity="0.35" filter="url(#frame-blue-light)" fill-rule="evenodd" />
+    <path d="M67 596 L39 624 V674 L47 682 V760 L67 782 L100 750 H264 L269 744 H75 L67 735 Z" fill="url(#frame-metal)" fill-rule="evenodd" opacity="0.6" />
+    <path d="M67 735 V126 M76 120 H1385 M100 747 H264" fill="none" stroke="#4195e2" stroke-width="8" opacity="0.35" filter="url(#frame-blue-light)" />
+    <path d="M67 735 V126 M76 120 H1385 M100 747 H264" fill="none" stroke="url(#frame-metal)" stroke-width="4" opacity="0.6" />
+  </g>
+</svg>

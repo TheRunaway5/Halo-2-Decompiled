@@ -1,8 +1,12 @@
 #include "halo2/source_runtime_host_physical_memory.hpp"
+#include "halo2/source_runtime_write_protection.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <stdexcept>
 #include <system_error>
+#include <memory>
+#include <mutex>
+#include <set>
 #if defined(__linux__)
 #include <sys/mman.h>
 #include <unistd.h>
@@ -14,6 +18,15 @@ constexpr std::uint32_t page = 0x1000;
 [[noreturn]] void unsupported() {
   throw std::runtime_error("Required original physical-memory request adapter unavailable");
 }
+struct PhysicalProtection {
+  std::mutex mutex;
+  std::set<std::uint32_t> read_only;
+};
+std::mutex physical_protection_mutex;
+std::map<const SourceRuntimeHostPhysicalMemory *,std::shared_ptr<PhysicalProtection>> physical_protections;
+std::shared_ptr<PhysicalProtection> protection_of(const SourceRuntimeHostPhysicalMemory *owner) {
+  std::lock_guard lock(physical_protection_mutex);return physical_protections.at(owner);
+}
 }
 SourceRuntimeHostPhysicalMemory::SourceRuntimeHostPhysicalMemory(SourceRuntimeMemory &memory)
     : memory_(memory) {
@@ -23,8 +36,25 @@ SourceRuntimeHostPhysicalMemory::SourceRuntimeHostPhysicalMemory(SourceRuntimeMe
 #else
   unsupported();
 #endif
+  auto state=std::make_shared<PhysicalProtection>();
+  {
+    std::lock_guard lock(physical_protection_mutex);physical_protections.emplace(this,state);
+  }
+  try {
+    source_runtime_register_write_guard(memory_,this,[state](std::uint32_t address,std::size_t bytes) {
+      const auto end=std::uint64_t(address)+bytes;
+      std::lock_guard lock(state->mutex);
+      const auto first=state->read_only.lower_bound(address&~(page-1));
+      if(first!=state->read_only.end() && *first<end)
+        throw std::runtime_error("Original runtime write to read-only physical page");
+    });
+  } catch(...) {
+    std::lock_guard lock(physical_protection_mutex);physical_protections.erase(this);throw;
+  }
 }
 SourceRuntimeHostPhysicalMemory::~SourceRuntimeHostPhysicalMemory() {
+  source_runtime_unregister_write_guard(memory_,this);
+  {std::lock_guard lock(physical_protection_mutex);physical_protections.erase(this);}
   for (const auto &[base, allocation] : allocations_) {
 #if defined(__linux__)
     ::munmap(allocation.host, allocation.bytes);
@@ -73,20 +103,34 @@ void SourceRuntimeHostPhysicalMemory::protect(std::uint32_t address,
   // mprotect owns their real read/write access. Xbox GPU cache coherency is
   // a separate platform contract, not a result supplied by this adapter.
   // https://learn.microsoft.com/en-us/windows/win32/memory/memory-protection-constants
-  if (!bytes || (protection != 4 && protection != 0x404) ||
-      address % page || bytes % page) unsupported();
+  if (!bytes || (protection != 2 && protection != 4 && protection != 0x404)) unsupported();
   auto found = allocations_.upper_bound(address);
   if (found == allocations_.begin()) unsupported();
   --found;
   const auto offset = std::uint64_t(address) - found->first;
   if (offset + bytes > found->second.bytes) unsupported();
+  // MmSetAddressProtect consumes byte ranges: the pinned kernel compatibility
+  // owner visits GetPteAddress(address)..GetPteAddress(address+bytes-1).
+  // Actual11F0A2/11F1C4 metadata requests are neither page-aligned nor page-
+  // sized. Preserve that source request and round only the Linux syscall's
+  // host range, after validating it against this actual allocation.
+  const auto protected_begin = offset & ~std::uint64_t(page - 1);
+  const auto protected_end = (offset + bytes + page - 1) & ~std::uint64_t(page - 1);
+  const auto state=protection_of(this);std::lock_guard lock(state->mutex);
+  auto next=state->read_only;
+  for(auto p=std::uint64_t(found->first)+protected_begin;
+      p<std::uint64_t(found->first)+protected_end;p+=page) {
+    if(protection==2)next.insert(std::uint32_t(p));else next.erase(std::uint32_t(p));
+  }
 #if defined(__linux__)
-  if (::mprotect(static_cast<std::byte *>(found->second.host) + offset, bytes,
-                 PROT_READ | PROT_WRITE))
+  if (::mprotect(static_cast<std::byte *>(found->second.host) + protected_begin,
+                 std::size_t(protected_end - protected_begin),
+                 protection==2?PROT_READ:PROT_READ | PROT_WRITE))
     throw std::system_error(errno, std::generic_category(), "Host source physical protection");
 #else
   unsupported();
 #endif
+  state->read_only.swap(next);
 }
 bool source_try_native_death_physical_call_1_1(
     SourceRuntimeMemory &memory, const SourceUnitAnimationRuntimeCall &call,

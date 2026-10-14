@@ -53,7 +53,7 @@ int main(int argc,char **argv) {try {
   for(const auto &tag:cache.tags())if(tag.group=="vrtx")tags.push_back(tag);
   std::sort(tags.begin(),tags.end(),[](const auto &a,const auto &b){return a.datum<b.datum;});
   std::vector<Entry> entries;std::vector<Rejected> rejected;
-  for(const auto &tag:tags)for(unsigned vertex_class:{0u,1u}) {
+  for(const auto &tag:tags)for(unsigned vertex_class:{0u,1u,2u,3u,4u,5u,6u}) {
     try {
       auto program=cache.load_vertex_shader_code(tag.datum,vertex_class);
       auto declaration=cache.load_source_vertex_declaration(tag.datum,vertex_class);
@@ -70,7 +70,7 @@ int main(int argc,char **argv) {try {
       rejected.push_back({tag,vertex_class,"invalid_or_absent_source",error.what()});
     }
   }
-  if(entries.empty())throw FormatError("menu cache contains no supported raw class0/class1 vertex programs");
+  if(entries.empty())throw FormatError("menu cache contains no supported raw class0..6 vertex programs");
   std::filesystem::create_directories(output);
   std::ostringstream manifest;
   manifest<<"{\n  \"schema\":\"halo2-menu-world-vertex-source-v1\",\n  \"abi\":"

@@ -315,7 +315,7 @@ void bind_object_camouflage(Material &material,float camouflage,std::uint16_t co
 Texture Cache::load_scope_default_bitmap()const {
   const auto globals=query_tag({.group=tag_groups::globals});
   if(!globals)throw FormatError("scope rasterizer globals missing");
-  const Bytes data(storage_);const auto root=metadata_offset(globals->address,globals->size);
+  const Bytes data(cache_bytes());const auto root=metadata_offset(globals->address,globals->size);
   data.require(root+0x108,8);
   if(data.u32(root+0x108)!=1)throw FormatError("scope rasterizer globals block count changed");
   const auto rasterizer=metadata_offset(data.u32(root+0x10c),0x68);
@@ -326,7 +326,7 @@ Texture Cache::load_scope_default_bitmap()const {
 Texture Cache::load_effect_light_attenuation_bitmap()const {
   const auto globals=query_tag({.group=tag_groups::globals});
   if(!globals)throw FormatError("effect-light rasterizer globals missing");
-  const Bytes data(storage_);const auto root=metadata_offset(globals->address,globals->size);
+  const Bytes data(cache_bytes());const auto root=metadata_offset(globals->address,globals->size);
   data.require(root+0x108,8);
   if(data.u32(root+0x108)!=1)throw FormatError("effect-light rasterizer globals block count changed");
   const auto rasterizer=metadata_offset(data.u32(root+0x10c),8);
@@ -398,7 +398,8 @@ std::vector<Material> prepare_effect_light_diffuse_material(const Cache &cache,
   return result;
 }
 
-static bool prepare_world_lighting(const Cache &,Material &,unsigned,const float * = nullptr);
+static bool prepare_world_lighting(const Cache &,Material &,unsigned,const float * = nullptr,
+                                  const ObjectLightingState * = nullptr,bool = false);
 
 bool prepare_shield_overlay_material(const Cache &cache,Material &material) {
   const auto selected=layer_passes(material,15,0);
@@ -432,7 +433,7 @@ bool prepare_dynamic_material(const Cache &cache,Material &material,
   // Object classification controls layer3 only. Transparent/emissive-only
   // materials retain implementation0 in their authored independent layers.
   if(selected.empty())return prepare_world_lighting(cache,material,2,
-      camouflage ? &*camouflage : nullptr);
+      camouflage ? &*camouflage : nullptr,&lighting,volume_textures);
   if(selected.size()!=1)return false;
   const auto& p=material.passes[selected[0]];
   const auto leaf=p.vertex_shader.substr(p.vertex_shader.find_last_of('\\')+1);
@@ -511,7 +512,8 @@ bool prepare_prt_material(const Cache&cache,Material&material,std::shared_ptr<co
 }
 
 static bool prepare_world_lighting(const Cache &cache, Material &material, unsigned implementation,
-                                   const float *camouflage) {
+                                   const float *camouflage,const ObjectLightingState *object_lighting,
+                                   bool volume_textures) {
   const bool per_vertex = implementation == 1;
   if (prepare_water_material(cache,material)) return true;
   const auto edges=layer_passes(material,6,0);
@@ -540,8 +542,9 @@ static bool prepare_world_lighting(const Cache &cache, Material &material, unsig
       if(leaf.starts_with("transparent_generic") &&
           (p.name.starts_with("shaders\\shader_passes\\transparent\\") ||
            p.name=="shaders\\shader_passes\\plasma\\plasma_alpha" ||
+           p.name=="shaders\\shader_passes\\plasma\\plasma_shield" ||
            (camouflage && p.name=="shaders\\shader_passes\\plasma\\plasma_alpha_active_camo")))
-        result=bind_pass(cache,material,late[0],1,false,nullptr,false,nullptr,camouflage);
+        result=bind_pass(cache,material,late[0],1,false,object_lighting,volume_textures,nullptr,camouflage);
       else if(leaf=="stencil_emissive")result=bind_pass(cache,material,late[0],2,false);
     }
     else return false;

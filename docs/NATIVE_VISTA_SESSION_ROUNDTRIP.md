@@ -69,20 +69,32 @@ in `pc14-layout-ownership-original/README.md`.
 Original mode1/3/5 constructors, watcher branches, world loader and activation
 are independently compared, including actual native PCM completion.
 
-Leave now consumes the original task and session-disposal sequence before
-allocating the PC network browser. Create runs the original preflight and
-allocates a fresh lobby. Browser Back refreshes the actual selected-profile
-catalog and invokes the original reason2 main-menu factory. The native adapter
-creates a fresh Xbox main menu6, matching the application's startup menu and
-its existing ONLINE, Split Screen, System Link and Settings actions. Previously
-this handoff switched to the imported PC menu's LIVE/NETWORK/GUIDE/QUIT layout.
-Settings opens PC19 and Back returns to the new native main-menu instance.
-Once Leave has disposed the source session, a new Start from this menu follows
-the initial native lobby request path and births a fresh source session.
-The Network/LIVE actions still require their genuine platform/reset owners;
-missing owners do not masquerade as successful source operations.
+Leaving a local lobby completes its actual session disposal and progress task,
+then returns directly to a fresh native main menu6. The completed session owner
+is detached immediately. Later title, profile, Settings and Split Screen
+navigation cannot run a disposed session's observer. A new Start constructs a
+fresh native session owner with the currently selected profiles and controls.
+
+Main-menu Back confirms sign-out and creates a fresh title9, including when
+there is no retained startup title in the navigation stack. Screen13 is retired
+from native session navigation; both source namespaces reject attempts to open it.
+ONLINE's Server Browser uses PC13 as a presentation layout for the authenticated
+native directory219 route. Its listings, details, refresh and Back stay owned by
+that directory route; the original session browser lifecycle remains detached.
+The native menu retains its startup ONLINE, Split Screen, System Link and
+Settings actions. Original platform-only source records remain isolated
+reference data rather than native return destinations.
 
 ## Validation
+
+`frontend_online_tests` verifies the ONLINE-only PC13 presentation with
+advertised test listings, source columns, full-row mouse targets, loading,
+scrolling, maximum-length names, expiry, empty/error/retry states and Back.
+The visible Vulkan run captures six browser states at nine aspect ratios;
+its imported font/bitmap audit and validation layer pass. This is native UI
+renderer evidence with fixture authentication/listings, not live online joining.
+The local disposed-session/title/profile/Split Screen regression also passes
+with the presentation mapping enabled.
 
 `native_vista_flow_tests` runs two complete native CPU matches. Each uses the
 authored eight-minute default Slayer limit, ordinary30Hz world stepping,
@@ -95,21 +107,21 @@ Post-report return coverage also exercises Escape/B, the mouse Done prompt and
 source component13 across the solo and two-player runs. A stale report click is
 rejected,120 subsequent frontend updates retain the same ready lobby, and Start
 begins another real countdown with the same map, variant, profiles and input
-bindings. Cancelling that countdown stays in the lobby. The PC browser is only
-expected later in this test, after an explicit lobby Leave action.
-The visible Vulkan/SDL regression additionally reproduces a native input bug:
-a mouse double-click on PCR Done sent its first press to the report and its
-second press to the newly allocated lobby's Back prompt, executing Leave and
-opening PC13. `run_frontend` now retains each SDL mouse click sequence's initial
-screen instance and suppresses later presses when that instance has changed.
-This is native input protection; the recovered Done phase and lobby factory
-remain unchanged. The graphical test sends Escape and actual SDL mouse presses,
-retains at least120 rendered lobby frames, and uses SDL Return to begin the next
-countdown. It captures `native-lobby-after-done-{1,2}.ppm` and
-`native-next-countdown-{1,2}.ppm`. Set `H2_TEST_VISIBLE=1` to show these windows.
-The return regression additionally compares the main-menu screen, labels and
-actions with the pre-match menu, checks Settings/Back, and starts and cancels
-a new local match after the session has been disposed.
+bindings. Cancelling that countdown stays in the lobby.
+The visible Vulkan/SDL regression also retains each mouse click sequence's
+initial screen instance, preventing later presses from activating a different
+screen. It sends Escape and actual SDL mouse presses, retains at least120
+rendered lobby frames, and uses SDL Return to begin the next countdown.
+It captures `native-lobby-after-done-{1,2}.ppm`,
+`native-next-countdown-{1,2}.ppm` and `native-lobby-after-title-{1,2}.ppm`.
+Set `H2_TEST_VISIBLE=1` to show the windows.
+
+The second completed match now follows the full report, Leave, main-menu Back,
+title, selected-profile and Split Screen route. It must load and run the next
+actual world, beyond merely starting and cancelling its countdown. Both solo
+and two-player runs verify current controller bindings. The final return checks
+Settings/Back and repeats title reentry. `H2_TEST_NAV_ONLY=1` runs the minimal
+disposal/title/profile/reentry check without playing the complete matches.
 
 The initial clean delivery build passed 16 focused CTest checks for the integrated round
 trip, frontend/session ownership, PC settings and transition assets, loading
@@ -143,7 +155,7 @@ base-disc `assets/disc/default.xbe` lacks required scoreboard reference data.
 ```
 
 An optional fourth argument captures the actual completed native reports and
-browser/main-menu returns through `run_frontend`, including real Cache/GPU
+native main-menu/title returns through `run_frontend`, including real Cache/GPU
 initialization and Vulkan validation. It waits for the real network clock to
 pass the source report intro; it supplies neither fixture results nor a
 substituted clock. The reproducible wrapper also captures bounded actual

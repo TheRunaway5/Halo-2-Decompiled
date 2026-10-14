@@ -24,7 +24,7 @@ SourceVertexDeclaration decode_source_vertex_declaration(
 SourceVertexDeclaration Cache::load_source_vertex_declaration(std::uint32_t datum,unsigned classification) const {
     const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::vertex_shader, .require_address=true});
     if(!tag)throw FormatError("source vertex declaration tag missing");
-    const Bytes b(storage_);const auto root=metadata_offset(tag->address,12);
+    const Bytes b(cache_bytes());const auto root=metadata_offset(tag->address,12);
     return decode_source_vertex_declaration(b,root,metadata_magic_,classification);
 }
 bool source_world_vertex_declaration_supported(const SourceVertexDeclaration&d) {

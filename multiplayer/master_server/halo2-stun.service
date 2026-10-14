@@ -1,0 +1,19 @@
+[Unit]
+Description=Halo 2 direct-peer address discovery (STUN only)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=turnserver
+Group=turnserver
+ExecStart=/usr/bin/turnserver -n --stun-only --no-auth --no-tcp --no-tls --no-dtls --no-cli --listening-port=3478 --log-file=stdout --simple-log
+Restart=on-failure
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+CapabilityBoundingSet=
+MemoryMax=128M
+
+[Install]
+WantedBy=multi-user.target

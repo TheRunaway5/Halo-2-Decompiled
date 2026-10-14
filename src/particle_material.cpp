@@ -5,7 +5,7 @@
 namespace halo2 {
 ParticleMaterial Cache::load_particle_material(std::uint32_t datum,unsigned layer,
     unsigned layer_pass,unsigned implementation) const {
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   const auto find=[&](std::uint32_t id,const char *group)->const Tag& {
     const auto tag=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
     if(!tag)throw FormatError("original particle material dependency missing");

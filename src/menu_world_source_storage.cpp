@@ -28,6 +28,10 @@ VkFormat vertex_format(MenuWorldSourceFormat format) {
   // The source VS decodes signed11/11/10 from this unchanged signed word.
   // Vulkan10/10/10/2 normalized formats are not this source declaration.
   case MenuWorldSourceFormat::packed_signed_11_11_10:return VK_FORMAT_R32_SINT;
+  case MenuWorldSourceFormat::unorm8x1:return VK_FORMAT_R8_UNORM;
+  case MenuWorldSourceFormat::unorm8x2:return VK_FORMAT_R8G8_UNORM;
+  case MenuWorldSourceFormat::unorm8x3:return VK_FORMAT_R8G8B8_UNORM;
+  case MenuWorldSourceFormat::unorm8x4:return VK_FORMAT_R8G8B8A8_UNORM;
   }
   throw FormatError("unsupported source world storage vertex format");
 }
@@ -38,6 +42,7 @@ bool same_section(const MenuWorldSourceSection &a,const MenuWorldSourceSection &
      std::memcmp(a.compression_rows().data(),b.compression_rows().data(),sizeof(a.compression_rows())) ||
      a.descriptors()!=b.descriptors() || !std::ranges::equal(a.node_map(),b.node_map()) ||
      !std::ranges::equal(a.raw_header(),b.raw_header()) ||
+     !std::ranges::equal(a.raw_model_header(),b.raw_model_header()) ||
      !std::ranges::equal(a.indices(),b.indices()) ||
      a.resources().size()!=b.resources().size() || a.streams().size()!=b.streams().size() ||
      a.parts().size()!=b.parts().size())return false;

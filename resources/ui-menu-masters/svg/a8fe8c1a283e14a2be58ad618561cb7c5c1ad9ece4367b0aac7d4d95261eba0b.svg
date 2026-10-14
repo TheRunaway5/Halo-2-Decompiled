@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3996" height="204" viewBox="0 0 1332 68" version="1.1">
+  <title>Vista ui\list_skins\setting_lists\advanced_hilite page 1: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="setting-highlight-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.3" />
+    </filter>
+    <clipPath id="stripe-window">
+      <path d="M30 11 H1307 V51 L1301 57 H25 V17 Z" />
+    </clipPath>
+  </defs>
+  <g id="setting-highlight">
+    <path d="M24 9 H1308 L1315 16 V27 L1309 33 V35 L1315 41 V52 L1308 59 H24 L17 52 V41 L23 35 V33 L17 27 V16 Z" fill="none" stroke="#2e9aff" stroke-width="7" stroke-opacity="0.8" filter="url(#setting-highlight-glow)" />
+    <path d="M30 11 H1307 V51 L1301 57 H25 V17 Z" fill="#293446" fill-opacity="0.8" />
+    <g id="engraved-interior" clip-path="url(#stripe-window)">
+      <rect x="25" y="14" width="1282" height="4" fill="#212e42" fill-opacity="0.8" />
+      <rect x="25" y="22" width="1282" height="4" fill="#212e42" fill-opacity="0.8" />
+      <rect x="25" y="30" width="1282" height="4" fill="#212e42" fill-opacity="0.8" />
+      <rect x="25" y="38" width="1282" height="4" fill="#212e42" fill-opacity="0.8" />
+      <rect x="25" y="46" width="1282" height="4" fill="#212e42" fill-opacity="0.8" />
+      <rect x="25" y="54" width="1282" height="4" fill="#212e42" fill-opacity="0.8" />
+    </g>
+    <path d="M24 9 H1308 L1315 16 V27 L1309 33 V35 L1315 41 V52 L1308 59 H24 L17 52 V41 L23 35 V33 L17 27 V16 Z M30 11 H1307 V51 L1301 57 H25 V17 Z" fill="#ffffff" fill-rule="evenodd" />
+    <path d="M7 24 L17 34 L7 44 Z" fill="#ffffff" />
+    <path d="M1323 24 L1313 34 L1323 44 Z" fill="#ffffff" />
+  </g>
+</svg>

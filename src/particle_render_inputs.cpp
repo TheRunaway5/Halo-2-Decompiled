@@ -52,7 +52,7 @@ void first_person_frame(AuthoredBasis &rotation,Vec3 &position,const ParticleVal
 }
 ParticleSystemRenderDefinition Cache::load_particle_system_render_definition(std::uint32_t owner,
     std::uint32_t event,unsigned system) const {
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   const auto tag=query_tag({.handle=TagHandle{owner}, .require_address=true});
   if(!tag)throw FormatError("particle system definition owner missing");
   const auto select=[&](std::size_t at,unsigned stride,unsigned index) {

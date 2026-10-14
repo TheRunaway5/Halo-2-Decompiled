@@ -7,11 +7,8 @@
 #include "halo2/vista_pcr_achievement.hpp"
 #include "halo2/vista_gameplay_fade.hpp"
 #include "halo2/vista_lobby_input.hpp"
-#include "halo2/vista_lobby_leave_return.hpp"
 #include "halo2/vista_lobby_leave_task.hpp"
 #include "halo2/vista_session_disposal.hpp"
-#include "halo2/vista_network_browser.hpp"
-#include "halo2/vista_network_browser_back.hpp"
 #include "halo2/native_vista_announcer.hpp"
 #include "halo2/vista_player_birth.hpp"
 #include "halo2/vista_slayer_publication.hpp"
@@ -105,13 +102,7 @@ struct NativeVistaOfflineFlow::Impl {
   std::optional<VistaLocalActivationIdentity> activation_identity;
   std::vector<std::array<std::uint32_t,2>> activation_notifications;
   unsigned player_activation_count{};
-  VistaLobbyLeaveReturnState leave_return;
   std::shared_ptr<VistaLeaveTaskScreenOwner> leave_task;
-  VistaBrowserMainmenuReturnState browser_mainmenu;
-  // Fresh PE86EE9C header is zero. This native call set has no optional
-  // report-dialog producer; it retains the proved factory clear operations.
-  std::array<std::byte,0x48> mainmenu_factory_header{};
-  std::uint8_t loader_failure_notification{}; // Successful synchronous loads.
   bool ui_active=true,ui_disabled{};
 };
 NativeVistaOfflineFlow::NativeVistaOfflineFlow(FrontendSession& frontend,std::filesystem::path maps,
@@ -267,91 +258,6 @@ NativeVistaOfflineFlow::NativeVistaOfflineFlow(FrontendSession& frontend,std::fi
 }
 NativeVistaOfflineFlow::~NativeVistaOfflineFlow(){frontend_.state().set_lobby_session_action({});}
 bool NativeVistaOfflineFlow::lobby_action(FrontendLobbySessionAction action) {
-  if(action==FrontendLobbySessionAction::MainMenuNetwork)return false;
-  if(action==FrontendLobbySessionAction::BrowserBack) {
-    auto& state=frontend_.state();
-    if(!begun_ || manager_.current_kind || get(session_.bank(),0x73a0) ||
-        !world_ready_ || !world_mainmenu_ || impl_->leave_task || launch_ ||
-        load_requested_ || menu_requested_ || state.frame().screen!=vista_menu(13))
-      throw FormatError("Vista browser Back lacks its actual disposed mainmenu owner");
-    VistaBrowserBackServices back;
-    back.channel=[] {return 5u;};back.window=[] {return 4u;};
-    back.screen_present=[&state](auto channel,auto window,auto screen)->std::uint8_t {
-      if(channel!=5 || window!=4)throw FormatError("Vista browser Back queried an unbound channel");
-      return state.vista_session_screen()==vista_menu(screen);
-    };
-    back.mainmenu_reason=[this,&state](std::uint32_t reason) {
-      if(reason!=2)throw FormatError("Vista browser Back reached a different mainmenu reason");
-      VistaBrowserMainmenuReturnServices menu;
-      menu.initialize_profiles=[this]{session_.refresh_selected_profile_catalog();};
-      menu.ui_clock=[this]{return frontend_.ui_clock();};
-      menu.controller_count=[this]{return vista_lobby_controller_count(session_.controllers());};
-      menu.controller_mask=[this]{return vista_lobby_controller_mask(session_.controllers());};
-      menu.create_screen=[this,&state](const auto& descriptor) {
-        if(descriptor[7]==0x63f6b7u) {
-          const std::array<std::uint32_t,8> expected{0xffff0004u,5,4,0,
-              0xffffffffu,0xffffffffu,0xffffffffu,0x63f6b7u};
-          if(descriptor!=expected)throw FormatError("Vista multi-user title factory descriptor changed");
-          // Original63F57F constructs screen9. Native presentation continues
-          // to use its retained Xbox title artwork, with both profiles intact.
-          state.open_local_title();
-          std::cout<<"Vista lifecycle: original multi-user browser Back; newly allocated native title9\n";
-          return;
-        }
-        const auto mask=vista_lobby_controller_mask(session_.controllers())&0xffffu;
-        const std::array<std::uint32_t,8> expected{(mask<<16)|4u,5,4,0,
-            0xffffffffu,0xffffffffu,0xffffffffu,0x40b7b9};
-        if(descriptor!=expected)throw FormatError("Vista PC6 factory differs from its actual controller owner");
-        // Actual40B7B9 publishes presence0 before registration, then clears
-        // its menu/input state. The native application starts with Xbox6;
-        // adapt this factory to a fresh instance of that same presentation.
-        state.ui_clock(frontend_.ui_clock());
-        state.open_native_mainmenu([this]{session_.set_user_context(0x8001,0);});
-        if(impl_->mainmenu_factory_header[3]!=std::byte{})
-          throw FormatError("Native PC6 factory reached an unbound optional report dialog");
-        impl_->mainmenu_factory_header[1]=std::byte{};
-        start_.pregame_bank.fill(std::byte{});
-        impl_->loader_failure_notification=0;
-        std::cout<<"Vista lifecycle: original browser Back; newly allocated native mainmenu6\n";
-      };
-      vista_network_browser_mainmenu_return_local(impl_->browser_mainmenu,menu);
-    };
-    //61A238 constructs the nonmodal browser (+1F00=0). A modal browser has
-    // a distinct close/base-input owner and is not admitted by this adapter.
-    return vista_network_browser_back(0,back)!=0;
-  }
-  if(action==FrontendLobbySessionAction::Create) {
-    auto& state=frontend_.state();
-    if(!begun_ || manager_.current_kind || get(session_.bank(),0x73a0) ||
-        !world_ready_ || !world_mainmenu_ || impl_->leave_task || launch_ ||
-        load_requested_ || menu_requested_ || state.frame().screen!=vista_menu(13))
-      throw FormatError("Vista browser Create lacks its actual disposed local session owner");
-    const auto request=state.selected_multiplayer_configuration();
-    const auto lobby=state.lobby_view();
-    if(!supports(request) || !lobby || !lobby->map)
-      throw FormatError("Vista browser Create requires the actual admitted selected configuration");
-    VistaBrowserCreateServices create;
-    create.disconnect=[this](bool immediate) {
-      if(!immediate)throw FormatError("Native Vista Create reached remote disconnect");
-      (void)session_.dispose_local();
-    };
-    create.clear_report_counts=[this] {
-      // These retained reports own the native projections of86EEE8/86EEF0.
-      // Clearing their complete lifetime cannot leave stale report rows alive.
-      impl_->screen.reset();impl_->pcr.reset();
-      report_results_.reset();report_source_.reset();selected_row_=0;native_slot_.reset();native_slots_.clear();
-    };
-    create.birth_local=[this]{return session_.birth_local().accepted;};
-    create.configure_selected=[this,&request,&lobby](std::uint32_t mode) {
-      if(mode!=2)throw FormatError("Vista browser Create reached an unbound configuration mode");
-      configure_lobby(request,*lobby->map,true);
-    };
-    if(!vista_network_browser_create_local(create))
-      throw FormatError("Original Vista browser local session creation failed");
-    //6176B0 owns the subsequent lobby factory in update_frontend. Creating
-    // the genuine session does not start its countdown or open a UI here.
-    return true;
-  }
   // After Leave disposes the source session, a lobby reached from the native
   // main menu must supply a new Start request just like the initial lobby.
   if(!begun_ || (manager_.current_kind==0 && !get(session_.bank(),0x73a0)))return false;
@@ -402,20 +308,11 @@ bool NativeVistaOfflineFlow::lobby_action(FrontendLobbySessionAction action) {
     state.set_session_countdown(countdown());return false;
   case VistaLobbyInputRoute::setup:case VistaLobbyInputRoute::team_edit:return false;
   case VistaLobbyInputRoute::leave: {
-    VistaLobbyLeaveServices leave;
-    leave.peer_count=[this]{return vista_lobby_peer_count(session_.bank(),begun_);};
-    leave.browser_reset=[this]{session_.reset_local_browser();};
-    leave.disconnect=[this](bool immediate) {
-      if(!immediate)throw FormatError("Sole native Vista peer reached remote disconnect");
-      (void)session_.dispose_local();
-    };
-    leave.create_task=[this,&state](std::int32_t controller) {
-      if(impl_->leave_task)throw FormatError("Native Vista Leave already owns a progress task");
-      impl_->leave_task=std::make_shared<VistaLeaveTaskScreenOwner>();
-      state.open_vista_leave_task(std::uint32_t(controller),impl_->leave_task);
-    };
-    if(!vista_lobby_leave_single(0,leave))
-      throw FormatError("Native Vista sole-peer Leave lost its genuine session owner");
+    if(vista_lobby_peer_count(session_.bank(),begun_)!=1 || !session_.dispose_local())
+      throw FormatError("Native local Leave requires its actual sole-peer session");
+    if(impl_->leave_task)throw FormatError("Native Leave already owns a progress task");
+    impl_->leave_task=std::make_shared<VistaLeaveTaskScreenOwner>();
+    state.open_vista_leave_task(0,impl_->leave_task);
     return true;
   }
   case VistaLobbyInputRoute::unsigned_controller:
@@ -434,7 +331,7 @@ bool NativeVistaOfflineFlow::supports(const FrontendLaunch& launch) {
     return true;
   } catch(const std::exception&){return false;}
 }
-void NativeVistaOfflineFlow::configure_lobby(const FrontendLaunch& request,const UiLobbyMap& map,bool browser_create) {
+void NativeVistaOfflineFlow::configure_lobby(const FrontendLaunch& request,const UiLobbyMap& map) {
   if(!supports(request) || launch_ || load_requested_ || menu_requested_ ||
       (begun_ && manager_.current_kind>1))
     throw FormatError("Native Vista offline start requires a fresh admitted lobby request");
@@ -447,7 +344,6 @@ void NativeVistaOfflineFlow::configure_lobby(const FrontendLaunch& request,const
   }
   if(get(session_.bank(),0x73a0)==0 && !session_.birth_local().accepted)
     throw FormatError("Native Vista local session birth failed");
-  if(browser_create)(void)vista_network_browser_preflight_local(session_.bank(),begun_,1);
   variant_=vista_pcr_slayer_variant(source_game_variant(request.variant));
   //617138(2)->6169C5 supplies campaign ID NONE for the selected multiplayer
   // map. Passing cache type2 here instead makes615EA9 classify this as co-op.
@@ -518,6 +414,10 @@ void NativeVistaOfflineFlow::pump() {
 std::int32_t NativeVistaOfflineFlow::countdown() const {
   const auto b=session_.bank();const auto state=get(b,0x73a0);
   return state>=3 && state<=8 && get(b,0x4c94,1)?std::bit_cast<std::int32_t>(get(b,0x4c98)):-1;
+}
+bool NativeVistaOfflineFlow::finished() const noexcept {
+  return begun_ && manager_.current_kind==0 && !impl_->leave_task && !impl_->world &&
+      !load_requested_ && !menu_requested_;
 }
 bool NativeVistaOfflineFlow::launch_ready() const noexcept{return load_requested_ && manager_.current_kind==3;}
 FrontendLaunch NativeVistaOfflineFlow::take_launch() {
@@ -792,30 +692,9 @@ void NativeVistaOfflineFlow::observe_menu(MenuState* state) {
       std::cout<<"Vista lifecycle: actual Done phase1; newly allocated lobby14\n";break;
     case A::set_ui_active:impl_->ui_active=intent.arguments[0]!=0;break;
     case A::cache_task_state:break;
-    case A::observer_suffix: {
-      VistaLobbyLeaveReturnServices suffix;
-      suffix.protocol=[this] {return std::bit_cast<std::uint32_t>(vista_session_frontend_protocol(
-          session_.bank(),begun_,std::bit_cast<std::int32_t>(manager_.current_kind)));};
-      // Native factories execute synchronously; no deferred request occupies
-      //4080BA's source service boundary in this admitted offline adapter.
-      suffix.request_pending=[]()->std::uint8_t{return 0;};
-      suffix.controller_mask=[this]{return vista_lobby_controller_mask(session_.controllers());};
-      suffix.screen_present=[this,state](auto channel,auto window,auto screen)->std::uint8_t {
-        if(channel!=5 || window!=4)throw FormatError("Vista Leave queried an unbound UI channel");
-        return ((state?state->vista_session_screen():frontend_.state().vista_session_screen())&0xffffu)==screen;
-      };
-      suffix.create_screen=[this,state](const auto& descriptor) {
-        if(!state || !impl_->leave_task || manager_.current_kind || descriptor[7]!=0x61a238 ||
-            descriptor[0]!=((vista_lobby_controller_mask(session_.controllers())&0xffffu)<<16|7u))
-          throw FormatError("Vista browser factory lacks its actual completed Leave owner");
-        state->ui_clock(frontend_.ui_clock());
-        state->open_vista_browser();
-        std::cout<<"Vista lifecycle: original Leave return; newly allocated PC browser13\n";
-      };
-      (void)vista_lobby_leave_observe(impl_->leave_return,intent.arguments[0],
-          intent.arguments[1],intent.arguments[2],suffix);
-      break;
-    }
+    // Session disposal has a native main-menu return owner below. The old
+    // platform observer suffix must not create another screen during reentry.
+    case A::observer_suffix:break;
     case A::session_close:case A::other_mainmenu_request:case A::ui_channel:case A::ui_channel_close:
       throw FormatError("Native Vista observer reached a session route without its genuine service owner");
     }
@@ -839,6 +718,13 @@ void NativeVistaOfflineFlow::update_frontend(MenuState& state,std::uint32_t ui_c
     services.set_status=[&state,task](auto sid){state.set_vista_leave_task_status(task->instance,sid);};
     services.close=[this,&state,task](auto reason) {
       state.close_vista_leave_task(task->instance,reason);impl_->leave_task.reset();
+      session_.refresh_selected_profile_catalog();
+      state.ui_clock(frontend_.ui_clock());
+      state.set_session_countdown({});
+      state.open_native_mainmenu([this]{session_.set_user_context(0x8001,0);});
+      impl_->screen.reset();impl_->pcr.reset();report_results_.reset();report_source_.reset();
+      launch_.reset();impl_->countdown={};
+      std::cout<<"Vista lifecycle: local session disposed; returned to native main menu6\n";
     };
     // The native base widget's animations/rendering remain in MenuState and
     // FrontendPainter. This callback does not claim to execute612CD8's body.

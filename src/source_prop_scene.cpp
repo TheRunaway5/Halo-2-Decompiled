@@ -39,6 +39,7 @@ struct SourcePropScene::Impl {
         unsigned posed_mxcsr{};
         float scale=1;
         std::vector<Transform> world_nodes;
+        std::vector<std::uint8_t> active_permutations;
         ObjectLightingCache light;
     };
     const Cache &cache;
@@ -49,6 +50,7 @@ struct SourcePropScene::Impl {
     SourcePrtLighting sh;
     SourcePropSceneStats counts;
     LightingQueryState lighting_state;
+    std::function<const SourceInitialModelSelection *(std::uint32_t)> region_state;
     std::int32_t render_frame{};
     std::vector<Prop> props;
     std::set<std::size_t> prop_placements,nonrendered_placements;
@@ -78,9 +80,10 @@ struct SourcePropScene::Impl {
                 throw FormatError("prop initial controller requires source frame state: "+p.definition.name);
             const auto initial_definition=cache.load_initial_model_definition(object.definition);
             const auto selection=cache.load_initial_model_selection(object.definition,object.variant);
+            p.active_permutations=selection.permutations;
             if(!selection.resolved())
                 throw FormatError("prop initial model RNG selection requires source state: "+p.definition.name);
-            p.geometry.load(cache,object,initial_definition,selection,p.definition.render_model);
+            p.geometry.load(cache,object,initial_definition,selection,p.definition.render_model,true);
             const auto basis=authored_basis(object.rotation);p.scale=object.scale;
             p.object=source_object_transform(object.position,basis.forward,basis.up,p.scale,false);
             pose(p);
@@ -163,6 +166,9 @@ struct SourcePropScene::Impl {
                 throw FormatError("prop full handle changed its source creation tick");
             p.object=scene_object_transform(object);p.scale=p.object.scale;
             p.solved_nodes=object.solved_nodes;
+            if(region_state)if(const auto *selection=region_state(p.handle)){
+                p.geometry.regions(*selection);p.active_permutations=selection->permutations;
+            }
             p.active=true;p.visible=object.visible;
         }
     }
@@ -210,6 +216,7 @@ SourcePropScene::~SourcePropScene()=default;
 SourcePropScene::SourcePropScene(SourcePropScene&&)noexcept=default;
 SourcePropScene&SourcePropScene::operator=(SourcePropScene&&)noexcept=default;
 void SourcePropScene::synchronize(const SceneObjects&scene){impl_->synchronize(scene);}
+void SourcePropScene::region_state(std::function<const SourceInitialModelSelection *(std::uint32_t)> state){impl_->region_state=std::move(state);}
 void SourcePropScene::interpolate(const SceneObjects &scene,const SceneInterpolation &history,float fraction){
     for(auto &p:impl_->props)if(p.active){
         const auto &object=scene.get(p.handle);
@@ -221,7 +228,7 @@ void SourcePropScene::lighting_query_state(LightingQueryState state){impl_->ligh
 void SourcePropScene::update(std::int32_t frame,Vec3 eye,float scale,Mesh&mesh){impl_->update(frame,eye,scale,mesh);}
 void SourcePropScene::update_pose(std::int32_t frame,Mesh&mesh){impl_->update_pose(frame,mesh);}
 void SourcePropScene::append(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings)const{
-    for(const auto&p:impl_->props)if(p.active && p.visible){const auto&g=p.geometry.at(5);
+    for(const auto&p:impl_->props)if(p.active && p.visible){const auto g=p.geometry.active_draw(5);
         out.insert(out.end(),g.vertices.begin(),g.vertices.end());
         if(g.ordinary_lighting)bindings.push_back({p.geometry.first_material,p.geometry.material_count,p.light.lighting});}
 }
@@ -241,4 +248,10 @@ void SourcePropScene::append_view(std::vector<Vertex>&out,std::vector<ObjectLigh
     }
 }
 const SourcePropSceneStats&SourcePropScene::stats()const{return impl_->counts;}
+std::vector<SourceSceneEffectOwner> SourcePropScene::effect_owners() const {
+    std::vector<SourceSceneEffectOwner> out;
+    for(const auto &p:impl_->props)if(p.active && p.handle!=0xffffffffu)
+        out.push_back({p.source_object,p.handle,p.created_tick,p.world_nodes,p.active_permutations});
+    return out;
+}
 }

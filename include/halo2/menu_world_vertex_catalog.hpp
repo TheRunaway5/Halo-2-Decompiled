@@ -7,7 +7,7 @@
 namespace halo2 {
 // Version the complete fetch/output/UBO/epilogue contract, not a source datum.
 // Changing that contract requires a new version and original-input GPU proof.
-inline constexpr std::uint32_t menu_world_vertex_catalog_abi = 1;
+inline constexpr std::uint32_t menu_world_vertex_catalog_abi = 2;
 inline constexpr unsigned menu_world_vertex_descriptor_set = 1;
 inline constexpr unsigned menu_world_vertex_descriptor_binding = 0;
 
@@ -28,8 +28,9 @@ struct MenuWorldVertexShaderSource {
   std::string glsl;
   std::vector<unsigned> consumed_inputs, consumed_constants;
 };
-// Actual class0/class1 declaration ordinals determine input locations. Position/UV
-// are unchanged Vulkan floating/SNORM fetches; packed basis uses signed int32.
+// Actual class0..6 declaration ordinals determine input locations. Position/UV
+// retain floating/SNORM fetches; model influences retain byte UNORM fetches;
+// packed basis uses signed int32. ABI2 adds local model palette addressing.
 // Missing consumed constant attributes and other semantics are explicit errors.
 // The ordinary GS interface is locations0..12. No shader compiler runs here.
 MenuWorldVertexShaderSource menu_world_vertex_shader_source(

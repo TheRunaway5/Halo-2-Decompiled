@@ -13,8 +13,9 @@ struct Operand {
   unsigned file{}, index{};
   std::array<unsigned,4> swizzle{};
   bool negative{};
+  bool relative{};
 };
-Operand operand(const VertexInstruction &t,unsigned which) {
+Operand operand(const VertexInstruction &t,unsigned which,bool skinned=false) {
   Operand result;
   if(which==0) {
     result.file=t[2]>>26&3;result.index=t[2]>>28;
@@ -33,10 +34,13 @@ Operand operand(const VertexInstruction &t,unsigned which) {
     if(result.index>12)throw UnsupportedVertexProgram("menu source temporary input exceeds register file");
   } else if(result.file==2) {
     result.index=t[1]>>9&15;
-    if(result.index>4)throw UnsupportedVertexProgram("menu source vertex input is outside proved class1 corridor");
+    if(result.index>(skinned?6u:4u))throw UnsupportedVertexProgram("menu source vertex input is outside proved corridor");
   } else if(result.file==3) {
     result.index=t[1]>>13&255;
     if(result.index>=192)throw UnsupportedVertexProgram("menu source constant input exceeds c192");
+    result.relative=(t[3]&2)!=0;
+    if(result.relative && (!skinned || result.index<50 || result.index>52))
+      throw UnsupportedVertexProgram("menu source relative input escapes its model palette corridor");
   } else throw UnsupportedVertexProgram("menu source operand register type is unsupported");
   return result;
 }
@@ -57,7 +61,10 @@ std::string expression(const Operand &value,MenuWorldVertexSource &result) {
   else if(value.file==2) {
     text="vpInput["+std::to_string(value.index)+"]";add(result.consumed_inputs,value.index);
   } else {
-    text="vpConstant("+std::to_string(value.index)+"u)";add(result.consumed_constants,value.index);
+    if(value.relative) {
+      text="vpConstant(uint("+std::to_string(value.index)+"+h2MenuAddress))";
+      for(unsigned index=50;index<170;++index)add(result.consumed_constants,index);
+    }else {text="vpConstant("+std::to_string(value.index)+"u)";add(result.consumed_constants,value.index);}
   }
   text+='.';
   for(const auto component:value.swizzle)text+="xyzw"[component];
@@ -137,21 +144,26 @@ unsigned position_reads(unsigned operation,unsigned mask,const std::vector<Opera
   return result;
 }
 }
-MenuWorldVertexSource menu_world_vertex_source(const VertexProgram &program) {
+namespace {
+MenuWorldVertexSource emit_vertex_source(const VertexProgram &program,bool skinned) {
   if(program.count==0 || program.count>program.instructions.size())
     throw FormatError("menu source instruction count is invalid");
-  if(program.relative_constants)
+  if(program.relative_constants && !skinned)
     throw UnsupportedVertexProgram("menu source relative constants are unsupported");
   MenuWorldVertexSource result;result.helpers=helpers;
   std::ostringstream text;
+  if(skinned)text<<"    int h2MenuAddress=0;\n";
+  bool address_written=false;
   for(unsigned i=0;i<12;++i)text<<"    vec4 h2MenuTemp"<<i<<"=vec4(0.0);\n";
   for(unsigned i=0;i<16;++i)text<<"    vpOut["<<i<<"]=vec4(0.0,0.0,0.0,1.0);\n";
   for(unsigned i=0;i<program.count;++i) {
     const auto &t=program.instructions[i];
     if(bool(t[3]&1)!=(i+1==program.count))throw FormatError("menu source final instruction marker is invalid");
-    if(t[3]&2)throw UnsupportedVertexProgram("menu source relative token is unsupported");
+    if((t[3]&2) && (!skinned || !address_written))
+      throw UnsupportedVertexProgram("menu source relative token has no original address producer");
     const auto mac=t[1]>>21&15,ilu=t[1]>>25&7;
-    if(mac>7)throw UnsupportedVertexProgram("menu source MAC opcode is outside proved corridor");
+    if(mac>7 && !(skinned && mac==13))throw UnsupportedVertexProgram("menu source MAC opcode is outside proved corridor");
+    if(mac==13 && ilu)throw UnsupportedVertexProgram("menu source paired address load is unproved");
     if(ilu!=0 && ilu!=1 && ilu!=3 && ilu!=4)throw UnsupportedVertexProgram("menu source ILU opcode is outside proved corridor");
     if(mac && ilu && !((mac==1 && (ilu==1 || ilu==3)) ||
                         (mac==2 && (ilu==3 || ilu==4)) || (mac==5 && (ilu==1 || ilu==3 || ilu==4)) ||
@@ -167,16 +179,22 @@ MenuWorldVertexSource menu_world_vertex_source(const VertexProgram &program) {
     if(om && (output_ilu?ilu==0:mac==0))throw UnsupportedVertexProgram("menu source output selects absent operation");
     if(!mac && !ilu)continue;
     text<<"    // instruction "<<i<<"\n";
+    if(mac==13) {
+      if(mm || im || om)throw UnsupportedVertexProgram("menu source address load has an unproved ordinary write");
+      const auto input=operand(t,0,true);
+      text<<"    h2MenuAddress=int(floor(("<<expression(input,result)<<").x));\n";
+      result.helper_operations.push_back(13);address_written=true;continue;
+    }
     std::vector<Operand> main_inputs;
     if(mac) {
-      main_inputs.push_back(operand(t,0));
-      if(mac==2 || mac==4 || mac==5 || mac==6 || mac==7)main_inputs.push_back(operand(t,1));
-      if(mac==3 || mac==4)main_inputs.push_back(operand(t,2));
+      main_inputs.push_back(operand(t,0,skinned));
+      if(mac==2 || mac==4 || mac==5 || mac==6 || mac==7)main_inputs.push_back(operand(t,1,skinned));
+      if(mac==3 || mac==4)main_inputs.push_back(operand(t,2,skinned));
     }
     const auto mac_mask=(ilu && reg==1)?0u:mm;
     std::vector<Operand> scalar_inputs;
     if(ilu) {
-      auto scalar=operand(t,2);
+      auto scalar=operand(t,2,skinned);
       if(ilu!=1)scalar.swizzle.fill(scalar.swizzle[0]);
       scalar_inputs.push_back(scalar);
     }
@@ -208,5 +226,12 @@ MenuWorldVertexSource menu_world_vertex_source(const VertexProgram &program) {
   std::sort(result.consumed_inputs.begin(),result.consumed_inputs.end());
   std::sort(result.consumed_constants.begin(),result.consumed_constants.end());
   result.statements=text.str();return result;
+}
+}
+MenuWorldVertexSource menu_world_vertex_source(const VertexProgram &program) {
+  return emit_vertex_source(program,false);
+}
+MenuWorldVertexSource menu_world_skinned_vertex_source(const VertexProgram &program) {
+  return emit_vertex_source(program,true);
 }
 } // namespace halo2

@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="112" height="104" viewBox="0 0 28 26" version="1.1">
+  <title>Vista ui\global_bitmaps\rank_icons page 47: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <radialGradient id="corona" gradientUnits="userSpaceOnUse" cx="14" cy="13" r="13">
+      <stop offset="0" stop-color="#ffd92b" stop-opacity="1" />
+      <stop offset="0.68" stop-color="#d8ad23" stop-opacity="1" />
+      <stop offset="0.83" stop-color="#977117" stop-opacity="0.8" />
+      <stop offset="1" stop-color="#745019" stop-opacity="0" />
+    </radialGradient>
+    <filter id="flare-tips" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.75" />
+    </filter>
+    <filter id="corona-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.5" />
+    </filter>
+    <filter id="corona-rim" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.5" />
+    </filter>
+    <radialGradient id="solar-disc" gradientUnits="userSpaceOnUse" cx="11.3" cy="9" r="15.5">
+      <stop offset="0" stop-color="#ffffc7" />
+      <stop offset="0.35" stop-color="#ffffa3" />
+      <stop offset="0.65" stop-color="#fff576" />
+      <stop offset="0.85" stop-color="#ffdf2c" />
+      <stop offset="1" stop-color="#e8ad0d" />
+    </radialGradient>
+    <filter id="solar-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.38" />
+    </filter>
+  </defs>
+  <g id="celestial-rank" transform="translate(0.0 0.0) scale(1.0)">
+    <path d="M13.1 1.5 L15.6 2.2 L17.3 1.9 L19.2 3.5 L22.8 2.9 L22.2 5.4 L25.5 6.2 L24.4 9.7 L26.6 12.7 L24.8 14.7 L25.7 18.9 L23.2 19.1 L24.6 23.9 L21.1 22.5 L19.7 25 L17.1 23.8 L14.9 25.6 L11.5 23.7 L7.7 25 L8.1 22.7 L3.4 24.1 L4.3 20.7 L1.8 19.7 L3 16.1 L1.4 13.1 L3.1 10.5 L2.5 6.7 L5.2 7.1 L6.6 3.4 L9.1 4 L11.2 1.8 Z" fill="#a97a15" opacity="0.65" filter="url(#flare-tips)" />
+    <path d="M13.1 1.5 L15.6 2.2 L17.3 1.9 L19.2 3.5 L22.8 2.9 L22.2 5.4 L25.5 6.2 L24.4 9.7 L26.6 12.7 L24.8 14.7 L25.7 18.9 L23.2 19.1 L24.6 23.9 L21.1 22.5 L19.7 25 L17.1 23.8 L14.9 25.6 L11.5 23.7 L7.7 25 L8.1 22.7 L3.4 24.1 L4.3 20.7 L1.8 19.7 L3 16.1 L1.4 13.1 L3.1 10.5 L2.5 6.7 L5.2 7.1 L6.6 3.4 L9.1 4 L11.2 1.8 Z" fill="url(#corona)" filter="url(#corona-softness)" />
+    <ellipse cx="14" cy="13" rx="9.8" ry="10.2" fill="none" stroke="#e4bc2e" stroke-width="1.3" opacity="0.8" filter="url(#corona-rim)" />
+    <ellipse cx="14" cy="13" rx="9.5" ry="10.1" fill="url(#solar-disc)" filter="url(#solar-edge)" />
+  </g>
+</svg>

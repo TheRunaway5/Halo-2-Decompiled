@@ -81,7 +81,7 @@ Vec3 source_model_palette_part_center(const SourceModelPalette &bank,
 SourceModelPaletteDefinition Cache::load_source_model_palette_definition(std::uint32_t datum)const {
     const auto t=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
     if(!t)throw FormatError("source model palette render model missing");
-    const Bytes b(storage_);const auto p=metadata_offset(t->address,0x50);
+    const Bytes b(cache_bytes());const auto p=metadata_offset(t->address,0x50);
     SourceModelPaletteDefinition out;out.model_flags=b.u16(p+4);out.region_count=b.u32(p+0x1c);
     const auto count=b.u32(p+0x48);if(count>256 || out.region_count>16)
         throw FormatError("source model palette node/region bank exceeds source");

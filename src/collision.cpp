@@ -190,7 +190,10 @@ bool CollisionWorld::resolve(Body &b) const {
     bool changed = false;
     for (auto i : query(minimum(a, c) - margin, maximum(a, c) + margin)) {
       const auto &t = triangles_[i];
-      const auto pair = capsule_distance(a, c, t);
+      const auto current_a = b.position + Vec3{0, 0, b.radius};
+      const auto current_c = b.position +
+          Vec3{0, 0, std::max(b.radius, b.height - b.radius)};
+      const auto pair = capsule_distance(current_a, current_c, t);
       const auto delta = pair.first - pair.second;
       const float distance = length(delta);
       if (distance >= b.radius)
@@ -211,9 +214,8 @@ bool CollisionWorld::resolve(Body &b) const {
         b.support_triangle = i;
       }
       touched = changed = true;
-      // Recompute the capsule after each correction, instead of applying
-      // multiple contacts to its stale original position.
-      break;
+      // Process every candidate with the corrected capsule. Repeated wall
+      // contacts must not consume the entire pass before floor support runs.
     }
     if (!changed)
       break;

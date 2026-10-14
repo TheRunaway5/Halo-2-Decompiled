@@ -7,3 +7,10 @@ target_link_libraries(physics_multiplayer_acceptance PRIVATE
 target_compile_definitions(physics_multiplayer_acceptance PRIVATE
     HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
 add_dependencies(physics_multiplayer_acceptance halo2_shaders)
+if(UNIX AND NOT APPLE)
+    find_package(X11 QUIET)
+    if(X11_FOUND)
+        target_link_libraries(physics_multiplayer_acceptance PRIVATE X11::X11)
+        target_compile_definitions(physics_multiplayer_acceptance PRIVATE HALO2_ACCEPTANCE_X11_FOCUS=1)
+    endif()
+endif()

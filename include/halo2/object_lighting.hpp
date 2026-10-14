@@ -2,6 +2,8 @@
 #include "halo2/cache.hpp"
 
 namespace halo2 {
+// Original TU1.5 11A360 lighting direction limit; angle is in radians.
+Vec3 source_object_light_direction(Vec3 incident,float radians);
 // Original D1850/D1E10 collision/lightmap query result, before D4080.
 // Colors carry RGB in the low24 bits. D1E10 emits0x00RRGGBB; D1A30's
 // diffuse fallback is literal0xFF555555. The high byte is not lighting alpha.

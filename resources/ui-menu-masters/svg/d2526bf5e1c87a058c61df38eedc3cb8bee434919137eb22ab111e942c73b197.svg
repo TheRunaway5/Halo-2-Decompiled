@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="248" viewBox="0 0 480 62" version="1.1">
+  <title>Vista ui\screens\game_shell\live_game_browser\column_head_hover page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="header-height" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="62">
+      <stop offset="0" stop-color="#2c95dd" stop-opacity="0" />
+      <stop offset="0.4838709677419355" stop-color="#2c95dd" stop-opacity="0" />
+      <stop offset="0.5161290322580645" stop-color="#2c95dd" stop-opacity="0.01568627450980392" />
+      <stop offset="0.6451612903225806" stop-color="#2c95dd" stop-opacity="0.07058823529411765" />
+      <stop offset="0.8064516129032258" stop-color="#2c95dd" stop-opacity="0.14901960784313725" />
+      <stop offset="0.967741935483871" stop-color="#2c95dd" stop-opacity="0.22745098039215686" />
+      <stop offset="1" stop-color="#2c95dd" stop-opacity="0.22745098039215686" />
+    </linearGradient>
+    <linearGradient id="header-ends" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="480" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.01875" stop-color="white" stop-opacity="0" />
+      <stop offset="0.03125" stop-color="white" stop-opacity="1" />
+      <stop offset="0.96875" stop-color="white" stop-opacity="1" />
+      <stop offset="0.9791666666666666" stop-color="white" stop-opacity="0" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <mask id="header-envelope" maskUnits="userSpaceOnUse" x="0" y="0" width="480" height="62">
+      <rect width="480" height="62" fill="url(#header-ends)" />
+    </mask>
+  </defs>
+  <rect width="480" height="61.5" fill="url(#header-height)" mask="url(#header-envelope)" />
+</svg>

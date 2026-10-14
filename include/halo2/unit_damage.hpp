@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/content.hpp"
+#include "halo2/source_effect_location.hpp"
 namespace halo2 {
 enum class UnitDamageEffectKind { ShieldDepleted, ShieldDamaged, ShieldRecharging };
 struct UnitDamageEffect {
@@ -19,6 +20,7 @@ struct UnitDamageEffectEvent {
   std::uint32_t target=null_datum;
   UnitDamageEffect effect;
   DamageOwner owner;
+  SourceEffectColors colors;
 };
 // CA0B0 ->1147E0 consumes the completed normalized damage report, including
 // recent damage after D9640. Retain it independently of threshold effects.

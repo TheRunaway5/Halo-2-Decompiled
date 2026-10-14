@@ -9,7 +9,7 @@ SourceShaderLodDefinition Cache::load_source_shader_lod_definition(std::uint32_t
         if(!it)throw FormatError("source shader LOD tag or template missing");
         return *it;
     };
-    const Bytes bytes(storage_);const auto &shader=find_tag(datum,"shad");
+    const Bytes bytes(cache_bytes());const auto &shader=find_tag(datum,"shad");
     const auto root=metadata_offset(shader.address,0x3e);
     SourceShaderLodDefinition result;result.bias=bytes.u16(root+0x3c);
     if(result.bias>6)throw FormatError("source shader LOD bias outside original table");

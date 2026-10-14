@@ -30,7 +30,7 @@ std::array<float,4> uv(const std::array<float,4> &b,unsigned flip) {
 ParticleSpriteDefinition Cache::load_particle_sprite(std::uint32_t datum) const {
   const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::particle, .require_address=true});
   if(!tag)throw FormatError("missing original particle sprite tag");
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   const auto root=metadata_offset(tag->address,0xbc);
   ParticleSpriteDefinition d;
   d.flags=b.u32(root);d.billboard_style=std::int16_t(b.u16(root+4));

@@ -92,7 +92,8 @@ int main(int argc,char** argv)try {
   }
   unsigned resource_begins{};
   NativeVistaOfflineFlow* active_flow{};
-  NativeVistaOfflineFlow flow(frontend,maps,defaults,[&] {
+  const auto make_flow=[&] {
+    auto fresh=std::make_unique<NativeVistaOfflineFlow>(frontend,maps,defaults,[&] {
     check(active_flow && !active_flow->launch_ready(),
         "Loading presentation started after native world readiness publication");
     bool absent{};
@@ -105,11 +106,12 @@ int main(int argc,char** argv)try {
           ("native-loading-world-"+std::to_string(resource_begins)+".ppm"));
     }
   });
-  active_flow=&flow;
+    active_flow=fresh.get();return fresh;
+  };
+  auto flow=make_flow();
   const auto silent_stage=[](FrontendUiSound){throw FormatError("Early countdown unexpectedly emitted a sound");};
-  state.select(0);state.accept();flow.update_frontend(state,0,silent_stage);
-  check(flow.countdown()==10,"Initial countdown did not publish source stage10");
-  const auto initial_countdown_kind=flow.lifecycle_kind();
+  state.select(0);state.accept();flow->update_frontend(state,0,silent_stage);
+  check(flow->countdown()==10,"Initial countdown did not publish source stage10");
   const auto countdown_lobby=state.lobby_view();
   check(countdown_lobby && countdown_lobby->input.countdown &&
       frontend_lobby_presentation(countdown_lobby->input).status_string==0x200001f0 &&
@@ -117,17 +119,78 @@ int main(int argc,char** argv)try {
           "Game start countdown in progress  10\r\nPress \xee\x84\x82 to cancel",
       "Actual solo countdown shows a party requirement instead of its original countdown status");
   state.accept();
-  check(flow.countdown()==9 && !state.launch,"Second Start did not quick-advance the retained countdown");
+  check(flow->countdown()==9 && !state.launch,"Second Start did not quick-advance the retained countdown");
   state.back();
-  check(flow.countdown()==-1 && flow.lifecycle_kind()==1 && state.frame().screen==14 &&
-      !state.launch && !flow.launch_ready(),"Back did not cancel the countdown before ordinary Leave");
-  state.accept();flow.update_frontend(state,0,silent_stage);
+  check(flow->countdown()==-1 && flow->lifecycle_kind()==1 && state.frame().screen==14 &&
+      !state.launch && !flow->launch_ready(),"Back did not cancel the countdown before ordinary Leave");
+  state.accept();flow->update_frontend(state,0,silent_stage);
   state.select(1);state.accept();
-  check(state.frame().screen==23 && flow.countdown()==-1 && flow.lifecycle_kind()==1 &&
-      !state.launch && !flow.launch_ready() && !resource_begins,
+  check(state.frame().screen==23 && flow->countdown()==-1 && flow->lifecycle_kind()==1 &&
+      !state.launch && !flow->launch_ready() && !resource_begins,
       "Game Setup left a stale source launch or loading presentation request");
   state.back();check(state.frame().screen==14,"Game Setup did not return to its actual lobby");
   std::cout<<"PASS actual lobby quick-advance/Back cancellation/Setup cancellation without stale launch\n";
+  unsigned title_returns{};
+  const auto leave_to_menu=[&] {
+    state.back();
+    check(state.frame().vista_leave_task!=nullptr,"Leave did not create its actual disposal task");
+    flow->update_frontend(state,23000,silent_stage);
+    check(state.frame().vista_leave_task!=nullptr && flow->lifecycle_kind()==0,
+        "Leave did not dispose the session before completing its progress task");
+    flow->update_frontend(state,23016,silent_stage);
+    check(state.frame().screen==6 && state.stack().size()==1 && flow->finished() &&
+        !flow->has_report() && !state.launch,"Completed Leave did not return directly to the native main menu");
+    check(state.frame().entries.size()==initial_mainmenu.entries.size(),"Leave selected a different main-menu layout");
+    for(unsigned i=0;i<initial_mainmenu.entries.size();++i) {
+      const auto& a=state.frame().entries[i];const auto& b=initial_mainmenu.entries[i];
+      check(a.label==b.label && a.destination==b.destination && a.value==b.value,
+          "Returned main menu changed its native labels or actions");
+    }
+    const auto instance=state.frame().instance;
+    for(unsigned i=0;i<4;++i)flow->update_frontend(state,23032+i*16,silent_stage);
+    check(state.frame().screen==6 && state.frame().instance==instance,"Idle update replaced the returned menu");
+    // Match main.cpp: a completed disposal detaches this owner's input hook.
+    flow.reset();active_flow=nullptr;
+  };
+  const auto return_through_title=[&] {
+    ++title_returns;
+    state.back();state.select(0);state.accept();
+    check(state.frame().screen==9 && state.stack().size()==1 && state.local_players().empty(),
+        "Main menu Back did not create a fresh signed-out title");
+    state.accept();check(state.frame().screen==10,"Title did not open its actual profile picker");
+    choose(state,1,6);choose(state,2,30);
+    if(two_players) {
+      check(state.controller_slot(inputs[0],true)==0,"Title reentry did not bind the host controller");
+      check(state.controller_slot(inputs[1],true)==1,"Title reentry did not add the second controller");
+      const auto found=std::find_if(state.frame().entries.begin(),state.frame().entries.end(),
+          [](const auto& entry){return entry.label=="Second Pilot";});
+      check(found!=state.frame().entries.end(),"The second profile disappeared at title");
+      state.select(unsigned(found-state.frame().entries.begin()));state.accept();
+      check(state.frame().screen==30 && state.local_players().size()==2,
+          "Title reentry failed to restore the actual second profile");
+    }
+    choose(state,0,14);
+    check(state.local_players().size()==player_count,"Title reentry lost selected local players");
+    flow=make_flow();
+    flow->update_frontend(state,24000,silent_stage);
+    check(state.frame().screen==14 && !state.launch,"Fresh session owner changed the selected lobby");
+    if(argc==5) {
+      FrontendOptions capture;capture.maps=maps;capture.vista_settings=argv[2];
+      capture.session=std::shared_ptr<FrontendSession>(&frontend,[](FrontendSession*){});
+      capture.desktop=defaults.desktop;capture.entry=FrontendOptions::Entry::fresh_lobby;
+      capture.hidden=!visible;capture.mute=true;capture.skip_intro=true;capture.validation=true;
+      capture.width=1280;capture.height=720;capture.frames=8;
+      capture.screenshot=std::filesystem::path(argv[4])/("native-lobby-after-title-"+std::to_string(title_returns)+".ppm");
+      capture.session_update=[&](auto& actual,auto clock,const auto& sound) {
+        flow->update_frontend(actual,clock,sound);return false;
+      };
+      check(!run_frontend(capture),"Title reentry capture launched before Start");
+    }
+  };
+  if(std::getenv("H2_TEST_NAV_ONLY")) {
+    leave_to_menu();return_through_title();
+    std::cout<<"PASS disposed session/title/profile/Split Screen navigation\n";return 0;
+  }
   std::optional<FrontendLaunch> first;
   for(unsigned round=0;round<2;++round) {
     const auto lobby_instance=state.frame().instance;
@@ -148,16 +211,16 @@ int main(int argc,char** argv)try {
     do {
       const auto elapsed=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-start).count();
       check(elapsed<16000,"Real source countdown did not reach its actual native world request");
-      flow.update_frontend(state,std::uint32_t(elapsed),sound);
-      if(!flow.launch_ready())std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }while(!flow.launch_ready());
-    check(beeps==4 && flow.lifecycle_kind()==3 && !state.launch,"Source countdown did not emit exactly its four final-stage beeps");
+      flow->update_frontend(state,std::uint32_t(elapsed),sound);
+      if(!flow->launch_ready())std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }while(!flow->launch_ready());
+    check(beeps==4 && flow->lifecycle_kind()==3 && !state.launch,"Source countdown did not emit exactly its four final-stage beeps");
     check(resource_begins==round+1,"Each real native map load must start presentation exactly once");
-    const auto request=flow.take_launch();
+    const auto request=flow->take_launch();
     auto options=defaults;options.map=request.map;options.local_players=request.local_players;
     options.variant=request.variant;options.selected_profiles=request.selected_profiles;options.selected_teams=request.selected_teams;
     options.input_instances=request.input_instances;
-    options.prepared_world=flow.prepared_world();options.session_random_seed=options.prepared_world->rules.random_seed;
+    options.prepared_world=flow->prepared_world();options.session_random_seed=options.prepared_world->rules.random_seed;
     options.ticks=options.prepared_world->rules.time_ticks+600;
     std::weak_ptr<MultiplayerPreparedWorld> world=options.prepared_world;
     const MultiplayerMatch* initialized=&options.prepared_world->match;
@@ -174,7 +237,7 @@ int main(int argc,char** argv)try {
     for(unsigned view=0;view<player_count;++view) {
       const auto slot=prepared.local_slots[view];const auto& absent_view=prepared.match.first_person_view(view);
       check(prepared.match.player(slot).source_flags==8 &&
-          prepared.match.player(slot).source_current_object==null_datum && flow.player_activation_count()==0 &&
+          prepared.match.player(slot).source_current_object==null_datum && flow->player_activation_count()==0 &&
           absent_view.unit==null_datum && absent_view.representation==-1 &&
           absent_view.hands[0].weapon==null_datum && absent_view.hands[1].weapon==null_datum,
           "Local observer creation activated or bound the genuine absent-unit birth");
@@ -182,7 +245,7 @@ int main(int argc,char** argv)try {
     bool first_view_bound{};
     const auto observe_initial_view=[&](const MultiplayerMatch& actual) {
       if(first_view_bound)return;
-      check(actual.state().tick==1 && flow.player_activation_count()==player_count,
+      check(actual.state().tick==1 && flow->player_activation_count()==player_count,
           "First genuine source tick did not activate every local player exactly once");
       for(unsigned view_index=0;view_index<player_count;++view_index) {
         const auto slot=prepared.local_slots[view_index];
@@ -198,14 +261,14 @@ int main(int argc,char** argv)try {
     unsigned loaded{},updates{};
     options.session_world_loaded=[&](const auto& match,auto slots) {
       check(&match==initialized && slots.size()==player_count && match.player(slots[0]).source_flags==8 &&
-          match.player(slots[0]).source_current_object==null_datum && flow.player_activation_count()==0,
+          match.player(slots[0]).source_current_object==null_datum && flow->player_activation_count()==0,
           "Runtime rebuilt the match or lost the unactivated real player birth");
-      ++loaded;flow.world_loaded(match,slots);
+      ++loaded;flow->world_loaded(match,slots);
     };
     options.session_world_update=[&](const auto& match) {
-      ++updates;const auto close=flow.world_update(match);observe_initial_view(match);return close;
+      ++updates;const auto close=flow->world_update(match);observe_initial_view(match);return close;
     };
-    options.session_audio_update=[&](float volume,const auto& gains){flow.world_audio_update(volume,gains);};
+    options.session_audio_update=[&](float volume,const auto& gains){flow->world_audio_update(volume,gains);};
     MultiplayerRuntimeOutcome outcome;
     if(argc==5) {
       const auto output=std::filesystem::path(argv[4]);std::filesystem::create_directories(output);
@@ -218,7 +281,7 @@ int main(int argc,char** argv)try {
       bool checked_scoreboard{};
       std::optional<std::uint32_t> captured_black;
       rendered.session_view_black=[&](unsigned view) {
-        const auto packed=flow.world_view_black(view);
+        const auto packed=flow->world_view_black(view);
         if(packed)++black_draws;
         if(packed && (*packed>>24)>0 && (*packed>>24)<255)++partial_draws;
         if(round && options.prepared_world->match.state().tick==rendered.capture_tick)
@@ -262,10 +325,10 @@ int main(int argc,char** argv)try {
           std::cout<<"LIMIT selected executable has no verified full-scoreboard operands; checking its absent-owner path\n";
         rendered.session_world_update=[&](const auto& actual) {
           ++updates;
-          const auto close=flow.world_update(actual);observe_initial_view(actual);
+          const auto close=flow->world_update(actual);observe_initial_view(actual);
           if(close)return true;
           if(accelerated || actual.state().tick<60)return false;
-          check(!flow.world_view_black(0),"Source opening fade did not clear before diagnostic acceleration");
+          check(!flow->world_view_black(0),"Source opening fade did not clear before diagnostic acceleration");
           accelerated=true;
           // Diagnostic CPU acceleration within this same initialized GPU
           // session. Every actual Match/lifecycle tick still executes; no
@@ -280,7 +343,7 @@ int main(int argc,char** argv)try {
           // counter to settle. CPU acceleration does not update that owner.
           while(match.state().tick<options.prepared_world->rules.time_ticks+90) {
             match.step(controls);
-            check(!flow.world_update(match),"Diagnostic acceleration passed the actual world-close request");
+            check(!flow->world_update(match),"Diagnostic acceleration passed the actual world-close request");
           }
           return false;
         };
@@ -302,8 +365,8 @@ int main(int argc,char** argv)try {
     }
     check(run_multiplayer(options,outcome)==0 && loaded==1 && updates>1 && outcome.state &&
         outcome.authoritative_banks && outcome.reason==MultiplayerExitReason::session_world_close &&
-        outcome.state->results_finalized && outcome.state->game_over_complete() && flow.lifecycle_kind()==4 &&
-        flow.has_report() && flow.player_activation_count()==player_count && first_view_bound,
+        outcome.state->results_finalized && outcome.state->game_over_complete() && flow->lifecycle_kind()==4 &&
+        flow->has_report() && flow->player_activation_count()==player_count && first_view_bound,
         "Actual normal expiry did not reach its source-owned postgame handoff with one initial activation");
     if(argc==5) {
       // CPU acceleration ends at the same real world-close result. Explicitly
@@ -312,7 +375,7 @@ int main(int argc,char** argv)try {
       defaults.desktop->capture_loading(std::filesystem::path(argv[4])/
           ("native-loading-menu-"+std::to_string(round+1)+".ppm"));
     }
-    options.prepared_world.reset();flow.world_unloaded();
+    options.prepared_world.reset();flow->world_unloaded();
     check(world.expired(),"World teardown retained the actual native match");
     if(argc==5) {
       // Optional actual application resource/render boundary. The normal CTest
@@ -321,7 +384,7 @@ int main(int argc,char** argv)try {
       capture.maps=maps;capture.vista_settings=argv[2];
       capture.session=std::shared_ptr<FrontendSession>(&frontend,[](FrontendSession*){});
       capture.entry=FrontendOptions::Entry::session_return;
-      capture.session_mainmenu_ready=[&](MenuState&){flow.mainmenu_loaded();};
+      capture.session_mainmenu_ready=[&](MenuState&){flow->mainmenu_loaded();};
       capture.hidden=!visible;capture.mute=true;capture.skip_intro=true;capture.validation=true;
       capture.width=1280;capture.height=720;capture.frames=8;
       const auto output=std::filesystem::path(argv[4]);
@@ -334,14 +397,14 @@ int main(int argc,char** argv)try {
           // override or fixture result is used for this diagnostic capture.
           std::this_thread::sleep_for(std::chrono::milliseconds(4100));waited=true;
         }
-        flow.update_frontend(actual,clock,play);return false;
+        flow->update_frontend(actual,clock,play);return false;
       };
       check(!run_frontend(capture),"Actual report capture unexpectedly launched a world");
       check(std::filesystem::is_regular_file(capture.screenshot),"Actual completed report capture missing");
     } else {
       // CPU resource boundary: no GPU framebuffer or original loading/fade
       // parity is asserted by this headless round-trip integration test.
-      Cache menu(maps/"mainmenu.map");(void)menu.load_bsp(0);flow.mainmenu_loaded();
+      Cache menu(maps/"mainmenu.map");(void)menu.load_bsp(0);flow->mainmenu_loaded();
     }
     check(state.frame().screen==vista_menu(16) && state.frame().instance!=lobby_instance &&
         state.frame().vista_pcr->results->player_count==player_count && state.frame().vista_pcr->results->team_count==0 &&
@@ -389,7 +452,7 @@ int main(int argc,char** argv)try {
         check(SDL_PushEvent(&event)==1,"Actual SDL Done release was rejected");
       };
       capture.session_update=[&](MenuState& actual,std::uint32_t clock,const auto& play) {
-        flow.update_frontend(actual,clock,play);
+        flow->update_frontend(actual,clock,play);
         if(!frames)std::this_thread::sleep_for(std::chrono::milliseconds(4100));
         if(frames==5) {
           check(actual.frame().vista_pcr!=nullptr,"Rendered report disappeared before Done input");
@@ -414,8 +477,8 @@ int main(int argc,char** argv)try {
         }
         if(frames>=6) {
           check(actual.frame().screen==14 && actual.stack().size()==1 &&
-              flow.lifecycle_kind()==1 && flow.countdown()==-1 && !actual.launch,
-              "Actual SDL Done left the ready multiplayer lobby for Leave or the Vista Network browser");
+              flow->lifecycle_kind()==1 && flow->countdown()==-1 && !actual.launch,
+              "Actual SDL Done left the ready multiplayer lobby for Leave or a retired screen");
           ++ready_frames;
           if(mouse_done && frames==6)click(2); // Second press of the same double click.
         }
@@ -429,38 +492,38 @@ int main(int argc,char** argv)try {
           ("native-next-countdown-"+std::to_string(round+1)+".ppm");
       frames=0;
       capture.session_update=[&](MenuState& actual,std::uint32_t clock,const auto& play) {
-        flow.update_frontend(actual,clock,play);
+        flow->update_frontend(actual,clock,play);
         if(!frames++)key(SDLK_RETURN);
-        else check(actual.frame().screen==14 && flow.countdown()==10 &&
-            !actual.launch && !flow.launch_ready(),"Actual SDL Start failed in the returned lobby");
+        else check(actual.frame().screen==14 && flow->countdown()==10 &&
+            !actual.launch && !flow->launch_ready(),"Actual SDL Start failed in the returned lobby");
         return false;
       };
-      check(!run_frontend(capture) && flow.countdown()==10,
+      check(!run_frontend(capture) && flow->countdown()==10,
           "Actual rendered lobby could not begin the next match countdown");
       state.back();
-      check(state.frame().screen==14 && flow.countdown()==-1 && flow.lifecycle_kind()==1,
+      check(state.frame().screen==14 && flow->countdown()==-1 && flow->lifecycle_kind()==1,
           "Cancelling the rendered next-match countdown left the lobby");
       std::cout<<"PASS actual SDL Start from returned multiplayer lobby round "<<round+1<<std::endl;
     }
     else if(!round)state.back(); // Keyboard Escape / controller B.
     else if(two_players)check(state.vista_pcr_event(13),"Actual alternate Done component was not consumed");
     else check(state.activate_pointer(report_done),"Actual report Done prompt was not consumed");
-    flow.update_frontend(state,20000,sound);
+    flow->update_frontend(state,20000,sound);
     check(state.frame().screen==14 && state.frame().instance!=report_instance && state.stack().size()==1 &&
-        flow.lifecycle_kind()==1 && state.signed_in_profile()==name && !state.launch,
+        flow->lifecycle_kind()==1 && state.signed_in_profile()==name && !state.launch,
         "Actual B Done did not enter a newly allocated lobby");
     check(state.local_players().size()==player_count && state.lobby_view()->input.player_count==int(player_count),
         "Return to lobby lost a signed-in local player");
     const auto ready_lobby=state.frame().instance;
     // A queued click still carrying the report's geometry must not activate
-    // the new lobby's Leave action and dispose the session into PC browser13.
+    // the new lobby's Leave action and dispose its retained session.
     check(!state.activate_pointer(report_done),"Stale report Done click reached the returned lobby");
     for(unsigned frame=0;frame<120;++frame) {
-      flow.update_frontend(state,20000+frame*16,silent_stage);
+      flow->update_frontend(state,20000+frame*16,silent_stage);
       check(state.frame().screen==14 && state.frame().instance==ready_lobby &&
           state.stack().size()==1 && !state.frame().vista_pcr && !state.frame().vista_leave_task &&
-          flow.lifecycle_kind()==1 && flow.countdown()==-1 && !state.launch,
-          "Carnage report return left the ready lobby or opened the Vista Network browser");
+          flow->lifecycle_kind()==1 && flow->countdown()==-1 && !state.launch,
+          "Carnage report return left the ready lobby or opened a retired screen");
     }
     state.select(0);state.accept();
     check(state.launch && state.launch->map==first->map &&
@@ -468,145 +531,31 @@ int main(int argc,char** argv)try {
         state.launch->selected_profiles==first->selected_profiles &&
         state.launch->input_instances==first->input_instances,
         "Post-report lobby is not ready to start another match with its retained selections");
-    flow.update_frontend(state,22000,silent_stage);
-    check(flow.countdown()==10 && !state.launch && !flow.launch_ready(),
+    flow->update_frontend(state,22000,silent_stage);
+    check(flow->countdown()==10 && !state.launch && !flow->launch_ready(),
         "Post-report Start did not begin its actual session countdown");
     state.back();
-    check(state.frame().instance==ready_lobby && flow.countdown()==-1 &&
-        flow.lifecycle_kind()==1 && !state.launch && !flow.launch_ready(),
+    check(state.frame().instance==ready_lobby && flow->countdown()==-1 &&
+        flow->lifecycle_kind()==1 && !state.launch && !flow->launch_ready(),
         "Post-report countdown cancellation left the returned lobby");
     std::cout<<"PASS carnage Done/stale prompt/idle updates/next Start stay in multiplayer lobby\n";
     std::cout<<"PASS "<<player_count<<"-player real-clock countdown/native authored expiry/report/Done/fresh lobby round "<<round+1<<std::endl;
-  }
-  const auto returned_lobby=state.frame().instance;
-  std::shared_ptr<VistaLeaveTaskScreenOwner> task;
-  const auto leave=[&] {
-    state.back();
-    check(state.frame().screen==vista_menu(182) && bool(state.frame().vista_leave_task) &&
-        state.vista_session_screen()==14 && state.stack().size()==2,
-        "Actual Leave did not allocate its independent progress task");
-    task=state.frame().vista_leave_task;
-  };
-  unsigned leave_updates{};
-  const auto update_leave=[&](std::uint32_t clock,const auto& sound) {
-    flow.update_frontend(state,clock,sound);
-    if(!leave_updates++)
-      check(flow.lifecycle_kind()==0 && state.frame().instance==task->instance &&
-          task->status_string==0x0d000441 && state.vista_session_screen()==vista_menu(13) &&
-          state.stack().size()==2 && state.stack().front().instance!=returned_lobby,
-          "Original Leave update did not dispose the session and replace only its lobby channel");
-  };
-  if(argc==5) {
-    FrontendOptions capture;
-    capture.maps=maps;capture.vista_settings=argv[2];
-    capture.session=std::shared_ptr<FrontendSession>(&frontend,[](FrontendSession*){});
-    capture.entry=FrontendOptions::Entry::session_return;
-    // Resource reentry is followed by an actual user Leave action/factory,
-    // then ordinary task/observer updates; no browser/status preview is used.
-    capture.session_mainmenu_ready=[&](MenuState& actual) {
-      check(&actual==&state,"Leave capture lost its actual retained menu owner");leave();
-    };
-    capture.session_update=[&](MenuState& actual,std::uint32_t clock,const auto& sound) {
-      check(&actual==&state,"Leave capture updated another menu owner");update_leave(clock,sound);return false;
-    };
-    capture.hidden=!visible;capture.mute=true;capture.skip_intro=true;capture.validation=true;
-    capture.width=1280;capture.height=720;capture.frames=8;
-    capture.screenshot=std::filesystem::path(argv[4])/"native-browser-after-leave.ppm";
-    check(!run_frontend(capture) && leave_updates>=2 && std::filesystem::is_regular_file(capture.screenshot),
-        "Actual Leave/browser GPU capture did not complete its retained task updates");
-  } else {
-    leave();update_leave(21000,silent_stage);update_leave(21016,silent_stage);
-  }
-  check(state.frame().screen==vista_menu(13) && state.stack().size()==1 && !state.launch &&
-      state.signed_in_profile()==name && flow.lifecycle_kind()==0,
-      "Original Leave task did not close independently over the new PC browser");
-  const auto browser_instance=state.frame().instance;
-  state.select(0);state.accept();
-  check(state.frame().instance==browser_instance && !state.launch && flow.lifecycle_kind()==1 &&
-      !flow.has_report(),"Actual Create failed to birth the local session before the lobby observer");
-  flow.update_frontend(state,22000,silent_stage);
-  check(state.frame().screen==14 && state.frame().instance!=returned_lobby &&
-      state.frame().instance!=browser_instance && state.stack().size()==1 && !state.launch &&
-      state.signed_in_profile()==name && flow.countdown()==-1,
-      "Actual Create did not enter a new lobby without starting its countdown");
-  state.select(0);state.accept();
-  check(bool(state.launch) && state.launch->map==first->map &&
-      state.launch->variant.values==first->variant.values &&
-      state.launch->selected_profiles==first->selected_profiles,
-      "Create lost the actual profile/map/variant used by the completed matches");
-  flow.update_frontend(state,22000,silent_stage);
-  check(flow.countdown()==10 && !state.launch && !flow.launch_ready(),
-      "Freshly created session did not start the original countdown");
-  state.back();
-  check(flow.countdown()==-1 && flow.lifecycle_kind()==1 && state.frame().screen==14 && !state.launch,
-      "Freshly created session did not cancel its countdown normally");
-  std::cout<<"PASS actual Leave/task/PC browser/Create/fresh lobby/third Start cancellation\n";
-  // Leave the newly created genuine session a second time. The following
-  // Back must allocate the application's original main-menu presentation,
-  // without reviving an old lobby/report frame from a previous lifetime.
-  state.back();
-  check(state.frame().screen==vista_menu(182),"Second actual Leave lost its independent task");
-  flow.update_frontend(state,23000,silent_stage);flow.update_frontend(state,23016,silent_stage);
-  check(state.frame().screen==vista_menu(13) && state.stack().size()==1 &&
-      flow.lifecycle_kind()==0 && state.signed_in_profile()==name,
-      "Second actual Leave did not reach its new nonmodal browser");
-  const auto final_browser=state.frame().instance;
-  const auto browser_back=[&] {
-    state.back();
-    check(state.frame().screen==(two_players?9:initial_mainmenu.screen) && state.frame().instance!=final_browser &&
-        state.frame().instance!=initial_mainmenu.instance &&
-        state.stack().size()==1 && (two_players || state.frame().entries.size()==initial_mainmenu.entries.size()) &&
-        state.signed_in_profile()==name && flow.lifecycle_kind()==0 && !state.launch,
-        "Postgame browser Back switched to a different main menu instead of the original native menu");
-    if(!two_players)for(unsigned i=0;i<initial_mainmenu.entries.size();++i) {
-      const auto& actual=state.frame().entries[i];const auto& expected=initial_mainmenu.entries[i];
-      check(actual.label==expected.label && actual.destination==expected.destination && actual.value==expected.value,
-          "Postgame main-menu labels or actions differ from the original native menu");
+    if(!round) {
+      leave_to_menu();return_through_title();
+      std::cout<<"PASS post-carnage/title/profile/Split Screen reentry; next round must fully load\n";
     }
-  };
-  if(argc==5) {
-    FrontendOptions capture;
-    capture.maps=maps;capture.vista_settings=argv[2];
-    capture.session=std::shared_ptr<FrontendSession>(&frontend,[](FrontendSession*){});
-    capture.entry=FrontendOptions::Entry::session_return;
-    capture.session_mainmenu_ready=[&](MenuState& actual) {
-      check(&actual==&state,"Main-menu capture lost its actual retained menu owner");browser_back();
-    };
-    capture.session_update=[&](MenuState& actual,std::uint32_t clock,const auto& sound) {
-      check(&actual==&state,"Main-menu capture updated another menu owner");
-      flow.update_frontend(state,clock,sound);return false;
-    };
-    capture.hidden=!visible;capture.mute=true;capture.skip_intro=true;capture.validation=true;
-    capture.width=1280;capture.height=720;capture.frames=8;
-    capture.screenshot=std::filesystem::path(argv[4])/"native-mainmenu-after-browser-back.ppm";
-    check(!run_frontend(capture) && std::filesystem::is_regular_file(capture.screenshot),
-        "Actual browser Back/PC6 GPU capture did not complete");
-  } else browser_back();
-  const auto mainmenu_instance=state.frame().instance;
-  flow.update_frontend(state,24000,silent_stage);
-  check(state.frame().instance==mainmenu_instance && state.frame().screen==(two_players?9:initial_mainmenu.screen),
-      "Ordinary native lifecycle update replaced the completed main-menu Back factory");
-  if(two_players) {
-    check(state.local_players().size()==2,"Multi-user browser Back lost its selected profiles");
-    std::cout<<"PASS actual second Leave/browser Back/fresh local title9/both profiles retained\n";
-  } else {
-    choose(state,4,vista_menu(19));state.back();
-    check(state.frame().instance==mainmenu_instance,"Settings failed to retain its original native main-menu parent");
-    std::cout<<"PASS actual second Leave/browser Back/fresh native mainmenu6/PC Settings return\n";
-    choose(state,2,30);choose(state,0,14);
-    state.select(0);state.accept();
-    check(state.launch && state.launch->map==first->map &&
-        state.launch->selected_profiles==first->selected_profiles,
-        "Starting again from the returned main menu did not produce a fresh local match request");
-    flow.update_frontend(state,25000,silent_stage);
-    check(flow.lifecycle_kind()==initial_countdown_kind && flow.countdown()==10 && !state.launch && !flow.launch_ready(),
-        "Starting again from the returned main menu reused the disposed session");
-    state.back();
-    check(flow.lifecycle_kind()==1 && flow.countdown()==-1 && state.frame().screen==14,
-        "New match countdown from the returned main menu did not cancel normally");
-    std::cout<<"PASS returned native main menu can start and cancel a new local match\n";
   }
-  std::cout<<"PASS two actual native rounds retain the genuine offline identity and profile; no rendered Vista parity claim\n";
+  leave_to_menu();
+  const auto mainmenu_instance=state.frame().instance;
+  choose(state,4,vista_menu(19));state.back();
+  check(state.frame().instance==mainmenu_instance,"Settings lost the returned native menu");
+  return_through_title();
+  state.select(0);state.accept();flow->update_frontend(state,25000,silent_stage);
+  check(flow->countdown()==10 && !state.launch,"Title reentry could not start another local countdown");
+  state.back();
+  check(flow->countdown()==-1 && state.frame().screen==14,"Title reentry could not cancel its countdown");
+  std::cout<<"PASS post-carnage Leave/native menu/Settings/title/Split Screen without retired screens\n";
+  std::cout<<"PASS two actual native rounds cover report/title/new-session restart; no rendered Vista parity claim\n";
   for(auto* joystick:virtual_inputs)if(joystick)SDL_JoystickClose(joystick);
   return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

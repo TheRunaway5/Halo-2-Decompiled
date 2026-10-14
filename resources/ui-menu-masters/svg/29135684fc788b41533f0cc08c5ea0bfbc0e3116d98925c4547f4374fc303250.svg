@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="296" height="184" viewBox="0 0 74 46" version="1.1">
+  <title>Vista ui\list_skins\squad_lobby_player_list\arrows page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="arrow-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.2" />
+    </filter>
+  </defs>
+  <g id="arrow" transform="scale(1.0 1.0)">
+    <path d="M37 8 L63 34 L44 34 L37 27 L30 34 L11 34 Z" fill="#2186d0" fill-opacity="0.7" filter="url(#arrow-glow)" />
+    <path d="M37 8 L63 34 L44 34 L37 27 L30 34 L11 34 Z" fill-opacity="1" fill="#f0f5fa" />
+  </g>
+</svg>

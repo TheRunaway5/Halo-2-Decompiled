@@ -23,9 +23,10 @@ Vec3 unit(Vec3 v) {
   const float n=float(std::sqrt(double(v.x)*v.x+double(v.z)*v.z+double(v.y)*v.y));
   return std::abs(n)>=.0001f ? v*(1.f/n) : v;
 }
-// 117C80: exclude either pole and keep the original horizontal heading.
-Vec3 exclude_poles(Vec3 v,float degrees) {
-  const float cosine=float(std::cos(double(degrees*.01745329238474369f)));
+}
+// TU1.5 11A360 (base 117C80): retain the horizontal heading.
+Vec3 source_object_light_direction(Vec3 v,float radians) {
+  const float cosine=float(std::cos(double(radians)));
   if(cosine<std::abs(v.z))v.z=v.z<0?-cosine:cosine;
   if(std::abs(v.x)>=.01f || std::abs(v.y)>=.01f) {
     const float n=float(std::sqrt(double(v.x)*v.x+double(v.y)*v.y));
@@ -34,9 +35,12 @@ Vec3 exclude_poles(Vec3 v,float degrees) {
   } else v.x=1,v.y=0;
   const float n=float(std::sqrt(double(v.x)*v.x+double(v.y)*v.y));
   if(std::abs(n)>=.0001f)v.x*=1.f/n,v.y*=1.f/n;
-  const float magnitude=float(std::sqrt(double(1.f-v.z*v.z)));
-  v.x*=magnitude;v.y*=magnitude;return v;
+  // 11A48F..11A4A7 retains the x87 square/subtract/root through each
+  // multiplication. Rounding the root to float first changes live tank light.
+  const double magnitude=std::sqrt(1.0-double(v.z)*v.z);
+  v.x=float(double(v.x)*magnitude);v.y=float(double(v.y)*magnitude);return v;
 }
+namespace {
 Vec3 rotate_z(Vec3 v,float degrees) {
   const double angle=double(degrees)*double(.01745329238474369f);
   const float s=float(std::sin(angle)),c=float(std::cos(angle));
@@ -45,7 +49,7 @@ Vec3 rotate_z(Vec3 v,float degrees) {
 ShaderVector vector(Vec3 v) {return {v.x,v.y,v.z,0};}
 }
 ObjectLightingDefinition Cache::load_object_lighting_definition() const {
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   const auto scenario=query_tag({.group=tag_groups::scenario});
   if(!scenario)throw FormatError("object lighting scenario missing");
   const auto at=metadata_offset(scenario->address,scenario->size);
@@ -83,7 +87,7 @@ std::optional<Texture> Cache::load_object_surface_texture(std::uint32_t shader) 
   // bitmap-data record zero, independently of animated GPU bitmap frames.
   const auto tag=query_tag({.handle=TagHandle{shader}, .group=tag_groups::shader});
   if(!tag || !tag->address)return {};
-  const Bytes b(storage_);const auto root=metadata_offset(tag->address,tag->size);
+  const Bytes b(cache_bytes());const auto root=metadata_offset(tag->address,tag->size);
   if(!b.u32(root+32))return {};
   const auto definition=metadata_offset(b.u32(root+36),124);
   if(!b.u32(definition+0x5c))return {};
@@ -201,7 +205,7 @@ ObjectLightingState object_lighting(const ObjectLightingDefinition &definition,
   const auto incident=unit(sample.incident);
   const auto lightmap=unpack(sample.lightmap_rgb)+Vec3{v->brightness_offset,v->brightness_offset,v->brightness_offset};
   result.primary_color=clamp_vector(lightmap,v->primary_minimum,v->primary_maximum);
-  result.primary_direction=exclude_poles(incident,v->exclusion_degrees)*-1.f;
+  result.primary_direction=source_object_light_direction(incident,v->exclusion_degrees*.01745329238474369f)*-1.f;
   const auto secondary=clamp_vector(lightmap,v->secondary_minimum,v->secondary_maximum);
   const auto diffuse=clamp_vector(unpack(sample.diffuse_rgb),v->diffuse_minimum,v->diffuse_maximum);
   const float squared=result.accuracy*result.accuracy,inverse=1.f-squared;

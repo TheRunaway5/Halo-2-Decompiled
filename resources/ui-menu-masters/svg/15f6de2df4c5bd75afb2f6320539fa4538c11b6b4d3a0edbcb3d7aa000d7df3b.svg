@@ -1,0 +1,31 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="336" height="336" viewBox="0 0 42 42" version="1.1">
+  <title>Vista ui\global_bitmaps\live_icons_sm page 2: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="live-symbol-blue-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.9" />
+    </filter>
+    <filter id="live-symbol-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.29" />
+    </filter>
+  </defs>
+  <g transform="scale(0.75)" fill="white" stroke-linejoin="round">
+    <g filter="url(#live-symbol-blue-glow)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill" opacity=".8" fill="#2e9aff">
+      <circle cx="24" cy="22" r="17" fill="none" stroke="#87b9df" stroke-width="4" opacity="0.5" />
+      <circle cx="24" cy="22" r="17" fill="none" stroke="#2e9aff" stroke-width="2.5" />
+      <circle cx="26" cy="12.5" r="3.6" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <path d="M17.8 18 H32 L20 32.5 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <path d="M11 33 C9 38 7 44 8 49 Q10 54 26 48 C35 44 42 38 46 30 L42 29.5 C32 40 17 49 12 46 Q11 41 14 36 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <path d="M50 24 L43.00895930619209 40.98869477086223 L41.51905430780123 33.58715599987687 L33.99104069380791 33.01130522913777 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+    </g>
+    <g id="live-symbol" filter="url(#live-symbol-edge-softness)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill">
+      <circle cx="24" cy="22" r="17" fill="none" stroke="#87b9df" stroke-width="4" opacity="0.5" />
+      <circle cx="24" cy="22" r="17" fill="none" stroke="white" stroke-width="2.5" />
+      <circle cx="26" cy="12.5" r="3.6" />
+      <path d="M17.8 18 H32 L20 32.5 Z" />
+      <path d="M11 33 C9 38 7 44 8 49 Q10 54 26 48 C35 44 42 38 46 30 L42 29.5 C32 40 17 49 12 46 Q11 41 14 36 Z" />
+      <path id="orbit-arrowhead" d="M50 24 L43.00895930619209 40.98869477086223 L41.51905430780123 33.58715599987687 L33.99104069380791 33.01130522913777 Z" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,74 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 512 512" version="1.1">
+  <title>Vista ui\global_bitmaps\br_05 page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <mask id="metal-reserved" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="512">
+      <rect width="512" height="512" fill="white" />
+      <path d="M232 78 L238 72 V186 L232 180 Z" fill="black" fill-rule="evenodd" />
+      <path d="M222 128 L226 124 V176 L237 188 V214 L193 250 H106 L111 245 H190 L218 217 V199 L202 183 L222 163 Z" fill="black" fill-rule="evenodd" />
+    </mask>
+    <clipPath id="corner-content">
+      <path d="M0 0 H232 V178 L220 200 V218 L190 245 H0 Z" />
+    </clipPath>
+    <radialGradient id="corner-blue-0" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(232 180) scale(140 190)">
+      <stop offset="0" stop-color="#73b6fe" stop-opacity="0.56" />
+      <stop offset="0.3" stop-color="#73b6fe" stop-opacity="0.392" />
+      <stop offset="0.6" stop-color="#73b6fe" stop-opacity="0.14" />
+      <stop offset="0.85" stop-color="#73b6fe" stop-opacity="0.028000000000000004" />
+      <stop offset="1" stop-color="#73b6fe" stop-opacity="0.0" />
+    </radialGradient>
+    <radialGradient id="corner-blue-1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(170 240) scale(110 80)">
+      <stop offset="0" stop-color="#73b6fe" stop-opacity="0.46" />
+      <stop offset="0.3" stop-color="#73b6fe" stop-opacity="0.322" />
+      <stop offset="0.6" stop-color="#73b6fe" stop-opacity="0.115" />
+      <stop offset="0.85" stop-color="#73b6fe" stop-opacity="0.023000000000000003" />
+      <stop offset="1" stop-color="#73b6fe" stop-opacity="0.0" />
+    </radialGradient>
+    <filter id="corner-edge-halo" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6" />
+    </filter>
+    <filter id="corner-metal-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <linearGradient id="corner-face-0" gradientUnits="userSpaceOnUse" x1="232" y1="0" x2="238" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="0.81" />
+      <stop offset="0.12" stop-color="white" stop-opacity="0.72" />
+      <stop offset="0.5" stop-color="white" stop-opacity="0.54" />
+      <stop offset="0.88" stop-color="white" stop-opacity="0.705" />
+      <stop offset="1" stop-color="white" stop-opacity="0.825" />
+    </linearGradient>
+    <clipPath id="metal-face-0">
+      <path d="M232 78 L238 72 V186 L232 180 Z" clip-rule="evenodd" />
+    </clipPath>
+    <linearGradient id="corner-face-1" gradientUnits="userSpaceOnUse" x1="218" y1="0" x2="237" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="0.81" />
+      <stop offset="0.12" stop-color="white" stop-opacity="0.72" />
+      <stop offset="0.5" stop-color="white" stop-opacity="0.54" />
+      <stop offset="0.88" stop-color="white" stop-opacity="0.705" />
+      <stop offset="1" stop-color="white" stop-opacity="0.825" />
+    </linearGradient>
+    <clipPath id="metal-face-1">
+      <path d="M222 128 L226 124 V176 L237 188 V214 L193 250 H106 L111 245 H190 L218 217 V199 L202 183 L222 163 Z" clip-rule="evenodd" />
+    </clipPath>
+  </defs>
+  <g id="inward-blue-light" mask="url(#metal-reserved)" opacity="0.5919712351855676">
+    <g clip-path="url(#corner-content)">
+      <ellipse cx="232" cy="180" rx="140" ry="190" fill="url(#corner-blue-0)" />
+      <ellipse cx="170" cy="240" rx="110" ry="80" fill="url(#corner-blue-1)" />
+    </g>
+    <path d="M232 78 L238 72 V186 L232 180 Z" fill="none" stroke="#82bcf4" stroke-width="6" opacity="0.2" filter="url(#corner-edge-halo)" />
+    <path d="M222 128 L226 124 V176 L237 188 V214 L193 250 H106 L111 245 H190 L218 217 V199 L202 183 L222 163 Z" fill="none" stroke="#82bcf4" stroke-width="6" opacity="0.2" filter="url(#corner-edge-halo)" />
+  </g>
+  <g id="corner-metal" filter="url(#corner-metal-edge)" opacity="0.638579077213948">
+    <path d="M232 78 L238 72 V186 L232 180 Z" fill="url(#corner-face-0)" fill-rule="evenodd" />
+    <path d="M232 78 L238 72 V186 L232 180 Z" fill="none" stroke="white" stroke-width="5" opacity="0.34" clip-path="url(#metal-face-0)" />
+    <path d="M232 78 L238 72 V186 L232 180 Z" fill="none" stroke="white" stroke-width="1" opacity="0.36" clip-path="url(#metal-face-0)" />
+    <path d="M222 128 L226 124 V176 L237 188 V214 L193 250 H106 L111 245 H190 L218 217 V199 L202 183 L222 163 Z" fill="url(#corner-face-1)" fill-rule="evenodd" />
+    <path d="M222 128 L226 124 V176 L237 188 V214 L193 250 H106 L111 245 H190 L218 217 V199 L202 183 L222 163 Z" fill="none" stroke="white" stroke-width="5" opacity="0.34" clip-path="url(#metal-face-1)" />
+    <path d="M222 128 L226 124 V176 L237 188 V214 L193 250 H106 L111 245 H190 L218 217 V199 L202 183 L222 163 Z" fill="none" stroke="white" stroke-width="1" opacity="0.36" clip-path="url(#metal-face-1)" />
+    <path d="M238 72 V186" fill="none" stroke="white" stroke-width="0.7" opacity="0.45" />
+    <path d="M226 124 V176 L237 188 V214 L193 250 H106" fill="none" stroke="white" stroke-width="0.7" opacity="0.45" />
+    <path d="M111 245 H190 L218 217" fill="none" stroke="white" stroke-width="0.7" opacity="0.45" />
+  </g>
+</svg>

@@ -1,4 +1,7 @@
 #include "material_frame_selection.hpp"
+#ifdef HALO2_VEHICLE_SHADING_REFERENCE
+#include "halo2/vehicle_shading_reference.hpp"
+#endif
 #include "model_world_pose_cache.hpp"
 #ifdef HALO2_PROFILE_MATERIAL_FRAME_ORACLE
 #include "material_frame_oracle.hpp"
@@ -6,6 +9,7 @@
 #include "halo2/audio.hpp"
 #include "halo2/rumble.hpp"
 #include "halo2/world_effects.hpp"
+#include "halo2/source_map_effects.hpp"
 #include "halo2/unit_damage_audio.hpp"
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/multiplayer_audio.hpp"
@@ -26,6 +30,7 @@
 #include "halo2/source_camera.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/native_death_camera.hpp"
+#include "halo2/native_vehicle_camera.hpp"
 #include "halo2/source_frustum_camera.hpp"
 #include "halo2/source_view_projection.hpp"
 #include "halo2/source_portal_visibility.hpp"
@@ -37,6 +42,7 @@
 #include "halo2/source_bsp_shader_scene.hpp"
 #include "halo2/source_bsp_resident_plan.hpp"
 #include "halo2/source_dynamic_model_shaders.hpp"
+#include "halo2/source_character_shaders.hpp"
 #include "halo2/source_shield_model_shaders.hpp"
 #include "halo2/shield_overlay.hpp"
 #include "halo2/source_camouflage_context.hpp"
@@ -65,6 +71,7 @@
 #include "halo2/multiplayer_presentation.hpp"
 #include "halo2/model.hpp"
 #include "halo2/native_player_animation.hpp"
+#include "halo2/frontend_model_ik.hpp"
 #include "halo2/model_markers.hpp"
 #include "halo2/muzzle_effects.hpp"
 #include "halo2/effect_sound.hpp"
@@ -185,7 +192,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
        options.capture_tick > 1000000 || options.screenshot.empty() ||
        options.host_port || !options.join.empty() || options.dedicated || options.replay))
     throw FormatError("Input-script capture requires a local finite tick capture");
+  const bool finite_observer=options.input_observer && (options.frames || options.capture_tick) && !options.ticks &&
+      !options.host_port && options.join.empty() && !options.dedicated && !options.replay && !options.online_match;
   if((options.reference_auxiliary_seed || options.reference_tick_cadence) &&
+      !(options.reference_tick_cadence && !options.reference_auxiliary_seed && finite_observer) &&
       (options.input_script.empty() || !options.capture_tick || options.frames ||
        options.screenshot.empty() || options.host_port || !options.join.empty() ||
        options.dedicated || options.replay || options.online_match))
@@ -197,7 +207,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       !std::isfinite(options.capture_projection->x) || !std::isfinite(options.capture_projection->y)))
     throw FormatError("Reference projection requires a captured camera, finite vertical angle and positive lighting scale");
   std::optional<ReferencePlayerState> reference_player;
-  if(options.reference_render_fraction && (!options.capture_tick || (options.reference_player.empty() && options.input_script.empty()) ||
+  if(options.reference_render_fraction && ((!finite_observer && (!options.capture_tick || (options.reference_player.empty() && options.input_script.empty()))) ||
       !std::isfinite(*options.reference_render_fraction) || *options.reference_render_fraction<0 || *options.reference_render_fraction>1))
     throw FormatError("Explicit interpolation requires a finite reference-player or input-script tick capture");
   if(!options.reference_player.empty()) {
@@ -235,22 +245,29 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   if(!cache.original_data() || !cache.original_data()->grenade_constants)
     std::cerr<<"Grenades unavailable: selected executable has no verified projectile operands\n";
   const auto fingerprint = options.host_port || !options.join.empty() || options.online_match
-      ? multiplayer_fingerprint(options.map, cache.shared_directory(),
-                                std::uint32_t(options.bsp), rules.weapon, options.gameplay_xbe)
+      ? custom_slayer_fingerprint(multiplayer_fingerprint(options.map, cache.shared_directory(),
+                                std::uint32_t(options.bsp), rules.weapon, options.gameplay_xbe),variant)
       : 0;
   std::unique_ptr<LanHost> host;
   std::unique_ptr<LanClient> client;
   std::vector<unsigned> ids;
   if(options.online_match) {
-    if(options.local_players!=1 || options.host_port || !options.join.empty())throw FormatError("ONLINE requires one selected local player and its matched transport");
+    if(options.host_port || !options.join.empty())throw FormatError("ONLINE requires its matched transport");
     const auto &online=*options.online_match;
+    const auto local_slots=online.local_slots();
+    if(local_slots.size()!=options.local_players ||
+       (!options.selected_profiles.empty() && options.selected_profiles.size()!=local_slots.size()) ||
+       (!options.selected_teams.empty() && options.selected_teams.size()!=local_slots.size()))
+      throw FormatError("ONLINE local selections differ from the authenticated couch roster");
     const auto phase=online.phase();
     if(phase!=OnlineMatchSession::Phase::Loading && phase!=OnlineMatchSession::Phase::Failed)
       throw FormatError("ONLINE match is no longer loading");
     if(online.host()==online.self()) {
-      const auto &self=online.roster().at(online.self());
-      ids.push_back(match.join(self.name,rules.team_mode ? self.team : -1,
-          options.selected_profiles.empty()?std::nullopt:std::optional(options.selected_profiles[0]),self.slot));
+      for(unsigned i=0;i<local_slots.size();++i) {
+        const auto &self=online.roster().at(local_slots[i]);
+        ids.push_back(match.join(self.name,rules.team_mode ? self.team : -1,
+            options.selected_profiles.empty()?std::nullopt:std::optional(options.selected_profiles[i]),self.slot));
+      }
       host=std::make_unique<LanHost>(match,options.online_match,fingerprint,online.roster());
     } else client=std::make_unique<LanClient>(options.online_match,online.host(),fingerprint,options.selected_teams,options.selected_profiles);
   } else if (!options.join.empty())
@@ -458,12 +475,44 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
                           v.model.mesh.materials.end());
     return v;
   };
-  std::map<std::pair<std::uint32_t,std::uint32_t>,Visual> vehicle_visuals;
+  struct VehicleVisual {
+    std::array<RenderModel,6> lods;
+    unsigned material{};
+    std::unique_ptr<SourceCharacterShaders> shaders;
+    SourceGeometryLodDefinition geometry;
+    SourceObjectColorDefinition colors;
+    std::uint32_t variant_name{};
+  };
+  std::map<std::pair<std::uint32_t,std::uint32_t>,VehicleVisual> vehicle_visuals;
+  std::map<std::uint32_t,ObjectLightQueryContext> vehicle_light_definitions;
   for(const auto &o:content.objects)if(o.type==1 && o.definition!=null_datum) {
     const auto key=std::pair{o.definition,o.variant};if(vehicle_visuals.contains(key))continue;
-    Visual v;v.model=cache.load_model(o.definition,true,o.variant);prepare_forward_materials(cache,v.model.mesh);
-    v.material=unsigned(mesh.materials.size());mesh.materials.insert(mesh.materials.end(),v.model.mesh.materials.begin(),v.model.mesh.materials.end());
-    vehicle_visuals.emplace(key,std::move(v));
+    VehicleVisual vehicle;
+    const auto initial=cache.load_initial_model_definition(o.definition);
+    const auto selected=cache.load_initial_model_selection(o.definition,o.variant);
+    if(!selected.resolved())throw FormatError("Vehicle initial variant requires its original selection owner");
+    vehicle.variant_name=selected.variant_index<0?0u:initial.variants.at(unsigned(selected.variant_index)).name;
+    vehicle.colors=cache.load_source_object_color_definition(o.definition);
+    vehicle.geometry=cache.load_source_geometry_lod_definition(o.definition);
+    // Prepare every literal source geometry bank. Resident materials are shared;
+    // the union of section origins binds compiled inputs for every bank once.
+    RenderModel bindings;
+    for(unsigned lod=0;lod<vehicle.lods.size();++lod) {
+      auto& model=vehicle.lods[lod];
+      model=cache.load_model(o.definition,lod==5,o.variant,selected,lod);
+      if(lod==5)bindings.mesh.materials=std::move(model.mesh.materials);
+      else model.mesh.materials.clear();
+      bindings.mesh.vertices.insert(bindings.mesh.vertices.end(),model.mesh.vertices.begin(),model.mesh.vertices.end());
+      bindings.vertex_origins.insert(bindings.vertex_origins.end(),model.vertex_origins.begin(),model.vertex_origins.end());
+    }
+    vehicle.shaders=std::make_unique<SourceCharacterShaders>(cache,bindings,o.definition);
+    vehicle_light_definitions.emplace(o.definition,vehicle.shaders->light_query_context());
+#ifdef HALO2_VEHICLE_SHADING_REFERENCE
+    for(auto& material:bindings.mesh.materials)vehicle_shading_reference_material_storage(material);
+#endif
+    vehicle.material=unsigned(mesh.materials.size());
+    mesh.materials.insert(mesh.materials.end(),std::make_move_iterator(bindings.mesh.materials.begin()),std::make_move_iterator(bindings.mesh.materials.end()));
+    vehicle_visuals.emplace(key,std::move(vehicle));
   }
   const auto &weapon = content.weapons.at(rules.weapon);
   if(reference_player && (reference_player->unit_definition!=content.player.datum ||
@@ -506,6 +555,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     std::array<unsigned,multiplayer_capacity> player_materials;
     AnimationClip fp_idle;
     FirstPersonIkDefinition fp_ik;
+    std::array<FrontendModelWeaponIk,2> body_ik;
     std::optional<FirstPersonBindingDefinition> fp_definition;
     std::optional<AnimationClip> fp_fire,fp_reload,fp_reload_empty,fp_ready,fp_throw;
     std::map<std::uint32_t,AnimationClip> fp_clips;
@@ -555,6 +605,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     v.player.idle=cache.load_unit_weapon_action(v.player.model.animation,0x06000086u,
         weapon_animation[0],weapon_animation[1],0x0400000cu);
     v.body_animation=std::make_shared<NativePlayerAnimation>(cache,v.player.model.animation,weapon.datum);
+    for(unsigned crouch=0;crouch<2;++crouch)
+      v.body_ik[crouch]=cache.load_unit_weapon_ik(authored.biped.datum,weapon.datum,
+          crouch?0x06000087u:0x06000086u);
     // Original169D8A selects weapon record1 for Elite, falling back to0
     // only when the weapon has no second authored record.
     const auto record=representation==3 && weapon.first_person_models.size()>1 ? 1u:0u;
@@ -593,7 +646,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     const auto model=tags.get({biped.u32(0x38)},tag_groups::model);
     const auto render=tags.get({model.u32(4)},tag_groups::render_model);
     const auto& info=render.info();
-    const SourceTagMetadata render_model(info.datum,info.group,info.address,render.bytes());
+    const auto render_model=cache.load_source_tag_metadata(info.datum);
     const auto names=biped.block(0x2f8,4);
     for(std::size_t n=0;n<names.size();++n)
       v.foot_markers.push_back(source_model_markers(render_model,names.element(n).u32(0)));
@@ -647,7 +700,18 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   std::uint32_t visual_event_primary=0x12345678u;
   const SourceEffectRandom effect_random{visual_event_primary,auxiliary_random};
   NativeMuzzleEffects muzzle_effects(cache,effect_random);
+  muzzle_effects.collision_query([&](auto flags,Vec3 origin,Vec3 delta)->std::optional<ParticleCollisionHit> {
+    if(world->source_objects && world->source_objects->owns_physics())
+      return world->source_objects->particle_collision(flags,origin,delta);
+    const auto distance=length(delta);if(!(distance>0))return {};
+    const auto hit=match.simulation().collision().raycast(origin,delta,distance);if(!hit)return {};
+    return ParticleCollisionHit{hit->distance/distance,hit->position,hit->normal,true,std::int16_t(hit->material)};
+  });
   NativeWorldEffects world_effects(cache,mesh,match.simulation().collision(),effect_random);
+  if(world->source_objects && world->source_objects->owns_physics())
+    world_effects.collision_query([&](auto flags,Vec3 origin,Vec3 delta) {
+      return world->source_objects->particle_collision(flags,origin,delta);
+    });
   for(auto &[key,v]:species) {
     const auto &vitality=content.player_representations.at(key.first).biped.vitality;
     for(const auto effect:{vitality.shield_damaged_effect,vitality.shield_depleted_effect,vitality.shield_recharging_effect})
@@ -661,12 +725,15 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       v.shield_markers.emplace(cache.string_id(name),source_model_markers(metadata,name));
     }
   }
-  std::uint64_t world_impact_serial{},world_detonation_serial{},world_unit_effect_serial{},world_voice_serial{};
+  std::uint64_t world_impact_serial{},world_melee_serial{},world_detonation_serial{},world_unit_effect_serial{},world_voice_serial{};
   bool world_effect_baseline=!client;
   std::set<std::string> reported_world_effect_gaps;
   NativeEffectSounds effect_sounds(cache);
   std::vector<std::pair<std::uint32_t,std::uint32_t>> weapon_effect_sounds;
   std::array<std::uint32_t,4> client_effect_serial{},client_effect_weapon{},client_effect_handle{};
+  // Native effect slots are bounded; retain the full salt alongside the
+  // source instance so retired/reused slots cannot inherit an old refresh.
+  std::map<std::uint16_t,std::pair<std::uint32_t,std::uint32_t>> source_firing_instances;
   client_effect_weapon.fill(null_datum);client_effect_handle.fill(null_datum);
   bool client_prop_effect_baseline{};
   NativeDeviceEventCursor device_event_cursor(!client);
@@ -683,15 +750,20 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     }
   }
   std::set<std::uint32_t> firing_effects;
-  for(const auto &[datum,d]:content.weapons)if(d.firing_presentation) {
-    const auto effect=d.firing_effects.front().effects[0];
+  std::set<std::uint32_t> firing_sound_effects;
+  for(const auto &[datum,d]:content.weapons)if(d.firing_presentation)
+  for(const auto &entry:d.firing_effects)for(const auto effect:entry.effects) {
+    if(effect==null_datum || !cache.query_tag({.handle=TagHandle{effect},.group=tag_groups::effect,.require_address=true}))continue;
+    firing_sound_effects.insert(effect);
+    try {
     const auto names=muzzle_effects.marker_names(effect);
     for(auto &[key,v]:species)if(key.second==datum)for(auto name:names) {
       auto markers=source_model_markers(cache.load_source_tag_metadata(v.fp_definition->weapon_model),name);
-      if(markers.size()!=1)throw FormatError("Authored Needler firing effect requires its singleton FP marker");
+      if(markers.size()!=1)throw FormatError("Authored ordinary firing effect requires its singleton FP marker");
       v.effect_markers.emplace(name,std::move(markers));
     }
     firing_effects.insert(effect);
+    }catch(const FormatError &e){std::cerr<<"Firing effect "<<std::hex<<effect<<std::dec<<": "<<e.what()<<'\n';}
   }
   std::set<std::uint32_t> ready_effects;
   for(const auto &[datum,d]:content.weapons)if(d.ready_effect!=null_datum)try {
@@ -710,10 +782,15 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     ~PresentationOwnerLifetime(){if(match)match->release_presentation_owners();}
   } presentation_owner_lifetime{client?nullptr:&match};
   if(!client)match.configure_weapon_effect_owner([&](const Unit &unit,const WeaponEffectInput &input) {
-      if(input.effect==null_datum)return input.previous_handle;
+      if(input.effect==null_datum)return null_datum; // Original107B50/108A70 early exit.
       if(input.effect!=muzzle_effect && !firing_effects.contains(input.effect) && !ready_effects.contains(input.effect)) {
         const auto tag=cache.query_tag({.handle=TagHandle{input.effect}});
         if(tag && tag->group=="snd!")weapon_effect_sounds.emplace_back(input.effect,input.weapon);
+        else if(firing_sound_effects.contains(input.effect)) {
+          try{effect_sounds.spawn(input.effect,input.weapon,unit.body.position,
+              std::bit_cast<float>(input.a_bits),std::bit_cast<float>(input.b_bits));}
+          catch(const FormatError &e){std::cerr<<"Firing sound effect "<<std::hex<<input.effect<<std::dec<<": "<<e.what()<<'\n';}
+        }
         else std::cerr<<"Weapon effect requires an additional original effect owner: "<<std::hex<<input.effect<<std::dec<<'\n';
         return null_datum;
       }
@@ -721,8 +798,24 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         //The separate world particle owner remains unfinished. Preserve the
         //actual authored firing sound for nonlocal weapons without allocating
         //an FP effect whose posed marker can never be consumed.
-        if(input.effect==muzzle_effect || firing_effects.contains(input.effect))effect_sounds.spawn(input.effect,input.weapon,unit.body.position);
+        if(input.effect==muzzle_effect || firing_effects.contains(input.effect))effect_sounds.spawn(input.effect,input.weapon,unit.body.position,
+            std::bit_cast<float>(input.a_bits),std::bit_cast<float>(input.b_bits));
         return null_datum;
+      }
+      if(world->source_objects && world->source_objects->owns_physics()) {
+        auto source_input=input;
+        const auto previous=source_firing_instances.find(std::uint16_t(input.previous_handle));
+        source_input.previous_handle=previous!=source_firing_instances.end() && previous->second.first==input.previous_handle
+            ?previous->second.second:null_datum;
+        const auto source=world->source_objects->request_weapon_effect(source_input);
+        if(!source.colors_observed)
+          throw FormatError("Firing presentation has no completed original effect-color owner");
+        auto presentation_input=input;
+        if(source.instance==null_datum || source.instance!=source_input.previous_handle)
+          presentation_input.previous_handle=null_datum;
+        const auto handle=muzzle_effects.request(presentation_input,std::uint32_t(match.simulation().ticks()+1),source.colors,
+            world->source_objects->object_linear_velocity(input.weapon));
+        if(handle!=null_datum)source_firing_instances[std::uint16_t(handle)]={handle,source.instance};return handle;
       }
       return muzzle_effects.request(input,std::uint32_t(match.simulation().ticks()+1));
     });
@@ -870,6 +963,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   const auto geometry_scenario_type=cache.load_source_geometry_scenario_type();
   std::set<std::uint32_t> prop_query_handles;
   SourcePropScene props(cache,content.objects,options.bsp,mesh,object_light_collision);
+  props.region_state([&](std::uint32_t handle){return match.simulation().props().region_selection(handle);});
+  SourceMapEffects map_effects(cache,content.objects,world_effects);
+  {
+    const auto state=map_effects.stats();
+    std::cout<<"Map effect attachments: "<<state.prepared<<'/'<<state.attachments<<" prepared\n";
+    for(const auto &gap:state.unavailable)std::cerr<<"Map effect attachment boundary: "<<gap<<'\n';
+  }
   std::optional<SourceGrenadeScene> grenade_scene;
   std::vector<std::uint32_t> projectile_definitions;
   for(const auto &[datum,weapon]:content.weapons)
@@ -1025,13 +1125,14 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     const auto admission_deadline=Clock::now()+std::chrono::seconds(15);
-    std::array<Controls,1> neutral{};
+    std::array<Controls,4> neutral{};
     // No world ticks before every real participant has been admitted.
     for(;;) {
       if(host) { host->receive(controls);host->broadcast(); }
-      if(client) { client->send(neutral);client->receive(); }
-      const bool admitted=host ? host->peers()+1==options.online_match->roster().size()
-          : client->ready() && std::count_if(client->state().players.begin(),client->state().players.end(),[](const auto &p){return p.connected;})==int(options.online_match->roster().size());
+      if(client) { client->send(std::span(neutral).first(options.local_players));client->receive(); }
+      const auto admission_state=client?client->state():match.state();
+      const bool admitted=(!client || client->ready()) &&
+          std::count_if(admission_state.players.begin(),admission_state.players.end(),[](const auto &p){return p.connected;})==int(options.online_match->roster().size());
       if(admitted)break;
       if(options.online_match->phase()==OnlineMatchSession::Phase::Failed || Clock::now()>admission_deadline || (client && !client->error().empty())) {
         retain_outcome(MultiplayerExitReason::online_disconnected,client?client->state():match.state(),client && client->ready());return 0;
@@ -1058,7 +1159,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   };
   update_audio_listeners();
   const auto consume_client_weapon_effects=[&]{
-    if(muzzle_effect==null_datum && firing_effects.empty() && ready_effects.empty())return;
+    if(muzzle_effect==null_datum && firing_sound_effects.empty() && ready_effects.empty())return;
     for(unsigned view=0;view<ids.size();++view){
       const auto &p=current.players[ids[view]];const auto &effect=p.weapon_effect;
       if(client_effect_weapon[view]!=p.source_weapon){
@@ -1077,6 +1178,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       else {
         const auto tag=cache.query_tag({.handle=TagHandle{effect.effect}});
         if(tag && tag->group=="snd!")weapon_effect_sounds.emplace_back(effect.effect,effect.weapon);
+        else if(firing_sound_effects.contains(effect.effect)) {
+          try{effect_sounds.spawn(effect.effect,effect.weapon,p.position,
+              std::bit_cast<float>(effect.a_bits),std::bit_cast<float>(effect.b_bits));}
+          catch(const FormatError &e){std::cerr<<"Firing sound effect "<<std::hex<<effect.effect<<std::dec<<": "<<e.what()<<'\n';}
+        }
       }
     }
   };
@@ -1097,26 +1203,44 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   };
   update_sensors();
   std::array<std::uint32_t,4> uploaded_sensor_tick{~0u,~0u,~0u,~0u};
-  const auto compose_native_body=[&](const MultiplayerState::Player &a,NativeLocomotionFrame presentation,double body_tick,float relative_yaw,
-      NativeLocomotionFrame *posed=nullptr) {
-    const auto &body=species_for(a);const auto &player=body.player;
+  std::array<FirstPersonAimBlend,multiplayer_capacity> aim_blends;
+  std::array<FirstPersonAimBlend,multiplayer_capacity> body_aim_blends;
+  struct NativeBodyChannels {
+    NativeLocomotionFrame primary;
+    const AnimationClip *secondary{},*offhand{};
+    float secondary_frame{},offhand_frame{};
+    std::uint32_t secondary_activity=null_datum,display_activity=null_datum;
+    NativePlayerAnimation *left{};
+    bool moving{},dual{};
+  };
+  // Rendering and aim/IK admission consume the same actual selected channels.
+  const auto select_native_body=[&](const MultiplayerState::Player &a,NativeLocomotionFrame presentation,double body_tick) {
+    const auto &body=species_for(a);
     const AnimationClip *primary=presentation.clip;
+    auto primary_activity=presentation.activity;
     const bool body_moving=presentation.activity==0x0a000014u || presentation.activity==0x09000015u ||
         presentation.activity==0x09000016u || presentation.activity==0x0a000017u;
     const AnimationClip *grenade_overlay=nullptr;
     if((a.source_action_word&(1u<<22)) && a.grenade_action.animation_active) {
       const auto *clip=match.grenade_clip(a.grenade_action.graph,a.grenade_action.clip);
-      if(clip && clip->animation_type==0){primary=clip;presentation.frame=a.grenade_action.frame;}
+      if(clip && clip->animation_type==0){primary=clip;presentation.frame=a.grenade_action.frame;primary_activity=a.grenade_action.activity;}
       else grenade_overlay=clip;
     }
     const bool dual=a.secondary_weapon.datum!=null_datum;
               const AnimationClip *action=grenade_overlay;
+              auto action_activity=grenade_overlay?a.grenade_action.activity:null_datum;
               float action_frame=grenade_overlay?a.grenade_action.frame:0;
               const AnimationClip *offhand=nullptr;float offhand_frame=0;
+              NativePlayerAnimation *left=nullptr;
+              if(dual) {
+                auto left_player=a;left_player.weapon=a.secondary_weapon.definition;
+                left=species_for(left_player).body_animation.get();
+              }
               // Snapshot ticks own the action; rendering samples them without
               // restarting the animation or scaling it to a guessed duration.
               if(a.melee_action.active()) {
                 action=body.body_animation->action(a.melee_action.activity,a.native_crouching,dual);
+                action_activity=a.melee_action.activity;
                 action_frame=float(std::max(0.,body_tick-double(a.melee_action.started)));
               }
               if(!a.dead && !a.melee_action.active() && !(a.source_action_word&(1u<<22))) {
@@ -1124,6 +1248,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
                 const auto start=a.reload_seconds>0?a.reload_tick:a.shot_tick;
                 if(start && body_tick>=double(start)) {
                   action=body.body_animation->action(activity,a.native_crouching,dual);
+                  action_activity=activity;
                   action_frame=float(body_tick-double(start));
                   if(action && action_frame>=float(action->frame_count))action=nullptr;
                 }
@@ -1134,31 +1259,38 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
                   if(clock.activity!=null_datum && clock.activity!=0x0400000cu &&
                       clock.activity!=0x06000006u && clock.activity!=0x0c000064u && clock.activity!=0x0b000065u) {
                     action=body.body_animation->action(clock.activity,a.native_crouching,dual);
+                    action_activity=clock.activity;
                     action_frame=clock.frame;
                     if(action && action_frame>=float(action->frame_count))action=nullptr;
                   }
                 }
                 if(dual) {
-                  auto left_player=a;left_player.weapon=a.secondary_weapon.definition;
-                  auto &left=*species_for(left_player).body_animation;
                   const auto &weapon=a.secondary_weapon;
                   const auto start=weapon.reload_seconds>0?weapon.reload_tick:weapon.shot_tick;
                   if(start && body_tick>=double(start)) {
-                    offhand=left.action(
+                    offhand=left->action(
                         weapon.reload_seconds>0?0x0d00053au:0x0b00053eu,a.native_crouching,true);
                     offhand_frame=float(body_tick-double(start));
                     if(offhand && offhand_frame>=float(offhand->frame_count))offhand=nullptr;
                   }
                 }
               }
-    const auto composed_activity=action && a.melee_action.active()?a.melee_action.activity:presentation.activity;
-    if(action && action->animation_type==0){primary=action;presentation.frame=action_frame;action=nullptr;}
-    if(posed)*posed={primary,presentation.frame,composed_activity};
-    const float frame=presentation.frame;
-              auto locals=body.body_animation->pose(player.model,*primary,frame,a.pitch,
-                  a.native_crouching,dual,body_moving,
-                  action,action_frame,offhand,offhand_frame,relative_yaw);
-    return locals;
+    if(action && action->animation_type==0){primary=action;presentation.frame=action_frame;primary_activity=action_activity;action=nullptr;}
+    const auto composed_activity=action && a.melee_action.active()?a.melee_action.activity:primary_activity;
+    return NativeBodyChannels{{primary,presentation.frame,primary_activity},action,offhand,
+        action_frame,offhand_frame,action?action_activity:null_datum,composed_activity,left,body_moving,dual};
+  };
+  const auto compose_native_body=[&](unsigned id,const MultiplayerState::Player &a,NativeLocomotionFrame presentation,double body_tick,float relative_yaw,
+      NativeLocomotionFrame *posed=nullptr) {
+    const auto &body=species_for(a);
+    const auto channels=select_native_body(a,presentation,body_tick);
+    if(posed)*posed={channels.primary.clip,channels.primary.frame,channels.display_activity};
+    return body.body_animation->pose(body.player.model,*channels.primary.clip,channels.primary.frame,a.pitch,
+        a.native_crouching,channels.dual,channels.moving,channels.secondary,channels.secondary_frame,
+        channels.offhand,channels.offhand_frame,relative_yaw,0,channels.left,channels.primary.activity,
+        source_aim_blend_weight(body_aim_blends[id]),
+        !aim_blends[id].count || source_aim_blend_weight(aim_blends[id])>=
+            std::bit_cast<float>(cache.original_data()->unit_animation_constants->frame_subtractor_bits));
   };
   std::array<NativePlayerTransition,multiplayer_capacity> body_transitions;
   std::array<std::unique_ptr<NativeLocomotion>,multiplayer_capacity> gait;
@@ -1198,10 +1330,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             const auto native_frame=gait[id]->frame();const auto basis=authored_basis({gait[id]->facing(),0,0});
             const auto root=source_object_transform(p.position,basis.forward,basis.up,1,false);
             const auto nodes=pose_model_nodes_world_frame(player.model,root,native_frame.clip,event.frame);
-            if(event.marker>=foot_markers.size())throw FormatError("Authored footstep marker index missing");
-            const auto markers=pose_model_markers(foot_markers[event.marker],nodes,{}, {},1);
-            if(markers.empty())throw FormatError("Authored footstep has no current posed marker");
-            const auto position=markers.front().world.position;
+            const auto position=authored_footstep_position(foot_markers,nodes,event.marker,p.position);
             const auto listener=player_camera(current.players[ids.front()],biped_for(current.players[ids.front()]),
                 biped_for(current.players[ids.front()]).camera_field_of_view,content.player_screen_offset).position;
             // Native audible-distance adaptation of the original10-unit
@@ -1212,15 +1341,48 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
               if(sound!=null_datum)audio->impulse_at(sound,position,1,MultiplayerAudioKind::Footstep,p.source_unit);
           },&p.landing,&p.yaw);
       NativeLocomotionFrame composed;
-      const auto locals=compose_native_body(p,gait[id]->frame(),double(current.tick),std::remainder(p.yaw-gait[id]->facing(),6.283185307179586f),&composed);
+      const auto locals=compose_native_body(id,p,gait[id]->frame(),double(current.tick),std::remainder(p.yaw-gait[id]->facing(),6.283185307179586f),&composed);
       if(cache.original_data()->unit_constructor_tail_constants)
         body_transitions[id].tick(composed.activity,p.native_crouching,locals,*cache.original_data()->unit_constructor_tail_constants);
     }catch(const std::exception&e){gait_unavailable[id]=true;gait[id].reset();std::cerr<<"Native gait/footstep owner: "<<e.what()<<'\n';}
   };
   std::optional<std::uint64_t> world_effect_tick;
   std::set<std::uint32_t> attached_effect_objects;
-  const auto update_world_effects=[&] {
+  const auto update_world_effects=[&](bool accepted_replica=false) {
+    if(client && !accepted_replica && !world_effect_baseline)return;
+    if(client && accepted_replica) {
+      if(current.source_scene_roots_authoritative)
+        match.replicate_source_scene(current.source_scene_roots,current.source_body_poses);
+      match.replicate_devices(current.devices);
+      match.replicate_prop_removals(current.prop_removals);
+      match.replicate_prop_regions(current.prop_regions);
+    }
+    //Publish the actual current scene pose on the simulation tick before
+    //emission. The later render interpolation is a separate read-only sample.
+    machines.synchronize(match.simulation().scene(),&match.simulation().devices());
+    props.synchronize(match.simulation().scene());
+    source_scenery.synchronize(match.simulation().scene());
+    const auto render_fraction=scenery_render_fraction;scenery_render_fraction=1;
+    machines.update_pose(current.devices.tick,std::int32_t(current.tick),mesh);
+    props.update_pose(std::int32_t(current.tick),mesh);
+    source_scenery.update_pose(current.tick,std::int32_t(current.tick),mesh);
+    scenery_render_fraction=render_fraction;
+    auto map_owners=source_scenery.effect_owners();
+    for(const auto &owner:machines.effect_owners())map_owners.push_back(owner);
+    for(const auto &owner:props.effect_owners())map_owners.push_back(owner);
+    map_effects.synchronize(map_owners,current.tick);
     std::set<std::uint32_t> present;
+    const auto publish_markers=[&](std::uint32_t handle,const auto &visual,std::span<const Transform> nodes) {
+      NativeWorldEffects::ObjectMarkers markers;
+      const auto append=[&](const std::string &name,const Transform &t) {
+        markers[name].push_back({t.position,t.basis[2],t.basis[0],t.basis[0],t.basis[2],false,0,0});
+      };
+      for(const auto &[name,authored]:visual.shield_markers)
+        for(const auto &marker:pose_model_markers(authored,nodes))append(name,marker.world);
+      //178360 grants only literal root a node-zero fallback.
+      if(!markers.contains("root"))append("root",nodes.front());
+      world_effects.object_markers(handle,std::move(markers));present.insert(handle);
+    };
     for(unsigned id=0;id<multiplayer_capacity;++id) {
       const auto &p=current.players[id];
       const auto handle=p.dead?p.source_previous_unit:p.source_unit;
@@ -1237,7 +1399,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         const auto b=authored_basis({heading,0,0});
         const auto root=source_object_transform(p.position,b.forward,b.up,1,false);
         if(gait[id] && v.body_animation && !reference_player) {
-          auto locals=compose_native_body(p,gait[id]->frame(),double(current.tick),
+          auto locals=compose_native_body(id,p,gait[id]->frame(),double(current.tick),
               std::remainder(p.yaw-heading,6.283185307179586f));
           body_transitions[id].apply(locals,1);
           nodes=pose_model_locals_nodes_world(v.player.model,root,locals);
@@ -1249,41 +1411,54 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         present.insert(handle);continue;
       }
       if(nodes.empty())continue;
-      NativeWorldEffects::ObjectMarkers markers;
-      const auto append=[&](const std::string &name,const Transform &t) {
-        markers[name].push_back({t.position,t.basis[2],t.basis[0],t.basis[0],t.basis[2],false,0,0});
-      };
-      for(const auto &[name,authored]:v.shield_markers)
-        for(const auto &marker:pose_model_markers(authored,nodes))append(name,marker.world);
-      //178360 grants only literal root a node-zero fallback. Missing body,
-      //head or shield_recharge markers never receive a fabricated location.
-      if(!markers.contains("root"))append("root",nodes.front());
-      world_effects.object_markers(handle,std::move(markers));present.insert(handle);
+      publish_markers(handle,v,nodes);
+    }
+    if(current.source_body_poses_authoritative)for(const auto &corpse:current.corpses) {
+      if(present.contains(corpse.object))continue;
+      const auto pose=std::find_if(current.source_body_poses.begin(),current.source_body_poses.end(),
+          [&](const auto &p){return p.object==corpse.object;});
+      if(pose==current.source_body_poses.end())continue;
+      const auto &visual=species.at({multiplayer_representation(corpse.configuration),rules.weapon});
+      publish_markers(corpse.object,visual,pose->nodes);
     }
     for(const auto handle:attached_effect_objects)if(!present.contains(handle))world_effects.remove_object(handle);
     attached_effect_objects=std::move(present);
     if(!world_effect_baseline){
       if(!current.bullet_impacts.empty())world_impact_serial=current.bullet_impacts.back().serial;
+      if(!current.melee_impacts.empty())world_melee_serial=current.melee_impacts.back().serial;
       if(!current.grenade_detonations.empty())world_detonation_serial=current.grenade_detonations.back().serial;
       if(!current.unit_damage_effects.empty())world_unit_effect_serial=current.unit_damage_effects.back().serial;
       world_effect_baseline=true;
     }
-    for(const auto&event:current.bullet_impacts)if(event.serial>world_impact_serial){
-      world_impact_serial=event.serial;
-      try{world_effects.impact(event);}catch(const FormatError&error){
+    // Both journals share the collision owner's serial. Preserve contact
+    // creation order when a render frame receives several simulation ticks.
+    struct Contact {std::uint64_t serial;const BulletImpact *bullet;const MeleeImpact *melee;};
+    std::vector<Contact> contacts;
+    for(const auto &e:current.bullet_impacts)if(e.serial>world_impact_serial)contacts.push_back({e.serial,&e,nullptr});
+    for(const auto &e:current.melee_impacts)if(e.serial>world_melee_serial)contacts.push_back({e.serial,nullptr,&e});
+    std::sort(contacts.begin(),contacts.end(),[](const auto &a,const auto &b){return a.serial<b.serial;});
+    for(const auto &contact:contacts){
+      if(contact.bullet)world_impact_serial=contact.serial;else world_melee_serial=contact.serial;
+      try{
+        if(contact.bullet)world_effects.impact(*contact.bullet);
+        else world_effects.melee_impact(*contact.melee);
+      }catch(const FormatError&error){
         if(reported_world_effect_gaps.insert(error.what()).second)std::cerr<<"Authored impact visual: "<<error.what()<<'\n';
       }
     }
     for(const auto&event:current.grenade_detonations)if(event.serial>world_detonation_serial){
       world_detonation_serial=event.serial;
-      try{world_effects.spawn(event.effect,event.projectile,event.tick,
-          {event.position,event.up,event.forward,event.forward,event.up,false});}catch(const FormatError&error){
+      try{
+        if(!event.source_locations.empty())world_effects.spawn_source(event.effect,event.projectile,event.tick,event.source_locations,event.colors);
+        else world_effects.spawn(event.effect,event.projectile,event.tick,
+          {event.position,event.up,event.forward,event.forward,event.up,false});
+      }catch(const FormatError&error){
         if(reported_world_effect_gaps.insert(error.what()).second)std::cerr<<"Authored grenade visual: "<<error.what()<<'\n';
       }
     }
     for(const auto &event:current.unit_damage_effects)if(event.serial>world_unit_effect_serial) {
       world_unit_effect_serial=event.serial;
-      world_effects.spawn_attached(event.effect.datum,event.target,event.owner.unit,event.tick);
+      world_effects.spawn_attached(event.effect.datum,event.target,event.owner.unit,event.tick,event.colors);
     }
     if(damage_audio) {
       damage_audio->advance(current.tick);
@@ -1312,8 +1487,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     world_effect_tick=current.tick;
   };
   std::array<ObjectLightingCache,multiplayer_capacity> object_light_cache;
+  std::array<std::uint32_t,multiplayer_capacity> object_light_units;
+  object_light_units.fill(null_datum);
+  std::map<std::uint32_t,ObjectLightingCache> corpse_light_cache;
+  std::map<std::uint32_t,ObjectLightingCache> vehicle_light_cache;
+  std::map<std::uint32_t,std::array<std::int8_t,4>> vehicle_previous_lods;
   std::array<ShadowCasterSphere,multiplayer_capacity> object_owner_spheres;
-  std::array<FirstPersonAimBlend,multiplayer_capacity> aim_blends;
   std::array<bool,multiplayer_capacity> aim_alive{};
   const auto update_aim=[&](const MultiplayerState &state,unsigned elapsed_ticks) {
     for(unsigned id=0;id<multiplayer_capacity;++id) {
@@ -1321,28 +1500,35 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       if(!p.connected || p.dead){aim_alive[id]=false;continue;}
       const auto &v=species_for(p);
       const auto &player=v.player;
-      // Use the same optional authored actions as the body composer. Missing
-      // fire/reload rows are legitimate for some weapon/species bindings;
-      // resource/decoder failures still propagate from this shared lookup.
-      const bool dual=p.secondary_weapon.datum!=null_datum;
-      const auto *unit_fire=v.body_animation->action(0x06000006u,p.native_crouching,dual);
-      const auto *unit_reload=v.body_animation->action(0x08000002u,p.native_crouching,dual);
-      if(!aim_alive[id]){aim_blends[id]={};aim_alive[id]=true;}
+      const auto channels=select_native_body(p,gait[id]?gait[id]->frame():
+          NativeLocomotionFrame{player.idle?&*player.idle:nullptr,0,0x0400000cu},double(state.tick));
+      if(!aim_alive[id]){aim_blends[id]={};body_aim_blends[id]={};aim_alive[id]=true;}
       auto &blend=aim_blends[id];
       FirstPersonAimEligibility input;
-      input.dual_wield=p.secondary_weapon.datum!=null_datum;
-      input.base_state=0x0400000cu;
-      input.base_animation_flags=player.idle?player.idle->authored_flags:0;
-      if(p.reload_seconds>0 && unit_reload) {
-        input.secondary_action=0x08000002u;
-        input.secondary_animation_flags=unit_reload->authored_flags;
-      } else if(p.shot_tick && state.tick-p.shot_tick<4 && unit_fire) {
-        input.secondary_action=0x06000006u;
-        input.secondary_animation_flags=unit_fire->authored_flags;
-      }
+      input.dual_wield=channels.dual;
+      input.base_state=channels.primary.activity;
+      input.base_animation_flags=channels.primary.clip?channels.primary.clip->authored_flags:0;
+      input.secondary_action=channels.secondary_activity;
+      input.secondary_animation_flags=channels.secondary?channels.secondary->authored_flags:0;
+      const auto image=cache.original_data();
+      if(!image || !image->unit_constructor_tail_constants)throw FormatError("Missing original body aim transition operands");
+      const auto &constants=*image->unit_constructor_tail_constants;
+      const bool body_eligible=!((input.base_animation_flags|input.secondary_animation_flags)&16);
+      const auto clock=[] {
+        SourceLocalTransitionClock c{{},0x27f,0x1f80};c.record[2]=std::byte(30);
+        const auto dt=std::bit_cast<std::uint32_t>(1.f/30.f);
+        for(unsigned i=0;i<4;++i)c.record[4+i]=std::byte(dt>>(i*8));
+        return c;
+      };
       for(unsigned tick=0;tick<elapsed_ticks;++tick) {
         source_aim_blend_advance(blend);
         source_aim_blend_select(blend,source_weapon_aim_eligible(input),30);
+        //112D50 bit4 and113830's90 slot have their own transition speed;
+        // the support-hand80 slot above uses1112F0's separate action gate.
+        auto &body_blend=body_aim_blends[id];source_aim_blend_advance(body_blend);
+        start_source_transition_counter(std::as_writable_bytes(std::span(&body_blend,1)),
+            body_eligible?constants.normal_blend_bits:constants.special_blend_bits,
+            body_eligible,constants.one_bits,clock);
       }
     }
   };
@@ -1371,6 +1557,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   const auto &scope_constants=content.original_data->unit_scope_camera_constants;
   std::array<UnitScopeCameraProducer,4> scope_producers{};
   std::array<UnitScopeCameraState,4> scope_observers{};
+  std::optional<NativeVehicleCamera> vehicle_camera;
+  if(world->source_objects && !client && world->source_objects->owns_physics())
+    vehicle_camera.emplace(*world->source_objects,*content.original_data);
   std::optional<NativeDeathCamera> death_camera;
   if(world->source_objects)
     death_camera.emplace(*world->source_objects,*content.original_data,auxiliary_random);
@@ -1661,10 +1850,25 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           const auto age=unit.source_death_tick==null_datum ? std::nullopt : std::optional(float(current.tick-unit.source_death_tick)/30);
           voice.active=game_voice_active(player.connected,player.source_current_object!=null_datum,player.source_previous_unit!=null_datum,age);
           voice.position=current.players[id].position;voice.yaw=unit.yaw;
+          if(id<options.online_match->roster().size()) {
+            const auto peer=online_admission_peer(options.online_match->roster()[id]);
+            voice.disabled=voice_players[peer].disabled;voice.muted=voice_players[peer].muted;
+          }
         }
-        for(const auto &listener:options.online_match->roster())if(auto gains=game_voice_route(frame.source,listener.slot,voice_players,frame.radio,rules.team_mode,false,voice_range)) {
-          frame.gains=*gains;
-          if(listener.slot==self)game_voice->receive(frame);else options.online_match->voice(listener.slot,frame);
+        // Shared PC speakers receive each encoded frame once. A nearby local
+        // listener may admit proximity audio even when the primary is farther
+        // away; keep the strongest channel gains instead of duplicating Opus.
+        std::array<std::optional<GameVoiceGains>,16> delivery;
+        const auto source_peer=online_admission_peer(options.online_match->roster()[frame.source]);
+        for(const auto &listener:options.online_match->roster()) {
+          const auto peer=online_admission_peer(listener);if(peer==source_peer)continue;
+          if(auto gains=game_voice_route(frame.source,listener.slot,voice_players,frame.radio,rules.team_mode,false,voice_range)) {
+            auto &chosen=delivery[peer];if(!chosen)chosen=*gains;
+            else {chosen->left=std::max(chosen->left,gains->left);chosen->right=std::max(chosen->right,gains->right);}
+          }
+        }
+        for(unsigned peer=0;peer<delivery.size();++peer)if(delivery[peer]) {
+          frame.gains=*delivery[peer];if(peer==self)game_voice->receive(frame);else options.online_match->voice(peer,frame);
         }
       };
       for(auto &packet:options.online_match->voice_packets()) {
@@ -1806,6 +2010,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           previous = current;
           current = received;
           capture_source_body_poses();
+          if(current.source_scene_roots_authoritative) {
+            match.replicate_source_scene(current.source_scene_roots,current.source_body_poses);
+            scene_interpolation.capture(current.tick,match.simulation().scene().objects());
+          }
           update_audio_listeners();
           update_sensors();
           // A frame may drain several genuinely accepted host ticks. Consume
@@ -1836,7 +2044,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             if(previous.tick && current.tick-previous.tick!=1)gait[id].reset();
             update_native_gait(id);
           }
-          update_world_effects();
+          update_world_effects(true);
           if(!local_definitions.empty())
             for(unsigned view=0;view<ids.size();++view) {
               const auto &fp_definition=species_for(current.players[ids[view]]).fp_definition;
@@ -2094,14 +2302,29 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     std::vector<std::vector<ParticleDraw>> foreground_particles(options.local_players),world_particles(options.local_players);
     muzzle_effects.advance(current.tick,tick_seconds);
     for(const auto &sound:muzzle_effects.take_sounds())if(audio)try {
-      audio->impulse(sound.cue.sound,sound.cue.gain,MultiplayerAudioKind::Impulse,sound.owner);
+      if(sound.position)audio->impulse_at(sound.cue.sound,*sound.position,sound.cue.gain,MultiplayerAudioKind::Impulse,sound.owner);
+      else audio->impulse(sound.cue.sound,sound.cue.gain,MultiplayerAudioKind::Impulse,sound.owner);
     }catch(const std::exception &e){std::cerr<<"Ready effect sound: "<<e.what()<<'\n';}
     std::vector<std::vector<WaterFrame>> water_frames(options.local_players);
     std::vector<std::vector<ObjectLightingBinding>> light_bindings(options.local_players);
     std::vector<SourceEffectLightView> effect_light_views(options.local_players);
     std::vector<std::vector<WorldEffectLightReceiver>> effect_light_receivers(options.local_players);
     std::vector<std::vector<EffectLightRawDraw>> raw_effect_lights(options.local_players);
-    std::vector<std::vector<ModelObjectDraw>> grenade_draws(options.local_players);
+    std::vector<std::vector<ModelObjectDraw>> model_object_draws(options.local_players);
+    std::vector<std::vector<std::vector<Vertex>>> vehicle_vertices(options.local_players);
+    for(auto& bank:vehicle_vertices)bank.reserve(current.world_vehicles.size());
+    std::erase_if(vehicle_light_cache,[&](const auto& entry){return std::none_of(current.world_vehicles.begin(),current.world_vehicles.end(),
+        [&](const auto& v){return (v.lighting_owner==null_datum?v.handle:v.lighting_owner)==entry.first;});});
+    std::erase_if(vehicle_previous_lods,[&](const auto& entry){return std::none_of(current.world_vehicles.begin(),current.world_vehicles.end(),
+        [&](const auto& v){return v.handle==entry.first;});});
+    // Independent geometry and per-draw constants keep a detached body from
+    // acquiring its respawned owner's new pose, lighting or appearance.
+    std::vector<std::vector<std::vector<Vertex>>> corpse_vertices(options.local_players);
+    for(auto &bank:corpse_vertices)bank.reserve(current.corpses.size());
+    std::erase_if(corpse_light_cache,[&](const auto &entry) {
+      return std::none_of(current.corpses.begin(),current.corpses.end(),
+          [&](const auto &corpse){return corpse.object==entry.first;});
+    });
     // ModelView retains these addresses through the immediate draw below.
     std::vector<SourceBspAdmission> bsp_views(options.local_players);
     std::vector<SourceBspResidentViewPlan> bsp_vertex_plans(options.local_players);
@@ -2125,10 +2348,15 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     if(client){
       // Before the first accepted host state, current is the local startup
       // bank. It cannot establish the replica's generation baseline.
+      if(joined && current.source_scene_roots_authoritative)
+        match.replicate_source_scene(current.source_scene_roots,current.source_body_poses);
       if(joined)match.replicate_devices(current.devices);
       match.replicate_prop_removals(current.prop_removals);
+      match.replicate_prop_regions(current.prop_regions);
     }
     props.synchronize(match.simulation().scene());
+    if(current.source_scene_roots_authoritative && options.source_scene_observer)
+      options.source_scene_observer(current,match.simulation().scene());
     props.interpolate(match.simulation().scene(),scene_interpolation,blend);
     weapon_projectile_scene.synchronize(shown.weapon_projectiles);
     if(grenade_scene) {
@@ -2207,16 +2435,17 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       return at==current.source_body_poses.end()?nullptr:&*at;
     };
     const auto body_present=[&](const MultiplayerState::Player &player) {
+      if(!player.connected || player.dead)return false; // Detached bodies have their own lifetime below.
       if(current.source_body_poses_authoritative)
-        return player.connected && source_body_pose(player)!=nullptr;
-      return player.connected && (!player.dead || (world->source_objects &&
-          world->source_objects->camera_target(body_handle(player)).has_value()));
+        return source_body_pose(player)!=nullptr;
+      return true;
     };
     for(unsigned j=0;j<multiplayer_capacity;++j) {
       const auto &root=shown.players[j];
       if(!body_present(root)){object_light_alive[j]=false;continue;}
-      if(!object_light_alive[j]) {
+      if(!object_light_alive[j] || object_light_units[j]!=body_handle(root)) {
         object_light_cache[j]={};object_light_reported[j]=false;object_light_alive[j]=true;
+        object_light_units[j]=body_handle(root);
       }
       auto &light=object_light_cache[j];
       if(reference_player) {
@@ -2305,6 +2534,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     struct BodyFramePose {
       std::vector<Vertex> body,weapon;std::vector<Transform> nodes;
       const AnimationClip *primary{};std::optional<float> frame;
+      std::vector<Transform> weapon_nodes;
     };
     // Frame-local undecorated geometry. Animation/root/time are common to all
     // views; shader choice and material offsets are still applied to each copy.
@@ -2390,13 +2620,26 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         }
       }
       auto camera = player_camera(p, biped,horizontal_fov,content.player_screen_offset);
+      std::optional<NativeDeathCameraView> seated_view;
+      if(vehicle_camera)seated_view=vehicle_camera->update(i,p.source_unit,p.source_flags,
+          p.yaw,p.pitch,elapsed,{camera.position,camera.forward,camera.up,horizontal_fov});
+      else if(client)seated_view=p.source_vehicle_camera;
+      const bool vehicle_view=seated_view.has_value();
+      if(seated_view) {
+        camera.position=seated_view->position;camera.forward=seated_view->forward;camera.up=seated_view->up;
+        camera.oriented=true;horizontal_fov=seated_view->horizontal_fov;
+      }
       if(death_camera) {
         if(const auto view=death_camera->update(i,p.source_player,p.source_flags,
-            current.team_mode,elapsed,!current.finished,true,death_cycle_pressed[i],
+            current.team_mode,elapsed,death_cycle_pressed[i],
             {camera.position,camera.forward,camera.up,horizontal_fov})) {
           camera.position=view->position;camera.forward=view->forward;camera.up=view->up;
           camera.oriented=true;horizontal_fov=view->horizontal_fov;
         }
+      } else if(client && p.source_death_camera) {
+        const auto &view=*p.source_death_camera;
+        camera.position=view.position;camera.forward=view.forward;camera.up=view.up;
+        camera.oriented=true;horizontal_fov=view.horizontal_fov;
       }
       if(options.capture_camera)camera=*options.capture_camera;
       if(reference_player) {
@@ -2694,11 +2937,6 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         for(auto &vertex:vertices)vertex.position=water_world_position(water_frames[i][d],vertex.position);
         append(world,std::move(vertices),water_material_bases[d],{});
       }
-      for(const auto &v:current.world_vehicles) {
-        if(v.placement>=content.objects.size() || content.objects[v.placement].type!=1)throw FormatError("Vehicle snapshot lost its authored definition");
-        const auto &o=content.objects[v.placement];const auto &visual=vehicle_visuals.at({o.definition,o.variant});
-        append(world,pose_model(visual.model),visual.material,v.transform);
-      }
       for (const auto &s : scenery)
         append(world, pose_model(s.visual.model,s.visual.idle?&*s.visual.idle:nullptr,float(shader_time)), s.visual.material,
                s.transform);
@@ -2716,6 +2954,69 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           detail_policy.coverage_multiplier,
           detail_policy.effect_scale,
           frustum_projection.view_modifier};
+      for(const auto& v:current.world_vehicles) {
+        if(v.placement>=content.objects.size() || content.objects[v.placement].type!=1)throw FormatError("Vehicle snapshot lost its authored definition");
+        const auto& o=content.objects[v.placement];const auto& vehicle=vehicle_visuals.at({o.definition,o.variant});
+        const auto& skeleton=vehicle.lods[5];
+        auto nodes=current.source_body_poses_authoritative?source_body_interpolation.sample(v.handle,blend):
+            pose_model_nodes_world(skeleton,v.transform);
+#ifdef HALO2_VEHICLE_SHADING_REFERENCE
+        auto reference_row=o.netgame_row;
+        for(auto parent=o.model_attachment;reference_row<0 && parent;parent=content.objects.at(parent->parent).model_attachment)
+          reference_row=content.objects.at(parent->parent).netgame_row;
+        const auto* reference=vehicle_shading_reference(o.definition,reference_row);
+        if(reference)nodes=reference->nodes;
+#endif
+        if(nodes.empty())throw FormatError("Vehicle lost its current WORLD node0");
+        auto sphere=vehicle.shaders->sphere(nodes.front(),v.transform.scale);
+        if(current.source_body_poses_authoritative) {
+          const auto pose=std::find_if(current.source_body_poses.begin(),current.source_body_poses.end(),[&](const auto& p){return p.object==v.handle;});
+          if(pose==current.source_body_poses.end())throw FormatError("Vehicle lost its authoritative coverage sphere");
+          sphere=pose->sphere;
+        }
+#ifdef HALO2_VEHICLE_SHADING_REFERENCE
+        if(reference)sphere=reference->sphere;
+#endif
+        auto geometry_flags=v.geometry_flags;auto geometry_control=v.geometry_control_flags;
+#ifdef HALO2_VEHICLE_SHADING_REFERENCE
+        if(reference){geometry_flags=reference->geometry_flags;geometry_control=reference->geometry_control_flags;}
+#endif
+        const auto [history,inserted]=vehicle_previous_lods.try_emplace(v.handle,std::array<std::int8_t,4>{-1,-1,-1,-1});
+        auto metric=source_geometry_lod_distance(sphere.center,camera.position,source_angles.lighting_distance_scale);
+        if(object_view.source_4ba019)metric*=.3f;
+        if(geometry_control&4u)metric*=1.7f;
+        const auto choice=source_geometry_lod_choice(vehicle.geometry,metric,history->second[i]);
+        const auto lod=unsigned(source_geometry_lod_cap(choice,detail_policy,geometry_flags,false));
+        auto& vertices=vehicle_vertices[i].emplace_back(skin_model_world_nodes(vehicle.lods[lod],nodes));
+        if(!vertices.empty())history->second[i]=std::int8_t(lod);
+        vehicle.shaders->select(vertices,sphere,*object_view.shader);
+        for(auto& vertex:vertices)vertex.material+=vehicle.material;
+        const auto owner=v.lighting_owner==null_datum?v.handle:v.lighting_owner;
+        const auto definition=v.lighting_definition==null_datum?o.definition:v.lighting_definition;
+        auto& light=vehicle_light_cache[owner];
+        auto origin=v.lighting_owner==null_datum?sphere.center:v.lighting_origin;
+        auto velocity=v.lighting_velocity;auto flags=v.lighting_flags;auto frozen=v.lighting_frozen;
+#ifdef HALO2_VEHICLE_SHADING_REFERENCE
+        if(reference){origin=reference->origin;velocity=reference->velocity;flags=reference->flags;frozen=reference->frozen;}
+#endif
+        const auto distance=source_geometry_lod_distance(origin,camera.position,source_angles.lighting_distance_scale);
+        const auto frame=std::int32_t(frames);const bool due=object_lighting_query_due(light,frame,origin,distance,frozen);
+        auto context=vehicle_light_definitions.at(definition);context.bank_valid=source_object_light_query_bank_valid(lighting);context.runtime_flags=flags;
+        const ObjectSkyLightingDefinition* sky=nullptr;
+        if(fog.visible_sky>=0 && std::size_t(fog.visible_sky)<sky_lighting.size() && sky_lighting[fog.visible_sky])sky=&*sky_lighting[fog.visible_sky];
+        const auto query=due?source_object_light_query(context,[&](unsigned mode){
+          return query_object_lightmap(surface_lighting,object_light_collision,origin,
+              ObjectLightMapQueryContext{mode,!(light.sample_valid && light.lighting_valid),1.f,light.target});
+        },[&]{return query_object_sky_lightmap(surface_lighting,sky,origin);}):ObjectLightQueryAdmission{};
+        if(query.query.status==ObjectLightQueryStatus::attribution_unresolved)throw FormatError("Vehicle lighting contact attribution unresolved");
+        update_object_lighting_cache(light,object_lighting_definition,1,frame,origin,velocity,due,
+            query.accepted?query.query.sample:std::optional<ObjectLightmapSample>{},true,frozen);
+        // Each owner supplies independent constants even when vehicle models,
+        // resident images and material slots are shared with another vehicle.
+        const auto colors=source_object_initial_colors(vehicle.colors,o.position,vehicle.variant_name);
+        model_object_draws[i].push_back({vertices,light.lighting,colors,{}});
+        if(options.vehicle_draw_observer)options.vehicle_draw_observer(i,v.handle,o.definition,light.lighting,light.lighting_valid,lod,vertices);
+      }
       object_view.input=[&](std::size_t source_object,std::uint32_t handle,Vec3 center,float) {
         const auto&live=match.simulation().scene().get(handle);
         const auto&authored=content.objects.at(source_object);
@@ -2745,7 +3046,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
               source_angles.lighting_distance_scale),0,0};
         };
         for(const auto&draw:grenade_scene->draw_view(std::int32_t(frames),grenade_view)) {
-          grenade_draws[i].push_back({draw.vertices,draw.ordinary_lighting?
+          model_object_draws[i].push_back({draw.vertices,draw.ordinary_lighting?
               std::optional<ObjectLightingState>{draw.lighting}:std::nullopt});
           if(options.grenade_draw_observer)
             options.grenade_draw_observer(i,current.tick,draw.owner,draw.definition,draw.vertices);
@@ -2761,7 +3062,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
               source_angles.lighting_distance_scale),0,0};
         };
         for(const auto &draw:weapon_projectile_scene.draw_view(std::int32_t(frames),projectile_view)) {
-          grenade_draws[i].push_back({draw.vertices,draw.ordinary_lighting?
+          model_object_draws[i].push_back({draw.vertices,draw.ordinary_lighting?
               std::optional<ObjectLightingState>{draw.lighting}:std::nullopt,draw.colors});
           if(options.weapon_projectile_draw_observer)
             options.weapon_projectile_draw_observer(i,current.tick,draw.owner,draw.definition,draw.vertices);
@@ -2821,11 +3122,65 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             options.world_weapon_shader_input_observer(item.handle,item.definition,name,value);
           return value;
         };
-        grenade_draws[i].push_back({owner_vertices,object_light_cache[id].lighting,{},owner_input});
+        model_object_draws[i].push_back({owner_vertices,object_light_cache[id].lighting,{},owner_input});
       }
       measure(timing.view[i].objects_ms);
+      if(current.source_body_poses_authoritative)for(const auto &corpse:current.corpses) {
+        const auto pose=std::find_if(current.source_body_poses.begin(),current.source_body_poses.end(),
+            [&](const auto &p){return p.object==corpse.object;});
+        if(pose==current.source_body_poses.end())
+          throw FormatError("Retained corpse lost its completed source WORLD hierarchy");
+        const auto representation=multiplayer_representation(corpse.configuration);
+        const auto &body=species.at({representation,rules.weapon});
+        const auto &definition=content.player_representations.at(representation).biped;
+        if(definition.datum!=corpse.definition)
+          throw FormatError("Retained corpse appearance differs from its actual biped definition");
+        auto [light_at,new_light]=corpse_light_cache.try_emplace(corpse.object);
+        const auto old_slot=corpse.player&65535u;
+        if(new_light && old_slot<multiplayer_capacity && object_light_units[old_slot]==corpse.object)
+          light_at->second=object_light_cache[old_slot];
+        auto &light=light_at->second;
+        const auto origin=pose->sphere.center;
+        const auto frame=std::int32_t(frames);
+        const float distance=length(origin-camera.position)*source_angles.lighting_distance_scale;
+        const bool due=object_lighting_query_due(light,frame,origin,distance,false);
+        ObjectLightQueryContext context;
+        context.bank_valid=source_object_light_query_bank_valid(lighting);
+        context.object_type=0;context.definition_flags=definition.object_flags;
+        context.biped_state=corpse.physical_state;
+        const ObjectSkyLightingDefinition *sky=nullptr;
+        if(fog.visible_sky>=0 && std::size_t(fog.visible_sky)<sky_lighting.size() && sky_lighting[fog.visible_sky])
+          sky=&*sky_lighting[fog.visible_sky];
+        const auto query=due?source_object_light_query(context,
+            [&](unsigned mode){return query_object_lightmap(surface_lighting,object_light_collision,origin,
+                ObjectLightMapQueryContext{mode,!(light.sample_valid && light.lighting_valid),1.f,light.target});},
+            [&]{return query_object_sky_lightmap(surface_lighting,sky,origin);}):ObjectLightQueryAdmission{};
+        update_object_lighting_cache(light,object_lighting_definition,0,frame,origin,corpse.velocity,due,
+            query.accepted?query.query.sample:std::optional<ObjectLightmapSample>{});
+        const auto nodes=source_body_interpolation.sample(corpse.object,blend);
+        const auto skinned=skin_model_world_nodes(body.player.model,nodes);
+        auto &vertices=corpse_vertices[i].emplace_back();
+        const auto collector=source_model_shader_collector(origin,pose->sphere.radius,*object_view.shader);
+        body.player.shaders->append_selected(vertices,skinned,collector,*object_view.shader,body.player.material);
+        auto colors=cache.load_object_colors(corpse.definition);
+        if(corpse.configuration) {
+          const auto emblem=source_player_emblem_colors(*corpse.configuration,player_emblem_palette);
+          colors[2]=emblem[0];colors[3]=emblem[1];
+        }
+        model_object_draws[i].push_back({vertices,light.lighting,colors,
+            [&,corpse](std::uint32_t name) {
+              if(corpse.configuration)if(const auto input=source_object_emblem_input(
+                  source_player_object_emblem(*corpse.configuration),player_emblem_scenario,name))return input->value;
+              return damage_feedback_shader_input(corpse.damage_feedback,corpse.health,corpse.shield,true,
+                  player_damage_functions.at(corpse.definition),*player_damage_function_tables,name,float(shader_time));
+            }});
+        ++timing.bodies_drawn;
+        if(options.animation_observer)options.animation_observer(i,corpse.player&65535u,
+            {current.tick,corpse.object,null_datum,body.player.model.animation,null_datum,
+                blend,float(current.tick),false,false,vertices,null_datum,0,{},nodes});
+      }
       for (unsigned j = 0; j < multiplayer_capacity; ++j)
-        if (body_present(shown.players[j]) && (j != id || shown.players[j].dead)) {
+        if (body_present(shown.players[j]) && (j != id || shown.players[j].dead || vehicle_view)) {
           ++timing.bodies_drawn;
           const auto &a = shown.players[j];
           const auto &body=species_for(a);
@@ -2860,12 +3215,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
               object_owner_spheres[j].radius,*object_view.shader);
           auto &cached=body_frame_poses[j];
           std::vector<Vertex> body_vertices,gun_vertices;
-          std::vector<Transform> body_nodes;
+          std::vector<Transform> body_nodes,held_nodes;
           const auto *copy_pose=std::getenv("HALO2_REFERENCE_COPY_BODY_VERTICES");
           const bool direct_pose=!(copy_pose && *copy_pose);
           if(options.local_players>1 && cached) {
             if(!direct_pose) {body_vertices=cached->body;gun_vertices=cached->weapon;}
             body_nodes=cached->nodes;
+            held_nodes=cached->weapon_nodes;
             body_clip=cached->primary;body_source_frame=cached->frame;
           } else {
             ++timing.body_pose_builds;
@@ -2875,13 +3231,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
               const float frame=body_source_frame.value_or(std::fmod(float(body_tick),float(body_clip->frame_count)));
               const float heading=gait[j]?gait[j]->facing(animation_blend):a.yaw;
               NativeLocomotionFrame composed;
-              auto locals=compose_native_body(a,{body_clip,frame,gait[j]?gait[j]->frame().activity:0x0400000cu},body_tick,
+              auto locals=compose_native_body(j,a,{body_clip,frame,gait[j]?gait[j]->frame().activity:0x0400000cu},body_tick,
                   std::remainder(a.yaw-heading,6.283185307179586f),&composed);
               body_clip=composed.clip;body_source_frame=composed.frame;
               body_transitions[j].apply(locals,animation_blend);
               body_nodes=pose_model_locals_nodes_world(player.model,body_frame,locals);
             } else body_nodes=pose_model_nodes_world(player.model,body_frame,body_clip,body_time);
-            body_vertices=skin_model_world_nodes(player.model,body_nodes);
             // D0870/B8EE0 aligns the unnamed child to the actual posed hand
             // marker; B93B0 stores parent-local fields, then BD090 composes it.
             if(!a.dead) {
@@ -2895,12 +3250,19 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
                 marker,child_marker,body_attachment.named_child);
             const auto local=source_object_attachment_local_frame(aligned,parent_node);
             const auto gun_frame=source_object_transform(local.position,local.forward,local.up,1,false,&parent_node);
-            gun_vertices=pose_model_world(body_gun.model,gun_frame,
+            held_nodes=pose_model_nodes_world(body_gun.model,gun_frame,
                 body_gun.idle?&*body_gun.idle:nullptr,body_time);
+            //113BA0/113980's world callback aligns the support hand to the
+            // actual carried weapon markers. FP arms use a separate model.
+            if(!current.source_body_poses_authoritative && a.secondary_weapon.datum==null_datum)
+              apply_frontend_model_weapon_ik(body.body_ik[a.native_crouching],player.model,
+                  body_nodes,held_nodes,source_aim_blend_weight(aim_blends[j]));
+            gun_vertices=skin_model_world_nodes(body_gun.model,held_nodes);
             }
+            body_vertices=skin_model_world_nodes(player.model,body_nodes);
             if(options.local_players>1) {
-              if(direct_pose)cached=BodyFramePose{std::move(body_vertices),std::move(gun_vertices),body_nodes,body_clip,body_source_frame};
-              else cached=BodyFramePose{body_vertices,gun_vertices,body_nodes,body_clip,body_source_frame};
+              if(direct_pose)cached=BodyFramePose{std::move(body_vertices),std::move(gun_vertices),body_nodes,body_clip,body_source_frame,held_nodes};
+              else cached=BodyFramePose{body_vertices,gun_vertices,body_nodes,body_clip,body_source_frame,held_nodes};
             }
           }
           const auto &posed_body=direct_pose && cached?cached->body:body_vertices;
@@ -2909,7 +3271,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           if(options.animation_observer)options.animation_observer(i,j,
               {current.tick,a.source_unit,a.source_weapon,body_clip?body_clip->source_graph:player.model.animation,
                 body_clip?body_clip->source_index:null_datum,animation_blend,body_source_frame.value_or(float(body_tick)),false,
-                same_body && pose_tick!=double(current.tick),posed_body,null_datum,0,{},body_nodes,
+                same_body && pose_tick!=double(current.tick),posed_body,null_datum,0,held_nodes,body_nodes,
                 gait[j]?gait[j]->facing(animation_blend):a.yaw,gait[j]?gait[j]->frame().activity:null_datum});
           if(direct_pose) {
             player.shaders->append_selected(world,posed_body,collector,*object_view.shader,body.player_materials[j]);
@@ -2957,7 +3319,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         const auto &fp_idle=v.fp_idle;const auto &fp_reload=v.fp_reload;const auto &fp_reload_empty=v.fp_reload_empty;
         const auto &fp_fire=v.fp_fire;const auto &fp_definition=v.fp_definition;const auto &fp_ik=v.fp_ik;
         auto fp_view=registered_view;fp_view.hands[0]=registered_view.hands[hand_index];
-      if (!p.dead && fp_view.hands[0].weapon!=null_datum) {
+      if (!p.dead && !vehicle_view && fp_view.hands[0].weapon!=null_datum) {
         const auto *clip = &fp_idle;
         float time = float(pose_tick) * tick_seconds;
         std::optional<float> source_frame;
@@ -3065,7 +3427,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         bindings.push_back({hands.material,unsigned(hands.model.mesh.materials.size()),first_person_lighting});
         bindings.push_back({gun.material,unsigned(gun.model.mesh.materials.size()),first_person_lighting});
         // Original133AB0 shield recursion reaches133F70 with owner filtering:
-        // the weapon's separate object owner is excluded from the arms layer.
+        // pose.arms is the complete character FP model: arms, hands and fingers.
+        // The weapon's separate object owner is excluded from this layer.
         append_shields(foregrounds[i],pose.arms,v.hand_shields,i,id,true,owner,*object_view.shader);
         const auto *reference_append=std::getenv("HALO2_REFERENCE_COPY_FIRST_PERSON");
         if(reference_append && *reference_append) {
@@ -3122,7 +3485,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       view.water=water_frames[i];
       view.effect_time=shader_time;
       view.object_lighting=bindings;
-      view.objects=grenade_draws[i];
+      view.objects=model_object_draws[i];
       view.source_render_policy=source_geometry_lod_policy(options.local_players);
       view.source_bsp_admission=&bsp_views[i];
       if(bsp_shaders) {
@@ -3148,6 +3511,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       }
       view.source_view_shader_constants=source_view_constants;
       if(options.view_observer)options.view_observer(i,camera,horizontal_fov,view_zoom[i]);
+      if(options.view_state_observer)options.view_state_observer(i,current,camera);
       view.before_ui_vertex = hud_vertices.size();
       views.push_back(view);
       hud.animate(current, id, i, current.score_limit, current.time_ticks,
@@ -3312,6 +3676,21 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         return weapon_ammunition_input(name,ammunition).value_or(0.f);
       };
       if(player_armor_owners[m]>=0) {
+        if(rules.custom==CustomSlayer::infection) {
+          const auto &profile=current.players[unsigned(player_armor_owners[m])].source_configuration;
+          if(profile) {
+            auto colors=material.object_render_colors.value_or(ObjectColors{});
+            for(unsigned channel=0;channel<2;++channel) {
+              const auto index=unsigned((*profile)[0x40+channel]);
+              if(index<player_emblem_palette.size()) {
+                const auto &rgb=player_emblem_palette[index];
+                colors[channel]={std::bit_cast<float>(rgb[0]),std::bit_cast<float>(rgb[1]),std::bit_cast<float>(rgb[2])};
+              }
+            }
+            const auto packed=source_object_render_colors(colors);colors[0]=packed[0];colors[1]=packed[1];
+            apply_object_render_colors(material,colors);
+          }
+        }
         animate_player_armor_emblem(material,shader_time,
             current.players[unsigned(player_armor_owners[m])].source_configuration,
             player_emblem_scenario,player_emblem_palette,input);

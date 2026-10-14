@@ -44,7 +44,8 @@ std::shared_ptr<const PropSandboxDefinition> load_prop_sandbox_definition(
   const auto selected=cache.load_initial_model_selection(placement.definition,placement.variant);
   if(!selected.resolved())return {};
   auto out=std::make_shared<PropSandboxDefinition>();out->datum=placement.definition;
-  out->permutations=selected.permutations;
+  out->region_definition=cache.load_initial_model_definition(placement.definition);
+  out->initial_regions=selected;
   out->collision=cache.load_model_collision(definition.model);
   Reader mode{cache.load_source_tag_metadata(definition.render_model),&cache};
   out->model.name=definition.name;
@@ -87,6 +88,15 @@ std::shared_ptr<const PropSandboxDefinition> load_prop_sandbox_definition(
             out->markers.emplace(marker,source_model_markers(mode.tag,marker));
       }
       out->sections.push_back(std::move(section));
+    }
+    const auto absorbs=[&](int section){return section>=0 && std::size_t(section)<v.sections.size() &&
+        bool(v.sections[section].flags&0x100u);};
+    out->uniform_impact_material=true;
+    out->uniform_impact_region_absorption=true;
+    out->impact_region_absorbs=absorbs(v.default_section);
+    for(const auto entry:hlmt.block(h+0x58,0x14)){
+      out->uniform_impact_material&=hlmt.s(entry+0x10)==v.body_material;
+      out->uniform_impact_region_absorption&=absorbs(hlmt.s(entry+6))==out->impact_region_absorbs;
     }
   }
   return out;

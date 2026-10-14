@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="168" viewBox="0 0 16 42" version="1.1">
+  <title>Vista ui\list_skins\profile_picker\end_cap page 2: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="inactive-opacity" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.7" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.7" />
+    </linearGradient>
+  </defs>
+  <g id="selector">
+    <path d="M16 5 V42 L10 36 V28 L14 24 V20 L10 16 V11 Z" fill="url(#inactive-opacity)" />
+  </g>
+</svg>

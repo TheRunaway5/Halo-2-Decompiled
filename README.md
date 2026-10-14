@@ -45,7 +45,14 @@ BSP residency and cache resources. Its public interface is `halo2/tags.hpp`.
 
 ## Build and run
 
-The requested [Vista gameplay import](docs/VISTA_GAMEPLAY_CONVERSION.md) now has
+The latest [MCC gameplay import](docs/MCC_GAMEPLAY_CONVERSION.md) scans installed
+game libraries and prepares a verified private copy of MCC data, all bitmap
+partitions and the recovered TU1.5 multiplayer corrections. Use
+`./Halo2-Launcher --prepare-mcc-gameplay`. Native MCC playback and complete
+TU1.5 tag/graphics conversion remain unfinished; this preparation does not
+change the working launch selection.
+
+The earlier [Vista gameplay import](docs/VISTA_GAMEPLAY_CONVERSION.md) has
 a checked preparation step for Vista maps/tags and recovered Xbox TU1.5
 postprocessing, with Xbox texture donors and Vista HUD/menu artwork. The native
 adapter reads Vista tags, geometry and supported animations and binds original
@@ -128,6 +135,13 @@ python3 tools/install_launcher.py --build build-release --title-first --desktop
 ./Halo2-Launcher
 ```
 
+Release builds include the supplied AI upscaled intro and credits from
+`resources/movies`. Import them once with
+`python3 tools/bundle_movies.py --source "/path/to/Halo 2 Movies"`.
+The build verifies their checksums and copies both MP4s beside the runtime;
+keep its `resources/movies` folder when assembling a release. See
+[release movies](docs/RELEASE_MOVIES.md) for staging and verification.
+
 Use an optimized runtime for ordinary play: Debug builds spend substantially
 longer decoding assets before the title screen and matches. New single-config
 builds default to `RelWithDebInfo`; an explicitly selected build type is retained.
@@ -140,7 +154,8 @@ it found; `--map` selects a level directly. `--menu-screen ID` previews an
 authored menu screen, and `--menu-sweep DIRECTORY` captures all menu panes and
 variant option dialogs. See [frontend menus and controls](docs/FRONTEND.md).
 `--skip-intro` goes directly to the prompt. `--menu-movie intro|attract|credits`
-and `--movie-frame N` preview disc movies; `--menu-tick N` selects a reproducible
+and `--movie-frame N` preview movies (bundled intro/credits take precedence);
+`--menu-tick N` selects a reproducible
 flythrough tick for screenshots. The separate `Halo2-Title-Launcher` also starts
 at the prompt and uses its own desktop shortcut.
 
@@ -437,8 +452,9 @@ DLC multiplayer maps can use the base disc's shared resources directly:
   --shared-maps assets/disc/maps --local-players 4
 ```
 
-The future MCC adapter is not implemented. It will require actual supplied
-Steam files as format evidence.
+MCC's installed Steam files now have a checked
+[data importer and preparation path](docs/MCC_GAMEPLAY_CONVERSION.md).
+The native gameplay adapter and full TU1.5 conversion remain unfinished.
 
 ## Decompile the local executable
 
@@ -509,3 +525,12 @@ milestones, and [docs/RESEARCH.md](docs/RESEARCH.md) for pinned primary format
 sources. ISO files, extracted assets, analysis exports, tool downloads, and build
 outputs stay local and are excluded from Git. `assets/disc/disc-manifest.json`
 records the source disc hash, file offsets, and individual file hashes.
+
+### Custom Slayer variants
+
+Fiesta Slayer and Infection Slayer are bundled in `data/tags/variants` and in
+[the portable variant release](releases/halo2-custom-slayer-v1.zip). Choose
+either under Slayer in the game; updated ONLINE clients also have an unranked
+Action Sack playlist. Infection automatically converts humans to green sword
+zombies. Both support local couch players and preserve guest-stat privacy.
+See [rules, packaging and verified limits](docs/CUSTOM_SLAYER_VARIANTS.md).

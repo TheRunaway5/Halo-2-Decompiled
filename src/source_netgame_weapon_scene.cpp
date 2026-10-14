@@ -94,6 +94,7 @@ std::optional<SourceWorldWeaponShaderInput> SourceNetgameWeaponScene::shader_sta
             if(result && (result->weapon.item_flags!=owner.state.shader.item_flags ||
                 result->weapon.weapon_flags!=owner.state.shader.weapon_flags ||
                 result->weapon.power_fraction!=owner.state.shader.power_fraction ||
+                result->weapon.heat!=owner.state.shader.heat ||
                 result->magazines.size()!=owner.state.magazines.size() ||
                 !std::equal(result->magazines.begin(),result->magazines.end(),owner.state.magazines.begin(),
                     [](const auto&a,const auto&b){return a.loaded==b.loaded&&a.reserve==b.reserve;})))

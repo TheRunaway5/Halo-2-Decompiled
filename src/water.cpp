@@ -83,7 +83,7 @@ WaterFrame water_frame(const WaterDefinition &definition,Vec3 eye,Vec3 forward,
 
 BspWater Cache::load_bsp_water(std::size_t index) const {
   if(index>=bsps_.size())throw FormatError("water BSP index outside scenario");
-  const auto &bsp=bsps_[index];const Bytes metadata(Bytes(storage_).slice(bsp.file_offset,bsp.size));
+  const auto &bsp=bsps_[index];const Bytes metadata(Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size));
   
   const auto [count,start]=TagAddressSpace(metadata, bsp.memory_address).block(16+0x214, 0xac);BspWater out;
   for(std::size_t i=0;i<count;++i) {

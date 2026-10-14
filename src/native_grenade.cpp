@@ -1,4 +1,5 @@
 #include "halo2/native_grenade.hpp"
+#include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/model_markers.hpp"
 #include "halo2/model_selection.hpp"
@@ -49,6 +50,7 @@ std::uint8_t release_ticks(const AnimationClip&clip){
 }
 }
 NativeGrenadeAction::NativeGrenadeAction(){initialize_source_grenade_action(source);}
+std::uint32_t NativeGrenadeAction::active_actions()const{return get<std::uint32_t>(source,4);}
 std::uint8_t NativeGrenadeAction::phase()const{return get<std::uint8_t>(source,0xc);}
 std::uint8_t NativeGrenadeAction::counter()const{return get<std::uint8_t>(source,0xe);}
 std::uint32_t NativeGrenadeAction::held()const{return get<std::uint32_t>(source,0x10);}
@@ -199,6 +201,37 @@ void NativeGrenadeSandbox::update_unit(Unit&u,bool pressed,int owner,const Alloc
     }
   }
 }
+void NativeGrenadeSandbox::adopt_source_projectiles(std::vector<NativeGrenadeProjectile> next,
+    std::span<const PresentationOwner> units) {
+  for(auto &projectile:next) {
+    // Full source creator identity comes from body+C4/+C8/+C2, independently
+    // of attachment (a plasma grenade can attach to an opposing unit). Only
+    // this native participant index needs an explicit presentation association.
+    const auto old=std::find_if(projectiles_.begin(),projectiles_.end(),[&](const auto &p){
+      return p.datum==projectile.datum && p.player==projectile.player;
+    });
+    if(old!=projectiles_.end())projectile.native_owner=old->native_owner;
+    for(const auto &owner:units)if(projectile.player!=null_datum && owner.unit &&
+        projectile.player==owner.unit->source_player)projectile.native_owner=owner.native_owner;
+  }
+  projectiles_=std::move(next);
+}
+void NativeGrenadeSandbox::adopt_source_detonations(std::uint64_t tick,
+    std::span<const SourceProjectileDetonationTu15> completed) {
+  for(const auto &event:completed) {
+    // Original101330 owns damage, retirement and its selected effect request.
+    // This bridge only publishes the completed effect's actual location frame.
+    events_.push_back({NativeGrenadeEvent::Detonated,event.unit,event.projectile,
+        event.definition,event.effect});
+    if(event.effect_instance==null_datum)continue; // Actual source admission rejected it.
+    if(event.effect_locations.empty())
+      throw FormatError("Completed TU1.5 explosion effect has no retained presentation location");
+    const auto &frame=event.effect_locations.front().frame;
+    detonations_.push_back({++detonation_serial_,tick,event.projectile,event.definition,
+        event.effect,event.player,event.unit,frame.position,frame.basis[0],frame.basis[2],event.effect_locations,event.colors});
+    if(detonations_.size()>64)detonations_.erase(detonations_.begin());
+  }
+}
 void NativeGrenadeSandbox::prepare(Unit&u,int owner,const Allocate&allocate,const Constructed&constructed){
   const auto &body=unit_definition(u.definition.datum);
   auto&s=u.grenade_action;const auto result=source_grenade_prepare_prefix(s.source,
@@ -313,7 +346,7 @@ void NativeGrenadeSandbox::update_projectiles(std::uint64_t tick,const Collision
     const bool detonate=p.state==2||(p.state==1&&(p.arming_step==0||p.arming>=d.one));
     if(detonate){
       if(g.damage){if(!area)throw FormatError("Grenade detonation requires real area-damage owner");
-        area(*g.damage,p.position,p.player,p.unit,p.designator,p.native_owner);}
+        area(*g.damage,p.position,p.player,p.unit,p.designator,p.native_owner,p.definition);}
       events_.push_back({NativeGrenadeEvent::Detonated,p.unit,p.datum,p.definition,g.detonation_effect,p.position,p.velocity});
       detonations_.push_back({++detonation_serial_,tick,p.datum,p.definition,g.detonation_effect,
           p.player,p.unit,p.position,p.forward,p.up});

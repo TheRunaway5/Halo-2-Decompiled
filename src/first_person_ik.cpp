@@ -109,7 +109,7 @@ void apply_first_person_ik(const FirstPersonIkDefinition &definition,
 
 FirstPersonIkDefinition Cache::load_first_person_ik(std::uint32_t graph,std::uint32_t weapon,
                                                    std::uint32_t arms,std::uint32_t mode,std::uint32_t weapon_class) const {
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto root=[&](std::uint32_t id,const char *group,std::size_t size) {
         const auto tag=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
         if(!tag)throw FormatError("first-person IK source tag missing");
@@ -154,7 +154,7 @@ FirstPersonIkDefinition Cache::load_first_person_ik(std::uint32_t graph,std::uin
 std::array<std::uint32_t,2> Cache::load_weapon_animation_identifiers(std::uint32_t weapon) const {
     const auto tag=query_tag({.handle=TagHandle{weapon}, .group=tag_groups::weapon, .require_address=true});
     if(!tag)throw FormatError("weapon animation identifier source tag missing");
-    const auto p=metadata_offset(tag->address,0x290);const Bytes data(storage_);
+    const auto p=metadata_offset(tag->address,0x290);const Bytes data(cache_bytes());
     return {data.u32(p+0x288),data.u32(p+0x28c)};
 }
 
@@ -163,10 +163,10 @@ AnimationClip Cache::load_unit_weapon_action(std::uint32_t graph,std::uint32_t m
     const auto tag=query_tag({.handle=TagHandle{graph}, .group=tag_groups::model_animation_graph, .require_address=true});
     if(!tag)throw FormatError("unit action animation graph missing");
     if(weapon_class==0xffffffffu)throw FormatError("unit action has no weapon class");
-    const Bytes data(storage_);const auto root=metadata_offset(tag->address,0x54);
+    const Bytes data(cache_bytes());const auto root=metadata_offset(tag->address,0x54);
     SourceAnimationGraphMemory memory;
     memory.read=[&](std::uint32_t address,std::size_t extent) {
-        return std::span<const std::byte>(storage_).subspan(metadata_offset(address,extent),extent);
+        return std::span<const std::byte>(cache_bytes()).subspan(metadata_offset(address,extent),extent);
     };
     weapon_class=source_animation_weapon_class(tag->address,weapon_class,weapon_type,memory);
     // Read-only authored lookup. Runtime resource admission remains with the

@@ -134,6 +134,14 @@ authority for the measured combat adjustments. Other loader fixups, MCC
 executable transforms, platform simulation differences and full live gameplay
 remain outside this audit.
 
+The MCC reader's later native-operand continuation removes the immutable
+engine-data executable dependency and passes content loading on all 43 maps.
+It also corrects negative-size raw cache chunks to retain bytes beginning at
+their recorded offset. This does not close this audit's semantic exclusions:
+for example, MCC Floodlab contains 37,509 script expressions versus 36,670 in
+the Xbox reference. See [native immutable TU1.5 operands](MCC_GAMEPLAY_CONVERSION.md#native-immutable-tu15-operands)
+for the validation boundary and retained evidence.
+
 ## Reproduction and verification
 
 The canonical and repeat outputs are retained separately. The verifier

@@ -74,6 +74,25 @@ class LauncherFirstRunTests(unittest.TestCase):
         arguments = json.loads((self.root / "tools/setup-call.json").read_text())
         self.assertEqual(arguments, ["--root", str(self.root), "--vista", vista, "--xbox", xbox])
 
+    def test_mcc_preparation_works_before_normal_first_run_without_an_iso(self):
+        for supplied in ((), ("--mcc-source", str(Path(self.temporary.name) / "MCC"))):
+            with self.subTest(arguments=supplied):
+                result = self.run_launcher("--prepare-mcc-gameplay", "--setup-only", *supplied)
+                self.assertEqual(result.returncode, 23, result.stderr)
+                arguments = json.loads((self.root / "tools/setup-call.json").read_text())
+                expected = ["--root", str(self.root), "--prepare-mcc-gameplay"]
+                if supplied:
+                    expected += ["--mcc-root", supplied[1]]
+                self.assertEqual(arguments, expected)
+
+    def test_mcc_preparation_does_not_accept_runtime_or_other_source_options(self):
+        for supplied in (("--launch-game",), ("--import-mcc-hud",), ("--xbox-source", "donor"), ("--menu",)):
+            with self.subTest(arguments=supplied):
+                result = self.run_launcher("--prepare-mcc-gameplay", *supplied)
+                self.assertEqual(result.returncode, 1, result.stderr)
+                self.assertIn("by itself", result.stderr)
+                self.assertFalse((self.root / "tools/setup-call.json").exists())
+
     def ready_assets(self):
         for name in ("xbox/default.xbe", "xbox/maps/mainmenu.map", "xbox/maps/shared.map",
                      "xbox/maps/lockout.map", "xbox/maps/fonts/font_table.txt",
@@ -94,6 +113,20 @@ class LauncherFirstRunTests(unittest.TestCase):
         (directory / "loading-tone.xbox-adpcm").write_bytes(bytes(18396))
         for index in range(12):
             (directory / f"loading-{index:02d}.dds").write_bytes(bytes(132))
+
+    def test_selected_vista_match_loading_survives_gameplay_source_changes(self):
+        self.ready_assets()
+        loading=self.root/"assets/imported/mcc-owned/loading"
+        self.loading_assets(loading)
+        registry=self.root/"assets/loading-source.tsv"
+        registry.write_text("H2_LOADING_SOURCE_V1\nvista\t"+str(loading)+"\n")
+        result=self.run_launcher("--launcher-info")
+        self.assertEqual(result.returncode,0,result.stderr)
+        self.assertIn("Vista loading assets: "+str(loading),result.stdout)
+        (loading/"loading-00.dds").unlink()
+        result=self.run_launcher("--launcher-info")
+        self.assertEqual(result.returncode,1,result.stderr)
+        self.assertIn("match-loading bank is incomplete",result.stderr)
 
     def test_missing_loading_resources_do_not_launch_an_existing_runtime(self):
         self.ready_assets()

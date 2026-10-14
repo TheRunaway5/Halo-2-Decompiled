@@ -9,7 +9,7 @@ float frontend_model_initial_shield_fraction(float maximum_shield) {
   return maximum_shield>0.f?1.f:0.f;
 }
 float Cache::load_frontend_model_initial_shield_fraction(std::uint32_t unit) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto root_for=[&](std::uint32_t datum,const char *group,std::size_t size) {
     const auto tag=query_tag({.handle=TagHandle{datum}, .group=TagGroup::from_string(group), .require_address=true});
     if(!tag)throw FormatError("frontend initial shield source tag missing");
@@ -45,7 +45,7 @@ void animate_frontend_model_material(Material &material,double seconds,const Sha
   for(auto &pass:material.world_overlays_after)child(pass);
 }
 std::optional<std::uint32_t> Cache::load_frontend_model_weapon(std::uint32_t unit)const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto tag=query_tag({.handle=TagHandle{unit}, .group=tag_groups::biped, .require_address=true});
   if(!tag)throw FormatError("frontend starting weapon unit definition missing");
   const auto root=metadata_offset(tag->address,0x1c8);
@@ -57,7 +57,7 @@ std::optional<std::uint32_t> Cache::load_frontend_model_weapon(std::uint32_t uni
   return weapon==null_datum?std::nullopt:std::optional(weapon);
 }
 std::optional<AnimationClip> Cache::load_frontend_model_animation(std::uint32_t object,bool request_ui)const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto root_for=[&](std::uint32_t id,const char*group,std::size_t size) {
     const auto tag=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
     if(!tag)throw FormatError("frontend unit animation source tag missing");

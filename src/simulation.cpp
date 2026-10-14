@@ -6,23 +6,72 @@
 #include "halo2/source_script.hpp"
 #include "halo2/pickup_visibility.hpp"
 #include "halo2/native_weapon_inventory.hpp"
+#include "halo2/weapon_hand_feedback.hpp"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <set>
 namespace halo2 {
-namespace { Vec3 center(const Unit &); }
+namespace {
+Vec3 center(const Unit &);
+float direct_damage_amount(const WeaponDefinition &weapon) {
+  if(weapon.damage_amount && weapon.damage_amount->upper_minimum==weapon.damage_amount->upper_maximum) {
+    // RetailD6660 initializes event54/event5C to1; D9B60 interpolates the
+    // lower envelope with the selected upper. Equal upper bounds use no RNG.
+    const auto &definition=*weapon.damage_amount;
+    return damage_amount(definition.lower,definition.upper_minimum,1.f,1.f,1.f);
+  }
+  if(weapon.smg)throw FormatError("SMG random damage amount selection remains unported");
+  // Retain the existing path for synthetic definitions and unrecovered random
+  // upper selection. This helper does not invent a primary-stream draw.
+  return weapon.damage_min;
+}
+}
 struct Simulation::BspWorld {
-  BspContent geometry;
+  std::vector<NavigationSector> sectors;
   CollisionWorld collision;
   NavigationWorld navigation;
   explicit BspWorld(BspContent value)
-      : geometry(std::move(value)), collision(geometry.collision),
-        navigation(geometry.navigation) {}
+      : sectors(std::move(value.navigation)), collision(std::move(value.collision)),
+        navigation(sectors) {}
 };
 const CollisionWorld &Simulation::collision() const { return prop_collision_?*prop_collision_:world_->collision; }
+void Simulation::replicate_source_scene(std::span<const SourceSceneRoot> roots,
+    std::span<const SourceWorldPose> poses) {
+  if(source_physics_movement_)throw FormatError("Source authority cannot consume replica scene poses");
+  if(roots.size()>2048)throw FormatError("Source replica scene exceeds the original object capacity");
+  std::set<std::uint32_t> placements,objects;
+  for(const auto &root:roots) {
+    if(root.placement>=content_.objects.size() || root.object==null_datum ||
+        !placements.insert(root.placement).second || !objects.insert(root.object).second ||
+        content_.objects[root.placement].type==1 || content_.objects[root.placement].definition!=root.definition)
+      throw FormatError("Source replica scene root differs from its authored placement");
+    const auto native=std::find_if(scene_.objects().begin(),scene_.objects().end(),[&](const auto &object){
+      return object.handle!=null_datum && object.placement==root.placement;
+    });
+    if(native==scene_.objects().end() || native->handle!=root.object)
+      throw FormatError("Source replica scene generation differs from the local placement");
+    const auto pose=std::find_if(poses.begin(),poses.end(),[&](const auto &p){return p.object==root.object;});
+    if(root.has_world_nodes!=(pose!=poses.end()))
+      throw FormatError("Source replica scene lost its completed WORLD hierarchy");
+  }
+  std::vector<std::uint32_t> retired;
+  for(const auto &object:scene_.objects())if(object.handle!=null_datum &&
+      content_.objects[object.placement].type!=1 && !placements.contains(object.placement))retired.push_back(object.handle);
+  for(const auto handle:retired)scene_.destroy(handle);
+  for(const auto &root:roots) {
+    auto &object=scene_.get(root.object);object.solved_transform=root.transform;
+    object.position=root.transform.position;object.scale=root.transform.scale;object.visible=root.visible;
+    const auto pose=std::find_if(poses.begin(),poses.end(),[&](const auto &p){return p.object==root.object;});
+    object.solved_nodes=pose==poses.end()?std::vector<Transform>{}:pose->nodes;
+  }
+  synchronize_props();
+}
 void Simulation::replicate_devices(const SourceDeviceWorldSnapshot &snapshot){
   devices_.apply_snapshot(snapshot);synchronize_props();
+}
+void Simulation::replicate_prop_regions(std::span<const PropRegionSnapshot> rows){
+  props_.apply_regions(rows);synchronize_props();
 }
 void Simulation::synchronize_props(bool force){
   devices_.synchronize(scene_);
@@ -30,15 +79,37 @@ void Simulation::synchronize_props(bool force){
   const bool props_changed=props_.synchronize(scene_);
   const bool scenery_changed=scenery_collision_.synchronize(scene_);
   if(scenery_changed || devices_changed || force || !static_collision_){
-    auto triangles=world_->geometry.collision;
-    const auto scenery=scenery_collision_.triangles();triangles.insert(triangles.end(),scenery.begin(),scenery.end());
-    const auto devices=devices_.triangles();triangles.insert(triangles.end(),devices.begin(),devices.end());
-    static_collision_=std::make_shared<CollisionWorld>(std::move(triangles));
+    // These derived worlds are rebuilt below and are not checkpoint owners.
+    // Release both old banks before allocating another full BSP prefix.
+    prop_collision_.reset();
+    static_collision_.reset();
+    const auto scenery=scenery_collision_.triangles();
+    const auto devices=devices_.triangles();
+    if(scenery.empty() && devices.empty()) {
+      // The BSP owner outlives this alias, including checkpoint restores.
+      static_collision_={world_,&world_->collision};
+    } else {
+      const auto base=world_->collision.triangles();
+      std::vector<CollisionTriangle> triangles;
+      triangles.reserve(base.size()+scenery.size()+devices.size());
+      triangles.insert(triangles.end(),base.begin(),base.end());
+      triangles.insert(triangles.end(),scenery.begin(),scenery.end());
+      triangles.insert(triangles.end(),devices.begin(),devices.end());
+      static_collision_=std::make_shared<CollisionWorld>(std::move(triangles));
+    }
   }
   if(props_changed || scenery_changed || devices_changed || force || !prop_collision_){
-    const auto fixed=static_collision_->triangles();std::vector<CollisionTriangle> triangles(fixed.begin(),fixed.end());
-    auto placed=props_.triangles();triangles.insert(triangles.end(),placed.begin(),placed.end());
-    prop_collision_=std::make_shared<CollisionWorld>(std::move(triangles));
+    prop_collision_.reset();
+    auto placed=props_.triangles();
+    if(placed.empty()) prop_collision_=static_collision_;
+    else {
+      const auto fixed=static_collision_->triangles();
+      std::vector<CollisionTriangle> triangles;
+      triangles.reserve(fixed.size()+placed.size());
+      triangles.insert(triangles.end(),fixed.begin(),fixed.end());
+      triangles.insert(triangles.end(),placed.begin(),placed.end());
+      prop_collision_=std::make_shared<CollisionWorld>(std::move(triangles));
+    }
   }
 }
 void Simulation::replicate_prop_removals(std::span<const PropRemoval> rows){
@@ -330,8 +401,17 @@ Simulation::Simulation(const LevelContent &content, std::size_t bsp,
                        std::optional<SourceSceneGameContext> scene_game_context,
                        std::optional<NativeObjectLifetimes> object_lifetimes,
                        SourceSceneObjectOwner source_scene_owner)
+    : Simulation(content,BspContent{content.collision,content.navigation},bsp,spawn,
+        std::move(loader),std::move(bsp_loader),std::move(predictor),scene_game_context,
+        std::move(object_lifetimes),std::move(source_scene_owner)) {}
+Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
+                       std::size_t bsp, Spawn spawn, Presentation::AnimationLoader loader,
+                       BspLoader bsp_loader, Predictor predictor,
+                       std::optional<SourceSceneGameContext> scene_game_context,
+                       std::optional<NativeObjectLifetimes> object_lifetimes,
+                       SourceSceneObjectOwner source_scene_owner)
     : content_(content), bsp_(bsp),
-      world_(std::make_shared<BspWorld>(BspContent{content.collision,content.navigation})),
+      world_(std::make_shared<BspWorld>(std::move(initial_geometry))),
       bsp_loader_(std::move(bsp_loader)), predictor_(std::move(predictor)),
       object_lifetimes_(object_lifetimes ? std::move(*object_lifetimes) : NativeObjectLifetimes{}),
       scene_(content,bsp,scene_game_context,{},&object_lifetimes_,std::move(source_scene_owner)),devices_(content),props_(content),scenery_collision_(content),
@@ -641,23 +721,13 @@ void Simulation::record_unit_damage_effect(const Unit &unit,const UnitDamageEffe
   if(unit_damage_effects_.size()>64)unit_damage_effects_.erase(unit_damage_effects_.begin());
 }
 void Simulation::damage(Unit &unit, const WeaponDefinition &w, const DamageOwner &owner,int native_owner,
-    std::optional<float> supplied_amount,bool radius) {
+    std::optional<float> supplied_amount,bool radius,std::optional<DamageImpactContext> impact) {
   // Unit impervious gates reactions/impulses, not vitality. The separate
   // object damage-protection bit is the immunity checked by retail 0xD9020.
   if (unit.vitality.dead || unit.cannot_take_damage || debug_settings_for(unit).invulnerable ||
       (unit.team == 1 && (w.damage_flags & (1 << 15))))
     return;
-  float remaining = supplied_amount.value_or(w.damage_min);
-  if (!supplied_amount && multiplayer_weapon_steps_ && w.smg) {
-    if (!w.damage_amount ||
-        w.damage_amount->upper_minimum != w.damage_amount->upper_maximum)
-      throw FormatError("SMG random damage amount selection remains unported");
-    // TU D7C60/FC2E0/FEB40 produce event54/event5C=1 for stock direct
-    // impacts. The resolved live player multiplier is applied below, after
-    // event interpolation and before vitality/material consumers.
-    remaining = damage_amount(w.damage_amount->lower,
-        w.damage_amount->upper_minimum, 1.f, 1.f, 1.f);
-  }
+  float remaining = supplied_amount ? *supplied_amount : direct_damage_amount(w);
   if(native_owner>=-1 && native_owner<15 && debug_settings_.players[unsigned(native_owner+1)].maximum_damage)
     remaining=std::max(remaining,1000000.f);
   // D90E0 returns unit+13C directly for a valid biped/vehicle. It follows
@@ -671,6 +741,7 @@ void Simulation::damage(Unit &unit, const WeaponDefinition &w, const DamageOwner
   // D6A70 clears+F4 before D9490/D9640 consumes the normalized report.
   if(!was_shield_depleted && unit.vitality.shield_depleted)
     unit.damage_feedback.shield.visible=0.f;
+  const auto prior_feedback=unit.damage_feedback;
   if(multiplayer_weapon_steps_ && (result.body>0 || result.shield>0)) {
     // CB410 takes this value from the selected jpt! definition+30, before
     // the later zoom reset. Friendly-fire rejection produces no request.
@@ -690,17 +761,17 @@ void Simulation::damage(Unit &unit, const WeaponDefinition &w, const DamageOwner
   if((result.body>0 || result.shield>0) && w.damage!=null_datum)
     if(rumble_events_.size()<256)rumble_events_.push_back({w.damage,unit.vitality.shield>0,1.f,&unit==&player_?-1:int(&unit-actors_.data())});
   if (unit.vitality.dead) {
-    if(grenade_sandbox_)grenade_sandbox_->cancel_unit(unit);
+    if(grenade_sandbox_ && !source_physics_movement_)grenade_sandbox_->cancel_unit(unit);
     unit.state = Unit::Dead;
     // Original ordinary CBDC0→E6050→1C70D0 rebuild retains object+88.
     // Keep that momentum; corpse motion/ten-body ragdoll ownership is separate.
   }
   if (multiplayer_weapon_steps_ && damage_hook_)
-    damage_hook_(unit, owner, result, std::int16_t(w.damage_category));
+    damage_hook_(unit, owner, result,w,impact,prior_feedback);
   ++hits_;
 }
 void Simulation::area_damage(const PropAreaDamageDefinition& definition,Vec3 origin,
-    const DamageOwner& owner,int native_owner,std::uint32_t ignored_scene_prop){
+    const DamageOwner& owner,int native_owner,std::uint32_t ignored_scene_prop,std::uint32_t projectile_definition){
   const auto& w=definition.damage;
   if(!w.damage_amount || w.damage_amount->upper_minimum!=w.damage_amount->upper_maximum)
     throw FormatError("Area damage requires original random upper-bound owner");
@@ -743,7 +814,9 @@ void Simulation::area_damage(const PropAreaDamageDefinition& definition,Vec3 ori
     if(prop_area_occluded(origin,target,true,definition.core_radius,query(&unit,null_datum)))return;
     const float damage_request=damage_amount(w.damage_amount->lower,w.damage_amount->upper_minimum,fraction,1,1);
     unit.last_damager=native_owner;
-    damage(unit,w,owner,native_owner,damage_request,true);
+    damage(unit,w,owner,native_owner,damage_request,true,
+        DamageImpactContext{DamageImpactContext::Kind::Radius,{},origin,
+            (definition.flags&1u)?1.f:fraction,projectile_definition});
   };
   apply(player_);for(auto& unit:actors_)apply(unit);
   if(!(definition.flags&2))for(const auto& prop:props_.states()){
@@ -755,14 +828,53 @@ void Simulation::area_damage(const PropAreaDamageDefinition& definition,Vec3 ori
     // original target resolver returns NONE, preserving only attacker strength.
     props_.damage(prop.handle,w,damage_amount(w.damage_amount->lower,w.damage_amount->upper_minimum,fraction,1,
         player_damage_scale(owner,null_datum)),
-        {owner.player,owner.unit,owner.designator,native_owner},true);
+        {owner.player,owner.unit,owner.designator,native_owner},true,{.random=&random_state_});
   }
 }
 bool Simulation::trace(Vec3 origin, Vec3 dir, float distance,
                        const WeaponDefinition &weapon, int owner, const DamageOwner &captured,
-                       std::uint32_t projectile) {
+                       std::uint32_t projectile,const Vec3 *velocity,float traveled) {
   if(!(distance>0))return false;
   dir = normalized(dir);
+  const auto incoming_velocity=velocity?*velocity:dir*weapon.projectile_speed;
+  const float speed=length(incoming_velocity);
+  const auto incoming=velocity?normalized(*velocity):dir;
+  const auto retain_impact=[&](BulletImpact hit,
+      std::optional<SourceProjectileDamagePresentation> object_presentation={}){
+    if(object_presentation && object_presentation->material>=0 &&
+        std::size_t(object_presentation->material)<content_.material_parents.size())
+      hit.material=object_presentation->material;
+    const auto index=source_projectile_material_response(weapon.projectile_material_responses,
+        content_.material_parents,hit.material);
+    // Terrain starts scaleB at zero; admitted parentless prop damage retains
+    // the original material/scale consumer after its vitality update.
+    if((hit.terrain || object_presentation) &&
+        content_.original_data && content_.original_data->unit_animation_constants){
+      const auto damage_scale=source_projectile_contact_damage_scale(weapon.projectile_flags,
+          origin,hit.position,traveled,weapon.projectile_dry_damage_range,1.f);
+      const auto object_scale=object_presentation?object_presentation->scale:0.f;
+      if(!index){
+        hit.presentation=source_projectile_default_impact_presentation(hit.normal,incoming_velocity,
+            damage_scale,object_scale);
+      }else{
+        const auto raw=std::span<const std::byte>(weapon.projectile_material_responses).subspan(*index*0x58,0x58);
+        const auto &constants=*content_.original_data->unit_animation_constants;
+        const SourceProjectileResponseServices services{
+            std::bit_cast<float>(constants.one_bits),std::bit_cast<float>(constants.rng_scale_bits),
+            [&]{return std::uint8_t(11);},[&]()->std::uint32_t&{return random_state_;}};
+        const auto angles=source_projectile_impact_angles(raw,hit.normal,hit.incoming,incoming_velocity,services);
+        const auto response=choose_source_projectile_response(raw,{hit.terrain?1:4,angles.angle,speed},services);
+        // Native projectiles currently end at their first contact. Their
+        // original constructor scale is one, and dry body+170 retains the
+        // authored air damage range, independently of current velocity.
+        const auto scale=source_projectile_effect_scale(raw,angles.angle,damage_scale);
+        hit.presentation=SourceProjectileImpactPresentation{response,scale,
+            std::clamp(object_scale,0.f,1.f),angles.approach>.25f};
+      }
+    }
+    bullet_impacts_.push_back(std::move(hit));
+    if(bullet_impacts_.size()>64)bullet_impacts_.erase(bullet_impacts_.begin());
+  };
   const auto world = static_collision_->raycast(origin, dir, distance);
   float nearest = world ? world->distance : distance;
   const auto prop=props_.raycast(origin,dir*distance,nearest/distance);
@@ -789,49 +901,30 @@ bool Simulation::trace(Vec3 origin, Vec3 dir, float distance,
     }
   if (target) {
     target->last_damager=owner;
-    damage(*target, weapon, captured, owner);
+    damage(*target, weapon, captured, owner,{},false,
+        DamageImpactContext{DamageImpactContext::Kind::Direct,incoming,origin+dir*nearest,1.f,weapon.projectile});
     return true;
   }
   if(prop){
-    bullet_impacts_.push_back({++bullet_impact_serial_,ticks_+1,projectile,weapon.datum,
-        origin+dir*nearest,prop->collision.plane.normal,dir,
-        prop->collision.global_material,false});
-    if(bullet_impacts_.size()>64)bullet_impacts_.erase(bullet_impacts_.begin());
-    float amount=weapon.damage_min;
-    if(multiplayer_weapon_steps_ && weapon.smg){
-      if(!weapon.damage_amount || weapon.damage_amount->upper_minimum!=weapon.damage_amount->upper_maximum)
-        throw FormatError("Prop shot requires original random damage amount owner");
-      amount=damage_amount(weapon.damage_amount->lower,weapon.damage_amount->upper_minimum,1,1,1);
-    }
+    float amount=direct_damage_amount(weapon);
     amount=amount*player_damage_scale(captured,null_datum);
-    props_.damage(prop->handle,weapon,amount,{captured.player,captured.unit,captured.designator,owner});++hits_;return true;
+    const auto damage=props_.damage_contact(prop->handle,weapon,amount,
+        {captured.player,captured.unit,captured.designator,owner},false,{.random=&random_state_});
+    retain_impact({++bullet_impact_serial_,ticks_+1,projectile,weapon.datum,
+        origin+dir*nearest,prop->collision.plane.normal,incoming,
+        prop->collision.global_material,false},damage.presentation);
+    ++hits_;return true;
   }
   if(world){
     // The actual closest terrain contact supplies the global material and
     // plane. Retention is a native transport bank, independent of shot rate.
-    bullet_impacts_.push_back({++bullet_impact_serial_,ticks_+1,projectile,weapon.datum,
-        world->position,world->normal,dir,std::int16_t(world->material),true});
-    if(bullet_impacts_.size()>64)bullet_impacts_.erase(bullet_impacts_.begin());
+    retain_impact({++bullet_impact_serial_,ticks_+1,projectile,weapon.datum,
+        world->position,world->normal,incoming,std::int16_t(world->material),true});
   }
   return bool(world);
 }
-void Simulation::shot(Unit &unit, int owner, float pitch,
-                      const Vec3 *prepared_direction, const Vec3 *prepared_velocity, WeaponState *selected) {
-  auto &state=selected?*selected:unit.weapon;
-  auto w = content_.weapons.at(state.definition);
-  if(multiplayer_weapon_steps_ && native_hand_weapon(unit,1)) {
-    w.damage_min*=w.dual_damage_scale;w.damage_max*=w.dual_damage_scale;
-    if(w.damage_amount) {
-      w.damage_amount->lower*=w.dual_damage_scale;
-      w.damage_amount->upper_minimum*=w.dual_damage_scale;
-      w.damage_amount->upper_maximum*=w.dual_damage_scale;
-    }
-  }
-  const auto origin = eye(unit);
-  const DamageOwner captured{unit.source_player, unit.source_datum, unit.source_membership};
-  ++shots_;
-  state.last_shot = ticks_ + 1; // presentation observes the completed tick
-  if(!prepared_direction && !w.firing_effects.empty()) {
+std::optional<unsigned> Simulation::select_weapon_firing_effect(WeaponState &state,const WeaponDefinition &w) {
+  if(!w.firing_effects.empty()) {
     // TU1.1 10741D..10767E: one retained entry, its repeat count and
     // visited mask. Random selection/repeat consume the actual shared LCG.
     const auto n=w.firing_effects.size();if(n>16)throw FormatError("Firing effect bank exceeds its source visited mask");
@@ -847,11 +940,33 @@ void Simulation::shot(Unit &unit, int owner, float pitch,
       }while(state.firing_effect_remaining<=0 && ++tries<n*2);
     }
     if(state.firing_effect_remaining>0) {
-      --state.firing_effect_remaining;const auto &effect=w.firing_effects.at(state.firing_effect_index);
-      if(effect.damage_effects[0]!=null_datum && rumble_events_.size()<256)
-        rumble_events_.push_back({effect.damage_effects[0],unit.vitality.shield>0,1.f,owner});
+      --state.firing_effect_remaining;
+      return unsigned(state.firing_effect_index);
     }
   }
+  return {};
+}
+void Simulation::shot(Unit &unit, int owner, float pitch,
+                      const Vec3 *prepared_direction, const Vec3 *prepared_velocity, WeaponState *selected,
+                      bool effects_prepared) {
+  auto &state=selected?*selected:unit.weapon;
+  auto w = content_.weapons.at(state.definition);
+  if(multiplayer_weapon_steps_ && native_hand_weapon(unit,1)) {
+    w.damage_min*=w.dual_damage_scale;w.damage_max*=w.dual_damage_scale;
+    if(w.damage_amount) {
+      w.damage_amount->lower*=w.dual_damage_scale;
+      w.damage_amount->upper_minimum*=w.dual_damage_scale;
+      w.damage_amount->upper_maximum*=w.dual_damage_scale;
+    }
+  }
+  const auto origin = eye(unit);
+  const DamageOwner captured{unit.source_player, unit.source_datum, unit.source_membership};
+  ++shots_;
+  state.last_shot = ticks_ + 1; // presentation observes the completed tick
+  if(!prepared_direction && !effects_prepared)
+    if(const auto index=select_weapon_firing_effect(state,w);index &&
+        w.firing_effects[*index].damage_effects[0]!=null_datum && rumble_events_.size()<256)
+      rumble_events_.push_back({w.firing_effects[*index].damage_effects[0],unit.vitality.shield>0,1.f,owner});
   if (w.sound != null_datum && sounds_.size() < 256 &&
       !(multiplayer_weapon_steps_ && (w.smg || w.firing_presentation) && weapon_effect_hook_))
     sounds_.push_back({w.sound, origin});
@@ -861,7 +976,11 @@ void Simulation::shot(Unit &unit, int owner, float pitch,
     if (w.distribution == 1 && count > 1)
       dir = direction(
           unit.yaw + w.distribution_angle * (2.f * i / (count - 1) - 1), pitch);
-    if (!prepared_direction && w.minimum_error > 0) {
+    if(!prepared_direction && multiplayer_weapon_steps_ && w.barrel_timing) {
+      if(!content_.original_data)throw FormatError("Original direction data is required for barrel dispatch");
+      dir=weapon_random_deviation(dir,weapon_error_angles(w.firing_error,state.smg.barrel.error,weapon_hand_blend(unit,state)),
+          random_state_,content_.original_data->weapon_directions);
+    } else if (!prepared_direction && w.minimum_error > 0) {
       auto random = [&] {
         random_state_ = random_state_ * 1664525u + 1013904223u;
         return float(random_state_ >> 8) / 16777216.f;
@@ -911,6 +1030,8 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     return;
   const auto &w = it->second;
   if(state.ready_clock)source_weapon_ready_tick(state.shader,state.ready_countdown);
+  else if(multiplayer_weapon_steps_ && (w.smg || w.barrel_timing))
+    state.shader.weapon_flags|=0x20u; // Recovered constructor's zero19E arms on first update.
   if(multiplayer_weapon_steps_ && hand==0) {
     const auto busy=[&](const WeaponState *weapon) {
       if(!weapon)return false;
@@ -924,18 +1045,18 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
       const auto selected = grenade_ready_type(u.grenade_requested, u.grenades);
       if (selected != -1) u.grenade_current = selected;
     }
-    if(grenade_sandbox_)grenade_sandbox_->update_unit(u,source_control&&source_control->grenade,
+    if(grenade_sandbox_ && !source_physics_movement_)grenade_sandbox_->update_unit(u,source_control&&source_control->grenade,
         owner,allocate_object_,[&](const Unit &unit,std::uint32_t action) {
           if(first_person_activity_hook_)first_person_activity_hook_(unit,state,action);
         },publish_object_);
   }
-  if(multiplayer_weapon_steps_ && hand==0 && melee_animation_) {
+  if(multiplayer_weapon_steps_ && hand==0 && melee_animation_ && !source_physics_movement_) {
     const bool sword=(w.inventory_flags&(1u<<24))!=0;
     if(!fire)state.trigger_armed=true;
     const bool special=sword&&fire&&state.trigger_armed;
     if(special)state.trigger_armed=false;
     melee_animation_->update(u,(source_control&&source_control->melee)||special,std::uint32_t(ticks_+1),random_state_,
-        [&](std::uint32_t action){if(first_person_activity_hook_)first_person_activity_hook_(u,state,action);},
+        [&](std::uint32_t action){weapon_activity(u,state,action);},
         [&](const NativeMeleeAction &action) {
           const auto hit=query_native_melee(eye(u),direction(u.yaw,pitch),melee_animation_->pyramid(u),
               [&](Vec3 origin,Vec3 delta,std::uint32_t mask)->std::optional<NativeMeleeContact> {
@@ -961,8 +1082,17 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
             test(player_);for(const auto &other:actors_)test(other);
             return contact;
           });
-          if(!hit.target || action.modifiers)return;
-          const auto definition=melee_animation_->damage_definition(u,action.activity);if(!definition)return;
+          const auto definition=melee_animation_->damage_definition(u,action.activity);
+          // D0830's D0340 presentation follows contact selection even without
+          // an object target or when modifiers suppress direct damage. The
+          // current native unit capsules supply no authored mesh material.
+          if(hit.material>=0 && std::size_t(hit.material)<content_.material_parents.size()){
+            melee_impacts_.push_back({++bullet_impact_serial_,ticks_+1,u.source_datum,
+                u.weapon.definition,definition?definition->damage.damage:null_datum,
+                hit.point,hit.normal,direction(u.yaw),u.body.position,hit.material});
+            if(melee_impacts_.size()>64)melee_impacts_.erase(melee_impacts_.begin());
+          }
+          if(!hit.target || action.modifiers || !definition)return;
           const auto &damage_definition=definition->damage;
           const auto &amount=*damage_definition.damage_amount;
           if(amount.upper_minimum!=amount.upper_maximum)throw FormatError("Melee random upper damage owner is unavailable");
@@ -972,13 +1102,17 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
           Unit *target=nullptr;
           if(player_.source_datum==hit.target->object)target=&player_;
           for(auto &other:actors_)if(other.source_datum==hit.target->object)target=&other;
-          if(target){target->last_damager=owner;damage(*target,damage_definition,captured,owner,value);}
+          if(target){target->last_damager=owner;damage(*target,damage_definition,captured,owner,value,false,
+              DamageImpactContext{DamageImpactContext::Kind::Melee,{},{},fraction});}
           else props_.damage(hit.target->object,damage_definition,value*player_damage_scale(captured,null_datum),
-              {captured.player,captured.unit,captured.designator,owner});
+              {captured.player,captured.unit,captured.designator,owner},false,{.random=&random_state_});
         },special?2:1);
     if(sword)return;
   }
-  if(u.source_action_word & (0x400000u|(1u<<27)))fire=reload=false;
+  if(source_physics_movement_ && multiplayer_weapon_steps_ && (w.inventory_flags&(1u<<24)))return;
+  const auto active_actions=source_physics_movement_?u.grenade_action.active_actions():u.source_action_word;
+  const bool weapon_blocked=(active_actions & (0x400000u|(1u<<27)))!=0;
+  if(weapon_blocked)fire=reload=false;
   if (multiplayer_weapon_steps_ && w.smg) {
     // Original player control ->151C90/C8140 ->C6E19/CD310. Recovered SMG
     // idle/fire_1/reload_1 with no blocking overlay admit this transition;
@@ -992,11 +1126,12 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
         source_zoom_request(u.source_zoom,source_control->zoom);
       const std::array<std::int16_t,1> modes{native.magazine_mode};
       const ZoomWeaponView primary{w.zoom,modes};
-      const UnitZoomContext context{u.source_parent,u.source_action_word,{&primary,nullptr}};
+      const UnitZoomContext context{u.source_parent,active_actions,{&primary,nullptr}};
       source_zoom_update(u.source_zoom,context,
           !(u.definition.unit_flags&0x400u) && !(u.source_unit_10a&4u));
     }
     smg_input(native, fire);
+    for(unsigned timer=0;timer<2;++timer)native.hand_timers[timer]=u.source_weapon_hand_feedback[timer];
     native.input_flags=source_zoom_weapon_input(native.input_flags,u.source_zoom);
     const auto reset_zoom=[&] {
       source_zoom_reset(u.source_zoom);
@@ -1012,9 +1147,50 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
       if(action==0x06000006 && u.source_datum!=null_datum &&
           (w.zoom.levels==0 || (native.magazine_mode>=1 && native.magazine_mode<=6)))
         reset_zoom();
-      if(first_person_activity_hook_)first_person_activity_hook_(u,state,action);
+      weapon_activity(u,state,action);
     };
-    const bool explicit_reload = reload && smg_reload(native, *w.smg,activity);
+    WeaponAmmunitionContext ammunition;ammunition.has_unit=u.source_datum!=null_datum;ammunition.infinite=infinite;
+    std::array<WeaponState *,5> ammo_owners{};ammo_owners[0]=&state;
+    const auto ammo_view=[&](WeaponState &item) {
+      const auto &authored=content_.weapons.at(item.definition);
+      item.magazine.loaded=authored.smg?item.smg.loaded:std::bit_cast<std::int16_t>(std::uint16_t(item.loaded));
+      item.magazine.reserve=authored.smg?item.smg.reserve:std::bit_cast<std::int16_t>(std::uint16_t(item.reserve));
+      return WeaponAmmunitionView{item.source_datum,item.definition,{&item.magazine,1},
+          authored.magazine?std::span(&*authored.magazine,1):std::span<const WeaponMagazineDefinition>{}};
+    };
+    ammunition.current=ammo_view(state);
+    for(unsigned slot=0;slot<4;++slot)if(auto *other=native_inventory_weapon(u,int(slot))) {
+      ammo_owners[slot+1]=other;ammunition.inventory[slot]=ammo_view(*other);
+    }
+    SmgRuntimeServices runtime;runtime.opposite_hand_blend=weapon_hand_blend(u,state);runtime.shared_hand_feedback=true;
+    runtime.magazine_effect=[&](bool chamber) {
+      if(!w.magazine)throw FormatError("SMG magazine effect metadata is unavailable");
+      if(weapon_effect_hook_)weapon_effect_hook_(u,{chamber?w.magazine->chamber_effect:w.magazine->reload_effect,
+          state.source_datum,null_datum,0,0});
+    };
+    runtime.available=[&]{return weapon_reserve_available(ammunition,0);};
+    runtime.spend=[&](std::int32_t amount) {
+      (void)weapon_reserve_spend(ammunition,0,amount,[]{});
+      for(auto *item:ammo_owners)if(item) {
+        item->reserve=item->magazine.reserve;
+        if(content_.weapons.at(item->definition).smg)item->smg.reserve=item->magazine.reserve;
+      }
+    };
+    // The bounded single-SMG definition contains its measured50-tick
+    // reloads. Dual mode resolves the owning representation's graph; the
+    // original110-tick clips cannot be replaced by those single timings.
+    if(u.source_inventory.current[0]!=-1 && u.source_inventory.current[1]!=-1)
+      runtime.timing=[&](std::uint32_t activity,unsigned section) {
+        if(!first_person_timing_hook_)throw FormatError("Dual SMG needs its original represented graph timing");
+        return first_person_timing_hook_(u,state,activity,std::int16_t(section));
+      };
+    if(w.barrel_timing)runtime.fire_gate=[&](SmgBarrelState &barrel) {
+      WeaponBarrelTimingContext context;context.tick_rate=30;context.spent=state.shader.power_fraction;
+      if(const auto *other=native_hand_weapon(u,hand?0:1);other && other->definition==state.definition)
+        context.other_hand=WeaponBarrelTimingContext::OtherHand{other->smg.barrel.mode,other->smg.barrel.counter};
+      return weapon_barrel_gate(barrel,w.barrel_timing->definition,context,w.barrel_timing->constants).admitted;
+    };
+    const bool explicit_reload=reload && smg_reload(native,*w.smg,activity,runtime);
     if(explicit_reload) {
       // Successful original E88B0 sets action bit0 and C7E90 calls C9A40(0).
       u.source_action_word|=1u;
@@ -1034,33 +1210,197 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
       return weapon_effect_hook_?weapon_effect_hook_(u,{entry.effects[selection],
           state.source_datum,prepared.barrel.effect_handle,a,b}):prepared.barrel.effect_handle;
     };
-    const bool automatic_reload = smg_update(native, *w.smg, tick_seconds,activity,effect);
+    const bool automatic_reload=smg_update(native,*w.smg,tick_seconds,activity,effect,runtime);
     if (explicit_reload || automatic_reload) state.reload_started = ticks_ + 1;
     state.reload_empty = native.reload_empty;
     state.loaded = native.loaded;
     state.reserve = native.reserve;
+    state.magazine.mode=native.magazine_mode;state.magazine.ticks=native.magazine_ticks;
+    state.magazine.loaded=native.loaded;state.magazine.reserve=native.reserve;
+    state.magazine.transfer_ticks=native.transfer_ticks;state.magazine.other_ticks=native.magazine_other_ticks;
     state.reload = native.magazine_mode == 1
         ? float(native.magazine_ticks) * tick_seconds : 0;
     return;
   }
   //1021D0 updates the barrel rate after107160 consumes its old value.
   //Keep that order even across this native adapter's early returns.
-  const bool presentation_marker=fire && !reload && state.reload<=0 && state.loaded>0;
-  struct FiringRate {
-    WeaponState &state;const WeaponDefinition &definition;bool marker;
-    ~FiringRate() {
-      if(!definition.firing_presentation)return;
-      auto &rate=state.smg.barrel.rate;const auto &d=*definition.firing_presentation;
-      if(marker){rate=d.rate_rise*tick_seconds+rate;if(rate>1.f)rate=1.f;}
-      else if(rate>0.f){rate=rate-d.rate_fall*tick_seconds;if(rate<0.f)rate=0.f;}
+  const bool source_timing=multiplayer_weapon_steps_ && w.barrel_timing.has_value();
+  // The source reload consumer is composed for ordinary, single-magazine
+  // definitions. Additional battery/parent/world admission owners remain separate.
+  const bool source_magazine=source_timing && w.magazine &&
+      !(w.inventory_flags&((1u<<11)|(1u<<19)|(1u<<25)));
+  WeaponAmmunitionContext magazine_ammunition;
+  WeaponMagazineServices magazine_services;
+  std::array<WeaponState *,5> magazine_owners{};
+  std::function<bool()> begin_reload;
+  std::function<void(unsigned)> automatic_magazine_reload;
+  if(source_magazine) {
+    auto &magazine=state.magazine;
+    const auto &definition=*w.magazine;
+    auto &ammunition=magazine_ammunition;ammunition.has_unit=u.source_datum!=null_datum;ammunition.infinite=infinite;
+    auto &owners=magazine_owners;owners[0]=&state;
+    const auto view=[&](WeaponState &item) {
+      item.magazine.loaded=std::bit_cast<std::int16_t>(std::uint16_t(item.loaded));
+      item.magazine.reserve=std::bit_cast<std::int16_t>(std::uint16_t(item.reserve));
+      const auto &authored=content_.weapons.at(item.definition);
+      return WeaponAmmunitionView{item.source_datum,item.definition,{&item.magazine,1},
+          authored.magazine?std::span(&*authored.magazine,1):std::span<const WeaponMagazineDefinition>{}};
+    };
+    ammunition.current=view(state);
+    for(unsigned slot=0;slot<4;++slot)if(auto *other=native_inventory_weapon(u,int(slot))) {
+      owners[slot+1]=other;ammunition.inventory[slot]=view(*other);
     }
-  } firing_rate{state,w,presentation_marker};
+    const auto symbol=[](unsigned action) -> std::uint32_t {
+      // Complete1680B3/169493 table entries reached by the magazine owners.
+      switch(action) {
+        case 0:return 0x0400000cu;case 7:return 0x0c000064u;case 8:return 0x0b000065u;
+        case 9:return 0x0c0005aeu;case 10:return 0x150005afu;case 11:return 0x140005b0u;
+        case 12:return 0x0b0005b1u;
+        default:throw FormatError("Magazine action exceeds its original dispatch contract");
+      }
+    };
+    auto &services=magazine_services;
+    services.transfer.available=[&]{return weapon_reserve_available(ammunition,0);};
+    services.transfer.spend=[&](std::int32_t amount){(void)weapon_reserve_spend(ammunition,0,amount,[]{});};
+    // Native snapshots publish these retained fields each tick. The source
+    // dirty notifier adds no independent ammunition or animation state here.
+    services.transfer.changed=[]{};
+    services.transition.activity_symbol=symbol;
+    services.transition.timing=[&](std::uint32_t activity,unsigned section) {
+      return first_person_timing_hook_?std::int32_t(first_person_timing_hook_(u,state,activity,std::int16_t(section))):0;
+    };
+    services.transition.activity=[&,symbol](unsigned action) {
+      if(action>=7 && action<=11) {
+        state.reload_started=ticks_+1;state.reload_empty=magazine.loaded==0;
+      }
+      if(first_person_activity_hook_)first_person_activity_hook_(u,state,symbol(action));
+    };
+    services.idle=[&]{return !state.smg.trigger_state && !state.smg.second_trigger_state && !state.smg.weapon_state;};
+    services.request_state=[&](unsigned requested) {
+      if(state.smg.own_manager && (!state.smg.weapon_state ||
+          (state.smg.weapon_state<3 && state.smg.weapon_state<=requested)))state.smg.weapon_state=requested;
+    };
+    services.effect=[&](std::uint32_t effect) {
+      if(weapon_effect_hook_)weapon_effect_hook_(u,{effect,state.source_datum,null_datum,0,0});
+    };
+    services.fire_admitted=[&](unsigned index) {
+      if(index>=w.barrel_ammunition.size())return false;
+      const auto &authored=w.barrel_ammunition[index];
+      const auto &barrel=index==unsigned(w.barrel_timing->index)?state.smg.barrel:state.alternate_barrel;
+      if(barrel.mode==2 || (barrel.flags&4u) || (state.shader.weapon_flags&2u))return false;
+      if(authored.magazine!=-1) {
+        if(authored.magazine!=0)throw FormatError("Reload firing admission needs another actual magazine owner");
+        if(magazine.loaded<authored.rounds && !(authored.flags&4u) &&
+            (w.weapon_type==1 || (barrel.flags&0x40u)))return false;
+        if(magazine.loaded<authored.minimum && (barrel.flags&0x40u))return false;
+      }
+      return true;
+    };
+    begin_reload=[&] {
+      if(weapon_blocked || !weapon_magazine_reload(magazine,definition,w.weapon_type,0,30,services))return false;
+      u.source_action_word|=1u;source_zoom_reset(u.source_zoom);++u.zoom_reset_serial;
+      state.smg.trigger_state=state.smg.second_trigger_state=0;state.smg.trigger_ticks=0;
+      for(unsigned index=0;index<w.barrel_ammunition.size();++index) {
+        auto &barrel=index==unsigned(w.barrel_timing->index)?state.smg.barrel:state.alternate_barrel;
+        if(barrel.mode!=1)barrel.flags&=~0x40u;
+        if(w.weapon_type!=1)weapon_barrel_reset(barrel,{w.barrel_ammunition[index].flags});
+      }
+      return true;
+    };
+    services.request_reload=begin_reload;
+    state.smg.input_flags=fire?std::uint16_t(2u|(!state.smg.held?8u:0u)):0;
+    if(reload)begin_reload(); //105640 before the same tick's1021D0 update.
+    weapon_magazine_step(magazine,definition,state.shader.item_flags,state.smg.input_flags,0,30,services);
+    //1021D0's idle-barrel106580 asks the unit to reload even without a held
+    // trigger. Preparation/dry-gate admission is resolved below first.
+    const bool requested=fire && (w.trigger_behavior==0 || state.trigger_armed);
+    const bool held=requested && services.fire_admitted(unsigned(w.barrel_timing->index));
+    if(held && w.weapon_type==1 && magazine.mode!=0) {
+      //1066F0/107610 with argument3=false interrupts a shotgun magazine
+      //before preparing the shot, after this tick's transfer/update phase.
+      services.transition.activity(0);
+      weapon_magazine_transition(magazine,definition,0,30,services.transition);
+    }
+    automatic_magazine_reload=[&,held](unsigned index) {
+      auto &barrel=index==unsigned(w.barrel_timing->index)?state.smg.barrel:state.alternate_barrel;
+      const auto &authored=w.barrel_ammunition[index];
+      const bool trigger=index==unsigned(w.barrel_timing->index) && held &&
+          (magazine.mode==0 || w.weapon_type==1);
+      if(barrel.mode!=0 || (barrel.flags&1u) || trigger || authored.magazine==-1)return;
+      if(authored.magazine!=0)throw FormatError("Automatic reload requires another actual magazine owner");
+      const bool insufficient=(magazine.loaded<authored.rounds && !(authored.flags&4u)) ||
+          magazine.loaded<authored.minimum || magazine.loaded==0;
+      if(!insufficient)return;
+      if(services.transfer.available()>0 && magazine.loaded<definition.capacity)begin_reload();
+      else {
+        //106580/1074A0's no-reserve suffix stops every active barrel before
+        //the next barrel's update, including the carbine's unused barrel0.
+        state.smg.trigger_state=state.smg.second_trigger_state=0;state.smg.trigger_ticks=0;
+        for(unsigned other=0;other<w.barrel_ammunition.size();++other) {
+          auto &active=other==unsigned(w.barrel_timing->index)?state.smg.barrel:state.alternate_barrel;
+          if(active.mode==1) {
+            if(other!=unsigned(w.barrel_timing->index))
+              throw FormatError("Alternate active barrel recovery requires its authored timing owner");
+            weapon_barrel_begin_recovery(active,w.barrel_timing->definition,30,w.barrel_timing->constants);
+          }
+        }
+      }
+    };
+    if(!weapon_blocked)for(unsigned index=0;index<=unsigned(w.barrel_timing->index);++index)
+      automatic_magazine_reload(index);
+    for(auto *item:owners)if(item){item->loaded=item->magazine.loaded;item->reserve=item->magazine.reserve;}
+    state.reload=(magazine.mode>=1 && magazine.mode<=3) || magazine.mode==6?
+        float(std::max<int>(0,magazine.ticks))*tick_seconds:0.f;
+  }
+  const auto advance_primary_barrel=[&] {
+  bool energy_blocked=false;
+  if(source_timing && w.energy) {
+    const auto &energy=*w.energy;
+    state.shader.weapon_flags&=~1u;
+    WeaponEnergyState source{state.definition,state.shader.item_flags,state.shader.weapon_flags,
+        state.shader.heat,state.shader.power_fraction,state.cooling_inhibitor,state.overheat_handle,state.energy_blocking_ticks};
+    WeaponHeatServices services;services.has_unit=u.source_datum!=null_datum;
+    services.reset_zoom=[&]{source_zoom_reset(u.source_zoom);++u.zoom_reset_serial;};
+    services.action=[&](unsigned action) {
+      if(first_person_activity_hook_)first_person_activity_hook_(u,state,action==14?0x0b00006du:0x08000071u);
+    };
+    services.vent_timing_ticks=[&] {
+      return first_person_timing_hook_?first_person_timing_hook_(u,state,0x08000071u,1):std::int16_t(0);
+    };
+    // A persistent overheat effect needs its own generic lifecycle owner.
+    // No successful handle is manufactured by the numeric/FP adapter.
+    weapon_heat_step(source,energy.heat,tick_seconds,energy.one,services);
+    state.shader.heat=source.heat;state.cooling_inhibitor=source.cooling_inhibitor;
+    state.shader.weapon_flags=source.weapon_flags;state.overheat_handle=source.overheat_handle;
+    state.energy_blocking_ticks=source.blocking_ticks;
+    energy_blocked=(source.weapon_flags&2u) || source.blocking_ticks>0;
+    if(energy_blocked)fire=false;
+  }
+  const bool presentation_marker=!source_timing && fire && !reload && state.reload<=0 && state.loaded>0;
+  struct FiringRate {
+    WeaponState &state;const WeaponDefinition &definition;bool marker;float feedback_blend;
+    ~FiringRate() {
+      if(!definition.firing_presentation && !definition.barrel_timing)return;
+      auto &rate=state.smg.barrel.rate;
+      const auto rise=definition.barrel_timing?definition.barrel_timing->rate_rise:definition.firing_presentation->rate_rise;
+      const auto fall=definition.barrel_timing?definition.barrel_timing->rate_fall:definition.firing_presentation->rate_fall;
+      if(marker){rate=rise*tick_seconds+rate;if(rate>1.f)rate=1.f;}
+      else if(rate>0.f){rate=rate-fall*tick_seconds;if(rate<0.f)rate=0.f;}
+      if(definition.barrel_timing) {
+        auto &barrel=state.smg.barrel;
+        WeaponErrorState error{barrel.error,barrel.angle_change};
+        weapon_error_step(error,definition.firing_error,tick_seconds,feedback_blend,marker);
+        barrel.error=error.error;barrel.angle_change=error.recoil;
+      }
+    }
+  } firing_rate{state,w,presentation_marker,weapon_hand_blend(u,state)};
   state.delay = std::max(0.f, state.delay - tick_seconds);
+  const bool latched=w.trigger_behavior==1 || w.trigger_behavior==4 || w.trigger_behavior==5;
   // Original1021D0 trigger behavior1 arms on release and consumes that bit
   // only when its barrel request is accepted. Keep it with the item, so a
   // dropped/re-equipped weapon does not gain a second held-trigger request.
-  if(w.trigger_behavior==1 && !fire)state.trigger_armed=true;
-  if (state.reload > 0) {
+  if(latched && !fire)state.trigger_armed=true;
+  if (!source_magazine && state.reload > 0) {
     state.reload -= tick_seconds;
     if (state.reload <= 0) {
       const int transfer =
@@ -1071,7 +1411,10 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     }
     return;
   }
-  if ((reload || (fire && state.loaded == 0)) && state.loaded < w.capacity && state.reserve > 0) {
+  // Original103365 asks for automatic reload only in idle barrel mode.
+  // An empty last shot must complete its recovery instead of resetting it.
+  const bool automatic_reload=fire && state.loaded==0 && (!source_timing || state.smg.barrel.mode==0);
+  if (!source_magazine && (reload || automatic_reload) && state.loaded < w.capacity && state.reserve > 0) {
     state.reload_empty = state.loaded == 0;
     state.reload_started = ticks_ + 1;
     u.source_action_word|=1u;source_zoom_reset(u.source_zoom);++u.zoom_reset_serial;
@@ -1079,14 +1422,54 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
       state.loaded = 0;
     state.reload = std::max(tick_seconds, w.reload_time);
     state.burst_left = 0;
+    if(source_timing) {
+      weapon_barrel_reset(state.smg.barrel,w.barrel_timing->definition);
+      state.smg.barrel.flags&=~1u;
+    }
     if(first_person_activity_hook_)first_person_activity_hook_(u,state,state.reload_empty?0x0c000064:0x0b000065);
     return;
   }
-  if (state.delay > 1e-6f || (w.rounds_per_second<=0 && w.trigger_behavior!=1))
+  bool dry_shot=false;
+  if(source_timing) {
+    auto &barrel=state.smg.barrel;
+    const bool rising=fire && !state.smg.held;state.smg.held=fire;
+    const bool empty_battery=w.energy && (w.inventory_flags&(1u<<11)) &&
+        state.shader.power_fraction>=w.energy->one && !infinite;
+    const bool eligible=barrel.mode!=2 && !(barrel.flags&4u) &&
+        !(state.shader.weapon_flags&2u) &&
+        (!source_magazine || state.magazine.mode==0 || w.weapon_type==1) &&
+        !(source_magazine && w.weapon_type==1 && state.loaded<w.rounds_per_shot) &&
+        !((state.loaded<w.rounds_per_shot || empty_battery) && (barrel.flags&0x40u));
+    if(w.trigger_behavior==0) {
+      if(fire && eligible)barrel.flags|=1u;
+      if((!fire || rising) && barrel.mode!=1)barrel.flags&=~0x40u;
+    } else {
+      if(!fire) {
+        state.trigger_armed=true;
+        if(barrel.mode!=1)barrel.flags&=~0x40u;
+      } else if(state.trigger_armed && eligible) {
+        barrel.flags|=1u;state.trigger_armed=false;
+      }
+    }
+    WeaponBarrelTimingContext context;context.tick_rate=30;context.spent=state.shader.power_fraction;
+    if(const auto *other=native_hand_weapon(u,hand?0:1);other && other->definition==state.definition)
+      context.other_hand=WeaponBarrelTimingContext::OtherHand{other->smg.barrel.mode,other->smg.barrel.counter};
+    const auto &timing=*w.barrel_timing;
+    const auto next=weapon_barrel_timing_step(barrel,timing.definition,context,timing.constants,weapon_blocked || energy_blocked);
+    firing_rate.marker=next.marker;
+    state.delay=float(barrel.ticks)*tick_seconds;
+    if(!next.prepare)return;
+    if((w.capacity>0 && state.loaded<std::max(w.rounds_per_shot,w.minimum_rounds)) ||
+        empty_battery) {
+      barrel.flags|=0xc0u;dry_shot=true;
+    } else ++barrel.shot_count;
+    barrel.counter=0;
+  } else {
+  if (state.delay > 1e-6f || (w.rounds_per_second<=0 && !latched))
     return;
-  if (!state.burst_left && fire && (w.trigger_behavior!=1 || state.trigger_armed)) {
+  if (!state.burst_left && fire && (!latched || state.trigger_armed)) {
     state.burst_left = std::clamp(w.burst, 1, 16);
-    if(w.trigger_behavior==1)state.trigger_armed=false;
+    if(latched)state.trigger_armed=false;
   }
   if (!state.burst_left)
     return;
@@ -1095,18 +1478,63 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     state.burst_left = 0;
     return;
   }
-  state.loaded = std::max(0, state.loaded - w.rounds_per_shot);
-  if(multiplayer_weapon_steps_ && !(w.zoom.flags&(1u<<24)) && u.source_player!=null_datum)
-    disrupt_camouflage(u,w.firing_camouflage_amount,w.firing_camouflage_limit);
-  if(first_person_activity_hook_)first_person_activity_hook_(u,state,
-      (w.zoom.flags&(1u<<24))?0x0e000607:0x06000006);
-  if(multiplayer_weapon_steps_ && w.firing_presentation && weapon_effect_hook_) {
-    //107160 emits the prepared-shot effect before the projectile postpass.
-    //The admitted zero heat maximum yields literal scalarB0.
-    state.smg.barrel.effect_handle=weapon_effect_hook_(u,{w.firing_effects.front().effects[0],
-        state.source_datum,state.smg.barrel.effect_handle,std::bit_cast<std::uint32_t>(state.smg.barrel.rate),0});
   }
-  shot(u, owner, pitch, nullptr, nullptr, &state);
+  if(!dry_shot && (!source_timing || (state.shader.item_flags&8u)))
+    state.loaded = std::max(0, state.loaded - w.rounds_per_shot);
+  if(source_magazine) {
+    state.magazine.loaded=std::bit_cast<std::int16_t>(std::uint16_t(state.loaded));
+    //107160/108080: magazine flag1 enters chamber-pending mode after a
+    //successful preparation with rounds left, before its effect request.
+    if(!dry_shot && state.loaded>0 && (w.magazine->flags&2u))
+      weapon_magazine_transition(state.magazine,*w.magazine,5,30,{});
+  }
+  std::optional<unsigned> prepared_effect;
+  if(multiplayer_weapon_steps_ && w.firing_presentation)prepared_effect=select_weapon_firing_effect(state,w);
+  const bool misfire=source_timing && w.energy && weapon_battery_misfire(state.shader.power_fraction,
+      w.energy->misfire_threshold,w.energy->misfire_chance,w.energy->one,w.energy->random_scale,random_state_);
+  if(!dry_shot && multiplayer_weapon_steps_ && !(w.zoom.flags&(1u<<24)) && u.source_player!=null_datum)
+    disrupt_camouflage(u,w.firing_camouflage_amount,w.firing_camouflage_limit);
+  if(!dry_shot)weapon_activity(u,state,
+      misfire?0x0900006au:(w.zoom.flags&(1u<<24))?0x0e000607u:0x06000006u);
+  std::optional<WeaponEffectInput> prepared_request;
+  if(prepared_effect) {
+    //107160 emits the prepared-shot effect before the projectile postpass.
+    const unsigned selection=dry_shot?2u:misfire?1u:0u;
+    const float heat=w.energy && !dry_shot && !misfire?state.shader.heat/w.energy->heat.maximum:0.f;
+    const float a=dry_shot?1.f:state.smg.barrel.rate;
+    prepared_request=WeaponEffectInput{w.firing_effects[*prepared_effect].effects[selection],
+        state.source_datum,state.smg.barrel.effect_handle,std::bit_cast<std::uint32_t>(a),
+        std::bit_cast<std::uint32_t>(heat)};
+    if(w.firing_effects[*prepared_effect].damage_effects[selection]!=null_datum && rumble_events_.size()<256)
+      rumble_events_.push_back({w.firing_effects[*prepared_effect].damage_effects[selection],u.vitality.shield>0,1.f,owner});
+  }
+  if(source_timing && w.energy && !dry_shot) {
+    const auto &energy=*w.energy;
+    state.shader.heat=energy.heat_per_shot+state.shader.heat;
+    if(!(state.shader.item_flags&8u) && state.shader.heat>energy.heat.maximum)state.shader.heat=energy.heat.maximum;
+    else if(state.shader.heat>energy.one)state.shader.heat=energy.one;
+    if(!(w.inventory_flags&(1u<<26))) {
+      WeaponEnergyState source{state.definition,state.shader.item_flags,state.shader.weapon_flags,
+          state.shader.heat,state.shader.power_fraction};
+      weapon_age(source,energy.spent_per_shot,energy.one,infinite,energy.age,[&](std::uint32_t effect) {
+        if(weapon_effect_hook_)weapon_effect_hook_(u,{effect,state.source_datum,null_datum,0,0});
+      });
+      state.shader.power_fraction=source.spent;
+      // Aged-definition replacement is retained with the same item identity.
+      state.definition=source.definition;
+    }
+  }
+  if(source_timing && w.energy && weapon_heat_detonation(state.shader.heat,w.energy->detonation_threshold,
+        w.energy->detonation_chance,w.energy->random_scale,random_state_))
+    throw FormatError("Weapon self-detonation requires its source object owner");
+  if(prepared_request && weapon_effect_hook_)
+    state.smg.barrel.effect_handle=weapon_effect_hook_(u,*prepared_request);
+  if(source_timing) {
+    if(!dry_shot)state.last_shot=ticks_+1;
+    if(!dry_shot && !misfire) {state.smg.barrel.flags|=2u;state.shader.weapon_flags|=1u;}
+    return;
+  }
+  shot(u, owner, pitch, nullptr, nullptr, &state,prepared_effect.has_value());
   --state.burst_left;
   // Original1062B0 uses a zero interval below its rate threshold. Lockout's
   // shotgun has literal zero/zero rate bounds and a one-shot burst; zero is
@@ -1115,6 +1543,19 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
   // from the complete original discrete barrel/magazine update.
   const float interval=w.rounds_per_second>0?1.f/w.rounds_per_second:0.f;
   state.delay = state.burst_left?interval:std::max(interval,w.fire_recovery);
+  };
+  advance_primary_barrel();
+  //1021D0 updates barrels in authored order. A later unused barrel can
+  //request reload in the same tick that the selected barrel consumes its last
+  //round (rocket launcher); the carbine's earlier barrel acts before it.
+  if(source_magazine) {
+    if(!weapon_blocked)for(unsigned index=unsigned(w.barrel_timing->index)+1;index<w.barrel_ammunition.size();++index)
+      automatic_magazine_reload(index);
+    for(auto *item:magazine_owners)if(item){item->loaded=item->magazine.loaded;item->reserve=item->magazine.reserve;}
+    const auto &magazine=state.magazine;
+    state.reload=(magazine.mode>=1 && magazine.mode<=3) || magazine.mode==6?
+        float(std::max<int>(0,magazine.ticks))*tick_seconds:0.f;
+  }
 }
 void Simulation::step(const Controls &controls) {
   step_impl(controls,{});
@@ -1159,7 +1600,7 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
     return;
   }
   devices_.synchronize(scene_);
-  devices_.step(tick_seconds);
+  step_devices();
   for(auto event:devices_.take_events()){
     event.serial=++device_event_serial_;event.tick=ticks_+1;
     device_events_.push_back(event);
@@ -1172,10 +1613,12 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
   // from hlmt damage-info and ordinary players use the original defaults.
   const auto update_vitality=[&](Unit &unit) {
     if(!unit.exists || unit.bsp_hidden)return;
-    const auto update=update_unit_vitality(unit.vitality,unit.definition.vitality,tick_seconds);
-    if(update.effect)
-      record_unit_damage_effect(unit,*update.effect,
-          {unit.source_player,unit.source_datum,unit.source_membership});
+    if(!source_physics_movement_) {
+      const auto update=update_unit_vitality(unit.vitality,unit.definition.vitality,tick_seconds);
+      if(update.effect)
+        record_unit_damage_effect(unit,*update.effect,
+            {unit.source_player,unit.source_datum,unit.source_membership});
+    }
     DamageFadeDefinition fade;
     if(!unit.controlled && unit.character!=null_datum)
       if(const auto character=content_.characters.find(unit.character);
@@ -1183,6 +1626,8 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
         fade=*character->second.damage_fade;
     update_damage_feedback(unit.damage_feedback,30,unit.vitality.dead,
         unit.vitality.shield_depleted,false,fade);
+    if(multiplayer_weapon_steps_ && !source_physics_movement_ && !(unit.definition.unit_flags&(1u<<11)))
+      weapon_hand_feedback_tick(unit.source_weapon_hand_feedback);
     if(multiplayer_weapon_steps_) {
       // Ordinary unit C7E90 updates camouflage before its attached weapon's
       // firing owner. Actor-NONE multiplayer units use the measured branch.
@@ -1212,7 +1657,7 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
           event.effect,event.effect_position,event.effect_forward,ticks_+1});
       scene_.destroy(event.handle);
     }
-  });
+  },{.random=&random_state_});
   synchronize_props();
   auto input =
       player_input_enabled_ ? controls : Controls{0, 0, player_.yaw, 0};
@@ -1353,6 +1798,15 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
     update_weapon(a, attacking, a.weapon.loaded == 0 && a.weapon.reserve > 0,
                   int(i), std::atan2(delta.z, std::hypot(delta.x, delta.y)));
   }
+  if(multiplayer_weapon_steps_ && !source_physics_movement_) {
+    const auto passive=[&](Unit &unit) {
+      if(!unit.exists)return;
+      for(int slot=0;slot<4;++slot)
+        if(slot!=unit.source_inventory.current[0] && slot!=unit.source_inventory.current[1])
+          if(auto *weapon=native_inventory_weapon(unit,slot))update_passive_weapon(*weapon,&unit);
+    };
+    passive(player_);for(auto &unit:actors_)passive(unit);
+  }
   if (multiplayer_weapon_steps_) {
     auto dispatch = [&](Unit &u, int owner, float pitch) {
       if (!u.exists || u.vitality.dead) return;
@@ -1360,10 +1814,16 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
         auto *state=hand?native_hand_weapon(u,hand):&u.weapon;
         if(!state)continue;
         const auto &weapon=content_.weapons.at(state->definition);
-        if(!weapon.smg)continue;
+        if(!weapon.smg) {
+          if(weapon.barrel_timing && (state->smg.barrel.flags&2u)) {
+            state->smg.barrel.flags&=~2u;state->shader.weapon_flags&=~1u;
+            shot(u,owner,pitch,nullptr,nullptr,state,true);
+          }
+          continue;
+        }
         if(!content_.original_data)throw FormatError("Original direction data is required for SMG dispatch");
         const auto aim=direction(u.yaw,pitch);
-        const auto prepared=smg_dispatch(state->smg,*weapon.smg,aim,random_state_,content_.original_data->weapon_directions);
+        const auto prepared=smg_dispatch(state->smg,*weapon.smg,aim,random_state_,content_.original_data->weapon_directions,weapon_hand_blend(u,*state));
         if(prepared) {
           const auto inherited=smg_inherited_velocity(aim,*prepared,u.body.velocity);
           const auto velocity=smg_projectile_velocity(*prepared,inherited,weapon.projectile_speed);
@@ -1386,7 +1846,7 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
     p.velocity = flight.velocity;
     const auto movement = flight.displacement;
     const float distance = length(movement);
-    if (trace(p.position, movement, distance, w, p.owner, p.captured_owner,p.source_datum))
+    if (trace(p.position, movement, distance, w, p.owner, p.captured_owner,p.source_datum,&p.velocity,p.traveled))
       p.traveled = INFINITY;
     else {
       p.position = flight.position;
@@ -1402,10 +1862,10 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
       release_object_(p.source_datum);
     return remove;
   });
-  if(grenade_sandbox_)grenade_sandbox_->update_projectiles(ticks_+1,collision(),
+  if(grenade_sandbox_ && !source_physics_movement_)grenade_sandbox_->update_projectiles(ticks_+1,collision(),
       [this](const PropAreaDamageDefinition& definition,Vec3 origin,std::uint32_t player,
-          std::uint32_t unit,std::int16_t designator,int owner) {
-        area_damage(definition,origin,{player,unit,designator},owner);
+          std::uint32_t unit,std::int16_t designator,int owner,std::uint32_t projectile_definition) {
+        area_damage(definition,origin,{player,unit,designator},owner,null_datum,projectile_definition);
       },release_object_,[this](std::size_t placement){
         const auto type=content_.objects.at(placement).type;
         if(type<0||type>255)throw FormatError("Invalid projectile collision scenario object type");
@@ -1583,8 +2043,9 @@ ScriptValue Simulation::host(const std::string &name,
     const float angle=float(args[2].number())*.017453292519943295f;
     bool visible=false;for(const auto handle:script_objects(args[0].bits)) {
       const auto &unit=script_unit(handle);const auto delta=script_center(args[1].bits)-eye(unit);const float distance=length(delta);
-      const auto hit=collision().raycast(eye(unit),delta,distance);
-      visible|=distance>0 && dot(direction(unit.yaw,handle==0?player_pitch_:unit.pitch),delta/distance)>=std::cos(angle) && (!hit || hit->distance>=distance-.001f);
+      // Retail29F7A0 ->CC2B0 is a facing-cone test with a strict boundary;
+      // it never queries occlusion, including the target machine's collision.
+      visible|=distance>0 && dot(direction(unit.yaw,handle==0?player_pitch_:unit.pitch),delta/distance)>std::cos(angle);
     }
     return ScriptValue::numeric(visible,5);
   }
@@ -1825,6 +2286,10 @@ ScriptValue Simulation::host(const std::string &name,
     if (name == "cinematic_start") ambience_details_enabled_=true;
     return {};
   }
+  if(name=="cinematic_outro_start") {
+    // Retail2AC3E0 writes globals+22 independently of cinematic start/stop.
+    arity(0);presentation_.cinematic_outro=true;return {};
+  }
   if (name == "cinematic_show_letterbox" ||
       name == "cinematic_show_letterbox_immediate") {
     arity(1);
@@ -1876,10 +2341,13 @@ ScriptValue Simulation::host(const std::string &name,
     scene_.create(std::int16_t(args[0].bits), name == "object_create_anew", ticks_);
     return {};
   }
-  if(name=="object_destroy_containing") {
+  if(name=="object_create_containing" || name=="object_destroy_containing") {
     arity(1);if(args[0].type!=9)throw FormatError("Object name search requires a string");
+    // Retail29FF60 visits every case-sensitive substring match in scenario
+    // name order;29FD40 delegates creation to the ordinary named factory.
     for(unsigned i=0;i<content_.object_names.size();++i)if(content_.object_names[i].name.find(args[0].text)!=std::string::npos) {
-      const auto handle=scene_.resolve(i);if(handle!=null_datum)scene_.destroy(handle);
+      if(name=="object_create_containing")scene_.create(i,false,ticks_);
+      else {const auto handle=scene_.resolve(i);if(handle!=null_datum)scene_.destroy(handle);}
     }
     return {};
   }

@@ -1,4 +1,5 @@
 #include "halo2/audio.hpp"
+#include "halo2/mcc_audio.hpp"
 #include "halo2/vista_audio_framing.hpp"
 #include <algorithm>
 #include <bit>
@@ -102,10 +103,12 @@ PcmSound decode_audio_container(const EncodedSound &input,
   const bool supported =
       movie.empty() ? (parameters->codec_id == AV_CODEC_ID_WMAV1 ||
                        parameters->codec_id == AV_CODEC_ID_WMAV2)
-                    : (parameters->codec_id == AV_CODEC_ID_BINKAUDIO_DCT ||
+                    : (parameters->codec_id == AV_CODEC_ID_AAC ||
+                       parameters->codec_id == AV_CODEC_ID_BINKAUDIO_DCT ||
                        parameters->codec_id == AV_CODEC_ID_BINKAUDIO_RDFT);
+  const int maximum_channels = !movie.empty() && parameters->codec_id == AV_CODEC_ID_AAC ? 8 : 2;
   if (!supported || parameters->ch_layout.nb_channels < 1 ||
-      parameters->ch_layout.nb_channels > 2 || parameters->sample_rate < 8000 ||
+      parameters->ch_layout.nb_channels > maximum_channels || parameters->sample_rate < 8000 ||
       parameters->sample_rate > 96000)
     throw FormatError("unsupported retail WMA stream format");
   const auto *codec = avcodec_find_decoder(parameters->codec_id);
@@ -198,9 +201,10 @@ PcmSound decode_movie_audio(const std::filesystem::path &path) {
   return decode_audio_container(input, path);
 }
 PcmSound decode_sound(const EncodedSound &input) {
-  if (!input.channels || input.channels > 2 || !input.sample_rate ||
+  if (!input.channels || input.channels > 4 || !input.sample_rate ||
       input.data.empty())
     throw FormatError("invalid encoded sound");
+  if(input.codec==5)return decode_mcc_opus(input);
   if (input.codec == 4) {
     if (is_vista_serialized_audio(input.data))
       return decode_vista_serialized_sound(input);

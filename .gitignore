@@ -13,6 +13,7 @@
 /assets/
 /Halo 2 Vista installer/
 /resources/ui/
+/resources/movies/
 
 # Generated reference captures and oracle payloads can contain original bytes.
 # Keep the fixture documentation and Python generators with the tests.
@@ -77,3 +78,6 @@ node_modules/
 *~
 .DS_Store
 Thumbs.db
+
+# Authored custom Slayer release definitions are shipped with the repository.
+!releases/halo2-custom-slayer-*.zip

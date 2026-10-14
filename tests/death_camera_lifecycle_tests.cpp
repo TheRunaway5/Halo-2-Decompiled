@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
       } else
         check(false, "Original camera fixture record");
     }
-    check(cases.size() == 96, "All original camera lifecycle cases");
+    check(cases.size() == 97 || cases.size() == 125, "All original camera lifecycle cases");
     std::size_t stores = 0, state_bytes = 0, phases = 0;
     for (auto &c : cases) {
       std::size_t wi = 0;
@@ -160,15 +160,23 @@ int main(int argc, char **argv) {
           break;
         case 0x1573b0:
           halo2::source_select_death_camera_1_1(c.memory, view, c.reset != 0,
-                                                c.fp, {}, observe);
+                                                c.fp, observe);
           break;
         case 0x23fb00:
           halo2::source_construct_death_camera_1_1(c.memory, c.camera, view, -1,
-                                                   c.fp, {}, observe);
+                                                   c.fp, observe);
           break;
         case 0x23fea0:
-          halo2::source_replace_death_camera_target_1_1(c.memory, c.camera, {},
+          halo2::source_replace_death_camera_target_1_1(c.memory, c.camera,
                                                         observe);
+          break;
+        case 0x23fca0:
+          check(halo2::source_death_camera_team_restriction_1_1(c.memory,0x10000u)==
+                    (c.query_result!=0),c.name+" original campaign team restriction");
+          break;
+        case 0x23fe30:
+          check(halo2::source_death_camera_fallback_1_1(c.memory)==c.query_result,
+                c.name+" original campaign object fallback");
           break;
         default:
           check(false, "Original camera entry");

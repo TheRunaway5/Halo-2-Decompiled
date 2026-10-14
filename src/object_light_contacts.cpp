@@ -78,7 +78,7 @@ std::optional<ObjectLightContactDefinition> Cache::load_object_light_contact_def
     const auto object=find(datum,nullptr);
     if(!object)return {};
     if(object->size<0x3c)throw FormatError("truncated object light contact definition");
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto root=metadata_offset(object->address,object->size);
     ObjectLightContactDefinition out;out.datum=datum;out.type=std::int16_t(data.u16(root));
     if(out.type<0 || out.type>12)throw FormatError("light contact definition is not an object");
@@ -103,7 +103,7 @@ std::optional<ObjectLightContactDefinition> Cache::load_object_light_contact_def
 ObjectLightRenderLeaves Cache::load_object_light_render_leaves(std::uint32_t datum) const {
     const auto render=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
     if(!render || render->size<0x84)throw FormatError("missing object render leaf model");
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto root=metadata_offset(render->address,render->size);
 
     ObjectLightRenderLeaves out;out.render_model=datum;

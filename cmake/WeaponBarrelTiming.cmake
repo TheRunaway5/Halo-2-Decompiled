@@ -1,0 +1,148 @@
+target_sources(halo2_systems PRIVATE src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp)
+add_executable(audit_weapon_muzzle_admission tools/audit_weapon_muzzle_admission.cpp)
+target_link_libraries(audit_weapon_muzzle_admission PRIVATE halo2_systems)
+if(MSVC)
+  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+else()
+  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+endif()
+if(BUILD_TESTING)
+  add_executable(weapon_hand_feedback_tests tests/weapon_hand_feedback_tests.cpp)
+  target_link_libraries(weapon_hand_feedback_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_hand_feedback COMMAND weapon_hand_feedback_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_hand_feedback_original.tsv)
+  set_tests_properties(original_weapon_hand_feedback PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_unequip_cycles_tests tests/weapon_unequip_cycles_tests.cpp)
+  target_link_libraries(weapon_unequip_cycles_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_unequip_cycles COMMAND weapon_unequip_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_unequip_cycles_original.tsv)
+  set_tests_properties(original_weapon_unequip_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_passive_cycles_tests tests/weapon_passive_cycles_tests.cpp)
+  target_link_libraries(weapon_passive_cycles_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_passive_cycles COMMAND weapon_passive_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_passive_cycles_original.tsv)
+  set_tests_properties(original_weapon_passive_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_dual_cycles_tests tests/weapon_dual_cycles_tests.cpp)
+  target_link_libraries(weapon_dual_cycles_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_dual_cycles COMMAND weapon_dual_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_dual_cycles_original.tsv)
+  set_tests_properties(original_weapon_dual_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_test(NAME original_weapon_registered_dual_cycles COMMAND weapon_dual_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_registered_dual_cycles_original.tsv registered)
+  set_tests_properties(original_weapon_registered_dual_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_test(NAME original_smg_dual_cycles COMMAND weapon_dual_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/smg_dual_cycles_original.tsv smg)
+  set_tests_properties(original_smg_dual_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_graph_timing_tests tests/weapon_graph_timing_tests.cpp)
+  target_link_libraries(weapon_graph_timing_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_graph_timing COMMAND weapon_graph_timing_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_graph_timing_original.tsv)
+  set_tests_properties(original_weapon_graph_timing PROPERTIES SKIP_RETURN_CODE 77)
+  add_test(NAME original_weapon_unequip_graph_timing COMMAND weapon_graph_timing_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_unequip_graph_timing_original.tsv put-away)
+  set_tests_properties(original_weapon_unequip_graph_timing PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_reload_cycles_tests tests/weapon_reload_cycles_tests.cpp)
+  target_link_libraries(weapon_reload_cycles_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_reload_cycles COMMAND weapon_reload_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_reload_cycles_original.tsv)
+  set_tests_properties(original_weapon_reload_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_test(NAME original_weapon_elite_reload_cycles COMMAND weapon_reload_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_elite_reload_original.tsv 3)
+  set_tests_properties(original_weapon_elite_reload_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_reserve_tests tests/weapon_reserve_tests.cpp src/weapon_magazine.cpp)
+  target_include_directories(weapon_reserve_tests PRIVATE include)
+  add_test(NAME original_weapon_reserve COMMAND weapon_reserve_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_reserve_original.tsv)
+  set_tests_properties(original_weapon_reserve PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_animation_timing_tests tests/weapon_animation_timing_tests.cpp src/weapon_energy.cpp)
+  target_include_directories(weapon_animation_timing_tests PRIVATE include)
+  add_test(NAME original_weapon_animation_timing COMMAND weapon_animation_timing_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_animation_timing_original.tsv)
+  set_tests_properties(original_weapon_animation_timing PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_magazine_tests tests/weapon_magazine_tests.cpp src/weapon_magazine.cpp)
+  target_include_directories(weapon_magazine_tests PRIVATE include)
+  add_test(NAME original_weapon_magazine COMMAND weapon_magazine_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_magazine_original.tsv)
+  set_tests_properties(original_weapon_magazine PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(shader_spline2_tests tests/shader_spline2_tests.cpp)
+  target_link_libraries(shader_spline2_tests PRIVATE halo2_cache)
+  add_test(NAME original_host_shader_spline2 COMMAND shader_spline2_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/shader_spline2_host_original.tsv)
+  set_tests_properties(original_host_shader_spline2 PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_heat_shader_tests tests/weapon_heat_shader_tests.cpp src/source_weapon_shader_input.cpp)
+  target_include_directories(weapon_heat_shader_tests PRIVATE include)
+  add_test(NAME original_weapon_heat_shader COMMAND weapon_heat_shader_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_heat_shader_original.tsv)
+  set_tests_properties(original_weapon_heat_shader PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_preparation_random_tests tests/weapon_preparation_random_tests.cpp src/weapon_energy.cpp)
+  target_include_directories(weapon_preparation_random_tests PRIVATE include)
+  add_test(NAME original_weapon_preparation_random COMMAND weapon_preparation_random_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_preparation_random_original.tsv)
+  set_tests_properties(original_weapon_preparation_random PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_energy_tests tests/weapon_energy_tests.cpp src/weapon_energy.cpp)
+  target_include_directories(weapon_energy_tests PRIVATE include)
+  add_test(NAME original_weapon_energy COMMAND weapon_energy_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_energy_original.tsv
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_vent_timing_original.tsv)
+  set_tests_properties(original_weapon_energy PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_energy_cycles_tests tests/weapon_energy_cycles_tests.cpp)
+  target_link_libraries(weapon_energy_cycles_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_energy_cycles COMMAND weapon_energy_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_energy_cycles_original.tsv)
+  set_tests_properties(original_weapon_energy_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_test(NAME original_weapon_elite_energy_cycles COMMAND weapon_energy_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_elite_energy_original.tsv 3)
+  set_tests_properties(original_weapon_elite_energy_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_barrel_timing_tests tests/weapon_barrel_timing_tests.cpp src/weapon_barrel_timing.cpp)
+  target_include_directories(weapon_barrel_timing_tests PRIVATE include)
+  add_test(NAME original_weapon_barrel_timing COMMAND weapon_barrel_timing_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_barrel_timing_original.tsv)
+  set_tests_properties(original_weapon_barrel_timing PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_firing_cycles_tests tests/weapon_firing_cycles_tests.cpp)
+  target_link_libraries(weapon_firing_cycles_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_firing_cycles COMMAND weapon_firing_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_firing_cycles_original.tsv)
+  set_tests_properties(original_weapon_firing_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_executable(weapon_effect_sound_metadata_tests tests/weapon_effect_sound_metadata_tests.cpp)
+  target_link_libraries(weapon_effect_sound_metadata_tests PRIVATE halo2_systems)
+  add_test(NAME weapon_effect_shared_sound_metadata COMMAND weapon_effect_sound_metadata_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps)
+  set_tests_properties(weapon_effect_shared_sound_metadata PROPERTIES SKIP_RETURN_CODE 77)
+endif()

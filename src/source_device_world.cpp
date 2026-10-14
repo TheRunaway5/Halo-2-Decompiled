@@ -100,6 +100,8 @@ bool SourceDeviceWorld::synchronize(const SceneObjects &scene){
             // destroyed/recreated switch cannot reset another object's group.
             owner.motion.power=group(owner,true).value;owner.motion.position=group(owner,false).value;
             owner.motion.flags=source_machine_initial_device_flags(d.device_flags);
+            if(content_->devices[o.placement]->machine)
+                owner.door.flags=source_machine_placement_flags(d.machine_flags);
             if(content_->devices[o.placement]->control)
                 owner.control_flags=source_control_initial_flags(d.machine_flags);
             changed=true;
@@ -116,6 +118,12 @@ bool SourceDeviceWorld::synchronize(const SceneObjects &scene){
     collision_dirty_|=changed;return changed;
 }
 void SourceDeviceWorld::step(float dt){
+    step_impl(dt,nullptr);
+}
+void SourceDeviceWorld::step(float dt,const DoorWorld &world){
+    step_impl(dt,&world);
+}
+void SourceDeviceWorld::step_impl(float dt,const DoorWorld *world){
     if(replicated())throw FormatError("replicated devices cannot advance an independent client clock");
     // Source scans pool slots, so generation salts cannot reorder updates.
     std::vector<SourceDeviceWorldOwner*> order;for(auto&[_,o]:owners_)order.push_back(&o);
@@ -133,8 +141,34 @@ void SourceDeviceWorld::step(float dt){
                 const auto gear=source_machine_gear_step(*d.machine,o.motion.position,o.motion.power,dt);
                 if(gear.changed){o.motion.position=gear.position;group(o,false).value=gear.position;}
             }
-            //1152E0 consumes the transform-dirty bit. Automatic door proximity,
-            //autoclose and child-physics consumers remain separate work.
+            if(d.machine->type==0 && world) {
+                const auto &placement=content_->objects.at(o.placement);
+                SourceMachineDoorInput input;
+                input.handle=o.handle;input.tick=world->tick;input.editor=world->editor;
+                input.position=o.motion.position;input.radius=placement.bounding_radius*o.root.scale;
+                const auto offset=placement.bounding_offset;
+                input.center=o.root.position+(o.root.basis[0]*offset.x+
+                    o.root.basis[1]*offset.y+o.root.basis[2]*offset.z)*o.root.scale;
+                input.forward=o.root.basis[0];
+                if((o.door.flags&12) && input.position==0 && !d.one_sided_markers.empty()) {
+                    if(!d.door_hierarchy)throw FormatError("one-sided door lacks its current node hierarchy");
+                    const auto locals=source_machine_local_pose(*d.door_hierarchy,*d.machine,
+                        o.motion.position,o.motion.power);
+                    const auto nodes=pose_model_locals_nodes_world(*d.door_hierarchy,o.root,locals);
+                    const auto markers=pose_model_markers(d.one_sided_markers,nodes,d.door_permutations,{},1);
+                    if(!markers.empty())input.one_sided_marker=SourceMachineDoorMarker{
+                        markers.front().world.position,markers.front().world.basis[0]};
+                }
+                const auto update=source_machine_door_step(d.machine->door,o.door,input,dt,
+                    [&](float radius){
+                        if(!world->query)throw FormatError("automatic door lacks its live unit query");
+                        return world->query(o.handle,input.center,radius);
+                    });
+                for(unsigned i=0;i<update.target_count;++i)
+                    source_device_group_set(group(o,false),update.position_targets[i]);
+            }
+            //1152E0 consumes the transform-dirty bit. Child-physics and full
+            //animation event dispatch remain separate consumers.
             o.motion.flags&=~4u;
         }
         collision_dirty_|=old_position!=o.motion.position || old_power!=o.motion.power;
@@ -203,6 +237,25 @@ void SourceDeviceWorld::apply_snapshot(const SourceDeviceWorldSnapshot &s){
     // group or partially replace the current client owners.
     groups_=s.groups;owners_=std::move(next);replica_tick_=s.tick;
     events_.clear();collision_dirty_|=pose_changed;
+}
+SourceDeviceWorld::AuthorityCheckpoint SourceDeviceWorld::authority_checkpoint(std::uint64_t tick)const {
+    if(replicated())throw FormatError("A device display replica is not an authority checkpoint");
+    return {1,snapshot(tick),events_};
+}
+void SourceDeviceWorld::restore_authority(const AuthorityCheckpoint &saved,std::uint64_t completed_tick) {
+    if(saved.version!=1 || saved.state.tick!=completed_tick)
+        throw FormatError("Device authority checkpoint version or completed tick differs");
+    // Stage authored identity/group validation and posed collision before
+    // changing any current owner. Promotion itself never initializes motion.
+    SourceDeviceWorld next(*content_);next.apply_snapshot(saved.state);
+    for(const auto &event:saved.pending_events)
+        if(event.handle==null_datum || event.tag==null_datum || event.serial || event.tick)
+            throw FormatError("Invalid pending device authority effect request");
+    next.events_=saved.pending_events;next.replica_tick_.reset();
+    next.synchronize_collision();
+    groups_=std::move(next.groups_);owners_=std::move(next.owners_);
+    events_=std::move(next.events_);triangles_=std::move(next.triangles_);
+    collision_dirty_=false;replica_tick_.reset();
 }
 float SourceDeviceWorld::script_value(std::uint32_t handle,bool power)const {
     if(handle==null_datum)return 0;const auto &owner=owners_.at(handle);

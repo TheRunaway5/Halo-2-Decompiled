@@ -12,9 +12,10 @@ from aiohttp import web
 from .matchmaking import Coordinator, Game, Player, Playlist, SearchStage, PARTY_RULES_2007, CLAN_RULES_RETAIL
 from .protocol import fields, identifier, integer, parse, require, text, Problem
 from .player_identity import initialize, player as resolve_player, VERIFIED_DISCORD_USERNAME
-from .playlist_skill import PlaylistSkills, POLICY, display_level
+from .playlist_skill import PlaylistSkills, POLICIES, display_level
 from .clan_skill import ClanSkills
 from .search_lifecycle import GatheringConfiguration, retail_configuration
+from .couch_players import LocalPlayer, NATIVE_GATHERING, guest_id, screen_name, verify_local_players, supports_compatibility, same_continuity_protocol
 
 
 @dataclass(frozen=True)
@@ -24,6 +25,7 @@ class CatalogEntry:
     description: str
     quickmatch: bool
     rank_configuration: str | None = None
+    required_compatibility: str | None = None
 
 
 def load_catalog(path):
@@ -39,7 +41,7 @@ def load_catalog(path):
     for row in root["playlists"]:
         fields(row, ("id", "revision", "name", "description", "ranked", "quickmatch", "team_size",
                      "minimum_players", "maximum_players", "maximum_party", "games", "stages", "skill", "provenance"),
-               ("party_balance", "rank_configuration", "clan_match", "candidate_selection", "gathering"))
+               ("party_balance", "rank_configuration", "clan_match", "candidate_selection", "gathering", "required_compatibility"))
         require(type(row["quickmatch"]) is bool, "Invalid Quickmatch flag")
         require(type(row["games"]) is list and 1 <= len(row["games"]) <= 256, "Invalid game pool")
         games = []
@@ -83,13 +85,15 @@ def load_catalog(path):
                           PARTY_RULES_2007.get(balance), historical, skill.get("high_rank_radius"),
                           skill.get("mixed_party_floor", False), skill.get("radius"), CLAN_RULES_RETAIL.get(clan_match),
                           row.get("candidate_selection"), gathering)
+        required = row.get("required_compatibility")
+        require(required is None or required in NATIVE_GATHERING, "Unknown required native compatibility")
         configuration = row.get("rank_configuration")
-        require(configuration is None or configuration == POLICY, "Unknown rank configuration")
-        require(clan_match is None or configuration == POLICY, "Clan playlists require a supported clan rank configuration")
+        require(configuration is None or configuration in POLICIES, "Unknown rank configuration")
+        require(clan_match is None or configuration in POLICIES, "Clan playlists require a supported clan rank configuration")
         # Retail types1/3 update the same per-hopper XP while hiding its level;
         # types2/4 expose it. Visibility is independent of the versioned tables.
         entries.append(CatalogEntry(policy, text(row["name"]), text(row["description"], 256),
-                                    row["quickmatch"], configuration))
+                                    row["quickmatch"], configuration, row.get("required_compatibility")))
     require(len({e.policy.id for e in entries}) == len(entries), "Duplicate playlist")
     require(sum(e.quickmatch for e in entries) <= 1, "Only one Quickmatch default is allowed")
     return tuple(entries)
@@ -104,6 +108,10 @@ class Session:
     expires: float
     seen: float
     language: int = 0  # Native title-language index, never a Discord locale.
+    local_players: tuple[LocalPlayer, ...] = ()
+
+    def seats(self):
+        return self.local_players or (LocalPlayer(self.player, self.screen_name),)
 
 
 class MatchmakingApi:
@@ -129,6 +137,11 @@ class MatchmakingApi:
 
     def ticket(self, player):
         return next((t for t in self.core.tickets.values() if any(p.id == player for p in t.players)), None)
+
+    def connection_owner(self, player):
+        ticket = self.ticket(player)
+        member = next((p for p in ticket.players if p.id == player), None) if ticket else None
+        return member.connection_owner or member.id if member else player
 
     def cleanup(self):
         if not self.core:
@@ -171,12 +184,12 @@ class MatchmakingApi:
     async def create_session(self, request):
         self.enabled()
         body = await self.directory.body(request)
-        fields(body, ("screen_name", "maps", "compatibility"), ("language",))
+        fields(body, ("screen_name", "maps", "compatibility"), ("language", "local_players"))
         name, compatibility = text(body["screen_name"]), text(body["compatibility"])
         require(not compatibility.startswith("halo2-native-queue-") or compatibility in
-                ("halo2-native-queue-v7", "halo2-native-queue-v8"),
+                ("halo2-native-queue-v7", *NATIVE_GATHERING),
                 "Update Halo 2 before using ONLINE matchmaking", 409)
-        require(compatibility != "halo2-native-queue-v8" or "language" in body,
+        require(compatibility not in NATIVE_GATHERING or "language" in body,
                 "Native title language required", 400)
         language = integer(body.get("language", 0), 0, 8)
         try:
@@ -188,16 +201,38 @@ class MatchmakingApi:
         maps = frozenset(text(value) for value in body["maps"])
         require(len(maps) == len(body["maps"]), "Duplicate map capability")
         provider, subject = await self.directory.owner(request)
+        locals_verified = await verify_local_players(self.directory, body, (provider, subject))
         self.cleanup()
         db = self.directory.store.db
+        verified_owners = [(provider, subject)] + [owner for _, owner, _ in locals_verified if owner]
+        # Replacing this primary connection is allowed; taking another PC's
+        # independently authenticated seat is not.
+        existing_primary = db.execute("SELECT id FROM players WHERE provider=? AND subject=?", (provider, subject)).fetchone()
+        for owner in verified_owners:
+            existing = db.execute("SELECT id FROM players WHERE provider=? AND subject=?", owner).fetchone()
+            if existing:
+                require(not any(s.player != (existing_primary[0] if existing_primary else None)
+                    and any(p.player == existing[0] for p in s.seats()) for s in self.sessions.values()),
+                    "A Discord account is already seated on another PC", 409)
+                transport = getattr(self, "transport", None)
+                require(transport is None or not any(r.active_member(existing[0]) and
+                    r.owners[existing[0]] != (existing_primary[0] if existing_primary else None)
+                    and not r.closed and r.phase != "postgame" for r in transport.rooms.values()),
+                    "This Discord account is already playing on another PC", 409)
+                if owner != (provider, subject):
+                    require(self.directory.parties.party(existing[0]) is None,
+                            "Leave this player's separate party before adding their local profile", 409)
         player = resolve_player(db, (provider, subject), name, request.get(VERIFIED_DISCORD_USERNAME, ""))
+        seats = (LocalPlayer(player, name),) + tuple(LocalPlayer(
+            resolve_player(db, owner, local_name, username) if owner else guest_id(), local_name, owner is None)
+            for local_name, owner, username in locals_verified)
         for key, old in list(self.sessions.items()):
             if old.player == player:
                 self.remove_session(key)
         require(len(self.sessions) < 1000, "Session capacity reached", 503)
         token = secrets.token_urlsafe(32)
         self.sessions[hashlib.sha256(token.encode()).hexdigest()] = Session(player, name, maps, compatibility,
-                                                                        self.clock() + 900, self.clock(), language)
+                                                                        self.clock() + 900, self.clock(), language, seats)
         return web.json_response({"token": token, "expires_in": 900}, status=201)
 
     async def delete_session(self, request):
@@ -237,19 +272,31 @@ class MatchmakingApi:
     def clan_membership_changing(self, player):
         """Native authority policy: preserve admitted owners, revoke queued consent."""
         transport = getattr(self, "transport", None)
-        require(transport is None or not any(player in r.tokens and r.clans and not r.closed
+        require(transport is None or not any(r.active_member(player) and r.clans and not r.closed
                 and r.phase != "postgame" for r in transport.rooms.values()), "Finish your clan match first", 409)
         ticket = self.ticket(player) if self.core else None
         if ticket and ticket.clan:
             self.directory.parties.changed(ticket.party_id)
 
     def eligibility(self, session, policy):
-        if policy.candidate_selection and session.compatibility != "halo2-native-queue-v8":
+        entry = next(e for e in self.entries if e.policy.id == policy.id)
+        if entry.required_compatibility and not supports_compatibility(session.compatibility, entry.required_compatibility):
+            return False
+        if policy.candidate_selection and session.compatibility not in NATIVE_GATHERING:
             return False
         parties = getattr(self.directory, "parties", None)
         party = parties.party(session.player) if parties else None
+        connections = [next((s for s in self.sessions.values() if s.player == r[0]), None)
+                       for r in parties.members(party[0])] if party else [session]
+        if not same_continuity_protocol(connections):
+            return False
+        if entry.required_compatibility and any(not s or not supports_compatibility(s.compatibility, entry.required_compatibility) for s in connections):
+            return False
+        seats = [p for s in connections if s for p in s.seats()]
+        if len(seats) > policy.maximum_party or ((policy.ranked or policy.clan_match) and any(p.guest for p in seats)):
+            return False
         if policy.clan_match:
-            players = [r[0] for r in parties.members(party[0])] if party else [session.player]
+            players = [p.player for p in seats]
             clans = {self.member_clan(player) for player in players}
             if (not policy.clan_match.minimum <= len(players) <= policy.clan_match.maximum or
                     len(clans) != 1 or None in clans):
@@ -280,10 +327,12 @@ class MatchmakingApi:
         _, session = self.session(request)
         policy = self.core.playlists.get(text(body["playlist_id"]))
         transport = getattr(self, "transport", None)
-        require(transport is None or not any(session.player in room.tokens and not room.closed
+        require(transport is None or not any(room.active_member(session.player) and not room.closed
                 and room.phase not in ("connecting", "postgame") for room in transport.rooms.values()),
                 "Leave the current ONLINE match before searching again", 409)
         require(policy is not None, "Playlist not found", 404)
+        entry = next(e for e in self.entries if e.policy.id == policy.id)
+        require(not entry.required_compatibility or supports_compatibility(session.compatibility, entry.required_compatibility), "Update Halo 2 for this custom Slayer playlist", 409)
         require(policy.revision == text(body["revision"]), "Playlist changed; refresh playlists", 409)
         key = session.player, request_id
         if key in self.requests:
@@ -294,11 +343,13 @@ class MatchmakingApi:
             current = self.ticket(session.player)
             require(current is None or current.playlist == policy.id, "Already searching another playlist", 409)
             party_id, members = self.directory.parties.queue_members(session.player, policy)
-            require(not policy.candidate_selection or all(member.compatibility == "halo2-native-queue-v8" for member in members),
+            require(same_continuity_protocol(members), "Every party member must use the same host-continuation protocol", 409)
+            require(not policy.candidate_selection or all(member.compatibility in NATIVE_GATHERING for member in members),
                     "Every party member must update Halo 2 for gathering matchmaking", 409)
+            require(not entry.required_compatibility or all(supports_compatibility(m.compatibility, entry.required_compatibility) for m in members), "Every party member must update Halo 2 for this playlist", 409)
             clan, clan_rank = None, None
             if policy.clan_match:
-                clan = self.common_clan([member.player for member in members], policy)
+                clan = self.common_clan([p.player for member in members for p in member.seats()], policy)
                 require(transport is None or not any(clan in room.clans.values() and room.proposal.playlist == policy.id
                         and not room.closed and room.phase != "postgame" for room in transport.rooms.values()),
                         "This clan is already playing this playlist", 409)
@@ -307,11 +358,17 @@ class MatchmakingApi:
             entry = next(e for e in self.entries if e.policy.id == policy.id)
             players = []
             for member in members:
-                raw = (self.skills.snapshot(member.player, policy.id, entry.rank_configuration).raw
-                       if entry.rank_configuration and not clan else None)
-                players.append(Player(member.player, member.screen_name,
-                                      display_level(raw) if raw is not None else
-                                      (1 if clan else self.rank(member.player, policy.id)), member.maps, raw))
+                require(not (policy.ranked or policy.clan_match) or not any(p.guest for p in member.seats()),
+                        "Guests may use casual playlists only", 409)
+                owner_raw = (self.skills.snapshot(member.player, policy.id, entry.rank_configuration).raw
+                             if entry.rank_configuration and not clan else None)
+                for seat in member.seats():
+                    raw = owner_raw if seat.guest else (self.skills.snapshot(seat.player, policy.id, entry.rank_configuration).raw
+                          if entry.rank_configuration and not clan else None)
+                    players.append(Player(seat.player, seat.screen_name,
+                                          display_level(raw) if raw is not None else
+                                          (1 if clan or seat.guest else self.rank(seat.player, policy.id)),
+                                          member.maps, raw, seat.guest, member.player))
             ticket = self.core.enqueue(party_id, policy.id, session.compatibility,
                                        tuple(players), clan=clan, clan_rank=clan_rank,
                                        leader=session.player, language=session.language)

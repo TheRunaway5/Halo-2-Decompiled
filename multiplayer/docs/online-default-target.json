@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "requested_default_era": "xbox-live-final-2010",
+  "verified_rank_defaults": "title-update-1.5-defaults",
+  "final_2010_downloaded_configuration_recovered": false,
+  "extra_playlists": [
+    {
+      "name": "Action Sack",
+      "ranked": false,
+      "party_games": true,
+      "include_fiesta": true,
+      "couch_guests_allowed": true,
+      "publish_guest_personal_results": false,
+      "implementation": "custom-slayer-v1",
+      "status": "active-native-v10",
+      "variants": [
+        "Fiesta Slayer",
+        "Infection Slayer"
+      ],
+      "catalog": "../master_server/examples/matchmaking-tombstone-fiesta.json"
+    }
+  ],
+  "historical_catalog_evidence": "historical-catalog-evidence-20261013.json",
+  "activation_requirement": "Custom Action Sack is active for native v10. Historical final-2010 restoration remains separate from these newly authored Slayer variants.",
+  "map_additions": [
+    {
+      "name": "Tombstone",
+      "map": "highplains2",
+      "revision": "revised-original-xbox",
+      "status": "active-fiesta-only",
+      "active_modes": [
+        "Fiesta Slayer"
+      ],
+      "pending_modes": [
+        {
+          "name": "CTF",
+          "requirement": "Complete and validate the native CTF objective engine before activation."
+        }
+      ],
+      "provenance": "User-requested custom map additions; not recovered final-2010 weights.",
+      "staged_modes": [
+        "Slayer",
+        "Team Slayer"
+      ],
+      "live_catalog": "../master_server/examples/matchmaking-tombstone-fiesta.json",
+      "staged_catalog": "../master_server/examples/matchmaking-tombstone.json",
+      "native_runtime_requirement": "Regular Slayer/Team Slayer simulation must pass the retained TU1.5 world update; the installed path currently stops at missing owner 181CB0."
+    }
+  ]
+}

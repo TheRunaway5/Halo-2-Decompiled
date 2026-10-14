@@ -115,10 +115,6 @@ public:
   // remote key publication; its ignored unregister request is retained as
   // unpublished_offline, never fabricated platform success.
   bool dispose_local();
-  // Actual5E4A7E→5E46E4 mode6 writes on the quiescent native browser owner.
-  // This port has no Windows query handle/child or remote browser operation;
-  // reaching one rejects. It does not claim the Windows browser constructor.
-  void reset_local_browser();
   // Explicit offline sink for actual null-handler5B54CF(slot,value) requests.
   // Retains their arguments without claiming Windows transport mode effects.
   void request_connection_mode(std::uint32_t slot,std::uint32_t value);
@@ -202,7 +198,6 @@ private:
   std::uint32_t frozen_network_clock_{};
   std::vector<NativeVistaContextEvent> context_events_;
   std::vector<NativeVistaTeardownEvent> teardown_events_;
-  std::vector<std::byte> browser_{vista_browser_source_size};
   std::uint32_t bandwidth_=0xffffffffu; //5E0CE1→926D08=NONE.
   //5B07B2 clears these owners;5B100B publishes them on selected-name events.
   std::u16string peer_name_,peer_party_;

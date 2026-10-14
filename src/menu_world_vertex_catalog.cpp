@@ -6,16 +6,24 @@ namespace halo2 {
 namespace {
 bool packed(std::uint16_t semantic) {
   switch(SourceVertexSemantic(semantic)) {
-  case SourceVertexSemantic::Position:case SourceVertexSemantic::UV:return false;
+  case SourceVertexSemantic::Position:case SourceVertexSemantic::UV:
+  case SourceVertexSemantic::BlendIndices:case SourceVertexSemantic::BlendWeights:return false;
   case SourceVertexSemantic::Normal:case SourceVertexSemantic::Tangent:
   case SourceVertexSemantic::Binormal:return true;
   default:throw UnsupportedVertexProgram("menu raw vertex semantic has no proved fetch adapter");
   }
 }
 void declaration(const SourceVertexDeclaration &value) {
-  if(value.class_index>1 || value.semantics.empty() || value.semantics.size()>16)
-    throw UnsupportedVertexProgram("menu raw vertex catalog requires an actual class0/class1 declaration");
-  for(const auto semantic:value.semantics)(void)packed(semantic);
+  if(value.class_index>6 || value.semantics.empty() || value.semantics.size()>16)
+    throw UnsupportedVertexProgram("menu raw vertex catalog requires an actual class0..6 declaration");
+  for(const auto semantic:value.semantics) {
+    (void)packed(semantic);
+    if(value.class_index<2 && (semantic==1 || semantic==2))
+      throw UnsupportedVertexProgram("ordinary world class consumes model influence semantics");
+  }
+  if(value.class_index>=2 && (std::count(value.semantics.begin(),value.semantics.end(),1)!=1 ||
+      std::count(value.semantics.begin(),value.semantics.end(),2)!=(value.class_index>=4?1:0)))
+    throw UnsupportedVertexProgram("skinned class lacks its original influence declaration");
 }
 constexpr const char interface[]=R"GLSL(layout(set=1,binding=0,std140) uniform MenuWorldVertexUniforms {
     vec4 c[192];
@@ -84,11 +92,12 @@ bool equal(std::span<const std::uint16_t> a,std::span<const std::uint16_t> b) {
 MenuWorldVertexShaderSource menu_world_vertex_shader_source(
     std::span<const std::byte> bytes,const SourceVertexDeclaration &inputs) {
   declaration(inputs);
-  const auto source=menu_world_vertex_source(decode_vertex_program(bytes));
+  const auto program=decode_vertex_program(bytes);
+  const auto source=inputs.class_index<2?menu_world_vertex_source(program):menu_world_skinned_vertex_source(program);
   for(const auto input:source.consumed_inputs)
     if(input>=inputs.semantics.size())
       throw UnsupportedVertexProgram("menu raw vertex program consumes an external constant attribute");
-  std::ostringstream text;text<<"#version 450\n// Halo2 raw class0/class1 vertex catalog ABI1.\n";
+  std::ostringstream text;text<<"#version 450\n// Halo2 raw class0..6 vertex catalog ABI2.\n";
   for(unsigned i=0;i<inputs.semantics.size();++i)
     text<<"layout(location="<<i<<") in "<<(packed(inputs.semantics[i])?"int":"vec4")
         <<" v"<<i<<(packed(inputs.semantics[i])?"_cmp":"")<<";\n";

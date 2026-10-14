@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="4096" viewBox="0 0 512 1024" version="1.1">
+  <title>Vista ui\screens\game_shell\profile_picker\profile_display page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <pattern id="grid-lines" patternUnits="userSpaceOnUse" width="26" height="26">
+      <path d="M1 0 V26 M0 1 H26" fill="none" stroke="#2680db" stroke-width="2" opacity="0.1803921568627451" />
+    </pattern>
+    <linearGradient id="grid-width" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="512" y2="0">
+      <stop offset="0" stop-color="white" stop-opacity="1" />
+      <stop offset="0.78125" stop-color="white" stop-opacity="1" />
+      <stop offset="0.8671875" stop-color="white" stop-opacity="0" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="grid-height" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1024">
+      <stop offset="0" stop-color="white" stop-opacity="0.87" />
+      <stop offset="0.025390625" stop-color="white" stop-opacity="1" />
+      <stop offset="0.6103515625" stop-color="white" stop-opacity="1" />
+      <stop offset="0.63671875" stop-color="white" stop-opacity="0.65" />
+      <stop offset="1" stop-color="white" stop-opacity="0.65" />
+    </linearGradient>
+    <mask id="grid-width-envelope" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="1024">
+      <rect width="512" height="1024" fill="url(#grid-width)" />
+    </mask>
+    <mask id="grid-height-envelope" maskUnits="userSpaceOnUse" x="0" y="0" width="512" height="1024">
+      <rect width="512" height="1024" fill="url(#grid-height)" />
+    </mask>
+  </defs>
+  <g mask="url(#grid-width-envelope)">
+    <rect width="444" height="652" fill="url(#grid-lines)" mask="url(#grid-height-envelope)" />
+  </g>
+</svg>

@@ -4,6 +4,7 @@
 #include "halo2/math.hpp"
 #include "halo2/model_selection.hpp"
 #include "halo2/particle_draw.hpp"
+#include "halo2/particle_render_inputs.hpp"
 #include "halo2/multiplayer_audio.hpp"
 #include <SDL.h>
 #include <fstream>
@@ -20,6 +21,15 @@ void aim(Controls &control,const Unit &shooter,const Unit &target) {
   const auto delta=target.body.position+Vec3{0,0,target.body.height*.5f}-eye(shooter);
   control.yaw=std::atan2(delta.y,delta.x);
   control.pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));
+}
+bool same_particle_material(const ParticleMaterial &a,const ParticleMaterial &b) {
+  if(a.vertex.template_datum!=b.vertex.template_datum || a.vertex.pass_datum!=b.vertex.pass_datum ||
+      a.vertex.vertex_datum!=b.vertex.vertex_datum || a.vertex.classification!=b.vertex.classification)return false;
+  for(unsigned n=0;n<a.bitmaps.size();++n) {
+    if(bool(a.bitmaps[n])!=bool(b.bitmaps[n]))return false;
+    if(a.bitmaps[n] && (a.bitmaps[n]->datum!=b.bitmaps[n]->datum || a.bitmaps[n]->index!=b.bitmaps[n]->index))return false;
+  }
+  return true;
 }
 }
 int main(int argc,char **argv)try {
@@ -161,6 +171,36 @@ int main(int argc,char **argv)try {
   }
   options.prepared_world.reset();options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
   auto &live=options.prepared_world->match;
+  struct PopLeaf {std::uint32_t datum{};ParticleMaterial material;};
+  std::array<std::vector<PopLeaf>,2> pop_leaves;
+  std::array<std::array<std::vector<unsigned>,2>,2> leaf_draws;
+  std::array<ParticleModelDefinition,2> charge_models;
+  std::array<ParticleMaterial,2> charge_materials;
+  for(unsigned victim=0;victim<2;++victim) {
+    // Read the actual depletion graph, not a class shared with muzzle flashes
+    // and impacts. Each authored leaf must reach both real local views.
+    const auto graph=options.prepared_world->tags.get({depleted[victim]});
+    const auto events=graph.block(0x14,0x38);
+    for(unsigned event=0;event<events.size();++event) {
+      const auto systems=events.element(event).block(0x30,0x38);
+      for(unsigned system=0;system<systems.size();++system) {
+        const auto definition=options.prepared_world->cache->load_particle_system_render_definition(
+            depleted[victim],event,system);
+        pop_leaves[victim].push_back({definition.particle_datum,
+            options.prepared_world->cache->load_particle_material(definition.particle_datum,15,0,0)});
+      }
+    }
+    check(!pop_leaves[victim].empty(),"Selected shield depletion graph has no authored particles");
+    for(auto &view:leaf_draws[victim])view.resize(pop_leaves[victim].size());
+    const auto charge_graph=options.prepared_world->tags.get({recharge[victim]});
+    const auto charge_events=charge_graph.block(0x14,0x38);
+    check(charge_events.size()==1 && charge_events.element(0).block(0x30,0x38).size()==1,
+        "Selected recharge graph differs from the verified original single-system effect");
+    const auto charge_system=options.prepared_world->cache->load_particle_system_render_definition(recharge[victim],0,0);
+    check(charge_system.coordinates==1,"Recharge lost its authored marker-local coordinates");
+    charge_models[victim]=load_particle_model(*options.prepared_world->cache,charge_system.particle_datum);
+    charge_materials[victim]=options.prepared_world->cache->load_particle_material(charge_system.particle_datum,15,0,1);
+  }
   options.frames=0;options.capture_tick=capture_limit;options.reference_tick_cadence=true;
   options.screenshot=output/(stage+".ppm");
   std::array<std::array<unsigned,2>,2> model_draws{},pop_draws{},perpendicular{};
@@ -179,13 +219,22 @@ int main(int argc,char **argv)try {
       const auto classification=draw.material->vertex.classification;
       particles<<tick<<'\t'<<view<<'\t'<<classification<<'\t'<<draw.model_count<<'\t'<<draw.vertex.attributes[2][3]<<'\n';
       for(unsigned victim=0;victim<2;++victim) {
-        if(tick>=pop_tick[victim] && tick<charge_tick[victim]) {
-          if(classification==7 || classification==9)++pop_draws[victim][view];
-          if(classification==9)++perpendicular[victim][view];
+        if(tick>=pop_tick[victim] && tick<pop_tick[victim]+30) {
+          for(unsigned leaf=0;leaf<pop_leaves[victim].size();++leaf)
+            if(same_particle_material(*draw.material,pop_leaves[victim][leaf].material) &&
+                std::isfinite(draw.vertex.attributes[2][3]) && draw.vertex.attributes[2][3]>0) {
+              ++leaf_draws[victim][view][leaf];++pop_draws[victim][view];
+              if(classification==9)++perpendicular[victim][view];
+            }
         }
-        if(tick>=charge_tick[victim] && tick<charge_tick[victim]+30 && draw.model) {
+        if(tick>=charge_tick[victim] && tick<charge_tick[victim]+30 && draw.model &&
+            same_particle_material(*draw.material,charge_materials[victim])) {
           check(classification==1 && draw.model_count==504 && draw.model->vertices.size()==172,
               "Recharge draw did not retain the authored PRTM mesh");
+          const auto &authored=charge_models[victim];
+          check(draw.model->vertices==authored.vertices && draw.model->indices==authored.indices &&
+              draw.model->spans==authored.spans && draw.model->shader==authored.shader,
+              "Recharge replaced original Xbox mesh, index spans or shader");
           const auto &a=draw.vertex.attributes;
           const auto area=std::abs(a[12][0])+std::abs(a[12][1])+std::abs(a[12][2])+
               std::abs(a[13][0])+std::abs(a[13][1])+std::abs(a[13][2]);
@@ -197,12 +246,39 @@ int main(int argc,char **argv)try {
   };
   options.input_observer=[&](auto,std::span<const Controls>,const MultiplayerState &s) {
     for(unsigned victim=0;victim<2;++victim) {
-      if(s.tick==pop_tick[victim]){check(s.players[victim].shield==0 && !s.players[victim].dead,"Live break differs from actual planned controls");popped[victim]=true;}
-      if(s.tick==charge_tick[victim]){check(s.players[victim].shield_recharging,"Live recharge differs from actual planned controls");charged[victim]=true;}
+      if(s.tick==pop_tick[victim]) {
+        check(s.players[victim].shield==0 && !s.players[victim].dead,"Live break differs from actual planned controls");
+        unsigned requests{};
+        for(const auto &event:s.unit_damage_effects)
+          if(event.tick==s.tick && event.target==s.players[victim].source_unit &&
+              event.effect.kind==UnitDamageEffectKind::ShieldDepleted) {
+            check(event.effect.datum==depleted[victim],"Shield break requested another species' pop effect");
+            ++requests;
+          }
+        check(requests==1,"Real shield break did not publish exactly one authored depletion request");
+        popped[victim]=true;
+      }
+      if(s.tick==charge_tick[victim]) {
+        check(s.players[victim].shield_recharging,"Live recharge differs from actual planned controls");
+        unsigned requests{};
+        for(const auto &event:s.unit_damage_effects)
+          if(event.tick==s.tick && event.target==s.players[victim].source_unit &&
+              event.effect.kind==UnitDamageEffectKind::ShieldRecharging) {
+            check(event.effect.datum==recharge[victim],"Recharge requested another species' effect");++requests;
+          }
+        check(requests==1,"Actual recharge start did not publish exactly one authored effect request");
+        charged[victim]=true;
+      }
       if(s.tick==death_tick[victim]){check(s.players[victim].dead,"Live death differs from actual planned controls");dead[victim]=true;}
     }
   };
   check(run_multiplayer(options)==0,"Continuous shield cycle renderer/audio failed");
+  for(unsigned victim=0;victim<2;++victim)if(pop_tick[victim]<capture_limit)
+    for(unsigned view=0;view<2;++view)for(unsigned leaf=0;leaf<pop_leaves[victim].size();++leaf) {
+      check(leaf_draws[victim][view][leaf]>0,"Shield break omitted an authored particle leaf from a local view");
+      std::cout<<"PASS "<<(victim?"Elite":"Spartan")<<" pop leaf="<<std::hex<<pop_leaves[victim][leaf].datum
+          <<std::dec<<" view="<<view<<" visible_draws="<<leaf_draws[victim][view][leaf]<<'\n';
+    }
   if(stage!="full") {
     for(unsigned view=0;view<2;++view)
       check(stage.ends_with("pop")?pop_draws[capture_victim][view]>0:model_draws[capture_victim][view]>0,

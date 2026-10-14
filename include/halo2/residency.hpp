@@ -1,10 +1,10 @@
 #pragma once
 #include "halo2/audio.hpp"
-#include "halo2/model.hpp"
 #include <map>
 namespace halo2 {
-// Native decoded residency. Retail prediction is chunk/section granular;
-// this backend admits whole native clips/models/BSP meshes synchronously.
+// Native residency. Retain authored model blocks and bitmap resources;
+// rendering decodes display geometry independently. Audio clips and BSP
+// resource blocks are admitted synchronously by their existing native owners.
 class NativeResidency {
 public:
   explicit NativeResidency(const Cache &cache) : cache_(cache) {}
@@ -22,13 +22,11 @@ private:
   const Cache &cache_;
   std::map<std::uint32_t, std::shared_ptr<const PcmSound>> sounds_;
   struct ModelAssets {
-    RenderModel display;
     std::vector<std::vector<std::byte>> blocks;
     bool materials_resident{};
   };
   struct BspAssets {
     std::size_t bsp;
-    Mesh display;
     std::vector<std::vector<std::byte>> blocks;
   };
   std::map<std::uint32_t, ModelAssets> models_;

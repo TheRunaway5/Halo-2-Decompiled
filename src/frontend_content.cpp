@@ -1,3 +1,4 @@
+#include "halo2/custom_slayer.hpp"
 #include "halo2/frontend.hpp"
 #include "halo2/frontend_online.hpp"
 #include "halo2/frontend_emblem.hpp"
@@ -104,7 +105,7 @@ std::string FrontendContent::localized(const UiScreen &screen,
   return {};
 }
 FrontendContent Cache::load_frontend() const {
-  const Bytes bytes(storage_);
+  const Bytes bytes(cache_bytes());
   FrontendContent out;
   auto tag = [&](std::uint32_t datum, const char *group) -> const Tag & {
     const auto* it = find_tag({datum});
@@ -551,6 +552,7 @@ FrontendContent Cache::load_frontend() const {
     }
     out.images.emplace(datum, std::move(image));
   }
+  out.bundled_variants=bundled_slayer_variants();
   return out;
 }
 } // namespace halo2

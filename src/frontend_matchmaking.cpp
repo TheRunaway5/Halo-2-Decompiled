@@ -22,7 +22,8 @@ void MenuState::set_online_matchmaking(std::shared_ptr<OnlineMatchmaking> client
 void MenuState::refresh_online_matchmaking() {
   if (!online_identity()) return;
   matchmaking_active_ = true; matchmaking_name_ = profile_name();
-  if (online_matchmaking_) online_matchmaking_->refresh(matchmaking_name_);
+  matchmaking_couch_revision_=couch_revision_;
+  if (online_matchmaking_) online_matchmaking_->refresh(matchmaking_name_,online_local_players());
   update_online_matchmaking();
 }
 void MenuState::update_online_matchmaking() {
@@ -35,7 +36,7 @@ void MenuState::update_online_matchmaking() {
     matchmaking_ = {}; matchmaking_name_.clear();
     return;
   }
-  if (matchmaking_active_ && matchmaking_name_ != profile_name()) {
+  if (matchmaking_active_ && (matchmaking_name_ != profile_name() || matchmaking_couch_revision_!=couch_revision_)) {
     quickmatch_pending_ = frame().screen == 210;
     refresh_online_matchmaking(); return;
   }
@@ -49,8 +50,8 @@ void MenuState::update_online_matchmaking() {
     const auto *playlist = selected(matchmaking_, selected_playlist_);
     if (!playlist || !playlist->eligible) {
       auto it = std::find_if(matchmaking_.playlists.begin(), matchmaking_.playlists.end(), [](const auto &p) { return p.quickmatch && p.eligible; });
-      if(it==matchmaking_.playlists.end() && account_.party)
-        it=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),[](const auto &p){return p.eligible;});
+      if(it==matchmaking_.playlists.end() && (account_.party || local_players().size()>1))
+        it=std::find_if(matchmaking_.playlists.begin(),matchmaking_.playlists.end(),[](const auto &p){return p.eligible && !p.clan_match;});
       if (it != matchmaking_.playlists.end()) playlist = &*it;
     }
     quickmatch_pending_ = false;
@@ -84,22 +85,38 @@ void MenuState::update_online_matchmaking() {
         if(name.ends_with(" \xee\x80\x88"))name.remove_suffix(4);
         return name==matched.variant;
       });
-      if(variant==content_.variants.end())throw FormatError("Playlist selected an unavailable game variant.");
-      result.variant=*variant;
+      if(variant!=content_.variants.end())result.variant=*variant;
+      else {
+        const auto extra=std::find_if(content_.bundled_variants.begin(),content_.bundled_variants.end(),[&](const auto &v){return v.name==matched.variant;});
+        if(extra==content_.bundled_variants.end())throw FormatError("Playlist selected an unavailable game variant.");
+        result.variant=*extra;
+      }
       result.variant.name=matched.variant;
       const auto rules=slayer_rules(result.variant,true);
-      if(matched.map=="midship" || matched.map=="waterworks")throw FormatError("Playlist selected a map whose starting weapons are unfinished.");
+      if(rules.custom==CustomSlayer::none && (matched.map=="midship" || matched.map=="waterworks"))throw FormatError("Playlist selected a map whose starting weapons are unfinished.");
       if(matched.map.find_first_not_of("abcdefghijklmnopqrstuvwxyz0123456789_")!=std::string::npos)throw FormatError("Invalid matchmaking map.");
       result.map=matched.map+".map"; result.multiplayer=true;
       result.match_voice=match_voice_ || (party_voice_wanted_ && voice_party_ && voice_.joined);
       const auto self=std::find_if(matched.players.begin(),matched.players.end(),[](const auto &p){return p.self;});
       if(self==matched.players.end())throw FormatError("Matchmaking omitted the local player.");
-      const auto appearance=appearance_for_profile(signed_in_);
-      result.selected_profiles.push_back(native_selected_player_configuration(profile_name(),std::span<const std::uint8_t,9>(reinterpret_cast<const std::uint8_t*>(&appearance),9),rules.team_mode?int(self->team):lobby_team_));
-      if(rules.team_mode)result.selected_teams.push_back(std::int8_t(self->team));
-      if(multiplayer_map_validator_)multiplayer_map_validator_(result);
       result.online_match=online_matchmaking_->take_launch();
-      if(result.online_match)launch=std::move(result);
+      if(result.online_match) {
+        if(const auto teams=result.online_match->team_mode();teams && *teams!=rules.team_mode)throw FormatError("Matchmaking team mode differs from the selected variant");
+        const auto players=local_players();const auto slots=result.online_match->local_slots();
+        if(players.size()!=slots.size())throw FormatError("Couch profiles changed before match launch.");
+        result.local_players=unsigned(players.size());
+        for(unsigned i=0;i<players.size();++i) {
+          const auto &p=players[i];const auto &admitted=result.online_match->roster().at(slots[i]);
+          if(p.name!=admitted.name)throw FormatError("Couch profile differs from admitted player.");
+          result.selected_profiles.push_back(native_selected_player_configuration(p.name,
+              std::span<const std::uint8_t,9>(reinterpret_cast<const std::uint8_t*>(&p.appearance),9),
+              rules.team_mode?admitted.team:p.team));
+          result.input_instances.push_back(p.input_instance);
+          if(rules.team_mode)result.selected_teams.push_back(std::int8_t(admitted.team));
+        }
+        if(multiplayer_map_validator_)multiplayer_map_validator_(result);
+        launch=std::move(result);
+      }
     }catch(const FormatError &e) { online_matchmaking_->cancel_queue(); unavailable(e.what()); return; }
   }
   for (auto &f : stack_) {

@@ -1,2 +1,7 @@
 # Preserve source-verified bitmap/font bytes and portable bundle hash records.
 /resources/ui/** -text
+/resources/ui-menu-masters/** -text
+/resources/ui-vista-loading-studies/** -text
+
+# Portable custom-variant release archives retain their exact bytes.
+releases/halo2-custom-slayer-*.zip binary

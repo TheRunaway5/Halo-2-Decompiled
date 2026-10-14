@@ -21,6 +21,7 @@ services:
       H2_MASTER_BIND: 0.0.0.0
       H2_MASTER_PUBLIC_URL: https://${MASTER_DOMAIN:?Set MASTER_DOMAIN}
       H2_MASTER_BEHIND_TLS_PROXY: "1"
+      H2_PEER_STUN_URLS: "${H2_PEER_STUN_URLS:-}"
       # Enrollment uses Discord. Operator enrollment stays disabled publicly.
     volumes: [master-data:/state]
     networks: [private]

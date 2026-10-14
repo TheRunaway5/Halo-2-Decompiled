@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="68" height="68" viewBox="0 0 17 17" version="1.1">
+  <title>Vista ui\global_bitmaps\rank_icons_sm page 23: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <mask id="rank-cardinal-gaps" maskUnits="userSpaceOnUse" x="0" y="0" width="28" height="26">
+      <rect width="28" height="26" fill="white" />
+    </mask>
+    <linearGradient id="rank-plate-nw" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="2" y2="6">
+      <stop offset="0" stop-color="#15094f" />
+      <stop offset="1" stop-color="#5e4e81" />
+    </linearGradient>
+    <linearGradient id="rank-plate-ne" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="2" y2="6">
+      <stop offset="0" stop-color="#15094f" />
+      <stop offset="1" stop-color="#58347a" />
+    </linearGradient>
+    <linearGradient id="rank-plate-se" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="20" y2="23">
+      <stop offset="0" stop-color="#ab4b6c" />
+      <stop offset="1" stop-color="#ba5065" />
+    </linearGradient>
+    <linearGradient id="rank-plate-sw" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="20" y2="23">
+      <stop offset="0" stop-color="#a4476b" />
+      <stop offset="1" stop-color="#b44d64" />
+    </linearGradient>
+    <radialGradient id="rank-field" gradientUnits="userSpaceOnUse" cx="14" cy="13" r="11">
+      <stop offset="0" stop-color="#332962" />
+      <stop offset="0.65" stop-color="#2d2358" />
+      <stop offset="1" stop-color="#1b153b" />
+    </radialGradient>
+    <linearGradient id="rank-rim-0" gradientUnits="userSpaceOnUse" x1="14" x2="25.2" y1="1.8" y2="13">
+      <stop offset="0" stop-color="#ba56c5" />
+      <stop offset="1" stop-color="#302560" />
+    </linearGradient>
+    <linearGradient id="rank-rim-cut-0" gradientUnits="userSpaceOnUse" x1="14" x2="25.2" y1="1.8" y2="13">
+      <stop offset="0" stop-color="#823c8a" />
+      <stop offset="1" stop-color="#221a43" />
+    </linearGradient>
+    <linearGradient id="rank-rim-glint-0" gradientUnits="userSpaceOnUse" x1="14" x2="25.2" y1="1.8" y2="13">
+      <stop offset="0" stop-color="#c777d0" />
+      <stop offset="1" stop-color="#58507f" />
+    </linearGradient>
+    <filter id="rank-rim-cut-softness-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="rank-rim-softness-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="rank-rim-polish-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.2" />
+    </filter>
+    <linearGradient id="rank-rim-1" gradientUnits="userSpaceOnUse" x1="25.2" x2="14" y1="13" y2="24.2">
+      <stop offset="0" stop-color="#302560" />
+      <stop offset="1" stop-color="#c45466" />
+    </linearGradient>
+    <linearGradient id="rank-rim-cut-1" gradientUnits="userSpaceOnUse" x1="25.2" x2="14" y1="13" y2="24.2">
+      <stop offset="0" stop-color="#221a43" />
+      <stop offset="1" stop-color="#893b47" />
+    </linearGradient>
+    <linearGradient id="rank-rim-glint-1" gradientUnits="userSpaceOnUse" x1="25.2" x2="14" y1="13" y2="24.2">
+      <stop offset="0" stop-color="#58507f" />
+      <stop offset="1" stop-color="#cf7584" />
+    </linearGradient>
+    <filter id="rank-rim-cut-softness-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="rank-rim-softness-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="rank-rim-polish-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.2" />
+    </filter>
+    <linearGradient id="rank-rim-2" gradientUnits="userSpaceOnUse" x1="14" x2="2.8" y1="24.2" y2="13">
+      <stop offset="0" stop-color="#c45466" />
+      <stop offset="1" stop-color="#342963" />
+    </linearGradient>
+    <linearGradient id="rank-rim-cut-2" gradientUnits="userSpaceOnUse" x1="14" x2="2.8" y1="24.2" y2="13">
+      <stop offset="0" stop-color="#893b47" />
+      <stop offset="1" stop-color="#241d45" />
+    </linearGradient>
+    <linearGradient id="rank-rim-glint-2" gradientUnits="userSpaceOnUse" x1="14" x2="2.8" y1="24.2" y2="13">
+      <stop offset="0" stop-color="#cf7584" />
+      <stop offset="1" stop-color="#5c5381" />
+    </linearGradient>
+    <filter id="rank-rim-cut-softness-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="rank-rim-softness-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="rank-rim-polish-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.2" />
+    </filter>
+    <linearGradient id="rank-rim-3" gradientUnits="userSpaceOnUse" x1="2.8" x2="14" y1="13" y2="1.8">
+      <stop offset="0" stop-color="#342963" />
+      <stop offset="1" stop-color="#ba56c5" />
+    </linearGradient>
+    <linearGradient id="rank-rim-cut-3" gradientUnits="userSpaceOnUse" x1="2.8" x2="14" y1="13" y2="1.8">
+      <stop offset="0" stop-color="#241d45" />
+      <stop offset="1" stop-color="#823c8a" />
+    </linearGradient>
+    <linearGradient id="rank-rim-glint-3" gradientUnits="userSpaceOnUse" x1="2.8" x2="14" y1="13" y2="1.8">
+      <stop offset="0" stop-color="#5c5381" />
+      <stop offset="1" stop-color="#c777d0" />
+    </linearGradient>
+    <filter id="rank-rim-cut-softness-3" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="rank-rim-softness-3" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="rank-rim-polish-3" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.2" />
+    </filter>
+    <clipPath id="rank-numeral-0">
+      <path d="M0 3 C0 1 1 0 2.8 0 C4.6 0 5.6 1 5.6 2.7 C5.6 4.9 3.6 6.5 2 8 V9 H5.6 V11 H0 V7.8 L2.8 5 C3.7 4 3.8 3.1 3.6 2.6 C3.4 1.7 2 1.5 2 3.3 H0 Z" fill-rule="evenodd" />
+    </clipPath>
+    <clipPath id="rank-numeral-1">
+      <path d="M3 0 H5 V7 H6 V9 H5 V11 H3 V9 H0 V6.5 Z M3 3 L1.5 7 H3 Z" fill-rule="evenodd" />
+    </clipPath>
+  </defs>
+  <g id="rank-badge" transform="translate(0.0 0.6071428571428577) scale(0.6071428571428571)">
+    <g id="rank-corner-plates-and-rim" mask="url(#rank-cardinal-gaps)">
+      <rect x="2" y="1" width="12" height="12" fill="url(#rank-plate-nw)" />
+      <path d="M2 13 V1 H14" fill="none" stroke="white" stroke-width="0.6" stroke-opacity="0.45" />
+      <rect x="14" y="1" width="12" height="12" fill="url(#rank-plate-ne)" />
+      <path d="M14 1 H26 V13" fill="none" stroke="white" stroke-width="0.6" stroke-opacity="0.45" />
+      <rect x="14" y="13" width="12" height="12" fill="url(#rank-plate-se)" />
+      <path d="M26 13 V25 H14" fill="none" stroke="white" stroke-width="0.6" stroke-opacity="0.45" />
+      <rect x="2" y="13" width="12" height="12" fill="url(#rank-plate-sw)" />
+      <path d="M14 25 H2 V13" fill="none" stroke="white" stroke-width="0.6" stroke-opacity="0.45" />
+      <path d="M14 1.8 A11.2 11.2 0 0 1 25.2 13" fill="none" stroke="url(#rank-rim-cut-0)" stroke-width="1.9" filter="url(#rank-rim-cut-softness-0)" />
+      <path d="M14 1.8 A11.2 11.2 0 0 1 25.2 13" fill="none" stroke="url(#rank-rim-0)" stroke-width="1.3" filter="url(#rank-rim-softness-0)" />
+      <path d="M14 1.8 A11.2 11.2 0 0 1 25.2 13" fill="none" stroke="url(#rank-rim-glint-0)" stroke-width="0.5" transform="translate(-.15 -.2)" filter="url(#rank-rim-polish-0)" />
+      <path d="M25.2 13 A11.2 11.2 0 0 1 14 24.2" fill="none" stroke="url(#rank-rim-cut-1)" stroke-width="1.9" filter="url(#rank-rim-cut-softness-1)" />
+      <path d="M25.2 13 A11.2 11.2 0 0 1 14 24.2" fill="none" stroke="url(#rank-rim-1)" stroke-width="1.3" filter="url(#rank-rim-softness-1)" />
+      <path d="M25.2 13 A11.2 11.2 0 0 1 14 24.2" fill="none" stroke="url(#rank-rim-glint-1)" stroke-width="0.5" transform="translate(-.15 -.2)" filter="url(#rank-rim-polish-1)" />
+      <path d="M14 24.2 A11.2 11.2 0 0 1 2.8 13" fill="none" stroke="url(#rank-rim-cut-2)" stroke-width="1.9" filter="url(#rank-rim-cut-softness-2)" />
+      <path d="M14 24.2 A11.2 11.2 0 0 1 2.8 13" fill="none" stroke="url(#rank-rim-2)" stroke-width="1.3" filter="url(#rank-rim-softness-2)" />
+      <path d="M14 24.2 A11.2 11.2 0 0 1 2.8 13" fill="none" stroke="url(#rank-rim-glint-2)" stroke-width="0.5" transform="translate(-.15 -.2)" filter="url(#rank-rim-polish-2)" />
+      <path d="M2.8 13 A11.2 11.2 0 0 1 14 1.8" fill="none" stroke="url(#rank-rim-cut-3)" stroke-width="1.9" filter="url(#rank-rim-cut-softness-3)" />
+      <path d="M2.8 13 A11.2 11.2 0 0 1 14 1.8" fill="none" stroke="url(#rank-rim-3)" stroke-width="1.3" filter="url(#rank-rim-softness-3)" />
+      <path d="M2.8 13 A11.2 11.2 0 0 1 14 1.8" fill="none" stroke="url(#rank-rim-glint-3)" stroke-width="0.5" transform="translate(-.15 -.2)" filter="url(#rank-rim-polish-3)" />
+    </g>
+    <circle cx="14" cy="13" r="10.4" fill="url(#rank-field)" />
+    <g id="rank-number" transform="translate(7.75 7)">
+      <g transform="translate(0 0)">
+        <path d="M0 3 C0 1 1 0 2.8 0 C4.6 0 5.6 1 5.6 2.7 C5.6 4.9 3.6 6.5 2 8 V9 H5.6 V11 H0 V7.8 L2.8 5 C3.7 4 3.8 3.1 3.6 2.6 C3.4 1.7 2 1.5 2 3.3 H0 Z" fill="#09051c" fill-rule="evenodd" transform="translate(.8 .8)" stroke="#09051c" stroke-width="0.35" />
+        <path d="M0 3 C0 1 1 0 2.8 0 C4.6 0 5.6 1 5.6 2.7 C5.6 4.9 3.6 6.5 2 8 V9 H5.6 V11 H0 V7.8 L2.8 5 C3.7 4 3.8 3.1 3.6 2.6 C3.4 1.7 2 1.5 2 3.3 H0 Z" fill="#adadad" fill-rule="evenodd" />
+        <path d="M0 3 C0 1 1 0 2.8 0 C4.6 0 5.6 1 5.6 2.7 C5.6 4.9 3.6 6.5 2 8 V9 H5.6 V11 H0 V7.8 L2.8 5 C3.7 4 3.8 3.1 3.6 2.6 C3.4 1.7 2 1.5 2 3.3 H0 Z" fill="none" stroke="#c7c7c7" stroke-width="0.45" stroke-opacity="0.6" transform="translate(-.25 -.25)" clip-path="url(#rank-numeral-0)" />
+      </g>
+      <g transform="translate(7 0)">
+        <path d="M3 0 H5 V7 H6 V9 H5 V11 H3 V9 H0 V6.5 Z M3 3 L1.5 7 H3 Z" fill="#09051c" fill-rule="evenodd" transform="translate(.8 .8)" stroke="#09051c" stroke-width="0.35" />
+        <path d="M3 0 H5 V7 H6 V9 H5 V11 H3 V9 H0 V6.5 Z M3 3 L1.5 7 H3 Z" fill="#adadad" fill-rule="evenodd" />
+        <path d="M3 0 H5 V7 H6 V9 H5 V11 H3 V9 H0 V6.5 Z M3 3 L1.5 7 H3 Z" fill="none" stroke="#c7c7c7" stroke-width="0.45" stroke-opacity="0.6" transform="translate(-.25 -.25)" clip-path="url(#rank-numeral-1)" />
+      </g>
+    </g>
+  </g>
+</svg>

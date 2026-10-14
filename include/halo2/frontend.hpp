@@ -207,6 +207,7 @@ struct FrontendContent {
   std::map<unsigned, std::vector<std::uint32_t>> categories;
   std::map<std::uint32_t, UiParameter> parameters;
   std::vector<UiVariant> variants;
+  std::vector<UiVariant> bundled_variants;
   std::vector<UiLobbyMap> campaign_maps, multiplayer_maps;
   std::map<unsigned, UiDialog> dialogs;
   UiStrings global_strings;
@@ -389,8 +390,7 @@ struct FrontendLaunch {
   std::shared_ptr<OnlineMatchSession> online_match;
   bool match_voice{};
 };
-enum class FrontendLobbySessionAction { Start, Setup, Back, Auxiliary, Create,
-  BrowserBack, MainMenuNetwork };
+enum class FrontendLobbySessionAction { Start, Setup, Back, Auxiliary };
 // Native pointer actions share the menu's existing command handlers. Prompt
 // targets come from the actual clipped text layout, including Vista scaling.
 enum class FrontendPointerAction { Entry, Accept, Back, Auxiliary, Players, CommitText, ClearBinding };
@@ -408,6 +408,13 @@ public:
   explicit MenuState(const FrontendContent &,
                      const std::filesystem::path &preferences = {});
   const MenuFrame &frame() const { return stack_.back(); }
+  // ONLINE discovery borrows PC13's presentation only. Its native219 route
+  // retains directory authentication/history and cannot enter the old session
+  // browser's Create/Back/Leave lifecycle.
+  unsigned screen_layout(const MenuFrame &frame) const {
+    return content_.vista && frame.screen == 219 &&
+        frame.context == online_server_browser_context ? vista_menu(13) : frame.screen;
+  }
   const std::vector<MenuFrame> &stack() const { return stack_; }
   // Explicit original UI clock input, supplied before navigation events.
   void ui_clock(std::uint32_t value);
@@ -426,7 +433,6 @@ public:
   // retained local selections. It never resumes a pre-match Back stack.
   void open_vista_lobby();
   void open_local_title();
-  void open_vista_browser();
   // Native presentation of the completed source main-menu return. Allocate
   // the same menu as startup and publish presence before registering it.
   void open_native_mainmenu(const std::function<void()>& before_register);
@@ -475,6 +481,11 @@ public:
   // validators. Retained menu/configuration state is unchanged.
   void clear_runtime_adapters() noexcept;
   void set_discord_login(std::shared_ptr<DiscordLogin>);
+  void set_local_discord_login_factory(std::function<std::shared_ptr<DiscordLogin>()>);
+  void open_online_local_player(unsigned controller);
+  bool online_couch_screen(const MenuFrame &) const;
+  std::string online_couch_text(const MenuFrame &,unsigned) const;
+  bool online_couch_mutable() const;
   void set_discord_social(std::shared_ptr<DiscordFriends>);
   bool online_friends_screen(const MenuFrame &) const;
   std::string online_friends_text(const MenuFrame &, unsigned) const;
@@ -485,6 +496,7 @@ public:
   void set_online_directory(std::shared_ptr<OnlineDirectory>);
   void update_online_directory();
   std::string online_directory_text(const MenuFrame &, unsigned text_index) const;
+  std::string online_directory_column(const MenuFrame &, unsigned row, unsigned column) const;
   void set_online_account(std::shared_ptr<OnlineAccount>);
   void set_online_voice(std::shared_ptr<OnlineVoice>);
   void voice_push_to_talk(bool);
@@ -495,6 +507,7 @@ public:
   bool online_party_screen(const MenuFrame &) const;
   std::string online_party_text(const MenuFrame &, unsigned) const;
   std::string online_party_column(const MenuFrame &, unsigned, unsigned) const;
+  std::vector<OnlinePartyMember> online_party_members() const;
   void set_online_matchmaking(std::shared_ptr<OnlineMatchmaking>);
   void update_online_matchmaking();
   std::string online_matchmaking_text(const MenuFrame &, unsigned text_index) const;
@@ -506,7 +519,7 @@ public:
   // Resolve actual SDL identity before dispatch. An unbound A/Start in the
   // offline sign-in/lobby opens the existing profile picker for that user.
   std::optional<unsigned> controller_slot(std::int32_t instance,bool join);
-  std::optional<unsigned> joining_controller() const { return joining_controller_; }
+  std::optional<unsigned> joining_controller() const { return joining_controller_?joining_controller_:online_local_options_; }
   void leave_local_controller(unsigned);
   int profile_option(unsigned key, int fallback = 0) const;
   PcKeyboardSettings pc_keyboard_settings() const;
@@ -563,6 +576,17 @@ private:
   std::function<bool(FrontendLobbySessionAction)> lobby_session_action_;
   std::optional<std::uint8_t> vista_mainmenu_pbuffer_byte_;
   std::shared_ptr<DiscordLogin> discord_login_;
+  std::array<std::shared_ptr<DiscordLogin>,4> local_discord_logins_{};
+  std::function<std::shared_ptr<DiscordLogin>()> local_discord_factory_;
+  std::array<std::string,4> local_discord_subjects_{};
+  std::optional<unsigned> online_local_options_;
+  bool joining_online_{};
+  std::uint64_t couch_revision_{},matchmaking_couch_revision_{};
+  void populate_online_couch(MenuFrame &) const;
+  bool accept_online_couch();
+  void update_online_couch();
+  void clear_online_couch();
+  std::vector<OnlineLocalPlayer> online_local_players() const;
   std::shared_ptr<DiscordFriends> discord_social_;
   DiscordSocialSnapshot friends_;
   std::string friend_target_;

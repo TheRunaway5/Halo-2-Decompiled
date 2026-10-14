@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/source_effect_random.hpp"
+#include "halo2/custom_slayer.hpp"
 #include "halo2/frontend.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/datum_pool.hpp"
@@ -16,6 +17,8 @@
 #include "halo2/source_result_event.hpp"
 #include "halo2/source_king.hpp"
 #include "halo2/source_world_pose.hpp"
+#include "halo2/native_death_camera.hpp"
+#include "halo2/native_vehicle_camera.hpp"
 namespace halo2 {
 struct FullScoreboardLayout;
 struct FullScoreboardPaintResult;
@@ -26,6 +29,7 @@ struct SourceBspShaderView;
 struct SourceBspShaderPart;
 struct SourcePortalMaskState;
 struct ShadowCasterSphere;
+struct ObjectLightingState;
 struct MultiplayerFrameTiming {
   struct View {double camera_lighting_ms{},static_world_ms{},objects_ms{},body_ms{},first_person_ms{},hud_ms{};};
   unsigned frame{},views{},bodies_drawn{},body_pose_builds{};
@@ -51,7 +55,11 @@ struct SlayerRules {
   unsigned betrayal_ticks = 10 * 30;
   unsigned maximum_players = 16;
   unsigned starting_weapon{};
+  unsigned secondary_starting_weapon=1;
+  CustomSlayer custom=CustomSlayer::none;
+  std::array<std::uint32_t,18> weapon_choices{};
   int primary_light_vehicle{}; // Original parameter76, variant+CD/options+209.
+  int primary_heavy_vehicle{}; // Original parameter78, variant+CF/options+20B.
   std::uint32_t weapon = null_datum;
   // Original options initialization 139880+5C; 139540 copies options+10
   // into the shared deterministic RNG. Later world consumers are separate.
@@ -106,8 +114,28 @@ struct WorldWeaponPresentation {
   int loaded{},reserve{};
   SourceWeaponShaderState shader;
 };
-struct WorldVehiclePresentation {std::uint32_t handle=null_datum;std::uint32_t placement{};Transform transform;};
+struct WorldVehiclePresentation {
+  std::uint32_t handle=null_datum;std::uint32_t placement{};Transform transform;
+  // Completed original ultimate-root lighting inputs, distinct from this
+  // model's own posed coverage sphere. NONE retains the native static scene
+  // boundary; it is not presented as a source physics/cache owner.
+  std::uint32_t lighting_owner=null_datum,lighting_definition=null_datum;
+  Vec3 lighting_origin,lighting_velocity;
+  std::uint32_t lighting_flags{};
+  bool lighting_frozen{};
+  // Own object+4 / object+10A; model geometry LOD never inherits root flags.
+  std::uint32_t geometry_flags{};
+  std::uint16_t geometry_control_flags{};
+};
 struct MultiplayerState {
+  struct Corpse {
+    std::uint32_t object=null_datum,definition=null_datum,player=null_datum,death_tick=null_datum;
+    std::optional<SourcePlayerConfiguration> configuration;
+    Vec3 velocity;
+    std::uint8_t physical_state=0xff;
+    float health{},shield{};
+    DamageFeedbackState damage_feedback;
+  };
   struct Player {
     bool connected{}, dead{};
     Vec3 position;
@@ -144,6 +172,8 @@ struct MultiplayerState {
     UnitZoomState source_zoom;
     std::int16_t source_zoom_magazine_mode{};
     std::uint32_t source_parent=null_datum, source_action_word{};
+    std::int16_t source_seat=-1;
+    std::optional<NativeDeathCameraView> source_vehicle_camera;
     NativeActionPrompt action_prompt;
     // Authoritative current unit fade values; clients do not simulate timers.
     SourceCamouflageAmounts source_camouflage;
@@ -156,6 +186,9 @@ struct MultiplayerState {
     FirstPersonReplicatedClock first_person_clock;
     NativeWeaponEffectEvent weapon_effect;
     std::uint32_t source_previous_unit=null_datum, source_death_tick=null_datum;
+    // Native host-computed observer view for this peer's own dead player.
+    // It is omitted for living units and participants on other peers.
+    std::optional<NativeDeathCameraView> source_death_camera;
     struct SecondaryWeapon {
       std::uint32_t definition=null_datum,datum=null_datum,shot_tick{},reload_tick{};
       int loaded{},reserve{};
@@ -198,19 +231,26 @@ struct MultiplayerState {
   std::array<std::array<std::int16_t,9>,8> team_statistics{};
   std::array<Player, multiplayer_capacity> players;
   std::vector<PropRemoval> prop_removals; // Persistent authoritative native scene tombstones.
+  std::vector<PropRegionSnapshot> prop_regions;
   SourceDeviceWorldSnapshot devices; // Complete authoritative source state over native LAN.
   std::vector<SourceDeviceWorldEvent> device_events;
   std::vector<RumbleJournalEvent> rumble_events;
   std::vector<NativeGrenadeProjectile> grenade_projectiles;
   std::vector<NativeGrenadeDetonation> grenade_detonations;
   std::vector<BulletImpact> bullet_impacts;
+  std::vector<MeleeImpact> melee_impacts;
   std::vector<UnitDamageEffectEvent> unit_damage_effects;
   std::vector<UnitDamageVoiceEvent> unit_damage_voices;
   std::vector<WorldWeaponPresentation> world_weapons;
   std::vector<WorldVehiclePresentation> world_vehicles;
+  bool source_scene_roots_authoritative{};
+  std::vector<SourceSceneRoot> source_scene_roots;
   std::vector<NativeWeaponProjectile> weapon_projectiles;
   bool source_body_poses_authoritative{};
   std::vector<SourceWorldPose> source_body_poses;
+  // Detached bodies retain appearance and lifetime independently of a later
+  // player spawn, profile change, disconnect or second death.
+  std::vector<Corpse> corpses;
 };
 void observe_multiplayer_first_person(FirstPersonViewBinding &,
     const MultiplayerState::Player &,const FirstPersonBindingDefinition &);
@@ -298,6 +338,8 @@ public:
   // actual attachment/PVS/event/particle state; a shot counter is insufficient.
   void configure_weapon_effect_owner(
       std::function<std::uint32_t(const Unit &,const WeaponEffectInput &)>);
+  void configure_world_weapon_effect_owner(
+      std::function<std::uint32_t(const WeaponEffectInput &)>);
   void configure_grenades(std::shared_ptr<const Cache>,NativeGrenadeConstants);
   void configure_melee_animation(std::shared_ptr<const Cache>,NativeMeleeConstants);
   std::size_t native_object_capacity()const{return std::size_t(simulation_.object_lifetimes().pool().capacity());}
@@ -323,6 +365,12 @@ public:
   bool finished() const { return finished_; }
   const Simulation &simulation() const { return simulation_; }
   bool source_object_world_bound() const {return source_object_world_!=nullptr;}
+  MultiplayerObjectRuntime *source_object_runtime() {return source_object_world_;}
+  // Explicit authored placement request through the retained source factory.
+  // This does not stand in for automatic netgame-row scheduling.
+  std::uint32_t create_world_vehicle(std::size_t placement);
+  const OriginalData *original_data()const{return content_.original_data.get();}
+  std::uint32_t presentation_seed()const{return rules_.random_seed;}
   std::vector<Transform> source_world_nodes(std::uint32_t object) const;
   ShadowCasterSphere source_object_sphere(std::uint32_t object) const;
   // Only an admitted game-tick effect owner may bind this deterministic word.
@@ -345,6 +393,8 @@ public:
   std::vector<SoundEvent> take_sounds() { return simulation_.take_sounds(); }
   std::vector<PropSandboxEvent> take_prop_events() { return simulation_.take_prop_events(); }
   void replicate_prop_removals(std::span<const PropRemoval> rows) { simulation_.replicate_prop_removals(rows); }
+  void replicate_prop_regions(std::span<const PropRegionSnapshot> rows) { simulation_.replicate_prop_regions(rows); }
+  void replicate_source_scene(std::span<const SourceSceneRoot> roots,std::span<const SourceWorldPose> poses) { simulation_.replicate_source_scene(roots,poses); }
   void replicate_devices(const SourceDeviceWorldSnapshot &s){simulation_.replicate_devices(s);}
   SourceControlActivation activate_admitted_control(std::uint32_t h){return simulation_.activate_admitted_control(h);}
 
@@ -364,6 +414,7 @@ private:
   std::array<Controls,multiplayer_capacity> native_presentation_controls_;
   DatumPool player_pool_{"players", multiplayer_capacity, 0x21c};
   std::map<std::uint32_t, Unit> retained_units_;
+  std::map<std::uint32_t, MultiplayerState::Corpse> corpses_;
   std::vector<SourceNetgameWeaponRegistration> world_weapon_definitions_;
   std::vector<NetgameWeaponState> world_weapon_rows_;
   std::vector<SourceNativeWorldWeapon> world_weapon_objects_;
@@ -386,6 +437,12 @@ private:
   std::array<NativeWeaponEffectEvent,multiplayer_capacity> weapon_effect_events_;
   std::uint32_t weapon_effect_serial_{};
   std::function<std::uint32_t(const Unit&,const WeaponEffectInput&)> weapon_effect_owner_;
+  std::uint16_t infection_zombies_{};
+  bool infection_started_{};
+  std::uint32_t infection_start_tick_{};
+  void start_infection();
+  void infect(unsigned);
+  void update_infection();
   bool finished_{};
   bool results_finalized_{};
   SourceGameEndStats end_stats_;
@@ -448,8 +505,9 @@ struct MultiplayerOptions {
   std::function<void()> menu_audio_update;
   std::filesystem::path map = "assets/disc/maps/lockout.map", screenshot, shared_maps;
   std::filesystem::path gameplay_xbe; // Explicit user-owned update data source.
-  // Development integration of the selected original world into actual Match
-  // allocation/spawn/rendering. Missing live owners stop explicitly.
+  // TU1.5 sessions automatically retain their original object/physics world.
+  // This flag also requests the older source integration explicitly; an empty
+  // directory selects session-private scratch storage.
   bool source_object_world{};
   std::filesystem::path source_object_savegame_directory;
   // Explicit native placement inputs before object birth, for offline live
@@ -489,6 +547,9 @@ struct MultiplayerOptions {
   // Observe the actual camera submitted for a local view; this is never an
   // alternate camera/input provider. Used by rendered scope verification.
   std::function<void(unsigned,const Camera &,float,std::int16_t)> view_observer;
+  // Actual snapshot and submitted camera in the same render frame. Network
+  // receive can advance between fixed-rate input observations and rendering.
+  std::function<void(unsigned,const MultiplayerState &,const Camera &)> view_state_observer;
   // Read-only observation of actual per-view roster output submitted as UI.
   std::function<void(unsigned,bool,const FullScoreboardLayout&,
       const FullScoreboardPaintResult&)> scoreboard_observer;
@@ -509,6 +570,8 @@ struct MultiplayerOptions {
   std::function<void(std::uint32_t,std::uint32_t,const Material&,
       const ShaderInput&)> weapon_material_observer;
   std::function<void(std::uint32_t,std::uint32_t,std::uint32_t,float)> world_weapon_shader_input_observer;
+  std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
+      bool,unsigned,std::span<const Vertex>)> vehicle_draw_observer;
   std::function<void(unsigned,std::uint32_t,std::uint32_t,std::uint32_t,
                      std::span<const Vertex>)> weapon_projectile_draw_observer;
   // Application session owner runs after an authoritative world update and
@@ -535,6 +598,8 @@ struct MultiplayerOptions {
   // selection. Observation cannot create or change a projectile.
   std::function<void(unsigned,std::uint32_t,std::uint32_t,std::uint32_t,
                      std::span<const Vertex>)> grenade_draw_observer;
+  // Read-only completed scene adoption before per-view model interpolation.
+  std::function<void(const MultiplayerState &,const SceneObjects &)> source_scene_observer;
   unsigned capture_tick{}; // Exact local gameplay capture; no wall-clock substitution.
   std::optional<Camera> capture_camera;
   // Captured camera+28/+2C, radians and lighting/grid distance factor. This

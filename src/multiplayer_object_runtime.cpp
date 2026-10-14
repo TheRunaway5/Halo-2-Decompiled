@@ -8,9 +8,11 @@
 #include "halo2/source_process_heap_platform.hpp"
 #include "halo2/source_runtime_image.hpp"
 #include "halo2/source_damage_runtime.hpp"
+#include "halo2/unit_damage.hpp"
 #include "halo2/death_camera_binding.hpp"
 #include "halo2/source_segment_collision.hpp"
 #include "halo2/source_shadow.hpp"
+#include "halo2/source_scene_physics.hpp"
 #include "halo2/source_object_render_entry.hpp"
 #include "halo2/source_model_build.hpp"
 #include "halo2/source_render_cache.hpp"
@@ -21,6 +23,7 @@
 #include "physics_live_entries_tu15.hpp"
 #include <algorithm>
 #include <bit>
+#include <cmath>
 #include <mutex>
 #include <sstream>
 #include <thread>
@@ -43,6 +46,14 @@ std::uint32_t word(const SourcePhysicsContactMemory &m,std::uint32_t p) {
   return v;
 }
 void put(SourcePhysicsContactMemory &m,std::uint32_t p,std::uint32_t v) {
+  std::array<std::byte,4>b;for(unsigned i=0;i<4;++i)b[i]=std::byte(v>>(8*i));m.write(p,b);
+}
+std::uint32_t word(const SourceRuntimeMemory &m,NativeRuntimeAddress p) {
+  const auto b=m.view(p,4);std::uint32_t v=0;
+  for(unsigned i=0;i<4;++i)v|=std::to_integer<std::uint32_t>(b[i])<<(8*i);
+  return v;
+}
+void put(SourceRuntimeMemory &m,NativeRuntimeAddress p,std::uint32_t v) {
   std::array<std::byte,4>b;for(unsigned i=0;i<4;++i)b[i]=std::byte(v>>(8*i));m.write(p,b);
 }
 constexpr SourcePhysicsFactoryFloatingPoint fp{0x27f,0x1f80};
@@ -647,8 +658,17 @@ MultiplayerObjectRuntime::MultiplayerObjectRuntime(const std::filesystem::path &
 }
 MultiplayerObjectRuntime::~MultiplayerObjectRuntime()=default;
 SourceRuntimeMemory &MultiplayerObjectRuntime::memory(){return tu15_?tu15_->memory():impl_->bank;}
-std::uint32_t MultiplayerObjectRuntime::object_pool()const{return tu15_?tu15_->object_pool():impl_->object_pool();}
-std::uint32_t MultiplayerObjectRuntime::player_pool()const{return tu15_?tu15_->player_pool():impl_->player_pool();}
+std::uint32_t MultiplayerObjectRuntime::source_object_pool()const{return tu15_?tu15_->source_object_pool():impl_->object_pool();}
+std::uint32_t MultiplayerObjectRuntime::source_player_pool()const{return tu15_?tu15_->source_player_pool():impl_->player_pool();}
+NativeRuntimeAddress MultiplayerObjectRuntime::object_pool()const {
+  const auto& bank=tu15_?tu15_->memory():impl_->bank;return bank.native_address(source_object_pool(),0x4c);
+}
+NativeRuntimeAddress MultiplayerObjectRuntime::player_pool()const {
+  const auto& bank=tu15_?tu15_->memory():impl_->bank;return bank.native_address(source_player_pool(),0x4c);
+}
+NativeRuntimeAddress MultiplayerObjectRuntime::object_body(std::uint32_t object)const {
+  const auto& bank=tu15_?tu15_->memory():impl_->bank;return bank.native_address(source_object_body(object),4);
+}
 bool MultiplayerObjectRuntime::owns_physics()const{return bool(tu15_);}
 std::optional<std::uint32_t> MultiplayerObjectRuntime::physical_body_count()const {
   if(!tu15_)return {};
@@ -658,11 +678,12 @@ std::optional<std::uint32_t> MultiplayerObjectRuntime::physical_body_count()cons
   if(!owner)throw FormatError("TU1.5 world has no source physical-body counter");
   return word(tu15_->memory(),owner);
 }
-std::uint32_t MultiplayerObjectRuntime::source_clock()const {
-  return word(tu15_?tu15_->memory():impl_->bank,tu15_?0x51df54u:0x518444u);
+NativeRuntimeAddress MultiplayerObjectRuntime::source_clock()const {
+  const auto& bank=tu15_?tu15_->memory():impl_->bank;
+  return bank.native_address(word(bank,tu15_?0x51df54u:0x518444u),4);
 }
-std::uint32_t MultiplayerObjectRuntime::object_body(std::uint32_t object)const {
-  if(tu15_)return tu15_->object_body(object);
+std::uint32_t MultiplayerObjectRuntime::source_object_body(std::uint32_t object)const {
+  if(tu15_)return tu15_->source_object_body(object);
   const SourceRawDatumPoolServices storage{.read=[this](auto p,auto n){return impl_->bank.view(p,n);}};
   const auto header=source_raw_datum_lookup(impl_->object_pool(),object,storage);
   if(!header)throw FormatError("Object body requires a live full source handle");
@@ -673,23 +694,195 @@ void MultiplayerObjectRuntime::deliver_command(std::uint32_t player,std::uint32_
   if(!tu15_)throw FormatError("Source physics command delivery requires the TU1.5 owner");
   tu15_->deliver_command(player,object,command);
 }
+std::uint32_t MultiplayerObjectRuntime::object_definition(std::uint32_t object)const {
+  return word(tu15_?tu15_->memory():impl_->bank,object_body(object));
+}
+std::uint32_t MultiplayerObjectRuntime::object_parent(std::uint32_t object)const {
+  return word(tu15_?tu15_->memory():impl_->bank,object_body(object)+0x14u);
+}
+Transform MultiplayerObjectRuntime::object_transform(std::uint32_t object)const {
+  if(!tu15_)throw FormatError("Source physics transform readback requires the TU1.5 owner");
+  return source_scene_physics_transform(tu15_->memory(),tu15_->source_object_pool(),object);
+}
+Vec3 MultiplayerObjectRuntime::object_linear_velocity(std::uint32_t object) {
+  if(!tu15_)throw FormatError("Object velocity presentation requires its TU1.5 physics owner");
+  constexpr std::uint32_t output=0x60048000u;
+  // BC200: EAX is the object, ECX the linear output, and the sole stack
+  // argument is the optional angular output (RET 4). Preserve that register
+  // ABI when entering the complete original routine.
+  auto& bank=memory();put(bank,stack,0x60300000u);put(bank,stack+4u,0u);
+  SourcePhysicsWorldRuntimeAbi abi{};abi.gp[0]=object;abi.gp[1]=output;
+  abi.gp[4]=stack;abi.fs_base=tls;abi.eflags=2;
+  abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
+  tu15_->run_actual(0xbc200u,abi);
+  Vec3 result;memory().read(output,std::as_writable_bytes(std::span(&result,1)));return result;
+}
+SourceVehicleSeatTarget MultiplayerObjectRuntime::vehicle_seat_target(std::uint32_t unit,std::uint32_t vehicle) {
+  if(!tu15_)throw FormatError("Live vehicle seat query requires its TU1.5 owner");
+  (void)object_body(unit);(void)object_body(vehicle);
+  constexpr std::uint32_t selected=0x6004a000u,seat=selected+4u;
+  const std::array arguments{unit,vehicle,selected,seat};
+  const auto kind=tu15_->call_actual(0xcb3d0u,arguments)&0xffffu;
+  if(!kind)return {};
+  if(kind>3u)throw FormatError("Original TU1.5 seat selector returned an invalid action kind");
+  const auto object=word(memory(),selected);
+  const auto index=std::bit_cast<std::int16_t>(std::uint16_t(word(memory(),seat)));
+  if(object==0xffffffffu || index<0)throw FormatError("Original TU1.5 seat selector lost its admitted owner");
+  return {std::int16_t(kind),index,object,object_transform(object).position};
+}
 MultiplayerSourceMotion MultiplayerObjectRuntime::biped_motion(std::uint32_t object)const {
   if(!tu15_)throw FormatError("Source physics motion readback requires the TU1.5 owner");
-  const auto body=tu15_->object_body(object);const auto &bank=tu15_->memory();
+  const auto body=tu15_->source_object_body(object);const auto &bank=tu15_->memory();
   const auto scalar=[&](std::uint32_t p){return std::bit_cast<float>(word(bank,p));};
   const auto vector=[&](std::uint32_t p){return Vec3{scalar(p),scalar(p+4),scalar(p+8)};};
+  const auto root=object_transform(object);
   // Actual biped consumers E4A40 and E2720 own these object/unit fields.
   // Physical state is retained verbatim; it is not a guessed grounded flag.
-  return {vector(body+0x64u),vector(body+0x88u),vector(body+0x70u),
-      scalar(body+0x2c4u),std::to_integer<std::uint8_t>(bank.view(body+0x3dcu,1)[0])};
+  return {root.position,vector(body+0x88u),root.basis[0],
+      scalar(body+0x2c4u),std::to_integer<std::uint8_t>(bank.view(body+0x3dcu,1)[0]),
+      word(bank,body+0x14u),std::bit_cast<std::int16_t>(std::uint16_t(word(bank,body+0x1fcu)&0xffffu)),
+      word(bank,body+0x134u),std::to_integer<std::uint8_t>(bank.view(body+0x10au,1)[0])};
 }
 void MultiplayerObjectRuntime::construct_player(std::uint32_t player,unsigned user,
     const SourcePlayerConfiguration &configuration) {
   if(tu15_)tu15_->construct_player(player,user,configuration,native_machine_identity());
   else impl_->construct_player(player,user,configuration);
 }
+MultiplayerSourceVitality MultiplayerObjectRuntime::object_vitality(std::uint32_t object)const {
+  const auto body=object_body(object);const auto &bank=tu15_?tu15_->memory():impl_->bank;
+  const auto scalar=[&](unsigned offset){return std::bit_cast<float>(word(bank,body+offset));};
+  const auto timer=[&](unsigned offset){return std::bit_cast<std::int8_t>(
+      std::to_integer<std::uint8_t>(bank.view(body+offset,1)[0]));};
+  // Original D5DE0/BCC20 normalized vitality and recent-damage fields.
+  // EC/F0 are fractions; E4/E8 are the separate authored maxima.
+  return {scalar(0xec),scalar(0xf0),{{scalar(0xf4),scalar(0xfc),timer(0x108)},
+      {scalar(0xf8),scalar(0x100),timer(0x109)}}};
+}
+void MultiplayerObjectRuntime::deliver_vitality(std::uint32_t object,const MultiplayerSourceVitality &state) {
+  const auto body=object_body(object);auto &bank=memory();
+  const std::array<std::pair<unsigned,float>,6> fields{{
+      {0xec,state.body},{0xf0,state.shield},{0xf4,state.feedback.shield.visible},
+      {0xf8,state.feedback.body.visible},{0xfc,state.feedback.shield.accumulated},
+      {0x100,state.feedback.body.accumulated}}};
+  for(const auto &[offset,value]:fields) {
+    (void)offset;
+    if(!std::isfinite(value))throw FormatError("Native vitality delivery contains a non-finite source fraction");
+  }
+  for(const auto &[offset,value]:fields)
+    put(bank,body+offset,std::bit_cast<std::uint32_t>(value));
+  const std::array timers{std::byte(std::bit_cast<std::uint8_t>(state.feedback.shield.ticks)),
+      std::byte(std::bit_cast<std::uint8_t>(state.feedback.body.ticks))};
+  bank.write(body+0x108u,timers);
+}
 void MultiplayerObjectRuntime::bind_player(std::uint32_t player,std::uint32_t object) {
   if(tu15_)tu15_->bind_player(player,object);else impl_->bind_player(player,object);
+}
+void MultiplayerObjectRuntime::deliver_direct_impact(std::uint32_t object,std::uint32_t damage,
+    const DamageOwner &owner,const UnitDamageResult &result,Vec3 direction,Vec3 position) {
+  deliver_damage_reaction(object,damage,owner,result,
+      {DamageImpactContext::Kind::Direct,direction,position});
+}
+void MultiplayerObjectRuntime::deliver_damage_reaction(std::uint32_t object,std::uint32_t damage,
+    const DamageOwner &owner,const UnitDamageResult &result,const DamageImpactContext &impact) {
+  if(!tu15_)throw FormatError("Damage reaction delivery requires the TU1.5 world");
+  const auto body=object_body(object);auto &bank=memory();
+  for(float value:{impact.direction.x,impact.direction.y,impact.direction.z,
+      impact.position.x,impact.position.y,impact.position.z,impact.scale})
+    if(!std::isfinite(value))throw FormatError("Damage impact contains a non-finite input");
+  constexpr std::uint32_t report=0x60041000u,event=0x60042000u,accumulator=0x60043000u;
+  constexpr std::uint32_t frame=0x600e0000u,caller=0x600e1000u,radial=0x600e2000u;
+  const auto abi_for=[&](std::uint32_t stack) {
+    put(bank,stack,0xf0000000u);
+    SourcePhysicsWorldRuntimeAbi abi{};abi.gp[4]=stack;abi.fs_base=tls;
+    abi.eflags=2;abi.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
+    return abi;
+  };
+  // Complete D7C60 produces request defaults from the selected image/current
+  // BSP, including material/sentinels and all three scalar-one fields.
+  auto request=abi_for(caller);request.gp[2]=event;put(bank,caller+4u,damage);
+  tu15_->run_actual(0xd8bb0u,request);
+  put(bank,event+8u,owner.player);put(bank,event+0xcu,owner.unit);
+  const std::array designator{std::byte(std::uint16_t(owner.designator)&255u),
+      std::byte(std::uint16_t(owner.designator)>>8)};bank.write(event+0x10u,designator);
+  put(bank,event+0x54u,std::bit_cast<std::uint32_t>(impact.scale));
+  const auto vector=[&](std::uint32_t destination,Vec3 value) {
+    put(bank,destination,std::bit_cast<std::uint32_t>(value.x));
+    put(bank,destination+4u,std::bit_cast<std::uint32_t>(value.y));
+    put(bank,destination+8u,std::bit_cast<std::uint32_t>(value.z));
+  };
+  vector(event+0x30u,impact.position);vector(event+0x3cu,impact.direction);
+  const auto tags=word(bank,0x4f0414u);
+  if(impact.source_definition!=null_datum) {
+    const auto projectile=word(bank,tags+(impact.source_definition&65535u)*16u+8u);
+    const std::array reporting{std::byte(word(bank,projectile+0x128u)&63u)};
+    bank.write(event+0x84u,reporting);
+  }
+  if(impact.kind==DamageImpactContext::Kind::Direct)
+    put(bank,event+4u,word(bank,event+4u)|8u); // FEB40 direct request.
+  if(impact.kind==DamageImpactContext::Kind::Melee) {
+    // D10F0 intentionally uses attacker query bounds and source aim, with
+    // event bit0 selecting +48. The contact point is not this request origin.
+    const auto attacker=object_body(owner.unit);
+    const auto slot=std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(bank.view(attacker+0x212u,1)[0]));
+    if(slot>=0 && slot<4) {
+      const auto weapon=object_body(word(bank,attacker+0x218u+unsigned(slot)*4u));
+      const auto definition=word(bank,tags+(word(bank,weapon)&65535u)*16u+8u);
+      const std::array reporting{std::byte(word(bank,definition+0x1fcu)&63u)};
+      bank.write(event+0x84u,reporting); // D0830 -> D10F0 hit packet.
+    }
+    bank.write(event+0x30u,bank.view(attacker+0x30u,12));
+    bank.write(event+0x3cu,bank.view(attacker+0x168u,12));
+    bank.write(event+0x48u,bank.view(attacker+0x168u,12));
+    put(bank,event+4u,word(bank,event+4u)|1u);
+  } else if(impact.kind==DamageImpactContext::Kind::Radius) {
+    // Authenticated D9A30 geometry block calls the actual closest-point owner,
+    // then reads the retained physical root and produces both directions.
+    // Native candidate/admission/falloff remain the area's existing owner.
+    put(bank,event+4u,word(bank,event+4u)|1u);
+    auto geometry=abi_for(radial);geometry.gp[5]=event;
+    put(bank,radial+0x14u,bank.source_address(body,4));put(bank,radial+0x6cu,object);
+    tu15_->run_actual(0xd9ab2u,geometry);
+    if(geometry.gp[4]!=radial)throw FormatError("Radius geometry lost its source caller frame");
+  }
+  // DA2B0's fatal transition precedes reaction selection and physical delivery.
+  // Cleanup remains later, after native attribution, with the player attached.
+  if((result.report_flags&1u) && !(word(bank,body+0x10au)&4u)) {
+    constexpr std::uint32_t attribution=0x60040000u;
+    const std::array record{object,attribution};tu15_->call_actual(0xd8c20u,record);
+    const std::array fatal{object,attribution,1u,0u};tu15_->call_actual(0xd8d50u,fatal);
+  }
+  const std::array<std::byte,0x58> report_clear{};bank.write(report,report_clear);
+  const std::array<std::byte,0x34> accumulator_clear{};bank.write(accumulator,accumulator_clear);
+  put(bank,accumulator+8u,0xffffffffu);put(bank,accumulator+0x10u,0xffffffffu);
+  put(bank,accumulator+0x20u,std::bit_cast<std::uint32_t>(result.shield));
+  put(bank,accumulator+0x28u,std::bit_cast<std::uint32_t>(result.body));
+  put(bank,accumulator+0x30u,0x200u|(result.report_flags&1u)|((result.report_flags&2u)<<2));
+  // Complete DAA90 owns report flags/direction/scales and calls CB1D0 itself.
+  auto selection=abi_for(caller);selection.gp[0]=report;selection.gp[6]=event;
+  selection.gp[7]=accumulator;put(bank,caller+4u,object);
+  tu15_->run_actual(0xdb9e0u,selection);
+  if(result.report_flags&1u) {
+    const auto value=[&](unsigned offset){return std::bit_cast<float>(word(bank,report+offset));};
+    death_reports_.insert_or_assign(object,DeathReport{
+        std::bit_cast<std::int16_t>(std::uint16_t(word(bank,report+0x40u))),
+        {value(0x18),value(0x1c),value(0x20)},(word(bank,report+4u)>>10)&1u});
+  }
+  auto vitality=object_vitality(object);
+  report_damage_feedback(vitality.feedback,result.body,result.shield,result.report_flags,
+      (word(bank,body+0x10au)&0x800u)!=0);
+  deliver_vitality(object,vitality);
+  const auto definition=word(bank,tags+(object_definition(object)&65535u)*16u+8u);
+  const auto damage_definition=word(bank,tags+(damage&65535u)*16u+8u);
+  put(bank,frame+0x10u,damage_definition);put(bank,frame+0x14u,definition);
+  put(bank,frame+0x4cu,object);
+  auto physical=abi_for(frame);physical.gp[5]=bank.source_address(body,4);physical.gp[7]=report;
+  tu15_->run_actual(0xdbd64u,physical);
+  if(physical.gp[4]!=frame)throw FormatError("Damage physical block lost its source caller frame");
+  const auto reaction=word(bank,report+0x50u);
+  if(std::bit_cast<std::int32_t>(reaction)>0) {
+    const std::array response{object,reaction,0xffffu};
+    call(0xcac00u,response,{},report+0x18u);
+  }
 }
 SourcePlayerEquipmentTu15 MultiplayerObjectRuntime::initialize_player_equipment(std::uint32_t player,std::uint32_t object) {
   if(!tu15_)throw FormatError("Source equipment initialization requires the TU1.5 physics owner");
@@ -701,10 +894,26 @@ SourcePlayerEquipmentTu15 MultiplayerObjectRuntime::player_equipment(std::uint32
 }
 void MultiplayerObjectRuntime::kill_biped(std::uint32_t object) {
   if(!tu15_){impl_->kill_biped(object);return;}
-  constexpr std::uint32_t damage=0x60040000u;
-  const std::array record_args{object,damage};tu15_->call_actual(0xd8c20u,record_args);
-  const std::array death_args{object,damage,1u,0u};tu15_->call_actual(0xd8d50u,death_args);
-  const std::array cleanup_args{object,0xffffffffu,0u,0u,0u};tu15_->call_actual(0xccf40u,cleanup_args);
+  const auto body=object_body(object);
+  // A source falling/kill request may already have completed CCF40 during
+  // the world pass. Its detached physical corpse must not be cleaned twice.
+  if(word(memory(),body+0x13cu)==null_datum &&
+      memory().view(body+0x3dcu,1)[0]==std::byte{3}) {
+    death_reports_.erase(object);return;
+  }
+  if(!(word(memory(),object_body(object)+0x10au)&4u)) {
+    constexpr std::uint32_t damage=0x60040000u;
+    const std::array record_args{object,damage};tu15_->call_actual(0xd8c20u,record_args);
+    const std::array death_args{object,damage,1u,0u};tu15_->call_actual(0xd8d50u,death_args);
+  }
+  std::array cleanup_args{object,0xffffffffu,0u,0u,0u};
+  if(const auto found=death_reports_.find(object);found!=death_reports_.end()) {
+    constexpr std::uint32_t direction=0x60044000u;
+    memory().write(direction,std::as_bytes(std::span(&found->second.direction,1)));
+    cleanup_args[1]=std::uint32_t(std::int32_t(found->second.damage_class));
+    cleanup_args[2]=direction;cleanup_args[4]=found->second.force;
+  }
+  tu15_->call_actual(0xccf40u,cleanup_args);death_reports_.erase(object);
 }
 void MultiplayerObjectRuntime::configure_session(const SourceGameVariant &variant,
     std::uint16_t mode,std::int16_t rate,std::uint32_t seed) {
@@ -723,14 +932,131 @@ std::uint32_t MultiplayerObjectRuntime::create_netgame_object(unsigned row) {
   if(!tu15_)throw FormatError("Netgame body birth requires the TU1.5 live physics world");
   return tu15_->create_netgame_object(row);
 }
+std::uint32_t MultiplayerObjectRuntime::netgame_object(unsigned row)const {
+  if(!tu15_)throw FormatError("Netgame lookup requires the TU1.5 live physics world");
+  return tu15_->netgame_object(row);
+}
+std::uint32_t MultiplayerObjectRuntime::child_object(std::uint32_t parent,std::uint32_t definition)const {
+  if(!tu15_)throw FormatError("Model child lookup requires the TU1.5 live physics world");
+  return tu15_->child_object(parent,definition);
+}
 void MultiplayerObjectRuntime::destroy_object(std::uint32_t object) {
   if(!tu15_)throw FormatError("Original body retirement requires the TU1.5 physics owner");
   tu15_->destroy_object(object);
 }
 void MultiplayerObjectRuntime::step_objects(){if(tu15_)tu15_->step_objects();else impl_->step_objects();}
+SourceWeaponEffectPresentation MultiplayerObjectRuntime::request_weapon_effect(const WeaponEffectInput &input) {
+  if(!tu15_)throw FormatError("Original weapon effect allocation requires the TU1.5 world");
+  return tu15_->request_weapon_effect(input);
+}
+void MultiplayerObjectRuntime::populate_weapon_targeting(std::uint32_t player,std::uint32_t object,
+    std::span<std::byte,0x5c> command) {
+  if(!tu15_)throw FormatError("Original live weapon targeting requires the TU1.5 world");
+  tu15_->populate_weapon_targeting(player,object,command);
+}
+std::optional<ParticleCollisionHit> MultiplayerObjectRuntime::particle_collision(std::uint32_t flags,Vec3 origin,Vec3 delta) {
+  if(!tu15_)throw FormatError("Original particle collision requires the TU1.5 world");
+  return tu15_->particle_collision(flags,origin,delta);
+}
+NativeGrenadeAction MultiplayerObjectRuntime::grenade_action(std::uint32_t unit)const {
+  if(!tu15_)throw FormatError("Grenade action readback requires the TU1.5 world");
+  const auto body=tu15_->source_object_body(unit);const auto &bank=tu15_->memory();
+  const auto offset=std::bit_cast<std::int16_t>(std::uint16_t(word(bank,body+0x346u)));
+  if(offset<0)throw FormatError("Source unit has no retained action component");
+  NativeGrenadeAction result;bank.read(body+std::uint32_t(offset),result.source);
+  if(!(result.active_actions()&(1u<<22)))return result;
+  //116720 tests both retained secondary channels, starting at extension+9C.
+  //Publish the source-selected graph/packed clip/frame rather than selecting
+  //another throw or advancing a parallel animation timer.
+  const auto extension=std::bit_cast<std::int16_t>(std::uint16_t(word(bank,body+0x33eu)));
+  if(extension<0)return result;
+  for(const auto relative:{0x9cu,0xbcu}) {
+    const auto channel=body+std::uint32_t(extension)+relative;
+    const auto graph=word(bank,channel),packed=word(bank,channel+4u),activity=word(bank,channel+8u);
+    if(graph==null_datum || (packed>>16)==0xffffu ||
+        (activity!=0x0d000021u && activity!=0x1000006cu))continue;
+    auto resolved=graph;
+    const auto inherited=std::bit_cast<std::int16_t>(std::uint16_t(packed));
+    if(inherited!=-1) {
+      const auto metadata=word(bank,word(bank,0x4f0414u)+(graph&65535u)*16u+8u);
+      if(inherited<0 || std::uint32_t(inherited)>=word(bank,metadata+0x4cu))
+        throw FormatError("Source grenade animation has an invalid inherited graph");
+      resolved=word(bank,word(bank,metadata+0x50u)+std::uint32_t(inherited)*32u+4u);
+    }
+    result.graph=resolved;result.clip=packed>>16;result.activity=activity;
+    result.frame=std::bit_cast<float>(word(bank,channel+0x1cu));result.animation_active=true;
+    return result;
+  }
+  return result;
+}
+std::int8_t MultiplayerObjectRuntime::current_grenade(std::uint32_t unit)const {
+  if(!tu15_)throw FormatError("Grenade selection readback requires the TU1.5 world");
+  return std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(
+      tu15_->memory().view(tu15_->source_object_body(unit)+0x23cu,1)[0]));
+}
+NativeMeleeAction MultiplayerObjectRuntime::melee_action(std::uint32_t unit)const {
+  if(!tu15_)throw FormatError("Melee action readback requires the TU1.5 world");
+  const auto body=tu15_->source_object_body(unit);const auto &bank=tu15_->memory();
+  const auto offset=std::bit_cast<std::int16_t>(std::uint16_t(word(bank,body+0x346u)));
+  if(offset<0)throw FormatError("Source unit has no retained action component");
+  const auto action=body+std::uint32_t(offset);NativeMeleeAction result;
+  if(!(word(bank,action+4u)&(1u<<27)))return result;
+  // Literal EC450/EC620 fields, retained by EBFA0 and its source clocks.
+  const auto fields=bank.view(action+0x30u,6);
+  result.activity=word(bank,action+0x2cu);
+  result.modifiers=std::to_integer<std::uint8_t>(fields[0]);
+  result.speed_modifier=std::to_integer<std::uint8_t>(fields[1]);
+  result.progress=std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(fields[2]));
+  result.impact=std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(fields[3]));
+  result.recovery=std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(fields[4]));
+  result.duration=std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(fields[5]));return result;
+}
+std::vector<MeleeImpact> MultiplayerObjectRuntime::take_melee_impacts() {
+  if(!tu15_)throw FormatError("Source melee readback requires the TU1.5 world");
+  return tu15_->take_melee_impacts();
+}
+std::vector<UnitDamageEffectEvent> MultiplayerObjectRuntime::take_unit_damage_effects() {
+  if(!tu15_)return {};
+  return tu15_->take_unit_damage_effects();
+}
+std::vector<SourceProjectileDetonationTu15> MultiplayerObjectRuntime::take_projectile_detonations() {
+  if(!tu15_)throw FormatError("Source explosion readback requires the TU1.5 world");
+  return tu15_->take_projectile_detonations();
+}
+std::vector<NativeGrenadeProjectile> MultiplayerObjectRuntime::grenade_projectiles()const {
+  if(!tu15_)throw FormatError("Grenade body readback requires the TU1.5 world");
+  const auto &bank=tu15_->memory();const auto pool=tu15_->source_object_pool();
+  const auto globals=word(bank,0x4ecc1cu),count=word(bank,globals+0x100u),rows=word(bank,globals+0x104u);
+  if(count>2)throw FormatError("Source grenade presentation exceeds the authored native grenade bank");
+  const auto scalar=[&](auto p){return std::bit_cast<float>(word(bank,p));};
+  const auto short_at=[&](auto p){return std::bit_cast<std::int16_t>(std::uint16_t(word(bank,p)));};
+  std::vector<NativeGrenadeProjectile> result;
+  const auto high=word(bank,pool+0x38u),headers=word(bank,pool+0x44u),stride=word(bank,pool+0x24u);
+  if(stride!=12 || high>word(bank,pool+0x20u))throw FormatError("Source projectile header pool layout changed");
+  for(unsigned i=0;i<high;++i) {
+    if(!(word(bank,word(bank,pool+0x48u)+(i>>5)*4u)&(1u<<(i&31u))))continue;
+    const auto header=headers+i*stride;
+    if(bank.view(header+3u,1)[0]!=std::byte{5})continue;
+    const auto datum=((word(bank,header)&65535u)<<16)|i,body=tu15_->source_object_body(datum),definition=word(bank,body);
+    unsigned type=0;for(;type<count;++type)if(word(bank,rows+type*0x2cu+0x28u)==definition)break;
+    if(type==count)continue;
+    const auto root=object_transform(datum);NativeGrenadeProjectile p;
+    p.datum=datum;p.definition=definition;p.type=std::int16_t(type);p.parent=word(bank,body+0x14u);
+    // B9960 request+68/+6C/+70 -> B9B70 body+C4/+C8/+C2.
+    p.player=word(bank,body+0xc4u);p.unit=word(bank,body+0xc8u);p.designator=short_at(body+0xc2u);
+    p.position=root.position;p.forward=root.basis[0];p.up=root.basis[2];
+    p.velocity={scalar(body+0x88u),scalar(body+0x8cu),scalar(body+0x90u)};
+    // Literal FD200 constructor and projectile timer/material consumers.
+    p.flags=word(bank,body+0x12cu);p.state=short_at(body+0x130u);p.age=short_at(body+0x1aau);
+    p.timer=scalar(body+0x158u);p.timer_step=scalar(body+0x15cu);
+    p.arming=scalar(body+0x160u);p.arming_step=scalar(body+0x164u);p.traveled=scalar(body+0x168u);
+    result.push_back(p);
+  }
+  return result;
+}
 std::vector<Transform> MultiplayerObjectRuntime::world_nodes(std::uint32_t object)const {
   if(!tu15_)return impl_->world_nodes(object);
-  const auto &bank=tu15_->memory();const auto body=tu15_->object_body(object);
+  const auto &bank=tu15_->memory();const auto body=tu15_->source_object_body(object);
   const auto short_at=[&](std::uint32_t p) {
     const auto b=bank.view(p,2);
     return std::bit_cast<std::int16_t>(std::uint16_t(std::to_integer<unsigned>(b[0])|
@@ -751,12 +1077,17 @@ std::vector<Transform> MultiplayerObjectRuntime::world_nodes(std::uint32_t objec
 }
 ShadowCasterSphere MultiplayerObjectRuntime::object_sphere(std::uint32_t object)const {
   if(!tu15_)return impl_->object_sphere(object);
-  const auto body=tu15_->object_body(object);const auto &bank=tu15_->memory();
+  const auto body=tu15_->source_object_body(object);const auto &bank=tu15_->memory();
   const auto scalar=[&](std::uint32_t p){return std::bit_cast<float>(word(bank,p));};
   return {{scalar(body+0x30u),scalar(body+0x34u),scalar(body+0x38u)},scalar(body+0x3cu)};
 }
 std::optional<DeathCameraTarget> MultiplayerObjectRuntime::camera_target(std::uint32_t object)const {
   return source_death_camera_target(tu15_?tu15_->memory():impl_->bank,object_pool(),object);
+}
+std::optional<DeathCameraPacket> MultiplayerObjectRuntime::vehicle_camera_packet(unsigned view,
+    std::uint32_t unit,float yaw,float pitch,std::array<std::uint32_t,7> &state) {
+  if(!tu15_)throw FormatError("Native vehicle camera requires the TU1.5 live world");
+  return tu15_->vehicle_camera_packet(view,unit,yaw,pitch,state);
 }
 SourceObserverWorldServices MultiplayerObjectRuntime::observer_world_services() {
   if(tu15_) {

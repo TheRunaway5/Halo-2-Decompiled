@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="248" viewBox="0 0 480 62" version="1.1">
+  <title>Vista ui\list_skins\main_menu\list_bkd_rings_right page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="wave-height" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="62">
+      <stop offset="0.0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.06451612903225806" stop-color="white" stop-opacity="0" />
+      <stop offset="0.16129032258064516" stop-color="white" stop-opacity="0.23" />
+      <stop offset="0.24193548387096775" stop-color="white" stop-opacity="0.33" />
+      <stop offset="0.3709677419354839" stop-color="white" stop-opacity="0.6" />
+      <stop offset="0.5" stop-color="white" stop-opacity="1" />
+      <stop offset="0.6451612903225806" stop-color="white" stop-opacity="0.7" />
+      <stop offset="0.7419354838709677" stop-color="white" stop-opacity="0.5" />
+      <stop offset="0.8709677419354839" stop-color="white" stop-opacity="0.13" />
+      <stop offset="0.9516129032258065" stop-color="white" stop-opacity="0" />
+      <stop offset="1.0" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="wave-length" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="480" y2="0">
+      <stop offset="0" stop-color="#15497c" stop-opacity="0" />
+      <stop offset="0.033" stop-color="#15497c" stop-opacity="0" />
+      <stop offset="0.125" stop-color="#15497c" stop-opacity="0.047" />
+      <stop offset="0.25" stop-color="#1a5a92" stop-opacity="0.074" />
+      <stop offset="0.5" stop-color="#2c96dd" stop-opacity="0.145" />
+      <stop offset="0.75" stop-color="#1a5a92" stop-opacity="0.055" />
+      <stop offset="0.875" stop-color="#15497c" stop-opacity="0.043" />
+      <stop offset="0.925" stop-color="#15497c" stop-opacity="0" />
+      <stop offset="1" stop-color="#15497c" stop-opacity="0" />
+    </linearGradient>
+    <mask id="wave-envelope" maskUnits="userSpaceOnUse" x="0" y="0" width="480" height="62">
+      <rect width="480" height="62" fill="url(#wave-height)" />
+    </mask>
+    <linearGradient id="ring-height" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="62">
+      <stop offset="0.0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.06451612903225806" stop-color="white" stop-opacity="0" />
+      <stop offset="0.1935483870967742" stop-color="white" stop-opacity="0.65" />
+      <stop offset="0.4032258064516129" stop-color="white" stop-opacity="1" />
+      <stop offset="0.6451612903225806" stop-color="white" stop-opacity="1" />
+      <stop offset="0.8548387096774194" stop-color="white" stop-opacity="0.4" />
+      <stop offset="0.9516129032258065" stop-color="white" stop-opacity="0" />
+      <stop offset="1.0" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <mask id="ring-envelope" maskUnits="userSpaceOnUse" x="0" y="0" width="480" height="62">
+      <rect width="480" height="62" fill="url(#ring-height)" />
+    </mask>
+    <filter id="ring-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.4" />
+    </filter>
+  </defs>
+  <g mask="url(#wave-envelope)">
+    <rect width="480" height="62" fill="url(#wave-length)" />
+  </g>
+  <g mask="url(#ring-envelope)" fill="none" stroke="#2c96dd" filter="url(#ring-softness)">
+    <ellipse cx="240" cy="31" rx="35" ry="24" stroke-width="7" opacity="0.05" />
+    <ellipse cx="240" cy="31" rx="67" ry="24" stroke-width="6" opacity="0.035" />
+    <ellipse cx="240" cy="31" rx="99" ry="23" stroke-width="5" opacity="0.025" />
+  </g>
+</svg>

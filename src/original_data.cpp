@@ -6,6 +6,8 @@
 
 namespace halo2 {
 std::shared_ptr<const OriginalData> Cache::original_data() const {
+  if(mcc_ && !original_data_)
+    original_data_=OriginalData::native_tu15();
   if (!original_data_)
     original_data_ = OriginalData::load_xbe((vista_ && !xbox_donor_root_.empty()?xbox_donor_root_:shared_directory_.parent_path()) / "default.xbe");
   return original_data_;

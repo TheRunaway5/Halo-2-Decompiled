@@ -3,6 +3,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/model_selection.hpp"
 #include "halo2/source_object_view.hpp"
+#include "halo2/source_scene_effect_owner.hpp"
 #include <functional>
 #include <memory>
 
@@ -65,6 +66,7 @@ public:
     void animation_frames(AnimationFrames);
     void birth_query_capture(BirthQueryCapture);
     void update_pose(std::uint64_t simulation_tick,std::int32_t render_frame,Mesh &);
+    std::vector<SourceSceneEffectOwner> effect_owners() const;
     void append_view(std::vector<Vertex> &,std::vector<ObjectLightingBinding> &,
                      const SourceObjectViewLod &,std::vector<SourceObjectViewSelection> * = nullptr);
     const SourceScenerySceneStats &stats() const;

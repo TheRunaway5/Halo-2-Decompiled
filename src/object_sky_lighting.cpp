@@ -16,7 +16,7 @@ void normalize_source(Vec3& v) {
 bool Cache::object_sky_lighting_available(std::size_t ordinal) const {
     const auto scenario=query_tag({.group=tag_groups::scenario, .name=scenario_});
     if(!scenario)return false;
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto root=metadata_offset(scenario->address,scenario->size);
     const auto skies=TagAddressSpace(data, metadata_magic_).block(root+8, 8);
     if(ordinal>=skies.count)return false;
@@ -31,7 +31,7 @@ bool Cache::object_sky_lighting_available(std::size_t ordinal) const {
 std::optional<ObjectSkyLightingDefinition> Cache::load_object_sky_lighting(std::size_t ordinal) const {
     const auto scenario=query_tag({.group=tag_groups::scenario, .name=scenario_});
     if(!scenario)return {};
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto root=metadata_offset(scenario->address,scenario->size);
     const auto skies=TagAddressSpace(data, metadata_magic_).block(root+8, 8);
     if(ordinal>=skies.count)throw FormatError("object lighting sky outside scenario");

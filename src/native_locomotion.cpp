@@ -6,6 +6,7 @@
 #include "halo2/unit_animation_metadata_store.hpp"
 #include "halo2/unit_constructors.hpp"
 #include "halo2/unit_locomotion.hpp"
+#include "halo2/model_markers.hpp"
 #include <bit>
 #include <algorithm>
 #include <cmath>
@@ -186,6 +187,14 @@ std::span<const std::byte>NativeLocomotion::manager()const{return state_->curren
 float NativeLocomotion::facing(float fraction)const {
   if(fraction<0 || fraction>1)throw FormatError("Invalid native facing fraction");
   const auto &s=*state_;return s.previous_yaw+std::remainder(s.yaw-s.previous_yaw,6.283185307179586f)*fraction;
+}
+
+Vec3 authored_footstep_position(
+    std::span<const std::vector<ObjectAttachmentMarker>> marker_bank,
+    std::span<const Transform> current_nodes,unsigned marker,Vec3 unit_position) {
+  if(marker>=marker_bank.size())return unit_position;
+  const auto markers=pose_model_markers(marker_bank[marker],current_nodes,{}, {},1);
+  return markers.empty()?unit_position:markers.front().world.position;
 }
 
 std::array<std::uint32_t,3> authored_footstep_sounds(const Cache&cache,std::uint32_t foot,

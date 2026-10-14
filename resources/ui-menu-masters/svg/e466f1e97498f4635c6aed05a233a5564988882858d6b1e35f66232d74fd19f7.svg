@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="144" height="288" viewBox="0 0 18 36" version="1.1">
+  <title>Vista ui\list_skins\playlist_entries\select page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="playlist-bracket" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.2" />
+    </filter>
+  </defs>
+  <path d="M12 5 H13 L8 10.5 V31 L6 29.5 H5 V17.5 H6 V10.5 Z" fill="#8bbcff" opacity="0.35" filter="url(#playlist-bracket)" />
+  <path d="M12 5 H13 L8 10.5 V31 L6 29.5 H5 V17.5 H6 V10.5 Z" fill="#adc4d7" opacity="0.8" />
+  <path d="M7 11 H8 V31 L7 30 Z" fill="#e1e7ea" opacity="0.7" />
+  <path d="M6.5 10.5 L12.5 5.5" fill="none" stroke="#dde3e9" stroke-width="0.8" opacity="0.8" />
+</svg>

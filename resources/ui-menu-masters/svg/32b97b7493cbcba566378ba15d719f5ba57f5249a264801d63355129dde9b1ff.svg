@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2080" height="120" viewBox="0 0 520 30" version="1.1">
+  <title>Vista ui\screens\game_shell\virtual_keyboard\field_1 page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="field-outline-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.6" />
+    </filter>
+  </defs>
+  <path d="M3 7 L7 3 H517 V23 L513 27 H3 Z" fill="#c7d1dc" fill-opacity="0.5098039215686274" />
+  <path d="M3 7 L7 3 H517 V23 L513 27 H3 Z" fill="none" stroke="#006db0" stroke-width="1" filter="url(#field-outline-glow)" />
+  <path d="M3 7 L7 3 H517 V23 L513 27 H3 Z" fill="none" stroke="#006db0" stroke-width="1" />
+</svg>

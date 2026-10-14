@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="184" viewBox="0 0 20 46" version="1.1">
+  <title>Vista ui\list_skins\profile_picker\end_cap page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="selector-glow-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.1" />
+    </filter>
+    <filter id="selector-glow-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.1" />
+    </filter>
+  </defs>
+  <g id="selector">
+    <path d="M17 4 V42 L11 36 V28 L15 24 V20 L11 16 V10 Z" fill="#319cff" stroke="#319cff" stroke-width="3" filter="url(#selector-glow-0)" />
+    <path d="M3 18 L10 23 L3 28 Z" fill="#319cff" stroke="#319cff" stroke-width="3" filter="url(#selector-glow-1)" />
+    <path d="M17 4 V42 L11 36 V28 L15 24 V20 L11 16 V10 Z" fill="#cdddeb" />
+    <path d="M3 18 L10 23 L3 28 Z" fill="#cdddeb" />
+  </g>
+</svg>

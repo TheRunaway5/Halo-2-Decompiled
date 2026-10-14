@@ -3,11 +3,13 @@
 #include "halo2/unit_grenade.hpp"
 #include "halo2/native_grenade_constants.hpp"
 #include "halo2/source_shadow.hpp"
+#include "halo2/source_effect_location.hpp"
 #include <functional>
 #include <map>
 
 namespace halo2 {
 struct Unit;
+struct SourceProjectileDetonationTu15;
 struct DamageOwner;
 struct PropAreaDamageDefinition;
 class CollisionWorld;
@@ -18,6 +20,7 @@ struct NativeGrenadeAction {
   float frame{};
   bool animation_active{};
   NativeGrenadeAction();
+  std::uint32_t active_actions()const;
   std::uint8_t phase()const;
   std::uint8_t counter()const;
   std::uint32_t held()const;
@@ -50,6 +53,8 @@ struct NativeGrenadeDetonation {
   std::uint32_t projectile=0xffffffffu,definition=0xffffffffu,effect=0xffffffffu;
   std::uint32_t player=0xffffffffu,unit=0xffffffffu;
   Vec3 position,forward,up;
+  std::vector<SourceEffectLocation> source_locations;
+  SourceEffectColors colors;
 };
 // FCF90 entry through FD0F8, before any world query. Source constructor
 // supplies timer_step/arming_step; contact flags are actual backend inputs.
@@ -65,13 +70,19 @@ public:
   using Constructed=std::function<void(std::uint32_t,std::uint32_t)>;
   using Activity=std::function<void(const Unit&,std::uint32_t)>;
   using Area=std::function<void(const PropAreaDamageDefinition&,Vec3,
-      std::uint32_t player,std::uint32_t unit,std::int16_t designator,int native_owner)>;
+      std::uint32_t player,std::uint32_t unit,std::int16_t designator,int native_owner,
+      std::uint32_t projectile_definition)>;
   // The triangle owner retains scenario placement identities for object hits.
   // Resolve their actual type only when the source response gate needs it.
   using CollisionObjectType=std::function<std::uint8_t(std::size_t placement)>;
   void update_unit(Unit&,bool pressed,int native_owner,const Allocate&,const Activity&,
       const Constructed& = {});
   void cancel_unit(Unit&);
+  // Presentation adoption of completed source physics bodies. Motion, fuse,
+  // contact and retirement stay with that world, never this native sandbox.
+  struct PresentationOwner {const Unit *unit;int native_owner;};
+  void adopt_source_projectiles(std::vector<NativeGrenadeProjectile>,std::span<const PresentationOwner>);
+  void adopt_source_detonations(std::uint64_t tick,std::span<const SourceProjectileDetonationTu15>);
   void update_projectiles(std::uint64_t tick,const CollisionWorld&,const Area&,
       const std::function<void(std::uint32_t)>& release,const CollisionObjectType&);
   std::span<const NativeGrenadeProjectile> projectiles()const{return projectiles_;}

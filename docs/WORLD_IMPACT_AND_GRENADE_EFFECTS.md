@@ -10,15 +10,29 @@ per 30 Hz game tick; their per-view particle draw preparation consumes no random
 values. Weather and effect creation share the application's auxiliary RNG, so
 different aspect ratios and local-view counts can change their shared history.
 
-This is partial source parity. Explosion dynamic lights, complete original
-effect admission and a matched original explosion gameplay frame remain open.
+This is partial source parity. Explosion lights now submit their authored BSP
+geometry passes. Dynamic object receivers, complete original effect admission
+and a matched original/native explosion gameplay frame remain open.
 The screenshots below are native gameplay captures, not original comparisons.
+
+The visual authority is **OG Xbox TU1.5**, never Vista. Earlier base-disc Xbox
+fixtures remain diagnostic evidence of their named routines only. They do not
+meet the current TU1.5 matched-frame acceptance gate. The unchanged TU1.5 image
+is authenticated by SHA-256
+`21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`.
+
+The [current TU1.5 impact work](TU15_IMPACT_PRESENTATION_20261013.md) fixes
+pre-selection noise/falloff, initialized default responses and admitted prop
+damage-material/vitality inputs. Its executable fixtures, current runtime
+captures, all-map admission counts and remaining full-goal work order supersede
+historical status statements below.
 
 ## Organization
 
 | Owner | Responsibility |
 | --- | --- |
-| `bullet_impact.hpp`, `Simulation::trace` | Actual closest terrain contact and retained native presentation event |
+| `bullet_impact.hpp`, `Simulation::trace`, `projectile_material_response.cpp` | Actual terrain/posed-prop contacts, original response/noise/scale consumers and retained native presentation events |
+| `PropSandbox::damage_contact` | Admitted parentless prop damage material and post-hit vitality scale B; distinct region/material selection remains open |
 | `material_effects.cpp` | Original material parent fallback and visual sweetener selection |
 | `world_effects.cpp` | Nonlooping events, locations, particle banks, clipped static surface decals and retirement |
 | `effect_part_control.cpp` | Original part flags selecting the retained effect A/B light control |
@@ -107,6 +121,7 @@ VK_LAYER_PATH="$PWD/.tools/validation/usr/share/vulkan/explicit_layer.d" \
 LD_LIBRARY_PATH="$PWD/.tools/validation/usr/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" \
 python tools/capture_world_effects.py \
   --native build-world-effects-20261010/halo2_native \
+  --gameplay-xbe /absolute/path/to/owned/TU1.5/default.xbe \
   --output analysis/multiplayer-shading/world-effects-new-captures
 ```
 
@@ -438,5 +453,6 @@ and zero raw/packed geometry-light packets. Its task-owned Xvfb server was
 terminated after the two captures.
 
 This installation completes the particle-death correction only. The full
-effects goal remains incomplete, including live grenade illumination, remaining
-contact/effect/audio owners and matched original explosion frames.
+effects goal remained incomplete at that historical delivery. Authored BSP
+grenade illumination has since been connected; model receivers, remaining
+contact/effect/audio owners and matched original explosion frames remain open.

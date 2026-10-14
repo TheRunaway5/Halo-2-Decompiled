@@ -1,10 +1,13 @@
 #include "halo2/cache.hpp"
+#include "halo2/cache_file_snapshot.hpp"
+#include "halo2/mcc_cache.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/bsp_lighting.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/original_data.hpp"
 #include "halo2/multiplayer_balance.hpp"
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <cmath>
 #include <fstream>
@@ -15,6 +18,14 @@
 
 namespace halo2 {
 namespace {
+constexpr char vista_build[] = "11081.07.04.30.0934.main";
+bool vista_cache_file(const std::filesystem::path &path) {
+    std::ifstream file(path, std::ios::binary);
+    std::array<char,332> prefix{};
+    return file.read(prefix.data(), prefix.size()) &&
+        std::equal(vista_build, vista_build + sizeof(vista_build), prefix.data() + 300);
+}
+
 std::vector<std::byte> read_file(const std::filesystem::path& path, std::uint64_t offset = 0,
                                 std::uint64_t length = 0, bool whole = true) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
@@ -82,18 +93,40 @@ std::span<const std::byte> Bytes::slice(std::size_t offset, std::size_t size) co
     return data_.subspan(offset, size);
 }
 
+std::span<const std::byte> Cache::cache_bytes() const {
+    return snapshot_ ? snapshot_->bytes() : std::span<const std::byte>(storage_);
+}
+std::span<std::byte> Cache::mutable_cache_bytes() {
+    return snapshot_ ? snapshot_->mutable_bytes() : std::span<std::byte>(storage_);
+}
+
 Cache::Cache(const std::filesystem::path& path, const std::filesystem::path& shared_directory,
              std::shared_ptr<const OriginalData> gameplay_data)
     : path_(path), shared_directory_(shared_directory.empty() ? path.parent_path() : shared_directory),
-      storage_(read_file(path)), original_data_(std::move(gameplay_data)) {
-    const Bytes data(storage_);
+      original_data_(std::move(gameplay_data)) {
+    // Vista canonicalization needs its existing resizable owned buffer.
+    if (!vista_cache_file(path)) snapshot_ = CacheFileSnapshot::try_open(path);
+    if (!snapshot_) storage_ = read_file(path);
+    const Bytes data(cache_bytes());
+    data.require(0,8);
+    if(data.u32(4)==13) {
+        storage_=decode_mcc_cache(cache_bytes());snapshot_.reset();
+        source_file_size_=storage_.size();mcc_=true;
+        if(!original_data_)original_data_=OriginalData::native_tu15();
+        initialize_mcc();return;
+    }
     data.require(0, 2048);
     if (data.u32(0) != 0x68656164 || data.u32(2044) != 0x666f6f74 || data.u32(4) != 8)
         throw FormatError("expected Halo 2 Xbox version 8 cache header and footer");
     if (data.u32(8) != data.size()) throw FormatError("cache file size does not match header");
-    source_file_size_=storage_.size();
-    if (data.string(300,32)=="11081.07.04.30.0934.main") {
+    source_file_size_=data.size();
+    if (data.string(300,32)==vista_build) {
         vista_=true;
+        if (snapshot_) {
+            const auto initial = snapshot_->bytes();
+            storage_.assign(initial.begin(), initial.end());
+            snapshot_.reset();
+        }
         initialize_vista();
         return;
     }
@@ -136,14 +169,14 @@ Cache::Cache(const std::filesystem::path& path, const std::filesystem::path& sha
             ? MultiplayerNetgamePostprocessImage::TitleUpdate15
             : MultiplayerNetgamePostprocessImage::MapPack11;
         multiplayer_netgame_writes_ = apply_multiplayer_netgame_postprocess(
-            {storage_, metadata_magic_, scenario_tag->address},
+            {mutable_cache_bytes(), metadata_magic_, scenario_tag->address},
             *original_data_->multiplayer_netgame_postprocess_constants, image).stores;
     }
     if (original_data_ && original_data_->multiplayer_balance_constants && data.u16(scnr + 0x10) == 1) {
         const auto globals_index = data.u32(index + 0x10) & 0xffff;
         if (globals_index >= count) throw FormatError("missing multiplayer balance globals tag");
         const auto result = apply_multiplayer_balance(
-            {storage_, metadata_magic_, table, count, scenario_tag->address,
+            {mutable_cache_bytes(), metadata_magic_, table, count, scenario_tag->address,
              data.u32(table + std::size_t(globals_index) * 16 + 8)},
             *original_data_->multiplayer_balance_constants,
             original_data_->image == OriginalData::Image::TitleUpdate15 ? 0x13e0 : 0);
@@ -181,19 +214,24 @@ std::vector<std::byte> Cache::raw_data(std::uint32_t pointer, std::uint32_t size
     const unsigned location = pointer >> 30;
     const std::uint32_t offset = pointer & 0x3fffffffu;
     if (location == 0) {
-        if(vista_ && (offset>source_file_size_ || size>source_file_size_-offset))
+        if(pc_geometry() && (offset>source_file_size_ || size>source_file_size_-offset))
             throw FormatError("Vista raw resource escapes original cache file");
-        const auto span = Bytes(storage_).slice(offset, size);
+        const auto span = Bytes(cache_bytes()).slice(offset, size);
         return {span.begin(), span.end()};
     }
     constexpr std::array<const char*, 4> names{"", "mainmenu.map", "shared.map", "single_player_shared.map"};
+    if(mcc_) {
+        const auto decoded=read_mcc_cache(shared_directory_/names[location]);
+        const auto span=Bytes(decoded).slice(offset,size);
+        return {span.begin(),span.end()};
+    }
     return read_file(shared_directory_ / names[location], offset, size, false);
 }
 
 BspLighting Cache::load_bsp_lighting(std::size_t index) const {
     if(index>=bsps_.size())throw FormatError("BSP index outside scenario");
     const auto& bsp=bsps_[index];
-    return load_bsp_lighting(Bytes(Bytes(storage_).slice(bsp.file_offset,bsp.size)),
+    return load_bsp_lighting(Bytes(Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size)),
                              std::int64_t(bsp.memory_address));
 }
 
@@ -201,7 +239,7 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
     if (index >= bsps_.size()) throw FormatError("BSP index outside scenario");
     const auto& bsp = bsps_[index];
     // Work in BSP-relative offsets so its pointers cannot escape its metadata allocation.
-    const Bytes metadata(Bytes(storage_).slice(bsp.file_offset, bsp.size));
+    const Bytes metadata(Bytes(cache_bytes()).slice(bsp.file_offset, bsp.size));
     const auto magic = std::int64_t(bsp.memory_address);
     constexpr std::size_t base = 16;
     const auto clusters = TagAddressSpace(metadata, magic).block(base + 156, 176);
@@ -218,7 +256,7 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
     const auto materials = TagAddressSpace(metadata, magic).block(base + 164, 32, 65536);
     result.materials.resize(materials.count + 1); // Last slot is for absent material references.
     if (textures) {
-        const Bytes cache(storage_);
+        const Bytes cache(cache_bytes());
         for (std::size_t i = 0; i < materials.count; ++i) {
             auto& material = result.materials[i];
             const auto datum = metadata.u32(materials.offset + i * 32 + 12);
@@ -282,11 +320,11 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
             coordinates[v] = {data.f32(uvs.offset + v * 8), data.f32(uvs.offset + v * 8 + 4)};
             if (!std::isfinite(coordinates[v].x) || !std::isfinite(coordinates[v].y)) throw FormatError("invalid geometry UV");
         }
-        const unsigned basis_stride=vista_?36:12,lightmap_stride=vista_?8:4,incident_stride=vista_?12:4;
+        const unsigned basis_stride=pc_geometry()?36:12,lightmap_stride=pc_geometry()?8:4,incident_stride=pc_geometry()?12:4;
         if(basis.found && basis.size!=std::size_t(vertex_count)*basis_stride) throw FormatError("invalid tangent basis stream");
         if(lightmap_uvs.found && lightmap_uvs.size!=std::size_t(vertex_count)*lightmap_stride) throw FormatError("invalid lightmap UV stream");
         if(incident.found && incident.size!=std::size_t(vertex_count)*incident_stride) throw FormatError("invalid incident light stream");
-        if(vista_) {
+        if(pc_geometry()) {
             // Unchanged Vista 0066E828 emits D3D declarations from these
             // 32-byte descriptors: FLOAT3 position, FLOAT2 UV, and three
             // FLOAT3 basis vectors in NORMAL/BINORMAL/TANGENT order.
@@ -304,7 +342,7 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
         auto make_vertex=[&](unsigned v,Vec3 color,std::uint32_t material) {
             Vertex out{vertices[v],color,coordinates[v],material};
             if(basis.found) {
-                if(vista_) {
+                if(pc_geometry()) {
                     out.normal=position(data,basis.offset+v*36);
                     out.binormal=position(data,basis.offset+v*36+12);
                     out.tangent=position(data,basis.offset+v*36+24);
@@ -315,7 +353,7 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
                 }
             }
             if(lightmap_uvs.found) {
-                if(vista_) {
+                if(pc_geometry()) {
                     out.lightmap_uv={data.f32(lightmap_uvs.offset+v*8),data.f32(lightmap_uvs.offset+v*8+4)};
                     if(!std::isfinite(out.lightmap_uv.x) || !std::isfinite(out.lightmap_uv.y))
                         throw FormatError("invalid Vista lightmap UV");
@@ -324,7 +362,7 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
                     out.lightmap_uv={normalized(data.u16(lightmap_uvs.offset+v*4)),normalized(data.u16(lightmap_uvs.offset+v*4+2))};
                 }
             }
-            if(incident.found) out.incident=vista_?position(data,incident.offset+v*12):decode_bsp_incident(data.u32(incident.offset+v*4));
+            if(incident.found) out.incident=pc_geometry()?position(data,incident.offset+v*12):decode_bsp_incident(data.u32(incident.offset+v*4));
             return out;
         };
         bool list = std::size_t(face_count) * 3 == index_count;

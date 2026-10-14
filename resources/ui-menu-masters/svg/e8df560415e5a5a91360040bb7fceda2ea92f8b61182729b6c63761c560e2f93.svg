@@ -1,0 +1,48 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3840" height="1260" viewBox="0 0 1280 420" version="1.1">
+  <title>Vista ui\screens\game_shell\bungie_news\live_display page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="grid-material-bounds">
+      <rect x="12" y="12" width="1160" height="382" />
+    </clipPath>
+    <radialGradient id="panel-blue-0" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(1134 140.0) scale(651.2 300.0)">
+      <stop offset="0" stop-opacity="1" stop-color="#4791d5" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#4791d5" />
+      <stop offset="1" stop-opacity="0" stop-color="#4791d5" />
+    </radialGradient>
+    <radialGradient id="panel-blue-1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(30 365) scale(473.6 220.00000000000003)">
+      <stop offset="0" stop-opacity="1" stop-color="#51a4f2" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#51a4f2" />
+      <stop offset="1" stop-opacity="0" stop-color="#51a4f2" />
+    </radialGradient>
+    <pattern id="panel-grid" patternUnits="userSpaceOnUse" width="26" height="26" x="0" y="0" overflow="visible">
+      <path d="M0 26 V0 H26" fill="none" stroke="white" stroke-width="2" />
+    </pattern>
+    <radialGradient id="grid-visibility" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(592.0 200.0) scale(674.88 256.0)">
+      <stop offset="0" stop-color="white" stop-opacity="1" />
+      <stop offset="0.55" stop-color="white" stop-opacity="0.95" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </radialGradient>
+    <mask id="grid-visibility-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="1184" height="400">
+      <rect width="1184" height="400" fill="url(#grid-visibility)" />
+    </mask>
+    <filter id="panel-metal-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+  </defs>
+  <g id="grid-material" clip-path="url(#grid-material-bounds)" opacity="0.6108952283224013">
+    <ellipse cx="1134" cy="140.0" rx="651.2" ry="300.0" fill="url(#panel-blue-0)" fill-opacity="0.24" />
+    <ellipse cx="30" cy="365" rx="473.6" ry="220.00000000000003" fill="url(#panel-blue-1)" fill-opacity="0.26" />
+    <rect width="1184" height="400" fill="url(#panel-grid)" opacity="0.14" mask="url(#grid-visibility-mask)" />
+  </g>
+  <g filter="url(#panel-metal-edge)" fill="#e5effb" opacity="0.682490122058391">
+    <path d="M962 12 H1097 L1100 10 H1149 L1171 32 V63 L1167 67 V34 L1147 16 H1106 L1103 14 H962 Z" opacity="0.68" />
+    <path d="M962 12 H1097 L1100 10 H1149 L1171 32 V63 L1167 67 V34 L1147 16 H1106 L1103 14 H962 Z" fill="none" stroke="white" stroke-width="0.7" opacity="0.16" />
+    <path d="M1164 126 L1170 132 V164 L1164 158 Z" opacity="0.68" />
+    <path d="M1164 126 L1170 132 V164 L1164 158 Z" fill="none" stroke="white" stroke-width="0.7" opacity="0.16" />
+    <path d="M10 266 L18 258 V284 L13 289 V358 L44 388 H180 L178 384 H49 L16 355 V294 L10 300 Z" opacity="0.68" />
+    <path d="M10 266 L18 258 V284 L13 289 V358 L44 388 H180 L178 384 H49 L16 355 V294 L10 300 Z" fill="none" stroke="white" stroke-width="0.7" opacity="0.16" />
+    <path d="M16 294 V340" fill="none" stroke="#e5effb" stroke-width="1.5" opacity="0.7" />
+  </g>
+</svg>

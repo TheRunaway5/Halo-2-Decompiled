@@ -11,8 +11,8 @@ void size(std::span<std::byte> source) {
 void word(std::span<std::byte> source,std::size_t at,std::uint32_t value,unsigned width) {
   for(unsigned i=0;i<width;++i)source[at+i]=std::byte((value>>(i*8))&0xffu);
 }
-constexpr std::array<int,23> admitted_parameters{
-  1,2,3,4,5,6,7,8,9,10,17,18,29,30,15,90,89,88,76,91,23,25,26};
+constexpr std::array<int,24> admitted_parameters{
+  1,2,3,4,5,6,7,8,9,10,17,18,29,30,15,90,89,88,76,91,23,25,26,94};
 }
 VistaPcrPcVariant vista_pcr_slayer_variant(const SourceGameVariant& source) {
   if(source_game_variant_type(source)!=2)

@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="4096" height="8" viewBox="0 0 2048 4" version="1.1">
+  <title>Vista executable\loading\5 page 0: authored menu vectors</title>
+  <desc>Unfinished hand-authored Vista loading-glint study: one sixteen-stop optical gradient and a separate flat tail. No embedded image, per-pixel paint grid, source font or external asset.</desc>
+  <defs>
+    <linearGradient id="glint-profile" gradientUnits="userSpaceOnUse" x1="560" y1="0" x2="784" y2="0">
+      <stop offset="0.0" stop-color="#000000" />
+      <stop offset="0.07142857142857142" stop-color="#010101" />
+      <stop offset="0.14285714285714285" stop-color="#090909" />
+      <stop offset="0.21428571428571427" stop-color="#1f1f1f" />
+      <stop offset="0.2857142857142857" stop-color="#535353" />
+      <stop offset="0.35714285714285715" stop-color="#a0a0a0" />
+      <stop offset="0.42857142857142855" stop-color="#e6e6e6" />
+      <stop offset="0.47767857142857145" stop-color="#ffffff" />
+      <stop offset="0.5133928571428571" stop-color="#ffffff" />
+      <stop offset="0.5714285714285714" stop-color="#e4e4e4" />
+      <stop offset="0.6428571428571429" stop-color="#9b9b9b" />
+      <stop offset="0.7142857142857143" stop-color="#505050" />
+      <stop offset="0.7857142857142857" stop-color="#1d1d1d" />
+      <stop offset="0.8571428571428571" stop-color="#060606" />
+      <stop offset="0.9285714285714286" stop-color="#000000" />
+      <stop offset="1.0" stop-color="#000000" />
+    </linearGradient>
+  </defs>
+  <rect width="2048" height="4" fill="black" />
+  <rect width="2048" height="4" fill="url(#glint-profile)" />
+  <rect x="1344" width="704" height="4" fill="#282828" />
+</svg>

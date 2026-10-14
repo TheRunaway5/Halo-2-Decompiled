@@ -27,6 +27,18 @@ def local(pack,relative):
     return result
 
 
+def svg_shapes(vector):
+    shapes=0
+    for node in ET.parse(vector).getroot().iter():
+        tag=node.tag.rsplit('}',1)[-1]
+        assert tag not in ('image','foreignObject','text','script'),'Raster/font/script substitution in SVG'
+        assert all(not name.endswith('href') for name in node.attrib),'External SVG reference'
+        assert all('data:' not in str(v) for v in node.attrib.values()),'Embedded pixel payload'
+        if tag in ('path','rect','ellipse','circle','polygon'):shapes+=1
+        if tag in ('linearGradient','radialGradient'):assert len(node)<=16,'Pixel palette disguised as gradient'
+    return shapes
+
+
 def verify(pack):
     reference=json.loads((pack/'reference.json').read_text())
     report=json.loads((pack/'reconstruction.json').read_text())
@@ -49,14 +61,7 @@ def verify(pack):
         replayed.add(key)
         vector=local(pack,record['vector']);dds=local(pack,record['dds'])
         assert file_sha(vector)==record['vector_sha256'] and file_sha(dds)==record['dds_sha256']
-        xml=ET.parse(vector).getroot()
-        for node in xml.iter():
-            tag=node.tag.rsplit('}',1)[-1]
-            assert tag not in ('image','foreignObject','text','script'),'Raster/font/script substitution in SVG'
-            assert all(not name.endswith('href') for name in node.attrib),'External SVG reference'
-            assert all('data:' not in str(v) for v in node.attrib.values()),'Embedded pixel payload'
-            if tag in ('path','rect','ellipse','circle','polygon'):shapes+=1
-            if tag in ('linearGradient','radialGradient'):assert len(node)<=16,'Pixel palette disguised as gradient'
+        shapes+=svg_shapes(vector)
         raster=render(vector,record['density'])
         with Image.open(dds) as stored:
             assert stored.size==tuple(record['physical'])==raster.size

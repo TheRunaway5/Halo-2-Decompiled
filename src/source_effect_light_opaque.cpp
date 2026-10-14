@@ -36,7 +36,6 @@ bool select(const SourcePartCommand& command,const SourceCullDrawUnit& unit,
     const auto classification=u[3]>>29;
     byte(record,5,classification<=1?1:2);
     if(classification!=0)record.words[3]=(u[3]>>9&511u)|((u[1]&65535u)<<11);
-    if(u[1]!=none)throw FormatError("source sphere opaque selection consumes dynamic model owner");
     if(!geometry)throw FormatError("source sphere opaque geometry service missing");
     const auto g=geometry(unit_index);
     const auto part=c[3]&255u;
@@ -75,6 +74,17 @@ SourceOpaqueGeometryMetadata load_source_opaque_bsp_geometry_metadata(const Cach
     const auto selectors=m.slice(0x10,2);
     return {{std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(selectors[0])),
              std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(selectors[1]))},m.u16(0x14)};
+}
+SourceOpaqueGeometryMetadata load_source_opaque_model_geometry_metadata(const Cache& cache,
+    std::uint32_t model,unsigned section) {
+    const auto owned=cache.load_source_tag_metadata(model);
+    if(owned.group()!="mode")throw FormatError("source opaque model geometry requires mode metadata");
+    const Bytes root(owned.bytes_at(owned.source_address(),0x2c));
+    if(section>=root.u32(0x24))throw FormatError("source opaque model section escapes metadata");
+    const Bytes geometry(owned.bytes_at(root.u32(0x28)+section*92,0x16));
+    const auto selectors=geometry.slice(0x10,2);
+    return {{std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(selectors[0])),
+             std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(selectors[1]))},geometry.u16(0x14)};
 }
 std::uint32_t source_opaque_vertex_class(std::uint16_t classification,std::int32_t selector,
     const std::function<std::uint32_t()>& count) {

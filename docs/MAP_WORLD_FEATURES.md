@@ -5,6 +5,17 @@ renders in live matches](SOURCE_WEATHER_LIVE_SNOW.md), including normal,
 split-screen and LAN checks. [Rain](SOURCE_WEATHER_LIVE_RAIN.md) and
 [Lockout/Warlock background layers](SOURCE_WEATHER_LIVE_PLATES.md) now have
 live consumers and repeatable pixel comparisons too.
+[The authored attachment bridge](SOURCE_MAP_EFFECT_ATTACHMENTS.md) now uses
+actual scene lifetimes and WORLD nodes. Its 21-map bank prepares 58 of 96
+attachments; Foundation's lift particles have repeatable GPU evidence.
+Both normal launchers now select the tested continuation. Lockout and
+Foundation pass ordinary one/four-view rendering; snow and Foundation's
+diagnostic effect capture have byte-identical repeats. The 21-map first-tick
+comparison has six improvements and no regressions, while eleven maps still
+fail on missing graphics, physical memory or other original owners.
+[The original decal cache export](SOURCE_DECAL_VERTEX_CACHE_TU15.md) now
+retains actual clipped geometry, but its CPU capture does not close Zanzibar's
+native graphics binding. Remaining maps and interactions still need acceptance.
 [Zanzibar's computer now has native idle button
 prompts and player-held interaction](HUD_ACTION_PROMPTS.md), using the source
 scalar control gates, authored static model bounds and current device groups.
@@ -452,3 +463,17 @@ The generated inventory and differential report are under
 `analysis/map-world-features/`. Frozen original results and independent control
 metadata are in `tests/fixtures/retail_source_control*.tsv`; ordinary device
 motion results are in `tests/fixtures/retail_source_device_motion.tsv`.
+
+## Retained event clock continuation
+
+The world effect player now uses the original retained selection/traversal/tick
+clock; 5,917 exact original comparisons and four native integration groups
+pass. See [SOURCE_WORLD_EFFECT_EVENTS.md](SOURCE_WORLD_EFFECT_EVENTS.md) for
+scope, reproduction and boundaries. Fresh normal-launcher snow captures still
+pass. The original TU1.5 scenery-lightmap lookup 10F960 reached by Zanzibar
+construction is now in the source factory with 512 exact independent original
+comparisons. The later isolated runtime stops at the shared startup's unresolved
+input/camera constructor 1888A0 before scene construction, so live Zanzibar
+acceptance of this factory change is still unproven. Full normal-launcher
+acceptance and all-map completion remain open. Earlier accepted snapshots
+remain archived; their receipts do not establish the current launcher state.

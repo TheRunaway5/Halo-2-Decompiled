@@ -138,6 +138,8 @@ std::vector<Transform> pose_model_locals_nodes_world(const RenderModel &,const T
 std::vector<Vertex> pose_scenery_model(const Cache &, const RenderModel &,
                                       float seconds = 0);
 struct FirstPersonPose {
+  // arms contains the complete character FP model, including hands/fingers;
+  // weapon is separately owned geometry and must not receive the unit shield.
   std::vector<Vertex> weapon, arms;
   // The same model-order current WORLD nodes used to skin these vertices.
   // Effects and held-object/audio markers must consume this bank instead of

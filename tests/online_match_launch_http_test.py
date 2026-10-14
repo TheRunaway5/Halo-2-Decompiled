@@ -9,8 +9,10 @@ from pathlib import Path
 import socket
 import sys
 import tempfile
+import time
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+from aiohttp import web
 from aiohttp.test_utils import TestClient, TestServer
 from multiplayer.master_server.service import Settings, create_app
 from multiplayer.master_server.protocol import Problem
@@ -81,6 +83,14 @@ async def main():
             return VerifiedOwner("discord", str(123456789012345678 + owners.index(token)), token)
         app = create_app(Settings(state=Path(temp), public_url="http://127.0.0.1:8080", allow_http=True,
                                   rate_per_minute=100000, matchmaking_catalog=str(path)), verify)
+        outage_until = 0.
+        if os.environ.get("HALO2_TEST_MASTER_OUTAGE"):
+            @web.middleware
+            async def outage(request, handler):
+                if request.path.endswith('/signal') and time.monotonic() < outage_until:
+                    return web.Response(status=503)
+                return await handler(request)
+            app.middlewares.insert(0, outage)
         host_admissions = set()
         if gatherings:
             real_advance = Room.advance
@@ -102,6 +112,24 @@ async def main():
             directory.rate = lambda key,limit=None: real_rate(key,100000 if key=="owner:127.0.0.1" else limit)
         async with TestClient(TestServer(app)) as client:
             processes = []
+            outage_task = None
+            if os.environ.get("HALO2_TEST_MASTER_OUTAGE"):
+                async def interrupt_master():
+                    nonlocal outage_until
+                    directory = next(iter(app.values()))
+                    async with asyncio.timeout(30):
+                        while not any(r.phase == 'running' for r in directory.match_transport.rooms.values()):
+                            await asyncio.sleep(.01)
+                    room = next(r for r in directory.match_transport.rooms.values() if r.phase == 'running')
+                    assert room.direct_udp
+                    await asyncio.sleep(.8)
+                    outage_until = time.monotonic() + 2.5
+                    await asyncio.gather(*(p.socket.close(code=1001, message=b'Fixture master outage') for p in tuple(room.peers.values())))
+                    async with asyncio.timeout(15):
+                        while time.monotonic() < outage_until or len(room.peers) != len(room.tokens):
+                            await asyncio.sleep(.01)
+                    assert not room.closed and room.phase == 'running'
+                outage_task = asyncio.create_task(interrupt_master())
             try:
                 seeded = []
                 if mode == "party":
@@ -116,6 +144,8 @@ async def main():
                     processes.append(await asyncio.create_subprocess_exec(binary, str(ROOT), str(client.make_url("/")).rstrip("/"),
                         owner, port(), str(output), mode, playlist, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=env))
                 results = await asyncio.wait_for(asyncio.gather(*(p.communicate() for p in processes)), 180)
+                if outage_task:
+                    await outage_task
                 for owner, process, (out, err) in zip(owners, processes, results):
                     if process.returncode not in (0,77):
                         print(f"Native fixture {owner}: exit {process.returncode}",file=sys.stderr)
@@ -163,7 +193,7 @@ async def main():
                     for party in {p for p, _ in groups}:
                         assert len({t for p, t in groups if p == party}) == 1
                     print(f"PASS {len(owners)} independent native accounts -> accepted invitations -> per-member playlist consent -> whole parties on teams -> native gameplay/voice/results/PCR -> group requeue")
-                print(f"PASS {len(owners)}-process Discord-authorized matchmaking -> measured relay -> real native match/voice -> unanimous persisted result -> cleanup")
+                print(f"PASS {len(owners)}-process Discord-authorized matchmaking -> measured preflight -> {'legacy relay' if gatherings else 'direct peer UDP'} native match/voice -> unanimous persisted result -> cleanup")
             finally:
                 for process in processes:
                     if process.returncode is None:

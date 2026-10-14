@@ -1,4 +1,5 @@
 #include "halo2/source_runtime_memory.hpp"
+#include "halo2/source_runtime_write_protection.hpp"
 #include <algorithm>
 #include <cstring>
 #include <limits>
@@ -28,6 +29,7 @@ void SourceRuntimeMemory::mount(std::uint32_t p,
   check_extent(p, initial.size());
   regions_.emplace(
       p, Region{{initial.begin(), initial.end()}, access, std::move(owner)});
+  try{index_native_region(p);}catch(...){regions_.erase(p);throw;}
 }
 void SourceRuntimeMemory::check_extent(std::uint32_t p, std::size_t bytes) const {
   const auto limit = end(p, bytes);
@@ -49,6 +51,7 @@ void SourceRuntimeMemory::reserve(std::uint32_t p, std::size_t bytes,
   regions_.emplace(p, Region{std::vector<std::byte>(bytes), Access::ReadWrite,
                              std::move(owner), page_bytes,
                              std::vector<bool>(bytes / page_bytes, false)});
+  try{index_native_region(p);}catch(...){regions_.erase(p);throw;}
 }
 void SourceRuntimeMemory::commit(std::uint32_t p,
                                  std::span<const std::byte> initial) {
@@ -71,8 +74,11 @@ void SourceRuntimeMemory::commit(std::uint32_t p,
   }
 }
 void SourceRuntimeMemory::release(std::uint32_t p) {
-  if (!regions_.erase(p))
+  const auto found=regions_.find(p);
+  if(found==regions_.end())
     throw std::out_of_range("Original runtime release has no region owner");
+  native_regions_.erase(reinterpret_cast<std::uintptr_t>(found->second.bytes.data()));
+  regions_.erase(found);
 }
 void SourceRuntimeMemory::visit_committed(const std::function<void(std::uint32_t,
     std::span<const std::byte>)>&visit) const {
@@ -86,6 +92,45 @@ void SourceRuntimeMemory::visit_committed(const std::function<void(std::uint32_t
       visit(address+std::uint32_t(offset),std::span(region.bytes).subspan(offset,bytes));
     }
   }
+}
+SourceRuntimeMemory::Checkpoint SourceRuntimeMemory::checkpoint() const {
+  Checkpoint result;
+  result.regions.reserve(regions_.size());
+  for(const auto &[address,region]:regions_) {
+    CheckpointRegion copy{address,region.access,region.owner,region.page_bytes,region.bytes,{}};
+    copy.committed.reserve(region.committed.size());
+    for(bool page:region.committed)copy.committed.push_back(page?1:0);
+    result.regions.push_back(std::move(copy));
+  }
+  return result;
+}
+void SourceRuntimeMemory::restore(const Checkpoint &saved) {
+  if(saved.version!=1)throw std::invalid_argument("Unsupported source memory checkpoint version");
+  SourceRuntimeMemory replacement;
+  std::uint64_t previous_end{};
+  for(const auto &region:saved.regions) {
+    if(region.bytes.empty() || region.owner.empty() || region.address<previous_end ||
+        (region.access!=Access::ReadOnly && region.access!=Access::ReadWrite))
+      throw std::invalid_argument("Invalid source memory checkpoint region");
+    previous_end=end(region.address,region.bytes.size());
+    if(!region.page_bytes) {
+      if(!region.committed.empty())
+        throw std::invalid_argument("Mounted checkpoint region has reservation pages");
+      replacement.mount(region.address,region.bytes,region.access,region.owner);
+    } else {
+      if(region.access!=Access::ReadWrite ||
+          region.committed.size()!=region.bytes.size()/region.page_bytes ||
+          std::any_of(region.committed.begin(),region.committed.end(),[](auto page){return page>1;}))
+        throw std::invalid_argument("Invalid source memory checkpoint commitment map");
+      replacement.reserve(region.address,region.bytes.size(),region.page_bytes,region.owner);
+      auto &backing=replacement.regions_.at(region.address);
+      backing.bytes=region.bytes;
+      for(std::size_t page=0;page<region.committed.size();++page)
+        backing.committed[page]=region.committed[page]!=0;
+    }
+  }
+  replacement.rebuild_native_index();
+  regions_.swap(replacement.regions_);native_regions_.swap(replacement.native_regions_);
 }
 SourceRuntimeMemory::Position
 SourceRuntimeMemory::locate(std::uint32_t p) const {
@@ -118,6 +163,7 @@ void SourceRuntimeMemory::validate(std::uint32_t p, std::size_t n,
     }
     current = region_end;
   }
+  if(writable)source_runtime_validate_write(*this,p,n);
 }
 void SourceRuntimeMemory::read(std::uint32_t p,
                                std::span<std::byte> output) const {
@@ -171,7 +217,52 @@ std::span<std::byte> SourceRuntimeMemory::mutable_view(std::uint32_t p,
     throw std::runtime_error(
         "Original runtime mutable view of read-only owner " +
         found->second.owner);
+  source_runtime_validate_write(*this,p,n);
   return std::span(regions_.at(found->first).bytes)
       .subspan(p - found->first, bytes.size());
 }
+void SourceRuntimeMemory::index_native_region(std::uint32_t source) {
+  static_assert(sizeof(std::uintptr_t)==8,"Live runtime memory requires a 64-bit host");
+  const auto address=reinterpret_cast<std::uintptr_t>(regions_.at(source).bytes.data());
+  if(!native_regions_.emplace(address,source).second)
+    throw std::logic_error("Native runtime allocations alias their backing");
+}
+void SourceRuntimeMemory::rebuild_native_index() {
+  native_regions_.clear();for(const auto&[source,region]:regions_){(void)region;index_native_region(source);}
+}
+NativeRuntimeAddress SourceRuntimeMemory::native_address(std::uint32_t source,std::size_t bytes)const {
+  return NativeRuntimeAddress{reinterpret_cast<std::uintptr_t>(view(source,bytes).data())};
+}
+std::uint32_t SourceRuntimeMemory::source_address(NativeRuntimeAddress address,std::size_t bytes)const {
+  (void)(address+bytes);
+  auto found=native_regions_.upper_bound(address.value);
+  if(found==native_regions_.begin())throw std::out_of_range("Native runtime address has no owner");
+  --found;const auto& region=regions_.at(found->second);
+  const auto offset=address.value-found->first;
+  if(offset>=region.bytes.size() || bytes>region.bytes.size()-offset ||
+      offset>std::numeric_limits<std::uint32_t>::max()-found->second)
+    throw std::out_of_range("Native runtime address escapes its owner");
+  const auto source=found->second+std::uint32_t(offset);
+  // This also enforces commitment policy and source extent limits. Mutable
+  // access checks the region's write policy separately.
+  const auto original=view(source,bytes);
+  if(reinterpret_cast<std::uintptr_t>(original.data())!=address.value)
+    throw std::logic_error("Native runtime address mapping differs from its backing");
+  return source;
+}
+std::span<const std::byte> SourceRuntimeMemory::view(NativeRuntimeAddress address,std::size_t bytes)const {
+  return view(source_address(address,bytes),bytes);
+}
+std::span<std::byte> SourceRuntimeMemory::mutable_view(NativeRuntimeAddress address,std::size_t bytes) {
+  return mutable_view(source_address(address,bytes),bytes);
+}
+void SourceRuntimeMemory::read(NativeRuntimeAddress address,std::span<std::byte> output)const {
+  const auto input=view(address,output.size());
+  if(!output.empty())std::memmove(output.data(),input.data(),output.size());
+}
+void SourceRuntimeMemory::write(NativeRuntimeAddress address,std::span<const std::byte> input) {
+  const auto output=mutable_view(address,input.size());
+  if(!input.empty())std::memmove(output.data(),input.data(),input.size());
+}
 } // namespace halo2
+#include "source_runtime_write_protection.inc"

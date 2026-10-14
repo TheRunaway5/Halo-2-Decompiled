@@ -11,7 +11,24 @@ namespace halo2 {
 //40 carries the original round selector used by the limit-one HUD query.
 //43 admits the original ally-trade, seat and vehicle-flip prompt kinds.
 //45 carries completed source WORLD body poses and their retained spheres.
-inline constexpr unsigned native_multiplayer_protocol = 51;
+//52 retains detached corpse appearance/poses and widens complete snapshot fragments.
+//53 carries the collision owner's chosen projectile response and effect scales.
+//54 carries each local dead player's completed authoritative observer view.
+//55 requires completed vehicle WORLD hierarchies alongside player/corpse poses.
+//56 retains the actual parent seat for source vehicle occupants.
+//57 carries each vehicle's ultimate-root origin, original physics velocity,
+// runtime query flags and frozen-lighting state for independent client views.
+//58 retains authoritative melee contact presentation separately from bullets.
+//59 carries the actual completed TU1.5 seated observer for remote local views.
+//60 retains the independent raw heat word for primary, secondary and world weapons.
+//61 retains automatic-door flags and signed autoclose timers with device state.
+//62 carries the completed source explosion location names and world frames.
+//63 retains completed live prop model-region choices and looping handles.
+//64 carries each vehicle model owner's geometry LOD flags, independent of lighting roots.
+//65 retains both original explosion effect colors alongside its location bank.
+//66 carries complete source scene roots and their adopted WORLD banks.
+//67 retains completed original attached unit-effect lighting colors.
+inline constexpr unsigned native_multiplayer_protocol = 67;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {
@@ -24,5 +41,11 @@ struct OnlineAdmission {
   unsigned slot{}; std::string name; int team{};
   // Private, random per-room native presentation key, not a Discord ID/XUID.
   std::array<std::byte,8> identity{};
+  // Connection endpoint owning this player; legacy solo descriptors use slot.
+  unsigned peer = ~0u;
+  bool guest{};
 };
+inline unsigned online_admission_peer(const OnlineAdmission &player) {
+  return player.peer == ~0u ? player.slot : player.peer;
+}
 } // namespace halo2

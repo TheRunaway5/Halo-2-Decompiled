@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="304" height="304" viewBox="0 0 38 38" version="1.1">
+  <title>Vista ui\list_skins\y_menu_list\top_item page 1: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="category-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.24" />
+    </filter>
+  </defs>
+  <rect width="38" height="38" fill="#4197d6" />
+  <g fill="white" filter="url(#category-edge-softness)">
+    <circle cx="19.5" cy="19.5" r="15" fill="none" stroke="white" stroke-width="1.7" />
+    <path id="category-shield" d="M10.8 11.5 L12.7 9.25 C14.5 10.6 16.7 10.6 19 9.35 C21.3 10.6 23.5 10.6 25.3 9.25 L28.3 11.45 C26.65 13.2 26.05 14.35 26.4 16 C26.55 17.1 27.4 18.4 28 19.95 C29.05 22.6 28.15 24.6 26.15 26.15 C24.5 27.65 21.3 29.75 19.35 30.5 C17.4 29.2 14.65 27.7 12.65 25.75 C10.35 23.8 10.3 22.1 11.25 19.6 C12.3 17.15 13.15 15.65 12.3 13.65 Z M19 12 H25.4 C24 13.5 23.7 15.1 24.3 16.6 L25.2 19 H19 Z M12.9 19 H19 V27.85 C16.8 26.7 14.65 25.4 13.3 23.9 Q11.75 22.4 12.9 19 Z" fill-rule="evenodd" />
+  </g>
+</svg>

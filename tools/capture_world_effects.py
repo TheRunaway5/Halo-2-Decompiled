@@ -27,12 +27,18 @@ def sha(path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--native', type=Path, required=True)
+    parser.add_argument('--gameplay-xbe', type=Path, required=True,
+                        help='Owned unchanged OG Xbox TU1.5 executable; authenticated before capture')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--case', choices=['impact', 'frag', 'plasma', 'all'], default='all')
     parser.add_argument('--require-light-packets', action='store_true',
                         help='Fail if an admitted light with BSP receivers has no geometry packet; this is not a final-pixel parity check')
     args = parser.parse_args()
     native = args.native.resolve()
+    gameplay_xbe = args.gameplay_xbe.resolve()
+    gameplay_sha = sha(gameplay_xbe)
+    if gameplay_sha != '21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd':
+        raise RuntimeError('World-effect visual captures require the authenticated OG Xbox TU1.5 executable')
     environment = os.environ.copy()
     validation = ROOT / '.tools/validation/usr'
     layer = validation / 'share/vulkan/explicit_layer.d/VkLayer_khronos_validation.json'
@@ -48,6 +54,8 @@ def main():
     shutil.copy2(native, frozen / native.name)
     shutil.copytree(native.parent / 'shaders', frozen / 'shaders')
     manifest = dict(binary_sha256=sha(native), source_frame_comparison=False,
+                    visual_reference='OG Xbox TU1.5', gameplay_xbe=str(gameplay_xbe),
+                    gameplay_xbe_sha256=gameplay_sha,
                     require_light_packets=args.require_light_packets,
                     controlled_auxiliary_seed=0x12345678, controlled_tick_cadence=True,
                     scope=__doc__, captures=[], simulation_counts_equal={})
@@ -74,7 +82,7 @@ def main():
                 command = [str(frozen / native.name), '--multiplayer', '--map',
                            str(ROOT / f'assets/disc/maps/{map_name}.map'),
                            '--shared-maps', str(ROOT / 'assets/disc/maps'),
-                           '--gameplay-xbe', str(ROOT / 'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03'),
+                           '--gameplay-xbe', str(gameplay_xbe),
                            '--mp-starting-weapon', '5', '--local-players', str(views),
                            '--viewport', str(width), str(height), '--hidden', '--mute',
                            '--validation', '--mp-input-script', str(frozen / inputs),

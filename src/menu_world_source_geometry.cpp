@@ -22,7 +22,9 @@ struct Metadata {
   }
 };
 std::array<float,12> compression(const Bytes &m,std::optional<std::size_t> bounds,unsigned flags) {
-  if(flags&~3u)throw FormatError("unsupported source geometry compression flags");
+  // TU1.5 1CDB0 tests only the low position/UV bits. Authored character
+  // sections also carry bit2; rejecting that unrelated bit hid valid meshes.
+  flags&=3u;
   std::array<float,12> out{1,1,1,1,0,0,0,0,1,1,0,0};
   if(!flags || !bounds)return out; // Original1CDD0 null bounds leaves identity.
   std::array<float,10> b{};for(unsigned i=0;i<b.size();++i) {
@@ -54,7 +56,7 @@ SourceTagMetadata Cache::load_source_bsp_metadata(std::size_t index) const {
   const auto &bsp=bsps_[index];
   if(bsp.size<16 || !bsp.memory_address || bsp.datum==0xffffffffu)
     throw FormatError("source BSP metadata mapping unavailable");
-  return {bsp.datum,"sbsp",bsp.memory_address,Bytes(storage_).slice(bsp.file_offset,bsp.size)};
+  return {bsp.datum,"sbsp",bsp.memory_address,Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size)};
 }
 
 class MenuWorldSourceSectionBuilder {
@@ -66,8 +68,8 @@ public:
     const Bytes &meta=m.bytes;const Bytes b(raw);MenuWorldSourceSection out;
     out.kind_=kind;out.owner_datum_=m.owned.datum();out.section_=ordinal;
     out.vertex_count_=meta.u16(at+(model?4:0));if(model)out.model_geometry_class_=meta.u16(at);
-    if(!out.vertex_count_ || (model && out.model_geometry_class_!=1))
-      throw FormatError("source world geometry requires nonempty BSP or rigid class1 section");
+    if(!out.vertex_count_ || (model && (*out.model_geometry_class_<1 || *out.model_geometry_class_>3)))
+      throw FormatError("source world geometry requires nonempty BSP or model class1..3 section");
     out.compression_flags_=model?meta.u16(at+0x1a):0;
     out.compression_rows_=compression(meta,bounds,out.compression_flags_);
     std::size_t base{};
@@ -75,6 +77,12 @@ public:
       const auto header=meta.u32(at+0x44);
       if(std::uint64_t(header)+4>raw.size())throw FormatError("invalid source model resource base");
       base=raw.size()-header-4;
+      if(base<8)throw FormatError("source model resident geometry header is truncated");
+      // raw_header() is the independently proved BSP-header interface.
+      // Model indexed ranges use their separate original model-range loader;
+      // retaining model bytes here would falsely assign that BSP contract.
+      const auto retained=b.slice(8,base-8);
+      out.model_raw_header_.assign(retained.begin(),retained.end());
     } else {
       base=std::size_t(meta.u32(at+48))+8;
       const auto header=b.slice(8,base-8);
@@ -126,8 +134,28 @@ public:
       const auto binding=[&](SourceVertexSemantic semantic,MenuWorldSourceFormat format,unsigned offset) {
         out.streams_.push_back({semantic,format,r,offset,stride,d});
       };
-      if(d==0 && type==1 && stride==12)binding(SourceVertexSemantic::Position,MenuWorldSourceFormat::float32x3,0);
-      else if(d==0 && type==2 && stride==6)binding(SourceVertexSemantic::Position,MenuWorldSourceFormat::snorm16x3,0);
+      if(d==0 && type>=1 && type<=10) {
+        // Whole TU1.5 1C310 and its unchanged4494C8 stream table establish
+        // these byte offsets and UB_OGL counts. Preserve alignment gaps and
+        // stored weights; no CPU bone remap, weight completion or repacking.
+        constexpr std::array<unsigned,10> strides{12,6,16,8,16,12,20,12,20,16};
+        constexpr std::array<unsigned,10> indices{0,0,12,6,12,8,12,6,12,8};
+        constexpr std::array<unsigned,10> weights{0,0,0,0,14,10,16,9,16,12};
+        constexpr std::array<MenuWorldSourceFormat,4> bytes{
+            MenuWorldSourceFormat::unorm8x1,MenuWorldSourceFormat::unorm8x2,
+            MenuWorldSourceFormat::unorm8x3,MenuWorldSourceFormat::unorm8x4};
+        if(stride!=strides[type-1] || (!model && type>2) ||
+            (model && ((*out.model_geometry_class_==1 && type>2) ||
+                       (*out.model_geometry_class_==2 && (type<3 || type>4)) ||
+                       (*out.model_geometry_class_==3 && type<3))))
+          throw FormatError("source position descriptor differs from authored model class/stride");
+        binding(SourceVertexSemantic::Position,(type&1)?MenuWorldSourceFormat::float32x3:MenuWorldSourceFormat::snorm16x3,0);
+        if(type>=3) {
+          const unsigned influences=(type-1)/2;
+          binding(SourceVertexSemantic::BlendIndices,bytes[influences-1],indices[type-1]);
+          if(influences>1)binding(SourceVertexSemantic::BlendWeights,bytes[influences-1],weights[type-1]);
+        }
+      }
       else if(d==1 && type==24 && stride==8)binding(SourceVertexSemantic::UV,MenuWorldSourceFormat::float32x2,0);
       else if(d==1 && type==25 && stride==4)binding(SourceVertexSemantic::UV,MenuWorldSourceFormat::snorm16x2,0);
       else if(d==2 && type==27 && stride==12) {
@@ -161,7 +189,7 @@ public:
     if(model) {
       const auto nodes=b.u16(0x6c);
       if(nodes && (node_resource==~0u || out.resources_[node_resource].bytes.size()!=nodes))
-        throw FormatError("source rigid node-map extent differs from raw header");
+        throw FormatError("source model node-map extent differs from raw header");
       if(nodes)for(auto value:out.resources_[node_resource].bytes)out.node_map_.push_back(std::to_integer<std::uint8_t>(value));
     }
     return out;

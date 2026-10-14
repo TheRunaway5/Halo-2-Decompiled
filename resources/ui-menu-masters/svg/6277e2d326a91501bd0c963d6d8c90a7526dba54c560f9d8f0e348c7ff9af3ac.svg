@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2088" height="152" viewBox="0 0 522 38" version="1.1">
+  <title>Vista ui\list_skins\profile_picker\item_background page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="row-shape">
+      <path d="M0 0 H522 V38 H0 Z" />
+    </clipPath>
+    <pattern id="horizontal-engraving" patternUnits="userSpaceOnUse" width="1" height="8" x="0" y="2">
+      <rect width="1" height="4.0" fill="#c5e3fe" fill-opacity="0.20392156862745098" />
+      <rect y="4.0" width="1" height="4.0" fill="#c5e3fe" fill-opacity="0.1411764705882353" />
+    </pattern>
+  </defs>
+  <g id="row-material" clip-path="url(#row-shape)">
+    <rect x="-2" y="2" width="526" height="46" fill="url(#horizontal-engraving)" />
+    <rect width="522" height="2" fill="#c5e3fe" fill-opacity="0.20392156862745098" />
+  </g>
+</svg>

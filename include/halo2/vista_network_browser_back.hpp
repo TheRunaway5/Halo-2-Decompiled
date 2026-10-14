@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/vista_profile_catalog.hpp"
 #include <array>
 #include <cstdint>
 #include <functional>
@@ -45,12 +46,7 @@ void vista_network_browser_mainmenu_return_single(VistaBrowserMainmenuReturnStat
 //63F6B7 title9 factory. Zero users has a separate platform-sign-in branch.
 void vista_network_browser_mainmenu_return_local(VistaBrowserMainmenuReturnState&,
     const VistaBrowserMainmenuReturnServices&);
-struct VistaBrowserProfileRefreshServices {
-  std::function<void()> refresh_catalog; //446867.
-  std::function<std::uint32_t(std::uint32_t)> remap_index; //442A5D.
-  std::function<std::uint32_t()> controller_mask; //60758D, only missing profile.
-  std::function<void(const std::array<std::uint32_t,6>&)> missing_profile_dialog; //60E1D8.
-};
+using VistaBrowserProfileRefreshServices = VistaProfileRefreshServices;
 // Complete608690, retaining its real four-controller storage and882427 byte.
 // Catalog refresh/remapping remain the actual profile provider's services.
 void vista_network_browser_refresh_profiles(std::span<std::byte> controllers,

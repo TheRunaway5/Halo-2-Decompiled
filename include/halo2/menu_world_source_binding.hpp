@@ -3,11 +3,13 @@
 #include "halo2/vertex_program.hpp"
 
 namespace halo2 {
-enum class MenuWorldSourceOwnerKind { bsp_cluster, bsp_instance, scenery_placement };
+enum class MenuWorldSourceOwnerKind { bsp_cluster, bsp_instance, scenery_placement, dynamic_object };
 struct MenuWorldSourceOwner {
   MenuWorldSourceOwnerKind kind{};
   // BSP datum for a cluster/instance. For scenery, scenario datum and ordinal
   // in its authored scenery block (+0x50), never another placement family.
+  // Dynamic objects supply their actual mode datum, low16 object slot and
+  // mandatory full salted object identity in generation.
   std::uint32_t scope_datum=0xffffffffu, ordinal=0xffffffffu;
   // Supplied live identity only. Absence does not manufacture a generation.
   std::optional<std::uint32_t> generation;
@@ -19,7 +21,7 @@ struct MenuWorldSourceInput {
   MenuWorldSourceStream stream;
   bool consumed{};
 };
-// Isolated raw class0/class1 upload description. It owns the draw/palette, program,
+// Raw class0..6 upload description. It owns the draw/palette, program,
 // declaration and merged constant bank, sharing only immutable section bytes.
 // No selector, CPU vertex decoding, graphics operation or clip policy runs.
 class MenuWorldSourceBinding {
@@ -57,12 +59,14 @@ private:
 // The caller supplies actual owner identity, selected vrtx datum and c[192].
 // Only c50..(50+3*palette_count-1) and c170..172 are replaced from the draw.
 // Other constants retain their supplied bits, including NaNs and signed zero.
-// Unsupported raw declarations/resources and relative addressing are errors.
+// Model relative addressing retains the original c50..169 palette dependency.
+// Unsupported raw declarations/resources and other relative reads are errors.
 MenuWorldSourceBinding menu_world_source_binding(const Cache &,MenuWorldSourceOwner,
     MenuWorldSourceDraw,std::uint32_t actual_vertex_shader,const MenuWorldSourceConstants &);
 // Explicit original1CB20 result. Class0 is admitted for BSP clusters with no
 // object palette; c50 remains the caller's retained bank. Class1 preserves the
-// existing actual c50-palette contract. Consumed unsupported semantics fail.
+// existing actual c50-palette contract. Classes2..6 require their actual
+// rigid-boned/skinned model owner and current palette. Unsupported reads fail.
 MenuWorldSourceBinding menu_world_source_binding_class(const Cache &,MenuWorldSourceOwner,
     MenuWorldSourceDraw,std::uint32_t actual_vertex_shader,unsigned actual_vertex_class,
     const MenuWorldSourceConstants &);

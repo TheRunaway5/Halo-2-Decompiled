@@ -5,6 +5,7 @@
 #include "halo2/multiplayer_scoreboard.hpp"
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/navigation.hpp"
+#include "helpers/gameplay_driver_navigation.hpp"
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -88,8 +89,9 @@ int main(int argc, char** argv) try {
     options.variant.values.set(89, 5);
     options.prepared_world = std::make_shared<MultiplayerPreparedWorld>(options);
     const auto& world = *options.prepared_world;
-    const NavigationWorld navigation(world.content.navigation);
-    const CollisionWorld collision(world.content.collision);
+    const test::GameplayDriverNavigation navigation(world.content, world.match.simulation().collision());
+    std::cout << "Controller fallback walking nodes=" << navigation.fallback_nodes() << std::endl;
+    const unsigned jump_period = navigation.fallback_nodes() ? 30 : 120;
     std::optional<unsigned> local_slot;
     if (!client) {
         check(world.local_slots.size() == 1, "Host local identity absent");
@@ -110,6 +112,7 @@ int main(int argc, char** argv) try {
     };
     MultiplayerState current;
     std::vector<Vec3> route;
+    std::optional<unsigned> route_step;
     std::array<std::uint32_t, 2> initial_units{null_datum, null_datum};
     std::array<bool, 2> died{}, respawned{};
     unsigned frames{}, audio{}, particles{}, boards{}, fired{}, moved{}, fire_inputs{}, finished_steps{};
@@ -154,19 +157,26 @@ int main(int argc, char** argv) try {
         if (!position_seen) { first_position = p.position; position_seen = true; }
         moved += length(p.position - first_position) > 1.f;
         const auto& opponent = state.players[1-*local_slot];
-        if (p.dead || state.finished || !opponent.connected || opponent.dead) { pad.stop(); return; }
+        if (p.dead || state.finished || !opponent.connected || opponent.dead) {
+            pad.stop();if(p.dead){route.clear();route_step.reset();}return;
+        }
         const auto& definition = multiplayer_biped(world.content, multiplayer_representation(p.source_configuration));
         const auto& other = multiplayer_biped(world.content, multiplayer_representation(opponent.source_configuration));
         const auto origin = p.position + Vec3{0,0,definition.camera_height};
-        const auto delta = opponent.position + Vec3{0,0,other.height*.55f} - origin;
+        const auto exposed=test::visible_driver_target(world.match.simulation().collision(),origin,
+            opponent.position,other.height);
+        const auto delta = exposed.value_or(opponent.position + Vec3{0,0,other.height*.55f}) - origin;
         const auto distance = length(delta);
-        const auto wall = collision.raycast(origin, normalized(delta), distance);
+        const auto wall = world.match.simulation().collision().raycast(origin, normalized(delta), distance);
         const bool visible = !wall || wall->distance >= distance-.15f;
-        if (step%30 == 0 || route.empty()) route = navigation.route(p.position, opponent.position);
+        if (!route_step || step >= *route_step + 30) {
+            route = navigation.route(p.position, opponent.position);route_step = step;
+        }
         while (!route.empty() && length(route.front()-p.position) < .6f) route.erase(route.begin());
         auto toward = (visible || route.empty() ? opponent.position : route.front()) - p.position;
         bool walk = !visible || distance > 4.f;
-        if (!walk || length(p.position-progress_position) > .1f) {
+        if (!walk || std::hypot(p.position.x-progress_position.x,
+                               p.position.y-progress_position.y) > .1f) {
             stagnant = 0; progress_position = p.position;
         } else if (++stagnant > 60) { avoid_until = step+60; stagnant = 0; }
         if (step < avoid_until) { toward = {-toward.y,toward.x,0}; walk = true; }
@@ -182,7 +192,7 @@ int main(int argc, char** argv) try {
             (toward.x*std::sin(p.yaw)-toward.y*std::cos(p.yaw))/planar : 0);
         pad.axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, visible && distance<45.f ? 1.f : -1.f);
         pad.button(SDL_CONTROLLER_BUTTON_X, p.loaded == 0 && step%90 < 3);
-        pad.button(SDL_CONTROLLER_BUTTON_A, walk && step%120 < 2);
+        pad.button(SDL_CONTROLLER_BUTTON_A, walk && step%jump_period < 2);
         if (state.tick%300 == 0) std::cout << argv[4] << " tick=" << state.tick
             << " local_slot=" << *local_slot << " score=" << state.players[0].score
             << ',' << state.players[1].score << std::endl;

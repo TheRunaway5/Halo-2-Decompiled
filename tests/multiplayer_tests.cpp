@@ -426,7 +426,9 @@ void network_snapshot_fragments() {
   // publication, not original gameplay behavior or Xbox protocol parity.
   auto content=arena();auto spawn=starts();auto selected=rules();
   MultiplayerMatch match(content,0,spawn,selected);
-  for(unsigned i=0;i<15;++i)match.join("Roster "+std::to_string(i)+std::string(80,'x'));
+  // Explicit transport stress names make this complete snapshot exceed the
+  // previous65535-byte total without fabricating a solved source pose bank.
+  for(unsigned i=0;i<15;++i)match.join("Roster "+std::to_string(i)+std::string(5000,'x'));
   LanHost host(match,0,456);
   struct SocketGuard {int fd;~SocketGuard(){close(fd);}} proxy{::socket(AF_INET,SOCK_DGRAM,0)};
   check(proxy.fd>=0,"Create actual UDP proxy");

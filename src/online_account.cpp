@@ -183,10 +183,14 @@ void parse_party(const Json &root, OnlineAccountSnapshot &s) {
     const auto &members=p.at("members");require(members.is_array() && !members.empty() && members.size()<=16);
     unsigned selves{},leaders{};ids.clear();
     for(const auto &r:members) {
-      require(r.is_object() && r.size()==6);
+      require(r.is_object() && (r.size()==6 || (r.size()==7 && r.contains("local_players"))));
       OnlinePartyMember member{text(r,"handle",36),text(r,"name"),text(r,"ready_playlist",64,true),
                                boolean(r,"self"),boolean(r,"leader"),boolean(r,"online")};
       require(ids.insert(member.handle).second);
+      if(r.contains("local_players")) {
+        const auto &locals=r.at("local_players");require(locals.is_array() && locals.size()<=3);
+        for(const auto &local:locals){require(local.is_object() && local.size()==2);member.local_players.push_back({text(local,"name"),boolean(local,"guest")});}
+      }
       if(member.self){++selves;require(member.leader==party.leader);}
       leaders+=member.leader;party.members.push_back(std::move(member));
     }
@@ -381,7 +385,7 @@ struct OnlineAccount::Impl {
         } else social(call("GET","/v1/clans?presence=1",{},session),next);
         if(cmd && path=="/v1/party/commands")social(call("GET","/v1/clans?presence=1",{},session),next);
         if(options.enable_parties && (!cmd || path!="/v1/party/commands")) {
-          try {parse_party(call("GET","/v1/party",{},session),next);next.party_message.clear();}
+          try {parse_party(call("GET","/v1/party?local_players=1",{},session),next);next.party_message.clear();}
           catch(const HttpError &e){if(session.empty())throw;next.party_message=e.what();}
         }
         if(link &&

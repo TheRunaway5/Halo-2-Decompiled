@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="184" height="800" viewBox="0 0 23 100" version="1.1">
+  <title>Vista ui\list_skins\game_browser\end_caps page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="list-cap-light" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.4" />
+    </filter>
+  </defs>
+  <path d="M12.5 9 L15 7 V38 L12 35 V25 L7 30 V17 L12 22 Z M9 21 V26 L12 23.5 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="2" filter="url(#list-cap-light)" />
+  <path d="M12.5 9 L15 7 V38 L12 35 V25 L7 30 V17 L12 22 Z M9 21 V26 L12 23.5 Z" fill="white" fill-rule="evenodd" />
+</svg>

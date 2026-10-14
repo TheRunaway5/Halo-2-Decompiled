@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="524" height="124" viewBox="0 0 131 31" version="1.1">
+  <title>Vista ui\screens\game_shell\xbox_live\voice_mail_record\done page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="control-inset">
+      <path d="M15 4 H120 V23 L117 26 H11 V8 Z" />
+    </clipPath>
+    <pattern id="control-engraving" patternUnits="userSpaceOnUse" width="1" height="4" x="0" y="0">
+      <rect width="1" height="2.0" fill="#c9dbf9" fill-opacity="0.10980392156862745" />
+      <rect y="2.0" width="1" height="2.0" fill="#c9dbf9" fill-opacity="0.07450980392156863" />
+    </pattern>
+  </defs>
+  <g id="voice-control">
+    <path d="M15 4 H120 V23 L117 26 H11 V8 Z" fill="url(#control-engraving)" />
+    <path d="M12 3 H121 L124 6 V11 L121 14.5 L124 18 V24 L121 27 H12 L7 22 V18 L10 14.5 L7 11 V7 Z M15 4 H120 V23 L117 26 H11 V8 Z" fill="#adc3d8" fill-rule="evenodd" />
+  </g>
+</svg>

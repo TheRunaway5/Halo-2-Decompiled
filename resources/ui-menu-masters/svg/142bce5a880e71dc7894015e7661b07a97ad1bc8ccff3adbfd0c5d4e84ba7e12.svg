@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="952" height="248" viewBox="0 0 238 62" version="1.1">
+  <title>Vista ui\list_skins\main_menu\list_bkd_multiply_left page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="ripple-height" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="62">
+      <stop offset="0.0" stop-color="white" stop-opacity="0" />
+      <stop offset="0.06451612903225806" stop-color="white" stop-opacity="0" />
+      <stop offset="0.1935483870967742" stop-color="white" stop-opacity="0.3" />
+      <stop offset="0.3709677419354839" stop-color="white" stop-opacity="0.8" />
+      <stop offset="0.5" stop-color="white" stop-opacity="1" />
+      <stop offset="0.6935483870967742" stop-color="white" stop-opacity="0.8" />
+      <stop offset="0.8709677419354839" stop-color="white" stop-opacity="0.25" />
+      <stop offset="0.9516129032258065" stop-color="white" stop-opacity="0" />
+      <stop offset="1.0" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="ripple-length" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="238" y2="0">
+      <stop offset="0" stop-color="#f4faff" stop-opacity="0.08" />
+      <stop offset="0.25" stop-color="#f4faff" stop-opacity="0.05" />
+      <stop offset="0.5" stop-color="#f4faff" stop-opacity="0.045" />
+      <stop offset="0.75" stop-color="#f4faff" stop-opacity="0.025" />
+      <stop offset="0.89" stop-color="#f4faff" stop-opacity="0" />
+      <stop offset="1" stop-color="#f4faff" stop-opacity="0" />
+    </linearGradient>
+    <mask id="wave-envelope" maskUnits="userSpaceOnUse" x="0" y="0" width="238" height="62">
+      <rect width="238" height="62" fill="url(#ripple-height)" />
+    </mask>
+    <filter id="ripple-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2" />
+    </filter>
+  </defs>
+  <g mask="url(#wave-envelope)">
+    <g transform="translate(238 0) scale(-1 1)">
+      <rect width="238" height="62" fill="url(#ripple-length)" />
+      <g fill="#f4faff" filter="url(#ripple-softness)">
+        <path d="M-20 7 C50 13 50 48 -20 55 C30 43 30 19 -20 7 Z" opacity="0.018" />
+        <path d="M9 7 C79 13 79 48 9 55 C59 43 59 19 9 7 Z" opacity="0.035" />
+        <path d="M45 7 C115 13 115 48 45 55 C95 43 95 19 45 7 Z" opacity="0.035" />
+        <path d="M87 7 C157 13 157 48 87 55 C137 43 137 19 87 7 Z" opacity="0.03" />
+        <path d="M128 7 C198 13 198 48 128 55 C178 43 178 19 128 7 Z" opacity="0.02" />
+      </g>
+    </g>
+  </g>
+</svg>

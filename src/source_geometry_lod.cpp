@@ -15,7 +15,7 @@ bool source_geometry_lod_view_modifier(bool camera_58,bool camera_68,
     return camera_58 || camera_68 || (scenario_present && scenario_type==2);
 }
 std::int16_t Cache::load_source_geometry_scenario_type() const {
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto primary=data.u32(data.u32(16)+12);
     const auto tag=query_tag({.handle=TagHandle{primary}, .group=tag_groups::scenario, .require_address=true});
     if(!tag || tag->size<0x12)

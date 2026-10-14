@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 32 32" version="1.1">
+  <title>Vista ui\list_skins\matchmaking\player_in page 1: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="player-slot-soft-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.35" />
+    </filter>
+    <filter id="player-present" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.3" />
+    </filter>
+  </defs>
+  <path d="M.5 .5 H18.5 V18.5 H.5 Z" fill="none" stroke="#6394c0" stroke-width="1.4" opacity="0.35" filter="url(#player-slot-soft-edge)" />
+  <path d="M.5 .5 H18.5 V18.5 H.5 Z" fill="none" stroke="#6394c0" stroke-width="1" />
+  <path d="M1.25 1.25 H17.75 V17.75 H1.25 Z" fill="none" stroke="#29465c" stroke-width="0.3" opacity="0.55" />
+  <path d="M.25 18.75 V.25 H18.75" fill="none" stroke="#b9d1e2" stroke-width="0.25" opacity="0.4" />
+  <rect x="3" y="3" width="13" height="13" fill="#fcaf5a" stroke="#ffda92" stroke-width="0.7" filter="url(#player-present)" />
+  <rect x="4" y="4" width="11" height="11" fill="none" stroke="#ffe5ae" stroke-width="0.35" opacity="0.35" />
+</svg>

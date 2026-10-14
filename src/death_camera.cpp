@@ -47,35 +47,52 @@ std::uint32_t source_death_camera_next_player(std::span<const DeathCameraPlayer>
   }
   return result==none?watched:result;
 }
+bool source_death_camera_team_restriction(std::span<const DeathCameraPlayer> bank,
+    std::uint32_t own) {
+  const auto*local=player(bank,own);
+  if(!local)throw FormatError("Campaign death camera requires its actual player owner");
+  return std::any_of(bank.begin(),bank.end(),[&](const auto&p) {
+    return p.datum!=none && p.datum!=own && p.team==local->team;
+  });
+}
 void source_death_camera_replace_target(DeathCameraState&s,std::span<const DeathCameraPlayer> bank,
-    bool team_only,const DeathCameraConstants&c){
+    bool team_only,const DeathCameraConstants&c,const DeathCameraSession&session){
+  if(!session.multiplayer)team_only=source_death_camera_team_restriction(bank,s.player);
   s.watched_player=source_death_camera_next_player(bank,s.player,s.watched_player,team_only);
   const auto*p=player(bank,s.watched_player);const auto target=p?p->current_unit:none;
   if(target!=s.target&&target!=none){s.remaining=c.transition_seconds;s.target=target;s.attached_ticks=0;}
-  s.watch_remaining=c.watch_seconds;
+  s.watch_remaining=session.multiplayer?c.watch_seconds:c.transition_seconds;
 }
 DeathCameraState source_death_camera_create(Vec3 position,std::int8_t view,std::uint32_t own,
-    std::span<const DeathCameraPlayer> bank,std::uint32_t&rng,const DeathCameraConstants&c){
+    std::span<const DeathCameraPlayer> bank,std::uint32_t&rng,const DeathCameraConstants&c,bool team_only,
+    const DeathCameraSession&session){
   DeathCameraState s;s.initial_position=position;s.fov=c.default_fov;
   // Original x87 chains retain 53-bit intermediates until each FSTP32.
   s.distance=float((double(draw(rng))*double(c.random_scale))*double(c.distance_scale)+double(c.distance_bias));
   s.yaw=float((double(draw(rng))*double(c.random_scale))*double(c.full_turn));
   s.pitch=float(-((double(draw(rng))*double(c.random_scale))*double(c.pitch_scale)+double(c.pitch_bias)));
-  s.remaining=c.transition_seconds;s.watch_remaining=c.watch_seconds;
+  s.remaining=c.transition_seconds;s.watch_remaining=session.multiplayer?c.watch_seconds:c.transition_seconds;
   s.player=own;s.watched_player=own;s.view=view;
   if(const auto*p=player(bank,own)){
     s.target=p->current_unit!=none?p->current_unit:p->previous_unit;
-    if(s.target==none)source_death_camera_replace_target(s,bank,false,c);
+    if(s.target==none)source_death_camera_replace_target(s,bank,team_only,c,session);
   }
   return s;
 }
 DeathCameraPacket source_death_camera_packet(DeathCameraState&s,std::span<const DeathCameraPlayer> bank,
     const DeathCameraTargetLookup&lookup,const DeathCameraFrame&f,const DeathCameraConstants&c,
-    const SourceObserverConstants&observer,const SourceObserverWorldConstants&world){
+    const SourceObserverConstants&observer,const SourceObserverWorldConstants&world,
+    const DeathCameraSession&session){
   if(!lookup)throw FormatError("Death camera requires actual current WORLD nodes");
   if(s.target!=none&&!lookup(s.target))s.target=none;
-  if(s.target==none){source_death_camera_replace_target(s,bank,f.team_only,c);
-    if(s.target==none)source_death_camera_replace_target(s,bank,f.team_only,c);}
+  if(s.target==none){source_death_camera_replace_target(s,bank,f.team_only,c,session);
+    if(s.target==none) {
+      if(session.multiplayer)source_death_camera_replace_target(s,bank,f.team_only,c,session);
+      else {
+        if(!session.fallback_target)throw FormatError("Campaign death camera requires original23FE30 object owner");
+        s.target=session.fallback_target();
+      }
+    }}
   auto target=s.initial_position;
   const auto threshold=std::int32_t(std::nearbyint(mul(float(f.tick_rate),c.attached_seconds)));
   if(s.target!=none){
@@ -106,9 +123,10 @@ DeathCameraPacket source_death_camera_packet(DeathCameraState&s,std::span<const 
   if(s.remaining==c.transition_seconds){p[9]=bits(c.half);p[40]=0;p[35]|=3u<<24;}
   s.remaining=sub(s.remaining,f.seconds);
   const auto watch=sub(s.watch_remaining,f.seconds);s.watch_remaining=watch>=0.f?watch:0.f;
-  const bool cycle=s.player!=none&&f.cycle_pressed&&add(s.watch_remaining,c.one)<c.watch_seconds;
-  if((s.watch_remaining==0.f&&(!f.game_in_progress||!f.clock_running))||cycle)
-    source_death_camera_replace_target(s,bank,f.team_only,c);
+  const auto watch_seconds=session.multiplayer?c.watch_seconds:c.transition_seconds;
+  const bool cycle=s.player!=none&&f.cycle_pressed&&add(s.watch_remaining,c.one)<watch_seconds;
+  if((s.watch_remaining==0.f&&(!f.clock_initialized||!f.clock_paused))||cycle)
+    source_death_camera_replace_target(s,bank,f.team_only,c,session);
   source_observer_repair_packet(p,observer,c,world);
   return p;
 }

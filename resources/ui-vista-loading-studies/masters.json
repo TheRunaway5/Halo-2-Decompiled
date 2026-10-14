@@ -1,0 +1,206 @@
+{
+  "schema": "halo2-vista-menu-masters-v1",
+  "complete": false,
+  "experimental": true,
+  "admitted": false,
+  "reference_inventory_sha256": "226b31e6deae10b191fc4e974e6454bc41d0b51ea5a123403033b072c3d63814",
+  "source_caches": {
+    "loading-source.json": {
+      "bytes": 6182,
+      "sha256": "544dc7a192bb2333ba1687e51496eecd729dda6d4bad36b4d635e641c5a626af"
+    }
+  },
+  "pages": {
+    "5aa17d5b92d1a462073f51d58b6575733be53185346c576ec7f06decd5d64230": {
+      "family": "vista-loading-thin-mechanical-ring",
+      "density": 8,
+      "physical": [
+        4096,
+        4096
+      ],
+      "logical": [
+        512,
+        512
+      ],
+      "source_png_sha256": "7bceb966b10bdc5dd8b896a23afd0f93d03af5ec9916cb6794043b4ceb75a383",
+      "vector": "svg/5aa17d5b92d1a462073f51d58b6575733be53185346c576ec7f06decd5d64230.svg",
+      "vector_sha256": "54cab3db5ee7f1c002d160ae839fa4c0e40b88aae5a5cef3e97243e8fa0dc88c",
+      "dds": "bitmaps/5aa17d5b92d1a462073f51d58b6575733be53185346c576ec7f06decd5d64230.dds",
+      "dds_sha256": "5e94edefadd2284ef8c221e638ff9116e3f1df8093e38c64ae0e301ea110ac05",
+      "state": "authored-needs-review",
+      "experimental": true,
+      "admitted": false,
+      "fidelity_state": "unfinished",
+      "bindings": [
+        {
+          "cache": "loading.bin",
+          "name": "executable\\loading\\3",
+          "frame": 0,
+          "page": "5aa17d5b92d1a462073f51d58b6575733be53185346c576ec7f06decd5d64230",
+          "dds_sha256": "7def342f69c8534e5fa96a454abe107e147ae0fa692468101969ceb8fa771290",
+          "format": 10,
+          "source_extent": [
+            512,
+            512
+          ]
+        }
+      ]
+    },
+    "b73ac539e6274521a16b469c28659fa04844b4845f03f8345c8fc8fb94b541a4": {
+      "family": "vista-loading-wide-mechanical-ring",
+      "density": 8,
+      "physical": [
+        4096,
+        4096
+      ],
+      "logical": [
+        512,
+        512
+      ],
+      "source_png_sha256": "1b145901daa5eb57f79597aa9d534748eb453b7371392dda55efaf27ab3feda4",
+      "vector": "svg/b73ac539e6274521a16b469c28659fa04844b4845f03f8345c8fc8fb94b541a4.svg",
+      "vector_sha256": "10150207f27b0e25c3b869015052b3e963d333c27514d2a6bb3fbb59c4ffdf27",
+      "dds": "bitmaps/b73ac539e6274521a16b469c28659fa04844b4845f03f8345c8fc8fb94b541a4.dds",
+      "dds_sha256": "e8e6b17a31bb968c307cf5f370a44059e6a634457b01e17e5bba3f0e32c1421e",
+      "state": "authored-needs-review",
+      "experimental": true,
+      "admitted": false,
+      "fidelity_state": "unfinished",
+      "bindings": [
+        {
+          "cache": "loading.bin",
+          "name": "executable\\loading\\4",
+          "frame": 0,
+          "page": "b73ac539e6274521a16b469c28659fa04844b4845f03f8345c8fc8fb94b541a4",
+          "dds_sha256": "64afd2eb0c269a0b6a89bea641b6c3a78335c91ee4a3243f3981cff5c38ddcd7",
+          "format": 10,
+          "source_extent": [
+            512,
+            512
+          ]
+        }
+      ]
+    },
+    "8e2273ca87d0236efe74fde88449023e670637a5a93bd3ec5518aa75cdf109d5": {
+      "family": "vista-loading-optical-glint",
+      "density": 2,
+      "physical": [
+        4096,
+        8
+      ],
+      "logical": [
+        2048,
+        4
+      ],
+      "source_png_sha256": "c751fdc1b3109088c71bb3e5edc28e3d00d32fdcb4f8e824b012742c9fe23262",
+      "vector": "svg/8e2273ca87d0236efe74fde88449023e670637a5a93bd3ec5518aa75cdf109d5.svg",
+      "vector_sha256": "1d8d18bd61457870b3479b8f80d66c9be33353a84e1667011f8f21659f7e447c",
+      "dds": "bitmaps/8e2273ca87d0236efe74fde88449023e670637a5a93bd3ec5518aa75cdf109d5.dds",
+      "dds_sha256": "be0d4c9a1aa11db65fdfedb0d699f45dea1258661f87a989d75c81fb087b65bf",
+      "state": "authored-needs-review",
+      "experimental": true,
+      "admitted": false,
+      "fidelity_state": "unfinished",
+      "bindings": [
+        {
+          "cache": "loading.bin",
+          "name": "executable\\loading\\5",
+          "frame": 0,
+          "page": "8e2273ca87d0236efe74fde88449023e670637a5a93bd3ec5518aa75cdf109d5",
+          "dds_sha256": "778d1278a82b730860e8cc8959330ce1033ea7b851d86a29c3fe8489adac8e56",
+          "format": 11,
+          "source_extent": [
+            2048,
+            4
+          ]
+        }
+      ]
+    },
+    "9999e4fe611e8c2ab57f25f239b0fbea3efa729430e2695c0ddabd1bc813d478": {
+      "family": "vista-loading-spaced-ticks",
+      "density": 2,
+      "physical": [
+        4096,
+        64
+      ],
+      "logical": [
+        1044,
+        31
+      ],
+      "source_png_sha256": "cabdd1e7173bfbbe4004a8a1f153f8f89adc75abad83ae96ba85e814d9455d9b",
+      "vector": "svg/9999e4fe611e8c2ab57f25f239b0fbea3efa729430e2695c0ddabd1bc813d478.svg",
+      "vector_sha256": "4fed5e78513f09111ec5ec9ded103b39b7905ebbaf815413200881697ec41d9c",
+      "dds": "bitmaps/9999e4fe611e8c2ab57f25f239b0fbea3efa729430e2695c0ddabd1bc813d478.dds",
+      "dds_sha256": "a8b2739b5223a737809c74f4090ffb9dcb5fce68355d3a2e23cd1f03842fff7e",
+      "state": "authored-needs-review",
+      "experimental": true,
+      "admitted": false,
+      "fidelity_state": "unfinished",
+      "bindings": [
+        {
+          "cache": "loading.bin",
+          "name": "executable\\loading\\9",
+          "frame": 0,
+          "page": "9999e4fe611e8c2ab57f25f239b0fbea3efa729430e2695c0ddabd1bc813d478",
+          "dds_sha256": "324f91884a5c9b9b8c91969bbd8461ea9c2f6da21628479fe94032fe8b5a2698",
+          "format": 11,
+          "source_extent": [
+            1044,
+            31
+          ]
+        }
+      ]
+    },
+    "9968e6c5af4e8665d49f958a8bb8774bf7eae656eea893afdb96f8eed3dd70b9": {
+      "family": "vista-loading-dense-ticks",
+      "density": 2,
+      "physical": [
+        4096,
+        128
+      ],
+      "logical": [
+        1044,
+        52
+      ],
+      "source_png_sha256": "b79d6fe0543fe9e65652817f60f1599c7fa1006e9939e0275b1efc882d3d649e",
+      "vector": "svg/9968e6c5af4e8665d49f958a8bb8774bf7eae656eea893afdb96f8eed3dd70b9.svg",
+      "vector_sha256": "0c5a3f928ebbe651f710138c994c89d3590fc712b8a5f8ee3301ef56d214d504",
+      "dds": "bitmaps/9968e6c5af4e8665d49f958a8bb8774bf7eae656eea893afdb96f8eed3dd70b9.dds",
+      "dds_sha256": "c1c1495541b09714734e2ddba72fa1d1c22c38df5c8e4d77dfc2cf2de6492360",
+      "state": "authored-needs-review",
+      "experimental": true,
+      "admitted": false,
+      "fidelity_state": "unfinished",
+      "bindings": [
+        {
+          "cache": "loading.bin",
+          "name": "executable\\loading\\10",
+          "frame": 0,
+          "page": "9968e6c5af4e8665d49f958a8bb8774bf7eae656eea893afdb96f8eed3dd70b9",
+          "dds_sha256": "a9b78640d83ee838043a2563bb6abfcb376414757c26d29a5131fb72cad4d69b",
+          "format": 11,
+          "source_extent": [
+            1044,
+            52
+          ]
+        }
+      ]
+    }
+  },
+  "coverage": {
+    "source_unique_pages": 862,
+    "bundled_unique_pages": 5,
+    "canonical_coverage_change": 0,
+    "paused_emblem_drafts": 243,
+    "unfinished_unique_pages": 211
+  },
+  "vista_only_scope": {
+    "unmatched_mcc_pages": 13,
+    "loading_pages": 12,
+    "server_icon_states": 1,
+    "authored_loading_studies": 5,
+    "completed_or_admitted_loading_pages": 0
+  },
+  "policy": "Experimental loading studies only; no original raster, contour tracing, font substitution or activation.",
+  "rights_review": "Required. Faithful recreation is not redistribution clearance."
+}

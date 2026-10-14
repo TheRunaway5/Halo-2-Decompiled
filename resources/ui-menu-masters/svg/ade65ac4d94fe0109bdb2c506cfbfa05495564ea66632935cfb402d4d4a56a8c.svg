@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="468" height="248" viewBox="0 0 117 62" version="1.1">
+  <title>Vista ui\screens\game_shell\live_game_browser\column_hover_small page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="column-height" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="62">
+      <stop offset="0.0" stop-color="white" stop-opacity="0.18" />
+      <stop offset="0.12903225806451613" stop-color="white" stop-opacity="0.4" />
+      <stop offset="0.2903225806451613" stop-color="white" stop-opacity="0.78" />
+      <stop offset="0.5" stop-color="white" stop-opacity="1" />
+      <stop offset="0.7096774193548387" stop-color="white" stop-opacity="0.78" />
+      <stop offset="0.8709677419354839" stop-color="white" stop-opacity="0.4" />
+      <stop offset="1.0" stop-color="white" stop-opacity="0.18" />
+    </linearGradient>
+    <mask id="column-envelope" maskUnits="userSpaceOnUse" x="0" y="0" width="117" height="62">
+      <rect width="117" height="62" fill="url(#column-height)" />
+    </mask>
+    <linearGradient id="column-left" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="48" y2="0">
+      <stop offset="0" stop-color="#2c95dd" stop-opacity="0.2" />
+      <stop offset="0.05" stop-color="#2c95dd" stop-opacity="0.2" />
+      <stop offset="0.3" stop-color="#2c95dd" stop-opacity="0.15" />
+      <stop offset="0.6" stop-color="#2c95dd" stop-opacity="0.075" />
+      <stop offset="0.85" stop-color="#2c95dd" stop-opacity="0.012" />
+      <stop offset="1" stop-color="#2c95dd" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="column-right" gradientUnits="userSpaceOnUse" x1="117" y1="0" x2="69" y2="0">
+      <stop offset="0" stop-color="#2c95dd" stop-opacity="0.2" />
+      <stop offset="0.05" stop-color="#2c95dd" stop-opacity="0.2" />
+      <stop offset="0.3" stop-color="#2c95dd" stop-opacity="0.15" />
+      <stop offset="0.6" stop-color="#2c95dd" stop-opacity="0.075" />
+      <stop offset="0.85" stop-color="#2c95dd" stop-opacity="0.012" />
+      <stop offset="1" stop-color="#2c95dd" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <g mask="url(#column-envelope)">
+    <rect x="0" width="48" height="62" fill="url(#column-left)" />
+    <rect x="69" width="48" height="62" fill="url(#column-right)" />
+  </g>
+</svg>

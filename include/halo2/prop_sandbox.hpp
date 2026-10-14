@@ -3,7 +3,9 @@
 #include "halo2/model.hpp"
 #include "halo2/model_markers.hpp"
 #include "halo2/posed_collision.hpp"
+#include "halo2/projectile_material_response.hpp"
 #include "halo2/scene.hpp"
+#include "halo2/source_model_regions.hpp"
 #include <map>
 
 namespace halo2 {
@@ -23,10 +25,15 @@ struct PropSandboxDefinition {
   std::uint32_t datum=null_datum;
   RenderModel model; // Authored hierarchy only; no render resources retained.
   ModelCollision collision;
-  std::vector<std::uint8_t> permutations;
+  SourceInitialModelDefinition region_definition;
+  SourceInitialModelSelection initial_regions;
   std::map<std::uint32_t,std::vector<ObjectAttachmentMarker>> markers;
   VitalityDefinition vitality;
   std::vector<PropDamageSection> sections;
+  // Admit the contact material consumer only when every authored entry
+  // agrees with the default. Distinct hit-region selection remains an owner.
+  bool uniform_impact_material{},uniform_impact_region_absorption{};
+  bool impact_region_absorbs{};
 };
 struct PropAreaDamageDefinition {
   WeaponDefinition damage;
@@ -74,6 +81,13 @@ struct PropSandboxState {
   PropDamageOwner owner;
   struct Section {std::uint16_t destroyed{}, pending{};std::uint8_t damage{};};
   std::vector<Section> sections;
+  SourceModelRegionBank regions;
+};
+// Completed native region state for this exact prop generation. Late joiners
+// receive the authoritative choice; they never re-run damage or consume RNG.
+struct PropRegionSnapshot {
+  std::uint32_t handle{},placement{},definition{};
+  SourceModelRegionBank regions;
 };
 // Actual authored collision surfaces/current scene roots, composed into the
 // existing host triangle mover. This is not a Havok solver implementation.
@@ -85,11 +99,22 @@ public:
   struct Hit {std::uint32_t handle{};PosedCollisionHit collision;};
   std::optional<Hit> raycast(Vec3 origin,Vec3 delta,float maximum_fraction=1,
       std::uint32_t ignored=null_datum,std::uint32_t ignored_other=null_datum)const;
-  bool damage(std::uint32_t,const WeaponDefinition&,float amount,PropDamageOwner = {},bool radius=false);
+  bool damage(std::uint32_t,const WeaponDefinition&,float amount,PropDamageOwner = {},bool radius=false,
+      const SourceModelRegionOwners & = {});
+  struct DamageContactResult {
+    bool changed{};
+    std::optional<SourceProjectileDamagePresentation> presentation;
+  };
+  DamageContactResult damage_contact(std::uint32_t,const WeaponDefinition&,float amount,
+      PropDamageOwner = {},bool radius=false,const SourceModelRegionOwners & = {});
   // Host geometry adapter over the same exact posed authored triangles.
   // Retail185380's physical point-shape/Havok dispatcher remains separate.
   Vec3 closest_point(std::uint32_t,Vec3)const;
-  std::vector<PropSandboxEvent> tick(const std::function<void(const PropSandboxEvent&)>& owner={});
+  std::vector<PropSandboxEvent> tick(const std::function<void(const PropSandboxEvent&)>& owner={},
+      const SourceModelRegionOwners & = {});
+  const SourceInitialModelSelection *region_selection(std::uint32_t)const;
+  std::vector<PropRegionSnapshot> region_snapshot()const;
+  void apply_regions(std::span<const PropRegionSnapshot>);
   const PropSandboxState& state(std::uint32_t)const;
   const std::vector<PropSandboxState> states()const;
 private:
@@ -98,8 +123,9 @@ private:
   const LevelContent* content_;
   std::map<std::uint32_t,Prop> props_;
   std::vector<PropSandboxEvent> events_;
-  void deplete(Prop&);
-  void dispatch(Prop&,unsigned section,unsigned response);
+  bool collision_dirty_{};
+  void deplete(Prop&,const SourceModelRegionOwners &);
+  void dispatch(Prop&,unsigned section,unsigned response,const SourceModelRegionOwners &);
 };
 // D8AE0 ordinary spherical falloff, after genuine current target-point input.
 // Zero fraction suppresses damage; lower damage is not applied outside range.

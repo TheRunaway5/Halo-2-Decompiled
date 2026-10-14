@@ -86,8 +86,8 @@ def main():
         "src/native_vista_announcer.cpp", "src/vista_announcer_assets.cpp",
         "src/vista_announcer_events.cpp", "src/vista_announcer_queue.cpp", "src/vista_player_birth.cpp",
         "src/vista_slayer_publication.cpp",
-        "src/vista_lobby_leave_return.cpp", "src/vista_lobby_leave_task.cpp",
-        "src/vista_network_browser.cpp", "src/vista_network_browser_back.cpp", "src/vista_session_disposal.cpp", "src/frontend_pc_settings.cpp",
+        "src/vista_profile_catalog.cpp", "include/halo2/vista_profile_catalog.hpp", "src/vista_lobby_leave_task.cpp",
+        "src/vista_session_disposal.cpp", "src/frontend_pc_settings.cpp",
         "src/vista_menu_return_observer.cpp",
         "src/vista_session_selection.cpp", "include/halo2/vista_session_selection.hpp",
         "tests/fixtures/vista_session_frontend_protocol_original.json",
@@ -104,9 +104,8 @@ def main():
         "include/halo2/native_vista_announcer.hpp", "include/halo2/vista_announcer_events.hpp",
         "include/halo2/vista_player_birth.hpp", "include/halo2/vista_slayer_publication.hpp",
         "include/halo2/multiplayer_world.hpp",
-        "include/halo2/vista_announcer_queue.hpp", "include/halo2/vista_lobby_leave_return.hpp",
-        "include/halo2/vista_session_disposal.hpp", "include/halo2/vista_lobby_leave_task.hpp",
-        "include/halo2/vista_network_browser.hpp", "include/halo2/vista_network_browser_back.hpp", "include/halo2/vista_menu_return_observer.hpp"))
+        "include/halo2/vista_announcer_queue.hpp", "include/halo2/vista_session_disposal.hpp", "include/halo2/vista_lobby_leave_task.hpp",
+        "include/halo2/vista_menu_return_observer.hpp"))
     if (source_root / "source-pins.json").is_file():
         files.add(source_root / "source-pins.json")
     files.update(path for path in (ROOT / "assets/menu-ui/vista/loading").glob("*") if path.is_file())
@@ -161,10 +160,9 @@ def main():
                                   str(round_index) + r"$", log, re.MULTILINE)) for round_index in (1, 2)]
     done_passes = [f"PASS actual SDL Done/rendered lobby/120 later frames round {i}" in log for i in (1, 2)]
     start_passes = [f"PASS actual SDL Start from returned multiplayer lobby round {i}" in log for i in (1, 2)]
-    complete = "PASS two actual native rounds retain the genuine offline identity and profile; no rendered Vista parity claim" in log
-    leave_create = "PASS actual Leave/task/PC browser/Create/fresh lobby/third Start cancellation" in log
-    browser_back = ("PASS actual second Leave/browser Back/fresh local title9/both profiles retained" if args.players==2 else
-                    "PASS actual second Leave/browser Back/fresh native mainmenu6/PC Settings return") in log
+    complete = "PASS two actual native rounds cover report/title/new-session restart; no rendered Vista parity claim" in log
+    title_reentry = "PASS post-carnage/title/profile/Split Screen reentry; next round must fully load" in log
+    navigation_return = "PASS post-carnage Leave/native menu/Settings/title/Split Screen without retired screens" in log
     captures, image_errors = [], []
     for round_index in (1, 2):
         scopes = [("native-world-start", "world start through tick90 with independent virtual SDL input" if args.players==2 else "world start after eight rendered frames")] if round_index == 1 else [
@@ -190,8 +188,8 @@ def main():
             except (OSError, RuntimeError) as error:
                 image_errors.append(f"round {round_index}, {basename}: {error}")
     for basename, scope in (("native-initial-lobby", "actual retained lobby renderer before first resource load"),
-                            ("native-browser-after-leave", "actual PC13 browser after real Leave task completed"),
-                            ("native-mainmenu-after-browser-back", "actual PC6 factory after second real Leave and PC13 Back")):
+                            ("native-lobby-after-title-1", "actual Split Screen lobby after report, native main menu, title and selected-profile reentry"),
+                            ("native-lobby-after-title-2", "actual Split Screen lobby after a second disposal, Settings, title and selected-profile reentry")):
         ppm = output / (basename + ".ppm")
         png = ppm.with_suffix(".png")
         try:
@@ -205,13 +203,13 @@ def main():
             image_errors.append(f"{basename}: {error}")
     after = pins()
     changed = [path for path in before if before[path] != after[path]]
-    passed = returncode == 0 and not timed_out and not errors and all(round_passes) and all(done_passes) and all(start_passes) and complete and leave_create and browser_back and not image_errors and not changed
+    passed = returncode == 0 and not timed_out and not errors and all(round_passes) and all(done_passes) and all(start_passes) and complete and title_reentry and navigation_return and not image_errors and not changed
     report = dict(local_players=args.players, independent_virtual_controller_input=args.players==2, schema="H2_NATIVE_VISTA_COMPLETED_ROUNDTRIP_CAPTURE_V1", passed=passed,
                   argv=command, shader_directory=str(shaders), source_directory=str(source_root),
                   returncode=returncode, elapsed_seconds=elapsed, timed_out=timed_out,
-                  round_passes=round_passes, two_round_pass=complete, leave_create_pass=leave_create,
+                  round_passes=round_passes, two_round_pass=complete, title_reentry_pass=title_reentry,
                   sdl_done_return_passes=done_passes, sdl_next_start_passes=start_passes,
-                  browser_back_pass=browser_back, validation_errors=errors,
+                  navigation_return_pass=navigation_return, validation_errors=errors,
                   native_log_tail=log.splitlines()[-40:],
                   captures=captures, image_errors=image_errors, pins=before, changed_inputs=changed,
                   inputs_unchanged=not changed, match_execution="actual native CPU ticks accelerated through authored normal expiry; round1 continues headless after its bounded start capture, round2 accelerates intervening ticks within its single retained GPU world owner",

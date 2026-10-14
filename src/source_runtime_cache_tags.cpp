@@ -14,8 +14,9 @@ void put(SourceRuntimeMemory &m,std::uint32_t p,std::uint32_t v) {
 }
 }
 SourceRuntimeCacheTagImage Cache::load_source_runtime_cache_tag_image() const {
+  if(mcc_)throw FormatError("MCC gameplay tags require verified Xbox TU1.5 layout/semantic conversion before original-ABI delivery");
   if(vista_)throw FormatError("Original Xbox runtime tag delivery requires the Xbox cache owner");
-  const Bytes bytes(storage_);const auto index=bytes.u32(16),index_bytes=bytes.u32(20),metadata_bytes=bytes.u32(24);
+  const Bytes bytes(cache_bytes());const auto index=bytes.u32(16),index_bytes=bytes.u32(20),metadata_bytes=bytes.u32(24);
   bytes.require(index,index_bytes);bytes.require(std::size_t(index)+index_bytes,metadata_bytes);
   if(index_bytes<32 || !metadata_bytes)throw FormatError("Original cache runtime regions are unavailable");
   const auto header_magic=std::int64_t(bytes.u32(index))-(std::int64_t(index)+32);
@@ -28,16 +29,17 @@ SourceRuntimeCacheTagImage Cache::load_source_runtime_cache_tag_image() const {
   out.index=std::uint32_t(index_address);out.table=bytes.u32(index+8);out.count=bytes.u32(index+24);
   out.scenario=bytes.u32(index+12);out.globals=bytes.u32(index+16);
   const auto copy=[&](std::uint32_t address,std::size_t start,std::size_t size) {
-    out.regions.push_back({address,{storage_.begin()+start,storage_.begin()+start+size}});
+    out.regions.push_back({address,{cache_bytes().begin()+start,cache_bytes().begin()+start+size}});
   };
   copy(out.index,index,index_bytes);
   copy(std::uint32_t(metadata_address),std::size_t(index)+index_bytes,metadata_bytes);
   return out;
 }
 SourceRuntimeCacheBspImage Cache::load_source_runtime_cache_bsp_image(std::size_t selected) const {
+  if(mcc_)throw FormatError("MCC compiled collision/physics requires verified Xbox TU1.5 conversion before original-ABI BSP delivery");
   if(vista_ || selected>=bsps_.size() || selected>32767)
     throw FormatError("Original runtime BSP cache selection is unavailable");
-  const Bytes data(storage_);const auto index=data.u32(16),scenario=data.u32(index+12);
+  const Bytes data(cache_bytes());const auto index=data.u32(16),scenario=data.u32(index+12);
   const auto* tag=find_tag({scenario}, tag_groups::scenario);
   if(!tag)throw FormatError("Original runtime BSP has no scenario");
   const auto scnr=metadata_offset(tag->address,tag->size);
@@ -55,27 +57,6 @@ SourceRuntimeCacheBspImage Cache::load_source_runtime_cache_bsp_image(std::size_
   const auto bsp_bytes=data.slice(bsp.file_offset,bsp.size);
   out.region={bsp.memory_address,{bsp_bytes.begin(),bsp_bytes.end()}};
   return out;
-}
-SourceRuntimeCacheAnimationImage Cache::load_source_runtime_animation_image(std::uint32_t descriptor) const {
-  if(vista_)throw FormatError("Source animation resource delivery requires the Xbox cache");
-  const Bytes data(storage_);
-  for(const auto &tag:select_tags({.group=tag_groups::model_animation_graph})) {
-    const auto root=metadata_offset(tag.address,tag.size);
-    if(tag.size<0xb4)throw FormatError("Source animation graph descriptor block is truncated");
-    const auto count=data.u32(root+0xac),first=data.u32(root+0xb0);
-    if(descriptor<first || std::uint64_t(descriptor)-first>=std::uint64_t(count)*20 ||
-        (descriptor-first)%20)continue;
-    const auto at=metadata_offset(descriptor,20);
-    SourceRuntimeCacheAnimationImage out;
-    const auto literal=data.slice(at,20);std::copy(literal.begin(),literal.end(),out.descriptor.begin());
-    out.bytes=raw_data(data.u32(at+8),data.u32(at+4));
-    return out;
-  }
-  throw FormatError("Animation I/O request is not an actual jmad resource descriptor");
-}
-std::vector<std::byte> Cache::load_source_runtime_resource(std::uint32_t encoded_offset,std::uint32_t bytes)const {
-  if(vista_)throw FormatError("Native source resource delivery requires the Xbox cache");
-  return raw_data(encoded_offset,bytes);
 }
 void source_bind_runtime_cache_tags_1_1(SourceRuntimeMemory &m,const SourceRuntimeCacheTagImage &image) {
   if(image.regions.size()!=2 || !image.count || image.count>65536 || image.scenario==0xffffffffu || image.globals==0xffffffffu)

@@ -3,8 +3,8 @@
 #include <span>
 
 namespace halo2 {
-// Native transport owners, derived from the accepted roster. A living current
-// body is required; a retired corpse may no longer have a source hierarchy.
+// Native transport owners, derived from the accepted roster and vehicle bank.
+// Live bodies/vehicles are required; retired corpses may have no hierarchy.
 struct SourceWorldPoseOwner {std::uint32_t object;bool required;};
 struct SourceWorldPoseBank {
     bool authoritative{};

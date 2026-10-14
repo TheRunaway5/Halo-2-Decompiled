@@ -7,6 +7,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 #include "renderdoc_app.h"
 static RENDERDOC_API_1_6_0 *rdoc;
 static pthread_t worker;
@@ -53,6 +56,12 @@ static void *requests(void *unused) {
  return NULL;
 }
 __attribute__((constructor)) static void start(void) {
+#ifdef __linux__
+ // Opt-in permission for a debugger of this private research process only.
+ // No system ptrace policy or guest instruction is changed.
+ if(getenv("HALO2_CAPTURE_ALLOW_DEBUGGER"))
+  prctl(PR_SET_PTRACER,PR_SET_PTRACER_ANY,0,0,0);
+#endif
  const char *library=getenv("HALO2_RENDERDOC_LIBRARY");
  if(!library)return;
  void *lib=dlopen(library,RTLD_NOW|RTLD_LOCAL);

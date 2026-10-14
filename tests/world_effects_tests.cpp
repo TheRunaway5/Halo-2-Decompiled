@@ -265,6 +265,12 @@ int main(int argc, char **argv) {
           check(a.serial == b.serial && a.material == b.material &&
                     a.position.x == b.position.x && a.normal.z == b.normal.z,
                 "LAN changed impact material/plane/identity");
+          check(a.presentation && b.presentation &&
+              a.presentation->response==b.presentation->response &&
+              a.presentation->admitted==b.presentation->admitted &&
+              a.presentation->scale_a==b.presentation->scale_a &&
+              a.presentation->scale_b==b.presentation->scale_b,
+              "LAN lost the actual selected contact response/scales");
         }
       }
     }

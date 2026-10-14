@@ -1,4 +1,4 @@
-#include "halo2/model_selection.hpp"
+#include "halo2/source_model_regions.hpp"
 #include "halo2/source_geometry_lod.hpp"
 #include <algorithm>
 #include <bit>
@@ -113,8 +113,32 @@ std::vector<unsigned> source_initial_model_sections(const SourceInitialModelDefi
         sections.push_back(unsigned(section));
     }return sections;
 }
+std::vector<unsigned> source_model_region_resource_sections(const SourceInitialModelDefinition &definition,
+    const SourceInitialModelSelection &selection,unsigned lod){
+    const auto active=source_initial_model_sections(definition,selection,lod);std::vector<unsigned> result;
+    const auto add=[&](unsigned section){if(std::find(result.begin(),result.end(),section)==result.end())result.push_back(section);};
+    for(auto section:active)add(section);
+    if(selection.variant_index<0)return result;
+    const auto &variant=definition.variants.at(unsigned(selection.variant_index));
+    for(unsigned region=0;region<definition.regions.size();++region){const int mapped=variant.regions[region];
+        if(mapped<0)continue;
+        const auto &permutations=variant.definitions.at(unsigned(mapped)).permutations;
+        const auto add_permutation=[&](std::int8_t permutation){
+            if(permutation<0)return;
+            const auto section=definition.render_sections.at(region).at(unsigned(permutation)).at(lod);
+            if(section>=255)throw FormatError("model region resource section exceeds runtime byte representation");
+            if(section>=0)add(unsigned(section));
+        };
+        const int chosen=selection.states.at(region).variant_permutation;
+        for(unsigned i=0;i<permutations.size();++i)if(chosen==-1 || chosen==int(i)){
+            const auto &p=permutations[i];add_permutation(p.permutation);
+            for(const auto &state:p.states)add_permutation(state.permutation);
+        }
+    }
+    return result;
+}
 SourceInitialModelDefinition Cache::load_initial_model_definition(std::uint32_t datum)const{
-    const Bytes b(storage_);const auto find=[&](std::uint32_t id)->const Tag&{
+    const Bytes b(cache_bytes());const auto find=[&](std::uint32_t id)->const Tag&{
         const auto t=query_tag({.handle=TagHandle{id}, .require_address=true});
         if(!t)throw FormatError("initial model definition tag missing");return *t;};
     
@@ -135,7 +159,7 @@ SourceInitialModelDefinition Cache::load_initial_model_definition(std::uint32_t 
             SourceInitialVariantRegion region;
             for(const auto q:metadata_block_offsets(r+8, 0x20, 65536)){
                 SourceInitialVariantPermutation permutation;permutation.permutation=std::bit_cast<std::int8_t>(byte(q+4));permutation.weight=real(q+8);
-                for(const auto s:metadata_block_offsets(q+0xc, 0x18, 65536))permutation.states.push_back({std::bit_cast<std::int8_t>(byte(s+4)),byte(s+5),b.u16(s+6),real(s+0x14)});
+                for(const auto s:metadata_block_offsets(q+0xc, 0x18, 65536))permutation.states.push_back({std::bit_cast<std::int8_t>(byte(s+4)),byte(s+5),b.u16(s+6),real(s+0x14),b.u32(s+0xc),b.u32(s+0x10)});
                 region.permutations.push_back(std::move(permutation));
             }variant.definitions.push_back(std::move(region));
         }result.variants.push_back(std::move(variant));
@@ -162,7 +186,7 @@ SourceGeometryLodDefinition Cache::load_source_geometry_lod_definition(std::uint
         if(!tag)throw FormatError("geometry LOD object/model definition missing");
         return *tag;
     };
-    const Bytes data(storage_);const auto*tag=&find(datum);
+    const Bytes data(cache_bytes());const auto*tag=&find(datum);
     if(tag->group=="mode")throw FormatError("render model has no object geometry LOD definition");
     if(tag->group!="hlmt"){
         const auto root=metadata_offset(tag->address,0x3c);const auto model=data.u32(root+0x38);

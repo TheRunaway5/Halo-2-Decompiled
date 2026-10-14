@@ -103,6 +103,26 @@ std::string MenuState::online_directory_text(const MenuFrame &frame, unsigned in
     if (!server) return online_servers_.message.empty() ? "No master server configured." : online_servers_.message;
     return server->name + "\nRegion: " + field(*server, 4) + "\n\nJoining is not available yet. Select for details.";
   }
+  // PC13's focused summary is a single30-unit line. Its empty-list field
+  // occupies a separate authored slot above the rows.
+  if (index == 3) return server ? server->map + " | " + server->gametype + " | " + field(*server, 3) + " players" : "Public community servers";
+  if (index == 4) return server ? std::string{} : online_directory_text(frame, 1);
   return {};
+}
+std::string MenuState::online_directory_column(const MenuFrame &frame, unsigned row, unsigned column) const {
+  if (frame.screen != 219 || frame.context != online_server_browser_context) return {};
+  if (row >= online_servers_.servers.size())
+    return column == 6 && row < frame.entries.size() ? frame.entries[row].label : std::string{};
+  const auto &server = online_servers_.servers[row];
+  switch (column) {
+  case 0: return server.name;
+  case 1: return server.map;
+  case 2: return server.gametype;
+  case 4: return field(server, 3);
+  // Discovery does not establish a variant, QoS or gameplay admission.
+  // "Listed" describes only the directory record that owns this row.
+  case 5: return "Listed";
+  default: return {};
+  }
 }
 } // namespace halo2

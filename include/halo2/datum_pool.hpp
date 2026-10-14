@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include "halo2/native_runtime_address.hpp"
 
 namespace halo2 {
 class SourceRuntimeMemory;
@@ -18,6 +19,7 @@ public:
   // View the actual constructor-owned raw pool. No metadata, salts, elements
   // or bitmap are copied or initialized. The bank must outlive this view.
   DatumPool(SourceRuntimeMemory &,std::uint32_t source_pool);
+  DatumPool(SourceRuntimeMemory &,NativeRuntimeAddress pool);
   DatumPool(const DatumPool &);
   DatumPool &operator=(const DatumPool &);
   DatumPool(DatumPool &&)=default;
@@ -45,7 +47,7 @@ public:
   // and salt/occupancy retirement still belong to allocate/release_unchecked.
   std::span<std::uint8_t> element_storage();
   SourceRuntimeMemory *source_memory() const {return source_memory_;}
-  std::uint32_t source_pool() const {return source_pool_;}
+  NativeRuntimeAddress address() const {return source_pool_;}
 private:
   std::string name_;
   std::int32_t capacity_{}, stride_{}, cursor_{}, high_water_{}, count_{};
@@ -53,10 +55,11 @@ private:
   std::vector<std::uint8_t> elements_;
   std::vector<std::uint32_t> bitmap_;
   SourceRuntimeMemory *source_memory_{};
-  std::uint32_t source_pool_{};
+  NativeRuntimeAddress source_pool_;
   // Read-only display conversion; allocation always reads the actual bank.
   mutable std::vector<std::uint32_t> bitmap_view_;
   std::uint32_t source_field(unsigned offset,unsigned bytes=4) const;
+  std::uint32_t source_pool() const;
   std::uint16_t salt(std::int32_t index) const;
   std::uint32_t allocate_element(std::int32_t index);
 };

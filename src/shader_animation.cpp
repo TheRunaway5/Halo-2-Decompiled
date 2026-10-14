@@ -6,6 +6,9 @@
 #include <cmath>
 #include <fstream>
 #include <set>
+#if defined(__SSE__) || defined(_M_IX86) || defined(_M_X64)
+#include <xmmintrin.h>
+#endif
 
 namespace halo2 {
 namespace {
@@ -36,6 +39,29 @@ float finite(float x) {
   return x;
 }
 float clamp(float x) { return std::clamp(finite(x), 0.f, 1.f); }
+float spline2_parameter(const Bytes &b,unsigned base,float input) {
+  const auto p=[&](unsigned index){return finite(b.f32(base+index*4));};
+  const float dx23=p(4)-p(6),dy23=p(5)-p(7);
+  const float distance23=dx23*dx23+dy23*dy23;
+  constexpr float epsilon=0.0001f;
+  if(!(distance23>epsilon))return input;
+  const float dx01=p(0)-p(2),dy01=p(1)-p(3);
+  const float distance01=dx01*dx01+dy01*dy01;
+  if(std::abs(double(distance01))<double(epsilon))return 1.f;
+  if(std::abs(double(distance01)-double(distance23))<double(epsilon))return input;
+  // Literal13B899..13B8C9: the bit estimate and RSQRTSS are distinct.
+  // This executes the host x86 estimate; Xbox estimate precision remains a
+  // hardware-validation boundary, not a substituted exact reciprocal sqrt.
+#if defined(__SSE__) || defined(_M_IX86) || defined(_M_X64)
+  const float reciprocal=_mm_cvtss_f32(_mm_rsqrt_ss(_mm_set_ss(distance23)));
+#else
+  throw FormatError("spline2 requires an admitted source RSQRTSS platform owner");
+  const float reciprocal=0.f;
+#endif
+  const auto estimate_word=(std::bit_cast<std::uint32_t>(distance01)>>1)+0x1fc00000u;
+  const float exponent=float(double(reciprocal)*double(std::bit_cast<float>(estimate_word)));
+  return clamp(float(std::pow(double(input),double(exponent))));
+}
 float periodic(unsigned type, float x, const ShaderFunctionTables &tables) {
   if (type >= tables.periodic.size())
     throw FormatError("periodic shader curve outside table");
@@ -283,7 +309,7 @@ Cache::load_object_functions(std::uint32_t datum) const {
   const auto tag = query_tag({.handle=TagHandle{datum}});
   if (!tag || tag->size < 108)
     throw FormatError("truncated object function definition");
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   const auto d = metadata_offset(tag->address, tag->size);
   const auto definitions = TagAddressSpace(b, metadata_magic_).block(d + 0x64, 32);
   std::vector<ObjectFunction> out;
@@ -315,8 +341,6 @@ float shader_function_fraction(std::span<const std::byte> bytes, float input,
     return flags & 1 ? clamp(r) : 0;
   if (type == 6 || type == 8)
     return 0; // Retail 13B390 default branch.
-  if (type == 10)
-    throw FormatError("spline2 shader functions require retail rsqrt sampling");
   b.require(20, counts[type] * 4 * ((flags & 1) ? 2 : 1));
   auto eval = [&](unsigned n) {
     const unsigned base = 20 + n * counts[type] * 4;
@@ -339,6 +363,11 @@ float shader_function_fraction(std::span<const std::byte> bytes, float input,
     case 7: {
       const float t2 = input * input, t3 = t2 * input;
       return p(9) * t2 + p(10) * input + p(8) * t3 + p(11);
+    }
+    case 10: {
+      const float t=spline2_parameter(b,base,input);
+      const float t2=t*t,t3=t2*t;
+      return p(9)*t2+p(10)*t+p(8)*t3+p(11);
     }
     case 9:
       return std::abs(p(2)) < .0001f || (p(2) < 0 && std::abs(input) < .0001f)

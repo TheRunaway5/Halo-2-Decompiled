@@ -143,6 +143,16 @@ original startup and postprocess routines.
 
 ## Ownership and BSP residency
 
+`Cache` owns a stable initial file image through one private byte accessor.
+On Linux, `CacheFileSnapshot` creates an independent anonymous disk file and
+maps it privately. It uses a filesystem clone when available and a bounded
+streaming copy otherwise. Source overwrites, truncation and unlinking cannot
+invalidate the image; original title-update writes stay private. Decoders and
+tag views use the same bytes and public API as before. Vista canonicalization
+keeps its resizable owned buffer, and unavailable snapshot backing falls back
+to that existing buffer on other paths and platforms. The file owner contains
+the platform details; group decoders do not select or manage backing storage.
+
 `TagSystem` retains a `shared_ptr<const Cache>`. A `TagView`, embedded structure
 or block view retains its immutable backing independently. Existing views
 remain valid after another BSP is selected or the facade is closed. This makes
@@ -221,6 +231,18 @@ At that migration checkpoint, both installed launchers were verified with
 Subsequent live gameplay checks, complete matches, exact fixed-build provenance
 and the remaining campaign blockers are recorded in
 [gameplay validation](TAG_GAMEPLAY_VALIDATION.md).
+The memory-bounded continuation also retains complete old/new tag byte digests
+for 20 supplied multiplayer maps and a passing strict sixteen-player Slayer
+path on all 21 maps. The subsequent Vista/Xbox owner continuation fixes the
+TurfFFA model-region transition and GeminiTeamUDP automatic doors, and passes
+strict sixteen-player FFA on all21 maps with those fixes. The door and region
+reducers retain explicit world/effect boundaries; consumers share the model
+decoder and completed region snapshots instead of reconstructing choices.
+Original CPU comparisons, CPU prop submission, UDP packet-fault matches and
+compatible captured source cohorts are recorded in the dated continuation of
+that validation record. Original tag data and concurrent launcher work remain
+preserved; these checks do not establish every gameplay/platform parity gate.
+
 
 ```sh
 cmake --build build-tags-20261012 --target \

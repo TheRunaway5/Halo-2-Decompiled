@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="256" viewBox="0 0 32 64" version="1.1">
+  <title>Vista ui\screens\game_shell\postgame_statistics\spinners page 1: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="spinner-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.2" />
+    </filter>
+  </defs>
+  <g opacity="0.8901960784313725" transform="translate(32 0) scale(-1 1)">
+    <path d="M23 7 L6 23 L23 39 V29 L17 23 L23 17 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="3" filter="url(#spinner-glow)" />
+    <path d="M23 7 L6 23 L23 39 V29 L17 23 L23 17 Z" fill="white" />
+  </g>
+</svg>

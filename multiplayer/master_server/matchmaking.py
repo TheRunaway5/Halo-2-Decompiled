@@ -177,10 +177,15 @@ class Player:
     rank: int  # Visible artwork level; private raw skill drives configured XP policies.
     maps: frozenset[str]
     raw_rank: int | None = None  # Private retail XP rank; never replace it with artwork level.
+    guest: bool = False
+    connection_owner: str | None = None
 
     def __post_init__(self):
         text(self.id)
         text(self.screen_name)
+        require(type(self.guest) is bool, "Invalid trusted guest flag")
+        if self.connection_owner is not None:
+            text(self.connection_owner)
         integer(self.rank, 1, 50)
         if self.raw_rank is not None:
             integer(self.raw_rank, 0, 127)
@@ -238,7 +243,9 @@ def effective_ranks(playlist, players):
 def party_rank(playlist, players):
     # Original0x72540 averages available unadjusted ranks using integer IDIV.
     # Team-balancing adjustments belong to their separate owner, not search.
-    return sum(p.search_rank for p in players) // len(players)
+    rated = tuple(p for p in players if not p.guest)
+    require(bool(rated), "A couch party needs a signed-in player")
+    return sum(p.search_rank for p in rated) // len(rated)
 
 
 class Coordinator:
@@ -289,6 +296,8 @@ class Coordinator:
         policy = self.playlists[playlist_id]
         require(type(players) is tuple and 1 <= len(players) <= policy.maximum_party, "Party not eligible")
         require(all(type(p) is Player for p in players), "Trusted player records required")
+        require(not (policy.ranked or policy.clan_match) or not any(p.guest for p in players),
+                "Guests may use casual playlists only", 409)
         require(len({p.raw_rank is not None for p in players}) == 1, "Mixed search skill units")
         require(len({p.id for p in players}) == len(players), "Duplicate party member")
         require(leader is None or leader in {p.id for p in players}, "Party leader is not a member")
@@ -503,23 +512,23 @@ class Coordinator:
                 break
         return None
 
-    def refresh_connections(self, proposal_id):
+    def refresh_connections(self, proposal_id, *, optimize_host=False):
         self.cleanup()
         require(proposal_id in self.proposals, "Proposal not found", 404)
         proposal = self.proposals[proposal_id]
         group = tuple(self.tickets[key] for key in proposal.tickets)
         host = self._host(self.playlists[proposal.playlist], group, proposal.host,
-                          required=proposal.gathering_host)
+                          required=None if optimize_host else proposal.gathering_host)
         if host != proposal.host:
             from dataclasses import replace
             self.proposals[proposal_id] = replace(proposal, host=host)
             self.ready[proposal_id].clear()
         return self.proposals[proposal_id]
 
-    def acknowledge(self, proposal_id, player_id):
+    def acknowledge(self, proposal_id, player_id, *, optimize_host=False):
         self.cleanup()
         require(proposal_id in self.proposals, "Proposal not found", 404)
-        proposal = self.refresh_connections(proposal_id)
+        proposal = self.refresh_connections(proposal_id, optimize_host=optimize_host)
         require(proposal.host is not None, "Connectivity has not been verified", 409)
         members = {p.id for key in proposal.tickets for p in self.tickets[key].players}
         require(player_id in members, "Player is not in this proposal", 403)

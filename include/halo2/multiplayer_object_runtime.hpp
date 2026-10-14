@@ -5,8 +5,15 @@
 #include "halo2/source_player_profile.hpp"
 #include "halo2/observer_world.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
+#include "halo2/damage_feedback.hpp"
+#include "halo2/damage_impact.hpp"
+#include "halo2/native_grenade.hpp"
+#include "halo2/native_melee_animation.hpp"
+#include "halo2/source_unit_interaction_target.hpp"
+#include <map>
 
 namespace halo2 {
+struct WeaponEffectInput;
 class Cache;
 struct Vec3;
 struct ShadowCasterSphere;
@@ -14,10 +21,20 @@ struct SourceGameVariant;
 struct ScenarioObject;
 class PhysicsLiveWorldTu15;
 struct SourceObjectDrawCollector;
+struct DamageOwner;
+struct UnitDamageResult;
 struct MultiplayerSourceMotion {
   Vec3 position,velocity,forward;
   float crouch;
   std::uint8_t physical_state;
+  std::uint32_t parent;
+  std::int16_t seat;
+  std::uint32_t action_word;
+  std::uint8_t unit_flags;
+};
+struct MultiplayerSourceVitality {
+  float body{},shield{};
+  DamageFeedbackState feedback;
 };
 // One retained source bank for the native multiplayer object world. Native
 // process/cache bindings own host resources; complete original constructors
@@ -31,19 +48,55 @@ public:
   MultiplayerObjectRuntime(const MultiplayerObjectRuntime &)=delete;
   MultiplayerObjectRuntime &operator=(const MultiplayerObjectRuntime &)=delete;
   SourceRuntimeMemory &memory();
-  std::uint32_t object_pool() const;
-  std::uint32_t player_pool() const;
+  NativeRuntimeAddress object_pool() const;
+  NativeRuntimeAddress player_pool() const;
   bool owns_physics() const;
   std::optional<std::uint32_t> physical_body_count() const;
-  std::uint32_t source_clock() const;
-  std::uint32_t object_body(std::uint32_t object) const;
+  NativeRuntimeAddress source_clock() const;
+  NativeRuntimeAddress object_body(std::uint32_t object) const;
+  // Retained solely for original-ABI consumers and differential probes.
+  std::uint32_t source_object_pool() const;
+  std::uint32_t source_player_pool() const;
+  std::uint32_t source_object_body(std::uint32_t object) const;
+  std::uint32_t object_definition(std::uint32_t object) const;
+  std::uint32_t object_parent(std::uint32_t object) const;
+  Transform object_transform(std::uint32_t object) const;
+  // Complete BA1D0/TU1.5 BC200 resolves the ultimate parent and actual
+  // physics component, including its stationary and absent-body branches.
+  Vec3 object_linear_velocity(std::uint32_t object);
+  SourceVehicleSeatTarget vehicle_seat_target(std::uint32_t unit,std::uint32_t vehicle);
   MultiplayerSourceMotion biped_motion(std::uint32_t object) const;
+  NativeGrenadeAction grenade_action(std::uint32_t unit) const;
+  NativeMeleeAction melee_action(std::uint32_t unit) const;
+  std::vector<MeleeImpact> take_melee_impacts();
+  std::vector<UnitDamageEffectEvent> take_unit_damage_effects();
+  SourceWeaponEffectPresentation request_weapon_effect(const WeaponEffectInput &);
+  void populate_weapon_targeting(std::uint32_t player,std::uint32_t object,
+      std::span<std::byte,0x5c> command);
+  std::optional<ParticleCollisionHit> particle_collision(std::uint32_t flags,Vec3 origin,Vec3 displacement);
+  std::int8_t current_grenade(std::uint32_t unit) const;
+  // Read-only actual type5 bodies whose definitions occur in the retained
+  // globals grenade block. No parallel projectile header or motion is made.
+  std::vector<NativeGrenadeProjectile> grenade_projectiles() const;
+  std::vector<SourceProjectileDetonationTu15> take_projectile_detonations();
+  MultiplayerSourceVitality object_vitality(std::uint32_t object) const;
+  // Deliver the completed native D5DE0/D9110/BCC20 owner state before the
+  // retained source body's fatal/physical consumer. Maxima and flags remain
+  // owned by their constructors and transition routines.
+  void deliver_vitality(std::uint32_t object,const MultiplayerSourceVitality &);
+  // Original request/report/reaction owners followed by DBB90's physical
+  // stage, before attribution and cleanup. Radius geometry and melee aim/
+  // bounds come from this retained world. No contact/velocity is forced.
+  void deliver_direct_impact(std::uint32_t object,std::uint32_t damage,
+      const DamageOwner &,const UnitDamageResult &,Vec3 direction,Vec3 position);
+  void deliver_damage_reaction(std::uint32_t object,std::uint32_t damage,
+      const DamageOwner &,const UnitDamageResult &,const DamageImpactContext &);
   void deliver_command(std::uint32_t player,std::uint32_t object,
                        std::span<const std::byte,0x5c> command);
   // Native presentation owns local views; the source simulation receives the
   // actual allocated player, OS machine identity and selected configuration.
   // Complete14D800/14D600 construct its record, without a parallel player pool.
-  void construct_player(std::uint32_t player,unsigned native_local_user,
+  void construct_player(std::uint32_t player,unsigned native_identity_ordinal,
                         const SourcePlayerConfiguration &);
   void bind_player(std::uint32_t player,std::uint32_t object);
   SourcePlayerEquipmentTu15 initialize_player_equipment(std::uint32_t player,
@@ -62,6 +115,8 @@ public:
                              const Vec3 &forward);
   std::uint32_t create_scenario_object(const ScenarioObject &);
   std::uint32_t create_netgame_object(unsigned row);
+  std::uint32_t netgame_object(unsigned row) const;
+  std::uint32_t child_object(std::uint32_t parent,std::uint32_t definition) const;
   void destroy_object(std::uint32_t full_datum);
   // Actual source clock increment followed by the five complete object/world
   // phases. Retains the same bank; does not supply contacts or death admission.
@@ -80,6 +135,8 @@ public:
       unsigned local_players,bool view_modifier,float geometry_metric,float lighting_metric);
   std::optional<DeathCameraTarget> camera_target(std::uint32_t object) const;
   SourceObserverWorldServices observer_world_services();
+  std::optional<DeathCameraPacket> vehicle_camera_packet(unsigned view,
+      std::uint32_t unit,float yaw,float pitch,std::array<std::uint32_t,7> &);
   SourceObserverWorldFrame observer_world_frame(std::int32_t view,
       std::uint32_t current_unit,std::uint16_t player_flags,
       const DeathCameraSavedClusters &) const;
@@ -92,5 +149,7 @@ private:
   struct Impl;
   std::unique_ptr<Impl> impl_;
   std::unique_ptr<PhysicsLiveWorldTu15> tu15_;
+  struct DeathReport {std::int16_t damage_class=-1;Vec3 direction;std::uint32_t force{};};
+  std::map<std::uint32_t,DeathReport> death_reports_;
 };
 } // namespace halo2

@@ -19,6 +19,11 @@ struct SourceBspRangeGeometry {
 // The returned accelerator pointer requires this geometry to outlive the call.
 SourceCullLinearGeometry source_bsp_sphere_cull_geometry(const SourceBspRangeGeometry&);
 SourceBspRangeGeometry source_bsp_range_geometry(const MenuWorldSourceSection &);
+// The same resident part/subpart/index ABI for an actual selected model
+// section. Model pose/palette and vertex binding remain separate owners.
+SourceBspRangeGeometry source_model_range_geometry(const MenuWorldSourceSection &);
+// Range-only model loader, independent of raw vertex/declaration support.
+SourceBspRangeGeometry load_source_model_range_geometry(const Cache&,std::uint32_t render_model,unsigned section);
 // Range-only loader does not require a supported vertex format/material pass.
 // All scheduled BSP units consume mask arena space, including units whose raw
 // vertex path remains unsupported by the renderer.

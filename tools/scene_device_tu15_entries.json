@@ -1,0 +1,507 @@
+{
+  "reference": "OG Xbox TU1.5",
+  "xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "entries": {
+    "001179c0": {
+      "count": 472,
+      "calls": [
+        753232,
+        765280,
+        770032,
+        774272,
+        776784,
+        782416,
+        1098384,
+        1099216,
+        1147376,
+        1147728,
+        1894608,
+        1895376,
+        1943376
+      ],
+      "indirect_call_sites": []
+    },
+    "00118350": {
+      "count": 54,
+      "calls": [
+        1937536,
+        1937664
+      ],
+      "indirect_call_sites": [
+        1147820
+      ]
+    },
+    "001d9100": {
+      "count": 47,
+      "calls": [
+        3234960,
+        3234992
+      ],
+      "indirect_call_sites": [
+        1937793
+      ]
+    },
+    "00315cb0": {
+      "count": 18,
+      "calls": [
+        3237328,
+        3239232
+      ],
+      "indirect_call_sites": []
+    },
+    "00316d40": {
+      "count": 45,
+      "calls": [
+        3027536,
+        3286624
+      ],
+      "indirect_call_sites": []
+    },
+    "00322660": {
+      "count": 98,
+      "calls": [],
+      "indirect_call_sites": [
+        3286655,
+        3286770
+      ]
+    },
+    "002e3250": {
+      "count": 46,
+      "calls": [
+        3026480
+      ],
+      "indirect_call_sites": [
+        3027579,
+        3027632
+      ]
+    },
+    "002e2e30": {
+      "count": 14,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "003165d0": {
+      "count": 57,
+      "calls": [
+        2634832
+      ],
+      "indirect_call_sites": [
+        3237476
+      ]
+    },
+    "00283450": {
+      "count": 37,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "00315c90": {
+      "count": 10,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001d9080": {
+      "count": 41,
+      "calls": [
+        3234960,
+        3234992
+      ],
+      "indirect_call_sites": [
+        1937651
+      ]
+    },
+    "000bda50": {
+      "count": 30,
+      "calls": [
+        758672,
+        774064,
+        780256
+      ],
+      "indirect_call_sites": []
+    },
+    "000be7e0": {
+      "count": 33,
+      "calls": [
+        758672,
+        780256
+      ],
+      "indirect_call_sites": []
+    },
+    "000b9390": {
+      "count": 26,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "000bcfb0": {
+      "count": 13,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001181f0": {
+      "count": 109,
+      "calls": [
+        1937104,
+        1937536,
+        1937664,
+        1937808,
+        2174064
+      ],
+      "indirect_call_sites": [
+        1147500
+      ]
+    },
+    "001d9190": {
+      "count": 71,
+      "calls": [
+        3031888,
+        3032176,
+        3032656,
+        3037424
+      ],
+      "indirect_call_sites": []
+    },
+    "002e58f0": {
+      "count": 115,
+      "calls": [
+        1970192,
+        3036832,
+        3037024,
+        3037200,
+        3234960,
+        3234992,
+        3329240
+      ],
+      "indirect_call_sites": [
+        3037549,
+        3037766
+      ]
+    },
+    "002e5760": {
+      "count": 45,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001e1010": {
+      "count": 31,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "002e56a0": {
+      "count": 57,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "002e4650": {
+      "count": 20,
+      "calls": [
+        3032272
+      ],
+      "indirect_call_sites": []
+    },
+    "002e44d0": {
+      "count": 40,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "0010c290": {
+      "count": 113,
+      "calls": [
+        753232,
+        758672,
+        773856,
+        1100336
+      ],
+      "indirect_call_sites": []
+    },
+    "000bcee0": {
+      "count": 58,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "0010ca30": {
+      "count": 47,
+      "calls": [
+        1545744,
+        1621584
+      ],
+      "indirect_call_sites": []
+    },
+    "000bad60": {
+      "count": 118,
+      "calls": [
+        765136,
+        1970608,
+        1970688
+      ],
+      "indirect_call_sites": []
+    },
+    "001e1200": {
+      "count": 106,
+      "calls": [
+        1329424,
+        1332576
+      ],
+      "indirect_call_sites": []
+    },
+    "00145560": {
+      "count": 69,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "00144910": {
+      "count": 77,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001e11b0": {
+      "count": 28,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "000bacd0": {
+      "count": 44,
+      "calls": [
+        1033488
+      ],
+      "indirect_call_sites": []
+    },
+    "000bd080": {
+      "count": 246,
+      "calls": [
+        764272,
+        764480,
+        1364192
+      ],
+      "indirect_call_sites": []
+    },
+    "000baa40": {
+      "count": 36,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001cebd0": {
+      "count": 38,
+      "calls": [
+        1894736,
+        1978704
+      ],
+      "indirect_call_sites": []
+    },
+    "0010c5d0": {
+      "count": 31,
+      "calls": [
+        758672,
+        1099216
+      ],
+      "indirect_call_sites": []
+    },
+    "001ce8d0": {
+      "count": 33,
+      "calls": [
+        1978704
+      ],
+      "indirect_call_sites": []
+    },
+    "001da750": {
+      "count": 982,
+      "calls": [
+        148848,
+        199632,
+        726992,
+        765280,
+        770448,
+        773616,
+        922752,
+        1161520,
+        1179984,
+        1329760,
+        1332864,
+        1333680,
+        1936272,
+        1936512,
+        1936768,
+        1936992,
+        1937664,
+        1938112,
+        1942832,
+        3234960
+      ],
+      "indirect_call_sites": [
+        1947341,
+        1947357
+      ]
+    },
+    "000b17d0": {
+      "count": 34,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001da530": {
+      "count": 134,
+      "calls": [
+        3657192
+      ],
+      "indirect_call_sites": []
+    },
+    "0037cde8": {
+      "count": 9,
+      "calls": [
+        3657228
+      ],
+      "indirect_call_sites": []
+    },
+    "001d8e60": {
+      "count": 25,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "00120150": {
+      "count": 40,
+      "calls": [
+        199632
+      ],
+      "indirect_call_sites": []
+    },
+    "00144a60": {
+      "count": 111,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001459b0": {
+      "count": 105,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "00145680": {
+      "count": 34,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001d8b90": {
+      "count": 55,
+      "calls": [
+        3032656
+      ],
+      "indirect_call_sites": []
+    },
+    "001d92c0": {
+      "count": 42,
+      "calls": [
+        1937536
+      ],
+      "indirect_call_sites": []
+    },
+    "00024570": {
+      "count": 16,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001d8c80": {
+      "count": 24,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "001d8d80": {
+      "count": 24,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "0011b930": {
+      "count": 8,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "000e1480": {
+      "count": 8,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "000bc190": {
+      "count": 36,
+      "calls": [
+        1330160,
+        1332576
+      ],
+      "indirect_call_sites": []
+    },
+    "00144bf0": {
+      "count": 53,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "000bcdf0": {
+      "count": 35,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "00117900": {
+      "count": 56,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "0010b840": {
+      "count": 394,
+      "calls": [
+        755552,
+        782416,
+        1099216,
+        1100336,
+        1101168,
+        1147376,
+        1185936,
+        1894608,
+        1895376
+      ],
+      "indirect_call_sites": []
+    },
+    "00121890": {
+      "count": 139,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "0010cd70": {
+      "count": 155,
+      "calls": [
+        1895376
+      ],
+      "indirect_call_sites": []
+    },
+    "0010b830": {
+      "count": 1,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "00323730": {
+      "count": 86,
+      "calls": [
+        1970192,
+        3037200,
+        3290160,
+        3655120
+      ],
+      "indirect_call_sites": []
+    },
+    "0037c5d0": {
+      "count": 69,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "00323430": {
+      "count": 58,
+      "calls": [],
+      "indirect_call_sites": []
+    },
+    "002f5e60": {
+      "count": 95,
+      "calls": [],
+      "indirect_call_sites": [
+        3104432,
+        3104443,
+        3104477,
+        3104494,
+        3104509,
+        3104537,
+        3104552
+      ]
+    }
+  }
+}

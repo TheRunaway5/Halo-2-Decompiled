@@ -6,6 +6,7 @@
 #include "halo2/multiplayer.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/source_tag_metadata.hpp"
+#include "halo2/model_selection.hpp"
 #include "halo2/source_runtime_cache_tags.hpp"
 #include "halo2/unit_animation_selection_runtime.hpp"
 #include <fstream>
@@ -111,21 +112,33 @@ int main(int argc,char**argv){try{
  check(smg_grip && smg_grip->source_index==(representation==2?213u:201u),
      "SMG body selected the wrong species-specific weapon grip");
  for(float angle:{-1.5707963268f,0.f,1.5707963268f}) {
+ for(float lowered:{0.f,.25f,.5f,.75f,1.f}) {
   auto expected=frontend_model_locals(render_model,*smg_idle,0,{},nullptr,true);
   // The actual standing SMG screens have one +/-90-degree column and row.
   // At grid endpoints no host interpolation can conceal a missing channel.
   const float column=angle<0?0.f:angle>0?2.f:1.f;
-  for(auto activity:{0x0c000026u,0x0e000028u}) {
+  for(auto [activity,weight]:std::array<std::pair<std::uint32_t,float>,2>{{
+      {0x0c000026u,1-lowered},{0x0e000028u,lowered}}}) {
    const auto *screen=smg_pose.action(activity,false,false);check(screen,"Standing SMG aim screen missing");
-   apply_native_player_overlay(render_model,expected,*screen,column+3);
+   if(weight>0)apply_native_player_overlay(render_model,expected,*screen,column+3,weight);
   }
   apply_native_player_overlay(render_model,expected,*smg_grip,0);
-  const auto actual=smg_pose.pose(render_model,*smg_idle,0,0,false,false,false,nullptr,0,nullptr,0,angle);
+  const auto actual=smg_pose.pose(render_model,*smg_idle,0,0,false,false,false,nullptr,0,nullptr,0,angle,lowered);
   for(unsigned n=0;n<expected.size();++n)
    check(actual[n].rotation==expected[n].rotation && actual[n].scale==expected[n].scale &&
        actual[n].translation.x==expected[n].translation.x && actual[n].translation.y==expected[n].translation.y &&
-       actual[n].translation.z==expected[n].translation.z,"SMG stance omitted or reordered its authored aim/grip channels");
+       actual[n].translation.z==expected[n].translation.z,"Raised SMG stance compounded aim_still_up with aim_still_down");
  }
+ }
+ const auto unit=content.player_representations[representation].biped.datum;
+ const auto parent=cache.load_initial_model_selection(unit,0),child=cache.load_initial_model_selection(weapon,0);
+ const auto attachment=select_weapon_attachment(cache.load_weapon_attachment(unit,weapon,0),parent.permutations,child.permutations);
+ const auto neutral=smg_pose.pose(render_model,*smg_idle,0,0,false,false,false);
+ const auto neutral_nodes=pose_model_locals_nodes_world(render_model,{},neutral);
+ const auto marker=compose_transform(neutral_nodes.at(attachment.parent.node),attachment.parent.local);
+ const auto held=source_object_attachment_frame({{}, {1,0,0}, {0,0,1}},marker,attachment.child.local,attachment.named_child);
+ check(held.forward.x>.99f && std::abs(held.forward.y)<.03f && std::abs(held.forward.z)<.08f,
+     "Neutral raised SMG points sideways/down after compounded aim alternatives");
  std::vector<unsigned> legs;
  for(unsigned n=0;n<render_model.bones.size();++n) {
   const auto name=cache.string_id(render_model.bones[n].name);
@@ -253,7 +266,9 @@ int main(int argc,char**argv){try{
     if(verified.emplace(action->source_graph,action->source_index).second)float_tracks+=verify_float_tracks(cache,*action);
     bool changed=false;
     for(unsigned frame=0;frame<action->frame_count;++frame) {
-     const auto posed=body.pose(render_model,*start.clip,0,0,crouch,dual,true,action,float(frame));
+     const bool left=activity==0x0b00053eu || activity==0x0d00053au;
+     const auto posed=body.pose(render_model,*start.clip,0,0,crouch,dual,true,
+         left?nullptr:action,left?0:float(frame),left?action:nullptr,left?float(frame):0);
      changed|=differs(flat,posed);
      for(const auto &bone:posed)check(std::isfinite(bone.scale)&&std::isfinite(bone.rotation[0]),"Action produced nonfinite body pose");
      for(std::size_t n=0;n<render_model.bones.size();++n) {

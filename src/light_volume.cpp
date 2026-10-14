@@ -110,7 +110,7 @@ std::vector<LightVolumeAttachment> Cache::load_light_volume_attachments(
   const auto tag=query_tag({.handle=TagHandle{object}, .require_address=true});
   if(!tag)throw FormatError("missing light-volume object");
   if(tag->group!="scen")throw FormatError("light-volume attachment requires scenery");
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   
   const auto root=metadata_offset(tag->address,0x9c);
   const auto [count,first]=metadata_block(root+0x94, 0x18);
@@ -157,7 +157,7 @@ std::vector<LightVolumeAttachment> Cache::load_light_volume_attachments(
 Texture Cache::load_light_volume_default_bitmap() const {
   const auto globals=query_tag({.group=tag_groups::globals, .require_address=true});
   if(!globals)throw FormatError("missing rasterizer globals for glow");
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   const auto root=metadata_offset(globals->address,0x110);
   if(b.u32(root+0x108)!=1)throw FormatError("unsupported rasterizer globals count");
   const auto raster=metadata_offset(b.u32(root+0x10c),0x1c8);
@@ -166,7 +166,7 @@ Texture Cache::load_light_volume_default_bitmap() const {
 LightVolumeDefinition Cache::load_light_volume(std::uint32_t datum) const {
   const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::light_volume, .require_address=true});
   if(!tag)throw FormatError("missing original light-volume tag");
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   
   const auto curve=[&](std::size_t at) {
     const auto size=b.u32(at);

@@ -50,6 +50,7 @@ class Settings:
     discord_client_id: str = "1558522073272426519"
     peers: list = field(default_factory=list)
     matchmaking_catalog: str = ""
+    peer_stun_urls: tuple = ()
 
     @classmethod
     def environment(cls):
@@ -68,7 +69,8 @@ class Settings:
                    rate_per_minute=int(os.environ.get("H2_MASTER_RATE_PER_MINUTE", "600")),
                    discord_client_id=os.environ.get("H2_DISCORD_CLIENT_ID", "1558522073272426519"),
                    peers=parse(peers_path.read_bytes()) if peers_path.exists() else [],
-                   matchmaking_catalog=os.environ.get("H2_MATCHMAKING_CATALOG", ""))
+                   matchmaking_catalog=os.environ.get("H2_MATCHMAKING_CATALOG", ""),
+                   peer_stun_urls=tuple(filter(None, os.environ.get("H2_PEER_STUN_URLS", "").split(","))))
 
     def validate(self):
         endpoint(self.public_url, self.allow_http)
@@ -80,6 +82,10 @@ class Settings:
                 "Configure direct TLS or an isolated TLS reverse proxy; HTTP is development-only")
         require(not self.admin_token or len(self.admin_token) >= 32, "Admin token must contain at least 32 characters")
         require(type(self.peers) is list and len(self.peers) <= 8, "Maximum eight configured peers")
+        require(len(self.peer_stun_urls) <= 4 and all(isinstance(url, str) and
+                re.fullmatch(r"stun:[A-Za-z0-9.\-]+:[0-9]{1,5}", url) and
+                1 <= int(url.rsplit(":", 1)[1]) <= 65535 for url in self.peer_stun_urls),
+                "Configure at most four UDP STUN servers")
         seen = set()
         for peer in self.peers:
             fields(peer, ("id", "public_key", "url"))
@@ -148,6 +154,8 @@ class Directory:
         self.clan_voice = ClanVoice(self.clans)
         from .parties_http import PartyApi
         self.parties = PartyApi(self)
+        from .carnage_history import HistoryApi
+        self.history = HistoryApi(self)
         from .clan_voice import PartyVoice
         self.party_voice = PartyVoice(self.clans, self.parties)
 
@@ -386,6 +394,7 @@ def create_app(settings, owner_verifier=None, clock=time.time):
         web.post("/v1/federation/sync", directory.sync),
     ])
     app.add_routes(directory.matchmaking.routes())
+    app.add_routes(directory.history.routes())
     from .search_qos import SearchQos
     directory.search_qos = SearchQos(directory.matchmaking)
     app.add_routes(directory.search_qos.routes())

@@ -28,7 +28,7 @@ struct Files {
   }
   ~Files(){std::error_code ignored;std::filesystem::remove_all(path,ignored);}
 };
-std::uint32_t word(const halo2::SourceRuntimeMemory&m,std::uint32_t p) {
+template<class Address> std::uint32_t word(const halo2::SourceRuntimeMemory&m,Address p) {
   const auto b=m.view(p,4);std::uint32_t v=0;
   for(unsigned i=0;i<4;++i)v|=std::to_integer<std::uint32_t>(b[i])<<(8*i);return v;
 }
@@ -168,13 +168,13 @@ int main(int argc,char **argv) {try {
       const halo2::NativeDeathCameraView ordinary{
           halo2::ordinary_unit_eye(state.position,unit.definition.camera_height,
               unit.definition.crouch_camera_height,state.crouch),forward,up,unit.definition.camera_field_of_view};
-      if(camera.update(0,player.source_datum,player.source_flags,false,halo2::tick_seconds,true,true,false,ordinary))
+      if(camera.update(0,player.source_datum,player.source_flags,false,halo2::tick_seconds,false,ordinary))
         throw std::runtime_error("Source live player unexpectedly selected a death view");
       world.source_objects->kill_biped(unit.source_datum);
       const auto dead=halo2::source_death_camera_players(world.source_objects->memory(),world.source_objects->player_pool());
       if(dead.front().current_unit!=halo2::null_datum || dead.front().previous_unit!=unit.source_datum)
         throw std::runtime_error("Original fatal cleanup did not retain and detach its actual corpse");
-      const auto view=camera.update(0,player.source_datum,player.source_flags,false,halo2::tick_seconds,true,true,false,ordinary);
+      const auto view=camera.update(0,player.source_datum,player.source_flags,false,halo2::tick_seconds,false,ordinary);
       if(!view)throw std::runtime_error("Actual fatal cleanup did not select the connected death camera");
       std::cout<<"Actual native death view "<<view->position.x<<' '<<view->position.y<<' '<<view->position.z<<'\n';
     }

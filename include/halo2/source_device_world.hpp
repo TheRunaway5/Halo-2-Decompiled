@@ -26,6 +26,9 @@ struct SourceDeviceWorldDefinition {
     std::optional<SourceMachineDefinition> control_pose;
     std::vector<ObjectAttachmentMarker> control_markers;
     std::vector<std::uint8_t> control_permutations;
+    std::shared_ptr<const RenderModel> door_hierarchy;
+    std::vector<std::uint8_t> door_permutations;
+    std::vector<ObjectAttachmentMarker> one_sided_markers;
 };
 std::shared_ptr<const SourceDeviceWorldDefinition> load_source_device_world_definition(
     const Cache &,const ScenarioObject &);
@@ -35,6 +38,7 @@ struct SourceDeviceWorldOwner {
     std::uint64_t created_tick{};
     SourceDeviceMotionState motion;
     std::uint32_t control_flags{};
+    SourceMachineDoorState door;
     SourceDeviceGroup private_power,private_position;
     Transform root;
     bool bsp_hidden{},visible=true;
@@ -77,6 +81,15 @@ public:
     explicit SourceDeviceWorld(const LevelContent &);
     bool synchronize(const SceneObjects &);
     void step(float dt);
+    struct DoorWorld {
+        std::uint32_t tick{};
+        bool editor{};
+        std::function<std::span<const SourceMachineDoorUnit>(std::uint32_t machine,
+            Vec3 center,float radius)> query;
+    };
+    // Live worlds supply their current unit query and game clock. The scalar
+    // overload retains the existing common-device/gear-only fixture seam.
+    void step(float dt,const DoorWorld &);
     bool synchronize_collision();
     std::span<const CollisionTriangle> triangles()const{return triangles_;}
     const SourceDeviceWorldOwner *find(std::uint32_t)const;
@@ -86,6 +99,16 @@ public:
     const std::map<std::uint32_t,SourceDeviceWorldOwner> &owners()const{return owners_;}
     SourceDeviceWorldSnapshot snapshot(std::uint64_t tick)const;
     void apply_snapshot(const SourceDeviceWorldSnapshot &);
+    // Complete native device owner, separate from a display/replica snapshot.
+    // A match continuation must validate all other owners and its completed
+    // tick before publishing this restored authority.
+    struct AuthorityCheckpoint {
+        std::uint32_t version=1;
+        SourceDeviceWorldSnapshot state;
+        std::vector<SourceDeviceWorldEvent> pending_events;
+    };
+    AuthorityCheckpoint authority_checkpoint(std::uint64_t tick)const;
+    void restore_authority(const AuthorityCheckpoint &,std::uint64_t completed_tick);
     bool replicated()const{return replica_tick_.has_value();}
     std::optional<std::uint64_t> replica_tick()const{return replica_tick_;}
     // Geometry/marker/unit-center inputs remain actual caller services. Group
@@ -111,5 +134,6 @@ private:
     std::vector<CollisionTriangle> triangles_;
     std::optional<std::uint64_t> replica_tick_;
     SourceDeviceGroup &group(SourceDeviceWorldOwner &,bool power);
+    void step_impl(float dt,const DoorWorld *);
 };
 }

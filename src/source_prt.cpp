@@ -31,13 +31,13 @@ std::optional<std::vector<SourcePrtVertex>> source_prt_vertex_stream(const Sourc
 }
 std::optional<std::vector<SourcePrtVertex>> Cache::load_source_prt_vertex_stream(std::uint32_t datum,unsigned lod,unsigned section)const {
     const auto d=load_source_prt_definition(datum);if(!d)return {};
-    const Bytes b(storage_);const auto t=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
+    const Bytes b(cache_bytes());const auto t=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
     const auto p=metadata_offset(t->address,0x2c);const auto sections=TagAddressSpace(b, metadata_magic_).block(p+0x24, 0x5c, 1000000);
     if(section>=sections.count)throw FormatError("PRT section outside render model");
     return source_prt_vertex_stream(*d,lod,section,b.u16(sections.offset+section*0x5c+4));
 }
 std::vector<std::uint8_t> Cache::source_prt_section_nodes(std::uint32_t datum,unsigned section)const {
-    const Bytes b(storage_);const auto t=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
+    const Bytes b(cache_bytes());const auto t=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
     if(!t)throw FormatError("PRT section render model missing");
     const auto p=metadata_offset(t->address,0x4c);const auto sections=TagAddressSpace(b, metadata_magic_).block(p+0x24, 0x5c, 1000000);
     if(section>=sections.count)throw FormatError("PRT node map section outside model");
@@ -214,7 +214,7 @@ std::vector<SourcePrtSectionBank> source_prt_section_banks(const Cache&cache,con
     return result;
 }
 std::optional<SourcePrtDefinition> Cache::load_source_prt_definition(std::uint32_t datum)const {
-    const Bytes b(storage_);const auto t=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
+    const Bytes b(cache_bytes());const auto t=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
     if(!t)throw FormatError("source PRT render model missing");
     const auto root=metadata_offset(t->address,0x7c);const auto bank=TagAddressSpace(b, metadata_magic_).block(root+0x74, 0x58, 1000000);
     if(!bank.count)return {};
@@ -241,7 +241,7 @@ std::optional<SourcePrtDefinition> Cache::load_source_prt_definition(std::uint32
 }
 SourcePrtLighting Cache::load_source_prt_lighting(std::size_t index)const {
     if(index>=bsps_.size())throw FormatError("PRT lighting BSP outside scenario");
-    const auto& bsp=bsps_[index];const Bytes b(Bytes(storage_).slice(bsp.file_offset,bsp.size));
+    const auto& bsp=bsps_[index];const Bytes b(Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size));
     SourcePrtLighting result;const auto light=b.u32(8);
     if(light==0 || light==0xffffffffu)return result;
     if(light<bsp.memory_address)throw FormatError("PRT lighting header precedes BSP");

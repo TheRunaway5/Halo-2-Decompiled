@@ -64,7 +64,7 @@ std::vector<BonePose> sample_frontend_model_primary(const RenderModel&model,
   return out;
 }
 FrontendModelPrimary Cache::load_frontend_model_primary_animation(std::uint32_t graph,unsigned index)const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto tag=query_tag({.handle=TagHandle{graph}, .group=tag_groups::model_animation_graph, .require_address=true});
   if(!tag)throw FormatError("source primary graph missing");
   const auto root=metadata_offset(tag->address,0xbc);

@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="12" height="136" viewBox="0 0 3 34" version="1.1">
+  <title>Vista ui\list_skins\game_browser\bkd_spacer page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="spacer-fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#001326" stop-opacity="0.18" />
+      <stop offset="1" stop-color="#001326" stop-opacity="0.52" />
+    </linearGradient>
+  </defs>
+  <rect width="3" height="34" fill="url(#spacer-fade)" />
+</svg>

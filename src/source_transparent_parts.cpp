@@ -67,7 +67,7 @@ SourceTransparentPartGeometry source_transparent_model_geometry(
 }
 SourceTransparentBspParts Cache::load_source_transparent_bsp_parts(std::size_t index) const {
     if(index>=bsps_.size())throw FormatError("source transparent BSP index outside scenario");
-    const auto &bsp=bsps_[index];const Bytes file(storage_);const Bytes m(file.slice(bsp.file_offset,bsp.size));
+    const auto &bsp=bsps_[index];const Bytes file(cache_bytes());const Bytes m(file.slice(bsp.file_offset,bsp.size));
     
     
     const auto [material_count,materials]=TagAddressSpace(m, bsp.memory_address).block(16+0xa4, 32, 65535);
@@ -124,7 +124,7 @@ SourceTransparentPart Cache::load_source_transparent_shader(std::uint32_t datum)
     SourceTransparentPart out;out.shader=datum;
     const auto found=query_tag({.handle=TagHandle{datum}, .require_address=true});
     if(!found || found->group!="shad")throw FormatError("source transparent shader is not an authored ordinary shader");
-    const Bytes m(storage_);const auto root=metadata_offset(found->address,0x3e);
+    const Bytes m(cache_bytes());const auto root=metadata_offset(found->address,0x3e);
     out.shader_priority_flags=m.u16(root+0x16);out.shader_command_flags=m.u16(root+0x3c);
     
     const auto [definitions,definition]=metadata_block(root+32, 124, 64);
@@ -142,7 +142,7 @@ SourceTransparentModelParts Cache::load_source_transparent_model_parts(
     std::uint32_t datum,std::span<const unsigned> collector) const {
     const auto mode=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model, .require_address=true});
     if(!mode)throw FormatError("source transparent parts require actual render-model datum");
-    const Bytes m(storage_);const auto root=metadata_offset(mode->address,0x68);
+    const Bytes m(cache_bytes());const auto root=metadata_offset(mode->address,0x68);
     
     const auto [sections,section]=metadata_block(root+0x24, 0x5c, 512);const auto [material_count,materials]=metadata_block(root+0x60, 32, 65535);
     SourceTransparentModelParts out;out.render_model=datum;out.model_flags=m.u16(root+4);
@@ -189,7 +189,7 @@ std::vector<std::int16_t> Cache::load_source_transparent_model_sort_orders(
     if(definition.model==0xffffffffu)return {};
     const auto hlmt=query_tag({.handle=TagHandle{definition.model}, .group=tag_groups::model, .require_address=true});
     if(!hlmt)throw FormatError("source transparent sort model missing");
-    const Bytes b(storage_);const auto root=metadata_offset(hlmt->address,0x78);
+    const Bytes b(cache_bytes());const auto root=metadata_offset(hlmt->address,0x78);
     const unsigned regions=b.u32(root+0x70);if(regions>16)throw FormatError("source transparent sort region bank exceeds source");
     std::vector<std::int16_t> out(regions,0);if(variant==-1)return out;
     const auto count=b.u32(root+0x50);if(variant<0 || std::uint32_t(variant)>=count)throw FormatError("source transparent actual variant outside model");

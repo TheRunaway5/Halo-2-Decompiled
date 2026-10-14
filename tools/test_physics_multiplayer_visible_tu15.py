@@ -6,6 +6,9 @@ recorded state. Red/unavailable features remain nonzero results in the report.
 The pinned English TU1.5 executable is mandatory, including for LAN authority.
 """
 import argparse
+import ctypes
+import ctypes.util
+import fcntl
 import hashlib
 import json
 import os
@@ -13,6 +16,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import tempfile
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,10 +28,42 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
+def capture_window_state(display_name, window):
+    class Attributes(ctypes.Structure):
+        _fields_ = [(name, ctypes.c_int) for name in ('x','y','width','height','border','depth')] + [
+            ('visual',ctypes.c_void_p),('root',ctypes.c_ulong),
+            *[(name,ctypes.c_int) for name in ('window_class','bit_gravity','win_gravity','backing_store')],
+            ('backing_planes',ctypes.c_ulong),('backing_pixel',ctypes.c_ulong),
+            ('save_under',ctypes.c_int),('colormap',ctypes.c_ulong),
+            ('map_installed',ctypes.c_int),('map_state',ctypes.c_int),
+            ('all_event_masks',ctypes.c_long),('your_event_mask',ctypes.c_long),
+            ('do_not_propagate_mask',ctypes.c_long),('override_redirect',ctypes.c_int),
+            ('screen',ctypes.c_void_p)]
+    library=ctypes.CDLL(ctypes.util.find_library('X11'))
+    library.XOpenDisplay.argtypes=[ctypes.c_char_p];library.XOpenDisplay.restype=ctypes.c_void_p
+    library.XGetWindowAttributes.argtypes=[ctypes.c_void_p,ctypes.c_ulong,ctypes.POINTER(Attributes)]
+    library.XTranslateCoordinates.argtypes=[ctypes.c_void_p,ctypes.c_ulong,ctypes.c_ulong,
+        ctypes.c_int,ctypes.c_int,ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_int),ctypes.POINTER(ctypes.c_ulong)]
+    library.XCloseDisplay.argtypes=[ctypes.c_void_p]
+    display=library.XOpenDisplay(display_name.encode())
+    if not display:raise RuntimeError('Could not inspect the actual recording display')
+    try:
+        attributes=Attributes();root=Attributes()
+        if not library.XGetWindowAttributes(display,window,ctypes.byref(attributes)):
+            raise RuntimeError('Could not inspect the actual recording window')
+        library.XGetWindowAttributes(display,attributes.root,ctypes.byref(root))
+        x=ctypes.c_int();y=ctypes.c_int();child=ctypes.c_ulong()
+        library.XTranslateCoordinates(display,window,attributes.root,0,0,ctypes.byref(x),ctypes.byref(y),ctypes.byref(child))
+        return dict(window=window,x=x.value,y=y.value,width=attributes.width,height=attributes.height,
+            map_state=attributes.map_state,window_class=attributes.window_class,depth=attributes.depth,
+            root_width=root.width,root_height=root.height)
+    finally:library.XCloseDisplay(display)
+
+
 def run(args, scenario):
     out = args.output / scenario
     out.mkdir(parents=True, exist_ok=False)
-    map_path = args.maps / ("coagulation.map" if scenario == "vehicle" else "lockout.map")
+    map_path = args.maps / ("coagulation.map" if scenario in ("vehicle", "lan-vehicle") else "lockout.map")
     command = [str(args.runtime), str(map_path), str(args.maps), str(args.xbe),
                str(args.ui), str(out), scenario]
     env = os.environ.copy()
@@ -37,9 +73,17 @@ def run(args, scenario):
     window = None
     record_command = None
     record_log = None
+    runtime_before = digest(args.runtime)
+    runtime_executed = runtime_before
     with (out / "runtime.log").open("w") as log:
         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT, text=True, bufsize=1)
+        try:
+            # A shared build can replace the path while this process runs.
+            # Linux retains the actually executed inode through /proc.
+            runtime_executed = digest(Path(f"/proc/{process.pid}/exe"))
+        except FileNotFoundError:
+            pass  # A startup failure can exit before its executable is read.
         try:
             for line in process.stdout:
                 log.write(line)
@@ -48,6 +92,7 @@ def run(args, scenario):
                 if match:
                     window = int(match[1])
                 if line.startswith("acceptance_first_frame=") and window and args.record:
+                    (out / "capture-window.json").write_text(json.dumps(capture_window_state(env["DISPLAY"],window),indent=2)+"\n")
                     record_command = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "warning",
                         "-f", "x11grab", "-framerate", "30", "-window_id", str(window),
                         "-draw_mouse", "0", "-i", env["DISPLAY"], "-an", "-c:v", "libx264",
@@ -69,20 +114,31 @@ def run(args, scenario):
                     record.send_signal(2)
                 record.wait(timeout=10)
                 record_log.close()
+    runtime_after = digest(args.runtime)
     manifest = {"command": command, "exit_code": exit_code,
                 "elapsed_seconds": time.monotonic() - started,
-                "runtime_sha256": digest(args.runtime), "tu15_xbe_sha256": digest(args.xbe),
+                "runtime_sha256": runtime_executed,
+                "runtime_sha256_before": runtime_before, "runtime_sha256_after": runtime_after,
+                "runtime_stable": runtime_before == runtime_executed == runtime_after,
+                "native_display": env.get("DISPLAY"),
+                "visible_mirror_display": args.visible_mirror_display,
+                "tu15_xbe_sha256": digest(args.xbe),
                 "map_sha256": digest(map_path), "visible_x11_window": window,
                 "record_command": record_command, "record_exit_code": record.returncode if record else None}
+    # Preserve the actual native result even if the window closed before the
+    # recorder obtained its first frame or a later media inspection fails.
+    (out / "execution.json").write_text(json.dumps(manifest, indent=2) + "\n")
     ppm = out / "frame.ppm"
     if ppm.exists():
         # Lossless format conversion for the app preview; no pixel edits.
-        from PIL import Image
-        with Image.open(ppm) as original:
-            original.save(out / "frame.png")
-            with Image.open(out / "frame.png") as converted:
-                if original.tobytes() != converted.tobytes():
-                    raise RuntimeError("Screenshot conversion changed pixels")
+        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(ppm),
+            "-frames:v", "1", str(out / "frame.png")], check=True)
+        def pixels(path):
+            return subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(path),
+                "-frames:v", "1", "-pix_fmt", "rgb24", "-f", "rawvideo", "pipe:1"],
+                capture_output=True, check=True).stdout
+        if pixels(ppm) != pixels(out / "frame.png"):
+            raise RuntimeError("Screenshot conversion changed pixels")
     video = out / "window.mp4"
     if video.exists():
         probe = subprocess.run(["ffprobe", "-v", "error", "-count_frames", "-select_streams", "v:0",
@@ -92,12 +148,22 @@ def run(args, scenario):
         manifest["video_sha256"] = digest(video)
         streams = manifest["video_probe"]["streams"]
         if not streams or int(streams[0].get("nb_read_frames", 0)) == 0:
-            raise RuntimeError(f"No real window frames saved: {out}")
-        # A native frame from the recording, without overlays or interpolation.
-        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(video),
-            "-vf", "select=eq(n\\,60)", "-frames:v", "1", str(out / "video-sample.png")], check=True)
+            manifest["recording_error"] = "No real window frames saved"
+        else:
+            # A native frame from the recording, without overlays or interpolation.
+            sample_index=min(60,int(streams[0]["nb_read_frames"])-1)
+            manifest["video_sample_frame"]=sample_index
+            subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-i", str(video),
+                "-vf", f"select=eq(n\\,{sample_index})", "-frames:v", "1", str(out / "video-sample.png")], check=True)
     elif args.record:
         manifest["recording_error"] = "No video saved from the visible native window"
+    if manifest.get("recording_error") and exit_code == 0:
+        manifest["native_exit_code"] = exit_code
+        exit_code = manifest["exit_code"] = 1
+    if not manifest["runtime_stable"] and exit_code == 0:
+        manifest["runtime_stability_error"] = "Runtime replaced during visible acceptance; rerun the built artifact"
+        manifest["native_exit_code"] = exit_code
+        exit_code = manifest["exit_code"] = 1
     (out / "execution.json").write_text(json.dumps(manifest, indent=2) + "\n")
     return {"scenario": scenario, "exit_code": exit_code,
             "report": str(out / "report.json"), "execution": str(out / "execution.json")}
@@ -110,19 +176,26 @@ def main():
     parser.add_argument("--maps", type=Path, default=ROOT / "assets/disc/maps")
     parser.add_argument("--xbe", type=Path, required=True)
     parser.add_argument("--ui", type=Path, required=True)
-    parser.add_argument("--scenario", action="append", choices=["movement", "objects", "lift", "vehicle", "lan-movement"])
+    parser.add_argument("--scenario", action="append", choices=["movement", "objects", "lift", "vehicle", "lan-movement", "lan-lift", "lan-vehicle", "lan-objects"])
     parser.add_argument("--record", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--visible-mirror-display", help="Desktop displaying an unaltered live mirror when input is isolated")
     args = parser.parse_args()
     for name in ("runtime", "output", "maps", "xbe", "ui"):
         setattr(args, name, getattr(args, name).resolve())
     if digest(args.xbe) != TU15_SHA:
         raise SystemExit("Acceptance requires the pinned English TU1.5 executable")
     if not os.environ.get("DISPLAY"):
-        raise SystemExit("A visible desktop DISPLAY is required; do not run this proof under Xvfb")
+        raise SystemExit("A native DISPLAY is required; visible proof needs a desktop window or an unaltered live desktop mirror")
     if args.record and (not shutil.which("ffmpeg") or not shutil.which("ffprobe")):
         raise SystemExit("ffmpeg and ffprobe are required to retain visible-window evidence")
     args.output.mkdir(parents=True, exist_ok=True)
-    results = [run(args, name) for name in (args.scenario or ["movement", "objects", "lift", "vehicle", "lan-movement"])]
+    # Independent live suites must not inject input into the same X11 display
+    # together. Hold this lock through native shutdown and recording cleanup.
+    display_key=hashlib.sha256(os.environ["DISPLAY"].encode()).hexdigest()[:16]
+    lock_path=Path(tempfile.gettempdir())/f"halo2-tu15-visible-{os.getuid()}-{display_key}.lock"
+    with lock_path.open("a") as display_lock:
+        fcntl.flock(display_lock,fcntl.LOCK_EX)
+        results = [run(args, name) for name in (args.scenario or ["movement", "objects", "lift", "vehicle", "lan-movement"])]
     (args.output / "suite.json").write_text(json.dumps({"target": "English TU1.5", "results": results,
         "full_physics_parity": False}, indent=2) + "\n")
     raise SystemExit(0 if all(row["exit_code"] == 0 for row in results) else 2)

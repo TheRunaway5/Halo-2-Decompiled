@@ -10,11 +10,13 @@
 namespace halo2 {
 namespace {
 void apply_sampled_overlay(const RenderModel &model,std::span<BonePose> locals,
-    const AnimationClip &clip,std::span<const BonePose> sampled,float weight) {
+    const AnimationClip &clip,std::span<const BonePose> sampled,float weight,
+    std::span<const std::uint32_t> admitted_nodes={},bool masked=false) {
   if(locals.size()!=model.bones.size() || (clip.animation_type!=1&&clip.animation_type!=2) ||
       !std::isfinite(weight) || weight<0 || weight>1 || (clip.animation_type==2&&weight!=1))
     throw FormatError("Invalid native body overlay");
   for(std::size_t n=0;n<model.bones.size();++n) {
+    if(masked && std::find(admitted_nodes.begin(),admitted_nodes.end(),model.bones[n].name)==admitted_nodes.end())continue;
     const auto found=std::find(clip.nodes.begin(),clip.nodes.end(),model.bones[n].name);
     if(found==clip.nodes.end())continue;
     const auto components=clip.components.at(std::size_t(found-clip.nodes.begin()));
@@ -44,6 +46,22 @@ void apply_sampled_overlay(const RenderModel &model,std::span<BonePose> locals,
         a.scale*(weight==1?b.scale:(b.scale-1.f)*weight+1.f):b.scale;
   }
 }
+// Literal114BD0 state switch. Full-body specials/ready/throws that do not
+// select an aim activity must retain their authored torso and weapon pose.
+std::optional<bool> aim_moving(std::uint32_t activity) {
+  switch(activity) {
+  case 0x0400000cu:case 0x0400004au:case 0x05000049u:
+  case 0x0700005cu:case 0x0700005du:case 0x0800001eu:
+  case 0x0900000eu:case 0x0900001fu:case 0x09000020u:case 0x090006b2u:
+  case 0x0a00000fu:case 0x0b000059u:case 0x0b00005au:
+  case 0x0c000058u:case 0x0c00005bu:return false;
+  case 0x09000015u:case 0x09000016u:case 0x0a000014u:case 0x0a000017u:
+  case 0x0a000019u:case 0x0a00001au:case 0x0a00002du:
+  case 0x0b000018u:case 0x0b00001bu:case 0x0b00002eu:
+  case 0x0c000033u:case 0x0c000034u:case 0x0d000032u:case 0x0d000035u:return true;
+  default:return {};
+  }
+}
 }
 void apply_native_player_overlay(const RenderModel &model,std::span<BonePose> locals,
     const AnimationClip &clip,float frame,float weight) {
@@ -53,7 +71,14 @@ void apply_native_player_overlay(const RenderModel &model,std::span<BonePose> lo
   apply_sampled_overlay(model,locals,clip,sampled,weight);
 }
 NativePlayerAnimation::NativePlayerAnimation(const Cache &cache,std::uint32_t graph,std::uint32_t weapon)
-    :cache_(cache),graph_(graph),identifiers_(cache.load_weapon_animation_identifiers(weapon)){}
+    :cache_(cache),graph_(graph),identifiers_(cache.load_weapon_animation_identifiers(weapon)) {
+  const auto tag=cache.load_source_tag_metadata(graph);
+  const Bytes root(tag.bytes_at(tag.source_address(),0x9c));
+  if(root.u32(0xc)>256)throw FormatError("Body skeleton exceeds original hand masks");
+  for(unsigned hand=0;hand<2;++hand)for(unsigned n=0;n<root.u32(0xc);++n)
+    if(root.u32((hand?0x5c:0x7c)+(n/32)*4)&(1u<<(n%32)))
+      hand_nodes_[hand].push_back(Bytes(tag.bytes_at(root.u32(0x10)+n*32,4)).u32(0));
+}
 const AnimationClip *NativePlayerAnimation::action(std::uint32_t activity,bool crouch,bool dual) {
   const std::array key{crouch?0x06000087u:0x06000086u,dual?0x0400054bu:identifiers_[0],activity};
   auto [it,inserted]=clips_.try_emplace(key);
@@ -70,14 +95,41 @@ const AnimationClip *NativePlayerAnimation::action(std::uint32_t activity,bool c
 }
 std::vector<BonePose> NativePlayerAnimation::pose(const RenderModel &model,
     const AnimationClip &primary,float frame,float pitch,bool crouch,bool dual,bool moving,
-    const AnimationClip *secondary,float secondary_frame,const AnimationClip *offhand,float offhand_frame,float relative_yaw) {
+    const AnimationClip *secondary,float secondary_frame,const AnimationClip *offhand,float offhand_frame,float relative_yaw,float lowered_weight,
+    NativePlayerAnimation *offhand_animation,std::uint32_t primary_activity,float aim_weight,bool support_hand_grip) {
+  if(!std::isfinite(lowered_weight) || lowered_weight<0 || lowered_weight>1 ||
+      !std::isfinite(aim_weight) || aim_weight<0 || aim_weight>1)
+    throw FormatError("Invalid native weapon lowering weight");
   auto locals=frontend_model_locals(model,primary,
       std::clamp(frame,0.f,float(primary.frame_count-1)),{},nullptr,true);
-  // 114BD0 publishes both standing/moving aim channels. The lower screen
-  // must be composed too: several upper screens contain only pitch motion.
-  // 1DE920 resolves each inherited screen;2800F0 maps its angle grid.
-  const auto aim_screen=[&](std::uint32_t activity) {
-   if(const auto *aim=action(activity,crouch,dual)) {
+  //113830 installs active action channels at113928..113A1A before its
+  // dual offsets, aim screens and final grip. Putting actions last lets a
+  // reload/fire replacement erase the weapon-specific fingers and aiming.
+  const auto hand_overlay=[&](const AnimationClip *clip,float sample,unsigned hand) {
+    if(!clip)return;
+    const auto sampled=frontend_model_locals(model,*clip,std::clamp(sample,0.f,float(clip->frame_count-1)),{},nullptr,true);
+    apply_sampled_overlay(model,locals,*clip,sampled,1,hand_nodes_[hand],true);
+  };
+  if(dual) {
+    hand_overlay(secondary,secondary_frame,0);
+    hand_overlay(offhand,offhand_frame,1);
+  } else if(secondary)apply_native_player_overlay(model,locals,*secondary,secondary_frame);
+  auto &left=offhand_animation?*offhand_animation:*this;
+  //113A22..113AC6 installs each actual held weapon's dual_screen with
+  //400/800. These one-frame offsets precede aim and have no guessed timing.
+  if(dual) {
+    hand_overlay(action(0x0b00054au,crouch,true),0,0);
+    hand_overlay(left.action(0x0b00054au,crouch,true),0,1);
+  }
+  // 114BD0 selects aim_still/move_up and aim_still/move_down. These are
+  // raised/lowered alternatives, not disjoint upper/lower skeleton masks.
+  // 113830 at114028..114056 gives them complementary weights. Applying
+  // both at one compounds torso yaw and lowers the held weapon twice.
+  const auto aim=primary_activity==null_datum?std::optional(moving):aim_moving(primary_activity);
+  const auto *raised=aim?action(*aim?0x0b000027u:0x0c000026u,crouch,dual):nullptr;
+  const auto *lowered=aim?action(*aim?0x0d000029u:0x0e000028u,crouch,dual):nullptr;
+  const auto aim_screen=[&](const AnimationClip *aim,float weight) {
+   if(aim && weight>0) {
     auto [entry,inserted]=screens_.try_emplace(std::pair(aim->source_graph,aim->source_index));
     if(inserted) {
     const auto tag=cache_.load_source_tag_metadata(aim->source_graph);
@@ -101,26 +153,31 @@ std::vector<BonePose> NativePlayerAnimation::pose(const RenderModel &model,
     const float row=float(screen.pitch_negative)+std::clamp(step>=epsilon?pitch/step:0.f,-float(screen.pitch_negative),float(screen.pitch_positive));
     const float column=float(screen.yaw_negative)+std::clamp(yaw_step>=epsilon?relative_yaw/yaw_step:0.f,-float(screen.yaw_negative),float(screen.width-1-screen.yaw_negative));
     // Bilinear screen sampling keeps yaw columns separate from pitch rows.
-    const float low=std::floor(row),high=std::ceil(row),weight=row-low;
+    const float low=std::floor(row),high=std::ceil(row),row_weight=row-low;
     const float stride=float(screen.width);
     auto sampled=frontend_model_locals(model,*aim,column+stride*low,{},nullptr,true);
     const auto high_pose=frontend_model_locals(model,*aim,column+stride*high,{},nullptr,true);
     for(std::size_t i=0;i<sampled.size();++i) {
       auto &a=sampled[i];const auto &b=high_pose[i];
-      for(unsigned k=0;k<4;++k)a.rotation[k]=a.rotation[k]*(1-weight)+b.rotation[k]*weight;
-      a.translation=a.translation*(1-weight)+b.translation*weight;
-      a.scale=a.scale*(1-weight)+b.scale*weight;
+      for(unsigned k=0;k<4;++k)a.rotation[k]=a.rotation[k]*(1-row_weight)+b.rotation[k]*row_weight;
+      a.translation=a.translation*(1-row_weight)+b.translation*row_weight;
+      a.scale=a.scale*(1-row_weight)+b.scale*row_weight;
     }
-    apply_sampled_overlay(model,locals,*aim,sampled,1);
+    apply_sampled_overlay(model,locals,*aim,sampled,weight);
    }
   };
-  aim_screen(moving?0x0b000027u:0x0c000026u);
-  aim_screen(moving?0x0d000029u:0x0e000028u);
-  //113BC0 composes the weapon grip after both aim screens (11447B..114568).
-  if(const auto *grip=action(0x0400060bu,crouch,dual))
-    apply_native_player_overlay(model,locals,*grip,0);
-  if(secondary)apply_native_player_overlay(model,locals,*secondary,secondary_frame);
-  if(offhand)apply_native_player_overlay(model,locals,*offhand,offhand_frame);
+  aim_screen(raised,(lowered?1-lowered_weight:1)*aim_weight);
+  aim_screen(lowered,(raised?lowered_weight:1)*aim_weight);
+  //113830 composes the weapon grip after weighted aim (11447B..114568).
+  if(dual) {
+    hand_overlay(action(0x0400060bu,crouch,true),0,0);
+    hand_overlay(left.action(0x0400060bu,crouch,true),0,1);
+  }else if(const auto *grip=action(0x0400060bu,crouch,false)) {
+    //11443E..114493 retains only400 when the80 IK blend has reached zero.
+    // Reload/throw fingers on the released support hand must remain free.
+    if(support_hand_grip)apply_native_player_overlay(model,locals,*grip,0);
+    else hand_overlay(grip,0,0);
+  }
   return locals;
 }
 void blend_native_player_locals(std::span<BonePose> current,std::span<const BonePose> saved,float weight) {

@@ -5,7 +5,7 @@
 
 namespace halo2 {
 ItemPointDefinition Cache::load_item_point_definition(std::uint32_t definition) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   auto root=[&](std::uint32_t id,const char *group,std::size_t size) {
     const auto t=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
     if(!t)throw FormatError("Missing original item-point definition/model");

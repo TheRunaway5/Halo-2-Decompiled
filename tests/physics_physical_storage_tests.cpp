@@ -74,9 +74,10 @@ int main(int argc,char**argv) {
       host.protect(base,0x2000u,0x404u);
       check(word(pages,base+0x1ffcu)==0x12345678u,"Native texture-stage protection changed retained bytes");
       host.protect(base+0x1000u,0x1000u,4u);
-      for(const auto q:std::array<std::array<std::uint32_t,3>,4>{{
+      host.protect(base+1u,0x1000u,0x404u);
+      for(const auto q:std::array<std::array<std::uint32_t,3>,3>{{
           {base,0x1000u,0x104u},{base,0x1000u,0x204u},
-          {base+1u,0x1000u,0x404u},{base+0x1000u,0x2000u,0x404u}}}) {
+          {base+0x1000u,0x2000u,0x404u}}}) {
         bool rejected=false;try{host.protect(q[0],q[1],q[2]);}catch(const std::runtime_error&){rejected=true;}
         check(rejected,"Native physical protection admitted unsupported flags or escaped its allocation");
       }

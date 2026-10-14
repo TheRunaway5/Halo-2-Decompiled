@@ -78,6 +78,9 @@ public:
                        std::uint64_t creation_tick = 0);
   std::uint32_t create_placement(std::size_t placement,std::uint64_t tick=0){return place(placement,tick);}
   void destroy(std::uint32_t handle);
+  // Source deletion has already retired this full generation. Remove only
+  // its presentation and lifetime sidecar; never invoke the destructor again.
+  void observe_source_retirement(std::uint32_t handle);
   void destroy_all();
   void destroy_type_mask(std::uint32_t);
   Object &get(std::uint32_t);
@@ -132,6 +135,7 @@ public:
   ScreenEffects effects() const;
   int camera_time() const;
   bool cinematic{}, scripted{}, player_camera_enabled = true;
+  bool cinematic_outro{}; // Retail HUD/cinematic globals+22; retained until level teardown.
 
 private:
   struct Transition {

@@ -191,9 +191,25 @@ void source_restore_unit_camera_1_1(M &m, std::int32_t view, bool force,
   w(m, o, 0x157172, base + 0x58, 2, mode.mode);
 }
 
+bool source_death_camera_team_restriction_1_1(const M &m, std::uint32_t own) {
+  const auto pool=r(m,0x4f01f4),rows=r(m,pool+0x44);
+  const auto team=r(m,rows+(own&0xffffu)*0x21cu+0xc0,1);
+  const auto high_water=si(r(m,pool+0x38));
+  for(std::int32_t i=0;i<high_water;++i) {
+    if(!(r(m,r(m,pool+0x48)+(std::uint32_t(i)>>5)*4)&(1u<<(i&31))))continue;
+    const auto row=rows+std::uint32_t(i)*r(m,pool+0x24);
+    const auto datum=(r(m,row,2)<<16)|std::uint32_t(i);
+    if(datum!=own && r(m,row+0xc0,1)==team)return true;
+  }
+  return false;
+}
+
+std::uint32_t source_death_camera_fallback_1_1(const M &m) {
+  return source_death_camera_fallback(m,r(m,0x4e78d0));
+}
+
 void source_replace_death_camera_target_1_1(
-    M &m, std::uint32_t camera, const SourceDeathCameraLifecycleServices &s,
-    const O &o) {
+    M &m, std::uint32_t camera, const O &o) {
   const auto game = r(m, 0x4edf18);
   const bool multiplayer = r(m, game + 8) == 2;
   bool team_only;
@@ -201,10 +217,7 @@ void source_replace_death_camera_target_1_1(
     const auto engine = r(m, r(m, 0x4f10b8) + 0xc14);
     team_only = r(m, 0x566084 + engine * 4) && (r(m, game + 0x184, 1) & 1u);
   } else {
-    if (!s.non_multiplayer_team_restriction)
-      throw std::runtime_error(
-          "Required original23FCA0 camera restriction owner unavailable");
-    team_only = s.non_multiplayer_team_restriction(r(m, camera + 0x2c));
+    team_only = source_death_camera_team_restriction_1_1(m,r(m,camera+0x2c));
   }
   const auto players = source_death_camera_players(m, r(m, 0x4f01f4));
   const auto next = source_death_camera_next_player(
@@ -221,8 +234,7 @@ void source_replace_death_camera_target_1_1(
 
 void source_construct_death_camera_1_1(
     M &m, std::uint32_t camera, std::int32_t view, std::int32_t watch_mode,
-    SourcePhysicsFactoryFloatingPoint fp,
-    const SourceDeathCameraLifecycleServices &s, const O &o) {
+    SourcePhysicsFactoryFloatingPoint fp, const O &o) {
   Scope scope(fp);
   const auto observer = view != -1 && r(m, 0x46fb64, 2) != 0xffffu
                             ? 0x4f125cu + std::uint32_t(view) * 0x358u
@@ -270,13 +282,12 @@ void source_construct_death_camera_1_1(
     if (previous != none)
       w(m, o, 0x23fc8a, camera + 0x34, 4, previous);
     else
-      source_replace_death_camera_target_1_1(m, camera, s, o);
+      source_replace_death_camera_target_1_1(m, camera, o);
   }
 }
 
 void source_select_death_camera_1_1(M &m, std::int32_t view, bool reset,
                                     SourcePhysicsFactoryFloatingPoint fp,
-                                    const SourceDeathCameraLifecycleServices &s,
                                     const O &o) {
   Scope scope(fp);
   const auto base = view_base(view);
@@ -298,7 +309,7 @@ void source_select_death_camera_1_1(M &m, std::int32_t view, bool reset,
   source_restore_unit_camera_1_1(m, view, false, o);
   if (dead) {
     if (r(m, base + 12) != 0x23ff50u) {
-      source_construct_death_camera_1_1(m, base + 0x10, view, -1, fp, s, o);
+      source_construct_death_camera_1_1(m, base + 0x10, view, -1, fp, o);
       source_set_camera_mode_1_1(m, view, 0x23ff50, true, o);
     }
   } else if (r(m, base + 12) == 0x23ff50u)

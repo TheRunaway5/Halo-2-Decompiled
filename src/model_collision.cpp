@@ -64,7 +64,7 @@ ModelCollision Cache::load_model_collision(std::uint32_t datum) const {
     if(!it)throw FormatError("Missing original model collision tag");
     return metadata_offset(it->address,it->size);
   };
-  const Bytes b(storage_);const auto model=tag(datum,"hlmt");
+  const Bytes b(cache_bytes());const auto model=tag(datum,"hlmt");
   ModelCollision out;out.model=datum;out.collision=b.u32(model+0xc);
   const auto collision=tag(out.collision,"coll");
   const auto materials=TagAddressSpace(b, metadata_magic_).block(model+0x58, 0x14, 32768),
@@ -104,7 +104,7 @@ ModelCollision Cache::load_model_collision(std::uint32_t datum) const {
 }
 TerrainCollision Cache::load_raw_terrain_collision(std::size_t index) const {
   if(index>=bsps_.size())throw FormatError("Raw terrain BSP index outside scenario");
-  const Bytes data(storage_);const auto &bsp=bsps_[index];
+  const Bytes data(cache_bytes());const auto &bsp=bsps_[index];
   const Bytes meta(data.slice(bsp.file_offset,bsp.size));
   const auto magic=std::int64_t(bsp.memory_address);
   const auto root=TagAddressSpace(meta,magic).offset(meta.u32(4),0x40);

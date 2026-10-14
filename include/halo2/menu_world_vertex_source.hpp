@@ -20,4 +20,7 @@ struct MenuWorldVertexSource {
 // No GPL/LGPL generator/helper implementation is imported. Original source
 // behavior is verification evidence; this is not a clean-room claim.
 MenuWorldVertexSource menu_world_vertex_source(const VertexProgram &);
+// Original local model corridor: v0..6, ARL and c[A0+50..52]. Relative reads
+// retain the whole c50..169 palette dependency; no current pose is selected.
+MenuWorldVertexSource menu_world_skinned_vertex_source(const VertexProgram &);
 } // namespace halo2

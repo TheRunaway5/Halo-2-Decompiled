@@ -130,6 +130,20 @@ void freed_syntax_records() {
     bool rejected=false;try{ScriptVm stale(builder.program,{});}catch(const FormatError&){rejected=true;}
     if(!rejected)throw std::runtime_error("zero-salt syntax reference was accepted");
 }
+void host_failure_context() {
+    ProgramBuilder builder;
+    builder.program.scripts.push_back({"campaign_start",0,4,builder.call("device_set_position_immediate",{})});
+    ScriptVm vm(builder.program,[](const auto &,const auto &)->ScriptValue {
+        throw std::out_of_range("missing device owner");
+    });
+    vm.start_level();vm.tick(0);
+    if(vm.diagnostics().size()!=1 || vm.diagnostics().front()!=
+        "campaign_start: builtin 'device_set_position_immediate': missing device owner" ||
+        vm.command_actor() || vm.running())
+        throw std::runtime_error("host failure lost its campaign builtin context or kept dispatch alive");
+    vm.tick(1);
+    if(vm.diagnostics().size()!=1)throw std::runtime_error("faulted host call ran again");
+}
 }
 int main(int argc,char **argv) {
     if(argc==2 && std::string(argv[1])=="--object-list-probe") {
@@ -184,5 +198,6 @@ int main(int argc,char **argv) {
     begin_random_dispatch();
     object_list_conversions();
     freed_syntax_records();
+    host_failure_context();
     std::cout<<"source HS primary RNG, resumable begin_random and explicit object-list fixtures passed\n";
 }

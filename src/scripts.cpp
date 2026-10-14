@@ -597,7 +597,17 @@ void ScriptVm::update(Thread &thread, std::uint64_t tick) {
       activate(args[0].bits & 65535u, tick + 1);
     } else {
       current_thread_=&thread;current_actor_=thread.actor;
-      try {value=host_(name,args);}catch(...){current_thread_=nullptr;current_actor_.reset();throw;}
+      try {
+        value=host_(name,args);
+      } catch(const std::exception &error) {
+        current_thread_=nullptr;
+        current_actor_.reset();
+        throw FormatError("builtin '"+name+"': "+error.what());
+      } catch(...) {
+        current_thread_=nullptr;
+        current_actor_.reset();
+        throw;
+      }
       current_thread_=nullptr;current_actor_.reset();
     }
     finish(std::move(value));

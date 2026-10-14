@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/weapon_magazine.hpp"
 #include "halo2/player_training.hpp"
 #include "halo2/biped_landing.hpp"
 #include "halo2/cache.hpp"
@@ -12,6 +13,8 @@
 #include "halo2/unit_zoom.hpp"
 #include "halo2/source_control.hpp"
 #include "halo2/native_weapon_projectile.hpp"
+#include "halo2/weapon_barrel_timing.hpp"
+#include "halo2/weapon_energy.hpp"
 #include <unordered_map>
 namespace halo2 {
 struct PropSandboxDefinition;
@@ -118,9 +121,41 @@ struct WeaponDefinition {
   float distribution_angle{}, minimum_error{};
   WeaponErrorDefinition firing_error;
   std::optional<SmgDefinition> smg;
+  struct BarrelTiming {
+    WeaponBarrelTimingDefinition definition;
+    WeaponBarrelTimingConstants constants;
+    float rate_rise{},rate_fall{};
+    std::int16_t index{};
+    float effect_decay{}; // Authored selected barrel+CC, independent of rate fall.
+  };
+  std::optional<BarrelTiming> barrel_timing;
+  struct PutAwayTiming {
+    bool present{};
+    std::int16_t frames{};
+    std::optional<std::int16_t> event4,event0;
+  };
+  // Actual player representation2/3 and single/dual authored08000025 clips.
+  std::array<std::array<PutAwayTiming,2>,2> put_away_timing;
+
+  struct Energy {
+    WeaponHeatDefinition heat;
+    WeaponAgeDefinition age;
+    float heat_per_shot{},spent_per_shot{},one{},random_scale{};
+    float misfire_threshold{},misfire_chance{},detonation_threshold{},detonation_chance{};
+  };
+  std::optional<Energy> energy;
+  std::optional<WeaponMagazineDefinition> magazine;
+  struct BarrelAmmunition {
+    std::uint32_t flags{};
+    std::int16_t magazine{},rounds{},minimum{};
+    WeaponBarrelTimingDefinition timing;
+    WeaponErrorDefinition error;
+    float rate_rise{},rate_fall{},effect_decay{};
+  };
+  std::vector<BarrelAmmunition> barrel_ammunition;
   struct FiringPresentation {float rate_rise{},rate_fall{};};
-  // Closed original Needler107160 normal-effect branch. This does not
-  //replace the separate generic native trigger/reload/projectile owners.
+  // Original107160 fixed-repeat normal-effect bank. Visual/part
+  // admission and complete trigger/reload/projectile ownership are separate.
   std::optional<FiringPresentation> firing_presentation;
   std::optional<SourceNeedlerProjectileDefinition> needler_projectile;
   std::vector<WeaponFiringEffectDefinition> firing_effects;
@@ -145,6 +180,9 @@ struct WeaponDefinition {
   bool dual_wieldable{}; // Authored weap+12C bit22.
   float dual_damage_scale = 1;
   int initial_rounds = -1;
+  std::vector<std::byte> projectile_material_responses;
+  std::uint32_t projectile_flags{};
+  float projectile_dry_damage_range{}; // Original proj+16C -> dry projectile body+170.
 };
 struct CharacterDefinition {
   std::uint32_t datum = null_datum;
@@ -276,6 +314,7 @@ struct LevelContent {
     std::uint32_t armor_a{}, armor_b{};
   };
   std::vector<DamageMaterial> damage_materials;
+  std::vector<std::int16_t> material_parents;
   std::unordered_map<std::uint32_t, WeaponDefinition> weapons;
   std::unordered_map<std::uint32_t, CharacterDefinition> characters;
   std::vector<SquadDefinition> squads;
@@ -320,6 +359,10 @@ struct EncodedSound {
   unsigned sample_rate{}, channels{}, codec{}, samples{};
   std::vector<std::byte> data;
   unsigned sound_class = 54;
+  // Owned compressed chunks retain the MCC decoder's packet boundaries and
+  // state-release flag. `pcm_bytes` is the authored unrounded decoded extent.
+  struct PacketChunk { std::uint32_t bytes{}, pcm_bytes{}; bool reset_after{}; };
+  std::vector<PacketChunk> packet_chunks;
 };
 struct LoopingSound {
   struct Track {

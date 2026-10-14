@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="336" height="336" viewBox="0 0 42 42" version="1.1">
+  <title>Vista ui\screens\game_shell\pregame_lobby\download_progress page 3: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="download-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.3" />
+    </filter>
+    <clipPath id="download-surface">
+      <path d="M7 7 H35 V35 H7 Z M9.5 9 H18.5 V21 H13 L21 29.5 L29 21 H23.5 V9 H32.5 V23 L21 32.5 L9.5 23 Z" clip-rule="evenodd" />
+    </clipPath>
+    <filter id="download-blue-halo" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+  </defs>
+  <g id="download-halo" filter="url(#download-blue-halo)" opacity=".7">
+    <path d="M7 7 H35 V35 H7 Z M9.5 9 H18.5 V21 H13 L21 29.5 L29 21 H23.5 V9 H32.5 V23 L21 32.5 L9.5 23 Z" fill="#2e9aff" fill-rule="evenodd" />
+    <path d="M7 7 H35 V35 H7 Z M9.5 9 H18.5 V21 H13 L21 29.5 L29 21 H23.5 V9 H32.5 V23 L21 32.5 L9.5 23 Z" fill="none" stroke="#82bce9" stroke-width="0.6" opacity="0.48" clip-path="url(#download-surface)" />
+    <path d="M9 25.5 H12 L20 33.5 H22 L30 25.5 H33 V35 H9 Z" fill="white" clip-path="url(#download-surface)" />
+  </g>
+  <g id="download-state" filter="url(#download-edge-softness)">
+    <path id="download-outline" d="M7 7 H35 V35 H7 Z M9.5 9 H18.5 V21 H13 L21 29.5 L29 21 H23.5 V9 H32.5 V23 L21 32.5 L9.5 23 Z" fill="#3382cd" fill-rule="evenodd" />
+    <path d="M7 7 H35 V35 H7 Z M9.5 9 H18.5 V21 H13 L21 29.5 L29 21 H23.5 V9 H32.5 V23 L21 32.5 L9.5 23 Z" fill="none" stroke="#82bce9" stroke-width="0.6" opacity="0.48" clip-path="url(#download-surface)" />
+    <path id="download-white-phase" d="M9 25.5 H12 L20 33.5 H22 L30 25.5 H33 V35 H9 Z" fill="white" clip-path="url(#download-surface)" />
+  </g>
+</svg>

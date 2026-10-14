@@ -69,8 +69,9 @@ NativeWeaponPromptChoice native_weapon_action_prompt(const Unit &u,const LevelCo
   }
   return {result,target?target->position:Vec3{}};
 }
-void native_drop_weapon(Unit &u,int slot,std::vector<NativeWeaponPickup> &items,std::uint32_t tick) {
+void native_drop_weapon(Unit &u,int slot,std::vector<NativeWeaponPickup> &items,std::uint32_t tick,const NativeWeaponDetach &detach) {
   auto *selected=native_inventory_weapon(u,slot);if(!selected)return;
+  if(detach && (u.source_inventory.current[0]==slot || u.source_inventory.current[1]==slot))detach(u,*selected);
   const auto handle=selected->source_datum,definition=selected->definition;
   auto item=std::find_if(items.begin(),items.end(),
       [&](const auto &p){return p.handle==handle;});
@@ -80,7 +81,7 @@ void native_drop_weapon(Unit &u,int slot,std::vector<NativeWeaponPickup> &items,
   item->handle=handle;item->definition=definition;item->weapon=std::move(*selected);
   // Stop held inputs/pending bursts without replenishing either magazine.
   item->weapon->burst_left=0;item->weapon->smg.input_flags=0;
-  item->weapon->smg.hand_timer_registered=false;
+  item->weapon->smg.hand_timer_registered=false;item->weapon->smg.attached=false;
   item->weapon->shader.item_flags&=~9u; // FB120 detach clears active/player-owned bits.
   item->position=u.body.position;
   item->forward=direction(u.yaw);item->up={0,0,1};
@@ -90,11 +91,11 @@ void native_drop_weapon(Unit &u,int slot,std::vector<NativeWeaponPickup> &items,
   if(u.weapon.source_datum==handle)u.weapon={};
   native_inventory_changed(u);
 }
-void native_drop_secondary_weapon(Unit &u,std::vector<NativeWeaponPickup> &items,std::uint32_t tick) {
-  if(u.source_inventory.current[1]>=0)native_drop_weapon(u,u.source_inventory.current[1],items,tick);
+void native_drop_secondary_weapon(Unit &u,std::vector<NativeWeaponPickup> &items,std::uint32_t tick,const NativeWeaponDetach &detach) {
+  if(u.source_inventory.current[1]>=0)native_drop_weapon(u,u.source_inventory.current[1],items,tick,detach);
 }
 NativeWeaponTransfer native_take_weapon(Unit &u,const LevelContent &content,
-    std::vector<NativeWeaponPickup> &items,NativeActionPrompt prompt,bool dual_wield,std::uint32_t tick) {
+    std::vector<NativeWeaponPickup> &items,NativeActionPrompt prompt,bool dual_wield,std::uint32_t tick,const NativeWeaponDetach &detach) {
   NativeWeaponTransfer result{prompt.target.object};
   if(prompt.target.action!=1 && prompt.target.action!=7)return result;
   auto &inventory=u.source_inventory;
@@ -132,7 +133,7 @@ NativeWeaponTransfer native_take_weapon(Unit &u,const LevelContent &content,
         return result;
       }
       const auto target_handle=target->handle;
-      native_drop_secondary_weapon(u,items,tick);
+      native_drop_secondary_weapon(u,items,tick,detach);
       // A drop can reallocate the vector. Reacquire the target by full datum.
       const auto handle=target_handle;
       target=std::find_if(items.begin(),items.end(),[&](const auto &p){return p.handle==handle;});
@@ -143,7 +144,7 @@ NativeWeaponTransfer native_take_weapon(Unit &u,const LevelContent &content,
       if(slot<0 && inventory.slots[n]==null_datum)slot=n;
     if(!dual_wield && !carry_permissions[0]) {
       if(!carry_permissions[2] || inventory.current[0]<0)return result;
-      slot=inventory.current[0];native_drop_weapon(u,slot,items,tick);
+      slot=inventory.current[0];native_drop_weapon(u,slot,items,tick,detach);
       target=std::find_if(items.begin(),items.end(),[&](const auto &p){return p.handle==handle;});
     }
     if(slot<0)return result;
@@ -156,7 +157,7 @@ NativeWeaponTransfer native_take_weapon(Unit &u,const LevelContent &content,
     inventory.slots[slot]=handle;inventory.inactive_weapons[slot]=std::move(*target->weapon);target->weapon.reset();
     inventory.ready_ticks[slot]=0;
     if(dual_wield)inventory.current[1]=inventory.requested[1]=std::int8_t(slot);
-    else native_select_weapon(u,slot,tick);
+    else native_select_weapon(u,slot,tick,detach);
     u.source_player_actions.flags|=dual_wield?0x20u:0x10u;
     result.consumed=result.attached=true;
     native_inventory_changed(u);

@@ -5,8 +5,8 @@ unanimous result arbitration are replacement service policies.
 """
 from dataclasses import dataclass
 
-from .playlist_skill import (POLICY, TABLE_DIGEST, TABLES, MAX_XP, Skill,
-                             pair_delta, divide, raw_rank)
+from .playlist_skill import (TABLES, MAX_XP, Skill,
+                             pair_delta, divide, raw_rank, rank_policy)
 from .protocol import require
 
 
@@ -51,7 +51,7 @@ class ClanSkills:
         """)
 
     def snapshot(self, clan, playlist, configuration):
-        require(configuration == POLICY, "Unknown clan rank configuration", 409)
+        rank_policy(configuration)
         db = self.db
         with db:
             row = db.execute("SELECT raw_rank,xp,configuration FROM clan_playlist_skill WHERE clan=? AND playlist=?",
@@ -66,6 +66,7 @@ class ClanSkills:
         """Enclosed by the immutable match ledger's single transaction."""
         if not room.clan_configuration:
             return
+        tables, digest = rank_policy(room.clan_configuration)
         db, playlist = self.db, room.proposal.playlist
         teams = sorted(room.clans)
         ratings = []
@@ -80,13 +81,13 @@ class ClanSkills:
         for index, team in enumerate(teams):
             clan = room.clans[team]
             previous = room.clan_skills[clan]
-            delta = clan_delta(ratings, index)
+            delta = clan_delta(ratings, index, tables)
             xp = previous.xp + delta
-            rank = raw_rank(xp, previous.raw)
+            rank = raw_rank(xp, previous.raw, tables)
             db.execute("UPDATE clan_playlist_skill SET raw_rank=?,xp=? WHERE clan=? AND playlist=?",
                        (rank, xp, clan, playlist))
             # Historical owners survive clan dissolution; only the live skill
             # row has a cascading foreign key to the current clan registry.
             db.execute("INSERT INTO match_result_clan_skill VALUES(?,?,?,?,?,?,?,?,?,?,?)",
-                       (room.id, team, clan, previous.configuration, TABLE_DIGEST, previous.raw,
+                       (room.id, team, clan, previous.configuration, digest, previous.raw,
                         previous.raw, previous.xp, delta, rank, xp))

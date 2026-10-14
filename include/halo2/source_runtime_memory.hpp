@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/physics_contact_record.hpp"
+#include "halo2/native_runtime_address.hpp"
 #include <map>
 #include <string>
 
@@ -35,10 +36,42 @@ public:
   // other regions and are invalidated only by releasing their own region.
   std::span<const std::byte> view(std::uint32_t, std::size_t) const;
   std::span<std::byte> mutable_view(std::uint32_t, std::size_t);
+  // Live engine access uses native addresses. Original tokens are resolved
+  // only at this owner boundary; host pointers are never truncated or saved.
+  NativeRuntimeAddress native_address(std::uint32_t source,std::size_t) const;
+  std::uint32_t source_address(NativeRuntimeAddress,std::size_t) const;
+  std::span<const std::byte> view(NativeRuntimeAddress,std::size_t) const;
+  std::span<std::byte> mutable_view(NativeRuntimeAddress,std::size_t);
+  void read(NativeRuntimeAddress,std::span<std::byte>) const;
+  void write(NativeRuntimeAddress,std::span<const std::byte>);
   // Read-only diagnostic export of accessible storage. Uncommitted pages are
   // omitted. Borrowed spans remain valid only during the synchronous callback.
   void visit_committed(const std::function<void(std::uint32_t,
       std::span<const std::byte>)> &) const;
+  // Complete memory-owner checkpoint, including reservation holes and access
+  // policy. This is one subowner of a world continuation, not a process or
+  // physics-world save. The caller must quiesce execution and rebind all
+  // borrowed views after a successful restore. Rejected restores are atomic.
+  // Native resource access guards belong to their platform owners and must
+  // be restored separately; mutable views cannot span protection changes.
+  // Network imports additionally require authenticated image/map bindings and
+  // complete runtime-resource validation by the enclosing world owner.
+  struct CheckpointRegion {
+    std::uint32_t address{};
+    Access access{};
+    std::string owner;
+    std::size_t page_bytes{};
+    std::vector<std::byte> bytes;
+    std::vector<std::uint8_t> committed;
+    bool operator==(const CheckpointRegion &) const = default;
+  };
+  struct Checkpoint {
+    std::uint32_t version=1;
+    std::vector<CheckpointRegion> regions;
+    bool operator==(const Checkpoint &) const = default;
+  };
+  Checkpoint checkpoint() const;
+  void restore(const Checkpoint &);
 
 private:
   struct Region {
@@ -49,9 +82,12 @@ private:
     std::vector<bool> committed;
   };
   std::map<std::uint32_t, Region> regions_;
+  std::map<std::uint64_t,std::uint32_t> native_regions_;
   using Position = std::map<std::uint32_t, Region>::const_iterator;
   Position locate(std::uint32_t) const;
   void check_extent(std::uint32_t, std::size_t) const;
   void validate(std::uint32_t, std::size_t, bool writable) const;
+  void index_native_region(std::uint32_t);
+  void rebuild_native_index();
 };
 } // namespace halo2

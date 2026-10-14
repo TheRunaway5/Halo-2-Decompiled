@@ -6,7 +6,7 @@ std::optional<SkyDefinition> Cache::load_visible_sky(std::size_t index) const {
   if (index >= bsps_.size())
     throw FormatError("sky BSP index outside scenario");
   const auto &bsp = bsps_[index];
-  const Bytes metadata(Bytes(storage_).slice(bsp.file_offset, bsp.size));
+  const Bytes metadata(Bytes(cache_bytes()).slice(bsp.file_offset, bsp.size));
   
   const auto [cluster_count, clusters] =
       TagAddressSpace(metadata, bsp.memory_address).block(16 + 156, 176);
@@ -22,7 +22,7 @@ std::optional<SkyDefinition> Cache::load_visible_sky(std::size_t index) const {
       query_tag({.group=tag_groups::scenario, .name=scenario_});
   if (!scenario)
     return {};
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto root = metadata_offset(scenario->address, scenario->size);
   const auto [sky_count, skies] = TagAddressSpace(data, metadata_magic_).block(root + 8, 8);
   if (visible.empty() && (data.u16(root + 0x12) & 2) && sky_count)
@@ -41,7 +41,7 @@ std::optional<SkyDefinition> Cache::load_sky(std::size_t selected) const {
   const auto scenario =
       query_tag({.group=tag_groups::scenario, .name=scenario_});
   if (!scenario)return {};
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto root = metadata_offset(scenario->address, scenario->size);
   const auto sky_count=data.u32(root+8);
   if(selected>=sky_count)throw FormatError("sky outside scenario references");

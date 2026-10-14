@@ -85,8 +85,13 @@ ParticleModelSubmission particle_model_submission(const ParticleModelDefinition 
   Vec3 forward,left,up;
   if(d.orientation==0) {forward=sources.camera_forward*-1.f;up=sources.camera_up;left=cross(up,forward);}
   else if(d.orientation==1 || d.orientation==2) {
-    up=in.direction;const float m=float(std::sqrt(double((up.x*up.x+up.y*up.y)+up.z*up.z)));
-    if(!(std::abs(m)<.0001f))up=up*(1.f/m); //30BF0
+    //30BF0 accumulates/square-roots in x87 before its binary32 store, then
+    // uses SSE for reciprocal/scaling. Rounding each squared component to
+    // binary32 first changes the original224FD0 recharge transform.
+    up=in.direction;const double nx=up.x,ny=up.y,nz=up.z;
+    const double magnitude=std::sqrt((nx*nx+ny*ny)+nz*nz);
+    const float m=float(magnitude);
+    if(!(std::abs(magnitude)<double(.0001f)))up=up*(1.f/m);
     const float x=std::abs(up.x),y=std::abs(up.y),z=std::abs(up.z);
     if(y>=x && z>=x)forward={0,up.z,0.f-up.y};
     else if(z>=y)forward={0.f-up.z,0,up.x};

@@ -1,0 +1,14 @@
+{
+  "schema": "halo2-upscaled-movies-v1",
+  "description": "User-supplied AI upscaled intro and credits, preserved without transcoding.",
+  "files": {
+    "intro_60.mp4": {
+      "bytes": 1374717117,
+      "sha256": "a0bc31f0c004613930fbef81490fb640ae88ea14b3cb2d672a874ed202fd38f6"
+    },
+    "credits_60.mp4": {
+      "bytes": 1164061624,
+      "sha256": "8b4306ce2032df89844d3efc8fb1ec954f729cb758180130eac179bfc0815195"
+    }
+  }
+}

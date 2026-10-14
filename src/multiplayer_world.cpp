@@ -1,6 +1,8 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/native_player_profile.hpp"
+#include "halo2/online_match_session.hpp"
 #include <algorithm>
+#include <cstdlib>
 
 namespace halo2 {
 namespace {
@@ -20,18 +22,47 @@ SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options) {
        std::any_of(options.selected_teams.begin(),options.selected_teams.end(),
            [](auto team){return team<0 || team>7;})))
     throw FormatError("Team selections must provide one source team 0..7 per local player");
-  rules.weapon=cache.slayer_starting_weapon(rules.starting_weapon,rules.source_engine);
+  rules.weapon=cache.slayer_starting_weapon(rules.custom==CustomSlayer::none?rules.starting_weapon:5,rules.source_engine);
+  if(rules.custom!=CustomSlayer::none) {
+    rules.weapon_choices=cache.multiplayer_weapon_choices();
+    if(rules.custom==CustomSlayer::infection && options.local_players<2 && !options.host_port && options.join.empty() && !options.online_match && !options.dedicated)throw FormatError("Infection requires at least two players");
+    if(options.source_object_world)throw FormatError("Custom Slayer rulesets require the native authoritative match");
+  }
   if(options.session_random_seed)rules.random_seed=*options.session_random_seed;
   return rules;
 }
-std::unique_ptr<MultiplayerObjectRuntime> object_world(
+std::shared_ptr<const std::filesystem::path> source_storage(
     const Cache &cache,const MultiplayerOptions &options,const SlayerRules &rules) {
-  if(!options.source_object_world)return {};
-  if(options.gameplay_xbe.empty() || options.source_object_savegame_directory.empty())
-    throw FormatError("Source object-world integration requires its authenticated executable and an owned savegame directory");
-  std::filesystem::create_directories(options.source_object_savegame_directory);
+  // Clients consume the authority's WORLD nodes and completed death observer.
+  if(!options.join.empty() || (options.online_match &&
+      options.online_match->host()!=options.online_match->self()))return {};
+  const bool automatic=cache.original_data() &&
+      cache.original_data()->image==OriginalData::Image::TitleUpdate15 && rules.custom==CustomSlayer::none &&
+      !options.replay && !options.capture_root && options.reference_player.empty();
+  if(!automatic && !options.source_object_world)return {};
+  if(cache.is_mcc())throw FormatError("MCC native world startup and converted collision/physics are incomplete; Xbox reference executables are not runtime inputs");
+  if(options.gameplay_xbe.empty())throw FormatError("Source world requires its authenticated executable");
+  if(!options.source_object_savegame_directory.empty()) {
+    std::filesystem::create_directories(options.source_object_savegame_directory);
+    return std::make_shared<const std::filesystem::path>(options.source_object_savegame_directory);
+  }
+#if defined(__linux__)
+  auto name=(std::filesystem::temp_directory_path()/"halo2-world-XXXXXX").string();
+  const auto directory=::mkdtemp(name.data());
+  if(!directory)throw FormatError("Could not create source world scratch storage");
+  return {new std::filesystem::path(directory),[](const std::filesystem::path *path) {
+    std::error_code ignored;std::filesystem::remove_all(*path,ignored);delete path;
+  }};
+#else
+  throw FormatError("Native source world platform is unavailable");
+#endif
+}
+std::unique_ptr<MultiplayerObjectRuntime> object_world(
+    const Cache &cache,const MultiplayerOptions &options,const SlayerRules &rules,
+    const std::shared_ptr<const std::filesystem::path> &storage) {
+  if(!storage)return {};
   auto world=std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,
-      options.bsp,options.source_object_savegame_directory);
+      options.bsp,*storage);
   auto variant=options.variant;
   if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
   world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
@@ -43,8 +74,9 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
        options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:
            OriginalData::load_xbe(options.gameplay_xbe))),
    tags(world_tags(cache,options.bsp)),
-   content(cache->load_content(options.bsp,true)),rules(world_rules(*cache,options)),
-   source_objects(object_world(*cache,options,rules)),
+   content(cache->load_content(options.bsp,true,source_game_variant(options.variant))),rules(world_rules(*cache,options)),
+   source_savegames(source_storage(*cache,options,rules)),
+   source_objects(object_world(*cache,options,rules,source_savegames)),
    match(content,options.bsp,options.native_spawn_inputs.empty()?cache->spawns():
        std::span<const Spawn>(options.native_spawn_inputs),rules,{}, {},source_objects.get()),map_(options.map),shared_(options.shared_maps),
    xbe_(options.gameplay_xbe),bsp_(options.bsp),players_(options.local_players),

@@ -17,14 +17,16 @@ std::uint32_t DatumPool::source_field(unsigned offset,unsigned n) const {
   auto b=source_memory_->view(source_pool_+offset,n);std::uint32_t v=0;
   for(unsigned i=0;i<n;++i)v|=std::to_integer<std::uint32_t>(b[i])<<(8*i);return v;
 }
-DatumPool::DatumPool(SourceRuntimeMemory &m,std::uint32_t p):source_memory_(&m),source_pool_(p) {
+DatumPool::DatumPool(SourceRuntimeMemory &m,std::uint32_t p):DatumPool(m,m.native_address(p,0x4c)){}
+DatumPool::DatumPool(SourceRuntimeMemory &m,NativeRuntimeAddress p):source_memory_(&m),source_pool_(p) {
   m.mutable_view(p,0x4c);
-  if(!p || source_field(0x29,1)!=1 || source_field(0x20)==0 || source_field(0x20)>65535 || source_field(0x24)<2 ||
+  if(p.is_null() || source_field(0x29,1)!=1 || source_field(0x20)==0 || source_field(0x20)>65535 || source_field(0x24)<2 ||
       std::uint64_t(source_field(0x20))*source_field(0x24)>UINT32_MAX)
     throw std::invalid_argument("Source-owned datum pool is not constructed and valid");
   m.mutable_view(source_field(0x44),std::size_t(source_field(0x20))*source_field(0x24));
   m.mutable_view(source_field(0x48),((std::size_t(source_field(0x20))+31)/32)*4);
 }
+std::uint32_t DatumPool::source_pool()const{return source_memory_->source_address(source_pool_,0x4c);}
 DatumPool::DatumPool(const DatumPool &other) {
   if(other.source_memory_)throw std::logic_error("A source pool view requires a whole-bank checkpoint owner");
   name_=other.name_;capacity_=other.capacity_;stride_=other.stride_;cursor_=other.cursor_;
@@ -77,7 +79,7 @@ std::uint16_t DatumPool::salt(std::int32_t index) const {
   return std::uint16_t(elements_[at] | (std::uint16_t(elements_[at+1]) << 8));
 }
 void DatumPool::reset() {
-  if(source_memory_){source_raw_datum_reset(source_pool_,source_storage(*source_memory_));return;}
+  if(source_memory_){source_raw_datum_reset(source_pool(),source_storage(*source_memory_));return;}
   cursor_ = high_water_ = count_ = 0;
   next_salt_ = std::uint16_t(std::uint8_t(name_[0]) |
       (std::uint16_t(std::uint8_t(name_[1])) << 8) | 0x8000u);
@@ -101,7 +103,7 @@ std::uint32_t DatumPool::allocate_element(std::int32_t index) {
   return (std::uint32_t(assigned) << 16) | std::uint32_t(index);
 }
 std::uint32_t DatumPool::allocate() {
-  if(source_memory_)return source_raw_datum_allocate(source_pool_,source_storage(*source_memory_));
+  if(source_memory_)return source_raw_datum_allocate(source_pool(),source_storage(*source_memory_));
   auto index = cursor_;
   while (index < high_water_ &&
       (bitmap_[unsigned(index)/32] & (1u << (unsigned(index)%32)))) ++index;
@@ -111,12 +113,12 @@ std::uint32_t DatumPool::allocate() {
   return allocate_element(index);
 }
 std::uint32_t DatumPool::allocate_at(std::int32_t index) {
-  if(source_memory_)return source_raw_datum_allocate_at(source_pool_,index,source_storage(*source_memory_));
+  if(source_memory_)return source_raw_datum_allocate_at(source_pool(),index,source_storage(*source_memory_));
   if (index < 0 || index >= capacity_ || salt(index)) return none;
   return allocate_element(index);
 }
 void DatumPool::release_unchecked(std::uint32_t datum) {
-  if(source_memory_){source_raw_datum_release_unchecked(source_pool_,datum,source_storage(*source_memory_));return;}
+  if(source_memory_){source_raw_datum_release_unchecked(source_pool(),datum,source_storage(*source_memory_));return;}
   const auto index = std::int32_t(datum & 0xffffu);
   assert(index < capacity_);
   const auto at = std::size_t(index) * stride_;
@@ -128,7 +130,7 @@ void DatumPool::release_unchecked(std::uint32_t datum) {
   while (high_water_ > 0 && !salt(high_water_-1)) --high_water_;
 }
 std::span<const std::uint8_t> DatumPool::lookup(std::uint32_t datum) const {
-  if(source_memory_){const auto p=source_raw_datum_lookup(source_pool_,datum,source_storage(*source_memory_));
+  if(source_memory_){const auto p=source_raw_datum_lookup(source_pool(),datum,source_storage(*source_memory_));
     if(!p)return {};const auto b=source_memory_->view(p,stride());return {reinterpret_cast<const std::uint8_t*>(b.data()),b.size()};}
   const auto index = std::int32_t(datum & 0xffffu);
   if (datum == none || index >= high_water_ || !salt(index) || salt(index) != (datum >> 16))
@@ -136,7 +138,7 @@ std::span<const std::uint8_t> DatumPool::lookup(std::uint32_t datum) const {
   return std::span(elements_).subspan(std::size_t(index)*stride_, stride_);
 }
 std::span<std::uint8_t> DatumPool::lookup(std::uint32_t datum) {
-  if(source_memory_){const auto p=source_raw_datum_lookup(source_pool_,datum,source_storage(*source_memory_));
+  if(source_memory_){const auto p=source_raw_datum_lookup(source_pool(),datum,source_storage(*source_memory_));
     if(!p)return {};const auto b=source_memory_->mutable_view(p,stride());return {reinterpret_cast<std::uint8_t*>(b.data()),b.size()};}
   const auto result = std::as_const(*this).lookup(datum);
   if (result.empty()) return {};

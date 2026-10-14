@@ -60,13 +60,13 @@ SourceBspRangeGeometry decode_geometry(std::span<const std::byte> raw_header,
         if(resource.type==48 && resource.channel==2)set(map);
         if(resource.type==32 && resource.channel==2)set(indices);
     }
-    if(!parts || parts->bytes.size()%72 || !subparts || subparts->bytes.size()%8 ||
+    if(!parts || parts->bytes.size()%72 || (g.subpart_count>0 && !subparts) || (subparts && subparts->bytes.size()%8) ||
         !indices || g.index_count>65535 || indices->bytes.size()!=std::size_t(g.index_count)*2)
         throw FormatError("source BSP part/subpart/index resource is unavailable");
     for(std::size_t i=0;i<parts->bytes.size();i+=72) {
         std::array<std::byte,72> value;std::copy_n(parts->bytes.begin()+i,72,value.begin());g.parts.push_back(value);
     }
-    for(std::size_t i=0;i<subparts->bytes.size();i+=8) {
+    for(std::size_t i=0;subparts && i<subparts->bytes.size();i+=8) {
         std::array<std::byte,8> value;std::copy_n(subparts->bytes.begin()+i,8,value.begin());g.subparts.push_back(value);
     }
     valid_parts(g);(void)mask_words(g);
@@ -191,6 +191,36 @@ SourceBspRangeGeometry source_bsp_range_geometry(const MenuWorldSourceSection &s
     if(g.index_count!=section.indices().size() || g.parts.size()!=section.parts().size())
         throw FormatError("source BSP range geometry differs from owned vertex section");
     return g;
+}
+SourceBspRangeGeometry source_model_range_geometry(const MenuWorldSourceSection &section) {
+    if(section.kind()!=MenuWorldSourceSectionKind::render_model)
+        throw FormatError("source model range geometry requires a model allocation");
+    auto g=decode_geometry(section.raw_model_header(),section.resources());
+    if(g.index_count!=section.indices().size() || g.parts.size()!=section.parts().size())
+        throw FormatError("source model range geometry differs from owned vertex section");
+    return g;
+}
+SourceBspRangeGeometry load_source_model_range_geometry(const Cache& cache,std::uint32_t model,unsigned section) {
+    const auto owned=cache.load_source_tag_metadata(model);
+    if(owned.group()!="mode")throw FormatError("source model range loader requires mode metadata");
+    const Bytes root(owned.bytes_at(owned.source_address(),0x2c));
+    if(section>=root.u32(0x24))throw FormatError("source model range section escapes metadata");
+    const Bytes metadata(owned.bytes_at(root.u32(0x28)+section*92,92));
+    const auto allocations=cache.load_model_resources(model);
+    if(section>=allocations.size())throw FormatError("source model range resource allocation missing");
+    const Bytes raw(allocations[section]);const auto tail=metadata.u32(0x44);
+    if(std::uint64_t(tail)+12>raw.size())throw FormatError("source model range header is truncated");
+    const auto base=raw.size()-tail-4;
+    const auto count=metadata.u32(0x48),start=metadata.u32(0x4c);
+    if(count>128)throw FormatError("source model range resource bank escapes metadata");
+    std::vector<MenuWorldSourceResource> resources;
+    for(unsigned i=0;i<count;++i){
+        const Bytes record(owned.bytes_at(start+i*16,16));const auto offset=std::uint64_t(base)+record.u32(12);
+        if(offset>raw.size())throw FormatError("source model range resource offset escapes allocation");
+        const auto bytes=raw.slice(std::size_t(offset),record.u32(8));
+        resources.push_back({record.u16(4),record.u16(6),std::uint32_t(offset),{bytes.begin(),bytes.end()}});
+    }
+    return decode_geometry(raw.slice(8,base-8),resources);
 }
 SourceCullLinearGeometry source_bsp_sphere_cull_geometry(const SourceBspRangeGeometry& geometry) {
     SourceCullLinearGeometry result;

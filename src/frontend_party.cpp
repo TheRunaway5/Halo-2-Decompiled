@@ -5,6 +5,27 @@ namespace halo2 {
 namespace {
 constexpr unsigned party_context=42;
 }
+std::vector<OnlinePartyMember> MenuState::online_party_members() const {
+  std::vector<OnlinePartyMember> result;
+  if(!account_.party)return result;
+  for(const auto &member:account_.party->members) {
+    result.push_back(member);
+    if(member.self) {
+      for(const auto &p:local_players())if(p.controller) {
+        auto local=member;local.name=p.name;local.leader=false;local.local_players.clear();
+        local.local_controller=int(p.controller);
+        local.guest=!local_discord_logins_[p.controller] || !local_discord_logins_[p.controller]->authorization();
+        result.push_back(std::move(local));
+      }
+    } else for(const auto &p:member.local_players) {
+      auto local=member;local.name=p.name;local.leader=false;local.local_players.clear();local.guest=p.guest;
+      // Remote couch seats belong to the primary's connection. They cannot
+      // transfer leadership or leave the accepted party independently.
+      local.local_controller=-2;result.push_back(std::move(local));
+    }
+  }
+  return result;
+}
 bool MenuState::online_party_screen(const MenuFrame &f) const {
   return (f.screen==14 && mode_==3) || (f.screen==26 && f.context==2) || (f.screen==216 && f.context==0) ||
          (f.screen==31 && f.context==party_context);
@@ -18,8 +39,9 @@ void MenuState::populate_online_party(MenuFrame &f) const {
   } else if(f.screen==26) {
     f.title="ONLINE";
     if(account_.party) {
-      for(unsigned i=0;i<account_.party->members.size();++i)
-        f.entries.push_back({account_.party->members[i].name,31,int(i)});
+      const auto members=online_party_members();
+      for(unsigned i=0;i<members.size();++i)
+        f.entries.push_back({members[i].name,members[i].local_controller==-2?-82:31,int(i)});
       for(unsigned i=0;i<account_.party->outgoing.size();++i)
         f.entries.push_back({"Invited: "+account_.party->outgoing[i].name,31,int(2000+i)});
     } else f.entries.push_back({"Create Party",-33,0});
@@ -73,7 +95,7 @@ std::string MenuState::online_party_text(const MenuFrame &f,unsigned i) const {
       return p==matchmaking_.playlists.end()?"Select a playlist":p->name;
     }
     if(i==43 && account_.party)for(const auto &m:account_.party->members)if(m.leader)return m.name;
-    if(i==44)return account_.party?std::to_string(account_.party->members.size())+" / 16":"";
+    if(i==44)return account_.party?std::to_string(online_party_members().size())+" / 16":"";
     // Use the authored empty detail fields in the left panel. The original
     // help field47 occupies the right roster and collides with a full party.
     if(i==4)return "\xee\x84\x83 PARTY MEMBERS";
@@ -86,15 +108,17 @@ std::string MenuState::online_party_text(const MenuFrame &f,unsigned i) const {
     if(i==0)return "PARTY";
     if(i==1 || i==3)return content_.localized(s,pane.texts.at(i).string);
     if(i==2)return account_.party?"Party members":"Party invitations";
-    if(i==4)return account_.party?std::to_string(account_.party->members.size()):"";
+    if(i==4)return account_.party?std::to_string(online_party_members().size()):"";
     if(i==6)return voice_party_ && voice_.joined?(voice_.microphone_muted?"MUTE":"VOICE"):"";
     return {};
   }
   return i==0?account_.party_message.empty()?account_.message:account_.party_message:"";
 }
 std::string MenuState::online_party_column(const MenuFrame &f,unsigned row,unsigned column) const {
-  if(f.screen!=26 || !account_.party || row>=account_.party->members.size() || column!=1)return {};
-  const auto &m=account_.party->members[row];
+  const auto members=online_party_members();
+  if(f.screen!=26 || row>=members.size() || column!=1)return {};
+  const auto &m=members[row];
+  if(m.guest)return "Guest";
   if(voice_party_ && voice_.joined) {
     if(std::find(voice_.muted.begin(),voice_.muted.end(),m.handle)!=voice_.muted.end())return "Muted";
     if((m.self && voice_.transmitting) || std::find(voice_.talking.begin(),voice_.talking.end(),m.handle)!=voice_.talking.end())return "Talking";
@@ -121,7 +145,11 @@ bool MenuState::accept_online_party() {
     const auto i=unsigned(entry.value);party_target_version_=0;
     if(i>=2000 && account_.party && i-2000<account_.party->outgoing.size()){party_target_=account_.party->outgoing[i-2000].id;party_target_kind_=2;}
     else if(i>=1000 && i-1000<account_.party_invitations.size()){const auto &v=account_.party_invitations[i-1000];party_target_=v.id;party_target_version_=v.version;party_target_kind_=1;}
-    else if(account_.party && i<account_.party->members.size()){party_target_=account_.party->members[i].handle;party_target_kind_=0;}
+    else if(account_.party && i<online_party_members().size()) {
+      const auto member=online_party_members()[i];
+      if(member.local_controller>0){open_online_local_player(unsigned(member.local_controller));return true;}
+      party_target_=member.handle;party_target_kind_=0;
+    }
     else return true;
     open(31,party_context);return true;
   }

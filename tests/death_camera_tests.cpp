@@ -35,6 +35,7 @@ int main(int argc,char**argv){try{
   halo2::SourceObserverWorldConstants world_constants;
   std::size_t constructors=0,frames=0,distances=0,casts=0,observers=0,worlds=0;
   std::size_t attached_cases=0;
+  std::size_t campaign_frames=0;
   // The original fixture binds local player datum0 to the source-owned unit10001.
   const std::array<halo2::DeathCameraPlayer,1> bank{{{0,0xffffffffu,0x10001u,-1}}};
   for(std::string line;std::getline(input,line);){std::istringstream in(line);std::string kind;in>>kind;
@@ -87,6 +88,39 @@ int main(int argc,char**argv){try{
         " actual="+std::to_string(actual[i])+" expected="+std::to_string(expected[i]));
       ++frames;
       if(kind=="A")++attached_cases;
+    }else if(kind=="P"){
+      std::string name,frame,dt,pos,up,before,after,packet,fallback;
+      int rate;bool cycle,initialized,paused;unsigned count;
+      in>>name>>frame>>dt>>rate>>pos>>up>>before>>after>>packet>>cycle>>initialized>>paused>>fallback>>count;
+      std::vector<halo2::DeathCameraPlayer> players;
+      for(unsigned n=0;n<count;++n) {
+        std::string datum,current,previous;int team;in>>datum>>current>>previous>>team;
+        players.push_back({word(datum),word(current),word(previous),std::int8_t(team)});
+      }
+      std::vector<std::pair<std::uint32_t,halo2::DeathCameraTarget>> targets;in>>count;
+      for(unsigned n=0;n<count;++n) {
+        std::string datum,node;unsigned type,flags;in>>datum>>node>>type>>flags;
+        targets.push_back({word(datum),{decode<halo2::Vec3>(node),std::uint8_t(type),std::uint16_t(flags)}});
+      }
+      check(!in.fail(),"Complete original campaign frame");
+      auto s=decode<halo2::DeathCameraState>(before);
+      if(frame=="0") {
+        auto rng=0x12345678u;
+        const auto constructed=halo2::source_death_camera_create(decode<halo2::Vec3>(pos),s.view,s.player,
+            players,rng,c,false,{false,[&]{return word(fallback);}});
+        state(constructed,before,"Campaign "+name+" constructor");
+        ++constructors;
+      }
+      const halo2::DeathCameraFrame f{std::bit_cast<float>(word(dt)),std::int16_t(rate),
+        decode<halo2::Vec3>(pos),decode<halo2::Vec3>(up),cycle,false,initialized,paused};
+      const auto actual=halo2::source_death_camera_packet(s,players,[&](auto datum)->std::optional<halo2::DeathCameraTarget> {
+        for(const auto&[d,t]:targets)if(d==datum)return t;return {};
+      },f,c,observer_constants,world_constants,{false,[&]{return word(fallback);}});
+      state(s,after,"campaign "+name+"/"+frame);
+      const auto expected=decode<halo2::DeathCameraPacket>(packet);
+      for(unsigned i=0;i<actual.size();++i)check(actual[i]==expected[i],
+        "Campaign "+name+"/"+frame+" packet word "+std::to_string(i));
+      ++campaign_frames;
     }else if(kind=="O"){
       std::string before,packet,adopted,dt,after;in>>before>>packet>>adopted>>dt>>after;
       auto s=decode<halo2::SourceObserverState>(before);auto p=decode<halo2::DeathCameraPacket>(packet);
@@ -160,6 +194,7 @@ int main(int argc,char**argv){try{
   }
   if(attached_cases)check(constructors==0&&frames==68&&attached_cases==68&&distances==0&&observers==0&&worlds==0,
       "Complete independent attached-camera fixture");
+  else if(campaign_frames)check(constructors==7&&campaign_frames==39,"Complete original campaign camera fixture");
   else check(constructors==4&&frames==400&&distances==400&&observers==400&&worlds==400,"Complete independent original camera fixture");
   std::size_t branches=0;
   if(argc==3){
@@ -200,7 +235,33 @@ int main(int argc,char**argv){try{
   check(halo2::source_death_camera_next_player(peers,0x10000,0x70001,false)==0x50005,"Next occupied live peer");
   check(halo2::source_death_camera_next_player(peers,0x10000,0x70001,true)==0x90008,"Original team restriction");
   check(halo2::source_death_camera_next_player(peers,0x10000,0x90008,false)==0x70001,"Original wrap to first live peer");
+  // Constructor replacement must use the same team filter as23FEA0 when
+  // neither a current unit nor a retained corpse exists for the dead owner.
+  const std::array<halo2::DeathCameraPlayer,4> no_corpse{{
+    {0x10000,0xffffffffu,0xffffffffu,0},
+    {0x20001,0x30001,0xffffffffu,0},
+    {0x30002,0x40002,0xffffffffu,1},
+    {0x40003,0x50003,0xffffffffu,1}}};
+  auto rng=0x12345678u;
+  const auto restricted=halo2::source_death_camera_create({},0,0x10000,no_corpse,rng,c,true);
+  check(restricted.watched_player==0x20001 && restricted.target==0x30001,
+      "Initial death camera replacement must exclude living enemies in a team game");
+  // Independently executed24040A..24042D clock-gate cases: at timer zero,
+  // only the initialized+paused combination retains the original corpse.
+  const std::array<halo2::DeathCameraPlayer,2> timeout_peers{{
+    {0x10000,0xffffffffu,0x10001,0},{0x20001,0x10002,0xffffffffu,0}}};
+  for(bool initialized:{false,true})for(bool paused:{false,true}) {
+    auto timer=halo2::source_death_camera_create({},0,0x10000,timeout_peers,rng,c);
+    timer.watch_remaining=0;
+    const halo2::DeathCameraFrame frame{0,30,{},{0,0,1},false,false,initialized,paused};
+    halo2::source_death_camera_packet(timer,timeout_peers,[](auto object)->std::optional<halo2::DeathCameraTarget> {
+      if(object==0x10001 || object==0x10002)return halo2::DeathCameraTarget{{},0,0};return {};
+    },frame,c,observer_constants,world_constants);
+    check(timer.target==(initialized && paused?0x10001u:0x10002u),
+        "Original watch timeout must use initialized/paused source clock flags");
+  }
   std::cout<<constructors<<" original death camera constructors, "<<frames<<" complete packets, "
       <<observers<<" full observer transitions, "<<worlds<<" world deliveries, "<<distances<<" obstruction passes, "<<casts<<" ordered casts and "<<branches<<" observer branches match\n";
+  if(campaign_frames)std::cout<<campaign_frames<<" original campaign packets and retained controller states match\n";
   return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

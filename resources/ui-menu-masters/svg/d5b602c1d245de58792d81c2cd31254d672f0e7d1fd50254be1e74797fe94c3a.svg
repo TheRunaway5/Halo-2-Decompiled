@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="224" height="224" viewBox="0 0 28 28" version="1.1">
+  <title>Vista ui\list_skins\y_menu_list\hacky_beta_hack_dont_use page 5: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="live-symbol-blue-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.9" />
+    </filter>
+    <filter id="live-symbol-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.29" />
+    </filter>
+  </defs>
+  <g transform="scale(0.5)" fill="white" stroke-linejoin="round">
+    <g filter="url(#live-symbol-blue-glow)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill" opacity=".8" fill="#2e9aff">
+      <path d="M2.5 10.5 H50.5 V45.5 H2.5 Z M6 14 H38 V42 H6 Z" fill="none" stroke="#2e9aff" stroke-width="1.8" />
+      <path d="M12 22 H16 V34 H12 Z M18 22 L24.5 17 Q26 16 26 18 V25 A3 3 0 0 1 26 31 V38 Q26 40 24.5 39 L18 34 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <path d="M26 18 V38" fill="none" stroke="#639ac5" stroke-width="0.7" stroke-linecap="round" />
+      <rect x="42" y="28" width="6" height="2" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <rect x="42" y="38" width="6" height="2" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+    </g>
+    <g id="live-symbol" filter="url(#live-symbol-edge-softness)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill">
+      <path d="M2.5 10.5 H50.5 V45.5 H2.5 Z M6 14 H38 V42 H6 Z" fill="none" stroke="white" stroke-width="1.8" />
+      <path id="speaker-horn" d="M12 22 H16 V34 H12 Z M18 22 L24.5 17 Q26 16 26 18 V25 A3 3 0 0 1 26 31 V38 Q26 40 24.5 39 L18 34 Z" />
+      <path id="speaker-mouth-divider" d="M26 18 V38" fill="none" stroke="#639ac5" stroke-width="0.7" stroke-linecap="round" />
+      <rect x="42" y="28" width="6" height="2" />
+      <rect x="42" y="38" width="6" height="2" />
+    </g>
+  </g>
+</svg>

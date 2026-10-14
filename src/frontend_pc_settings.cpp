@@ -148,11 +148,6 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     add(0x10b,-2,0);add(0x284,-2,1);add(0x285,-2,2);
     add(0x286,vista_menu(19),3);add(0x986,-2,4);add(0x2ed,-2,5);
     break;
-  case 13:
-    //619D1C treats the browser's actual Create row as a session birth action.
-    // This bounded offline browser owns no invented network result rows.
-    add(0x237,-2,0);
-    break;
   case 182:
     //63941D installs a task callback; there is no selectable/cancel row.
     break;
@@ -417,7 +412,6 @@ void MenuState::accept_pc() {
       return;
     }
     if(e.value==2) {
-      if(lobby_session_action_ && lobby_session_action_(FrontendLobbySessionAction::MainMenuNetwork))return;
       unavailable("Vista Network is not yet supported.");
       return;
     }
@@ -429,11 +423,6 @@ void MenuState::accept_pc() {
       return;
     }
     //40B32B constructs40B071/40ADD8, whose literal source screen is19.
-  }
-  if(id==13) {
-    if(lobby_session_action_ && lobby_session_action_(FrontendLobbySessionAction::Create))return;
-    unavailable("The source Vista browser requires its actual local session creation owner.");
-    return;
   }
   if (e.destination >= 0) {
     open(unsigned(e.destination),unsigned(e.value));

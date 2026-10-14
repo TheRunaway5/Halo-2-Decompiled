@@ -83,7 +83,7 @@ void apply_frontend_model_grip(const RenderModel&model,std::span<BonePose> local
   }
 }
 FrontendModelGrip Cache::load_frontend_model_grip_animation(std::uint32_t graph,unsigned index)const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto tag=query_tag({.handle=TagHandle{graph}, .group=tag_groups::model_animation_graph, .require_address=true});
   if(!tag)throw FormatError("frontend grip graph missing");
   const auto root=metadata_offset(tag->address,0xbc);
@@ -132,7 +132,7 @@ std::optional<FrontendModelGrip> Cache::load_frontend_model_grip(std::uint32_t u
   auto identifiers=load_weapon_animation_identifiers(*weapon);
   const auto tag=query_tag({.handle=TagHandle{model.animation}, .group=tag_groups::model_animation_graph, .require_address=true});
   if(!tag)throw FormatError("frontend grip graph definition missing");
-  const Bytes data(storage_);const auto root=metadata_offset(tag->address,0x5c);
+  const Bytes data(cache_bytes());const auto root=metadata_offset(tag->address,0x5c);
   const auto aliases=data.u32(root+0x54);
   if(aliases>65536)throw FormatError("frontend grip class alias count invalid");
   const auto alias=aliases?metadata_offset(data.u32(root+0x58),aliases*8):0;
@@ -174,7 +174,7 @@ std::optional<FrontendModelGrip> Cache::load_frontend_model_grip(std::uint32_t u
   return {};
 }
 std::array<std::uint32_t,8> Cache::load_frontend_model_deferred_mask(std::uint32_t unit)const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto tag=query_tag({.handle=TagHandle{unit}, .group=tag_groups::biped, .require_address=true});
   if(!tag)throw FormatError("frontend deferred-node unit missing");
   const auto definition=metadata_offset(tag->address,0x3c);

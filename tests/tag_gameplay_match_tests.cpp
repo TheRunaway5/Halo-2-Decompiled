@@ -6,6 +6,7 @@
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/navigation.hpp"
+#include "helpers/gameplay_driver_navigation.hpp"
 #include "halo2/math.hpp"
 #include <algorithm>
 #include <cmath>
@@ -19,6 +20,7 @@ void require(bool value, const char* message) {
 }
 struct Pad {
     int device = -1;
+    SDL_JoystickID instance = -1;
     SDL_Joystick* joystick{};
     Pad() {
         device = SDL_JoystickAttachVirtual(SDL_JOYSTICK_TYPE_GAMECONTROLLER,
@@ -26,13 +28,20 @@ struct Pad {
         require(device >= 0 && SDL_IsGameController(device), "Virtual SDL gamepad unavailable");
         joystick = SDL_JoystickOpen(device);
         require(joystick, "Virtual SDL gamepad did not open");
+        instance=SDL_JoystickInstanceID(joystick);
         axis(SDL_CONTROLLER_AXIS_TRIGGERLEFT, -1);
         axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, -1);
     }
     ~Pad() {
         if (joystick) SDL_JoystickClose(joystick);
-        if (device >= 0) SDL_JoystickDetachVirtual(device);
+        // Device indices shift when another virtual controller is detached.
+        for(int index=SDL_NumJoysticks()-1;index>=0;--index)
+            if(SDL_JoystickGetDeviceInstanceID(index)==instance) {
+                SDL_JoystickDetachVirtual(index);break;
+            }
     }
+    Pad(const Pad&)=delete;
+    Pad&operator=(const Pad&)=delete;
     void axis(SDL_GameControllerAxis axis, float value) {
         require(SDL_JoystickSetVirtualAxis(joystick, axis,
             Sint16(std::clamp(value, -1.f, 1.f) * 32767.f)) == 0, "Virtual SDL axis rejected");
@@ -56,11 +65,16 @@ float axis(float error) {
 // after world construction go to SDL virtual controllers. Authored collision,
 // spawns, vitality, ammo, damage, scores, respawns and the game clock stay live.
 int main(int argc, char** argv) try {
-    require(argc == 6, "Supply MAP SHARED XBE ffa|team|ffa-lan|team-lan OUTPUT_DIRECTORY");
+    require(argc == 6 || argc == 7,
+        "Supply MAP SHARED XBE ffa|team|ffa-lan|team-lan OUTPUT_DIRECTORY [2|4]");
+    require(argc == 6 || std::string_view(argv[6]) == "2" || std::string_view(argv[6]) == "4",
+        "Local match observer supports two or four participants");
+    const unsigned participants = argc == 7 && std::string_view(argv[6]) == "4" ? 4 : 2;
     if (!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]) ||
         !std::filesystem::exists(argv[3])) return 77;
     const std::string_view mode=argv[4];
     const bool lan=mode.ends_with("-lan");
+    require(!lan || participants == 2, "The embedded peer observer supports two participants");
     const bool team=mode=="team" || mode=="team-lan";
     require(team || mode=="ffa" || mode=="ffa-lan", "Unknown match type");
     const std::filesystem::path output = argv[5];
@@ -68,10 +82,10 @@ int main(int argc, char** argv) try {
     SDL_SetMainReady();
     SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
     require(SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER) == 0, "SDL controller initialization failed");
-    Pad pads[2];
+    std::vector<Pad> pads(participants);
     MultiplayerOptions options;
     options.map = argv[1]; options.shared_maps = argv[2]; options.gameplay_xbe = argv[3];
-    options.local_players = lan?1:2; options.width = 1280; options.height = 720;
+    options.local_players = lan?1:participants; options.width = 1280; options.height = 720;
     if(lan) options.host_port=29177;
     options.mute = false;
     options.desktop = std::make_shared<DesktopSession>();
@@ -85,28 +99,34 @@ int main(int argc, char** argv) try {
     });
     require(variant != frontend.variants.end(), "Original authored Slayer variant absent");
     options.variant = *variant;
-    // Ordinary editable source fields: three kills, 90 seconds, authored SMG.
-    options.variant.values.set(2, 3); options.variant.values.set(10, 90);
+    // Ordinary editable source fields; larger rosters allow more combat.
+    options.variant.values.set(2, participants == 4 ? 10 : 3); options.variant.values.set(10, 90);
     options.variant.values.set(89, 5);
-    if (team) options.selected_teams = lan?std::vector<std::int8_t>{0}:std::vector<std::int8_t>{0,1};
+    if (team) for(unsigned i=0;i<options.local_players;++i)
+        options.selected_teams.push_back(std::int8_t(i%2));
     for(unsigned i=0;i<options.local_players;++i)
         options.input_instances.push_back(SDL_JoystickInstanceID(pads[i].joystick));
     options.prepared_world = std::make_shared<MultiplayerPreparedWorld>(options);
     const auto& world = *options.prepared_world;
-    const NavigationWorld navigation(world.content.navigation);
+    const test::GameplayDriverNavigation navigation(world.content, world.match.simulation().collision());
+    std::cout << "Controller fallback walking nodes=" << navigation.fallback_nodes() << std::endl;
+    const unsigned jump_period = navigation.fallback_nodes() ? 30 : 120;
     const CollisionWorld bsp_collision(world.content.collision);
-    std::array<std::vector<Vec3>, 2> routes;
-    std::array<std::uint32_t, 2> old_units{null_datum, null_datum};
-    std::array<bool, 2> died{}, respawned{};
+    std::array<std::vector<Vec3>, 4> routes;
+    std::array<std::optional<unsigned>, 4> route_steps;
+    std::array<std::uint32_t, 4> old_units; old_units.fill(null_datum);
+    std::array<bool, 4> died{}, respawned{};
+    std::array<unsigned,4> fired_by_player{},moved_by_player{};
     unsigned audio_packets{}, particle_draws{}, frames{}, final_scoreboards{}, fired{}, moved{};
     unsigned scene_occlusions{};
-    std::array<int, 2> prior_ammo{};
-    std::array<std::uint32_t,2> prior_weapons{null_datum,null_datum};
-    std::array<Vec3, 2> initial_positions{};
-    std::array<Vec3,2> progress_positions{};
-    std::array<unsigned,2> stagnant{},avoid_until{};
-    std::array<bool,2> target_visible{};
-    std::array<bool,2> initial{};
+    std::array<int, 4> prior_ammo{};
+    std::array<std::uint32_t,4> prior_weapons;prior_weapons.fill(null_datum);
+    std::array<Vec3, 4> initial_positions{};
+    std::array<Vec3,4> progress_positions{};
+    std::array<unsigned,4> stagnant{},avoid_until{};
+    std::array<bool,4> target_visible{};
+    std::array<bool,4> initial{};
+    unsigned final_view_mask{};
     bool quit{}, finalized{}, peer_look_initialized{};
     std::unique_ptr<LanClient> peer;
     SDL_GameController* peer_controller=lan?SDL_GameControllerOpen(pads[1].device):nullptr;
@@ -127,12 +147,13 @@ int main(int argc, char** argv) try {
         current = state;
         require(state.tick <= 3000, "Full match exceeded authored time limit and postgame deadline");
         if(peer) {peer->receive();require(peer->error().empty(),"Real UDP peer failed");}
-        require(controls.size() == options.local_players && state.players[0].connected &&
-                (state.players[1].connected || (lan && state.tick<64)),
-                "Actual two-player roster/input changed");
+        require(controls.size() == options.local_players,"Actual local input roster changed");
+        for(unsigned i=0;i<participants;++i)
+            require(state.players[i].connected || (lan && i==1 && state.tick<64),
+                "Actual participant roster changed");
         finalized |= state.results_finalized;
-        for (unsigned i = 0; i < 2; ++i) {
-            const auto& p = state.players[i]; const auto& opponent = state.players[1-i];
+        for (unsigned i = 0; i < participants; ++i) {
+            const auto& p = state.players[i];
             if(!p.connected) continue;
             trace << state.tick << '\t' << i << '\t' << p.position.x << '\t' << p.position.y << '\t'
                   << p.position.z << '\t' << p.source_unit << '\t' << p.source_weapon << '\t' << p.loaded
@@ -143,17 +164,30 @@ int main(int argc, char** argv) try {
                   << '\t'<<smg.magazine_mode<<'\t'<<int(smg.weapon_state)<<'\t'<<smg.trigger_flags
                   << '\t'<<smg.weapon_flags<<'\t'<<int(smg.hand_timers[0])<<'\n';
             if (!initial[i]) { initial_positions[i] = p.position; prior_ammo[i] = p.loaded; initial[i]=true; }
-            if(p.source_weapon!=null_datum && prior_weapons[i]==p.source_weapon)
-                fired += unsigned(std::max(0, prior_ammo[i] - p.loaded));
+            if(p.source_weapon!=null_datum && prior_weapons[i]==p.source_weapon) {
+                const auto rounds=unsigned(std::max(0,prior_ammo[i]-p.loaded));
+                fired+=rounds;fired_by_player[i]+=rounds;
+            }
             prior_ammo[i] = p.loaded;prior_weapons[i]=p.source_weapon;
-            moved += length(p.position - initial_positions[i]) > 1.f;
-            if (p.dead) { died[i] = true; pads[i].stop(); continue; }
+            const bool advanced=length(p.position-initial_positions[i])>1.f;
+            moved+=advanced;moved_by_player[i]+=advanced;
+            if (p.dead) { died[i] = true; pads[i].stop(); routes[i].clear(); route_steps[i].reset(); continue; }
             if (p.source_unit == null_datum) continue;
             if (old_units[i] == null_datum) old_units[i] = p.source_unit;
             respawned[i] |= died[i] && old_units[i] != p.source_unit;
-            if (state.finished || !opponent.connected || opponent.dead) { pads[i].stop(); continue; }
+            unsigned opponent_id=participants;float nearest=INFINITY;
+            for(unsigned j=0;j<participants;++j)if(j!=i && state.players[j].connected && !state.players[j].dead &&
+                state.players[j].source_unit!=null_datum &&
+                (!team || state.players[j].source_membership!=p.source_membership)) {
+                const auto distance=length(state.players[j].position-p.position);
+                if(distance<nearest){nearest=distance;opponent_id=j;}
+            }
+            if(state.finished || opponent_id==participants){pads[i].stop();continue;}
+            const auto& opponent=state.players[opponent_id];
             const auto origin = p.position + Vec3{0,0,world.match.unit(i).definition.camera_height};
-            const auto target = opponent.position + Vec3{0,0,world.match.unit(1-i).body.height * .55f};
+            const auto exposed=test::visible_driver_target(world.match.simulation().collision(),origin,
+                opponent.position,world.match.unit(opponent_id).body.height);
+            const auto target = exposed.value_or(opponent.position + Vec3{0,0,world.match.unit(opponent_id).body.height * .55f});
             const auto delta = target-origin; const auto distance = length(delta);
             // Use the same current scenery/device/prop collision as gameplay.
             // The BSP alone can see through authored fences and machines.
@@ -166,12 +200,16 @@ int main(int argc, char** argv) try {
             }
             const bool visible = !wall || wall->distance >= distance-.15f;
             target_visible[i]=visible;
-            if (step % 30 == 0 || routes[i].empty()) routes[i] = navigation.route(p.position, opponent.position);
+            if (!route_steps[i] || step >= *route_steps[i] + 30) {
+                routes[i] = navigation.route(p.position, opponent.position);
+                route_steps[i] = step;
+            }
             while (!routes[i].empty() && length(routes[i].front()-p.position) < .6f) routes[i].erase(routes[i].begin());
             const auto destination = visible || routes[i].empty() ? opponent.position : routes[i].front();
             auto toward = destination-p.position;
             bool walk = !visible || distance > 4.f;
-            if(!walk || length(p.position-progress_positions[i])>.1f) {
+            if(!walk || std::hypot(p.position.x-progress_positions[i].x,
+                                  p.position.y-progress_positions[i].y)>.1f) {
                 stagnant[i]=0;progress_positions[i]=p.position;
             } else if(++stagnant[i]>60) {
                 // If an authored route is unavailable at a rock/ledge, try
@@ -191,7 +229,7 @@ int main(int argc, char** argv) try {
                 (toward.x*std::sin(p.yaw)-toward.y*std::cos(p.yaw))/planar : 0);
             pads[i].axis(SDL_CONTROLLER_AXIS_TRIGGERRIGHT, visible && distance<45.f ? 1.f : -1.f);
             pads[i].button(SDL_CONTROLLER_BUTTON_X, p.loaded == 0 && step%90 < 3);
-            pads[i].button(SDL_CONTROLLER_BUTTON_A, walk && step%120 < 2);
+            pads[i].button(SDL_CONTROLLER_BUTTON_A, walk && step%jump_period < 2);
         }
         if(peer) {
             const auto input=controller_input(sample_controller(peer_controller),options.desktop->controller_settings);
@@ -221,10 +259,12 @@ int main(int argc, char** argv) try {
         particle_draws += unsigned(draws.size());
     };
     options.frame_observer = [&](const MultiplayerFrameTiming& frame) { frames += frame.submitted; };
-    options.scoreboard_observer = [&](unsigned, bool normal, const FullScoreboardLayout& layout,
+    options.scoreboard_observer = [&](unsigned view, bool normal, const FullScoreboardLayout& layout,
                                       const FullScoreboardPaintResult& paint) {
         if (!normal && current.finished && !paint.draw.vertices.empty()) {
-            require(layout.rows.size() == 2, "Final rendered scoreboard lost a participant"); ++final_scoreboards;
+            require(layout.rows.size() == participants, "Final rendered scoreboard lost a participant");
+            require(view<options.local_players,"Final scoreboard has an invalid local view");
+            final_view_mask|=1u<<view;++final_scoreboards;
         }
     };
     MultiplayerRuntimeOutcome outcome;
@@ -234,8 +274,14 @@ int main(int argc, char** argv) try {
             "Full match did not complete its original result/countdown owners");
     require(fired > 10 && moved > 100 && audio_packets > 10 && particle_draws && frames > 100 && final_scoreboards,
             "Full rendered match missed movement, weapons, audio, particles or automatic results");
-    require(current.players[0].kills+current.players[1].kills > 0 && (respawned[0] || respawned[1]),
+    unsigned kills=0;bool saw_respawn=false;
+    for(unsigned i=0;i<participants;++i){kills+=current.players[i].kills;saw_respawn|=respawned[i];}
+    require(kills>0 && saw_respawn,
             "Full match missed actual fatal damage and salted respawn");
+    require(final_view_mask==(1u<<options.local_players)-1,"A local view missed the completed scoreboard");
+    if(participants==4)for(unsigned i=0;i<participants;++i)
+        require(fired_by_player[i]>0 && moved_by_player[i]>20,
+            "A local participant missed real firing or movement");
     if(peer) {
         peer->receive();const auto& remote=peer->state();
         require(peer->ready() && remote.finished && remote.results_finalized && remote.game_over_complete(),
@@ -248,7 +294,10 @@ int main(int argc, char** argv) try {
     std::cout << "PASS complete live " << argv[4] << " match: ticks=" << current.tick
         << " rendered_frames=" << frames << " fired_rounds=" << fired << " audio_packets=" << audio_packets
         << " particle_draws=" << particle_draws << " final_scoreboard_draws=" << final_scoreboards
-        << " score=" << current.players[0].score << ',' << current.players[1].score
-        << " scene_occlusions="<<scene_occlusions<<'\n';
+        << " score=";
+    for(unsigned i=0;i<participants;++i)std::cout<<(i?",":"")<<current.players[i].score;
+    std::cout<<" scene_occlusions="<<scene_occlusions<<" players="<<participants;
+    for(unsigned i=0;i<participants;++i)std::cout<<" fired_player"<<i<<'='<<fired_by_player[i];
+    std::cout<<'\n';
     return 0;
 } catch (const std::exception& error) { std::cerr << error.what() << '\n'; return 1; }

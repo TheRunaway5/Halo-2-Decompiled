@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2632" height="1300" viewBox="0 0 658 325" version="1.1">
+  <title>Vista ui\screens\game_shell\pregame_lobby\chat_display2 page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="chat-content">
+      <path d="M14 38 L32 18 H634 V247 L620 260 H32 L14 247 Z" />
+    </clipPath>
+    <radialGradient id="chat-blue-0" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(22 0) scale(430 120)">
+      <stop offset="0" stop-opacity="1" stop-color="#4195e2" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#4195e2" />
+      <stop offset="1" stop-opacity="0" stop-color="#4195e2" />
+    </radialGradient>
+    <radialGradient id="chat-blue-1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(636 260) scale(400 110)">
+      <stop offset="0" stop-opacity="1" stop-color="#4195e2" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#4195e2" />
+      <stop offset="1" stop-opacity="0" stop-color="#4195e2" />
+    </radialGradient>
+    <linearGradient id="frame-metal" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="325">
+      <stop offset="0" stop-color="#cde2f6" />
+      <stop offset="0.5" stop-color="#adc3d8" />
+      <stop offset="1" stop-color="#adc3d8" />
+    </linearGradient>
+    <filter id="frame-blue-light" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+  </defs>
+  <g id="chat-background" clip-path="url(#chat-content)">
+    <ellipse cx="22" cy="0" rx="430" ry="120" fill="url(#chat-blue-0)" fill-opacity="0.14" />
+    <ellipse cx="636" cy="260" rx="400" ry="110" fill="url(#chat-blue-1)" fill-opacity="0.14" />
+  </g>
+  <g id="chrome-frame">
+    <path d="M12 37 L32 16 H636 L629 23 H584 L577 19 H33 L16 39 V70 L12 66 Z" fill="#4195e2" stroke="#4195e2" stroke-width="4" opacity="0.35" filter="url(#frame-blue-light)" fill-rule="evenodd" />
+    <path d="M12 37 L32 16 H636 L629 23 H584 L577 19 H33 L16 39 V70 L12 66 Z" fill="url(#frame-metal)" fill-rule="evenodd" opacity="0.5" />
+    <path d="M14 247 L32 259 H620 L634 246 V222 L630 217 V199 L636 205 V265 L602 299 H554 L550 295 H88 L84 299 H48 L14 265 Z M36 262 H600 V286 Q600 289 597 289 H39 Q36 289 36 286 Z" fill="#4195e2" stroke="#4195e2" stroke-width="4" opacity="0.35" filter="url(#frame-blue-light)" fill-rule="evenodd" />
+    <path d="M14 247 L32 259 H620 L634 246 V222 L630 217 V199 L636 205 V265 L602 299 H554 L550 295 H88 L84 299 H48 L14 265 Z M36 262 H600 V286 Q600 289 597 289 H39 Q36 289 36 286 Z" fill="url(#frame-metal)" fill-rule="evenodd" opacity="0.5" />
+    <path d="M14 53 V247 M32 260 H620" fill="none" stroke="#4195e2" stroke-width="5.5" opacity="0.35" filter="url(#frame-blue-light)" />
+    <path d="M14 53 V247 M32 260 H620" fill="none" stroke="url(#frame-metal)" stroke-width="1.5" opacity="0.5" />
+  </g>
+</svg>

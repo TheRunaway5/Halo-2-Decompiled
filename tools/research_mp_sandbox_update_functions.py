@@ -30,8 +30,8 @@ def full_tokens(ins,image):
   r.append(token)
  return r
 def main():
- ap=argparse.ArgumentParser();ap.add_argument('--new',type=Path,default=NEW_DEFAULT);ap.add_argument('--output',type=Path,default=ROOT/'analysis/multiplayer/sandbox-source/later-update-functions/report.json');args=ap.parse_args()
- oldp=ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03';assert sha(oldp)==PIN;assert sha(args.new)==NEW_PIN
+ ap=argparse.ArgumentParser();ap.add_argument('--new',type=Path,default=NEW_DEFAULT);ap.add_argument('--old',type=Path,default=ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03');ap.add_argument('--output',type=Path,default=ROOT/'analysis/multiplayer/sandbox-source/later-update-functions/report.json');args=ap.parse_args()
+ oldp=args.old;assert sha(oldp)==PIN;assert sha(args.new)==NEW_PIN
  old=Xbe(oldp);new=Xbe(args.new);oc=_Code(old,'.text');nc=_Code(new,'.text')
  starts={int(r['address'],16)for r in csv.DictReader((ROOT/'analysis/map-pack-update/functions.tsv').open(),delimiter='\t')}
  md=Cs(CS_ARCH_X86,CS_MODE_32);md.skipdata=True;sec=new.section('.text');linear=list(md.disasm(new.section_bytes(sec),sec.va));tokens=[norm(i,new)for i in linear]

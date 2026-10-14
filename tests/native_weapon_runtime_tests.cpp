@@ -33,6 +33,7 @@ int main(int argc,char **argv){try {
   SDL_SetHintWithPriority(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0xffff/0xffff",SDL_HINT_OVERRIDE);
   SDL_SetMainReady();MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
   options.width=800;options.height=600;options.local_players=1;options.starting_weapon=5;options.mute=false;options.input_instances={-1};
+  options.frames=argc==5?0u:320u;options.reference_tick_cadence=true;options.reference_render_fraction=.5f;
   options.validation=std::getenv("HALO2_ANIMATION_VALIDATION");
   if(const auto *artwork=std::getenv("HALO2_TEST_HUD_UI_ASSETS"))options.ui_assets=artwork;
   options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
@@ -51,8 +52,9 @@ int main(int argc,char **argv){try {
   // clocks, trigger/reload/grenade outcomes and poses come from the live loop.
   const auto location=row->position;const auto slot=world.local_slots.at(0);
   options.desktop=std::make_shared<DesktopSession>();auto *window=options.desktop->window(800,600,false);
+  std::cout<<"Native SDL video driver: "<<SDL_GetCurrentVideoDriver()<<'\n';
   const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
-  std::optional<unsigned> start,carried_at,dual_at;MultiplayerState current;unsigned step{},draws{};
+  std::optional<unsigned> start,carried_at,dual_at,grenade_at;MultiplayerState current;unsigned step{},draws{};
   std::uint32_t primary_target=null_datum,starting_datum=null_datum;
   bool map_pickup{},switched{},dual_requested{};
   bool raised{},dual{},right_fired{},left_fired{},reloaded{},thrown{},dropped{};
@@ -110,14 +112,15 @@ int main(int argc,char **argv){try {
       if(elapsed>26 && elapsed<32)primary_radar|=p.motion_sensor_control==1;
       if(elapsed==32){trigger(window_id,SDL_BUTTON_LEFT,false);trigger(window_id,SDL_BUTTON_RIGHT,false);}
       if(elapsed==40)key(window_id,SDL_SCANCODE_R);
-      if(elapsed==150 && argc!=5)key(window_id,SDL_SCANCODE_Q);
-      if(elapsed>150 && p.grenade_action.animation_active)thrown=true;
-      if(elapsed>150 && (p.grenade_action.phase()==1 || p.grenade_action.phase()==2)) {
+      if(reloaded && !(p.source_action_word&1u) && !grenade_at && argc!=5)grenade_at=tick;
+      if(grenade_at && tick==*grenade_at)key(window_id,SDL_SCANCODE_Q);
+      if(grenade_at && tick>*grenade_at && p.grenade_action.animation_active)thrown=true;
+      if(grenade_at && tick>*grenade_at && (p.grenade_action.phase()==1 || p.grenade_action.phase()==2)) {
         check(!p.motion_sensor_control,"SDL grenade request published a weapon trigger bit");
         grenade_radar_phase=true;
       }
-      if(elapsed>150 && p.secondary_weapon.datum==null_datum)dropped=true;
-      if(elapsed==190 && argc!=5){SDL_Event quit{};quit.type=SDL_QUIT;check(SDL_PushEvent(&quit)==1,"Exit weapon probe");}
+      if(grenade_at && tick>*grenade_at && p.secondary_weapon.datum==null_datum)dropped=true;
+      if(grenade_at && tick==*grenade_at+40){SDL_Event quit{};quit.type=SDL_QUIT;check(SDL_PushEvent(&quit)==1,"Exit weapon probe");}
     }
     check(!start || tick<*start+250,"Live dual pickup/animation sequence timed out");
   };
@@ -153,7 +156,11 @@ int main(int argc,char **argv){try {
   std::cout<<"SMG firing observations: sounds="<<firing_sounds<<" rounds="<<fired_rounds<<'\n';
   check(firing_sounds==fired_rounds && fired_rounds>1 && firing_particles>0,
       "Live dual SMGs did not submit exactly one authored sound per fired round");
-  if(argc!=5)check(thrown && dropped && grenade_radar_phase,"Grenade animation/phase did not release the actual offhand");
+  if(argc!=5) {
+    std::cout<<"SMG grenade observations: request_tick="<<grenade_at.value_or(0)<<" thrown="<<thrown
+        <<" dropped="<<dropped<<" radar_phase="<<grenade_radar_phase<<'\n';
+    check(thrown && dropped && grenade_radar_phase,"Grenade animation/phase did not release the actual offhand");
+  }
   std::cout<<"PASS actual SDL map pickup and switch; dual pickup, two independently firing/reloading weapon datums, "<<draws<<" posed draws, "<<clips.size()<<" clips, "<<firing_particles<<" particle draws, "<<firing_sounds<<" firing sounds";
   if(argc!=5)std::cout<<", grenade animation and offhand drop";
   std::cout<<'\n';

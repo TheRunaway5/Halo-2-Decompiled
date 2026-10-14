@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 512 512" version="1.1">
+  <title>Vista ui\screens\game_shell\settings_screen\player_profile\edit_profile page 4: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="ring-metal" gradientUnits="userSpaceOnUse" x1="58" x2="230" y1="30" y2="279">
+      <stop offset="0" stop-color="#173665" />
+      <stop offset="0.28" stop-color="#8cb2e5" />
+      <stop offset="0.64" stop-color="#7091c3" />
+      <stop offset="1" stop-color="#4871a6" />
+    </linearGradient>
+    <filter id="information-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.2" />
+    </filter>
+    <radialGradient id="head-metal" gradientUnits="userSpaceOnUse" cx="144" cy="73" r="41" gradientTransform="translate(0 -14) scale(1 1.2)">
+      <stop offset="0" stop-color="#87a1c9" />
+      <stop offset="0.5" stop-color="#6280ae" />
+      <stop offset="1" stop-color="#0f366b" />
+    </radialGradient>
+    <linearGradient id="triangle-top" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="126" y2="160">
+      <stop offset="0" stop-color="#96c1f9" />
+      <stop offset="1" stop-color="#4e6085" />
+    </linearGradient>
+    <linearGradient id="triangle-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="140" y2="254">
+      <stop offset="0" stop-color="#5472a0" />
+      <stop offset="1" stop-color="#5f90c6" />
+    </linearGradient>
+    <linearGradient id="triangle-side" gradientUnits="userSpaceOnUse" x1="92" x2="119" y1="160" y2="194">
+      <stop offset="0" stop-color="#1f4476" />
+      <stop offset="1" stop-color="#30598a" />
+    </linearGradient>
+  </defs>
+  <g id="information-symbol">
+    <path d="M138 7 A130 145 0 0 1 138 297 A130 145 0 0 1 138 7 Z M135 26 A107 126 0 0 1 135 278 A107 126 0 0 1 135 26 Z" fill="url(#ring-metal)" fill-rule="evenodd" fill-opacity="0.43529411764705883" />
+    <g id="rim-light" fill="none" stroke="#9cd8ff" stroke-width="1.8">
+      <path d="M138 7 A130 145 0 0 1 138 297 A130 145 0 0 1 138 7 Z" />
+      <path d="M135 26 A107 126 0 0 1 135 278 A107 126 0 0 1 135 26 Z" />
+    </g>
+    <path d="M138 7 A130 145 0 0 1 138 297 A130 145 0 0 1 138 7 Z M135 26 A107 126 0 0 1 135 278 A107 126 0 0 1 135 26 Z" fill="none" stroke="#5aabed" stroke-width="2.5" stroke-opacity="0.3" filter="url(#information-glow)" />
+    <path d="M126 26 C65 31 20 92 22 157 C25 219 67 272 129 279" fill="none" stroke="#b4d9f5" stroke-width="1.2" stroke-opacity="0.8" />
+    <ellipse cx="142" cy="87.5" rx="25.5" ry="30.5" fill="url(#head-metal)" fill-opacity="0.43529411764705883" stroke="#a5d7fd" stroke-width="1.8" />
+    <path d="M90 127 L192 126 L119 160 Z" fill="url(#triangle-top)" fill-opacity="0.43529411764705883" />
+    <path d="M119 160 L192 126 L111 254 Z" fill="url(#triangle-face)" fill-opacity="0.43529411764705883" />
+    <path d="M90 127 L119 160 L111 254 Z" fill="url(#triangle-side)" fill-opacity="0.43529411764705883" />
+    <path d="M90 127 L192 126 L111 254 Z M90 127 L119 160 L192 126 M119 160 L111 254" fill="none" stroke="#a2d8ff" stroke-width="1.2" />
+  </g>
+</svg>

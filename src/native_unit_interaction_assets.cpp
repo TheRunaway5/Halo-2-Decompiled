@@ -14,6 +14,8 @@ std::shared_ptr<const NativeUnitInteractionAssets> load_native_unit_interaction_
     const auto model=cache.load_source_tag_metadata(b.u32(0x38));const Bytes m(model.bytes_at(model.source_address(),model.size()));
     if(m.u32(4)==null_datum)return;
     NativeUnitInteractionDefinition d;
+    d.unit_flags=b.u32(0xbc);
+    if(tag.group()=="vehi")d.vehicle_flags=b.u32(0x1ec);
     d.bound_offset={b.f32(8),b.f32(12),b.f32(16)};d.bound_radius=b.f32(4);
     if(tag.group()=="vehi") {d.flip_message=b.u32(0x21c);d.flip_minimum=b.f32(0x23c);d.flip_maximum=b.f32(0x240);}
     const auto count=b.u32(0x1c8);if(count>64)throw FormatError("Too many authored seats");

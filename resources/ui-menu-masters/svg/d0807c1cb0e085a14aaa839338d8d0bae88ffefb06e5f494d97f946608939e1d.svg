@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1304" height="144" viewBox="0 0 326 36" version="1.1">
+  <title>Vista ui\list_skins\setting_lists\hilite_bracket page 3: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="bracket-inner" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="12" y2="24">
+      <stop offset="0" stop-color="#998e8c" />
+      <stop offset="1" stop-color="#00112f" />
+    </linearGradient>
+    <filter id="bracket-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.5" />
+    </filter>
+  </defs>
+  <g id="bracket" transform="translate(0 35) scale(1 -1)">
+    <path d="M25 12.5 H295 L308 24 H13 Z" fill="url(#bracket-inner)" />
+    <path d="M13 24 L25 10 H295 L308 24 H297 L288 12.5 H34 L25 24 Z" fill="#349ce4" filter="url(#bracket-glow)" />
+    <path d="M13 24 L25 10 H295 L308 24 H297 L288 12.5 H34 L25 24 Z" fill="#6e8499" />
+  </g>
+</svg>

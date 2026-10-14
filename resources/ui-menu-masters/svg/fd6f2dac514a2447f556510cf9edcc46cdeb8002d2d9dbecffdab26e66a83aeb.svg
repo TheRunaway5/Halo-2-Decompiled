@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="240" viewBox="0 0 24 60" version="1.1">
+  <title>Vista ui\list_skins\playlist_listing\select page 1: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="inactive-opacity" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.5" />
+      <stop offset="0.65" stop-color="#ffffff" stop-opacity="0.5" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+  <g id="selector">
+    <path d="M20 4 V56 L13 49 V39 L18 34 V26 L13 21 V11 Z" fill="url(#inactive-opacity)" />
+  </g>
+</svg>

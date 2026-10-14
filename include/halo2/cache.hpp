@@ -15,8 +15,10 @@
 #include <vector>
 
 namespace halo2 {
+class CacheFileSnapshot;
 struct SourceDeviceMotionDefinition;
 struct LevelContent;
+struct SourceGameVariant;
 struct ParticleSpriteDefinition;
 struct AuthoredMuzzleEffect;
 struct ParticleSystemRenderDefinition;
@@ -335,6 +337,7 @@ public:
     const std::string& name() const { return name_; }
     const std::string& build() const { return build_; }
     bool is_vista() const { return vista_; }
+    bool is_mcc() const { return mcc_; }
     const std::string& scenario() const { return scenario_; }
     std::int16_t load_source_geometry_scenario_type() const; // Literal primaryscnr+10 for2F970.
     const std::filesystem::path& shared_directory() const { return shared_directory_; }
@@ -414,12 +417,15 @@ public:
     std::uint32_t load_multiplayer_hill_shader() const;
     SourceShaderLodDefinition load_source_shader_lod_definition(std::uint32_t shader) const;
     LevelContent load_content(std::size_t index, bool multiplayer = false) const;
+    LevelContent load_content(std::size_t index, bool multiplayer, const SourceGameVariant &) const;
     BspContent load_bsp_content(std::size_t index) const;
     ModelCollision load_model_collision(std::uint32_t model) const;
     TerrainCollision load_raw_terrain_collision(std::size_t index) const;
     std::vector<PredictedResource> structure_resources(std::size_t bsp,int section,
                                                        bool definition) const;
     EncodedSound load_sound(std::uint32_t datum, unsigned pitch = 0, unsigned permutation = 0) const;
+    unsigned sound_pitch_range_count(std::uint32_t datum) const;
+    unsigned sound_permutation_count(std::uint32_t datum,unsigned pitch=0) const;
     SoundVariationDefinition load_sound_variation(std::uint32_t datum, unsigned pitch = 0) const;
     // Literal resident records for the source sound request owners. These do
     // not choose a pitch/permutation or initialize scheduler/runtime state.
@@ -437,6 +443,10 @@ public:
     RenderModel load_model(std::uint32_t datum, bool textures, std::uint32_t variant,
                            const SourceInitialModelSelection& selected,
                            unsigned geometry_lod) const;
+    // Decode an explicit resident section bank using the same model decoder.
+    // Runtime owners choose which prepared sections to submit each frame.
+    RenderModel load_model_sections(std::uint32_t datum,bool textures,std::uint32_t variant,
+                                   unsigned geometry_lod,std::span<const unsigned> sections)const;
     SourceGeometryLodDefinition load_source_geometry_lod_definition(std::uint32_t object) const;
     SourceInitialModelDefinition load_initial_model_definition(std::uint32_t datum) const;
     SourceInitialModelSelection load_initial_model_selection(std::uint32_t datum, std::uint32_t variant = 0) const;
@@ -485,6 +495,7 @@ public:
     Texture load_scope_default_bitmap() const; // 19530/19B29, matg rasterizer +0x64.
     Texture load_effect_light_attenuation_bitmap() const; // 19530/19673, rasterizer +4.
     std::uint32_t bitmap_count(std::uint32_t datum) const;
+    std::array<std::uint32_t,18> multiplayer_weapon_choices() const;
     std::uint32_t slayer_starting_weapon(unsigned option = 0,int source_engine = 2) const;
     BitmapResource load_bitmap_resource(std::uint32_t datum, unsigned index) const;
     std::optional<BitmapLowDetailResource> load_bitmap_low_detail_resource(
@@ -544,6 +555,8 @@ public:
     float load_frontend_model_initial_shield_fraction(std::uint32_t unit) const;
     FrontendModelWeaponIk load_frontend_model_weapon_ik(std::uint32_t unit,
         std::uint32_t controller_mode) const;
+    FrontendModelWeaponIk load_unit_weapon_ik(std::uint32_t unit,
+        std::uint32_t weapon,std::uint32_t controller_mode) const;
     SourceSceneryIdlePhaseDefinition load_source_scenery_idle_phase_definition(const AnimationClip &) const;
     std::uint32_t animation_name(std::uint32_t datum, const std::string &name) const;
     std::optional<std::uint32_t> find_animation_name(std::uint32_t datum,
@@ -559,10 +572,12 @@ public:
 private:
     RenderModel load_model_with_initial_selection(std::uint32_t datum, bool textures,
         std::uint32_t variant, const SourceInitialModelSelection* selected,
-        std::optional<unsigned> geometry_lod = {}) const;
+        std::optional<unsigned> geometry_lod = {},
+        std::optional<std::span<const unsigned>> sections = {}) const;
     std::filesystem::path path_;
     std::filesystem::path shared_directory_;
     std::vector<std::byte> storage_;
+    std::shared_ptr<CacheFileSnapshot> snapshot_;
     std::string name_, build_, scenario_;
     std::vector<Tag> tags_;
     std::vector<TagGroupDefinition> tag_groups_;
@@ -575,12 +590,25 @@ private:
     std::size_t multiplayer_balance_writes_{};
     std::size_t multiplayer_netgame_writes_{};
     bool vista_{};
+    bool mcc_{};
+    std::vector<std::uint32_t> mcc_sound_gestalts_;
+    std::vector<bool> mcc_native_shaders_;
+    bool pc_geometry() const { return vista_ || mcc_; }
     std::size_t source_file_size_{};
     std::vector<std::pair<std::uint32_t,std::uint32_t>> vista_metadata_regions_;
     std::filesystem::path xbox_donor_root_;
     mutable std::vector<std::shared_ptr<const Cache>> vista_texture_donors_;
     std::pair<const Cache*,std::uint32_t> vista_texture_donor(std::uint32_t datum) const;
+    std::span<const std::byte> cache_bytes() const;
+    std::span<std::byte> mutable_cache_bytes();
     void initialize_vista();
+    void initialize_mcc();
+    void initialize_mcc_native_shaders();
+    BitmapResource load_mcc_bitmap_resource(std::uint32_t,unsigned) const;
+    Texture load_mcc_bitmap(std::uint32_t,unsigned,std::span<const std::byte>) const;
+    EncodedSound load_mcc_sound(std::uint32_t,unsigned,unsigned) const;
+    std::uint32_t mcc_sound_class_tag(bool) const;
+    const Tag& mcc_sound_gestalt(std::uint32_t) const;
     void initialize_tag_directory(const Bytes&, std::size_t index, std::int64_t header_magic);
     void validate_tag_directory() const;
     friend struct TagMemory;

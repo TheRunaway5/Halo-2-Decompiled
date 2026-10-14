@@ -109,10 +109,13 @@ void source_bsp_append_part_commands(SourceBspPartCommandState& state,
             override=c.overrides[slot];
         }
         state.calls.push_back(0x449e0);
-        if(u[1]!=none)throw FormatError("source BSP part commands consume dynamic model owner");
         const auto instance=u[3]>>18&2047u;
         const SourceBspCommandGeometry* geometry=nullptr;
-        if(u[0]&0x1000u) {
+        const SourceModelCommandGeometry* model=nullptr;
+        if(u[1]!=none){
+            if(!w.model)throw FormatError("source part commands consume absent model geometry/material/palette owner");
+            model=&w.model(unit);geometry=&model->geometry;
+        }else if(u[0]&0x1000u) {
             if(instance>=w.instance_definitions.size())throw FormatError("source BSP part command instance missing");
             const auto definition=w.instance_definitions[instance];
             if(definition<0 || unsigned(definition)>=w.definitions.size())throw FormatError("source BSP part command definition missing");
@@ -126,12 +129,21 @@ void source_bsp_append_part_commands(SourceBspPartCommandState& state,
         for(unsigned part_index=0;part_index<geometry->parts.size();++part_index) {
             state.calls.push_back(0x45ce0);const auto& part=geometry->parts[part_index];
             const auto material_index=signed_half(part,4);
-            if(material_index<0 || unsigned(material_index)>=w.materials.size())
+            const auto materials=model?std::span<const SourceBspCommandMaterial>(model->materials):w.materials;
+            if(material_index<0 || unsigned(material_index)>=materials.size())
                 throw FormatError("source BSP part command material missing");
-            const auto& material=w.materials[unsigned(material_index)];
-            state.calls.push_back(0x184000);
-            if(!source_bsp_material_visible(w.material_visibility,w.bsp_selector,
-                instance==2047?-1:std::int32_t(instance),material.visibility_index==255?-1:material.visibility_index))continue;
+            const auto& material=materials[unsigned(material_index)];
+            if(model){
+                if((u[3]>>9&511u)==255u)continue;
+                state.calls.push_back(0x1d6a0);
+                //45CE0 reads the current selected cache matrix even when
+                //secondary41040 only consumes its shader and LOD scale.
+                (void)source_model_palette_part_center(model->palette,u[3]&15u,model->rigid_node,model->model_flags);
+            }else{
+                state.calls.push_back(0x184000);
+                if(!source_bsp_material_visible(w.material_visibility,w.bsp_selector,
+                    instance==2047?-1:std::int32_t(instance),material.visibility_index==255?-1:material.visibility_index))continue;
+            }
             state.calls.push_back(0x460d0);
             if(!part_visible(part,unit,arena,c.mask_arena_address))continue;
             if((override==none?material.shader:override)==none)continue;

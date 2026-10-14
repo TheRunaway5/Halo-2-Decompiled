@@ -1,11 +1,18 @@
 #pragma once
 #include "halo2/transform.hpp"
+#include "halo2/native_runtime_address.hpp"
 #include <cstdint>
 #include <vector>
 
 namespace halo2 {
 class SourceRuntimeMemory;
 class SceneObjects;
+Transform source_scene_physics_transform(const SourceRuntimeMemory &,
+    NativeRuntimeAddress object_pool,std::uint32_t full_object);
+std::vector<Transform> source_scene_physics_nodes(const SourceRuntimeMemory &,
+    NativeRuntimeAddress object_pool,std::uint32_t full_object);
+void publish_source_scene_physics(SceneObjects &,const SourceRuntimeMemory &,
+    NativeRuntimeAddress object_pool);
 // Read-only presentation of a live source object's root. TU1.5 BF5C3..BF620
 // supplies position/+64, forward/+70, up/+7C, scale/+A0 and flag10 to BFC70.
 // Attached objects consume the actual parent's WORLD node and handedness.

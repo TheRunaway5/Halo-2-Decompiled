@@ -34,7 +34,7 @@ TagBlockRange TagAddressSpace::block(std::size_t descriptor, std::size_t stride,
     return {std::size_t(block.count),offset(block.address,size)};
 }
 std::size_t Cache::metadata_offset(std::uint32_t address, std::size_t size) const {
-    if(vista_) {
+    if(pc_geometry()) {
         auto region=std::upper_bound(vista_metadata_regions_.begin(),vista_metadata_regions_.end(),address,
             [](std::uint32_t p,const auto& r){return p<r.first;});
         if(region==vista_metadata_regions_.begin())throw FormatError("Vista pointer precedes resident metadata");
@@ -43,10 +43,10 @@ std::size_t Cache::metadata_offset(std::uint32_t address, std::size_t size) cons
         if(offset>region->second || size>region->second-offset)
             throw FormatError("Vista pointer escapes resident tag metadata");
     }
-    return TagAddressSpace(Bytes(storage_), metadata_magic_).offset(address, size);
+    return TagAddressSpace(Bytes(cache_bytes()), metadata_magic_).offset(address, size);
 }
 TagBlockRange Cache::metadata_block(std::size_t descriptor, std::size_t stride, std::size_t limit) const {
-    const Bytes bytes(storage_);
+    const Bytes bytes(cache_bytes());
     auto result=TagAddressSpace(bytes,metadata_magic_).block(descriptor,stride,limit);
     if (result.count) result.offset=metadata_offset(bytes.u32(descriptor+4),result.count*stride);
     return result;

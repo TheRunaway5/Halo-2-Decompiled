@@ -5,7 +5,7 @@ namespace halo2 {
 std::vector<std::byte> Cache::load_vertex_shader_code(std::uint32_t datum,unsigned classification) const {
   const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::vertex_shader, .require_address=true});
   if(!tag)throw FormatError("original vertex shader tag missing");
-  const Bytes b(storage_);const auto root=metadata_offset(tag->address,12);
+  const Bytes b(cache_bytes());const auto root=metadata_offset(tag->address,12);
   if(b.u16(root)!=1)throw FormatError("vertex shader is not original Xbox format");
   const auto count=b.u32(root+4);
   if(count>65536 || classification>=count)throw FormatError("vertex classification outside original tag");
@@ -18,7 +18,7 @@ std::vector<std::byte> Cache::load_vertex_shader_code(std::uint32_t datum,unsign
 }
 ParticleVertexSelection Cache::load_particle_vertex_selection(std::uint32_t datum,
     unsigned layer,unsigned layer_pass) const {
-  const Bytes b(storage_);
+  const Bytes b(cache_bytes());
   const auto find=[&](std::uint32_t id,const char *group)->const Tag& {
     const auto t=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
     if(!t)throw FormatError("original particle shader dependency missing");

@@ -27,6 +27,7 @@ public:
   void begin(const FrontendLaunch&,const UiLobbyMap&);
   void pump();
   bool launch_ready() const noexcept;
+  bool finished() const noexcept;
   FrontendLaunch take_launch();
   void world_loaded(const MultiplayerMatch&,std::span<const unsigned>);
   std::optional<std::uint32_t> world_view_black(unsigned actual_view);
@@ -74,6 +75,6 @@ private:
   void engine_presentation_tick(const MultiplayerMatch&);
   void player_activation_tick(MultiplayerMatch&);
   bool lobby_action(FrontendLobbySessionAction);
-  void configure_lobby(const FrontendLaunch&,const UiLobbyMap&,bool browser_create=false);
+  void configure_lobby(const FrontendLaunch&,const UiLobbyMap&);
 };
 } // namespace halo2

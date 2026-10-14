@@ -8,7 +8,7 @@ struct NativeDeathCameraView {
   Vec3 position{},forward{},up{};
   float horizontal_fov{};
 };
-// Native local-view binding for the original multiplayer death packet and
+// Native local-view binding for the original death packet and
 // complete observer adoption, motion and world owners. Player and corpse
 // identities are read from the retained live source pools on every frame.
 class NativeDeathCamera {
@@ -17,7 +17,7 @@ public:
                    std::uint32_t &auxiliary_random);
   std::optional<NativeDeathCameraView> update(unsigned view,
       std::uint32_t player,std::uint16_t player_flags,bool team_only,
-      float seconds,bool game_in_progress,bool clock_running,bool cycle_pressed,
+      float seconds,bool cycle_pressed,
       const NativeDeathCameraView &ordinary);
 private:
   struct View {

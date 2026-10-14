@@ -1,6 +1,8 @@
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/source_world_pose_wire.hpp"
+#include "halo2/multiplayer_object_runtime.hpp"
+#include "halo2/source_camera.hpp"
 #include <algorithm>
 #include <bit>
 #include <chrono>
@@ -29,11 +31,11 @@ constexpr unsigned protocol_version = native_multiplayer_protocol;
 // This is the native port's transport, not the Xbox System Link wire format.
 // Keep every datagram below the existing limit and publish complete snapshots
 // atomically instead of omitting state to fit a single datagram.
-constexpr unsigned snapshot_header = 31;
+constexpr unsigned snapshot_header = 35;
 constexpr unsigned snapshot_chunk = packet_limit - snapshot_header;
-// The complete source hierarchies for sixteen players can exceed32KiB. The
-// existing two-byte total and one-byte fragment count carry this bound exactly.
-constexpr unsigned snapshot_limit = 65535;
+// Detached corpses share the source's2048-object lifetime pool. Wider native
+// fragment headers retain complete banks across respawns and repeated deaths.
+constexpr unsigned snapshot_limit = 8*1024*1024;
 enum Type : unsigned {
   hello = 1,
   input = 2,
@@ -256,6 +258,7 @@ void encode_devices(Packet&p,const SourceDeviceWorldSnapshot&s,std::uint32_t tic
     put(p,entry.definition,4);put(p,o.handle,4);put(p,o.placement,4);put(p,o.created_tick,8);
     for(float f:{o.motion.position,o.motion.position_velocity,o.motion.power,o.motion.power_velocity})put_float(p,f);
     put(p,o.motion.flags,4);put(p,std::uint16_t(o.motion.delay_ticks),2);put(p,o.control_flags,4);
+    put(p,o.door.flags,4);put(p,std::bit_cast<std::uint32_t>(o.door.open_ticks),4);
     group(o.private_power);group(o.private_position);
     put_float(p,o.root.scale);
     for(const auto&axis:o.root.basis)for(float f:{axis.x,axis.y,axis.z})put_float(p,f);
@@ -275,6 +278,7 @@ SourceDeviceWorldSnapshot decode_devices(Reader&r,std::uint32_t tick){
     entry.definition=r.get(4);o.handle=r.get(4);o.placement=r.get(4);o.created_tick=r.get(8);
     o.motion.position=r.real();o.motion.position_velocity=r.real();o.motion.power=r.real();o.motion.power_velocity=r.real();
     o.motion.flags=r.get(4);o.motion.delay_ticks=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));o.control_flags=r.get(4);
+    o.door.flags=r.get(4);o.door.open_ticks=std::bit_cast<std::int32_t>(std::uint32_t(r.get(4)));
     o.private_power=group();o.private_position=group();o.root.scale=r.real();
     for(auto&axis:o.root.basis)axis={r.real(),r.real(),r.real()};
     o.root.position={r.real(),r.real(),r.real()};
@@ -286,7 +290,47 @@ SourceDeviceWorldSnapshot decode_devices(Reader&r,std::uint32_t tick){
 std::vector<SourceWorldPoseOwner> body_pose_owners(const MultiplayerState &s) {
   std::vector<SourceWorldPoseOwner> owners;
   for(const auto &p:s.players)if(p.connected)owners.push_back({p.dead?p.source_previous_unit:p.source_unit,!p.dead});
+  for(const auto &corpse:s.corpses)owners.push_back({corpse.object,true});
+  for(const auto &vehicle:s.world_vehicles)owners.push_back({vehicle.handle,true});
+  for(const auto &root:s.source_scene_roots)owners.push_back({root.object,root.has_world_nodes});
   return owners;
+}
+void validate_corpses(const MultiplayerState &s) {
+  if(s.corpses.size()>2048)throw FormatError("Native corpse bank exceeds the source object pool");
+  std::set<std::uint32_t> objects;
+  for(const auto &corpse:s.corpses)
+    if(corpse.object==null_datum || !(corpse.object>>16) || (corpse.object&65535u)>=2048 ||
+        !objects.insert(corpse.object).second || corpse.definition==null_datum ||
+        corpse.player==null_datum || !(corpse.player>>16) || (corpse.player&65535u)>=multiplayer_capacity ||
+        std::any_of(s.players.begin(),s.players.end(),[&](const auto &owner) {
+          return owner.connected && !owner.dead && owner.source_unit==corpse.object;
+        }) || corpse.death_tick==null_datum || newer(corpse.death_tick,s.tick))
+      throw FormatError("Invalid retained native corpse identity or death clock");
+}
+void validate_death_camera(const MultiplayerState::Player &player) {
+  if(!player.source_death_camera)return;
+  const auto &v=*player.source_death_camera;
+  if(!player.dead || player.source_unit!=null_datum || !player.connected ||
+      !(v.horizontal_fov>0 && v.horizontal_fov<3.14159265358979323846f) ||
+      std::abs(length(v.forward)-1.f)>.01f || std::abs(length(v.up)-1.f)>.01f ||
+      std::abs(dot(v.forward,v.up))>.01f)
+    throw FormatError("Invalid native authoritative death camera owner or basis");
+  for(float f:{v.position.x,v.position.y,v.position.z,v.forward.x,v.forward.y,v.forward.z,
+      v.up.x,v.up.y,v.up.z,v.horizontal_fov})
+    if(!std::isfinite(f))throw FormatError("Non-finite native authoritative death camera");
+}
+void validate_vehicle_camera(const MultiplayerState::Player &player) {
+  if(!player.source_vehicle_camera)return;
+  const auto &v=*player.source_vehicle_camera;
+  if(player.dead || !player.connected || player.source_unit==null_datum ||
+      player.source_parent==null_datum || player.source_seat<0 ||
+      !(v.horizontal_fov>0 && v.horizontal_fov<3.14159265358979323846f) ||
+      std::abs(length(v.forward)-1.f)>.01f || std::abs(length(v.up)-1.f)>.01f ||
+      std::abs(dot(v.forward,v.up))>.01f)
+    throw FormatError("Invalid authoritative TU1.5 vehicle camera owner or basis");
+  for(float value:{v.position.x,v.position.y,v.position.z,v.forward.x,v.forward.y,v.forward.z,
+      v.up.x,v.up.y,v.up.z,v.horizontal_fov})
+    if(!std::isfinite(value))throw FormatError("Non-finite authoritative TU1.5 vehicle camera");
 }
 void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned> local_ids) {
   put(p, s.tick, 4);
@@ -354,7 +398,8 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p, u.reload_tick, 4);
     put_float(p, u.reload_seconds);
     put(p,u.weapon_shader.item_flags,4);put(p,u.weapon_shader.weapon_flags,4);
-    put(p,std::bit_cast<std::uint32_t>(u.weapon_shader.power_fraction),4);put(p,std::uint32_t(u.ammunition_available),4);
+    put(p,std::bit_cast<std::uint32_t>(u.weapon_shader.power_fraction),4);
+    put(p,std::bit_cast<std::uint32_t>(u.weapon_shader.heat),4);put(p,std::uint32_t(u.ammunition_available),4);
     for(float v:{u.velocity.x,u.velocity.y,u.velocity.z})put_float(p,v);
     put_float(p,u.native_forward);put_float(p,u.native_right);
     put(p,u.native_grounded|(u.native_crouching<<1),1);put(p,u.native_support_material,2);
@@ -375,12 +420,24 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     for(unsigned char c:u.name)put(p,c,1);
     put(p,u.source_player,4);put(p,u.source_unit,4);put(p,u.source_weapon,4);
     put(p,u.source_previous_unit,4);put(p,u.source_death_tick,4);
+    validate_death_camera(u);put(p,u.source_death_camera.has_value(),1);
+    if(u.source_death_camera) {
+      const auto &v=*u.source_death_camera;
+      for(float f:{v.position.x,v.position.y,v.position.z,v.forward.x,v.forward.y,v.forward.z,
+          v.up.x,v.up.y,v.up.z,v.horizontal_fov})put_float(p,f);
+    }
     put(p,u.source_flags,2);put(p,std::uint16_t(u.source_membership),2);put(p,u.source_ffa_identity,1);
     encode_profile(p,u.source_configuration);
     put(p,std::uint8_t(u.source_zoom.current),1);put(p,std::uint8_t(u.source_zoom.requested),1);
     put(p,u.source_zoom.motion,4);put(p,u.zoom_reset_serial,4);
     put(p,std::uint16_t(u.source_zoom_magazine_mode),2);
-    put(p,u.source_parent,4);put(p,u.source_action_word,4);put(p,u.source_unit_10a,1);
+    put(p,u.source_parent,4);put(p,std::uint16_t(u.source_seat),2);put(p,u.source_action_word,4);put(p,u.source_unit_10a,1);
+    validate_vehicle_camera(u);put(p,u.source_vehicle_camera.has_value(),1);
+    if(u.source_vehicle_camera) {
+      const auto &v=*u.source_vehicle_camera;
+      for(float value:{v.position.x,v.position.y,v.position.z,v.forward.x,v.forward.y,v.forward.z,
+          v.up.x,v.up.y,v.up.z,v.horizontal_fov})put_float(p,value);
+    }
     put(p,std::uint16_t(u.action_prompt.target.action),2);put(p,std::uint16_t(u.action_prompt.target.index),2);
     put(p,u.action_prompt.target.object,4);put(p,u.action_prompt.definition,4);put(p,u.action_prompt.message,4);
     put_float(p,u.source_camouflage.primary);put_float(p,u.source_camouflage.secondary);
@@ -399,7 +456,8 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,offhand.shot_tick,4);put(p,offhand.reload_tick,4);put_float(p,offhand.reload_seconds);
     put(p,offhand.reload_empty,1);put(p,offhand.clock.present,1);
     put(p,offhand.shader.item_flags,4);put(p,offhand.shader.weapon_flags,4);
-    put(p,std::bit_cast<std::uint32_t>(offhand.shader.power_fraction),4);put(p,std::uint32_t(offhand.ammunition_available),4);
+    put(p,std::bit_cast<std::uint32_t>(offhand.shader.power_fraction),4);
+    put(p,std::bit_cast<std::uint32_t>(offhand.shader.heat),4);put(p,std::uint32_t(offhand.ammunition_available),4);
     if(offhand.clock.present){encode_fp_channel(p,offhand.clock.origin);encode_fp_channel(p,offhand.clock.current);}
     const auto &effect=u.weapon_effect;
     for(auto word:{effect.serial,effect.tick,effect.unit,effect.weapon,effect.effect,effect.a_bits,effect.b_bits})
@@ -420,11 +478,15 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,std::uint32_t(w.loaded),4);put(p,std::uint32_t(w.reserve),4);
     put(p,w.shader.item_flags,4);put(p,w.shader.weapon_flags,4);
     put(p,std::bit_cast<std::uint32_t>(w.shader.power_fraction),4);
+    put(p,std::bit_cast<std::uint32_t>(w.shader.heat),4);
   }
   if(s.world_vehicles.size()>2048)throw FormatError("Native vehicle capacity exceeded");
   put(p,s.world_vehicles.size(),2);
   for(const auto &v:s.world_vehicles){put(p,v.handle,4);put(p,v.placement,4);put_float(p,v.transform.scale);
-    for(const auto point:{v.transform.position,v.transform.basis[0],v.transform.basis[1],v.transform.basis[2]})for(float f:{point.x,point.y,point.z})put_float(p,f);}
+    for(const auto point:{v.transform.position,v.transform.basis[0],v.transform.basis[1],v.transform.basis[2]})for(float f:{point.x,point.y,point.z})put_float(p,f);
+    put(p,v.lighting_owner,4);put(p,v.lighting_definition,4);for(const auto point:{v.lighting_origin,v.lighting_velocity})for(float f:{point.x,point.y,point.z})put_float(p,f);
+    put(p,v.lighting_flags,4);put(p,v.lighting_frozen,1);
+    put(p,v.geometry_flags,4);put(p,v.geometry_control_flags,2);}
   // PROP_REMOVAL_BANK: persistent native authoritative scene lifetimes.
   if(s.weapon_projectiles.size()>1024)throw FormatError("Native projectile capacity exceeded");
   put(p,s.weapon_projectiles.size(),2);
@@ -449,6 +511,22 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,row.effect,4);put(p,row.event_tick,8);
     for(float f:{row.effect_position.x,row.effect_position.y,row.effect_position.z,
         row.effect_forward.x,row.effect_forward.y,row.effect_forward.z})put_float(p,f);
+  }
+  if(s.prop_regions.size()>2048)throw FormatError("Native prop region bank exceeds scene capacity");
+  put(p,s.prop_regions.size(),2);std::set<std::uint32_t> region_handles,region_placements;
+  for(const auto &row:s.prop_regions){const auto &bank=row.regions;const auto &selection=bank.selection;
+    const auto count=selection.permutations.size();
+    if(row.handle==null_datum || !(row.handle>>16) || (row.handle&0xffff)>=2048 || row.definition==null_datum ||
+        !region_handles.insert(row.handle).second || !region_placements.insert(row.placement).second ||
+        count>16 || selection.states.size()!=count || bank.looping_effects.size()!=count || !selection.resolved() ||
+        selection.variant_index < -1 || selection.variant_index>127)
+      throw FormatError("Invalid native prop region bank");
+    put(p,row.handle,4);put(p,row.placement,4);put(p,row.definition,4);
+    put(p,std::uint32_t(selection.variant_index),4);put(p,count,1);
+    for(unsigned i=0;i<count;++i){const auto &state=selection.states[i];
+      put(p,selection.permutations[i],1);put(p,std::uint8_t(state.variant_permutation),1);
+      put(p,state.damage,1);put(p,state.properties,1);put(p,bank.looping_effects[i],4);
+    }
   }
   encode_devices(p,s.devices,s.tick);
   validate_source_device_events(s.device_events,s.tick);
@@ -476,6 +554,14 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,e.serial,8);put(p,e.tick,8);
     for(auto word:{e.projectile,e.definition,e.effect,e.player,e.unit})put(p,word,4);
     for(float f:{e.position.x,e.position.y,e.position.z,e.forward.x,e.forward.y,e.forward.z,e.up.x,e.up.y,e.up.z})put_float(p,f);
+    if(e.source_locations.size()>32)throw FormatError("Source explosion location bank exceeds original capacity");
+    put(p,e.colors.a,4);put(p,e.colors.b,4);
+    put(p,e.source_locations.size(),1);
+    for(const auto &location:e.source_locations) {
+      put(p,location.name,4);const auto &t=location.frame;put_float(p,t.scale);
+      for(float value:{t.position.x,t.position.y,t.position.z})put_float(p,value);
+      for(const auto &axis:t.basis)for(float value:{axis.x,axis.y,axis.z})put_float(p,value);
+    }
   }
   if(s.bullet_impacts.size()>64)throw FormatError("Native LAN impact bank exceeds retention");
   put(p,s.bullet_impacts.size(),1);
@@ -483,6 +569,18 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,e.serial,8);put(p,e.tick,8);put(p,e.projectile,4);put(p,e.weapon,4);
     put(p,std::uint16_t(e.material),2);put(p,e.terrain,1);
     for(float f:{e.position.x,e.position.y,e.position.z,e.normal.x,e.normal.y,e.normal.z,e.incoming.x,e.incoming.y,e.incoming.z})put_float(p,f);
+    put(p,e.presentation.has_value(),1);
+    if(e.presentation){
+      put(p,std::uint16_t(e.presentation->response),2);put(p,e.presentation->admitted,1);
+      put_float(p,e.presentation->scale_a);put_float(p,e.presentation->scale_b);
+    }
+  }
+  if(s.melee_impacts.size()>64)throw FormatError("Native LAN melee impact bank exceeds retention");
+  put(p,s.melee_impacts.size(),1);
+  for(const auto &e:s.melee_impacts){
+    put(p,e.serial,8);put(p,e.tick,8);put(p,e.attacker,4);put(p,e.weapon,4);put(p,e.damage,4);put(p,std::uint16_t(e.material),2);
+    for(float f:{e.position.x,e.position.y,e.position.z,e.normal.x,e.normal.y,e.normal.z,
+        e.forward.x,e.forward.y,e.forward.z,e.attacker_position.x,e.attacker_position.y,e.attacker_position.z})put_float(p,f);
   }
   validate_unit_damage_effect_events(s.unit_damage_effects,s.tick);
   put(p,s.unit_damage_effects.size(),1);
@@ -490,12 +588,34 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,e.serial,8);put(p,e.tick,8);put(p,e.target,4);
     put(p,unsigned(e.effect.kind),1);put(p,e.effect.datum,4);
     put(p,e.owner.player,4);put(p,e.owner.unit,4);put(p,std::uint16_t(e.owner.designator),2);
+    put(p,e.colors.a,4);put(p,e.colors.b,4);
   }
   validate_unit_damage_voice_events(s.unit_damage_voices,s.tick);
   put(p,s.unit_damage_voices.size(),1);
   for(const auto &e:s.unit_damage_voices) {
     put(p,e.serial,8);put(p,e.tick,8);put(p,e.target,4);put(p,e.definition,4);put(p,e.report_flags,4);
     for(const auto f:{e.position.x,e.position.y,e.position.z,e.recent_body,e.recent_shield,e.visible_body})put_float(p,f);
+  }
+  validate_corpses(s);
+  put(p,s.corpses.size(),2);
+  for(const auto &corpse:s.corpses) {
+    put(p,corpse.object,4);put(p,corpse.definition,4);put(p,corpse.player,4);put(p,corpse.death_tick,4);
+    encode_profile(p,corpse.configuration);
+    for(float value:{corpse.velocity.x,corpse.velocity.y,corpse.velocity.z})put_float(p,value);
+    put(p,corpse.physical_state,1);put_float(p,corpse.health);put_float(p,corpse.shield);
+    for(const auto &recent:{corpse.damage_feedback.shield,corpse.damage_feedback.body}) {
+      put_float(p,recent.visible);put_float(p,recent.accumulated);put(p,std::uint8_t(recent.ticks),1);
+    }
+  }
+  if(s.source_scene_roots.size()>2048 || (!s.source_scene_roots_authoritative && !s.source_scene_roots.empty()))
+    throw FormatError("Invalid source scene authority or root count");
+  put(p,s.source_scene_roots_authoritative,1);put(p,s.source_scene_roots.size(),2);
+  for(const auto &root:s.source_scene_roots) {
+    put(p,root.object,4);put(p,root.definition,4);put(p,root.placement,4);
+    put(p,unsigned(root.visible)|(unsigned(root.has_world_nodes)<<1),1);
+    put_float(p,root.transform.scale);
+    for(const auto &axis:root.transform.basis)for(float value:{axis.x,axis.y,axis.z})put_float(p,value);
+    for(float value:{root.transform.position.x,root.transform.position.y,root.transform.position.z})put_float(p,value);
   }
   const auto poses=encode_source_world_poses(s.source_body_poses_authoritative,s.source_body_poses,body_pose_owners(s));
   p.insert(p.end(),poses.begin(),poses.end());
@@ -595,7 +715,8 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     u.shot_tick = r.get(4);
     u.reload_tick = r.get(4);
     u.reload_seconds = r.real();
-    u.weapon_shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4)))};u.ammunition_available=r.integer();
+    u.weapon_shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4))),
+        std::bit_cast<float>(std::uint32_t(r.get(4)))};u.ammunition_available=r.integer();
     u.velocity={r.real(),r.real(),r.real()};
     u.native_forward=r.real();u.native_right=r.real();
     const auto support_flags=r.get(1);u.native_support_material=std::uint16_t(r.get(2));
@@ -633,6 +754,16 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     for(unsigned i=0;i<name_size;++i)u.name+=char(r.get(1));
     u.source_player=r.get(4);u.source_unit=r.get(4);u.source_weapon=r.get(4);
     u.source_previous_unit=r.get(4);u.source_death_tick=r.get(4);
+    const auto camera_present=r.get(1);
+    if(camera_present>1)throw FormatError("Invalid native death camera presence");
+    if(camera_present) {
+      NativeDeathCameraView camera;
+      camera.position={r.real(),r.real(),r.real()};camera.forward={r.real(),r.real(),r.real()};
+      camera.up={r.real(),r.real(),r.real()};camera.horizontal_fov=r.real();u.source_death_camera=camera;
+      if(std::find(local_ids.begin(),local_ids.end(),unsigned(&u-s.players.data()))==local_ids.end())
+        throw FormatError("Native death camera belongs to another peer");
+      validate_death_camera(u);
+    }
     u.source_flags=r.get(2);
     u.source_membership=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
     u.source_ffa_identity=r.get(1);
@@ -647,7 +778,13 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     u.source_zoom.requested=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
     u.source_zoom.motion=r.get(4);u.zoom_reset_serial=r.get(4);
     u.source_zoom_magazine_mode=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
-    u.source_parent=r.get(4);u.source_action_word=r.get(4);u.source_unit_10a=r.get(1);
+    u.source_parent=r.get(4);u.source_seat=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));u.source_action_word=r.get(4);u.source_unit_10a=r.get(1);
+    if(r.get(1)) {
+      NativeDeathCameraView view;view.position={r.real(),r.real(),r.real()};
+      view.forward={r.real(),r.real(),r.real()};view.up={r.real(),r.real(),r.real()};
+      view.horizontal_fov=r.real();u.source_vehicle_camera=view;
+    }
+    validate_vehicle_camera(u);
     auto &prompt=u.action_prompt;
     prompt.target.action=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
     prompt.target.index=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
@@ -678,7 +815,8 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     offhand.definition=r.get(4);offhand.datum=r.get(4);offhand.loaded=r.integer();offhand.reserve=r.integer();
     offhand.shot_tick=r.get(4);offhand.reload_tick=r.get(4);offhand.reload_seconds=r.real();
     const auto empty=r.get(1),present=r.get(1);
-    offhand.shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4)))};offhand.ammunition_available=r.integer();
+    offhand.shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4))),
+        std::bit_cast<float>(std::uint32_t(r.get(4)))};offhand.ammunition_available=r.integer();
     if(empty>1 || present>1 || offhand.loaded<0 || offhand.reserve<0 || offhand.reload_seconds<0 ||
         ((offhand.datum==null_datum)!=(offhand.definition==null_datum)) ||
         (offhand.datum!=null_datum && (u.source_unit==null_datum || offhand.datum==u.source_weapon)) ||
@@ -714,7 +852,8 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     WorldWeaponPresentation w;w.handle=r.get(4);w.definition=r.get(4);
     w.position={r.real(),r.real(),r.real()};w.forward={r.real(),r.real(),r.real()};w.up={r.real(),r.real(),r.real()};
     w.loaded=r.integer();w.reserve=r.integer();
-    w.shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4)))};
+    w.shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4))),
+        std::bit_cast<float>(std::uint32_t(r.get(4)))};
     if(w.handle==null_datum || w.definition==null_datum || w.loaded<0 || w.reserve<0 ||
         !world_handles.insert(w.handle).second)throw FormatError("Invalid LAN world weapon");
     s.world_weapons.push_back(w);
@@ -723,6 +862,10 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
   std::set<std::uint32_t> vehicle_handles;
   for(unsigned i=0;i<vehicle_count;++i){WorldVehiclePresentation v;v.handle=r.get(4);v.placement=r.get(4);v.transform.scale=r.real();
     v.transform.position={r.real(),r.real(),r.real()};for(auto &b:v.transform.basis)b={r.real(),r.real(),r.real()};
+    v.lighting_owner=r.get(4);v.lighting_definition=r.get(4);v.lighting_origin={r.real(),r.real(),r.real()};v.lighting_velocity={r.real(),r.real(),r.real()};
+    v.lighting_flags=r.get(4);const auto frozen=r.get(1);if(frozen>1)throw FormatError("Invalid LAN vehicle lighting freeze flag");v.lighting_frozen=frozen!=0;
+    v.geometry_flags=r.get(4);v.geometry_control_flags=r.get(2);
+    if((v.lighting_owner==null_datum)!=(v.lighting_definition==null_datum))throw FormatError("Invalid LAN vehicle lighting owner");
     if(v.handle==null_datum || !vehicle_handles.insert(v.handle).second || !(v.transform.scale>0) || v.placement>=65536)throw FormatError("Invalid LAN vehicle identity");
     s.world_vehicles.push_back(v);}
   // PROP_REMOVAL_BANK: matching encoder block; later banks follow this one.
@@ -750,6 +893,23 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
         !prop_handles.insert(row.handle).second || !prop_placements.insert(row.placement).second)
       throw FormatError("Invalid native LAN prop removal identity");
     s.prop_removals.push_back(row);
+  }
+  const auto region_count=r.get(2);if(region_count>2048)throw FormatError("Native prop region bank exceeds scene capacity");
+  std::set<std::uint32_t> region_handles,region_placements;
+  for(unsigned n=0;n<region_count;++n){
+    PropRegionSnapshot row{std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::uint32_t(r.get(4))};
+    auto &selection=row.regions.selection;selection.variant_index=std::bit_cast<std::int32_t>(std::uint32_t(r.get(4)));
+    const auto count=r.get(1);
+    if(row.handle==null_datum || !(row.handle>>16) || (row.handle&0xffff)>=2048 || row.definition==null_datum ||
+        !region_handles.insert(row.handle).second || !region_placements.insert(row.placement).second ||
+        count>16 || selection.variant_index < -1 || selection.variant_index>127)
+      throw FormatError("Invalid native prop region bank");
+    for(unsigned i=0;i<count;++i){selection.permutations.push_back(r.get(1));
+      SourceInitialModelRegionState state;state.variant_permutation=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
+      state.damage=r.get(1);state.properties=r.get(1);selection.states.push_back(state);
+      row.regions.looping_effects.push_back(r.get(4));
+    }
+    s.prop_regions.push_back(std::move(row));
   }
   s.devices=decode_devices(r,s.tick);
   const auto device_events=r.get(1);
@@ -790,6 +950,19 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     NativeGrenadeDetonation e;e.serial=r.get(8);e.tick=r.get(8);
     e.projectile=r.get(4);e.definition=r.get(4);e.effect=r.get(4);e.player=r.get(4);e.unit=r.get(4);
     e.position={r.real(),r.real(),r.real()};e.forward={r.real(),r.real(),r.real()};e.up={r.real(),r.real(),r.real()};
+    e.colors={std::uint32_t(r.get(4)),std::uint32_t(r.get(4))};
+    const auto locations=r.get(1);
+    if(locations>32)throw FormatError("Source explosion location bank exceeds original capacity");
+    for(unsigned n=0;n<locations;++n) {
+      SourceEffectLocation location;location.name=r.get(4);auto &t=location.frame;t.scale=r.real();
+      t.position={r.real(),r.real(),r.real()};for(auto &axis:t.basis)axis={r.real(),r.real(),r.real()};
+      if(location.name==null_datum || t.scale!=1.f ||
+          std::abs(t.position.x)>1e6 || std::abs(t.position.y)>1e6 || std::abs(t.position.z)>1e6)
+        throw FormatError("Invalid LAN source explosion location");
+      for(const auto &axis:t.basis)if(std::abs(axis.x)>2.f || std::abs(axis.y)>2.f || std::abs(axis.z)>2.f)
+        throw FormatError("Invalid LAN source explosion location basis");
+      e.source_locations.push_back(location);
+    }
     if(!e.serial||e.serial<=previous_serial||e.tick>s.tick||e.projectile==null_datum||!(e.projectile>>16)||
         (e.projectile&0xffffu)>=2048||e.definition==null_datum||e.unit==null_datum||
         std::abs(e.position.x)>1e6||std::abs(e.position.y)>1e6||std::abs(e.position.z)>1e6)
@@ -803,6 +976,15 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     BulletImpact e;e.serial=r.get(8);e.tick=r.get(8);e.projectile=r.get(4);e.weapon=r.get(4);
     e.material=std::int16_t(r.get(2));const auto terrain=r.get(1);e.terrain=terrain;
     e.position={r.real(),r.real(),r.real()};e.normal={r.real(),r.real(),r.real()};e.incoming={r.real(),r.real(),r.real()};
+    const auto presentation=r.get(1);
+    if(presentation>1)throw FormatError("Invalid native LAN impact presentation presence");
+    if(presentation){
+      const auto response=std::int16_t(r.get(2));const auto admitted=r.get(1);
+      const auto scale_a=r.real(),scale_b=r.real();
+      if(admitted>1 || scale_a<0 || scale_a>1 || scale_b<0 || scale_b>1)
+        throw FormatError("Invalid native LAN impact presentation");
+      e.presentation=SourceProjectileImpactPresentation{response,scale_a,scale_b,bool(admitted)};
+    }
     const auto squared=[](Vec3 v){return v.x*v.x+v.y*v.y+v.z*v.z;};
     if(!e.serial || e.serial<=previous_serial || e.tick>s.tick || e.weapon==null_datum || terrain>1 ||
         e.material < -1 || squared(e.normal)<.5f || squared(e.normal)>1.5f ||
@@ -811,12 +993,26 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
       throw FormatError("Invalid native LAN bullet impact");
     previous_serial=e.serial;s.bullet_impacts.push_back(e);
   }
+  const auto melee_count=r.get(1);previous_serial=0;
+  if(melee_count>64)throw FormatError("Native LAN melee impact bank exceeds retention");
+  for(unsigned i=0;i<melee_count;++i){
+    MeleeImpact e;e.serial=r.get(8);e.tick=r.get(8);e.attacker=r.get(4);e.weapon=r.get(4);e.damage=r.get(4);e.material=std::int16_t(r.get(2));
+    e.position={r.real(),r.real(),r.real()};e.normal={r.real(),r.real(),r.real()};e.forward={r.real(),r.real(),r.real()};e.attacker_position={r.real(),r.real(),r.real()};
+    const auto squared=[](Vec3 v){return v.x*v.x+v.y*v.y+v.z*v.z;};
+    if(!e.serial || e.serial<=previous_serial || e.tick>s.tick || e.attacker==null_datum || e.weapon==null_datum || e.material<0 ||
+        squared(e.normal)<.5f || squared(e.normal)>1.5f || squared(e.forward)<.5f || squared(e.forward)>1.5f ||
+        std::abs(e.position.x)>1e6 || std::abs(e.position.y)>1e6 || std::abs(e.position.z)>1e6 ||
+        std::abs(e.attacker_position.x)>1e6 || std::abs(e.attacker_position.y)>1e6 || std::abs(e.attacker_position.z)>1e6)
+      throw FormatError("Invalid native LAN melee impact");
+    previous_serial=e.serial;s.melee_impacts.push_back(e);
+  }
   const auto damage_effect_count=r.get(1);
   if(damage_effect_count>64)throw FormatError("Unit damage effect journal exceeds retention");
   for(unsigned i=0;i<damage_effect_count;++i) {
     UnitDamageEffectEvent e;e.serial=r.get(8);e.tick=r.get(8);e.target=r.get(4);
     e.effect.kind=UnitDamageEffectKind(r.get(1));e.effect.datum=r.get(4);
     e.owner.player=r.get(4);e.owner.unit=r.get(4);e.owner.designator=std::int16_t(r.get(2));
+    e.colors={std::uint32_t(r.get(4)),std::uint32_t(r.get(4))};
     s.unit_damage_effects.push_back(e);
   }
   validate_unit_damage_effect_events(s.unit_damage_effects,s.tick);
@@ -828,6 +1024,36 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     s.unit_damage_voices.push_back(e);
   }
   validate_unit_damage_voice_events(s.unit_damage_voices,s.tick);
+  const auto corpse_count=r.get(2);
+  if(corpse_count>2048)throw FormatError("Native corpse bank exceeds the source object pool");
+  for(unsigned n=0;n<corpse_count;++n) {
+    MultiplayerState::Corpse corpse;
+    corpse.object=r.get(4);corpse.definition=r.get(4);corpse.player=r.get(4);corpse.death_tick=r.get(4);
+    corpse.configuration=decode_profile(r);corpse.velocity={r.real(),r.real(),r.real()};
+    corpse.physical_state=r.get(1);corpse.health=r.real();corpse.shield=r.real();
+    for(auto *recent:{&corpse.damage_feedback.shield,&corpse.damage_feedback.body}) {
+      recent->visible=r.real();recent->accumulated=r.real();
+      recent->ticks=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
+    }
+    s.corpses.push_back(std::move(corpse));
+  }
+  validate_corpses(s);
+  const auto scene_authority=r.get(1),scene_count=r.get(2);
+  if(scene_authority>1 || scene_count>2048 || (!scene_authority && scene_count))
+    throw FormatError("Invalid source scene authority or root count");
+  s.source_scene_roots_authoritative=scene_authority;
+  std::set<std::uint32_t> scene_objects,scene_placements;
+  for(unsigned n=0;n<scene_count;++n) {
+    SourceSceneRoot root;root.object=r.get(4);root.definition=r.get(4);root.placement=r.get(4);
+    const auto flags=r.get(1);root.visible=flags&1u;root.has_world_nodes=flags&2u;
+    root.transform.scale=r.real();for(auto &axis:root.transform.basis)axis={r.real(),r.real(),r.real()};
+    root.transform.position={r.real(),r.real(),r.real()};
+    if(root.object==null_datum || !(root.object>>16) || (root.object&65535u)>=2048 ||
+        root.definition==null_datum || root.placement>=65536 || flags>3 || !(root.transform.scale>0) ||
+        !scene_objects.insert(root.object).second || !scene_placements.insert(root.placement).second)
+      throw FormatError("Invalid source scene root identity or frame");
+    s.source_scene_roots.push_back(root);
+  }
   auto poses=decode_source_world_poses(std::span(r.p).subspan(r.at),body_pose_owners(s));
   r.at+=poses.consumed;s.source_body_poses_authoritative=poses.authoritative;
   s.source_body_poses=std::move(poses.poses);
@@ -930,28 +1156,82 @@ struct LanHost::Impl {
     std::array<Controls, 4> controls{};
     std::array<PressSerials,4> received_presses{},delivered_presses{};
     std::array<InteractionDurations,4> completed{};
+    std::unique_ptr<NativeVehicleCamera> vehicle_camera;
+    std::optional<std::uint32_t> vehicle_camera_tick;
+    std::array<std::optional<NativeDeathCameraView>,4> vehicle_views;
+    std::unique_ptr<NativeDeathCamera> death_camera;
+    std::optional<std::uint32_t> camera_tick;
+    std::array<std::optional<NativeDeathCameraView>,4> death_views;
+    std::array<std::uint32_t,4> camera_jump_serial{};
   };
   MultiplayerMatch &match;
   Udp udp;
   std::vector<OnlineAdmission> admissions;
   std::uint64_t fingerprint;
   std::vector<Peer> peers;
+  // Explicit native presentation RNG; camera draws never consume gameplay RNG.
+  std::uint32_t camera_random;
   static MultiplayerMatch& admitted(MultiplayerMatch& match) {
     if(match.source_engine()!=2 && match.source_engine()!=4)
       throw FormatError("Selected engine has no complete native objective replication binding");
     return match;
   }
   Impl(MultiplayerMatch &m, unsigned port, std::uint64_t f)
-      : match(admitted(m)), udp(port), fingerprint(f) {}
+      : match(admitted(m)), udp(port), fingerprint(f),camera_random(m.presentation_seed()) {}
   Impl(MultiplayerMatch &m, std::shared_ptr<MultiplayerDatagrams> relay, std::uint64_t f,
        std::vector<OnlineAdmission> roster)
-      : match(admitted(m)), udp(std::move(relay)), admissions(std::move(roster)), fingerprint(f) {}
+      : match(admitted(m)), udp(std::move(relay)), admissions(std::move(roster)), fingerprint(f),camera_random(m.presentation_seed()) {}
   void respond(Peer &peer) {
     Packet body;
     put(body, peer.ids.size(), 1);
     for (auto id : peer.ids)
       put(body, id, 1);
-    encode_state(body, match.state(),peer.ids);
+    auto state=match.state();
+    if(auto *source=match.source_object_runtime();source && source->owns_physics()) {
+      if(!peer.death_camera) {
+        if(!match.original_data())throw FormatError("Remote source camera lost authenticated constants");
+        peer.death_camera=std::make_unique<NativeDeathCamera>(*source,*match.original_data(),camera_random);
+      }
+      if(!peer.camera_tick || *peer.camera_tick!=state.tick) {
+        const auto seconds=peer.camera_tick?float(std::uint32_t(state.tick-*peer.camera_tick))*tick_seconds:tick_seconds;
+        for(unsigned view=0;view<peer.ids.size();++view) {
+          const auto slot=peer.ids[view];const auto &unit=match.unit(slot);const auto &player=state.players[slot];
+          const auto cp=std::cos(unit.pitch);
+          const NativeDeathCameraView ordinary{
+              ordinary_unit_eye(unit.body.position,unit.definition.camera_height,unit.definition.crouch_camera_height,unit.crouch),
+              {std::cos(unit.yaw)*cp,std::sin(unit.yaw)*cp,std::sin(unit.pitch)},{0,0,1},unit.definition.camera_field_of_view};
+          const bool cycle=newer(peer.received_presses[view][0],peer.camera_jump_serial[view]);
+          peer.camera_jump_serial[view]=peer.received_presses[view][0];
+          peer.death_views[view]=peer.death_camera->update(view,player.source_player,player.source_flags,
+              state.team_mode,seconds,cycle,ordinary);
+        }
+        peer.camera_tick=state.tick;
+      }
+      for(unsigned view=0;view<peer.ids.size();++view)
+        state.players[peer.ids[view]].source_death_camera=peer.death_views[view];
+    }
+    if(auto *source=match.source_object_runtime();source && source->owns_physics()) {
+      if(!peer.vehicle_camera) {
+        if(!match.original_data())throw FormatError("Remote vehicle camera lost authenticated TU1.5 constants");
+        peer.vehicle_camera=std::make_unique<NativeVehicleCamera>(*source,*match.original_data());
+      }
+      if(!peer.vehicle_camera_tick || *peer.vehicle_camera_tick!=state.tick) {
+        const auto seconds=peer.vehicle_camera_tick?float(std::uint32_t(state.tick-*peer.vehicle_camera_tick))*tick_seconds:tick_seconds;
+        for(unsigned view=0;view<peer.ids.size();++view) {
+          const auto slot=peer.ids[view];const auto &unit=match.unit(slot);const auto &player=state.players[slot];
+          const auto cp=std::cos(unit.pitch);
+          const NativeDeathCameraView ordinary{
+              ordinary_unit_eye(unit.body.position,unit.definition.camera_height,unit.definition.crouch_camera_height,unit.crouch),
+              {std::cos(unit.yaw)*cp,std::sin(unit.yaw)*cp,std::sin(unit.pitch)},{0,0,1},unit.definition.camera_field_of_view};
+          peer.vehicle_views[view]=peer.vehicle_camera->update(view,player.source_unit,player.source_flags,
+              unit.yaw,unit.pitch,seconds,ordinary);
+        }
+        peer.vehicle_camera_tick=state.tick;
+      }
+      for(unsigned view=0;view<peer.ids.size();++view)
+        state.players[peer.ids[view]].source_vehicle_camera=peer.vehicle_views[view];
+    }
+    encode_state(body,state,peer.ids);
     if(body.empty() || body.size()>snapshot_limit)
       throw FormatError("Native LAN snapshot exceeds its transport bound");
     const unsigned count=unsigned((body.size()+snapshot_chunk-1)/snapshot_chunk);
@@ -959,7 +1239,7 @@ struct LanHost::Impl {
     for(unsigned index=0;index<count;++index) {
       auto p=header(snapshot);
       put(p,peer.nonce,8);put(p,peer.cookie,8);put(p,sequence,4);
-      put(p,index,1);put(p,count,1);put(p,body.size(),2);
+      put(p,index,2);put(p,count,2);put(p,body.size(),4);
       const auto begin=body.begin()+index*snapshot_chunk;
       const auto end=body.begin()+std::min(body.size(),std::size_t(index+1)*snapshot_chunk);
       p.insert(p.end(),begin,end);
@@ -1016,15 +1296,14 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
         std::vector<std::optional<SourcePlayerConfiguration>> profiles;
         for(unsigned i=0;i<count;++i)profiles.push_back(decode_profile(r));
         r.end();
-        const OnlineAdmission *admission = nullptr;
+        std::vector<const OnlineAdmission *> admissions;
         if (h.udp.relay) {
           const auto slot = ntohl(from.sin_addr.s_addr)-1;
-          const auto found = std::find_if(h.admissions.begin(),h.admissions.end(),[&](const auto &a){return a.slot==slot;});
-          if (count != 1 || found == h.admissions.end()) { h.rejection(from,nonce,"Player is not admitted to this match"); continue; }
-          admission = &*found;
+          for(const auto &a:h.admissions)if(online_admission_peer(a)==slot)admissions.push_back(&a);
+          if (count != admissions.size() || admissions.empty() || admissions.front()->slot!=slot) { h.rejection(from,nonce,"Local players are not admitted to this match"); continue; }
           // The queue owner determines team and chosen display name. Profiles
           // remain appearance requests; they cannot rename a matched identity.
-          selected_teams[0] = h.match.team_mode() ? admission->team : -1;
+          for(unsigned i=0;i<count;++i)selected_teams[i] = h.match.team_mode() ? admissions[i]->team : -1;
         }
         if (std::any_of(selected_teams.begin(),selected_teams.end(),[&](auto team) {
               return team < (h.match.team_mode() ? 0 : -1) || team > 7;
@@ -1067,8 +1346,8 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
         created.profiles=profiles;
         try {
           for (unsigned i = 0; i < count; ++i)
-            created.ids.push_back(h.match.join(admission ? admission->name : profiles[i] ? native_player_configuration_name(*profiles[i])
-                : "LAN Player",selected_teams[i],profiles[i], admission ? std::optional(admission->slot) : std::nullopt));
+            created.ids.push_back(h.match.join(!admissions.empty() ? admissions[i]->name : profiles[i] ? native_player_configuration_name(*profiles[i])
+                : "LAN Player",selected_teams[i],profiles[i], !admissions.empty() ? std::optional(admissions[i]->slot) : std::nullopt));
         } catch (const FormatError &e) {
           for (auto id : created.ids)
             h.match.leave(id);
@@ -1077,7 +1356,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
         }
         for (unsigned i = 0; i < count; ++i)
           created.controls[i].yaw = h.match.unit(created.ids[i]).yaw;
-        h.peers.push_back(created);
+        h.peers.push_back(std::move(created));
         h.respond(h.peers.back());
       } else if (type == input || type == leave) {
         const auto cookie = r.get(8);
@@ -1208,9 +1487,12 @@ struct LanClient::Impl {
        std::span<const std::int8_t> teams, std::span<const SourcePlayerConfiguration> selected_profiles)
       : udp(std::move(relay)), fingerprint(f), count(1) {
     host={}; host.sin_family=AF_INET; host.sin_addr.s_addr=htonl(peer+1);
-    if(teams.size()>1 || selected_profiles.size()>1)throw FormatError("ONLINE requires one local player");
-    if(!teams.empty())selected_teams[0]=teams[0];
-    if(!selected_profiles.empty())profiles[0]=selected_profiles[0];
+    count=unsigned(std::max(teams.size(),selected_profiles.size()));
+    if(!count)count=1;
+    if(count>4 || (!teams.empty() && teams.size()!=count) || (!selected_profiles.empty() && selected_profiles.size()!=count))
+      throw FormatError("ONLINE local profiles/teams must describe one to four admitted players");
+    for(unsigned i=0;i<teams.size();++i)selected_teams[i]=teams[i];
+    for(unsigned i=0;i<selected_profiles.size();++i)profiles[i]=selected_profiles[i];
   }
 };
 LanClient::LanClient(const std::string &a, std::uint64_t f, unsigned n, std::span<const std::int8_t> teams,
@@ -1302,7 +1584,7 @@ void LanClient::receive() {
         continue;
       const auto cookie = r.get(8);
       const auto sequence=std::uint32_t(r.get(4));
-      const auto index=unsigned(r.get(1)), fragments=unsigned(r.get(1)), total=unsigned(r.get(2));
+      const auto index=unsigned(r.get(2)), fragments=unsigned(r.get(2)), total=unsigned(r.get(4));
       if ((v.connected && (cookie != v.cookie || !newer(sequence,v.snapshot_sequence))))
         continue;
       if(!total || total>snapshot_limit || !fragments ||

@@ -26,7 +26,7 @@ std::optional<SceneryDefinition> Cache::load_scenery_definition(std::uint32_t da
   const auto tag=query_tag({.handle=TagHandle{datum}, .require_address=true});
   if(!tag || tag->group!="scen")return std::nullopt;
   if(tag->size<0xc2)throw FormatError("truncated scenery definition");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto root=metadata_offset(tag->address,tag->size);
   return SceneryDefinition{datum,data.u32(root+0x38),data.u16(root+2),
       static_cast<std::int16_t>(data.u16(root+0xc0))};
@@ -35,7 +35,7 @@ std::optional<SceneryDefinition> Cache::load_scenery_definition(std::uint32_t da
 std::vector<SceneryLightprobe> Cache::load_scenery_lightprobes(std::size_t index) const {
   if(index>=bsps_.size())throw FormatError("BSP index outside scenario");
   const auto& bsp=bsps_[index];
-  const Bytes data(Bytes(storage_).slice(bsp.file_offset,bsp.size));
+  const Bytes data(Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size));
   const auto count=data.u32(16+0x22c);
   if(count>0x7fff)throw FormatError("excessive source object lightprobe count");
   if(!count)return {};

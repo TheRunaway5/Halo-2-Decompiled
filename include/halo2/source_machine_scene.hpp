@@ -2,6 +2,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/source_object_view.hpp"
 #include "halo2/source_portal_mask.hpp"
+#include "halo2/source_scene_effect_owner.hpp"
 #include <memory>
 
 namespace halo2 {
@@ -55,6 +56,7 @@ public:
     void update(std::uint64_t tick,std::int32_t render_frame,Vec3 first_submitting_eye,
                 float source_lighting_distance_scale,Mesh &);
     void update_pose(std::uint64_t tick,std::int32_t render_frame,Mesh &);
+    std::vector<SourceSceneEffectOwner> effect_owners() const;
     // Render-only channels; portal/collision snapshots retain the current state.
     void interpolate(const struct SourceDeviceWorldSnapshot &previous,float fraction);
     void append(std::vector<Vertex> &,std::vector<ObjectLightingBinding> &) const;

@@ -4,6 +4,7 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 using namespace halo2;
 namespace {
@@ -45,8 +46,8 @@ struct Effect {
 }
 int main(int argc,char **argv) {
   try {
-    check(argc==3,"Supply original map and prepared-effect fixtures");
-    if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]))return 77;
+    check(argc==4,"Supply original map, prepared-effect and complete-effect fixtures");
+    if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]) || !std::filesystem::exists(argv[3]))return 77;
     Cache cache(argv[1]);auto content=cache.load_content(0,true);content.kill_triggers.clear();
     const auto id=cache.slayer_starting_weapon(5);const auto &weapon=content.weapons.at(id);
     check(weapon.smg.has_value() && weapon.firing_effects.size()==1,"Authored stock SMG effect row");
@@ -97,7 +98,17 @@ int main(int argc,char **argv) {
     }
     check(cases==22 && ticks==2220 && effects>requests && requests==566 && empty>0,
           "Incomplete independently frozen preparation suite");
-    unsigned match_ticks=0,udp_ticks=0,match_effects=0,udp_effects=0;
+    std::map<std::pair<std::string,unsigned>,std::vector<Effect>> complete_effects;
+    std::ifstream complete_file(argv[3]);
+    for(std::string line;std::getline(complete_file,line);) {
+      if(line.empty() || line[0]=='#')continue;
+      std::istringstream row(line);std::string name;row>>name;
+      const auto tick=word(row),count=word(row);std::vector<Effect> all;
+      for(unsigned n=0;n<count;++n)all.push_back({word(row),word(row),word(row),word(row),word(row),{}});
+      check(complete_effects.emplace(std::pair{name,tick},std::move(all)).second,"Duplicate original complete effect row");
+    }
+    check(complete_effects.size()==599,"Missing original complete effect rows");
+    unsigned match_ticks=0,udp_ticks=0,match_effects=0,udp_effects=0,match_all_effects=0,udp_all_effects=0;
     for(unsigned mode=0;mode<2;++mode) {
       std::unique_ptr<MultiplayerMatch> match;std::unique_ptr<LanHost> host;std::unique_ptr<LanClient> client;
       for(const auto &line:equipped) {
@@ -122,9 +133,10 @@ int main(int argc,char **argv) {
           std::vector<Effect> expected;
           for(unsigned i=0;i<count;++i)expected.push_back({word(row),word(row),word(row),word(row),word(row),{}});
           check(match && match->simulation().ticks()==tick,"Actual equipped preparation tick");
-          unsigned cursor=0;const auto shots=match->simulation().shots();
+          unsigned cursor=0,all_cursor=0;const auto shots=match->simulation().shots();
+          const auto &all=complete_effects.at({name,tick});
           match->configure_weapon_effect_owner([&](const Unit &unit,const WeaponEffectInput &request) {
-            check(cursor<expected.size(),name+" extra actual prepared callback");const auto &source=expected[cursor++];
+            check(all_cursor<all.size(),name+" extra actual complete effect callback");const auto &source=all[all_cursor++];
             check(unit.source_datum==match->player(0).source_current_object &&
                   request.weapon==unit.weapon.source_datum && match->weapon_from_datum(request.weapon)==&unit.weapon,
                   name+" full live player/unit/carried-weapon identity");
@@ -132,13 +144,21 @@ int main(int argc,char **argv) {
                   request.a_bits==source.a && request.b_bits==source.b,
                   name+" live imported tag/previous/scalar ABI");
             check(match->simulation().shots()==shots,name+" effect request was deferred after projectile pass");
-            mode?++udp_effects:++match_effects;return source.result;
+            // The frozen prepared fixture excludes magazine calls. Compare
+            // every call against the separate unfiltered original stream,
+            // then retain its original prepared-only assertion as well.
+            if(cursor<expected.size() && request.effect==expected[cursor].tag &&
+                request.previous_handle==expected[cursor].previous && request.a_bits==expected[cursor].a && request.b_bits==expected[cursor].b) {
+              ++cursor;mode?++udp_effects:++match_effects;
+            } else check(weapon.magazine && (request.effect==weapon.magazine->reload_effect ||
+                request.effect==weapon.magazine->chamber_effect),name+" non-prepared effect lost its actual magazine owner");
+            mode?++udp_all_effects:++match_all_effects;return source.result;
           });
           std::array<Controls,multiplayer_capacity> controls{};
           controls[0].fire=held;controls[0].reload=reload;controls[0].yaw=match->unit(0).yaw;
           if(mode) {client->send(std::array<Controls,1>{controls[0]});host->receive(controls);}
           match->step(controls);
-          check(cursor==count && match->simulation().shots()-shots==requested,
+          check(cursor==count && all_cursor==all.size() && match->simulation().shots()-shots==requested,
                 name+" actual effect/projectile admission and count");
           compare_state(match->unit(0).weapon.smg,post,name+" actual equipped complete postpass");
           // Never retain a callback whose per-tick comparison storage expires.
@@ -150,8 +170,9 @@ int main(int argc,char **argv) {
     }
     check(match_ticks==599 && udp_ticks==599 && match_effects==udp_effects && match_effects>=165,
           "Incomplete actual Match/UDP source preparation integration");
+    check(match_all_effects==170 && udp_all_effects==170,"Incomplete original magazine/prepared effect stream");
     std::cout<<"PASS "<<cases<<" original cases, "<<ticks<<" ticks, "<<effects
              <<" prepared-effect callbacks ("<<empty<<" empty), "<<requests<<" projectile requests; "
-             <<match_ticks<<" local + "<<udp_ticks<<" UDP ticks, "<<match_effects<<" callbacks each\n";
+             <<match_ticks<<" local + "<<udp_ticks<<" UDP ticks, "<<match_effects<<" prepared / "<<match_all_effects<<" complete callbacks each\n";
   } catch(const std::exception &e) {std::cerr<<e.what()<<'\n';return 1;}
 }

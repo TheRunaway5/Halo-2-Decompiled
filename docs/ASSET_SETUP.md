@@ -1,7 +1,20 @@
 # Game-file setup
 
-The requested migration now uses **Vista maps/tags with Xbox TU1.5 conversion
-and Xbox texture donors**. Its checked preparation step and remaining runtime
+The latest requested migration uses **installed MCC data with Xbox TU1.5
+conversion and the native renderer**. Its implemented preparation and remaining
+runtime/graphics work are documented in [MCC gameplay conversion](MCC_GAMEPLAY_CONVERSION.md).
+Run `./Halo2-Launcher --prepare-mcc-gameplay` to discover and privately copy MCC
+data without an ISO. This prepares an inactive cache; ordinary launch still
+uses the existing Xbox gameplay path below.
+
+The MCC reader now uses compiled immutable TU1.5 engine operands and loads
+content from all 43 MCC maps without an Xbox executable argument. Mutable
+world startup, complete gameplay-tag conversion and normal MCC runtime
+activation remain unfinished. The Xbox ISO/TU1.5 patch are reference-only
+inputs for the requested replacement; the legacy launch path below remains
+documented because it is still the currently selected runtime.
+
+The earlier Vista migration's preparation step and remaining runtime
 work are documented in [Vista gameplay conversion](VISTA_GAMEPLAY_CONVERSION.md).
 The active launcher still uses the working Xbox gameplay path described below;
 the prepared Vista conversion is not yet activated.
@@ -59,6 +72,17 @@ selection, the disc executable is the default. Unsupported updates are rejected
 without changing the previous selection. Complete native update parity remains
 unfinished.
 
+The revised user-owned Xbox Tombstone cache can be added separately:
+
+```sh
+python3 tools/install_tombstone.py '/path/to/owned/highplains2.map'
+```
+
+This verifies the exact revised cache and installs a private copy in the selected
+Xbox maps directory. Restart the game to refresh installed-map capabilities. The
+map is required by the [expanded Tombstone rotations](../multiplayer/docs/tombstone-playlist-coverage.md);
+the older `highplains.map` revision cannot substitute for it.
+
 ## Artwork and layout
 
 The policy is **Vista artwork with the current layouts**. Complete bitmap
@@ -98,7 +122,7 @@ source/archive and asset hashes, admitted banks, exclusions and policy.
 cancelled setup cannot select incomplete files or overwrite the prior registry.
 Original inputs and older imports are preserved.
 
-The selected Vista import owns `loading/`: twelve DDS textures, their manifest,
+The Vista import includes `loading/`: twelve DDS textures, their manifest,
 and the original loading ambience. Preparation verifies every texture payload
 against the captured Microsoft D3DX9_31 output and validates the source bank and
 executable fingerprints. It requires no DirectX or Wine. NumPy can accelerate
@@ -108,6 +132,14 @@ Older imports missing it are repaired automatically from the installer path
 saved in their provenance, without importing the Xbox disc or Vista maps again.
 If that installer was moved or removed, source selection opens again. A complete
 legacy export under `assets/menu-ui/vista/loading` also remains supported.
+
+MCC-only onboarding supersedes the older Vista loading-bank selection.
+`tools/prepare_mcc_gameplay.py` exports the seven MCC Classic loading bitmap
+banks (13 frames) and preserves independently authored loading textures. It
+never carries the original Vista executable loading images or ambience into a
+new MCC import. The OG Xbox ISO and TU1.5 patch are reference-only inputs.
+Full native MCC gameplay/conversion remains unfinished; see
+[MCC conversion status](MCC_GAMEPLAY_CONVERSION.md).
 
 The supported Xbox cache build is `02.09.27.09809`, with the inspected original
 retail executable fingerprint. The supported Vista donor build is

@@ -5,6 +5,8 @@ The retired Live skill service is not inferred from a host's report.
 """
 import hashlib
 import struct
+import json
+import logging
 
 from .protocol import require
 
@@ -33,7 +35,14 @@ class MatchResults:
           individual_placement INTEGER NOT NULL, PRIMARY KEY(match,player),
           FOREIGN KEY(match,player) REFERENCES match_result_players(match,player),
           FOREIGN KEY(match,team) REFERENCES match_result_teams(match,team));
+        CREATE TABLE IF NOT EXISTS match_result_consensus(
+          match TEXT PRIMARY KEY REFERENCES match_results(id),
+          policy TEXT NOT NULL CHECK(policy='native-survivors-v1'),
+          admitted_connections INTEGER NOT NULL, confirming_connections INTEGER NOT NULL,
+          departed_slots INTEGER NOT NULL, authority_epoch INTEGER NOT NULL);
         """)
+        from .carnage_history import ReportHistory
+        self.history = ReportHistory(store)
 
     @staticmethod
     def validate(room, report):
@@ -64,7 +73,7 @@ class MatchResults:
         return raw, hashlib.sha256(raw).hexdigest()
 
     def commit(self, room):
-        require(set(room.confirmations) == set(room.tokens), "All admitted players must confirm the result")
+        require(set(room.confirmations) == set(room.tokens), "All required physical connections must confirm the result")
         db = self.store.db
         with db:
             old = db.execute("SELECT digest FROM match_results WHERE id=?", (room.id,)).fetchone()
@@ -76,6 +85,10 @@ class MatchResults:
                        (room.id, proposal.playlist, proposal.revision, proposal.game.map,
                         proposal.game.variant, int(room.ranked), self.store.now(),
                         room.result_digest, "native-unanimous-v1"))
+            if getattr(room, "supports_continuity", False):
+                db.execute("INSERT INTO match_result_consensus VALUES(?,?,?,?,?,?)",
+                           (room.id, "native-survivors-v1", len(room.admitted_owners),
+                            len(room.tokens), room.departed_slots, room.continuity.epoch))
             raw = room.result
             if room.team_mode:
                 for team in sorted({team for _, _, team in room.players}):
@@ -83,6 +96,8 @@ class MatchResults:
                     db.execute("INSERT INTO match_result_teams VALUES(?,?,?,?)",
                                (room.id, team, raw[at+1], struct.unpack_from("<h",raw,at+2)[0]))
             for slot, (member, _, team) in enumerate(room.players):
+                if member in getattr(room, "guests", ()):
+                    continue
                 at = 0x370 + slot * 0x94
                 def stat(index):
                     return struct.unpack_from("<H", raw, 0xe30 + 2 * (slot * 0x1b5 + index))[0] & 0x7fff
@@ -95,4 +110,8 @@ class MatchResults:
                                (room.id, member, team, raw[at+0x90]))
             self.skills.commit(room)
             self.clan_skills.commit(room)
+            public = self.history.capture(room)
+        logging.getLogger("halo2.results").info(json.dumps({"event": "carnage_report_committed",
+            "match": public, "format": "vista-pcr-consumed-v1",
+            "published_players": len(room.players)-len(getattr(room, "guests", ())) }))
 

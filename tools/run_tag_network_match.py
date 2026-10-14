@@ -12,12 +12,14 @@ from pathlib import Path
 import re
 import subprocess
 import time
+from tag_match_memory_budget import enter_memory_budget
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open('rb') as source:
+        return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
 def main():
@@ -35,6 +37,9 @@ def main():
     binary = args.native.resolve()
     if not binary.is_file():
         parser.error('build tag_network_match_tests first')
+    contained = enter_memory_budget(args.output, args.timeout)
+    if contained is not None:
+        return contained
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     binary_hash = digest(binary)
@@ -84,7 +89,11 @@ def main():
     records = []
     for role, process, stream, command, log in children:
         metrics = {}
-        match = re.search(r'PASS complete two-process .* match: (.*)', log.read_text())
+        log_text = log.read_text()
+        for line in log_text.splitlines():
+            if line.startswith('Native gait/footstep owner:'):
+                errors.append(f'{role}: {line}')
+        match = re.search(r'PASS complete two-process .* match: (.*)', log_text)
         if match:
             for key, value in re.findall(r'(\w+)=(-?\d+(?:,-?\d+)?)', match.group(1)):
                 metrics[key] = [int(x) for x in value.split(',')] if ',' in value else int(value)

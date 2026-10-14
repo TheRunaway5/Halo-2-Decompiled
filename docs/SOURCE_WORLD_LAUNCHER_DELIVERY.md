@@ -1,6 +1,37 @@
 # Normal launcher world-feature delivery
 
-Both root launchers, `Halo2-Launcher` and `Halo2-Title-Launcher`, now select
+Both root launchers now select `.local/map/halo2_native`, SHA-256
+`14eadcc50f0522fd05c3d7f6644d715c8ca4ecb495ffa5879e5c710138e47efe`.
+Both `--launcher-info` outputs confirm that exact path. This is a **partial**
+[map attachment continuation](SOURCE_MAP_EFFECT_ATTACHMENTS.md), preserving the
+installed death/spectating libraries with the explicit source overlays. The
+original decal constructor/reset and 82 authenticated map-support bodies are
+included; the experimental unsubmitted graphics adapter is excluded.
+
+`analysis/map-world-features/launcher-attachments-20261013/verification.json`
+records four ordinary Lockout/Foundation one/four-view cases and six effect
+captures through the packaged launcher. All ten pass with zero Vulkan
+validation errors. Ordinary 60-tick Lockout snow changes **20,077 pixels**;
+Foundation's declared-root/camera effect capture changes **38,778 pixels**.
+Both enabled repeats are byte-identical. Foundation's diagnostic capture does
+not replace its separate ordinary source-world startup/render checks.
+
+The package retains its tested shaders in `.local/map/s`. Its own native ELF
+read-only shader-directory literal was relocated to that frozen directory;
+allocated-section verification before and after stripping finds only that
+explicit `.rodata` change. No original executable or native instructions were
+patched. `.local/map/package.json` records the exact relocation and hashes.
+The previous launchers remain in `.local/map/prior-launchers/`.
+
+The 21-map first-source-tick comparison has no regressions against the prior
+installed runtime and six improvements. **Eleven maps still fail** that bounded
+check, including Zanzibar's absent graphics binding. Earlier successful native
+gate/traversal/script receipts below do not establish acceptance of this newer
+automatic-original-world path. The full all-map goal remains active.
+
+## Historical 2026-10-12 delivery
+
+At the historical receipt, both root launchers selected
 `analysis/map-world-features/normal-world-snapshot-20261012/build/halo2_native`.
 The three world helpers forward to the ordinary root launcher:
 
@@ -12,7 +43,7 @@ tools/run_rain_test.sh backwash
 tools/run_zanzibar_world_test.sh
 ```
 
-The current executable SHA-256 is
+At that historical receipt, the executable SHA-256 was
 `2e108f4aa286e292ba372522e7722bbc09ee00996856ad4af248e53bbfe096d5`.
 Its 12,734-file frozen input manifest SHA-256 is
 `ba87bf2b7e7e3b731c89201fddec4f9b8f0aeca7ec9920743e957833b8051d70`.
@@ -144,3 +175,19 @@ The full all-map goal remains **unfinished**. Remaining work includes attached
 effect/function/marker lifecycles, original scheduling/resource/RNG producers,
 automatic doors, falling/conveyor/riding/crushing physics, full prop/control
 network/reset acceptance, Vista-only texture import and rendered original parity.
+
+## Subsequent shared-build state on 2026-10-13
+
+The root launcher pair now selects `build/halo2_native`, following concurrent
+work. The frozen phase3 runtime above remains preserved evidence for its exact
+build; it is no longer the current launcher selection. The retained event-clock
+continuation passes 5,917 original comparisons and 21-map native contact/effect
+regressions. Current launcher snow on/off/repeat captures retain 2,450 changed
+pixels and identical repeats. Ordinary Zanzibar startup initially failed at
+10F960; its complete original scenery-lightmap lookup is now added to source
+and passes 512 exact comparisons. A later isolated runtime aborts at the shared
+startup's missing 1888A0 input/camera constructor before scene construction.
+Thus live factory acceptance and the full current normal-launcher bank are
+still unproven. See `SOURCE_WORLD_EFFECT_EVENTS.md` and
+`SOURCE_SCENERY_LIGHTMAP_LOOKUP_TU15.md`; do not treat the earlier phase3 receipt
+as acceptance of these later source/runtime changes.

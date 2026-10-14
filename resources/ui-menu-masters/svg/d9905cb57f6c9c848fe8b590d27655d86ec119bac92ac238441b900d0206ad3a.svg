@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="448" height="448" viewBox="0 0 56 56" version="1.1">
+  <title>Vista ui\global_bitmaps\live_icons page 9: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="live-symbol-blue-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.9" />
+    </filter>
+    <filter id="live-symbol-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.29" />
+    </filter>
+    <mask id="number-space" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="60">
+      <rect width="64" height="60" fill="white" />
+      <rect x="39" y="38" width="24" height="22" fill="black" />
+    </mask>
+  </defs>
+  <g transform="scale(1)" fill="white" stroke-linejoin="round">
+    <g filter="url(#live-symbol-blue-glow)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill" opacity=".8" fill="#2e9aff">
+      <g mask="url(#number-space)" fill="#2e9aff">
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#87b9df" stroke-width="4" opacity="0.5" />
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#2e9aff" stroke-width="2.5" />
+      </g>
+      <path d="M24 14 L10.5 28 L26 43 L42 31 H27 Q24 31 24 28 Z M28 13 L44 27 H28 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <g transform="translate(40 39)" fill="#2e9aff">
+        <path d="M0 3 Q0 0 3 0 H5 Q8 0 8 3 V5 Q8 6.5 6.5 8 L2 11 V12 H8 V14 H0 V10.5 L5.5 6 Q6 5.5 6 4 V3 Q6 2 5 2 H3 Q2 2 2 3 V4 H0 Z" fill="#2e9aff" fill-rule="evenodd" stroke="#2e9aff" stroke-width="1.2" paint-order="stroke fill" />
+      </g>
+    </g>
+    <g id="live-symbol" filter="url(#live-symbol-edge-softness)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill">
+      <g id="live-symbol-circle" mask="url(#number-space)">
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#87b9df" stroke-width="4" opacity="0.5" />
+        <circle cx="28" cy="28" r="23" fill="none" stroke="white" stroke-width="2.5" />
+      </g>
+      <path d="M24 14 L10.5 28 L26 43 L42 31 H27 Q24 31 24 28 Z M28 13 L44 27 H28 Z" />
+      <g id="live-count" transform="translate(40 39)">
+        <path d="M0 3 Q0 0 3 0 H5 Q8 0 8 3 V5 Q8 6.5 6.5 8 L2 11 V12 H8 V14 H0 V10.5 L5.5 6 Q6 5.5 6 4 V3 Q6 2 5 2 H3 Q2 2 2 3 V4 H0 Z" fill="white" fill-rule="evenodd" stroke="#347fb7" stroke-width="1.8" paint-order="stroke fill" />
+      </g>
+    </g>
+  </g>
+</svg>

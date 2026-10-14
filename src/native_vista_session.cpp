@@ -1,5 +1,5 @@
 #include "halo2/native_vista_session.hpp"
-#include "halo2/vista_network_browser_back.hpp"
+#include "halo2/vista_profile_catalog.hpp"
 #include "halo2/vista_lobby_input.hpp"
 #include "halo2/cache.hpp"
 #include <algorithm>
@@ -197,8 +197,6 @@ NativeVistaSession::NativeVistaSession(NativeVistaSessionConfiguration configura
   for(unsigned slot=0;slot<2;++slot)
     vista_session_storage_initialize(sessions_[slot],slot,1,slot,
         {{0x91c468,0x91c470,0x91c478,0x91c47c},0x91c474+slot*0x7b88,registrations_,registry_});
-  // Explicit native browser ownership: no OS handle has been created.
-  put(browser_,0x428,0xffffffffu);
 }
 bool NativeVistaSession::dispose_local() {
   VistaSessionDisposalServices services;
@@ -210,9 +208,6 @@ bool NativeVistaSession::dispose_local() {
   // ownership were never implemented by this local-only provider. Preserve
   // the ignored unregister request explicitly, while source clears execute.
   return vista_session_dispose_single_offline(session(),{keys_,registrations_,0x91c470},true,false,services);
-}
-void NativeVistaSession::reset_local_browser() {
-  vista_browser_reset(browser_,6,{});
 }
 void NativeVistaSession::request_connection_mode(std::uint32_t slot,std::uint32_t value) {
   if(slot>2 || value>1)throw FormatError("Native offline connection-mode sink received an unbound request");
@@ -331,7 +326,7 @@ void NativeVistaSession::publish_profile(std::uint32_t controller,VistaLocalUser
   c[0x1224]=p[0x7d];c[0x122c]=p[0x80];c[0x1228]=p[0x81];c[0x1230]=p[0x82];
 }
 void NativeVistaSession::refresh_selected_profile_catalog() {
-  VistaBrowserProfileRefreshServices services;
+  VistaProfileRefreshServices services;
   // The native selected-profile provider retains its actual catalog in this
   // owner. It has no separate Windows profile-cache/persistence work queue.
   services.refresh_catalog=[] {};
@@ -349,7 +344,7 @@ void NativeVistaSession::refresh_selected_profile_catalog() {
   services.missing_profile_dialog=[](const auto&) {
     throw FormatError("Native selected profile disappeared from its actual provider catalog");
   };
-  vista_network_browser_refresh_profiles(controllers_,profile_refresh_pending_,services);
+  vista_refresh_selected_profiles(controllers_,profile_refresh_pending_,services);
 }
 void NativeVistaSession::remove_profile(std::uint32_t controller) {
   if(controller>=4)throw FormatError("Native Vista offline profile controller is outside0..3");

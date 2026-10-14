@@ -1,0 +1,16 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="560" viewBox="0 0 70 70" version="1.1">
+  <title>Vista ui\screens\game_shell\pregame_lobby\matchmaking2 page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="matching-arrow-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.3" />
+    </filter>
+  </defs>
+  <g fill="#5c7995" filter="url(#matching-arrow-edge)">
+    <path d="M32 0 H38 V15 L46 7.5 L50.5 12 L35 27.5 L19.5 12 L24 7.5 L32 15 Z" transform="rotate(0 35 35)" />
+    <path d="M32 0 H38 V15 L46 7.5 L50.5 12 L35 27.5 L19.5 12 L24 7.5 L32 15 Z" transform="rotate(90 35 35)" />
+    <path d="M32 0 H38 V15 L46 7.5 L50.5 12 L35 27.5 L19.5 12 L24 7.5 L32 15 Z" transform="rotate(180 35 35)" />
+    <path d="M32 0 H38 V15 L46 7.5 L50.5 12 L35 27.5 L19.5 12 L24 7.5 L32 15 Z" transform="rotate(270 35 35)" />
+  </g>
+</svg>

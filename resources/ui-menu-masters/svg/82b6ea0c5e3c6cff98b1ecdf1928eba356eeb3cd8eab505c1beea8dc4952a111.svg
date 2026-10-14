@@ -1,0 +1,51 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="4096" height="4096" viewBox="0 0 1024 1024" version="1.1">
+  <title>Vista ui\screens\game_shell\4way_multiplayer_signin\mp_signin page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="signin-quadrant-0">
+      <path d="M463 0 H1024 V386 H463 Z" />
+    </clipPath>
+    <radialGradient id="signin-pool-0" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(500 370) scale(380 350)">
+      <stop offset="0" stop-color="#4395e2" stop-opacity="0.28" />
+      <stop offset="0.25" stop-color="#4395e2" stop-opacity="0.23800000000000002" />
+      <stop offset="0.5" stop-color="#4395e2" stop-opacity="0.09240000000000001" />
+      <stop offset="0.75" stop-color="#4395e2" stop-opacity="0.015400000000000002" />
+      <stop offset="1" stop-color="#4395e2" stop-opacity="0.0" />
+    </radialGradient>
+    <clipPath id="signin-quadrant-1">
+      <path d="M0 395 H458 V1024 H0 Z" />
+    </clipPath>
+    <radialGradient id="signin-pool-1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(300 480) scale(450 410)">
+      <stop offset="0" stop-color="#4395e2" stop-opacity="0.28" />
+      <stop offset="0.25" stop-color="#4395e2" stop-opacity="0.23800000000000002" />
+      <stop offset="0.5" stop-color="#4395e2" stop-opacity="0.09240000000000001" />
+      <stop offset="0.75" stop-color="#4395e2" stop-opacity="0.015400000000000002" />
+      <stop offset="1" stop-color="#4395e2" stop-opacity="0.0" />
+    </radialGradient>
+    <filter id="panel-metal-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+  </defs>
+  <g id="signin-light" opacity="0.5477776313644271">
+    <g clip-path="url(#signin-quadrant-0)">
+      <ellipse cx="500" cy="370" rx="380" ry="350" fill="url(#signin-pool-0)" />
+    </g>
+    <g clip-path="url(#signin-quadrant-1)">
+      <ellipse cx="300" cy="480" rx="450" ry="410" fill="url(#signin-pool-1)" />
+    </g>
+  </g>
+  <g filter="url(#panel-metal-edge)" fill="#e5effb" opacity="0.4331726419060697">
+    <path d="M450 250 L462 242 V300 L450 292 Z" opacity="0.68" />
+    <path d="M450 250 L462 242 V300 L450 292 Z" fill="none" stroke="white" stroke-width="0.7" opacity="0.16" />
+    <path d="M450 365 L463 352 V418 H454 L449 412 V396 L440 387 H449 V380 L450 379 Z" opacity="0.68" />
+    <path d="M450 365 L463 352 V418 H454 L449 412 V396 L440 387 H449 V380 L450 379 Z" fill="none" stroke="white" stroke-width="0.7" opacity="0.16" />
+    <path d="M459 606 L465 612 V652 L459 656 Z" opacity="0.68" />
+    <path d="M459 606 L465 612 V652 L459 656 Z" fill="none" stroke="white" stroke-width="0.7" opacity="0.16" />
+    <path d="M332 386 H371 L368 390 H334 Z" opacity="0.68" />
+    <path d="M332 386 H371 L368 390 H334 Z" fill="none" stroke="white" stroke-width="0.7" opacity="0.16" />
+    <path d="M380 386 H736 L732 391 H694 L690 388 H607 L602 395 H474 L470 399 H463 V391 H380 L376 393 H373 Z" opacity="0.68" />
+    <path d="M380 386 H736 L732 391 H694 L690 388 H607 L602 395 H474 L470 399 H463 V391 H380 L376 393 H373 Z" fill="none" stroke="white" stroke-width="0.7" opacity="0.16" />
+    <path d="M459 300 V654" fill="none" stroke="#e5effb" stroke-width="1.5" opacity="0.7" />
+  </g>
+</svg>

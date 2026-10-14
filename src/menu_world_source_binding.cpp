@@ -11,6 +11,14 @@ void validate_owner(const Cache &cache,const MenuWorldSourceOwner &owner,
   if(owner.scope_datum==0xffffffffu || owner.ordinal==0xffffffffu ||
      (owner.generation && *owner.generation==0xffffffffu))
     throw FormatError("source world draw requires actual owner identity");
+  if(owner.kind==MenuWorldSourceOwnerKind::dynamic_object) {
+    if(section.kind()!=MenuWorldSourceSectionKind::render_model || owner.scope_datum!=section.owner_datum() ||
+       !owner.generation || owner.ordinal!=(*owner.generation&65535u))
+      throw FormatError("source dynamic model binding lost its actual model/owner identity");
+    if(!cache.query_tag({.handle=TagHandle{owner.scope_datum},.group=tag_groups::render_model}))
+      throw FormatError("source dynamic model binding scope is not a resident mode");
+    return;
+  }
   if(owner.kind==MenuWorldSourceOwnerKind::scenery_placement) {
     if(section.kind()!=MenuWorldSourceSectionKind::render_model)
       throw FormatError("source scenery owner requires render-model geometry");
@@ -48,9 +56,23 @@ void validate_input(const MenuWorldSourceSection &section,const MenuWorldSourceS
   switch(stream.semantic) {
   case SourceVertexSemantic::Position:
     channel=0;
-    if(stream.format==MenuWorldSourceFormat::float32x3)width=stride=12;
-    else if(stream.format==MenuWorldSourceFormat::snorm16x3)width=stride=6;
+    if(stream.format==MenuWorldSourceFormat::float32x3)width=12;
+    else if(stream.format==MenuWorldSourceFormat::snorm16x3)width=6;
     else throw FormatError("unsupported source raw position format");
+    stride=stream.byte_stride;
+    break;
+  case SourceVertexSemantic::BlendIndices:case SourceVertexSemantic::BlendWeights:
+    channel=0;offset=stream.byte_offset;stride=stream.byte_stride;
+    switch(stream.format) {
+    case MenuWorldSourceFormat::unorm8x1:width=1;break;
+    case MenuWorldSourceFormat::unorm8x2:width=2;break;
+    case MenuWorldSourceFormat::unorm8x3:width=3;break;
+    case MenuWorldSourceFormat::unorm8x4:width=4;break;
+    default:throw FormatError("source model influences require original byte UNORM fetch");
+    }
+    if(section.kind()!=MenuWorldSourceSectionKind::render_model ||
+       !section.model_geometry_class() || *section.model_geometry_class()<2)
+      throw FormatError("source influence fetch has no authored model owner");
     break;
   case SourceVertexSemantic::UV:
     channel=1;
@@ -76,7 +98,8 @@ void validate_input(const MenuWorldSourceSection &section,const MenuWorldSourceS
     throw FormatError("unsupported source raw resource/stride/offset binding");
 }
 void reads(const VertexProgram &program,std::array<bool,16> &registers,
-           std::array<bool,192> &constants) {
+           std::array<bool,192> &constants,bool skinned) {
+  bool address_written=false;
   for(unsigned i=0;i<program.count;++i) {
     const auto &t=program.instructions[i];const auto mac=(t[1]>>21)&15,ilu=(t[1]>>25)&7;
     const auto operand=[&](unsigned which) {
@@ -90,12 +113,17 @@ void reads(const VertexProgram &program,std::array<bool,16> &registers,
       if(mux==3) {
         const auto index=(t[1]>>13)&255;
         if(index>=constants.size())throw FormatError("source raw constant read escapes c192");
-        constants[index]=true;
+        if(t[3]&2) {
+          if(!skinned || !address_written || index<50 || index>52)
+            throw FormatError("source relative read lacks its original address/palette owner");
+          std::fill(constants.begin()+50,constants.begin()+170,true);
+        }else constants[index]=true;
       }
     };
     if(mac)operand(0);
     if(mac==2 || (mac>=4 && mac<=12))operand(1);
     if(ilu || mac==3 || mac==4)operand(2);
+    if(mac==13)address_written=true;
   }
 }
 }
@@ -108,12 +136,21 @@ MenuWorldSourceBinding menu_world_source_binding_class(const Cache &cache,MenuWo
     const MenuWorldSourceConstants &constants) {
   if(!draw.geometry)throw FormatError("source world binding lacks owned geometry");
   (void)draw.triangle_count();
-  if(vertex_class>1)throw FormatError("source raw binding requires explicit class0 or class1");
+  if(vertex_class>6)throw FormatError("source raw binding requires explicit original class0..6");
   if(vertex_class==0 && (draw.geometry->kind()!=MenuWorldSourceSectionKind::bsp_cluster ||
       owner.kind!=MenuWorldSourceOwnerKind::bsp_cluster || !draw.object_rows.empty()))
     throw FormatError("source class0 raw binding requires BSP cluster without a palette write");
-  if(vertex_class==1 && (draw.object_rows.empty() || draw.object_rows.size()>40))
+  if(vertex_class>=1 && (draw.object_rows.empty() || draw.object_rows.size()>40))
     throw FormatError("source world binding requires actual c50 palette rows");
+  if(vertex_class==1 && draw.geometry->kind()==MenuWorldSourceSectionKind::render_model &&
+      draw.geometry->model_geometry_class()!=1)
+    throw FormatError("source rigid shader class consumes a nonrigid model section");
+  if(vertex_class>=2) {
+    const auto geometry_class=draw.geometry->model_geometry_class();
+    if(draw.geometry->kind()!=MenuWorldSourceSectionKind::render_model || !geometry_class ||
+       (vertex_class==2?(*geometry_class!=2 && *geometry_class!=3):*geometry_class!=3))
+      throw FormatError("source skinned shader class differs from its authored model section");
+  }
   for(const auto &matrix:draw.object_rows)for(float value:matrix)
     if(!std::isfinite(value))throw FormatError("source world binding has nonfinite object rows");
   validate_owner(cache,owner,*draw.geometry);
@@ -121,13 +158,13 @@ MenuWorldSourceBinding menu_world_source_binding_class(const Cache &cache,MenuWo
   result.program_bytes_=cache.load_vertex_shader_code(vertex_shader,vertex_class);
   result.program_=decode_vertex_program(result.program_bytes_);
   result.declaration_=cache.load_source_vertex_declaration(vertex_shader,vertex_class);
-  if(result.program_.relative_constants)
+  if(result.program_.relative_constants && vertex_class<2)
     throw FormatError("source raw binding requires an explicit nonrelative program");
   if(result.declaration_.class_index!=vertex_class || result.declaration_.semantics.empty() ||
      result.declaration_.semantics.size()>16)
     throw FormatError("unsupported source raw register declaration");
   std::array<bool,16> consumed{};std::array<bool,192> constant_reads{};
-  reads(result.program_,consumed,constant_reads);
+  reads(result.program_,consumed,constant_reads,vertex_class>=2);
   for(unsigned reg=0;reg<result.declaration_.semantics.size();++reg) {
     const auto semantic=SourceVertexSemantic(result.declaration_.semantics[reg]);
     const auto &streams=result.draw_.geometry->streams();
@@ -140,6 +177,24 @@ MenuWorldSourceBinding menu_world_source_binding_class(const Cache &cache,MenuWo
   for(unsigned reg=0;reg<consumed.size();++reg)if(consumed[reg]) {
     result.consumed_registers_.push_back(reg);
     if(reg>=result.declaration_.semantics.size())result.external_attributes_.push_back(reg);
+  }
+  if(vertex_class>=2)for(const auto&input:result.inputs_)if(input.consumed &&
+      input.stream.semantic==SourceVertexSemantic::BlendIndices) {
+    const unsigned influences=vertex_class<=3?1:vertex_class-2;
+    const auto&stream=input.stream;unsigned stored=0;
+    switch(stream.format){
+    case MenuWorldSourceFormat::unorm8x1:stored=1;break;
+    case MenuWorldSourceFormat::unorm8x2:stored=2;break;
+    case MenuWorldSourceFormat::unorm8x3:stored=3;break;
+    case MenuWorldSourceFormat::unorm8x4:stored=4;break;
+    default:throw FormatError("source model bone indices lost their byte fetch");
+    }
+    if(stored<influences)throw FormatError("source model class consumes absent stored bone influences");
+    const auto&bytes=result.draw_.geometry->resources().at(stream.resource).bytes;
+    for(unsigned vertex=0;vertex<result.draw_.geometry->vertex_count();++vertex)
+      for(unsigned component=0;component<influences;++component)
+        if(std::to_integer<unsigned>(bytes.at(vertex*stream.byte_stride+stream.byte_offset+component))>=result.draw_.object_rows.size())
+          throw FormatError("source model bone index has no actual current palette matrix");
   }
   for(unsigned index=0;index<constant_reads.size();++index)if(constant_reads[index])result.consumed_constants_.push_back(index);
   std::memcpy(result.constants_.data(),constants.data(),sizeof(constants));

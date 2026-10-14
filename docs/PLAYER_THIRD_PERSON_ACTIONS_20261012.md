@@ -2,12 +2,17 @@
 
 All changes and builds use `/home/eric/Developer/Halo-2-Decompiled`.
 
-The native body composer now applies both authored aim screens, followed by the
-weapon grip. Previously it applied only upper aim and placed grip before aim.
-`114BD0` publishes the upper/lower screen activities; `1DE920` resolves inherited
-screens and `2800F0` maps their angle grids. The complete retained `113BC0`
-composes upper, lower, then grip (`11447B..114568`). Zero screen step angles now
-follow `2800F0`'s epsilon guard instead of disabling the gait presenter.
+The [all-weapon follow-up](PLAYER_WEAPON_POSES_20261013.md) covers both species,
+action/aim/grip order, per-hand dual offsets and action-dependent aim/hand release.
+
+Correction, 2026-10-13: the two activities are `aim_still/move_up` and
+`aim_still/move_down`: raised/lowered weapon alternatives, not separate upper
+and lower skeleton layers. Applying both at full weight compounded torso yaw
+and displaced the SMG stance. `113830` at `114028..114056` weights them
+complementarily before grip. Native combat now defaults to raised aim;
+explicit lowered samples retain complementary weights. `1DE920` resolves the
+inherited screens and `2800F0` maps their angle grids. Zero screen steps retain
+the original epsilon guard. See [the follow-up investigation](TRIANGLE_FLASH_INVESTIGATION_20261013.md).
 
 Pose action lookup now exhausts overlay rows before trying ordinary action rows,
 matching `1CF4C0 -> 1CF3C0 / 1CF360`. Full-body primary actions can therefore reach

@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2688" height="304" viewBox="0 0 336 38" version="1.1">
+  <title>Vista ui\screens\game_shell\pregame_lobby\item_background page 2: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <mask id="row-engraving" maskUnits="userSpaceOnUse" x="0" y="0" width="336" height="38">
+      <rect width="336" height="38" fill="white" />
+      <g fill="#6c6c6c">
+        <g id="bungie-net-staff" transform="translate(26 0) scale(1)">
+          <path d="M.5 2 H4.5 V10 C6.3 8.6 8.5 8 11.1 8 C17 8 20 12.1 20 18 C20 24.1 16.8 28 11.1 28 H.5 Z M4.5 18 V24.6 H10.3 C14 24.6 16 22.1 16 18 C16 13.9 14 11.4 10.3 11.4 C6.5 11.4 4.5 13.9 4.5 18 Z" fill-rule="evenodd" transform="translate(0 0)" />
+          <path d="M1 8 H5 V20.8 C5 23.4 6.7 24.6 9.6 24.6 H15.7 V8 H19.7 V28 H9.4 C3.9 28 1 25.5 1 20.9 Z" fill-rule="evenodd" transform="translate(20 0)" />
+          <path d="M0 8 H10.1 C16.6 8 19.6 10.6 19.6 16 V28 H15.6 V16.1 C15.6 12.8 13.8 11.5 10.2 11.5 H4 V28 H0 Z" fill-rule="evenodd" transform="translate(42 0)" />
+          <path d="M16 8 H20 V26.8 C20 32.7 16.7 36 10.2 36 C5.3 36 2 33.9 1.1 30.2 H5.2 C6.1 32 7.8 32.7 10.2 32.7 C14.2 32.7 16 31 16 27 V25.7 C14.2 27.2 12.2 28 9.8 28 C3.9 28 0 24.1 0 18 C0 11.9 3.9 8 9.8 8 C12.4 8 14.5 8.8 16 10.3 Z M4 18 C4 22.2 6.3 24.6 10 24.6 C13.9 24.6 16 22.2 16 18 C16 13.7 13.9 11.4 10 11.4 C6.3 11.4 4 13.7 4 18 Z" fill-rule="evenodd" transform="translate(62 0)" />
+          <path d="M0 2 H4 V6 H0 Z M0 8 H4 V28 H0 Z" fill-rule="evenodd" transform="translate(84 0)" />
+          <path d="M19.8 19 H4.1 C4.5 22.6 6.6 24.8 10.2 24.8 C12.8 24.8 14.6 23.7 15.5 22 H19.5 C18.1 26.1 15 28.2 10.1 28.2 C3.8 28.2 0 24.3 0 18.1 C0 11.9 3.8 8 10 8 C16.2 8 19.8 12 19.8 18.1 Z M4.3 15.8 H15.6 C14.9 12.7 13 11.3 10 11.3 C7 11.3 5 12.9 4.3 15.8 Z" fill-rule="evenodd" transform="translate(90 0)" />
+          <path d="M0 22 H5.5 V28 H0 Z" fill-rule="evenodd" transform="translate(112 0)" />
+          <path d="M0 8 H10.1 C16.6 8 19.6 10.6 19.6 16 V28 H15.6 V16.1 C15.6 12.8 13.8 11.5 10.2 11.5 H4 V28 H0 Z" fill-rule="evenodd" transform="translate(134 0)" />
+          <path d="M19.8 19 H4.1 C4.5 22.6 6.6 24.8 10.2 24.8 C12.8 24.8 14.6 23.7 15.5 22 H19.5 C18.1 26.1 15 28.2 10.1 28.2 C3.8 28.2 0 24.3 0 18.1 C0 11.9 3.8 8 10 8 C16.2 8 19.8 12 19.8 18.1 Z M4.3 15.8 H15.6 C14.9 12.7 13 11.3 10 11.3 C7 11.3 5 12.9 4.3 15.8 Z" fill-rule="evenodd" transform="translate(154 0)" />
+          <path d="M2 2 H6 V8 H12 V11.5 H6 V21.7 C6 24.3 7 24.8 9.3 24.8 H12 V28 H8.7 C4.2 28 2 26.1 2 22 V11.5 H0 V8 H2 Z" fill-rule="evenodd" transform="translate(174 0)" />
+          <path d="M17.7 13.6 H13.8 C13.3 11.8 11.8 11.1 9.5 11.1 C6 11.1 4.1 12.1 4.1 13.9 C4.1 15.3 5.4 15.8 9.6 16.4 C15.9 17.1 18.2 18.5 18.2 22 C18.2 25.9 14.8 28.2 9.1 28.2 C3.8 28.2 .6 25.9 0 22.1 H4.1 C4.5 24.1 6.3 25 9.3 25 C12.5 25 14.3 24.1 14.3 22.3 C14.3 20.7 13 20.2 8.7 19.6 C2.8 18.9 .2 17.4 .2 14 C.2 10.2 3.7 8 9.5 8 C14.5 8 17.3 9.9 17.7 13.6 Z" fill-rule="evenodd" transform="translate(196 0)" />
+          <path d="M2 2 H6 V8 H12 V11.5 H6 V21.7 C6 24.3 7 24.8 9.3 24.8 H12 V28 H8.7 C4.2 28 2 26.1 2 22 V11.5 H0 V8 H2 Z" fill-rule="evenodd" transform="translate(216 0)" />
+          <path d="M16 8 H20 V28 H16 V25.7 C14.3 27.3 12.3 28 9.7 28 C3.8 28 0 24.1 0 18 C0 11.9 3.8 8 9.7 8 C12.2 8 14.4 8.8 16 10.3 Z M4 18 C4 22.2 6.2 24.6 10 24.6 C13.9 24.6 16 22.2 16 18 C16 13.8 13.9 11.4 10 11.4 C6.2 11.4 4 13.8 4 18 Z" fill-rule="evenodd" transform="translate(226 0)" />
+          <path d="M2 28 V11.5 H0 V8 H2 V7.1 C2 3.6 4.1 2 8.3 2 H12 V5.4 H8.8 C6.8 5.4 6 6 6 7.7 V8 H12 V11.5 H6 V28 Z" fill-rule="evenodd" transform="translate(248 0)" />
+          <path d="M2 28 V11.5 H0 V8 H2 V7.1 C2 3.6 4.1 2 8.3 2 H12 V5.4 H8.8 C6.8 5.4 6 6 6 7.7 V8 H12 V11.5 H6 V28 Z" fill-rule="evenodd" transform="translate(260 0)" />
+        </g>
+      </g>
+    </mask>
+  </defs>
+  <rect id="row-material" width="336" height="38" fill="white" fill-opacity="0.38823529411764707" mask="url(#row-engraving)" />
+</svg>

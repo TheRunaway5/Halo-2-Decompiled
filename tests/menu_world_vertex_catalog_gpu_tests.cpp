@@ -3,6 +3,9 @@
 #include "halo2/source_frustum_camera.hpp"
 #include "halo2/source_view_projection.hpp"
 #include "halo2/effect_light.hpp"
+#include "halo2/source_tag_metadata.hpp"
+#include "halo2/model.hpp"
+#include <set>
 #include "menu_world_vertex_catalog.generated.hpp"
 #include <algorithm>
 #include <atomic>
@@ -287,7 +290,94 @@ int sphere(int argc,char** argv) {
   std::cout<<"PASS sphere raw catalogue / 13 sorted source parts / 3 original-emitter programs / "<<views<<" resolution/split views / "<<records<<" GS records / "<<words<<" exact words / "<<controls<<" c35 controls / validation0; isolated shader proof, no original gameplay framebuffer\n";return 0;
 }
 }
+int skinned(int argc,char**argv) {
+  require(argc==6 || (argc==8 && std::string_view(argv[6])=="--classes"),
+      "local-model GPU test needs --skin MAP references capture-GS output [--classes 5]");
+  const unsigned expected_classes=argc==8?std::stoul(argv[7]):4;
+  require(expected_classes==4 || expected_classes==5,"local-model expected class scope is invalid");
+  const fs::path references=argv[3],output=argv[5];
+  require(!fs::exists(output),"refusing to overwrite local-model GPU evidence");fs::create_directories(output);
+  Gpu gpu;if(!gpu.initialize(argv[4]))return 77;const Cache cache(argv[2]);
+  const auto vertex=std::find_if(cache.tags().begin(),cache.tags().end(),[](const auto&t){
+    return t.group=="vrtx"&&t.name.ends_with("\\lightaccum_sphere_diffuse");});
+  require(vertex!=cache.tags().end(),"original local sphere program missing");
+  std::vector<MenuWorldSourceBinding> bindings;std::set<unsigned> classes;
+  std::array<std::array<float,12>,40> palette;
+  for(unsigned i=0;i<palette.size();++i)palette[i]={1,0,0,float(i)*.02f,0,1,0,-float(i)*.01f,0,0,1,float(i)*.03f};
+  for(const auto&tag:cache.tags())if(tag.group=="mode") {
+    const auto metadata=cache.load_source_tag_metadata(tag.datum);
+    const halo2::Bytes root(metadata.bytes_at(metadata.source_address(),metadata.size()));
+    for(unsigned section=0;section<root.u32(0x24);++section) {
+      const halo2::Bytes definition(metadata.bytes_at(root.u32(0x28)+section*0x5c,0x5c));
+      const auto mode=definition.u16(0);if((mode!=2 && mode!=3)||!definition.u16(4))continue;
+      const auto geometry=std::make_shared<const MenuWorldSourceSection>(load_menu_world_source_model_section(cache,tag.datum,section));
+      for(unsigned part=0;part<geometry->parts().size();++part) {
+        const auto& authored=geometry->parts()[part];if(!authored.type||authored.type==5||authored.index_count<3)continue;
+        const auto classification=source_model_vertex_class(mode,
+            std::to_integer<unsigned>(definition.slice(0x14,1)[0]),
+            std::to_integer<unsigned>(definition.slice(0x15,1)[0]),authored.type);
+        if(classification<2||classification>6||classes.contains(classification))continue;
+        MenuWorldSourceConstants bank{};
+        // Explicit controlled palettes exercise every indexed node with a
+        // distinct translation. They are not claimed as live actor poses.
+        const MenuWorldSourceOwner owner{MenuWorldSourceOwnerKind::dynamic_object,tag.datum,1,0x12340001u};
+        auto draw=menu_world_source_draw(geometry,part,MenuWorldSourceTopology::triangle_strip,palette);
+        bindings.push_back(menu_world_source_binding_class(cache,owner,std::move(draw),vertex->datum,classification,bank));
+        classes.insert(classification);
+      }
+    }
+  }
+  require(classes==(expected_classes==5?std::set<unsigned>{2,3,4,5,6}:std::set<unsigned>{2,3,4,5}),
+      "authored local model class coverage differs from the declared scope");
+  MenuWorldSourceStorage storage({gpu.device,gpu.physical});const auto stored=storage.store(bindings);
+  struct Reference {std::vector<std::uint32_t> words;MenuWorldVertexCatalogEntry entry;};
+  std::map<unsigned,Reference> originals;
+  for(const auto&draw:stored) {
+    const auto classification=draw.source.declaration().class_index;
+    auto&reference=originals[classification];
+    const auto raw=read(references/("class-"+std::to_string(classification)+".spv"));require(raw.size()%4==0,"local reference SPIR-V extent");
+    reference.words.resize(raw.size()/4);std::memcpy(reference.words.data(),raw.data(),raw.size());
+    reference.entry=menu_world_vertex_catalog_lookup(generated_menu_world_vertex_catalog::entries,draw.source.program_bytes(),draw.source.declaration());
+    reference.entry.spirv=reference.words;
+  }
+  std::size_t words=0,differences=0,records=0,controls=0;unsigned views=0;
+  std::ofstream report(output/"measurements.tsv");report<<"width\theight\tview\tclass\tmodel\tsection\tpart\trecords\tdiffering_words\n";
+  for(const auto layout:std::array<std::array<unsigned,3>,4>{{{640,480,1},{1280,720,1},{1920,1080,1},{1280,720,4}}})for(unsigned view=0;view<layout[2];++view) {
+    const auto width=layout[0],height=layout[1],count=layout[2];++views;
+    const RenderViewport viewport{count==4?float(view%2*width/2):0,count==4?float(view/2*height/2):0,float(count==4?width/2:width),float(count==4?height/2:height)};
+    SourceFrustumProjectionInput projection;projection.projection_angle=1.2217305f;
+    projection.outer=projection.safe={std::int16_t(viewport.top),std::int16_t(viewport.left),std::int16_t(viewport.top+viewport.height),std::int16_t(viewport.left+viewport.width)};
+    projection.scenario_present=true;projection.scenario_type=1;
+    const auto frustum=source_frustum_projection(projection);
+    const auto camera=source_view_projection({{0,0,3},{1,0,0},{0,0,1},.015625f,1024.f,{},frustum.projection_program});
+    const auto view_bank=source_view_shader_bank(camera,1024.f,{0,0,3},viewport,false);
+    EffectLightUniformInput light;light.position={-2,-1,3};light.forward={1,0,0};light.up={0,0,1};light.left={0,-1,0};light.radius=2;
+    light.diffuse={1,.5f,.25f};light.specular={.25f,.125f,.0625f};light.brightness=1;
+    const auto light_bank=source_effect_light_uniforms(light);
+    for(const auto&draw:stored) {
+      const auto classification=draw.source.declaration().class_index;
+      const auto&entry=menu_world_vertex_catalog_lookup(generated_menu_world_vertex_catalog::entries,draw.source.program_bytes(),draw.source.declaration());
+      MenuWorldVertexUniforms values;values.constants=draw.source.constants();std::copy(view_bank.begin(),view_bank.end(),values.constants.begin());
+      std::copy(light_bank.constants.begin(),light_bank.constants.end(),values.constants.begin()+31);
+      values.clip_range={.015625f,1024.f,.015625f,1024.f};values.fog_parameters={1,1};values.surface_size={float(width),float(height)};
+      const auto original=gpu.run(draw,originals.at(classification).entry,values),actual=gpu.run(draw,entry,values);
+      const auto changed=compare(actual,original,classification);differences+=changed;records+=actual.size()/204;words+=actual.size()/4;
+      const auto name=std::to_string(width)+"x"+std::to_string(height)+"-view"+std::to_string(view)+"-class"+std::to_string(classification);
+      save(output/(name+"-native.bin"),actual);save(output/(name+"-original-emitter.bin"),original);
+      report<<width<<'\t'<<height<<'\t'<<view<<'\t'<<classification<<'\t'<<draw.source.draw().geometry->owner_datum()<<'\t'
+          <<draw.source.draw().geometry->section()<<'\t'<<draw.source.draw().part<<'\t'<<actual.size()/204<<'\t'<<changed<<'\n';
+      for(unsigned bone=0;bone<40;++bone)values.constants[50+bone*3][3]+=.125f;
+      require(compare(gpu.run(draw,entry,values),original,classification,true)>0,"local palette negative control insensitive");++controls;
+    }
+  }
+  report.flush();require(bool(report),"local model GPU report failed");
+  require(views==7 && controls==views*expected_classes && words>0 && differences==0 && validation_errors==0,"local model original-emitter GPU comparison failed");
+  std::cout<<"PASS "<<expected_classes<<" authored local classes / "<<views<<" resolution/split views / "<<records<<" GS records / "<<words
+      <<" exact words / "<<controls<<" palette controls / validation0; isolated input/vertex proof, no live model illumination\n";
+  return 0;
+}
 int main(int argc,char **argv) {try {
+  if(argc>1 && std::string_view(argv[1])=="--skin")return skinned(argc,argv);
   if(argc>1 && std::string_view(argv[1])=="--sphere")return sphere(argc,argv);
   require(argc==6,"catalog GPU test needs mainmenu.map, Stage3 fixtures, attachment fixtures, capture GS.spv, fresh output directory");
   for(unsigned i=1;i<5;++i)if(!fs::exists(argv[i]))return 77;

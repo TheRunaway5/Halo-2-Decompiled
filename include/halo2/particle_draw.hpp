@@ -14,6 +14,10 @@ struct ParticleDepthState {
   ShaderVector clip_range{},parameters{};
 };
 struct ParticleDraw {
+  // Retained native effect owner for read-only submission diagnostics.
+  // GPU attributes and source particle state never depend on this field.
+  std::uint32_t effect_owner=0xffffffffu;
+  std::uint32_t effect_definition=0xffffffffu;
   std::shared_ptr<const ParticleMaterial> material;
   ParticleVertexState vertex;
   ParticleDepthState depth;

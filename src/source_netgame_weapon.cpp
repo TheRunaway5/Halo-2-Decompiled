@@ -13,7 +13,7 @@ std::int16_t short_wrap(std::int32_t value){
 }
 }
 SourceWorldWeaponDefinition Cache::load_source_world_weapon_definition(std::uint32_t datum)const{
-    const Bytes bytes(storage_);
+    const Bytes bytes(cache_bytes());
     const auto tag=[&](std::uint32_t id,const char *group,std::size_t size){
         const auto found=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
         if(!found)throw FormatError("source world weapon tag missing");

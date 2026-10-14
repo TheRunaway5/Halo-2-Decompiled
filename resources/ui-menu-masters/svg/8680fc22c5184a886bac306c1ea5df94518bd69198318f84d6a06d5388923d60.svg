@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="448" height="448" viewBox="0 0 56 56" version="1.1">
+  <title>Vista ui\global_bitmaps\live_icons page 6: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="live-symbol-blue-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.9" />
+    </filter>
+    <filter id="live-symbol-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.29" />
+    </filter>
+  </defs>
+  <g transform="scale(1)" fill="white" stroke-linejoin="round">
+    <g filter="url(#live-symbol-blue-glow)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill" opacity=".8" fill="#2e9aff">
+      <g fill="#2e9aff">
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#87b9df" stroke-width="4" opacity="0.5" />
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#2e9aff" stroke-width="2.5" />
+      </g>
+      <path d="M24 14 L10.5 28 L26 43 L42 31 H27 Q24 31 24 28 Z M28 13 L44 27 H28 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+    </g>
+    <g id="live-symbol" filter="url(#live-symbol-edge-softness)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill">
+      <g id="live-symbol-circle">
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#87b9df" stroke-width="4" opacity="0.5" />
+        <circle cx="28" cy="28" r="23" fill="none" stroke="white" stroke-width="2.5" />
+      </g>
+      <path d="M24 14 L10.5 28 L26 43 L42 31 H27 Q24 31 24 28 Z M28 13 L44 27 H28 Z" />
+    </g>
+  </g>
+</svg>

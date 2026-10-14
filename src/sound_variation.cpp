@@ -11,14 +11,16 @@ std::int8_t signed_byte(std::byte b) {return std::bit_cast<std::int8_t>(b);}
 std::int16_t signed_short(const Bytes &b,std::size_t p) {return std::bit_cast<std::int16_t>(b.u16(p));}
 }
 SoundVariationDefinition Cache::load_sound_variation(std::uint32_t datum,unsigned pitch) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   auto find=[&](const std::string &group,std::optional<std::uint32_t> id={}) -> const Tag & {
     const auto t=query_tag({.handle=id ? std::optional<TagHandle>{TagHandle{*id}} : std::nullopt, .group=TagGroup::from_string(group), .require_address=true});
     if(!t)throw FormatError("Missing original sound variation metadata: "+group);
     return *t;
   };
-  const auto &s=find("snd!",datum), &g=find("ugh!"), &c=find("sncl");
-  const auto so=metadata_offset(s.address,20),go=metadata_offset(g.address,0x48),co=metadata_offset(c.address,8);
+  const auto &s=find("snd!",datum), &g=mcc_?mcc_sound_gestalt(datum):find("ugh!");
+  const auto so=metadata_offset(s.address,20),go=metadata_offset(g.address,mcc_?0x78:0x48);
+  const auto &c=find("sncl",mcc_?std::optional<std::uint32_t>{mcc_sound_class_tag((data.u16(so)&0x800)!=0)}:std::nullopt);
+  const auto co=metadata_offset(c.address,8),tables=go+(mcc_?8:0);
   auto entry=[&](std::size_t header,std::size_t stride,std::size_t index) {
     const auto count=data.u32(header);
     if(index>=count || count>0x100000)throw FormatError("Sound variation table index outside resident metadata");
@@ -32,33 +34,34 @@ SoundVariationDefinition Cache::load_sound_variation(std::uint32_t datum,unsigne
   const Bytes sound(out.sound);
   const auto cls=signed_byte(out.sound[2]);
   if(cls<0 || pitch>=std::to_integer<unsigned>(out.sound[10]))throw FormatError("Invalid sound class/pitch range");
-  copy(out.sound_class,entry(co,0x5c,unsigned(cls)));
+  copy(out.sound_class,entry(co,mcc_?0x78:0x5c,unsigned(cls)));
   const auto playback=signed_short(sound,6),first_range=signed_short(sound,8);
   if(playback<0 || first_range<0)throw FormatError("Invalid signed sound variation index");
-  copy(out.playback,entry(go,0x38,unsigned(playback)));
+  copy(out.playback,entry(tables,0x38,unsigned(playback)));
   const auto scale=signed_byte(out.sound[11]);
   if(scale<0)throw FormatError("Invalid signed sound scale index");
-  copy(out.scale,entry(go+8,20,unsigned(scale)));
+  copy(out.scale,entry(tables+8,20,unsigned(scale)));
   for(unsigned n=0;n<std::to_integer<unsigned>(out.sound[10]);++n){
-    const auto row=entry(go+0x20,12,unsigned(first_range)+n);
+    const auto row=entry(tables+0x20,12,unsigned(first_range)+n);
     const auto interval=signed_short(data,row+2);
     if(interval<0)throw FormatError("Invalid signed sound pitch interval index");
     auto &r=out.pitch_ranges.emplace_back();
-    copy(r.interval,entry(go+0x18,10,unsigned(interval)));
+    copy(r.interval,entry(tables+0x18,10,unsigned(interval)));
     r.permutations=signed_short(data,row+10);
   }
-  copy(out.range,entry(go+0x20,12,unsigned(first_range)+pitch));
+  copy(out.range,entry(tables+0x20,12,unsigned(first_range)+pitch));
   const Bytes range(out.range);const auto first=signed_short(range,8),count=signed_short(range,10);
   // The recovered helper copies into a 32-bit local and uses x86 SHL masks.
   // Only the bounded 1..31 domain is supported here; larger/invalid ranges
   // are unresolved instead of inventing a different bitset algorithm.
   if(first<0 || count<1 || count>31)throw FormatError("Unrecovered sound permutation count");
   out.permutations.resize(unsigned(count));
-  for(unsigned n=0;n<out.permutations.size();++n)copy(out.permutations[n],entry(go+0x28,16,unsigned(first)+n));
+  for(unsigned n=0;n<out.permutations.size();++n)copy(out.permutations[n],entry(tables+0x28,16,unsigned(first)+n));
   if(count>1 && !(std::to_integer<unsigned>(out.sound_class[10])&0x20)) {
     const auto bytes=unsigned(count+7)/8,offset=unsigned(range.u16(6))>>3;
-    if(offset+bytes>data.u32(go+0x38))throw FormatError("Sound variation used bank outside resident metadata");
-    const auto bank=metadata_offset(data.u32(go+0x3c),data.u32(go+0x38));
+    const auto flags=go+(mcc_?0x58:0x38);
+    if(offset+bytes>data.u32(flags))throw FormatError("Sound variation used bank outside resident metadata");
+    const auto bank=metadata_offset(data.u32(flags+4),data.u32(flags));
     const auto raw=data.slice(bank+offset,bytes);out.used.assign(raw.begin(),raw.end());
   }
   return out;

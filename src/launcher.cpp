@@ -166,6 +166,20 @@ AssetSources read_sources(const fs::path &root) {
   const auto legacy=root/"assets/menu-ui/vista/loading";
   if(!AssetSources::loading_ready(result.loading) && AssetSources::loading_ready(legacy))
     result.loading=legacy;
+  const auto loading_registry=root/"assets/loading-source.tsv";
+  if(fs::exists(loading_registry)) {
+    std::ifstream selected(loading_registry);
+    std::string header,row,extra;
+    if(!std::getline(selected,header) || header!="H2_LOADING_SOURCE_V1" ||
+        !std::getline(selected,row) || !row.starts_with("vista\t") || row.size()==6 ||
+        row.find_first_of("\t\r\n\0",6,4)!=row.npos || std::getline(selected,extra))
+      throw std::runtime_error("Invalid selected match-loading source: "+loading_registry.string());
+    fs::path path=row.substr(6);
+    if(path.is_relative())path=root/path;
+    if(!AssetSources::loading_ready(path))
+      throw std::runtime_error("Selected Vista match-loading bank is incomplete: "+path.string());
+    result.loading=fs::canonical(path);
+  }
   return result;
 }
 fs::path read_hud_source(const fs::path &root,const AssetSources &sources) {
@@ -263,7 +277,7 @@ int main(int argc, char **argv) {
     std::vector<std::string> supplied;
     std::string vista_source,xbox_source,mcc_source;
     bool setup=false,setup_only=false,import_mcc=false,import_menus=false,prepared_sources=false;
-    bool update=false,launch_game=false;
+    bool update=false,launch_game=false,prepare_mcc_gameplay=false;
     for(int i=1;i<argc;++i) {
       const std::string argument=argv[i];
       if(argument=="--setup" || argument=="--setup-only") {
@@ -280,15 +294,28 @@ int main(int argc, char **argv) {
       else if(argument=="--launch-game")launch_game=true;
       else if(argument=="--import-mcc-hud")import_mcc=true;
       else if(argument=="--import-mcc-menus")import_menus=true;
+      else if(argument=="--prepare-mcc-gameplay")prepare_mcc_gameplay=true;
       else supplied.push_back(argument);
     }
-    if(!mcc_source.empty() && !import_mcc && !import_menus)import_mcc=true;
+    if(!mcc_source.empty() && !import_mcc && !import_menus && !prepare_mcc_gameplay)import_mcc=true;
     auto has = [&](const char *option) {
       return std::find(supplied.begin(), supplied.end(), option) !=
              supplied.end();
     };
     auto sources=read_sources(installation.root);
     const bool help=has("--help") || has("-h");
+    if(!help && prepare_mcc_gameplay) {
+      if(update || launch_game || import_mcc || import_menus || !vista_source.empty() ||
+          !xbox_source.empty() || !supplied.empty())
+        throw std::runtime_error("Use --prepare-mcc-gameplay [--mcc-source PATH] [--setup-only] by itself");
+      // Preparation works before first-run Xbox/Vista setup. Until every MCC
+      // consumer is implemented it must never select a v13 map for the game.
+      std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
+          (installation.root/"tools/setup_assets.py").string(),"--root",installation.root.string(),
+          "--prepare-mcc-gameplay"};
+      if(!mcc_source.empty())arguments.insert(arguments.end(),{"--mcc-root",mcc_source});
+      return run_tool(std::move(arguments));
+    }
     auto gameplay=(!help && !has("--gameplay-xbe"))?
         read_gameplay_source(installation.root):fs::path{};
     if (has("--launcher-info")) {
@@ -314,6 +341,7 @@ int main(int argc, char **argv) {
     if(help)std::cout<<"Launcher: --update downloads changes and rebuilds, then exits; --launch-game skips the launcher home.\n";
     if(help)std::cout<<"MCC Classic HUD: --import-mcc-hud [--mcc-source PATH] [--setup-only]\n";
     if(help)std::cout<<"MCC Classic menus: --import-mcc-menus [--mcc-source PATH] [--setup-only]\n";
+    if(help)std::cout<<"MCC gameplay preparation: --prepare-mcc-gameplay [--mcc-source PATH] (copies data and verified TU1.5 fixes; native playback pending)\n";
     if(help && installation.runtime.empty())return 0;
     if(update && !help) {
       if(setup || import_mcc || import_menus || launch_game || !supplied.empty())
@@ -378,7 +406,7 @@ int main(int argc, char **argv) {
         has("--menu") || has("--menu-screen") || has("--menu-audit") ||
         has("--menu-sweep") || has("--menu-maps") || has("--menu-movie") || has("--play") ||
         has("--campaign") || has("--simulate") || has("--map") ||
-        has("--multiplayer") || has("--host") || has("--join") || has("--local-players") || has("--dedicated") ||
+        has("--multiplayer") || has("--custom-slayer") || has("--host") || has("--join") || has("--local-players") || has("--dedicated") ||
         has("--help") || has("-h") || has("--inspect") ||
         has("--inspect-systems") || has("--validate-maps") ||
         has("--validate-systems") || has("--decode-sound");
@@ -417,7 +445,7 @@ int main(int argc, char **argv) {
       arguments.push_back(sources.vista.string());
     }
     if(!help && !menu_route && !has("--map") &&
-        (has("--multiplayer") || has("--host") || has("--join") || has("--local-players") ||
+        (has("--multiplayer") || has("--custom-slayer") || has("--host") || has("--join") || has("--local-players") ||
          has("--dedicated") || has("--play") || has("--campaign") || has("--simulate"))) {
       arguments.push_back("--map");
       arguments.push_back((sources.xbox/"maps/lockout.map").string());

@@ -464,7 +464,7 @@ struct Renderer::Impl {
     VkSampler sampler{};
     VkSampler lightmap_sampler{};
     std::map<std::pair<ShaderTextureState,unsigned>,VkSampler> authored_samplers;
-    bool sampler_anisotropy{}, custom_border_color{}, sampler_mirror_clamp{};
+    bool sampler_anisotropy{}, custom_border_color{}, sampler_mirror_clamp{}, sampler_non_seamless_cube{};
     VkPhysicalDeviceLimits sampler_limits{};
     bool dirty{}, can_capture{};
     std::uint64_t diagnostic_frame{};
@@ -806,6 +806,18 @@ struct Renderer::Impl {
                 enabled_extensions.push_back(VK_EXT_CUSTOM_BORDER_COLOR_EXTENSION_NAME);
                 device_info.pNext=&border_features;
                 source_world_device.custom_border_colors_enabled=true;
+            }
+        }
+        VkPhysicalDeviceNonSeamlessCubeMapFeaturesEXT cube_features{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_NON_SEAMLESS_CUBE_MAP_FEATURES_EXT};
+        if(std::any_of(available_extensions.begin(),available_extensions.end(),[](const auto &e){
+            return std::strcmp(e.extensionName,VK_EXT_NON_SEAMLESS_CUBE_MAP_EXTENSION_NAME)==0;})) {
+            VkPhysicalDeviceFeatures2 query{VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+            query.pNext=&cube_features;vkGetPhysicalDeviceFeatures2(physical,&query);
+            if(cube_features.nonSeamlessCubeMap) {
+                sampler_non_seamless_cube=true;
+                enabled_extensions.push_back(VK_EXT_NON_SEAMLESS_CUBE_MAP_EXTENSION_NAME);
+                cube_features.pNext=const_cast<void*>(device_info.pNext);
+                device_info.pNext=&cube_features;
             }
         }
         if(world_features.shaderDemoteToHelperInvocation) {
@@ -1315,14 +1327,22 @@ struct Renderer::Impl {
         auto& texture=textures[material];
         if(source.format!=11 || texture.format!=11 || texture.mip_count!=1 ||
            source.depth || texture.depth || source.layers!=1 || texture.source_shape.layers!=1 ||
-           source.width!=texture.width || source.height!=texture.height ||
+           !source.width || !source.height ||
            !source.mips.empty() || source.pixels.size()!=std::size_t(source.width)*source.height*4)
             throw std::runtime_error("invalid dynamic image update");
-        if(texture.shared_image) {
+        if(texture.shared_image || source.width!=texture.width || source.height!=texture.height) {
             // A mutable material image becomes private before upload. Other
             // hands/views and animated frames retain the resident artwork.
             check(vkQueueWaitIdle(queue),"retire shared material image before update");
             auto previous=std::move(texture.shared_image);
+            if(!previous) {
+                previous=std::make_shared<SharedImage>();
+                previous->device=device;previous->image=texture.image;previous->memory=texture.memory;
+                previous->view=texture.view;previous->cube_view=texture.cube_view;
+            }
+            // A queued frame for the old extent must not overwrite the new one.
+            std::erase(pending_images,material);
+            dynamic_images.erase(material);
             const auto descriptor=texture.descriptor;
             texture={};upload_texture(source,texture);texture.descriptor=descriptor;
             VkDescriptorImageInfo image{stage_samplers.at(material)[0],texture.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
@@ -1780,7 +1800,7 @@ struct Renderer::Impl {
             if(const auto found=authored_samplers.find(key);found!=authored_samplers.end())return found->second;
             if(!sampler_mirror_clamp && (state.address_u==5 || state.address_v==5 || state.address_w==5))
                 throw FormatError("retail mirror-once addressing requires native sampler support");
-            auto description=native_sampler(state,sampler_limits,sampler_anisotropy);
+            auto description=native_sampler(state,sampler_limits,sampler_anisotropy,sampler_non_seamless_cube);
             // The captured default glow sampler explicitly limits LOD to the
             // image's final level (6 for its seven original mip levels).
             if(mip_levels)description.info.maxLod=std::min(description.info.maxLod,float(mip_levels-1));
@@ -1817,6 +1837,8 @@ struct Renderer::Impl {
             }
             VkDescriptorImageInfo cubes[4]{},volumes[4]{};
             for(unsigned i=0;i<4;++i) {
+                if(stages[i]->cube_view && !sampler_non_seamless_cube)
+                    throw FormatError("original cube face filtering requires VK_EXT_non_seamless_cube_map");
                 cubes[i]={images[i].sampler,stages[i]->cube_view?stages[i]->cube_view:cube_fallback.cube_view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
                 volumes[i]={images[i].sampler,stages[i]->depth?stages[i]->view:volume_fallback.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
                 if(stages[i]->depth)images[i].imageView=image_fallback.view;
@@ -3230,10 +3252,13 @@ struct Renderer::Impl {
             file<<"P6\n"<<extent.width<<' '<<extent.height<<"\n255\n";
             const auto *pixels=static_cast<const unsigned char*>(mapped);
             const bool bgra=format==VK_FORMAT_B8G8R8A8_SRGB || format==VK_FORMAT_B8G8R8A8_UNORM;
+            std::vector<char> rgb(std::size_t(extent.width)*extent.height*3);
             for(std::size_t i=0;i<std::size_t(extent.width)*extent.height;++i) {
-                const char rgb[]{char(pixels[i*4+(bgra?2:0)]),char(pixels[i*4+1]),char(pixels[i*4+(bgra?0:2)])};
-                file.write(rgb,3);
+                rgb[i*3]=char(pixels[i*4+(bgra?2:0)]);
+                rgb[i*3+1]=char(pixels[i*4+1]);
+                rgb[i*3+2]=char(pixels[i*4+(bgra?0:2)]);
             }
+            file.write(rgb.data(),std::streamsize(rgb.size()));
             if(!file)throw FormatError("failed writing loading screenshot");
         }
         return true;
@@ -4006,6 +4031,8 @@ struct Renderer::Impl {
             const auto &frames=animated_textures[i][stage];
             if(wanted_frames[i][stage]>=frames.size()) throw FormatError("animated texture frame outside GPU images");
             const auto &texture=frames[wanted_frames[i][stage]];
+            if(texture.cube_view && !sampler_non_seamless_cube)
+                throw FormatError("original animated cube face filtering requires VK_EXT_non_seamless_cube_map");
             const VkDescriptorImageInfo image{stage_samplers[i][stage],texture.depth?image_fallback.view:texture.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
             const VkDescriptorImageInfo cube{stage_samplers[i][stage],texture.cube_view?texture.cube_view:cube_fallback.cube_view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
             const VkDescriptorImageInfo volume{stage_samplers[i][stage],texture.depth?texture.view:volume_fallback.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};

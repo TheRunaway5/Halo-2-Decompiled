@@ -6,6 +6,7 @@
 #include <functional>
 #include <memory>
 namespace halo2 {
+struct ObjectAttachmentMarker;
 struct NativeLocomotionFrame {
   const AnimationClip *clip{};
   float frame{};
@@ -37,4 +38,9 @@ private:
 std::array<std::uint32_t,3> authored_footstep_sounds(
     const Cache &,std::uint32_t foot,std::int16_t global_material,
     unsigned kind,int variant);
+// E4D90 uses the unparented unit's world position when the marker ordinal is
+// outside bipd+2F8 or the current posed marker lookup returns no result.
+Vec3 authored_footstep_position(
+    std::span<const std::vector<ObjectAttachmentMarker>> marker_bank,
+    std::span<const Transform> current_nodes, unsigned marker, Vec3 unit_position);
 } // namespace halo2

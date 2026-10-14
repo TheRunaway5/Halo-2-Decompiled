@@ -134,7 +134,8 @@ void apply_particle_collider_controller(
       p.flags |= 0x10;
     else
       p.flags &= ~0x10u;
-    if (hit->structure && (particle_flags & 0x200u))
+    if (source_particle_collision_dies(particle_flags,
+        hit->type>=0?std::uint32_t(hit->type):(hit->structure?1u:2u)))
       p.flags |= 1;
   }
 }

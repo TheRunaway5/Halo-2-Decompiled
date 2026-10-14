@@ -36,7 +36,7 @@ struct OnlineMatchmakingSnapshot {
   std::uint64_t revision{};
 };
 struct OnlineMatchmakingOptions {
-  std::string endpoint, compatibility = "halo2-native-queue-v8";
+  std::string endpoint, compatibility = "halo2-native-queue-v12";
   std::vector<std::string> maps;
   bool allow_loopback_http{};
   std::chrono::milliseconds poll_interval = std::chrono::seconds(1);
@@ -48,6 +48,12 @@ struct OnlineMatchmakingOptions {
 OnlineMatchmakingOptions online_matchmaking_environment(const std::filesystem::path &maps);
 struct OnlineMatchmakingRequest { std::string method, url, body, bearer; };
 struct OnlineMatchmakingResponse { long status{}; std::string body; };
+struct OnlineLocalPlayer {
+  std::string name;
+  // Null means a session-only guest. Only a verified Discord grant can
+  // authorize a persistent secondary player's statistics.
+  std::shared_ptr<DiscordLogin> login;
+};
 class OnlineMatchmaking {
 public:
   using Http = std::function<OnlineMatchmakingResponse(const OnlineMatchmakingRequest &, std::stop_token)>;
@@ -55,7 +61,7 @@ public:
   ~OnlineMatchmaking();
   OnlineMatchmaking(const OnlineMatchmaking &) = delete;
   OnlineMatchmaking &operator=(const OnlineMatchmaking &) = delete;
-  void refresh(const std::string &screen_name);
+  void refresh(const std::string &screen_name, std::vector<OnlineLocalPlayer> additional = {});
   void join(const std::string &playlist_id);
   void cancel_queue();
   void sign_out();

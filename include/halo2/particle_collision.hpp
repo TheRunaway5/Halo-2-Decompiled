@@ -7,7 +7,14 @@ struct ParticleCollisionHit {
   float fraction{};
   Vec3 position, normal;
   bool structure{};
+  std::int16_t material=-1;
+  std::int32_t type=-1;
 };
+inline bool source_particle_collision_dies(std::uint32_t flags,std::uint32_t type) {
+  //2C32FF..2C3348, including complete22B750/22B760 getters.
+  return ((type==1u || type==3u) && (flags&0x400u)) ||
+      (type==2u && (flags&0x800u));
+}
 using ParticleCollisionQuery =
     std::function<std::optional<ParticleCollisionHit>(
         std::uint32_t source_flags, Vec3 origin, Vec3 displacement)>;

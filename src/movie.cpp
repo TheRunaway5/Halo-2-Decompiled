@@ -38,30 +38,41 @@ struct Movie::Impl {
     if (!frame || !packet)
       throw FormatError("cannot allocate movie decoder");
     check(avformat_open_input(&format, path.string().c_str(), nullptr, nullptr),
-          "open retail movie");
+          "open movie");
     check(avformat_find_stream_info(format, nullptr), "read movie streams");
     stream =
         av_find_best_stream(format, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
     check(stream, "find movie video");
     const auto *track = format->streams[stream];
     const auto *p = track->codecpar;
-    if (p->codec_id != AV_CODEC_ID_BINKVIDEO || p->width < 1 || p->height < 1 ||
-        p->width > 1920 || p->height > 1080)
-      throw FormatError("unsupported retail Bink movie format");
-    rate = av_q2d(track->r_frame_rate);
+    const bool bink = p->codec_id == AV_CODEC_ID_BINKVIDEO;
+    if ((!bink && p->codec_id != AV_CODEC_ID_H264 && p->codec_id != AV_CODEC_ID_AV1) ||
+        p->width < 1 || p->height < 1 || p->width > 4096 || p->height > 2160)
+      throw FormatError("unsupported movie video format");
+    rate = av_q2d(av_guess_frame_rate(format, format->streams[stream], nullptr));
     length = track->duration * av_q2d(track->time_base);
     if (!std::isfinite(rate) || rate < 1 || rate > 120 ||
         !std::isfinite(length) || length <= 0 || length > 600)
       throw FormatError("invalid movie frame rate/duration");
-    frames = unsigned(std::llround(length * rate));
+    const auto count = track->nb_frames > 0 ? track->nb_frames : std::llround(length * rate);
+    if (count < 1 || count > 72000)
+      throw FormatError("invalid movie frame count");
+    frames = unsigned(count);
+    // Keep the final video frame through the slightly longer AAC audio tail.
+    if (!bink && format->duration != AV_NOPTS_VALUE) {
+      const double container_length = double(format->duration) / AV_TIME_BASE;
+      if (container_length > length && container_length <= 600)
+        length = container_length;
+    }
     const auto *codec = avcodec_find_decoder(p->codec_id);
     if (!codec)
-      throw FormatError("FFmpeg lacks Bink video decoder");
+      throw FormatError("FFmpeg lacks required movie video decoder");
     decoder = avcodec_alloc_context3(codec);
     if (!decoder)
-      throw FormatError("cannot allocate Bink codec");
-    check(avcodec_parameters_to_context(decoder, p), "configure Bink decoder");
-    check(avcodec_open2(decoder, codec, nullptr), "open Bink decoder");
+      throw FormatError("cannot allocate movie codec");
+    check(avcodec_parameters_to_context(decoder, p), "configure movie decoder");
+    decoder->thread_count = 4;
+    check(avcodec_open2(decoder, codec, nullptr), "open movie decoder");
     image = {unsigned(p->width),
              unsigned(p->height),
              11,
@@ -80,7 +91,7 @@ struct Movie::Impl {
         return false;
       }
       if (result != AVERROR(EAGAIN)) {
-        check(result, "decode Bink frame");
+        check(result, "decode movie frame");
         if (frame->width != int(image.width) ||
             frame->height != int(image.height))
           throw FormatError("movie changes dimensions");
@@ -90,25 +101,33 @@ struct Movie::Impl {
             AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr, nullptr, nullptr);
         if (!converter)
           throw FormatError("cannot convert movie pixels");
-        // Bink 1 YUV is limited-range BT.601, matching the original 640x480
-        // decode. Explicit settings keep host defaults from choosing BT.709.
-        const auto *coefficients = sws_getCoefficients(SWS_CS_ITU601);
-        check(sws_setColorspaceDetails(converter, coefficients, 0, coefficients,
+        // Retain Bink's limited BT.601 conversion. HD MP4s use their declared
+        // matrix/range, with BT.709 for these untagged upscaled sources.
+        const bool bink = decoder->codec_id == AV_CODEC_ID_BINKVIDEO;
+        int matrix = SWS_CS_ITU709;
+        if (bink || frame->colorspace == AVCOL_SPC_SMPTE170M ||
+            frame->colorspace == AVCOL_SPC_BT470BG)
+          matrix = SWS_CS_ITU601;
+        else if (frame->colorspace == AVCOL_SPC_BT2020_NCL)
+          matrix = SWS_CS_BT2020;
+        const auto *coefficients = sws_getCoefficients(matrix);
+        const int full_range = !bink && frame->color_range == AVCOL_RANGE_JPEG;
+        check(sws_setColorspaceDetails(converter, coefficients, full_range, coefficients,
                                        1, 0, 1 << 16, 1 << 16),
-              "configure Bink color conversion");
+              "configure movie color conversion");
         unsigned char *pixels[]{
             reinterpret_cast<unsigned char *>(image.pixels.data())};
         int pitch[]{int(image.width * 4)};
         if (sws_scale(converter, frame->data, frame->linesize, 0, frame->height,
                       pixels, pitch) != frame->height)
-          throw FormatError("incomplete Bink pixel conversion");
+          throw FormatError("incomplete movie pixel conversion");
         av_frame_unref(frame);
         if (++decoded > frames)
           throw FormatError("movie exceeds its declared frame count");
         return true;
       }
       if (eof)
-        throw FormatError("Bink decoder failed to drain");
+        throw FormatError("movie decoder failed to drain");
       int read;
       do {
         av_packet_unref(packet);
@@ -116,10 +135,10 @@ struct Movie::Impl {
       } while (read >= 0 && packet->stream_index != stream);
       if (read == AVERROR_EOF) {
         eof = true;
-        check(avcodec_send_packet(decoder, nullptr), "flush Bink video");
+        check(avcodec_send_packet(decoder, nullptr), "flush movie video");
       } else {
-        check(read, "read Bink video");
-        check(avcodec_send_packet(decoder, packet), "submit Bink video");
+        check(read, "read movie video");
+        check(avcodec_send_packet(decoder, packet), "submit movie video");
       }
     }
   }
@@ -146,4 +165,27 @@ unsigned Movie::frame_count() const { return impl_->frames; }
 unsigned Movie::frame_number() const { return impl_->decoded; }
 double Movie::duration() const { return impl_->length; }
 double Movie::frame_rate() const { return impl_->rate; }
+std::filesystem::path frontend_movie_path(const std::filesystem::path &maps,
+                                        const std::filesystem::path &bundle,
+                                        const std::string &name) {
+  if (name != "intro" && name != "credits" && name != "attract")
+    throw FormatError("unknown frontend movie: " + name);
+  if (name != "attract") {
+    const auto replacement = bundle / (name + "_60.mp4");
+    if (!bundle.empty() && std::filesystem::is_regular_file(replacement))
+      return replacement;
+  }
+  return maps.parent_path() / "bink" / (name + "_60.bik");
+}
+std::array<float, 4> movie_canvas_rectangle(unsigned width, unsigned height,
+                                          unsigned viewport_width,
+                                          unsigned viewport_height) {
+  if (!width || !height || !viewport_width || !viewport_height)
+    throw FormatError("empty movie canvas");
+  const float scale = std::min(float(viewport_width) / width,
+                               float(viewport_height) / height);
+  const float w = width * scale * 640 / viewport_width;
+  const float h = height * scale * 480 / viewport_height;
+  return {(640 - w) * .5f, (480 - h) * .5f, w, h};
+}
 } // namespace halo2

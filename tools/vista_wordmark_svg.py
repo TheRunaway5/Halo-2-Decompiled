@@ -8,7 +8,7 @@ from vista_prompt_svg import element
 
 
 LETTERING={
- 'H':('M50 17 H90 V21 C87 21 87 25 87 32 V58 H169 V31 '
+ 'H':('M50 17 H90 V58 H169 V31 '
       'C181 31 189 36 195 43 V99 C195 102 200 103 206 103 V105 H195 V108 '
       'H180 V104 H169 V66 H101 V93 C101 102 110 105 119 106 V110 '
       'C113 108 110 108 109 112 H79 L80 107 H54 V105 H60 '
@@ -18,7 +18,7 @@ LETTERING={
       'H290 V105 H261 L259 109 H231 V103 H241 L271 67 H281 L288 61 H326 '
       'L305 39 L299 46 H290 L306 29 L308 31 Z'),
  'L':('M425 24 H463 V28 H489 V31 C477 31 474 34 474 41 V91 Q474 93 477 93 H537 '
-      'C547 93 552 88 552 83 H555 V103 H550 C547 103 546 105 546 108 '
+      'C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 '
       'H456 L457 101 H429 V98 C443 98 446 93 446 85 V40 '
       'C446 29 442 26 425 26 Z'),
  'O':('M565 57 H576 C583 41 602 27 629 21 L626 17 '
@@ -27,7 +27,7 @@ LETTERING={
       'C636 110 622 107 609 102 L616 95 C639 103 675 105 703 91 '
       'C724 80 734 64 728 52 C718 28 674 22 648 27 '
       'C618 28 596 39 584 57 L583 65 H574 Z'),
- '2':('M870 28 L868.5 21 C896 7 938 10 960 29 C973 42 972 59 960 73 H932 '
+ '2':('M870 28 L868.5 21 C896 7 938 10 958 29 C969 42 968 58 956 72 H932 '
       'L882 98 H905 L913 94 H962 C969 94 972 91 972 85 H975 V105 H971 '
       'C967 105 965 107 965 110 H848 L846 106 H829 V103 H840 '
       'L884 81 L888 85 C911 74 933 63 939 53 C948 36 931 29 919 28 '
@@ -73,12 +73,48 @@ SEAMS={
       'M616 96 C639 104 676 106 704 92 C725 80 735 64 729 51 '
       'C719 27 676 22 648 26 C618 27 594 40 583 58 L582 64 H575'),
  '2':('M846 43 H858 C863 34 868 30 872 28 L870.5 22 C899 10 937 13 958 30 '
-      'C970 43 970 58 959 71 H932 L881 98',
+      'C968 42 967 58 955 71 H932 L881 98',
       'M866 47 V42 C873 29 896 25 920 28 C934 29 948 37 940 53 '
       'C934 64 911 76 888 87 L884 83 L841 104 H830',
       'M881 98 H906 L914 95 H962 C969 95 973 91 973 86',
       'M831 104 H847 L849 108 H963 Q965 103 973 103 V86'),
 }
+
+
+def l_bevel(d,group,clip):
+    """Separate stem, foot and hooked-tip surfaces measured on Vista's L.
+
+    Its foot has a white upper bevel, a saturated blue face and a subdued
+    lower ridge. Treating all three as one bright outline erases the step.
+    """
+    inside=element(group,'g',clip_path=clip)
+    lower_clip=element(d.defs,'clipPath',id='L-foot-region')
+    element(lower_clip,'rect',x=425,y=83,width=132,height=30)
+    g=element(inside,'g',id='L-authored-bevel',clip_path='url(#L-foot-region)')
+    foot=d.linear('L-foot-metal',[(0,(67,93,214)),(.3,(66,91,192)),
+                 (.7,(30,62,187)),(1,(26,44,164))],y1=96,y2=109,calibrate=False)
+    element(g,'path',d='M474 91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 '
+            'V103 H550 C547 103 545 105 545 109 H456 L457 101 H474 Z',fill=foot)
+    # The two edges of the foot have different reflectivity. Their editable
+    # paths follow the long upper sweep and the short stepped lower cut.
+    top='M474 92.8 H537 C547 92.8 552.4 88.6 552.7 83.5'
+    element(g,'path',d=top,fill='none',stroke='#cbd5f5',stroke_width=4.4,
+            filter=d.glow('L-upper-bevel-softness',.48))
+    element(g,'path',d=top,fill='none',stroke='#f6f8ff',stroke_width=1.55,
+            filter=d.glow('L-upper-polished-edge',.32))
+    tip=d.linear('L-hook-reflection',[(0,(242,244,253)),(.6,(215,220,243)),
+                 (1,(139,156,214))],y1=84,y2=105,calibrate=False)
+    element(g,'path',d='M551 88 L552 83.5 H554 V102 H550 '
+            'C546 102 544.5 104 544.5 107 H542.5 C542.5 102 546 99.5 550.5 99.5 Z',fill=tip,
+            filter=d.glow('L-hook-bevel-softness',.45))
+    element(g,'path',d='M554 84 V103 H550 C547 103 545 105 545 108.5',
+            fill='none',stroke='#3e50b8',stroke_width=1.2)
+    lower='M429 99 H458.5 Q461 99 458.5 106 H542.8 C543 102.2 546 100.8 550.5 100.8'
+    element(g,'path',d=lower,fill='none',stroke='#839bd9',stroke_width=1.7,
+            filter=d.glow('L-lower-ridge-softness',.55))
+    element(g,'path',d='M456 108 H544',fill='none',stroke='#1a2ca4',stroke_width=1.65)
+    element(g,'path',d='M426 25 H462 L461.5 29 H488',fill='none',stroke='#fbfcff',
+            stroke_width=1.1,filter=d.glow('L-serif-polished-edge',.35))
 
 
 def wordmark(d):
@@ -89,10 +125,11 @@ def wordmark(d):
     # rather than a single outline. Each band remains editable vector paint.
     cut=d.linear('wordmark-cut',[(0,(194,199,225)),(.5,(175,186,227)),(1,(44,66,164))],y1=17,y2=115)
     ridge=d.linear('wordmark-polished-ridge',[(0,(239,241,255)),(.5,(238,242,255)),(1,(151,177,250))],y1=17,y2=115)
-    edge=d.linear('wordmark-outer-edge',[(0,(99,111,182)),(.5,(101,115,188)),(1,(39,61,155))],y1=17,y2=115)
-    softened=d.glow('wordmark-bevel-softness',.42)
-    seam=d.linear('wordmark-seam-light',[(0,(255,255,255)),(.55,(250,251,255)),
-                  (1,(201,216,255))],y1=17,y2=115,calibrate=False)
+    edge=d.linear('wordmark-outer-edge',[(0,(218,225,248)),(.5,(180,196,242)),(1,(41,61,165))],
+                  y1=17,y2=115,calibrate=False)
+    softened=d.glow('wordmark-bevel-softness',.65)
+    seam=d.linear('wordmark-seam-light',[(0,(255,255,255)),(.55,(242,245,255)),
+                  (1,(145,168,228))],y1=17,y2=115,calibrate=False)
     group=element(d.root,'g',id='halo2-wordmark',stroke_linejoin='round')
     for name,path in LETTERING.items():
         element(group,'path',id=name+'-outer-shade',d=path,fill='#292929',stroke='#292929',
@@ -115,8 +152,9 @@ def wordmark(d):
                     transform='translate(.65 .8)',filter=d.glow(name+'-seam-cavity-'+str(len(seams)),.4))
             element(seams,'path',d=line,stroke=seam,stroke_width=1.7,opacity=.4,
                     filter=d.glow(name+'-seam-bloom-'+str(len(seams)),.65))
-            element(seams,'path',d=line,stroke=seam,stroke_width=.85,opacity=1,
-                    filter=d.glow(name+'-seam-light-'+str(len(seams)),.32))
+            element(seams,'path',d=line,stroke=seam,stroke_width=1.2,opacity=1,
+                    filter=d.glow(name+'-seam-light-'+str(len(seams)),.48))
+        if name=='L':l_bevel(d,group,'url(#L-inside)')
     # Independent asymmetric oval and pointed extension inside the O.
     oval_anchors=((56,(255,255,255)),(61,(255,255,255)),(64,(248,248,253)),
                   (66,(231,233,248)),(68,(197,203,238)),(70,(153,166,223)),

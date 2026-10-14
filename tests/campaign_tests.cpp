@@ -235,6 +235,32 @@ void tutorial_controls_and_checkpoint() {
   check(sim.training().show && sim.training().text==0x1000123 && sim.training().suppressed==0x3000,
       "Checkpoint must retain the tutorial prompt and calibration restrictions");
 }
+void campaign_create_containing() {
+  auto c=arena();
+  c.object_names[0].name="e1_crate";
+  auto other=c.objects[0];other.name=1;other.placement=1;other.definition=43;
+  c.objects.push_back(other);c.object_names.push_back({"E1_crate",6,1});
+  c.object_names.push_back({"e1_unused",6,-1});
+  Program p;
+  p.script("destroy_first",p.call("object_destroy",{p.node({0,56,50,9,null_datum,0,0})}));
+  p.script("destroy_second",p.call("object_destroy",{p.node({0,56,50,9,null_datum,0,1})}));
+  p.script("create",p.call("object_create_containing",{p.text("e1_")}));
+  p.script("all",p.call("object_create_containing",{p.text("")}));
+  c.scripts=p.data;Simulation sim(c,0,{{0,0,0},0,0});
+  const auto other_handle=sim.scene().resolve(1);
+  sim.run_script("destroy_first");sim.step({});
+  sim.run_script("create");sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.scene().resolve(0)!=null_datum,
+        "Campaign containing creation must recreate matching placements and skip unbound names");
+  const auto handle=sim.scene().resolve(0);
+  check(sim.scene().resolve(1)==other_handle && sim.scene().resolve(2)==null_datum,
+        "Containing creation preserves case-sensitive selection and unbound names");
+  sim.run_script("create");sim.step({});
+  check(sim.scene().resolve(0)==handle,"Containing creation retains existing generations");
+  sim.run_script("destroy_second");sim.step({});sim.run_script("all");sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.scene().resolve(1)!=null_datum,
+        "Empty containing search creates every bound scenario name");
+}
 void bsp_builtin_boundary() {
   auto c = arena();
   Program p;
@@ -415,6 +441,25 @@ void campaign_residency_requests() {
             requests[3].kind==Simulation::Prediction::Object && requests[3].datum==44,
         "prediction uses real residency service, admits object/model-all and rejects NONE/noncurrent");
 }
+void campaign_look_cone() {
+  // Retail29F850 ->29F7A0 ->CC2B0 tests facing only. A wall or the
+  // target machine's own collision must not reject the Armory's light test.
+  for(const bool wall:{false,true})for(const float angle:{0.f,10.f}) {
+    auto c=arena();c.objects[0].position={10,0,c.player.camera_height+.002f};
+    if(wall) {
+      c.collision.push_back({{5,-10,-10},{5,10,-10},{5,10,10}});
+      c.collision.push_back({{5,-10,-10},{5,10,10},{5,-10,10}});
+    }
+    Program p;p.data.globals.push_back({"seen",5,p.scalar(0,5)});
+    p.script("look",p.call("set",{p.global(0,5),p.call("objects_can_see_object",{
+        p.call("players",{},31),p.node({0,56,50,9,null_datum,0,0}),p.real(angle)},5)},5));
+    c.scripts=p.data;Simulation simulation(c,0,{{0,0,0},0,0});
+    simulation.run_script("look");simulation.step({});
+    check(simulation.scripts().diagnostics().empty() &&
+        simulation.scripts().globals()[0].truth()==(angle>0),
+        "Campaign facing cone added occlusion or lost the strict original angle boundary");
+  }
+}
 void add_enemy(LevelContent &c);
 void add_enemy(LevelContent &c);
 void cinematic_object_cleanup() {
@@ -500,6 +545,16 @@ void protection_flags() {
       check(sim.player().vitality.dead, "object_can_take_damage restores damage");
     }
   }
+}
+void campaign_fixed_upper_damage() {
+  auto c=arena();add_enemy(c);
+  auto &weapon=c.weapons.at(3);
+  weapon.damage_min=0;
+  weapon.damage_amount=DamageAmountDefinition{0,25,25};
+  Simulation simulation(c,0,{{0,0,0},0,0});simulation.place_squad("enemy");
+  for(unsigned step=0;step<30;++step)simulation.step({});
+  check(simulation.shots()>0 && simulation.hits()>0 && simulation.player().vitality.dead,
+      "Campaign direct hits used the lower envelope instead of the fixed authored upper amount");
 }
 void checkpoint_audio_and_faults() {
   auto c = arena();
@@ -590,6 +645,39 @@ std::string world_state(const Simulation &sim) {
     vector(object.position);
   }
   return out.str();
+}
+void initial_geometry_ownership() {
+  auto copied=arena(),transferred=copied;
+  Simulation a(copied,0,{{0,0,0},0,0});
+  BspContent geometry{std::move(transferred.collision),transferred.navigation};
+  const auto count=geometry.collision.size();
+  Simulation b(transferred,std::move(geometry),0,{{0,0,0},0,0});
+  check(transferred.collision.empty() && b.collision().size()==count,
+        "Transferred BSP keeps the complete collision bank in its world owner");
+  Controls input;input.forward=.7f;input.right=.2f;
+  for(unsigned i=0;i<90;++i) {
+    if(i==20){a.request_checkpoint();b.request_checkpoint();}
+    if(i==50){a.request_revert();b.request_revert();}
+    input.jump=i%30==0;input.yaw=float(i)*.01f;
+    a.step(input);b.step(input);
+    check(world_state(a)==world_state(b),
+          "Transferred BSP must preserve movement, lifetime and checkpoint replay exactly");
+  }
+}
+void cinematic_outro_checkpoint() {
+  auto content=arena();Program p;
+  p.script("outro",p.call("cinematic_outro_start"));
+  p.script("stop",p.call("cinematic_stop"));content.scripts=p.data;
+  Simulation sim(content,0,{{0,0,0},0,0});
+  check(!sim.presentation().cinematic_outro,"Cinematic outro flag starts clear");
+  sim.request_checkpoint();sim.step({});
+  sim.run_script("outro");sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.presentation().cinematic_outro,
+        "Original outro builtin must retain its independent presentation flag");
+  sim.run_script("stop");sim.step({});
+  check(sim.presentation().cinematic_outro,"Cinematic stop must not clear the level-owned outro flag");
+  sim.request_revert();sim.step({});
+  check(!sim.presentation().cinematic_outro,"Checkpoint restores the cinematic outro flag");
 }
 void source_body_checkpoint() {
   auto c=arena();Simulation sim(c,0,{{0,0,0},0,0});
@@ -825,14 +913,18 @@ void retail_audio_residency(const std::filesystem::path &directory) {
 }
 int main(int argc, char **argv) {
   try {
-    vm_checkpoint(); dispatch_boundary(); poll_boundaries(); scene_checkpoint();
+    vm_checkpoint(); dispatch_boundary(); poll_boundaries(); scene_checkpoint();campaign_create_containing();
     protection_flags(); tutorial_actor_commands_and_text(); checkpoint_audio_and_faults();
+    campaign_fixed_upper_damage();
     player_controls_and_external_global();tutorial_controls_and_checkpoint();
     combat_checkpoint_replay(); projectile_lifetime_cleanup(); source_body_checkpoint(); bsp_builtin_boundary();
+    initial_geometry_ownership();
+    cinematic_outro_checkpoint();
     bsp_streaming_checkpoint(); bsp_scene_lifetime();
     class_fade_and_live_mixer(); campaign_configuration_checkpoint();
     retail_external_long_expression();
     campaign_residency_requests();
+    campaign_look_cone();
     cinematic_object_cleanup();
     cinematic_checkpoint(false); cinematic_checkpoint(true);
     if (argc > 1) {

@@ -15,7 +15,7 @@ int main(int argc,char**argv){try{
   if(argc==5 && std::string(argv[4])=="--all-maps"){
     const auto original=OriginalData::load_xbe(argv[3]);
     const std::filesystem::path disc=argv[2],dlc=disc.parent_path().parent_path()/"map-pack/maps";
-    unsigned maps=0,objects=0,faces=0;
+    unsigned maps=0,objects=0,faces=0,impact_owners=0;
     const auto verify=[&](const std::filesystem::path& path){
       try{
       Cache c(path,disc,original);auto content=c.load_content(0,true);
@@ -23,7 +23,11 @@ int main(int argc,char**argv){try{
       for(const auto& [id,w]:content.weapons)if(w.smg)rules.weapon=id;
       MultiplayerMatch m(content,0,c.spawns(),rules);m.join("Prop import");
       std::array<Controls,16> neutral{};neutral[0].yaw=m.unit(0).yaw;m.step(neutral);
-      ++maps;objects+=m.simulation().props().states().size();faces+=m.simulation().props().triangles().size();
+      const auto states=m.simulation().props().states();unsigned admitted=0;
+      for(const auto& state:states){const auto& d=*content.prop_sandbox.at(state.placement);
+        admitted+=d.uniform_impact_material && d.uniform_impact_region_absorption;}
+      ++maps;objects+=states.size();faces+=m.simulation().props().triangles().size();impact_owners+=admitted;
+      std::cout<<path.stem().string()<<" props="<<states.size()<<" admitted impact material owners="<<admitted<<'\n';
       }catch(const std::exception& e){throw FormatError(path.string()+": "+e.what());}
     };
     for(const auto name:{"ascension","beavercreek","burial_mounds","coagulation","colossus","cyclotron",
@@ -31,7 +35,8 @@ int main(int argc,char**argv){try{
     for(const auto name:{"backwash","containment","deltatap","dune","elongation","gemini","triplicate","turf","warlock"})
       verify(dlc/(std::string(name)+".map"));
     check(maps==21,"All-map prop importer coverage changed");
-    std::cout<<maps<<" real maps imported/constructed/stepped; "<<objects<<" retained props; "<<faces<<" posed prop triangles\n";return 0;
+    std::cout<<maps<<" real maps imported/constructed/stepped; "<<objects<<" retained props; "<<faces
+        <<" posed prop triangles; "<<impact_owners<<" admitted impact material owners\n";return 0;
   }
   if(argc!=4 && !(argc==6 && std::string(argv[4])=="--death-fixture"))return 77;
   std::vector<std::byte> death_fixture;
@@ -120,18 +125,22 @@ int main(int argc,char**argv){try{
       check(e.owner.player==match.player(0).source_datum,"Actual shot owner was lost before delayed blast");
     }
   }
-  unsigned prop_contacts=0;
+  unsigned prop_contacts=0;bool retained_vitality_scale=false;
   for(const auto &hit:match.state().bullet_impacts)if(!hit.terrain){
     ++prop_contacts;
-    check(std::any_of(d.collision.materials.begin(),d.collision.materials.end(),
-        [&](const auto &material){return material.global_material==hit.material;}),
-        "Prop impact lost its original global material");
+    check(d.uniform_impact_material && d.uniform_impact_region_absorption &&
+        hit.material==d.vitality.body_material,
+        "Prop impact lost D7B80's authored damage material override");
+    check(hit.presentation && hit.presentation->scale_b>=0 && hit.presentation->scale_b<=1,
+        "Prop impact lost its retained response and vitality scaleB");
+    retained_vitality_scale|=hit.presentation->scale_b<1;
     check(hit.projectile!=null_datum && hit.weapon==rules.weapon,
         "Prop impact lost its projectile/weapon owner");
     check(length(hit.normal)>.99f && length(hit.normal)<1.01f,
         "Prop impact lost its actual posed plane normal");
   }
   check(prop_contacts>0,"Actual nearest prop contacts did not reach presentation");
+  check(retained_vitality_scale,"Prop contacts retained a fixed scaleB instead of actual vitality");
   check(live_damage && live_removed && live_blast,"Normal Match SMG fire did not damage/explode/remove the power module");
   check(match.unit(0).vitality.shield<1 || match.unit(0).vitality.body<1,
       "Actual close-range module blast did not damage the native shooter");

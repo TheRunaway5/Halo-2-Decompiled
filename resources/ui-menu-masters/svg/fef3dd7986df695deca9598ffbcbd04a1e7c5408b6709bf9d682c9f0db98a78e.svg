@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 512 512" version="1.1">
+  <title>Vista ui\screens\game_shell\settings_screen\variant_settings\br_glow page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="dialog-light-bounds">
+      <path d="M0 0 H285 V167 L278 163 V191 L285 198 V272 L261 296 H0 Z" />
+    </clipPath>
+    <radialGradient id="light-pool-0" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(205 296) scale(210 110)">
+      <stop offset="0" stop-color="#3ea2ff" stop-opacity="1" />
+      <stop offset="0.25" stop-color="#3ea2ff" stop-opacity="0.85" />
+      <stop offset="0.5" stop-color="#3ea2ff" stop-opacity="0.33" />
+      <stop offset="0.75" stop-color="#3ea2ff" stop-opacity="0.055" />
+      <stop offset="1" stop-color="#3ea2ff" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="light-pool-1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(286 145) scale(130 235)">
+      <stop offset="0" stop-color="#3ea2ff" stop-opacity="1" />
+      <stop offset="0.25" stop-color="#3ea2ff" stop-opacity="0.85" />
+      <stop offset="0.5" stop-color="#3ea2ff" stop-opacity="0.33" />
+      <stop offset="0.75" stop-color="#3ea2ff" stop-opacity="0.055" />
+      <stop offset="1" stop-color="#3ea2ff" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <g clip-path="url(#dialog-light-bounds)">
+    <g id="light-wash-0" opacity="0.49082220020286343">
+      <ellipse cx="205" cy="296" rx="210" ry="110" fill="url(#light-pool-0)" />
+    </g>
+    <g id="light-wash-1" opacity="0.3623306212432471">
+      <ellipse cx="286" cy="145" rx="130" ry="235" fill="url(#light-pool-1)" />
+    </g>
+  </g>
+</svg>

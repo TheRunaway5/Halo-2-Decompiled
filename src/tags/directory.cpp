@@ -47,15 +47,26 @@ const Tag& Cache::tag_at_index(std::size_t index) const {
     return tags_[index];
 }
 std::span<const std::byte> Cache::read_tag_bytes(std::uint32_t address, std::size_t size) const {
-    return Bytes(storage_).slice(metadata_offset(address, size), size);
+    return Bytes(cache_bytes()).slice(metadata_offset(address, size), size);
 }
 std::span<const std::byte> Cache::tag_payload(TagHandle handle) const {
     const auto* tag=find_tag(handle);
-    if (!tag || !tag->address || !tag->size)
+    if (!tag || !tag->address)
         throw FormatError("Resident source tag metadata is unavailable");
     if (tag->type()==tag_groups::scenario_structure_bsp || tag->type()==tag_groups::scenario_structure_lightmap)
         throw FormatError("Source BSP tag requires its own metadata mapping");
-    return read_tag_bytes(tag->address,tag->size);
+    auto extent=tag->size;
+    if(!extent) {
+        // Xbox caches deduplicate complete definitions: zero-sized tag
+        // aliases retain the same address/group as their owned payload.
+        // Resolve only that exact identity, never a neighbouring allocation.
+        for(const auto& owner:tags_)if(owner.address==tag->address && owner.group==tag->group && owner.size) {
+            if(extent && extent!=owner.size)throw FormatError("Ambiguous source tag alias extent");
+            extent=owner.size;
+        }
+        if(!extent)throw FormatError("Source tag alias has no owned same-address payload");
+    }
+    return read_tag_bytes(tag->address,extent);
 }
 std::vector<TagGroupDefinition> read_tag_group_definitions(
     const Bytes& bytes, std::size_t index, std::int64_t header_magic) {

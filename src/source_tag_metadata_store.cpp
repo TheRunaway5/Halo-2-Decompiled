@@ -21,10 +21,9 @@ struct SourceTagMetadataStore::State {
       if (group.size() != 4 || group == "sbsp" || group == "ltmp")
         throw FormatError("Invalid resident source tag group selection");
     for (const auto &tag : cache->select_tags()) {
-      // Zero-sized Xbox aliases have no owned payload. They remain missing
-      // if consumed; an unused alias must not prevent resident group import.
-      if (!tag.address || !tag.size || !groups.contains(tag.group))
+      if (!tag.address || !groups.contains(tag.group))
         continue;
+      if(!tag.size && !cache->query_tag({.group=tag.type(),.address=tag.address,.minimum_size=1}))continue;
       if (!tags.emplace(tag.datum, cache->load_source_tag_metadata(tag.datum)).second)
         throw FormatError("Duplicate resident source tag datum");
     }
@@ -50,7 +49,7 @@ struct SourceTagMetadataStore::State {
       const auto offset = std::uint64_t(address) - tag.source_address();
       if (offset > tag.size() || bytes > tag.size() - offset)
         continue;
-      if (owner && bytes)
+      if (owner && bytes && (owner->source_address()!=tag.source_address() || owner->size()!=tag.size() || owner->group()!=tag.group()))
         throw FormatError("Ambiguous resident source tag backing");
       owner = &tag;
     }

@@ -144,6 +144,16 @@ def main():
     def instruction_factory(*,get,put,addr,xf):
         def extended_instruction(i):
             op=list(i.operands);mn=i.mnemonic
+            if i.address in (0xd7939,0xd80c6,0xda969):
+                assert mn=='call' and op[0].imm==0x1781f0
+                # TU1.5 publication observes the real shield effect request,
+                # then executes the unchanged whole lower owner. Keep the
+                # paired TU1.1 path and all original instruction semantics.
+                actual={0xd7939:0xd8889,0xd80c6:0xd9016,0xda969:0xdb8b9}[i.address]
+                assert codes[1].at(actual).operands[0].imm==0x179610
+                return (f's.push(0x{i.address:x}u,s.image==SourcePhysicsContactImage::TitleUpdate15?0x{actual+5:x}u:0x{i.address+i.size:x}u);'
+                    f'if(s.image==SourcePhysicsContactImage::TitleUpdate15 && s.services.required_owner)s.required(0x{actual:x}u,selected(0x1781f0u,s.image),false);'
+                    'else run_1781f0(s);')
             if mn=='setge':return put(i,op[0],'s.flags.sf==s.flags.of')
             if i.mnemonic=='mul':
                 operand,=i.operands

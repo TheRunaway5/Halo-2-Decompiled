@@ -6,14 +6,20 @@
 #include "halo2/weapon_effect.hpp"
 #include "halo2/effect_sound.hpp"
 #include "halo2/fixed_effect_event.hpp"
+#include "halo2/source_effect_event.hpp"
+#include "halo2/source_effect_location.hpp"
 #include "halo2/particle_movement.hpp"
+#include "halo2/particle_collision.hpp"
 #include <memory>
 
 namespace halo2 {
 struct AuthoredMuzzleEffect {
   std::uint32_t marker{};
+  std::uint32_t flags{};
+  std::int16_t loop_start=-1;
   float initial_advance{};
   std::vector<FixedEffectEventDefinition> events;
+  std::vector<SourceEffectEventDefinition> clocks;
   std::vector<EffectSoundCue> sounds;
   struct System {
     std::uint32_t marker{};
@@ -22,6 +28,7 @@ struct AuthoredMuzzleEffect {
     std::vector<ParticleMovementDefinition> movement;
     ParticleSpriteDefinition sprite;
     std::shared_ptr<const ParticleMaterial> material;
+    std::uint32_t collision_child=0xffffffffu,collision_group{};
   };
   std::vector<System> systems;
 };
@@ -44,10 +51,13 @@ public:
   ~NativeMuzzleEffects();
   NativeMuzzleEffects(const NativeMuzzleEffects &)=delete;
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick);
+  std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors);
+  std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity);
   void advance(std::uint32_t tick,float tick_seconds);
+  void collision_query(ParticleCollisionQuery);
   std::uint32_t marker_name(std::uint32_t effect) const;
   std::vector<std::uint32_t> marker_names(std::uint32_t effect) const;
-  struct Sound {EffectSoundCue cue;std::uint32_t owner{};};
+  struct Sound {EffectSoundCue cue;std::uint32_t owner{};std::optional<Vec3> position;};
   std::vector<Sound> take_sounds();
   using Marker=std::function<Transform(std::uint32_t)>;
   std::vector<ParticleDraw> draw(std::uint32_t weapon,const Marker &,

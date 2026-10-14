@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="336" height="336" viewBox="0 0 42 42" version="1.1">
+  <title>Vista ui\global_bitmaps\live_icons_sm page 20: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="live-symbol-blue-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.9" />
+    </filter>
+    <filter id="live-symbol-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.29" />
+    </filter>
+    <mask id="number-space" maskUnits="userSpaceOnUse" x="0" y="0" width="64" height="60">
+      <rect width="64" height="60" fill="white" />
+      <rect x="39" y="38" width="24" height="22" fill="black" />
+    </mask>
+  </defs>
+  <g transform="scale(0.75)" fill="white" stroke-linejoin="round">
+    <g filter="url(#live-symbol-blue-glow)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill" opacity=".8" fill="#2e9aff">
+      <g mask="url(#number-space)" fill="#2e9aff">
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#87b9df" stroke-width="4" opacity="0.5" />
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#2e9aff" stroke-width="2.5" />
+      </g>
+      <path d="M28 16.8 C24.5 16.8 23.5 15.5 21.5 17 C17.5 18.5 15.7 22 14.6 27 C13.9 30.2 13.8 34 14.5 37.5 C14.9 39.8 17.2 40 18.6 38 L22.8 32.8 Q24 31.2 28 31.3 Q32 31.2 33.2 32.8 L37.4 38 C38.8 40 41.1 39.8 41.5 37.5 C42.2 34 42.1 30.2 41.4 27 C40.3 22 38.5 18.5 34.5 17 C32.5 15.5 31.5 16.8 28 16.8 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <circle cx="28" cy="23" r="5.6" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <path d="M24.2 19.1 C25.6 19.4 27 20.5 28 21.5 C29 20.5 30.4 19.4 31.8 19.1 C30.7 20.3 29.7 21.6 29 23 C29.7 24.4 30.7 25.7 31.8 26.9 C30.4 26.6 29 25.5 28 24.5 C27 25.5 25.6 26.6 24.2 26.9 C25.3 25.7 26.3 24.4 27 23 C26.3 21.6 25.3 20.3 24.2 19.1 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="1.2" />
+      <g transform="translate(40 39)" fill="#2e9aff">
+        <path d="M0 3 Q0 0 3 0 H5 Q8 0 8 3 V5 Q8 6.5 6.5 8 L2 11 V12 H8 V14 H0 V10.5 L5.5 6 Q6 5.5 6 4 V3 Q6 2 5 2 H3 Q2 2 2 3 V4 H0 Z" fill="#2e9aff" fill-rule="evenodd" stroke="#2e9aff" stroke-width="1.2" paint-order="stroke fill" />
+      </g>
+    </g>
+    <g id="live-symbol" filter="url(#live-symbol-edge-softness)" stroke="#96bee2" stroke-width="0.55" paint-order="stroke fill">
+      <g id="live-symbol-circle" mask="url(#number-space)">
+        <circle cx="28" cy="28" r="23" fill="none" stroke="#87b9df" stroke-width="4" opacity="0.5" />
+        <circle cx="28" cy="28" r="23" fill="none" stroke="white" stroke-width="2.5" />
+      </g>
+      <path id="duke-controller-body" d="M28 16.8 C24.5 16.8 23.5 15.5 21.5 17 C17.5 18.5 15.7 22 14.6 27 C13.9 30.2 13.8 34 14.5 37.5 C14.9 39.8 17.2 40 18.6 38 L22.8 32.8 Q24 31.2 28 31.3 Q32 31.2 33.2 32.8 L37.4 38 C38.8 40 41.1 39.8 41.5 37.5 C42.2 34 42.1 30.2 41.4 27 C40.3 22 38.5 18.5 34.5 17 C32.5 15.5 31.5 16.8 28 16.8 Z" />
+      <circle id="duke-controller-badge" cx="28" cy="23" r="5.6" fill="#91c4f3" stroke="#c3dff9" stroke-width="0.65" />
+      <path id="duke-controller-x" d="M24.2 19.1 C25.6 19.4 27 20.5 28 21.5 C29 20.5 30.4 19.4 31.8 19.1 C30.7 20.3 29.7 21.6 29 23 C29.7 24.4 30.7 25.7 31.8 26.9 C30.4 26.6 29 25.5 28 24.5 C27 25.5 25.6 26.6 24.2 26.9 C25.3 25.7 26.3 24.4 27 23 C26.3 21.6 25.3 20.3 24.2 19.1 Z" fill="white" stroke="none" />
+      <g id="live-count" transform="translate(40 39)">
+        <path d="M0 3 Q0 0 3 0 H5 Q8 0 8 3 V5 Q8 6.5 6.5 8 L2 11 V12 H8 V14 H0 V10.5 L5.5 6 Q6 5.5 6 4 V3 Q6 2 5 2 H3 Q2 2 2 3 V4 H0 Z" fill="white" fill-rule="evenodd" stroke="#347fb7" stroke-width="1.8" paint-order="stroke fill" />
+      </g>
+    </g>
+  </g>
+</svg>

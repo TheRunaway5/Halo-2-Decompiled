@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1360" height="240" viewBox="0 0 340 60" version="1.1">
+  <title>Vista ui\screens\game_shell\virtual_keyboard\button_5 page 2: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="key-edge-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.2" />
+    </filter>
+    <mask id="outside-key" maskUnits="userSpaceOnUse" x="0" y="0" width="340" height="60">
+      <rect width="340" height="60" fill="white" />
+      <path d="M7 15 L15 7 H333 V45 L325 53 H7 Z" fill="black" />
+    </mask>
+    <clipPath id="key-interior">
+      <path d="M7 15 L15 7 H333 V45 L325 53 H7 Z" />
+    </clipPath>
+    <filter id="interior-light" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+  </defs>
+  <g id="key">
+    <path d="M7 15 L15 7 H333 V45 L325 53 H7 Z" fill="none" stroke="#58aaf8" stroke-opacity="0.24" stroke-width="9" filter="url(#key-edge-glow)" mask="url(#outside-key)" />
+    <path d="M7 15 L15 7 H333 V45 L325 53 H7 Z" fill="#175898" fill-opacity="0.5098039215686274" />
+    <path d="M7 15 L15 7 H333 V45 L325 53 H7 Z" fill="none" stroke="#58aaf8" stroke-width="10" stroke-opacity="0.4" filter="url(#interior-light)" clip-path="url(#key-interior)" />
+    <path d="M7 15 L15 7 H333 V45 L325 53 H7 Z" fill="none" stroke-width="2" stroke-linejoin="miter" stroke="#93d2fe" />
+  </g>
+</svg>

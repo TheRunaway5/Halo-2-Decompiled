@@ -83,7 +83,6 @@ void native_owner(NativeVistaWorldKind world) {
   const auto controllers=std::vector(owner.controllers().begin(),owner.controllers().end());
   const auto users=std::vector(owner.local_users().begin(),owner.local_users().end());
   const auto old_key=std::vector(owner.key_registry().begin()+8,owner.key_registry().begin()+16);
-  owner.reset_local_browser();
   check(owner.dispose_local(),"Actual local disposal was suppressed");
   check(get(owner.bank(),0x73a0)==0 && get(owner.bank(),0x70)==0xffffffffu &&
       get(owner.bank(),0x4c60)==0xffffffffu && owner.key_registry()[0]==std::byte{} &&

@@ -70,6 +70,14 @@ int main(int argc,char**argv){try{
         services.instruction=[&](auto p){trace.push_back(p);};
         services.required_owner=[](auto&,const auto&call,auto&,const auto&){throw Stop{call};};
         const halo2::SourcePhysicsFactoryFloatingPoint fp{c.at("entry_abi").at("x87_control_word").get<std::uint16_t>(),c.at("entry_abi").at("mxcsr").get<std::uint32_t>()};
+#ifdef HALO2_DAMAGE_DELIVERY_TEST
+        services.required_owner=[&](auto &memory,const auto &call,auto &state,const auto &observe) {
+            if(image==halo2::SourcePhysicsContactImage::TitleUpdate15 && !call.tail && call.target==0x179610u &&
+                (call.instruction==0xd8889u || call.instruction==0xd9016u || call.instruction==0xdb8b9u))
+                halo2::source_run_damage_delivery_runtime(memory,0x1781f0u,state,image,fp,services,observe);
+            else throw Stop{call};
+        };
+#endif
         const auto run=[&](auto&bank,auto&a,const auto&s,const auto&o){
 #ifdef HALO2_DAMAGE_COMPOSITION_TEST
             check(image==halo2::SourcePhysicsContactImage::MapPack11,"Native composition requires TU1.1");

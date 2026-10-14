@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="272" viewBox="0 0 30 68" version="1.1">
+  <title>Vista ui\list_skins\playlist_listing\select page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="selector-glow-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.1" />
+    </filter>
+    <filter id="selector-glow-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.1" />
+    </filter>
+  </defs>
+  <g id="selector">
+    <path d="M23 8 V60 L16 53 V42 L20 38 V30 L16 26 V15 Z" fill="#319cff" stroke="#319cff" stroke-width="3" filter="url(#selector-glow-0)" />
+    <path d="M8 27 L18 34 L8 41 Z" fill="#319cff" stroke="#319cff" stroke-width="3" filter="url(#selector-glow-1)" />
+    <path d="M23 8 V60 L16 53 V42 L20 38 V30 L16 26 V15 Z" fill="#cdddeb" />
+    <path d="M8 27 L18 34 L8 41 Z" fill="#cdddeb" />
+  </g>
+</svg>

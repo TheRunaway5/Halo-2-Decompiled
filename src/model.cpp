@@ -58,7 +58,7 @@ unsigned source_model_vertex_class(unsigned mode,unsigned opaque,unsigned transp
 }
 std::array<Vec3,4> Cache::load_object_colors(std::uint32_t datum,
                                            std::uint32_t variant) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto* t = find_tag({datum});
   if (!t || !t->address || t->group == "mode" || t->group == "hlmt" || t->size < 0xb4)
     throw FormatError("object change-color definition missing");
@@ -100,11 +100,17 @@ RenderModel Cache::load_model(std::uint32_t datum, bool textures,
     throw FormatError("model geometry requires resolved source regions and LOD0..5");
   return load_model_with_initial_selection(datum,textures,variant,&selected,geometry_lod);
 }
+RenderModel Cache::load_model_sections(std::uint32_t datum,bool textures,std::uint32_t variant,
+    unsigned geometry_lod,std::span<const unsigned> sections)const{
+  if(geometry_lod>5)throw FormatError("resident model section bank requires LOD0..5");
+  return load_model_with_initial_selection(datum,textures,variant,nullptr,geometry_lod,sections);
+}
 RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool textures,
                               std::uint32_t variant,
                               const SourceInitialModelSelection* supplied_selection,
-                              std::optional<unsigned> geometry_lod) const {
-  const Bytes data(storage_);
+                              std::optional<unsigned> geometry_lod,
+                              std::optional<std::span<const unsigned>> resident_sections) const {
+  const Bytes data(cache_bytes());
   auto find = [&](std::uint32_t id) -> const Tag & {
     const auto* t = find_tag({id});
     if (!t || !t->address)
@@ -270,6 +276,7 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
   }
   if (!geometry_lod)
     selected_sections.assign(preview_sections.begin(),preview_sections.end());
+  if(resident_sections)selected_sections.assign(resident_sections->begin(),resident_sections->end());
   for (auto section : selected_sections) {
     if (section >= sections.count)
       throw FormatError("model permutation section outside block");
@@ -317,22 +324,22 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
         radiance = r;
       if (type == 56 && channel == 32)
         buffers = r;
-      if (type == 100)
+      if (type == (mcc_?104:100))
         nodemap = r;
     }
     const auto index_count = b.u16(0x28), map_count = b.u16(0x6c);
     if (!parts.found || parts.size % 72 || !indices.found ||
         indices.size < std::size_t(index_count) * 2 || !positions.found ||
         positions.size % count || !uvs.found ||
-        uvs.size < std::size_t(count) * (vista_?8:4) ||
+        uvs.size < std::size_t(count) * (pc_geometry()?8:4) ||
         (map_count && (!nodemap.found || nodemap.size < map_count)))
       throw FormatError("invalid model resource layout");
     const auto stride = positions.size / count;
     if (stride < 6 || stride > 64)
       throw FormatError("invalid model vertex stride");
-    if (!basis.found || basis.size != std::size_t(count) * (vista_?36:12))
+    if (!basis.found || basis.size != std::size_t(count) * (pc_geometry()?36:12))
       throw FormatError("invalid model tangent basis stream");
-    if(vista_) {
+    if(pc_geometry()) {
       auto declared=[&](unsigned channel,unsigned type,unsigned bytes) {
         if(!buffers.found || buffers.size<(channel+1)*32 ||
            u8(b,buffers.offset+channel*32)!=type || u8(b,buffers.offset+channel*32+1)!=bytes)
@@ -357,19 +364,19 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
     // 43F408 + type*21 to 1C330. Type48 is semantic8 / NORMPACKED3;
     // type47 is semantic14 / PBYTE3. PRT-lightmap's class0 declaration
     // places radiance before its cluster/weights, unlike plain PRT.
-    if (!vista_ && incident.found &&
+    if (!pc_geometry() && incident.found &&
         (!buffers.found || buffers.size < 4 * 32 ||
          u8(b, buffers.offset + 3 * 32) != 48 ||
          u8(b, buffers.offset + 3 * 32 + 1) != 4 ||
          incident.size != std::size_t(count) * 4))
       throw FormatError("unsupported model incident stream declaration");
-    if (!vista_ && radiance.found &&
+    if (!pc_geometry() && radiance.found &&
         (!buffers.found || buffers.size < 5 * 32 ||
          u8(b, buffers.offset + 4 * 32) != 47 ||
          u8(b, buffers.offset + 4 * 32 + 1) != 3 ||
          radiance.size != std::size_t(count) * 3))
       throw FormatError("unsupported model radiance stream declaration");
-    if(vista_ && ((incident.found && incident.size!=std::size_t(count)*12) ||
+    if(pc_geometry() && ((incident.found && incident.size!=std::size_t(count)*12) ||
                   (radiance.found && radiance.size!=std::size_t(count)*4)))
       throw FormatError("invalid Vista model auxiliary lighting stream size");
     std::vector<Vertex> vertices(count);
@@ -377,7 +384,7 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
     for (std::size_t i = 0; i < count; ++i) {
       const auto p = positions.offset + i * stride;
       vertices[i].color={1,1,1};
-      if(vista_) {
+      if(pc_geometry()) {
         vertices[i].position=point(b,p);
         vertices[i].uv={real(b,uvs.offset+i*8),real(b,uvs.offset+i*8+4)};
         // Vista6809C4 passes section+1A to66F551; its optional OR1 cannot
@@ -404,12 +411,12 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
       }
       vertices[i].source_local_position=vertices[i].position;
       if (incident.found)
-        vertices[i].incident = vista_?point(b,incident.offset+i*12):unpack_normal(b.u32(incident.offset + i * 4));
+        vertices[i].incident = pc_geometry()?point(b,incident.offset+i*12):unpack_normal(b.u32(incident.offset + i * 4));
       // Original35790 format6 returns0x34; 3F7440 uploads it literally
       // as NV097 UB_OGL/count3 (0x334 with stride3). This is normalized
       // byte input, independent of CPU packed lightmap RGB/HDR conversions.
       if (radiance.found) {
-        const auto at=radiance.offset+i*(vista_?4:3);
+        const auto at=radiance.offset+i*(pc_geometry()?4:3);
         vertices[i].color = {float(u8(b,at))/255.f,float(u8(b,at+1))/255.f,float(u8(b,at+2))/255.f};
       }
       auto &skin = bindings[i];
@@ -429,9 +436,9 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
         skin.bones[0] = mapped(0);
         skin.weights[0] = 1;
       } else if (classification == 2) {
-        if (stride < (vista_?16:8))
+        if (stride < (pc_geometry()?16:8))
           throw FormatError("truncated rigid-boned vertex");
-        skin.bones[0] = mapped(u8(b, p + (vista_?12:6)));
+        skin.bones[0] = mapped(u8(b, p + (pc_geometry()?12:6)));
         skin.weights[0] = 1;
       }
     }
@@ -478,7 +485,7 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
           auto vertex = vertices[v];
           auto skin = bindings[v];
           if (classification == 3 && nodes.count) {
-            const auto start = vista_?12:6 + ((influences == 2 || influences == 4) ? 2u : 0u);
+            const auto start = pc_geometry()?12:6 + ((influences == 2 || influences == 4) ? 2u : 0u);
             if (active_influences == 0 || active_influences > influences ||
                 start + 2 * influences > stride)
               throw FormatError("invalid authored skinned part influence count");
@@ -492,7 +499,7 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
               if (bone >= nodes.count+out.compound_nodes.size())
                 throw FormatError("model skin bone outside skeleton: "+out.name+" bone="+std::to_string(bone)+" count="+std::to_string(out.bones.size()));
               skin.bones[j] = std::uint16_t(bone);
-              stored[j] = vista_ && stride==16?0:std::uint8_t(u8(b, position + start + (vista_?4:influences) + j));
+              stored[j] = pc_geometry() && stride==16?0:std::uint8_t(u8(b, position + start + (pc_geometry()?4:influences) + j));
             }
             // Compiled source classes3..6 derive x as 1-w, 1-z-y,
             // or 1-w-z-y. They ignore the stored x weight and do not normalize.
@@ -537,7 +544,7 @@ std::optional<std::uint32_t> Cache::find_animation_name(
   const auto* tag = find_tag({datum}, tag_groups::model_animation_graph);
   if (!tag || !tag->address)
     throw FormatError("named animation graph missing");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto root = metadata_offset(tag->address, 0x34);
   const auto stride=vista_?0x60u:0x6cu;
   const auto animations = TagAddressSpace(data, metadata_magic_).block(root + 0x2c, stride);
@@ -553,7 +560,7 @@ AnimationClip Cache::load_named_animation(std::uint32_t datum,
   const auto* tag = find_tag({datum}, tag_groups::model_animation_graph);
   if (!tag || !tag->address)
     throw FormatError("named animation graph missing");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto root = metadata_offset(tag->address, 0x34);
   const auto stride=vista_?0x60u:0x6cu;
   const auto animations = TagAddressSpace(data, metadata_magic_).block(root + 0x2c, stride);
@@ -569,11 +576,11 @@ UnitAnimationGraphMetadata Cache::load_source_unit_animation_graph_metadata(
   if (!tag || !tag->address || tag->size < 0xc4)
     throw FormatError("source unit animation graph metadata is unavailable");
   const auto root = metadata_offset(tag->address, tag->size);
-  return {graph, tag->address, Bytes(storage_).slice(root, tag->size)};
+  return {graph, tag->address, Bytes(cache_bytes()).slice(root, tag->size)};
 }
 UnitAnimationDefinition Cache::load_source_unit_animation_definition(
     std::uint32_t graph, std::uint32_t packed) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   auto root_for = [&](std::uint32_t datum) {
     const auto* tag = find_tag({datum}, tag_groups::model_animation_graph);
     if (!tag || !tag->address)
@@ -633,7 +640,7 @@ UnitAnimationDefinition Cache::load_source_unit_animation_definition(
 }
 AnimationClip Cache::load_animation(std::uint32_t datum,
                                     unsigned animation) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto* tag = find_tag({datum}, tag_groups::model_animation_graph);
   if (!tag || !tag->address)
     throw FormatError("missing animation graph");
@@ -666,7 +673,15 @@ AnimationClip Cache::load_animation(std::uint32_t datum,
       throw FormatError("invalid animation resource group range");
     offset=std::size_t(stored_offset);
     const auto g=groups.offset+std::size_t(group)*20;
-    raw=raw_data(data.u32(g+8),data.u32(g+4));
+    if(mcc_) {
+      const auto begin=metadata_offset(tag->address,tag->size);
+      const auto resource=data.u32(g+8),size=data.u32(g+4);
+      if(size && (resource<begin || resource-begin>tag->size || size>tag->size-(resource-begin)))
+        throw FormatError("Canonical MCC animation resource escapes its owned graph");
+      if(size) {
+        const auto bytes=data.slice(resource,size);raw.assign(bytes.begin(),bytes.end());
+      }
+    } else raw=raw_data(data.u32(g+8),data.u32(g+4));
   }
   const Bytes b(raw);
   const auto words = (nodes.count + 31) / 32, mask_size = words * 4,
@@ -854,10 +869,10 @@ AnimationClip Cache::load_animation(std::uint32_t datum,
   return out;
 }
 std::string Cache::string_id(std::uint32_t id) const {
-  const Bytes data(storage_);
-  const auto shift=vista_?12u:0u;
-  const auto index = StringId{id}.index(), count = data.u32(356+shift), size = data.u32(360+shift),
-             indices = data.u32(364+shift), strings = data.u32(368+shift);
+  const Bytes data(cache_bytes());
+  const auto shift=pc_geometry()?12u:0u;
+  const auto index = StringId{id}.index(), count = data.u32(mcc_?48:356+shift), size = data.u32(mcc_?56:360+shift),
+             indices = data.u32(mcc_?60:364+shift), strings = data.u32(mcc_?52:368+shift);
   if (index >= count || count > 1000000)
     throw FormatError("StringID index outside table");
   const auto offset = data.u32(std::size_t(indices) + index * 4);
@@ -870,7 +885,7 @@ AnimationClip Cache::load_action(std::uint32_t datum, const std::string &mode,
                                  const std::string &weapon_class,
                                  const std::string &weapon_type,
                                  const std::string &action) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto* tag = find_tag({datum}, tag_groups::model_animation_graph);
   if (!tag || !tag->address)
     throw FormatError("missing action animation graph");

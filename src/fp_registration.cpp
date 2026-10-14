@@ -102,7 +102,7 @@ std::int32_t first_person_weapon_view(std::span<const FirstPersonViewBinding> vi
 
 FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weapon,std::int32_t selector) const {
   FirstPersonBindingDefinition result;result.weapon_definition=weapon;result.representation=selector;
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto root=[&](std::uint32_t id,const char *group,std::size_t size) {
     const auto found=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
     if(!found)throw FormatError("Missing first-person binding tag");
@@ -124,14 +124,14 @@ FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weap
   const unsigned preferred=selector==1 || selector==3 ? 1 : 0;
   const auto record=base+(count>preferred ? preferred : 0)*0x10;
   result.record_present=true;result.weapon_model=data.u32(record+4);result.graph=data.u32(record+12);
-  if(result.weapon_model==0xffffffffu || result.graph==0xffffffffu)return result;
+  if(result.graph==0xffffffffu)return result;
   const auto names=[&](std::uint32_t id,const char *group,std::size_t block_offset,std::size_t stride,unsigned maximum) {
     const auto [n,p]=records(root(id,group,block_offset+8)+block_offset,stride,maximum);
     std::vector<std::uint32_t> values;values.reserve(n);
     for(std::size_t i=0;i<n;++i)values.push_back(data.u32(p+i*stride));
     return values;
   };
-  result.weapon_nodes=names(result.weapon_model,"mode",0x48,0x60,64);
+  if(result.weapon_model!=0xffffffffu)result.weapon_nodes=names(result.weapon_model,"mode",0x48,0x60,64);
   if(result.arms_model!=0xffffffffu)result.arms_nodes=names(result.arms_model,"mode",0x48,0x60,64);
   result.graph_nodes=names(result.graph,"jmad",0xc,0x20,255);
   const auto [graph_node_count,graph_node_base]=records(root(result.graph,"jmad",0x14)+0xc,0x20,255);
@@ -146,18 +146,19 @@ FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weap
   const auto [sound_count,sound_base]=records(graph_root+0x14,12,10000);
   const auto [effect_count,effect_base]=records(graph_root+0x1c,12,10000);
   for(bool dual:{false,true})
-  for(const auto activity:std::array<std::uint32_t,20>{
+  for(const auto activity:std::array<std::uint32_t,28>{
       0x0400000c,0x06000006,0x05000024,0x0c000064,0x0b000065,0x0d000021,
       0x0e000607,0x0e000608,0x0e000609,0x0e00060a,
       0x0c000073,0x0c000075,0x0c000077,0x11000074,0x11000076,
-      0x0a0005bb,0x0b0005b2,0x130005bc,0x140005b3,0x0500000a}) {
-    const auto name=string_id(activity);
+      0x0a0005bb,0x0b0005b2,0x130005bc,0x140005b3,0x0500000a,
+      0x0b00006d,0x0a000066,0x08000071,0x0c0005ae,0x150005af,0x140005b0,0x0b0005b1,0x08000025}) {
     // E95E0/EFE30 ->16A356 ->1680B3 selects the literal primary throw
     // activity0D000021. Resolve that StringID in the authored action table;
     // neither the body throw nor a guessed FP clip chooses the animation.
     AnimationClip selected;
-    try {selected=dual?load_action(result.graph,"any","dual","any",name):
-        load_unit_weapon_action(result.graph,0x030000d9,0x030000d9,0x030000d9,activity);}
+    //1CF470 retains the ordered class/type fallbacks for dual actions too.
+    try {selected=load_unit_weapon_action(result.graph,0x030000d9,
+        dual?0x0400054b:0x030000d9,0x030000d9,activity);}
     catch(const FormatError &) {if(activity==0x0400000c && !dual)throw;continue;}
     if(selected.source_graph!=result.graph || selected.source_index>=clip_count)
       throw FormatError("Inherited first-person clock is outside recovered scope");

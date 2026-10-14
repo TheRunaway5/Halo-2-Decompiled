@@ -99,7 +99,7 @@ void SourcePortalMaskState::destroy(const SourcePortalMaskDefinition &d,const So
 void SourcePortalMaskState::reset_acoustic(){acoustic.fill(0);}
 SourcePortalMaskDefinition Cache::load_source_portal_mask_definition(std::size_t index) const {
     if(index>=bsps_.size())throw FormatError("source portal mask BSP index outside scenario");
-    const auto &bsp=bsps_[index];const Bytes data(storage_);const Bytes m(data.slice(bsp.file_offset,bsp.size));
+    const auto &bsp=bsps_[index];const Bytes data(cache_bytes());const Bytes m(data.slice(bsp.file_offset,bsp.size));
     
     
     SourcePortalMaskDefinition out;
@@ -116,7 +116,7 @@ SourcePortalMaskDefinition Cache::load_source_portal_mask_definition(std::size_t
 SourceMachinePortalDefinition Cache::load_source_machine_portal_definition(std::uint32_t datum) const {
     const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::device_machine, .require_address=true});
     if(!tag)throw FormatError("source portal machine definition missing");
-    const Bytes data(storage_);const auto p=metadata_offset(tag->address,0x12c);
+    const Bytes data(cache_bytes());const auto p=metadata_offset(tag->address,0x12c);
     if(data.u16(p)!=7)throw FormatError("source portal definition object type mismatch");
     return {data.u16(p+0x11c),data.f32(p+0x124),data.f32(p+0x128)};
 }

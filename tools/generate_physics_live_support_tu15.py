@@ -6,7 +6,7 @@ instruction is lowered at generation time to explicit integer/SSE/x87 arithmetic
 memory ownership, a C++ label/branch, or a statically bound native callee.
 Unknown operations fail generation; required external owners remain explicit.
 """
-import argparse, hashlib, json, struct
+import argparse, hashlib, json, os, struct
 from pathlib import Path
 from oracle_smg_firing_1_1 import ROOT, Xbe, _Code, _trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
@@ -23,7 +23,8 @@ for index,(full,word,lo,hi) in enumerate((('eax','ax','al','ah'),('ecx','cx','cl
 def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 def generate(a,paired,process_heap=False,*,complete_listings=False,
              runtime_header=None,runtime_function=None,extra_instruction=None,
-             extra_preamble='',instruction_guard=None,extra_instruction_factory=None):
+             extra_preamble='',instruction_guard=None,extra_instruction_factory=None,
+             code_override=None):
     assert paired['image']=='English TU1.5' and paired['original_sha256']==NEW_PIN
     assert sha(NEW_DEFAULT)==NEW_PIN
     complete_listings=True
@@ -32,7 +33,7 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
     # callers must reach required_owner rather than an uninitialized Xbox CRT
     # exit table or Xbox file handle implementation.
     assert not set(ENTRIES)&{0x32b0b4,0x125870,0x1a3b70}
-    old,new=Xbe(NEW_DEFAULT),Xbe(NEW_DEFAULT);code=_Code(old,'.text')
+    old,new=Xbe(NEW_DEFAULT),Xbe(NEW_DEFAULT);code=code_override or _Code(old,'.text')
     instruction_map={int(k,16):v for k,v in paired['instruction_map'].items()}
     addresses={int(k,16):v for k,v in paired['address_map'].items()}
     for p,q in instruction_map.items():
@@ -84,7 +85,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         return f'_mm_set_ss(f({get(i,op)}))' if op.size==4 else f'v(s.memory,{addr(i,op)})'
     def xf(i,op):
         if op.type!=3:return get(i,op)
-        assert op.size in (4,8),(hex(i.address),i.mnemonic,op.size)
+        assert op.size in (4,8,10),(hex(i.address),i.mnemonic,op.size)
+        if op.size==10:return f'native_extended_load(s.memory,{addr(i,op)})'
         if op.size==8:
             return f'static_cast<long double>(std::bit_cast<double>(native_read64(s.memory,{addr(i,op)})))'
         return f'ext(f({get(i,op)}))'
@@ -102,6 +104,44 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             value=f'native_read64(s.memory,{addr(i,op[1])})' if op[1].type==3 else get(i,op[1])
             if op[0].type==3:return f'w(s.memory,s.observe,0x{p:x}u,{addr(i,op[0])},8,{value});'
             return put(i,op[0],value)
+        if mn=='pxor' and op[0].type==1 and name(i,op[0]).startswith('mm'):
+            assert all(q.size==8 for q in op)
+            # XOR with itself defines all64 bits even when the incoming MMX
+            # register has only partially known lanes from its x87 alias.
+            if op[1].type==1 and op[0].reg==op[1].reg:
+                return put(i,op[0],'std::uint64_t{0}')
+            source=f'native_read64(s.memory,{addr(i,op[1])})' if op[1].type==3 else get(i,op[1])
+            return put(i,op[0],f'({get(i,op[0])}^{source})')
+        if mn=='movd':
+            if op[0].type==1 and name(i,op[0]).startswith('mm'):
+                assert op[1].size==4
+                return put(i,op[0],f'std::uint64_t({get(i,op[1])})')
+            assert op[1].type==1 and name(i,op[1]).startswith('mm') and op[0].size==4
+            return put(i,op[0],f's.mmx_low_dword({int(name(i,op[1])[2:])})')
+        if mn=='punpcklbw':
+            assert op[0].type==1 and name(i,op[0]).startswith('mm')
+            # This form consumes only the low four source bytes.
+            source=(get(i,op[1]) if op[1].type==3 else
+                    f's.mmx_low_dword({int(name(i,op[1])[2:])})')
+            assert op[1].type!=3 or op[1].size==4
+            return put(i,op[0],f'native_unpack_low_bytes(s.mmx_low_dword({int(name(i,op[0])[2:])}),{source})')
+        if mn=='cvtps2pi':
+            assert op[0].type==1 and name(i,op[0]).startswith('mm') and op[1].type==1
+            return put(i,op[0],f'native_convert_float_pair({get(i,op[1])})')
+        if mn=='pshufw':
+            assert op[2].type==2 and op[1].type==1 and name(i,op[1]).startswith('mm')
+            return put(i,op[0],f'native_shuffle_mmx_words({get(i,op[1])},{op[2].imm}u)')
+        if mn in ('psubw','pmulhw'):
+            assert op[0].type==1 and name(i,op[0]).startswith('mm')
+            source=f'native_read64(s.memory,{addr(i,op[1])})' if op[1].type==3 else get(i,op[1])
+            return put(i,op[0],f'native_mmx_word_math({get(i,op[0])},{source},{str(mn=="pmulhw").lower()})')
+        if mn in ('psllw','psraw'):
+            assert op[0].type==1 and name(i,op[0]).startswith('mm') and op[1].type==2
+            return put(i,op[0],f'native_shift_mmx_words({get(i,op[0])},{op[1].imm}u,{str(mn=="psraw").lower()})')
+        if mn=='packuswb':
+            assert op[0].type==1 and name(i,op[0]).startswith('mm')
+            source=f'native_read64(s.memory,{addr(i,op[1])})' if op[1].type==3 else get(i,op[1])
+            return put(i,op[0],f'native_pack_mmx_unsigned_bytes({get(i,op[0])},{source})')
         if mn in ('pcmpgtw','paddw','pand'):
             assert op[0].type==1 and name(i,op[0]).startswith('mm')
             assert all(q.size==8 for q in op)
@@ -121,6 +161,7 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn=='stmxcsr':return put(i,op[0],'_mm_getcsr()')
         if mn=='ldmxcsr':return f'_mm_setcsr({get(i,op[0])});'
         if mn=='wait':return 'asm volatile("fwait");'
+        if mn=='sahf':return '{const auto ah=s.gp[0]>>8u;s.flags.cf=ah&1u;s.flags.pf=ah&4u;s.flags.af=ah&16u;s.flags.zf=ah&64u;s.flags.sf=ah&128u;}'
         if mn=='fnstcw':return put(i,op[0],'native_control_word()')
         if mn=='fldcw':return f'native_load_control_word(std::uint16_t({get(i,op[0])}));'
         if mn in ('prefetchnta','prefetcht0'):return ';' # Cache hints; no architectural load or fault.
@@ -156,8 +197,12 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn in ('movhlps','movlhps'):
             intrinsic='_mm_movehl_ps' if mn=='movhlps' else '_mm_movelh_ps'
             return put(i,op[0],f'{intrinsic}({get(i,op[0])},{get(i,op[1])})')
-        if mn in ('addps','subps','mulps','addss','subss','mulss','xorps','andps','maxps','minps','cmpltps','divss'):
-            intrinsic={'addps':'_mm_add_ps','subps':'_mm_sub_ps','mulps':'_mm_mul_ps','addss':'_mm_add_ss','subss':'_mm_sub_ss','mulss':'_mm_mul_ss','xorps':'_mm_xor_ps','andps':'_mm_and_ps','maxps':'_mm_max_ps','minps':'_mm_min_ps','cmpltps':'_mm_cmplt_ps','divss':'_mm_div_ss'}[mn]
+        if mn=='cmpneqss':
+            return put(i,op[0],f'_mm_cmpneq_ss({get(i,op[0])},{xv(i,op[1])})')
+        if mn=='cmpltss':
+            return put(i,op[0],f'_mm_cmplt_ss({get(i,op[0])},{xv(i,op[1])})')
+        if mn in ('addps','subps','mulps','addss','subss','mulss','xorps','andps','maxps','minps','cmpltps','cmpleps','divss'):
+            intrinsic={'addps':'_mm_add_ps','subps':'_mm_sub_ps','mulps':'_mm_mul_ps','addss':'_mm_add_ss','subss':'_mm_sub_ss','mulss':'_mm_mul_ss','xorps':'_mm_xor_ps','andps':'_mm_and_ps','maxps':'_mm_max_ps','minps':'_mm_min_ps','cmpltps':'_mm_cmplt_ps','cmpleps':'_mm_cmple_ps','divss':'_mm_div_ss'}[mn]
             return put(i,op[0],f'{intrinsic}({get(i,op[0])},{xv(i,op[1])})')
         if mn=='cvtsi2ss':return put(i,op[0],f'_mm_cvtsi32_ss({get(i,op[0])},si({get(i,op[1])}))')
         if mn=='cvttss2si':return put(i,op[0],f'std::uint32_t(_mm_cvttss_si32({xv(i,op[1])}))')
@@ -179,6 +224,15 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             return value+';' if mn in ('cmp','test') else put(i,op[0],value)
         if mn in ('inc','dec'):return put(i,op[0],f's.flags.increment({get(i,op[0])},{op[0].size},{str(mn=="dec").lower()})')
         if mn=='shl':return put(i,op[0],f's.flags.shift({get(i,op[0])},{get(i,op[1])},{op[0].size})')
+        if mn in ('shld','shrd'):
+            assert op[0].size==op[1].size==4
+            left=mn=='shld'
+            value='(a<<count)|(b>>(32u-count))' if left else '(a>>count)|(b<<(32u-count))'
+            carry='(a>>(32u-count))&1u' if left else '(a>>(count-1u))&1u'
+            overflow='((x>>31u)!=s.flags.cf)' if left else '((a^x)>>31u)!=0'
+            return ('{const auto a='+get(i,op[0])+',b='+get(i,op[1])+';const auto count=('+get(i,op[2])+')&31u;'
+                'if(count){const auto x='+value+';s.flags.cf='+carry+';if(count==1)s.flags.of='+overflow+';'
+                's.flags.af=false;s.flags.result(x,4);'+put(i,op[0],'x')+'}}')
         if mn in ('shr','sar'):return put(i,op[0],f's.flags.right({get(i,op[0])},{get(i,op[1])},{op[0].size},{str(mn=="sar").lower()})')
         if mn=='rcr':
             width=op[0].size*8
@@ -244,6 +298,22 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             return '{const auto x='+get(i,op[1])+';if('+condition+'){'+put(i,op[0],'x')+'}}'
         if mn=='call':
             used_addresses.add(next)
+            if p==0x1d94ce:
+                # Keep the actual point-impulse ABI observable after this
+                # virtual target becomes internal. The live owner executes
+                # the complete selected callee and can retain read-only
+                # pre/post motion bytes for original-code comparisons.
+                assert i.bytes.hex()=='ff5060'
+                target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
+                return '{const auto target='+target+f';s.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,target,false);'+'}'
+            if p in (0xd1fbf,0x101db8):
+                # Preserve native publication even when the complete callee
+                # becomes internal to this composition. The required owner
+                # observes the real ABI and runs the original callee itself.
+                expected={0xd1fbf:0xd13d0,0x101db8:0x178e30}[p]
+                assert op[0].type==2 and op[0].imm==expected
+                target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
+                return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'
             if op[0].type==2 and op[0].imm in ENTRIES:
                 return f's.push(0x{p:x}u,{imm(next)});run_{op[0].imm:x}(s);'
             target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
@@ -283,6 +353,10 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 assert op[0].type==3
                 return f's.fp.push(static_cast<long double>(std::bit_cast<std::int64_t>(native_read64(s.memory,{addr(i,op[0])}))));'
             return f's.fp.push(static_cast<long double>(si({get(i,op[0])})));'
+        if mn=='fimul':
+            assert len(op)==1 and op[0].type==3 and op[0].size==4
+            return ('{std::uint16_t status;s.fp.st(0)=native_integer_multiply(s.fp.st(0),'
+                f'si({get(i,op[0])}),status);s.fp.status=(s.fp.status&~0x200u)|(status&0x23fu);}}')
         if mn=='fchs':return 's.fp.st(0)=-s.fp.st(0);'
         if mn in ('fldz','fld1'):return f's.fp.push({"0.L" if mn=="fldz" else "1.L"});'
         if mn=='fld':return f's.fp.push({xf(i,op[0])});'
@@ -298,6 +372,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             return f'std::swap(s.fp.st(0),{get(i,op[1])});'
         if mn=='fcompi':return f's.compare_and_pop({get(i,op[0])});'
         if mn=='fucompi':return f's.unordered_compare_and_pop({get(i,op[0])});'
+        if mn=='fldpi':return 's.fp.push(native_fldpi());s.fp.status&=~0x200u;'
+        if mn=='fldl2e':return 's.fp.push(native_fldl2e());s.fp.status&=~0x200u;'
         if mn=='fnstsw':return put(i,op[0],'s.fp.word()')
         if mn in ('fcom','fcomp','fcompp','fucompp'):
             value='s.fp.st(1)' if mn in ('fcompp','fucompp') else xf(i,op[0])
@@ -305,12 +381,23 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn=='fabs':return 's.fp.st(0)=std::fabs(s.fp.st(0));'
         if mn=='fsqrt':return 's.fp.st(0)=root(s.fp.st(0));'
         if mn=='fpatan':return 's.fp.st(1)=native_fpatan(s.fp.st(1),s.fp.st(0));s.fp.pop();'
+        if mn=='fptan':
+            return '{std::uint16_t status;s.fp.st(0)=native_fptan(s.fp.st(0),status);if(!(status&0x400u))s.fp.push(1.L);s.fp.status=(s.fp.status&~0x600u)|(status&0x600u);}'
+        if mn=='fyl2x':return '{std::uint16_t status;s.fp.st(1)=native_fyl2x(s.fp.st(1),s.fp.st(0),status);s.fp.pop();s.fp.status=(s.fp.status&~0x200u)|(status&0x200u);}'
+        if mn=='f2xm1':return '{std::uint16_t status;s.fp.st(0)=native_f2xm1(s.fp.st(0),status);s.fp.status=(s.fp.status&~0x200u)|(status&0x200u);}'
+        if mn=='fscale':return '{std::uint16_t status;s.fp.st(0)=native_fscale(s.fp.st(0),s.fp.st(1),status);s.fp.status=(s.fp.status&~0x200u)|(status&0x200u);}'
+        if mn in ('fnsave','frstor'):
+            # The ABI retains live logical registers, TOP, SW and CW, but not
+            # FIP/FDP or dead physical register bytes. Never serialize a host
+            # environment as if it were that missing original CPU state.
+            # Keep this path explicitly unavailable until that owner exists.
+            return f'throw std::runtime_error("Required original TU1.5 {mn.upper()} full x87 environment owner unavailable at {p:08x}");'
         if mn=='frndint':return '{std::uint16_t status;s.fp.st(0)=native_frndint(s.fp.st(0),status);s.fp.status=(s.fp.status&~0x200u)|(status&0x200u);}'
         if mn in ('fsin','fcos'):
             return '{std::uint16_t status;s.fp.st(0)=native_'+mn+'(s.fp.st(0),status);s.fp.status=(s.fp.status&~0x600u)|(status&0x600u);}'
-        if mn in ('fadd','fmul','fsub','fsubr','fdiv','fdivr','fsubp','fsubrp','fmulp','faddp'):
+        if mn in ('fadd','fmul','fsub','fsubr','fdiv','fdivr','fdivp','fdivrp','fsubp','fsubrp','fmulp','faddp'):
             operation='add' if 'add' in mn else 'mul' if 'mul' in mn else 'sub' if 'sub' in mn else 'divide'
-            popping=mn.endswith('p');reverse=mn in ('fdivr','fsubr','fsubrp')
+            popping=mn.endswith('p');reverse=mn in ('fdivr','fdivrp','fsubr','fsubrp')
             if not popping and len(op)==2:
                 # DC register forms write ST(i), preserving ST(0). Source
                 #134A08/134A0A multiply separate packed-color lanes this way.
@@ -393,6 +480,12 @@ struct LiveState : physics_world_runtime_detail::WorldState {
         if(known!=~std::uint64_t{})active_mmx->known_mask&=std::uint8_t(~(1u<<index));
     }
     void set_mmx(unsigned index,std::uint64_t value) {set_partial(index,value,~std::uint64_t{});}
+    std::uint32_t mmx_low_dword(unsigned index) {
+        const auto [value,known]=partial(index);
+        if(std::uint32_t(known)!=0xffffffffu)
+            throw std::runtime_error("Required original MMX low dword unavailable");
+        return std::uint32_t(value);
+    }
     void unpack_mmx_words(unsigned destination,unsigned source,bool high) {
         const auto [a,ak]=partial(destination);const auto [b,bk]=partial(source);
         std::uint64_t value=0,known=0;
@@ -418,6 +511,28 @@ struct LiveState : physics_world_runtime_detail::WorldState {
     void emms() {physics_world_runtime_detail::WorldState::emms();partial_valid=0;}
 };
 using WorldState=LiveState;
+long double native_fldpi() {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    long double value;asm volatile("fldpi":"=t"(value));return value;
+#else
+    throw std::runtime_error("Original x87 pi constant backend unavailable");
+#endif
+}
+long double native_fldl2e() {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    long double value;asm volatile("fldl2e":"=t"(value));return value;
+#else
+    throw std::runtime_error("Required original x87 FLDL2E native implementation unavailable");
+#endif
+}
+long double native_extended_load(M &memory,std::uint32_t address) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    std::array<std::byte,10> bytes;memory.read(address,bytes);
+    long double value;asm volatile("fldt %1":"=t"(value):"m"(bytes));return value;
+#else
+    throw std::runtime_error("Original extended x87 memory load backend unavailable");
+#endif
+}
 std::uint64_t native_mmx_words(std::uint64_t a,std::uint64_t b,bool compare) {
     std::uint64_t result=0;
     for(unsigned lane=0;lane<4;++lane) {
@@ -426,6 +541,55 @@ std::uint64_t native_mmx_words(std::uint64_t a,std::uint64_t b,bool compare) {
             std::uint16_t(std::bit_cast<std::int16_t>(x)>std::bit_cast<std::int16_t>(y)?65535u:0u):
             std::uint16_t(unsigned(x)+unsigned(y));
         result|=std::uint64_t(word)<<(lane*16u);
+    }
+    return result;
+}
+std::uint64_t native_unpack_low_bytes(std::uint32_t a,std::uint32_t b) {
+    std::uint64_t result{};
+    for(unsigned lane=0;lane<4;++lane)
+        result|=std::uint64_t(((a>>(lane*8u))&255u)|(((b>>(lane*8u))&255u)<<8u))<<(lane*16u);
+    return result;
+}
+std::uint64_t native_convert_float_pair(__m128 value) {
+    // CVTPS2PI consumes two floats. Zero the other two before using SSE2 so
+    // their unconsumed bits cannot produce extra MXCSR exceptions.
+    const auto converted=_mm_cvtps_epi32(_mm_movelh_ps(value,_mm_setzero_ps()));
+    const auto words=std::bit_cast<std::array<std::uint32_t,4>>(converted);
+    return std::uint64_t(words[0])|(std::uint64_t(words[1])<<32u);
+}
+std::uint64_t native_shuffle_mmx_words(std::uint64_t value,unsigned order) {
+    std::uint64_t result{};
+    for(unsigned lane=0;lane<4;++lane)
+        result|=((value>>(((order>>(lane*2u))&3u)*16u))&65535u)<<(lane*16u);
+    return result;
+}
+std::uint64_t native_mmx_word_math(std::uint64_t a,std::uint64_t b,bool high_product) {
+    std::uint64_t result{};
+    for(unsigned lane=0;lane<4;++lane) {
+        const auto x=std::uint16_t(a>>(lane*16u)),y=std::uint16_t(b>>(lane*16u));
+        const auto value=high_product?
+            std::uint16_t(std::bit_cast<std::uint32_t>(
+                std::int32_t(std::bit_cast<std::int16_t>(x))*std::int32_t(std::bit_cast<std::int16_t>(y)))>>16u):
+            std::uint16_t(unsigned(x)-unsigned(y));
+        result|=std::uint64_t(value)<<(lane*16u);
+    }
+    return result;
+}
+std::uint64_t native_shift_mmx_words(std::uint64_t value,unsigned count,bool arithmetic) {
+    std::uint64_t result{};
+    for(unsigned lane=0;lane<4;++lane) {
+        const auto word=std::uint16_t(value>>(lane*16u));
+        const auto shifted=arithmetic?std::uint16_t(std::int32_t(std::bit_cast<std::int16_t>(word))>>std::min(count,15u)):
+            count>=16u?std::uint16_t(0):std::uint16_t(unsigned(word)<<count);
+        result|=std::uint64_t(shifted)<<(lane*16u);
+    }
+    return result;
+}
+std::uint64_t native_pack_mmx_unsigned_bytes(std::uint64_t a,std::uint64_t b) {
+    std::uint64_t result{};
+    for(unsigned lane=0;lane<8;++lane) {
+        const auto word=std::bit_cast<std::int16_t>(std::uint16_t((lane<4?a:b)>>((lane&3u)*16u)));
+        result|=std::uint64_t(std::clamp(int(word),0,255))<<(lane*8u);
     }
     return result;
 }
@@ -491,6 +655,47 @@ long double native_fpatan(long double y,long double x) {
     throw std::runtime_error("Required TU1.5 FPATAN backend unavailable");
 #endif
 }
+long double native_integer_multiply(long double x,std::int32_t integer,std::uint16_t &status) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    // Original FIMUL m32int: signed memory operand, retained precision/rounding
+    // control, and C1 captured before the compiler spills the extended result.
+    long double result;
+    asm volatile("fimull %3\\n\\tfnstsw %1":"=t"(result),"=m"(status):"0"(x),"m"(integer));
+    return result;
+#else
+    throw std::runtime_error("Required TU1.5 FIMUL32 backend unavailable");
+#endif
+}
+// Intel SDM Vol.2: execute the original transcendental instruction under the
+// retained CW and capture C1 before the compiler spills the extended result.
+long double native_fyl2x(long double y,long double x,std::uint16_t &status) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    long double result;
+    asm volatile("fyl2x\\n\\tfnstsw %1":"=t"(result),"=m"(status):"0"(x),"u"(y):"st(1)");
+    return result;
+#else
+    throw std::runtime_error("Required TU1.5 FYL2X backend unavailable");
+#endif
+}
+long double native_f2xm1(long double x,std::uint16_t &status) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    long double result;
+    asm volatile("f2xm1\\n\\tfnstsw %1":"=t"(result),"=m"(status):"0"(x));
+    return result;
+#else
+    throw std::runtime_error("Required TU1.5 F2XM1 backend unavailable");
+#endif
+}
+long double native_fscale(long double x,long double exponent,std::uint16_t &status) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    long double result;
+    asm volatile("fldt %3\\n\\tfldt %2\\n\\tfscale\\n\\tfnstsw %1\\n\\tfstpt %0\\n\\tfstp %%st(0)"
+        :"=m"(result),"=m"(status):"m"(x),"m"(exponent):"st","st(1)");
+    return result;
+#else
+    throw std::runtime_error("Required TU1.5 FSCALE backend unavailable");
+#endif
+}
 long double native_frndint(long double x,std::uint16_t &status) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     long double result;
@@ -507,6 +712,18 @@ long double native_fcos(long double x,std::uint16_t &status) {
     return result;
 #else
     throw std::runtime_error("Required TU1.5 FCOS backend unavailable");
+#endif
+}
+long double native_fptan(long double x,std::uint16_t &status) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    long double result;
+    // C2 means range reduction failed and no extra1 was pushed. Balance the
+    // actual hardware stack in both cases, retaining the original status.
+    asm volatile("fldt %2\\n\\tfptan\\n\\tfnstsw %%ax\\n\\ttestw $0x400,%%ax\\n\\tjnz 1f\\n\\tfstp %%st(0)\\n\\t1: fstpt %1"
+        :"=a"(status),"=m"(result):"m"(x):"cc","st","st(1)");
+    return result;
+#else
+    throw std::runtime_error("Required TU1.5 FPTAN backend unavailable");
 #endif
 }
 long double native_fsin(long double x,std::uint16_t &status) {
@@ -567,11 +784,20 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
     ending=ending.replace('} // namespace halo2',
         'bool source_physics_live_support_tu15_owns_entry(std::uint32_t p) {switch(p){'+
         ''.join(f'case 0x{p:x}u:' for p in ENTRIES)+'return true;default:return false;}}\n} // namespace halo2')
-    a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(preamble+'\n\n'.join(bodies)+ending)
+    a.output.parent.mkdir(parents=True,exist_ok=True)
+    temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
+    try:
+        temporary.write_text(preamble+'\n\n'.join(bodies)+ending)
+        temporary.replace(a.output)
+    finally:
+        temporary.unlink(missing_ok=True)
     report=dict(schema=1,generator_sha256=sha(Path(__file__)),correspondence_sha256=sha(a.correspondence),
         additional_entries_sha256=sha(a.additional_entries),
         original_sha256=PIN,later_original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),
-        complete_native_entries=[f'{p:08x}' for p in ENTRIES],lowered_instructions=lowered,
+        complete_native_entries=[f'{p:08x}' for p in ENTRIES if not any(
+            code.at(q).mnemonic in ('fnsave','frstor') for q in paired['body_sites'][f'{p:08x}'])],
+        full_x87_environment_required={p:row for p,row in lowered.items() if row['mnemonic'] in ('fnsave','frstor')},
+        lowered_instructions=lowered,
         selected_addresses={f'{p:08x}':addresses[p] for p in sorted(used_addresses)},
         external_owners=externals,dispatch_targets={f'{p:08x}':q for p,q in sorted(branches.items())},
         production_opcode_decoder=False,production_original_code_execution=False)
@@ -600,6 +826,10 @@ ENTRIES=(0x2e0c80,0x2ddeb9,0x2dd367,0x2dd524,
          0x1d5320,0x1d0250,0x1d0290,0x14e0b0,
          0x14ebe0,0x14e9e0,0x14e7b0,0x15ab10,0x14eb10,0x14f620,
          0x159f80,0x159ff0,0x3825d0,
+         # Actual15A43B reaches the complete base engine team-admission
+         # callback during Team Slayer reset. Retain its AL-only return and
+         # callee stack cleanup through the same instruction lowerer.
+         0x25bb50,0x15a2c0,0x15a1a0,0x154ef0,0x1cb030,
          # Actual12054/12818 constructors,191A57/191A89 activation,
          # resource-stage table45F944 rows6/7, and selector191CF4.
          0x125c90,0x125eb0,0x125d40,0x1303c0,0x130500,0x130600,
@@ -628,7 +858,26 @@ ENTRIES=(0x2e0c80,0x2ddeb9,0x2dd367,0x2dd524,
          0x148d40,0x32bbae,0x32c075,0x330179,0x332383,0x32ae00,0x33a4d3,0x2dc124,
          # Complete authored netgame equipment factory: source vehicles,
          # weapons and variant-selected collection members share this owner.
-         0x15d4f0,0x171120,0x12ebe0,0x12ecf0,0x1183f0,0x118430)
+         0x15d4f0,0x171120,0x12ebe0,0x12ecf0,0x17e640,0x17e700,
+         # Actual127F48/128012/12801F/12802C/12803E sound-storage owners.
+         # Xbox DirectSound device activation remains a separate boundary.
+         0x21efe0,0x11f5e0,0x220550,0x220ad0,0x223ea0,0x2247b0,
+         0x3835f0,0x383c90,0x3233e0,0x3233d0,0x14fec0,
+         # TU1.5 seated camera:15850D selects245EA0;189FD0 resolves the
+         # actual parent/seat camera block.1888A0 constructs the input bank;
+         # 18A0C0 owns binding its unit.381710..381770 are the four real
+         # static observer default writers, not serialized BSS defaults.
+         0x245ea0,0x189fd0,0x245c70,0x2455f0,0x158340,
+         0x1888a0,0x18a0c0,0x381710,0x381730,0x381750,0x381770,
+         0x3d260,0x2b480,0x2b520,0x186cb0,0x186d30,
+         # Remaining literal BA3E0 deactivation notifications. All eight
+         # original table words and the indexed CALL reader are checked below.
+         0x2118a0,0x17e250,
+         # BA490's complete light, physical, observer and header retirement
+         # owners; authenticated direct call sites are retained below.
+         0xc0e90,0x1cc390,0x10dca0,0xbe330,
+         #13AB49 advances retained effect instances after object retirement.
+         0x179cd0,0x17c370,0x17c5c0)
 
 def complete_body(code, entry):
     # The formatter's jump at 32D27E crosses an immediate ending in CC.
@@ -654,16 +903,38 @@ def main():
     ap.add_argument('--output',type=Path,required=True);ap.add_argument('--manifest',type=Path,required=True)
     ap.add_argument('--additional-entries',type=Path,default=Path(__file__).with_name('physics_live_support_tu15_entries.json'))
     a=ap.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
+    assert Xbe(NEW_DEFAULT).read(0x25bb50,5)==bytes.fromhex('b001c20400')
+    team_reset=_Code(Xbe(NEW_DEFAULT),'.text').at(0x15a4ab)
+    assert team_reset.bytes.hex()=='e810feffff' and team_reset.operands[0].imm==0x15a2c0
+    assert Xbe(NEW_DEFAULT).read(0x15a4b0,5)==bytes.fromhex('e8ebfcffff')
+    assert Xbe(NEW_DEFAULT).read(0x15a253,5)==bytes.fromhex('e898acffff')
+    assert struct.unpack('<I',Xbe(NEW_DEFAULT).read(0x468be8+0x68,4))[0]==0x1cb030
     additions=json.loads(a.additional_entries.read_text())
     assert additions['image_sha256']==NEW_PIN
     ENTRIES=tuple(sorted(set(ENTRIES)|{int(r['target'],16) for r in additions['entries']}))
     original=Xbe(NEW_DEFAULT);code=_Code(original,'.text')
+    assert code.at(0x101db8).bytes.hex()=='e873700700'
+    camera_selection=code.at(0x15850d)
+    assert camera_selection.bytes.hex()=='baa05e2400'
+    for entry,destination in ((0x381710,0x55d6e4),(0x381730,0x55d6e8),
+                              (0x381750,0x55d6ec),(0x381770,0x55d6f0)):
+        assert original.read(entry+8,9)==bytes.fromhex('f30f1105')+struct.pack('<I',destination)+b'\xc3'
     assert struct.unpack('<I',original.read(0x44b548,4))[0]==0x18b5c0
     assert struct.unpack('<I',original.read(0x44af3c,4))[0]==0x148d40
     assert struct.unpack('<I',original.read(0x44b308,4))[0]==0x1f4700
     assert struct.unpack('<I',original.read(0x44b310,4))[0]==0x1f4760
     assert struct.unpack('<II',original.read(0x473a00,8))==(0x1183f0,0x118430)
+    assert struct.unpack('<I',original.read(0x44b44c,4))[0]==0x17e640
+    assert struct.unpack('<I',original.read(0x44b454,4))[0]==0x17e700
+    assert struct.unpack('<III',original.read(0x44b398,12))==(0x186cb0,0x31d400,0x186d30)
+    assert struct.unpack('<III',original.read(0x44b350,12))==(0x2b480,0x2b5a0,0x2b520)
+    assert original.read(0xba407,6)==bytes.fromhex('ff96c44b4700')
+    assert struct.unpack('<8I',original.read(0x474bc4,32))==(0xbd8b0,0xc36a0,
+        0x1d21e0,0x155820,0x1693ed,0x1611e0,0x2118a0,0x17e250)
+    assert struct.unpack('<I',original.read(0x46d7c8,4))[0]==0x3835f0
     for site,target in ((0xd7b48,0xc1120),(0x15c89a,0xba3e0),(0x15c8a2,0xba490),
+                        (0xba4e7,0xc0e90),(0xba53f,0x1cc390),
+                        (0xba554,0x10dca0),(0xba55a,0xbe330),
                         (0x1410ac,0x168ba3),(0x1410c2,0x168bc5),
                         (0xc1182,0xd75a0),(0xd76bc,0x120920),(0xd76c3,0xd7fb0),(0xd7706,0x1346c0),
                         (0xc119a,0xb1840),(0xc11b6,0x10dbc0),(0xc11c9,0xc1080),(0xc11cf,0xb1a70),
@@ -673,16 +944,51 @@ def main():
                         (0x15dbca,0x15d4f0),
                         (0x11ea20,0x171120),
                         (0x1281d,0x12ebe0),(0x191aaf,0x12ecf0),
+                        (0x13aaff,0x14fec0),
+                        (0x13ab49,0x179cd0),
+                        (0x127f48,0x21efe0),(0x127f9b,0x11f5e0),
+                        (0x128012,0x220550),(0x12801f,0x220ad0),
+                        (0x12802c,0x223ea0),(0x12803e,0x2247b0),
                         (0x174933,0x16c620),(0x174a44,0x16c620)):
         i=code.at(site)
         assert i.mnemonic=='call' and i.operands[0].type==2 and i.operands[0].imm==target
     for row in additions['entries']:
+        if 'source_table' in row:
+            # Startup callbacks have a literal table owner, rather than a
+            # direct CALL instruction. Authenticate the complete pointer.
+            slot=int(row['source_table'],16)
+            raw=original.read(slot,4)
+            assert raw.hex()==row['source_pointer_hex']
+            assert struct.unpack('<I',raw)[0]==int(row['target'],16)
+            continue
         site=int(row.get('source_site',row.get('reached_site')),16)
         instruction=code.at(site)
         assert instruction.bytes.hex()==row['source_instruction_hex']
-        assert instruction.mnemonic in ('call','jmp')
+        assert instruction.mnemonic=='call' or instruction.mnemonic.startswith('j')
         if instruction.operands[0].type==2:
             assert instruction.operands[0].imm==int(row['target'],16)
+        if dispatch:=row.get('source_dispatch'):
+            # Literal TU1.5 unit-action descriptors retain the original four
+            # callback ABIs. Registration proves bytes and the matching reader;
+            # it does not assert that an unvisited action has executed.
+            offset=dispatch['callback_offset']
+            readers={0:(0xe8e57,0xe8e67),4:(0xe8dca,0xe8dde),
+                     8:(0xe8ed1,0xe8ee1),12:(0xe8f31,0xe8f41)}
+            reader,call=readers[offset]
+            index=dispatch['index'];assert 0<=index<60
+            bank=int(dispatch['bank'],16);assert bank==0x473d28
+            slot=int(dispatch['pointer_slot'],16);assert slot==bank+index*4
+            descriptor=int(dispatch['descriptor'],16)
+            assert struct.unpack('<I',original.read(slot,4))[0]==descriptor
+            raw=original.read(descriptor,16);assert raw.hex()==dispatch['descriptor_hex']
+            assert struct.unpack_from('<I',raw,offset)[0]==int(row['target'],16)
+            load=code.at(reader)
+            assert reader==int(dispatch['reader'],16) and load.bytes.hex()==dispatch['reader_hex']
+            assert load.mnemonic=='mov' and load.operands[1].type==3 and load.operands[1].mem.disp==bank
+            assert site==call and instruction.operands[0].type!=2
+            if offset:
+                callback=code.at(reader+load.size)
+                assert callback.mnemonic=='mov' and callback.operands[1].type==3 and callback.operands[1].mem.disp==offset
     entries={f'{p:08x}':p for p in ENTRIES};sites={};instructions={};addresses={};routines=[]
     for entry in ENTRIES:
         body=complete_body(code,entry)

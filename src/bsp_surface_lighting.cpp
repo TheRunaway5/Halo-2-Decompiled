@@ -236,7 +236,7 @@ std::optional<ObjectLightmapSample> BspSurfaceLighting::sample(const RenderSurfa
 BspSurfaceLighting Cache::load_bsp_surface_lighting(std::size_t index) const {
     if(index>=bsps_.size())throw FormatError("surface-lighting BSP outside scenario");
     const auto& bsp=bsps_[index];
-    const Bytes meta(Bytes(storage_).slice(bsp.file_offset,bsp.size));
+    const Bytes meta(Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size));
     const auto magic=std::int64_t(bsp.memory_address);
     BspSurfaceLighting out;out.bsp=std::int32_t(index);out.lighting=load_bsp_lighting(index);
     const auto materials=TagAddressSpace(meta, magic).block(16+0xa4, 32, 1000000);

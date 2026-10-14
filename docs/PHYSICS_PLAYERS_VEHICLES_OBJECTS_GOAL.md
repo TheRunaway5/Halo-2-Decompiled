@@ -24,7 +24,44 @@ All new parity execution and acceptance validation target TU1.5.
 | Objects | Dynamic crates/props/items, equipment and projectile physical behavior, attached/parented objects, devices and moving machinery; lifts/conveyors and occupancy queries; breakage and destructive state transitions; collision masks, contact/material/impulse delivery and object creation/retirement. Combat effects/damage remain separately owned, with the actual physics events delivered to their owners. |
 | Composed runtime | Replace the temporary player terrain mover only after real source contact/solver ownership exists. Preserve identity, state ordering, moving supports, player interactions and multiplayer authority. Verify campaign and multiplayer authored scenarios, maps, split-screen and LAN paths. |
 
-## Current verified boundary
+## October13 live integration checkpoint
+
+The current checkout builds `halo2_native` and
+`physics_multiplayer_acceptance`. `live-root-v151` passes seven recorded live
+cases: local vehicle/lift/objects and UDP vehicle/lift/movement/objects. The
+UDP cases compare301 vehicle snapshots or181 snapshots in each other case,
+including identities, parent/seat, actual WORLD hierarchies, scene roots and
+projectile/effect publications. Every selected case retains a nonempty probed
+X11 recording. This checkpoint supersedes earlier red live-status statements
+below; historical component seals remain unchanged.
+
+| Live integration | Current evidence and remaining coverage |
+| --- | --- |
+| Retained TU1.5 world and bipeds | Actual source-created bodies, world stepping, root/WORLD readback and normal delivered SDL inputs run in the match. Visible walking/jump/crouch and lift travel pass; all support/contact/movement modes and retail trajectories still need coverage. |
+| Warthog | Normal entry, forward driving, steering and exit pass locally and over UDP. The actual245EA0 authored camera reaches rendering; UDP camera position/basis is checked against authority output. Other vehicle/controller classes, seats and quantitative retail contact/force behavior remain open. |
+| Grenades | Actual source prepare/create/release/flight/detonation/retirement passes locally and over UDP. Native presentation consumes the source body and original completed explosion locations. A close-range authored power-module blast reaches further damage/lighting owners and is still RED; no prop impulse/destruction pass is claimed. |
+| Scene replicas | Complete authored source scene roots and WORLD banks are admitted and adopted by the client, then checked before interpolation. Missing roots retire their native presentation. Recreation/late-join generation changes and spawned debris remain open. |
+| Delivery | The current world constructor automatically selects TU1.5 physics for ordinary authoritative Slayer; the installed launcher still needs fresh runtime delivery and verification. |
+
+Current-root `v164` also passes the Ghost with an actual seated camera and
+exact UDP FOV submission checks. Original CB3D0/CB090 seat selection is wired
+into the live world and passes the Warthog and Ghost sequences. Banshee `v190`
+passes boarding, open-flight travel10.374212 units, climb3.404600 units, turning
+and exit, with435 submitted original camera frames and902 exact UDP comparisons.
+These bounded native sequences still require quantitative retail comparison
+and coverage of the other vehicle classes/seats. The close-range
+power-module fixture's actual324F80 point impulse compares exactly against the
+unchanged TU1.5 body across all256 captured motion bytes in private `v166`.
+Rendering advances after the blast with completed source bounds/velocity/flags;
+further damage/animation/effect owners still stop the full local fixture, and
+its UDP/production integration remains open.
+
+[Vehicle camera evidence](MP_VEHICLE_CAMERA_TU15_20261013.md) and
+[scene replication evidence](MP_SOURCE_SCENE_REPLICATION_TU15_20261013.md)
+retain the source owners, recordings and limits. Full1.5 physics parity is
+unfinished; these selected successes do not close the required coverage matrix.
+
+## Initial verified boundary (historical)
 
 The preexisting native world component has extensive authenticated bodies, but
 the live `Simulation::move_unit` path still uses the temporary host terrain

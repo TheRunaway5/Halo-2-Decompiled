@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="512" viewBox="0 0 32 64" version="1.1">
+  <title>Vista ui\screens\game_shell\xbox_live\matchmaking_progress_dialog\progress_numbers page 5: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="number-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.18" />
+    </filter>
+  </defs>
+  <path d="M1.5 9 C4 5 7 1.5 11 1.5 H18 C24.5 1.5 28 6.5 28 13.5 V15 C28 19.8 25.5 22.8 22 24.5 C26 26.4 28 29.5 28 34.5 V36 C28 44 23 48.5 17 48.5 H11 C5 48.5 1.5 45 .5 42 L5.5 39 C7.5 42 9.5 43.5 12 43.5 H16.5 C20 43.5 22 40 22 36 V34.5 C22 29.5 19 27.5 14 27.5 H9 V22 H14 C19.5 22 22 19.5 22 15 V13.5 C22 9 20.5 6.5 17 6.5 H12 C9 6.5 7 8.5 6 12 Z" fill="#386191" fill-rule="evenodd" filter="url(#number-edge-softness)" />
+</svg>

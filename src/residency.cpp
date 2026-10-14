@@ -1,4 +1,5 @@
 #include "halo2/residency.hpp"
+#include "halo2/model_selection.hpp"
 namespace halo2 {
 std::shared_ptr<const PcmSound> NativeResidency::sound(std::uint32_t datum) {
   if (datum == null_datum)
@@ -12,13 +13,19 @@ void NativeResidency::geometry(std::uint32_t datum) {
   if (datum == null_datum)
     return;
   if (!models_.contains(datum)) {
-    ModelAssets assets{cache_.load_model(datum),
-                       cache_.load_model_resources(datum)};
+    ModelAssets assets{cache_.load_model_resources(datum)};
     models_.emplace(datum, std::move(assets));
   }
 }
 void NativeResidency::model(std::uint32_t datum, int) {
   if (datum == null_datum) return;
+  const auto *tag=cache_.find_tag({datum});
+  if(!tag)throw FormatError("Model residency request has a stale tag handle");
+  // Unit definitions retain an hlmt; section and bitmap resources belong to
+  // its mode. Resolve through the shared importer before coalescing residency.
+  if(!cache_.find_tag({datum},tag_groups::render_model))
+    datum=cache_.load_initial_model_definition(datum).render_model;
+  if(datum==null_datum)return;
   geometry(datum);
   auto &assets = models_.at(datum);
   if (!assets.materials_resident) {
@@ -52,7 +59,7 @@ void NativeResidency::structure(std::size_t bsp, int section, bool definition) {
   const auto resources = cache_.structure_resources(bsp, section, definition);
   if (!structure_ || structure_->bsp != bsp)
     structure_ =
-        BspAssets{bsp, cache_.load_bsp(bsp), cache_.load_bsp_resources(bsp)};
+        BspAssets{bsp, cache_.load_bsp_resources(bsp)};
   for (const auto &resource : resources) {
     if (resource.type == 0) {
       bitmap(resource.datum, resource.index);
@@ -60,7 +67,7 @@ void NativeResidency::structure(std::size_t bsp, int section, bool definition) {
       model(resource.datum, -1);
     }
     // Type1 touches existing audio entries without initiating loads. Other
-    // native geometry/lightmap resources are admitted with the full BSP mesh;
+    // native geometry/lightmap resources are admitted with the BSP blocks;
     // retail object lightmap buckets and driver residency remain separate.
   }
 }

@@ -1065,6 +1065,7 @@ struct FrontendPainter::Impl {
   }
   void pane(const UiScreen &screen, const UiPane &pane, const MenuFrame &frame,
             const MenuState &state, bool interactive) {
+    const bool network_browser = state.screen_layout(frame) == vista_menu(13);
     // 22E9C6/2538F5 read each widget's own animation offset/scale. A pane
     // starts its descendants' animations but does not transform their bounds.
     // Grid/list origins below are explicit placement, not inherited animation.
@@ -1145,6 +1146,8 @@ struct FrontendPainter::Impl {
           [](const UiBitmap *x, const UiBitmap *y) { return x->layer < y->layer; });
     for (const auto *b : ordered_bitmaps) {
       const auto index = std::size_t(b - pane.bitmaps.data());
+      // PC13's off-canvas player placeholder has no native directory owner.
+      if (network_browser && index == 20) continue;
       // PC63E9A0 hides child4 for the active local-controller mask.
       if(frame.screen==vista_menu(18) && index==4)continue;
       if (frame.screen == 26 && frame.context == 1 && index == 2) continue;
@@ -1176,9 +1179,8 @@ struct FrontendPainter::Impl {
       auto image = *b;
       if (frame.screen == 26 && frame.context == 1 && index == 3)
         image.position.x += clan_width_extra();
-      //6192B3, no selected network result: the direct game-type icon page
-      // is10. The native PC13 browser has only its genuine Create row.
-      if(frame.screen==vista_menu(13) && index==4)image.frame=10;
+      //6192B3 uses page10 when there is no source game-type icon owner.
+      if (network_browser && index == 4) image.frame = 10;
       if(online_vista_art && frame.screen==186 && index==3) {
         // Vista's actual ONLINE screen247 uses these action pages. Its stale
         // screen186 still refers to absent page7; never alias the news panel.
@@ -1322,17 +1324,15 @@ struct FrontendPainter::Impl {
         if(i==0)value=state.game_pause_objectives();
         if(!frame.context)value.clear();
       }
-      if(frame.screen==vista_menu(13)) {
-        //6192B3 assigns Unknown, appends source0E000875, then Unknown.
-        //Its Create datum makes list count1, so the empty-network field is0.
-        if(i==0)value=content.localized(screen,0x07000181)+
-            content.localized(screen,0x0e000875)+content.localized(screen,0x07000181);
-        if(i==9)value.clear();
-      }
       if(frame.vista_leave_task && i==0)
         value=content.localized(screen,frame.vista_leave_task->status_string);
       if (frame.screen == 20 || frame.screen == 186) value = frame.description;
-      if (frame.screen == 219 || frame.screen == 237) value = frame.context == online_server_browser_context
+      if (network_browser) {
+        if (i == 0) value = state.online_directory_text(frame, 3);
+        if (i == 2) value = state.online_directory_text(frame, 2);
+        if (i == 3) value = "Server Name";
+        if (i == 9) value = state.online_directory_text(frame, 4);
+      } else if (frame.screen == 219 || frame.screen == 237) value = frame.context == online_server_browser_context
           ? state.online_directory_text(frame, i) : state.online_matchmaking_text(frame, i);
       if (frame.screen == 210 && (content.source_fonts.empty() || i == 0))
         value = state.online_matchmaking_text(frame, i);
@@ -1401,12 +1401,13 @@ struct FrontendPainter::Impl {
         value = frame.description;
       if(state.online_party_screen(frame))value=state.online_party_text(frame,i);
       if(state.online_friends_screen(frame))value=state.online_friends_text(frame,i);
+      if(state.online_couch_screen(frame))value=state.online_couch_text(frame,i);
       const auto first = output.vertices.size();
       // Queue text1 is the native B Cancel caption. Service descriptions and
       // player-supplied text remain inert even if they contain prompt glyphs.
       const bool pane_prompts = frame.screen == 210 ? content.source_fonts.empty() && i == 1
           : frame.screen != 219 && frame.screen != 237;
-      text(t, (state.online_clan_screen(frame) || state.online_party_screen(frame) || state.online_friends_screen(frame) || frame.screen == 20 || frame.screen == 186 || frame.screen == 167 || frame.screen == 210 || frame.screen == 219 || frame.screen == 237) ? value : state.expand(value), parent, 1, false, false, &frame, &pane.texts[i],
+      text(t, (state.online_couch_screen(frame) || state.online_clan_screen(frame) || state.online_party_screen(frame) || state.online_friends_screen(frame) || frame.screen == 20 || frame.screen == 186 || frame.screen == 167 || frame.screen == 210 || frame.screen == 219 || frame.screen == 237) ? value : state.expand(value), parent, 1, false, false, &frame, &pane.texts[i],
            interactive && !(frame.screen == 167 && i == 0) && pane_prompts);
       if (frame.screen == 167)
         keyboard_widget(first, t.layer, 6,
@@ -1660,9 +1661,9 @@ struct FrontendPainter::Impl {
         unsigned social_bitmap_index=0;
         for (auto b : skin.bitmaps) {
           const auto social_bitmap=social_bitmap_index++;
-          //617F13 clears all seven row text fields;617843 shows Create
-          // in text6 and hides every row bitmap from2 onward.
-          if(frame.screen==vista_menu(13) && social_bitmap>=2)continue;
+          // The directory owns no source host/custom-map status icons.
+          // Retain the PC13 selection background/end caps and column dividers.
+          if (network_browser && social_bitmap >= 2 && social_bitmap <= 4) continue;
           // The queue API has no voice/presence state for these player rows.
           if (frame.screen == 210 || (frame.screen == 26 && social_bitmap >= 2)) continue;
           b.animation = 0;
@@ -1693,7 +1694,6 @@ struct FrontendPainter::Impl {
               });
         }
         for (unsigned j = 0; j < skin.texts.size(); ++j) {
-          if(frame.screen==vista_menu(13) && j!=6)continue;
           //Actual40A781 first hides both text children, then shows child
           //!enabled. Both children receive the same source-local row label.
           if(frame.screen==vista_menu(6) && j!=unsigned(!state.vista_mainmenu_row_enabled(unsigned(frame.entries[index].value))))continue;
@@ -1710,12 +1710,12 @@ struct FrontendPainter::Impl {
           t.delay = 0;
           auto value = j == 0 ? frame.entries[index].label
                              : content.localized(screen, t.string);
-          if(frame.screen==vista_menu(13))value=frame.entries[index].label;
+          if (network_browser) value = state.online_directory_column(frame, index, j);
           if(frame.screen==vista_menu(6))value=frame.entries[index].label;
           if (state.online_clan_screen(frame) && j > 0) value = state.online_clan_column(frame,index,j);
           if(state.online_party_screen(frame) && j>0)value=state.online_party_column(frame,index,j);
           if(state.online_friends_screen(frame) && j>0)value=state.online_friends_column(frame,index,j);
-          if (is_vista_menu(frame.screen) && frame.screen!=vista_menu(13) && frame.screen!=vista_menu(6) && j > 0 && j != 3)
+          if (is_vista_menu(frame.screen) && frame.screen!=vista_menu(6) && j > 0 && j != 3)
             value = state.pc_value_label(frame, index, j);
           if (is_vista_settings(frame.screen, 253) && j == 3) value = frame.entries[index].label;
           if (frame.screen == 47 && j == 1) {
@@ -1755,7 +1755,7 @@ struct FrontendPainter::Impl {
             !(is_vista_settings(frame.screen, 253) && frame.entries[index].value == -2)) {
           float l = -10, r = 240, top = row;
           if (!skin.texts.empty()) {
-            const auto& bounds=skin.texts.at(frame.screen==vista_menu(13)?6:0).bounds;
+            const auto& bounds=skin.texts.at(network_browser ? 6 : 0).bounds;
             l = bounds.left;r = bounds.right;top = bounds.top;
           }
           if (profile_skin) {
@@ -1850,7 +1850,8 @@ struct FrontendPainter::Impl {
   }
   void screen(const MenuFrame &frame, const MenuState &state, bool interactive,
               int override_pane = -1) {
-    if (vista && (is_vista_menu(frame.screen) ||
+    const auto layout = state.screen_layout(frame);
+    if (vista && (is_vista_menu(layout) ||
         (frame.screen == 210 && content.vista->screens.contains(210)))) {
       vista->output = {};
       vista->hits.clear();
@@ -1886,7 +1887,7 @@ struct FrontendPainter::Impl {
     }
     if (frame.screen == 167)
       keyboard_widgets.clear();
-    const auto &s = content.screen(frame.screen);
+    const auto &s = content.screen(layout);
     if(frame.vista_pcr) {
       VistaPcrDrawServices draw;
       draw.elapsed=frame.vista_pcr->elapsed;
@@ -2088,11 +2089,12 @@ struct FrontendPainter::Impl {
       background.screen = (pc_settings || (online_panel && content.vista)) ? vista_menu(5) : 5;
       screen(background, state, false);
     }
-    const bool dialog = content.screen(frame.screen).flags & (1 | 8 | 16);
+    const auto layout = state.screen_layout(frame);
+    const bool dialog = content.screen(layout).flags & (1 | 8 | 16);
     if (dialog && state.stack().size() > 1) {
       auto it = state.stack().rbegin() + 1;
       while (it + 1 != state.stack().rend() &&
-             (content.screen(it->screen).flags & (1 | 8 | 16)))
+             (content.screen(state.screen_layout(*it)).flags & (1 | 8 | 16)))
         ++it;
       const bool choosing_profile = std::any_of(state.stack().begin(),
           state.stack().end(), [](const auto &f) { return f.screen == 10; });
@@ -2109,7 +2111,7 @@ struct FrontendPainter::Impl {
       // over an occupied lower channel receives the authored tint/blur,
       // unless definition flag5 suppresses it. An ID whitelist omitted
       // error/confirmation/settings dialogs and left lower text sharp.
-      if (!(content.screen(frame.screen).flags & 32)) {
+      if (!(content.screen(layout).flags & 32)) {
         if (!hide_lower) screen(*it, state, false);
         // The original disposes profile channel 3 before opening keyboard
         // channel 2 (23784F). Both paths therefore blur the retained title
@@ -2118,9 +2120,9 @@ struct FrontendPainter::Impl {
         // controls the tint and full-resolution blur of lower-channel UI.
         // Setup23 and Map206 also occupy channel3 over retained lobby14.
         // A replacement retains the outgoing channel's complementary fade.
-        const auto &definition = content.screen(frame.screen);
+        const auto &definition = content.screen(layout);
         const auto pane_animation = definition.panes.empty() ? 0 : definition.panes.front().animation;
-        const auto &active_content = is_vista_menu(frame.screen) && content.vista ? *content.vista : content;
+        const auto &active_content = is_vista_menu(layout) && content.vista ? *content.vista : content;
         const auto duration = pane_animation ? active_content.animations.at(pane_animation - 1).intro.milliseconds : 0;
         const float fade = duration && !frame.retained_lobby_backdrop ? std::clamp(std::floor(elapsed * 1000.f) /
             float(duration), 0.f, 1.f) : 1.f;

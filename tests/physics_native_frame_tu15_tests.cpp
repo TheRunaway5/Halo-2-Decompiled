@@ -49,7 +49,7 @@ int main(int argc,char**argv) {
             check(rejected,"Physics frame admitted a missing source session");
             world.configure_session(halo2::source_game_variant_default(0),1,30,0x12345678u);
             const auto source_world=world.world();
-            check(source_world!=0,"Native frame lost the constructed source world");
+            check(!source_world.is_null(),"Native frame lost the constructed source world");
             const auto cw=control_word(),exceptions=exception_flags();const auto mxcsr=_mm_getcsr();
             for(unsigned tick=0;tick<120;++tick) {
                 std::ofstream trace;

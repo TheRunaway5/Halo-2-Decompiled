@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1692" height="164" viewBox="0 0 423 41" version="1.1">
+  <title>Vista ui\list_skins\y_menu_list\item_background page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="live-row-shape">
+      <path d="M.5 .5 H422.5 V31.5 L416.5 37.5 H.5 Z" />
+    </clipPath>
+    <pattern id="live-row-engraving" patternUnits="userSpaceOnUse" width="1" height="4" x="0" y="1">
+      <rect width="1" height="2.0" fill="#ffffff" fill-opacity="0.5215686274509804" />
+      <rect y="2.0" width="1" height="2.0" fill="#ffffff" fill-opacity="0.4666666666666667" />
+    </pattern>
+  </defs>
+  <path d="M.5 .5 H422.5 V31.5 L416.5 37.5 H.5 Z" fill="url(#live-row-engraving)" stroke="white" stroke-width="1" />
+</svg>

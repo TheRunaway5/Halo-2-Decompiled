@@ -24,35 +24,45 @@ void fire(Uint32 window,bool down) {
 }
 }
 int main(int argc,char **argv)try {
-  check(argc==5 || argc==6 || argc==7,"Supply MAP SHARED XBE needler|sword|shotgun [CAPTURE [idle|ready|ignite|lit|world|fire]]");
+  check(argc==5 || argc==6 || argc==7,"Supply MAP SHARED XBE WEAPON [CAPTURE [idle|ready|ignite|lit|world|fire]]");
   if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]))return 77;
   const bool shotgun=std::string(argv[4])=="shotgun";
   const bool sword=std::string(argv[4])=="sword";
-  check(sword||shotgun||std::string(argv[4])=="needler","Unknown weapon probe");
+  const bool needler=std::string(argv[4])=="needler";
+  const std::set<std::string> ordinary{"magnum","battle_rifle","covenant_carbine",
+      "sniper_rifle","brute_shot","rocket_launcher","plasma_rifle","brute_plasma_rifle","beam_rifle"};
+  check(sword||shotgun||needler||ordinary.contains(argv[4]),"Unknown weapon probe");
   const bool ammunition=argc==7 && std::string(argv[6])=="ammo";
-  check(!ammunition || (!sword && !shotgun),"Ammo probe requires Needler");
+  const bool heat_cycle=argc==7 && std::string(argv[6])=="heat";
+  check(!ammunition || needler,"Ammo probe requires Needler");
   const bool firing_capture=argc==7 && std::string(argv[6])=="fire";
-  check(!firing_capture || (!sword && !shotgun),"Firing capture requires Needler");
+  check(!firing_capture || needler,"Firing capture requires Needler");
   const bool world=argc==7 && std::string(argv[6])=="world";
   const bool idle=argc==7 && std::string(argv[6])=="idle";
   const bool ignite=argc==7 && std::string(argv[6])=="ignite";
   const bool lit=argc==7 && std::string(argv[6])=="lit";
   const bool ready=argc==7 && (std::string(argv[6])=="ready" || ignite || lit);
-  check(argc!=7 || idle || world || ready || ammunition || firing_capture,"Unknown capture phase");
+  check(argc!=7 || idle || world || ready || ammunition || firing_capture || heat_cycle,"Unknown capture phase");
   // This probe supplies keyboard/mouse events. Physical controller input is
   // independent host activity and must not switch/fire the tested inventory.
   SDL_SetHintWithPriority(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0xffff/0xffff",SDL_HINT_OVERRIDE);
   SDL_SetMainReady();MultiplayerOptions o;o.map=argv[1];o.shared_maps=argv[2];o.gameplay_xbe=argv[3];
   o.width=800;o.height=600;o.local_players=1;o.starting_weapon=5;o.mute=false;
+  // Finite native SDL probe: one game tick and a declared mid-tick sample
+  // per rendered frame. Short authored clips must not depend on host load.
+  o.frames=heat_cycle?700u:ammunition?450u:240u;
+  o.reference_tick_cadence=true;o.reference_render_fraction=.5f;
   o.input_instances={-1}; // This SDL input probe has no controller owner.
   o.validation=std::getenv("HALO2_ANIMATION_VALIDATION");
   if(const auto *ui=std::getenv("HALO2_TEST_HUD_UI_ASSETS"))o.ui_assets=ui;
   o.prepared_world=std::make_shared<MultiplayerPreparedWorld>(o);
   const auto &c=o.prepared_world->content;const auto &cache=*o.prepared_world->cache;
   const auto weapon=std::find_if(c.weapons.begin(),c.weapons.end(),[&](const auto &p){
-    return p.second.name.ends_with(sword?"\\energy_blade":shotgun?"\\shotgun":"\\needler");
+    return p.second.name.ends_with(sword?std::string("\\energy_blade"):std::string("\\")+argv[4]);
   });check(weapon!=c.weapons.end(),"Authored target weapon absent");
   const auto target=weapon->first;const auto &w=weapon->second;
+  const bool energy=w.energy.has_value();
+  check(!heat_cycle || energy,"Heat cycle requires a recovered energy definition");
   const auto row=std::find_if(c.netgame_equipment.begin(),c.netgame_equipment.end(),[&](const auto &r){
     return r.items.size()==1 && r.items[0].definition==target;
   });check(row!=c.netgame_equipment.end(),"Authored target pickup row absent");
@@ -64,6 +74,8 @@ int main(int argc,char **argv)try {
   std::set<std::uint32_t> attack_sounds;
   for(const auto &event:action->events)if(event.type==1)attack_sounds.insert(event.tag);
   o.desktop=std::make_shared<DesktopSession>();auto *window=o.desktop->window(800,600,false);
+  std::cout<<"Native SDL video driver: "<<SDL_GetCurrentVideoDriver()<<'\n';
+  SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);
   const auto window_id=SDL_GetWindowID(window);SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
   const auto slot=o.prepared_world->local_slots.at(0);
   // Isolate the weapon/renderer loop from the still-unfinished native mover.
@@ -72,6 +84,8 @@ int main(int argc,char **argv)try {
   std::optional<unsigned> requested,picked,empty_tick;bool refilled{};unsigned tick{},draws{},materials{},sounds{};
   unsigned ignition_particles{},ready_sounds{},hidden_blade_draws{},lit_blade_draws{};
   unsigned firing_particles{},firing_sounds{},fired_rounds{};
+  bool overheated{},vented{};std::optional<unsigned> cooled_tick;unsigned vent_draws{};
+  float maximum_heat{},maximum_spent{};
   std::optional<unsigned> ready_sound_tick;
   unsigned projectile_draws{};std::set<std::uint32_t> projectile_owners;
   std::uint32_t owner=null_datum;bool posed{},shader{},blade{},carried_pose{};
@@ -80,7 +94,7 @@ int main(int argc,char **argv)try {
   std::set<float> ammunition_frames;float full_needle_scale=-1,used_needle_scale=-1;
   const auto weapon_model=cache.load_model(definition.weapon_model,false);
   std::optional<unsigned> needle_node;
-  if(!sword && !shotgun){
+  if(needler){
     const auto &ammo=*definition.ammunition[0];
     for(unsigned n=0;n<weapon_model.bones.size();++n){
       const auto at=std::find(ammo.nodes.begin(),ammo.nodes.end(),weapon_model.bones[n].name);
@@ -89,7 +103,11 @@ int main(int argc,char **argv)try {
     check(needle_node.has_value(),"Actual Needler ammunition has no scaled needle node");
   }
   std::optional<std::uint64_t> observed_shot;
+  const auto vent_clip=std::find_if(definition.clock_clips.begin(),definition.clock_clips.end(),
+      [](const auto &clip){return clip.activity==0x08000071u;});
+  if(heat_cycle)check(vent_clip!=definition.clock_clips.end(),"Actual vent clip absent");
   o.input_observer=[&](unsigned t,std::span<const Controls> controls,const MultiplayerState &s){
+    if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
     tick=t;state=s;const auto &p=s.players[slot];
     if(world) {
       at.position.x=row->position.x;at.position.y=row->position.y-1.2f;at.facing=1.5707963267948966f;
@@ -125,6 +143,14 @@ int main(int argc,char **argv)try {
       }
       o.prepared_world->match.debug_request({DebugGameRequest::Teleport,slot},&at);
       const auto elapsed=t-*picked;
+      if(energy) {
+        maximum_heat=std::max(maximum_heat,p.weapon_shader.heat);
+        maximum_spent=std::max(maximum_spent,p.weapon_shader.power_fraction);
+        overheated|=(p.weapon_shader.weapon_flags&2u)!=0;
+        vented|=(p.weapon_shader.weapon_flags&4u)!=0;
+        if(overheated && !cooled_tick && !(p.weapon_shader.weapon_flags&2u) &&
+            p.weapon_shader.heat<w.energy->heat.cooled_threshold)cooled_tick=t;
+      }
       if(!ready && elapsed==60){
         std::cout<<"Request actual SDL fire: tick="<<t<<" focus="<<(SDL_GetKeyboardFocus()==window)
           <<" binding="<<o.desktop->keyboard_settings.bindings[unsigned(PcAction::Fire)]<<'\n';
@@ -133,7 +159,17 @@ int main(int argc,char **argv)try {
       if(!ready && elapsed>60 && elapsed<74)
         std::cout<<"Fire input observation: tick="<<t<<" fire="<<controls[0].fire
           <<" focus="<<(SDL_GetKeyboardFocus()==window)<<'\n';
-      if(!ready && !ammunition && elapsed==72)fire(window_id,false);
+      // Needler repeats every four source ticks, restarting its longer attack
+      // clip. Let the first shot finish before the held empty/refill sequence,
+      // so this probe separately verifies the complete authored attack pose.
+      if(ammunition && elapsed==61)fire(window_id,false);
+      if(ammunition && elapsed==60+unsigned(action->frames)+5)fire(window_id,true);
+      if(heat_cycle) {
+        if(w.trigger_behavior==1 && (elapsed==61 || elapsed==71))fire(window_id,false);
+        if(w.trigger_behavior==1 && elapsed==70)fire(window_id,true);
+        if(overheated)fire(window_id,false);
+        if(cooled_tick && t>*cooled_tick+20){SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit completed native heat cycle");}
+      } else if(!ready && !ammunition && elapsed==72)fire(window_id,false);
       if(ammunition && !empty_tick && p.loaded==0) {
         empty_tick=t;fire(window_id,false);key(window_id,SDL_SCANCODE_R,true);
         if(!o.screenshot.empty())o.capture_tick=s.tick;
@@ -142,14 +178,15 @@ int main(int argc,char **argv)try {
       if(ammunition && empty_tick && t>*empty_tick+70 && p.loaded==w.capacity) {
         refilled=true;SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit completed Needler refill probe");
       }
-      if(!ammunition && elapsed==110){SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit weapon probe");}
+      if(!ammunition && !heat_cycle && elapsed==110){SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit weapon probe");}
     }
-    check(t<(ammunition?450u:240u),"Actual SDL covenant pickup/attack timed out");
+    check(t<(heat_cycle?700u:ammunition?450u:240u),"Actual SDL covenant pickup/attack timed out");
   };
   o.animation_observer=[&](unsigned,unsigned,const AnimationRenderObservation &sample){
     if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
     if(sample.first_person && sample.weapon==owner && !sample.vertices.empty())carried_pose=true;
-    if(sample.first_person && sample.weapon==owner && !sword && !shotgun) {
+    if(heat_cycle && sample.first_person && sample.weapon==owner && sample.animation==vent_clip->index)++vent_draws;
+    if(sample.first_person && sample.weapon==owner && needler) {
       const auto &p=state.players[slot];
       check(sample.ammunition_animation==definition.ammunition[0]->source_index,
           "Live Needler pose lost its authored ammunition overlay");
@@ -190,10 +227,15 @@ int main(int argc,char **argv)try {
       if(on)++lit_blade_draws;else ++hidden_blade_draws;
       shader=true;blade|=m.forward_program.words[43]!=0;
     }
-    if(!sword) {
+    if(energy) {
+      const auto &source=state.players[slot].weapon_shader;
+      check(input(0x04000567u)==std::clamp(source.heat,0.f,1.f),"Carried energy material lost its actual heat input");
+      check(input(0x03000577u)==std::clamp(source.power_fraction,0.f,1.f),"Carried energy material lost its actual age input");
+      shader=true;
+    } else if(!sword) {
       const auto expected=float(state.players[slot].loaded)/float(w.capacity);
       check(input(0x1200056au)==expected,"Carried Needler lost original primary_ammunition input");
-      if(!shotgun)check(input(0x04000b93u)==expected,"Carried Needler lost authored ammunition function");shader=true;
+      if(needler)check(input(0x04000b93u)==expected,"Carried Needler lost authored ammunition function");shader=true;
     }
   };
   o.world_weapon_shader_input_observer=[&](auto handle,auto datum,auto name,float value) {
@@ -204,9 +246,9 @@ int main(int argc,char **argv)try {
   };
   o.audio_observer=[&](const MultiplayerAudioSubmission &s){
     if(s.owner==owner && attack_sounds.contains(s.sound))++sounds;
-    if(!sword && !shotgun && s.sound==w.sound) {
-      check(s.owner==owner,"Needler firing sound bypassed its actual picked effect owner");
-      check(s.frames>0,"Needler firing sound submitted an empty PCM packet");++firing_sounds;
+    if(!sword && s.sound==w.sound) {
+      check(s.owner==owner,"Firing sound bypassed its actual picked effect owner");
+      check(s.frames>0,"Firing sound submitted an empty PCM packet");++firing_sounds;
     }
     if(s.owner==owner && s.sound==0xe2fc0187u) {
       ++ready_sounds;ready_sound_tick=tick;
@@ -214,7 +256,7 @@ int main(int argc,char **argv)try {
     }
   };
   o.effect_observer=[&](unsigned,unsigned t,std::span<const ParticleDraw> particles) {
-    if(!sword && !shotgun && picked && state.players[slot].shot_tick)firing_particles+=unsigned(particles.size());
+    if(!sword && picked && state.players[slot].shot_tick)firing_particles+=unsigned(particles.size());
     if(sword && picked && t-*picked<15)check(particles.empty(),"Sword ignition particles appeared before authored delay");
     if(sword && picked && t-*picked>=15 && t-*picked<40) {
       if(!ignition_particles && !particles.empty())std::cout<<"First ignition particle observation: tick="<<t<<" relative="<<t-*picked<<'\n';
@@ -223,14 +265,14 @@ int main(int argc,char **argv)try {
   };
   o.weapon_projectile_draw_observer=[&](unsigned,std::uint32_t,std::uint32_t handle,
       std::uint32_t definition,std::span<const Vertex> vertices) {
-    if(definition!=w.projectile)return;
+    if(!needler || definition!=w.projectile)return;
     check(!vertices.empty(),"Actual fired Needler shard submitted empty geometry");
     check(std::any_of(state.weapon_projectiles.begin(),state.weapon_projectiles.end(),
         [&](const auto &p){return p.datum==handle && p.definition==definition;}),
         "Actual fired shard draw has no live salted owner");
     ++projectile_draws;projectile_owners.insert(handle);
   };
-  if(argc>=6 && *argv[5]){o.screenshot=argv[5];o.capture_tick=(idle||world)?90:115;}
+  if(argc>=6 && *argv[5]){o.frames=0;o.screenshot=argv[5];o.capture_tick=(idle||world)?90:115;}
   check(run_multiplayer(o)==0,"Actual covenant weapon runtime failed");
   if(!o.screenshot.empty())check(std::filesystem::exists(o.screenshot),"Requested weapon capture was not written");
   if(world) {
@@ -251,8 +293,11 @@ int main(int argc,char **argv)try {
         "Live Needler consumed ammo without retracting needle geometry");
     std::cout<<"Needler ammunition observations: frames="<<ammunition_frames.size()<<" needle scale full="<<full_needle_scale<<" used="<<used_needle_scale<<'\n';
   }
-  check(picked&&posed&&frames.size()>4&&draws>10,"Actual attack did not submit advancing authored poses");
-  check(pose_hashes.size()>4,"Authored attack clock advanced without moving the rendered weapon vertices");
+  const auto minimum_samples=unsigned(std::min(5,std::max(2,int(action->frames)-2)));
+  std::cout<<"Attack observations: "<<draws<<" draws, "<<frames.size()<<" frames, "<<pose_hashes.size()<<" distinct poses\n";
+  check(picked&&posed&&frames.size()>=minimum_samples&&draws>=minimum_samples,
+      "Actual attack did not submit advancing authored poses");
+  check(pose_hashes.size()>=minimum_samples,"Authored attack clock advanced without moving the rendered weapon vertices");
   if(ready){
     std::cout<<"Ready observations: hidden="<<hidden_blade_draws<<" lit="<<lit_blade_draws
         <<" sounds="<<ready_sounds<<" particles="<<ignition_particles<<'\n';
@@ -272,11 +317,25 @@ int main(int argc,char **argv)try {
   }
   if(sword){check(blade,"Actual sword blade combiner remained zero");check(sounds>0,"Actual sword strike sound was not accepted by SDL audio");}
   else if(shotgun)check(state.players[slot].shot_tick>0 && state.players[slot].loaded<w.capacity,"Actual shotgun did not fire or consume a shell");
-  else {
+  else if(needler) {
     check(projectile_draws>4 && projectile_owners.size()>1,"Fired Needler shards never reached actual renderer submission");
     check(firing_particles>0,"Actual Needler shot never submitted its authored muzzle/smoke particles");
     check(firing_sounds==fired_rounds && fired_rounds>1,"Needler did not submit exactly one authored firing sound per shot");
     std::cout<<"Needler live effects: "<<firing_particles<<" particle draws, "<<firing_sounds<<" owned sounds / "<<fired_rounds<<" fired rounds\n";
+  }
+  if(!sword && !needler) {
+    check(w.barrel_timing.has_value(),"Actual ordinary firing timing is unavailable");
+    check(fired_rounds>0 && firing_sounds==fired_rounds,"Ordinary weapon did not submit one owned firing sound per shot");
+    if(!energy)check(fired_rounds==unsigned(std::max<std::int16_t>(1,w.barrel_timing->definition.burst_minimum)),
+        "Actual held SDL trigger repeated or interrupted its authored burst");
+    std::cout<<"Ordinary firing observations: "<<fired_rounds<<" rounds, "<<firing_sounds<<" owned sounds\n";
+  }
+  if(heat_cycle) {
+    check(overheated && vented && cooled_tick && vent_draws>4 && maximum_spent>0.f && maximum_heat==1.f,
+        "Actual native heat cycle lost overheat/vent/cooling, battery use or advancing vent poses");
+    std::cout<<"Energy heat observations: maximum="<<maximum_heat<<" spent="<<maximum_spent
+        <<" vent draws="<<vent_draws<<" cooled tick="<<*cooled_tick
+        <<" firing particle draws="<<firing_particles<<'\n';
   }
   std::cout<<"PASS "<<argv[4]<<": actual SDL pickup/fire, "<<draws<<" attack draws, "<<frames.size()
       <<" frames, "<<materials<<" material observations, "<<sounds<<" authored attack sounds, "

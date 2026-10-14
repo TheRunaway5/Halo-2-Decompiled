@@ -33,25 +33,31 @@ void smg_input(SmgState &s, bool held) {
   s.input_flags = held ? std::uint16_t(2 | (!s.held ? 8 : 0)) : 0;
   s.held = held;
 }
-bool smg_reload(SmgState &s, const SmgDefinition &d,const SmgActivityCallback &activity) {
-  if (!smg_reload_admitted(s) || (s.magazine_mode != 0 && s.magazine_mode != 5) || s.reserve <= 0 ||
+bool smg_reload(SmgState &s, const SmgDefinition &d,const SmgActivityCallback &activity,
+    const SmgRuntimeServices &services) {
+  if (!smg_reload_admitted(s) || (s.magazine_mode != 0 && s.magazine_mode != 5) ||
+      (services.available?services.available():s.reserve)<=0 ||
       s.loaded >= d.capacity || (s.input_flags & 32)) return false;
   s.reload_empty = s.loaded == 0;
   s.magazine_mode = 1;
-  s.magazine_ticks = s.transfer_ticks =
-      s.reload_empty ? d.empty_reload_ticks : d.full_reload_ticks;
+  const auto symbol=s.reload_empty?0x0c000064u:0x0b000065u;
+  s.magazine_ticks=services.timing?services.timing(symbol,0):
+      s.reload_empty?d.empty_reload_ticks:d.full_reload_ticks;
+  s.transfer_ticks=services.timing?services.timing(symbol,3):s.magazine_ticks;
   s.magazine_other_ticks = s.magazine_ticks;
   request_state(s, 5);
+  if(activity)activity(symbol);
+  if(services.magazine_effect)services.magazine_effect(false);
   s.trigger_state = 0;
   s.trigger_ticks = 0;
   // 105640 tests the pre-reset mode when clearing the dry gate.
   if (s.barrel.mode != 1) s.barrel.flags &= ~64u;
   reset_barrel(s);
-  if(activity)activity(s.reload_empty?0x0c000064:0x0b000065);
   return true;
 }
 bool smg_update(SmgState &s, const SmgDefinition &d, float dt,
-    const SmgActivityCallback &activity,const SmgEffectCallback &effect) {
+    const SmgActivityCallback &activity,const SmgEffectCallback &effect,
+    const SmgRuntimeServices &services) {
   auto &b = s.barrel;
   // Stock original own manager: the selected single-SMG record has one frame.
   // 10234A..10235D's non-bit0-event branch invokes1099B0 before magazine and
@@ -72,10 +78,11 @@ bool smg_update(SmgState &s, const SmgDefinition &d, float dt,
     if (s.magazine_ticks < s.transfer_ticks)
       s.transfer_ticks = s.magazine_ticks;
     if (s.transfer_ticks == 0) {
-      const int amount = std::min({int(s.reserve), int(d.capacity - s.loaded),
+      const int amount = std::min({services.available?services.available():int(s.reserve),int(d.capacity-s.loaded),
                                   int(d.reload_amount)});
       s.loaded += amount;
-      s.reserve -= amount;
+      if(services.spend)services.spend(amount);
+      else s.reserve-=amount;
       s.transfer_ticks = -1;
       if(activity)activity(0x0400000c); // Original reload-transfer FP idle notification.
     }
@@ -84,6 +91,7 @@ bool smg_update(SmgState &s, const SmgDefinition &d, float dt,
       s.magazine_ticks = s.magazine_other_ticks = -1;
     }
   } else if (s.magazine_mode == 5) {
+    if(services.magazine_effect)services.magazine_effect(true);
     request_state(s, 3); // 106E70 ->109A60 before109C30's mode6 reset.
     s.magazine_mode = 6;
     s.magazine_ticks = 0; // authored SMG chamber time is zero
@@ -108,7 +116,8 @@ bool smg_update(SmgState &s, const SmgDefinition &d, float dt,
   if (b.mode == 0) {
     if (blocked) b.flags &= ~1u;
     else if (b.flags & 1) b.mode = 1;
-    else if (s.attached && s.loaded == 0 && s.reserve > 0) auto_reload = smg_reload(s, d,activity);
+    else if (s.attached && s.loaded==0 && (services.available?services.available():s.reserve)>0)
+      auto_reload=smg_reload(s,d,activity,services);
   }
   if (b.mode == 1) {
     if (blocked || (b.flags & 64) || !(b.flags & 1)) {
@@ -117,7 +126,7 @@ bool smg_update(SmgState &s, const SmgDefinition &d, float dt,
     } else {
       const float ticks_per_shot = 30.f / d.rate;
       s.marker = true;
-      if (b.shot_count && float(b.counter) + 1.f < ticks_per_shot) {
+      if(services.fire_gate?!services.fire_gate(b):b.shot_count && float(b.counter)+1.f<ticks_per_shot) {
         b.counter = std::min(127, int(b.counter) + 1);
       } else {
         b.flags &= ~1u;
@@ -130,7 +139,7 @@ bool smg_update(SmgState &s, const SmgDefinition &d, float dt,
           --s.loaded;
           ++b.shot_count;
           ++b.marker_count;
-          if (s.hand_timer_registered)
+          if (s.hand_timer_registered && !services.shared_hand_feedback)
             s.hand_timers[0] = 9; // EFCC0 after valid exact-weapon/view/player/current-unit lookup.
           if(activity)activity(0x06000006); // Original prepared-shot16A356, before postpass.
           if (d.preparation_effect) b.effect_b = 1;
@@ -149,21 +158,21 @@ bool smg_update(SmgState &s, const SmgDefinition &d, float dt,
   if (s.marker) b.rate = std::min(1.f, b.rate + d.rate_rise * dt);
   else if (b.rate > 0) b.rate = std::max(0.f, b.rate - d.rate_fall * dt);
   WeaponErrorState error{b.error, b.angle_change};
-  weapon_error_step(error, d.error, dt, 0, s.marker);
+  weapon_error_step(error, d.error, dt, services.opposite_hand_blend, s.marker);
   b.error = error.error;
   b.angle_change = error.recoil;
   return auto_reload;
 }
 std::optional<Vec3> smg_dispatch(SmgState &s, const SmgDefinition &d, Vec3 aim,
                                std::uint32_t &seed,
-                               std::span<const Vec3, 1026> directions) {
+                               std::span<const Vec3, 1026> directions,float opposite_hand_blend) {
   if (!(s.weapon_flags & 1)) return {};
   std::optional<Vec3> result;
   if (s.barrel.flags & 2) {
     auto &b = s.barrel;
     if (b.rate == 0 || b.dispatch_counter++ >= d.dispatch_interval)
       b.dispatch_counter = 0;
-    const auto angles = weapon_error_angles(d.error, b.error, 0);
+    const auto angles = weapon_error_angles(d.error, b.error, opposite_hand_blend);
     result = weapon_random_deviation(aim, angles, seed, directions);
     b.flags &= ~2u;
   }

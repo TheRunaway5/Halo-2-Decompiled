@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 32 32" version="1.1">
+  <title>Vista ui\screens\game_shell\network_squad_browser_screen\ds_icon page 3: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="server-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.34" />
+    </filter>
+    <filter id="server-circle-halo" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.2" />
+    </filter>
+  </defs>
+  <g filter="url(#server-edge)">
+    <circle cx="16" cy="16" r="11.5" fill="none" stroke="#c6d7ec" stroke-width="1.1" opacity="0.55" />
+    <g fill="#ffdf5c" stroke="#ffdf5c" opacity="0.58">
+      <path d="M13 14 V12 C13 9.3 19 9.3 19 12 V14" fill="none" stroke-width="1.3" />
+      <rect x="11" y="14" width="10" height="8" rx="0.7" stroke-width="0.5" />
+    </g>
+  </g>
+  <circle cx="16" cy="16" r="11.5" fill="none" stroke="#78b1ff" stroke-width="2.2" opacity="0.16" filter="url(#server-circle-halo)" />
+</svg>

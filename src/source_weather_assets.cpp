@@ -44,7 +44,7 @@ template<class Rows> SourceWeatherSubmission immediate(std::size_t capacity,unsi
 SourceWeatherDefinition Cache::load_source_weather_definition(std::uint32_t datum) const {
     const auto found=query_tag({.handle=TagHandle{datum}, .group=tag_groups::weather_system, .require_address=true});
     if(!found || found->size<0xb0)throw FormatError("missing/truncated original weather tag");
-    const Bytes b(storage_);const auto p=metadata_offset(found->address,0xb0);
+    const Bytes b(cache_bytes());const auto p=metadata_offset(found->address,0xb0);
     SourceWeatherDefinition out;out.datum=datum;out.name=found->name;
     out.authored=original<0xb0>(b,p);
     std::array<std::uint32_t,39> wind;
@@ -128,7 +128,7 @@ SourceWeatherDefinition Cache::load_source_weather_definition(std::uint32_t datu
 }
 SourceWeatherBsp Cache::load_source_weather_bsp(std::size_t index) const {
     if(index>=bsps_.size())throw FormatError("weather BSP outside scenario");
-    const auto &bsp=bsps_[index];const Bytes b(Bytes(storage_).slice(bsp.file_offset,bsp.size));
+    const auto &bsp=bsps_[index];const Bytes b(Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size));
     SourceWeatherBsp out;const auto palettes=TagAddressSpace(b, bsp.memory_address).block(16+0x84, 0x88, 16);
     for(std::size_t i=0;i<palettes.count;++i){const auto p=palettes.offset+i*0x88;
         out.palette.push_back({original<0x88>(b,p),b.string(p,32),b.u32(p+0x24)});}

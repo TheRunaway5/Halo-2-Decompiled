@@ -1,0 +1,15 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="392" viewBox="0 0 55 49" version="1.1">
+  <title>Vista ui\screens\game_shell\dialog_live_password\password page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="password-outline-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.28" />
+    </filter>
+    <filter id="password-outline-halo" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.3" />
+    </filter>
+  </defs>
+  <path d="M15 3 H40 L52 24.5 L40 46 H15 L3 24.5 Z" fill="none" stroke="#bfe0ff" stroke-width="1" stroke-opacity="0.75" filter="url(#password-outline-softness)" />
+  <path d="M15 3 H40 L52 24.5 L40 46 H15 L3 24.5 Z" fill="none" stroke="#bfe0ff" stroke-width="2" stroke-opacity="0.45" filter="url(#password-outline-halo)" />
+</svg>

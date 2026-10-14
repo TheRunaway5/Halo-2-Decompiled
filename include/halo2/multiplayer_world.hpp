@@ -16,6 +16,8 @@ public:
   TagSystem tags;
   LevelContent content;
   SlayerRules rules;
+  // Session-private source scratch files; destroyed after the world closes.
+  std::shared_ptr<const std::filesystem::path> source_savegames;
   // Must outlive Match's source pool view; Cache must outlive its native I/O.
   std::unique_ptr<MultiplayerObjectRuntime> source_objects;
   MultiplayerMatch match;

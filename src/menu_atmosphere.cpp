@@ -48,7 +48,7 @@ MenuAtmosphere Cache::load_menu_atmosphere() const {
     const auto sky=load_visible_sky(0);
     if(!sky || !sky->atmospheric_fog)
         throw FormatError("menu atmosphere is missing its visible sky");
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     
     const auto scenario=query_tag({.group=tag_groups::scenario, .name=scenario_});
     if(!scenario)throw FormatError("missing menu atmosphere scenario");

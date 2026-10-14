@@ -593,6 +593,11 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   mesh.materials.push_back(
       {"bink/frame",
        Texture{640, 480, 11, std::vector<std::byte>(640u * 480u * 4u), {}}});
+  mesh.materials.back().ui_full_surface = true;
+  const auto movie_matte = unsigned(mesh.materials.size());
+  mesh.materials.push_back({"movie/matte", Texture{1, 1, 11,
+      {std::byte{0}, std::byte{0}, std::byte{0}, std::byte{255}}, {}}});
+  mesh.materials.back().ui_full_surface = true;
   window = desktop->window(options.width, options.height, options.hidden);
   const auto renderer_owner=desktop->make_renderer(mesh,options.validation);
   auto& renderer=*renderer_owner;
@@ -643,6 +648,9 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   });
   auto discord_login=session->discord_login;
   state.set_discord_login(discord_login);
+  state.set_local_discord_login_factory([] {
+    return std::make_shared<DiscordLogin>([](const std::string &url){return SDL_OpenURL(url.c_str())==0;});
+  });
   if(!session->discord_social)session->discord_social=std::make_shared<DiscordSocial>(discord_login,[](const std::string &url) {
     return SDL_OpenURL(url.c_str())==0;
   });
@@ -1036,10 +1044,12 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
   } movie_voice_scope{audio.get(),movie_voice};
   auto movie_started = previous;
   auto begin_movie = [&](const std::string &name) {
-    const auto path = options.maps.parent_path() / "bink" / (name + "_60.bik");
+    const std::unique_ptr<char, decltype(&SDL_free)> base(SDL_GetBasePath(), SDL_free);
+    auto path = frontend_movie_path(options.maps,
+        base ? std::filesystem::path(base.get()) / "resources/movies" : std::filesystem::path{}, name);
+    if (path.extension() == ".bik")
+      path = frontend_movie_path(options.maps, "resources/movies", name);
     movie = std::make_unique<Movie>(path);
-    if (movie->image().width != 640 || movie->image().height != 480)
-      throw FormatError("retail movie dimensions differ from frontend canvas");
     for (auto voice : music_voices)
       if (audio)
         audio->stop(voice, true);
@@ -1053,7 +1063,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     }
     movie_started = Clock::now();
     previous = movie_started;
-    std::cout << "Retail movie: " << name << " frames=" << movie->frame_count()
+    std::cout << "Frontend movie: " << path << " frames=" << movie->frame_count()
               << " fps=" << movie->frame_rate() << '\n';
   };
   auto end_movie = [&] {
@@ -1323,7 +1333,8 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
         if(!slot || before!=state.frame().instance)continue;
         if(state.joining_controller() && slot!=state.joining_controller())continue;
         if(*slot!=0 && !state.joining_controller()) {
-          if((state.frame().screen==30 || state.frame().screen==14) &&
+          if(state.online_couch_mutable() && event.cbutton.button==SDL_CONTROLLER_BUTTON_X)state.open_online_local_player(*slot);
+          if((state.frame().screen==30 || state.frame().screen==14 || state.frame().screen==186) &&
               event.cbutton.button==SDL_CONTROLLER_BUTTON_B)state.leave_local_controller(*slot);
           continue;
         }
@@ -1491,11 +1502,18 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
         end_movie();
     }
     if (movie) {
-      const Vertex a{{0, 0, 1}, {1, 1, 1}, {0, 0}, movie_material},
-          b{{640, 0, 1}, {1, 1, 1}, {1, 0}, movie_material},
-          c{{0, 480, 1}, {1, 1, 1}, {0, 1}, movie_material},
-          d{{640, 480, 1}, {1, 1, 1}, {1, 1}, movie_material};
-      ui.vertices = {a, b, c, b, d, c};
+      const auto viewport = drawable_size();
+      const auto rect = movie_canvas_rectangle(movie->image().width, movie->image().height,
+                                               viewport[0], viewport[1]);
+      const auto quad = [&](float x, float y, float w, float h, unsigned material) {
+        const Vertex a{{x, y, 1}, {1, 1, 1}, {0, 0}, material},
+            b{{x+w, y, 1}, {1, 1, 1}, {1, 0}, material},
+            c{{x, y+h, 1}, {1, 1, 1}, {0, 1}, material},
+            d{{x+w, y+h, 1}, {1, 1, 1}, {1, 1}, material};
+        ui.vertices.insert(ui.vertices.end(), {a, b, c, b, d, c});
+      };
+      quad(0, 0, 640, 480, movie_matte);
+      quad(rect[0], rect[1], rect[2], rect[3], movie_material);
     } else {
       const auto capture_clock = options.capture_ui_ms
           ? std::optional<std::uint32_t>{*options.capture_ui_ms +

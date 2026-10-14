@@ -67,7 +67,7 @@ class PartyApi:
 
     def playing(self, who):
         transport = getattr(self.directory.matchmaking, "transport", None)
-        return transport is not None and any(who in r.tokens and not r.closed and r.phase != "postgame"
+        return transport is not None and any(r.active_member(who) and not r.closed and r.phase != "postgame"
                                             for r in transport.rooms.values())
 
     def changed(self, party, *, admitted=False):
@@ -96,7 +96,7 @@ class PartyApi:
         if party:
             with self.db: self.changed(party[0])
 
-    def view(self, who):
+    def view(self, who, *, local_players=False):
         from .player_presence import observed
         presence = observed(self.directory)
         party = self.party(who)
@@ -111,6 +111,11 @@ class PartyApi:
                      "outgoing": [{"id": r[0], "name": r[1]} for r in self.db.execute(
                          "SELECT i.id,p.screen_name FROM party_invites i JOIN player_profiles p ON p.player=i.target "
                          "WHERE i.party=? ORDER BY i.expires,i.id", (pid,))] if leader == who else []}
+        if value and local_players:
+            for member, stored in zip(value["members"], self.members(party[0])):
+                session = self.queue_session(stored[0])
+                if session and len(session.seats()) > 1:
+                    member["local_players"] = [{"name": p.screen_name, "guest": p.guest} for p in session.seats()[1:]]
         incoming = [{"id": r[0], "name": r[1], "version": r[2]} for r in self.db.execute(
             "SELECT i.id,p.screen_name,g.version FROM party_invites i JOIN parties g ON g.id=i.party "
             "JOIN player_profiles p ON p.player=g.leader WHERE i.target=? ORDER BY i.expires,i.id LIMIT 100", (who,))]
@@ -119,7 +124,7 @@ class PartyApi:
     async def get(self, request):
         self.cleanup()
         _, who = self.directory.clans.session(request)
-        return web.json_response(self.view(who))
+        return web.json_response(self.view(who, local_players=request.query.get("local_players") == "1"))
 
     async def activity(self, request):
         """Private SDK handoff; possession does not replace a target invitation.

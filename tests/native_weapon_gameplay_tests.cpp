@@ -212,10 +212,11 @@ void network_inventory() {
   const auto id=client.slots()[0];match.step(commands);host.broadcast();client.receive();
   // Explicit native transport controls, not claimed original gameplay states.
   auto &authority=const_cast<Unit&>(match.unit(id));
-  authority.weapon.shader={2,0x20,-.5f};host.broadcast();client.receive();
+  authority.weapon.shader={2,0x20,-.5f,.75f};host.broadcast();client.receive();
   check(client.state().players[id].weapon_shader.item_flags==2 &&
       client.state().players[id].weapon_shader.weapon_flags==0x20 &&
-      client.state().players[id].weapon_shader.power_fraction==-.5f,
+      client.state().players[id].weapon_shader.power_fraction==-.5f &&
+      client.state().players[id].weapon_shader.heat==.75f,
       "Authoritative primary shader fields changed over UDP");
   check(client.state().world_weapons.size()==1,"Authoritative world weapon did not reach client");
   const auto item=client.state().world_weapons[0].handle;
@@ -236,11 +237,12 @@ void network_inventory() {
       client.state().players[id].secondary_weapon.ammunition_available==native_weapon_ammunition_available(authority,*native_hand_weapon(authority,1)),
       "Authoritative primary/secondary shared ammunition totals changed over UDP");
   native_hand_weapon(authority,1)->ready_clock=false; // Explicit transport-only raw-state control.
-  native_hand_weapon(authority,1)->shader={3,0x40,std::bit_cast<float>(0x7fc01234u)};
+  native_hand_weapon(authority,1)->shader={3,0x40,std::bit_cast<float>(0x7fc01234u),std::bit_cast<float>(0x7fc05678u)};
   host.broadcast();client.receive();
   check(client.state().players[id].secondary_weapon.shader.item_flags==3 &&
       client.state().players[id].secondary_weapon.shader.weapon_flags==0x40 &&
-      std::bit_cast<std::uint32_t>(client.state().players[id].secondary_weapon.shader.power_fraction)==0x7fc01234u,
+      std::bit_cast<std::uint32_t>(client.state().players[id].secondary_weapon.shader.power_fraction)==0x7fc01234u &&
+      std::bit_cast<std::uint32_t>(client.state().players[id].secondary_weapon.shader.heat)==0x7fc05678u,
       "Independent offhand shader words changed over UDP");
   host.receive(commands);check(!commands[id].dual_wield,"Dual pickup pulse was delivered twice");
   local[0].fire_secondary=true;client.send(local);local[0].fire_secondary=false;client.send(local);
@@ -268,7 +270,8 @@ void network_inventory() {
       [&](const auto &w){return w.handle==item;});
   check(dropped!=client.state().world_weapons.end(),"Dropped offhand owner was lost from the world UDP bank");
   check(dropped->shader.item_flags==2 && dropped->shader.weapon_flags==0x40 &&
-      std::bit_cast<std::uint32_t>(dropped->shader.power_fraction)==0x7fc01234u,
+      std::bit_cast<std::uint32_t>(dropped->shader.power_fraction)==0x7fc01234u &&
+      std::bit_cast<std::uint32_t>(dropped->shader.heat)==0x7fc05678u,
       "Dropped world weapon changed its independent raw shader words over UDP");
 }
 

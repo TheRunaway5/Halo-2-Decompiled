@@ -1,13 +1,16 @@
 #include "halo2/frontend_model_ik.hpp"
 #include "halo2/content.hpp"
-#include "halo2/content.hpp"
 #include <algorithm>
 #include <cmath>
 
 namespace halo2 {
 FrontendModelWeaponIk Cache::load_frontend_model_weapon_ik(std::uint32_t unit,
                                                           std::uint32_t mode)const {
-  const Bytes data(storage_);
+  return load_unit_weapon_ik(unit,load_frontend_model_weapon(unit).value_or(null_datum),mode);
+}
+FrontendModelWeaponIk Cache::load_unit_weapon_ik(std::uint32_t unit,
+    std::uint32_t weapon,std::uint32_t mode)const {
+  const Bytes data(cache_bytes());
   const auto root_for=[&](std::uint32_t id,const char*group,std::size_t size) {
     const auto tag=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
     if(!tag)throw FormatError("frontend world IK source tag missing");
@@ -16,13 +19,12 @@ FrontendModelWeaponIk Cache::load_frontend_model_weapon_ik(std::uint32_t unit,
   const auto object=root_for(unit,"bipd",0xc0);
   FrontendModelWeaponIk out;
   out.world_callback=!(data.u32(object+0xbc)&0x800);
-  const auto weapon=load_frontend_model_weapon(unit);
-  if(!weapon || !out.world_callback)return out;
+  if(weapon==null_datum || !out.world_callback)return out;
   const auto model=root_for(data.u32(object+0x38),"hlmt",0x18);
   const auto graph=data.u32(model+0x14);
   if(graph==null_datum)return out;
   const auto graph_root=root_for(graph,"jmad",0x5c);
-  const auto identifiers=load_weapon_animation_identifiers(*weapon);
+  const auto identifiers=load_weapon_animation_identifiers(weapon);
   auto weapon_class=identifiers[0];
   const auto aliases=data.u32(graph_root+0x54);
   if(aliases>65536)throw FormatError("frontend IK class alias count exceeds source limit");
@@ -36,7 +38,7 @@ FrontendModelWeaponIk Cache::load_frontend_model_weapon_ik(std::uint32_t unit,
         break;
       }
   }
-  const auto weapon_object=root_for(*weapon,"weap",0x3c);
+  const auto weapon_object=root_for(weapon,"weap",0x3c);
   const auto weapon_model=root_for(data.u32(weapon_object+0x38),"hlmt",8);
   out.definition=load_first_person_ik(graph,data.u32(weapon_model+4),
       data.u32(model+4),mode,weapon_class);

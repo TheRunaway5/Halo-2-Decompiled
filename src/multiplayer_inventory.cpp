@@ -4,10 +4,15 @@
 #include "halo2/math.hpp"
 #include "halo2/pickup_visibility.hpp"
 #include "halo2/player_inventory_admission.hpp"
+#include "halo2/multiplayer_object_runtime.hpp"
 #include <algorithm>
 #include <limits>
 
 namespace halo2 {
+void MultiplayerMatch::configure_world_weapon_effect_owner(
+    std::function<std::uint32_t(const WeaponEffectInput &)> owner) {
+  simulation_.world_weapon_effect_hook_=std::move(owner);
+}
 void MultiplayerMatch::configure_weapon_pickups() {
   if(weapon_pickups_configured_ || simulation_.ticks()!=0)
     throw FormatError("Native weapon pickups must be configured once before stepping");
@@ -22,7 +27,8 @@ void MultiplayerMatch::configure_weapon_pickups() {
   pickup_rows_.resize(content_.netgame_equipment.size());
 }
 void MultiplayerMatch::drop_weapon(Unit &u,int slot) {
-  native_drop_weapon(u,slot,weapon_pickups_,std::uint32_t(simulation_.ticks()));
+  native_drop_weapon(u,slot,weapon_pickups_,std::uint32_t(simulation_.ticks()),
+      [this](Unit &unit,WeaponState &weapon){simulation_.clear_weapon_for_holster(unit,weapon);});
 }
 void MultiplayerMatch::drop_secondary_weapon(Unit &u) {
   if(u.source_inventory.current[1]>=0)drop_weapon(u,u.source_inventory.current[1]);
@@ -63,17 +69,25 @@ void MultiplayerMatch::step_weapon_pickups(const std::array<Controls,multiplayer
     if(row>=100)continue; // Source row timer storage supports 100 entries.
     if(netgame_weapon_timer(state,row,std::int32_t(tick),30,true,false,d.position,position,
         taken?1u:0u,d.respawn_seconds,0)) {
-      const auto handle=allocate_object(2);if(handle==null_datum)continue;
-      const auto &w=content_.weapons.at(definition->definition);
+      const bool source_birth=source_object_world_ && source_object_world_->owns_physics();
+      const auto handle=source_birth?source_object_world_->create_netgame_object(row):allocate_object(2);
+      if(handle==null_datum)continue;
+      const auto selected=source_birth?source_object_world_->object_definition(handle):definition->definition;
+      const auto &w=content_.weapons.at(selected);
       const auto basis=authored_basis(d.rotation);
       weapon_pickups_.push_back({handle,w.datum,tick,d.position,basis.forward,basis.up,native_weapon_state(w,handle)});
-      simulation_.object_lifetimes_.publish_native(handle,w.datum);
+      if(source_birth)simulation_.object_lifetimes_.observe_source_birth(handle);
+      else simulation_.object_lifetimes_.publish_native(handle,w.datum);
       netgame_weapon_spawn_result(state,handle);
     }
   }
   for(unsigned id=0;id<players_.size();++id) {
     if(!players_[id].connected || players_[id].source_current_object==null_datum)continue;
     auto &u=unit_mutable(id);if(u.vitality.dead)continue;
+    if(rules_.custom==CustomSlayer::infection && (infection_zombies_&(1u<<id)))continue;
+    // The original14FEC0/1522E0 pipeline owns TU1.5 inventory and unit
+    // actions over the same bodies. Native presentation observes its result.
+    if(source_object_world_ && source_object_world_->owns_physics())continue;
     const auto &c=controls[id];auto &inventory=u.source_inventory;
     std::array<std::uint32_t,2> before{u.weapon.source_datum,
         native_hand_weapon(u,1)?native_hand_weapon(u,1)->source_datum:null_datum};
@@ -106,7 +120,7 @@ void MultiplayerMatch::step_weapon_pickups(const std::array<Controls,multiplayer
       drop_secondary_weapon(u);
       for(int step=1;step<4;++step) {
         const int slot=(int(inventory.current[0])+step+4)%4;
-        if(native_select_weapon(u,slot,tick))break;
+        if(native_select_weapon(u,slot,tick,[this](Unit &unit,WeaponState &weapon){simulation_.clear_weapon_for_holster(unit,weapon);}))break;
       }
     }
     begin_ready();
@@ -120,7 +134,8 @@ void MultiplayerMatch::step_weapon_pickups(const std::array<Controls,multiplayer
     }
     if(pickup && prompt.target.action>=4 && prompt.target.action<=8 && prompt.target.action!=7) {simulation_.take_unit_action(u,prompt);continue;}
     if(prompt.target.action!=1 && prompt.target.action!=7){begin_ready();continue;}
-    const auto transfer=native_take_weapon(u,content_,weapon_pickups_,prompt,dual_wield,tick);
+    const auto transfer=native_take_weapon(u,content_,weapon_pickups_,prompt,dual_wield,tick,
+        [this](Unit &unit,WeaponState &weapon){simulation_.clear_weapon_for_holster(unit,weapon);});
     if(transfer.attached || transfer.depleted)
       for(unsigned row=0;row<pickup_rows_.size();++row)
         if(pickup_rows_[row].object==transfer.object && !pickup_rows_[row].timer)

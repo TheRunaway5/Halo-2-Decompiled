@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2116" height="152" viewBox="0 0 529 38" version="1.1">
+  <title>Vista ui\screens\game_shell\online_y_menu\tabs page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="tab-blue" gradientUnits="userSpaceOnUse" x1="192" y1="0" x2="529" y2="0">
+      <stop offset="0" stop-color="#1f4e7d" stop-opacity="0.9098039215686274" />
+      <stop offset="1" stop-color="#122a46" stop-opacity="0.9098039215686274" />
+    </linearGradient>
+    <linearGradient id="tab-bottom" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="38">
+      <stop offset="0" stop-color="#000000" stop-opacity="0" />
+      <stop offset="0.65" stop-color="#000000" stop-opacity="0" />
+      <stop offset="1" stop-color="#000000" stop-opacity="0.18" />
+    </linearGradient>
+    <filter id="tab-arrow-63" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.3" />
+    </filter>
+    <filter id="tab-arrow-edge-63" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+    <filter id="tab-arrow-169" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.3" />
+    </filter>
+    <filter id="tab-arrow-edge-169" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+  </defs>
+  <path d="M192 22 L209 5.5 H528.5 V37.5 H209 Z" fill="url(#tab-blue)" stroke="#45a7f0" stroke-width="1" stroke-opacity="0.68" />
+  <path d="M192 22 L209 5.5 H528.5 V37.5 H209 Z" fill="url(#tab-bottom)" />
+  <path d="M0 .5 H172 L209 37.5 H0 Z" fill="#00192d" fill-opacity="0.9098039215686274" />
+  <path d="M0 .5 H172 L209 37.5" fill="none" stroke="#45a7f0" stroke-width="1" stroke-opacity="0.88" />
+  <g transform="translate(63 18.5) scale(-1 1)">
+    <path d="M-3 -8 L4 0 L-3 8 V3 L0 0 L-3 -3 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="2" filter="url(#tab-arrow-63)" />
+    <path d="M-3 -8 L4 0 L-3 8 V3 L0 0 L-3 -3 Z" fill="#e3f2ff" filter="url(#tab-arrow-edge-63)" />
+  </g>
+  <g transform="translate(169 18.5) scale(1 1)">
+    <path d="M-3 -8 L4 0 L-3 8 V3 L0 0 L-3 -3 Z" fill="#2e9aff" stroke="#2e9aff" stroke-width="2" filter="url(#tab-arrow-169)" />
+    <path d="M-3 -8 L4 0 L-3 8 V3 L0 0 L-3 -3 Z" fill="#e3f2ff" filter="url(#tab-arrow-edge-169)" />
+  </g>
+</svg>

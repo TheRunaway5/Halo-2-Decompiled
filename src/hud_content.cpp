@@ -7,7 +7,7 @@
 namespace halo2 {
 HudContent Cache::load_hud(std::uint32_t biped, std::uint32_t weapon) const {
   HudContent out;
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   auto root = [&](std::uint32_t datum, const std::string &group,
                   unsigned minimum) {
     const auto t = query_tag({.handle=TagHandle{datum}, .group=TagGroup::from_string(group)});

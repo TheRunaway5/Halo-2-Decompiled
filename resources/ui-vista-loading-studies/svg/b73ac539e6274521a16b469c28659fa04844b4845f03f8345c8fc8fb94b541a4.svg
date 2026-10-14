@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="4096" height="4096" viewBox="0 0 512 512" version="1.1">
+  <title>Vista executable\loading\4 page 0: authored menu vectors</title>
+  <desc>Unfinished hand-authored Vista loading-ring study: explicit circular arcs, plate joints and fastener bores. No raster contours, embedded pixels, source fonts or external assets. Visual review remains required.</desc>
+  <defs />
+  <rect width="512" height="512" fill="black" />
+  <g id="segmented-plates">
+    <path d="M330.4598 55.7837 A216.3 216.3 0 0 1 401.2245 100.2658 L398.1158 103.5995 A208.0 208.0 0 0 1 452.8879 186.2783 L400.4127 204.8608 A153.2 153.2 0 0 0 309.4012 112.4084 Z" fill="white" />
+    <path d="M469.9919 257.8675 A214.0 214.0 0 0 1 453.2787 338.9283 L447.7782 336.6161 A203.1 203.1 0 0 1 311.0229 457.1299 L312.1915 461.4016 A212.4 212.4 0 0 1 256.7452 469.4835 L256.5348 409.1991 A153.2 153.2 0 0 0 409.1942 257.3369 Z" fill="white" />
+    <path d="M256.0000 469.4915 A212.4 212.4 0 0 1 41.7121 259.3663 L45.0005 259.3146 A218.7 218.7 0 0 1 111.8083 102.4514 L109.1646 99.6362 A214.5 214.5 0 0 1 144.8832 72.5244 L176.6383 124.9582 A153.2 153.2 0 0 0 256.0000 409.2000 Z" fill="white" />
+    <path d="M154.0274 71.2770 A211.0 211.0 0 0 1 217.5483 48.5332 L216.9105 45.0918 A214.5 214.5 0 0 1 252.6308 41.5265 L253.5936 102.8189 A153.2 153.2 0 0 0 181.9611 121.8788 Z" fill="white" />
+    <path d="M217.5 46 H230 V42 H252.5 V103.3 L246.8 104 L246.8 49.5 H217.5 Z" fill="white" />
+    <path d="M337.4790 120.3961 A158.2 158.2 0 0 1 391.6039 174.5210 L386.8894 177.3537 A152.7 152.7 0 0 0 334.6463 125.1106 Z" fill="black" />
+    <path d="M411.0241 287.5400 A158.2 158.2 0 0 1 375.3951 359.7885 L371.2442 356.1802 A152.7 152.7 0 0 0 405.6345 286.4435 Z" fill="black" />
+    <path d="M136.6049 359.7885 A158.2 158.2 0 0 1 131.3367 158.6024 L135.6708 161.9885 A152.7 152.7 0 0 0 140.7558 356.1802 Z" fill="black" />
+    <path d="M388 175 L394 191 L398 194 H403 L407 189 L415 185 L422 186 V189 L431 190 L441 194 L453 186 L468 221 H388 Z" fill="black" />
+    <path d="M256 408.5 H265 V474 H256 Z" fill="black" />
+    <path d="M242.8 408.2 L247.8 409 L242.2 472 H237.4 Z" fill="black" />
+    <path d="M193.7 405.7 L200 408.5 L172.7 458.8 L166.4 455.6 Z" fill="black" />
+    <path d="M145.9 73.5 L152 70.1 L182.9 123.2 L176.2 127.2 Z" fill="black" />
+  </g>
+  <g id="channels-and-joints" fill="none" stroke="black" stroke-width="4.1" stroke-linejoin="miter">
+    <path d="M429.2934 257.5123 A173.3 173.3 0 0 1 374.1903 382.7436" />
+    <path d="M147.4096 391.0593 A173.3 173.3 0 0 1 122.2775 145.7676" />
+    <path d="M111 96 L119 104 V141.5 L128.3 151" />
+    <path d="M111.6 415.1 L121 405 H133 L161.5 376.3" />
+    <path d="M152.4 387.5 H172.1 L174.2 385.5" stroke-width="3" />
+    <path d="M382.1 422.8 L374 413.5 V382 L357.4 366.8" />
+    <path d="M48 223.5 L84.2 231.6 M44.5 238.8 L82 241.2 M50.2 330.2 L92.5 314.2" stroke-width="7.1" />
+  </g>
+  <path d="M376 382.5 H379.5 V389 H374.5 V383 Z" fill="black" />
+  <g id="fastener-bores">
+    <circle cx="249.7" cy="87.1" r="2.8" fill="black" />
+    <circle cx="249.7" cy="95.5" r="2.6" fill="black" />
+    <circle cx="337.0" cy="67.9" r="2.5" fill="black" />
+    <circle cx="345.3" cy="71.8" r="2.65" fill="black" />
+    <circle cx="460.1" cy="269.3" r="2.6" fill="black" />
+    <circle cx="459.4" cy="278.0" r="2.7" fill="black" />
+    <circle cx="357.7" cy="380.5" r="2.6" fill="black" />
+    <circle cx="129.4" cy="399.8" r="2.5" fill="black" />
+    <circle cx="133.1" cy="146.5" r="2.8" fill="black" />
+    <path d="M232.8 47 H245 V52 H237.2 Z" fill="black" />
+    <path d="M315.1 98.2 L318.4 99.3 L313.6 110.8 L309.9 109.1 Z" fill="black" />
+    <path d="M414.2 258.3 H422.5 L425 261.5 H414.2 Z" fill="black" />
+  </g>
+</svg>

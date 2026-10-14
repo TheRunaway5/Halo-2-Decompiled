@@ -92,7 +92,7 @@ SourceObjectColorDefinition Cache::load_source_object_color_definition(std::uint
     const auto tag=query_tag({.handle=TagHandle{datum}, .require_address=true});
     if(!tag || tag->group=="mode" || tag->group=="hlmt" || tag->size<0xb4)
         throw FormatError("source object color definition missing");
-    const Bytes data(storage_);const auto root=metadata_offset(tag->address,0xb4);
+    const Bytes data(cache_bytes());const auto root=metadata_offset(tag->address,0xb4);
     const auto count=data.u32(root+0xac);
     if(count>4)throw FormatError("source object color channel count exceeds material bank");
     SourceObjectColorDefinition result;

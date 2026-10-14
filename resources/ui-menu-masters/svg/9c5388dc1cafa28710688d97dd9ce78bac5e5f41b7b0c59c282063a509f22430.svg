@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="224" height="272" viewBox="0 0 56 68" version="1.1">
+  <title>Vista ui\list_skins\default\end_cap page 1: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <mask id="cap-fade" maskUnits="userSpaceOnUse" x="0" y="0" width="56" height="68">
+      <rect width="56" height="68" fill="url(#fade)" />
+    </mask>
+    <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.35" stop-color="#ffffff" />
+      <stop offset="0.83" stop-color="#000000" />
+      <stop offset="1" stop-color="#000000" />
+    </linearGradient>
+    <filter id="cap-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.4" />
+    </filter>
+    <linearGradient id="cap-metal" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="7" y2="61">
+      <stop offset="0" stop-color="#c5cfde" />
+      <stop offset="0.4" stop-color="#c4d4eb" />
+      <stop offset="1" stop-color="#ffffff" />
+    </linearGradient>
+  </defs>
+  <g id="list-end-cap" mask="url(#cap-fade)">
+    <path d="M17 7 H30 L33 11 H50 V14 H20 V54 H52 V57 H33 L29 61 H17 L8 51 V39 H13 V35 H8 V30 L14 23 V11 Z" fill="#599ad6" filter="url(#cap-glow)" />
+    <path d="M17 7 H30 L33 11 H50 V14 H20 V54 H52 V57 H33 L29 61 H17 L8 51 V39 H13 V35 H8 V30 L14 23 V11 Z" fill="url(#cap-metal)" />
+  </g>
+</svg>

@@ -1,5 +1,11 @@
 # Multiplayer shading parity
 
+The [TU1.5 vehicle shading checkpoint](VEHICLE_SHADING_TU15_20261013.md)
+records the campaign/multiplayer vehicle census, exact damage-shader alias
+repair, authored shader selection and per-root ordinary lighting integration.
+Scarab PRT, remaining live owners and original/native vehicle frame comparisons
+remain explicit completion gates.
+
 Verification covers all 21 supplied multiplayer caches and uses the original
 Xbox shaders, textures and rendering routines. Native captures establish that
 these paths run; they do not establish equality with a matched original
@@ -35,7 +41,9 @@ mask collection, secondary part commands, opaque selection and indexed ranges.
 Three raw class0/1 sphere vertex variants match the independently retained
 original semantic emitter across seven resolution/split views; the floating
 sphere-scissor owner matches680 unchanged original executions. These source and
-isolated graphics results do not activate the live illumination producer.
+isolated graphics results remain bounded. The live renderer now submits authored
+BSP grenade-light passes; dynamic model receivers remain open. Current TU1.5
+source/GPU evidence is recorded in [the frame investigation](TU15_GRENADE_LIGHT_FRAMES_20261013.md).
 The shared2CBF0 allocator, full30290 screen rectangles and complete133F70
 model/section collector now have independent original comparisons, including
 odd split-screen layouts. Live4B5D0 geometry/cache production and133AB0 child
@@ -44,16 +52,31 @@ separately from actual geometry-light packet counts in gameplay captures.
 The latest12 native impact/frag/plasma captures have zero validation errors.
 The separate restored-camera Lockout comparison still differs in weather,
 weapon/effect state, target history and brightness; complete appearance parity
-and a new installed effects delivery remain open.
+remains open. [Current impact work](TU15_IMPACT_PRESENTATION_20261013.md) retains
+noise/falloff, initialized defaults, prop material/scale B, runtime captures
+and the remaining full-goal work order. Captures explicitly select the
+authenticated TU1.5 executable. A separate task subsequently selected its
+verified ONLINE runtime; integrating the latest impact patch into that delivery
+remains pending and is recorded with the current path/hash checks.
 
 ## Authority and map coverage
 
-Retail: `assets/disc/default.xbe`, build `02.09.27.09809`, SHA-256
+Current visual authority is **OG Xbox TU1.5**, not Vista. Its unchanged
+executable SHA-256 is
+`21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`.
+The [TU1.5 grenade frame investigation](TU15_GRENADE_LIGHT_FRAMES_20261013.md)
+retains authenticated live code, source state, actual GPU draws and strict
+native pixel comparisons. The [campaign character work](CAMPAIGN_CHARACTER_SHADERS_20261013.md)
+uses this same authority.
+
+Historical base-disc diagnostic: `assets/disc/default.xbe`, build `02.09.27.09809`, SHA-256
 `03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d`.
-Map-pack update: `assets/map-pack/title-update/default.xbe.03`, SHA-256
+Historical map-pack diagnostic: `assets/map-pack/title-update/default.xbe.03`, SHA-256
 `aaea4c9c58ac02cf5f9cc97a16d688318c59b652e92301078e2547a2a5ea5377`.
 Cache provenance: `assets/map-pack/cache-provenance.json`.
 Update decompilation provenance: `analysis/map-pack-update/provenance.json`.
+These earlier images and fixtures retain their named scope; they do not
+establish the current TU1.5 final-frame acceptance gate.
 
 | Release | Maps |
 | --- | --- |

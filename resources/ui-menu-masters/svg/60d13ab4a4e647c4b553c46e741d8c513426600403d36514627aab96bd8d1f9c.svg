@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="64" viewBox="0 0 64 8" version="1.1">
+  <title>Vista ui\screens\game_shell\xbox_live\matchmaking_progress_dialog\progress_dots page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="progress-dot-4" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="progress-dot-18" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="progress-dot-32" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+  </defs>
+  <circle cx="4" cy="4" r="3" fill="#b97d35" opacity="0.61" filter="url(#progress-dot-4)" />
+  <circle cx="18" cy="4" r="3" fill="#b97d35" opacity="0.61" filter="url(#progress-dot-18)" />
+  <circle cx="32" cy="4" r="3" fill="#b97d35" opacity="0.61" filter="url(#progress-dot-32)" />
+</svg>

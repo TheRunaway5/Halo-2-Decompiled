@@ -266,20 +266,19 @@ int main(int argc, char **argv) {
       leave.accept();leave.back();
       check(leave.frame().instance==task,"uncancellable source task accepted native input");
       leave.set_vista_leave_task_status(task,0x0d000441);
-      leave.open_vista_browser();
-      check(leave.frame().instance==task && leave.vista_session_screen()==vista_menu(13),
-          "browser factory disposed the independent task allocation");
+      leave.open_native_mainmenu([]{});
+      check(leave.frame().instance==task && leave.vista_session_screen()==6,
+          "main-menu factory disposed the independent task allocation");
       const auto task_draw=painter.draw(leave,5.f);
       check(task_draw.scenes.size()==1 && task_draw.scenes.front().definition->objects==std::vector<std::string>{"halo_ring2"},
           "actual PC progress model was omitted by the painter");
       check(task_draw.scenes.front().before_vertex<=task_draw.vertices.size(),"PC model lost its draw ordering boundary");
       leave.close_vista_leave_task(task,3);
-      check(leave.frame().screen==vista_menu(13) && leave.frame().instance!=old_lobby &&
-          leave.frame().entries.size()==1 && leave.frame().entries.front().label=="Create New Game",
-          "task close popped the fresh browser or fabricated browser rows");
-      bool create{};
-      leave.set_lobby_session_action([&](auto action){create=action==FrontendLobbySessionAction::Create;return create;});
-      leave.accept();check(create,"actual PC13 Create did not reach the retained session owner");
+      check(leave.frame().screen==6 && leave.frame().instance!=old_lobby &&
+          leave.frame().entries.size()==5,"Task close did not retain the native main menu");
+      bool rejected{};try{leave.open(vista_menu(13));}catch(const FormatError&){rejected=true;}
+      check(rejected && leave.frame().screen==6,"Retired PC13 was reachable through native navigation");
+
     }
     for (auto id : {19u,257u,263u,267u,268u,242u,296u,297u,258u, 243u, 253u, 256u, 269u, 271u, 272u, 273u, 274u, 276u,
                     285u, 290u, 293u, 294u, 295u}) {

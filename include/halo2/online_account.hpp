@@ -22,6 +22,10 @@ struct OnlineClan {
 struct OnlinePartyMember {
   std::string handle, name, ready_playlist;
   bool self{}, leader{}, online{};
+  struct Local { std::string name; bool guest{}; };
+  std::vector<Local> local_players;
+  int local_controller=-1; // Native presentation only; never serialized.
+  bool guest{};
 };
 struct OnlinePartyInvite { std::string id, name; std::uint64_t version{}; };
 struct OnlineParty {

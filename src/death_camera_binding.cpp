@@ -1,4 +1,5 @@
 #include "halo2/death_camera_binding.hpp"
+#include "halo2/source_runtime_memory.hpp"
 #include <bit>
 
 namespace halo2 {
@@ -69,5 +70,34 @@ source_death_camera_players(const SourcePhysicsContactMemory &memory,
                            std::uint8_t(read(memory, row + 0xc0, 1)))});
   }
   return players;
+}
+std::uint32_t source_death_camera_fallback(const SourcePhysicsContactMemory &memory,
+                                          std::uint32_t pool) {
+  const auto headers=read(memory,pool+0x44);
+  const auto high_water=signed_word(read(memory,pool+0x38));
+  auto result=0xffffffffu;
+  for(std::int32_t i=0;i<high_water;++i) {
+    const auto header=headers+std::uint32_t(i)*12;
+    const auto salt=read(memory,header,2);
+    if(!salt || (read(memory,header+3,1)&31u)!=6u)continue;
+    const auto body=read(memory,header+8);
+    if(!body)break; // BBDA0's zero return ends the caller's traversal.
+    if(read(memory,body+0x14)==0xffffffffu && read(memory,body+0x2c,2)!=0xffffu)
+      result=(salt<<16)|std::uint32_t(i);
+  }
+  return result;
+}
+std::optional<DeathCameraTarget>
+source_death_camera_target(const SourceRuntimeMemory &memory,
+                          NativeRuntimeAddress pool,std::uint32_t datum) {
+  return source_death_camera_target(memory,memory.source_address(pool,0x4c),datum);
+}
+std::vector<DeathCameraPlayer>
+source_death_camera_players(const SourceRuntimeMemory &memory,NativeRuntimeAddress pool) {
+  return source_death_camera_players(memory,memory.source_address(pool,0x4c));
+}
+std::uint32_t source_death_camera_fallback(const SourceRuntimeMemory &memory,
+                                         NativeRuntimeAddress pool) {
+  return source_death_camera_fallback(memory,memory.source_address(pool,0x4c));
 }
 } // namespace halo2

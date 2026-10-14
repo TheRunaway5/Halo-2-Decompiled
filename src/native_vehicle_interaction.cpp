@@ -97,7 +97,7 @@ NativeActionPrompt Simulation::unit_action_prompt(const Unit &u,NativeActionProm
   }
   return {};
  }
- if(u.source_action_word&0x400000u)return {};
+ if((source_physics_movement_?u.grenade_action.active_actions():u.source_action_word)&0x400000u)return {};
  std::vector<const Unit*> units{&player_};for(const auto &a:actors_)units.push_back(&a);
  const auto basis=authored_basis({u.yaw,0,0});
  const auto bound=u.body.position+basis.forward*u.definition.bounding_offset.x+basis.left*u.definition.bounding_offset.y+basis.up*u.definition.bounding_offset.z;
@@ -117,7 +117,9 @@ NativeActionPrompt Simulation::unit_action_prompt(const Unit &u,NativeActionProm
   SourceVehicleActionServices services;
   services.flipped=[&](auto){return r.basis[2].z<assets.flipped_up_threshold;};
   services.unit_busy=[&](auto){return u.weapon.reload>0 || (native_hand_weapon(u,1) && native_hand_weapon(u,1)->reload>0);};
-  services.seat=[&](auto,auto){const auto s=choose(u,assets,o,d,units,collision(),content_,bool(content_.multiplayer_spawn),[&](const Unit &a,const Unit &b){return vehicle_allied_?vehicle_allied_(a,b):allied(a.team,b.team);});return SourceVehicleSeatTarget{s.rank,s.seat,s.rank?o.handle:null_datum,r.position};};
+  services.seat=[&](auto,auto){
+   if(source_vehicle_seat_query_)return source_vehicle_seat_query_(u.source_datum,o.handle);
+   const auto s=choose(u,assets,o,d,units,collision(),content_,bool(content_.multiplayer_spawn),[&](const Unit &a,const Unit &b){return vehicle_allied_?vehicle_allied_(a,b):allied(a.team,b.team);});return SourceVehicleSeatTarget{s.rank,s.seat,s.rank?o.handle:null_datum,r.position};};
   if(source_vehicle_action_candidate(q,candidate,services,.2f,current.target,current_root)){current.definition=definition;current.message=0;current_root=r.position;}
  }
  return current;
@@ -211,6 +213,7 @@ void Simulation::step_unit_interactions(const Controls &input) {
  for(const auto &o:scene_.objects())if(o.handle!=null_datum && o.attachment_parent!=null_datum &&
      std::none_of(scene_.objects().begin(),scene_.objects().end(),[&](const auto &p){return p.handle==o.attachment_parent;}))orphans.push_back(o.handle);
  for(const auto h:orphans)scene_.destroy(h);
+ if(source_physics_movement_)return;
  const auto update=[&](Unit &u) {
   if(u.source_parent==null_datum)return;
   const auto object=std::find_if(scene_.objects().begin(),scene_.objects().end(),[&](const auto &o){return o.handle==u.source_parent;});

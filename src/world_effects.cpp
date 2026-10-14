@@ -1,6 +1,7 @@
 #include "halo2/world_effects.hpp"
 #include "halo2/source_effect_event.hpp"
 #include "halo2/particle_presentation.hpp"
+#include "halo2/particle_effect_color.hpp"
 #include "halo2/material_effects.hpp"
 #include "halo2/math.hpp"
 #include "halo2/particle_collision.hpp"
@@ -15,6 +16,7 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <cstdlib>
 #include <deque>
 #include <map>
 #include <set>
@@ -93,6 +95,7 @@ AuthoredBasis location(const std::string &name, const WorldEffectFrame &f) {
 struct NativeWorldEffects::Impl {
   const Cache &cache;
   CollisionWorld collision;
+  ParticleCollisionQuery collision_service;
   std::uint32_t seed;
   SourceEffectRandom random_streams;
   std::uint64_t tick{}, identity{};
@@ -171,6 +174,7 @@ struct NativeWorldEffects::Impl {
     std::vector<Part> parts;
   };
   struct Definition {
+    std::uint32_t datum=none;
     std::uint32_t flags{};
     std::int16_t loop_start=-1;
     std::vector<EventDefinition> events;
@@ -210,16 +214,23 @@ struct NativeWorldEffects::Impl {
     SourceEffectEventState clock;
     std::uint32_t target=none;
     bool initial_attached_step{};
+    std::optional<std::string> attachment_marker;
+    std::optional<NativeWorldEffects::ObjectMarkers> source_locations;
+    SourceEffectColors colors;
   };
   std::deque<Effect> effects;
   std::vector<WorldEffectFrame> frames(const Effect &e,const std::string &name) const {
+    if(e.source_locations) {
+      const auto found=e.source_locations->find(name);
+      return found==e.source_locations->end()?std::vector<WorldEffectFrame>{}:found->second;
+    }
     if(e.target==none) {
       auto f=e.frame;const auto b=location(name,f);f.forward=b.forward;f.up=b.up;
       return {f};
     }
     const auto object=object_markers.find(e.target);
     if(object==object_markers.end())return {};
-    const auto found=object->second.find(name);
+    const auto found=object->second.find(name=="marker" && e.attachment_marker?*e.attachment_marker:name);
     return found==object->second.end()?std::vector<WorldEffectFrame>{}:found->second;
   }
   void refresh(Effect &e,System &s) {
@@ -340,7 +351,7 @@ struct NativeWorldEffects::Impl {
       throw FormatError("World visual request is not an effect");
     auto locs = p.block(p.root, 0xc, 4), events = p.block(p.root, 0x14, 0x38);
     Definition d;
-    d.flags=p.root.u32(0);
+    d.datum=datum;d.flags=p.root.u32(0);
     d.loop_start=std::int16_t(p.root.u16(4));
     if(d.loop_start < -1 || d.loop_start >= int(p.root.u32(0x14)))
       throw FormatError("World effect loop escapes its authored event bank");
@@ -682,7 +693,8 @@ struct NativeWorldEffects::Impl {
         auto &emitter = s.emitters[j];
         update_particle_emitter(
             d.render, j, emitter.state, 0x109, interval, &frame,
-            s.values.values.values, 0xff808080, *cache.shader_function_tables(),
+            s.values.values.values, source_particle_effect_color(0xff808080,
+                e.colors.a,e.colors.b,d.sprite.flags), *cache.shader_function_tables(),
             [&](const ParticleEmissionRequest &request,
                 ParticleEmitterState &state) {
               if (emitter.particles.size() >= 4096)
@@ -704,13 +716,26 @@ NativeWorldEffects::NativeWorldEffects(const Cache &c, Mesh &m,
                                        const CollisionWorld &w,
                                        std::uint32_t seed)
     : impl_(std::make_unique<Impl>(c, m, w, seed)) {}
+void NativeWorldEffects::collision_query(ParticleCollisionQuery query){impl_->collision_service=std::move(query);}
 NativeWorldEffects::NativeWorldEffects(const Cache &c,Mesh &m,const CollisionWorld &w,
                                       SourceEffectRandom streams)
     :impl_(std::make_unique<Impl>(c,m,w,0,streams)) {}
 NativeWorldEffects::~NativeWorldEffects() = default;
 void NativeWorldEffects::preload_attached(std::uint32_t datum) {
   if(datum==none)return;
-  if(!impl_->definition(datum).complete) {
+  // A retained parent may have loaded an incomplete death-effect child.
+  // Walk the whole reachable graph, including cycles, before admitting it.
+  std::set<std::uint32_t> visited;
+  const auto complete=[&](auto &&self,std::uint32_t effect)->bool {
+    if(!visited.insert(effect).second)return true;
+    const auto &definition=impl_->definition(effect);
+    if(!definition.complete)return false;
+    for(const auto &event:definition.events)
+      for(const auto &system:event.systems)
+        if(system.death_effect!=none && !self(self,system.death_effect))return false;
+    return true;
+  };
+  if(!complete(complete,datum)) {
     std::string reason;
     for(const auto &gap:impl_->unavailable)reason+="; "+gap;
     throw FormatError("Attached effect graph could not preload every authored particle system: "+std::to_string(datum)+reason);
@@ -723,14 +748,29 @@ void NativeWorldEffects::object_markers(std::uint32_t handle,ObjectMarkers marke
 }
 void NativeWorldEffects::remove_object(std::uint32_t handle) {
   impl_->object_markers.erase(handle);
-  for(auto &e:impl_->effects)if(e.target==handle)e.finished=true;
+  //1794E0's missing-parent branch calls1774F0, which frees locations and
+  //all linked systems through177460/174180. It does not drain their particles.
+  std::erase_if(impl_->effects,[&](const auto &e){return e.target==handle;});
 }
 void NativeWorldEffects::spawn_attached(std::uint32_t datum,std::uint32_t target,
-    std::uint32_t owner,std::uint64_t tick) {
+    std::uint32_t owner,std::uint64_t tick,SourceEffectColors colors) {
   if(datum==none || !impl_->object_markers.contains(target))return;
   preload_attached(datum);
   spawn(datum,owner,tick,{});
   auto &e=impl_->effects.back();e.target=target;e.frame.scale_a=e.frame.scale_b=0;
+  e.colors=colors;
+  e.initial_attached_step=true;
+}
+void NativeWorldEffects::spawn_looping_attached(std::uint32_t datum,std::uint32_t target,
+    std::uint64_t tick,std::string marker,float scale_a,float scale_b) {
+  if(datum==none || target==none || !impl_->object_markers.contains(target))
+    throw FormatError("Map attachment requires its current full object/marker owner");
+  preload_attached(datum);
+  spawn(datum,target,tick,{});
+  auto &e=impl_->effects.back();e.target=target;e.attached=true;
+  e.attachment_marker=std::move(marker);e.frame.scale_a=scale_a;e.frame.scale_b=scale_b;
+  //175FA0's retained-repeat branch starts through179850 with a zero update,
+  //independently of the definition's one-shot damage-effect bit1.
   e.initial_attached_step=true;
 }
 std::size_t NativeWorldEffects::attach_scenery(const LevelContent &content) {
@@ -777,8 +817,26 @@ void NativeWorldEffects::spawn(std::uint32_t datum, std::uint32_t owner,
     throw FormatError("World effect pool exhausted");
   i.effects.push_back(std::move(e));
 }
+void NativeWorldEffects::spawn_source(std::uint32_t effect,std::uint32_t owner,
+    std::uint64_t tick,std::span<const SourceEffectLocation> locations,SourceEffectColors colors) {
+  if(effect==none)return;
+  if(locations.empty() || locations.size()>32)
+    throw FormatError("Source effect presentation requires its retained location bank");
+  ObjectMarkers frames;
+  for(const auto &location:locations) {
+    if(location.frame.scale!=1.f)
+      throw FormatError("Source effect presentation requires its original unit-scale location frame");
+    const auto &t=location.frame;
+    const WorldEffectFrame frame{t.position,t.basis[0],t.basis[0],t.basis[0],t.basis[2],false};
+    frames[impl_->cache.string_id(location.name)].push_back(frame);
+  }
+  spawn(effect,owner,tick,frames.begin()->second.front());
+  impl_->effects.back().source_locations=std::move(frames);
+  impl_->effects.back().colors=colors;
+}
 void NativeWorldEffects::impact(const BulletImpact &hit) {
   auto &i = *impl_;
+  if(hit.presentation && !hit.presentation->admitted)return;
   if (i.projectiles.empty())
     for (const auto &[datum, weapon] : i.cache.load_content(0, true).weapons)
       i.projectiles.emplace(datum, weapon.projectile);
@@ -787,35 +845,65 @@ void NativeWorldEffects::impact(const BulletImpact &hit) {
   const auto raw = rows.slice(0, rows.size());
   const auto response =
       source_projectile_material_response(raw, i.parents, hit.material);
-  if (!response) {
-    i.unavailable.insert("Projectile effect response has no authored row");
+  if (!response && !hit.presentation) {
+    i.unavailable.insert("Projectile effect default response owner was not retained");
     return;
   }
-  const auto type = std::int16_t(rows.u16(*response * 0x58 + 2));
-  int index = type == 0   ? 15
-              : type == 1 ? 16
-              : type == 2 ? 17
-              : type == 3 ? 18
-              : type == 4 ? 19
-                          : 20;
+  const auto type = hit.presentation?hit.presentation->response:
+      std::int16_t(rows.u16(*response * 0x58 + 2));
+  if(!hit.presentation && ((p.root.u32(0xbc)&16u) || rows.f32(*response*0x58+0x18)>0 ||
+      rows.f32(*response*0x58+0x38)!=0 || rows.f32(*response*0x58+0x3c)!=0))
+    i.unavailable.insert("Projectile contact lacks its selected response/noise/damage-scale owner");
+  const auto index=source_projectile_material_effect_slot(type);
   const auto foot = p.root.u32(0x58);
   const WorldEffectFrame frame{hit.position,        hit.normal, hit.incoming,
-                               hit.incoming * -1.f, {0, 0, 1},  hit.terrain};
+                               hit.incoming * -1.f, {0, 0, 1},  hit.terrain,
+                               hit.presentation?hit.presentation->scale_a:1.f,
+                               hit.presentation?hit.presentation->scale_b:(hit.terrain?0.f:1.f)};
   // 1018B0 supplies default materialNONE and sweetener variant0. The
   // primary, sweetener and secondary entries are separate ordered requests.
-  if (foot != none)
-    for (const auto sound : source_material_sound_effects(
-             i.cache, foot, -1, hit.material, index, 0))
-      if (sound != none)
-        i.sounds.push_back({sound, hit.projectile, hit.tick, hit.position, 1,
-                            WorldEffectSoundKind::Material});
-  if (foot != none)
+  if (foot != none && index)
     for (const auto datum : source_material_visual_effects(
-             i.cache, foot, -1, hit.material, index, 0))
+             i.cache, foot, -1, hit.material, *index, 0))
       if (datum != none)
         spawn(datum, hit.projectile, hit.tick, frame);
   if (hit.material != -1 && p.root.u32(0x144) != none)
     spawn(p.root.u32(0x144), hit.projectile, hit.tick, frame);
+  if (foot != none && index)
+    for (const auto sound : source_material_sound_effects(
+             i.cache, foot, -1, hit.material, *index, 0))
+      if (sound != none)
+        i.sounds.push_back({sound, hit.projectile, hit.tick, hit.position, 1,
+                            WorldEffectSoundKind::Material});
+}
+void NativeWorldEffects::melee_impact(const MeleeImpact &hit) {
+  auto &i=*impl_;
+  if(hit.material<0 || std::size_t(hit.material)>=i.parents.size())return;
+  Packet weapon(i.cache,hit.weapon);
+  // Complete CEEE0/D0340: only melee-only weapons use their foot bank.
+  // Other weapons use the global material's melee sound and jpt!+AC sound.
+  if(weapon.root.u32(0x12c)&(1u<<24)){
+    const auto foot=weapon.root.u32(0x58);if(foot==none)return;
+    //188180/189BB0 offsets the contact by the actual normal before both
+    // visual and sound requests;1765E0 supplies scaleA1/scaleB1.
+    const auto position=hit.position+hit.normal*.01f;
+    const WorldEffectFrame frame{position,hit.normal,hit.forward,hit.forward,{0,0,1},false,1,1};
+    for(const auto effect:source_material_visual_effects(i.cache,foot,-1,hit.material,15,0))
+      if(effect!=none)spawn(effect,hit.attacker,hit.tick,frame);
+    for(const auto sound:source_material_sound_effects(i.cache,foot,-1,hit.material,15,0))
+      if(sound!=none)i.sounds.push_back({sound,hit.attacker,hit.tick,position,1,WorldEffectSoundKind::Material});
+    return;
+  }
+  const auto globals=i.cache.query_tag({.group=tag_groups::globals});
+  Packet global(i.cache,globals->datum);
+  const auto materials=global.block(global.root,0x150,0xb4);
+  const auto sound=materials.u32(unsigned(hit.material)*0xb4+0x64);
+  if(sound!=none)i.sounds.push_back({sound,hit.attacker,hit.tick,hit.attacker_position,1,WorldEffectSoundKind::Material});
+  if(hit.damage!=none){
+    Packet damage(i.cache,hit.damage);
+    if(damage.root.u32(0xac)!=none)i.sounds.push_back({damage.root.u32(0xac),hit.attacker,hit.tick,
+        hit.attacker_position,1,WorldEffectSoundKind::Material});
+  }
 }
 void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
   auto &i = *impl_;
@@ -902,8 +990,9 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
                       controller, movement.flags, s.definition->sprite.flags,
                       emitter.state.first_particle, seconds, owners,
                       *i.cache.shader_function_tables(), pool,
-                      [&](auto, Vec3 origin, Vec3 displacement)
+                      [&](auto flags, Vec3 origin, Vec3 displacement)
                           -> std::optional<ParticleCollisionHit> {
+                        if(i.collision_service)return i.collision_service(flags,origin,displacement);
                         const float distance = length(displacement);
                         if (!(distance > 0))
                           return {};
@@ -913,7 +1002,7 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
                           return {};
                         return ParticleCollisionHit{hit->distance / distance,
                                                     hit->position, hit->normal,
-                                                    hit->source.instance < 0};
+                                                    true,std::int16_t(hit->material)};
                       },
                       [&](const auto &particle, const auto &) {
                         if (s.definition->collision_sound != none)
@@ -952,7 +1041,7 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
             }};
           //175FA0/179850: attached damage effects with definition bit1
           //start with a one-second event update; recharge starts at zero.
-          const float interval=e.initial_attached_step?((e.definition->flags&2u)?1.f:0.f):seconds;
+          const float interval=e.initial_attached_step?((!e.attached && (e.definition->flags&2u))?1.f:0.f):seconds;
           e.initial_attached_step=false;
           source_effect_event_advance(e.clock,e.definition->clocks,e.definition->loop_start,
               interval,i.random_streams.event(e.definition->flags),services);
@@ -1058,7 +1147,9 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
                                                    float seconds) const {
   auto &i = *impl_;
   std::vector<ParticleDraw> result;
+  const auto hide_map=std::getenv("HALO2_REFERENCE_MAP_EFFECTS_HIDE");
   for (const auto &e : i.effects)
+    if(!(hide_map && *hide_map && e.attached && e.target!=none))
     for (const auto &event : e.events)
       for (const auto &s : event.systems) {
         const auto &a = *s.definition;
@@ -1118,6 +1209,8 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
                 ParticleValueCache &cache,
                 const ParticleValueSources &sources) {
               ParticleDraw d;
+              d.effect_owner=e.owner;
+              d.effect_definition=e.definition->datum;
               d.material = a.material;
               std::copy(a.material->pass.constants[1].begin(),
                         a.material->pass.constants[1].end(),

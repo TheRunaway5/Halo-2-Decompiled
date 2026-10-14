@@ -24,7 +24,7 @@ template<class F>void rejects(F&&f){bool caught=false;try{f();}catch(const Forma
 struct Record {std::string family;unsigned classification{};SourceVertexDeclaration declaration;std::vector<std::byte> code;};
 using Key=std::tuple<std::string,std::uint32_t,unsigned,unsigned>;
 struct Corpus {std::vector<Record> records;std::map<Key,unsigned> classes;};
-Corpus load(){std::ifstream in(std::filesystem::path(HALO2_SOURCE_DIR)/"tests/fixtures/retail_cpu_skin_inputs.tsv");check(bool(in),"original CPU skin fixture missing");
+Corpus load(bool campaign){std::ifstream in(std::filesystem::path(HALO2_SOURCE_DIR)/(campaign?"tests/fixtures/retail_campaign_character_vertex.tsv":"tests/fixtures/retail_cpu_skin_inputs.tsv"));check(bool(in),"original CPU skin fixture missing");
     Corpus c;std::string line;unsigned rows=0;
     while(std::getline(in,line)){if(line.empty()||line[0]=='#')continue;std::istringstream row(line);char kind;row>>kind;
         if(kind=='C'){std::string map,model;unsigned section,part,mode,opaque,transparent,type,original;row>>map>>model>>section>>part>>mode>>opaque>>transparent>>type>>original;
@@ -35,7 +35,7 @@ Corpus load(){std::ifstream in(std::filesystem::path(HALO2_SOURCE_DIR)/"tests/fi
             check(code.size()%2==0,"original CPU skin payload malformed");for(unsigned i=0;i<code.size();i+=2)r.code.push_back(std::byte(std::stoul(code.substr(i,2),nullptr,16)));
             c.records.push_back(std::move(r));
         }else throw FormatError("invalid CPU skin fixture record");check(bool(row),"truncated CPU skin fixture");std::string extra;check(!(row>>extra),"trailing CPU skin fixture fields");}
-    check(rows==378&&c.records.size()==49,"original FP class/payload corpus changed");return c;
+    check(rows==378&&c.records.size()==(campaign?84u:49u),"original class/payload corpus changed");return c;
 }
 std::array<ShaderVector,192> constants(){std::array<ShaderVector,192> c{};
     c[0]={1,0,0,0};c[1]={0,1,0,0};c[2]={0,0,1,0};c[3]={1,0,0,4};c[4]={1,0,0,1};c[5]={0,1,0,.5f};c[6]={-1,0,0,2};c[7]={3,1,2,767.8125f};
@@ -128,8 +128,8 @@ void assets(const Corpus&corpus,Checks&checks){std::map<std::pair<std::string,st
 }
 void validation(){const char*l=std::getenv("VK_INSTANCE_LAYERS"),*s=std::getenv("VK_LAYER_VALIDATE_SYNC");check(l&&std::string_view(l).find("VK_LAYER_KHRONOS_validation")!=std::string_view::npos&&s&&std::string_view(s)=="1","CPU skin GPU test requires synchronization validation");}
 }
-int main(int argc,char**argv){try{const auto corpus=load();Checks checks;variant_controls(corpus,checks);assets(corpus,checks);
-    if(argc>1&&std::string_view(argv[1])=="--gpu"){validation();halo2_test::Compute<Fixture,32> gpu(HALO2_VERTEX_DECLARATION_TEST_SHADER);const auto result=gpu.run(checks.fixtures);check(result.size()==checks.fixtures.size()*32,"CPU skin GPU result truncated");unsigned exact=0;
+int main(int argc,char**argv){try{bool campaign=false,gpu_requested=false;for(int i=1;i<argc;++i){const std::string_view arg=argv[i];if(arg=="--campaign")campaign=true;else if(arg=="--gpu")gpu_requested=true;else throw FormatError("Unknown vertex comparison option");}const auto corpus=load(campaign);Checks checks;variant_controls(corpus,checks);assets(corpus,checks);
+    if(gpu_requested){validation();halo2_test::Compute<Fixture,32> gpu(HALO2_VERTEX_DECLARATION_TEST_SHADER);const auto result=gpu.run(checks.fixtures);check(result.size()==checks.fixtures.size()*32,"CPU skin GPU result truncated");unsigned exact=0;
         for(unsigned n=0;n<checks.fixtures.size();++n){std::array<ShaderVector,16> input{},output{};for(unsigned i=0;i<16;++i){input[i]=result[n*32+i];output[i]=result[n*32+16+i];for(unsigned a=0;a<4;++a)exact+=std::bit_cast<std::uint32_t>(input[i][a])==std::bit_cast<std::uint32_t>(checks.inputs[n][i][a]);}close(input,checks.inputs[n],"production input loader");close(output,checks.outputs[n],"production source variant adapter");}
         std::cout<<exact<<" production input words exact; "<<result.size()*4<<" GPU input/output words checked with authored programs\n";}
     std::cout<<checks.fixtures.size()<<" variants/assets/negative-control cases, "<<checks.normalized<<" scoped normal bindings, "<<checks.asset<<" real Elite vertices, "<<checks.wrong_normal<<" missing-normal controls; "<<checks.source_components<<" source output components checked\n";return 0;

@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/tags/directory.hpp"
+#include "halo2/tags/address.hpp"
 #include <cstddef>
 #include <filesystem>
 #include <memory>
@@ -19,14 +20,17 @@ public:
 private:
     friend class TagStructView;
     std::shared_ptr<const TagMemory> memory_;
-    std::uint32_t address_{};
+    NativeTagAddress address_;
     std::size_t count_{}, stride_{};
 };
 // The same field interface works for a tag root, a block element, and an
 // embedded structure, so nested tag blocks need no caller pointer arithmetic.
 class TagStructView {
 public:
-    std::uint32_t source_address() const { return address_; }
+    NativeTagAddress address() const { return address_; }
+    // Explicit file/original-code boundary. This resolves the owner mapping;
+    // it never casts the engine's native pointer to a 32-bit integer.
+    std::uint32_t source_address() const;
     std::span<const std::byte> bytes() const;
     std::span<const std::byte> read(std::size_t offset, std::size_t size) const;
     TagStructView structure(std::size_t offset, std::size_t size) const;
@@ -37,22 +41,31 @@ public:
     std::span<const std::byte> data(std::size_t descriptor_offset) const;
     TagReference reference(std::size_t descriptor_offset) const;
 protected:
-    TagStructView(std::shared_ptr<const TagMemory> memory, std::uint32_t address, std::size_t size)
+    TagStructView(std::shared_ptr<const TagMemory> memory, NativeTagAddress address, std::size_t size)
         : memory_(std::move(memory)), address_(address), size_(size) {}
 private:
     friend class TagBlockView;
     std::shared_ptr<const TagMemory> memory_;
-    std::uint32_t address_;
+    NativeTagAddress address_;
     std::size_t size_;
 };
 class TagView : public TagStructView {
 public:
-    const Tag& info() const { return tag_; }
+    struct Definition {
+        std::string group,name;
+        std::uint32_t datum{};
+        NativeTagAddress address;
+        std::size_t size{};
+        TagHandle handle() const { return {datum}; }
+        TagGroup type() const { return TagGroup::from_string(group); }
+    };
+    const Definition& info() const { return tag_; }
 private:
     friend class TagSystem;
-    TagView(std::shared_ptr<const TagMemory> memory, Tag tag)
-        : TagStructView(std::move(memory), tag.address, tag.size), tag_(std::move(tag)) {}
-    Tag tag_;
+    TagView(std::shared_ptr<const TagMemory> memory, Tag tag, NativeTagAddress address)
+        : TagStructView(std::move(memory), address, tag.size),
+          tag_{std::move(tag.group),std::move(tag.name),tag.datum,address,tag.size} {}
+    Definition tag_;
 };
 
 // Engine-facing tag module. Cache performs file-format conversion; this
@@ -76,7 +89,10 @@ public:
     void load_bsp(std::size_t index);
     void unload_bsp();
     std::optional<std::size_t> selected_bsp() const;
-    std::span<const std::byte> read(std::uint32_t source_address, std::size_t size) const;
+    std::span<const std::byte> read(NativeTagAddress, std::size_t size) const;
+    NativeTagAddress native_address(std::uint32_t source_address, std::size_t size) const;
+    std::uint32_t source_address(NativeTagAddress, std::size_t size) const;
+    std::span<const std::byte> read_source(std::uint32_t source_address, std::size_t size) const;
     std::vector<std::byte> resource(std::uint32_t encoded_pointer, std::uint32_t size) const;
     std::string string_id(std::uint32_t id) const;
 private:

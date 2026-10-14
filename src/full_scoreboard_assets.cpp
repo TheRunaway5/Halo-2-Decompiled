@@ -8,7 +8,7 @@
 
 namespace halo2 {
 FullScoreboardAssets Cache::load_full_scoreboard_assets() const {
-  FullScoreboardAssets out;const Bytes data(storage_);
+  FullScoreboardAssets out;const Bytes data(cache_bytes());
   const auto find=[&](std::uint32_t datum,const char *group)->const Tag * {
     const auto found=query_tag({.handle=TagHandle{datum}, .group=TagGroup::from_string(group)});
     return !found?nullptr:&*found;

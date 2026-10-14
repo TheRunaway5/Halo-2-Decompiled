@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3276" height="1128" viewBox="0 0 819 282" version="1.1">
+  <title>Vista ui\screens\game_shell\network_squad_browser_screen\divider page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="divider-height" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="282">
+      <stop offset="0" stop-color="#09152a" stop-opacity="1" />
+      <stop offset="0.5" stop-color="#0e1e32" stop-opacity="1" />
+      <stop offset="1" stop-color="#12283a" stop-opacity="1" />
+    </linearGradient>
+    <linearGradient id="divider-fade" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="819" y2="0">
+      <stop offset="0.0" stop-color="white" stop-opacity="1" />
+      <stop offset="0.6495726495726496" stop-color="white" stop-opacity="1" />
+      <stop offset="0.6996336996336996" stop-color="white" stop-opacity="0.721" />
+      <stop offset="0.7496947496947497" stop-color="white" stop-opacity="0.337" />
+      <stop offset="0.7997557997557998" stop-color="white" stop-opacity="0.035" />
+      <stop offset="0.8241758241758241" stop-color="white" stop-opacity="0" />
+      <stop offset="1.0" stop-color="white" stop-opacity="0" />
+    </linearGradient>
+    <mask id="divider-fill-envelope" maskUnits="userSpaceOnUse" x="0" y="0" width="819" height="282">
+      <rect width="819" height="282" fill="url(#divider-fade)" />
+    </mask>
+  </defs>
+  <path d="M1 31 L31 1 H818 V260 L797 281 H1 Z Z" fill="url(#divider-height)" mask="url(#divider-fill-envelope)" />
+  <path d="M1 31 L31 1 H818 V260 L797 281 H1 Z" fill="none" stroke="#9aabbd" stroke-width="2" />
+</svg>

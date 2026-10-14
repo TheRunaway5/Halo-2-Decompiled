@@ -36,29 +36,42 @@ struct DeathCameraState {
 // Literal AC-byte caller-owned observer packet; preserves source field/flag layout.
 using DeathCameraPacket=std::array<std::uint32_t,43>;
 using DeathCameraTargetLookup=std::function<std::optional<DeathCameraTarget>(std::uint32_t)>;
+struct DeathCameraSession {
+  bool multiplayer=true;
+  // Campaign23FE30's actual occupied type6 object iterator. Required only
+  // when no current/previous unit or living participant can be selected.
+  std::function<std::uint32_t()> fallback_target;
+};
+// Complete23FCA0 over occupied player records. A same-team player enables
+// restriction even when that player's unit is NONE.
+bool source_death_camera_team_restriction(std::span<const DeathCameraPlayer>,
+    std::uint32_t own);
 //23FD40 iterates actual occupied player slots in ascending source pool order.
 std::uint32_t source_death_camera_next_player(std::span<const DeathCameraPlayer>,
     std::uint32_t own,std::uint32_t watched,bool team_only);
 //23FEA0 target replacement, preserving a still-valid corpse when no new live
 // target exists. The caller supplies the actual multiplayer team restriction.
 void source_death_camera_replace_target(DeathCameraState&,
-    std::span<const DeathCameraPlayer>,bool team_only,const DeathCameraConstants&);
+    std::span<const DeathCameraPlayer>,bool team_only,const DeathCameraConstants&,
+    const DeathCameraSession& = {});
 //23FB00 consumes exactly three draws from the caller's retained local RNG.
+// Its23FEA0 fallback uses the same session team restriction as later cycling.
 DeathCameraState source_death_camera_create(Vec3 observer_position,std::int8_t view,
     std::uint32_t player,std::span<const DeathCameraPlayer>,std::uint32_t& local_rng,
-    const DeathCameraConstants&);
+    const DeathCameraConstants&,bool team_only=false,const DeathCameraSession& = {});
 struct DeathCameraFrame {
   float seconds{};
   std::int16_t tick_rate{};
   Vec3 observer_position{},observer_up{};
-  bool cycle_pressed{},team_only{},game_in_progress{},clock_running{};
+  bool cycle_pressed{},team_only{},clock_initialized{},clock_paused{};
 };
-// Complete multiplayer23FF50 packet producer. Pool/target/observer/clock/input
+// Complete23FF50 packet producer. Pool/target/observer/clock/input
 // values are live owner inputs; no absent corpse pose or successful lookup is inferred.
 DeathCameraPacket source_death_camera_packet(DeathCameraState&,
     std::span<const DeathCameraPlayer>,const DeathCameraTargetLookup&,
     const DeathCameraFrame&,const DeathCameraConstants&,
-    const SourceObserverConstants&,const SourceObserverWorldConstants&);
+    const SourceObserverConstants&,const SourceObserverWorldConstants&,
+    const DeathCameraSession& = {});
 // Required16B240 owner: normalized source segment fraction, or an actual miss.
 using DeathCameraCollision=std::function<std::optional<float>(
     std::uint32_t flags,Vec3 origin,Vec3 delta)>;

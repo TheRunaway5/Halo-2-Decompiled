@@ -55,9 +55,12 @@ void retail(const std::filesystem::path &directory) {
   limits.maxSamplerLodBias=16;limits.maxSamplerAnisotropy=16;
   const auto bump_sampler=native_sampler(panel.texture_states[2],limits,true);
   const auto lightmap_sampler=native_sampler(panel.texture_states[3],limits,true);
-  check(bump_sampler.info.anisotropyEnable && bump_sampler.info.maxAnisotropy==4 &&
+  check(bump_sampler.info.anisotropyEnable && bump_sampler.info.maxAnisotropy==8 &&
         lightmap_sampler.info.addressModeU==VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         "native samplers must preserve Cairo bump/lightmap sampling");
+  check((native_sampler(panel.texture_states[3],limits,true,true).info.flags &
+            VK_SAMPLER_CREATE_NON_SEAMLESS_CUBE_MAP_BIT_EXT)!=0 && lightmap_sampler.info.flags==0,
+        "Xbox cube face filtering must be explicit and require an enabled device feature");
   auto no_mips=panel.texture_states[3];no_mips.mip_filter=0;no_mips.min_filter=1;
   check(native_sampler(no_mips,limits,true).info.maxLod==.25f,
         "mip-disabled textures must preserve the minification filter");

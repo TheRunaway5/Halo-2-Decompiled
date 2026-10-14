@@ -29,6 +29,12 @@ FunctionValue source_weapon_turned_on(const SourceWeaponShaderState &s) {
 std::optional<float> source_weapon_shader_input(std::uint32_t name,
                                                const SourceWeaponShaderState &s) {
     if(name==0x09000568u)return source_weapon_turned_on(s).value;
+    if(name==0x04000567u || name==0x03000577u) {
+        float value=name==0x04000567u?s.heat:s.power_fraction;
+        if(value<0.f)value=0.f;
+        else if(value>1.f)value=1.f;
+        return value;
+    }
     return {};
 }
 } // namespace halo2

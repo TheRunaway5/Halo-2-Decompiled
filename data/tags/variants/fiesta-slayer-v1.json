@@ -1,0 +1,15 @@
+{
+  "schema": "halo2-native-slayer-variant-v1",
+  "id": "fiesta-slayer-v1",
+  "name": "Fiesta Slayer",
+  "engine": "slayer",
+  "native_ruleset": 1,
+  "settings": {
+    "2": 25,
+    "10": 600,
+    "89": 2,
+    "94": 1
+  },
+  "description": "Random primary weapon on every spawn. Original 16-choice sampling and retry behavior; map pickups retain their authored settings.",
+  "provenance": "Newly authored native variant definition. References game definitions from the user installation; contains no extracted map, model, texture or executable payload."
+}

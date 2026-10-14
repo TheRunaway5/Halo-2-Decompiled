@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="168" viewBox="0 0 42 42" version="1.1">
+  <title>Vista ui\screens\game_shell\pregame_lobby\speaker page 1: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs />
+  <g fill="#3382cd">
+    <path d="M7 14 H13 V29 H7 Z M14 14 L22 7 V36 L14 29 Z" />
+    <path d="M29 11 C34 16 34 26 29 31" fill="none" stroke="#3382cd" stroke-width="1.7" stroke-linecap="round" />
+    <path d="M27 15 C30 18 30 24 27 27" fill="none" stroke="#3382cd" stroke-width="1.7" stroke-linecap="round" />
+  </g>
+</svg>

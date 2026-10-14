@@ -1,5 +1,6 @@
 #include "halo2/source_effect_light_opaque.hpp"
 #include "halo2/source_bsp_admission.hpp"
+#include <algorithm>
 #include <bit>
 #include <cstring>
 #include <fstream>
@@ -15,8 +16,17 @@ int main(int argc,char** argv)try {
     auto cache=std::make_shared<Cache>(map);SourceTagMetadataStore store(cache,{"shad","stem","spas","vrtx"});const auto original=store.providers();
     unsigned aliases=0;
     for(const auto& tag:cache->tags())if(tag.group=="shad" && tag.address && !tag.size) {
-        bool rejected=false;try{(void)original.definition(tag.datum);}catch(const FormatError&){rejected=true;}
-        if(!rejected)throw FormatError("empty shader alias manufactured resident payload");++aliases;
+        const auto owner=cache->query_tag({.group=tag.type(),.address=tag.address,.minimum_size=1});
+        if(owner) {
+            const auto& alias=original.definition(tag.datum);const auto bytes=cache->read_tag_bytes(owner->address,owner->size);
+            if(alias.datum()!=tag.datum || alias.group()!=tag.group || alias.source_address()!=tag.address || alias.size()!=owner->size ||
+                !std::ranges::equal(alias.bytes_at(tag.address,owner->size),bytes))
+                throw FormatError("same-address shader alias differs from its owned original payload");
+        } else {
+            bool rejected=false;try{(void)original.definition(tag.datum);}catch(const FormatError&){rejected=true;}
+            if(!rejected)throw FormatError("unowned shader alias manufactured resident payload");
+        }
+        ++aliases;
     }
     if(!aliases)throw FormatError("Lockout zero-sized shader aliases missing");
     const auto bsp=cache->load_source_bsp_admission(0);

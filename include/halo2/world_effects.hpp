@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/source_effect_random.hpp"
+#include "halo2/source_effect_location.hpp"
 #include "halo2/bullet_impact.hpp"
+#include "halo2/melee_impact.hpp"
 #include "halo2/collision.hpp"
 #include "halo2/effect_light.hpp"
 #include "halo2/effect_light_registration.hpp"
@@ -57,8 +59,13 @@ public:
                      SourceEffectRandom);
   ~NativeWorldEffects();
   void impact(const BulletImpact &);
+  void melee_impact(const MeleeImpact &);
   void spawn(std::uint32_t effect, std::uint32_t owner, std::uint64_t tick,
              const WorldEffectFrame &);
+  // Completed source location frames override every authored marker by its
+  // actual string ID. Native presentation supplies no replacement direction.
+  void spawn_source(std::uint32_t effect,std::uint32_t owner,std::uint64_t tick,
+      std::span<const SourceEffectLocation>,SourceEffectColors={});
   // Preload attached graphs before renderer construction; reject incomplete
   // graphs rather than silently omitting a shield system.
   void preload_attached(std::uint32_t effect);
@@ -66,11 +73,16 @@ public:
   void object_markers(std::uint32_t full_handle,ObjectMarkers);
   void remove_object(std::uint32_t full_handle);
   void spawn_attached(std::uint32_t effect,std::uint32_t full_handle,
-      std::uint32_t owner,std::uint64_t tick);
+      std::uint32_t owner,std::uint64_t tick,SourceEffectColors={});
+  //1766B0/175FA0 object attachment branch. The caller supplies current posed
+  //markers and original function values; marker aliases are per attachment.
+  void spawn_looping_attached(std::uint32_t effect,std::uint32_t full_handle,
+      std::uint64_t tick,std::string marker,float scale_a,float scale_b);
   // Original object attachment creator1766B0 sets the retained repeat flag.
   // Import static scenery's actual effe attachments and root transforms.
   std::size_t attach_scenery(const LevelContent &);
   void advance(std::uint64_t tick, float seconds);
+  void collision_query(ParticleCollisionQuery);
   // Consume once after advancing the simulation, independently of view count.
   std::vector<WorldEffectSound> take_sounds();
   // Tick-produced source light state. GPU admission/submission is separate.

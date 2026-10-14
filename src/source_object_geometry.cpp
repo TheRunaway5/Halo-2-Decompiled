@@ -3,6 +3,7 @@
 #include "halo2/object_lighting.hpp"
 #include "halo2/math.hpp"
 #include "halo2/content.hpp"
+#include "halo2/source_model_regions.hpp"
 #include <algorithm>
 #include <cmath>
 #include <map>
@@ -13,16 +14,23 @@
 namespace halo2 {
 void SourceObjectGeometry::load(const Cache&cache,const ScenarioObject&object,
     const SourceInitialModelDefinition&initial,const SourceInitialModelSelection&selection,
-    std::uint32_t render_model){
+    std::uint32_t render_model,bool prepare_region_variants){
     invalidate_views();
     if(!selection.resolved())throw FormatError("object geometry requires resolved source region bytes");
     lod_definition=cache.load_source_geometry_lod_definition(object.definition);
     prt=cache.load_source_prt_definition(render_model);
+    if(prepare_region_variants)region_definition=initial;else region_definition.reset();
     //Keep the legacy diagnostic's sourceLOD5 slots first. Every other level
     //is decoded explicitly; an empty original collector stays empty.
     for(unsigned lod:{5u,0u,1u,2u,3u,4u}){
-        auto&g=lods[lod];g.model=cache.load_model(object.definition,lod==5,object.variant,selection,lod);
-        g.sections=source_initial_model_sections(initial,selection,lod);
+        auto&g=lods[lod];active_sections[lod]=source_initial_model_sections(initial,selection,lod);
+        g.sections=active_sections[lod];
+        if(prepare_region_variants){
+            // Resource union only. Active submission below retains original
+            // region order and duplicate collector entries after every change.
+            g.sections=source_model_region_resource_sections(initial,selection,lod);
+            g.model=cache.load_model_sections(object.definition,lod==5,object.variant,lod,g.sections);
+        }else g.model=cache.load_model(object.definition,lod==5,object.variant,selection,lod);
         g.authored_parts=cache.load_source_transparent_model_parts(render_model,g.sections);
         if(g.model.vertex_origins.size()!=g.model.mesh.vertices.size())
             throw FormatError("resident object geometry lacks source vertex identities: "+g.model.name);
@@ -40,6 +48,32 @@ void SourceObjectGeometry::load(const Cache&cache,const ScenarioObject&object,
             g.model.mesh.materials.clear();
         }
     }
+}
+void SourceObjectGeometry::regions(const SourceInitialModelSelection &selection){
+    if(!region_definition)throw FormatError("object geometry has no prepared region transition bank");
+    bool changed=false;
+    for(unsigned lod=0;lod<6;++lod){auto sections=source_initial_model_sections(*region_definition,selection,lod);
+        for(auto section:sections)if(std::find(lods[lod].sections.begin(),lods[lod].sections.end(),section)==lods[lod].sections.end())
+            throw FormatError("active model region selected an unprepared resident section");
+        changed|=sections!=active_sections[lod];active_sections[lod]=std::move(sections);
+    }
+    if(changed)invalidate_views();
+}
+std::vector<SourceObjectGeometry::PartRun> SourceObjectGeometry::active_runs(unsigned lod)const{
+    if(!region_definition)return part_runs.at(lod);
+    std::vector<PartRun> result;
+    for(auto section:active_sections.at(lod))for(const auto &run:part_runs.at(lod))
+        if(parts.at(lod).at(run.part).section==section)result.push_back(run);
+    return result;
+}
+SourceObjectGeometry::ViewDraw SourceObjectGeometry::active_draw(unsigned lod)const{
+    ViewDraw result;const auto &g=lods.at(lod);
+    for(const auto &run:active_runs(lod)){
+        const auto vertices=std::span(g.vertices).subspan(run.first,run.count);
+        result.vertices.insert(result.vertices.end(),vertices.begin(),vertices.end());
+        result.ordinary_lighting|=parts[lod].at(run.part).ordinary.at(0);
+    }
+    return result;
 }
 SourceObjectGeometry::Stats SourceObjectGeometry::prepare(const Cache&cache,const ObjectColors&colors,
     std::span<const Transform>world_nodes,const SourcePrtLighting&sh,Mesh&mesh,
@@ -214,18 +248,18 @@ SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::u
         if(reuse)previous=draw;
         retained.valid=false;
         draw.vertices.clear();draw.ordinary_lighting=false;
-        if(!view.shader) {draw.vertices=geometry.vertices;draw.ordinary_lighting=geometry.ordinary_lighting;}
+        if(!view.shader) {draw=active_draw(lod);}
         else if(!geometry.vertices.empty()) {
             draw.vertices.reserve(geometry.vertices.size());
             if(reference && *reference) {
-                for(unsigned i=0;i<geometry.vertices.size();++i) {
+                for(const auto &run:active_runs(lod))for(std::size_t i=run.first;i<run.first+run.count;++i) {
                     const auto part_index=vertex_parts[lod].at(i),shader_lod=selected.at(part_index);
                     if(shader_lod==0xffffffffu)continue;
                     const auto &part=parts[lod].at(part_index);
                     auto vertex=geometry.vertices[i];vertex.material=part.materials.at(shader_lod);
                     draw.vertices.push_back(vertex);draw.ordinary_lighting=draw.ordinary_lighting || part.ordinary.at(shader_lod);
                 }
-            } else for(const auto &run:part_runs[lod]) {
+            } else for(const auto &run:active_runs(lod)) {
                 const auto shader_lod=selected.at(run.part);if(shader_lod==0xffffffffu)continue;
                 const auto &part=parts[lod].at(run.part);const auto material=part.materials.at(shader_lod);
                 const auto first=draw.vertices.size();const auto source=std::span{geometry.vertices}.subspan(run.first,run.count);

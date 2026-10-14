@@ -136,7 +136,7 @@ std::optional<SourceObjectConstructorMetadata> Cache::load_object_constructor_me
     std::uint32_t datum)const{
     const auto found=query_tag({.handle=TagHandle{datum}, .require_address=true});
     if(!found || found->size<0xb4)return std::nullopt;
-    const Bytes data(storage_);const auto root=metadata_offset(found->address,0xb4);
+    const Bytes data(cache_bytes());const auto root=metadata_offset(found->address,0xb4);
     SourceObjectConstructorMetadata result;result.type=std::int16_t(data.u16(root));
     if(result.type<0 || result.type>=13)return std::nullopt;
     static constexpr std::array<std::string_view,13> groups={

@@ -34,12 +34,13 @@ std::uint32_t Cache::bitmap_count(std::uint32_t datum) const {
   const auto* tag = find_tag({datum}, tag_groups::bitmap);
   if(!tag || tag->size < 76)
     throw FormatError("missing/truncated animated bitmap tag");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto base = metadata_offset(tag->address,tag->size);
-  return std::uint32_t(TagAddressSpace(data, metadata_magic_).block(base+68, 116).count);
+  return std::uint32_t(metadata_block(base+68, mcc_?168:116).count);
 }
 Texture Cache::load_bitmap(std::uint32_t datum, std::uint32_t index,
                            std::span<const std::byte> palette) const {
+  if(mcc_)return load_mcc_bitmap(datum,index,palette);
   if(vista_) {
     const auto [donor,original]=vista_texture_donor(datum);
     if(!palette.empty()) {
@@ -48,7 +49,7 @@ Texture Cache::load_bitmap(std::uint32_t datum, std::uint32_t index,
       // matching lightmap bank; names/frame counts cannot prove its colors.
       bool matched=false;
       for(const auto& bsp:donor->bsps_) {
-        const Bytes meta(Bytes(donor->storage_).slice(bsp.file_offset,bsp.size));
+        const Bytes meta(Bytes(donor->cache_bytes()).slice(bsp.file_offset,bsp.size));
         const auto pointer=meta.u32(8);
         if(!pointer || pointer==0xffffffffu)continue;
         const auto root=TagAddressSpace(meta,bsp.memory_address).offset(pointer,0);
@@ -70,7 +71,7 @@ Texture Cache::load_bitmap(std::uint32_t datum, std::uint32_t index,
   const auto* tag = find_tag({datum}, tag_groups::bitmap);
   if (!tag || tag->size < 76)
     throw FormatError("missing/truncated bitmap tag");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto base = metadata_offset(tag->address, tag->size);
   const auto records = TagAddressSpace(data, metadata_magic_).block(base + 68, 116);
   if (index >= records.count)
@@ -121,7 +122,7 @@ Texture Cache::load_vista_frontend_bitmap(std::uint32_t datum,std::uint32_t inde
   if(!vista_)throw FormatError("Vista frontend bitmap requires its original PC cache");
   const auto* tag=find_tag({datum}, tag_groups::bitmap);
   if(!tag || !tag->address || tag->size<76)throw FormatError("missing Vista frontend bitmap");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto base=metadata_offset(tag->address,tag->size);
   const auto records=TagAddressSpace(data, metadata_magic_).block(base+68, 116);
   if(index>=records.count)throw FormatError("Vista frontend bitmap index outside source");
@@ -168,7 +169,7 @@ std::uint32_t Cache::load_multiplayer_hill_shader() const {
   if(vista_)throw FormatError("Original multiplayer hill settings require the Xbox gameplay cache");
   const auto globals=query_tag({.group=tag_groups::globals});
   if(!globals || globals->size<0x170)throw FormatError("Missing multiplayer hill globals");
-  const Bytes data(storage_);const auto gp=metadata_offset(globals->address,globals->size);
+  const Bytes data(cache_bytes());const auto gp=metadata_offset(globals->address,globals->size);
   const auto id=data.u32(gp+0x16c);
   const auto* mulg=find_tag({id}, tag_groups::multiplayer_globals);
   if(!mulg || mulg->size<16)throw FormatError("Missing multiplayer hill settings");
@@ -184,7 +185,7 @@ std::uint32_t Cache::load_multiplayer_hill_shader() const {
 Material Cache::load_material(std::uint32_t datum, bool hud) const {
   Material result;
   result.source_shader_datum=datum;
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   auto tag = [&](std::uint32_t id, const char *group) -> const Tag & {
     const auto* it = find_tag({id});
     if (!it || it->group != group || !it->address)
@@ -193,9 +194,10 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
   };
   const auto &shad = tag(datum, "shad");
   result.name = shad.name;
-  if (shad.size < 84)
+  const auto shader_extent=tag_payload({datum}).size();
+  if (shader_extent < 84)
     throw FormatError("truncated shader definition");
-  const auto base = metadata_offset(shad.address, shad.size);
+  const auto base = metadata_offset(shad.address, shader_extent);
   // Retail 0001BBF0 -> 00034060 binds these per shader, before assembly.
   result.shader_switches[4] = data.u16(base + 0x3e);
   result.shader_switches[5] = data.u16(base + 0x40);
@@ -255,13 +257,15 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
   }
   for (std::size_t i = 0; i < layers.count; ++i)
     result.layers.push_back({data.u16(layers.offset + i * 2)});
-  if(vista_) {
+  if(pc_geometry() && !(mcc_ && (datum&0xffffu)<mcc_native_shaders_.size() && mcc_native_shaders_[datum&0xffffu])) {
     // Vista spas implementations contain D3D shader data, with a different
     // layout from Xbox's NV2A definitions. Keep the semantic tag inputs for
     // the independent Vulkan implementation; never decode PC bytes as NV2A.
     result.pixel_constants=std::move(pixel_constants);
     result.vertex_constants=std::move(vertex_constants);
-    result.rendering_gaps.push_back("Vista material requires independently implemented Xbox-compatible Vulkan passes");
+    result.rendering_gaps.push_back(mcc_?
+        "MCC material metadata must be converted to the existing Xbox/Vulkan passes before vanilla admission":
+        "Vista material requires independently implemented Xbox-compatible Vulkan passes");
     return result;
   }
   const auto passes = TagAddressSpace(data, metadata_magic_).block(tp + 16, 10);

@@ -149,7 +149,7 @@ ObjectAttachmentFrame source_object_attachment_local_frame(ObjectAttachmentFrame
     return normalize_attachment_frame({add(rotate(position),inverse.position),rotate(world.forward),rotate(world.up)},world);
 }
 std::optional<AnimationClip> Cache::load_initialized_object_idle(std::uint32_t object)const {
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto tag_root=[&](std::uint32_t datum,const char*group,std::size_t size){
         const auto tag=query_tag({.handle=TagHandle{datum}, .group=group ? std::optional<TagGroup>{TagGroup::from_string(group)} : std::nullopt, .require_address=true});
         if(!tag)throw FormatError("initialized object animation source tag missing");
@@ -224,7 +224,7 @@ std::optional<AnimationClip> Cache::load_initialized_object_idle(std::uint32_t o
 WeaponAttachmentDefinition Cache::load_weapon_attachment(std::uint32_t unit,
     std::uint32_t weapon,unsigned hand)const {
     if(hand>1)throw FormatError("source weapon attachment hand outside slots");
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto tag_root=[&](std::uint32_t id,const char*group,std::size_t size){
         const auto tag=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
         if(!tag)throw FormatError("weapon attachment source tag missing");
@@ -280,7 +280,7 @@ WeaponAttachmentDefinition Cache::load_weapon_attachment(std::uint32_t unit,
 ShadowCasterDefinition Cache::load_object_shadow_definition(std::uint32_t object)const {
     const auto tag=query_tag({.handle=TagHandle{object}});
     if(!tag)throw FormatError("shadow caster object tag missing");
-    const Bytes data(storage_);const auto root=metadata_offset(tag->address,tag->size);
+    const Bytes data(cache_bytes());const auto root=metadata_offset(tag->address,tag->size);
     data.require(root,0x3c);
     ShadowCasterDefinition result;result.name=tag->name;
     result.bounding_radius=data.f32(root+4);

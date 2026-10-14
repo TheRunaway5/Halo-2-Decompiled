@@ -11,6 +11,10 @@ NativeObjectLifetimes::NativeObjectLifetimes(SourceRuntimeMemory &memory,std::ui
     if(pool_.stride()!=12 || pool_.capacity()!=0x800)
         throw FormatError("Original object lifetime view requires its source header pool");
 }
+NativeObjectLifetimes::NativeObjectLifetimes(SourceRuntimeMemory &memory,NativeRuntimeAddress p):pool_(memory,p) {
+    if(pool_.stride()!=12 || pool_.capacity()!=0x800)
+        throw FormatError("Original object lifetime view requires its source header pool");
+}
 void NativeObjectLifetimes::observe_source_birth(std::uint32_t handle) {
     if(!pool_.source_memory() || owners_.contains(handle))
         throw FormatError("Source birth observation requires a new raw source identity");

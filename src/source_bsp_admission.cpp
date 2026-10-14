@@ -45,7 +45,7 @@ SourceBspSphereClusters source_bsp_sphere_clusters(const ObjectLightSpatialBsp& 
 }
 SourceBspAdmissionBsp Cache::load_source_bsp_admission(std::size_t index) const {
     if(index>=bsps_.size())throw FormatError("source BSP admission index outside scenario");
-    const auto &bsp=bsps_[index];const Bytes data(storage_);
+    const auto &bsp=bsps_[index];const Bytes data(cache_bytes());
     const Bytes metadata(data.slice(bsp.file_offset,bsp.size));
     
     SourceBspAdmissionBsp out;

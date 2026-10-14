@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="88" viewBox="0 0 8 11" version="1.1">
+  <title>Vista ui\list_skins\variants\lock page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="lock-edge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.18" />
+    </filter>
+  </defs>
+  <g filter="url(#lock-edge-softness)">
+    <path d="M1.3 5.5 V2.8 C1.3 -.4 6.7 -.4 6.7 2.8 V5.5" fill="none" stroke="#78a2c8" stroke-width="1.6" />
+    <rect y="5" width="8" height="6" rx="0.5" fill="#78a2c8" />
+  </g>
+</svg>

@@ -165,14 +165,14 @@ bool source_object_light_spatial_scan(const ObjectLightSpatialLists& lists,
 ObjectLightSpatialDefinition Cache::load_object_light_spatial_definition(std::uint32_t datum) const {
     const auto object=query_tag({.handle=TagHandle{datum}, .require_address=true});
     if(!object || object->size<0x30)throw FormatError("object spatial definition missing");
-    const Bytes data(storage_);const auto p=metadata_offset(object->address,object->size);
+    const Bytes data(cache_bytes());const auto p=metadata_offset(object->address,object->size);
     const auto type=std::int16_t(data.u16(p));
     if(type<0 || type>12)throw FormatError("spatial definition is not an object");
     return {data.u16(p+2),data.f32(p+0x20),{data.f32(p+0x24),data.f32(p+0x28),data.f32(p+0x2c)}};
 }
 ObjectLightSpatialBsp Cache::load_object_light_spatial_bsp(std::size_t index) const {
     if(index>=bsps_.size())throw FormatError("object spatial BSP outside scenario");
-    const auto& bsp=bsps_[index];const Bytes data(Bytes(storage_).slice(bsp.file_offset,bsp.size));
+    const auto& bsp=bsps_[index];const Bytes data(Bytes(cache_bytes()).slice(bsp.file_offset,bsp.size));
     
     const auto root=TagAddressSpace(data, bsp.memory_address).offset(data.u32(4), 0);data.require(root,0xa4);
     

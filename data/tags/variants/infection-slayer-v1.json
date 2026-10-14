@@ -1,0 +1,15 @@
+{
+  "schema": "halo2-native-slayer-variant-v1",
+  "id": "infection-slayer-v1",
+  "name": "Infection Slayer",
+  "engine": "slayer",
+  "native_ruleset": 2,
+  "settings": {
+    "2": 0,
+    "10": 180,
+    "89": 9,
+    "94": 4
+  },
+  "description": "Custom Halo 3-style survival: one random initial zombie, green sword zombies, shotgun and magnum survivors. Human deaths convert; no faction friendly fire. Survive three minutes or infect everyone.",
+  "provenance": "Newly authored native variant definition. References game definitions from the user installation; contains no extracted map, model, texture or executable payload."
+}

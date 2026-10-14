@@ -13,8 +13,31 @@ from scipy.optimize import lsq_linear
 from vista_prompt_svg import Drawing, element, rgb, bounds
 from vista_emblem_svg import foreground
 from vista_wordmark_svg import wordmark
+from vista_menu_panels_svg import panel
+from vista_menu_status_svg import status
+from vista_menu_framing_svg import framing
+from vista_menu_rank_svg import numbered_rank
+from vista_menu_live_svg import live_icon
+from vista_menu_materials_svg import materials
+from vista_menu_tracks_svg import tracks
+from vista_menu_aux_svg import auxiliary
+from vista_menu_corner_svg import corners
+from vista_menu_lightpanels_svg import lightpanels
+from vista_menu_branding_svg import branded_row
+from vista_menu_center_svg import centre_frame
+from vista_menu_controls_svg import controls
 
-PREFIX='ui\\'
+FIXED_PALETTE_FAMILIES={
+    'virtual-keyboard-key','emblem-background','emblem-foreground',
+    'setting-list-highlight','list-selector','virtual-keyboard-field',
+    'striped-list-row','voice-mail-control','voice-mail-timeline-border',
+    'postgame-column-panel','lobby-name-field','browser-status-icon',
+    'lobby-speaker-icon','postgame-team-panel','postgame-spinner-arrow',
+    'lobby-settings-divider','browser-grid-panel','profile-grid-panel',
+    'lobby-grid-panel','browser-list-frame','lobby-chat-frame',
+    'numbered-rank-badge',
+    'celestial-rank-illustration',
+}
 
 
 class MenuDrawing(Drawing):
@@ -42,7 +65,7 @@ class MenuDrawing(Drawing):
         # radii, stroke widths, and every state remain the authored values.
         density=self.scale
         self.scale=1
-        if self.family not in ('virtual-keyboard-key','emblem-background','emblem-foreground','setting-list-highlight','list-selector','virtual-keyboard-field'):self.calibrate()
+        if self.family not in FIXED_PALETTE_FAMILIES:self.calibrate()
         self.scale=density
         self.save()
 
@@ -67,6 +90,21 @@ class MenuDrawing(Drawing):
         model=np.stack(columns,axis=-1).reshape(-1,len(self.slots))
         source=self.source.astype(float)/255
         target=(source[:,:,:3]*source[:,:,3,None]-base).reshape(-1,3)
+        # Portraits can opt into stable material interiors. This prevents
+        # differences in an outlined edge from steering a plate's paint.
+        # No reference mask or pixels are serialized into replacement art.
+        alpha_range=getattr(self,'paint_fit_alpha_range',None)
+        if alpha_range is not None:
+            from scipy.ndimage import binary_erosion
+            low,high=alpha_range
+            native_alpha=np.asarray(render(self.path,1))[:,:,3]
+            original_alpha=self.source[:,:,3]
+            interior=(original_alpha>=low)&(original_alpha<=high)&\
+                     (native_alpha>=low)&(native_alpha<=high)
+            interior=binary_erosion(interior,iterations=2).reshape(-1)
+            if not interior.any():raise ValueError('No stable material interiors for paint fitting')
+            model=model[interior]
+            target=target[interior]
         step=max(1,len(model)//20000)
         ridge=.005
         model=np.vstack((model[::step],np.eye(len(self.slots))*ridge))
@@ -333,45 +371,6 @@ def keyboard_field(d,name):
     element(d.root,'path',d=p,fill='none',stroke='#006db0',stroke_width=1)
 
 
-def title_wordmark(d):
-    """Individual outlines for the original Vista HALO 2 wordmark."""
-    d.family='halo2-title-wordmark'
-    lettering={
-      'H':'M50 17 H90 V21 C86 21 86 25 86 32 V58 H169 V31 C181 32 188 36 195 43 '
-          'V98 C195 103 200 105 206 104 V108 H179 V104 H168 V67 H100 V96 '
-          'C100 102 108 105 118 105 V109 H79 V112 H72 V109 H54 V106 H65 V34 '
-          'C65 23 62 20 50 20 Z',
-      'A':'M315 21 L387 101 H407 V105 H369 V109 H365 V106 H352 V103 H365 '
-          'C370 103 367 100 365 98 L335 73 H295 L276 94 C272 99 273 102 282 102 '
-          'H290 V105 H259 L255 108 H231 V103 H242 L272 68 H282 L289 61 H326 '
-          'L305 39 L298 46 H290 L306 29 L308 31 Z',
-      'L':'M425 25 H463 V29 H489 V32 C476 31 473 34 473 43 V91 H541 '
-          'C549 91 553 87 554 83 V99 H551 V107 H459 V110 H452 V106 H429 V103 '
-          'C443 103 446 100 446 90 V40 C446 29 441 27 425 27 Z',
-      'O':'M565 57 H577 C584 39 602 27 629 21 L626 17 C687 8 746 23 754 60 '
-          'H774 V65 H756 C749 98 708 115 656 115 V111 C637 112 621 109 609 103 '
-          'L617 95 C639 103 674 105 700 92 C724 80 735 67 729 52 '
-          'C719 28 675 22 648 27 C617 28 593 39 584 57 V65 H574 L565 57 Z',
-      '2':'M871 21 C898 8 938 11 956 29 C969 44 969 59 956 72 H932 '
-          'C915 80 901 88 881 96 V100 H905 L913 96 H962 C969 96 971 91 971 86 '
-          'H974 V107 H971 V111 H852 V107 H829 V104 C849 98 869 89 886 81 '
-          'L890 85 C910 78 928 70 936 58 C947 43 935 30 916 28 '
-          'C893 23 874 28 865 40 V47 H849 L844 42 H856 C859 32 866 28 875 24 Z',
-    }
-    paint=d.linear('wordmark-metal',[(0,(255,255,255)),(.42,(255,255,255)),(.66,(207,215,243)),
-        (.85,(88,119,206)),(1,(25,55,163))],y1=18,y2=111)
-    bevel=d.linear('wordmark-bevel',[(0,(220,224,255)),(.5,(190,197,241)),(1,(99,113,201))],y1=17,y2=114)
-    group=element(d.root,'g',id='halo2-wordmark',stroke_linejoin='miter')
-    for name,path in lettering.items():
-        element(group,'path',id=name+'-shadow',d=path,fill='#27357f',fill_rule='evenodd',
-                transform='translate(.8 1.5)')
-        element(group,'path',id=name,d=path,fill=paint,stroke=bevel,stroke_width=1.6,fill_rule='evenodd')
-    # The O's central oval and pointed highlight are independent artwork.
-    oval=d.linear('central-oval-paint',[(0,(255,255,255)),(.5,(240,244,255)),(1,(50,80,187))],y1=57,y2=75)
-    element(group,'path',id='central-oval',d='M643 65 C645 56 659 55 668 59 L674 63 H684 V66 H675 '
-        'C668 74 650 78 643 69 Z',fill=oval,stroke='#a5b3ed',stroke_width=1)
-
-
 def draw(image,path,name,frame,scale=4):
     d=MenuDrawing(image,path,scale,name,frame)
     source=np.asarray(image)
@@ -407,6 +406,11 @@ def draw(image,path,name,frame,scale=4):
                   'ui\\screens\\game_shell\\virtual_keyboard\\button_disabled'):
         keyboard_field(d,name)
     elif name=='ui\\screens\\game_shell\\start_screen\\start_screen':wordmark(d)
-    else:return None
+    elif name in ('ui\\global_bitmaps\\rank_icons','ui\\global_bitmaps\\rank_icons_sm'):
+        if not numbered_rank(d):return None
+    elif not (panel(d,name) or status(d,name) or framing(d,name) or live_icon(d,name)
+              or controls(d,name) or materials(d,name) or tracks(d,name)
+          or auxiliary(d,name) or corners(d,name) or lightpanels(d,name)
+          or branded_row(d,name) or centre_frame(d,name)):return None
     d.finish()
     return d

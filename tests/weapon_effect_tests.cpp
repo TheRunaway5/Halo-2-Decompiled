@@ -81,6 +81,9 @@ void visibility(const std::vector<std::vector<std::string>> &rows) {
 }
 int main(int argc,char **argv) {
   try {
+    for(const auto previous:{0xffffffffu,0u,0x12340011u})
+      check(halo2::dispatch_source_weapon_effect({0xffffffffu,0xdeadbeefu,previous,0x7fc01234u,0x80000000u},{})==0xffffffffu,
+          "Original NONE effect clears the retained handle before resolving any service");
     check(argc==2,"usage: weapon_effect_tests original-fixtures.txt");
     std::ifstream in(argv[1]);check(bool(in),"original fixture input");
     std::vector<std::vector<std::string>> rows;std::string line;unsigned count=0;

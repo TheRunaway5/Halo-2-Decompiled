@@ -186,6 +186,8 @@ void explicit_ranges(const std::filesystem::path &directory,
   for(unsigned i=0;i<header_words.size();++i)
     require(header_bytes.u32(i*4)==header_words[i],"literal BSP raw header was relocated or reconstructed");
   require(carrier->raw_header().empty(),"model section claims an unproved BSP header mapping");
+  require(!carrier->raw_model_header().empty() && bsp52->raw_model_header().empty(),
+          "source model and BSP range headers lost their separate owner contracts");
 }
 }
 int main(int argc,char **argv) {try {

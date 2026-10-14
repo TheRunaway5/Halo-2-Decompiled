@@ -1,10 +1,11 @@
 #pragma once
 #include "halo2/audio.hpp"
+#include <array>
 #include <memory>
 
 namespace halo2 {
-// Decode the original Bink stream at its authored frame rate. Only one RGBA
-// frame is resident; audio uses the existing bounded stereo mixer.
+// Decode original Bink or bundled H.264/AV1 movies at their encoded frame rate.
+// One RGBA frame is exposed; audio uses the existing bounded stereo mixer.
 class Movie {
 public:
   explicit Movie(const std::filesystem::path &);
@@ -23,4 +24,12 @@ private:
   std::unique_ptr<Impl> impl_;
 };
 PcmSound decode_movie_audio(const std::filesystem::path &);
+// Prefer a bundled intro/credits, retaining the disc movie when absent.
+std::filesystem::path frontend_movie_path(const std::filesystem::path &maps,
+                                        const std::filesystem::path &bundle,
+                                        const std::string &name);
+// Aspect-preserving rectangle in the full-surface 640x480 UI coordinates.
+std::array<float, 4> movie_canvas_rectangle(unsigned width, unsigned height,
+                                          unsigned viewport_width,
+                                          unsigned viewport_height);
 } // namespace halo2

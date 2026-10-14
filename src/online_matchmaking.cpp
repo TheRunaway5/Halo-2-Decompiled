@@ -220,6 +220,7 @@ struct OnlineMatchmaking::Impl {
   bool transferred{};
   bool active{}, pending{}, configured{};
   std::string name, desired;
+  std::vector<OnlineLocalPlayer> local_players;
   std::uint64_t generation{};
   std::stop_source request_stop;
   std::jthread worker;
@@ -247,10 +248,12 @@ struct OnlineMatchmaking::Impl {
     if (version != generation) return;
     next.revision = state.revision + 1; state = std::move(next);
   }
-  void command(bool enabled, std::string screen_name, std::string playlist) {
+  void command(bool enabled, std::string screen_name, std::string playlist,
+               std::vector<OnlineLocalPlayer> additional = {}) {
     std::lock_guard lock(mutex);
     if (!configured) return;
     active = enabled; name = std::move(screen_name); desired = std::move(playlist);
+    local_players=std::move(additional);
     match_session.reset(); transferred=false;
     ++generation; pending = true; request_stop.request_stop();
     state.status = enabled ? (desired.empty() ? OnlineMatchmakingStatus::Connecting : OnlineMatchmakingStatus::Joining) : OnlineMatchmakingStatus::Idle;
@@ -277,6 +280,7 @@ struct OnlineMatchmaking::Impl {
       const auto version = generation;
       const bool enabled = active;
       const auto screen_name = name, playlist = desired;
+      const auto additional=local_players;
       auto next = state;
       request_stop = std::stop_source{};
       const auto source = request_stop;
@@ -310,7 +314,23 @@ struct OnlineMatchmaking::Impl {
           const auto authorization = login->authorization(); require(authorization.has_value());
           text(Json{{"name", screen_name}}, "name");
           auto session_body = Json{{"screen_name", screen_name}, {"maps", options.maps}, {"compatibility", options.compatibility}};
-          if(options.compatibility=="halo2-native-queue-v8")session_body["language"]=options.language;
+          const bool direct=options.compatibility=="halo2-native-queue-v12";
+          const bool gathering=options.compatibility=="halo2-native-queue-v8" || options.compatibility=="halo2-native-queue-v9" || options.compatibility=="halo2-native-queue-v10" || direct;
+          if(gathering)session_body["language"]=options.language;
+          require(additional.size()<=3);
+          if(!additional.empty()) {
+            require(options.compatibility=="halo2-native-queue-v9" || options.compatibility=="halo2-native-queue-v10" || direct);
+            session_body["local_players"]=Json::array();
+            for(const auto &player:additional) {
+              text(Json{{"name",player.name}},"name");
+              Json row={{"screen_name",player.name}};
+              if(player.login) {
+                const auto grant=player.login->authorization();require(grant.has_value());
+                row["discord_token"]=*grant;
+              }
+              session_body["local_players"].push_back(std::move(row));
+            }
+          }
           const auto r = http({"POST", options.endpoint + "/v1/matchmaking/session",
               session_body.dump(), *authorization}, token);
           if (r.status != 201) throw StatusError{r.status};
@@ -318,7 +338,7 @@ struct OnlineMatchmaking::Impl {
           session = text(body, "token", 128);
           require(session.size() >= 32 && std::all_of(session.begin(), session.end(), [](unsigned char c) { return std::isalnum(c) || c == '-' || c == '_'; }));
           expires = Clock::now() + std::chrono::seconds(number(body, "expires_in", 1, 900)); session_name = screen_name;
-          if(options.compatibility=="halo2-native-queue-v8")qos=std::make_unique<OnlineSearchQos>(options.endpoint,session,options.allow_loopback_http);
+          if(gathering)qos=std::make_unique<OnlineSearchQos>(options.endpoint,session,options.allow_loopback_http);
           next.playlists.clear();
         }
         if (changed || next.playlists.empty()) next.playlists = catalog(call("GET", "/v1/matchmaking/playlists"));
@@ -357,13 +377,31 @@ struct OnlineMatchmaking::Impl {
           bool missing; { std::lock_guard guard(mutex); missing=!match_session; }
           if(missing) {
             const auto descriptor=call("GET","/v1/matchmaking/transport");
-            require(descriptor.is_object() && descriptor.size()==4);
+            const bool direct=options.compatibility=="halo2-native-queue-v12";
+            const bool couch=descriptor.contains("local_slots");
+            require(descriptor.is_object() && descriptor.size()==(direct?7u:couch?(options.compatibility=="halo2-native-queue-v10"?6u:5u):4u));
+            OnlineMatchTransportOptions transport;
+            if(direct) {
+              require(couch && descriptor.contains("transport"));
+              const auto &value=descriptor.at("transport");
+              require(value.is_object() && value.size()==2 && text(value,"kind")=="direct-udp-v1" &&
+                  value.at("stun_servers").is_array() && value.at("stun_servers").size()<=4);
+              transport.direct_udp=true;
+              for(const auto &url:value.at("stun_servers")) {
+                require(url.is_string());transport.stun_servers.push_back(url.get<std::string>());
+              }
+            }
+            require(additional.empty() || couch);
             const auto &rows=descriptor.at("players");
             require(rows.is_array() && rows.size()==next.match->players.size());
             std::vector<OnlineAdmission> roster;
             for(unsigned i=0;i<rows.size();++i) {
-              require(rows[i].is_object() && rows[i].size()==3);
+              require(rows[i].is_object() && rows[i].size()==(couch?5u:3u));
               roster.push_back({i,text(rows[i],"name"),int(number(rows[i],"team",0,15))});
+              if(couch) {
+                roster.back().peer=number(rows[i],"peer",0,unsigned(rows.size()-1));
+                roster.back().guest=boolean(rows[i],"guest");
+              }
               const auto identity=text(rows[i],"identity");
               require(identity.size()==16 && identity.find_first_not_of("0123456789abcdef")==std::string::npos);
               for(unsigned j=0;j<8;++j)roster.back().identity[j]=std::byte(std::stoul(identity.substr(j*2,2),nullptr,16));
@@ -371,7 +409,21 @@ struct OnlineMatchmaking::Impl {
             }
             const auto self=number(descriptor,"slot",0,unsigned(roster.size()-1));
             require(next.match->players[self].self);
-            auto relay=std::make_shared<OnlineMatchSession>(options.endpoint,text(descriptor,"id"),text(descriptor,"token",128),self,std::move(roster),options.allow_loopback_http);
+            if(couch) {
+              const auto &slots=descriptor.at("local_slots");
+              require(slots.is_array() && slots.size()==1+additional.size() && !slots.empty());
+              std::set<unsigned> local;
+              for(unsigned i=0;i<slots.size();++i) {
+                require(slots[i].is_number_unsigned() || slots[i].is_number_integer());
+                const auto slot=number(Json{{"slot",slots[i]}},"slot",0,unsigned(roster.size()-1));
+                require(local.insert(slot).second && online_admission_peer(roster[slot])==self);
+                require(roster[slot].name==(i?additional[i-1].name:screen_name));
+                require(roster[slot].guest==(i && !additional[i-1].login));
+              }
+              require(slots[0]==self && local.contains(self));
+              for(const auto &p:roster)require((online_admission_peer(p)==self)==local.contains(p.slot));
+            }
+            auto relay=std::make_shared<OnlineMatchSession>(options.endpoint,text(descriptor,"id"),text(descriptor,"token",128),self,std::move(roster),options.allow_loopback_http,descriptor.contains("team_mode")?std::optional(boolean(descriptor,"team_mode")):std::nullopt,false,std::move(transport));
             std::lock_guard guard(mutex); if(version==generation)match_session=std::move(relay);
           }
         }
@@ -394,12 +446,13 @@ struct OnlineMatchmaking::Impl {
 };
 OnlineMatchmaking::OnlineMatchmaking(std::shared_ptr<DiscordLogin> l, OnlineMatchmakingOptions o, Http h) : impl_(std::make_unique<Impl>(std::move(l), std::move(o), std::move(h))) {}
 OnlineMatchmaking::~OnlineMatchmaking() = default;
-void OnlineMatchmaking::refresh(const std::string &name) { impl_->command(true, name, {}); }
+void OnlineMatchmaking::refresh(const std::string &name, std::vector<OnlineLocalPlayer> additional) { impl_->command(true, name, {},std::move(additional)); }
 void OnlineMatchmaking::join(const std::string &playlist) {
-  std::string name; { std::lock_guard lock(impl_->mutex); name = impl_->name; }
-  impl_->command(true, std::move(name), playlist);
+  std::string name;std::vector<OnlineLocalPlayer> additional;
+  { std::lock_guard lock(impl_->mutex); name = impl_->name;additional=impl_->local_players; }
+  impl_->command(true, std::move(name), playlist,std::move(additional));
 }
-void OnlineMatchmaking::cancel_queue() { std::string name; { std::lock_guard lock(impl_->mutex); name = impl_->name; } impl_->command(true, std::move(name), {}); }
+void OnlineMatchmaking::cancel_queue() { std::string name;std::vector<OnlineLocalPlayer> additional; { std::lock_guard lock(impl_->mutex); name = impl_->name;additional=impl_->local_players; } impl_->command(true, std::move(name), {},std::move(additional)); }
 void OnlineMatchmaking::sign_out() { impl_->command(false, {}, {}); }
 OnlineMatchmakingSnapshot OnlineMatchmaking::snapshot() const { std::lock_guard lock(impl_->mutex); return impl_->state; }
 std::optional<OnlineMatchmakingSnapshot> OnlineMatchmaking::snapshot_after(std::uint64_t revision) const {

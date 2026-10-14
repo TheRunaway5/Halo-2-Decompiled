@@ -119,6 +119,30 @@ void live_cycle(const Cache& cache,const LevelContent& original,const UiVariant&
   const auto* corpse=match.unit_from_datum(old_body);
   check(corpse && corpse->vitality.dead && corpse->source_previous_player==old_owner,
       "Respawn removed the retained corpse or its previous owner");
+  const auto retained=snapshot();
+  check(retained.corpses.size()==1 && retained.corpses[0].object==old_body &&
+      retained.corpses[0].player==old_owner && retained.corpses[0].definition==corpse->definition.datum,
+      "Respawn omitted the detached body's independent presentation lifetime");
+  const auto second_body=match.unit(1).source_datum;
+  place(match,0,{0,0,0},0);place(match,1,{1,0,0},0);
+  inputs[0].fire=true;
+  for(unsigned n=0;n<240 && !match.unit(1).vitality.dead;++n)match.step(inputs);
+  check(match.unit(1).vitality.dead && match.player(1).deaths==2,
+      "Second actual SMG death did not complete");
+  const auto repeated=snapshot();
+  check(repeated.corpses.size()==2 && std::any_of(repeated.corpses.begin(),repeated.corpses.end(),
+      [&](const auto &body){return body.object==old_body;}) &&
+      std::any_of(repeated.corpses.begin(),repeated.corpses.end(),
+      [&](const auto &body){return body.object==second_body && body.player==old_owner;}),
+      "A second death replaced the first corpse in the authoritative snapshot");
+  match.leave(1);
+  const auto replacement=match.join("Replacement",-1,source_default_player_configuration(),1);
+  check(replacement==1 && match.player(1).source_datum!=old_owner,
+      "Replacement participant reused the previous player's full identity");
+  const auto replaced=snapshot();
+  check(replaced.corpses.size()==2 && std::all_of(replaced.corpses.begin(),replaced.corpses.end(),
+      [&](const auto &body){return body.player==old_owner && !body.configuration.has_value();}),
+      "Reusing a player slot changed or retired its previous corpses");
 }
 }
 

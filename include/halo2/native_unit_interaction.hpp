@@ -15,6 +15,7 @@ struct NativeUnitSeatAnimations {
   std::shared_ptr<const AnimationClip> idle,board,exit;
 };
 struct NativeUnitInteractionDefinition {
+  std::uint32_t unit_flags{},vehicle_flags{}; // Authored+BC/+1EC, door eligibility.
   std::vector<NativeVehicleSeatDefinition> seats;
   Vec3 bound_offset;float bound_radius{};
   std::uint32_t flip_message{};

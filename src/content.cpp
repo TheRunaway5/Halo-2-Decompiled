@@ -1,10 +1,12 @@
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/content.hpp"
+#include "halo2/fp_registration.hpp"
 #include "halo2/math.hpp"
 #include "halo2/model.hpp"
 #include "halo2/prop_sandbox.hpp"
 #include "halo2/static_scenery_collision.hpp"
 #include "halo2/source_device_world.hpp"
+#include "halo2/source_game_variant.hpp"
 #include <bit>
 #include <functional>
 #include <limits>
@@ -74,7 +76,7 @@ BspContent Cache::load_bsp_content(std::size_t index) const {
   if (index >= bsps_.size())
     throw FormatError("content BSP index outside scenario");
   BspContent out;
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto &bsp = bsps_[index];
   const Bytes meta(data.slice(bsp.file_offset, bsp.size));
   const auto magic = std::int64_t(bsp.memory_address);
@@ -196,7 +198,7 @@ std::vector<std::vector<std::byte>> Cache::load_model_resources(std::uint32_t da
   const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::render_model});
   if (!tag || tag->size<0x80)
     throw FormatError("missing/truncated predicted render model");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto base=metadata_offset(tag->address,tag->size);
   const auto sections=TagAddressSpace(data, metadata_magic_).block(base+0x24, 0x5c);
   std::vector<std::vector<std::byte>> out;
@@ -216,7 +218,7 @@ std::vector<std::vector<std::byte>> Cache::load_model_resources(std::uint32_t da
 std::vector<std::vector<std::byte>> Cache::load_bsp_resources(std::size_t index) const {
   if (index>=bsps_.size()) throw FormatError("prediction BSP outside scenario");
   const auto &bsp=bsps_[index];
-  const Bytes data(storage_), meta(data.slice(bsp.file_offset,bsp.size));
+  const Bytes data(cache_bytes()), meta(data.slice(bsp.file_offset,bsp.size));
   const auto magic=std::int64_t(bsp.memory_address);
   std::vector<std::vector<std::byte>> out;
   for (bool definition:{false,true}) {
@@ -235,7 +237,7 @@ std::vector<PredictedResource> Cache::object_resources(std::uint32_t datum) cons
   const auto *tag = find_tag({datum}, tag_groups::object);
   if (!tag || !tag->address || tag->size < 0xbc)
     throw FormatError("missing/truncated predicted object definition");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto base = metadata_offset(tag->address, tag->size);
   // Retail 2A2400 selects obje+B4 and dispatches its eight-byte records in mode 2.
   const auto resources = metadata_block(base + 0xb4, 8);
@@ -247,7 +249,7 @@ std::vector<PredictedResource> Cache::object_resources(std::uint32_t datum) cons
   return out;
 }
 std::vector<PredictedResource> Cache::model_bitmap_resources(std::uint32_t datum) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   auto root=[&](std::uint32_t id,const std::string &group,std::size_t minimum) {
     const auto tag=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group)});
     if (!tag || tag->size<minimum)
@@ -269,12 +271,13 @@ std::vector<PredictedResource> Cache::model_bitmap_resources(std::uint32_t datum
   }
   std::vector<PredictedResource> out;
   for (const auto bitmap:bitmaps) {
-    const auto count=TagAddressSpace(data, metadata_magic_).block(root(bitmap,"bitm",0x4c)+0x44, 0x74).count;
+    const auto count=metadata_block(root(bitmap,"bitm",0x4c)+0x44, mcc_?168:116).count;
     for (std::size_t i=0;i<count;++i) out.push_back({0,int(i),bitmap});
   }
   return out;
 }
 BitmapResource Cache::load_bitmap_resource(std::uint32_t datum, unsigned index) const {
+  if(mcc_)return load_mcc_bitmap_resource(datum,index);
   if(vista_) {
     const auto [donor,original]=vista_texture_donor(datum);
     return donor->load_bitmap_resource(original,index);
@@ -282,7 +285,7 @@ BitmapResource Cache::load_bitmap_resource(std::uint32_t datum, unsigned index) 
   const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::bitmap});
   if (!tag || tag->size<76)
     throw FormatError("missing/truncated predicted bitmap");
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto base=metadata_offset(tag->address,tag->size);
   const auto records=TagAddressSpace(data, metadata_magic_).block(base+0x44, 0x74);
   if (index>=records.count) throw FormatError("predicted bitmap index outside tag");
@@ -301,7 +304,7 @@ std::vector<PredictedResource> Cache::structure_resources(std::size_t index,
                                                          int section,bool definition) const {
   if (index>=bsps_.size()) throw FormatError("prediction BSP outside scenario");
   const auto &bsp=bsps_[index];
-  const Bytes data(storage_), meta(data.slice(bsp.file_offset,bsp.size));
+  const Bytes data(cache_bytes()), meta(data.slice(bsp.file_offset,bsp.size));
   const auto magic=std::int64_t(bsp.memory_address);
   const auto entries=TagAddressSpace(meta, magic).block(16+(definition ? 0x138 : 0x9c), definition ? 0xc8 : 0xb0);
   if (section==-1) return {};
@@ -317,11 +320,14 @@ std::vector<PredictedResource> Cache::structure_resources(std::size_t index,
   return out;
 }
 LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
+  return load_content(index,multiplayer,source_game_variant_default(0));
+}
+LevelContent Cache::load_content(std::size_t index, bool multiplayer, const SourceGameVariant &variant) const {
   if (index >= bsps_.size())
     throw FormatError("content BSP index outside scenario");
   LevelContent out;
   out.original_data = original_data();
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   auto find = [&](std::uint32_t id,
                   const char *group = nullptr) -> const Tag * {
     const auto* tag = find_tag({id});
@@ -470,7 +476,32 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
           }
           out.weapons.emplace(w.datum,std::move(w));continue;
         }
-        const auto b = barrels.offset;
+        const auto native_triggers = TagAddressSpace(data, metadata_magic_).block(p + 0x2c8, 0x40);
+        //1021D0's ordinary input selects trigger+8, not necessarily barrel0.
+        //The carbine's literal primary/secondary indices are both1.
+        std::int16_t primary_barrel=0;
+        if(native_triggers.count==1) {
+          w.trigger_behavior=i16(data,native_triggers.offset+6);
+          primary_barrel=i16(data,native_triggers.offset+8);
+          // Charge/autofire NPC weapons may author only a secondary barrel.
+          // Retain that actual data reference; their trigger manager remains
+          // separate from the ordinary firing path admitted below.
+          if(primary_barrel==-1)primary_barrel=i16(data,native_triggers.offset+0xa);
+          if(primary_barrel<0 || std::size_t(primary_barrel)>=barrels.count)
+            throw FormatError("Weapon primary trigger has no authored barrel");
+        }
+        const auto b = barrels.offset+std::size_t(primary_barrel)*0xec;
+        for(std::size_t index=0;index<barrels.count;++index) {
+          const auto at=barrels.offset+index*0xec;
+          w.barrel_ammunition.push_back({data.u32(at),std::int16_t(i16(data,at+0x28)),
+              std::int16_t(i16(data,at+0x2a)),std::int16_t(i16(data,at+0x2c)),
+              {data.u32(at),real(data,at+4),real(data,at+8),real(data,at+0x20),real(data,at+0x24),
+                real(data,p+0x258),std::int16_t(i16(data,at+0x1c)),std::int16_t(i16(data,at+0x1e))},
+              {real(data,at+0xdc),real(data,at+0xe0),real(data,at+0x50),real(data,at+0x54),
+                real(data,at+0xc4),real(data,at+0xc8),real(data,at+0x70),real(data,at+0x74),real(data,at+0x78),
+                real(data,at+0x58),real(data,at+0x5c),real(data,at+0x60)},
+              real(data,at+0xd4),real(data,at+0xd8),real(data,at+0xcc)});
+        }
         const auto mag = i16(data, b + 0x28);
         if (mag >= 0 && std::size_t(mag) < mags.count) {
           const auto m = mags.offset + std::size_t(mag) * 0x5c;
@@ -480,11 +511,30 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
           w.reload_time = real(data, m + 0x10);
           w.reload_rounds = i16(data, m + 0x14);
           w.wastes_rounds = (data.u32(m) & 1) != 0;
+          if(multiplayer && mags.count==1)w.magazine=WeaponMagazineDefinition{
+            data.u32(m),std::int16_t(w.capacity),std::int16_t(w.reload_rounds),real(data,m+0x18),
+            std::int16_t(w.reserve),std::int16_t(i16(data,m+4)),data.u32(m+0x38),data.u32(m+0x48)};
         }
         w.rounds_per_second = real(data, b + 4);
-        const auto native_triggers = TagAddressSpace(data, metadata_magic_).block(p + 0x2c8, 0x40);
-        if(native_triggers.count==1)
-          w.trigger_behavior=i16(data,native_triggers.offset+6);
+        if(multiplayer && native_triggers.count==1 && out.original_data &&
+            out.original_data->image!=OriginalData::Image::Base &&
+            out.original_data->unit_animation_constants &&
+            (real(data,p+0x25c)==0 || real(data,p+0x154)>0) &&
+            real(data,p+0x15c)==0 && (w.trigger_behavior==0 || w.trigger_behavior==1 || w.trigger_behavior==5 ||
+              (w.trigger_behavior==4 && i16(data,native_triggers.offset+0xa)==primary_barrel))) {
+          const auto &constants=*out.original_data->unit_animation_constants;
+          w.barrel_timing=WeaponDefinition::BarrelTiming{
+            {data.u32(b),real(data,b+4),real(data,b+8),real(data,b+0x20),real(data,b+0x24),
+              real(data,p+0x258),std::int16_t(i16(data,b+0x1c)),std::int16_t(i16(data,b+0x1e))},
+            {std::bit_cast<float>(constants.one_bits),std::bit_cast<float>(constants.frame_subtractor_bits)},
+            real(data,b+0xd4),real(data,b+0xd8),primary_barrel,real(data,b+0xcc)};
+          if(real(data,p+0x154)>0)w.energy=WeaponDefinition::Energy{
+            {real(data,p+0x150),real(data,p+0x154),real(data,p+0x160),real(data,p+0x168),
+              real(data,p+0x254),std::int16_t(i16(data,p+0x292)),data.u32(p+0x170)},
+            {data.u32(p+0x2fc),data.u32(p+0x304)},real(data,b+0xa4),real(data,b+0xa8),
+            std::bit_cast<float>(constants.one_bits),std::bit_cast<float>(constants.rng_scale_bits),
+            real(data,p+0x25c),real(data,p+0x260),real(data,p+0x158),real(data,p+0x15c)};
+        }
         w.rounds_per_shot = i16(data, b + 0x2a);
         w.minimum_rounds = i16(data, b + 0x2c);
         w.burst = i16(data, b + 0x1c);
@@ -557,6 +607,17 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
           if (!own_model) throw FormatError("Missing original SMG own model");
           const auto own_graph = data.u32(root(*own_model, 0x18) + 0x14);
           const auto own = load_named_animation(own_graph, animation_name(own_graph, "any:idle"));
+          //1042E0 can only write own-state10 after a successful1D0A60.
+          //The admitted stock SMG has no authored put-away action in either
+          //class. Reject other assets until that own manager is represented.
+          for(const auto weapon_class:{0x07000001u,0x0400054bu}) {
+            bool present=false;
+            try {(void)load_unit_weapon_action(own_graph,0x07000101u,weapon_class,0x07000001u,0x08000025u);present=true;}
+            catch(const FormatError &e) {
+              if(std::string(e.what())!="authored unit weapon action missing: "+string_id(0x08000025u))throw;
+            }
+            if(present)throw FormatError("SMG own put-away action requires its original manager");
+          }
           if (own.frame_count != 1)
             throw FormatError("Original single-SMG own clock uses an unported animation");
           if (full.frame_event_count || empty.frame_event_count ||
@@ -569,6 +630,15 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
               std::int16_t(full.frame_count), std::int16_t(empty.frame_count),
               animation_ready_ticks(ready, 30), std::int16_t(own.frame_count)};
         }
+        if(w.barrel_timing && !w.smg && effects.count>0 && effects.count<=16 &&
+            !w.random_firing_effects && !(data.u32(b)&(1u<<12)) &&
+            std::all_of(w.firing_effects.begin(),w.firing_effects.end(),[](const auto &effect) {
+              return effect.minimum>0 && effect.minimum==effect.maximum;
+            })) {
+          // Same original107160 normal request contract, on the actual
+          // selected barrel. Visual/part admission belongs to its consumer.
+          w.firing_presentation=WeaponDefinition::FiringPresentation{real(data,b+0xd4),real(data,b+0xd8)};
+        }
         if (const auto *proj = find(w.projectile, "proj")) {
           const auto q = root(*proj, (w.smg || (multiplayer && w.weapon_type==2)) ? 0x18c : 0x184);
           if (w.smg && (data.u32(q + 0xbc) ||
@@ -578,6 +648,11 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
             throw FormatError("SMG projectile uses an unported constructor or speed override");
           w.projectile_speed = real(data, q + 0x17c);
           w.projectile_gravity = real(data, q + 0x164);
+          const auto responses=TagAddressSpace(data,metadata_magic_).block(q+0x19c,0x58);
+          const auto response_bytes=data.slice(responses.offset,responses.count*0x58);
+          w.projectile_material_responses.assign(response_bytes.begin(),response_bytes.end());
+          w.projectile_flags=data.u32(q+0xbc);
+          w.projectile_dry_damage_range=real(data,q+0x16c);
           if(multiplayer && w.weapon_type==2 && out.original_data &&
               out.original_data->unit_animation_constants) {
             // Closed FC2E0 dry free-Needler branch, authenticated against
@@ -607,6 +682,19 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
             w.damage_side_effect = i16(data, d + 0x10);
             w.damage_category = i16(data, d + 0x12);
             w.damage_camouflage_amount=real(data,d+0x30);
+          }
+        }
+        if(w.barrel_timing)for(unsigned representation=0;representation<2;++representation) {
+          const auto binding=load_first_person_binding(w.datum,int(representation+2));
+          for(unsigned dual=0;dual<2;++dual) {
+            FirstPersonHandBinding hand;hand.dual_wield=dual;
+            for(const auto &clip:first_person_clips(hand,binding))if(clip.activity==0x08000025u) {
+              auto &timing=w.put_away_timing[representation][dual];timing.present=true;timing.frames=clip.frames;
+              for(const auto &event:clip.events)if(event.type==0) {
+                if(event.id==4 && !timing.event4)timing.event4=event.frame;
+                if(event.id==0 && !timing.event0)timing.event0=event.frame;
+              }
+            }
           }
         }
         out.weapons.emplace(w.datum, std::move(w));
@@ -679,6 +767,7 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
       for (std::size_t i = 0; i < materials.count; ++i) {
         const auto m = materials.offset + i * 0xb4;
         out.damage_materials.push_back({data.u32(m + 0x10), data.u32(m + 0x14)});
+        out.material_parents.push_back(std::int16_t(data.u16(m+8)));
       }
       const auto controls = TagAddressSpace(data, metadata_magic_).block(p + 0xf0, 0x98);
       if (controls.count) {
@@ -1021,7 +1110,7 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
   const auto script_data=TagAddressSpace(data,metadata_magic_).block(s+0x1d8,8,1);
   if(script_data.count)for(const auto set:metadata_block_offsets(script_data.offset,0x30)) {
     auto &points=out.command_points.emplace_back();
-    for(const auto p:metadata_block_offsets(set+0x20,0x3c))points.push_back({point(data,p+0x20),i16(data,p+0x2c),std::int32_t(data.u32(p+0x30))});
+    for(const auto p:metadata_block_offsets(set+0x20,0x3c))points.push_back({point(data,p+0x20),std::int16_t(i16(data,p+0x2c)),std::int32_t(data.u32(p+0x30))});
   }
   for(const auto p:metadata_block_offsets(s+0x1f0,0x24)) {
     CampaignTitleDefinition title;title.text=data.u32(p);title.color=data.u32(p+0x10);title.shadow=data.u32(p+0x14);
@@ -1030,7 +1119,10 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
     title.fade_in=real(data,p+0x18);title.up_time=real(data,p+0x1c);title.fade_out=real(data,p+0x20);
     out.cinematic_titles.push_back(title);
   }
-  const auto nodes = TagAddressSpace(data, metadata_magic_).block(s + 0x238, 20, 0x9000),
+  // MCC Floodlab owns 37,509 expressions (Xbox: 36,670). Inspection retains
+  // the donor bank within its 16-bit datum index space; this does not admit
+  // those additional expressions as converted Xbox gameplay scripts.
+  const auto nodes = TagAddressSpace(data, metadata_magic_).block(s + 0x238, 20, mcc_ ? 0x10000 : 0x9000),
              scripts = TagAddressSpace(data, metadata_magic_).block(s + 0x1b8, 0x28),
              globals = TagAddressSpace(data, metadata_magic_).block(s + 0x1c0, 0x28);
   const auto strings =
@@ -1066,12 +1158,29 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
   out.devices.reserve(out.objects.size());
   out.prop_sandbox.reserve(out.objects.size());
   out.static_scenery_collision.reserve(out.objects.size());
+  // These factories read only the tag and deterministic variant selection.
+  // Share their immutable data; scene/prop owners retain each placement's
+  // transform, generation, vitality and model-region state separately.
+  using DefinitionKey=std::pair<std::uint32_t,std::uint32_t>;
+  std::map<DefinitionKey,std::shared_ptr<const StaticSceneryCollisionDefinition>> scenery_definitions;
+  std::map<DefinitionKey,std::shared_ptr<const PropSandboxDefinition>> prop_definitions;
   for(const auto& object:out.objects){
-    // Campaign controls retain their real shared groups and lifecycle too.
-    // Campaign machine animation/physics integration remains separate.
-    out.devices.push_back((multiplayer || object.type==8)?load_source_device_world_definition(*this,object):nullptr);
-    out.static_scenery_collision.push_back(load_static_scenery_collision_definition(*this,object));
-    const auto definition=load_prop_sandbox_definition(*this,object);
+    // Campaign scripts address the same machine/control owners as multiplayer.
+    out.devices.push_back(load_source_device_world_definition(*this,object));
+    const DefinitionKey key{object.definition,object.variant};
+    std::shared_ptr<const StaticSceneryCollisionDefinition> scenery;
+    if(object.type==6) {
+      auto [at,inserted]=scenery_definitions.try_emplace(key);
+      if(inserted)at->second=load_static_scenery_collision_definition(*this,object);
+      scenery=at->second;
+    }
+    out.static_scenery_collision.push_back(std::move(scenery));
+    std::shared_ptr<const PropSandboxDefinition> definition;
+    if(object.type==11) {
+      auto [at,inserted]=prop_definitions.try_emplace(key);
+      if(inserted)at->second=load_prop_sandbox_definition(*this,object);
+      definition=at->second;
+    }
     out.prop_sandbox.push_back(definition);
     if(definition)for(const auto& section:definition->sections)for(const auto& response:section.responses)
       if(response.damage!=null_datum && !out.prop_area_damage.contains(response.damage)){
@@ -1081,21 +1190,50 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
   }
   // 15AAD0's stock vehicle choices retain the collection's definition and variant.
   // Templates remain cold until the phased netgame row actually allocates them.
-  for(unsigned row_index=0;row_index<out.netgame_equipment.size();++row_index){const auto &row=out.netgame_equipment[row_index];if(row.classification>0 && row.classification<10 &&
-      row.items.size()==1 && row.items.front().group==0x76656869u && row.items.front().definition!=null_datum) {
-    const auto &item=row.items.front();ScenarioObject vehicle;
-    vehicle.netgame_row=int(row_index);vehicle.type=1;vehicle.placement=int(out.objects.size());vehicle.definition=item.definition;
-    vehicle.flags=1;vehicle.variant=item.variant;vehicle.position=row.position;vehicle.rotation=row.rotation;vehicle.source=-1;
-    const auto tag=load_source_tag_metadata(item.definition);const Bytes bytes(tag.bytes_at(tag.source_address(),tag.size()));
+  const auto heavy=source_game_variant_get(variant,78);
+  std::array<std::uint32_t,2> heavy_choices{null_datum,null_datum};
+  if(multiplayer && heavy) {
+    if(heavy!=1 && heavy!=2 && heavy!=4)
+      throw FormatError("Random Primary Heavy Vehicle needs its original per-birth RNG/template owner");
+    // Literal TU1.5 15CC70 uses matg+16C -> mulg+C -> runtime+74.
+    // Choices1/2 are the authored reference rows at+14/+1C, with the
+    // original default variant B00078B. No definition is inferred by name.
+    const auto globals=query_tag({.group=tag_groups::globals});
+    if(!globals)throw FormatError("Missing original heavy-vehicle globals");
+    const auto *mulg=find(data.u32(root(*globals,0x170)+0x16c),"mulg");
+    if(!mulg)throw FormatError("Missing original heavy-vehicle runtime globals");
+    const auto runtime=TagAddressSpace(data,metadata_magic_).block(root(*mulg,0x10)+8,0x568,1);
+    if(runtime.count!=1)throw FormatError("Missing original heavy-vehicle runtime block");
+    const auto choices=TagAddressSpace(data,metadata_magic_).block(runtime.offset+0x70,8);
+    if(choices.count<4)throw FormatError("Missing original heavy-vehicle choices");
+    heavy_choices={data.u32(choices.offset+0x14),data.u32(choices.offset+0x1c)};
+  }
+  for(unsigned row_index=0;row_index<out.netgame_equipment.size();++row_index){const auto &row=out.netgame_equipment[row_index];
+    if(row.classification<=0 || row.classification>=10)continue;
+    std::uint32_t definition=null_datum,selected_variant{};
+    if(multiplayer && row.classification==3 && heavy) {
+      if(heavy==4)continue;
+      definition=heavy_choices.at(unsigned(heavy-1));selected_variant=0x0b00078bu;
+    } else if(row.items.size()==1 && row.items.front().group==0x76656869u) {
+      definition=row.items.front().definition;selected_variant=row.items.front().variant;
+    }
+    if(definition==null_datum)continue;
+    ScenarioObject vehicle;
+    vehicle.netgame_row=int(row_index);vehicle.type=1;vehicle.placement=int(out.objects.size());vehicle.definition=definition;
+    vehicle.flags=1;vehicle.variant=selected_variant;vehicle.position=row.position;vehicle.rotation=row.rotation;vehicle.source=-1;
+    const auto tag=load_source_tag_metadata(definition);const Bytes bytes(tag.bytes_at(tag.source_address(),tag.size()));
     vehicle.bounding_radius=bytes.f32(4);vehicle.bounding_offset={bytes.f32(8),bytes.f32(12),bytes.f32(16)};
     out.objects.push_back(std::move(vehicle));
-  }}
+  }
 
   // Model variant child objects use their authored parent/child attachment markers.
   // Keep their cold templates resident for both automatic and script-created vehicles.
   const auto initial_placements=out.objects.size();
   for(std::size_t i=0;i<out.objects.size();++i) {
-    const auto parent=out.objects[i];if(parent.type!=1)continue;
+    const auto parent=out.objects[i];
+    // BF0F0 rejects palette index NONE before object/model construction.
+    // Preserve unused scenario rows without treating them as templates.
+    if(parent.type!=1 || parent.definition==null_datum)continue;
     unsigned depth=0;for(auto a=parent.model_attachment;a;){if(++depth>8)throw FormatError("Cyclic vehicle model attachments");a=out.objects.at(a->parent).model_attachment;}
     const auto t=load_source_tag_metadata(parent.definition);const Bytes b(t.bytes_at(t.source_address(),t.size()));
     if(b.u32(0x38)==null_datum)continue;const auto model=load_source_tag_metadata(b.u32(0x38));const Bytes m(model.bytes_at(model.source_address(),model.size()));
@@ -1116,9 +1254,27 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer) const {
   out.unit_interactions=load_native_unit_interaction_assets(*this,out);
   return out;
 }
+unsigned Cache::sound_pitch_range_count(std::uint32_t datum) const {
+  const auto* tag=query_tag({.handle=TagHandle{datum},.group=tag_groups::sound,.require_address=true});
+  if(!tag)throw FormatError("Missing sound tag");
+  return std::to_integer<unsigned>(Bytes(tag_payload({datum})).slice(10,1)[0]);
+}
+unsigned Cache::sound_permutation_count(std::uint32_t datum,unsigned pitch) const {
+  if(pitch>=sound_pitch_range_count(datum))throw FormatError("Sound pitch outside ranges");
+  const auto* sound=query_tag({.handle=TagHandle{datum},.group=tag_groups::sound,.require_address=true});
+  const auto* gestalt=mcc_?&mcc_sound_gestalt(datum):query_tag({.group=tag_groups::sound_cache_file_gestalt,.require_address=true});
+  if(!sound || !gestalt)throw FormatError("Missing sound/gestalt tag");
+  const Bytes data(cache_bytes());
+  const auto so=metadata_offset(sound->address,20),go=metadata_offset(gestalt->address,mcc_?0x78:0x48);
+  const auto ranges=metadata_block(go+(mcc_?0x28:0x20),12);
+  const auto index=std::size_t(data.u16(so+8))+pitch;
+  if(index>=ranges.count)throw FormatError("Sound pitch escapes resident gestalt");
+  return data.u16(ranges.offset+index*12+10);
+}
 EncodedSound Cache::load_sound(std::uint32_t datum, unsigned pitch,
                                unsigned permutation) const {
-  const Bytes data(storage_);
+  if(mcc_)return load_mcc_sound(datum,pitch,permutation);
+  const Bytes data(cache_bytes());
   auto tag = query_tag({.handle=TagHandle{datum}, .group=tag_groups::sound, .require_address=true});
   auto gestalt = query_tag({.group=tag_groups::sound_cache_file_gestalt, .require_address=true});
   if (!tag || !gestalt)
@@ -1169,7 +1325,7 @@ EncodedSound Cache::load_sound(std::uint32_t datum, unsigned pitch,
   return out;
 }
 LoopingSound Cache::load_looping_sound(std::uint32_t datum) const {
-  const Bytes data(storage_);
+  const Bytes data(cache_bytes());
   const auto tag = query_tag({.handle=TagHandle{datum}, .group=tag_groups::sound_looping, .require_address=true});
   if (!tag)
     throw FormatError("missing looping sound tag");

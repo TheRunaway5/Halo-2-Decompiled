@@ -1,9 +1,11 @@
 # Death cycle implementation and remaining source owners
 
-The active native match now opens the original full scoreboard automatically
-at the source respawn-countdown gate, then fades it away after the new unit is
-allocated. This is a partial implementation of the requested full death cycle.
-Death animations, physical corpse rendering and the death camera are unfinished.
+Normal TU1.5 multiplayer sessions now provide source death reactions, authored
+animation, physical ragdolls, independently retained corpses, the obstructed
+death camera, automatic scoreboard and restoration on respawn. Local and UDP
+rendered acceptance passes. The dated sections below retain the implementation
+history; the default-launch section records the completed multiplayer delivery.
+Campaign co-op gameplay and its death-to-teammate camera remain unavailable.
 
 ## Implemented behavior
 
@@ -21,9 +23,10 @@ NONE branch. No watched-player record or ten-second spectator state is invented.
 
 Existing authoritative fatal cleanup, retained salted corpse identity,
 previous-player identity, death tick, actual fatal momentum, signed timers and
-source player-slot respawn scheduling are retained. Native UDP already carries
+source player-slot respawn scheduling are retained. Native UDP carries
 the current unit, player flags, countdown and life count needed by the display
-gate; no protocol change is necessary.
+gate. Protocol52 additionally carries independent detached-corpse metadata and
+source WORLD poses, including older bodies after respawn or player-slot reuse.
 
 `tools/oracle_mp_death_scoreboard.py` executes 240 unchanged TU1.5 tail calls
 with explicit player/clock/input/lifecycle API records. Cases cover live
@@ -80,7 +83,7 @@ remains historical evidence; it is not the current native owner inventory.
 
 `death_camera_lifecycle.cpp` composes complete156F60,157520,157070,1573B0,
 23FB00 and multiplayer23FEA0 over retained camera/player/object storage.
-The 96 original lifecycle cases include all four local views, four FP rounding
+The 97 original lifecycle cases include all four local views, four FP rounding
 modes, participant replacement and death/hold/respawn selection. The separate
 68 attached-camera cases execute the original startup initializers and
 23FF50/11E7B0/173FA0. They cover zero-distance and orbital degeneracy,
@@ -89,7 +92,7 @@ node/type/attachment gates, counters and coordinate limits. The existing
 
 These comparisons establish the compiled owners on their declared component
 inputs. They do not supply missing live corpse nodes or prove rendered native
-camera transitions. Non-multiplayer23FCA0 and actual world location, visibility,
+camera transitions. Actual world location, visibility,
 fog and live geometry/pose/thread banks remain runtime providers. Complete
 16B240 dispatch is now compiled and available to the camera, as detailed below.
 A host terrain raycast is not silently treated as the complete original query.
@@ -128,6 +131,59 @@ passes all13 captured phases with this native point owner connected. No pose,
 bounds, contact or containment result is assigned by the runtime adapter.
 The current focused native death suite passes58/58 tests, including these
 query adapters and the complete prephysics containment binding.
+
+## Following another player until respawn
+
+The active multiplayer death camera initially retains the dead player's corpse.
+Jump/A requests the original player cycle after its one-second input gate.
+`23FD40 / 246F30` selects another occupied living player; team games restrict
+selection to the dead player's team. The same source packet, observer motion
+and world obstruction then follow the selected unit's actual current WORLD
+node0. A newly owned unit clears the death camera on respawn.
+
+The original watch timeout also requests replacement while the source clock
+is unpaused. The native binding now reads the actual initialized/paused bytes
+from that source clock instead of passing fixed match-state booleans. The
+multiplayer timeout is the authored executable value (15 seconds); ordinary
+short respawn waits finish before it. Loss of the target also enters replacement.
+No living candidate preserves an otherwise valid corpse. This is separate
+from the player+1B0 spectator/scoreboard owner discussed above.
+
+An independent unchanged-executable run of the bounded `24040A..24042D`
+clock gate covers all four initialized/paused combinations, calling complete
+`23FEA0/23FD40` against an occupied two-player bank. An initialized, paused
+clock preserves the corpse; an initialized, unpaused clock selects the live
+player at timeout. Its diagnostic timer-zero/cycle-false inputs and report are
+retained in `analysis/multiplayer/death-cycle-20261013/original-watch-clock-gate.json`.
+
+The constructor's no-current-unit/no-previous-unit fallback now receives the
+same team restriction as later cycling. The extra unchanged-executable
+`construct_participant_team_only` experiment confirms this path; the previous
+96 lifecycle cases regenerate byte-identically. The typed constructor test
+also distinguishes the eligible teammate from later living enemies.
+
+`native_death_spectate_local_tu15` and `native_death_spectate_remote_tu15`
+exercise an authored-spawn SMG death, a short cycle press, actual movement of
+the surviving player, completed camera alignment with that live WORLD target,
+and restoration on respawn. The remote case uses the real UDP Jump press
+serial and authoritative observer snapshots. These are headless checks;
+existing local/remote GPU checks cover completed observer submission separately.
+The source-camera component additionally expires the actual multiplayer watch
+timer and checks automatic replacement on its initialized, unpaused clock.
+Its elapsed-time input is diagnostic. Separate `native_death_spectate_auto_local_tu15`
+and `native_death_spectate_auto_remote_tu15` checks use a real admitted20-second
+respawn setting and continuous source-world ticks. They check automatic live-player
+following after the original15-second watch timeout and three-second transition,
+while retaining the corpse, then verify restoration on actual respawn.
+
+Campaign co-op is not implemented in the native gameplay runtime. Campaign
+owns one `Simulation::player_`; `game_is_cooperative` explicitly reports its
+actual solo mode. The multiplayer camera binding is not called by campaign.
+The original non-multiplayer target restriction (`23FCA0`), fallback target
+(`23FE30`), campaign watch timing and cooperative respawn scheduler are now
+compiled and component-tested. They still require a real cooperative session,
+player bank, birth/placement, checkpoint and transport owners before claiming
+that flow. See [campaign co-op death implementation](CAMPAIGN_COOP_DEATH_IMPLEMENTATION.md).
 
 ## Animation and physical corpse owners
 
@@ -286,66 +342,251 @@ It does not construct that bank from startup or establish live corpse/camera
 rendering. Details and source pins are in
 `analysis/multiplayer/integration/death-native-20261011/object-phases-validation.json`.
 
-## Remaining live integration
+## Current live integration (2026-10-13)
 
-The new `MultiplayerObjectRuntime` now constructs an empty original physical
-world in a fresh retained bank from the authenticated TU1.1 executable and
-actual Lockout cache. Complete object/header/body-heap and physics storage
-constructors, actual BSP byte delivery, original BSP publication, native process
-heap backing, CRT registration and the complete new-map world constructor run
-without a captured gameplay bank. A native probe verifies that the resulting
-object pool is genuinely empty and that the world, manager and Havok owners
-exist. This proves empty-world construction, not a playable match or corpse.
+`MultiplayerObjectRuntime` constructs a fresh retained source bank from the
+owned executable and cache. The TU1.5 path constructs actual players, bipeds,
+equipment, animation resources and the physical world; object/world phases
+produce the current WORLD matrices. Native command delivery and the source
+player scheduler are being developed concurrently with the physics work.
+Missing reached callbacks still fail explicitly.
 
-The previous `oracle_mp_death_world_startup_1_1.py` map-reset claim is withdrawn:
-that experiment mapped address zero, so an absent scenario pointer could read
-zero bytes rather than fail. The frozen experiment is retained as historical
-evidence. Its replacement, `oracle_mp_death_cache_startup_1_1.py`, leaves NULL
-unmapped, delivers the actual cache and compares nine original roots and all
-1,073,676 stores. The original storage-only prefix remains valid.
+`death_cycle_runtime_tu15_generated.cpp` lowers complete authenticated TU1.5
+owners reached by fatal cleanup, animation cancellation/selection, effects,
+observer collision and continuous dead-object updates. Its generator validates
+the executable hash, instruction bytes, complete control flow and jump tables.
+The SDK resource-busy predicate is recovered from the actual D3D section. No
+runtime instruction decoder, replayed pose or successful missing-call fallback
+is installed. `oracle_death_cycle_helpers_tu15.py` independently executes96
+unchanged original helper cases; native execution matches351 ordered stores,
+retained bytes and the defined GP/SSE ABI.
 
-The new native object-world path also owns real animation resource byte I/O.
-The original animation sampling and codec owners consume the cache's authored
-descriptor and bytes; no pose or resource-completion state is supplied. Actual
-biped creation now executes its authored effect attachments and reaches the
-post-construction type registration graph. Missing reached owners still stop
-explicitly before this birth can be called complete.
-Game-options and AI/PVS storage use explicitly bounded original allocation
-prefixes, and native session inputs supply the actual variant, clock rate and
-seed. Neither complete Xbox process boot nor title/lobby startup is claimed.
+A fresh-map corruption bug was also fixed in physical-world startup. Native map
+publication previously omitted the physical reservation corresponding to actual
+125354..1253A2. Texture I/O consequently reused80061000 and overwrote the resident
+tag table. Startup now consumes the literal Xbox header+1C size, reserves the
+original physical lower-bound range and protects those pages before publication.
+This change belongs to the physical-world adapter; tag-system files are separate.
 
-The active `MultiplayerMatch` still owns typed native `Unit` records and object
-headers, rather than the complete retained source biped, animation manager,
-component/body/constraint banks and physics world. Its existing fatal-hit,
-corpse datum/lifetime, source timers, respawn and scoreboard path is live;
-the newly compiled physical/camera owners are not yet scheduled there.
+`MultiplayerMatch::finish_death` delivers the completed native damage owner's
+normalized fractions and recent-damage state before original source cleanup.
+It preserves the authored maxima and leaves transition flags to their original
+owners. This prevents a physical source corpse from retaining its spawn vitality
+when gameplay damage was computed by the native source-derived damage module.
 
-The development `--mp-source-object-world DIRECTORY` path now constructs and
-retains `MultiplayerObjectRuntime` before Match/Simulation placements. Simulation
-receives a view of its actual source header pool. Player spawn calls complete
-`B8820/B8A30`, observes the resulting source identity without a second allocation,
-and the body renderer skins that object's current WORLD matrices. This path
-requires the authenticated TU1.1 executable and an owned savegame directory.
-Its Match-level probe is currently being brought through the remaining birth
-callbacks; it has not yet passed a rendered validation. Ordinary launchers still
-use the existing native path. Native category-only scenery/weapon storage,
-source input/tick delivery, fatal transitions, remote pose delivery and the
-death-camera view remain required before this development path can become the
-default complete cycle.
+Detached bodies are enumerated by full salted object identity, independently of
+current player ownership. Their definition and player configuration are retained
+at death. Repeated deaths, respawn, disconnect and player-slot reuse preserve
+older bodies until their actual object lifetime ends. Authoritative WORLD poses
+include every retained corpse. The pose wire supports the actual2048-object pool;
+fragmented native snapshots use16-bit fragment counts and32-bit total lengths,
+with an8MiB transport bound. Local and UDP repeated-death tests pass.
 
-The remaining runtime work is to construct and retain those banks from their
-actual allocation/constructor owners, connect animation/request and physical
-input/output producers, bind actual collision/solver services, and schedule
-prephysics/world/current-node phases in the original order. The same current
-WORLD nodes must then feed corpse skinning and camera target lookup, with
-retained corpse state delivered to remote clients. The render loop currently
-excludes dead players and selects the normal player camera. It must receive
-the completed physical pose and observer output before those branches change.
-No idle corpse, root-position camera proxy, chosen contact or successful
-missing-owner default is installed.
+The renderer skins each retained corpse's completed source WORLD nodes and gives
+it independent lighting, object colors, emblem and damage-function inputs. It
+also publishes the corpse's current effect markers after respawn. A missing
+hierarchy is an error. The draw code does not substitute an idle animation for a
+physical corpse. The later local and remote GPU checks below now cover this path.
 
-Validation so far consists of original-executable component comparisons,
-native tests and the existing live UDP/GPU scoreboard probe. A complete live
-fatal-hit -> animated/physical corpse -> obstructed death camera -> respawn ->
-HUD restoration run remains unverified and the requested full cycle remains
-unfinished.
+`NativeDeathCamera` consumes the same full player/corpse pools and actual node-zero
+translation, then runs the original packet, observer, world and obstruction owners.
+The fresh-bank camera probe passes60 frames, distinct replacement-body creation,
+ordinary-camera restoration and preservation of the old corpse. This component
+check does not run continuous physics or establish remote-client camera behavior.
+Remote clients now receive the completed host observer view rather than constructing
+a replica source observer bank; see the native transport policy below.
+
+The explicit forwarded death-animation flag installs graphE9180793,
+packed66FFFF and activity0C000043 in the Lockout Spartan's actual manager. That
+is authored `landing_dead`, clip102 with42 frames. Ordinary cleanup forwards zero
+and follows its original physical branch. The test supplies the explicit flag;
+its natural gameplay producer remains unresolved and is not inferred from a
+falling death or from a clip name.
+
+The continuous fresh-bank probe warms up a real source player using delivered
+commands, kills it through D8D50/CCF40 and advances actual source frames. It
+requires the authored ten-body/nine-constraint admission, finite moving WORLD
+nodes and90 completed post-death ticks. This probe now passes: the first completed post-death tick has one body,
+the second has ten bodies and nine constraints, and all90 ticks complete with
+finite moving WORLD matrices. The source player remains detached afterward,
+retaining the actual previous corpse and countdown zero. Its complete diagnostic
+output is in`analysis/multiplayer/death-cycle-20261013/isolated-ragdoll-progress.json`.
+The isolated diagnostic pins dependency archives while the shared physics source
+changes; it is not installed-runtime or GPU acceptance evidence. A separate
+`native_death_match_tu15_tests` checks actual authored-spawn SMG firing,
+Match timers, source physics, observer, scoreboard and replacement together.
+With delivered forward input0.1 for the victim during firing, this complete
+headless match check passes. The original source admits ten bodies/nine constraints
+on the next observed frame and later returns the settled corpse to a one-body
+sleeping controller. All five camera/scoreboard/respawn gates pass.
+
+The stationary failure is now closed by delivering the original direct-hit
+reaction before death cleanup. `Simulation::damage` retains the actual incoming
+projectile direction/contact and the recent-damage bank before the new report.
+The source bridge preserves the original order: fatal marking, complete
+`CB1D0` response selection, completed recent-damage stores, the authenticated
+`DBD64..DBFCC` physical block, then complete `CAC00` reaction delivery.
+Attribution/history and ordinary `CCF40` cleanup remain subsequent owners.
+The body is marked fatal once; cleanup does not repeat its fatal transition.
+
+The physical block is explicitly bounded before attribution and `CB410`, rather
+than described as a complete function or a successful lower-service return.
+It uses the real biped mass, damage acceleration, source constants and complete
+physical callees. The actual SMG acceleration0.125 and biped scale1.2 produce
+an impulse below the source biped admission threshold; forcing that impulse
+would not reproduce the original. The missing producer was the authored reaction.
+Complete `CB1D0/CAC00` now installs the63-frame `s_kill` naturally for the
+fixed stationary case. This changes the real animation/controller state, produces the contact
+request, and admits ten bodies/nine constraints without assigning a wake flag,
+velocity, contact or ragdoll result. Eight complete reached animation owners
+were added from authenticated TU1.5 bodies.
+
+The reaction bridge now also receives admitted melee and area damage. Complete
+`D7C60` constructs each request and complete `DAA90` translates it into the
+original report and calls `CB1D0`. Direct hits preserve the actual projectile's
+reporting type and direct flag. Melee reads attacker bounds/aim and the selected
+weapon's reporting type from the retained source bank, matching `D0830/D10F0`.
+The authenticated `D9A30` radius-geometry block calls the real closest-point
+owner and derives direction from current physical bodies before report delivery.
+Its complete 418-instruction body was paired to TU1.1 `D8AE0`; no address delta
+was assumed. Native melee casts and area candidate/falloff/occlusion admission
+remain their existing host geometry adapters, rather than a claim of full
+original `D0830` or radius broadphase parity.
+
+Fatal cleanup retains the actual report's class, direction and force bit. Source
+falling/kill-volume deaths produced inside a world phase are published into
+native death accounting, camera and respawn ownership. An already detached
+physical corpse is not cleaned a second time. Native retained-unit copies are
+pruned when their full source datum actually retires. The actual walk-off case
+keeps its ordinary airborne channel at death and later admits ten bodies; no
+`landing_dead` flag is invented for falling. The separate forced-animation
+component test still covers that explicitly requested branch.
+
+## Remote observer delivery
+
+Native protocol54 carries a completed observer position, forward/up basis and
+horizontal FOV for each peer's own dead local players. The host runs the same
+`NativeDeathCamera` packet/adoption/motion/world collision owners against its
+retained source player/body/WORLD bank. Each peer retains four independent
+view states, cached by authoritative tick. An explicit native presentation RNG
+is separate from gameplay RNG. The client submits this completed view directly;
+it does not invent a replica physics world or a clear collision result.
+
+Camera views are omitted for other peers and living players. Snapshot validation
+checks presence, local ownership, dead/current-unit binding, finite floats, FOV
+and basis. Respawn clears the observer view with the same snapshot that publishes
+the distinct replacement unit. This is a native host-authority presentation and
+transport policy at simulation cadence, not the Xbox System Link protocol or
+proof of original network/render interpolation under packet loss.
+
+## Validation boundary
+
+All13 selected death checks pass in the normal optimized build, including
+stationary, moving and UDP source-Match
+acceptance: actual authored-spawn SMG firing, natural authored reaction,
+ten-body/nine-constraint ragdoll, original observer, automatic scoreboard,
+replacement, HUD restoration and retained corpse. The helper comparison now
+contains160 unchanged-executable cases, including64 bounded physical-report
+cases, with490 ordered stores and exact retained bytes/GP/SSE state. The physical
+block comparison stops before its real impulse callee; continuous Match checks
+exercise the live owner composition separately.
+
+`native_death_render_tu15_tests` passes on the RTX5080 with a stationary victim,
+real authored starts and a deterministic input script. Read-only observations
+confirm actual source corpse WORLD skin, local post-death camera, automatic
+scoreboard GPU geometry, distinct respawn, HUD restoration and continued corpse
+submission after respawn. Its screenshot is a native PPM in
+`build/native-death-render-tu15.ppm`. The earlier ordinary-path UDP scoreboard
+probe remains separate evidence. `native_death_remote_render_tu15_tests` also passes with a real UDP host and
+client renderer. It checks the received observer view against the actual camera
+submitted in the same render frame, plus replicated corpse skin, automatic
+scoreboard, distinct respawn, HUD restoration and retained corpse submission.
+The broader multiplayer rules/combat/UDP and source-pose checks also pass.
+The fresh ordinary-path UDP scoreboard GPU check passes separately, and the
+285-entry death module regenerates byte-identically. Logs and source/runtime
+hashes are retained under`analysis/multiplayer/death-cycle-20261013/` in
+`continued-validation.json`.
+
+## Default launch and completed native acceptance
+
+Normal TU1.5 local, LAN-host and dedicated sessions now create the retained
+source world automatically. Each session owns a private temporary directory for
+its two source scratch files, closed and removed after the world. An explicit
+`--mp-source-object-world DIRECTORY` retains caller-selected storage. Clients
+consume the host's actual WORLD nodes and completed observer without creating
+a competing local physics world. Older executable paths, native custom Slayer
+rulesets and explicit frozen/reference diagnostics retain their existing owners.
+
+The local GPU acceptance uses ordinary launch options without the development
+switch. Both local and actual UDP-client render checks pass for corpse skin,
+observer submission, automatic scoreboard, distinct replacement, restored HUD
+and corpse retention after respawn. Authored-start headless checks additionally
+pass ordinary melee impact timing, an admitted actual grenade explosion, a real
+input-driven walk/jump off a BSP ledge, and extended corpse lifetime. The grenade
+naturally selects the authored37-frame `airborne_dead` before the real ragdoll;
+the ordinary stationary direct hit naturally selects the63-frame `s_kill`.
+The falling case reaches original environment death and later ten bodies/nine
+constraints without supplying a collision, fatal result or physical transition.
+
+Original automatic scoreboard admission starts when the signed respawn counter
+is at most1. Its fade can remain partial during a short slot-stagger interval
+before respawn; full HUD suppression has a separate opacity threshold. Tests
+accept actual visible popup geometry and then verify its disappearance and HUD
+restoration. They do not force a longer death interval or change original gates
+to obtain a fully opaque board in every timing case.
+
+The death module contains301 authenticated entries:298 complete bodies and
+three explicit block entries, totaling25,426 unique instructions. The helper
+differential now contains224 unchanged-executable cases and1914
+ordered stores, with exact retained bytes, GP/SSE state and defined flags. Its64
+additional radius-direction cases start after declared closest-point inputs;
+they do not supply a successful query result to live gameplay. Live area checks
+separately execute the real closest-point owner. Original source byte verification
+and generator reproducibility remain required.
+
+A normal menu-to-match integration run with the selected TU1.5 executable
+completes two actual countdown/world/report/Done/lobby rounds and subsequent
+title/session restart. This is CPU lifecycle evidence; the separate GPU checks
+establish the rendered death cycle. Original Xbox framebuffer equivalence,
+arbitrary damage/collision/vehicle admission, the separate special forced-death
+packet producer and presentation under packet loss remain outside this proof.
+The native multiplayer death cycle is now delivered through normal TU1.5
+session options; these limits are not substituted with guessed behavior.
+
+Final delivery validation: all18 selected death-cycle CTests pass, including
+ordinary and kill-trigger momentum, respawn timing, local/UDP GPU cycles, six
+source-Match modes, cleanup/animation/continuous-physics branches and original
+helper comparison. Broader multiplayer rules/combat/UDP/map and source-pose
+checks pass. Missing Ninja dependency records left by concurrent builds were
+repaired for eight reachable objects; the final dependency audit is empty.
+Both installed launchers now select `build/halo2_native`, confirmed by their
+`--launcher-info` output, with existing owned assets and selected TU1.5 image
+preserved. Previous launchers/shortcuts are backed up under the ignored death
+validation directory. Exact source/runtime hashes and logs are recorded in
+`analysis/multiplayer/death-cycle-20261013/final-validation.json`.
+
+## Spectating delivery and concurrent-work boundary
+
+The follow-up spectating delivery passes10 camera/spectating/render checks,
+including local and real UDP manual and automatic switching, plus the current
+Fiesta/Infection preservation check. An isolated negative control using the old
+fixed clock flags fails the new automatic-switch regression at its intended
+assertion. The unchanged original four-case clock gate also passes.
+
+Concurrent builds were replacing shared archives and objects. Final validation
+therefore uses private copied/recompiled objects and private archives, including
+the matching newly compiled physics-support owner. Every reachable dependent of
+the current multiplayer match header was refreshed to retain the custom Slayer
+layout and lifecycle. The private delivery preserves the already selected custom
+Slayer snapshot's grenade and map-effect attachment boundaries; newer unfinished
+bridges remain in the shared source checkout. The camera changes themselves are
+in the shared source. The isolation manifests identify these precise boundaries.
+
+Both installed launchers select `.local/death-spectate-20261013/delivery/halo2_native`.
+Its loaded ELF sections are byte-identical to the validated executable after
+removing debug/symbol data. Fiesta/Infection definitions and the existing Discord
+SDK are bundled. The previous custom Slayer delivery is retained. Launcher and
+shortcut backups, test logs, source/runtime hashes and the selected-launcher
+four-player smoke result are recorded under
+`analysis/multiplayer/death-cycle-20261013/spectate-final-validation.json`.
+Campaign co-op gameplay and spectating remain unavailable.

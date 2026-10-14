@@ -1,5 +1,5 @@
 #pragma once
-#include "halo2/cache.hpp"
+#include "halo2/source_texture_filtering.hpp"
 #include <vulkan/vulkan.h>
 #include <bit>
 #include <cmath>
@@ -25,15 +25,21 @@ struct NativeSampler {
 // tests. Filtering precision still belongs to the host GPU.
 inline NativeSampler native_sampler(const ShaderTextureState &state,
                                     const VkPhysicalDeviceLimits &limits,
-                                    bool anisotropy) {
+                                    bool anisotropy,
+                                    bool non_seamless_cube_map=false) {
   NativeSampler result;
   auto &s=result.info;
+  // Retained Xbox TU1.5 light/environment cube samplers clamp within each
+  // face. Vulkan's default seamless filtering blends across those edges.
+  // The caller must have enabled the corresponding device feature.
+  if(non_seamless_cube_map)s.flags|=VK_SAMPLER_CREATE_NON_SEAMLESS_CUBE_MAP_BIT_EXT;
   auto filter=[](unsigned f) {
     if(f==1)return VK_FILTER_NEAREST;
     if(f==2 || f==3)return VK_FILTER_LINEAR;
     throw FormatError("unsupported retail texture filter");
   };
-  s.minFilter=filter(state.min_filter);s.magFilter=filter(state.mag_filter);
+  const auto filtering=source_texture_filtering(state);
+  s.minFilter=filter(filtering.min_filter);s.magFilter=filter(filtering.mag_filter);
   if(state.mip_filter>2)throw FormatError("unsupported retail mip filter");
   s.mipmapMode=state.mip_filter==2?VK_SAMPLER_MIPMAP_MODE_LINEAR:VK_SAMPLER_MIPMAP_MODE_NEAREST;
   s.addressModeU=sampler_address(state.address_u);
@@ -42,8 +48,8 @@ inline NativeSampler native_sampler(const ShaderTextureState &state,
   s.mipLodBias=std::bit_cast<float>(state.lod_bias);
   if(!std::isfinite(s.mipLodBias) || std::abs(s.mipLodBias)>limits.maxSamplerLodBias)
     throw FormatError("retail mip bias exceeds native sampler limits");
-  s.anisotropyEnable=state.min_filter==3 || state.mag_filter==3;
-  s.maxAnisotropy=float(std::max(1u,state.anisotropy));
+  s.anisotropyEnable=filtering.anisotropy>1;
+  s.maxAnisotropy=float(filtering.anisotropy);
   if(s.anisotropyEnable && (!anisotropy || s.maxAnisotropy>limits.maxSamplerAnisotropy))
     throw FormatError("retail anisotropy exceeds native sampler limits");
   s.minLod=float(state.max_mip);

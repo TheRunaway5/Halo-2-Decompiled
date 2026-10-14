@@ -20,7 +20,7 @@ PickupCapsuleDefinition Cache::load_pickup_capsule_definition(std::uint32_t datu
   const auto tag=query_tag({.handle=TagHandle{datum}});
   if(!tag || tag->group!="bipd")throw FormatError("Pickup capsule requires actual biped definition");
   if(tag->size<0x274)throw FormatError("Truncated pickup biped metadata");
-  const auto root=metadata_offset(tag->address,0x274);const Bytes fields(storage_);
+  const auto root=metadata_offset(tag->address,0x274);const Bytes fields(cache_bytes());
   return {fields.u32(root+0x264),fields.f32(root+0x268),fields.f32(root+0x26c),fields.f32(root+0x270)};
 }
 PickupCapsule pickup_capsule(Vec3 root,const PickupCapsuleDefinition &definition,float crouch) {

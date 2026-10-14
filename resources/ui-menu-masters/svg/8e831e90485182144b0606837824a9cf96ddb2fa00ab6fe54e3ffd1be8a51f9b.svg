@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="168" height="168" viewBox="0 0 42 42" version="1.1">
+  <title>Vista ui\screens\game_shell\pregame_lobby\speaker page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="speaker-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.2" />
+    </filter>
+    <filter id="speaker-wave-glow-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+    <filter id="speaker-wave-glow-4" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+  </defs>
+  <g fill="#ffffff">
+    <path d="M7 14 H13 V29 H7 Z M14 14 L22 7 V36 L14 29 Z" stroke="#2e9aff" stroke-width="4" opacity="0.65" filter="url(#speaker-glow)" />
+    <path d="M7 14 H13 V29 H7 Z M14 14 L22 7 V36 L14 29 Z" />
+    <path d="M29 11 C34 16 34 26 29 31" fill="none" stroke="#2e9aff" stroke-width="4" opacity="0.65" filter="url(#speaker-wave-glow-2)" />
+    <path d="M29 11 C34 16 34 26 29 31" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" />
+    <path d="M27 15 C30 18 30 24 27 27" fill="none" stroke="#2e9aff" stroke-width="4" opacity="0.65" filter="url(#speaker-wave-glow-4)" />
+    <path d="M27 15 C30 18 30 24 27 27" fill="none" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round" />
+  </g>
+</svg>

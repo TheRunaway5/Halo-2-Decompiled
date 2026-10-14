@@ -1,0 +1,54 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="1024" viewBox="0 0 512 256" version="1.1">
+  <title>Vista ui\screens\game_shell\network_squad_browser_screen\help_display page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <clipPath id="grid-material-bounds">
+      <rect x="12" y="12" width="472" height="188" />
+    </clipPath>
+    <radialGradient id="panel-blue-0" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(446 72.1) scale(272.8 154.5)">
+      <stop offset="0" stop-opacity="1" stop-color="#4195e2" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#4195e2" />
+      <stop offset="1" stop-opacity="0" stop-color="#4195e2" />
+    </radialGradient>
+    <radialGradient id="panel-blue-1" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(30 171) scale(198.4 113.30000000000001)">
+      <stop offset="0" stop-opacity="1" stop-color="#4195e2" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#4195e2" />
+      <stop offset="1" stop-opacity="0" stop-color="#4195e2" />
+    </radialGradient>
+    <pattern id="panel-grid" patternUnits="userSpaceOnUse" width="24.45" height="24.45" x="0.5" y="12" overflow="visible">
+      <path d="M0 24.45 V0 H24.45" fill="none" stroke="white" stroke-width="2" />
+    </pattern>
+    <radialGradient id="grid-visibility" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(248.0 103.0) scale(282.71999999999997 131.84)">
+      <stop offset="0" stop-color="white" stop-opacity="1" />
+      <stop offset="0.55" stop-color="white" stop-opacity="0.95" />
+      <stop offset="1" stop-color="white" stop-opacity="0" />
+    </radialGradient>
+    <mask id="grid-visibility-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="496" height="206">
+      <rect width="496" height="206" fill="url(#grid-visibility)" />
+    </mask>
+    <linearGradient id="frame-metal" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="256">
+      <stop offset="0" stop-color="#cde2f6" />
+      <stop offset="0.5" stop-color="#adc3d8" />
+      <stop offset="1" stop-color="#adc3d8" />
+    </linearGradient>
+    <filter id="frame-blue-light" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+  </defs>
+  <g id="grid-material" clip-path="url(#grid-material-bounds)">
+    <ellipse cx="446" cy="72.1" rx="272.8" ry="154.5" fill="url(#panel-blue-0)" fill-opacity="0.24" />
+    <ellipse cx="30" cy="171" rx="198.4" ry="113.30000000000001" fill="url(#panel-blue-1)" fill-opacity="0.26" />
+    <rect width="496" height="206" fill="url(#panel-grid)" opacity="0.18" mask="url(#grid-visibility-mask)" />
+  </g>
+  <g id="chrome-frame">
+    <path d="M9 91 L18 82 V106 L12 112 V174 L44 201 H168 V205 H33 L9 181 Z" fill="#4195e2" stroke="#4195e2" stroke-width="4" opacity="0.35" filter="url(#frame-blue-light)" fill-rule="evenodd" />
+    <path d="M9 91 L18 82 V106 L12 112 V174 L44 201 H168 V205 H33 L9 181 Z" fill="url(#frame-metal)" fill-rule="evenodd" opacity="0.6" />
+    <path d="M299 11.5 H428 L430 9.5 H476 L496 29.5 V61 L492 65 V33 L477 17 H435 L432 13.5 H299 Z" fill="#4195e2" stroke="#4195e2" stroke-width="4" opacity="0.35" filter="url(#frame-blue-light)" fill-rule="evenodd" />
+    <path d="M299 11.5 H428 L430 9.5 H476 L496 29.5 V61 L492 65 V33 L477 17 H435 L432 13.5 H299 Z" fill="url(#frame-metal)" fill-rule="evenodd" opacity="0.6" />
+    <path d="M489 117 L495 123 V156 L489 150 Z" fill="#4195e2" stroke="#4195e2" stroke-width="4" opacity="0.35" filter="url(#frame-blue-light)" fill-rule="evenodd" />
+    <path d="M489 117 L495 123 V156 L489 150 Z" fill="url(#frame-metal)" fill-rule="evenodd" opacity="0.6" />
+    <path d="M15 115 V158" fill="none" stroke="#4195e2" stroke-width="5.3" opacity="0.35" filter="url(#frame-blue-light)" />
+    <path d="M15 115 V158" fill="none" stroke="url(#frame-metal)" stroke-width="1.3" opacity="0.6" />
+  </g>
+</svg>

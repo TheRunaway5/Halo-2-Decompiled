@@ -44,6 +44,10 @@ struct Synthetic:VoiceDevices {
 int main(int argc,char **argv)try {
   check(argc==7 || argc==8,"Supply ROOT ORIGIN OWNER CALLBACK_PORT OUTPUT MODE [PLAYLIST]");
   SDL_SetMainReady();const std::filesystem::path root=argv[1],output=argv[5];
+  std::filesystem::path vista;
+  {std::ifstream sources(root/"assets/asset-sources.tsv");std::string line;
+    while(std::getline(sources,line))if(line.starts_with("vista\t"))vista=line.substr(6);}
+  check(!vista.empty() && std::filesystem::is_regular_file(vista/"maps/mainmenu.map"),"Configured Vista UI bank is unavailable");
   const std::string owner=argv[3],mode=argv[6];
   const std::string first_playlist=argc==8?argv[7]:"ranked";
   const bool clan=mode=="clan" || mode=="clan-major" || mode=="clan-full";
@@ -146,7 +150,7 @@ int main(int argc,char **argv)try {
   std::optional<FrontendLaunch> party_launch;
   if(group) {
     const Cache menu(maps/"mainmenu.map");party_content=menu.load_frontend();
-    party_content->vista=load_vista_settings(root/"assets/imported/a13438f3719c48bcb914624ed35022c7/vista/maps/mainmenu.map");
+    party_content->vista=load_vista_settings(vista/"maps/mainmenu.map");
     // A finite custom validation round uses the real selected source variant.
     // Only its duration/round count are adjusted, identically on every client.
     for(auto &v:party_content->variants)if(v.name.starts_with("Team Slayer")){v.values.set(10,8);v.values.set(2,0);}
@@ -211,7 +215,7 @@ int main(int argc,char **argv)try {
     check(session->phase()==OnlineMatchSession::Phase::Postgame,"Match did not receive its completed publication");
     auto frontend=std::make_shared<FrontendSession>();frontend->discord_login=login;
     const Cache menu(maps/"mainmenu.map");frontend->retain_content(menu.load_frontend());
-    frontend->content().vista=load_vista_settings(root/"assets/imported/3c4bc518c80645f9b12caccab6d61f57/vista/maps/mainmenu.map");
+    frontend->content().vista=load_vista_settings(vista/"maps/mainmenu.map");
     auto &state=frontend->create_state();state.accept();state.accept();state.text("Same Pilot");state.commit_text();state.back();
     state.set_discord_login(login);
     bool done{};auto report=online_postgame_screen(*frontend,session,[&]{done=true;state.return_online();});
@@ -229,7 +233,7 @@ int main(int argc,char **argv)try {
     const auto old_identity=session->roster()[0].identity;
     if(render) {
       FrontendOptions options;options.session=frontend;options.entry=FrontendOptions::Entry::postgame_report;options.postgame_report=report;
-      options.maps=maps;options.ui_assets=root/"assets/imported/3c4bc518c80645f9b12caccab6d61f57/vista";
+      options.maps=maps;options.ui_assets=vista;
       options.vista_settings=options.ui_assets/"maps/mainmenu.map";options.width=1280;options.height=720;
       options.skip_intro=options.hidden=options.mute=true;options.screenshot=output/(owner+"-postgame.ppm");
       // Observe the genuine four-second PCR fade before a finite capture.
@@ -249,7 +253,7 @@ int main(int argc,char **argv)try {
     std::filesystem::create_directories(output);
     MultiplayerOptions runtime;runtime.map=maps/"lockout.map";runtime.shared_maps=maps;runtime.online_match=session;
     runtime.gameplay_xbe=root/"assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03";
-    runtime.ui_assets=root/"assets/imported/3c4bc518c80645f9b12caccab6d61f57/vista";
+    runtime.ui_assets=vista;
     runtime.width=1280;runtime.height=720;runtime.hidden=true;runtime.mute=true;runtime.replay=true;
     runtime.variant.name=team?"Team Slayer":"Slayer";
     runtime.variant.values.set(10,8);runtime.variant.values.set(2,0);runtime.variant.values.set(91,int(team));
@@ -265,16 +269,20 @@ int main(int argc,char **argv)try {
     complete_and_requeue(true);
     runtime.online_match=session;runtime.frames=500;runtime.screenshot=output/(owner+"-requeued.ppm");runtime.variant={team?"Team Slayer":"Slayer",0,{}};runtime.variant.values.set(91,int(team));
     runtime.desktop=std::make_shared<DesktopSession>();
-    bool escaped{};runtime.input_observer=[&](auto step,auto,const auto&){
-      if(owner=="one" && step>=60 && !escaped){SDL_SetRelativeMouseMode(SDL_FALSE);SDL_Event event{};event.type=SDL_KEYDOWN;
+    unsigned leave_stage{};runtime.input_observer=[&](auto step,auto,const auto&){
+      if(owner!="one")return;
+      const auto key=[&](SDL_Keycode value){SDL_Event event{};event.type=SDL_KEYDOWN;
         event.key.windowID=SDL_GetWindowID(runtime.desktop->window(runtime.width,runtime.height,true));
-        event.key.keysym.sym=SDLK_ESCAPE;check(SDL_PushEvent(&event)==1,"Could not deliver real Escape event");escaped=true;}
+        event.key.keysym.sym=value;check(SDL_PushEvent(&event)==1,"Could not deliver native pause/leave input");};
+      if(step>=60 && leave_stage==0){key(SDLK_ESCAPE);++leave_stage;}
+      else if(step>=75 && leave_stage==1){key(SDLK_DOWN);key(SDLK_DOWN);key(SDLK_RETURN);++leave_stage;}
+      else if(step>=90 && leave_stage==2){key(SDLK_UP);key(SDLK_RETURN);++leave_stage;}
     };
     MultiplayerRuntimeOutcome second;run_multiplayer(runtime,second);
     check(second.state && second.state->tick>10,"Requeued ONLINE match did not launch real gameplay");
     check(second.reason==(owner=="one"?MultiplayerExitReason::escape:MultiplayerExitReason::online_disconnected),"Leave/disconnect did not yield clean runtime ownership");
     runtime.online_match.reset();session.reset();
-    std::cout<<"PASS second real ONLINE game -> Escape/disconnect -> clean native return outcome\n";
+    std::cout<<"PASS second real ONLINE game -> Vista pause/confirmed Quit -> peer disconnect -> clean native return outcome\n";
     std::cout<<"PASS rendered ONLINE host/client handoff players="<<players<<" ticks="<<ticks<<"\n";
     std::this_thread::sleep_for(2s);return 0;
   }
@@ -293,6 +301,7 @@ int main(int argc,char **argv)try {
   }
   wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;});
   const auto self=session->self(),other=(self+1)%participants;const bool hosting=self==session->host();
+  check(session->direct_udp()==(o.compatibility=="halo2-native-queue-v12"),"Match did not use the admitted transport");
   std::unique_ptr<LanHost> host;std::unique_ptr<LanClient> client;
   std::array<std::uint8_t,9> appearance{};const auto profile=native_selected_player_configuration("Same Pilot",appearance,team?session->roster()[self].team:-1);
   if(hosting){match.join("Same Pilot",team?session->roster()[self].team:-1,profile,self);host=std::make_unique<LanHost>(match,session,fingerprint,session->roster());}
@@ -310,6 +319,7 @@ int main(int argc,char **argv)try {
   std::this_thread::sleep_for(60ms);check(audio->starts==0,"Match voice opened a microphone before opt-in");voice.enable(true);voice.radio(true,true);
   unsigned roster{},tick{},minimum_loaded=1000,muted_before{},audible_before{},capture_checkpoint{};bool mute_checked{},talking_seen{};Vec3 initial{};bool position_set{},moved{};
   const auto start=std::chrono::steady_clock::now();
+  unsigned offline_ticks{},offline_audible{},offline_at{},offline_audio_at{};bool offline_seen{};
   for(unsigned n=0;n<210;++n) {
     const auto now=std::chrono::steady_clock::now();
     voice.blocks(session->voice_blocks());
@@ -340,6 +350,10 @@ int main(int argc,char **argv)try {
     if(client){client->send(local);client->receive();}
     else {controls[self]=local[0];host->receive(controls);match.step(controls);host->broadcast();}
     const auto state=client?client->state():match.state();tick=state.tick;
+    if(std::getenv("HALO2_TEST_MASTER_OUTAGE") && !session->master_connected()) {
+      if(!offline_seen){offline_seen=true;offline_at=tick;offline_audio_at=audio->audible;}
+      offline_ticks=std::max(offline_ticks,tick-offline_at);offline_audible=std::max(offline_audible,audio->audible-offline_audio_at);
+    }
     roster=std::count_if(state.players.begin(),state.players.end(),[](const auto &p){return p.connected;});
     const auto &p=state.players[self];minimum_loaded=std::min(minimum_loaded,unsigned(std::max(0,p.loaded)));
     if(!position_set){initial=p.position;position_set=true;}else moved|=length(p.position-initial)>.001f;
@@ -361,6 +375,10 @@ int main(int argc,char **argv)try {
   check(roster==participants && tick>150 && moved && minimum_loaded<60,"Matched native state did not replicate movement/fire and real roster");
   check(mute_checked && audio->audible>audible_before+10 && audio->captures>50,"Match voice failed capture/relay/playback or unmute recovery");
   check(group?talking_seen:voice.snapshot().talking[other],"Actual matched speaker indicator absent");
+  if(std::getenv("HALO2_TEST_MASTER_OUTAGE")) {
+    check(offline_seen && offline_ticks>30 && offline_audible>20,"Master outage stalled player-hosted simulation or direct voice");
+    std::cout<<"PASS master signaling outage: direct gameplay advanced "<<offline_ticks<<" ticks and voice delivered "<<offline_audible<<" audible frames\n";
+  }
   bool published{};
   wait([&]{
     if(host && session->phase()==OnlineMatchSession::Phase::Running){host->receive(controls);match.step(controls);host->broadcast();
@@ -413,6 +431,6 @@ int main(int argc,char **argv)try {
     check(!outcome.state || !outcome.state->finished,"Pre-world disconnect fabricated a completed match");
     std::cout<<"PASS disconnect before native world handoff -> clean return without postgame fabrication\n";
   }
-  std::cout<<"PASS matched native "<<(hosting?"host":"client")<<" players="<<roster<<" tick="<<tick<<" moved="<<moved<<" minimum_loaded="<<minimum_loaded<<" audible_frames="<<audio->audible<<"; opt-in, radio, relay, mute/unmute, speaker labels and queue teardown\n";
+  std::cout<<"PASS matched native "<<(hosting?"host":"client")<<" players="<<roster<<" tick="<<tick<<" moved="<<moved<<" minimum_loaded="<<minimum_loaded<<" audible_frames="<<audio->audible<<"; opt-in, radio, "<<(o.compatibility=="halo2-native-queue-v12"?"direct UDP":"legacy relay")<<", mute/unmute, speaker labels and queue teardown\n";
   std::this_thread::sleep_for(500ms);return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

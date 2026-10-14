@@ -175,7 +175,11 @@ std::uint32_t SceneObjects::place(std::size_t placement,
   if(p.type<0 || p.type>12)throw FormatError("scene object has unsupported original type");
   const auto handle=source_owner_.create ? source_owner_.create(p) :
       lifetime_owner().reserve(std::uint8_t(p.type));
-  if(handle==null_datum)throw FormatError("shared native object capacity exhausted");
+  if(handle==null_datum)throw FormatError(source_owner_.create ?
+      "original source rejected scene placement type="+std::to_string(p.type)+
+      " ordinal="+std::to_string(p.placement)+" definition="+std::to_string(p.definition)+
+      " netgame_row="+std::to_string(p.netgame_row) : "shared native object capacity exhausted");
+  if(slots_.contains(handle))throw FormatError("source object generation already belongs to another scene placement");
   if(source_owner_.create)lifetime_owner().observe_source_birth(handle);
   if (slot == objects_.size())objects_.push_back({});
   objects_[slot] = {handle, placement, p.position, p.rotation, p.scale, true, false, false, false, int(bsp_)};
@@ -206,6 +210,9 @@ std::uint32_t SceneObjects::create(int name, bool replace,
     destroy(existing);
   }
   const auto &n = content_.object_names[name];
+  // RetailBB670 admits only names bound to a placement (+22 != NONE).
+  // Compiled name searches also visit unbound scenario name rows.
+  if(n.placement==-1)return null_datum;
   for (std::size_t i = 0; i < content_.objects.size(); ++i)
     if (content_.objects[i].type == n.type &&
         content_.objects[i].placement == n.placement) {
@@ -239,6 +246,20 @@ void SceneObjects::destroy(std::uint32_t handle) {
     names_[name] = null_datum;
   o.handle = null_datum;
   o.render_attribution_at_birth.reset();
+  std::erase_if(functions_,[&](const auto &v){return v.first.first==handle;});
+}
+void SceneObjects::observe_source_retirement(std::uint32_t handle) {
+  const auto slot=slots_.find(handle);
+  if(!source_owner_.create || slot==slots_.end() ||
+      objects_[slot->second].handle!=handle || !lifetime_owner().header(handle).empty())
+    throw FormatError("Scene retirement observation requires an actually retired source generation");
+  lifetime_owner().observe_source_retirement(handle);
+  auto &o=objects_[slot->second];
+  const auto name=content_.objects[o.placement].name;
+  if(name>=0 && names_[name]==handle)names_[name]=null_datum;
+  o.handle=null_datum;o.render_attribution_at_birth.reset();
+  o.solved_transform.reset();o.solved_nodes.reset();
+  slots_.erase(slot);
   std::erase_if(functions_,[&](const auto &v){return v.first.first==handle;});
 }
 std::optional<float> SceneObjects::function_variable(std::uint32_t object,
@@ -316,6 +337,7 @@ void Presentation::restore(const Presentation &saved) {
   if (&content_ != &saved.content_)
     throw FormatError("presentation checkpoint belongs to another level");
   cinematic = saved.cinematic;
+  cinematic_outro = saved.cinematic_outro;
   scripted = saved.scripted;
   player_camera_enabled = saved.player_camera_enabled;
   fade_ = saved.fade_;

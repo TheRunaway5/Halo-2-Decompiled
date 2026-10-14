@@ -19,8 +19,9 @@ POOL,HEADERS,UNIT,VEHICLE,PLAYERS,ROWS,TAGS,DEF,SEATS,USERS,GAME,CLOCK,RNG,GLOBA
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,required=True)
+    ap.add_argument('--source',type=Path,default=ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03')
     a=ap.parse_args();a.output.mkdir(parents=True,exist_ok=False)
-    image=Xbe(ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03')
+    image=Xbe(a.source)
     assert hashlib.sha256(image.data).hexdigest()==PIN
     specs=[]
     for flags in (0,0x10,0x40,0x50):
@@ -48,7 +49,25 @@ def main():
     for team in (0,1):
         for watched in range(4):
             specs.append(dict(name=f'replace_team{team}_watched{watched}',entry=0x23fea0,team=team,watched=watched))
+    specs.append(dict(name='construct_participant_team_only',entry=0x23fb00,binding='participant',team=1,constructor_team_probe=True))
     specs.append(dict(name='sequence_death_hold_respawn',entry=0x1573b0,sequence=True,dead=True))
+    # Campaign uses the same complete lifecycle with a three-second watch.
+    for occupied,teams in ((1,[0,1,1,1]),(3,[0,1,1,1]),(5,[0,1,0,1]),
+                           (15,[-1,0,1,-1]),(15,[-1,0,1,2])):
+        specs.append(dict(name=f'campaign_restrict_{occupied:x}_{"_".join(map(str,teams))}',
+                          entry=0x23fca0,occupied=occupied,teams=teams))
+    for team in (0,1):
+        for binding in ('previous','participant','empty'):
+            specs.append(dict(name=f'campaign_construct_{binding}_team{team}',entry=0x23fb00,
+                              game_type=1,binding=binding,teams=[0,1,team,1]))
+            specs.append(dict(name=f'campaign_replace_{binding}_team{team}',entry=0x23fea0,
+                              game_type=1,binding=binding,teams=[0,1,team,1]))
+    for flags in (0,8):
+        for dead in (False,True):
+            specs.append(dict(name=f'campaign_select_flags{flags}_dead{int(dead)}',entry=0x1573b0,
+                              game_type=1,player_flags=flags,dead=dead))
+    for kind in ('empty','first','last','attached','unlocated','retired','wrong_type'):
+        specs.append(dict(name=f'campaign_fallback_{kind}',entry=0x23fe30,fallback=kind))
     rows=[];cases=[]
     for spec in specs:
         name=spec['name'];view=spec.get('view',0);base=0x4f0214+view*0x140;camera=base+0x10
@@ -70,10 +89,17 @@ def main():
         w(0x4f01f4,PLAYERS);w(PLAYERS+0x24,0x21c);w(PLAYERS+0x38,4);w(PLAYERS+0x44,ROWS);w(PLAYERS+0x48,PLAYERS+0x100);w(PLAYERS+0x100,15)
         for index in range(4):
             row=ROWS+index*0x21c;h(row,index+1);w(row+0x2c,0x10000);w(row+0x30,0x10001);b(row+0xc0,index%2)
+        if 'occupied' in spec:w(PLAYERS+0x100,spec['occupied'])
+        for index,team in enumerate(spec.get('teams',[])):b(ROWS+index*0x21c+0xc0,team)
+        if spec.get('constructor_team_probe'):
+            # Own/first live player share a team. Later live players are enemies,
+            # so an unfiltered constructor fallback picks the wrong participant.
+            for index in range(4):b(ROWS+index*0x21c+0xc0,0 if index<2 else 1)
         own=view;w(ROWS+own*0x21c+0x2c,0xffffffff if spec.get('dead') else 0x10000)
+        if 'player_flags' in spec:h(ROWS+own*0x21c+2,spec['player_flags'])
         w(0x4f01f0,USERS)
         for index in range(4):w(USERS+12+index*4,((index+1)<<16)|index)
-        w(0x4edf18,GAME);w(GAME+8,2);b(GAME+0x184,spec.get('team',0))
+        w(0x4edf18,GAME);w(GAME+8,spec.get('game_type',2));b(GAME+0x184,spec.get('team',0))
         w(0x4f10b8,ENGINE);w(ENGINE+0xc14,0);w(0x566084,1)
         w(0x518444,CLOCK);fv(CLOCK+12,spec.get('dt',1/30))
         w(0x4f0204,MANAGER);b(MANAGER,spec.get('pause',0))
@@ -89,6 +115,17 @@ def main():
         if binding=='empty':
             for index in range(1,4):w(ROWS+index*0x21c+0x2c,0xffffffff)
         if binding=='no_local':w(USERS+12,0xffffffff)
+        fallback=spec.get('fallback')
+        if fallback:
+            # BBDA0's actual retained header/extent/type/parent/cluster bank.
+            for index,address in enumerate((UNIT,VEHICLE)):
+                b(HEADERS+index*12+3,6);w(address+0x14,0xffffffff);h(address+0x2c,0)
+            if fallback=='empty':w(POOL+0x38,0)
+            elif fallback=='first':h(HEADERS+12,0)
+            elif fallback=='attached':w(VEHICLE+0x14,0x10000)
+            elif fallback=='unlocated':h(VEHICLE+0x2c,-1)
+            elif fallback=='retired':h(HEADERS+12,0)
+            elif fallback=='wrong_type':b(HEADERS+12+3,0)
         identity=spec.get('identity');unit=0x10000
         if identity=='none':unit=0xffffffff
         if identity=='stale':unit=0x20000
@@ -109,6 +146,8 @@ def main():
         elif entry==0x1573b0:call([],eax=reset,ecx=view)
         elif entry==0x23fb00:call([0xffffffff],eax=camera,edx=view)
         elif entry==0x23fea0:call([],esi=camera)
+        elif entry==0x23fca0:call([0x10000])
+        elif entry==0x23fe30:call([])
         initial={};current={};writes=[];last=0
         def touch(p,n):
             for i,v in enumerate(bytes(g.mem_read(p,n))):
@@ -143,7 +182,7 @@ def main():
             for k,v in enumerate(bytes(g.mem_read(p,n))):initial.setdefault(p+k,v)
         output={p+i:v for s in writes for p,raw in [(s['address'],bytes.fromhex(s['written']))] for i,v in enumerate(raw)}
         mode=int.from_bytes(g.mem_read(OUT,2),'little') if entry==0x156f60 else 0
-        result=g.reg_read(R.UC_X86_REG_EAX)&0xffff if entry==0x156f60 else 0
+        result=(g.reg_read(R.UC_X86_REG_EAX)&(0xff if entry==0x23fca0 else 0xffffffff)) if entry in (0x23fca0,0x23fe30) else (g.reg_read(R.UC_X86_REG_EAX)&0xffff if entry==0x156f60 else 0)
         rows.append(f'C {name} {entry:08x} {view&0xffffffff:08x} {camera:08x} {unit:08x} {force:x} {reset:x} {spec.get("mode",0):08x} {spec.get("transition",0):x} {fp[0]:04x} {fp[1]:08x} {mode:x} {result:x} {phases:x}')
         for p,raw in spans(initial):rows.append(f'M {p:08x} {raw.hex()}')
         for p,raw in spans(output):rows.append(f'A {p:08x} {raw.hex()}')

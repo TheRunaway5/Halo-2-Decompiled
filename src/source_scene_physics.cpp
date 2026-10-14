@@ -33,6 +33,7 @@ Transform matrix(const SourceRuntimeMemory &memory,std::uint32_t p) {
     memory.view(p,0x34);
     return {scalar(memory,p),{vector(memory,p+4),vector(memory,p+16),vector(memory,p+28)},vector(memory,p+40)};
 }
+
 }
 Transform source_scene_physics_transform(const SourceRuntimeMemory &memory,
     std::uint32_t pool,std::uint32_t object) {
@@ -75,13 +76,30 @@ void publish_source_scene_physics(SceneObjects &scene,const SourceRuntimeMemory 
     // cannot leave only the first few scene objects updated for this tick.
     struct Solved {std::uint32_t handle;Transform root;std::vector<Transform> nodes;};
     std::vector<Solved> solved;
-    for(const auto &object:scene.objects())if(object.handle!=0xffffffffu)
-        solved.push_back({object.handle,source_scene_physics_transform(memory,pool,object.handle),
+    std::vector<std::uint32_t> retired;
+    const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return memory.view(p,n);}};
+    for(const auto &object:scene.objects())if(object.handle!=0xffffffffu) {
+        if(!source_raw_datum_lookup(pool,object.handle,storage))retired.push_back(object.handle);
+        else solved.push_back({object.handle,source_scene_physics_transform(memory,pool,object.handle),
             source_scene_physics_nodes(memory,pool,object.handle)});
+    }
+    for(const auto handle:retired)scene.observe_source_retirement(handle);
     for(auto &[handle,transform,nodes]:solved) {
         auto &object=scene.get(handle);object.solved_transform=transform;
         object.solved_nodes=std::move(nodes);
         object.position=transform.position;object.scale=transform.scale;
     }
+}
+Transform source_scene_physics_transform(const SourceRuntimeMemory &memory,
+    NativeRuntimeAddress pool,std::uint32_t object) {
+    return source_scene_physics_transform(memory,memory.source_address(pool,0x4c),object);
+}
+std::vector<Transform> source_scene_physics_nodes(const SourceRuntimeMemory &memory,
+    NativeRuntimeAddress pool,std::uint32_t object) {
+    return source_scene_physics_nodes(memory,memory.source_address(pool,0x4c),object);
+}
+void publish_source_scene_physics(SceneObjects &scene,const SourceRuntimeMemory &memory,
+    NativeRuntimeAddress pool) {
+    publish_source_scene_physics(scene,memory,memory.source_address(pool,0x4c));
 }
 }

@@ -7,6 +7,10 @@ namespace halo2 {
 std::optional<BitmapLowDetailResource> Cache::load_bitmap_low_detail_resource(
     std::uint32_t datum,unsigned index) const {
     if(datum==0xffffffffu)return {};
+    // MCC's 168-byte records do not contain Xbox's separate immutable
+    // software low-detail header. Its authored mip partitions are read by
+    // load_mcc_bitmap_resource, never reinterpreted as the Xbox descriptor.
+    if(mcc_)return {};
     if(vista_) {
         const auto [donor,original]=vista_texture_donor(datum);
         return donor->load_bitmap_low_detail_resource(original,index);
@@ -14,7 +18,7 @@ std::optional<BitmapLowDetailResource> Cache::load_bitmap_low_detail_resource(
     const auto tag=query_tag({.handle=TagHandle{datum}, .group=tag_groups::bitmap});
     if(!tag || !tag->address || tag->size<0x4c)
         throw FormatError("missing/truncated low-detail bitmap tag");
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto base=metadata_offset(tag->address,tag->size);
     const auto count=data.u32(base+0x44);
     if(count>65536)throw FormatError("low-detail bitmap count exceeds source bank");

@@ -9,6 +9,8 @@ struct SourceOpaqueGeometryMetadata {
 };
 SourceOpaqueGeometryMetadata load_source_opaque_bsp_geometry_metadata(const Cache&,
     std::size_t bsp,MenuWorldSourceSectionKind,unsigned section);
+SourceOpaqueGeometryMetadata load_source_opaque_model_geometry_metadata(const Cache&,
+    std::uint32_t render_model,unsigned section);
 struct SourceOpaqueGeometrySelection {
     SourceOpaqueGeometryMetadata metadata;
     std::span<const std::array<std::byte,72>> parts;
@@ -23,8 +25,9 @@ std::uint32_t source_opaque_vertex_class(std::uint16_t geometry_class,std::int32
 // command/unit/geometry ownership. Metadata retains actual source addresses:
 // primary key is the compiled306-byte implementation's address, not a tag ID.
 // Rejected selection mutates its current retained output slot as in source.
-// Main/dynamic geometry, other light implementations/layers and GPU draws are
-// separate owners. Returns the populated prefix of retained output storage.
+// Actual model and BSP metadata are supplied through the same geometry service.
+// Other light implementations/layers and GPU draws remain separate owners.
+// Returns the populated prefix of retained output storage.
 unsigned source_effect_light_opaque_select(const SourcePartCommandBank&,
     std::span<const SourceCullDrawUnit>,const SourceTagMetadataProviders&,
     const SourceOpaqueGeometryService&,std::span<SourceOpaqueSortRecord>);

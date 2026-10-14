@@ -64,8 +64,9 @@ static_assert(sizeof(TagHandle) == 4 && sizeof(TagGroup) == 4);
 static_assert(sizeof(TagGroupDefinition) == 12 && sizeof(TagReference) == 8);
 static_assert(sizeof(TagBlock) == 8 && sizeof(TagData) == 8);
 
-// Existing decoders retain the same spelling while sharing the module's
-// identities. Strings are owned, so directory entries survive buffer growth.
+// Serialized cache directory row. Its address is a file-format/source token,
+// never an engine pointer. Engine-facing TagView::Definition uses a distinct
+// NativeTagAddress. Strings are owned so entries survive buffer growth.
 struct Tag {
     std::string group, name;
     std::uint32_t datum{}, address{}, size{};

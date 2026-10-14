@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1432" height="256" viewBox="0 0 358 64" version="1.1">
+  <title>Vista ui\screens\game_shell\pregame_lobby\button page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="edge-light" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3" />
+    </filter>
+    <linearGradient id="engraving-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="54">
+      <stop offset="0" stop-color="#090e38" />
+      <stop offset="1" stop-color="#1d50a0" />
+    </linearGradient>
+  </defs>
+  <g id="lobby-button">
+    <path d="M21 8 H337 L343 14 V24 L338 29 V35 L343 40 V50 L337 56 H21 L15 50 V40 L20 35 V29 L15 24 V14 Z" fill="none" stroke="#3eacff" stroke-width="7" stroke-opacity="0.12" filter="url(#edge-light)" />
+    <path d="M21 8 H337 L343 14 V24 L338 29 V35 L343 40 V50 L337 56 H21 L15 50 V40 L20 35 V29 L15 24 V14 Z M28 10 H335 V49 L329 54 H23 V16 Z" fill-rule="evenodd" fill="#acc1d6" />
+    <path d="M28 10 H335 V49 L329 54 H23 V16 Z" fill-opacity="0.085" fill="#ffffff" />
+    <path d="M25 13 H333" fill="none" stroke="url(#engraving-paint)" stroke-width="1.7" stroke-opacity="0.05" />
+    <path d="M25 19 H333" fill="none" stroke="url(#engraving-paint)" stroke-width="1.7" stroke-opacity="0.05" />
+    <path d="M25 25 H333" fill="none" stroke="url(#engraving-paint)" stroke-width="1.7" stroke-opacity="0.05" />
+    <path d="M25 31 H333" fill="none" stroke="url(#engraving-paint)" stroke-width="1.7" stroke-opacity="0.05" />
+    <path d="M25 37 H333" fill="none" stroke="url(#engraving-paint)" stroke-width="1.7" stroke-opacity="0.05" />
+    <path d="M25 43 H333" fill="none" stroke="url(#engraving-paint)" stroke-width="1.7" stroke-opacity="0.05" />
+    <path d="M25 49 H333" fill="none" stroke="url(#engraving-paint)" stroke-width="1.7" stroke-opacity="0.05" />
+  </g>
+</svg>

@@ -89,9 +89,9 @@ BspLighting Cache::load_bsp_lighting(const Bytes &metadata,
       // Retail 4D300/4DC60 bind these two 32-byte stream descriptors.
       // Every supplied MP bucket declares 48/NORMPACKED3 (4 bytes),
       // followed by 47/RGB8 (3 bytes) when incident radiance is present.
-      if((flags&1) && (descriptor[0]!=std::byte(vista_?47:48) || descriptor[1]!=std::byte(vista_?12:4)))
+      if((flags&1) && (descriptor[0]!=std::byte(pc_geometry()?47:48) || descriptor[1]!=std::byte(pc_geometry()?12:4)))
         throw FormatError("unsupported lightmap incident vertex declaration");
-      if((flags&2) && (descriptor[32]!=std::byte(vista_?46:47) || descriptor[33]!=std::byte(vista_?4:3)))
+      if((flags&2) && (descriptor[32]!=std::byte(pc_geometry()?46:47) || descriptor[33]!=std::byte(pc_geometry()?4:3)))
         throw FormatError("unsupported lightmap radiance vertex declaration");
     }
     if(!declaration)throw FormatError("lightmap bucket vertex declaration missing");
@@ -106,10 +106,10 @@ BspLighting Cache::load_bsp_lighting(const Bytes &metadata,
       const auto source=raw_base+std::size_t(metadata.u32(resource+12));
       bytes.require(source,size);
       if(channel==0 && (flags&1)) {
-        const unsigned stride=vista_?12:4;
+        const unsigned stride=pc_geometry()?12:4;
         if(direction || size%stride)throw FormatError("invalid incident-light bucket stream");
         direction=true;
-        if(vista_)for(std::size_t k=0;k<size;k+=12) {
+        if(pc_geometry())for(std::size_t k=0;k<size;k+=12) {
           Vec3 value{bytes.f32(source+k),bytes.f32(source+k+4),bytes.f32(source+k+8)};
           if(!std::isfinite(value.x) || !std::isfinite(value.y) || !std::isfinite(value.z))
             throw FormatError("nonfinite Vista incident-light vector");
@@ -121,7 +121,7 @@ BspLighting Cache::load_bsp_lighting(const Bytes &metadata,
       } else if(channel==1 && (flags&2)) {
         // Format 47 is packed RGB8, not the four-byte format 46. The original
         // 4DC60 changes the offset multiplier according to this declaration.
-        const unsigned stride=vista_?4:3;
+        const unsigned stride=pc_geometry()?4:3;
         if(color || size%stride)throw FormatError("invalid incident-radiance bucket stream");
         color=true;
         bucket.radiance.resize(size/stride);

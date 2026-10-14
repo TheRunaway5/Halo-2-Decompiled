@@ -27,6 +27,7 @@ class NativeObjectLifetimes {
 public:
     explicit NativeObjectLifetimes(std::int32_t capacity=0x800);
     NativeObjectLifetimes(SourceRuntimeMemory &,std::uint32_t source_object_pool);
+    NativeObjectLifetimes(SourceRuntimeMemory &,NativeRuntimeAddress object_pool);
     // Register a completed source birth without allocating another header or
     // assigning its type/definition. Both come from the actual retained body.
     void observe_source_birth(std::uint32_t full_handle);

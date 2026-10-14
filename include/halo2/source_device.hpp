@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/model.hpp"
+#include "halo2/source_machine_door.hpp"
 
 namespace halo2 {
 struct SourceDeviceChannel {
@@ -15,6 +16,7 @@ struct SourceMachineDefinition {
     std::uint16_t type{}; // mach+11C: door0, platform1, gear2.
     std::uint16_t object_flags{},machine_flags{}; // Definition +2/+11E.
     float powered_position_rate{},unpowered_position_rate{}; // mach+C8/D0.
+    SourceMachineDoorDefinition door; // Device+118 and machine+120.
     std::optional<AnimationClip> initialized_idle;
     std::optional<SourceDeviceChannel> position,power;
 };

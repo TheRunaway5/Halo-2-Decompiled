@@ -39,6 +39,7 @@ struct SourceSceneryScene::Impl {
         std::array<std::int8_t,4> previous_lod{-1,-1,-1,-1};
         std::optional<AnimationClip> idle;
         Transform root,node0;
+        std::vector<Transform> world_nodes;
         std::optional<std::vector<Transform>> solved_nodes;
         float scale=1;
         unsigned first_material{},material_count{};
@@ -199,16 +200,17 @@ struct SourceSceneryScene::Impl {
         if(model.bones.empty())throw FormatError("SCEN model has no source query node0");
         if(s.solved_nodes) {
             if(s.solved_nodes->empty())throw FormatError("SCEN source owner has no current WORLD node0");
+            s.world_nodes=*s.solved_nodes;
             s.node0=s.solved_nodes->front();
             for(auto &g:s.lods)g.vertices=skin_model_world_nodes(g.model,*s.solved_nodes);
             return;
         }
         const auto clip=s.idle?&*s.idle:nullptr;
         // Cold10A1B0 stores+138 NONE, so10A390 adds no deferred root override.
-        const auto nodes=frames?pose_model_nodes_world_between_frames(model,s.root,*clip,*frames):
+        s.world_nodes=frames?pose_model_nodes_world_between_frames(model,s.root,*clip,*frames):
             controller_frame?pose_model_nodes_world_frame(model,s.root,clip,phase):
             pose_model_nodes_world(model,s.root,clip,phase);
-        s.node0=nodes.front();
+        s.node0=s.world_nodes.front();
         for(auto &g:s.lods) {
             g.vertices=frames?pose_model_world_between_frames(g.model,s.root,*clip,*frames):
                 controller_frame?pose_model_world_frame(g.model,s.root,clip,phase):
@@ -360,6 +362,12 @@ void SourceSceneryScene::birth_query_capture(BirthQueryCapture capture){
     impl_->birth_capture=std::move(capture);
 }
 void SourceSceneryScene::update_pose(std::uint64_t tick,std::int32_t frame,Mesh&){impl_->update_pose(tick,frame);}
+std::vector<SourceSceneEffectOwner> SourceSceneryScene::effect_owners() const {
+    std::vector<SourceSceneEffectOwner> out;
+    for(const auto &s:impl_->scenery)if(s.active && s.handle!=0xffffffffu)
+        out.push_back({s.source_object,s.handle,s.created_tick,s.world_nodes,s.selection.permutations});
+    return out;
+}
 void SourceSceneryScene::append_view(std::vector<Vertex>&vertices,std::vector<ObjectLightingBinding>&bindings,
     const SourceObjectViewLod &view,std::vector<SourceObjectViewSelection>*selections) {
     for(auto &s:impl_->scenery)if(s.active && s.visible) {

@@ -19,6 +19,9 @@ namespace {
 // A painter may render several disposable MenuState objects. Its screen
 // allocation identity must therefore be unique across those objects too.
 std::atomic<std::uint64_t> next_menu_instance{1};
+const UiVariant &builtin_variant(const FrontendContent &content,unsigned index) {
+  return index<content.variants.size()?content.variants.at(index):content.bundled_variants.at(index-content.variants.size());
+}
 constexpr std::array<const char *, 15> campaign_names{
     "The Heretic", "The Armory",   "Cairo Station",    "Outskirts",
     "Metropolis",  "The Arbiter",  "The Oracle",       "Delta Halo",
@@ -174,6 +177,7 @@ std::optional<DiscordIdentity> MenuState::online_identity() const {
   return discord_login_ ? discord_login_->snapshot().identity : std::nullopt;
 }
 void MenuState::update_online_login() {
+  update_online_couch();
   update_online_friends();
   update_online_account();
   if (!discord_login_) return;
@@ -320,6 +324,8 @@ std::optional<int> MenuState::focused_profile_species(const MenuFrame &frame) co
   return value ? std::optional<int>{value->species} : std::optional<int>{};
 }
 MenuFrame MenuState::build(unsigned id, unsigned context) const {
+  if(id==13 || id==vista_menu(13))
+    throw FormatError("Retired screen13 is unavailable in native navigation");
   if (id == 19 && content_.vista) return build_pc(vista_menu(19), context);
   if (is_vista_menu(id)) return build_pc(id, context);
   if (!content_.screens.contains(id))
@@ -357,6 +363,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     break;
   case 10:
   case 193:
+    if(id==10 && joining_online_)f.entries.push_back({"Guest",-80,0});
     add(0x195, 167, -1);
     for (unsigned i = 0; i < profiles_.size(); ++i) {
       if(id==10 && joining_controller_ &&
@@ -506,6 +513,9 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     for (unsigned i = 0; i < content_.variants.size(); ++i)
       if (content_.variants[i].engine == engine_)
         f.entries.push_back({content_.variants[i].name, -7, int(i)});
+    for (unsigned i=0;i<content_.bundled_variants.size();++i)
+      if(content_.bundled_variants[i].engine==engine_)
+        f.entries.push_back({content_.bundled_variants[i].name,-7,int(content_.variants.size()+i)});
     for (unsigned i = 0; i < saved_variants_.size(); ++i)
       if (saved_variants_[i].engine == engine_)
         f.entries.push_back({saved_variants_[i].name, -9, int(i)});
@@ -567,9 +577,6 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     add(0x202, -2, 1);
     add(0x203, -2, 2);
     break;
-  case 13:
-    add(0x236, 14);
-    break;
   case 30:
     f.entries = {{profile_name(), 14, 0}, {by_index(s, 0x28a), 10, 1}};
     break;
@@ -599,7 +606,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     add(0x445, -4);
     f.entries.back().label = "Discord Account";
     f.entries.push_back({"Server Browser", 219, int(online_server_browser_context)});
-    if (online_identity()) f.description = "Screen name: " + profile_name();
+    if (online_identity()) f.description = profile_name()+" | "+std::to_string(local_players().size())+" / 4 local | A: join | X: options";
     break;
   case 26:
     if (context == 1) populate_online_clans(f);
@@ -616,6 +623,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     populate_online_clans(f);
     break;
   case 31:
+    if(online_couch_screen(f)){populate_online_couch(f);break;}
     if(context==43 || context==44){populate_online_friends(f);break;}
     if (context == 41) { populate_online_clans(f); break; }
     if(context==42){populate_online_party(f);break;}
@@ -847,16 +855,6 @@ void MenuState::open_vista_lobby() {
   stack_.clear();launch.reset();quit=false;
   stack_.push_back(std::move(lobby));++revision;
 }
-void MenuState::open_vista_browser() {
-  //61A238 constructs source13 on channel5. Its independent channel1 task
-  // allocation remains alive when the replaced lobby channel is disposed.
-  auto browser=build_pc(vista_menu(13),0);
-  std::vector<MenuFrame> tasks;
-  for(auto& f:stack_)if(f.vista_leave_task)tasks.push_back(std::move(f));
-  stack_.clear();stack_.push_back(std::move(browser));
-  for(auto& f:tasks)stack_.push_back(std::move(f));
-  launch.reset();quit=false;++revision;
-}
 void MenuState::open_native_mainmenu(const std::function<void()>& before_register) {
   if(!before_register)throw FormatError("Native main-menu return requires its source presence publication owner");
   auto menu=build(6,0);
@@ -921,37 +919,49 @@ std::vector<FrontendLocalPlayer> MenuState::local_players() const {
 std::optional<unsigned> MenuState::controller_slot(std::int32_t instance,bool join) {
   if(instance<0)return {};
   for(unsigned i=0;i<local_inputs_.size();++i)if(local_inputs_[i]==instance)return i;
-  if(joining_controller_)return {};
-  if((frame().screen==30 || frame().screen==14) && mode_==1 && join && !signed_in_.empty()) {
+  if(joining_controller_ || online_local_options_)return {};
+  const bool online_join=online_couch_mutable() && (frame().screen==186 ||
+      (frame().screen==14 && mode_==3) || (frame().screen==26 && frame().context==2));
+  // Title sign-out clears every input slot. Rebind the selected host before
+  // interpreting a new controller as an additional Split Screen player.
+  if(join && local_inputs_[0]==-1 && !online_join) {local_inputs_[0]=instance;return 0;}
+  if((((frame().screen==30 || frame().screen==14) && mode_==1) || online_join) && join && !signed_in_.empty()) {
     for(unsigned i=1;i<local_profiles_.size();++i)if(local_profiles_[i].empty()) {
       local_inputs_[i]=instance;joining_controller_=i;host_profile_=profile_;
+      joining_online_=online_join;
       // A roster change cancels the existing countdown through its real owner.
       if(session_countdown_ && *session_countdown_>=0)back();
       open(10);return i;
     }
     return {};
   }
-  if(join && local_inputs_[0]==-1) {local_inputs_[0]=instance;return 0;}
   return {};
 }
 void MenuState::finish_local_signin() {
   if(!joining_controller_)return;
-  local_profiles_[*joining_controller_]=profile_name();
+  const auto controller=*joining_controller_;const bool online=joining_online_;
+  local_profiles_[controller]=profile_name();
   joining_controller_.reset();profile_=host_profile_;++revision;
+  joining_online_=false;
+  if(online){++couch_revision_;open_online_local_player(controller);}
 }
 void MenuState::leave_local_controller(unsigned controller) {
   if(controller==0 || controller>=4 || joining_controller_)return;
+  if(mode_==3 && !online_couch_mutable())return;
   if(session_countdown_ && *session_countdown_>=0)back();
   local_profiles_[controller].clear();local_inputs_[controller]=-1;++revision;
+  if(local_discord_logins_[controller])local_discord_logins_[controller]->cancel();
+  local_discord_logins_[controller].reset();local_discord_subjects_[controller].clear();++couch_revision_;
 }
 FrontendLaunch MenuState::selected_multiplayer_configuration() const {
   if(mode_!=1 && mode_!=2)throw FormatError("Native multiplayer configuration requires its selected local mode");
   UiVariant variant{variant_name_,engine_,variant_values_};
   const auto rules=slayer_rules(variant,true);
-  if(map_==2 || map_==8)throw FormatError("Midship and Waterworks start with energy weapons; their battery combat is unfinished. Choose an SMG-start map.");
+  if(rules.custom==CustomSlayer::none && (map_==2 || map_==8))throw FormatError("Midship and Waterworks start with energy weapons; their battery combat is unfinished. Choose an SMG-start map.");
   FrontendLaunch result;result.map=std::string(multiplayer_files.at(map_))+".map";
   result.multiplayer=true;
   const auto players=local_players();result.local_players=unsigned(players.size());
+  if(mode_==1 && rules.custom==CustomSlayer::infection && players.size()<2)throw FormatError("Infection requires at least two local players or a System Link/ONLINE match.");
   for(const auto& player:players) {
     result.selected_profiles.push_back(native_selected_player_configuration(
         player.name,std::span<const std::uint8_t,9>(
@@ -1106,6 +1116,7 @@ void MenuState::accept() {
   update_online_login();
   update_online_directory();
   update_online_matchmaking();
+  if(accept_online_couch())return;
   if (accept_online_clans()) return;
   if(accept_online_friends())return;
   if(accept_online_party())return;
@@ -1151,6 +1162,7 @@ void MenuState::accept() {
         party_voice_wanted_=false;
         if(discord_social_)discord_social_->disconnect();
         discord_login_->cancel();
+        clear_online_couch();
         if (online_directory_) online_directory_->cancel();
         online_directory_active_ = false;
         online_servers_ = {};
@@ -1318,10 +1330,9 @@ void MenuState::accept() {
         open(6);
     }
   } else if (entry.destination == -10) {
+    clear_online_couch();
     signed_in_.clear();local_profiles_={};local_inputs_={-1,-1,-1,-1};
-    while (stack_.size() > 1)
-      stack_.pop_back();
-    ++revision;
+    open_local_title();
   } else if (entry.destination == -11) {
     while (stack_.size() > 1 && frame().screen != 6)
       stack_.pop_back();
@@ -1341,8 +1352,8 @@ void MenuState::accept() {
     if (entry.destination == -7) {
       saved_variant_ = -1;
       variant_ = unsigned(entry.value);
-      variant_name_ = content_.variants.at(variant_).name;
-      variant_values_ = content_.variants.at(variant_).values;
+      variant_name_ = builtin_variant(content_,variant_).name;
+      variant_values_ = builtin_variant(content_,variant_).values;
     } else {
       saved_variant_ = entry.value;
       variant_name_ = saved_variants_.at(saved_variant_).name;
@@ -1408,7 +1419,7 @@ void MenuState::accept() {
       }
       saved_variants_.erase(saved_variants_.begin() + saved_variant_);
       saved_variant_ = -1;
-      const auto &original = content_.variants.at(variant_);
+      const auto &original = builtin_variant(content_,variant_);
       variant_name_ = original.name;
       variant_values_ = original.values;
       save();
@@ -1448,22 +1459,24 @@ void MenuState::accept() {
   ++revision;
 }
 void MenuState::back() {
+  if(online_couch_screen(frame())) {
+    if(online_local_options_) {
+      const auto login=local_discord_logins_[*online_local_options_];
+      if(login && !login->authorization()){login->cancel();local_discord_logins_[*online_local_options_].reset();}
+    }
+    online_local_options_.reset();stack_.pop_back();++couch_revision_;++revision;return;
+  }
   if(content_.gameplay_overlay && stack_.size()==1 && game_pause_action_) {
     const auto error=game_pause_action_(GamePauseAction::Resume);
     if(!error.empty())unavailable(error);
     return;
   }
   if(joining_controller_ && frame().screen==10) {
-    local_inputs_[*joining_controller_]=-1;joining_controller_.reset();profile_=host_profile_;
+    local_inputs_[*joining_controller_]=-1;joining_controller_.reset();profile_=host_profile_;joining_online_=false;
     stack_.pop_back();++revision;return;
   }
   if(frame().vista_leave_task)return;
   if(frame().vista_pcr){vista_pcr_event(1);return;} // Actual PC component1/B.
-  if(frame().screen==vista_menu(13)) {
-    if(lobby_session_action_ && lobby_session_action_(FrontendLobbySessionAction::BrowserBack))return;
-    unavailable("Leaving the Vista Network browser is not yet supported.");
-    return;
-  }
   if (frame().screen == 210) {
     quickmatch_pending_ = false;
     if (online_matchmaking_) online_matchmaking_->cancel_queue();
@@ -1910,9 +1923,9 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
     FrontendLobbyView view;view.protocol=2;view.input.session_enum=6;
     view.input.host=account_.party && account_.party->leader;
     view.input.start_permission=view.input.host;
-    view.input.max_players=16;view.input.player_count=account_.party?int(account_.party->members.size()):0;
+    view.input.max_players=16;view.input.player_count=int(online_party_members().size());
     view.party_names=std::vector<std::string>{};
-    if(account_.party)for(const auto &m:account_.party->members) {
+    for(const auto &m:online_party_members()) {
       view.party_names->push_back(m.name);
       const bool talking=voice_party_ && voice_.joined && ((m.self && voice_.transmitting) ||
           std::find(voice_.talking.begin(),voice_.talking.end(),m.handle)!=voice_.talking.end());

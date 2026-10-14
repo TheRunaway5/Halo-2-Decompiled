@@ -8,6 +8,7 @@ struct SourceInitialModelState {
     std::uint8_t properties{};
     std::uint16_t damage{};
     float probability{};
+    std::uint32_t looping_effect=0xffffffffu,looping_marker{};
 };
 struct SourceInitialVariantPermutation {
     std::int8_t permutation=-1;

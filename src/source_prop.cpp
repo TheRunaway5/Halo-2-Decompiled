@@ -28,7 +28,7 @@ std::optional<SourcePropLightingSphere> source_prop_physics_sphere(
     return SourcePropLightingSphere{center,radius};
 }
 SourcePropDefinition Cache::load_source_prop_definition(std::uint32_t datum)const {
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto root=[&](std::uint32_t id,const char *group,std::size_t size){
         const auto tag=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
         if(!tag)throw FormatError("source prop tag missing");

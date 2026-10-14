@@ -19,11 +19,13 @@ void vector(DeathCameraPacket &p,unsigned offset,Vec3 v) {
   p.at(offset/4+1)=std::bit_cast<std::uint32_t>(v.y);
   p.at(offset/4+2)=std::bit_cast<std::uint32_t>(v.z);
 }
-std::uint32_t word(const SourceRuntimeMemory &m,std::uint32_t address) {
+template<typename Address>
+std::uint32_t word(const SourceRuntimeMemory &m,Address address) {
   const auto bytes=m.view(address,4);std::uint32_t value{};
   for(unsigned n=0;n<4;++n)value|=std::to_integer<std::uint32_t>(bytes[n])<<(8*n);
   return value;
 }
+
 }
 NativeDeathCamera::NativeDeathCamera(MultiplayerObjectRuntime &runtime,
     const OriginalData &data,std::uint32_t &random)
@@ -33,7 +35,7 @@ NativeDeathCamera::NativeDeathCamera(MultiplayerObjectRuntime &runtime,
 }
 std::optional<NativeDeathCameraView> NativeDeathCamera::update(unsigned index,
     std::uint32_t own,std::uint16_t flags,bool team_only,float seconds,
-    bool game_in_progress,bool clock_running,bool cycle_pressed,
+    bool cycle_pressed,
     const NativeDeathCameraView &ordinary) {
   if(index>=views_.size())throw FormatError("Native death camera view is outside its local bank");
   const auto players=source_death_camera_players(runtime_.memory(),runtime_.player_pool());
@@ -50,7 +52,12 @@ std::optional<NativeDeathCameraView> NativeDeathCamera::update(unsigned index,
   }
   if(!(seconds>0.f))return view.death?view.presented:std::nullopt;
   const auto dt=source_scope_camera_dt(seconds,c.scalar);
-  if(player->current_unit!=0xffffffffu || !view.presented) {
+  // Authenticated1573B0/158790 reads the retained options owner, so the
+  // transport or number of local views cannot silently select MP policy.
+  const auto game_global=data_.image==OriginalData::Image::TitleUpdate15?0x4f3218u:0x4edf18u;
+  const bool multiplayer=word(runtime_.memory(),word(runtime_.memory(),game_global)+8u)==2u;
+  const bool dead=player->current_unit==0xffffffffu && (multiplayer || !(flags&8u));
+  if(!dead || !view.presented) {
     // Native ordinary-camera packet delivery. Zero durations are actual native
     // caller inputs; the complete observer owns their adoption and derivatives.
     DeathCameraPacket packet{};packet[0]=1;
@@ -61,18 +68,22 @@ std::optional<NativeDeathCameraView> NativeDeathCamera::update(unsigned index,
     source_observer_register_adopt(view.observer,packet,c);
     source_observer_motion(view.observer,dt,c);
     view.presented=ordinary;
-    if(player->current_unit!=0xffffffffu){view.death.reset();return {};}
+    if(!dead){view.death.reset();return {};}
   }
-  //1573B0's multiplayer current-unit test selects23FB00 once; a new current
-  //unit restores the native ordinary camera above. No source view row is forged.
+  //1573B0 selects23FB00 once; campaign also observes player flag8. A new
+  //current unit restores the ordinary camera. No source view row is forged.
+  const DeathCameraSession session{multiplayer,[this] {
+    return source_death_camera_fallback(runtime_.memory(),runtime_.object_pool());
+  }};
   if(!view.death)view.death=source_death_camera_create(view.presented->position,
-      std::int8_t(index),own,players,random_,d);
+      std::int8_t(index),own,players,random_,d,team_only,session);
   const auto clock=runtime_.source_clock();
-  const auto rate=std::bit_cast<std::int16_t>(std::uint16_t(word(runtime_.memory(),clock)>>16));
+  const auto clock_state=word(runtime_.memory(),clock);
+  const auto rate=std::bit_cast<std::int16_t>(std::uint16_t(clock_state>>16));
   const DeathCameraFrame input{seconds,rate,view.presented->position,view.presented->up,
-      cycle_pressed,team_only,game_in_progress,clock_running};
+      cycle_pressed,team_only,(clock_state&255u)!=0,((clock_state>>8)&255u)!=0};
   auto packet=source_death_camera_packet(*view.death,players,
-      [this](auto object){return runtime_.camera_target(object);},input,d,c,w);
+      [this](auto object){return runtime_.camera_target(object);},input,d,c,w,session);
   source_observer_register_adopt(view.observer,packet,c);
   source_observer_motion(view.observer,dt,c);
   source_observer_world(view.observer,frame,runtime_.observer_world_services(),c,d,w);

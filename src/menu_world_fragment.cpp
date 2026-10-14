@@ -1,4 +1,5 @@
 #include "halo2/menu_world_fragment.hpp"
+#include "halo2/source_texture_filtering.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -63,8 +64,9 @@ void sampler(const ShaderTextureState &state,const Texture &image,
   const auto bias=std::bit_cast<float>(state.lod_bias);
   if(!std::isfinite(bias) || std::abs(bias)>limits.maximum_lod_bias)
     throw FormatError("raw menu fragment sampler bias exceeds actual limits");
-  if((state.min_filter==3 || state.mag_filter==3) &&
-      (!limits.anisotropy_enabled || float(std::max(1u,state.anisotropy))>limits.maximum_anisotropy))
+  const auto filtering=source_texture_filtering(state);
+  if(filtering.anisotropy>1 &&
+      (!limits.anisotropy_enabled || float(filtering.anisotropy)>limits.maximum_anisotropy))
     throw FormatError("raw menu fragment requires enabled, sufficient sampler anisotropy");
   if(state.color_key_op)throw FormatError("raw menu fragment color-key state is unsupported");
   if(state.color_sign)throw FormatError("raw menu fragment signed image state is not admitted");

@@ -1,0 +1,272 @@
+{
+  "schema": "halo2-vista-menu-masters-v1",
+  "complete": false,
+  "experimental": true,
+  "admitted": false,
+  "reference_inventory_sha256": "226b31e6deae10b191fc4e974e6454bc41d0b51ea5a123403033b072c3d63814",
+  "source_caches": {
+    "mainmenu.map": {
+      "bytes": 61063680,
+      "sha256": "eb259c207da26adc1820ae0757d23efb4ce1d2c2018956635d1094c8364f6b44"
+    },
+    "00a_introduction.map": {
+      "bytes": 102491648,
+      "sha256": "54b5ffbbf81325bfca973c732e0ec59df5cf3ef6526006ec6cf91755519152c8"
+    },
+    "01a_tutorial.map": {
+      "bytes": 62932480,
+      "sha256": "43159ec89c920d53793d763ecc2472a48a66e13500ee680499eb0aaa6034ab58"
+    },
+    "01b_spacestation.map": {
+      "bytes": 230330368,
+      "sha256": "7de38be948d33afbd0ccf4cf6df252805b0bcba9c71d47b9e4bae96c2f482d2e"
+    },
+    "03a_oldmombasa.map": {
+      "bytes": 197725184,
+      "sha256": "16ac359098fc8b4a92a839ca97eca553d8df540b13f16408ad76f48057f305e9"
+    },
+    "03b_newmombasa.map": {
+      "bytes": 214178816,
+      "sha256": "05af6fc794e7ba7d03ff6bba0d11301d444f61ac61dfde1cd949d4f5681cd930"
+    },
+    "04a_gasgiant.map": {
+      "bytes": 193112064,
+      "sha256": "f4b3678aa57a6545c71c9644e39118ebb745c269c9e91b4bd282c031add3c473"
+    },
+    "04b_floodlab.map": {
+      "bytes": 206246912,
+      "sha256": "d736f023d25f081beaa4e44c9d4c494beecdec8b82bdf34aa8de5fc8724406c7"
+    },
+    "05a_deltaapproach.map": {
+      "bytes": 194494464,
+      "sha256": "e4f5cfb6a4efc34271b86f1cfdf9dd63cd6677a3e2da145f7cc353dc69563aa9"
+    },
+    "05b_deltatowers.map": {
+      "bytes": 204015104,
+      "sha256": "a83fb9b17c0ff284ec262d1536c83c58f12e336ed48338e76b7e8e7507451e25"
+    },
+    "06a_sentinelwalls.map": {
+      "bytes": 220246528,
+      "sha256": "8ba74963dadb06ff69e2195188005c89d1e6ddd5780ba40601a96bdae50cdabe"
+    },
+    "06b_floodzone.map": {
+      "bytes": 224458752,
+      "sha256": "622890ffbb8c4785e922194f94ab5495b46bb9a37e3b202ed016fa313b8d4f2a"
+    },
+    "07a_highcharity.map": {
+      "bytes": 291411968,
+      "sha256": "022ad809f0f173049cee1e78fb2fc547627fe6a2c43aca5137594298ec56e588"
+    },
+    "07b_forerunnership.map": {
+      "bytes": 181724672,
+      "sha256": "24d6d9622163451f931aabac4ed9b5fe5200629b94c58a1676eff0105575444c"
+    },
+    "08a_deltacliffs.map": {
+      "bytes": 153054720,
+      "sha256": "a79561100468e9450fc94d7cdac42ef80225d5a2f0842a62233ab7f6fbadd2d9"
+    },
+    "08b_deltacontrol.map": {
+      "bytes": 257914880,
+      "sha256": "0aa3e97e4f6ce5e535111d196f43b14c9ac90517003e48790e531fc19224ec8f"
+    },
+    "ascension.map": {
+      "bytes": 16059904,
+      "sha256": "ba56ab1b5db82821aad6eb073706455854ff7d626d60b4c659d070a6514a0f07"
+    },
+    "backwash.map": {
+      "bytes": 27470336,
+      "sha256": "fb6e2ba2c6bc70ef94126c20ceff25f2f29ad5c773bed238bf1304ed1ab6f899"
+    },
+    "beavercreek.map": {
+      "bytes": 17871360,
+      "sha256": "f7f2a5d0d6a7b80194354053307515aeb10dd46bb07b975de6570c1d57e66dbf"
+    },
+    "burial_mounds.map": {
+      "bytes": 23922176,
+      "sha256": "732577eb3f5dfb68a03e39b0035974fe2dfcada7b299e7e56443ecff01d0f40b"
+    },
+    "coagulation.map": {
+      "bytes": 28545024,
+      "sha256": "233286279bd2fb7f984012bd1fb013cb4d620f19daaeed03b33c8540f9e19401"
+    },
+    "colossus.map": {
+      "bytes": 18840064,
+      "sha256": "57ad4f20fad0839201cedce74146b6d55f28430f6aca49a89652ff7545425c26"
+    },
+    "containment.map": {
+      "bytes": 37309952,
+      "sha256": "653ccc27f37cf07b38a8615dd0fc90139686ba1f2bb024935085ffa1d78bf867"
+    },
+    "cyclotron.map": {
+      "bytes": 35827200,
+      "sha256": "bb187f864df22ae06e6d27e43b24b55a20b8bbdd58dda4028c0ecc97e5de55f7"
+    },
+    "deltatap.map": {
+      "bytes": 36097024,
+      "sha256": "6ee0ae777fcb9fe200dbc08f36e75203e73cbacc2448d1ac0abf1f2b5e8dfc76"
+    },
+    "dune.map": {
+      "bytes": 29826048,
+      "sha256": "97f0d853ca062a94b3f06127023951d4d39bebc837d11872c7c6008ddd5aabfe"
+    },
+    "elongation.map": {
+      "bytes": 26573312,
+      "sha256": "0bca1abc8ee391f30018f282d611d5308f330ecc9ea8fe797cb6f0bcf3494136"
+    },
+    "foundation.map": {
+      "bytes": 29363200,
+      "sha256": "0a997aa4f0ea5478ba93b18ee14d8dcd09933e761874041b2d79a89b8e0bf528"
+    },
+    "gemini.map": {
+      "bytes": 32868352,
+      "sha256": "a9090028df2a65d12701ce67abb6e5c1be6e01ea2722300ccf374df28eb8292f"
+    },
+    "headlong.map": {
+      "bytes": 38197248,
+      "sha256": "d565251bb59bae5a84dc139656363a9564e18144cda896cf0e0561b0dbce1c8d"
+    },
+    "lockout.map": {
+      "bytes": 23285248,
+      "sha256": "4ddc905069aaac420a8d08f4af4678db9376ce20acd9123a6c5b7e7fef33087a"
+    },
+    "midship.map": {
+      "bytes": 19940864,
+      "sha256": "635f4550f7ed1713d9af9eca67239ddc7db200b77d688f3d3b303635289b9cb0"
+    },
+    "needle.map": {
+      "bytes": 27165184,
+      "sha256": "68da92ac28864aad19b09d6c4d8a1ed786461e9ad3822e2725514afbf2d92451"
+    },
+    "shared.map": {
+      "bytes": 201512960,
+      "sha256": "6c0afbcf46ecd3a70ef5106e4f51d68414d5a389c1e0b1d14c47a2766abddfe0"
+    },
+    "single_player_shared.map": {
+      "bytes": 289477120,
+      "sha256": "9442c88877eda025892f3faba836a9d49057cde5b02ba3fe9736b1f6775456a3"
+    },
+    "street_sweeper.map": {
+      "bytes": 38810624,
+      "sha256": "5acceaabef78f65ce5d81fc2d0a813c7a661faaf94b1e5f385e3edf73a6408a0"
+    },
+    "triplicate.map": {
+      "bytes": 39948800,
+      "sha256": "44bb06ee1b3f52e4c675afdea7af184115bbfb2dcbbe4b92bf6323414c5287bf"
+    },
+    "turf.map": {
+      "bytes": 42826240,
+      "sha256": "5df29c5180bc7231d66d7a14a089769aafdfb3f8efa4cc7976ef8b9810e9441f"
+    },
+    "warlock.map": {
+      "bytes": 34722304,
+      "sha256": "5c9c93de641e0f03ba243674638459cc5fe5e44763decc0cfc9a8544c1fe9660"
+    },
+    "waterworks.map": {
+      "bytes": 32335872,
+      "sha256": "f2bf8e5c335ece66f85a362d48686bae0fc08934fafcd0d475eeeeb87bc3f7b6"
+    },
+    "zanzibar.map": {
+      "bytes": 43768320,
+      "sha256": "a79e07b3ee46c19939c0e7e1738164b584eff99e3ff08aee615875707ceb1e4d"
+    },
+    "loading-source.json": {
+      "bytes": 6182,
+      "sha256": "544dc7a192bb2333ba1687e51496eecd729dda6d4bad36b4d635e641c5a626af"
+    }
+  },
+  "pages": {
+    "4f17cce1d381d3448da6387198929b428f6daf5d6bf0abde64aadfe4cd4dbc7d": {
+      "family": "player-profile-spartan-illustration",
+      "density": 4,
+      "physical": [
+        2048,
+        4096
+      ],
+      "logical": [
+        512,
+        1024
+      ],
+      "source_png_sha256": "86d083e1dc7e4edcda00be812e3a0f777a3a86bba8926ffb99699574afac4a60",
+      "vector": "svg/4f17cce1d381d3448da6387198929b428f6daf5d6bf0abde64aadfe4cd4dbc7d.svg",
+      "dds": "bitmaps/4f17cce1d381d3448da6387198929b428f6daf5d6bf0abde64aadfe4cd4dbc7d.dds",
+      "vector_sha256": "995e71b21e142bf6c947cdb094bf264a6fce98315d04fe7a9d3834f194e2740f",
+      "dds_sha256": "fadf20896c6b4b200c952021946a2cec0ddeb1b307ab6f4a93974acb1ec86852",
+      "state": "authored-needs-review",
+      "experimental": true,
+      "admitted": false,
+      "fidelity_state": "unfinished",
+      "recipe": {
+        "path": "tools/vista_menu_spartan_svg.py",
+        "sha256": "0ed95c65247a319a881379af54a770f32b3f7e01eacf03dc67c6fec465a9d2bd"
+      },
+      "bindings": [
+        {
+          "cache": "mainmenu.map",
+          "name": "ui\\screens\\game_shell\\settings_screen\\player_profile\\profile",
+          "frame": 0,
+          "dds_sha256": "d0353490da1fc6855d6efe67543c1e7846b0178efc99cdbc8aecfaede7f22415",
+          "registration": [
+            256,
+            512
+          ]
+        }
+      ]
+    },
+    "d4abcc339c8deaece4e3a6211f2f55cc7ea46cd23005ecc7fed2114adec79ea7": {
+      "family": "variant-skull-flags-illustration",
+      "density": 4,
+      "physical": [
+        2048,
+        2048
+      ],
+      "logical": [
+        512,
+        512
+      ],
+      "source_png_sha256": "aa9f215dbbc5053c24275ac16663ad9a45299b6310100b892c30e952024695fb",
+      "vector": "svg/d4abcc339c8deaece4e3a6211f2f55cc7ea46cd23005ecc7fed2114adec79ea7.svg",
+      "dds": "bitmaps/d4abcc339c8deaece4e3a6211f2f55cc7ea46cd23005ecc7fed2114adec79ea7.dds",
+      "vector_sha256": "792eb2f4c9a01cc3698cc02b3a7069567e5d37656af08fa4af23f9e9e86e5f2a",
+      "dds_sha256": "89793515d6bf7d45372237ba393d03164ace1cf2392a5a7b03d6195ed0cdd2ae",
+      "state": "authored-needs-review",
+      "experimental": true,
+      "admitted": false,
+      "fidelity_state": "unfinished",
+      "recipe": {
+        "path": "tools/vista_menu_illustrations_svg.py",
+        "sha256": "340cc7b32e7a7fede7d58de38aee39262652922042d1033de882fe49e248eaa8"
+      },
+      "bindings": [
+        {
+          "cache": "mainmenu.map",
+          "name": "ui\\screens\\game_shell\\settings_screen\\variant_settings\\variant",
+          "frame": 0,
+          "dds_sha256": "052ff637dcc15b1ef3a9d4666e70f14d42cd3dffe9291e8a2dfbaa17073ed159",
+          "registration": [
+            256,
+            256
+          ]
+        }
+      ]
+    }
+  },
+  "coverage": {
+    "source_unique_pages": 862,
+    "bundled_unique_pages": 2,
+    "experimental_unfinished_pages": 2,
+    "canonical_bundled_unique_pages": 408,
+    "canonical_unfinished_unique_pages": 211,
+    "relationship": "Both studies remain in the unfinished inventory. Do not add them to canonical authored/admitted coverage."
+  },
+  "policy": "Unfinished authored review studies only. Standalone SVG sources and their DDS rasterizations; no original rasters, imported artwork, fonts, pixel grids, or automatic installation/activation.",
+  "rights_review": "Required. Faithful design recreations; no redistribution clearance is claimed.",
+  "canonical_package_preserved": {
+    "path": "resources/ui-menu-masters",
+    "manifest_sha256": "e2ea58b2d85d3a8c6dd62c15b7e84263e7e6a6b269a3a97f7c6edad6af0af4a0"
+  },
+  "review_evidence": "/home/eric/Developer/Halo-2-Decompiled/analysis/frontend/vista-menu-vectors/menu-illustrations-pass10-20261013",
+  "shared_material_recipe": {
+    "path": "tools/vista_menu_surface_svg.py",
+    "sha256": "fe17fca3daf82f9ff78118ead959353f374f4da167521df39205624196590eca"
+  }
+}

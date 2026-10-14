@@ -1,0 +1,497 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="4096" height="512" viewBox="0 0 1024 128" version="1.1">
+  <title>Vista ui\screens\game_shell\start_screen\start_screen page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <linearGradient id="wordmark-cut" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="17" y2="115">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.5" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#2745ca" />
+    </linearGradient>
+    <linearGradient id="wordmark-polished-ridge" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="17" y2="115">
+      <stop offset="0" stop-color="#d8dbfa" />
+      <stop offset="0.5" stop-color="#ffffd5" />
+      <stop offset="1" stop-color="#efe8ff" />
+    </linearGradient>
+    <linearGradient id="wordmark-outer-edge" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="17" y2="115">
+      <stop offset="0" stop-color="#dae1f8" />
+      <stop offset="0.5" stop-color="#b4c4f2" />
+      <stop offset="1" stop-color="#293da5" />
+    </linearGradient>
+    <filter id="wordmark-bevel-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <linearGradient id="wordmark-seam-light" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="17" y2="115">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.55" stop-color="#f2f5ff" />
+      <stop offset="1" stop-color="#91a8e4" />
+    </linearGradient>
+    <filter id="H-outer-shade-blur" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+    <filter id="H-edge-softening" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+    <linearGradient id="H-metal-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="17" y2="112">
+      <stop offset="0.0" stop-color="#ffffff" />
+      <stop offset="0.2631578947368421" stop-color="#ffffff" />
+      <stop offset="0.3684210526315789" stop-color="#fdfdfe" />
+      <stop offset="0.47368421052631576" stop-color="#f4f5fc" />
+      <stop offset="0.5789473684210527" stop-color="#e1e3f6" />
+      <stop offset="0.6842105263157895" stop-color="#bec4eb" />
+      <stop offset="0.7894736842105263" stop-color="#8696da" />
+      <stop offset="0.8736842105263158" stop-color="#5366c6" />
+      <stop offset="1.0" stop-color="#1a2da5" />
+    </linearGradient>
+    <clipPath id="H-inside">
+      <path d="M50 17 H90 V58 H169 V31 C181 31 189 36 195 43 V99 C195 102 200 103 206 103 V105 H195 V108 H180 V104 H169 V66 H101 V93 C101 102 110 105 119 106 V110 C113 108 110 108 109 112 H79 L80 107 H54 V105 H60 C65 105 66 101 66 95 V34 C66 23 62 20 50 20 Z" fill-rule="evenodd" />
+    </clipPath>
+    <filter id="H-seam-cavity-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="H-seam-bloom-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="H-seam-light-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="H-seam-cavity-3" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="H-seam-bloom-4" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="H-seam-light-5" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="H-seam-cavity-6" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="H-seam-bloom-7" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="H-seam-light-8" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="H-seam-cavity-9" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="H-seam-bloom-10" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="H-seam-light-11" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="H-seam-cavity-12" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="H-seam-bloom-13" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="H-seam-light-14" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="A-outer-shade-blur" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+    <filter id="A-edge-softening" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+    <linearGradient id="A-metal-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="21" y2="109">
+      <stop offset="0.0" stop-color="#ffffff" />
+      <stop offset="0.23863636363636365" stop-color="#ffffff" />
+      <stop offset="0.3522727272727273" stop-color="#fdfdfe" />
+      <stop offset="0.4659090909090909" stop-color="#f4f5fc" />
+      <stop offset="0.5795454545454546" stop-color="#dde1f5" />
+      <stop offset="0.6931818181818182" stop-color="#b3bce8" />
+      <stop offset="0.8068181818181818" stop-color="#6f82d1" />
+      <stop offset="0.8977272727272727" stop-color="#3353bb" />
+      <stop offset="1.0" stop-color="#1a2da5" />
+    </linearGradient>
+    <clipPath id="A-inside">
+      <path d="M315 21 L390 101 H407 V105 H387 V109 H369 L366 105 H352 V102 H363 C369 102 366 99 364 97 L337 73 H295 L278 94 C272 101 273 102 282 102 H290 V105 H261 L259 109 H231 V103 H241 L271 67 H281 L288 61 H326 L305 39 L299 46 H290 L306 29 L308 31 Z" fill-rule="evenodd" />
+    </clipPath>
+    <filter id="A-seam-cavity-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="A-seam-bloom-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="A-seam-light-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="A-seam-cavity-3" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="A-seam-bloom-4" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="A-seam-light-5" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="A-seam-cavity-6" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="A-seam-bloom-7" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="A-seam-light-8" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="A-seam-cavity-9" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="A-seam-bloom-10" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="A-seam-light-11" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="A-seam-cavity-12" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="A-seam-bloom-13" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="A-seam-light-14" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="L-outer-shade-blur" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+    <filter id="L-edge-softening" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+    <linearGradient id="L-metal-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="24" y2="107">
+      <stop offset="0.0" stop-color="#ffffff" />
+      <stop offset="0.1927710843373494" stop-color="#ffffff" />
+      <stop offset="0.3132530120481928" stop-color="#fefefe" />
+      <stop offset="0.43373493975903615" stop-color="#f8f9fd" />
+      <stop offset="0.5542168674698795" stop-color="#e9ecf8" />
+      <stop offset="0.6746987951807228" stop-color="#c7cdee" />
+      <stop offset="0.7951807228915663" stop-color="#8c9adb" />
+      <stop offset="0.891566265060241" stop-color="#5165c5" />
+      <stop offset="1.0" stop-color="#1a2da5" />
+    </linearGradient>
+    <clipPath id="L-inside">
+      <path d="M425 24 H463 V28 H489 V31 C477 31 474 34 474 41 V91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 H456 L457 101 H429 V98 C443 98 446 93 446 85 V40 C446 29 442 26 425 26 Z" fill-rule="evenodd" />
+    </clipPath>
+    <filter id="L-seam-cavity-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="L-seam-bloom-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="L-seam-light-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="L-seam-cavity-3" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="L-seam-bloom-4" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="L-seam-light-5" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="L-seam-cavity-6" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="L-seam-bloom-7" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="L-seam-light-8" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="L-seam-cavity-9" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="L-seam-bloom-10" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="L-seam-light-11" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <clipPath id="L-foot-region">
+      <rect x="425" y="83" width="132" height="30" />
+    </clipPath>
+    <linearGradient id="L-foot-metal" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="96" y2="109">
+      <stop offset="0" stop-color="#435dd6" />
+      <stop offset="0.3" stop-color="#425bc0" />
+      <stop offset="0.7" stop-color="#1e3ebb" />
+      <stop offset="1" stop-color="#1a2ca4" />
+    </linearGradient>
+    <filter id="L-upper-bevel-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="L-upper-polished-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.32" />
+    </filter>
+    <linearGradient id="L-hook-reflection" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="84" y2="105">
+      <stop offset="0" stop-color="#f2f4fd" />
+      <stop offset="0.6" stop-color="#d7dcf3" />
+      <stop offset="1" stop-color="#8b9cd6" />
+    </linearGradient>
+    <filter id="L-hook-bevel-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.45" />
+    </filter>
+    <filter id="L-lower-ridge-softness" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.55" />
+    </filter>
+    <filter id="L-serif-polished-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.35" />
+    </filter>
+    <filter id="O-outer-shade-blur" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+    <filter id="O-edge-softening" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+    <linearGradient id="O-metal-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="14" y2="115">
+      <stop offset="0.0" stop-color="#ffffff" />
+      <stop offset="0.2079207920792079" stop-color="#ffffff" />
+      <stop offset="0.3069306930693069" stop-color="#fefefe" />
+      <stop offset="0.40594059405940597" stop-color="#fafafd" />
+      <stop offset="0.504950495049505" stop-color="#f1f2fb" />
+      <stop offset="0.6039603960396039" stop-color="#dce0f4" />
+      <stop offset="0.7029702970297029" stop-color="#b8c0e9" />
+      <stop offset="0.801980198019802" stop-color="#7789db" />
+      <stop offset="0.9108910891089109" stop-color="#3c58bf" />
+      <stop offset="1.0" stop-color="#1a2da5" />
+    </linearGradient>
+    <clipPath id="O-inside">
+      <path d="M565 57 H576 C583 41 602 27 629 21 L626 17 C687 7 747 23 754 58 C755 62 761 64 774 64 V66 H762 C756 66 755 68 754 72 C747 99 702 115 657 115 L656 110 C636 110 622 107 609 102 L616 95 C639 103 675 105 703 91 C724 80 734 64 728 52 C718 28 674 22 648 27 C618 28 596 39 584 57 L583 65 H574 Z" fill-rule="evenodd" />
+    </clipPath>
+    <filter id="O-seam-cavity-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="O-seam-bloom-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="O-seam-light-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="O-seam-cavity-3" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="O-seam-bloom-4" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="O-seam-light-5" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="O-seam-cavity-6" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="O-seam-bloom-7" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="O-seam-light-8" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="2-outer-shade-blur" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="3.5" />
+    </filter>
+    <filter id="2-edge-softening" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="1.5" />
+    </filter>
+    <linearGradient id="2-metal-face" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="14" y2="110">
+      <stop offset="0.0" stop-color="#ffffff" />
+      <stop offset="0.21875" stop-color="#ffffff" />
+      <stop offset="0.3229166666666667" stop-color="#fefefe" />
+      <stop offset="0.4270833333333333" stop-color="#f8f9fd" />
+      <stop offset="0.53125" stop-color="#eceef9" />
+      <stop offset="0.6354166666666666" stop-color="#d0d5f2" />
+      <stop offset="0.71875" stop-color="#aeb7e7" />
+      <stop offset="0.8229166666666666" stop-color="#7486d4" />
+      <stop offset="0.9270833333333334" stop-color="#3251bb" />
+      <stop offset="1.0" stop-color="#1a2da5" />
+    </linearGradient>
+    <clipPath id="2-inside">
+      <path d="M870 28 L868.5 21 C896 7 938 10 958 29 C969 42 968 58 956 72 H932 L882 98 H905 L913 94 H962 C969 94 972 91 972 85 H975 V105 H971 C967 105 965 107 965 110 H848 L846 106 H829 V103 H840 L884 81 L888 85 C911 74 933 63 939 53 C948 36 931 29 919 28 C895 24 872 29 865 41 V48 H849 L845 42 H856 C861 35 866 31 870 28 Z" fill-rule="evenodd" />
+    </clipPath>
+    <filter id="2-seam-cavity-0" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="2-seam-bloom-1" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="2-seam-light-2" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="2-seam-cavity-3" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="2-seam-bloom-4" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="2-seam-light-5" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="2-seam-cavity-6" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="2-seam-bloom-7" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="2-seam-light-8" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <filter id="2-seam-cavity-9" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.4" />
+    </filter>
+    <filter id="2-seam-bloom-10" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.65" />
+    </filter>
+    <filter id="2-seam-light-11" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.48" />
+    </filter>
+    <linearGradient id="wordmark-centre-metal" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="56" y2="73.5">
+      <stop offset="0.0" stop-color="#ffffff" />
+      <stop offset="0.2857142857142857" stop-color="#ffffff" />
+      <stop offset="0.45714285714285713" stop-color="#f8f8fd" />
+      <stop offset="0.5714285714285714" stop-color="#e7e9f8" />
+      <stop offset="0.6857142857142857" stop-color="#c5cbee" />
+      <stop offset="0.8" stop-color="#99a6df" />
+      <stop offset="0.8571428571428571" stop-color="#9da7df" />
+      <stop offset="0.9142857142857143" stop-color="#7984cd" />
+      <stop offset="1.0" stop-color="#1a2ca4" />
+    </linearGradient>
+    <filter id="oval-outer-shade" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.5" />
+    </filter>
+    <filter id="oval-polished-edge" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="0.25" />
+    </filter>
+  </defs>
+  <g id="halo2-wordmark" stroke-linejoin="round">
+    <path id="H-outer-shade" d="M50 17 H90 V58 H169 V31 C181 31 189 36 195 43 V99 C195 102 200 103 206 103 V105 H195 V108 H180 V104 H169 V66 H101 V93 C101 102 110 105 119 106 V110 C113 108 110 108 109 112 H79 L80 107 H54 V105 H60 C65 105 66 101 66 95 V34 C66 23 62 20 50 20 Z" fill="#292929" stroke="#292929" stroke-width="8" opacity="0.85" filter="url(#H-outer-shade-blur)" />
+    <path id="H-shadow" d="M50 17 H90 V58 H169 V31 C181 31 189 36 195 43 V99 C195 102 200 103 206 103 V105 H195 V108 H180 V104 H169 V66 H101 V93 C101 102 110 105 119 106 V110 C113 108 110 108 109 112 H79 L80 107 H54 V105 H60 C65 105 66 101 66 95 V34 C66 23 62 20 50 20 Z" fill="#161616" stroke="#161616" stroke-width="2" transform="translate(0 2.2)" opacity="0.5" filter="url(#H-edge-softening)" />
+    <path id="H" d="M50 17 H90 V58 H169 V31 C181 31 189 36 195 43 V99 C195 102 200 103 206 103 V105 H195 V108 H180 V104 H169 V66 H101 V93 C101 102 110 105 119 106 V110 C113 108 110 108 109 112 H79 L80 107 H54 V105 H60 C65 105 66 101 66 95 V34 C66 23 62 20 50 20 Z" fill="url(#H-metal-face)" fill-rule="evenodd" />
+    <g clip-path="url(#H-inside)" filter="url(#wordmark-bevel-softness)">
+      <path d="M50 17 H90 V58 H169 V31 C181 31 189 36 195 43 V99 C195 102 200 103 206 103 V105 H195 V108 H180 V104 H169 V66 H101 V93 C101 102 110 105 119 106 V110 C113 108 110 108 109 112 H79 L80 107 H54 V105 H60 C65 105 66 101 66 95 V34 C66 23 62 20 50 20 Z" fill="none" stroke="url(#wordmark-cut)" stroke-width="7" transform="translate(0 0)" />
+      <path d="M50 17 H90 V58 H169 V31 C181 31 189 36 195 43 V99 C195 102 200 103 206 103 V105 H195 V108 H180 V104 H169 V66 H101 V93 C101 102 110 105 119 106 V110 C113 108 110 108 109 112 H79 L80 107 H54 V105 H60 C65 105 66 101 66 95 V34 C66 23 62 20 50 20 Z" fill="none" stroke="url(#wordmark-polished-ridge)" stroke-width="3" transform="translate(0.6 0.6)" />
+      <path d="M50 17 H90 V58 H169 V31 C181 31 189 36 195 43 V99 C195 102 200 103 206 103 V105 H195 V108 H180 V104 H169 V66 H101 V93 C101 102 110 105 119 106 V110 C113 108 110 108 109 112 H79 L80 107 H54 V105 H60 C65 105 66 101 66 95 V34 C66 23 62 20 50 20 Z" fill="none" stroke="url(#wordmark-outer-edge)" stroke-width="3" transform="translate(-0.6 -0.6)" />
+    </g>
+    <g id="H-polished-seams" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M50 18 C65 18 68 24 68 34 L69 88 C69 102 65 104 54 105" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#H-seam-cavity-0)" />
+      <path d="M50 18 C65 18 68 24 68 34 L69 88 C69 102 65 104 54 105" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#H-seam-bloom-1)" />
+      <path d="M50 18 C65 18 68 24 68 34 L69 88 C69 102 65 104 54 105" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#H-seam-light-2)" />
+      <path d="M89 20 C86 22 86 26 86 34 V59 H170 V32 C181 32 189 38 194 43 V102 H205" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#H-seam-cavity-3)" />
+      <path d="M89 20 C86 22 86 26 86 34 V59 H170 V32 C181 32 189 38 194 43 V102 H205" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#H-seam-bloom-4)" />
+      <path d="M89 20 C86 22 86 26 86 34 V59 H170 V32 C181 32 189 38 194 43 V102 H205" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#H-seam-light-5)" />
+      <path d="M170 66 V102 H182 L181 106 H194" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#H-seam-cavity-6)" />
+      <path d="M170 66 V102 H182 L181 106 H194" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#H-seam-bloom-7)" />
+      <path d="M170 66 V102 H182 L181 106 H194" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#H-seam-light-8)" />
+      <path d="M101 66 V93 C101 102 109 106 119 107" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#H-seam-cavity-9)" />
+      <path d="M101 66 V93 C101 102 109 106 119 107" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#H-seam-bloom-10)" />
+      <path d="M101 66 V93 C101 102 109 106 119 107" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#H-seam-light-11)" />
+      <path d="M54 105 H81 Q83 105 81 110 H108 Q109 107 117 108" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#H-seam-cavity-12)" />
+      <path d="M54 105 H81 Q83 105 81 110 H108 Q109 107 117 108" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#H-seam-bloom-13)" />
+      <path d="M54 105 H81 Q83 105 81 110 H108 Q109 107 117 108" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#H-seam-light-14)" />
+    </g>
+    <path id="A-outer-shade" d="M315 21 L390 101 H407 V105 H387 V109 H369 L366 105 H352 V102 H363 C369 102 366 99 364 97 L337 73 H295 L278 94 C272 101 273 102 282 102 H290 V105 H261 L259 109 H231 V103 H241 L271 67 H281 L288 61 H326 L305 39 L299 46 H290 L306 29 L308 31 Z" fill="#292929" stroke="#292929" stroke-width="8" opacity="0.85" filter="url(#A-outer-shade-blur)" />
+    <path id="A-shadow" d="M315 21 L390 101 H407 V105 H387 V109 H369 L366 105 H352 V102 H363 C369 102 366 99 364 97 L337 73 H295 L278 94 C272 101 273 102 282 102 H290 V105 H261 L259 109 H231 V103 H241 L271 67 H281 L288 61 H326 L305 39 L299 46 H290 L306 29 L308 31 Z" fill="#161616" stroke="#161616" stroke-width="2" transform="translate(0 2.2)" opacity="0.5" filter="url(#A-edge-softening)" />
+    <path id="A" d="M315 21 L390 101 H407 V105 H387 V109 H369 L366 105 H352 V102 H363 C369 102 366 99 364 97 L337 73 H295 L278 94 C272 101 273 102 282 102 H290 V105 H261 L259 109 H231 V103 H241 L271 67 H281 L288 61 H326 L305 39 L299 46 H290 L306 29 L308 31 Z" fill="url(#A-metal-face)" fill-rule="evenodd" />
+    <g clip-path="url(#A-inside)" filter="url(#wordmark-bevel-softness)">
+      <path d="M315 21 L390 101 H407 V105 H387 V109 H369 L366 105 H352 V102 H363 C369 102 366 99 364 97 L337 73 H295 L278 94 C272 101 273 102 282 102 H290 V105 H261 L259 109 H231 V103 H241 L271 67 H281 L288 61 H326 L305 39 L299 46 H290 L306 29 L308 31 Z" fill="none" stroke="url(#wordmark-cut)" stroke-width="7" transform="translate(0 0)" />
+      <path d="M315 21 L390 101 H407 V105 H387 V109 H369 L366 105 H352 V102 H363 C369 102 366 99 364 97 L337 73 H295 L278 94 C272 101 273 102 282 102 H290 V105 H261 L259 109 H231 V103 H241 L271 67 H281 L288 61 H326 L305 39 L299 46 H290 L306 29 L308 31 Z" fill="none" stroke="url(#wordmark-polished-ridge)" stroke-width="3" transform="translate(0.6 0.6)" />
+      <path d="M315 21 L390 101 H407 V105 H387 V109 H369 L366 105 H352 V102 H363 C369 102 366 99 364 97 L337 73 H295 L278 94 C272 101 273 102 282 102 H290 V105 H261 L259 109 H231 V103 H241 L271 67 H281 L288 61 H326 L305 39 L299 46 H290 L306 29 L308 31 Z" fill="none" stroke="url(#wordmark-outer-edge)" stroke-width="3" transform="translate(-0.6 -0.6)" />
+    </g>
+    <g id="A-polished-seams" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M291 45 H299 L305 38 L328 62 H289 L282 68 H272 L242 104 H232" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#A-seam-cavity-0)" />
+      <path d="M291 45 H299 L305 38 L328 62 H289 L282 68 H272 L242 104 H232" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#A-seam-bloom-1)" />
+      <path d="M291 45 H299 L305 38 L328 62 H289 L282 68 H272 L242 104 H232" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#A-seam-light-2)" />
+      <path d="M307 31 L315 22 L389 102 H406" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#A-seam-cavity-3)" />
+      <path d="M307 31 L315 22 L389 102 H406" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#A-seam-bloom-4)" />
+      <path d="M307 31 L315 22 L389 102 H406" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#A-seam-light-5)" />
+      <path d="M289 103 H280 C272 103 274 99 278 94 L296 72 H337 L366 99 Q369 103 364 103 H353" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#A-seam-cavity-6)" />
+      <path d="M289 103 H280 C272 103 274 99 278 94 L296 72 H337 L366 99 Q369 103 364 103 H353" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#A-seam-bloom-7)" />
+      <path d="M289 103 H280 C272 103 274 99 278 94 L296 72 H337 L366 99 Q369 103 364 103 H353" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#A-seam-light-8)" />
+      <path d="M232 106 H259 L261 103" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#A-seam-cavity-9)" />
+      <path d="M232 106 H259 L261 103" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#A-seam-bloom-10)" />
+      <path d="M232 106 H259 L261 103" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#A-seam-light-11)" />
+      <path d="M368 105 L370 107 H386 L387 104" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#A-seam-cavity-12)" />
+      <path d="M368 105 L370 107 H386 L387 104" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#A-seam-bloom-13)" />
+      <path d="M368 105 L370 107 H386 L387 104" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#A-seam-light-14)" />
+    </g>
+    <path id="L-outer-shade" d="M425 24 H463 V28 H489 V31 C477 31 474 34 474 41 V91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 H456 L457 101 H429 V98 C443 98 446 93 446 85 V40 C446 29 442 26 425 26 Z" fill="#292929" stroke="#292929" stroke-width="8" opacity="0.85" filter="url(#L-outer-shade-blur)" />
+    <path id="L-shadow" d="M425 24 H463 V28 H489 V31 C477 31 474 34 474 41 V91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 H456 L457 101 H429 V98 C443 98 446 93 446 85 V40 C446 29 442 26 425 26 Z" fill="#161616" stroke="#161616" stroke-width="2" transform="translate(0 2.2)" opacity="0.5" filter="url(#L-edge-softening)" />
+    <path id="L" d="M425 24 H463 V28 H489 V31 C477 31 474 34 474 41 V91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 H456 L457 101 H429 V98 C443 98 446 93 446 85 V40 C446 29 442 26 425 26 Z" fill="url(#L-metal-face)" fill-rule="evenodd" />
+    <g clip-path="url(#L-inside)" filter="url(#wordmark-bevel-softness)">
+      <path d="M425 24 H463 V28 H489 V31 C477 31 474 34 474 41 V91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 H456 L457 101 H429 V98 C443 98 446 93 446 85 V40 C446 29 442 26 425 26 Z" fill="none" stroke="url(#wordmark-cut)" stroke-width="7" transform="translate(0 0)" />
+      <path d="M425 24 H463 V28 H489 V31 C477 31 474 34 474 41 V91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 H456 L457 101 H429 V98 C443 98 446 93 446 85 V40 C446 29 442 26 425 26 Z" fill="none" stroke="url(#wordmark-polished-ridge)" stroke-width="3" transform="translate(0.6 0.6)" />
+      <path d="M425 24 H463 V28 H489 V31 C477 31 474 34 474 41 V91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 H456 L457 101 H429 V98 C443 98 446 93 446 85 V40 C446 29 442 26 425 26 Z" fill="none" stroke="url(#wordmark-outer-edge)" stroke-width="3" transform="translate(-0.6 -0.6)" />
+    </g>
+    <g id="L-polished-seams" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M426 25 H462 L461 29 H488" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#L-seam-cavity-0)" />
+      <path d="M426 25 H462 L461 29 H488" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#L-seam-bloom-1)" />
+      <path d="M426 25 H462 L461 29 H488" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#L-seam-light-2)" />
+      <path d="M430 99 C443 99 448 94 448 84 V39 C448 29 442 25 426 25" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#L-seam-cavity-3)" />
+      <path d="M430 99 C443 99 448 94 448 84 V39 C448 29 442 25 426 25" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#L-seam-bloom-4)" />
+      <path d="M430 99 C443 99 448 94 448 84 V39 C448 29 442 25 426 25" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#L-seam-light-5)" />
+      <path d="M488 30 C476 31 473 35 473 43 V93.5 H537 C547 93.5 553 89 553.5 84" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#L-seam-cavity-6)" />
+      <path d="M488 30 C476 31 473 35 473 43 V93.5 H537 C547 93.5 553 89 553.5 84" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#L-seam-bloom-7)" />
+      <path d="M488 30 C476 31 473 35 473 43 V93.5 H537 C547 93.5 553 89 553.5 84" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#L-seam-light-8)" />
+      <path d="M430 99 H459 Q461 99 459 106 H545.5 Q546 102 553.5 102 V85" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#L-seam-cavity-9)" />
+      <path d="M430 99 H459 Q461 99 459 106 H545.5 Q546 102 553.5 102 V85" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#L-seam-bloom-10)" />
+      <path d="M430 99 H459 Q461 99 459 106 H545.5 Q546 102 553.5 102 V85" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#L-seam-light-11)" />
+    </g>
+    <g clip-path="url(#L-inside)">
+      <g id="L-authored-bevel" clip-path="url(#L-foot-region)">
+        <path d="M474 91 Q474 93 477 93 H537 C547 93 552 88 552 83 H555 V103 H550 C547 103 545 105 545 109 H456 L457 101 H474 Z" fill="url(#L-foot-metal)" />
+        <path d="M474 92.8 H537 C547 92.8 552.4 88.6 552.7 83.5" fill="none" stroke="#cbd5f5" stroke-width="4.4" filter="url(#L-upper-bevel-softness)" />
+        <path d="M474 92.8 H537 C547 92.8 552.4 88.6 552.7 83.5" fill="none" stroke="#f6f8ff" stroke-width="1.55" filter="url(#L-upper-polished-edge)" />
+        <path d="M551 88 L552 83.5 H554 V102 H550 C546 102 544.5 104 544.5 107 H542.5 C542.5 102 546 99.5 550.5 99.5 Z" fill="url(#L-hook-reflection)" filter="url(#L-hook-bevel-softness)" />
+        <path d="M554 84 V103 H550 C547 103 545 105 545 108.5" fill="none" stroke="#3e50b8" stroke-width="1.2" />
+        <path d="M429 99 H458.5 Q461 99 458.5 106 H542.8 C543 102.2 546 100.8 550.5 100.8" fill="none" stroke="#839bd9" stroke-width="1.7" filter="url(#L-lower-ridge-softness)" />
+        <path d="M456 108 H544" fill="none" stroke="#1a2ca4" stroke-width="1.65" />
+        <path d="M426 25 H462 L461.5 29 H488" fill="none" stroke="#fbfcff" stroke-width="1.1" filter="url(#L-serif-polished-edge)" />
+      </g>
+    </g>
+    <path id="O-outer-shade" d="M565 57 H576 C583 41 602 27 629 21 L626 17 C687 7 747 23 754 58 C755 62 761 64 774 64 V66 H762 C756 66 755 68 754 72 C747 99 702 115 657 115 L656 110 C636 110 622 107 609 102 L616 95 C639 103 675 105 703 91 C724 80 734 64 728 52 C718 28 674 22 648 27 C618 28 596 39 584 57 L583 65 H574 Z" fill="#292929" stroke="#292929" stroke-width="8" opacity="0.85" filter="url(#O-outer-shade-blur)" />
+    <path id="O-shadow" d="M565 57 H576 C583 41 602 27 629 21 L626 17 C687 7 747 23 754 58 C755 62 761 64 774 64 V66 H762 C756 66 755 68 754 72 C747 99 702 115 657 115 L656 110 C636 110 622 107 609 102 L616 95 C639 103 675 105 703 91 C724 80 734 64 728 52 C718 28 674 22 648 27 C618 28 596 39 584 57 L583 65 H574 Z" fill="#161616" stroke="#161616" stroke-width="2" transform="translate(0 2.2)" opacity="0.5" filter="url(#O-edge-softening)" />
+    <path id="O" d="M565 57 H576 C583 41 602 27 629 21 L626 17 C687 7 747 23 754 58 C755 62 761 64 774 64 V66 H762 C756 66 755 68 754 72 C747 99 702 115 657 115 L656 110 C636 110 622 107 609 102 L616 95 C639 103 675 105 703 91 C724 80 734 64 728 52 C718 28 674 22 648 27 C618 28 596 39 584 57 L583 65 H574 Z" fill="url(#O-metal-face)" fill-rule="evenodd" />
+    <g clip-path="url(#O-inside)" filter="url(#wordmark-bevel-softness)">
+      <path d="M565 57 H576 C583 41 602 27 629 21 L626 17 C687 7 747 23 754 58 C755 62 761 64 774 64 V66 H762 C756 66 755 68 754 72 C747 99 702 115 657 115 L656 110 C636 110 622 107 609 102 L616 95 C639 103 675 105 703 91 C724 80 734 64 728 52 C718 28 674 22 648 27 C618 28 596 39 584 57 L583 65 H574 Z" fill="none" stroke="url(#wordmark-cut)" stroke-width="7" transform="translate(0 0)" />
+      <path d="M565 57 H576 C583 41 602 27 629 21 L626 17 C687 7 747 23 754 58 C755 62 761 64 774 64 V66 H762 C756 66 755 68 754 72 C747 99 702 115 657 115 L656 110 C636 110 622 107 609 102 L616 95 C639 103 675 105 703 91 C724 80 734 64 728 52 C718 28 674 22 648 27 C618 28 596 39 584 57 L583 65 H574 Z" fill="none" stroke="url(#wordmark-polished-ridge)" stroke-width="3" transform="translate(0.6 0.6)" />
+      <path d="M565 57 H576 C583 41 602 27 629 21 L626 17 C687 7 747 23 754 58 C755 62 761 64 774 64 V66 H762 C756 66 755 68 754 72 C747 99 702 115 657 115 L656 110 C636 110 622 107 609 102 L616 95 C639 103 675 105 703 91 C724 80 734 64 728 52 C718 28 674 22 648 27 C618 28 596 39 584 57 L583 65 H574 Z" fill="none" stroke="url(#wordmark-outer-edge)" stroke-width="3" transform="translate(-0.6 -0.6)" />
+    </g>
+    <g id="O-polished-seams" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M566 58 H578 C585 40 603 28 630 22 L629 18 C689 10 745 25 753 59 C755 64 763 65 773 65" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#O-seam-cavity-0)" />
+      <path d="M566 58 H578 C585 40 603 28 630 22 L629 18 C689 10 745 25 753 59 C755 64 763 65 773 65" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#O-seam-bloom-1)" />
+      <path d="M566 58 H578 C585 40 603 28 630 22 L629 18 C689 10 745 25 753 59 C755 64 763 65 773 65" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#O-seam-light-2)" />
+      <path d="M773 65 H762 C756 65 754 68 753 73 C746 98 704 113 658 113 V108 C637 109 623 106 611 102" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#O-seam-cavity-3)" />
+      <path d="M773 65 H762 C756 65 754 68 753 73 C746 98 704 113 658 113 V108 C637 109 623 106 611 102" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#O-seam-bloom-4)" />
+      <path d="M773 65 H762 C756 65 754 68 753 73 C746 98 704 113 658 113 V108 C637 109 623 106 611 102" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#O-seam-light-5)" />
+      <path d="M616 96 C639 104 676 106 704 92 C725 80 735 64 729 51 C719 27 676 22 648 26 C618 27 594 40 583 58 L582 64 H575" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#O-seam-cavity-6)" />
+      <path d="M616 96 C639 104 676 106 704 92 C725 80 735 64 729 51 C719 27 676 22 648 26 C618 27 594 40 583 58 L582 64 H575" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#O-seam-bloom-7)" />
+      <path d="M616 96 C639 104 676 106 704 92 C725 80 735 64 729 51 C719 27 676 22 648 26 C618 27 594 40 583 58 L582 64 H575" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#O-seam-light-8)" />
+    </g>
+    <path id="2-outer-shade" d="M870 28 L868.5 21 C896 7 938 10 958 29 C969 42 968 58 956 72 H932 L882 98 H905 L913 94 H962 C969 94 972 91 972 85 H975 V105 H971 C967 105 965 107 965 110 H848 L846 106 H829 V103 H840 L884 81 L888 85 C911 74 933 63 939 53 C948 36 931 29 919 28 C895 24 872 29 865 41 V48 H849 L845 42 H856 C861 35 866 31 870 28 Z" fill="#292929" stroke="#292929" stroke-width="8" opacity="0.85" filter="url(#2-outer-shade-blur)" />
+    <path id="2-shadow" d="M870 28 L868.5 21 C896 7 938 10 958 29 C969 42 968 58 956 72 H932 L882 98 H905 L913 94 H962 C969 94 972 91 972 85 H975 V105 H971 C967 105 965 107 965 110 H848 L846 106 H829 V103 H840 L884 81 L888 85 C911 74 933 63 939 53 C948 36 931 29 919 28 C895 24 872 29 865 41 V48 H849 L845 42 H856 C861 35 866 31 870 28 Z" fill="#161616" stroke="#161616" stroke-width="2" transform="translate(0 2.2)" opacity="0.5" filter="url(#2-edge-softening)" />
+    <path id="2" d="M870 28 L868.5 21 C896 7 938 10 958 29 C969 42 968 58 956 72 H932 L882 98 H905 L913 94 H962 C969 94 972 91 972 85 H975 V105 H971 C967 105 965 107 965 110 H848 L846 106 H829 V103 H840 L884 81 L888 85 C911 74 933 63 939 53 C948 36 931 29 919 28 C895 24 872 29 865 41 V48 H849 L845 42 H856 C861 35 866 31 870 28 Z" fill="url(#2-metal-face)" fill-rule="evenodd" />
+    <g clip-path="url(#2-inside)" filter="url(#wordmark-bevel-softness)">
+      <path d="M870 28 L868.5 21 C896 7 938 10 958 29 C969 42 968 58 956 72 H932 L882 98 H905 L913 94 H962 C969 94 972 91 972 85 H975 V105 H971 C967 105 965 107 965 110 H848 L846 106 H829 V103 H840 L884 81 L888 85 C911 74 933 63 939 53 C948 36 931 29 919 28 C895 24 872 29 865 41 V48 H849 L845 42 H856 C861 35 866 31 870 28 Z" fill="none" stroke="url(#wordmark-cut)" stroke-width="7" transform="translate(0 0)" />
+      <path d="M870 28 L868.5 21 C896 7 938 10 958 29 C969 42 968 58 956 72 H932 L882 98 H905 L913 94 H962 C969 94 972 91 972 85 H975 V105 H971 C967 105 965 107 965 110 H848 L846 106 H829 V103 H840 L884 81 L888 85 C911 74 933 63 939 53 C948 36 931 29 919 28 C895 24 872 29 865 41 V48 H849 L845 42 H856 C861 35 866 31 870 28 Z" fill="none" stroke="url(#wordmark-polished-ridge)" stroke-width="3" transform="translate(0.6 0.6)" />
+      <path d="M870 28 L868.5 21 C896 7 938 10 958 29 C969 42 968 58 956 72 H932 L882 98 H905 L913 94 H962 C969 94 972 91 972 85 H975 V105 H971 C967 105 965 107 965 110 H848 L846 106 H829 V103 H840 L884 81 L888 85 C911 74 933 63 939 53 C948 36 931 29 919 28 C895 24 872 29 865 41 V48 H849 L845 42 H856 C861 35 866 31 870 28 Z" fill="none" stroke="url(#wordmark-outer-edge)" stroke-width="3" transform="translate(-0.6 -0.6)" />
+    </g>
+    <g id="2-polished-seams" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M846 43 H858 C863 34 868 30 872 28 L870.5 22 C899 10 937 13 958 30 C968 42 967 58 955 71 H932 L881 98" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#2-seam-cavity-0)" />
+      <path d="M846 43 H858 C863 34 868 30 872 28 L870.5 22 C899 10 937 13 958 30 C968 42 967 58 955 71 H932 L881 98" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#2-seam-bloom-1)" />
+      <path d="M846 43 H858 C863 34 868 30 872 28 L870.5 22 C899 10 937 13 958 30 C968 42 967 58 955 71 H932 L881 98" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#2-seam-light-2)" />
+      <path d="M866 47 V42 C873 29 896 25 920 28 C934 29 948 37 940 53 C934 64 911 76 888 87 L884 83 L841 104 H830" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#2-seam-cavity-3)" />
+      <path d="M866 47 V42 C873 29 896 25 920 28 C934 29 948 37 940 53 C934 64 911 76 888 87 L884 83 L841 104 H830" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#2-seam-bloom-4)" />
+      <path d="M866 47 V42 C873 29 896 25 920 28 C934 29 948 37 940 53 C934 64 911 76 888 87 L884 83 L841 104 H830" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#2-seam-light-5)" />
+      <path d="M881 98 H906 L914 95 H962 C969 95 973 91 973 86" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#2-seam-cavity-6)" />
+      <path d="M881 98 H906 L914 95 H962 C969 95 973 91 973 86" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#2-seam-bloom-7)" />
+      <path d="M881 98 H906 L914 95 H962 C969 95 973 91 973 86" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#2-seam-light-8)" />
+      <path d="M831 104 H847 L849 108 H963 Q965 103 973 103 V86" stroke="#4b5ba8" stroke-width="1.8" opacity="0.5" transform="translate(.65 .8)" filter="url(#2-seam-cavity-9)" />
+      <path d="M831 104 H847 L849 108 H963 Q965 103 973 103 V86" stroke="url(#wordmark-seam-light)" stroke-width="1.7" opacity="0.4" filter="url(#2-seam-bloom-10)" />
+      <path d="M831 104 H847 L849 108 H963 Q965 103 973 103 V86" stroke="url(#wordmark-seam-light)" stroke-width="1.2" opacity="1" filter="url(#2-seam-light-11)" />
+    </g>
+    <path d="M642.8 64.5 C642.8 60.1 650 55.7 658 55.7 C666.1 55.7 671.7 60.1 674.4 63.5 H684.5 V65 H674.5 C672 69.2 665.6 73.5 657.9 73.5 C649.4 73.5 642.8 69.8 642.8 64.5 Z" fill="#292929" stroke="#292929" stroke-width="4" opacity="0.65" filter="url(#oval-outer-shade)" />
+    <path id="central-oval" d="M642.8 64.5 C642.8 60.1 650 55.7 658 55.7 C666.1 55.7 671.7 60.1 674.4 63.5 H684.5 V65 H674.5 C672 69.2 665.6 73.5 657.9 73.5 C649.4 73.5 642.8 69.8 642.8 64.5 Z" fill="url(#wordmark-centre-metal)" />
+    <path d="M643.2 64.2 C644 59.5 650.2 56.1 658 56.1 C665.5 56.1 671.4 60 674.2 64 H684" fill="none" stroke="#ffffff" stroke-width="0.45" opacity="0.65" filter="url(#oval-polished-edge)" />
+  </g>
+</svg>

@@ -134,6 +134,9 @@ struct OriginalData {
   std::optional<SourceObjectPressureOperands> object_pressure_operands;
   std::optional<PhysicsComponentConstructionConstants> physics_component_construction_constants;
   std::optional<PhysicsComponentRebuildImmutableOperands> physics_component_rebuild_operands;
+  // Compiled, typed immutable operands recovered from the TU1.5 reference.
+  // This performs no executable/ISO I/O and supplies no mutable world state.
+  static std::shared_ptr<const OriginalData> native_tu15();
   static std::shared_ptr<const OriginalData> load_xbe(const std::filesystem::path &);
 };
 } // namespace halo2

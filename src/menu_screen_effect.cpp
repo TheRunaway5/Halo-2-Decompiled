@@ -4,7 +4,7 @@ namespace halo2 {
 PixelProgram Cache::load_menu_scene_filter() const {
     const auto effect=query_tag({.group=tag_groups::screen_effect, .name="effects\\screen_effects\\desaturate"});
     if(!effect)throw FormatError("missing original title screen effect");
-    const Bytes data(storage_);
+    const Bytes data(cache_bytes());
     const auto at=metadata_offset(effect->address,0x48);
     if(data.u32(at+0x40)!=0x73686164)throw FormatError("title screen effect does not reference a shader");
     const auto material=load_material(data.u32(at+0x44));

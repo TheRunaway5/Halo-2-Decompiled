@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build an immutable embedded raw class0/class1 catalog; never a runtime compiler.
+"""Build an immutable embedded raw class0..6 catalog; never a runtime compiler.
 
 The native generator owns token arithmetic, declaration fetch, ABI and epilogue.
 This stdlib tool invokes the explicitly supplied build compiler/validator, pins
@@ -14,7 +14,7 @@ import struct
 import subprocess
 
 SCHEMA = 'halo2-menu-world-vertex-source-v1'
-ABI = 1
+ABI = 2
 
 
 def sha(data):
@@ -164,12 +164,12 @@ def main():
     records, seen = [], set()
     header = ['#pragma once', '#include "halo2/menu_world_vertex_catalog.hpp"', '#include <array>',
               'namespace halo2::generated_menu_world_vertex_catalog {',
-              'static_assert(menu_world_vertex_catalog_abi==1);']
+              'static_assert(menu_world_vertex_catalog_abi==2);']
     for index, entry in enumerate(entries):
-        if entry.get('class_index') not in (0, 1):
-            raise ValueError('catalog entry is not actual class0/class1')
+        if entry.get('class_index') not in range(7):
+            raise ValueError('catalog entry is not actual class0..6')
         semantics = integers(entry['semantics'], 0, 65535, 'declaration')
-        if not semantics or len(semantics) > 16 or any(x not in (0, 3, 4, 5, 6) for x in semantics):
+        if not semantics or len(semantics) > 16 or any(x not in (0, 1, 2, 3, 4, 5, 6) for x in semantics):
             raise ValueError('catalog declaration has unsupported raw semantic')
         inputs = integers(entry['consumed_inputs'], 0, len(semantics) - 1, 'consumed inputs')
         constants = integers(entry['consumed_constants'], 0, 191, 'consumed constants')
@@ -203,7 +203,7 @@ def main():
     header.append(f'inline constexpr std::array<MenuWorldVertexCatalogEntry,{len(records)}> entries{{{{')
     for i, record in enumerate(records):
         p = f'entry_{i}'
-        header.append(f'  {{1,{record["class_index"]},{p}_program,{p}_semantics,{p}_spirv,{p}_inputs,{p}_constants,'
+        header.append(f'  {{{ABI},{record["class_index"]},{p}_program,{p}_semantics,{p}_spirv,{p}_inputs,{p}_constants,'
                       f'"{record["source_sha256"]}","{record["spirv_sha256"]}"}},')
     header += ['}};', '} // namespace halo2::generated_menu_world_vertex_catalog', '']
     header_bytes = '\n'.join(header).encode()

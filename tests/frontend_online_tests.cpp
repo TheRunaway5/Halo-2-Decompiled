@@ -199,12 +199,16 @@ int main(int argc, char **argv) {
         };
         if (material.name.starts_with("font/")) {
           const auto name = material.name.substr(5);
+          // PC13 uses conduit-9, which has no Xbox font-table counterpart
+          // in the sampled overlay. Its own imported PC atlas is authoritative.
+          if (content.vista && std::filesystem::is_regular_file(content.vista->source_fonts / name))
+            vista_fonts[i] = same(load_retail_font(content.vista->source_fonts / name).atlas);
           if (std::filesystem::is_regular_file(maps / "fonts" / name) &&
               std::filesystem::is_regular_file(sampled / "fonts" / name)) {
             auto font = load_retail_font(maps / "fonts" / name);
             const auto vista_font = load_retail_font(sampled / "fonts" / name);
             apply_retail_font_sampling(font, vista_font);
-            vista_fonts[i] = same(font.atlas) || same(vista_font.atlas);
+            vista_fonts[i] = vista_fonts[i] || same(font.atlas) || same(vista_font.atlas);
           }
         } else if (auto bank = vista_ui_assets.find(material.name); bank != vista_ui_assets.end())
           vista_bitmaps[i] = std::any_of(bank->second.begin(),bank->second.end(),same);
@@ -411,7 +415,7 @@ int main(int argc, char **argv) {
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(4);
     while (!menu.online_identity() && std::chrono::steady_clock::now() < deadline) { menu.update_online_login(); std::this_thread::sleep_for(std::chrono::milliseconds(5)); }
     menu.update_online_login();
-    check(menu.frame().screen == 186 && menu.online_identity()->id == "123456789012345678" && menu.frame().description == "Screen name: Pilot", "Discord login replaced the chosen screen name");
+    check(menu.frame().screen == 186 && menu.online_identity()->id == "123456789012345678" && menu.frame().description.starts_with("Pilot | "), "Discord login replaced the chosen screen name");
     check(menu.expand("\xee\x90\x8f") == "Pilot", "ONLINE name token uses the Discord username");
     check(!has_logo(menu), "Title logo overlaps ONLINE service information");
     private_identity(menu);
@@ -515,6 +519,7 @@ int main(int argc, char **argv) {
             captured=capture_renderer->draw(Camera{},path,{},false,{}, {},ui.vertices,views,{},ui.backdrops,nullptr,nullptr,ui.full_surface_bounds);
           check(captured,"ONLINE UI capture failed");
           capture_report["captures"].push_back({{"name",name},{"screen",menu.frame().screen},
+              {"layout",menu.screen_layout(menu.frame())},
               {"context",menu.frame().context},{"width",dimensions.first},{"height",dimensions.second},
               {"vertices",ui.vertices.size()},{"file",path.filename().string()},
               {"ring_tick",tick},{"ring_views",views.size()},{"ring_physical_rectangles",rectangles},
@@ -523,6 +528,23 @@ int main(int argc, char **argv) {
       }
       if(capture_gpu)std::ofstream(captures/"report.json")<<capture_report.dump(2)<<'\n';
     };
+    {
+      for(unsigned p=1;p<4;++p) {
+        check(menu.controller_slot(100+p,true)==p,"ONLINE controller failed to join its local seat");
+        capture("couch-profile-"+std::to_string(p+1));
+        const auto &entries=menu.frame().entries;
+        const auto guest=std::find_if(entries.begin(),entries.end(),[](const auto &e){return e.destination==-80;});
+        check(guest!=entries.end(),"ONLINE chooser omitted guest profile");menu.select(unsigned(guest-entries.begin()));menu.accept();
+        check(menu.online_couch_screen(menu.frame()),"Local guest options missing");
+        private_identity(menu);capture("couch-guest-"+std::to_string(p+1));menu.select(0);menu.accept();menu.update_online_login();
+      }
+      check(menu.local_players().size()==4 && !menu.controller_slot(105,true),"ONLINE admitted more than four local players");
+      capture("couch-four-ready");
+      menu.open_online_local_player(2);menu.select(2);menu.accept();
+      check(menu.local_players().size()==3,"Remove Local Player failed");
+      menu.leave_local_controller(1);menu.leave_local_controller(3);menu.update_online_login();
+      check(menu.local_players().size()==1,"Couch test left extra profiles in later tests");
+    }
     {
       const auto friends=std::make_shared<FriendsFixture>();menu.set_discord_social(friends);
       menu.open(26,0);capture("friends-enable");menu.accept();menu.update_online_login();
@@ -633,11 +655,21 @@ int main(int argc, char **argv) {
       capture("online-hover-" + std::to_string(index));
     }
     MenuState direct_browser(content); direct_browser.set_discord_login(login); direct_browser.open(219, online_server_browser_context);
+    check(direct_browser.screen_layout(direct_browser.frame()) == (content.vista ? vista_menu(13) : 219),
+          "ONLINE discovery does not use the Network Browser presentation");
     check(!has_logo(direct_browser), "Direct authenticated browser retains the title logo");
     direct_browser.open(237, online_server_browser_context);
     check(!has_logo(direct_browser), "Direct authenticated server details retain the title logo");
-    // The native extension reuses the actual single-column optimatch tags.
-    // It displays advertised metadata, without supplying gameplay admission.
+    // Native219 retains authentication and directory ownership while PC13
+    // supplies the Network Browser's authored multi-column presentation.
+    // Optimatch and local session navigation retain their separate routes.
+    MenuState optimatch(content); optimatch.set_discord_login(login); optimatch.open(219);
+    check(optimatch.screen_layout(optimatch.frame()) == 219, "Network Browser replaced Optimatch");
+    for (const auto screen : {13u, vista_menu(13)}) {
+      bool rejected = false;
+      try { direct_browser.open(screen); } catch (const FormatError &) { rejected = true; }
+      check(rejected, "ONLINE presentation re-enabled the retired session browser route");
+    }
     using Json = nlohmann::json;
     Json rows = Json::array();
     for (unsigned i = 0; i < 20; ++i) rows.push_back({
@@ -647,20 +679,26 @@ int main(int argc, char **argv) {
       {"name", i == 0 ? "Community Server" : "Server " + std::to_string(i + 1)}, {"host", "203.0.113.10"}, {"port", 2002},
       {"map", "lockout"}, {"gametype", "Slayer"}, {"players", 3}, {"max_players", 16},
       {"game_version", "simulator-v1"}, {"visibility", "public"}, {"server_type", "dedicated"}, {"region", "US-EAST"}});
+    rows[1]["name"] = "Community Server " + std::string(47, 'W'); // Schema maximum64 bytes.
     auto changed = rows; changed.erase(changed.begin()); changed.back()["map"] = "ascension"; changed.back()["players"] = 7;
     const auto initial = Json{{"servers", rows}}.dump(), refreshed = Json{{"servers", changed}}.dump();
     std::atomic<unsigned> directory_requests{}, phase{};
+    std::atomic<bool> hold_directory{true};
     std::atomic<std::int64_t> directory_time{1010};
     auto directory = std::make_shared<OnlineDirectory>(OnlineDirectoryOptions{{"https://master.example"}, false},
-      [&](const std::string &endpoint, std::stop_token) -> OnlineDirectoryResponse {
+      [&](const std::string &endpoint, std::stop_token stop) -> OnlineDirectoryResponse {
         ++directory_requests;
         check(endpoint == "https://master.example/v1/servers", "Frontend discovery sent identity or contacted a server");
+        while (hold_directory && !stop.stop_requested()) std::this_thread::sleep_for(std::chrono::milliseconds(2));
         return {phase == 2 ? 503 : 200, phase == 1 ? refreshed : initial};
       }, [&] { return directory_time.load(); });
     MenuState gated(content); gated.set_online_directory(directory); gated.open(219, online_server_browser_context); gated.update_online_directory();
     check(gated.frame().screen == 20 && directory_requests == 0, "Directory bypassed Discord gate");
     menu.set_online_directory(directory);
     menu.select(4); menu.accept();
+    check(menu.online_directory_text(menu.frame(), 4) == "Finding servers...", "Network Browser lacks its loading state");
+    capture("browser-loading");
+    hold_directory = false;
     auto wait_directory = [&] {
       const auto until = std::chrono::steady_clock::now() + std::chrono::seconds(4);
       while (directory->snapshot().status == OnlineDirectoryStatus::Loading && std::chrono::steady_clock::now() < until)
@@ -673,8 +711,43 @@ int main(int argc, char **argv) {
     check(!has_logo(menu), "Retained Halo 2 logo overlaps server discovery");
     check(menu.online_directory_text(menu.frame(), 0).find("lockout") != std::string::npos &&
           menu.online_directory_text(menu.frame(), 0).find("3 / 16") != std::string::npos, "Focused server metadata is missing");
+    check(menu.online_directory_column(menu.frame(), 0, 0) == "Community Server" &&
+          menu.online_directory_column(menu.frame(), 0, 1) == "lockout" &&
+          menu.online_directory_column(menu.frame(), 0, 2) == "Slayer" &&
+          menu.online_directory_column(menu.frame(), 0, 3).empty() &&
+          menu.online_directory_column(menu.frame(), 0, 4) == "3 / 16" &&
+          menu.online_directory_column(menu.frame(), 0, 5) == "Listed" &&
+          menu.online_directory_column(menu.frame(), 0, 6).empty(),
+          "Network Browser columns do not reflect advertised metadata");
+    const auto browser_geometry = [&] {
+      if (!content.vista) return;
+      const auto &pane = content.vista->screen(13).panes.at(0);
+      const auto &list = pane.lists.at(0);
+      const auto &skin = content.vista->skins.at(list.skin);
+      check(list.visible == 19 && list.skin == 5 && list.position.x == -670 &&
+            list.position.y == 412 && skin.texts.size() == 7,
+            "Network Browser no longer uses its source list definition");
+      const auto draw = painter.draw(menu, 5, -1, 10000);
+      const auto has = [&](const std::string &name) {
+        return std::any_of(draw.vertices.begin(), draw.vertices.end(), [&](const auto &v) {
+          return mesh.materials.at(v.material).name == name;
+        });
+      };
+      check(has("ui\\screens\\game_shell\\network_squad_browser_screen\\list_frame") &&
+            has("ui\\list_skins\\game_browser\\item_background"),
+            "ONLINE discovery still paints the Optimatch layout");
+      const auto first = menu.frame().selected >= list.visible ? menu.frame().selected - list.visible + 1 : 0;
+      const auto row = menu.frame().selected - first;
+      // Source background height32 determines pitch; text6 spans the entire
+      // selection bar, including the map/player/status columns.
+      const auto target = painter.pointer_hit(580, 240 - .4f * (list.position.y + 30) + .4f * (float(row) * 32 + 16));
+      check(target && target->action == FrontendPointerAction::Entry && target->index == menu.frame().selected,
+            "Network Browser row columns do not share the correct mouse target");
+    };
+    browser_geometry();
     capture("browser");
-    menu.select(19); capture("browser-scroll");
+    menu.select(1); browser_geometry(); capture("browser-long-name");
+    menu.select(19); browser_geometry(); capture("browser-scroll");
     menu.accept();
     check(menu.frame().screen == 237 && menu.frame().entries.size() == 8 && !menu.launch, "Server details launched gameplay");
     check(!has_logo(menu), "Retained Halo 2 logo overlaps server details");
@@ -690,10 +763,10 @@ int main(int argc, char **argv) {
     check(menu.frame().screen == 237 && menu.frame().entries.size() == 1 && menu.frame().entries[0].label == "Back", "Expired server remained in details");
     menu.back();
     check(menu.frame().entries.size() == 1 && menu.frame().entries[0].label == "Refresh", "Expired listing remained selectable");
-    capture("empty");
+    browser_geometry(); capture("browser-empty");
     phase = 2; menu.auxiliary(); wait_directory();
     check(menu.online_directory_text(menu.frame(), 2).find("Cannot reach") != std::string::npos, "Failed master lookup lacks retry state");
-    capture("unavailable");
+    browser_geometry(); capture("browser-unavailable");
     phase = 0; directory_time = 1010; menu.auxiliary(); wait_directory();
     check(menu.frame().entries.size() == 20, "Frontend retry did not recover listings");
     menu.back();
@@ -987,7 +1060,7 @@ int main(int argc, char **argv) {
     menu.select(1); menu.accept(); menu.text("Cancelled"); menu.back();
     check(menu.profile_name() == "Custom Pilot", "Cancelling name entry changed the screen name");
     menu.select(0); menu.accept();
-    check(menu.frame().screen == 186 && menu.frame().description == "Screen name: Custom Pilot", "ONLINE service retained the old screen name");
+    check(menu.frame().screen == 186 && menu.frame().description.starts_with("Custom Pilot | "), "ONLINE service retained the old screen name");
     menu.select(3); menu.accept();
     menu.select(2); menu.accept();
     check(!menu.online_identity() && menu.frame().screen == 20, "Sign-out retained Online access");

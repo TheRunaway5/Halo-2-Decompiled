@@ -65,15 +65,28 @@ using SmgActivityCallback=std::function<void(std::uint32_t)>;
 // With no callback the unavailable effect owner leaves its handle unchanged.
 using SmgEffectCallback=std::function<std::uint32_t(const SmgState &,
     unsigned selection,std::uint32_t a_bits,std::uint32_t b_bits)>;
-bool smg_reload(SmgState &, const SmgDefinition &,const SmgActivityCallback & = {});
+struct SmgRuntimeServices {
+  float opposite_hand_blend{};
+  bool shared_hand_feedback{};
+  std::function<std::int32_t()> available;
+  std::function<void(std::int32_t)> spend;
+  std::function<std::int16_t(std::uint32_t,unsigned)> timing;
+  std::function<bool(SmgBarrelState &)> fire_gate;
+  std::function<void(bool chamber)> magazine_effect;
+};
+// The absent-service defaults retain the explicitly bounded single-SMG
+// fixture. The unit adapter supplies its actual shared ammo and dual owners.
+bool smg_reload(SmgState &, const SmgDefinition &,const SmgActivityCallback & = {},
+    const SmgRuntimeServices & = {});
 // 1021D0's bounded magazine / Spew / barrel update. Return: auto reload began.
 bool smg_update(SmgState &, const SmgDefinition &, float dt,
-    const SmgActivityCallback & = {},const SmgEffectCallback & = {});
+    const SmgActivityCallback & = {},const SmgEffectCallback & = {},
+    const SmgRuntimeServices & = {});
 // 1019F0 -> 101A60 -> 108300. Consume each prepared request exactly once.
 // Successful projectile creation and additional world RNG remain external.
 std::optional<Vec3> smg_dispatch(SmgState &, const SmgDefinition &, Vec3 aim,
                                std::uint32_t &shared_seed,
-                               std::span<const Vec3, 1026> directions);
+                               std::span<const Vec3, 1026> directions,float opposite_hand_blend = 0);
 // 108856 projection / 10921B descriptor / FC55F constructor. Ordinary
 // owner with no supporting platform and zero barrel speed override only.
 Vec3 smg_inherited_velocity(Vec3 original_aim, Vec3 final_forward,

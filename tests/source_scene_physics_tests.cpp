@@ -47,7 +47,11 @@ struct Fixture {
         put(memory,parent+4,parent_mirrored?0x400:0);
         memory.write(parent+0x234,std::as_bytes(std::span(&node,1)));
     }
-    Transform read()const{return source_scene_physics_transform(memory,pool,child_id);}
+    Transform read()const {
+        const auto native=memory.native_address(pool,0x4c);
+        check(native.value>0xffffffffu,"Scene handoff truncated its live pool address");
+        return source_scene_physics_transform(memory,native,child_id);
+    }
 };
 template<class F> void rejects(F f,const char *message){bool failed=false;try{f();}catch(const FormatError&){failed=true;}check(failed,message);}
 void body_history_checks() {
@@ -100,18 +104,18 @@ void body_wire_checks() {
     rejects([&]{encode_source_world_poses(true,std::span(&bad,1),owners);},"WORLD transport crossed a source salt");
     bad=pose;bad.nodes[0].position.x=std::numeric_limits<float>::infinity();
     rejects([&]{encode_source_world_poses(true,std::span(&bad,1),owners);},"Non-finite source WORLD node was transmitted");
-    auto malformed=bytes;malformed[1]=std::byte(17);
+    auto malformed=bytes;malformed[1]=std::byte(1);malformed[2]=std::byte(8);
     rejects([&]{decode_source_world_poses(malformed,owners);},"Unbounded WORLD body count was accepted");
-    malformed=bytes;malformed[6]=std::byte(0xff);malformed[7]=std::byte(0xff);
+    malformed=bytes;malformed[7]=std::byte(0xff);malformed[8]=std::byte(0xff);
     rejects([&]{decode_source_world_poses(malformed,owners);},"Unbounded WORLD hierarchy was accepted");
     std::vector<SourceWorldPose> full;std::vector<SourceWorldPoseOwner> roster;
-    for(unsigned n=0;n<16;++n) {
+    for(unsigned n=0;n<64;++n) {
         auto p=pose;p.object=child_id+n;p.nodes.resize(40);full.push_back(p);roster.push_back({p.object,true});
     }
     const auto large=encode_source_world_poses(true,full,roster);
-    check(large.size()>32768 && large.size()<65535,"Full roster fixture did not exercise the expanded complete snapshot bound");
+    check(large.size()>65535,"Retained body fixture did not exceed the old snapshot bound");
     const auto received=decode_source_world_poses(large,roster);
-    check(received.poses.size()==16 && received.poses.back().nodes.size()==40 && received.consumed==large.size(),
+    check(received.poses.size()==64 && received.poses.back().nodes.size()==40 && received.consumed==large.size(),
         "WORLD bank was truncated to the previous native snapshot bound");
 }
 void checks(){
@@ -165,6 +169,21 @@ void checks(){
     put(batch.memory,child+0x64,Vec3{99,99,99});put(batch.memory,headers+12+6,0x20,2);
     rejects([&]{publish_source_scene_physics(scene,batch.memory,pool);},"Incomplete source body was published");
     check(!std::memcmp(&prior,&*scene.get(child_id).solved_transform,sizeof(prior)),"Failed batch partially published solved transforms");
+    rejects([&]{scene.observe_source_retirement(child_id);},"Live source generation was retired by presentation");
+    put(batch.memory,headers+12+6,0x300,2);
+    // A source-owned deletion/reallocation changes the salt before the next
+    // publication. The presentation must retire only the old generation.
+    put(batch.memory,headers,0x1358,2);
+    const auto retired_bank=std::vector<std::byte>(batch.memory.view(pool,0xa000).begin(),batch.memory.view(pool,0xa000).end());
+    const auto prior_events=lifetimes.events().size();
+    publish_source_scene_physics(scene,batch.memory,pool);
+    rejects([&]{scene.get(child_id);},"Source-retired scene generation remained visible");
+    check(scene.get(parent_id).handle==parent_id && lifetimes.events().size()==prior_events+1 &&
+        lifetimes.events().back().kind==NativeObjectLifetimeEventKind::release,
+        "Source retirement lost a live peer or omitted its lifetime observation");
+    check(!std::memcmp(retired_bank.data(),batch.memory.view(pool,0xa000).data(),retired_bank.size()),
+        "Source retirement observation invoked another deletion or changed the new generation");
+    rejects([&]{scene.observe_source_retirement(child_id);},"Source generation was retired twice");
     std::cout<<"PASS source root/parent/salt ownership, read-only bank and solved render interpolation\n";
 }
 }

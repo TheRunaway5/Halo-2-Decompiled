@@ -13,8 +13,10 @@ int main(int argc,char** argv) {
         std::cout<<cache->name()<<" groups="<<tags.groups().size()<<" tags="<<cache->tags().size()<<'\n';
         for(auto handle:tags.list(filter)) {
             const auto& tag=*cache->find_tag(handle);
+            const auto view=tags.try_get(handle);
             std::cout<<std::hex<<std::setfill('0')<<std::setw(8)<<handle.value<<' '
-                     <<tag.group<<' '<<std::setw(8)<<tag.address<<' '<<std::dec<<tag.size<<' '
+                     <<tag.group<<" native="<<std::setw(16)<<(view?view->address().value:0)
+                     <<" source="<<std::setw(8)<<tag.address<<' '<<std::dec<<tag.size<<' '
                      <<halo2::tag_group_name(tag.type())<<' '<<tag.name<<'\n';
         }
     } catch(const std::exception& e) {std::cerr<<e.what()<<'\n'; return 1;}

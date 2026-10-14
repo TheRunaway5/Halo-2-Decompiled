@@ -13,8 +13,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateInstance(const VkInstanceCreateInfo *i,
     const VkAllocationCallbacks *a,VkInstance *v) {
     void *lib=dlopen(getenv("HALO2_RENDERDOC_LIBRARY"),RTLD_NOW|RTLD_LOCAL);
     pRENDERDOC_GetAPI get=lib?dlsym(lib,"RENDERDOC_GetAPI"):0;
-    if(get && get(eRENDERDOC_API_Version_1_6_0,(void**)&rdoc))
+    if(get && get(eRENDERDOC_API_Version_1_6_0,(void**)&rdoc)) {
         rdoc->SetCaptureFilePathTemplate(getenv("HALO2_CAPTURE_PREFIX"));
+        rdoc->MaskOverlayBits(0,0);
+    }
     PFN_vkCreateInstance next=dlsym(RTLD_NEXT,"vkCreateInstance");
     VkResult result=next(i,a,v);
     if(result==VK_SUCCESS)captured_instance=*v;

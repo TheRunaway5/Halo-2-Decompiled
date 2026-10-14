@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="68" viewBox="0 0 27 17" version="1.1">
+  <title>Vista ui\list_skins\y_menu_list\arrows page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <filter id="arrow-glow" x="-100%" y="-100%" width="300%" height="300%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="2.2" />
+    </filter>
+  </defs>
+  <g id="arrow" transform="scale(1.0 1.0)">
+    <path d="M13.5 3 L23 12 L16 12 L13.5 9.5 L11 12 L4 12 Z" fill="#2186d0" fill-opacity="0.7" filter="url(#arrow-glow)" />
+    <path d="M13.5 3 L23 12 L16 12 L13.5 9.5 L11 12 L4 12 Z" fill-opacity="0.7" fill="#ffffff" />
+  </g>
+</svg>

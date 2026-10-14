@@ -71,7 +71,7 @@ SourceSceneryIdlePhaseDefinition Cache::load_source_scenery_idle_phase_definitio
     const AnimationClip &clip) const {
     const auto tag=query_tag({.handle=TagHandle{clip.source_graph}, .group=tag_groups::model_animation_graph, .require_address=true});
     if(!tag)throw FormatError("SCEN idle phase source graph missing");
-    const Bytes data(storage_);const auto root=metadata_offset(tag->address,0x34);
+    const Bytes data(cache_bytes());const auto root=metadata_offset(tag->address,0x34);
     const auto count=data.u32(root+0x2c);
     if(clip.source_index>=count || count>65536)
         throw FormatError("SCEN idle phase source index outside graph");

@@ -1,8 +1,8 @@
-"""Retail launch XP arithmetic and private, versioned playlist skill storage.
+"""Original XP arithmetic and private, versioned playlist skill storage.
 
 0x746B0/74800/74970 from the pinned retail executable. The literal initializer
-tables are included; downloaded configurations and later Live policies are not
-inferred. This native service owns arbitration and never accepts client XP.
+tables and the independently executed TU1.5 defaults are included. Downloaded
+Live/TMS configurations are not inferred. This service never accepts client XP.
 """
 from dataclasses import dataclass
 import hashlib
@@ -17,6 +17,16 @@ _raw = (Path(__file__).parent / "data/retail-launch-2004-rank.json").read_bytes(
 TABLE_DIGEST = "5b5760a487d6af59da885edb89f2d7d7e76df5fa0d2379cb7a43ff9dfa3e55bd"
 require(hashlib.sha256(_raw).hexdigest() == TABLE_DIGEST, "Unverified retail rank configuration", 500)
 TABLES = json.loads(_raw)["tables"]
+LATER_POLICY = "title-update-1.5-defaults"
+LATER_DIGEST = "9ad56e3c3ef7249e8ada858a29016b4ecaca0148b9deb4efe87efa7ded15c58f"
+_later = (Path(__file__).parent / "data/title-update-1.5-rank.json").read_bytes()
+require(hashlib.sha256(_later).hexdigest() == LATER_DIGEST, "Unverified TU1.5 rank configuration", 500)
+POLICIES = {POLICY: (TABLES, TABLE_DIGEST), LATER_POLICY: (json.loads(_later)["tables"], LATER_DIGEST)}
+
+
+def rank_policy(name):
+    require(name in POLICIES, "Unknown rank configuration", 409)
+    return POLICIES[name]
 
 
 def divide(value, denominator):
@@ -110,7 +120,7 @@ class PlaylistSkills:
         """)
 
     def snapshot(self, player, playlist, configuration):
-        require(configuration == POLICY, "Unknown rank configuration", 409)
+        rank_policy(configuration)
         db = self.db
         with db:
             row = db.execute("SELECT raw_rank,xp,configuration FROM playlist_skill WHERE player=? AND playlist=?",
@@ -130,28 +140,33 @@ class PlaylistSkills:
         """Called within the same transaction as the immutable result ledger."""
         if not room.skill_configuration:
             return
+        tables, digest = rank_policy(room.skill_configuration)
         db, playlist, raw = self.db, room.proposal.playlist, room.result
         players = []
         team_places = {team: raw[0xcb0 + team*0x18 + 1] for _, _, team in room.players} if room.team_mode else None
         for slot, (member, _, team) in enumerate(room.players):
+            if member in getattr(room, "guests", ()):
+                players.append(RatingPlayer(-1, raw[0x370+slot*0x94+0x90], team if room.team_mode else slot, flags=1))
+                continue
             skill = room.skills[member]
             current = db.execute("SELECT raw_rank,xp,configuration FROM playlist_skill WHERE player=? AND playlist=?",
                                  (member, playlist)).fetchone()
             require(current is not None and tuple(current) == (skill.raw, skill.xp, skill.configuration),
                     "Playlist skill changed during this match", 409)
-            # One signed-in native player per machine. Search-party adjustments
-            # do not overwrite persistent raw rank or XP used by this policy.
+            # Search-party adjustments never overwrite persistent raw rank/XP.
             players.append(RatingPlayer(skill.raw, raw[0x370+slot*0x94+0x90],
                                         team if room.team_mode else slot, skill.xp))
         for slot, (member, _, _) in enumerate(room.players):
+            if member in getattr(room, "guests", ()):
+                continue
             previous = room.skills[member]
-            delta = player_delta(players, slot, team_places=team_places)
+            delta = player_delta(players, slot, team_places=team_places, tables=tables)
             xp = previous.xp + delta
-            rank = raw_rank(xp, previous.raw)
+            rank = raw_rank(xp, previous.raw, tables)
             db.execute("UPDATE playlist_skill SET raw_rank=?,xp=? WHERE player=? AND playlist=?",
                        (rank, xp, member, playlist))
             db.execute("UPDATE playlist_ranks SET rank=? WHERE player=? AND playlist=?",
                        (display_level(rank), member, playlist))
             db.execute("INSERT INTO match_result_skill VALUES(?,?,?,?,?,?,?,?,?,?)",
-                       (room.id, member, previous.configuration, TABLE_DIGEST, players[slot].skill,
+                       (room.id, member, previous.configuration, digest, players[slot].skill,
                         previous.raw, previous.xp, delta, rank, xp))

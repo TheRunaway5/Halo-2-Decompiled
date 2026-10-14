@@ -349,7 +349,7 @@ BspFogSample BspAtmosphere::sample(Vec3 eye,Vec3 forward,std::optional<int> sele
 }
 BspAtmosphere Cache::load_bsp_atmosphere(std::size_t index) const {
     if(index>=bsps_.size())throw FormatError("atmosphere BSP index outside scenario");
-    BspAtmosphere result;const auto &bsp=bsps_[index];const Bytes data(storage_);
+    BspAtmosphere result;const auto &bsp=bsps_[index];const Bytes data(cache_bytes());
     const Bytes metadata(data.slice(bsp.file_offset,bsp.size));
     
     const auto tag_root=[&](std::uint32_t datum,const std::string &group) {

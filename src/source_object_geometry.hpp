@@ -32,7 +32,9 @@ public:
     };
     SourceObjectGeometry()=default;
     void load(const Cache &,const ScenarioObject &,const SourceInitialModelDefinition &,
-              const SourceInitialModelSelection &,std::uint32_t render_model);
+              const SourceInitialModelSelection &,std::uint32_t render_model,bool prepare_region_variants=false);
+    void regions(const SourceInitialModelSelection &);
+    ViewDraw active_draw(unsigned lod)const;
     Stats prepare(const Cache &,const ObjectColors &,std::span<const Transform> world_nodes,
                   const SourcePrtLighting &,Mesh &,std::optional<float> camouflage = {});
     // Callback already skins the rooted WORLD bank; do not place it again.
@@ -66,6 +68,9 @@ private:
     std::array<std::vector<unsigned>,6> vertex_parts;
     struct PartRun {std::size_t first{},count{};unsigned part{};};
     std::array<std::vector<PartRun>,6> part_runs;
+    std::optional<SourceInitialModelDefinition> region_definition;
+    std::array<std::vector<unsigned>,6> active_sections;
+    std::vector<PartRun> active_runs(unsigned lod)const;
     std::vector<SourceShaderLodDefinition> shader_definitions;
     std::array<ViewDraw,4> views;
     struct ViewSelection {

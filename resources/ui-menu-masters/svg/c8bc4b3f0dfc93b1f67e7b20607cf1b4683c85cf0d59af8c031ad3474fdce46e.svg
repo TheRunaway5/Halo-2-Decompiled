@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="3720" height="288" viewBox="0 0 465 36" version="1.1">
+  <title>Vista ui\screens\game_shell\pregame_lobby\item_background_lobby page 0: authored menu vectors</title>
+  <desc>Editable paths, strokes and gradients reconstructed by named design family. No embedded raster, autotraced regions, pixel grids, or font substitution.</desc>
+  <defs>
+    <mask id="row-engraving" maskUnits="userSpaceOnUse" x="0" y="0" width="465" height="36">
+      <rect width="465" height="36" fill="white" />
+      <g fill="#ffffff" />
+    </mask>
+  </defs>
+  <rect id="row-material" width="465" height="36" fill="white" fill-opacity="0.3764705882352941" mask="url(#row-engraving)" />
+</svg>

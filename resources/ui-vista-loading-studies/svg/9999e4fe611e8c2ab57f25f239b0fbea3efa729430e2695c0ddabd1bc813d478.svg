@@ -1,0 +1,130 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="4096" height="64" viewBox="0 0 2048 32" version="1.1">
+  <title>Vista executable\loading\9 page 0: authored menu vectors</title>
+  <desc>Unfinished hand-authored Vista loading-marker study: shared vector tick bodies, measured cadences and grouped gaps. No source pixel row, raster mask, font substitution or per-pixel geometry.</desc>
+  <defs>
+    <filter id="tick-optical-softness" filterUnits="userSpaceOnUse" x="-4" y="-4" width="2056" height="40" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation=".60 .42" />
+    </filter>
+    <linearGradient id="tick-edge-colour" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="5.2" y2="7">
+      <stop offset="0" stop-color="#0204fa" />
+      <stop offset="1" stop-color="#314d9c" />
+    </linearGradient>
+  </defs>
+  <g id="tick-runs" fill="url(#tick-edge-colour)" opacity="0.16862745098039217" filter="url(#tick-optical-softness)">
+    <g id="tick-run-0">
+      <rect x="27.36" y="6.1" width="2.1" height="7.3" />
+      <rect x="46.976858237547894" y="6.1" width="2.1" height="7.3" />
+      <rect x="66.59371647509579" y="6.1" width="2.1" height="7.3" />
+      <rect x="86.21057471264368" y="6.1" width="2.1" height="7.3" />
+      <rect x="105.82743295019156" y="6.1" width="2.1" height="7.3" />
+      <rect x="125.44429118773945" y="6.1" width="2.1" height="7.3" />
+      <rect x="145.06114942528734" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-1">
+      <rect x="184.32" y="6.1" width="2.1" height="7.3" />
+      <rect x="203.93685823754788" y="6.1" width="2.1" height="7.3" />
+      <rect x="223.55371647509577" y="6.1" width="2.1" height="7.3" />
+      <rect x="243.17057471264366" y="6.1" width="2.1" height="7.3" />
+      <rect x="262.78743295019154" y="6.1" width="2.1" height="7.3" />
+      <rect x="282.40429118773943" y="6.1" width="2.1" height="7.3" />
+      <rect x="302.0211494252873" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-2">
+      <rect x="341.25" y="6.1" width="2.1" height="7.3" />
+      <rect x="360.8668582375479" y="6.1" width="2.1" height="7.3" />
+      <rect x="380.4837164750958" y="6.1" width="2.1" height="7.3" />
+      <rect x="400.10057471264366" y="6.1" width="2.1" height="7.3" />
+      <rect x="419.71743295019155" y="6.1" width="2.1" height="7.3" />
+      <rect x="439.33429118773944" y="6.1" width="2.1" height="7.3" />
+      <rect x="458.9511494252874" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-3">
+      <rect x="498.2" y="6.1" width="2.1" height="7.3" />
+      <rect x="517.816858237548" y="6.1" width="2.1" height="7.3" />
+      <rect x="537.4337164750958" y="6.1" width="2.1" height="7.3" />
+      <rect x="557.0505747126438" y="6.1" width="2.1" height="7.3" />
+      <rect x="576.6674329501916" y="6.1" width="2.1" height="7.3" />
+      <rect x="596.2842911877395" y="6.1" width="2.1" height="7.3" />
+      <rect x="615.9011494252874" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-4">
+      <rect x="655.1500000000001" y="6.1" width="2.1" height="7.3" />
+      <rect x="674.766858237548" y="6.1" width="2.1" height="7.3" />
+      <rect x="694.3837164750959" y="6.1" width="2.1" height="7.3" />
+      <rect x="714.0005747126438" y="6.1" width="2.1" height="7.3" />
+      <rect x="733.6174329501916" y="6.1" width="2.1" height="7.3" />
+      <rect x="753.2342911877396" y="6.1" width="2.1" height="7.3" />
+      <rect x="772.8511494252874" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-5">
+      <rect x="812.0600000000001" y="6.1" width="2.1" height="7.3" />
+      <rect x="831.676858237548" y="6.1" width="2.1" height="7.3" />
+      <rect x="851.2937164750958" y="6.1" width="2.1" height="7.3" />
+      <rect x="870.9105747126438" y="6.1" width="2.1" height="7.3" />
+      <rect x="890.5274329501916" y="6.1" width="2.1" height="7.3" />
+      <rect x="910.1442911877396" y="6.1" width="2.1" height="7.3" />
+      <rect x="929.7611494252874" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-6">
+      <rect x="969.01" y="6.1" width="2.1" height="7.3" />
+      <rect x="988.6268582375479" y="6.1" width="2.1" height="7.3" />
+      <rect x="1008.2437164750958" y="6.1" width="2.1" height="7.3" />
+      <rect x="1027.8605747126437" y="6.1" width="2.1" height="7.3" />
+      <rect x="1047.4774329501915" y="6.1" width="2.1" height="7.3" />
+      <rect x="1067.0942911877394" y="6.1" width="2.1" height="7.3" />
+      <rect x="1086.7111494252874" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-7">
+      <rect x="1125.95" y="6.1" width="2.1" height="7.3" />
+      <rect x="1145.5668582375479" y="6.1" width="2.1" height="7.3" />
+      <rect x="1165.183716475096" y="6.1" width="2.1" height="7.3" />
+      <rect x="1184.8005747126438" y="6.1" width="2.1" height="7.3" />
+      <rect x="1204.4174329501916" y="6.1" width="2.1" height="7.3" />
+      <rect x="1224.0342911877394" y="6.1" width="2.1" height="7.3" />
+      <rect x="1243.6511494252875" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-8">
+      <rect x="1282.8700000000001" y="6.1" width="2.1" height="7.3" />
+      <rect x="1302.486858237548" y="6.1" width="2.1" height="7.3" />
+      <rect x="1322.103716475096" y="6.1" width="2.1" height="7.3" />
+      <rect x="1341.7205747126438" y="6.1" width="2.1" height="7.3" />
+      <rect x="1361.3374329501917" y="6.1" width="2.1" height="7.3" />
+      <rect x="1380.9542911877395" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-9">
+      <rect x="1420.2" y="6.1" width="2.1" height="7.3" />
+      <rect x="1439.8168582375479" y="6.1" width="2.1" height="7.3" />
+      <rect x="1459.433716475096" y="6.1" width="2.1" height="7.3" />
+      <rect x="1479.0505747126438" y="6.1" width="2.1" height="7.3" />
+      <rect x="1498.6674329501916" y="6.1" width="2.1" height="7.3" />
+      <rect x="1518.2842911877394" y="6.1" width="2.1" height="7.3" />
+      <rect x="1537.9011494252875" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-10">
+      <rect x="1577.14" y="6.1" width="2.1" height="7.3" />
+      <rect x="1596.756858237548" y="6.1" width="2.1" height="7.3" />
+      <rect x="1616.373716475096" y="6.1" width="2.1" height="7.3" />
+      <rect x="1635.9905747126438" y="6.1" width="2.1" height="7.3" />
+      <rect x="1655.6074329501917" y="6.1" width="2.1" height="7.3" />
+      <rect x="1675.2242911877395" y="6.1" width="2.1" height="7.3" />
+      <rect x="1694.8411494252875" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-11">
+      <rect x="1736.04" y="6.1" width="2.1" height="7.3" />
+      <rect x="1755.6568582375478" y="6.1" width="2.1" height="7.3" />
+      <rect x="1775.2737164750959" y="6.1" width="2.1" height="7.3" />
+      <rect x="1794.8905747126437" y="6.1" width="2.1" height="7.3" />
+      <rect x="1814.5074329501915" y="6.1" width="2.1" height="7.3" />
+    </g>
+    <g id="tick-run-12">
+      <rect x="1853.72" y="6.1" width="2.1" height="7.3" />
+      <rect x="1873.3368582375479" y="6.1" width="2.1" height="7.3" />
+      <rect x="1892.953716475096" y="6.1" width="2.1" height="7.3" />
+      <rect x="1912.5705747126437" y="6.1" width="2.1" height="7.3" />
+      <rect x="1932.1874329501916" y="6.1" width="2.1" height="7.3" />
+      <rect x="1951.8042911877394" y="6.1" width="2.1" height="7.3" />
+      <rect x="1971.4211494252875" y="6.1" width="2.1" height="7.3" />
+    </g>
+  </g>
+</svg>

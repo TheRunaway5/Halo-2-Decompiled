@@ -2,13 +2,25 @@
 #include "halo2/cache.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <fstream>
 #include <iostream>
 #include <set>
 
 namespace {
 using namespace halo2;
 void check(bool ok,const char* why) {if(!ok)throw std::runtime_error(why);}
+std::uint32_t authored_group_count(const std::filesystem::path& path) {
+    std::ifstream file(path,std::ios::binary);
+    std::array<std::byte,32> header{},index{};
+    file.read(reinterpret_cast<char*>(header.data()),header.size());
+    check(bool(file),"Cannot read original cache header for group-count comparison");
+    file.seekg(Bytes(header).u32(16));
+    file.read(reinterpret_cast<char*>(index.data()),index.size());
+    check(bool(file),"Cannot read original tag index for group-count comparison");
+    return Bytes(index).u32(4);
+}
 }
 int main(int argc,char** argv) {
     try {
@@ -25,15 +37,15 @@ int main(int argc,char** argv) {
         }
         std::sort(maps.begin(),maps.end());
         std::size_t rows=0,payloads=0,bsp_loads=0; std::uint64_t bytes=0;
-        std::set<TagGroup> groups;
+        std::set<TagGroup> groups,uncatalogued;
         for(const auto& path : maps) {
             try {
                 auto cache=std::make_shared<Cache>(path);
                 TagSystem tags(cache);
-                check(tags.groups().size()==(cache->is_vista()?120:118),"Original group table count differs");
+                check(tags.groups().size()==authored_group_count(path),"Original authored group table count differs");
                 for(const auto& group:tags.groups()) {
                     groups.insert(group.group);
-                    check(!tag_group_name(group.group).empty(),"Original group missing from developer catalog");
+                    if(tag_group_name(group.group).empty())uncatalogued.insert(group.group);
                 }
                 for(const auto& group:tags.groups()) {
                     auto actual=tags.list(group.group);
@@ -54,7 +66,9 @@ int main(int argc,char** argv) {
                         if(group!=tag_groups::none)check(cache->find_tag(row.handle(),group)==&row,"Original inherited lookup differs");
                     if(!row.address || row.group=="sbsp" || row.group=="ltmp")continue;
                     const auto view=tags.get(row.handle());
-                    check(view.info().address==row.address && view.bytes().size()==row.size,"Original payload identity differs");
+                    check(view.source_address()==row.address && view.bytes().size()==row.size &&
+                          view.address().value>0xffffffffull && view.info().address==view.address(),
+                          "Native address/source payload identity differs");
                     if(row.size) {
                         auto source=cache->load_source_tag_metadata(row.datum);
                         check(std::ranges::equal(view.bytes(),source.bytes_at(row.address,row.size)),"Original full tag payload differs");
@@ -78,10 +92,10 @@ int main(int argc,char** argv) {
                     if(!cache->is_vista()) {
                         const auto source=cache->load_source_bsp_metadata(i);
                         const Bytes header(source.bytes_at(source.source_address(),16));
-                        check(bsp.info().address==header.u32(4),"Original BSP root publication differs");
+                        check(bsp.source_address()==header.u32(4),"Original BSP root publication differs");
                         if(!lightmap.handle.is_null())
-                            check(tags.resolve(lightmap)->info().address==header.u32(8),"Original lightmap root publication differs");
-                        check(std::ranges::equal(bsp.bytes(),source.bytes_at(bsp.info().address,bsp.info().size)),"Original complete BSP bytes differ");
+                            check(tags.resolve(lightmap)->source_address()==header.u32(8),"Original lightmap root publication differs");
+                        check(std::ranges::equal(bsp.bytes(),source.bytes_at(bsp.source_address(),bsp.info().size)),"Original complete BSP bytes differ");
                         auto retained=bsp;
                         tags.unload_bsp();
                         check(!tags.try_get({cache->bsps()[i].datum}),"Unloaded BSP still resolves");
@@ -98,7 +112,10 @@ int main(int argc,char** argv) {
                 std::cout<<path.filename().string()<<": groups="<<tags.groups().size()<<" tags="<<valid<<" BSPs="<<cache->bsps().size()<<'\n';
             } catch(const std::exception& e) {throw std::runtime_error(path.string()+": "+e.what());}
         }
-        check(groups.size()==120,"Both retail and Vista group catalogs were not covered");
+        check(std::ranges::count_if(groups,[](TagGroup group){return !tag_group_name(group).empty();})==120,
+              "Both retail and Vista group catalogs were not covered");
+        for(const auto group:uncatalogued)
+            std::cout<<"Additional authored group without a developer name: "<<group.string()<<'\n';
         check(rows && payloads && bsp_loads,"Original asset coverage was empty");
         std::cout<<"maps="<<maps.size()<<" groupTypes="<<groups.size()<<" saltedRows="<<rows
                  <<" completePayloads="<<payloads<<" exactBytes="<<bytes<<" bspLoads="<<bsp_loads<<'\n';

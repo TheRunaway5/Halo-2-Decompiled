@@ -28,6 +28,7 @@ int main() {
           : DiscordHttpResponse{200, R"({"id":"123456789012345678","username":"verified","global_name":"Verified"})"};
       });
     login->start();
+    eventually([&]{return !browser.empty();});
     const auto start = browser.find("state=") + 6;
     const auto state = browser.substr(start, browser.find('&', start) - start);
     const auto url = "http://127.0.0.1:42106/discord/callback?code=test&state=" + state;
@@ -138,7 +139,7 @@ int main() {
           if(party_posts==1)throw std::runtime_error("Lost party response");
           return {200,joined};
         }
-        if(r.url.ends_with("/party"))return {200,party_posts>=2 ? joined : no_party};
+        if(r.url.ends_with("/party?local_players=1"))return {200,party_posts>=2 ? joined : no_party};
         return {200,empty};
       });
       client.connect("Chosen Pilot");
@@ -172,7 +173,7 @@ int main() {
           if(++joins==1)throw std::runtime_error("Lost activity acceptance response");
           return {200,joined};
         }
-        if(r.url.ends_with("/party"))return {200,joins>=2 ? joined : no_party};
+        if(r.url.ends_with("/party?local_players=1"))return {200,joins>=2 ? joined : no_party};
         return {200,empty};
       });
       client.connect("Chosen Pilot");eventually([&]{return client.snapshot().authenticated && !client.snapshot().busy;});
@@ -208,7 +209,7 @@ int main() {
           poll_entered=true;
           while(!release_poll && !stop.stop_requested())std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
-        return r.url.ends_with("/party") ? OnlineMatchmakingResponse{200,R"({"party":null,"invitations":[]})"}
+        return r.url.ends_with("/party?local_players=1") ? OnlineMatchmakingResponse{200,R"({"party":null,"invitations":[]})"}
                                          : OnlineMatchmakingResponse{200,empty};
       });
       client.connect("Chosen Pilot");eventually([&]{return client.snapshot().authenticated && !client.snapshot().busy;});

@@ -72,7 +72,7 @@ void palette_sort(std::vector<unsigned> &order,std::span<const float> distance,
 
 MultiplayerAudioBsp Cache::load_multiplayer_audio_bsp(std::size_t index)const {
   if(index>=bsps_.size())throw FormatError("Audio BSP outside scenario");
-  const auto &bsp=bsps_[index];const Bytes file(storage_),b(file.slice(bsp.file_offset,bsp.size));
+  const auto &bsp=bsps_[index];const Bytes file(cache_bytes()),b(file.slice(bsp.file_offset,bsp.size));
   
   MultiplayerAudioBsp out;
   const auto [palettes,p]=TagAddressSpace(b, bsp.memory_address).block(16+0xd4, 0x64, 0x100000);

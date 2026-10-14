@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Import user-owned Vista UI/audio and Xbox game assets without running either game."""
+"""Prepare user-owned MCC, Vista UI/audio and Xbox assets without running the games."""
 from __future__ import annotations
 
 import argparse
@@ -581,10 +581,23 @@ def main():
     parser.add_argument("--interactive", action="store_true")
     parser.add_argument("--repair-loading", action="store_true", help="repair a saved import's missing loading resources from its recorded installer")
     parser.add_argument("--import-mcc-hud", action="store_true", help="Import and select the installed MCC Halo 2 Classic HUD/fonts")
-    parser.add_argument("--mcc-root", type=Path, help="MCC installation; implies --import-mcc-hud")
+    parser.add_argument("--mcc-root", type=Path,
+        help="MCC installation for --prepare-mcc-gameplay; otherwise implies --import-mcc-hud")
+    parser.add_argument("--prepare-mcc-gameplay", action="store_true",
+        help="scan installed MCC, copy its data and prepare verified TU1.5 fixes; native playback is not yet supported")
     parser.add_argument("--prepare-vista-gameplay", action="store_true",
         help="prepare Vista maps/tags with verified TU1.5 corrections; does not activate unsupported native playback")
     args = parser.parse_args()
+    if args.prepare_mcc_gameplay:
+        if args.vista or args.xbox or args.interactive or args.repair_loading or args.import_mcc_hud or args.prepare_vista_gameplay:
+            parser.error("MCC gameplay preparation uses only --mcc-root (or automatic installation discovery)")
+        from prepare_mcc_gameplay import prepare
+        try:
+            prepare(args.root, args.mcc_root)
+            return 0
+        except (OSError, ValueError) as error:
+            print(f"MCC preparation failed: {error}", file=sys.stderr)
+            return 1
     if args.repair_loading:
         try:
             repair_loading(args.root)

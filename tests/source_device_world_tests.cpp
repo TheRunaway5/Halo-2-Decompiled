@@ -20,6 +20,30 @@ void snapshots(){
     require(control!=~0u && gate!=~0u,"snapshot authored control/gate missing");
     host.activate_admitted_control(control);for(unsigned i=0;i<180;++i)host.step(tick_seconds);
     const auto baseline=host.snapshot(180);
+    // Move a complete device owner into a fresh process-world instance at a
+    // completed tick. Future motion, one-use groups and effect requests must
+    // match; merely drawing the same gate position would not establish this.
+    const auto checkpoint=host.authority_checkpoint(180);
+    SourceDeviceWorld continued(content);continued.restore_authority(checkpoint,180);
+    test::same_device_snapshot(baseline,continued.snapshot(180));
+    require(!continued.replicated(),"restored complete owner remained a display replica");
+    require(continued.triangles().size()>0,"authority restore omitted posed collision");
+    for(unsigned tick=181;tick<=240;++tick) {
+        host.step(tick_seconds);continued.step(tick_seconds);
+        test::same_device_snapshot(host.snapshot(tick),continued.snapshot(tick));
+    }
+    const auto host_events=host.take_events(),continued_events=continued.take_events();
+    require(host_events.size()==continued_events.size(),"authority restore lost pending effect requests");
+    for(unsigned i=0;i<host_events.size();++i)
+        require(host_events[i].handle==continued_events[i].handle && host_events[i].tag==continued_events[i].tag,
+            "authority restore changed effect owner/order");
+    require(!continued.activate_admitted_control(control).changed,
+        "authority restore reset a consumed one-use group");
+    auto invalid_checkpoint=checkpoint;invalid_checkpoint.version=2;
+    bool checkpoint_rejected=false;
+    try{continued.restore_authority(invalid_checkpoint,180);}catch(const FormatError&){checkpoint_rejected=true;}
+    require(checkpoint_rejected,"unknown device checkpoint version accepted");
+    test::same_device_snapshot(host.snapshot(240),continued.snapshot(240));
     SceneObjects unrelated(content,0);unrelated.destroy_all();
     SourceDeviceWorld replica(content);replica.synchronize(unrelated);replica.apply_snapshot(baseline);
     test::same_device_snapshot(baseline,replica.snapshot(0));
@@ -42,6 +66,8 @@ void snapshots(){
     bad=baseline;bad.owners[0].state.bsp_hidden=true;bad.owners[0].state.visible=true;reject(bad);
     bool denied=false;try{replica.step(tick_seconds);}catch(const FormatError&){denied=true;}
     require(denied,"device replica advanced a private clock");denied=false;
+    try{(void)replica.authority_checkpoint(180);}catch(const FormatError&){denied=true;}
+    require(denied,"display snapshot was advertised as complete device authority");denied=false;
     try{replica.activate_admitted_control(control);}catch(const FormatError&){denied=true;}
     require(denied,"device replica wrote an authority group");
     scene.destroy(gate);host.synchronize(scene);replica.apply_snapshot(host.snapshot(181));

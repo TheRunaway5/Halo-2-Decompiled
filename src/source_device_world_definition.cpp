@@ -44,7 +44,8 @@ std::shared_ptr<const SourceDeviceWorldDefinition> load_source_device_world_defi
             if(h.u32(4)!=null_datum){
                 const auto selected=cache.load_initial_model_selection(object.definition,object.variant);
                 if(!selected.resolved())throw FormatError("control targeting requires source model selection");
-                auto hierarchy=cache.load_model(object.definition,false,object.variant,selected);
+                // Targeting needs the authored hierarchy, with no resident render sections.
+                auto hierarchy=cache.load_model_sections(object.definition,false,object.variant,5,{});
                 out->control_nodes=pose_model_nodes(hierarchy);
                 out->control_markers=source_model_markers(cache.load_source_tag_metadata(h.u32(4)),0x0500008f);
                 out->control_permutations=selected.permutations;
@@ -62,9 +63,37 @@ std::shared_ptr<const SourceDeviceWorldDefinition> load_source_device_world_defi
             if(!selected.resolved())throw FormatError("device collision requires source initial model selection");
             auto collision=std::make_shared<StaticSceneryCollisionDefinition>();
             collision->collision=cache.load_model_collision(out->machine->model);
-            collision->hierarchy=cache.load_model(object.definition,false,object.variant,selected);
+            collision->hierarchy=cache.load_model_sections(object.definition,false,object.variant,5,{});
             collision->hierarchy.mesh={};collision->hierarchy.skin.clear();collision->hierarchy.vertex_origins.clear();
             collision->permutations=selected.permutations;out->collision=std::move(collision);
+        }
+        if(out->machine->type==0 && h.u32(4)!=null_datum) {
+            if(out->collision) {
+                out->door_hierarchy=std::shared_ptr<const RenderModel>(out->collision,&out->collision->hierarchy);
+                out->door_permutations=out->collision->permutations;
+            } else {
+                const auto selected=cache.load_initial_model_selection(object.definition,object.variant);
+                if(!selected.resolved())throw FormatError("one-sided door requires its initial model regions");
+                auto hierarchy=cache.load_model_sections(object.definition,false,object.variant,5,{});
+                hierarchy.mesh={};hierarchy.skin.clear();hierarchy.vertex_origins.clear();
+                out->door_hierarchy=std::make_shared<RenderModel>(std::move(hierarchy));
+                out->door_permutations=selected.permutations;
+            }
+            const auto mode=cache.load_source_tag_metadata(h.u32(4));
+            const Bytes root(mode.bytes_at(mode.source_address(),0x60));
+            const auto count=root.u32(0x58);
+            if(count>65536)throw FormatError("excessive door marker groups");
+            if(count) {
+                const Bytes groups(mode.bytes_at(root.u32(0x5c),std::size_t(count)*12));
+                for(unsigned i=0;i<count;++i) {
+                    const auto name=groups.u32(i*12);
+                    // Xbox7000686 and Vista7000684 name the same marker.
+                    // Resolve the authored ID so MCC/Vista retain their table.
+                    if(cache.string_id(name)=="one_way") {
+                        out->one_sided_markers=source_model_markers(mode,name);break;
+                    }
+                }
+            }
         }
     }
     return out;

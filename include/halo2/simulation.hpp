@@ -4,16 +4,20 @@
 #include "halo2/native_action_prompt.hpp"
 #include "halo2/rumble.hpp"
 #include "halo2/native_weapon_projectile.hpp"
+#include "halo2/melee_impact.hpp"
 #include "halo2/weapon_effect.hpp"
 #include "halo2/collision.hpp"
 #include "halo2/kernels.hpp"
 #include "halo2/navigation.hpp"
 #include "halo2/scene.hpp"
+#include "halo2/source_unit_interaction_target.hpp"
+#include "halo2/source_world_pose.hpp"
 #include "halo2/scripts.hpp"
 #include "halo2/source_script_lists.hpp"
 #include "halo2/sound_classes.hpp"
 #include "halo2/damage_history.hpp"
 #include "halo2/unit_damage.hpp"
+#include "halo2/damage_impact.hpp"
 #include "halo2/object_garbage.hpp"
 #include "halo2/source_weather.hpp"
 #include "halo2/owner_counter.hpp"
@@ -61,8 +65,13 @@ struct WeaponState {
   SourceWeaponShaderState shader;
   std::int16_t ready_countdown{}; // Original weapon+19E.
   bool ready_clock{}; // Native ownership of the recovered ready fragment.
-  std::int16_t firing_effect_index=-1,firing_effect_remaining{};
+  float cooling_inhibitor{}; // Original weapon+188; heat lives in shader+180.
+  std::uint32_t overheat_handle=null_datum; // Actual owning effect result, +244.
+  std::int16_t energy_blocking_ticks{}; // Original weapon+17C.
+  std::int16_t firing_effect_index{},firing_effect_remaining{};
   std::uint16_t firing_effect_visited{};
+  WeaponMagazineState magazine;
+  SmgBarrelState alternate_barrel;
 };
 struct NativeWeaponPickup {
   std::uint32_t handle=null_datum, definition=null_datum, unlock_tick{};
@@ -99,6 +108,7 @@ struct Unit {
   DamageFeedbackState damage_feedback;
   WeaponState weapon;
   SourceInventory source_inventory;
+  std::array<std::uint8_t,2> source_weapon_hand_feedback{}; // Unit+1FA/+1FB, shared by all actual weapons.
   SourcePlayerActionEdges source_player_actions;
   UnitZoomState source_zoom;
   // Cold C52C0/BD270 fields. Only verified action owners may mutate them;
@@ -175,6 +185,13 @@ public:
              std::optional<SourceSceneGameContext> = {},
              std::optional<NativeObjectLifetimes> = {},
              SourceSceneObjectOwner = {});
+  // Transfer an already loaded BSP without retaining a second collision bank.
+  // Metadata and navigation in LevelContent remain available to their owners.
+  Simulation(const LevelContent &, BspContent initial_geometry, std::size_t bsp, Spawn,
+             Presentation::AnimationLoader = {}, BspLoader = {}, Predictor = {},
+             std::optional<SourceSceneGameContext> = {},
+             std::optional<NativeObjectLifetimes> = {},
+             SourceSceneObjectOwner = {});
   void step(const Controls &);
   void step_players(std::span<const Controls>);
   NativeActionPrompt control_action_prompt()const;
@@ -228,6 +245,7 @@ public:
   const SourceDeviceWorld &devices()const{return devices_;}
   std::span<const SourceDeviceWorldEvent> device_events()const{return device_events_;}
   void replicate_devices(const SourceDeviceWorldSnapshot &);
+  void replicate_source_scene(std::span<const SourceSceneRoot>,std::span<const SourceWorldPose>);
   // Original action dispatch calls this only after target/action admission.
   SourceControlActivation activate_admitted_control(std::uint32_t h){return devices_.activate_admitted_control(h);}
   const NativeObjectLifetimes &object_lifetimes() const {return object_lifetimes_;}
@@ -244,13 +262,15 @@ public:
   std::vector<PropSandboxEvent> take_prop_events(){auto result=std::move(prop_events_);prop_events_.clear();return result;}
   std::span<const PropRemoval> prop_removals()const{return prop_removals_;}
   std::span<const BulletImpact> bullet_impacts()const{return bullet_impacts_;}
+  std::span<const MeleeImpact> melee_impacts()const{return melee_impacts_;}
   std::span<const UnitDamageEffectEvent> unit_damage_effects()const{return unit_damage_effects_;}
   std::span<const UnitDamageVoiceEvent> unit_damage_voices()const{return unit_damage_voices_;}
   void replicate_prop_removals(std::span<const PropRemoval>);
+  void replicate_prop_regions(std::span<const PropRegionSnapshot>);
   // Source spherical damage/visibility consumer composed with the declared
   // host geometry backend. Call only from an admitted authored area event.
   void area_damage(const PropAreaDamageDefinition&,Vec3,const DamageOwner&,int native_owner,
-      std::uint32_t ignored_scene_prop=null_datum);
+      std::uint32_t ignored_scene_prop=null_datum,std::uint32_t projectile_definition=null_datum);
   const SourceWeatherState &weather() const { return weather_; }
   const SourceWeatherClock &weather_clock() const { return weather_clock_; }
   std::uint32_t &source_primary_random() { return random_state_; }
@@ -303,6 +323,7 @@ public:
 private:
   friend class MultiplayerMatch;
   void step_impl(const Controls &, std::span<const Controls>);
+  void step_devices();
   void disrupt_camouflage(Unit&,float amount,float limit);
   const LevelContent &content_;
   unsigned difficulty_ = 1;
@@ -374,6 +395,7 @@ private:
   };
   std::vector<Projectile> projectiles_;
   std::vector<BulletImpact> bullet_impacts_;
+  std::vector<MeleeImpact> melee_impacts_;
   std::uint64_t bullet_impact_serial_{};
   std::vector<UnitDamageEffectEvent> unit_damage_effects_;
   std::vector<UnitDamageVoiceEvent> unit_damage_voices_;
@@ -396,15 +418,19 @@ private:
   bool suppress_ambience_rebuild_{};
   bool suppress_automatic_objects_{};
   bool multiplayer_weapon_steps_{};
+  std::function<SourceVehicleSeatTarget(std::uint32_t,std::uint32_t)> source_vehicle_seat_query_;
   bool source_physics_movement_{};
   std::function<std::uint32_t(std::uint8_t)> allocate_object_;
   std::function<void(std::uint32_t,std::uint32_t)> publish_object_;
   std::function<void(std::uint32_t)> release_object_;
-  std::function<void(Unit &, const DamageOwner &, const UnitDamageResult &, std::int16_t)> damage_hook_;
+  std::function<void(Unit &, const DamageOwner &, const UnitDamageResult &,
+      const WeaponDefinition &,std::optional<DamageImpactContext>,const DamageFeedbackState &)> damage_hook_;
   std::function<float(const DamageOwner &,std::uint32_t)> player_damage_scale_;
   float player_damage_scale(const DamageOwner &,std::uint32_t resolved_victim)const;
   std::function<void(const Unit &,const WeaponState &,std::uint32_t)> first_person_activity_hook_;
+  std::function<std::int16_t(const Unit &,const WeaponState &,std::uint32_t,std::int16_t)> first_person_timing_hook_;
   std::function<std::uint32_t(const Unit &,const WeaponEffectInput &)> weapon_effect_hook_;
+  std::function<std::uint32_t(const WeaponEffectInput &)> world_weapon_effect_hook_;
   std::shared_ptr<NativeGrenadeSandbox> grenade_sandbox_;
   std::shared_ptr<NativeMeleeAnimation> melee_animation_;
   std::uint64_t flashlights_changed_tick_{};
@@ -430,13 +456,21 @@ private:
   void update_command(Unit &);
   void update_weapon(Unit &, bool fire, bool reload, int owner, float pitch,
                      const Controls *source_control = nullptr, unsigned hand = 0);
+  void update_passive_weapon(WeaponState &,Unit *);
+  void clear_weapon_for_holster(Unit &,WeaponState &);
+  float weapon_hand_blend(const Unit &,const WeaponState &) const;
+  void weapon_activity(Unit &,const WeaponState &,std::uint32_t);
+  std::optional<unsigned> select_weapon_firing_effect(WeaponState &,const WeaponDefinition &);
   void shot(Unit &, int owner, float pitch, const Vec3 *prepared_direction = nullptr,
-            const Vec3 *prepared_velocity = nullptr, WeaponState *weapon = nullptr);
+            const Vec3 *prepared_velocity = nullptr, WeaponState *weapon = nullptr,
+            bool effects_prepared = false);
   bool trace(Vec3 origin, Vec3 direction, float distance,
              const WeaponDefinition &, int owner, const DamageOwner &,
-             std::uint32_t projectile=null_datum);
+             std::uint32_t projectile=null_datum,const Vec3 *velocity=nullptr,
+             float traveled=0);
   void damage(Unit &, const WeaponDefinition &, const DamageOwner &, int native_owner,
-      std::optional<float> amount={},bool radius=false);
+      std::optional<float> amount={},bool radius=false,
+      std::optional<DamageImpactContext> impact={});
   ScriptValue host(const std::string &, const std::vector<ScriptValue> &);
 };
 } // namespace halo2
