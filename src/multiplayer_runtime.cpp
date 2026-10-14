@@ -1329,6 +1329,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   std::cout<<"Source resident material roots: "<<mesh.materials.size()<<'\n';
   auto source_model_roots=vehicle_render_models;
   for(const auto model:props.source_render_models())source_model_roots.insert(model);
+  for(const auto& [definition,weapon]:body_guns)if(weapon.gun.render_model!=null_datum)
+    source_model_roots.insert(weapon.gun.render_model);
   for(const auto& representation:content.player_representations)if(representation.biped.model!=null_datum) {
     const auto model=cache.load_source_tag_metadata(representation.biped.model);
     source_model_roots.insert(Bytes(model.bytes_at(model.source_address(),model.size())).u32(4));
@@ -2838,6 +2840,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     std::vector<std::vector<ModelObjectDraw>> model_object_draws(options.local_players);
     std::vector<std::map<std::uint32_t,std::vector<SourceLiveModelBaseDrawTu15>>> live_vehicle_base(options.local_players);
     std::vector<std::map<std::uint32_t,std::vector<SourceLiveModelBaseDrawTu15>>> live_prop_base(options.local_players);
+    std::vector<std::map<std::uint32_t,std::vector<SourceLiveModelBaseDrawTu15>>> live_unit_base(options.local_players);
+    std::vector<std::map<std::uint32_t,std::vector<Vertex>>> live_unit_vertices(options.local_players);
+    std::vector<std::set<std::uint32_t>> submitted_unit_base(options.local_players);
     std::vector<std::map<std::uint32_t,std::vector<Transform>>> live_vehicle_nodes(options.local_players);
     std::vector<std::map<std::pair<std::uint32_t,unsigned>,std::shared_ptr<const VertexProgramBank>>> live_vehicle_prt(options.local_players);
     std::vector<std::vector<std::vector<Vertex>>> vehicle_vertices(options.local_players);
@@ -3545,14 +3550,43 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           for(auto& [owner,draws]:owners) {
             const auto vehicle=std::find_if(current.world_vehicles.begin(),current.world_vehicles.end(),
                 [&](const auto& v){return v.handle==owner;});
-            // The resident ordinary vehicle/prop banks bind implementation2. Other
-            // owner families/overrides keep their existing base path and are
+            // The resident ordinary banks bind implementation2. Unowned
+            // families/overrides keep their existing base path and are
             // explicitly unavailable to this joined model-light consumer.
             // Admission is atomic for a full owner: accepting one section
             // must never hide another section that still needs the old path.
             if(std::any_of(draws.begin(),draws.end(),[](const auto& draw){
                 return draw.lighting_class!=2 || draw.override_slot!=255 || !(draw.unit.words[0]&1u);
             }))continue;
+            const Visual* unit_visual=nullptr;
+            const auto select_visual=[&](const Visual& candidate) {
+              if(unit_visual && unit_visual!=&candidate)
+                throw FormatError("Source unit base has more than one live presentation owner");
+              unit_visual=&candidate;
+            };
+            for(unsigned slot=0;slot<multiplayer_capacity;++slot) {
+              const auto& player=shown.players[slot];
+              if(!body_present(player) || !(options.capture_third_person || slot!=id || player.dead || vehicle_view))continue;
+              if(owner==body_handle(player))select_visual(species_for(player).player);
+              if(owner==player.source_weapon && player.weapon!=null_datum)
+                select_visual(body_guns.at(player.weapon).gun);
+              if(owner==player.secondary_weapon.datum && player.secondary_weapon.definition!=null_datum)
+                select_visual(body_guns.at(player.secondary_weapon.definition).gun);
+            }
+            if(current.source_body_poses_authoritative)for(const auto& corpse:current.corpses)
+              if(owner==corpse.object)
+                select_visual(species.at({multiplayer_representation(corpse.configuration),rules.weapon}).player);
+            if(unit_visual) {
+              const auto pose=completed_render_nodes.find(owner);
+              if(!unit_visual->world_lods || !unit_visual->shaders || pose==completed_render_nodes.end())continue;
+              auto vertices=source_live_model_base_vertices_tu15(owner,unit_visual->definition,
+                  unit_visual->render_model,draws,*unit_visual->world_lods,*unit_visual->shaders,
+                  pose->second,source_shader_view);
+              if(!vertices)continue;
+              live_unit_vertices[i].emplace(owner,std::move(*vertices));
+              live_unit_base[i].emplace(owner,std::move(draws));
+              continue;
+            }
             const auto nodes=source_model_world->world_nodes(owner);
             if(vehicle==current.world_vehicles.end()) {
               if(props.retain_source_view(i,draws,nodes,source_shader_view))
@@ -3567,7 +3601,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         };
         models.model_available=[&](const auto& unit) {
           const auto owner=Bytes(source.memory().view(unit.words[4],4)).u32(0);
-          for(const auto* bank:{&live_vehicle_base[i],&live_prop_base[i]}) {
+          for(const auto* bank:{&live_vehicle_base[i],&live_prop_base[i],&live_unit_base[i]}) {
             const auto at=bank->find(owner);if(at==bank->end())continue;
             return std::any_of(at->second.begin(),at->second.end(),[&](const auto& base) {
               return source_live_model_base_matches_tu15(base,source,unit);
@@ -3594,6 +3628,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             <<" owners="<<live_vehicle_base[i].size()<<" units="<<units<<" model_light_packets="<<packets<<'\n';
         std::cout<<"Source prop base/light: frame="<<frames<<" view="<<i
             <<" owners="<<live_prop_base[i].size()<<" units="<<prop_units<<" model_light_packets="<<prop_packets<<'\n';
+        std::size_t unit_draws{},unit_packets{};
+        for(const auto& [owner,draws]:live_unit_base[i])unit_draws+=draws.size();
+        for(const auto& packet:raw_effect_lights[i])if(packet.source.owner().kind==MenuWorldSourceOwnerKind::dynamic_object)
+          unit_packets+=live_unit_base[i].contains(packet.source.owner().generation.value());
+        std::cout<<"Source unit base/light: frame="<<frames<<" view="<<i
+            <<" owners="<<live_unit_base[i].size()<<" units="<<unit_draws<<" model_light_packets="<<unit_packets<<'\n';
       }
       const auto observer_aim=source_observer_aim(aim_forward,
           cross(aim_forward,{-std::sin(p.yaw),std::cos(p.yaw),0}),
