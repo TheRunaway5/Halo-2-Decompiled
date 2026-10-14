@@ -172,3 +172,33 @@ Three source departure/network/continuation checks also pass after the new VM
 hook. This is declared native ScriptProgram input through the actual world,
 original owners and UDP renderer; it does not claim untouched map-script
 evaluation or full retail HS evaluator-table parity.
+
+
+## Live rotating wheel support
+
+`wheel-support-live-v350` passes the actual Zanzibar wheel/paddle carrier
+check with no walking or jumping commands. Original device power API calls
+pause the existing source wheel for declared paddle spawn inputs, then resume
+it after the client is visible. No source contact, force, velocity, body pose
+or resulting support state is supplied. The source biped's actual support
+flags and completed WORLD-node transforms determine the checks.
+
+The player has 25 supported source ticks while paused, then 119 moving
+supported ticks that follow the actual paddle transform within the declared
+tracking tolerance. Verified carried travel reaches 2.340648 units. The wheel
+advances .249999434 normalized position. All 349 observed UDP snapshots match
+their actual authority publication, including complete device banks, bodies,
+scene roots and poses. The renderer adopts 395 source-scene frames. The
+executed ELF is stable and the desktop mirror is verified continuously.
+
+[Rotating-support recording](../analysis/multiplayer/physics-live-tu15-20261012/wheel-support-live-v350/lan-movement/window.mp4),
+[summary](../analysis/multiplayer/physics-live-tu15-20261012/wheel-support-live-v350/verified-support.json),
+[actual support samples](../analysis/multiplayer/physics-live-tu15-20261012/wheel-support-live-v350/lan-movement/authority-support-samples.json),
+[source/build seal](../analysis/multiplayer/physics-live-tu15-20261012/source-snapshot-v350.json).
+
+A separate real source/UDP check verifies 90 stopped and 90 resumed wheel
+frames through the original API. The wheel has no authored scenario name;
+commands use its actual current full source identity after source creation.
+The rejected named/pre-creation wheel probes remain retained as diagnostic
+failures. This closes one live rotating carrier gate. All moving supports,
+linear carriers and quantitative original retail trajectories remain required.

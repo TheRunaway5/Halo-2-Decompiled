@@ -124,6 +124,11 @@ SourceMatchAuthority::Prepared SourceMatchAuthority::prepare(const Checkpoint &s
 }
 SourceMatchAuthority::Prepared SourceMatchAuthority::prepare_with_local_views(const Checkpoint &saved,
     AuthorityDigest binding,std::span<const LocalPlayerAdmission> admitted,SourceMatchAuthority &workspace) {
+  return prepare_with_local_views(saved,binding,admitted,workspace,{});
+}
+SourceMatchAuthority::Prepared SourceMatchAuthority::prepare_with_local_views(const Checkpoint &saved,
+    AuthorityDigest binding,std::span<const LocalPlayerAdmission> admitted,SourceMatchAuthority &workspace,
+    std::span<const SourcePlayerAdmission> roster) {
   calls_.prepare();
   if(&workspace==this||&workspace.match_==&match_||&workspace.world_==&world_)
     throw FormatError("Local-view authority preparation requires a separate disposable executor");
@@ -150,11 +155,22 @@ SourceMatchAuthority::Prepared SourceMatchAuthority::prepare_with_local_views(co
     // or a chosen screen name alone cannot select another local player.
     const auto &incoming_bank=workspace.world_.memory();
     const SourceRawDatumPoolServices incoming_storage{.read=[&](auto at,auto n){return incoming_bank.view(at,n);}};
-    for(const auto &admission:admitted) {
+    const auto verify_identity=[&](const auto &admission) {
       const auto full=admission.player;
+      if(admission.slot>=multiplayer_capacity||saved.match.players[admission.slot].source_datum!=full)
+        throw FormatError("Replacement source player differs from its independently accepted slot");
       const auto a=source_raw_datum_lookup(word(incoming_bank,0x4f54f4u),full,incoming_storage);
       if(!a||!std::ranges::equal(incoming_bank.view(a+4u,12),std::as_bytes(std::span(admission.identity))))
-        throw FormatError("Replacement local view has a different full source player identity");
+        throw FormatError("Replacement has a different full source player identity");
+    };
+    for(const auto &admission:admitted)verify_identity(admission);
+    if(!roster.empty()) {
+      if(roster.size()>multiplayer_capacity)throw FormatError("Replacement source roster exceeds native capacity");
+      std::uint16_t allocated{};
+      for(const auto &entry:roster){verify_identity(entry);if(allocated&(1u<<entry.slot))throw FormatError("Replacement source roster duplicates a player");allocated|=std::uint16_t(1u<<entry.slot);}
+      for(unsigned slot=0;slot<multiplayer_capacity;++slot)
+        if(bool(allocated&(1u<<slot))!=(saved.match.players[slot].source_datum!=null_datum))
+          throw FormatError("Replacement source cut omitted or introduced an admitted player allocation");
     }
     workspace.match_.configure_local_views(locals,definitions);
     rebound=workspace.checkpoint(binding);

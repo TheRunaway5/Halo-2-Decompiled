@@ -101,3 +101,31 @@ comparison. See [the original call comparison](MP_PHANTOM_INVENTORY_TU15_2026101
 [summary](../analysis/multiplayer/physics-live-tu15-20261012/dune-tower-verified-v342.json).
 The stable executed ELF and continuously verified mirror are retained.
 The Dune pod and initially absent fields remain separate cases.
+
+
+## Initially absent Backwash fields and live geometry repair
+
+Both authored unnamed HVAC-short placements pass explicit source creation
+before the LAN join, normal no-jump approach, actual upward delivery and live
+rendering in v346. Together they record 362 exact UDP snapshots and 327 upward
+deliveries. Coverage is now **31 placements across 15 map-local definitions**,
+with 5,631 exact UDP snapshots and 1,772 observed upward deliveries. This
+includes two explicitly created alternative fields, not default map birth.
+
+The source bodies initially created correctly, but the client failed because
+`SourcePropScene` prepared automatic/named placements only. Production now
+prepares all authored prop geometry in the active BSP before renderer
+allocation. Actual source lifetime admission still controls rendering. A new
+regression first reproduced the exact unprepared-geometry error, then passes
+creation and retirement of both unnamed fields. The full 21-map prop scene
+suite passes, including existing named births, unrelated owner generations,
+material bounds and source PRT checks. Eight focused physics/multiplayer/device
+checks pass after the repair.
+
+[Both absent-field results](../analysis/multiplayer/physics-live-tu15-20261012/backwash-absent-verified-v346.json),
+[placement0 recording](../analysis/multiplayer/physics-live-tu15-20261012/backwash-absent-hvac-v346/backwash-hvac/lan-lift/window.mp4),
+[placement1 recording](../analysis/multiplayer/physics-live-tu15-20261012/backwash-absent-hvac-p1-v346/backwash-hvac/lan-lift/window.mp4),
+[source/build seal](../analysis/multiplayer/physics-live-tu15-20261012/source-snapshot-v346.json).
+These alternative HVAC fields overlap existing Backwash MACH fields. This
+proves explicit creation, force delivery and replicated live presentation,
+not an isolated field trajectory or default retail object admission.

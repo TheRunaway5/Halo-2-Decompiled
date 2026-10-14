@@ -753,3 +753,23 @@ tower/pod behavior and moving/rotating supported riders remain open. Original
 device script APIs now have a 127-site closure, 256 original differential cases
 and eight real VM/UDP stages. These are incremental integration gates and do
 not close the all-player/vehicle/object TU1.5 parity goal.
+
+
+Further checkpoint: Dune's normal earlier-jump tower entry and two explicitly
+created, initially absent Backwash fields bring bounded placement coverage to
+31/15 map-local definitions (5,631 exact UDP states, 1,772 upward deliveries).
+Unnamed prop birth exposed and fixed a real client geometry preparation gap;
+the 21-map regression and fresh visible lifecycle cases pass. Three captured
+live Dune force calls match untouched original i386 execution, all accessible
+source bytes and CPU state within the documented host interrupt-flag limit.
+A current moving Spectre regression after that production repair passes674
+exact UDP states, real original driver/passenger cameras and ordinary exit.
+Rotating support, remaining field behavior and full stated parity remain open.
+
+
+The actual Zanzibar rotating-support gate now passes visibly in v350: no
+player walking/jump input, 119 moving supported source ticks, 2.340648 units
+of verified carried travel and 349 exact UDP snapshots. Actual source biped
+support flags and WORLD-node tracking gate the result. See the machinery
+report/video. This is one rotating carrier case; linear carriers, all support
+branches and full original trajectory parity are still open.

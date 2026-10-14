@@ -572,6 +572,27 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         v.world_lods=std::move(banks);
       } else v.shaders.emplace(cache,v.model,mode,2,camouflage);
     }
+#ifdef HALO2_HELD_POSE_SHADING_REFERENCE
+    // Explicit storage control for retained render-input experiments. The
+    // original GL capture's decoded cube bytes are compared independently;
+    // ordinary gameplay never selects this diagnostic transformation.
+    if(held_pose_shading_reference(datum) && std::getenv("HALO2_HELD_POSE_EXPAND_BC")) {
+      std::function<void(Material&)> expand=[&](Material& material) {
+        const auto texture=[](Texture& image) {
+          if(image.format>=14 && image.format<=16)image=prepare_xemu_bc_texture(image);
+        };
+        texture(material.diffuse);texture(material.detail);texture(material.bump);texture(material.auxiliary);
+        for(auto& stage:material.animated_textures)for(auto& frame:stage)texture(frame);
+        const auto child=[&](std::shared_ptr<Material>& value) {
+          if(value){value=std::make_shared<Material>(*value);expand(*value);}
+        };
+        child(material.environment_pass);
+        for(auto& value:material.world_overlays_before)child(value);
+        for(auto& value:material.world_overlays_after)child(value);
+      };
+      for(auto& material:v.model.mesh.materials)expand(material);
+    }
+#endif
     v.material = unsigned(mesh.materials.size());
     mesh.materials.insert(mesh.materials.end(), v.model.mesh.materials.begin(),
                           v.model.mesh.materials.end());

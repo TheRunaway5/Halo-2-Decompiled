@@ -42,17 +42,19 @@ SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options) {
   return rules;
 }
 std::shared_ptr<const std::filesystem::path> source_storage(
-    const Cache &cache,const MultiplayerOptions &options,const SlayerRules &rules) {
+    const Cache &cache,const MultiplayerOptions &options,const SlayerRules &rules,bool shadow=false) {
+  if(shadow&&(!cache.original_data()||cache.original_data()->image!=OriginalData::Image::TitleUpdate15||rules.custom!=CustomSlayer::none))
+    throw FormatError("Source shadow requires actual Xbox TU1.5 gameplay and a supported source engine");
   // Clients consume the authority's WORLD nodes and completed death observer.
-  if(!options.join.empty() || (options.online_match &&
-      options.online_match->host()!=options.online_match->self()))return {};
+  if(!shadow&&(!options.join.empty() || (options.online_match &&
+      options.online_match->host()!=options.online_match->self())))return {};
   const bool automatic=cache.original_data() &&
       cache.original_data()->image==OriginalData::Image::TitleUpdate15 && rules.custom==CustomSlayer::none &&
       !options.replay && !options.capture_root && options.reference_player.empty();
-  if(!automatic && !options.source_object_world)return {};
+  if(!shadow&&!automatic && !options.source_object_world)return {};
   if(cache.is_mcc())throw FormatError("MCC native world startup and complete Xbox TU1.5 gameplay conversion are incomplete; Xbox reference executables are not runtime inputs");
   if(options.gameplay_xbe.empty())throw FormatError("Source world requires its authenticated executable");
-  if(!options.source_object_savegame_directory.empty()) {
+  if(!shadow&&!options.source_object_savegame_directory.empty()) {
     std::filesystem::create_directories(options.source_object_savegame_directory);
     return std::make_shared<const std::filesystem::path>(options.source_object_savegame_directory);
   }
@@ -69,10 +71,11 @@ std::shared_ptr<const std::filesystem::path> source_storage(
 }
 std::unique_ptr<MultiplayerObjectRuntime> object_world(
     const Cache &cache,const MultiplayerOptions &options,const SlayerRules &rules,
-    const std::shared_ptr<const std::filesystem::path> &storage) {
+    const std::shared_ptr<const std::filesystem::path> &storage,
+    std::shared_ptr<PhysicsLiveClockSource> clock={}) {
   if(!storage)return {};
-  auto world=std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,
-      options.bsp,*storage);
+  auto world=clock?std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,options.bsp,*storage,std::move(clock)):
+      std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,options.bsp,*storage);
   auto variant=options.variant;
   if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
   world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
@@ -91,24 +94,51 @@ std::unique_ptr<MultiplayerObjectRuntime> object_world(
   return world;
 }
 }
+struct MultiplayerPreparedWorld::SourceShadowSetup {
+  std::vector<OnlineAdmission> roster;
+  std::vector<unsigned> locals,selected;
+  std::shared_ptr<PhysicsLiveClockSource> clock;
+};
+std::unique_ptr<MultiplayerPreparedWorld> MultiplayerPreparedWorld::source_shadow(
+    const MultiplayerOptions &options,SourceShadowViews views,std::shared_ptr<PhysicsLiveClockSource> clock) {
+  const auto &session=options.online_match;
+  const auto phase=session?session->phase():OnlineMatchSession::Phase::Failed;
+  const auto context=session?session->authority_context():std::nullopt;
+  if(!session||!session->direct_udp()||!context||context->host>=16||options.host_port||!options.join.empty()||
+      phase==OnlineMatchSession::Phase::Connecting||phase==OnlineMatchSession::Phase::Reviewing||phase==OnlineMatchSession::Phase::Postgame||
+      options.defer_initial_player_spawn||options.player_birth_owner||options.pre_player_update_owner||
+      !options.native_spawn_inputs.empty()||options.replay||!options.reference_player.empty()||options.reference_auxiliary_seed)
+    throw FormatError("Source shadow requires an accepted direct ONLINE source session");
+  if(views!=SourceShadowViews::LocalPeer&&views!=SourceShadowViews::IncomingHost)
+    throw FormatError("Unknown source shadow view owner");
+  SourceShadowSetup setup;setup.roster=session->roster();setup.selected=session->local_slots();setup.clock=std::move(clock);
+  const auto peer=views==SourceShadowViews::LocalPeer?session->self():context->host;
+  for(const auto &player:setup.roster)if(online_admission_peer(player)==peer)setup.locals.push_back(player.slot);
+  if(setup.locals.empty()||setup.locals.size()>4||setup.selected.size()!=options.local_players)
+    throw FormatError("Source shadow views differ from the accepted couch roster");
+  return std::unique_ptr<MultiplayerPreparedWorld>(new MultiplayerPreparedWorld(options,std::nullopt,&setup));
+}
 MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options)
   :MultiplayerPreparedWorld(options,std::nullopt) {}
 MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options,
     std::optional<ScriptProgram> script_input)
+  :MultiplayerPreparedWorld(options,std::move(script_input),nullptr) {}
+MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options,
+    std::optional<ScriptProgram> script_input,const SourceShadowSetup *shadow)
   :cache(std::make_shared<const Cache>(options.map,options.shared_maps,
        options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:
            OriginalData::load_xbe(options.gameplay_xbe))),
    tags(world_tags(cache,options.bsp)),
    content(world_content(*cache,options,script_input)),rules(world_rules(*cache,options)),
-   source_savegames(source_storage(*cache,options,rules)),
-   source_objects(object_world(*cache,options,rules,source_savegames)),
+   source_savegames(source_storage(*cache,options,rules,shadow!=nullptr)),
+   source_objects(object_world(*cache,options,rules,source_savegames,shadow?shadow->clock:nullptr)),
    match(content,options.bsp,options.native_spawn_inputs.empty()?cache->spawns():
        std::span<const Spawn>(options.native_spawn_inputs),rules,{}, {},source_objects.get()),map_(options.map),shared_(options.shared_maps),
    xbe_(options.gameplay_xbe),bsp_(options.bsp),players_(options.local_players),
    starting_weapon_(options.starting_weapon),variant_(source_game_variant(options.variant)),
    teams_(options.selected_teams),profiles_(options.selected_profiles),seed_(options.session_random_seed),
    source_object_world_(options.source_object_world),source_object_savegame_directory_(options.source_object_savegame_directory),
-   native_spawn_inputs_(options.native_spawn_inputs) {
+   native_spawn_inputs_(options.native_spawn_inputs),shadow_(shadow!=nullptr) {
   if(!options.native_spawn_inputs.empty() && (options.online_match || options.host_port || !options.join.empty() || options.dedicated))
     throw FormatError("Declared native spawn inputs require an offline acceptance world");
   if(options.local_players>4 || (!options.dedicated && !options.local_players))
@@ -123,13 +153,23 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
     match.configure_melee_animation(cache,*cache->original_data()->melee_constants);
   if(cache->original_data() && cache->original_data()->grenade_constants)
     match.configure_grenades(cache,*cache->original_data()->grenade_constants);
+  std::vector<FirstPersonBindingDefinition> definitions;
   if(options.host_port || options.online_match)
     for(unsigned representation:{2u,3u})
       if(representation<content.player_representations.size() &&
           content.player_representations[representation].biped.datum!=null_datum)
         for(const auto &[datum,weapon]:content.weapons)if(!weapon.first_person_models.empty() && weapon.first_person_models.front().model!=null_datum && weapon.first_person_models.front().animation!=null_datum)
-          match.configure_replicated_first_person(cache->load_first_person_binding(datum,representation));
-  if(!options.online_match && options.join.empty())
+          {auto definition=cache->load_first_person_binding(datum,representation);
+            match.configure_replicated_first_person(definition);if(shadow)definitions.push_back(std::move(definition));}
+  if(shadow) {
+    for(const auto &player:shadow->roster){const auto selected=std::ranges::find(shadow->selected,player.slot);
+      std::optional<SourcePlayerConfiguration> profile;
+      if(selected!=shadow->selected.end()&&!options.selected_profiles.empty())profile=options.selected_profiles.at(selected-shadow->selected.begin());
+      if(match.join(player.name,rules.team_mode?player.team:-1,profile,player.slot)!=player.slot)
+        throw FormatError("Source shadow birth changed an accepted native player slot");
+    }
+    local_slots=shadow->locals;match.configure_local_views(local_slots,definitions);
+  }else if(!options.online_match && options.join.empty())
     for(unsigned i=0;i<options.local_players;++i)
       local_slots.push_back(match.join(options.selected_profiles.empty()?"Player "+std::to_string(i+1):
           native_player_configuration_name(options.selected_profiles[i]),
@@ -145,7 +185,7 @@ bool MultiplayerPreparedWorld::matches(const MultiplayerOptions& options) const 
       });
   // Constructor-only birth/defer/pre-step policy already belongs to this Match.
   // Runtime reuses that owner and cannot replace or replay the callbacks.
-  return map_==options.map && shared_==options.shared_maps && xbe_==options.gameplay_xbe &&
+  return !shadow_&&map_==options.map && shared_==options.shared_maps && xbe_==options.gameplay_xbe &&
       bsp_==options.bsp && players_==options.local_players && starting_weapon_==options.starting_weapon &&
       variant_.bytes==source_game_variant(options.variant).bytes && teams_==options.selected_teams &&
       profiles_==options.selected_profiles && seed_==options.session_random_seed &&

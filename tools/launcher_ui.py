@@ -4,6 +4,8 @@ from pathlib import Path
 import queue
 import sys
 import threading
+import subprocess
+import os
 
 from setup_assets_ui import LauncherCanvas, CYAN, EDGE, FIELD, INK, MUTED, PANEL
 
@@ -12,7 +14,7 @@ CANCELLED = 20
 
 
 class LauncherHome(LauncherCanvas):
-    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None):
+    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, sandbox_launch_function=None):
         from update_runtime import update_runtime
         from mcc_onboarding import runtime_status
 
@@ -21,6 +23,9 @@ class LauncherHome(LauncherCanvas):
         self.update = update_function or update_runtime
         self.availability = availability_function or (lambda: runtime_status(root))
         self.unavailable = runtime_unavailable or self.availability()
+        self.sandbox_launcher = Path(root) / "Halo2-Sandbox-Test"
+        self.sandbox_launch = sandbox_launch_function or (lambda argv: subprocess.Popen(argv, cwd=root, start_new_session=True))
+        sandbox_ready = self.sandbox_launcher.is_file() and os.access(self.sandbox_launcher, os.X_OK)
         self.events = queue.Queue()
         self.result, self.working, self.closed = CANCELLED, False, False
         self.text(51, 158, "G A M E   L A U N C H E R", 12, CYAN)
@@ -39,7 +44,7 @@ class LauncherHome(LauncherCanvas):
                                     wraplength=self.px(563), padx=self.px(12), pady=self.px(12))
         self.place(self.status, 400, 218, 588, 92)
         output = self.tk.Frame(window, background=FIELD)
-        self.place(output, 400, 328, 588, 274)
+        self.place(output, 400, 328, 588, 210 if sandbox_ready else 274)
         scrollbar = self.tk.Scrollbar(output, background=EDGE, troughcolor=FIELD,
                                       activebackground=CYAN, borderwidth=0, highlightthickness=0)
         scrollbar.pack(side="right", fill="y")
@@ -56,6 +61,7 @@ class LauncherHome(LauncherCanvas):
         self.exit_button = self.button("Exit", self.close, 400, 641, 124, 43)
         self.update_button = self.button("Update", self.start_update, 540, 641, 208, 43)
         self.play_button = self.button("Play  ›", self.play, 764, 641, 224, 43, primary=True)
+        self.sandbox_button = self.button("Sandbox test build  ›", self.play_sandbox, 400, 555, 588, 43, primary=True) if sandbox_ready else None
         if self.unavailable:
             self.play_button.configure(state="disabled")
             self.status.configure(text=self.unavailable, foreground="#ffd29b")
@@ -74,7 +80,7 @@ class LauncherHome(LauncherCanvas):
         if self.working:
             return
         self.working = True
-        for button in (self.exit_button, self.update_button, self.play_button):
+        for button in self.actions():
             button.configure(state="disabled")
         self.status.configure(text="Updating and building Halo 2…", foreground=CYAN)
         self.bar.start(14)
@@ -103,6 +109,8 @@ class LauncherHome(LauncherCanvas):
                     self.bar.stop()
                     self.update_button.configure(state="normal")
                     self.exit_button.configure(state="normal")
+                    if self.sandbox_button:
+                        self.sandbox_button.configure(state="normal")
                     # A failed update can leave source and runtime at different
                     # revisions. Require a successful retry before playing.
                     self.unavailable = self.availability() if kind == "done" else "Update stopped. Check the output below, then try Update again."
@@ -121,6 +129,19 @@ class LauncherHome(LauncherCanvas):
         if not self.working and str(self.play_button.cget("state")) != "disabled":
             self.result = 0
             self.close()
+
+    def actions(self):
+        return tuple(button for button in (self.exit_button, self.update_button, self.play_button, self.sandbox_button) if button)
+
+    def play_sandbox(self):
+        if self.working or not self.sandbox_button or str(self.sandbox_button.cget("state")) == "disabled":
+            return
+        try:
+            self.sandbox_launch([str(self.sandbox_launcher)])
+        except OSError as error:
+            self.status.configure(text="Could not open sandbox test build: " + str(error), foreground="#ffd29b")
+            return
+        self.close()
 
     def close(self):
         if not self.working and not self.closed:

@@ -1,15 +1,13 @@
 #pragma once
 #include "halo2/source_authority_codec.hpp"
 #include "halo2/source_authority_delta.hpp"
+#include "halo2/source_authority_binding.hpp"
 #include "halo2/online_match_session.hpp"
 #include <chrono>
 #include <optional>
 #include <string>
 
 namespace halo2 {
-// Native session binding, independent of native presentation keys and Discord
-// IDs. A new authority/membership generation has a different admission digest.
-SourceMatchAuthority::AuthorityDigest source_authority_binding(const AuthorityTransferContext &);
 struct SourceAuthorityPublisherState {
     bool encoding{},awaiting_validation{};
     std::uint64_t captures{},publications{},validations{};

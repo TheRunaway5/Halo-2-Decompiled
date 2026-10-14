@@ -48,6 +48,11 @@ public:
   // cut, a screen name or a newly constructed offline prototype on this PC.
   Prepared prepare_with_local_views(const Checkpoint &,AuthorityDigest,
       std::span<const LocalPlayerAdmission>,SourceMatchAuthority &workspace);
+  // Production receiver also validates every allocated player against the
+  // independently accepted full roster before changing this live target.
+  Prepared prepare_with_local_views(const Checkpoint &,AuthorityDigest,
+      std::span<const LocalPlayerAdmission>,SourceMatchAuthority &workspace,
+      std::span<const SourcePlayerAdmission> full_roster);
   // World backing publishes before both native pool views. This owner and
   // its Match/world must outlive preparation; references expire on success.
   bool commit(Prepared &&)noexcept;

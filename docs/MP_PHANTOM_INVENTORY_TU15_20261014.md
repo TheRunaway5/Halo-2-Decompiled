@@ -70,3 +70,10 @@ passes full original i386 comparison across 1,263 instructions and all
 60,084,310 accessible source bytes. This retains the same host IF limitation.
 [Normal-entry original hardware result](../analysis/multiplayer/physics-live-tu15-20261012/dune-tower-entry-original-hardware-v342/report.json).
 The native original force implementation is unchanged.
+
+
+The two initially absent Backwash HVAC placements now pass their actual
+explicit creation/lift/UDP/render path in v346 after a source prop geometry
+preparation repair. They overlap the existing machinery fields and remain
+separate from default map birth. Current passing authored placement coverage
+is 31 across 15 map-local definitions; see the placement report for scope.

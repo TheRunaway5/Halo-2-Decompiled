@@ -1,5 +1,4 @@
 #include "halo2/source_authority_publisher.hpp"
-#include <openssl/sha.h>
 #include <condition_variable>
 #include <mutex>
 #include <stdexcept>
@@ -10,15 +9,8 @@ namespace {
 using Clock=std::chrono::steady_clock;
 using ArchiveBytes=std::vector<std::byte>;
 void need(bool ok){if(!ok)throw std::invalid_argument("Invalid source authority publisher ownership or endpoint");}
-void put(ArchiveBytes &p,std::uint64_t value,unsigned n){for(unsigned i=0;i<n;++i)p.push_back(std::byte(value>>(8*i)));}
 bool member(const AuthorityTransferContext &c,unsigned peer){return peer<16&&(c.peers&(1u<<peer));}
 std::uint64_t micros(Clock::time_point started){return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-started).count();}
-}
-SourceMatchAuthority::AuthorityDigest source_authority_binding(const AuthorityTransferContext &c){
-    need(member(c,c.host));ArchiveBytes input;for(char value:std::string_view("H2 SOURCE AUTHORITY 1"))input.push_back(std::byte(value));
-    input.insert(input.end(),c.session.begin(),c.session.end());put(input,c.epoch,4);put(input,c.membership_revision,8);put(input,c.peers,2);put(input,c.host,1);
-    SourceMatchAuthority::AuthorityDigest result{};
-    need(SHA256(reinterpret_cast<const unsigned char *>(input.data()),input.size(),reinterpret_cast<unsigned char *>(result.data())));return result;
 }
 struct SourceAuthorityPublisher::Impl {
     SourceMatchAuthority &authority;const std::shared_ptr<OnlineMatchSession> session;const unsigned target;

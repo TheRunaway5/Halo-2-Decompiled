@@ -463,6 +463,9 @@ struct Renderer::Impl {
     // Native programs already address logical c0..191 through the explicit
     // camera/fog/material/extended banks. Vulkan injects no reserved constants.
     std::uint32_t source_constant_mode=0x11;
+    // Existing world passes use integer W depth. Native source startup
+    // selects that same mode; each pass retains its authored raster policy.
+    std::uint32_t source_depth_mode=2;
     std::vector<bool> extended_vertex_banks;
     std::vector<std::size_t> changed_vertex_banks;
     using MaterialUniform=WorldMaterialUniform;
@@ -2512,7 +2515,8 @@ struct Renderer::Impl {
         VkPipelineMultisampleStateCreateInfo samples{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
         samples.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
         VkPipelineDepthStencilStateCreateInfo depth_state{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
-        depth_state.depthTestEnable = depth_state.depthWriteEnable = VK_TRUE;
+        depth_state.depthTestEnable = source_depth_mode!=0;
+        depth_state.depthWriteEnable = VK_TRUE;
         depth_state.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         VkPipelineColorBlendAttachmentState blend{};
         blend.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -4840,7 +4844,7 @@ struct Renderer::Impl {
 #endif
         const auto matrix = view_projection(scene_camera,scissor.extent,bool(atmosphere));
         struct CameraUniform { glm::mat4 matrix; glm::vec4 eye, position, viewport; };
-        const CameraUniform camera_uniform{matrix,glm::vec4(forward,atmosphere?1.f:0.f),
+        const CameraUniform camera_uniform{matrix,glm::vec4(forward,atmosphere && source_depth_mode==2?1.f:0.f),
             glm::vec4(camera.position.x,camera.position.y,camera.position.z,1),
             glm::vec4(viewport.x,viewport.y,viewport.width,viewport.height)};
         vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(camera_uniform),&camera_uniform);
@@ -5363,7 +5367,7 @@ struct Renderer::Impl {
                 visible_clusters=visibility_bank && v.atmosphere?
                     visibility_bank->potentially_visible_clusters(v.atmosphere->cluster):std::vector<std::uint32_t>{};
                 const auto view_forward=v.camera.oriented?v.camera.forward:direction(v.camera.yaw,v.camera.pitch);
-                const CameraUniform model_uniform{model_matrix,glm::vec4(view_forward.x,view_forward.y,view_forward.z,v.atmosphere?1.f:0.f),
+                const CameraUniform model_uniform{model_matrix,glm::vec4(view_forward.x,view_forward.y,view_forward.z,v.atmosphere && source_depth_mode==2?1.f:0.f),
                     glm::vec4(v.camera.position.x,v.camera.position.y,v.camera.position.z,1),
                     glm::vec4(model_view.x,model_view.y,model_view.width,model_view.height)};
                 const auto draw_transparent=[&](unsigned phase) {
@@ -6157,6 +6161,22 @@ RendererConstantMode Renderer::constant_mode_control() {
             sizeof(Impl::MaterialUniform),sizeof(Impl::VertexBankUniform),
             NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->material_mapping))},
             NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->vertex_bank_uniforms.data()))}};
+    });
+}
+RendererDepthMode Renderer::depth_mode_control() {
+    const std::weak_ptr<Impl> owner=impl_;
+    return RendererDepthMode::issue(device_lease(),[owner](std::uint32_t mode) {
+        auto impl=owner.lock();
+        if(!impl || mode!=2)throw FormatError("Native renderer depth mode is unsupported");
+        VkImageFormatProperties properties;
+        if(impl->depth_format!=source_depth_format || !impl->depth || !impl->depth_memory ||
+           !impl->depth_attachment_view || !impl->pipeline ||
+           !source_depth_supported(impl->physical,properties))
+            throw FormatError("Native renderer lacks its live integer W-depth attachment");
+        impl->source_depth_mode=mode;
+        return RendererDepthConfiguration{impl->source_depth_mode,std::uint32_t(impl->depth_format),24,8,
+            std::bit_cast<std::uint64_t>(impl->depth),
+            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(&impl->source_depth_mode))}};
     });
 }
 void Renderer::update_material_constants(std::span<const Material> materials) { impl_->update_material_constants(materials); }

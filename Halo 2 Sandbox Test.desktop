@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Halo 2 Sandbox Test
+Comment=Try the current native TU1.5 sandbox build
+Exec="/home/eric/Developer/Halo-2-Decompiled/Halo2-Sandbox-Test"
+Icon=/home/eric/Developer/Halo-2-Decompiled/resources/launcher.svg
+Terminal=false
+Categories=Game;
+StartupNotify=false

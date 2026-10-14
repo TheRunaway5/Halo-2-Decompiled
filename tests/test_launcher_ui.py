@@ -23,6 +23,9 @@ class LauncherHomeTests(unittest.TestCase):
         self.release = threading.Event()
         self.calls = []
         self.failure = False
+        self.sandbox_calls = []
+        (self.root / "Halo2-Sandbox-Test").write_text("#!/bin/sh\nexit 0\n")
+        (self.root / "Halo2-Sandbox-Test").chmod(0o755)
 
         def update(root, build, progress):
             self.calls.append((root, build))
@@ -33,7 +36,8 @@ class LauncherHomeTests(unittest.TestCase):
                 raise RuntimeError("The compiler failed")
             (root / "updated-runtime").touch()
 
-        self.home = LauncherHome(self.window, self.root, self.root / "build", update, availability_function=lambda: None)
+        self.home = LauncherHome(self.window, self.root, self.root / "build", update, availability_function=lambda: None,
+                                 sandbox_launch_function=lambda argv: self.sandbox_calls.append(argv))
         self.window.update()
 
     def destroy(self):
@@ -55,7 +59,7 @@ class LauncherHomeTests(unittest.TestCase):
         self.home.update_button.invoke()
         self.wait_until(lambda: bool(self.calls))
         self.assertEqual(self.calls, [(self.root, self.root / "build")])
-        for button in (self.home.play_button, self.home.update_button, self.home.exit_button):
+        for button in self.home.actions():
             self.assertEqual(str(button.cget("state")), "disabled")
         self.home.close()
         self.assertFalse(self.home.closed)
@@ -123,7 +127,7 @@ class LauncherHomeTests(unittest.TestCase):
 
     def test_controls_have_separate_hit_regions_and_fit_the_window(self):
         widgets = [self.home.status, self.home.output.master, self.home.bar,
-                   self.home.exit_button, self.home.update_button, self.home.play_button]
+                   *self.home.actions()]
         rectangles = []
         for widget in widgets:
             x, y, w, h = widget.winfo_x(), widget.winfo_y(), widget.winfo_width(), widget.winfo_height()
@@ -134,6 +138,32 @@ class LauncherHomeTests(unittest.TestCase):
             for ox, oy, ow, oh in rectangles:
                 self.assertFalse(x < ox + ow and x + w > ox and y < oy + oh and y + h > oy)
             rectangles.append((x, y, w, h))
+
+    def test_sandbox_uses_separate_route_while_mcc_play_is_unavailable(self):
+        self.home.play_button.configure(state="disabled")
+        self.home.unavailable = "MCC conversion remains incomplete."
+        self.home.sandbox_button.invoke()
+        self.assertEqual(self.sandbox_calls, [[str(self.root / "Halo2-Sandbox-Test")]])
+        self.assertTrue(self.home.closed)
+        self.assertEqual(self.home.result, CANCELLED)
+
+    def test_failed_sandbox_start_keeps_launcher_open(self):
+        def fail(argv):
+            raise OSError("Test package missing")
+        self.home.sandbox_launch = fail
+        self.home.sandbox_button.invoke()
+        self.assertFalse(self.home.closed)
+        self.assertIn("Test package missing", self.home.status.cget("text"))
+
+    def test_pointer_click_on_sandbox_starts_only_the_test_route(self):
+        button = self.home.sandbox_button
+        button.event_generate("<Enter>", x=10, y=10)
+        self.window.update()
+        button.event_generate("<ButtonPress-1>", x=10, y=10)
+        button.event_generate("<ButtonRelease-1>", x=10, y=10)
+        self.assertTrue(self.home.closed)
+        self.assertEqual(len(self.sandbox_calls), 1)
+        self.assertEqual(self.home.result, CANCELLED)
 
 
 if __name__ == "__main__":

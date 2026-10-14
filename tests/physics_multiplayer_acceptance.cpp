@@ -255,6 +255,38 @@ Spawn lift_entrance(const Cache &cache,const LevelContent &content,Vec3 *geometr
 }
 
 
+struct SupportEntrance {
+  std::vector<Spawn> spawns;
+  std::uint32_t definition;
+  Vec3 center,local_top;
+};
+SupportEntrance wheel_support_entrance(const Cache &cache,const LevelContent &content) {
+  const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[](const Tag &t){return t.group=="mach" &&
+      t.name=="scenarios\\objects\\multi\\zanzibar\\big_wheel\\big_wheel";});
+  check(tag!=cache.tags().end(),"Original rotating wheel definition absent");
+  const auto at=std::find_if(content.objects.begin(),content.objects.end(),[&](const auto &o){return o.definition==tag->datum;});
+  check(at!=content.objects.end(),"Original rotating wheel placement absent");
+  const auto object=cache.load_source_tag_metadata(at->definition);
+  const auto model=cache.load_source_tag_metadata(Bytes(object.bytes_at(object.source_address(),object.size())).u32(0x38));
+  const auto physics=cache.load_source_tag_metadata(Bytes(model.bytes_at(model.source_address(),model.size())).u32(0x24));
+  const Bytes phmo(physics.bytes_at(physics.source_address(),physics.size()));
+  check(phmo.u32(0x70)>0,"Original wheel has no authored hull0 paddle input");
+  const Bytes hull(physics.bytes_at(phmo.u32(0x74),0x100));
+  const Vec3 center{hull.f32(0x40),hull.f32(0x44),hull.f32(0x48)};
+  const Vec3 half{hull.f32(0x30),hull.f32(0x34),hull.f32(0x38)};
+  check(half.x>3*content.player.radius && half.y>3*content.player.radius && half.z<content.player.radius,
+      "Original wheel hull0 is not the admitted flat paddle input");
+  const auto basis=authored_basis(at->rotation);
+  const auto root=source_object_transform(at->position,basis.forward,basis.up,at->scale,false);
+  SupportEntrance result{{},tag->datum,root.position,center+Vec3{0,0,half.z}};
+  for(const float side:{-1.f,1.f}) {
+    Transform point;point.position=result.local_top+Vec3{0,side*2*content.player.radius,content.player.radius};
+    Spawn spawn;spawn.position=compose_transform(root,point).position;
+    const auto target=root.position-spawn.position;spawn.facing=std::atan2(target.y,target.x);result.spawns.push_back(spawn);
+  }
+  return result;
+}
+
 struct ControlEntrance {Spawn spawn;Vec3 target;std::uint32_t definition;Vec3 gate;};
 ControlEntrance control_entrance(const Cache &cache,const LevelContent &content) {
   const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[](const Tag &t) {
@@ -433,6 +465,8 @@ struct Host {
   Json scene_lifecycle=Json::array();
   Json script_stages=Json::array();
   std::atomic_bool start_device_script{};
+  std::atomic_bool resume_support{};
+  Json support_samples=Json::array();
   std::uint32_t first_prop_generation=null_datum;
   std::shared_ptr<const LevelContent> content;
   std::mutex mutex;std::vector<MultiplayerState> history;std::exception_ptr error;std::jthread worker;
@@ -445,6 +479,19 @@ struct Host {
       const bool scripted=script_input.has_value();
       MultiplayerPreparedWorld world(options,std::move(script_input));
       world.match.configure_replicated_first_person(world.cache->load_first_person_binding(world.rules.weapon,2));
+      std::optional<std::uint32_t> support_object;bool support_resumed=false;
+      const auto support_power=[&](float value) {
+        check(support_object.has_value(),"Original support command lost its current source object");
+        world.source_objects->script_device("device_set_power",{ScriptValue{54,*support_object,{}},ScriptValue::numeric(value,6)});
+      };
+      if(std::getenv("HALO2_TU15_SUPPORT_INPUT")) {
+        for(const auto &object:world.source_objects->live_objects()) {
+          const auto *tag=world.cache->find_tag(TagHandle{object.definition});
+          if(tag && tag->name=="scenarios\\objects\\multi\\zanzibar\\big_wheel\\big_wheel")support_object=object.object;
+        }
+        check(support_object.has_value(),"Original support fixture has no current wheel body");
+        support_power(0);world.match.step({});
+      }
       if(std::getenv("HALO2_TU15_LIFT_CREATE_INPUT")) {
         const auto selected=std::getenv("HALO2_TU15_LIFT_DEFINITION");check(selected,"Field creation requires a declared definition");
         unsigned ordinal=std::getenv("HALO2_TU15_LIFT_INSTANCE")?std::stoul(std::getenv("HALO2_TU15_LIFT_INSTANCE")):0u;
@@ -492,7 +539,7 @@ struct Host {
       std::array<Controls,multiplayer_capacity> controls{};
       std::set<std::uint32_t> observed_source_generations;
       std::ofstream machine_trace;
-      if(scripted || std::getenv("HALO2_TU15_MACHINE_TRACE")) {
+      if(scripted || support_object || std::getenv("HALO2_TU15_MACHINE_TRACE")) {
         machine_trace.open(options.source_object_savegame_directory.parent_path()/"authority-machine-state.jsonl");
         check(bool(machine_trace),"Could not retain actual source/native device comparison");
       }
@@ -574,8 +621,36 @@ struct Host {
           const auto *tag=world.cache->find_tag(TagHandle{definition});
           const auto selected=std::getenv("HALO2_TU15_LIFT_DEFINITION");
           if(!tag || (selected?tag->name!=selected:tag->name.find("lift")==std::string::npos))return;
-          if(original_force_capture)original_force_capture->observe(entering,abi,memory,component,
-              world.match.player(1).source_current_object);
+          Json members=Json::array();std::uint32_t capture_target=world.match.player(1).source_current_object;
+          if(std::getenv("HALO2_TU15_PHANTOM_OBJECT_TRACE")) {
+            const auto header=word(component+0x94u);
+            if(header) {
+              const auto rows=word(header),count=word(header+4u);check(count<=4096,"Original force membership extent is invalid");
+              for(unsigned n=0;n<count;++n) {
+                const auto row=memory.view(rows+n*8u,8);const auto other=Bytes(row).u32(4);
+                Json member{{"object",other},{"row",hex_bytes(row)}};
+                try {
+                  const auto target=world.source_objects->object_body(other);const auto physical=word(target+0xb4u);
+                  const auto *tag=world.cache->find_tag(TagHandle{word(target)});
+                  member["definition"]=tag?tag->name:"";member["type"]=std::to_integer<unsigned>(memory.view(target+0x10bu,1)[0]);
+                  member["body_bytes"]=hex_bytes(memory.view(target,0x12cu));
+                  const auto pool=word(0x52be5cu),stride=word(pool+0x24u);
+                  if(physical!=null_datum && (physical&65535u)<word(pool+0x20u)) {
+                    const auto address=word(pool+0x44u)+(physical&65535u)*stride;
+                    const auto index=std::to_integer<unsigned>(row[1])<128?std::to_integer<unsigned>(row[1]):0u;
+                    if(index<word(address+0x74u)) {
+                      const auto rigid=word(word(address+0x70u)+index*0x60u+0x40u),motion=word(rigid+0x3cu);
+                      member["motion_bytes"]=hex_bytes(memory.view(motion,512));member["motion_address"]=motion;
+                      if(std::getenv("HALO2_TU15_PHANTOM_CAPTURE_ANY_MEMBER") && capture_target==world.match.player(1).source_current_object &&
+                          member["type"]!=0)capture_target=other;
+                    }
+                  }
+                }catch(const FormatError &error){member["unavailable_before_original_member_cleanup"]=error.what();}
+                members.push_back(std::move(member));
+              }
+            }
+          }
+          if(original_force_capture)original_force_capture->observe(entering,abi,memory,component,capture_target);
           Json units=Json::array();
           for(unsigned slot=0;slot<multiplayer_capacity;++slot) {
             const auto &p=world.match.player(slot);if(!p.connected || p.source_current_object==null_datum)continue;
@@ -606,7 +681,7 @@ struct Host {
               {"component",component},{"object",object},{"definition",tag->name},
               {"component_bytes",hex_bytes(memory.view(component,0xa0))},
               {"source_player_count",word(word(0x4f54f0u))},
-              {"physics_constants",hex_bytes(memory.view(word(0x52be68u),0x1c))},{"players",units}}.dump()<<'\n';
+              {"physics_constants",hex_bytes(memory.view(word(0x52be68u),0x1c))},{"players",units},{"members",members}}.dump()<<'\n';
           phantom_trace.flush();check(bool(phantom_trace),"Could not retain source phantom observation");
         });
       }
@@ -619,6 +694,7 @@ struct Host {
       auto next=std::chrono::steady_clock::now();
       while(!stop.stop_requested()) {
         transport.receive(controls);
+        if(resume_support.exchange(false)) {support_power(1);support_resumed=true;}
         if(start_device_script.exchange(false)) {
           check(scripted,"Device script start has no declared input");
           world.match.run_script("device_source_sequence");
@@ -728,6 +804,22 @@ struct Host {
         }
         {std::lock_guard lock(mutex);history.push_back(before);}
         world.match.step(controls);
+        if(support_object && world.match.player(1).connected) {
+          const auto &player=world.match.player(1);const auto &memory=world.source_objects->memory();
+          const auto node=world.source_objects->world_nodes(*support_object);check(!node.empty(),"Original rotating support lost WORLD node0");
+          const auto unit=world.source_objects->object_body(player.source_current_object);
+          const auto flags=Bytes(memory.view(unit+0x348u,2)).u16(0);
+          const auto state=world.match.state();
+          check(state.players[1].native_grounded==((flags&1u)==0),"Rotating support grounded readback differs from original biped");
+          const auto wheel_body=world.source_objects->object_body(*support_object);
+          support_samples.push_back({{"tick",state.tick},{"unit",player.source_current_object},{"wheel",*support_object},
+              {"resumed",support_resumed},{"position",xyz(state.players[1].position)},{"velocity",xyz(state.players[1].velocity)},
+              {"grounded",state.players[1].native_grounded},{"source_support_flags",flags},
+              {"wheel_position_bits",Bytes(memory.view(wheel_body+0x140u,4)).u32(0)},
+              {"wheel_power_bits",Bytes(memory.view(wheel_body+0x134u,4)).u32(0)},
+              {"node_scale",node[0].scale},{"node_position",xyz(node[0].position)},
+              {"node_basis",Json::array({xyz(node[0].basis[0]),xyz(node[0].basis[1]),xyz(node[0].basis[2])})}});
+        }
         if(scripted) {
           const auto &vm=world.match.simulation().scripts();
           check(vm.diagnostics().empty(),"Visible source device script faulted");
@@ -786,6 +878,10 @@ int main(int argc,char **argv) try {
   const bool accompanied_driver=vehicle && std::getenv("HALO2_TU15_SEAT_DRIVER");
   const bool control_test=lan && std::getenv("HALO2_TU15_CONTROL_ENTRY");
   const bool script_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_DEVICE_SCRIPT_INPUT");
+  const bool support_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_SUPPORT_INPUT");
+  check(!support_test || (!script_test && !control_test),"Select one support/device stimulus");
+  std::optional<SupportEntrance> support_start;bool support_started=false;
+  std::optional<std::pair<float,float>> support_pending_look;
   check(!script_test || !control_test,"Select one declared device stimulus");
   bool script_started=false;std::optional<ScriptProgram> script_input;
   std::optional<ControlEntrance> control_start;
@@ -891,6 +987,13 @@ int main(int argc,char **argv) try {
       report["stimulus"]="Declared dormant ScriptProgram started in the actual authority VM; ordinary SDL camera look; no supplied physics result";
       report["control_input"]="Script API sequence through Simulation and original TU1.5 device owners; no switch pickup stimulus";
     }
+  }
+  if(support_test) {
+    const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
+    support_start=wheel_support_entrance(cache,content);o.native_spawn_inputs=support_start->spawns;
+    report["stimulus"]="Declared original hull0 paddle spawn inputs; original device power API pauses/resumes the actual wheel; ordinary SDL look only";
+    report["declared_support_spawns"]=Json::array();for(const auto &spawn:support_start->spawns)report["declared_support_spawns"].push_back(xyz(spawn.position));
+    report["declared_support_local_top"]=xyz(support_start->local_top);
   }
   std::unique_ptr<Host> host;
   std::optional<VehicleEntrance> vehicle_start;
@@ -1286,7 +1389,7 @@ int main(int argc,char **argv) try {
       focus(window);
     }
     check(commands.size()>actor_view,"Actor lost its actual local input view");
-    const auto elapsed=(accompanied_driver || script_test)?s.tick-start_authority_tick:step-start_step;const auto &p=s.players[local_slot];const auto &c=commands[actor_view];
+    const auto elapsed=(accompanied_driver || script_test || support_test)?s.tick-start_authority_tick:step-start_step;const auto &p=s.players[local_slot];const auto &c=commands[actor_view];
     if(vehicle)for(const auto &v:s.world_vehicles) {
       check(v.placement<interaction_content.objects.size(),"Vehicle snapshot has no authored authority template");
       expected_vehicle_definitions[v.handle]=interaction_content.objects[v.placement].definition;
@@ -1662,6 +1765,21 @@ int main(int argc,char **argv) try {
         key(window_id,SDL_SCANCODE_SPACE,false);lift_jump_released=true;
       }
     }
+    if(support_start) {
+      const auto delta=support_start->center-(p.position+Vec3{0,0,interaction_content.player.camera_height});
+      const auto desired=std::pair{std::atan2(delta.y,delta.x),std::atan2(delta.z,std::hypot(delta.x,delta.y))};
+      const auto current=std::pair{c.yaw,c.pitch};
+      if(support_pending_look && current!=*support_pending_look)support_pending_look.reset();
+      if(elapsed>=5 && !support_pending_look) {
+        const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
+        check(gain>0,"Support fixture requires the actual mouse gain");
+        SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
+        look.motion.xrel=-int(std::lround(std::remainder(desired.first-c.yaw,6.283185307f)/gain));
+        look.motion.yrel=-int(std::lround((desired.second-c.pitch)/gain))*(settings.invert?-1:1);
+        if(look.motion.xrel || look.motion.yrel) {check(SDL_PushEvent(&look)==1,"SDL rejected rotating support look input");support_pending_look=current;}
+      }
+      if(elapsed>=30 && !support_started) {host->resume_support.store(true);support_started=true;}
+    }
     if(control_start) {
       const auto delta=control_start->target-p.position;
       const auto look_target=(script_test || control_released)?control_start->gate:control_start->target;
@@ -1694,7 +1812,7 @@ int main(int argc,char **argv) try {
         key(window_id,SDL_Scancode(binding),false);control_released=true;
       }
     }
-    if(!lift&&!vehicle&&!objects&&!control_test&&!script_test) switch(elapsed) {
+    if(!lift&&!vehicle&&!objects&&!control_test&&!script_test&&!support_test) switch(elapsed) {
       case 25:focus(window);key(window_id,SDL_SCANCODE_W,true);break;
       case 40:key(window_id,SDL_SCANCODE_W,false);break;
       case 50:key(window_id,SDL_SCANCODE_LSHIFT,true);break;
@@ -1703,12 +1821,14 @@ int main(int argc,char **argv) try {
     }
     if(accompanied_driver && ((vehicle_exited && exit_camera_frames>=20) ||
         (companion_entered_tick && !vehicle_entered && elapsed-*companion_entered_tick>=90)))quit();
-    if(elapsed>=(script_test?600u:control_test?900u:accompanied_driver?900u:vehicle?(long_vehicle_sequence?900u:300u):180u))quit();
+    if(elapsed>=(support_test?240u:script_test?600u:control_test?900u:accompanied_driver?900u:vehicle?(long_vehicle_sequence?900u:300u):180u))quit();
   };
   // Finite local screenshots retain all earlier real input delivery. Network
   // exit uses SDL_QUIT because exact tick capture deliberately rejects LAN.
   if(!lan){o.capture_tick=vehicle?(long_vehicle_sequence?901:301):181;o.screenshot=output/"frame.ppm";}
   const int result=run_multiplayer(o);if(host)host->finish();trace.close();
+  if(support_test) {std::ofstream file(output/"authority-support-samples.json");file<<host->support_samples.dump(2)<<'\n';
+    check(bool(file),"Could not retain original rotating support observations");}
   if(script_test) {std::ofstream file(output/"authority-script-stages.json");file<<host->script_stages.dump(2)<<'\n';
     check(bool(file),"Could not retain actual visible script stages");}
   if(lan) {
@@ -1904,6 +2024,35 @@ int main(int argc,char **argv) try {
     }
     passed&=grenade_commands==1 && attached_grenade && released_grenade && falling_grenade && detonated;
     for(unsigned view=0;view<o.local_players;++view)passed&=grenade_draws[view]>0 && explosion_particle_draws[view]>0;
+  } else if(support_test) {
+    const auto vector=[](const Json &v){return Vec3{v.at(0).get<float>(),v.at(1).get<float>(),v.at(2).get<float>()};};
+    std::optional<Vec3> origin,local_origin;std::optional<float> initial_phase;
+    unsigned static_supported{},moving_supported{};float carried{},wheel_motion{};
+    for(const auto &row:host->support_samples) {
+      if(row.at("unit").get<std::uint32_t>()!=samples.front().at("unit").get<std::uint32_t>())continue;
+      const auto position=vector(row.at("position"));
+      const auto phase=std::bit_cast<float>(row.at("wheel_position_bits").get<std::uint32_t>());
+      const auto power=std::bit_cast<float>(row.at("wheel_power_bits").get<std::uint32_t>());
+      const bool grounded=row.at("grounded").get<bool>();
+      const auto &basis=row.at("node_basis");const auto node=vector(row.at("node_position"));
+      const auto scale=row.at("node_scale").get<float>();check(scale>0,"Original support node has invalid scale");
+      if(!row.at("resumed").get<bool>()) {
+        if(grounded && power==0)++static_supported;
+        origin=position;const auto delta=position-node;
+        local_origin=Vec3{dot(delta,vector(basis.at(0)))/scale,dot(delta,vector(basis.at(1)))/scale,dot(delta,vector(basis.at(2)))/scale};
+        initial_phase=phase;continue;
+      }
+      if(!origin || !local_origin || !initial_phase)continue;
+      wheel_motion=std::max(wheel_motion,std::abs(phase-*initial_phase));
+      const auto expected=node+(vector(basis.at(0))*local_origin->x+vector(basis.at(1))*local_origin->y+vector(basis.at(2))*local_origin->z)*scale;
+      if(grounded && power==1 && length(position-expected)<.5f*interaction_content.player.height &&
+          length(position-*origin)>.1f) {++moving_supported;carried=std::max(carried,length(position-*origin));}
+    }
+    report["paused_original_support_ticks"]=static_supported;
+    report["moving_original_support_ticks"]=moving_supported;
+    report["original_support_carried_distance"]=carried;report["original_wheel_position_delta"]=wheel_motion;
+    report["original_support_resume_command"]=support_started;
+    passed&=support_started && static_supported>=5 && moving_supported>=5 && carried>.25f && wheel_motion>.01f && forward_commands==0 && jump_commands==0;
   } else if(script_test) {
     report["declared_device_script_started"]=script_started;
     report["device_script_stages"]=host->script_stages;

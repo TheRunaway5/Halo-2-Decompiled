@@ -1272,3 +1272,7 @@ The1AA680 FileReference wrapper is generated but not admitted without its
 remaining normalization owners. No original Xbox XAPI/kernel wrapper, pixels,
 PCM or installed delivery is proved here. Accepted stays v14; all102 whole
 elements and the complete goal remain open.
+
+Final resource continuation regression: v57 completes the coherent30-target
+build,102/102 selected CTests, and lunge/sword/frag checks successfully. No
+whole-element coverage or accepted-checkpoint advancement follows this result.
