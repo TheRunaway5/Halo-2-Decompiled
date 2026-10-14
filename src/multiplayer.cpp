@@ -2222,8 +2222,13 @@ MultiplayerState MultiplayerMatch::state() const {
       result.players[i].source_membership=p.source_membership;
       result.players[i].source_ffa_identity=p.source_ffa_identity;
       result.players[i].source_zoom=u.source_zoom;
-      if(simulation_.source_physics_movement_ && p.source_current_object!=null_datum)
+      if(simulation_.source_physics_movement_ && p.source_current_object!=null_datum) {
         result.players[i].source_hud_target_flags=source_object_world_->weapon_hud_target_flags(p.source_current_object);
+        float confidence{};
+        source_object_world_->memory().read(source_object_world_->object_body(p.source_current_object)+0x1e4u,
+            std::as_writable_bytes(std::span(&confidence,1)));
+        result.players[i].source_hud_autoaimed=confidence>=1.f;
+      }
       result.players[i].source_zoom_magazine_mode=u.weapon.source_runtime_published ||
           (content_.weapons.contains(u.weapon.definition) && content_.weapons.at(u.weapon.definition).smg)?
           u.weapon.smg.magazine_mode:u.weapon.magazine.mode;

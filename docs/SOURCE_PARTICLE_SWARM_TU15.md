@@ -28,7 +28,9 @@ or ordinary rendered glowbugs.
 The new [source-pool draw bridge](SOURCE_PARTICLE_SPRITE_CONTEXT_TU15.md) reads
 those actual particles and matches14 callback inputs from the whole original
 1784B0 render producer. Its stale/foreign identity and read-only checks pass.
-The normal source-frame/admission/graphics consumer still needs integration.
+The [normal frame/graphics consumer](SOURCE_WORLD_SWARM_RENDER_TU15.md) now
+uses this bridge, advances before game ticks/visibility reset, and shows
+source-created particles in a one-view native GPU comparison.
 
 A read-only observer retains the first actual swarm ABI/bank. Untouched original
 TU1.5 code runs over that bank on host x86. All GP/XMM/flags/FP outputs match
@@ -41,8 +43,10 @@ estimate policy.
 
 The normal launcher package includes this kernel registration alongside the
 live Ascension/Colossus distortion delivery. Ordinary NativeWorldEffects still
-rejects controller2. Connecting the source frame/render consumer, continuous
-lifetimes and independent view/PVS/network history remain next Backwash work.
+rejects controller2; the separate original-pool consumer now handles those
+particles. Its240 actual match-world frames retain14 final draws and preserve
+particle/RNG state across repeated views. Visible split-screen acceptance,
+full graph components and independent PVS/network history remain open.
 Resource admission remains93/96 and the all-map goal stays active.
 
 Evidence: analysis/map-world-features/swarm-frame-20261014/, including the red

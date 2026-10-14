@@ -1,5 +1,6 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/hud.hpp"
+#include "halo2/custom_slayer.hpp"
 #include <algorithm>
 #include <bit>
 #include <iostream>
@@ -12,8 +13,12 @@ int main(int argc,char **argv)try {
   const auto authored=cache.load_content(0,true);
   std::set<std::uint32_t> tested;
   unsigned worlds{},levels{};
+  const auto choices=cache.multiplayer_weapon_choices();
   for(unsigned option=3;option<=20;++option) {
-    const auto id=cache.slayer_starting_weapon(option);const auto &weapon=authored.weapons.at(id);
+    std::uint32_t unused_seed{};
+    const auto id=source_starting_weapon(null_datum,option,null_datum,choices,unused_seed);
+    if(id==null_datum)continue;
+    const auto &weapon=authored.weapons.at(id);
     if((!weapon.zoom.levels && !weapon.smg) || !tested.insert(id).second)continue;
     MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
     options.local_players=2;options.starting_weapon=option;options.source_object_world=true;
@@ -59,6 +64,6 @@ int main(int argc,char **argv)try {
     std::cout<<"PASS actual TU1.5 "<<weapon.name<<" ("<<count<<" levels)\n"<<std::flush;
     ++worlds;
   }
-  check(worlds==7 && levels==9,"Incomplete actual TU1.5 optic/binocular coverage");
+  check(worlds==6 && levels==8,"Incomplete actual TU1.5 multiplayer optic/binocular coverage");
   std::cout<<worlds<<" original source worlds, "<<levels<<" actual zoom levels, independent units/HUD snapshots passed\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

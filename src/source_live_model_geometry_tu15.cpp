@@ -1,11 +1,42 @@
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_prt.hpp"
+#include "halo2/source_dynamic_model_shaders.hpp"
+#include "halo2/model.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
 
 namespace halo2 {
+std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
+    std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
+    std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const RenderModel,6> lods,
+    const SourceDynamicModelShaders& shaders,std::span<const Transform> nodes,
+    const SourceModelShaderView& view) {
+    if(draws.empty() || nodes.empty())return std::nullopt;
+    std::map<unsigned,std::vector<Vertex>> posed;
+    std::vector<Vertex> result;
+    for(const auto& draw:draws) {
+        if(draw.object!=owner || draw.definition!=definition)
+            throw FormatError("source unit base lost its full owner/definition identity");
+        if(draw.unit.words[1]!=render_model || draw.lighting_class!=2 ||
+           draw.override_slot!=255 || !(draw.unit.words[0]&1u))return std::nullopt;
+        if(draw.lod>=6)throw FormatError("source unit base selected a LOD outside its six banks");
+        const auto& model=lods[draw.lod];
+        if(nodes.size()!=model.bones.size())
+            throw FormatError("source unit base lacks its completed render WORLD hierarchy");
+        auto at=posed.find(draw.lod);
+        if(at==posed.end())at=posed.emplace(draw.lod,skin_model_world_nodes(model,nodes)).first;
+        const auto section=draw.unit.words[3]>>9&511u;
+        std::vector<Vertex> vertices;
+        for(const auto& vertex:at->second)if(vertex.source_section==section)vertices.push_back(vertex);
+        if(vertices.empty())return std::nullopt;
+        shaders.select(vertices,SourceModelShaderCollector{0,draw.coverage},view);
+        result.insert(result.end(),vertices.begin(),vertices.end());
+    }
+    if(result.empty())return std::nullopt;
+    return result;
+}
 namespace {
 struct Reader {
     SourceRuntimeMemory& memory;

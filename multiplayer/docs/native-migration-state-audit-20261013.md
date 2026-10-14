@@ -464,3 +464,13 @@ is about742ms and native preparation about2.3s; loading-time scheduling/performa
 source-audio/resource roles, the retained rendered shield guard, input catch-up,
 full transport sanitizer and physical/WAN gates remain open. See
 `.local/player-host-continuity-20261014/source-receiver/verification.json`.
+
+
+Receiver qualification follow-up: a fresh protocol81 native build/run also
+passes all replacement-world/cancellation/host-loss/departure checks, with
+about0.995s cold construction and2.65/3.34s preparation. The selected thirteen-unit
+sanitizer attempt is incomplete: after correcting a verified frozen protocol/
+state-layout mismatch, it prepares one source cut but takes about7s, exceeding
+the native peer activity window and timing out host validation. This strengthens
+the need for loading-time scheduling/performance work; no production timeout or
+renderer guard was weakened and no clean receiver sanitizer claim is made.

@@ -1307,3 +1307,34 @@ not complete any of the102 whole elements. Accepted staysv14, candidatev15
 unaccepted; the installed preview is still the older known-stopping binary until
 validation and package refresh. Full menus/maps/game and live source cache,
 render/audio/LAN integration remain required.
+
+
+v92 validation and test delivery: the coherent37-target build passed108 selected
+CTests, lunge/sword/frag. A new original particle-owner golden regression passed
+separately, for109 selected checks total. The live unmuted four-view source frame
+compares exactly with unchanged original i386 host execution:12645instructions,
+fullCPU and all60084310retainedbytes accounted. Entered2C2D90/176A40/24FFE0/
+252100 branches are covered; physical-query, hit and impact branches remain open.
+Unicorn exception-bit differences remain recorded. Xbox hardware/pixels/PCM and
+complete particle behavior are not established by this comparison.
+
+The fresh immutable sandbox-test-v15-20261014-r2 test candidate is now selected
+by Halo2-Sandbox-Test and its shortcuts. Actual executed SHA is8be194ad2797f0b727
+212cc18c56910088f4c85b936288de7718c491396e1b40. Unlimited-frame packaged checks
+pass:1view idle40sec/963ticks,2view combat45sec/1093ticks,4view combat45sec/840ticks,
+all clean requested closes. The real root wrapper also executes this same SHA.
+These are bounded Lockout host tests with player1 keyboard/mouse input, not
+playthroughs, every weapon/map/controller, LAN or framebuffer/PCM acceptance.
+
+Concurrent launcher work replaced the earlier home test button with an MCC
+content preview. The root home now retains both routes, with separate hit bounds:
+Xbox TU1.5 sandbox test opens the pinned r2 selector; MCC content preview keeps
+its own route and ordinary Play readiness guard.13Tk checks and a real pointer
+handoff pass; both launcher screens were visually inspected. Current ordinary
+launchers select .local/mcc-native-20261013/cmake/halo2_native and still report
+MCC gameplay not ready; their regular Play does not select this Xbox candidate.
+Old stopping preview and its evidence are preserved. Accepted staysv14; v15 is
+unaccepted and0/102 whole elements are complete. Full menus/maps/game remains
+unfinished. Next original resource dependency is the authenticated6-root,
+338-instruction1AB480 normalization closure before1AA680 admission; live cache,
+persistent worker and resource-owned continuation are still required.

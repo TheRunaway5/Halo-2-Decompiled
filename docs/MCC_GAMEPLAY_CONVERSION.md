@@ -1836,3 +1836,51 @@ captures and file-access audits are indexed by
 The full goal remains active, including native64 execution, complete TU1.5
 vanilla conversion, native world loading, remaining graphics corrections and
 the loading presentation video with sound.
+
+### Native cold fragment-output state
+
+The next eight reached `3FFDD0` calls, from1269E through1272D, now cross one
+live native output-state control. They disable fill polygon offset, disable
+alpha testing with dormant GREATER/ref0 values, and disable blending with
+ONE/ZERO/ADD parameters. The existing main Vulkan pipeline consumes the
+native raster/blend defaults, and its existing material uniforms consume the
+non-forward alpha defaults. Authored passes retain their separate policies.
+Only these realized cold defaults are admitted; unsupported values, missing,
+foreign, duplicate, out-of-order and retired owners are rejected. Each native
+void return advances ESP by4 and retains other GP, defined flags and FP.
+Xbox SDK internal clobbers, device/FIFO banks and shader programs are not
+imported. The next SDK call is not given a result.
+
+Unmodified12560 updates twelve authenticated scalar cache words, adding48
+typed cold bytes. The prefix retains311,251 instructions and82,224 ordered
+non-stack writes, with261,448 typed cold bytes and the unchanged1,518,752-byte
+arena cursor. Empty-input and four-controller original comparisons pass in
+both the integrated and separately rebuilt startup executables. All108
+focused checks pass without skips. Full controlled W-depth/color surfaces
+pass, with no Vulkan validation messages. The reference-free trace opens no
+Xbox/MCC executable, ISO or map and sends no external INET traffic. These
+checks establish the reached cold native defaults, not an Xbox gameplay
+framebuffer comparison or support for arbitrary live render-state changes.
+
+The immutable `.local/mcc-native-20261014/native-renderer-output/` snapshot
+retains2,501 verified pins,49 rebuilt direct startup sources and68 unique
+copied archives; archive bodies are not independently rebuilt. All168 shader
+source files match the preceding depth-state snapshot. Evidence, the initial
+stale-frontier test assertion diagnostic, full GPU surfaces, original fixture
+provenance and native API boundaries are indexed by
+`analysis/asset-setup/mcc-native-20261014/native-startup/renderer-output-progress-report.json`.
+
+The next actual call is `1276B -> 3FFE00`, return12770 at6000EFD4, with stage0
+and argument0. The authenticated SDK body selects the coordinate input and
+disables S/T/R texture generation; its native mapping is pending. Initializer32
+remains incomplete, with31 of68 slots returned and source execution ABI32.
+Full native64 gameplay, large mod admission, complete vanilla TU1.5 conversion,
+MCC-only world loading, graphics parity and the loading video remain unfinished.
+
+The primary installed launchers also probe the selected runtime for preview
+support before passing `--mcc-preview`. An older runtime triggers a build; a
+build that still lacks the option produces a clear launcher error. The exact
+old-runtime failure and passing automatic-rebuild regression, four launcher
+test groups and a real cached Lockout render are recorded in
+`analysis/asset-setup/mcc-native-20261014/launcher-integration/runtime-mismatch/report.json`.
+Normal gameplay remains gated and the full goal stays active.

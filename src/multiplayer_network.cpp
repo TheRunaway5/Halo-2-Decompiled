@@ -550,6 +550,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put_float(p,u.source_camouflage.fade_speed);
     put(p,u.source_hud_zoom_mask,2);
     put(p,u.source_hud_target_flags,4);
+    put(p,u.source_hud_autoaimed,1);
     put(p,u.motion_sensor_control,1);
     put(p,u.first_person_clock.present,1);
     if(u.first_person_clock.present) {
@@ -976,6 +977,9 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     u.source_camouflage.fade_speed=r.real();
     u.source_hud_zoom_mask=r.get(2);
     u.source_hud_target_flags=r.get(4);
+    const auto autoaimed=r.get(1);
+    if(autoaimed>1u)throw FormatError("Invalid LAN source HUD autoaim input");
+    u.source_hud_autoaimed=autoaimed;
     u.motion_sensor_control=r.get(1);
     if(u.motion_sensor_control&~0x21u)throw FormatError("Invalid native radar control flags");
     const auto clock_present=r.get(1);

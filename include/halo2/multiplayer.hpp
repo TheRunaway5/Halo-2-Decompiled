@@ -210,6 +210,7 @@ struct MultiplayerState {
     std::uint32_t zoom_reset_serial{};
     std::uint16_t source_hud_zoom_mask = 0x40;
     std::uint32_t source_hud_target_flags{}; //13C8D4; consumed by13B7C0's aim mask.
+    bool source_hud_autoaimed{}; //13C4B8 selector18: unit+1E4 confidence >=1.
     // Unit+14A bits0/5 are primary/secondary trigger holds (C6C50), read by
     // 1A20E6. Grenade visibility uses the retained component+0C throw phase.
     std::uint8_t motion_sensor_control{};

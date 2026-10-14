@@ -10,6 +10,9 @@
 namespace halo2 {
 class PhysicsLiveWorldTu15;
 struct SourcePrtDefinition;
+struct RenderModel;
+class SourceDynamicModelShaders;
+struct SourceModelShaderView;
 // An owned main-view handoff. Secondary queries reuse the source cache and
 // frame arena, so every input below is copied before those queries run.
 struct SourceLiveModelBaseDrawTu15 {
@@ -33,6 +36,15 @@ ObjectColors source_live_model_base_colors_tu15(const SourceLiveModelBaseDrawTu1
 // establish that the geometry arena still contains the same pose.
 bool source_live_model_base_matches_tu15(const SourceLiveModelBaseDrawTu15&,
     PhysicsLiveWorldTu15&,const SourceCullDrawUnit&);
+// Owned ordinary CPU base geometry from the completed main selection. All six
+// authored LOD banks and the effective source-rendered WORLD hierarchy belong
+// to the caller. Every section uses its retained main coverage byte. Admission
+// is atomic for a full owner; unsupported lighting/overrides return no bank.
+// This does not choose a pose, colors, lighting state or shader-function owner.
+std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
+    std::uint32_t owner,std::uint32_t definition,std::uint32_t render_model,
+    std::span<const SourceLiveModelBaseDrawTu15>,std::span<const RenderModel,6>,
+    const SourceDynamicModelShaders&,std::span<const Transform>,const SourceModelShaderView&);
 class SourceLiveModelBaseSelectionTu15 {
 public:
     // Observe each completed4B5D0 output, including recursively built children.

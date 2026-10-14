@@ -980,7 +980,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         auto probe=frame();probe.gp=native_output_calls.front().at("entry_gp").get<decltype(probe.gp)>();
         probe.gp[4]=sp-0x2800u;put(memory,probe.gp[4],0x126a3u);const auto before=probe;
         const SourcePhysicsContactRuntimeCall request{0x1269e,0x3ffdd0,false};SourceRuntimeMemory foreign;
-        bool bank=false,thread=false,duplicate=false,missing=false,wrong_value=false;
+        bool bank=false,thread=false,duplicate=false,missing=false,wrong_value=false,wrong_site=false,wrong_return=false;
         try{graphics_output->try_call(foreign,request,probe);}catch(const std::invalid_argument&){bank=true;}
         try{graphics_output->try_call(memory,request,probe);}catch(const std::invalid_argument&){duplicate=true;}
         std::thread outsider([&]{try{graphics_output->try_call(memory,request,probe);}catch(const std::invalid_argument&){thread=true;}});outsider.join();
@@ -989,6 +989,10 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         probe.gp[2]=1;
         try{cold.try_call(memory,request,probe);}catch(const std::invalid_argument&){wrong_value=true;}
         probe=before;
+        try{cold.try_call(memory,{0x126b0,0x3ffdd0,false},probe);}catch(const std::invalid_argument&){wrong_site=true;}
+        put(memory,probe.gp[4],0x126a4u);
+        try{cold.try_call(memory,request,probe);}catch(const std::invalid_argument&){wrong_return=true;}
+        put(memory,probe.gp[4],0x126a3u);
         for(unsigned n=0;n<renderer_cold_output_values.size();++n) {
             bool rejected=false;
             try{output_control.select(RendererOutputSetting(n),renderer_cold_output_values[n]^1u);}
@@ -996,7 +1000,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
             check(rejected,"Unsupported native output policy was admitted");
         }
         const auto retained=output_control.select(RendererOutputSetting::BlendEnable,0);
-        check(bank && thread && duplicate && missing && wrong_value && cold.calls()==0 &&
+        check(bank && thread && duplicate && missing && wrong_value && wrong_site && wrong_return && cold.calls()==0 &&
             probe.gp==before.gp && probe.eflags==before.eflags && retained.values==renderer_cold_output_values,
             "Rejected native output requests changed state or admitted unavailable owners");
         report["native_renderer_output_complete"]=true;report["native_output_rejections_preserve_state"]=true;
@@ -1012,7 +1016,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         const auto config=graphics_depth->configuration();
         check(graphics_depth->state_calls()==3 && native_depth_state_calls.size()==3 && config.write_enabled==1 &&
             config.function==0x203 && config.bias==0 && word(memory,0x411678)==1 && word(memory,0x41165c)==0x203 &&
-            state.gp[1]==0x40338 && state.gp[2]==0,
+            (advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : state.gp[1]==0x40338 && state.gp[2]==0),
             "Native cold depth write/function/bias sequence or inline caches differ");
         auto probe=frame();probe.gp=native_depth_state_calls.back().at("entry_gp").get<decltype(probe.gp)>();
         probe.gp[4]=sp-0x2400u;put(memory,probe.gp[4],0x12697);put(memory,probe.gp[4]+4,0);const auto before=probe;

@@ -24,6 +24,10 @@ class LauncherHomeTests(unittest.TestCase):
         self.calls = []
         self.failure = False
         self.preview_calls = []
+        self.sandbox_calls = []
+        self.sandbox_launcher = self.root / "Halo2-Sandbox-Test"
+        self.sandbox_launcher.write_text("#!/bin/sh\nexit 0\n")
+        self.sandbox_launcher.chmod(0o700)
         self.preview_map = self.root / "assets/imported/mcc-test/halo2/h2_maps_win64_dx11/lockout.map"
 
 
@@ -38,7 +42,8 @@ class LauncherHomeTests(unittest.TestCase):
 
         self.home = LauncherHome(self.window, self.root, self.root / "build", update, availability_function=lambda: None,
                                  preview_maps_function=lambda: {"h2_maps_win64_dx11/lockout.map": self.preview_map},
-                                 preview_launch_function=lambda argv: self.preview_calls.append(argv))
+                                 preview_launch_function=lambda argv: self.preview_calls.append(argv),
+                                 sandbox_launch_function=lambda argv: self.sandbox_calls.append(argv))
         self.window.update()
 
     def destroy(self):
@@ -165,6 +170,38 @@ class LauncherHomeTests(unittest.TestCase):
         self.assertTrue(self.home.closed)
         self.assertEqual(len(self.preview_calls), 1)
         self.assertEqual(self.home.result, CANCELLED)
+
+    def test_sandbox_pointer_starts_pinned_test_while_mcc_play_is_unavailable(self):
+        self.home.play_button.configure(state="disabled")
+        button = self.home.sandbox_button
+        button.event_generate("<Enter>", x=10, y=10)
+        self.window.update()
+        button.event_generate("<ButtonPress-1>", x=10, y=10)
+        button.event_generate("<ButtonRelease-1>", x=10, y=10)
+        self.assertTrue(self.home.closed)
+        self.assertEqual(self.home.result, CANCELLED)
+        self.assertEqual(self.sandbox_calls, [[str(self.sandbox_launcher)]])
+        self.assertEqual(self.preview_calls, [])
+
+    def test_failed_sandbox_start_keeps_existing_routes_available(self):
+        def fail(argv):
+            raise OSError("Test runtime unavailable")
+        self.home.sandbox_launch = fail
+        self.home.sandbox_button.invoke()
+        self.assertFalse(self.home.closed)
+        self.assertIn("Test runtime unavailable", self.home.status.cget("text"))
+        self.assertEqual(str(self.home.preview_button.cget("state")), "normal")
+
+    def test_missing_sandbox_package_leaves_mcc_preview_available(self):
+        import tkinter as tk
+        self.home.close()
+        self.sandbox_launcher.unlink()
+        self.window = tk.Tk()
+        self.home = LauncherHome(self.window, self.root, availability_function=lambda: None,
+                                 preview_maps_function=lambda: {"lockout.map": self.preview_map})
+        self.window.update()
+        self.assertIsNone(self.home.sandbox_button)
+        self.assertEqual(str(self.home.preview_button.cget("state")), "normal")
 
 
 if __name__ == "__main__":

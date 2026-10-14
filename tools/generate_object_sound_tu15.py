@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lower original TU1.5 object sound cleanup reached by live multiplayer."""
+"""Lower original TU1.5 object sound cleanup and weapon zoom requests."""
 import argparse,json,os
 from pathlib import Path
 from types import SimpleNamespace
@@ -7,7 +7,7 @@ from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 
-ENTRIES=(0x117560,0x218190,0x218070,0x2180f0)
+ENTRIES=(0x117560,0x218190,0x218070,0x2180f0,0x18c000,0x18c1f0)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -17,11 +17,16 @@ def main():
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
     assert code.at(0x116da2).bytes.hex()=='e8b9070000'
     assert code.at(0x11758b).bytes.hex()=='e8000c1000'
+    assert code.at(0xc8106).bytes.hex()=='e8f53e0c00'
     sites,instructions,addresses,routines={},{},{},[]
     for entry in ENTRIES:
         body=_trace(code,entry,set(ENTRIES));assert body.code
         assert all(width in (1,4)for _,width,_ in body.tables)
         sites[f'{entry:08x}']=sorted(body.code)
+        a.directory.mkdir(parents=True,exist_ok=True)
+        (a.directory/f'{entry:08x}.asm').write_text(''.join(
+            f'{pc:08x} {code.at(pc).bytes.hex()} {code.at(pc).mnemonic} {code.at(pc).op_str}\n'
+            for pc in sorted(body.code)))
         routines.append(dict(entry=entry,tables=[dict(disc=q,count=n)for q,w,n in body.tables if w==4],
             byte_tables=[dict(address=q,width=w,count=n,raw_hex=image.read(q,w*n).hex())for q,w,n in body.tables if w==1]))
         for pc in sorted(body.code):

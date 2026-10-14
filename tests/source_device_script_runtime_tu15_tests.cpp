@@ -1,4 +1,6 @@
 #include "helpers/source_device_script_input_tu15.hpp"
+#include "helpers/live_physics_entry_capture_tu15.hpp"
+#include "halo2/source_physics_entry_observation.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/original_data.hpp"
@@ -49,6 +51,15 @@ int main(int argc,char **argv)try{
   check(match.join("Script authority")==0,"Original source host did not join");
   const auto fp=cache.load_first_person_binding(rules.weapon,2);match.configure_replicated_first_person(fp);
   const std::array<unsigned,1> local{0};match.configure_local_views(local,fp);
+  std::optional<test::LivePhysicsEntryCaptureTu15> conveyor_capture,query_capture;
+  std::optional<SourcePhysicsEntryObserverBinding> entry_diagnostic;
+  if(props)if(const auto path=std::getenv("HALO2_TU15_PROP_ENTRY_CAPTURE")) {
+    conveyor_capture.emplace(std::filesystem::path(path)/"conveyor");query_capture.emplace(std::filesystem::path(path)/"query");
+    entry_diagnostic.emplace(world.memory(),[&](bool entering,std::uint32_t entry,const auto &state){
+      if(entry==0x355d0u)conveyor_capture->observe(entering,state,world.memory(),entry);
+      if(entry==0x1e1170u)query_capture->observe(entering,state,world.memory(),entry);
+    });
+  }
   constexpr std::uint64_t fingerprint=0x15de000332u;
   LanHost host(match,0,fingerprint,variant);
   LanClient peer("127.0.0.1:"+std::to_string(host.port()),fingerprint,1);

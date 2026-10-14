@@ -113,7 +113,7 @@ std::array<float, 4> widget_inputs(const HudWidget &w,
       out[i] = p.health;
       break;
     case 18:
-      out[i]=(p.source_hud_target_flags&8u)?1.f:0.f;
+      out[i]=p.source_hud_autoaimed?1.f:0.f;
       break;
     case 19:
       out[i] = p.grenades[0] == 0 && p.grenades[1] == 0 ? 1.f : 0.f;

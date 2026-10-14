@@ -4,6 +4,7 @@
 #include "halo2/renderer_constant_mode.hpp"
 #include "halo2/renderer_depth_mode.hpp"
 #include "halo2/renderer_output_state.hpp"
+#include "halo2/renderer_texture_coordinates.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/appearance.hpp"
 #include "halo2/display_settings.hpp"
@@ -202,6 +203,7 @@ public:
     RendererConstantMode constant_mode_control();
     RendererDepthMode depth_mode_control();
     RendererOutputState output_state_control();
+    RendererTextureCoordinates texture_coordinate_control();
     // Queue constants and resident bitmap frames after the previous draw's fence.
     void update_material_constants(std::span<const Material>);
     void update_material_constants(std::span<const Material>, std::span<const unsigned> active_roots);

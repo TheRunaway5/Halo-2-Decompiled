@@ -1652,7 +1652,7 @@ int main(int argc, char **argv) {
           throw halo2::FormatError("Campaign source camera rectangle exceeds signed-short storage");
         const auto angles=render_camera.projection_vertical_angle && simulation && play &&
             !simulation->presentation().scripted && !simulation->presentation().cinematic?
-            halo2::gameplay_camera_angles(halo2::gameplay_field_of_view(desktop->display_settings.field_of_view),
+            halo2::gameplay_camera_angles(render_camera.field_of_view*.01745329238474369f,
                 halo2::gameplay_field_of_view(desktop->display_settings.field_of_view),float(character_width)/character_height):
             halo2::source_camera_angles(render_camera.field_of_view*.01745329238474369f);
         character_distance_scale=angles.lighting_distance_scale;

@@ -51,9 +51,12 @@ This establishes occlusion for that sightline; it is not positive split-screen
 visibility evidence. The packets, depth and pinned comparison are retained in
 `analysis/map-world-features/swarm-lifecycle-20261014/live-swarm/debug/occlusion-verification.json`.
 No object/effect is relocated and the one-player camera override restriction
-remains intact. The launcher selection changed concurrently to the current MCC
-build, which also links this consumer; direct acceptance of that selected
-runtime is being recorded separately. The staged v4 package is not installed.
+remains intact. Both normal launchers now select the rebuilt combined MCC
+runtime. Its separate14-capture bank verifies ordinary one/four-view snow,
+one-view source-created Backwash particles and Zanzibar startup. Backwash's
+one-view comparison has8 changed pixels; its tested four-view movement replay
+still has zero. See the [current delivery receipt](SOURCE_WORLD_LAUNCHER_DELIVERY.md).
+The staged v4 package is not installed.
 
 The legacy NativeWorldEffects path continues to reject controller2; this new
 consumer handles the original particles separately. Full glowbug effect graph

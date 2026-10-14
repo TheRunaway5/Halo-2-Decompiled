@@ -110,7 +110,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
  a.capture=a.capture.resolve();a.output=a.output.resolve();assert not a.output.exists();a.output.mkdir(parents=True)
  sha=lambda p:hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
- assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry']==0x1da750 and d['reference']=='English TU1.5 only'
+ assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0x1da750,0x355d0,0x1e1170) and d['reference']=='English TU1.5 only'
  initial=d['before'];env=bytearray(108);tag=0xffff;top=(initial['x87_status']>>11)&7
  for n,value in enumerate(initial['x87_values']):
   raw=bytes.fromhex(value);mantissa=int.from_bytes(raw[:8],'little');exponent=int.from_bytes(raw[8:],'little')&0x7fff
@@ -156,7 +156,7 @@ def main():
   assert output.read(1)==b''
  trace=json.loads((a.output/'trace.json').read_text());report=dict(reference='English TU1.5 only',passed=not differences,original_instructions=trace['original_instructions'],compared_memory_bytes=compared,
   differences=differences,original_abi=actual,original_sha256=NEW_PIN,harness_sha256=sha(a.output/'original-hardware'),tracer_sha256=sha(tracer),
-  host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,boundary='One real joined-body force call; unchanged original text, no replaced callee/result. All accessible final source bytes and GP/SSE/x87/FP controls/status compared.')
+  host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,entry=d['entry'],boundary='One real live physics call; unchanged original text, no replaced callee/result. All accessible final source bytes and GP/SSE/x87/FP controls/status compared.')
  (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k!='original_abi'}));return 0 if report['passed'] else 1
 
 if __name__=='__main__':raise SystemExit(main())

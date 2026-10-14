@@ -468,6 +468,7 @@ struct Renderer::Impl {
     std::uint32_t source_depth_mode=2;
     std::uint32_t source_depth_write=1,source_depth_function=0x203,source_depth_bias=0;
     std::array<std::uint32_t,8> source_output_state=renderer_cold_output_values;
+    std::array<std::uint32_t,4> source_coordinate_registers=renderer_passthrough_registers;
     std::vector<bool> extended_vertex_banks;
     std::vector<std::size_t> changed_vertex_banks;
     using MaterialUniform=WorldMaterialUniform;
@@ -6126,7 +6127,11 @@ void Renderer::release_presentation(){
     check(vkDeviceWaitIdle(impl_->device),"retire presentation before renderer handoff");
     impl_->destroy_swapchain();impl_->dirty=true;
 }
-bool Renderer::draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds) { return impl_->draw(camera, screenshot, debug, reticle, first_person, effects, ui, views, background, backdrops, mainmenu_fog, mainmenu_world, ui_full_surface_bounds); }
+bool Renderer::draw(const Camera& camera, const std::filesystem::path& screenshot, std::span<const Vertex> debug, bool reticle, std::span<const Vertex> first_person, ScreenEffects effects, std::span<const Vertex> ui, std::span<const ModelView> views, std::span<const Vertex> background, std::span<const UiBackdrop> backdrops, const BspFogSample *mainmenu_fog, const MainmenuWorldDraw *mainmenu_world, bool ui_full_surface_bounds) {
+    if(impl_->source_coordinate_registers!=renderer_passthrough_registers)
+        throw FormatError("Native texture coordinates differ from the retained programmable shader contract");
+    return impl_->draw(camera, screenshot, debug, reticle, first_person, effects, ui, views, background, backdrops, mainmenu_fog, mainmenu_world, ui_full_surface_bounds);
+}
 void Renderer::resized() { impl_->dirty = true; }
 DebugPanel& Renderer::debug_panel() {
     if(!impl_->debug_panel)impl_->debug_panel=std::make_unique<DebugPanel>(impl_->window);
@@ -6214,6 +6219,23 @@ RendererOutputState Renderer::output_state_control() {
         impl->source_output_state[index]=value;
         return RendererOutputConfiguration{impl->source_output_state,std::bit_cast<std::uint64_t>(impl->pipeline),
             NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->source_output_state.data()))},
+            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->material_mapping))}};
+    });
+}
+RendererTextureCoordinates Renderer::texture_coordinate_control() {
+    const std::weak_ptr<Impl> owner=impl_;
+    return RendererTextureCoordinates::issue(device_lease(),[owner](unsigned stage,std::uint32_t value) {
+        auto impl=owner.lock();
+        if(!impl || stage>=4 || value!=stage)
+            throw FormatError("Native renderer cold texture-coordinate selection is unsupported");
+        if(!impl->pipeline || !impl->material_buffer || !impl->material_mapping || impl->material_uniforms.empty())
+            throw FormatError("Native renderer lacks its live programmable coordinate pipeline or storage");
+        // Existing world_vertex.glsl reads vpOut[9+i] for programmable stages;
+        // texgen is absent. Admit only that realized identity contract.
+        impl->source_coordinate_registers[stage]=9+value;
+        return RendererTextureCoordinateConfiguration{impl->source_coordinate_registers,
+            std::bit_cast<std::uint64_t>(impl->pipeline),sizeof(Impl::MaterialUniform),
+            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->source_coordinate_registers.data()))},
             NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->material_mapping))}};
     });
 }

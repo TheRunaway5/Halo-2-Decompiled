@@ -31,9 +31,10 @@ Ascension and Colossus now render their authored lift distortion through the
 [original swarm kernel](SOURCE_PARTICLE_SWARM_TU15.md) is registered and matches
 bounded original host execution. The new [original sprite setup and source-pool draw bridge](SOURCE_PARTICLE_SPRITE_CONTEXT_TU15.md)
 match the authored atlas/aspect contexts and14 original Backwash render inputs.
-The source-pool bridge is linked but its normal frame/queue/graphics consumer
-remains unfinished; ordinary Backwash glowbugs and Elongation lens rendering
-remain open.
+The [source frame/queue/graphics consumer](SOURCE_WORLD_SWARM_RENDER_TU15.md)
+now runs in the normal runtime and shows source-created Backwash particles in a
+one-view diagnostic capture. Its tested four-view sightline remains zero-pixel;
+visible split-screen glowbugs and Elongation lens rendering remain open.
 Complete train behavior, all authored effects/interactions, the two Vista maps,
 network and full Xbox visual acceptance remain open.
 [The original decal cache export](SOURCE_DECAL_VERTEX_CACHE_TU15.md) retains

@@ -5,6 +5,7 @@
 #include "halo2/source_physics_deactivation_tu15.hpp"
 #include "halo2/source_collision_instance_storage_tu15.hpp"
 #include "halo2/source_collision_query_tu15.hpp"
+#include "halo2/source_conveyor_tu15.hpp"
 #include "halo2/source_vehicle_occupancy_tu15.hpp"
 #include "halo2/source_model_render_tu15.hpp"
 #include "halo2/source_object_render_entry.hpp"
@@ -859,6 +860,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_vehicle_occupancy_tu15_owns_entry(c.target)) {
             source_run_vehicle_occupancy_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_conveyor_tu15_owns_entry(c.target)) {
+            source_run_conveyor_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_collision_query_tu15_owns_entry(c.target)) {
             source_run_collision_query_tu15(m,c.target,a,fp,services(),o);return;

@@ -37,7 +37,10 @@ must stage replacement bindings with `prepare_source_view`, then commit after
 publication. The complete authority transaction retains actual script links;
 reconstructing equivalent-looking actor records is not restoration.
 
-Validation is incremental. The controlled original overload comparison and the
-private Cairo actor/command/thread proof do not establish every campaign mission,
-native frontend integration, audio, rendering or Xbox parity. The full campaign
-goal remains open until the actual mission, BSP and checkpoint paths pass.
+Validation is incremental. The public Cairo fixtures pass counted, authored and
+packed starting-location placement, actual actor/command/thread binding, whole
+authority restoration, and bounded original AI/object ticks. The counted fixture
+passes three later ticks. The controlled original overload comparison covers 256
+cases. These checks do not establish every campaign mission, frontend integration,
+audio, rendering or Xbox parity. The full campaign goal remains open until the
+actual mission, BSP and checkpoint paths pass.

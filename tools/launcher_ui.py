@@ -5,6 +5,7 @@ import queue
 import sys
 import threading
 import subprocess
+import os
 
 from setup_assets_ui import LauncherCanvas, CYAN, EDGE, FIELD, INK, MUTED, PANEL
 
@@ -13,7 +14,7 @@ CANCELLED = 20
 
 
 class LauncherHome(LauncherCanvas):
-    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, preview_maps_function=None, preview_launch_function=None, launcher_executable=None):
+    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, preview_maps_function=None, preview_launch_function=None, launcher_executable=None, sandbox_launch_function=None):
         from update_runtime import update_runtime
         from mcc_onboarding import runtime_status, preview_maps
 
@@ -25,6 +26,9 @@ class LauncherHome(LauncherCanvas):
         self.preview_maps = (preview_maps_function or (lambda: preview_maps(root)))()
         self.launcher_executable = Path(launcher_executable) if launcher_executable else Path(root) / "Halo2-Launcher"
         self.preview_launch = preview_launch_function or (lambda argv: subprocess.Popen(argv, cwd=root, start_new_session=True))
+        self.sandbox_launcher = Path(root) / "Halo2-Sandbox-Test"
+        self.sandbox_launch = sandbox_launch_function or (lambda argv: subprocess.Popen(argv, cwd=root, start_new_session=True))
+        sandbox_ready = self.sandbox_launcher.is_file() and os.access(self.sandbox_launcher, os.X_OK)
         self.events = queue.Queue()
         self.result, self.working, self.closed = CANCELLED, False, False
         self.text(51, 158, "G A M E   L A U N C H E R", 12, CYAN)
@@ -56,7 +60,7 @@ class LauncherHome(LauncherCanvas):
         self.output.pack(fill="both", expand=True)
         scrollbar.configure(command=self.output.yview)
         self.bar = self.progressbar()
-        self.place(self.bar, 400, 614, 588, 3)
+        self.place(self.bar, 400, 635 if sandbox_ready else 614, 588, 3)
         self.exit_button = self.button("Exit", self.close, 400, 641, 124, 43)
         self.update_button = self.button("Update", self.start_update, 540, 641, 208, 43)
         self.play_button = self.button("Play  ›", self.play, 764, 641, 224, 43, primary=True)
@@ -70,6 +74,9 @@ class LauncherHome(LauncherCanvas):
         self.preview_selector = ttk.Combobox(window, textvariable=self.preview_map, values=choices, state="readonly", font=self.font(13), style="Halo2Preview.TCombobox")
         self.place(self.preview_selector, 400, 516, 588, 29)
         self.preview_button = self.button("Preview MCC content  ›", self.play_preview, 400, 555, 588, 43, primary=True)
+        self.sandbox_button = self.button("Xbox TU1.5 sandbox test  ›", self.play_sandbox, 400, 606, 588, 26) if sandbox_ready else None
+        if self.sandbox_button:
+            self.sandbox_button.configure(font=self.font(13))
         if not choices:
             self.preview_selector.configure(state="disabled")
             self.preview_button.configure(state="disabled")
@@ -122,6 +129,8 @@ class LauncherHome(LauncherCanvas):
                     self.exit_button.configure(state="normal")
                     self.preview_selector.configure(state="readonly" if self.preview_maps else "disabled")
                     self.preview_button.configure(state="normal" if self.preview_maps else "disabled")
+                    if self.sandbox_button:
+                        self.sandbox_button.configure(state="normal")
                     # A failed update can leave source and runtime at different
                     # revisions. Require a successful retry before playing.
                     self.unavailable = self.availability() if kind == "done" else "Update stopped. Check the output below, then try Update again."
@@ -142,7 +151,17 @@ class LauncherHome(LauncherCanvas):
             self.close()
 
     def actions(self):
-        return self.exit_button, self.update_button, self.play_button, self.preview_button, self.preview_selector
+        return tuple(action for action in (self.exit_button, self.update_button, self.play_button, self.preview_button, self.preview_selector, self.sandbox_button) if action)
+
+    def play_sandbox(self):
+        if self.working or not self.sandbox_button or str(self.sandbox_button.cget("state")) == "disabled":
+            return
+        try:
+            self.sandbox_launch([str(self.sandbox_launcher)])
+        except OSError as error:
+            self.status.configure(text="Could not open sandbox test build: " + str(error), foreground="#ffd29b")
+            return
+        self.close()
 
     def play_preview(self):
         if self.working or str(self.preview_button.cget("state")) == "disabled":

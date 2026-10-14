@@ -237,6 +237,25 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertEqual(args[args.index('--shared-maps')+1], str(self.maps))
         self.assertEqual(self.run_launcher('--launch-game', '--multiplayer').returncode, 1)
 
+    def test_preview_rebuilds_a_runtime_that_rejects_the_preview_option(self):
+        self.ready_assets()
+        binary = self.runtime()
+        updated = binary.read_text()
+        binary.write_text('#!' + sys.executable + '\n' +
+                          "import sys\nprint('error: unknown option: --mcc-preview', file=sys.stderr)\nraise SystemExit(1)\n")
+        (self.root / 'tools/build_runtime.py').write_text(
+            "import pathlib, sys, json\n"
+            "root=pathlib.Path(sys.argv[sys.argv.index('--root')+1])\n"
+            "(root/'build-call.json').write_text(json.dumps(sys.argv[1:]))\n"
+            "binary=root/'build/halo2_native'\n"
+            f"binary.write_text({updated!r})\n"
+            "binary.chmod(0o755)\n")
+        result = self.run_launcher('--preview-mcc', '--frames', '1', '--hidden')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.root / 'build-call.json').exists())
+        self.assertIn('--mcc-preview', self.call('runtime')['argv'])
+        self.assertNotIn('unknown option: --mcc-preview', result.stderr)
+
     def test_preview_preserves_imported_mod_path_and_case(self):
         self.ready_assets()
         self.runtime()

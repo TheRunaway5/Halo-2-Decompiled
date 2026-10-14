@@ -1492,6 +1492,26 @@ rebind test also passes. Frozen qualification and additional sanitizer results
 are recorded in
 `.local/player-host-continuity-20261014/source-receiver/verification.json`.
 
+A subsequent fresh protocol-81 build and native run pass the same complete
+receiver, cancellation, actual host-loss, host-group departure and continuation
+checks. That run records 8,394,193 full bytes reduced to 31,510 delta bytes,
+380,727/272,203us decode, 994,721us construction and 2,648,061/3,338,934us
+preparation. The actual gameplay-datagram wrapper now rejects mixed library/
+executor protocol versions immediately, before a misleading admission timeout.
+
+The expanded ASan/UBSan/leak attempt is NOT a complete pass. It instruments the
+receiver, factory, binding, codec, delta, source authority, publisher, admission,
+session, transport, snapshot storage and test units. Concurrent work changed
+packet protocol/state layouts from80 to81 while its preserved native archives
+remained80. The diagnostic wrapper proves the mismatch. Private frozen headers
+were then restored to their verified protocol80 layouts without reverting the
+shared checkout. The aligned run rejects the forged identity and prepares its
+first actual cut, but instrumented preparation takes6,979,818us, beyond the
+native peer activity window. Host validation then times out. This records a
+real loading/scheduling/performance limit; production timeouts were not raised
+and routine mid-match publication remains unenabled. Full sanitizer completion
+for this receiver stage therefore remains open.
+
 The current rendered client target builds with the receive owner. No Vista UI
 asset or renderer guard was changed. The earlier source-shield authored-part
 failure remains an open rendered gate; this headless native test does not close

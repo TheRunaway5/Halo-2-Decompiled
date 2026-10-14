@@ -1,6 +1,57 @@
 # Normal launcher world-feature delivery
 
-## Current particle-context and source-pool bridge delivery, October 14
+## Current combined normal runtime, October 14
+
+Both current normal launchers select
+`.local/mcc-native-20261013/cmake/halo2_native`, SHA-256
+`bfda2d9f990ec1c009c10b7995900115d8ea983a242b3efda7e5d9d9ba1b9cff`.
+Their current `--launcher-info` outputs confirm that exact runtime. The newer
+MCC preview and launcher UI changes are preserved. The MCC-only entry still
+reports native gameplay unavailable; direct owned-XBE reference captures do
+not establish MCC gameplay acceptance.
+
+The source-created Backwash particle consumer now runs in this normal runtime.
+Its camera-only one-view comparison has 14 draws and **8 changed pixels**.
+Its enabled repeat is exact, and source/native RNG words agree with the
+submission-hidden run. A four-view native movement replay submits seven draws
+in view1 but changes zero pixels; visible split-screen glowbugs remain open.
+The separate staged v4 sightline's seven unchanged draw packets each render
+4-7 pixels against cleared depth and zero against its actual scene depth,
+establishing occlusion for that retained case.
+
+Ordinary Lockout snow changes **11,249 pixels with one view** and **23,317 with
+four views** in this combined runtime. Both enabled repeats are exact and their
+simulation/RNG lines match the hidden-submission runs. Zanzibar also passes
+ordinary one/four-view startup. These **14 final-runtime captures** have zero
+Vulkan validation errors. They do not renew computer activation/traversal or
+independent-client acceptance. The separate staged v4 build completed all21
+Xbox map renders and retains the four older lift/snow bank images exactly;
+that bank is not labelled as execution of this newer combined runtime.
+
+The previously selected binary crashed in startup `MultiplayerState`
+destruction. A one-frame four-player case reproduced it without replay inputs.
+A dependency-complete native target rebuild removes that crash; the exact
+corrupting write was not independently localized. The failed binary, debugger
+trace, build command and passing minimized run are retained. A concurrent
+launcher rebuild changed only the launcher pins during the capture bank;
+current path/hash checks confirm both launchers still select the tested runtime.
+No older launcher binaries were copied over those changes.
+
+[Source frame and rendering implementation](SOURCE_WORLD_SWARM_RENDER_TU15.md)
+now advances before game ticks and visibility reset, consumes each view's
+original queue, and keeps its source owner independent of vehicle resources.
+The protected test passes240 actual match-world frames and240 repeated views.
+Complete attachment-graph admission remains **93/96**. Elongation lens, full
+Backwash light/lens graphs, independent client particle/PVS histories, source
+RNG handoff, remaining interactions, Vista-only maps and Xbox framebuffer
+acceptance remain open. The all-map goal stays **active**.
+
+Receipt:
+`analysis/map-world-features/swarm-lifecycle-20261014/live-swarm/normal-launcher/rebuilt/installed.json`.
+The separate `.local/map-world-live-swarm-v4-20261014` package remains staged
+and uninstalled.
+
+## Previous particle-context and source-pool bridge delivery, October 14
 
 Both normal root launchers select `.local/map-world-particle-bridge-20261014/halo2_native`,
 SHA-256 `3562494b9839953bb594c9ec121774343c4da0421380c829b603952f02b77bb4`. Both installed `--launcher-info` outputs verify

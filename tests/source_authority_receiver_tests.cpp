@@ -31,6 +31,18 @@ std::array<std::byte,32> bodies(const MultiplayerPreparedWorld &owner){std::vect
     std::array<std::byte,32> hash{};check(SHA256(reinterpret_cast<const unsigned char *>(bytes.data()),bytes.size(),reinterpret_cast<unsigned char *>(hash.data())),"Receiver body hash failed");return hash;}
 void alter(SourceMatchAuthority::Checkpoint &cut,std::uint32_t address){for(auto &region:cut.world.world.bank.regions)if(address>=region.address&&std::uint64_t(address)<std::uint64_t(region.address)+region.bytes.size()){
     region.bytes[address-region.address]^=std::byte{0x80};return;}throw FormatError("Forged remote identity fixture address missing");}
+class CheckedDatagrams final:public MultiplayerDatagrams {
+    std::shared_ptr<OnlineMatchSession> session_;
+public:
+    explicit CheckedDatagrams(std::shared_ptr<OnlineMatchSession> s):session_(std::move(s)){}
+    void send(std::span<const std::byte> bytes,unsigned peer)override {
+        check(bytes.size()>=7,"Native gameplay library emitted a truncated datagram");
+        const auto protocol=std::to_integer<unsigned>(bytes[4])+(std::to_integer<unsigned>(bytes[5])<<8);
+        if(protocol!=native_multiplayer_protocol)throw FormatError("Native gameplay library protocol "+std::to_string(protocol)+" differs from executor protocol "+std::to_string(native_multiplayer_protocol));
+        session_->send(bytes,peer);
+    }
+    bool receive(std::vector<std::byte> &bytes,unsigned &peer)override{return session_->receive(bytes,peer);}
+};
 void run(int argc,char **argv){
     check(argc==7,"Supply ROOT ORIGIN OWNER CALLBACK_PORT XBE PRIVATE_FIXTURE_DIRECTORY");
     const std::filesystem::path root=argv[1],files=argv[6];const auto map=root/"assets/disc/maps/lockout.map";
@@ -71,11 +83,14 @@ void run(int argc,char **argv){
     Cache fingerprint_cache(map,map.parent_path(),OriginalData::load_xbe(argv[5]));const auto weapon=fingerprint_cache.slayer_starting_weapon(5);
     const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(map,map.parent_path(),0,weapon,argv[5]),variant);
     session->loaded(fingerprint,variant);wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;},"Receiver real session loading timeout");
-    if(hosting)lan_host=std::make_unique<LanHost>(host_world->match,session,fingerprint,session->roster(),variant);
-    else lan_client=std::make_unique<LanClient>(session,host,fingerprint,std::span<const std::int8_t>{},gameplay.selected_profiles);
+    const auto datagrams=std::make_shared<CheckedDatagrams>(session);
+    if(hosting)lan_host=std::make_unique<LanHost>(host_world->match,datagrams,fingerprint,session->roster(),variant);
+    else lan_client=std::make_unique<LanClient>(datagrams,host,fingerprint,std::span<const std::int8_t>{},gameplay.selected_profiles);
     std::array<Controls,16> controls{};std::array<Controls,4> neutral{};
     auto pump=[&]{if(lan_host){lan_host->receive(controls);lan_host->broadcast();}else{lan_client->send(neutral);lan_client->receive();}};
-    wait([&]{pump();return hosting?lan_host->peers()==1:lan_client->ready();},"Actual native grouped source profile admission timeout");
+    wait([&]{pump();if(lan_client&&!lan_client->error().empty())throw FormatError(lan_client->error());
+        if(session->phase()==OnlineMatchSession::Phase::Failed)throw FormatError(session->error());
+        return hosting?lan_host->peers()==1:lan_client->ready();},"Actual native grouped source profile admission timeout");
     wait([&]{pump();return session->authority_supported(other);},"Receiver direct authority capability timeout");
     if(hosting){std::vector<unsigned> slots;for(const auto &p:session->roster())slots.push_back(p.slot);
         check(session->publish_source_players(*session->authority_context(),authority->player_admissions(slots)),"Host source admission export failed");

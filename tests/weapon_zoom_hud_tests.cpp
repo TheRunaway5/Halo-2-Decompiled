@@ -83,6 +83,29 @@ int main(int argc,char **argv)try {
   }
   check(weapons>=60 && optics.size()==6 && scopes==12 && variants>=150,"Incomplete all-weapon HUD coverage");
   Cache gameplay(maps/"lockout.map");const auto level=gameplay.load_content(0,true);
+  const auto smg=std::find_if(level.weapons.begin(),level.weapons.end(),[](const auto &w){return w.second.smg.has_value();});
+  check(smg!=level.weapons.end(),"Missing original SMG reticle for shader-input check");
+  auto reticle_content=gameplay.load_hud(level.player_representations.at(2).biped.datum,smg->first);
+  reticle_content.action_messages.enabled=false;
+  std::erase_if(reticle_content.widgets,[](const auto &w){return w.name!="crosshair";});
+  Mesh reticle_mesh;MultiplayerHud reticle(reticle_content,maps/"fonts",reticle_mesh,1,"Slayer",
+      gameplay.original_data()->hud_bitmap_geometry_constants,assets);
+  MultiplayerState aim_state;aim_state.players[0].connected=true;
+  reticle.animate(aim_state,0,0,0,0,0);
+  const auto vertices=reticle.draw(aim_state,0,0,1,640,480,0,0);
+  check(!vertices.empty(),"Missing actual SMG reticle shader binding");
+  const auto material=vertices[0].material;
+  const auto base_words=reticle_mesh.materials[material].forward_program.words;
+  const auto base_constants=reticle_mesh.materials[material].program_constants;
+  aim_state.players[0].source_hud_autoaimed=true;reticle.animate(aim_state,0,0,0,0,0);
+  check(reticle_mesh.materials[material].forward_program.words!=base_words ||
+      reticle_mesh.materials[material].program_constants!=base_constants,
+      "Actual reticle shader did not consume the original confidence selector18");
+  aim_state.players[0].source_hud_autoaimed=false;aim_state.players[0].source_hud_target_flags=8;
+  reticle.animate(aim_state,0,0,0,0,0);
+  check(reticle_mesh.materials[material].forward_program.words==base_words &&
+      reticle_mesh.materials[material].program_constants==base_constants,
+      "Plasma-tracking mask was substituted for the independent source confidence input");
   Mesh mesh;NativeWeaponHud campaign(gameplay,level,mesh,maps/"fonts",assets);
   unsigned campaign_weapons{};
   for(const auto &[id,w]:level.weapons)if(w.first_person_model!=null_datum) {

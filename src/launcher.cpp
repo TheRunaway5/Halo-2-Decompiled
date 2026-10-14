@@ -219,6 +219,17 @@ void preview_arguments(std::vector<std::string> &arguments,const Installation &i
     i+=count;
   }
 }
+bool runtime_supports_preview(const fs::path &runtime) {
+  // Check the selected executable itself. A cache from an earlier build can
+  // exist with every shader present while lacking the new preview option.
+  return run_tool({HALO2_PYTHON_EXECUTABLE,"-c",
+      "import subprocess,sys\n"
+      "try:\n"
+      " result=subprocess.run([sys.argv[1],'--mcc-preview','--help'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)\n"
+      "except (OSError,subprocess.TimeoutExpired):\n"
+      " sys.exit(1)\n"
+      "sys.exit(result.returncode!=0)\n",runtime.string()})==0;
+}
 fs::path launcher_executable(const fs::path &root) {
 #if defined(__linux__)
   std::error_code error;
@@ -321,18 +332,23 @@ int main(int argc, char **argv) {
     if(!sources.ready())throw std::runtime_error("The MCC cache needs preparation. Run --setup. "+sources.problem);
     if(!sources.playable && !preview)throw std::runtime_error(not_playable);
     if(preview)preview_arguments(supplied,installation,sources);
-    if(installation.runtime.empty() || fs::exists(update_pending)) {
+    const bool outdated_preview_runtime=preview && !installation.runtime.empty() && !runtime_supports_preview(installation.runtime);
+    bool rebuilt=false;
+    if(outdated_preview_runtime)std::cout<<"Updating the runtime for MCC content preview…\n"<<std::flush;
+    if(installation.runtime.empty() || fs::exists(update_pending) || outdated_preview_runtime) {
       const auto tool=installation.root/"tools/build_runtime.py";
       if(!fs::is_regular_file(tool))throw std::runtime_error("Automatic build tool is missing: "+tool.string());
       const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,tool.string(),"--root",
           installation.root.string(),"--build-dir",installation.build.string()});
       if(status)return status;
-      installation=locate();
+      installation=locate();rebuilt=true;
       if(!installation.runtime.empty())fs::remove(update_pending);
     }
     if(installation.runtime.empty())throw std::runtime_error(
         "The automatic build finished, but the runtime or required shaders are missing. See "+
         (installation.build/"launcher-build.log").string());
+    if(preview && rebuilt && !runtime_supports_preview(installation.runtime))
+      throw std::runtime_error("The built runtime does not support MCC content preview. Update the source and rebuild this installation.");
     std::vector<std::string> arguments{installation.runtime.string()};
     if(preview) {
       arguments.push_back("--mcc-preview");

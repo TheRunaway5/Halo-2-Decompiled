@@ -28,8 +28,8 @@ source system/location/emitter/particle pools into the existing generic render
 producer. It preserves full salted identities and chain order, rejects foreign
 locations and stale systems, and uses retained effect controls, source clock,
 particle seeds, bases and velocities. It does not create particles or mark them
-as drawn. This API is implemented and tested separately; the normal render loop
-does not yet consume it.
+as drawn. The [normal frame consumer](SOURCE_WORLD_SWARM_RENDER_TU15.md) now
+uses this bridge for source-created Backwash particles.
 
 For Backwash, a declared native camera and the complete original admission
 owners retain 14 particles through **240 explicit frames**. The original
@@ -44,8 +44,10 @@ unchanged read-only pools.
 This probe accumulates **478** unconsumed transparent commands below the original
 1,024-entry bound. It is not continuous transparent-queue consumption, ordinary
 glowbug rendering, original complete frame scheduling, split-screen particle
-history, network history or Xbox framebuffer acceptance. The source-pool bridge
-still needs the normal frame/admission/graphics consumer.
+history, network history or Xbox framebuffer acceptance. A separate normal
+frame consumer now drains each view's queue and has a positive one-view native
+GPU comparison. Its240-frame test keeps the queue bounded at two commands;
+full original scheduling and visible split-screen acceptance remain open.
 
 Evidence: `analysis/map-world-features/swarm-lifecycle-20261014/`, including
 `sprite-context-original/report.json`, `visibility-row-original/report.json`,
