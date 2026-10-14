@@ -5,6 +5,7 @@
 #include "halo2/model_selection.hpp"
 #include "halo2/original_data.hpp"
 #include <iostream>
+#include <set>
 using namespace halo2;
 int main(int argc,char **argv) {try {
     if(argc<4)throw FormatError("Supply DISC_MAPS DLC_MAPS UPDATE_XBE [MAP]");
@@ -31,13 +32,15 @@ int main(int argc,char **argv) {try {
         }
         std::vector<SourceSceneEffectOwner> owners;
         for(auto &in:inputs){in.owner.nodes=banks[in.bank];in.owner.permutations=permutations[in.bank];owners.push_back(in.owner);}
-        std::size_t peak{};MuzzleEffectView view{};view.width=640;view.height=480;view.forward={1,0,0};view.up={0,0,1};view.orientation={1,0,0,0,1,0,0,0,1};
+        std::size_t peak{};std::set<std::uint32_t> drawn_effects;
+        MuzzleEffectView view{};view.width=640;view.height=480;view.forward={1,0,0};view.up={0,0,1};view.orientation={1,0,0,0,1,0,0,0,1};
         for(unsigned tick=0;tick<180;++tick) {
             attachments.synchronize(owners,tick);const auto births=attachments.stats().spawned;
             attachments.synchronize(owners,tick);
             if(attachments.stats().spawned!=births)throw FormatError("Repeated ownership replayed attachment births");
             effects.advance(tick,1.f/30.f);peak=std::max(peak,effects.diagnostics().particles);
             const auto first=effects.draw(view,0,1.f/30.f);const auto second=effects.draw(view,0,1.f/30.f);
+            for(const auto &draw:first)drawn_effects.insert(draw.effect_definition);
             if(first.size()!=second.size())throw FormatError("Second view changed map effect simulation");
             for(unsigned n=0;n<first.size();++n)if(first[n].vertex.attributes!=second[n].vertex.attributes)
                 throw FormatError("Second view changed retained map particles");
@@ -53,6 +56,19 @@ int main(int argc,char **argv) {try {
             throw FormatError("Deltatap waterfall attachments: authored="+std::to_string(state.attachments)+
                 " prepared="+std::to_string(state.prepared)+" spawned="+std::to_string(state.spawned)+
                 " peak="+std::to_string(peak));
+        if(path.stem()=="elongation") {
+            if(state.attachments!=3 || state.prepared!=2 || state.spawned!=3 || peak==0 || state.unavailable.empty())
+                throw FormatError("Elongation supported effects lost their explicit incomplete lens boundary");
+            // null_up has a real marker named marker. An unnamed attachment
+            // must not replace it; all three authored effects must submit.
+            for(const auto name:{"effects\\scenery\\sparks\\spark_iceblue_large",
+                    "effects\\scenery\\smoke\\steam_slow_small",
+                    "effects\\scenery\\fires\\fire_basic_medium"}) {
+                const auto tag=cache.query_tag({.group=TagGroup::from_string("effe"),.name=name,.require_address=true});
+                if(!tag || !drawn_effects.contains(tag->datum))
+                    throw FormatError("Elongation authored marker produced no particle submissions: "+std::string(name));
+            }
+        }
         //Complete lifetime removal must retire attached particles immediately.
         attachments.synchronize({},180);
         if(effects.diagnostics().effects || effects.diagnostics().particles)

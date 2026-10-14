@@ -33,6 +33,8 @@
 #include "halo2/native_tu15_renderer_constants.hpp"
 #include "halo2/native_tu15_renderer_depth.hpp"
 #include "halo2/native_tu15_renderer_output.hpp"
+#include "halo2/native_tu15_renderer_coordinates.hpp"
+#include "halo2/source_renderer_resource_storage_tu15.hpp"
 #include "helpers/native_tu15_startup_test.hpp"
 #include "halo2/source_combat_action_tu15.hpp"
 #include "halo2/online_service.hpp"
@@ -122,11 +124,11 @@ Json title_observation(const NativeTitleAddressObservation& value) {
         {"gateway",value.gateway?Json(*value.gateway):Json(nullptr)},{"dns",value.dns},{"acquisition_pending",value.acquisition_pending}};
 }
 }
-int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease renderer_lease,RendererPaletteFactory palette_factory,RendererConstantMode constant_control,RendererDepthMode depth_control,RendererOutputState output_control)try {
+int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease renderer_lease,RendererPaletteFactory palette_factory,RendererConstantMode constant_control,RendererDepthMode depth_control,RendererOutputState output_control,RendererTextureCoordinates coordinate_control)try {
 #if !defined(__linux__)
     return 77;
 #endif
-    std::filesystem::path reference,fixture_path,capture;bool advance_xnet=false,advance_online=false,advance_services=false,advance_full=false,advance_rng=false,advance_session=false,advance_cache=false,advance_input=false,advance_bink=false,advance_handles=false,advance_renderer=false,advance_clock=false,advance_context=false,advance_players=false,advance_views=false,advance_registration=false,advance_scalars=false,advance_objects=false,advance_aux_objects=false,advance_renderer_request=false,advance_graphics_device=false,advance_graphics_state=false,advance_graphics_pool=false,advance_graphics_palette=false,advance_graphics_constants=false,advance_graphics_depth=false,advance_graphics_depth_state=false,advance_graphics_output=false;
+    std::filesystem::path reference,fixture_path,capture;bool advance_xnet=false,advance_online=false,advance_services=false,advance_full=false,advance_rng=false,advance_session=false,advance_cache=false,advance_input=false,advance_bink=false,advance_handles=false,advance_renderer=false,advance_clock=false,advance_context=false,advance_players=false,advance_views=false,advance_registration=false,advance_scalars=false,advance_objects=false,advance_aux_objects=false,advance_renderer_request=false,advance_graphics_device=false,advance_graphics_state=false,advance_graphics_pool=false,advance_graphics_palette=false,advance_graphics_constants=false,advance_graphics_depth=false,advance_graphics_depth_state=false,advance_graphics_output=false,advance_graphics_coordinates=false;
     std::string input_devices_mode="host";
     for(int i=1;i<argc;i+=2) {
         check(i+1<argc,"Missing game startup test argument");const std::string_view option=argv[i];
@@ -136,22 +138,22 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
             input_devices_mode=argv[i+1];check(input_devices_mode=="host" || input_devices_mode=="none" || input_devices_mode=="virtual-four","Unknown native input selection");
         }
         else if(option=="--frontier"){
-            const auto value=std::string_view(argv[i+1]);check(value=="xnet-startup" || value=="online-startup" || value=="title-address" || (value=="network-complete" || value=="rng-complete" || value=="session-complete" || value=="cache-complete" || value=="input-complete" || value=="bink-memory" || value=="level-handles" || value=="renderer" || value=="clock" || value=="state-context" || value=="players" || value=="view-storage" || value=="static-registration" || value=="scalar-state" || value=="object-storage" || value=="aux-object-state" || value=="renderer-request" || value=="graphics-device" || value=="graphics-state" || value=="graphics-pool" || value=="graphics-palette" || value=="graphics-constants" || value=="graphics-depth" || value=="graphics-depth-state" || value=="graphics-output"),"Unknown native network frontier");
-            advance_xnet=true;advance_online=value!="xnet-startup";advance_graphics_output=value=="graphics-output";advance_graphics_depth_state=value=="graphics-depth-state" || advance_graphics_output;advance_graphics_depth=value=="graphics-depth" || advance_graphics_depth_state;advance_graphics_constants=value=="graphics-constants" || advance_graphics_depth;advance_graphics_palette=value=="graphics-palette" || advance_graphics_constants;advance_graphics_pool=value=="graphics-pool" || advance_graphics_palette;advance_graphics_state=value=="graphics-state" || advance_graphics_pool;advance_graphics_device=value=="graphics-device" || advance_graphics_state;advance_renderer_request=value=="renderer-request" || advance_graphics_device;advance_aux_objects=value=="aux-object-state" || advance_renderer_request;advance_objects=value=="object-storage" || advance_aux_objects;advance_scalars=value=="scalar-state" || advance_objects;advance_registration=value=="static-registration" || advance_scalars;advance_views=value=="view-storage" || advance_registration;advance_players=value=="players" || advance_views;advance_context=value=="state-context" || advance_players;advance_clock=value=="clock" || advance_context;advance_renderer=value=="renderer" || advance_clock;advance_handles=value=="level-handles" || advance_renderer;advance_bink=value=="bink-memory" || advance_handles;advance_input=value=="input-complete" || advance_bink;advance_cache=value=="cache-complete" || advance_input;advance_session=value=="session-complete" || advance_cache;advance_rng=value=="rng-complete" || advance_session;advance_full=value=="network-complete" || advance_rng;
+            const auto value=std::string_view(argv[i+1]);check(value=="xnet-startup" || value=="online-startup" || value=="title-address" || (value=="network-complete" || value=="rng-complete" || value=="session-complete" || value=="cache-complete" || value=="input-complete" || value=="bink-memory" || value=="level-handles" || value=="renderer" || value=="clock" || value=="state-context" || value=="players" || value=="view-storage" || value=="static-registration" || value=="scalar-state" || value=="object-storage" || value=="aux-object-state" || value=="renderer-request" || value=="graphics-device" || value=="graphics-state" || value=="graphics-pool" || value=="graphics-palette" || value=="graphics-constants" || value=="graphics-depth" || value=="graphics-depth-state" || value=="graphics-output" || value=="graphics-coordinates"),"Unknown native network frontier");
+            advance_xnet=true;advance_online=value!="xnet-startup";advance_graphics_coordinates=value=="graphics-coordinates";advance_graphics_output=value=="graphics-output" || advance_graphics_coordinates;advance_graphics_depth_state=value=="graphics-depth-state" || advance_graphics_output;advance_graphics_depth=value=="graphics-depth" || advance_graphics_depth_state;advance_graphics_constants=value=="graphics-constants" || advance_graphics_depth;advance_graphics_palette=value=="graphics-palette" || advance_graphics_constants;advance_graphics_pool=value=="graphics-pool" || advance_graphics_palette;advance_graphics_state=value=="graphics-state" || advance_graphics_pool;advance_graphics_device=value=="graphics-device" || advance_graphics_state;advance_renderer_request=value=="renderer-request" || advance_graphics_device;advance_aux_objects=value=="aux-object-state" || advance_renderer_request;advance_objects=value=="object-storage" || advance_aux_objects;advance_scalars=value=="scalar-state" || advance_objects;advance_registration=value=="static-registration" || advance_scalars;advance_views=value=="view-storage" || advance_registration;advance_players=value=="players" || advance_views;advance_context=value=="state-context" || advance_players;advance_clock=value=="clock" || advance_context;advance_renderer=value=="renderer" || advance_clock;advance_handles=value=="level-handles" || advance_renderer;advance_bink=value=="bink-memory" || advance_handles;advance_input=value=="input-complete" || advance_bink;advance_cache=value=="cache-complete" || advance_input;advance_session=value=="session-complete" || advance_cache;advance_rng=value=="rng-complete" || advance_session;advance_full=value=="network-complete" || advance_rng;
             advance_services=value=="title-address" || advance_full;
         }
         else throw std::runtime_error("Unknown game startup test argument");
     }
     check(reference.empty()==fixture_path.empty(),"Original startup comparison needs both reference and fixture");
     if(!reference.empty() && (!std::filesystem::is_regular_file(reference) || !std::filesystem::is_regular_file(fixture_path)))return 77;
-    SourceRuntimeMemory declarations;mount_native_tu15_game_startup_data(declarations);mount_native_tu15_network_storage_data(declarations);if(advance_rng)mount_native_tu15_rng_startup_data(declarations);if(advance_session)mount_native_tu15_network_session_data(declarations);if(advance_cache)mount_native_tu15_cache_startup_data(declarations);if(advance_input)mount_native_tu15_input_startup_data(declarations);if(advance_bink)mount_native_tu15_bink_memory_startup_data(declarations);if(advance_handles)mount_native_tu15_level_handles_startup_data(declarations);if(advance_renderer)mount_native_tu15_renderer_startup_data(declarations);if(advance_clock)mount_native_tu15_clock_startup_data(declarations);if(advance_context)mount_native_tu15_state_context_startup_data(declarations);if(advance_players)mount_native_tu15_player_startup_data(declarations);if(advance_views)mount_native_tu15_view_storage_data(declarations);if(advance_registration)mount_native_tu15_static_registration_data(declarations);if(advance_scalars)mount_native_tu15_scalar_state_data(declarations);if(advance_objects)mount_native_tu15_object_storage_data(declarations);if(advance_aux_objects)mount_native_tu15_aux_object_state_data(declarations);if(advance_renderer_request)mount_native_tu15_renderer_request_data(declarations);if(advance_graphics_device)mount_native_tu15_graphics_device_data(declarations);if(advance_graphics_state)mount_native_tu15_renderer_state_data(declarations);if(advance_graphics_pool)mount_native_tu15_renderer_pool_data(declarations);if(advance_graphics_palette)mount_native_tu15_renderer_palette_data(declarations);if(advance_graphics_depth_state)mount_native_tu15_renderer_depth_state_data(declarations);if(advance_graphics_output)mount_native_tu15_renderer_output_data(declarations);std::size_t bytes=0,regions=0;
+    SourceRuntimeMemory declarations;mount_native_tu15_game_startup_data(declarations);mount_native_tu15_network_storage_data(declarations);if(advance_rng)mount_native_tu15_rng_startup_data(declarations);if(advance_session)mount_native_tu15_network_session_data(declarations);if(advance_cache)mount_native_tu15_cache_startup_data(declarations);if(advance_input)mount_native_tu15_input_startup_data(declarations);if(advance_bink)mount_native_tu15_bink_memory_startup_data(declarations);if(advance_handles)mount_native_tu15_level_handles_startup_data(declarations);if(advance_renderer)mount_native_tu15_renderer_startup_data(declarations);if(advance_clock)mount_native_tu15_clock_startup_data(declarations);if(advance_context)mount_native_tu15_state_context_startup_data(declarations);if(advance_players)mount_native_tu15_player_startup_data(declarations);if(advance_views)mount_native_tu15_view_storage_data(declarations);if(advance_registration)mount_native_tu15_static_registration_data(declarations);if(advance_scalars)mount_native_tu15_scalar_state_data(declarations);if(advance_objects)mount_native_tu15_object_storage_data(declarations);if(advance_aux_objects)mount_native_tu15_aux_object_state_data(declarations);if(advance_renderer_request)mount_native_tu15_renderer_request_data(declarations);if(advance_graphics_device)mount_native_tu15_graphics_device_data(declarations);if(advance_graphics_state)mount_native_tu15_renderer_state_data(declarations);if(advance_graphics_pool)mount_native_tu15_renderer_pool_data(declarations);if(advance_graphics_palette)mount_native_tu15_renderer_palette_data(declarations);if(advance_graphics_depth_state)mount_native_tu15_renderer_depth_state_data(declarations);if(advance_graphics_output)mount_native_tu15_renderer_output_data(declarations);if(advance_graphics_coordinates)mount_native_tu15_renderer_resource_storage_data(declarations);std::size_t bytes=0,regions=0;
     declarations.visit_committed([&](auto,auto b){bytes+=b.size();++regions;});check(advance_session || (bytes==(advance_rng?816u:788u) && regions==(advance_rng?84u:77u)),"Network startup data includes unclassified storage");
     Json fixture;
     if(!reference.empty()) {
         auto original=load_source_runtime_image(reference,SourcePhysicsContactImage::TitleUpdate15);
         declarations.visit_committed([&](auto p,auto b){if(!std::ranges::equal(b,original.view(p,b.size()))) {std::ostringstream why;why<<"Native startup initializer identity differs from TU1.5 at "<<std::hex<<p;throw std::runtime_error(why.str());}});
         std::ifstream input(fixture_path);fixture=Json::parse(input);
-        check(fixture.at("schema")== (advance_graphics_output?"H2_NATIVE_TU15_GRAPHICS_OUTPUT_ORIGINAL_V1":advance_graphics_depth_state?"H2_NATIVE_TU15_GRAPHICS_DEPTH_STATE_ORIGINAL_V1":advance_graphics_depth?"H2_NATIVE_TU15_GRAPHICS_DEPTH_ORIGINAL_V1":advance_graphics_constants?"H2_NATIVE_TU15_GRAPHICS_CONSTANTS_ORIGINAL_V1":advance_graphics_palette?"H2_NATIVE_TU15_GRAPHICS_PALETTE_ORIGINAL_V1":advance_graphics_pool?"H2_NATIVE_TU15_GRAPHICS_POOL_ORIGINAL_V1":advance_graphics_state?"H2_NATIVE_TU15_GRAPHICS_STATE_ORIGINAL_V1":advance_graphics_device?"H2_NATIVE_TU15_GRAPHICS_DEVICE_ORIGINAL_V1":advance_renderer_request?"H2_NATIVE_TU15_RENDERER_REQUEST_ORIGINAL_V1":advance_aux_objects?"H2_NATIVE_TU15_AUX_OBJECT_STATE_STARTUP_ORIGINAL_V1":advance_objects?"H2_NATIVE_TU15_OBJECT_STORAGE_STARTUP_ORIGINAL_V1":advance_scalars?"H2_NATIVE_TU15_SCALAR_STATE_STARTUP_ORIGINAL_V1":advance_registration?"H2_NATIVE_TU15_STATIC_REGISTRATION_STARTUP_ORIGINAL_V1":advance_views?"H2_NATIVE_TU15_VIEW_STORAGE_STARTUP_ORIGINAL_V1":advance_players?"H2_NATIVE_TU15_PLAYER_STARTUP_ORIGINAL_V1":advance_context?"H2_NATIVE_TU15_STATE_CONTEXT_STARTUP_ORIGINAL_V1":advance_clock?"H2_NATIVE_TU15_CLOCK_STARTUP_ORIGINAL_V1":advance_renderer?"H2_NATIVE_TU15_RENDERER_STARTUP_ORIGINAL_V1":advance_handles?"H2_NATIVE_TU15_LEVEL_HANDLES_STARTUP_ORIGINAL_V1":advance_bink?"H2_NATIVE_TU15_BINK_MEMORY_STARTUP_ORIGINAL_V1":advance_input?"H2_NATIVE_TU15_INPUT_STARTUP_ORIGINAL_V1":advance_cache?"H2_NATIVE_TU15_CACHE_STARTUP_ORIGINAL_V1":advance_session?"H2_NATIVE_TU15_NETWORK_SESSION_ORIGINAL_V1":advance_rng?"H2_NATIVE_TU15_RNG_STARTUP_ORIGINAL_V1":advance_full?"H2_NATIVE_TU15_NETWORK_COMPLETE_ORIGINAL_V1":advance_services?"H2_NATIVE_TU15_ONLINE_SERVICES_ORIGINAL_V1":advance_online?"H2_NATIVE_TU15_NETWORK_PLATFORM_ORIGINAL_V1":advance_xnet?"H2_NATIVE_TU15_NETWORK_CONNECTION_ORIGINAL_V1":"H2_NATIVE_TU15_NETWORK_LINK_ORIGINAL_V1") &&
+        check(fixture.at("schema")== (advance_graphics_coordinates?"H2_NATIVE_TU15_GRAPHICS_COORDINATES_ORIGINAL_V1":advance_graphics_output?"H2_NATIVE_TU15_GRAPHICS_OUTPUT_ORIGINAL_V1":advance_graphics_depth_state?"H2_NATIVE_TU15_GRAPHICS_DEPTH_STATE_ORIGINAL_V1":advance_graphics_depth?"H2_NATIVE_TU15_GRAPHICS_DEPTH_ORIGINAL_V1":advance_graphics_constants?"H2_NATIVE_TU15_GRAPHICS_CONSTANTS_ORIGINAL_V1":advance_graphics_palette?"H2_NATIVE_TU15_GRAPHICS_PALETTE_ORIGINAL_V1":advance_graphics_pool?"H2_NATIVE_TU15_GRAPHICS_POOL_ORIGINAL_V1":advance_graphics_state?"H2_NATIVE_TU15_GRAPHICS_STATE_ORIGINAL_V1":advance_graphics_device?"H2_NATIVE_TU15_GRAPHICS_DEVICE_ORIGINAL_V1":advance_renderer_request?"H2_NATIVE_TU15_RENDERER_REQUEST_ORIGINAL_V1":advance_aux_objects?"H2_NATIVE_TU15_AUX_OBJECT_STATE_STARTUP_ORIGINAL_V1":advance_objects?"H2_NATIVE_TU15_OBJECT_STORAGE_STARTUP_ORIGINAL_V1":advance_scalars?"H2_NATIVE_TU15_SCALAR_STATE_STARTUP_ORIGINAL_V1":advance_registration?"H2_NATIVE_TU15_STATIC_REGISTRATION_STARTUP_ORIGINAL_V1":advance_views?"H2_NATIVE_TU15_VIEW_STORAGE_STARTUP_ORIGINAL_V1":advance_players?"H2_NATIVE_TU15_PLAYER_STARTUP_ORIGINAL_V1":advance_context?"H2_NATIVE_TU15_STATE_CONTEXT_STARTUP_ORIGINAL_V1":advance_clock?"H2_NATIVE_TU15_CLOCK_STARTUP_ORIGINAL_V1":advance_renderer?"H2_NATIVE_TU15_RENDERER_STARTUP_ORIGINAL_V1":advance_handles?"H2_NATIVE_TU15_LEVEL_HANDLES_STARTUP_ORIGINAL_V1":advance_bink?"H2_NATIVE_TU15_BINK_MEMORY_STARTUP_ORIGINAL_V1":advance_input?"H2_NATIVE_TU15_INPUT_STARTUP_ORIGINAL_V1":advance_cache?"H2_NATIVE_TU15_CACHE_STARTUP_ORIGINAL_V1":advance_session?"H2_NATIVE_TU15_NETWORK_SESSION_ORIGINAL_V1":advance_rng?"H2_NATIVE_TU15_RNG_STARTUP_ORIGINAL_V1":advance_full?"H2_NATIVE_TU15_NETWORK_COMPLETE_ORIGINAL_V1":advance_services?"H2_NATIVE_TU15_ONLINE_SERVICES_ORIGINAL_V1":advance_online?"H2_NATIVE_TU15_NETWORK_PLATFORM_ORIGINAL_V1":advance_xnet?"H2_NATIVE_TU15_NETWORK_CONNECTION_ORIGINAL_V1":"H2_NATIVE_TU15_NETWORK_LINK_ORIGINAL_V1") &&
             fixture.at("source_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd" &&
             fixture.at("world_correspondence_sha256")=="92379da9dc9d29baea9eaca194cebdab7d69f8be319aecf6cd0b759e26e744cc" &&
             fixture.at("pool_correspondence_sha256")=="6d10227d9838a4e6e2e2db443df0c699bbb203a7843a2b6f756a569fd755b527" &&
@@ -190,6 +192,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     std::unique_ptr<NativeTu15RendererConstants> graphics_constants;
     std::unique_ptr<NativeTu15RendererDepth> graphics_depth;
     std::unique_ptr<NativeTu15RendererOutput> graphics_output;
+    std::unique_ptr<NativeTu15RendererCoordinates> graphics_coordinates;
     if(advance_graphics_state)mount_native_tu15_renderer_state_data(memory);
     if(advance_graphics_pool)mount_native_tu15_renderer_pool_data(memory);
     if(advance_graphics_device) {mount_native_tu15_graphics_device_data(memory);graphics_device=std::make_unique<NativeTu15GraphicsDevice>(memory,std::move(renderer_lease));}
@@ -200,6 +203,10 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     if(advance_graphics_output) {
         mount_native_tu15_renderer_output_data(memory);
         graphics_output=std::make_unique<NativeTu15RendererOutput>(memory,*graphics_device,*graphics_depth,output_control);
+    }
+    if(advance_graphics_coordinates) {
+        mount_native_tu15_renderer_resource_storage_data(memory);
+        graphics_coordinates=std::make_unique<NativeTu15RendererCoordinates>(memory,*graphics_device,*graphics_output,coordinate_control);
     }
     NativeTu15StorageFormatting storage_formatting(memory);
     std::unique_ptr<NativeTu15RngStartup> rng;
@@ -303,7 +310,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         return fixture.at(map).at(key.str()).get<std::uint32_t>();
     };
     SourcePhysicsWorldRuntimeServices services;
-    Json native_heap_commit_calls=Json::array(),native_graphics_call,native_palette_calls=Json::array(),native_constants_call,native_depth_call,native_depth_state_calls=Json::array(),native_output_calls=Json::array();
+    Json native_heap_commit_calls=Json::array(),native_graphics_call,native_palette_calls=Json::array(),native_constants_call,native_depth_call,native_depth_state_calls=Json::array(),native_output_calls=Json::array(),native_coordinate_calls=Json::array();
     std::optional<NativeTu15RendererDeviceFrame> graphics_frame;std::optional<SourcePhysicsWorldRuntimeAbi> graphics_entry;
     const std::uint32_t main_frontier_target=advance_renderer_request?0u:advance_aux_objects?0x12560u:advance_objects?0x10e3b0u:advance_scalars?0xb87f0u:advance_registration?0x1f3830u:advance_views?0x69220u:advance_players?0x1888a0u:advance_context?0x14dfe0u:advance_clock?0x1e7710u:advance_renderer?0x22c100u:
         advance_handles?0x134b00u:advance_bink?0x1a5410u:advance_input?0x1589d0u:advance_cache?0x21e5d0u:
@@ -318,8 +325,25 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
             if(advance_graphics_depth_state && !advance_graphics_output && call.instruction==0x1269eu && call.target==0x3ffdd0u && !call.tail) {
                 frontier=call;throw MissingSubsystem();
             }
-            if(advance_graphics_output && call.instruction==0x1276bu && call.target==0x3ffe00u && !call.tail) {
+            if(advance_graphics_output && !advance_graphics_coordinates && call.instruction==0x1276bu && call.target==0x3ffe00u && !call.tail) {
                 frontier=call;throw MissingSubsystem();
+            }
+            if(advance_graphics_coordinates && call.instruction==0x1279fu && call.target==0x145e0u && !call.tail) {
+                frontier=call;throw MissingSubsystem();
+            }
+            if(advance_graphics_coordinates && call.target==0x3ffe00u) {
+                Json row{{"instruction",call.instruction},{"target",call.target},{"entry_esp",abi.gp[4]},
+                    {"entry_gp",abi.gp},{"entry_eflags",abi.eflags},{"argument",word(memory,abi.gp[4]+4)}};
+                check(graphics_coordinates->try_call(bank,call,abi),"Native renderer rejected its coordinate request");
+                const auto config=graphics_coordinates->configuration();
+                row["returned_gp"]=abi.gp;row["returned_eflags"]=abi.eflags;row["registers"]=config.registers;
+                row["state_backing"]=config.state_backing.value;row["material_backing"]=config.material_backing.value;
+                row["material_bytes"]=config.material_bytes;row["pipeline_handle"]=config.pipeline_handle;
+                native_coordinate_calls.push_back(std::move(row));return;
+            }
+            if(advance_graphics_coordinates && source_renderer_resource_storage_tu15_owns_entry(call.target)) {
+                Scope scope(space,IdentitySpace::Actual);
+                source_run_renderer_resource_storage_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
             }
             if(advance_graphics_output && call.instruction>=0x1269eu && call.target==0x3ffdd0u) {
                 Json row{{"instruction",call.instruction},{"target",call.target},{"entry_esp",abi.gp[4]},
@@ -645,8 +669,8 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     check(link.last_observation().has_value(),"Startup did not query actual native link state");
     const auto host=observation(*link.last_observation());const auto flags=native_tu15_network_link_flags(*link.last_observation());
     if(advance_xnet && !(flags&1u)) {std::cout<<"Active carrier is required for the native XNet-startup frontier comparison\n";return 77;}
-    check(stopped && frontier.target==(advance_graphics_output?0x3ffe00u:advance_graphics_depth?0x3ffdd0u:advance_graphics_constants?0x3ff5d0u:advance_graphics_palette?0x400ef0u:advance_graphics_pool?0x1d3d0u:advance_graphics_state?0x1c7f0u:advance_graphics_device?0x16af0u:advance_renderer_request?0x3ff320u:advance_aux_objects?0x12560u:advance_objects?0x10e3b0u:advance_scalars?0xb87f0u:advance_registration?0x1f3830u:advance_views?0x69220u:advance_players?0x1888a0u:advance_context?0x14dfe0u:advance_clock?0x1e7710u:advance_renderer?0x22c100u:advance_handles?0x134b00u:advance_bink?0x1a5410u:advance_input?0x1589d0u:advance_cache?0x21e5d0u:advance_session?0x21c0a0u:advance_rng?0x6e830u:advance_full?0x148d40u:advance_services?0x3d725du:advance_online?0x3aad19u:advance_xnet?0x3d7656u:((flags&1u)?0x6e010u:0x31d400u)) && state.gp[6]==(advance_graphics_output?0u:advance_graphics_device?0x492368u:advance_aux_objects?0x45cu:advance_objects?0x3f0u:advance_scalars?0x3ccu:advance_registration?0x384u:advance_views?0x33cu:advance_players?0x2d0u:advance_context?0x2acu:advance_clock?0x288u:advance_renderer?0x21cu:advance_handles?0x1f8u:advance_bink?0x1d4u:advance_input?0x18cu:advance_cache?0x168u:advance_session?0x144u:advance_rng?0x90u:advance_full?0x6cu:(flags&1u)?0u:0x24u) &&
-        state.gp[4]==sp-(advance_graphics_output?0x2cu:advance_graphics_depth?0x28u:advance_graphics_constants?0x2cu:advance_graphics_palette?0x28u:advance_graphics_pool?0x30u:advance_graphics_device?0x28u:advance_renderer_request?0x80u:advance_full?16u:advance_services?0x1f0u:advance_xnet?0x1c8u:16u) && word(memory,state.gp[4])==(advance_graphics_output?0x12770u:advance_graphics_depth_state?0x126a3u:advance_graphics_depth?0x1266eu:advance_graphics_constants?0x1265fu:advance_graphics_palette?0x12658u:advance_graphics_pool?0x125ebu:advance_graphics_state?0x125d7u:advance_graphics_device?0x125cdu:advance_renderer_request?0x129b2u:advance_full?0x13a76cu:advance_services?0x70d11u:advance_online?0x6e0c2u:advance_xnet?0x6e09cu:0x13a76cu) && word(memory,0x56e1ccu)==flags,
+    check(stopped && frontier.target==(advance_graphics_coordinates?0x145e0u:advance_graphics_output?0x3ffe00u:advance_graphics_depth?0x3ffdd0u:advance_graphics_constants?0x3ff5d0u:advance_graphics_palette?0x400ef0u:advance_graphics_pool?0x1d3d0u:advance_graphics_state?0x1c7f0u:advance_graphics_device?0x16af0u:advance_renderer_request?0x3ff320u:advance_aux_objects?0x12560u:advance_objects?0x10e3b0u:advance_scalars?0xb87f0u:advance_registration?0x1f3830u:advance_views?0x69220u:advance_players?0x1888a0u:advance_context?0x14dfe0u:advance_clock?0x1e7710u:advance_renderer?0x22c100u:advance_handles?0x134b00u:advance_bink?0x1a5410u:advance_input?0x1589d0u:advance_cache?0x21e5d0u:advance_session?0x21c0a0u:advance_rng?0x6e830u:advance_full?0x148d40u:advance_services?0x3d725du:advance_online?0x3aad19u:advance_xnet?0x3d7656u:((flags&1u)?0x6e010u:0x31d400u)) && state.gp[6]==(advance_graphics_coordinates?3u:advance_graphics_output?0u:advance_graphics_device?0x492368u:advance_aux_objects?0x45cu:advance_objects?0x3f0u:advance_scalars?0x3ccu:advance_registration?0x384u:advance_views?0x33cu:advance_players?0x2d0u:advance_context?0x2acu:advance_clock?0x288u:advance_renderer?0x21cu:advance_handles?0x1f8u:advance_bink?0x1d4u:advance_input?0x18cu:advance_cache?0x168u:advance_session?0x144u:advance_rng?0x90u:advance_full?0x6cu:(flags&1u)?0u:0x24u) &&
+        state.gp[4]==sp-(advance_graphics_coordinates?0x28u:advance_graphics_output?0x2cu:advance_graphics_depth?0x28u:advance_graphics_constants?0x2cu:advance_graphics_palette?0x28u:advance_graphics_pool?0x30u:advance_graphics_device?0x28u:advance_renderer_request?0x80u:advance_full?16u:advance_services?0x1f0u:advance_xnet?0x1c8u:16u) && word(memory,state.gp[4])==(advance_graphics_coordinates?0x127a4u:advance_graphics_output?0x12770u:advance_graphics_depth_state?0x126a3u:advance_graphics_depth?0x1266eu:advance_graphics_constants?0x1265fu:advance_graphics_palette?0x12658u:advance_graphics_pool?0x125ebu:advance_graphics_state?0x125d7u:advance_graphics_device?0x125cdu:advance_renderer_request?0x129b2u:advance_full?0x13a76cu:advance_services?0x70d11u:advance_online?0x6e0c2u:advance_xnet?0x6e09cu:0x13a76cu) && word(memory,0x56e1ccu)==flags,
         "Native link result did not select the original next initialization path");
     std::uint32_t parameters=0;std::string parameter_bytes;
     if(advance_xnet && !advance_full) {
@@ -841,7 +865,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         check(released && raw.live_allocations()==(advance_graphics_pool?9u:advance_renderer?8u:advance_handles?7u:advance_session?5u:0u) && done.gp[4]==sp-0x800u+8u && resources.size()==(advance_graphics_pool?11u:advance_renderer?10u:advance_handles?9u:advance_session?7u:2u) && !resources.back().allocation,
             "QoS source release retained a native allocation or lost its caller frame");
     }
-    Json report{{"schema",advance_graphics_output?"H2_NATIVE_TU15_GRAPHICS_OUTPUT_V1":advance_graphics_depth_state?"H2_NATIVE_TU15_GRAPHICS_DEPTH_STATE_V1":advance_graphics_depth?"H2_NATIVE_TU15_GRAPHICS_DEPTH_V1":advance_graphics_constants?"H2_NATIVE_TU15_GRAPHICS_CONSTANTS_V1":advance_graphics_palette?"H2_NATIVE_TU15_GRAPHICS_PALETTE_V1":advance_graphics_pool?"H2_NATIVE_TU15_GRAPHICS_POOL_V1":advance_graphics_state?"H2_NATIVE_TU15_GRAPHICS_STATE_V1":advance_graphics_device?"H2_NATIVE_TU15_GRAPHICS_DEVICE_V1":advance_renderer_request?"H2_NATIVE_TU15_RENDERER_REQUEST_V1":advance_aux_objects?"H2_NATIVE_TU15_AUX_OBJECT_STATE_STARTUP_V1":advance_objects?"H2_NATIVE_TU15_OBJECT_STORAGE_STARTUP_V1":advance_scalars?"H2_NATIVE_TU15_SCALAR_STATE_STARTUP_V1":advance_registration?"H2_NATIVE_TU15_STATIC_REGISTRATION_STARTUP_V1":advance_views?"H2_NATIVE_TU15_VIEW_STORAGE_STARTUP_V1":advance_players?"H2_NATIVE_TU15_PLAYER_STARTUP_V1":advance_context?"H2_NATIVE_TU15_STATE_CONTEXT_STARTUP_V1":advance_clock?"H2_NATIVE_TU15_CLOCK_STARTUP_V1":advance_renderer?"H2_NATIVE_TU15_RENDERER_STARTUP_V1":advance_handles?"H2_NATIVE_TU15_LEVEL_HANDLES_STARTUP_V1":advance_bink?"H2_NATIVE_TU15_BINK_MEMORY_STARTUP_V1":advance_input?"H2_NATIVE_TU15_INPUT_STARTUP_V1":advance_cache?"H2_NATIVE_TU15_CACHE_STARTUP_V1":advance_session?"H2_NATIVE_TU15_NETWORK_SESSION_V1":advance_rng?"H2_NATIVE_TU15_RNG_STARTUP_V1":advance_full?"H2_NATIVE_TU15_NETWORK_COMPLETE_V1":advance_services?"H2_NATIVE_TU15_ONLINE_SERVICES_V1":advance_online?"H2_NATIVE_TU15_NETWORK_PLATFORM_V1":advance_xnet?"H2_NATIVE_TU15_NETWORK_CONNECTION_V1":"H2_NATIVE_TU15_NETWORK_LINK_V1"},{"passed",true},{"typed_data_bytes",bytes},{"initializer_slots",68},
+    Json report{{"schema",advance_graphics_coordinates?"H2_NATIVE_TU15_GRAPHICS_COORDINATES_V1":advance_graphics_output?"H2_NATIVE_TU15_GRAPHICS_OUTPUT_V1":advance_graphics_depth_state?"H2_NATIVE_TU15_GRAPHICS_DEPTH_STATE_V1":advance_graphics_depth?"H2_NATIVE_TU15_GRAPHICS_DEPTH_V1":advance_graphics_constants?"H2_NATIVE_TU15_GRAPHICS_CONSTANTS_V1":advance_graphics_palette?"H2_NATIVE_TU15_GRAPHICS_PALETTE_V1":advance_graphics_pool?"H2_NATIVE_TU15_GRAPHICS_POOL_V1":advance_graphics_state?"H2_NATIVE_TU15_GRAPHICS_STATE_V1":advance_graphics_device?"H2_NATIVE_TU15_GRAPHICS_DEVICE_V1":advance_renderer_request?"H2_NATIVE_TU15_RENDERER_REQUEST_V1":advance_aux_objects?"H2_NATIVE_TU15_AUX_OBJECT_STATE_STARTUP_V1":advance_objects?"H2_NATIVE_TU15_OBJECT_STORAGE_STARTUP_V1":advance_scalars?"H2_NATIVE_TU15_SCALAR_STATE_STARTUP_V1":advance_registration?"H2_NATIVE_TU15_STATIC_REGISTRATION_STARTUP_V1":advance_views?"H2_NATIVE_TU15_VIEW_STORAGE_STARTUP_V1":advance_players?"H2_NATIVE_TU15_PLAYER_STARTUP_V1":advance_context?"H2_NATIVE_TU15_STATE_CONTEXT_STARTUP_V1":advance_clock?"H2_NATIVE_TU15_CLOCK_STARTUP_V1":advance_renderer?"H2_NATIVE_TU15_RENDERER_STARTUP_V1":advance_handles?"H2_NATIVE_TU15_LEVEL_HANDLES_STARTUP_V1":advance_bink?"H2_NATIVE_TU15_BINK_MEMORY_STARTUP_V1":advance_input?"H2_NATIVE_TU15_INPUT_STARTUP_V1":advance_cache?"H2_NATIVE_TU15_CACHE_STARTUP_V1":advance_session?"H2_NATIVE_TU15_NETWORK_SESSION_V1":advance_rng?"H2_NATIVE_TU15_RNG_STARTUP_V1":advance_full?"H2_NATIVE_TU15_NETWORK_COMPLETE_V1":advance_services?"H2_NATIVE_TU15_ONLINE_SERVICES_V1":advance_online?"H2_NATIVE_TU15_NETWORK_PLATFORM_V1":advance_xnet?"H2_NATIVE_TU15_NETWORK_CONNECTION_V1":"H2_NATIVE_TU15_NETWORK_LINK_V1"},{"passed",true},{"typed_data_bytes",bytes},{"initializer_slots",68},
         {"instructions",instructions.size()},{"ordered_stores",stores.size()},{"frontier_target",frontier.target},{"frontier_gp",state.gp},
         {"x87_control",state.floating_point->x87_control_word},{"mxcsr",state.floating_point->mxcsr},{"game_options",options},
         {"excluded_reserved_x87_control_bit",6},{"defined_floating_point_state_verified",true},
@@ -972,6 +996,51 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
             "Online context teardown changed actual account authentication");
         report["native_online_context_reference_lifecycle_verified"]=true;
     }
+    if(advance_graphics_coordinates) {
+        const auto config=graphics_coordinates->configuration();
+        check(graphics_coordinates->calls()==4 && native_coordinate_calls.size()==4 && config.registers==renderer_passthrough_registers &&
+            config.pipeline_handle && config.state_backing.value>0xffffffffu && config.material_backing.value>0xffffffffu &&
+            word(memory,0x494338)==0 && word(memory,0x4bb33c)==0 && std::to_integer<unsigned>(memory.view(0x494330,1)[0])==1,
+            "Native coordinate state or resource-storage reset differs");
+        auto probe=frame();probe.gp=native_coordinate_calls.front().at("entry_gp").get<decltype(probe.gp)>();
+        probe.gp[4]=sp-0x2800u;put(memory,probe.gp[4],0x12770u);put(memory,probe.gp[4]+4,0);const auto before=probe;
+        const SourcePhysicsContactRuntimeCall request{0x1276b,0x3ffe00,false};SourceRuntimeMemory foreign;
+        bool bank=false,thread=false,duplicate=false,missing=false,value=false,order=false;
+        try{graphics_coordinates->try_call(foreign,request,probe);}catch(const std::invalid_argument&){bank=true;}
+        try{graphics_coordinates->try_call(memory,request,probe);}catch(const std::invalid_argument&){duplicate=true;}
+        std::thread outsider([&]{try{graphics_coordinates->try_call(memory,request,probe);}catch(const std::invalid_argument&){thread=true;}});outsider.join();
+        NativeTu15RendererCoordinates absent(memory,*graphics_device,*graphics_output,{}),cold(memory,*graphics_device,*graphics_output,coordinate_control);
+        try{absent.try_call(memory,request,probe);}catch(const std::runtime_error&){missing=true;}
+        put(memory,probe.gp[4]+4,0x10000);
+        try{cold.try_call(memory,request,probe);}catch(const std::invalid_argument&){value=true;}
+        put(memory,probe.gp[4]+4,0);
+        try{cold.try_call(memory,{0x12777,0x3ffe00,false},probe);}catch(const std::invalid_argument&){order=true;}
+        for(unsigned stage=0;stage<4;++stage) {
+            bool alias=false,generated=false;
+            try{coordinate_control.select(stage,(stage+1)%4);}catch(const std::runtime_error&){alias=true;}
+            try{coordinate_control.select(stage,stage|0x10000);}catch(const std::runtime_error&){generated=true;}
+            check(alias && generated,"Unsupported native coordinate alias or texgen was admitted");
+        }
+        const auto retained=coordinate_control.select(0,0);
+        check(bank && thread && duplicate && missing && value && order && cold.calls()==0 && probe.gp==before.gp &&
+            probe.eflags==before.eflags && retained.registers==renderer_passthrough_registers,
+            "Rejected native coordinate request changed its caller or shader contract");
+        report["native_renderer_coordinates_complete"]=true;report["native_coordinate_rejections_preserve_state"]=true;
+        report["native_coordinate_calls"]=native_coordinate_calls;report["source_renderer_resource_storage_complete"]=true;
+        report["renderer_resource_storage_native_backings"]=Json::array();
+        for(const auto address:std::array<std::uint32_t,2>{0x49433c,0x4bb374}) {
+            const auto native=std::uint64_t(reinterpret_cast<std::uintptr_t>(memory.view(address,4).data()));
+            check(native>0xffffffffu,"Resource-storage native backing was truncated");
+            report["renderer_resource_storage_native_backings"].push_back(native);
+        }
+        report["renderer_resource_storage_body_correspondence_sha256"]="7da5d8ae2462f26755b39a9f140f44fcce52cc619ec08422dc3e6a6b648a618e";
+        report["renderer_resource_storage_fields"]=Json::array();SourceRuntimeMemory fields;
+        mount_native_tu15_renderer_resource_storage_data(fields);
+        fields.visit_committed([&](auto p,auto b){report["renderer_resource_storage_fields"].push_back(
+            {{"address",p},{"bytes",b.size()},{"sha256",digest(memory.view(p,b.size()))}});});
+        if(!fixture.is_null())check(report["renderer_resource_storage_fields"]==fixture.at("renderer_resource_storage_fields"),
+            "Original resource-storage bank or initialized flag differs");
+    }
     if(advance_graphics_output) {
         const auto config=graphics_output->configuration();
         check(graphics_output->calls()==8 && native_output_calls.size()==8 && config.values==renderer_cold_output_values &&
@@ -1016,7 +1085,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         const auto config=graphics_depth->configuration();
         check(graphics_depth->state_calls()==3 && native_depth_state_calls.size()==3 && config.write_enabled==1 &&
             config.function==0x203 && config.bias==0 && word(memory,0x411678)==1 && word(memory,0x41165c)==0x203 &&
-            (advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : state.gp[1]==0x40338 && state.gp[2]==0),
+            (advance_graphics_coordinates ? state.gp[1]==0 && state.gp[2]==0 : advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : state.gp[1]==0x40338 && state.gp[2]==0),
             "Native cold depth write/function/bias sequence or inline caches differ");
         auto probe=frame();probe.gp=native_depth_state_calls.back().at("entry_gp").get<decltype(probe.gp)>();
         probe.gp[4]=sp-0x2400u;put(memory,probe.gp[4],0x12697);put(memory,probe.gp[4]+4,0);const auto before=probe;
@@ -1070,7 +1139,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         const auto config=graphics_constants->configuration();
         check(config.mode==0x11 && config.registers==192 && config.application_owned &&
             config.material_backing.value>0xffffffffu && config.extended_backing.value>0xffffffffu && config.extended_bytes==2544 &&
-            (advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : advance_graphics_depth_state ? state.gp[1]==0x40338 && state.gp[2]==0 : advance_graphics_depth ? state.gp[1]==0x4035c && state.gp[2]==1 : word(memory,state.gp[4]+4)==2),
+            (advance_graphics_coordinates ? state.gp[1]==0 && state.gp[2]==0 : advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : advance_graphics_depth_state ? state.gp[1]==0x40338 && state.gp[2]==0 : advance_graphics_depth ? state.gp[1]==0x4035c && state.gp[2]==1 : word(memory,state.gp[4]+4)==2),
             "Native shader constant configuration lacks its actual storage or pending depth request");
         auto probe=frame();probe.gp=native_constants_call.at("entry_gp").get<decltype(probe.gp)>();
         probe.gp[4]=sp-0x2400u;put(memory,probe.gp[4],0x12658u);const auto before=probe.gp;

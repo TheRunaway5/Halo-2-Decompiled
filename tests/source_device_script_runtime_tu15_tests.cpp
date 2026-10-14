@@ -51,13 +51,21 @@ int main(int argc,char **argv)try{
   check(match.join("Script authority")==0,"Original source host did not join");
   const auto fp=cache.load_first_person_binding(rules.weapon,2);match.configure_replicated_first_person(fp);
   const std::array<unsigned,1> local{0};match.configure_local_views(local,fp);
-  std::optional<test::LivePhysicsEntryCaptureTu15> conveyor_capture,query_capture;
+  std::map<std::uint32_t,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> entry_captures;
   std::optional<SourcePhysicsEntryObserverBinding> entry_diagnostic;
-  if(props)if(const auto path=std::getenv("HALO2_TU15_PROP_ENTRY_CAPTURE")) {
-    conveyor_capture.emplace(std::filesystem::path(path)/"conveyor");query_capture.emplace(std::filesystem::path(path)/"query");
-    entry_diagnostic.emplace(world.memory(),[&](bool entering,std::uint32_t entry,const auto &state){
-      if(entry==0x355d0u)conveyor_capture->observe(entering,state,world.memory(),entry);
-      if(entry==0x1e1170u)query_capture->observe(entering,state,world.memory(),entry);
+  if(props) {
+    if(const auto path=std::getenv("HALO2_TU15_PROP_ENTRY_CAPTURE")) {
+      entry_captures.emplace(0x355d0u,std::make_unique<test::LivePhysicsEntryCaptureTu15>(std::filesystem::path(path)/"conveyor"));
+      entry_captures.emplace(0x1e1170u,std::make_unique<test::LivePhysicsEntryCaptureTu15>(std::filesystem::path(path)/"query"));
+    }
+    if(const auto path=std::getenv("HALO2_TU15_WORLD_ENTRY_CAPTURE"))for(const auto entry:{0x14fec0u,0xb8f40u,0x1cc8d0u})
+      entry_captures.emplace(entry,std::make_unique<test::LivePhysicsEntryCaptureTu15>(std::filesystem::path(path)/std::to_string(entry)));
+    if(!entry_captures.empty())entry_diagnostic.emplace(world.memory(),[&](bool entering,std::uint32_t entry,const auto &state){
+      const auto found=entry_captures.find(entry);if(found==entry_captures.end())return;
+      if(entry==0x14fec0u || entry==0xb8f40u || entry==0x1cc8d0u) {
+        const auto clock=word(world.memory(),0x51df54u);if(word(world.memory(),clock+8u)<200u)return;
+      }
+      found->second->observe(entering,state,world.memory(),entry);
     });
   }
   constexpr std::uint64_t fingerprint=0x15de000332u;
@@ -71,7 +79,9 @@ int main(int argc,char **argv)try{
   }
   check(peer.ready() && host.peers()==1,"Actual source script UDP admission failed");
   if(props) {
+    const std::string prop_name=std::getenv("HALO2_TU15_SCRIPT_PROP_NAME")?std::getenv("HALO2_TU15_SCRIPT_PROP_NAME"):"gas_container";
     unsigned comparisons{},dynamic_observations{};std::set<std::uint32_t> moved;
+    std::map<std::uint32_t,Vec3> last;
     std::map<std::uint32_t,Vec3> first;
     for(unsigned tick=0;tick<650;++tick) {
       peer.send(std::span(&remote,1));host.receive(controls);match.step(controls);host.broadcast();
@@ -84,18 +94,21 @@ int main(int argc,char **argv)try{
       for(const auto &object:match.simulation().scene().objects()) {
         const auto &placed=content.objects.at(object.placement);
         const auto *tag=cache.find_tag(TagHandle{placed.definition});
-        if(object.handle==null_datum || object.created_tick==0 || placed.type!=11 || (placed.flags&0x100u) ||
-            !tag || tag->name.find("gas_container")==std::string::npos)continue;
-        const auto body=world.object_body(object.handle);
-        check((std::to_integer<unsigned>(world.memory().view(body+0xc1u,1)[0])&1u)==0,
-            "Script-created source prop was incorrectly forced frozen by the automatic placement caller");
+        if(object.handle==null_datum || (object.created_tick==0 && !(placed.flags&1u)) || placed.type!=11 || (placed.flags&0x100u) ||
+            !tag || tag->name.find(prop_name)==std::string::npos)continue;
         ++dynamic_observations;const auto position=world.object_transform(object.handle).position;
-        const auto [prior,inserted]=first.emplace(object.handle,position);
+        const auto [prior,inserted]=first.emplace(object.handle,position);last[object.handle]=position;
+        if(inserted) {
+          const auto body=world.object_body(object.handle);
+          check((std::to_integer<unsigned>(world.memory().view(body+0xc1u,1)[0])&1u)==0,
+              "Script-created source prop was incorrectly forced frozen at birth by the automatic placement caller");
+        }
         if(!inserted && length(position-prior->second)>.1f)moved.insert(object.handle);
       }
     }
     check(dynamic_observations>0 && moved.size()>=2,"Authored source prop spawners did not produce two moving physical generations");
-    std::cout<<"PASS authored Colossus source prop creation/dynamics, "<<moved.size()<<" moving generations, "<<comparisons<<" exact UDP device banks\n";return 0;
+    for(const auto &[object,position]:first)std::cout<<"prop="<<object<<" first="<<position.x<<","<<position.y<<","<<position.z<<" final="<<last[object].x<<","<<last[object].y<<","<<last[object].z<<"\n";
+    std::cout<<"PASS authored "<<std::filesystem::path(argv[2]).filename().string()<<" source prop creation/dynamics, "<<moved.size()<<" moving generations, "<<comparisons<<" exact UDP device banks\n";return 0;
   }
   if(wheel) {
     const auto selected=std::find_if(cache.tags().begin(),cache.tags().end(),[](const auto &tag){return tag.group=="mach" &&

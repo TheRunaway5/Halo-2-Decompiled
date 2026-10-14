@@ -1,7 +1,7 @@
-target_sources(halo2_systems PRIVATE src/native_tu15_renderer_depth.cpp src/native_tu15_renderer_depth_state_data.cpp src/native_tu15_renderer_output.cpp)
+target_sources(halo2_systems PRIVATE src/native_tu15_renderer_depth.cpp src/native_tu15_renderer_depth_state_data.cpp src/native_tu15_renderer_output.cpp src/native_tu15_renderer_coordinates.cpp src/native_tu15_renderer_resource_storage_data.cpp src/source_renderer_resource_storage_tu15_generated.cpp)
 if(BUILD_TESTING)
     foreach(target native_tu15_network_link_tests native_tu15_graphics_startup_tests)
-        target_sources(${target} PRIVATE src/native_tu15_renderer_depth.cpp src/native_tu15_renderer_depth_state_data.cpp src/native_tu15_renderer_output.cpp)
+        target_sources(${target} PRIVATE src/native_tu15_renderer_depth.cpp src/native_tu15_renderer_depth_state_data.cpp src/native_tu15_renderer_output.cpp src/native_tu15_renderer_coordinates.cpp src/native_tu15_renderer_resource_storage_data.cpp src/source_renderer_resource_storage_tu15_generated.cpp)
     endforeach()
     add_test(NAME native_tu15_graphics_depth_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-depth --input-devices none)
     add_test(NAME original_tu15_graphics_depth_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-depth --input-devices none
@@ -41,5 +41,22 @@ if(BUILD_TESTING)
             --reference-xbe "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
             --original-fixture ${CMAKE_CURRENT_SOURCE_DIR}/analysis/asset-setup/mcc-native-20261014/native-startup/${original}/report.json)
         set_tests_properties(native_tu15_graphics_output${suffix}_startup original_tu15_graphics_output${suffix}_startup PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77)
+    endforeach()
+endif()
+
+if(BUILD_TESTING)
+    foreach(coordinate_input none virtual-four)
+        if(coordinate_input STREQUAL none)
+            set(coordinate_suffix "")
+            set(coordinate_original original-graphics-coordinates)
+        else()
+            set(coordinate_suffix _controller)
+            set(coordinate_original original-graphics-coordinates-controller)
+        endif()
+        add_test(NAME native_tu15_graphics_coordinates${coordinate_suffix}_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-coordinates --input-devices ${coordinate_input})
+        add_test(NAME original_tu15_graphics_coordinates${coordinate_suffix}_startup COMMAND native_tu15_graphics_startup_tests --frontier graphics-coordinates --input-devices ${coordinate_input}
+            --reference-xbe "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+            --original-fixture ${CMAKE_CURRENT_SOURCE_DIR}/analysis/asset-setup/mcc-native-20261014/native-startup/${coordinate_original}/report.json)
+        set_tests_properties(native_tu15_graphics_coordinates${coordinate_suffix}_startup original_tu15_graphics_coordinates${coordinate_suffix}_startup PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77)
     endforeach()
 endif()

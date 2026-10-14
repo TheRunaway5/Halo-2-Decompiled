@@ -1,5 +1,12 @@
 target_sources(halo2_systems PRIVATE src/multiplayer_continuation.cpp src/source_match_authority.cpp)
 if(BUILD_TESTING)
+    add_executable(native_melee_continuation_resources_tests tests/native_melee_continuation_resources_tests.cpp)
+    target_include_directories(native_melee_continuation_resources_tests PRIVATE src)
+    target_link_libraries(native_melee_continuation_resources_tests PRIVATE halo2_systems)
+    add_test(NAME native_melee_continuation_resources_tu15 COMMAND native_melee_continuation_resources_tests
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+    set_tests_properties(native_melee_continuation_resources_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     add_executable(source_match_local_rebind_tests tests/source_match_local_rebind_tests.cpp)
     target_link_libraries(source_match_local_rebind_tests PRIVATE halo2_systems)
     add_test(NAME source_match_local_rebind_tu15 COMMAND source_match_local_rebind_tests

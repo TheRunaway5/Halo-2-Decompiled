@@ -4,4 +4,5 @@
 #include "halo2/renderer_constant_mode.hpp"
 #include "halo2/renderer_depth_mode.hpp"
 #include "halo2/renderer_output_state.hpp"
-namespace halo2 {int run_native_tu15_startup_test(int,char**,RendererDeviceLease = {},RendererPaletteFactory = {},RendererConstantMode = {},RendererDepthMode = {},RendererOutputState = {});}
+#include "halo2/renderer_texture_coordinates.hpp"
+namespace halo2 {int run_native_tu15_startup_test(int,char**,RendererDeviceLease = {},RendererPaletteFactory = {},RendererConstantMode = {},RendererDepthMode = {},RendererOutputState = {},RendererTextureCoordinates = {});}

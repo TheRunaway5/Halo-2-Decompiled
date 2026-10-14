@@ -4026,6 +4026,24 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         model_object_draws[i].push_back({owner_vertices,object_light_cache[id].lighting,{},owner_input});
       }
       measure(timing.view[i].objects_ms);
+      const auto retain_unit_submission=[&](std::uint32_t owner)->const std::vector<Vertex>* {
+        const auto at=live_unit_vertices[i].find(owner);if(at==live_unit_vertices[i].end())return nullptr;
+        if(!submitted_unit_base[i].insert(owner).second)
+          throw FormatError("Source unit base was submitted twice in one view");
+        return &at->second;
+      };
+      const auto observe_unit_submission=[&](std::uint32_t owner,const ObjectLightingCache& light,
+                                              std::span<const Vertex> vertices) {
+        if(!options.unit_source_draw_observer)return;
+        const auto& draw=live_unit_base[i].at(owner).front();
+        options.unit_source_draw_observer(i,owner,draw.definition,light.lighting,light.lighting_valid,draw.lod,vertices);
+      };
+      const auto append_unit_base=[&](std::uint32_t owner,unsigned material,const ObjectLightingCache& light) {
+        const auto* vertices=retain_unit_submission(owner);if(!vertices)return false;
+        const auto first=world.size();append_world(world,*vertices,material);
+        observe_unit_submission(owner,light,std::span<const Vertex>(world).subspan(first));
+        return true;
+      };
       if(current.source_body_poses_authoritative)for(const auto &corpse:current.corpses) {
         const auto pose=std::find_if(current.source_body_poses.begin(),current.source_body_poses.end(),
             [&](const auto &p){return p.object==corpse.object;});
@@ -4062,7 +4080,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         const auto skinned=skin_model_world_nodes(body.player.model,nodes);
         auto &vertices=corpse_vertices[i].emplace_back();
         const auto collector=source_model_shader_collector(origin,pose->sphere.radius,*object_view.shader);
-        body.player.shaders->append_selected(vertices,skinned,collector,*object_view.shader,body.player.material);
+        if(const auto* retained=retain_unit_submission(corpse.object)) {
+          vertices=*retained;
+          for(auto& vertex:vertices)vertex.material+=body.player.material;
+          observe_unit_submission(corpse.object,light,vertices);
+        } else body.player.shaders->append_selected(vertices,skinned,collector,*object_view.shader,body.player.material);
         auto colors=cache.load_object_colors(corpse.definition);
         if(corpse.configuration) {
           const auto emblem=source_player_emblem_colors(*corpse.configuration,player_emblem_palette);
@@ -4192,16 +4214,22 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
                 same_body && pose_tick!=double(current.tick),posed_body,null_datum,0,held_nodes,body_nodes,
                 gait[j]?gait[j]->facing(animation_blend):a.yaw,gait[j]?gait[j]->frame().activity:null_datum});
           if(direct_pose) {
-            player.shaders->append_selected(world,posed_body,collector,*object_view.shader,body.player_materials[j]);
-            if(!a.dead)body_gun.shaders->append_selected(world,posed_gun,collector,*object_view.shader,body_gun_materials[j*2]);
+            if(!append_unit_base(body_handle(a),body.player_materials[j],object_light_cache[j]))
+              player.shaders->append_selected(world,posed_body,collector,*object_view.shader,body.player_materials[j]);
+            if(!a.dead && !append_unit_base(a.source_weapon,body_gun_materials[j*2],object_light_cache[j]))
+              body_gun.shaders->append_selected(world,posed_gun,collector,*object_view.shader,body_gun_materials[j*2]);
           } else {
             if(selected_body)body_vertices=std::move(*selected_body);
             if(selected_weapon)gun_vertices=std::move(*selected_weapon);
-            player.shaders->select(body_vertices,collector,*object_view.shader);
-            append_world(world,std::move(body_vertices),body.player_materials[j]);
+            if(!append_unit_base(body_handle(a),body.player_materials[j],object_light_cache[j])) {
+              player.shaders->select(body_vertices,collector,*object_view.shader);
+              append_world(world,std::move(body_vertices),body.player_materials[j]);
+            }
             if(!a.dead) {
-              body_gun.shaders->select(gun_vertices,collector,*object_view.shader);
-              append_world(world,std::move(gun_vertices),body_gun_materials[j*2]);
+              if(!append_unit_base(a.source_weapon,body_gun_materials[j*2],object_light_cache[j])) {
+                body_gun.shaders->select(gun_vertices,collector,*object_view.shader);
+                append_world(world,std::move(gun_vertices),body_gun_materials[j*2]);
+              }
             }
           }
           if(!a.dead && a.secondary_weapon.datum!=null_datum) {
@@ -4225,7 +4253,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
             }
             auto selected=selected_world_vertices(left,a.secondary_weapon.datum,i,nodes);
             auto vertices=selected?std::move(*selected):skin_model_world_nodes(left.model,nodes);
-            left.shaders->append_selected(world,vertices,collector,*object_view.shader,left_bank.materials[j*2+1]);
+            if(!append_unit_base(a.secondary_weapon.datum,left_bank.materials[j*2+1],object_light_cache[j]))
+              left.shaders->append_selected(world,vertices,collector,*object_view.shader,left_bank.materials[j*2+1]);
             bindings.push_back({left_bank.materials[j*2+1],unsigned(left.model.mesh.materials.size()),object_light_cache[j].lighting});
           }
         }
@@ -4452,6 +4481,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       };
       if(const auto* disabled=std::getenv("HALO2_REFERENCE_DISABLE_MODEL_EFFECT_LIGHTS");disabled && *disabled)
         std::erase_if(raw_effect_lights[i],[](const auto& draw){return draw.source.owner().kind==MenuWorldSourceOwnerKind::dynamic_object;});
+      if(const auto* disabled=std::getenv("HALO2_REFERENCE_DISABLE_UNIT_EFFECT_LIGHTS");disabled && *disabled)
+        std::erase_if(raw_effect_lights[i],[&](const auto& draw) {
+          const auto& owner=draw.source.owner();
+          return owner.kind==MenuWorldSourceOwnerKind::dynamic_object && owner.generation &&
+              live_unit_base[i].contains(*owner.generation);
+        }); // Pixel-isolation control; original collection and base draws still run.
       view.raw_effect_lights=raw_effect_lights[i];
       if(const auto* disabled=std::getenv("HALO2_REFERENCE_DISABLE_BSP_EFFECT_LIGHTS");disabled && *disabled)
         view.raw_effect_lights={}; // Pixel-isolation control; simulation and collection still run.
@@ -4501,6 +4536,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       if(options.view_observer)options.view_observer(i,camera,horizontal_fov,view_zoom[i]);
       if(options.view_state_observer)options.view_state_observer(i,current,camera);
       view.before_ui_vertex = hud_vertices.size();
+      for(const auto& [owner,draws]:live_unit_base[i])if(!submitted_unit_base[i].contains(owner))
+        throw FormatError("Source unit model-light admission has no submitted matching base");
       views.push_back(view);
       hud.animate(current, id, i, current.score_limit, current.time_ticks,
                   float(current.tick) * tick_seconds);

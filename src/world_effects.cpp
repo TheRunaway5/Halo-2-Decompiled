@@ -240,7 +240,11 @@ struct NativeWorldEffects::Impl {
     }
     const auto object=object_markers.find(e.target);
     if(object==object_markers.end())return {};
-    const auto found=object->second.find(name=="marker" && e.attachment_marker?*e.attachment_marker:name);
+    // Original TU1.5 17B2EC aliases only StringID0700054E (replace).
+    // A real authored marker group keeps its name when the attachment slot
+    // supplies an empty replacement marker.
+    const auto found=object->second.find(e.attachment_marker &&
+        name==cache.string_id(0x0700054eu)?*e.attachment_marker:name);
     return found==object->second.end()?std::vector<WorldEffectFrame>{}:found->second;
   }
   void refresh(Effect &e,System &s) {

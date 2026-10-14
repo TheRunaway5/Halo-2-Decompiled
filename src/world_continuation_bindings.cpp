@@ -183,8 +183,12 @@ std::array<std::byte,32> unit_interaction_definitions(const LevelContent &conten
 }
 std::array<std::byte,32> melee_binding(const Cache &cache,const NativeMeleeConstants &constants,float speed,
     const std::map<std::uint32_t,int> &representations,const std::map<std::uint32_t,std::uint32_t> &graphs) {
-    SourceRuntimeResources resources(cache);Binding b;
-    b(std::string("native-melee-bindings-v1"),resources.identity(),constants,speed,representations,graphs);return b.finish();
+    SourceRuntimeResources resources(cache);return melee_binding(resources.identity(),constants,speed,representations,graphs);
+}
+std::array<std::byte,32> melee_binding(const SourceRuntimeResources::Identity &resources,
+    const NativeMeleeConstants &constants,float speed,const std::map<std::uint32_t,int> &representations,
+    const std::map<std::uint32_t,std::uint32_t> &graphs) {
+    Binding b;b(std::string("native-melee-bindings-v1"),resources,constants,speed,representations,graphs);return b.finish();
 }
 std::array<std::byte,32> triangles(std::span<const CollisionTriangle> values) {
     Binding b;b(std::string("native-collision-triangles-v1"),values);return b.finish();

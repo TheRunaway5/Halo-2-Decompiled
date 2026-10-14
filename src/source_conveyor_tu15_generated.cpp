@@ -2,6 +2,7 @@
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics_world_runtime_internal.hpp"
 #include "halo2/source_conveyor_tu15.hpp"
+#include "halo2/source_physics_entry_observation.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
 namespace halo2 {
 namespace {
@@ -487,6 +488,7 @@ void source_run_conveyor_tu15(M &m,std::uint32_t entry,
     const SourcePhysicsContactRuntimeServices &services,const O &observe) {
     constexpr auto image=SourcePhysicsContactImage::TitleUpdate15;
     FpScope scope(fp);LiveState s{m,observe,services,image};s.load(abi);
+    SourcePhysicsEntryObservation diagnostic(m,entry,[&]{return s.save();});
     try {
         switch(entry) {
 case 0x355d0u:run_355d0(s);break;

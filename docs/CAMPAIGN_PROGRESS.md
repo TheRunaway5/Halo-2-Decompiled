@@ -450,3 +450,23 @@ This backend remains isolated from root pending a clean public interface and
 broader validation. The legacy campaign runner still has 14 required-owner entry
 failures; no new full mission, broad actor matrix or console-parity claim is made.
 The full campaign goal remains active. [Private AI/HS proof](../analysis/tags/gameplay-validation-20261014/campaign-ai-script-entry/RESULTS.md).
+
+The public campaign world stage now exposes original AI placement through a
+readable typed interface. Its canonical backend contains 55 complete original
+squad/command/HS routines and reuses three existing frame helpers. Actual Cairo
+counted, authored and packed starting-location placement passes actor/unit/
+command/HS-thread binding, whole authority restoration and bounded ordinary
+AI/object ticks (3/1/1). The original overload comparison covers 256 cases.
+
+Campaign kill-volume/fatal-damage, full 60-tick world continuation and the
+180-tick multiplayer world smoke test pass. Both Armory routes and all three
+match traces remain byte-identical. Across 29 final serial jobs, 15 pass and
+14 retain the same actual mission-entry failures. Maximum RAM is 64,131,072
+bytes, below 64 MiB, with zero swap. A fresh internally consistent source cohort
+builds; focused current-root syntax preserves 11 concurrent header changes.
+
+The original HS frame scheduler and campaign frontend/player/object lifetime
+integration remain unfinished. Thread creation and linkage do not prove full
+command-script execution. All remaining mission/BSP/checkpoint/restart/death,
+navigation, combat/hit-region and presentation paths stay open. The full campaign
+goal remains active. [Public world results](../analysis/tags/gameplay-validation-20261014/campaign-world-api/RESULTS.md).

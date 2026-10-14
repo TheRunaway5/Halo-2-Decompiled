@@ -6,6 +6,9 @@
 #ifndef TEXTURE_COORDINATE_W
 #define TEXTURE_COORDINATE_W(i) stageCoordinates[i].w
 #endif
+#ifndef TEXTURE_PROJECTED_2D
+#define TEXTURE_PROJECTED_2D(i) fetchStage2D(i,stageCoordinates[i].xy/TEXTURE_COORDINATE_W(i))
+#endif
 uint textureMode(uint stage) {return (word(54u)>>(stage*5u))&31u;}
 uint previousTexture(uint stage) {
     // Stage 1 always reads stage 0. PSInputTexture names the earlier inputs
@@ -47,7 +50,7 @@ void runTextureStages(out vec4 samples[4]) {
                 samples[i]=fetchStage3D(i,vec3(stageCoordinates[i].xy/TEXTURE_COORDINATE_W(i),0.0));
             else
 #endif
-            samples[i]=fetchStage2D(i,stageCoordinates[i].xy/TEXTURE_COORDINATE_W(i));
+            samples[i]=TEXTURE_PROJECTED_2D(i);
             valid[i]=true;continue;
         }
         if(mode==3u) {
@@ -62,7 +65,7 @@ void runTextureStages(out vec4 samples[4]) {
                 samples[i]=fetchStage3D(i,stageCoordinates[i].xyz/TEXTURE_COORDINATE_W(i));
             else
 #endif
-                samples[i]=fetchStage2D(i,stageCoordinates[i].xy/TEXTURE_COORDINATE_W(i));
+                samples[i]=TEXTURE_PROJECTED_2D(i);
             valid[i]=true;continue;
         }
         if(mode==4u) {samples[i]=clamp(stageCoordinates[i],0.0,1.0);valid[i]=true;continue;}

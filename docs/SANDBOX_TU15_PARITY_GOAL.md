@@ -1338,3 +1338,36 @@ unaccepted and0/102 whole elements are complete. Full menus/maps/game remains
 unfinished. Next original resource dependency is the authenticated6-root,
 338-instruction1AB480 normalization closure before1AA680 admission; live cache,
 persistent worker and resource-owned continuation are still required.
+
+
+v103 original resource/FileReference progress: six authenticated normalization
+roots (338 instructions) are added to the resource module, now20 whole roots /
+1006 instructions. Whole1AA680 is admitted on the standalone native arena and
+its literal1AA6E0 yield reaches the existing genuine host scheduling owner.
+No native completion, file handle or source callback return is substituted.
+
+A red-capable composed test first failed at the unadmitted wrapper (v96), then
+passes normalization, real queued open, actual map header read and source close.
+The retained worker processes20 actual requests;19 external completion stores
+and the wrapper's genuine stack completion are observed. Its original free-node
+set is restored. The original publisher stores a slot index before the salted
+ID; the test now observes the authenticated final12210F/1233AF store and proves
+20 distinct original request IDs. The initial v97 identity assertion counted
+both intermediate and final stores; no gameplay logic was changed for that fix.
+
+Four declared FileReference path/flag inputs compare exactly against unchanged
+TU1.5 whole1AB480:1137/1843/1444/2150 instructions, fullCPU and5869634retained
+bytes per case. These records are explicit native caller inputs at the fields
+read by the original function; this is not integrated original map/FileReference
+construction. Eight focused memory/arena/queue/normalization regressions pass.
+Seven read and seven other file callbacks also compare exactly, using independent
+real native IO outcomes. Xbox XAPI/kernel wrappers and IO timing remain outside
+that native policy. No live source cache or resource continuation claim follows.
+
+The installed immutable r2 test build and its prior109-check/1-2-4-view delivery
+evidence are unchanged. Private v15 source now contains this additional resource
+component; no new full110-case regression or installed delivery is claimed for
+it yet. World still retires its boot worker and retains three synchronous
+resource bridges. Original six-bank cache startup/map activation, persistent
+worker ownership, query/cancel/free lifetimes and resource continuation remain
+required. Accepted staysv14; goal active and0/102 whole elements complete.

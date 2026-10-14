@@ -34,6 +34,9 @@ inline unsigned append_coordinate_probe(halo2::Mesh& mesh) {
             put(4+instruction*16+8,source<<26);
             put(4+instruction*16+12,0xf800|(output<<3)|(instruction==4?1:0));
         }
+        halo2::MaterialPass pass;pass.name="native_coordinate_probe";
+        pass.program=pass.definition=m.forward_program;pass.vertex_code=m.vertex_program;
+        m.forward_pass_index=0;m.passes.push_back(std::move(pass));
         mesh.materials.push_back(std::move(m));
     }
     return base;
@@ -49,6 +52,9 @@ inline nlohmann::json coordinate_gpu_probe(halo2::Renderer& renderer,unsigned ba
             halo2::Vertex v;v.position={p.x,p.y,65536};v.color={1,1,1};v.material=base+stage;vertices.push_back(v);
         }
         halo2::ModelView view;view.width=640;view.height=480;view.full_surface=true;view.vertices=vertices;
+        view.atmosphere=halo2::BspFogSample{};
+        view.source_view_shader_constants=halo2::SourceViewShaderConstants{};
+        view.source_view_shader_constants->world[3]={0,0,0,123456.5f};
         const auto path=directory/("coordinate-"+std::to_string(stage)+".ppm");
         if(!renderer.draw(view.camera,path,{},false,{},{},{},std::span(&view,1)))
             throw std::runtime_error("Native coordinate probe draw failed");

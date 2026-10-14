@@ -287,6 +287,34 @@ SupportEntrance wheel_support_entrance(const Cache &cache,const LevelContent &co
   return result;
 }
 
+struct PropWatchEntrance {Spawn spawn;Vec3 target;std::set<unsigned> placements;};
+PropWatchEntrance prop_watch_entrance(const Cache &cache,const LevelContent &content) {
+  PropWatchEntrance result;std::optional<Vec3> origin;
+  const std::string prop_name=std::getenv("HALO2_TU15_PROP_WATCH_NAME")?std::getenv("HALO2_TU15_PROP_WATCH_NAME"):"gas_container";
+  for(unsigned n=0;n<content.objects.size();++n) {
+    const auto &placed=content.objects[n];const auto *tag=cache.find_tag(TagHandle{placed.definition});
+    if(placed.type!=11 || (placed.flags&0x100u) || !tag || tag->name.find(prop_name)==std::string::npos)continue;
+    if(!origin)origin=placed.position;
+    if(std::abs(placed.position.x-origin->x)<content.player.height)result.placements.insert(n);
+  }
+  check(origin.has_value(),"Original scripted prop spawn placement is absent");
+  result.target=*origin;
+  result.target=lift_entrance(cache,content).position;
+  const CollisionWorld terrain(content.collision);
+  for(float radius:{4.f,6.f,8.f})for(unsigned angle=0;angle<32;++angle) {
+    const float radians=6.283185307f*float(angle)/32.f;
+    const Vec3 direction{std::cos(radians),std::sin(radians),0};
+    auto position=result.target+direction*radius;
+    const auto floor=terrain.raycast(position+Vec3{0,0,content.player.height},{0,0,-1},8*content.player.height);
+    if(!floor || floor->normal.z<=0)continue;
+    position.z=floor->position.z+content.player.radius;
+    if(terrain.overlaps(position,content.player.height,content.player.radius))continue;
+    const auto eye=position+Vec3{0,0,content.player.camera_height};const auto delta=result.target-eye;
+    if(const auto blocked=terrain.raycast(eye,normalized(delta),length(delta));blocked && length(blocked->position-eye)<length(delta)-.1f)continue;
+    result.spawn.position=position;result.spawn.facing=std::atan2(delta.y,delta.x);return result;
+  }
+  throw FormatError("Original scripted prop has no visible cached-BSP observer floor");
+}
 struct ControlEntrance {Spawn spawn;Vec3 target;std::uint32_t definition;Vec3 gate;};
 ControlEntrance control_entrance(const Cache &cache,const LevelContent &content) {
   const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[](const Tag &t) {
@@ -909,6 +937,14 @@ int main(int argc,char **argv) try {
   const bool control_test=lan && std::getenv("HALO2_TU15_CONTROL_ENTRY");
   const bool script_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_DEVICE_SCRIPT_INPUT");
   const bool support_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_SUPPORT_INPUT");
+  const bool prop_watch_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_PROP_WATCH_INPUT");
+  std::optional<PropWatchEntrance> prop_watch;
+  std::optional<std::pair<float,float>> prop_pending_look;
+  std::map<std::uint32_t,Vec3> prop_watch_first;
+  std::map<std::uint32_t,float> prop_watch_travel,prop_watch_horizontal,prop_watch_drop;
+  std::map<std::uint32_t,unsigned> prop_watch_draws;
+  unsigned prop_watch_aimed{};
+
   check(!support_test || (!script_test && !control_test),"Select one support/device stimulus");
   std::optional<SupportEntrance> support_start;bool support_started=false;
   std::optional<std::pair<float,float>> support_pending_look;
@@ -1000,6 +1036,15 @@ int main(int argc,char **argv) try {
       break;
     }
     check(prop_placement.has_value(),"Authored prop fixture has no power module");
+  }
+  if(prop_watch_test) {
+    check(!script_test && !support_test && !control_test,"Select one declared live physics stimulus");
+    const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
+    prop_watch=prop_watch_entrance(cache,content);o.native_spawn_inputs={prop_watch->spawn};
+    report["stimulus"]="Unchanged authored map spawner scripts and original live physics; declared BSP-grounded watcher with ordinary SDL look only";
+    report["declared_prop_watch_position"]=xyz(prop_watch->spawn.position);
+    report["declared_prop_watch_target"]=xyz(prop_watch->target);
+    report["watched_prop_placements"]=prop_watch->placements;
   }
   if(control_test || script_test) {
     const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
@@ -1261,12 +1306,21 @@ int main(int argc,char **argv) try {
   o.prop_draw_observer=[&](unsigned view,std::uint32_t handle,std::uint32_t placement,std::span<const Vertex> vertices) {
     check(view<o.local_players && !vertices.empty(),"Actual prop draw lost its local view or geometry");
     if(prop_placement && placement==*prop_placement)++prop_draw_generations[view][handle];
+    if(prop_watch && prop_watch->placements.contains(placement))++prop_watch_draws[handle];
   };
   o.source_scene_observer=[&](const MultiplayerState &state,const SceneObjects &scene) {
     if(!lan)return;
     check(state.source_scene_roots_authoritative,"Replica scene observer has no source authority");
     for(const auto &root:state.source_scene_roots) {
       const auto &object=scene.get(root.object);
+      if(prop_watch && root.created_tick>0 && prop_watch->placements.contains(root.placement)) {
+        const auto position=root.transform.position;const auto [at,fresh]=prop_watch_first.try_emplace(root.object,position);(void)fresh;
+        const auto delta=position-at->second;
+        prop_watch_travel[root.object]=std::max(prop_watch_travel[root.object],length(delta));
+        prop_watch_horizontal[root.object]=std::max(prop_watch_horizontal[root.object],std::hypot(delta.x,delta.y));
+        prop_watch_drop[root.object]=std::max(prop_watch_drop[root.object],-delta.z);
+      }
+
       if(prop_placement && root.placement==*prop_placement)adopted_prop_generations.insert(root.object);
       check(object.placement==root.placement && object.solved_transform &&
           object.created_tick==root.created_tick &&
@@ -1305,6 +1359,12 @@ int main(int argc,char **argv) try {
     submitted_horizontal_fov[view]=horizontal_fov;
   };
   o.view_state_observer=[&](unsigned view,const MultiplayerState &state,const Camera &camera) {
+    if(prop_watch && view==0)for(const auto &root:state.source_scene_roots) {
+      if(root.created_tick==0 || !prop_watch->placements.contains(root.placement))continue;
+      const auto forward=camera.oriented?camera.forward:direction(camera.yaw,camera.pitch);
+      if(dot(normalized(root.transform.position-camera.position),forward)>.9f)++prop_watch_aimed;
+    }
+
     if(vehicle && view<body_view_samples.size()) {
       // Body callbacks precede this callback. Validate against this frame's
       // actual snapshot, including entry/exit and replacement generations.
@@ -1795,6 +1855,23 @@ int main(int argc,char **argv) try {
         key(window_id,SDL_SCANCODE_SPACE,false);lift_jump_released=true;
       }
     }
+    if(prop_watch) {
+      Vec3 target=prop_watch->target;std::uint32_t newest{};
+      for(const auto &root:s.source_scene_roots)if(prop_watch->placements.contains(root.placement) && root.created_tick>=newest) {
+        target=root.transform.position;newest=root.created_tick;
+      }
+      const auto delta=target-(p.position+Vec3{0,0,interaction_content.player.camera_height});
+      const auto desired=std::pair{std::atan2(delta.y,delta.x),std::atan2(delta.z,std::hypot(delta.x,delta.y))};
+      const auto current=std::pair{c.yaw,c.pitch};
+      if(prop_pending_look && current!=*prop_pending_look)prop_pending_look.reset();
+      if(elapsed>=5 && !prop_pending_look) {
+        const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
+        check(gain>0,"Prop watcher requires actual mouse gain");SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
+        look.motion.xrel=-int(std::lround(std::remainder(desired.first-c.yaw,6.283185307f)/gain));
+        look.motion.yrel=-int(std::lround((desired.second-c.pitch)/gain))*(settings.invert?-1:1);
+        if(look.motion.xrel || look.motion.yrel){check(SDL_PushEvent(&look)==1,"SDL rejected live prop look input");prop_pending_look=current;}
+      }
+    }
     if(support_start) {
       const auto delta=support_start->center-(p.position+Vec3{0,0,interaction_content.player.camera_height});
       const auto desired=std::pair{std::atan2(delta.y,delta.x),std::atan2(delta.z,std::hypot(delta.x,delta.y))};
@@ -1842,7 +1919,7 @@ int main(int argc,char **argv) try {
         key(window_id,SDL_Scancode(binding),false);control_released=true;
       }
     }
-    if(!lift&&!vehicle&&!objects&&!control_test&&!script_test&&!support_test) switch(elapsed) {
+    if(!lift&&!vehicle&&!objects&&!control_test&&!script_test&&!support_test&&!prop_watch_test) switch(elapsed) {
       case 25:focus(window);key(window_id,SDL_SCANCODE_W,true);break;
       case 40:key(window_id,SDL_SCANCODE_W,false);break;
       case 50:key(window_id,SDL_SCANCODE_LSHIFT,true);break;
@@ -1851,7 +1928,7 @@ int main(int argc,char **argv) try {
     }
     if(accompanied_driver && ((vehicle_exited && exit_camera_frames>=20) ||
         (companion_entered_tick && !vehicle_entered && elapsed-*companion_entered_tick>=90)))quit();
-    if(elapsed>=(support_test?240u:script_test?600u:control_test?900u:accompanied_driver?900u:vehicle?(long_vehicle_sequence?900u:300u):180u))quit();
+    if(elapsed>=(prop_watch_test?650u:support_test?240u:script_test?600u:control_test?900u:accompanied_driver?900u:vehicle?(long_vehicle_sequence?900u:300u):180u))quit();
   };
   // Finite local screenshots retain all earlier real input delivery. Network
   // exit uses SDL_QUIT because exact tick capture deliberately rejects LAN.
@@ -2057,6 +2134,16 @@ int main(int argc,char **argv) try {
     }
     passed&=grenade_commands==1 && attached_grenade && released_grenade && falling_grenade && detonated;
     for(unsigned view=0;view<o.local_players;++view)passed&=grenade_draws[view]>0 && explosion_particle_draws[view]>0;
+  } else if(prop_watch_test) {
+    Json trajectories=Json::array();unsigned moving_drawn{},conveyor_drawn{};
+    for(const auto &[object,travel]:prop_watch_travel) {
+      const auto draws=prop_watch_draws[object];const auto horizontal=prop_watch_horizontal[object],drop=prop_watch_drop[object];
+      trajectories.push_back({{"object",object},{"travel",travel},{"horizontal",horizontal},{"drop",drop},{"draw_submissions",draws}});
+      moving_drawn+=travel>.1f && draws>0;conveyor_drawn+=horizontal>.25f && drop>.25f && draws>0;
+    }
+    report["actual_scripted_prop_trajectories"]=trajectories;report["moving_drawn_generations"]=moving_drawn;
+    report["conveyor_drawn_generations"]=conveyor_drawn;report["aimed_prop_camera_frames"]=prop_watch_aimed;
+    passed&=moving_drawn>=2 && conveyor_drawn>=2 && prop_watch_aimed>10 && forward_commands==0 && jump_commands==0 && host->script_status.at("diagnostics").empty();
   } else if(support_test) {
     const auto vector=[](const Json &v){return Vec3{v.at(0).get<float>(),v.at(1).get<float>(),v.at(2).get<float>()};};
     std::optional<Vec3> origin,local_origin;std::optional<float> initial_phase;

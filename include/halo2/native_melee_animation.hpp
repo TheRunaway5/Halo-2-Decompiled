@@ -9,6 +9,7 @@ namespace halo2 {
 struct Unit;
 struct LevelContent;
 struct PropAreaDamageDefinition;
+class SourceRuntimeResources;
 struct NativeMeleeConstants {
   std::array<std::array<std::uint32_t,3>,4> candidates;
   std::uint32_t frame_seconds_bits;
@@ -55,12 +56,16 @@ public:
   Vec3 pyramid(const Unit &)const;
   std::shared_ptr<const PropAreaDamageDefinition> damage_definition(const Unit &,std::uint32_t activity);
   // Only immutable decoded memo tables live here; action/RNG live in Unit/
-  // Simulation. Root restore reconstructs this owner against local resources.
+  // Simulation. Root restore reconstructs this owner against its pinned local
+  // resource snapshots, retaining the same authenticated immutable bytes.
   using AuthorityDigest=std::array<std::byte,32>;
   AuthorityDigest authority_binding()const;
   std::shared_ptr<NativeMeleeAnimation> prepare_authority_owner(const LevelContent &,AuthorityDigest)const;
 private:
+  NativeMeleeAnimation(std::shared_ptr<const Cache>,const LevelContent &,NativeMeleeConstants,
+      std::shared_ptr<const SourceRuntimeResources>);
   std::shared_ptr<const Cache> cache_;
+  std::shared_ptr<const SourceRuntimeResources> resources_;
   NativeMeleeConstants constants_;
   std::map<std::uint32_t,int> representations_;
   std::map<std::uint32_t,std::uint32_t> graphs_;

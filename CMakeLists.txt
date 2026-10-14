@@ -625,6 +625,8 @@ if(BUILD_TESTING)
     target_compile_definitions(live_vehicle_model_capture PRIVATE HALO2_LIVE_VEHICLE_MODEL_CAPTURE=1)
     add_executable(live_prop_model_capture tools/capture_prop_model_light.cpp src/multiplayer_runtime.cpp)
     target_link_libraries(live_prop_model_capture PRIVATE halo2_renderer halo2_systems SDL2::SDL2)
+    add_executable(live_unit_model_capture tools/capture_unit_model_light.cpp src/multiplayer_runtime.cpp)
+    target_link_libraries(live_unit_model_capture PRIVATE halo2_renderer halo2_systems SDL2::SDL2)
     add_executable(vehicle_shader_alias_tests tests/vehicle_shader_alias_tests.cpp)
     target_link_libraries(vehicle_shader_alias_tests PRIVATE halo2_cache)
     add_test(NAME original_vehicle_shader_aliases COMMAND vehicle_shader_alias_tests

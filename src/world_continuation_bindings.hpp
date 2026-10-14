@@ -5,6 +5,7 @@
 #include "halo2/native_grenade_constants.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/native_melee_animation.hpp"
+#include "halo2/source_runtime_resources.hpp"
 #include <cmath>
 
 namespace halo2::world_continuation {
@@ -15,6 +16,8 @@ std::array<std::byte,32> bsp_geometry(const BspContent &);
 std::array<std::byte,32> biped_definition(const BipedDefinition &);
 std::array<std::byte,32> unit_interaction_definitions(const LevelContent &);
 std::array<std::byte,32> melee_binding(const Cache &,const NativeMeleeConstants &,float,
+    const std::map<std::uint32_t,int> &,const std::map<std::uint32_t,std::uint32_t> &);
+std::array<std::byte,32> melee_binding(const SourceRuntimeResources::Identity &,const NativeMeleeConstants &,float,
     const std::map<std::uint32_t,int> &,const std::map<std::uint32_t,std::uint32_t> &);
 std::array<std::byte,32> triangles(std::span<const CollisionTriangle>);
 std::array<std::byte,32> script_program(const ScriptProgram &);

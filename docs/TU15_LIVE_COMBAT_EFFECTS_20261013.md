@@ -534,3 +534,25 @@ constructor inputs, then use normal controller pickup. Constructors preserve
 the original executable and player pose. These fixtures are not described as
 normal-play-only provenance. Elite, dual wield, remaining authored inventory,
 independent native animation and the complete strict pixel matrix remain open.
+
+The full-framebuffer/resident-image control improves the retained SMG RGB
+residual to26 software pixels (max2) and528 NVIDIA pixels (max10), with the
+same zero-difference1,364-pixel geometry coverage. These results still fail
+the user's zero-tolerance requirement. Retained resident-image controls do
+not establish production texture residency or independent animation.
+
+`debug/probe_raw_held_pose_draw.cpp` isolates original event143568: body
+section12/part0, compiled vertex class4, shader LOD1,52 original instruction
+words and the exact consumed constant bank. Its269-pixel contribution passes
+RGBA exactly on the software backend, with zero validation errors. The same
+draw fails58 pixels/106 channels (max39) on NVIDIA, also with zero validation
+errors. Seven mismatches retain the seed scene color;51 change to a different
+color. This is one retained-input draw consumer, not an accepted live pose.
+
+Raw vertex compiler controls (ordinary port source, precise outputs, and an
+explicitly adapted retained original shader confined to the diagnostic folder)
+all reproduce the same NVIDIA58-pixel failure. Direct fetched bone-weight and
+index outputs match for all842 vertices. Isolated post-vertex readbacks and
+post-geometry readbacks give different residuals; the isolated readback alone
+is therefore insufficient to certify the actual draw. The original reference
+remains emulator output, with no physical Xbox framebuffer comparison.

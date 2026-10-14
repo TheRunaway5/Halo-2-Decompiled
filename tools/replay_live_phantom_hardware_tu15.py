@@ -107,10 +107,10 @@ harness_stack_end:
 '''
 
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--return-breakpoints',action='store_true');p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
  a.capture=a.capture.resolve();a.output=a.output.resolve();assert not a.output.exists();a.output.mkdir(parents=True)
  sha=lambda p:hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
- assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0x1da750,0x355d0,0x1e1170) and d['reference']=='English TU1.5 only'
+ assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0x1da750,0x355d0,0x1e1170,0x1cc8d0,0x14fec0,0xb8f40) and d['reference']=='English TU1.5 only'
  initial=d['before'];env=bytearray(108);tag=0xffff;top=(initial['x87_status']>>11)&7
  for n,value in enumerate(initial['x87_values']):
   raw=bytes.fromhex(value);mantissa=int.from_bytes(raw[:8],'little');exponent=int.from_bytes(raw[8:],'little')&0x7fff
@@ -132,8 +132,14 @@ def main():
  subprocess.run(['as','--32',str(a.output/'bridge.s'),'-o',str(a.output/'bridge.o')],check=True,capture_output=True)
  subprocess.run(['ld','-melf_i386','-T',str(a.output/'link.ld'),str(a.output/'bridge.o'),'-o',str(a.output/'original-hardware')],check=True,capture_output=True)
  symbols={line.split()[2]:int(line.split()[0],16) for line in subprocess.check_output(['nm',str(a.output/'original-hardware')],text=True).splitlines() if len(line.split())==3}
- tracer=ROOT/'tools/live_phantom_hardware_trace_tu15.cpp';subprocess.run(['c++','-std=c++20','-O2',str(tracer),'-o',str(a.output/'tracer')],check=True,capture_output=True)
- subprocess.run([str(a.output/'tracer'),str(a.output/'original-hardware'),str(a.output/'output.bin'),hex(d['return']),hex(symbols['capture']),hex(text.va+text.vsize),str(a.output/'trace.json')],check=True,timeout=60)
+ tracer=ROOT/('tools/live_physics_hardware_return_tu15.cpp' if a.return_breakpoints else 'tools/live_phantom_hardware_trace_tu15.cpp');subprocess.run(['c++','-std=c++20','-O2',str(tracer),'-o',str(a.output/'tracer')],check=True,capture_output=True)
+ trace_command=[str(a.output/'tracer'),str(a.output/'original-hardware'),str(a.output/'output.bin'),hex(d['return']),hex(symbols['capture']),hex(text.va+text.vsize),str(a.output/'trace.json')]
+ if a.return_breakpoints:
+  from oracle_smg_firing_1_1 import _Code
+  from generate_physics_live_support_tu15 import complete_body
+  code=_Code(image,'.text');body=complete_body(code,d['entry']);returns=[q for q in sorted(body.code) if code.at(q).mnemonic.startswith('ret')];assert 0<len(returns)<=4
+  trace_command.append(','.join(hex(q) for q in returns))
+ subprocess.run(trace_command,check=True,timeout=60)
  with (a.output/'output.bin').open('rb') as output:
   raw=output.read(276);assert len(raw)==276
   actual=dict(gp=list(struct.unpack_from('<8I',raw)),eflags=struct.unpack_from('<I',raw,32)[0],mxcsr=struct.unpack_from('<I',raw,36)[0],
@@ -156,7 +162,7 @@ def main():
   assert output.read(1)==b''
  trace=json.loads((a.output/'trace.json').read_text());report=dict(reference='English TU1.5 only',passed=not differences,original_instructions=trace['original_instructions'],compared_memory_bytes=compared,
   differences=differences,original_abi=actual,original_sha256=NEW_PIN,harness_sha256=sha(a.output/'original-hardware'),tracer_sha256=sha(tracer),
-  host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,entry=d['entry'],boundary='One real live physics call; unchanged original text, no replaced callee/result. All accessible final source bytes and GP/SSE/x87/FP controls/status compared.')
+  host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,return_breakpoint_observation=a.return_breakpoints,entry=d['entry'],boundary='One real live physics call; unchanged original text, no replaced callee/result. All accessible final source bytes and GP/SSE/x87/FP controls/status compared.')
  (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k!='original_abi'}));return 0 if report['passed'] else 1
 
 if __name__=='__main__':raise SystemExit(main())

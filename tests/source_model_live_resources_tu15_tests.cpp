@@ -11,6 +11,9 @@
 #include "halo2/source_geometry_lod.hpp"
 #include "halo2/source_camera.hpp"
 #include "halo2/model_selection.hpp"
+#include "halo2/source_dynamic_model_shaders.hpp"
+#include "halo2/object_lighting.hpp"
+#include "halo2/model.hpp"
 #include "halo2/content.hpp"
 #include <algorithm>
 #include <set>
@@ -316,9 +319,18 @@ int main(int argc,char**argv)try {
         for(auto& cluster:main_visible.clusters)cluster.counts[0]=1;
         SourceLiveModelBaseSelectionTu15 base_selection;
         std::vector<SourceLiveModelBaseDrawTu15> base_draws;
+        std::map<std::uint32_t,std::vector<Transform>> main_render_nodes;
         unsigned main_copies=0;
         auto main_context=view;
-        main_context.built=[&](const auto& collector){base_selection.remember(collector);};
+        main_context.built=[&](const auto& collector){
+            base_selection.remember(collector);const Bytes data(collector.bytes);
+            const auto count=std::bit_cast<std::int16_t>(data.u16(0x166));
+            if(count>5)throw FormatError("test main collector exceeds five original model owners");
+            for(int n=0;n<count;++n) {
+                const auto owner=data.u32(0x34+unsigned(n)*4);
+                if(auto nodes=world.rendered_world_nodes(owner))main_render_nodes.insert_or_assign(owner,std::move(*nodes));
+            }
+        };
         SourceEffectLightModelViewTu15 objects{world,world.admit_render_objects(main_visible,main_input),main_context,fog};
         objects.main_draws=[&](const auto& state){
             ++main_copies;base_draws=base_selection.copy(world,state);
@@ -329,6 +341,47 @@ int main(int argc,char**argv)try {
             view.entry.eye,view.draw.viewport,{640,480},1,&objects);
         if(packets.empty())throw FormatError("live model shared light frame produced no raw packets");
         if(main_copies!=1 || base_draws.empty())throw FormatError("live model frame lost its completed main-view handoff");
+        // The live biped/held-weapon consumer prepares every authored LOD, but
+        // submits only this completed original main selection and render pose.
+        const auto initial=cache.load_initial_model_definition(biped->datum);
+        auto shader_model=cache.load_model(biped->datum,true);
+        for(auto& material:shader_model.mesh.materials)if(!material.lods.empty() &&
+            !prepare_dynamic_material(cache,material,{},true,0.f))
+            throw FormatError("actual biped base has an unsupported ordinary material");
+        shader_model.mesh.vertices.clear();shader_model.vertex_origins.clear();
+        std::array<RenderModel,6> base_lods;
+        for(unsigned lod=0;lod<6;++lod) {
+            std::vector<unsigned> sections;
+            for(const auto& region:initial.render_sections)for(const auto& permutation:region)
+                if(permutation[lod]>=0 && std::find(sections.begin(),sections.end(),unsigned(permutation[lod]))==sections.end())
+                    sections.push_back(unsigned(permutation[lod]));
+            base_lods[lod]=cache.load_model_sections(biped->datum,false,0,lod,sections);
+            shader_model.mesh.vertices.insert(shader_model.mesh.vertices.end(),base_lods[lod].mesh.vertices.begin(),base_lods[lod].mesh.vertices.end());
+            shader_model.vertex_origins.insert(shader_model.vertex_origins.end(),base_lods[lod].vertex_origins.begin(),base_lods[lod].vertex_origins.end());
+        }
+        SourceDynamicModelShaders base_shaders(cache,shader_model,model->datum,2,0.f);
+        const auto policy=source_geometry_lod_policy(1);
+        const SourceModelShaderView shader_view{source_shader_coverage_camera(view.draw.rendering),
+            source_shader_lod_view(view.draw.viewport[0],view.draw.viewport[2],false,false),
+            policy.coverage_multiplier,policy.effect_scale,false};
+        std::map<std::uint32_t,std::vector<SourceLiveModelBaseDrawTu15>> selected_owners;
+        for(const auto& draw:base_draws)selected_owners[draw.object].push_back(draw);
+        std::map<std::uint32_t,std::vector<Vertex>> owned_bases;
+        for(const auto& [owner,selection]:selected_owners) {
+            auto vertices=source_live_model_base_vertices_tu15(owner,biped->datum,model->datum,selection,
+                base_lods,base_shaders,main_render_nodes.at(owner),shader_view);
+            if(!vertices || vertices->empty())throw FormatError("actual original biped main selection produced no owned CPU base");
+            owned_bases.emplace(owner,std::move(*vertices));
+            auto overridden=selection;overridden.back().override_slot=0;
+            if(source_live_model_base_vertices_tu15(owner,biped->datum,model->datum,overridden,
+                base_lods,base_shaders,main_render_nodes.at(owner),shader_view))
+                throw FormatError("source biped base admitted a partially unsupported override owner");
+            auto wrong=selection;wrong.back().definition^=0x10000u;bool identity_rejected=false;
+            try{(void)source_live_model_base_vertices_tu15(owner,biped->datum,model->datum,wrong,
+                base_lods,base_shaders,main_render_nodes.at(owner),shader_view);}catch(const FormatError&){identity_rejected=true;}
+            if(!identity_rejected)throw FormatError("source biped base accepted a stale full definition");
+        }
+        std::cout<<"Owned source biped bases: "<<owned_bases.size()<<" real owners, original selected LOD/coverage/render nodes, atomic override rejection\n";
         std::set<std::uint32_t> packet_owners;unsigned indices=0;
         for(const auto& packet:packets) {
             if(packet.source.owner().kind!=MenuWorldSourceOwnerKind::dynamic_object || !packet.source.owner().generation)

@@ -60,7 +60,7 @@ vec4 fetchStage3D(uint stage,vec3 p) {
 vec4 fetchStage2D(uint stage,vec2 p) {
     // Retail texture extern 3 is a linear render target: oT0 is in pixels.
     // Vulkan normalized sampling uses the dimensions of the actual target.
-    if(stage==0u && material.textureEffects[0].y==1u)p/=vec2(textureSize(diffuse,0));
+    if(stage==0u && (material.textureEffects[0].y&1u)!=0u)p/=vec2(textureSize(diffuse,0));
     if(stage==0u)return texture(diffuse,p);
     if(stage==1u)return texture(detail,p);
     if(stage==2u)return texture(bump,p);
@@ -73,6 +73,19 @@ vec4 fetchStage2D(uint stage,vec2 p) {
 // Outputs that the original program never writes retain initialized W=1.
 // Keep that constant through projected sampling instead of interpolating it.
 #define TEXTURE_COORDINATE_W(i) ((material.alphaTest.w&(1u<<(i)))!=0u ? 1.0 : stageCoordinates[i].w)
+vec4 fetchStageProjected2D(uint stage) {
+    vec3 p=vec3(stageCoordinates[stage].xy,TEXTURE_COORDINATE_W(stage));
+    // The retained TU1.5 shader normalizes linear-image S/T before
+    // textureProj divides by Q. Reversing those operations changes pixels.
+    if(stage==0u) {
+        if((material.textureEffects[0].y&1u)!=0u)p.xy/=vec2(textureSize(diffuse,0));
+        return textureProj(diffuse,p);
+    }
+    if(stage==1u)return textureProj(detail,p);
+    if(stage==2u)return textureProj(bump,p);
+    return textureProj(lightmap,p);
+}
+#define TEXTURE_PROJECTED_2D(i) fetchStageProjected2D(i)
 #include "texture_program.glsl"
 void textureAlphaKill(vec4 samples[4]) {
     // NV_PGRAPH_TEXCTL0_ALPHAKILLEN is bit 2 of the authored nibble. It

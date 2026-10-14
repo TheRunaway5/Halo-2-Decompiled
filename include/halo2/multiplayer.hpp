@@ -673,6 +673,10 @@ struct MultiplayerOptions {
   // Completed ordinary BLOC source base geometry and its actual light cache.
   std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
       bool,unsigned,std::span<const Vertex>)> prop_source_draw_observer;
+  // Submitted ordinary source-selected biped/corpse/held-weapon base geometry.
+  // The observer borrows this view's actual final vertices only during the call.
+  std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
+      bool,unsigned,std::span<const Vertex>)> unit_source_draw_observer;
   std::function<void(unsigned,std::uint32_t,std::uint32_t,std::uint32_t,
                      std::span<const Vertex>)> weapon_projectile_draw_observer;
   // Actual recorded MGS2 GPU commands and their per-view projected inputs.

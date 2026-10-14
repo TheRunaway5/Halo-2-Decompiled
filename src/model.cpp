@@ -105,6 +105,18 @@ RenderModel Cache::load_model_sections(std::uint32_t datum,bool textures,std::ui
   if(geometry_lod>5)throw FormatError("resident model section bank requires LOD0..5");
   return load_model_with_initial_selection(datum,textures,variant,nullptr,geometry_lod,sections);
 }
+std::uint32_t Cache::load_model_animation_graph(std::uint32_t datum) const {
+  const Bytes data(cache_bytes());
+  const auto find=[&](std::uint32_t id) {
+    const auto *tag=find_tag({id});
+    if(!tag||!tag->address)throw FormatError("missing render model tag");
+    return tag;
+  };
+  const auto *tag=find(datum);
+  if(tag->group!="mode"&&tag->group!="hlmt")
+    tag=find(data.u32(metadata_offset(tag->address,0x3c)+0x38));
+  return tag->group=="hlmt"?data.u32(metadata_offset(tag->address,0x58)+0x14):0xffffffffu;
+}
 RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool textures,
                               std::uint32_t variant,
                               const SourceInitialModelSelection* supplied_selection,
@@ -640,6 +652,10 @@ UnitAnimationDefinition Cache::load_source_unit_animation_definition(
 }
 AnimationClip Cache::load_animation(std::uint32_t datum,
                                     unsigned animation) const {
+  return load_animation(datum,animation,[this](auto pointer,auto bytes){return raw_data(pointer,bytes);});
+}
+AnimationClip Cache::load_animation(std::uint32_t datum,unsigned animation,
+                                    const AnimationResourceReader &resources) const {
   const Bytes data(cache_bytes());
   const auto* tag = find_tag({datum}, tag_groups::model_animation_graph);
   if (!tag || !tag->address)
@@ -681,7 +697,7 @@ AnimationClip Cache::load_animation(std::uint32_t datum,
       if(size) {
         const auto bytes=data.slice(resource,size);raw.assign(bytes.begin(),bytes.end());
       }
-    } else raw=raw_data(data.u32(g+8),data.u32(g+4));
+    } else raw=resources(data.u32(g+8),data.u32(g+4));
   }
   const Bytes b(raw);
   const auto words = (nodes.count + 31) / 32, mask_size = words * 4,
@@ -885,6 +901,12 @@ AnimationClip Cache::load_action(std::uint32_t datum, const std::string &mode,
                                  const std::string &weapon_class,
                                  const std::string &weapon_type,
                                  const std::string &action) const {
+  return load_action(datum,mode,weapon_class,weapon_type,action,
+      [this](auto pointer,auto bytes){return raw_data(pointer,bytes);});
+}
+AnimationClip Cache::load_action(std::uint32_t datum,const std::string &mode,
+                                 const std::string &weapon_class,const std::string &weapon_type,
+                                 const std::string &action,const AnimationResourceReader &resources) const {
   const Bytes data(cache_bytes());
   const auto* tag = find_tag({datum}, tag_groups::model_animation_graph);
   if (!tag || !tag->address)
@@ -912,7 +934,7 @@ AnimationClip Cache::load_action(std::uint32_t datum, const std::string &mode,
   const auto animation = i16(data, a + 6);
   if (animation < 0)
     throw FormatError("action has no animation");
-  auto clip = load_animation(graph, unsigned(animation));
+  auto clip = load_animation(graph, unsigned(animation),resources);
   clip.name = mode + ":" + weapon_class + ":" + weapon_type + ":" + action;
   return clip;
 }

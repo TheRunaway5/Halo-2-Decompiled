@@ -14,6 +14,27 @@ The owned English TU1.5 executable is pinned to
 Legacy correspondence IDs remain internal references in retained source modules.
 All new parity execution and acceptance validation target TU1.5.
 
+## Current live integration checkpoint (October14)
+
+All32 audited player-flag candidate placements now have bounded visible native
+multiplayer force/rise evidence. Eleven authored placements exclude players
+and still require their object/body cases. The original wheel carries a
+stationary player under actual source support flags and WORLD nodes.
+
+The original automatic/runtime birth caller distinction now reaches live
+Scene/Match/body construction. Colossus authored scripts produce three moving
+can generations over650 real UDP ticks. Complete355D0/1E1170 surface/query
+owners retain their real callees; actual captured calls match untouched
+TU1.5 i386 execution across396/102 instructions and60MB of source memory,
+within the documented host interrupt-flag limit. Visible conveyor and fresh
+post-change vehicle/camera/lifecycle regressions are in progress. See
+[the prop integration evidence](MP_RUNTIME_PROP_BIRTH_TU15_20261014.md).
+
+The full goal remains active. Linear carriers, remaining object fields,
+vehicle collision/damage/destruction and broader controller/solver branch
+coverage plus original quantitative trajectory/visual comparisons remain
+required. Historical checkpoints below retain their original evidence scope.
+
 ## Required coverage
 
 | Area | Required behavior and integration |

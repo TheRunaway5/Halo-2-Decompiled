@@ -160,6 +160,12 @@ std::array<std::uint32_t,2> Cache::load_weapon_animation_identifiers(std::uint32
 
 AnimationClip Cache::load_unit_weapon_action(std::uint32_t graph,std::uint32_t mode,
     std::uint32_t weapon_class,std::uint32_t weapon_type,std::uint32_t action,bool overlay) const {
+    return load_unit_weapon_action(graph,mode,weapon_class,weapon_type,action,overlay,
+        [this](auto pointer,auto bytes){return raw_data(pointer,bytes);});
+}
+AnimationClip Cache::load_unit_weapon_action(std::uint32_t graph,std::uint32_t mode,
+    std::uint32_t weapon_class,std::uint32_t weapon_type,std::uint32_t action,bool overlay,
+    const AnimationResourceReader &resources) const {
     const auto tag=query_tag({.handle=TagHandle{graph}, .group=tag_groups::model_animation_graph, .require_address=true});
     if(!tag)throw FormatError("unit action animation graph missing");
     if(weapon_class==0xffffffffu)throw FormatError("unit action has no weapon class");
@@ -191,7 +197,7 @@ AnimationClip Cache::load_unit_weapon_action(std::uint32_t graph,std::uint32_t m
             if(inheritance<0 || std::size_t(inheritance)>=inherited.count)throw FormatError("unit action inherited graph outside list");
             resolved_graph=data.u32(inherited.offset+std::size_t(inheritance)*32+4);
         }
-        return load_animation(resolved_graph,unsigned(index));
+        return load_animation(resolved_graph,unsigned(index),resources);
      }
     }
     throw FormatError("authored unit weapon action missing: "+string_id(action));

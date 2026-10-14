@@ -10,8 +10,8 @@ does not cover every dynamically spawned object type or BSP force owner.
 Evidence: [data inventory](../analysis/multiplayer/physics-live-tu15-20261012/all-map-placed-phantom-inventory-v327.json).
 The source reader is `tools/audit_multiplayer_phantom_fields_tu15.py`.
 
-Visible native player-field coverage currently includes 28 placements across
-13 map-local definitions. Each retained case has exact native UDP snapshot
+Visible native player-field coverage now includes 32 placements across
+16 map-local definitions. Each retained case has exact native UDP snapshot
 comparison, actual original force delivery and stable executable/live mirror
 proof. See [placement results](MP_LIFT_PLACEMENTS_TU15_20261014.md). These are
 bounded integration results, not full original retail trajectory parity.

@@ -50,7 +50,7 @@ def main():
     generate(args, paired, complete_listings=True)
     text = args.output.read_text().replace('halo2/physics_live_support_tu15.hpp',
         'halo2/source_renderer_resource_storage_tu15.hpp').replace('source_run_physics_live_support_tu15',
-        'source_run_renderer_pool_tu15').replace('source_physics_live_support_tu15_owns_entry',
+        'source_run_renderer_resource_storage_tu15').replace('source_physics_live_support_tu15_owns_entry',
         'source_renderer_resource_storage_tu15_owns_entry')
     args.output.write_text(text)
     report = json.loads(args.manifest.read_text())

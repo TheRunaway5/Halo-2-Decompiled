@@ -4,6 +4,7 @@
 #include "halo2/native_weapon_inventory.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/prop_sandbox.hpp"
+#include "halo2/source_runtime_resources.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -72,18 +73,23 @@ NativeMeleeHit query_native_melee(Vec3 origin,Vec3 aim,Vec3 pyramid,
   return result;
 }
 NativeMeleeAnimation::NativeMeleeAnimation(std::shared_ptr<const Cache> cache,const LevelContent &content,NativeMeleeConstants c)
-    :cache_(std::move(cache)),constants_(c),movement_forward_(content.movement.forward) {
+    :NativeMeleeAnimation(cache,content,c,cache&&!cache->is_vista()&&!cache->is_mcc()?
+        std::make_shared<const SourceRuntimeResources>(*cache):nullptr) {}
+NativeMeleeAnimation::NativeMeleeAnimation(std::shared_ptr<const Cache> cache,const LevelContent &content,
+    NativeMeleeConstants c,std::shared_ptr<const SourceRuntimeResources> resources)
+    :cache_(std::move(cache)),resources_(std::move(resources)),constants_(c),movement_forward_(content.movement.forward) {
   for(unsigned i=2;i<content.player_representations.size();++i)
     if(content.player_representations[i].biped.datum!=null_datum) {
       const auto datum=content.player_representations[i].biped.datum;
-      representations_.emplace(datum,int(i));graphs_.emplace(datum,cache_->load_model(datum,false).animation);
+      representations_.emplace(datum,int(i));graphs_.emplace(datum,cache_->load_model_animation_graph(datum));
     }
 }
 NativeMeleeAnimation::AuthorityDigest NativeMeleeAnimation::authority_binding()const {
-  return world_continuation::melee_binding(*cache_,constants_,movement_forward_,representations_,graphs_);
+  if(!resources_)throw FormatError("Melee source continuation requires pinned Xbox resources");
+  return world_continuation::melee_binding(resources_->identity(),constants_,movement_forward_,representations_,graphs_);
 }
 std::shared_ptr<NativeMeleeAnimation> NativeMeleeAnimation::prepare_authority_owner(const LevelContent &content,AuthorityDigest expected)const {
-  auto next=std::make_shared<NativeMeleeAnimation>(cache_,content,constants_);
+  auto next=std::shared_ptr<NativeMeleeAnimation>(new NativeMeleeAnimation(cache_,content,constants_,resources_));
   if(next->authority_binding()!=expected)throw FormatError("Melee continuation has different local immutable inputs");
   return next;
 }
@@ -130,13 +136,15 @@ std::shared_ptr<const PropAreaDamageDefinition> NativeMeleeAnimation::damage_def
 }
 bool NativeMeleeAnimation::begin(Unit &u,int kind,std::uint32_t tick,std::uint32_t &rng,
     const std::function<void(std::uint32_t)> &publish) {
+  const Cache::AnimationResourceReader resources=[this](auto pointer,auto bytes){
+    return resources_?resources_->load(pointer,bytes):cache_->load_source_runtime_resource(pointer,bytes);};
   const auto representation=representations_.find(u.definition.datum);
   if(representation==representations_.end())return false;
   const bool dual=native_hand_weapon(u,1)!=nullptr;
   const FirstPersonBindingDefinition *binding=nullptr;
   if(u.weapon.definition!=null_datum) {
     auto [entry,inserted]=bindings_.try_emplace(std::tuple(u.weapon.definition,representation->second,dual));
-    if(inserted)entry->second=cache_->load_first_person_binding(u.weapon.definition,representation->second);
+    if(inserted)entry->second=cache_->load_first_person_binding(u.weapon.definition,representation->second,resources);
     binding=&entry->second;
   }
   const auto find=[&](std::uint32_t activity)->const FirstPersonClockClip * {
@@ -161,7 +169,7 @@ bool NativeMeleeAnimation::begin(Unit &u,int kind,std::uint32_t tick,std::uint32
   for(const auto requested:{activity,0x0e000607u,0x0500000au}) {
     try {
       body=cache_->load_unit_weapon_action(graphs_.at(u.definition.datum),u.crouch>.5f?0x06000087:0x06000086,
-          dual?0x0400054b:identifiers[0],identifiers[1],requested,true);break;
+          dual?0x0400054b:identifiers[0],identifiers[1],requested,true,resources);break;
     }catch(const FormatError &e) {
       if(!std::string_view(e.what()).starts_with("authored unit weapon action missing:"))throw;
     }

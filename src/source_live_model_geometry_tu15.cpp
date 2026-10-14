@@ -22,6 +22,8 @@ std::optional<std::vector<Vertex>> source_live_model_base_vertices_tu15(
         if(draw.unit.words[1]!=render_model || draw.lighting_class!=2 ||
            draw.override_slot!=255 || !(draw.unit.words[0]&1u))return std::nullopt;
         if(draw.lod>=6)throw FormatError("source unit base selected a LOD outside its six banks");
+        if(draw.lod!=draws.front().lod)
+            throw FormatError("source unit base changed LOD within one completed owner");
         const auto& model=lods[draw.lod];
         if(nodes.size()!=model.bones.size())
             throw FormatError("source unit base lacks its completed render WORLD hierarchy");

@@ -101,6 +101,10 @@ std::int32_t first_person_weapon_view(std::span<const FirstPersonViewBinding> vi
 }
 
 FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weapon,std::int32_t selector) const {
+  return load_first_person_binding(weapon,selector,[this](auto pointer,auto bytes){return raw_data(pointer,bytes);});
+}
+FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weapon,std::int32_t selector,
+    const AnimationResourceReader &resources) const {
   FirstPersonBindingDefinition result;result.weapon_definition=weapon;result.representation=selector;
   const Bytes data(cache_bytes());
   const auto root=[&](std::uint32_t id,const char *group,std::size_t size) {
@@ -137,7 +141,7 @@ FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weap
   const auto [graph_node_count,graph_node_base]=records(root(result.graph,"jmad",0x14)+0xc,0x20,255);
   for(std::size_t i=0;i<graph_node_count;++i)
     result.graph_node_flags.push_back(std::uint8_t(data.u16(graph_node_base+i*0x20+10)));
-  const auto idle=load_action(result.graph,"any","any","any","idle");
+  const auto idle=load_action(result.graph,"any","any","any","idle",resources);
   if(idle.source_graph!=result.graph)throw FormatError("Inherited first-person idle is outside recovered binding scope");
   result.idle_index=idle.source_index;
   result.continuous_fire_animation=(data.u32(root(weapon,"weap",0x130)+0x12c)&(1u<<17))!=0;
@@ -159,7 +163,7 @@ FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weap
     AnimationClip selected;
     //1CF470 retains the ordered class/type fallbacks for dual actions too.
     try {selected=load_unit_weapon_action(result.graph,0x030000d9,
-        dual?0x0400054b:0x030000d9,0x030000d9,activity);}
+        dual?0x0400054b:0x030000d9,0x030000d9,activity,false,resources);}
     catch(const FormatError &) {if(activity==0x0400000c && !dual)throw;continue;}
     if(selected.source_graph!=result.graph || selected.source_index>=clip_count)
       throw FormatError("Inherited first-person clock is outside recovered scope");
@@ -196,7 +200,7 @@ FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weap
   // The original ordered fallback searches the overlay bank, not base actions.
   for(unsigned dual=0;dual<2;++dual) {
     try {result.ammunition[dual]=load_unit_weapon_action(result.graph,0x030000d9u,
-        dual?0x0400054bu:0x030000d9u,0x030000d9u,0x0a000069u,true);}
+        dual?0x0400054bu:0x030000d9u,0x030000d9u,0x0a000069u,true,resources);}
     catch(const FormatError &e) {
       if(std::string(e.what())!="authored unit weapon action missing: "+string_id(0x0a000069u))throw;
     }

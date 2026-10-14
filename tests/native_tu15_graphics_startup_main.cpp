@@ -1,5 +1,6 @@
 #include "helpers/native_tu15_startup_test.hpp"
 #include "halo2/renderer.hpp"
+#include "helpers/native_tu15_coordinate_gpu.hpp"
 #include <cstdlib>
 #include <chrono>
 #include <fstream>
@@ -10,12 +11,13 @@ int main(int argc,char** argv)try {
     if(SDL_Init(SDL_INIT_VIDEO)!=0)throw std::runtime_error(SDL_GetError());
     auto* window=SDL_CreateWindow("Native TU1.5 graphics startup",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
     if(!window)throw std::runtime_error(SDL_GetError());
-    int result;bool palette_probe=false,palette_temporary=false,depth_probe=false;
-    nlohmann::json depth_samples=nlohmann::json::array();
+    int result;bool palette_probe=false,palette_temporary=false,depth_probe=false,coordinate_probe=false;unsigned coordinate_base=0;
+    nlohmann::json depth_samples=nlohmann::json::array(),coordinate_samples=nlohmann::json::array();
     std::filesystem::path capture_path,palette_output;
     for(int i=1;i+1<argc;i+=2) {
-        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-palette" || std::string_view(argv[i+1])=="graphics-constants" || std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output"))palette_probe=true;
-        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output"))depth_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-palette" || std::string_view(argv[i+1])=="graphics-constants" || std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output" || std::string_view(argv[i+1])=="graphics-coordinates"))palette_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output" || std::string_view(argv[i+1])=="graphics-coordinates"))depth_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && std::string_view(argv[i+1])=="graphics-coordinates")coordinate_probe=true;
         if(std::string_view(argv[i])=="--capture")capture_path=argv[i+1];
     }
     if(palette_probe) {
@@ -27,7 +29,7 @@ int main(int argc,char** argv)try {
     }
     if(depth_probe && SDL_setenv("HALO2_DEPTH_DIAGNOSTICS","1",1))throw std::runtime_error("Cannot enable actual depth readback");
     std::ostringstream diagnostics;auto* previous=std::cerr.rdbuf(diagnostics.rdbuf());
-    std::string gpu;halo2::RendererDeviceLease observed;halo2::RendererPaletteFactory observed_palettes;halo2::RendererConstantMode observed_constants;halo2::RendererDepthMode observed_depth;halo2::RendererOutputState observed_output;
+    std::string gpu;halo2::RendererDeviceLease observed;halo2::RendererPaletteFactory observed_palettes;halo2::RendererConstantMode observed_constants;halo2::RendererDepthMode observed_depth;halo2::RendererOutputState observed_output;halo2::RendererTextureCoordinates observed_coordinates;
     try {
         halo2::Mesh mesh;halo2::Material material;
         halo2::BspAtmosphere depth_atmosphere;
@@ -42,6 +44,7 @@ int main(int argc,char** argv)try {
         }
         if(palette_probe)mesh.vertices={{{4,-2,-1},{1,1,1},{0,0},0},
             {{4,2,-1},{1,1,1},{0,0},0},{{4,0,2},{1,1,1},{0,0},0}};
+        if(coordinate_probe)coordinate_base=halo2_test::append_coordinate_probe(mesh);
         const auto* selected=std::getenv("HALO2_NATIVE_GPU_SHADER_DIR");
         halo2::Renderer renderer(window,mesh,true,{},nullptr,{},nullptr,
             selected?std::filesystem::path(selected):std::filesystem::path{});
@@ -54,10 +57,11 @@ int main(int argc,char** argv)try {
         auto constants=renderer.constant_mode_control();observed_constants=constants;
         auto depth=renderer.depth_mode_control();observed_depth=depth;
         auto output=renderer.output_state_control();observed_output=output;
+        auto coordinates=renderer.texture_coordinate_control();observed_coordinates=coordinates;
         halo2::Camera camera;camera.field_of_view=60;
         if(palette_probe && !renderer.draw(camera,palette_output/"before.ppm"))
             throw std::runtime_error("Native palette baseline draw failed");
-        result=halo2::run_native_tu15_startup_test(argc,argv,std::move(lease),palettes,constants,depth,output);
+        result=halo2::run_native_tu15_startup_test(argc,argv,std::move(lease),palettes,constants,depth,output,coordinates);
         if(!result && palette_probe) {
             for(unsigned stage=0;stage<4;++stage)if(!palettes.bound(stage).valid())
                 throw std::runtime_error("Native palette stage has no live renderer color resource");
@@ -103,9 +107,11 @@ int main(int argc,char** argv)try {
                     {"case",n?"far W rejected":"equal W accepted"},{"pixel",{320,240}}});
             }
         }
+        if(!result && coordinate_probe)coordinate_samples=halo2_test::coordinate_gpu_probe(renderer,coordinate_base,palette_output);
     }catch(...) {std::cerr.rdbuf(previous);std::cerr<<diagnostics.str();SDL_DestroyWindow(window);SDL_Quit();throw;}
     std::cerr.rdbuf(previous);std::cerr<<diagnostics.str();
     SDL_DestroyWindow(window);SDL_Quit();
+    if(observed_coordinates.valid())throw std::runtime_error("Departed renderer retained a live coordinate control");
     if(observed_output.valid())throw std::runtime_error("Departed renderer retained a live output-state control");
     if(observed_depth.valid())throw std::runtime_error("Departed renderer retained a live depth-mode control");
     if(observed_constants.valid())throw std::runtime_error("Departed renderer retained a live constant-mode control");
@@ -123,6 +129,7 @@ int main(int argc,char** argv)try {
             report["native_palette_gpu_images"]=palette_output.string();
         }
         if(depth_probe) {report["native_depth_gpu_samples"]=depth_samples;report["native_depth_gpu_attachment_and_occlusion_verified"]=true;report["native_depth_control_retirement_verified"]=true;}
+        if(coordinate_probe) {report["native_coordinate_gpu_samples"]=coordinate_samples;report["native_coordinate_gpu_stage_identity_verified"]=true;report["native_coordinate_control_retirement_verified"]=true;}
         report["native_output_control_retirement_verified"]=true;
         report["native_gpu_name"]=gpu;report["native_renderer_retirement_verified"]=true;report["native_constant_control_retirement_verified"]=true;
         std::ofstream output(argv[i+1]);output<<report.dump(2)<<'\n';

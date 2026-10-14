@@ -6,6 +6,7 @@
 #include "halo2/source_collision_instance_storage_tu15.hpp"
 #include "halo2/source_collision_query_tu15.hpp"
 #include "halo2/source_conveyor_tu15.hpp"
+#include "halo2/source_physics_entry_observation.hpp"
 #include "halo2/source_vehicle_occupancy_tu15.hpp"
 #include "halo2/source_model_render_tu15.hpp"
 #include "halo2/source_object_render_entry.hpp"
@@ -1038,6 +1039,7 @@ struct PhysicsLiveWorldTu15::Impl {
         Execution execution(*this);
         if(std::this_thread::get_id()!=main_thread)
             throw FormatError("TU1.5 live entry requires its retained executor thread");
+        SourcePhysicsEntryObservation diagnostic(bank,entry,[&]{return a;});
         try {
             required(bank,{entry,entry,false},a,o?o:physics_store_observer);
         }catch(const std::exception&e) {

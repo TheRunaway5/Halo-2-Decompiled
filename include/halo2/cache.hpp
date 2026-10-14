@@ -325,9 +325,15 @@ struct SourceRuntimeCacheBspImage;
 struct SourceRuntimeCacheAnimationImage;
 class Cache {
 public:
+    using AnimationResourceReader=std::function<std::vector<std::byte>(std::uint32_t,std::uint32_t)>;
+    // The same object -> hlmt -> jmad operand used by load_model, without
+    // reading unrelated mesh resources merely to select an animation graph.
+    std::uint32_t load_model_animation_graph(std::uint32_t datum) const;
     PickupCapsuleDefinition load_pickup_capsule_definition(std::uint32_t biped) const;
     FirstPersonBindingDefinition load_first_person_binding(std::uint32_t weapon,
         std::int32_t representation) const;
+    FirstPersonBindingDefinition load_first_person_binding(std::uint32_t weapon,
+        std::int32_t representation,const AnimationResourceReader &) const;
     explicit Cache(const std::filesystem::path& path,
                    const std::filesystem::path& shared_directory = {},
                    std::shared_ptr<const OriginalData> gameplay_data = {});
@@ -464,6 +470,9 @@ public:
     AnimationClip load_unit_weapon_action(std::uint32_t graph, std::uint32_t mode,
         std::uint32_t weapon_class, std::uint32_t weapon_type,
         std::uint32_t action, bool overlay=false) const;
+    AnimationClip load_unit_weapon_action(std::uint32_t graph, std::uint32_t mode,
+        std::uint32_t weapon_class, std::uint32_t weapon_type,
+        std::uint32_t action, bool overlay,const AnimationResourceReader &) const;
     std::array<Vec3,4> load_object_colors(std::uint32_t datum,
                                         std::uint32_t variant = 0) const;
     SourceObjectColorDefinition load_source_object_color_definition(std::uint32_t datum) const;
@@ -511,6 +520,9 @@ public:
     std::vector<PredictedResource> object_resources(std::uint32_t datum) const;
     std::vector<std::vector<std::byte>> load_bsp_resources(std::size_t index) const;
     AnimationClip load_animation(std::uint32_t datum, unsigned animation) const;
+    // Complete animation lookup can read from an admitted immutable resource
+    // owner. Resident metadata and authored fallback order remain this Cache's.
+    AnimationClip load_animation(std::uint32_t datum,unsigned animation,const AnimationResourceReader &) const;
     // Literal retained-channel metadata. The packed low signed short selects
     // an inherited graph; the high signed short selects its animation. This
     // imports event records, without decoding resources or choosing a clip.
@@ -570,6 +582,9 @@ public:
     AnimationClip load_action(std::uint32_t graph, const std::string &mode,
         const std::string &weapon_class, const std::string &weapon_type,
         const std::string &action) const;
+    AnimationClip load_action(std::uint32_t graph,const std::string &mode,
+        const std::string &weapon_class,const std::string &weapon_type,
+        const std::string &action,const AnimationResourceReader &) const;
     std::string string_id(std::uint32_t id) const;
     FrontendContent load_frontend() const;
     HudContent load_hud(std::uint32_t biped, std::uint32_t weapon) const;

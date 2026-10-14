@@ -350,7 +350,7 @@ if(s.services.instruction){s.services.instruction(0x1d68fu);} s.pop();s.gp[4]+=0
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 } // namespace
-void source_run_renderer_pool_tu15(M &m,std::uint32_t entry,
+void source_run_renderer_resource_storage_tu15(M &m,std::uint32_t entry,
     SourcePhysicsContactRuntimeAbi &abi,FP fp,
     const SourcePhysicsContactRuntimeServices &services,const O &observe) {
     constexpr auto image=SourcePhysicsContactImage::TitleUpdate15;

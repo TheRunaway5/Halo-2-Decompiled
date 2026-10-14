@@ -26,7 +26,7 @@ Bytes block(const Cache &cache,const SourceTagMetadata &,const Bytes &root,std::
 struct SourceMapEffects::Impl {
     struct Attachment {
         std::uint32_t effect{},function_a{},function_b{};
-        std::uint16_t slot{};std::string marker;bool prepared{},source_damage_only{};
+        std::uint16_t slot{};std::string marker;bool prepared{},partial{},source_damage_only{};
     };
     struct Placement {
         std::uint32_t definition{};
@@ -73,14 +73,14 @@ struct SourceMapEffects::Impl {
                     const auto locations=block(c,effect,definition,0xc,4);
                     for(unsigned j=0;j<definition.u32(0xc);++j) {
                         auto location=locations.u32(j*4);
-                        if(location==0x0700054eu)location=marker; //178360's literal marker alias.
+                        if(location==0x0700054eu)location=marker; //17B2EC's literal replace alias.
                         if(location)names.insert(location);
                     }
                     // Pure jpt! graphs already execute through the actual
                     //17D730 ->D91D0 world owner. Bind that completed allocation
                     //without a second native event clock, RNG or damage owner.
                     const auto events=block(c,effect,definition,0x14,0x38);
-                    bool damage_parts{},visual_parts{},particle_systems{};
+                    bool damage_parts{},visual_parts{},particle_systems{},partial_lens{};
                     for(unsigned j=0;j<definition.u32(0x14);++j) {
                         particle_systems=particle_systems || events.u32(j*0x38+0x30)!=0;
                         const auto parts=block(c,effect,events,j*0x38+0x18,0x38);
@@ -89,17 +89,20 @@ struct SourceMapEffects::Impl {
                             if(parts.u32(k*0x38+0x10)==none)continue;
                             if(group==0x6a707421u)damage_parts=true;
                             else if(group==0x736e6421u || group==0x6c696768u || group==0x64656361u)visual_parts=true;
-                            else if(group==0x6c656e73u)
-                                throw FormatError("Map attachment lens part requires original rendering/admission evidence");
+                            else if(group==0x6c656e73u)partial_lens=true;
                             else
                                 throw FormatError("Map attachment requires its original nonvisual part owner");
                         }
                     }
-                    if(damage_parts && (visual_parts || particle_systems))
+                    if(damage_parts && (visual_parts || particle_systems || partial_lens))
                         throw FormatError("Mixed map damage effect requires its completed original part/presentation ownership");
+                    if(partial_lens && !visual_parts && !particle_systems)
+                        throw FormatError("Map attachment lens part has no supported visual components");
                     attachment.source_damage_only=damage_parts;
                     if(!damage_parts)e.preload_attached(attachment.effect);
-                    attachment.prepared=true;++counts.prepared;
+                    attachment.prepared=!partial_lens;attachment.partial=partial_lens;
+                    if(attachment.prepared)++counts.prepared;
+                    else gaps.insert(name+": Lens part requires its original render owner; supported authored components are prepared separately");
                 }catch(const FormatError &error){gaps.insert(name+": "+error.what());}
                 placement.attachments.push_back(std::move(attachment));
             }
@@ -151,7 +154,7 @@ void SourceMapEffects::synchronize(std::span<const SourceSceneEffectOwner> owner
         }
         i.effects.object_markers(owner.object,std::move(markers));
         const auto scales=source_map_effect_unnamed_functions();
-        for(const auto &attachment:at->second.attachments)if(attachment.prepared) {
+        for(const auto &attachment:at->second.attachments)if(attachment.prepared || attachment.partial) {
             if(attachment.function_a || attachment.function_b || attachment.source_damage_only) {
                 const auto current=source.find(owner.object);
                 if(current==source.end()) {
