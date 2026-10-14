@@ -45,9 +45,9 @@ bool source_zoom_update(UnitZoomState &,const UnitZoomContext &,bool update_enab
 void source_zoom_reset(UnitZoomState &);
 // C6C50 composes this bit into each equipped hand's 1045E0 input argument.
 std::uint16_t source_zoom_weapon_input(std::uint16_t other_flags,const UnitZoomState &);
-// C9BE0 binocular arithmetic and 105240's one-level weapon branch. A valid
-// multi-level weapon needs the original CRT power consumer, which is unported;
-// nullopt explicitly preserves that boundary. This does not calculate camera FOV.
+// C9BE0 binocular arithmetic and105240's authored one/two-level optics.
+// More than two levels still require the general CRT power consumer and return
+// nullopt. This does not calculate camera FOV.
 std::optional<float> source_zoom_magnification(std::int16_t current,
     const ZoomWeaponView *primary,const BinocularZoomDefinition &);
 // Original13B09A HUD prefix: CURRENT is a signed source byte, independent of

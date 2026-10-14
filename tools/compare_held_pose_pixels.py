@@ -40,6 +40,9 @@ def main():
     parser.add_argument('--rectangle', type=int, nargs=4, required=True,
                         metavar=('TOP', 'LEFT', 'BOTTOM', 'RIGHT'))
     parser.add_argument('--original-gl-flip-y', action='store_true')
+    parser.add_argument('--native-rectangle', type=int, nargs=4,
+                        metavar=('TOP', 'LEFT', 'BOTTOM', 'RIGHT'),
+                        help='Declared native viewport in a complete framebuffer')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     assert not args.output.exists()
@@ -56,6 +59,11 @@ def main():
     assert 0 <= left < right <= original.shape[1]
     original = original[top:bottom, left:right]
     native = np.asarray(Image.open(args.native).convert('RGB'))
+    if args.native_rectangle:
+        ntop,nleft,nbottom,nright=args.native_rectangle
+        assert 0 <= ntop < nbottom <= native.shape[0]
+        assert 0 <= nleft < nright <= native.shape[1]
+        native=native[ntop:nbottom,nleft:nright]
     raw_mask = np.asarray(Image.open(args.coverage/'original.png').convert('L'))
     assert np.all((raw_mask == 0) | (raw_mask == 255)), 'Coverage mask is not binary'
     mask = raw_mask == 255
@@ -73,6 +81,7 @@ def main():
     inputs = [args.original, args.native, args.coverage/'receipt.json', args.coverage/'original.png']
     result.update(scope='Strict RGB comparison for one retained render-input replay',
         source_rectangle=args.rectangle, original_gl_flip_y=args.original_gl_flip_y,
+        native_rectangle=args.native_rectangle,
         tolerance=0, resizing=False, alignment=False, color_adjustment=False,
         independent_animation_checked=False, physical_xbox_capture=False,
         pixel_acceptance=False,

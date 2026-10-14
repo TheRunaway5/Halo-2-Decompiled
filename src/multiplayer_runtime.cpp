@@ -49,6 +49,7 @@
 #include "halo2/source_portal_mask.hpp"
 #include "halo2/source_bsp_admission.hpp"
 #include "halo2/source_match_authority.hpp"
+#include "halo2/source_authority_receiver.hpp"
 #include "halo2/source_bsp_shader_scene.hpp"
 #include "halo2/source_bsp_resident_plan.hpp"
 #include "halo2/source_dynamic_model_shaders.hpp"
@@ -362,6 +363,16 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       }
     }
   };
+  std::unique_ptr<SourceAuthorityReceiver> source_receiver;
+  if(options.online_match&&client&&cache.original_data()&&
+      cache.original_data()->image==OriginalData::Image::TitleUpdate15&&rules.custom==CustomSlayer::none)
+    source_receiver=std::make_unique<SourceAuthorityReceiver>(options);
+  std::string source_receiver_error;
+  const auto receive_native_source_world=[&]{
+    if(!source_receiver)return;
+    source_receiver->update();const auto error=source_receiver->state().error;
+    if(!error.empty()&&error!=source_receiver_error){source_receiver_error=error;std::cerr<<"Source shadow unavailable: "<<error<<'\n';}
+  };
   std::array<Controls, multiplayer_capacity> controls{};
   for (auto id : ids)
     controls[id].yaw = match.unit(id).yaw;
@@ -580,6 +591,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       std::function<void(Material&)> expand=[&](Material& material) {
         const auto texture=[](Texture& image) {
           if(image.format>=14 && image.format<=16)image=prepare_xemu_bc_texture(image);
+          held_pose_shading_reference_texture(image);
         };
         texture(material.diffuse);texture(material.detail);texture(material.bump);texture(material.auxiliary);
         for(auto& stage:material.animated_textures)for(auto& frame:stage)texture(frame);
@@ -1412,7 +1424,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     // No world ticks before every real participant has been admitted.
     for(;;) {
       if(host) { host->receive(controls);publish_native_source_players();host->broadcast(); }
-      if(client) { client->send(std::span(neutral).first(options.local_players));client->receive(); }
+      if(client) { client->send(std::span(neutral).first(options.local_players));client->receive();receive_native_source_world(); }
       const auto admission_state=client?client->state():match.state();
       const bool admitted=(!client || client->ready()) &&
           std::count_if(admission_state.players.begin(),admission_state.players.end(),[](const auto &p){return p.connected;})==int(options.online_match->roster().size());
@@ -2480,7 +2492,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       while(panel.take_request())panel.status("Gameplay debug controls are available in local sessions.");
     }
     if (client) {
-      client->receive();
+      client->receive();receive_native_source_world();
       if (!client->error().empty())
         throw FormatError(client->error());
       if (client->ready()) {
@@ -2626,7 +2638,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         for(unsigned view=0;view<ids.size();++view) {
           const auto &player=current.players[ids[view]];
           const auto weapon=content.weapons.find(player.weapon);
-          if(player.source_unit!=null_datum && weapon!=content.weapons.end() && weapon->second.smg) {
+          if(player.source_unit!=null_datum && weapon!=content.weapons.end()) {
             const std::array<std::int16_t,1> modes{player.source_zoom_magazine_mode};
             const ZoomWeaponView primary{weapon->second.zoom,modes};
             if(!source_zoom_admitted({player.source_parent,player.source_action_word,{&primary,nullptr}}))
@@ -2636,7 +2648,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         for(unsigned view=0;view<ids.size();++view)if(((view==keyboard_view && input.actions.scope_pressed)||pad_zoom_pending[view]) && current.players[ids[view]].secondary_weapon.datum==null_datum) {
           const auto &player=current.players[ids[view]];
           const auto weapon=content.weapons.find(player.weapon);
-          if(scope_constants && content.binocular_zoom && weapon!=content.weapons.end() && weapon->second.smg) {
+          if(scope_constants && content.binocular_zoom && weapon!=content.weapons.end()) {
             // C9CC0 reads the retained local-view selector. Runtime magazine
             // mode stays authoritative; producer admission is handled below.
             const std::array<std::int16_t,1> modes{player.source_zoom_magazine_mode};
@@ -3177,7 +3189,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       float horizontal_fov=biped.camera_field_of_view;
       if(scope_constants && content.binocular_zoom && !reference_player) {
         const auto selected=content.weapons.find(p.weapon);
-        if(selected!=content.weapons.end() && selected->second.smg) {
+        if(selected!=content.weapons.end()) {
           const std::array<std::int16_t,1> modes{current.players[id].source_zoom_magazine_mode};
           const ZoomWeaponView primary{selected->second.zoom,modes};
           const auto magnification=source_zoom_magnification(view_zoom[i],&primary,*content.binocular_zoom);
@@ -3268,7 +3280,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       auto viewport_layout=hud_viewport(options.local_players,i,widescreen,split);
 #ifdef HALO2_HELD_POSE_SHADING_REFERENCE
       const auto retained_safe=held_pose_shading_reference_safe_rectangle();
+      const auto retained_outer=held_pose_shading_reference_outer_rectangle();
       const float scale_x=640.f/float(drawable_w),scale_y=480.f/float(drawable_h);
+      viewport_layout.outer={.top=retained_outer.top*scale_y,.left=retained_outer.left*scale_x,
+          .bottom=(retained_outer.top+retained_outer.height)*scale_y,
+          .right=(retained_outer.left+retained_outer.width)*scale_x};
       viewport_layout.safe={.top=retained_safe.top*scale_y,.left=retained_safe.left*scale_x,
           .bottom=(retained_safe.top+retained_safe.height)*scale_y,
           .right=(retained_safe.left+retained_safe.width)*scale_x};

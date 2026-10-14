@@ -438,3 +438,15 @@ Published files pass current-root syntax checks while preserving six concurrent
 header changes. Source campaign Simulation/HS integration, actual NPC birth and
 all remaining mission/BSP/checkpoint paths stay open; the goal remains active.
 [AI lifecycle results](../analysis/tags/gameplay-validation-20261014/campaign-ai-world-startup/RESULTS.md).
+
+The private AI/HS integration proof now completes original counted placement of
+Cairo's authored Johnson squad, validates actual actor/unit/command/HS-thread
+bindings, restores whole authority with correctly staged pool views, and passes
+an ordinary campaign AI/object tick. It recovers 55 complete original routines
+and reuses three existing frame helpers without duplicate generated bodies.
+The accepted serial job peaks at 62,914,560 bytes with zero swap.
+
+This backend remains isolated from root pending a clean public interface and
+broader validation. The legacy campaign runner still has 14 required-owner entry
+failures; no new full mission, broad actor matrix or console-parity claim is made.
+The full campaign goal remains active. [Private AI/HS proof](../analysis/tags/gameplay-validation-20261014/campaign-ai-script-entry/RESULTS.md).

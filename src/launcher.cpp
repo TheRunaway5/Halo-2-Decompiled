@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <cerrno>
+#include <cctype>
 #include <cstring>
 #include <cstdlib>
 #include <filesystem>
@@ -190,6 +191,46 @@ int prepare_sources(const Installation &installation,const std::string &mcc,bool
   if(!mcc.empty())arguments.insert(arguments.end(),{"--mcc-root",mcc});
   return run_tool(std::move(arguments));
 }
+void preview_arguments(std::vector<std::string> &arguments,const Installation &installation,const AssetSources &sources) {
+  for(std::size_t i=0;i<arguments.size();++i) {
+    const auto option=arguments[i];
+    if(option=="--hidden" || option=="--validation" || option=="--overview" || option=="--mute")continue;
+    const auto count=option=="--viewport"?2u:
+        (option=="--map" || option=="--bsp" || option=="--frames" || option=="--screenshot")?1u:0u;
+    if(!count || arguments.size()-i-1<count)
+      throw std::runtime_error("MCC content preview accepts only map, BSP, viewport and capture options; gameplay is still being completed.");
+    if(option=="--map") {
+      fs::path candidate=arguments[i+1];
+      if(candidate.is_relative()) {
+        if(fs::is_regular_file(installation.root/candidate))candidate=installation.root/candidate;
+        else candidate=candidate.has_parent_path()?sources.cache/"halo2"/candidate:sources.maps()/candidate;
+      }
+      const auto owned=fs::canonical(sources.cache/"halo2");
+      if(!fs::is_regular_file(candidate) || fs::is_symlink(candidate))
+        throw std::runtime_error("Select an imported MCC map from the private cache.");
+      candidate=fs::canonical(candidate);
+      const auto relative=candidate.lexically_relative(owned);
+      auto extension=candidate.extension().string();
+      std::transform(extension.begin(),extension.end(),extension.begin(),[](unsigned char c){return char(std::tolower(c));});
+      if(relative.empty() || *relative.begin()==".." || extension!=".map")
+        throw std::runtime_error("MCC content preview requires a map inside the selected private MCC cache.");
+      arguments[i+1]=candidate.string();
+    }
+    i+=count;
+  }
+}
+fs::path launcher_executable(const fs::path &root) {
+#if defined(__linux__)
+  std::error_code error;
+  auto path=fs::read_symlink("/proc/self/exe",error);
+  if(!error && path.is_absolute())return path;
+#elif defined(_WIN32)
+  std::vector<wchar_t> name(32768);
+  const auto size=GetModuleFileNameW(nullptr,name.data(),DWORD(name.size()));
+  if(size && size<name.size())return fs::path(std::wstring(name.data(),size));
+#endif
+  return root/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
+}
 } // namespace
 
 int main(int argc, char **argv) {
@@ -197,7 +238,7 @@ int main(int argc, char **argv) {
     auto installation = locate();
     std::vector<std::string> supplied;
     std::string mcc_source;
-    bool setup=false,setup_only=false,update=false,launch_game=false,prepare=false;
+    bool setup=false,setup_only=false,update=false,launch_game=false,prepare=false,preview=false;
     for(int i=1;i<argc;++i) {
       const std::string argument=argv[i];
       if(argument=="--setup" || argument=="--setup-only") {
@@ -212,14 +253,17 @@ int main(int argc, char **argv) {
         throw std::runtime_error(argument+" is no longer a launcher option. Use --setup [--mcc-source PATH] to import MCC content.");
       } else if(argument=="--update")update=true;
       else if(argument=="--launch-game")launch_game=true;
+      else if(argument=="--preview-mcc")preview=true;
       else if(argument=="--prepare-mcc-gameplay") {prepare=true;setup=true;setup_only=true;}
       else supplied.push_back(argument);
     }
     auto has = [&](const char *option) {
       return std::find(supplied.begin(), supplied.end(), option) != supplied.end();
     };
-    if(prepare && (update || launch_game || !supplied.empty()))
+    if(prepare && (update || launch_game || preview || !supplied.empty()))
       throw std::runtime_error("Use --prepare-mcc-gameplay [--mcc-source PATH] [--setup-only] by itself");
+    if(preview && (update || launch_game || setup_only))
+      throw std::runtime_error("Use --preview-mcc [--map NAME] with preview options.");
     auto sources=read_sources(installation.root);
     const bool help=has("--help") || has("-h");
     if(has("--launcher-info")) {
@@ -231,6 +275,7 @@ int main(int argc, char **argv) {
                 << "MCC cache: " << sources.cache.string() << '\n'
                 << "MCC maps: " << (sources.ready()?sources.maps().string():"") << '\n'
                 << "Native MCC gameplay ready: " << (sources.playable?"yes":"no") << '\n'
+                << "MCC content preview: " << (sources.ready()?"available":"import MCC first") << '\n'
                 << "Status: " << (!sources.problem.empty()?sources.problem:
                     !sources.ready()?"MCC has not been imported yet. Run --setup.":
                     !sources.playable?not_playable:"MCC detection and private-cache import selected") << '\n'
@@ -243,6 +288,7 @@ int main(int argc, char **argv) {
           "Content is copied into the private PC-port cache; existing shaders are preserved.\n"
           "--prepare-mcc-gameplay [--mcc-source PATH] prepares and selects that cache, then exits.\n"
           "--launcher-info reports cache and native-gameplay readiness.\n"
+          "--preview-mcc [--map NAME] previews imported map assets with the existing renderer.\n"
           "--update downloads changes and rebuilds; --launch-game skips the launcher home.\n";
       return 0;
     }
@@ -261,10 +307,11 @@ int main(int argc, char **argv) {
     }
     if(setup_only)return 0;
     const auto update_pending=installation.root/"launcher-update.pending";
-    if(!launch_game && supplied.empty()) {
+    if(!launch_game && !preview && supplied.empty()) {
       std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
           (installation.root/"tools/launcher_ui.py").string(),"--root",
-          installation.root.string(),"--build-dir",installation.build.string()};
+          installation.root.string(),"--build-dir",installation.build.string(),
+          "--launcher-executable",launcher_executable(installation.root).string()};
       if(!sources.playable)arguments.insert(arguments.end(),{"--runtime-unavailable",not_playable});
       const auto status=run_tool(std::move(arguments));
       if(status==20)return 0;
@@ -272,7 +319,8 @@ int main(int argc, char **argv) {
       installation=locate();sources=read_sources(installation.root);
     }
     if(!sources.ready())throw std::runtime_error("The MCC cache needs preparation. Run --setup. "+sources.problem);
-    if(!sources.playable)throw std::runtime_error(not_playable);
+    if(!sources.playable && !preview)throw std::runtime_error(not_playable);
+    if(preview)preview_arguments(supplied,installation,sources);
     if(installation.runtime.empty() || fs::exists(update_pending)) {
       const auto tool=installation.root/"tools/build_runtime.py";
       if(!fs::is_regular_file(tool))throw std::runtime_error("Automatic build tool is missing: "+tool.string());
@@ -286,8 +334,11 @@ int main(int argc, char **argv) {
         "The automatic build finished, but the runtime or required shaders are missing. See "+
         (installation.build/"launcher-build.log").string());
     std::vector<std::string> arguments{installation.runtime.string()};
+    if(preview) {
+      arguments.push_back("--mcc-preview");
+    }
     const bool custom =
-        has("--menu") || has("--menu-screen") || has("--menu-audit") ||
+        preview || has("--menu") || has("--menu-screen") || has("--menu-audit") ||
         has("--menu-sweep") || has("--menu-maps") || has("--menu-movie") || has("--play") ||
         has("--campaign") || has("--simulate") || has("--map") ||
         has("--multiplayer") || has("--custom-slayer") || has("--host") || has("--join") || has("--local-players") || has("--dedicated") ||

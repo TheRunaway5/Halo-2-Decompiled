@@ -5,7 +5,6 @@ import queue
 import sys
 import threading
 import subprocess
-import os
 
 from setup_assets_ui import LauncherCanvas, CYAN, EDGE, FIELD, INK, MUTED, PANEL
 
@@ -14,24 +13,24 @@ CANCELLED = 20
 
 
 class LauncherHome(LauncherCanvas):
-    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, sandbox_launch_function=None):
+    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, preview_maps_function=None, preview_launch_function=None, launcher_executable=None):
         from update_runtime import update_runtime
-        from mcc_onboarding import runtime_status
+        from mcc_onboarding import runtime_status, preview_maps
 
         super().__init__(window, root, "Halo 2 — Launcher")
         self.build = build
         self.update = update_function or update_runtime
         self.availability = availability_function or (lambda: runtime_status(root))
         self.unavailable = runtime_unavailable or self.availability()
-        self.sandbox_launcher = Path(root) / "Halo2-Sandbox-Test"
-        self.sandbox_launch = sandbox_launch_function or (lambda argv: subprocess.Popen(argv, cwd=root, start_new_session=True))
-        sandbox_ready = self.sandbox_launcher.is_file() and os.access(self.sandbox_launcher, os.X_OK)
+        self.preview_maps = (preview_maps_function or (lambda: preview_maps(root)))()
+        self.launcher_executable = Path(launcher_executable) if launcher_executable else Path(root) / "Halo2-Launcher"
+        self.preview_launch = preview_launch_function or (lambda argv: subprocess.Popen(argv, cwd=root, start_new_session=True))
         self.events = queue.Queue()
         self.result, self.working, self.closed = CANCELLED, False, False
         self.text(51, 158, "G A M E   L A U N C H E R", 12, CYAN)
         self.line(50, 193, 318, 193, fill=EDGE)
         self.text(49, 225, "Welcome back.", 29, INK)
-        self.text(51, 274, "Your MCC cache is prepared.\nCheck the status to continue.", 17, MUTED, width=280)
+        self.text(51, 274, "Your MCC cache is prepared.\nPreview imported map content.", 17, MUTED, width=280)
         self.text(51, 397, "GAME FILES PREPARED", 12, CYAN)
         self.text(51, 432, "Halo MCC content is copied\nto your private local cache.", 15, MUTED, width=280)
         self.text(51, 519, "Keep Halo 2 current", 19, INK)
@@ -44,7 +43,7 @@ class LauncherHome(LauncherCanvas):
                                     wraplength=self.px(563), padx=self.px(12), pady=self.px(12))
         self.place(self.status, 400, 218, 588, 92)
         output = self.tk.Frame(window, background=FIELD)
-        self.place(output, 400, 328, 588, 210 if sandbox_ready else 274)
+        self.place(output, 400, 328, 588, 174)
         scrollbar = self.tk.Scrollbar(output, background=EDGE, troughcolor=FIELD,
                                       activebackground=CYAN, borderwidth=0, highlightthickness=0)
         scrollbar.pack(side="right", fill="y")
@@ -52,7 +51,7 @@ class LauncherHome(LauncherCanvas):
                                    wrap="word", relief="flat", padx=self.px(12), pady=self.px(12),
                                    width=1, height=1, yscrollcommand=scrollbar.set,
                                    highlightthickness=1, highlightbackground=EDGE, highlightcolor=CYAN)
-        self.output.insert("end", "Update and build progress will appear here.\n")
+        self.output.insert("end", "Preview opens imported MCC map assets. Gameplay remains unavailable until conversion is complete.\n\nUpdate and build progress will appear here.\n")
         self.output.configure(state="disabled")
         self.output.pack(fill="both", expand=True)
         scrollbar.configure(command=self.output.yview)
@@ -61,7 +60,19 @@ class LauncherHome(LauncherCanvas):
         self.exit_button = self.button("Exit", self.close, 400, 641, 124, 43)
         self.update_button = self.button("Update", self.start_update, 540, 641, 208, 43)
         self.play_button = self.button("Play  ›", self.play, 764, 641, 224, 43, primary=True)
-        self.sandbox_button = self.button("Sandbox test build  ›", self.play_sandbox, 400, 555, 588, 43, primary=True) if sandbox_ready else None
+        from tkinter import ttk
+        choices = list(self.preview_maps)
+        initial = next((name for name in choices if Path(name).name.casefold() == "lockout.map"), choices[0] if choices else "No imported MCC maps")
+        self.preview_map = self.tk.StringVar(window, value=initial)
+        style = ttk.Style(window)
+        style.configure("Halo2Preview.TCombobox", fieldbackground=FIELD, background=PANEL, foreground=INK)
+        style.map("Halo2Preview.TCombobox", fieldbackground=[("readonly", FIELD)], foreground=[("readonly", INK)])
+        self.preview_selector = ttk.Combobox(window, textvariable=self.preview_map, values=choices, state="readonly", font=self.font(13), style="Halo2Preview.TCombobox")
+        self.place(self.preview_selector, 400, 516, 588, 29)
+        self.preview_button = self.button("Preview MCC content  ›", self.play_preview, 400, 555, 588, 43, primary=True)
+        if not choices:
+            self.preview_selector.configure(state="disabled")
+            self.preview_button.configure(state="disabled")
         if self.unavailable:
             self.play_button.configure(state="disabled")
             self.status.configure(text=self.unavailable, foreground="#ffd29b")
@@ -109,8 +120,8 @@ class LauncherHome(LauncherCanvas):
                     self.bar.stop()
                     self.update_button.configure(state="normal")
                     self.exit_button.configure(state="normal")
-                    if self.sandbox_button:
-                        self.sandbox_button.configure(state="normal")
+                    self.preview_selector.configure(state="readonly" if self.preview_maps else "disabled")
+                    self.preview_button.configure(state="normal" if self.preview_maps else "disabled")
                     # A failed update can leave source and runtime at different
                     # revisions. Require a successful retry before playing.
                     self.unavailable = self.availability() if kind == "done" else "Update stopped. Check the output below, then try Update again."
@@ -131,15 +142,19 @@ class LauncherHome(LauncherCanvas):
             self.close()
 
     def actions(self):
-        return tuple(button for button in (self.exit_button, self.update_button, self.play_button, self.sandbox_button) if button)
+        return self.exit_button, self.update_button, self.play_button, self.preview_button, self.preview_selector
 
-    def play_sandbox(self):
-        if self.working or not self.sandbox_button or str(self.sandbox_button.cget("state")) == "disabled":
+    def play_preview(self):
+        if self.working or str(self.preview_button.cget("state")) == "disabled":
+            return
+        selected = self.preview_maps.get(self.preview_map.get())
+        if selected is None:
+            self.status.configure(text="Select an imported MCC map to preview.", foreground="#ffd29b")
             return
         try:
-            self.sandbox_launch([str(self.sandbox_launcher)])
+            self.preview_launch([str(self.launcher_executable), "--preview-mcc", "--map", str(selected)])
         except OSError as error:
-            self.status.configure(text="Could not open sandbox test build: " + str(error), foreground="#ffd29b")
+            self.status.configure(text="Could not open MCC content preview: " + str(error), foreground="#ffd29b")
             return
         self.close()
 
@@ -155,6 +170,7 @@ def main():
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--build-dir", type=Path)
     parser.add_argument("--runtime-unavailable", help="initial native MCC readiness message")
+    parser.add_argument("--launcher-executable", type=Path)
     args = parser.parse_args()
     try:
         import tkinter as tk
@@ -165,7 +181,8 @@ def main():
               "Terminal launch: ./Halo2-Launcher --launch-game; update: ./Halo2-Launcher --update",
               file=sys.stderr)
         return 1
-    home = LauncherHome(window, args.root, args.build_dir, runtime_unavailable=args.runtime_unavailable)
+    home = LauncherHome(window, args.root, args.build_dir, runtime_unavailable=args.runtime_unavailable,
+                        launcher_executable=args.launcher_executable)
     window.mainloop()
     return home.result
 

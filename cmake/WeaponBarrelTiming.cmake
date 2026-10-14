@@ -227,3 +227,4 @@ if(BUILD_TESTING)
     add_test(NAME original_tu15_weapon_primary_charge COMMAND weapon_primary_charge_tu15_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_primary_charge_tu15_original.json")
 endif()
+target_sources(halo2_systems PRIVATE src/native_weapon_hud.cpp)

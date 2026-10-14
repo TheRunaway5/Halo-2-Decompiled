@@ -467,6 +467,7 @@ struct Host {
   std::atomic_bool start_device_script{};
   std::atomic_bool resume_support{};
   Json support_samples=Json::array();
+  Json script_status;
   std::uint32_t first_prop_generation=null_datum;
   std::shared_ptr<const LevelContent> content;
   std::mutex mutex;std::vector<MultiplayerState> history;std::exception_ptr error;std::jthread worker;
@@ -632,7 +633,9 @@ struct Host {
                 try {
                   const auto target=world.source_objects->object_body(other);const auto physical=word(target+0xb4u);
                   const auto *tag=world.cache->find_tag(TagHandle{word(target)});
-                  member["definition"]=tag?tag->name:"";member["type"]=std::to_integer<unsigned>(memory.view(target+0x10bu,1)[0]);
+                  member["definition"]=tag?tag->name:"";
+                  const auto object_pool=word(0x4ecbd0u);
+                  member["type"]=std::to_integer<unsigned>(memory.view(word(object_pool+0x44u)+(other&65535u)*12u+3u,1)[0]);
                   member["body_bytes"]=hex_bytes(memory.view(target,0x12cu));
                   const auto pool=word(0x52be5cu),stride=word(pool+0x24u);
                   if(physical!=null_datum && (physical&65535u)<word(pool+0x20u)) {
@@ -858,6 +861,33 @@ struct Host {
         transport.broadcast();
         next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);
       }
+      Json objects=Json::array();
+      for(const auto &object:world.match.simulation().scene().objects())if(object.handle!=null_datum) {
+        const auto *tag=world.cache->find_tag(TagHandle{world.content.objects.at(object.placement).definition});
+        objects.push_back({{"object",object.handle},{"placement",object.placement},{"name_index",world.content.objects.at(object.placement).name},
+            {"definition",tag?tag->name:""},{"created_tick",object.created_tick},{"position",xyz(object.position)}});
+        if(std::getenv("HALO2_TU15_PHANTOM_OBJECT_TRACE") && tag && tag->group=="bloc" && world.content.objects.at(object.placement).name>=0) {
+          const auto &memory=world.source_objects->memory();const auto body=world.source_objects->object_body(object.handle);
+          const auto word=[&](auto address){return Bytes(memory.view(address,4)).u32(0);};
+          auto &entry=objects.back();entry["source_body_bytes"]=hex_bytes(memory.view(body,0x12cu));
+          entry["source_position"]=xyz(world.source_objects->object_transform(object.handle).position);
+          const auto physical=word(body+0xb4u),pool=word(0x52be5cu);
+          if(physical!=null_datum && (physical&65535u)<word(pool+0x20u)) {
+            const auto component=word(pool+0x44u)+(physical&65535u)*word(pool+0x24u);
+            entry["physical_component_bytes"]=hex_bytes(memory.view(component,0xa0));entry["physical_component"]=physical;
+            const auto count=word(component+0x74u);check(count<=64,"Original object body bank exceeds diagnostic bound");
+            entry["rigid_bodies"]=Json::array();
+            for(unsigned n=0;n<count;++n) {
+              const auto rigid=word(word(component+0x70u)+n*0x60u+0x40u),motion=word(rigid+0x3cu);
+              Json row{{"index",n},{"rigid",rigid},{"rigid_bytes",hex_bytes(memory.view(rigid,0x80u))}};
+              if(motion)row["motion_bytes"]=hex_bytes(memory.view(motion,512u));
+              entry["rigid_bodies"].push_back(std::move(row));
+            }
+          }
+        }
+      }
+      script_status={{"tick",world.match.simulation().ticks()},{"running",world.match.simulation().scripts().running()},
+          {"diagnostics",world.match.simulation().scripts().diagnostics()},{"live_scene_objects",objects}};
     }catch(...){
       try {throw;}catch(const std::exception &e){std::cerr<<"acceptance_host_error="<<e.what()<<std::endl;}
       catch(...){std::cerr<<"acceptance_host_error=non-standard exception"<<std::endl;}
@@ -1903,6 +1933,8 @@ int main(int argc,char **argv) try {
     check(bool(file),"Could not retain actual authority comparisons");
     check(matched_snapshots==authority_samples.size(),"LAN snapshot disagrees with every actual same-tick authority publication");
   }
+  if(lan) {std::ofstream file(output/"authority-script-status.json");file<<host->script_status.dump(2)<<'\n';
+    check(bool(file),"Could not retain actual authority map script status");}
   report["runtime_exit"]=result;report["observed_input_ticks"]=samples.size();report["submitted_frames"]=frames.size();
   report["local_slot"]=local_slot;report["initial_position"]=xyz(initial);report["maximum_distance"]=distance;
   report["initial_z"]=initial_z;report["peak_z"]=peak_z;report["maximum_upward_velocity"]=fastest;
@@ -1912,6 +1944,7 @@ int main(int argc,char **argv) try {
   report["adopted_source_dynamic_frames"]=adopted_dynamic_frames;
   bool passed=result==0 && started && samples.size()>=170 && frames.size()>0;
   if(lan)passed&=adopted_scene_frames>0;
+  if(lan && std::getenv("HALO2_TU15_REQUIRE_MAP_SCRIPTS"))passed&=host->script_status.at("diagnostics").empty();
   if(lift) {
     const auto body_height=report.at("authored_lift_player_height").get<float>();
     check(body_height>0,"Lift test requires the actual authored player height");

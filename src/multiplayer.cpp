@@ -741,6 +741,7 @@ void MultiplayerMatch::synchronize_source_equipment(Unit &unit,const SourcePlaye
     state.source_runtime_published=true;
     state.shader=source.shaders[slot];state.ready_clock=false;
     read(0x19e,state.ready_countdown);read(0x188,state.cooling_inhibitor);
+    read(0x175,state.charge_fraction);
     read(0x244,state.overheat_handle);read(0x17c,state.energy_blocking_ticks);
     read(0x178,state.smg.weapon_state);read(0x16c,state.smg.weapon_flags);
     read(0x16e,state.smg.input_flags);
@@ -1744,6 +1745,10 @@ void MultiplayerMatch::step(
           input.switch_grenade?1:0);
       if(selected_grenade!=-1)grenade_owner.grenade_requested=selected_grenade;
       put(0x22,std::uint16_t(grenade_owner.grenade_requested),2);
+      //C92C0 copies command+24 to the unit's requested zoom byte. A source
+      //reset invalidates cached native requests until the sender acknowledges it.
+      put(0x24,std::uint16_t(input.zoom_reset_serial==grenade_owner.zoom_reset_serial?
+          input.zoom:std::int16_t(-1)),2);
       auto target=input.vehicle_interaction_target?*input.vehicle_interaction_target:action_prompt(i).target;
       if(input.vehicle_interaction_target && target.object!=null_datum) {
         bool admitted=false;
@@ -1835,6 +1840,14 @@ void MultiplayerMatch::step(
     u.body.grounded=(motion.support_flags&1u)==0;
     u.source_parent=motion.parent;u.source_seat=motion.seat;
     u.source_action_word=motion.action_word;u.source_unit_10a=motion.unit_flags;
+    const auto body=source_object_world_->object_body(object);
+    const auto &memory=source_object_world_->memory();
+    const auto previous_zoom=u.source_zoom;
+    memory.read(body+0x240u,std::as_writable_bytes(std::span(&u.source_zoom.current,1)));
+    memory.read(body+0x241u,std::as_writable_bytes(std::span(&u.source_zoom.requested,1)));
+    memory.read(body+0x26cu,std::as_writable_bytes(std::span(&u.source_zoom.motion,1)));
+    if(previous_zoom.requested!=-1 && u.source_zoom.requested==-1)
+      ++u.zoom_reset_serial;
     const auto previous_grenade=u.grenade_action;
     u.grenade_action=source_object_world_->grenade_action(object);
     if(u.grenade_action.animation_active && (!previous_grenade.animation_active ||

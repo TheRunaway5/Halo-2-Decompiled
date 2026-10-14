@@ -466,6 +466,7 @@ struct Renderer::Impl {
     // Existing world passes use integer W depth. Native source startup
     // selects that same mode; each pass retains its authored raster policy.
     std::uint32_t source_depth_mode=2;
+    std::uint32_t source_depth_write=1,source_depth_function=0x203,source_depth_bias=0;
     std::vector<bool> extended_vertex_banks;
     std::vector<std::size_t> changed_vertex_banks;
     using MaterialUniform=WorldMaterialUniform;
@@ -1709,6 +1710,7 @@ struct Renderer::Impl {
                         throw FormatError("relative vertex program has no explicit source constant bank: "+material.name);
                     uniform.vertex_instructions=vertex.instructions;
                     uniform.flags[3]=vertex.count;
+                    uniform.alpha_test[3]=menu_world_vertex_default_texture_w_mask(vertex);
                     uniform.vertex_constants=material.program_constants[1];
                     uniform.vertex_attributes=material.program_constants[0];
                     uniform.vertex_declaration=pack_source_vertex_declaration(material.vertex_declaration,material.world_vertex_input_transform);
@@ -2512,12 +2514,13 @@ struct Renderer::Impl {
         raster.cullMode = VK_CULL_MODE_NONE;
         raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         raster.lineWidth = 1;
+        raster.depthBiasEnable=source_depth_bias!=0;
         VkPipelineMultisampleStateCreateInfo samples{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
         samples.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
         VkPipelineDepthStencilStateCreateInfo depth_state{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
         depth_state.depthTestEnable = source_depth_mode!=0;
-        depth_state.depthWriteEnable = VK_TRUE;
-        depth_state.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+        depth_state.depthWriteEnable = source_depth_write!=0;
+        depth_state.depthCompareOp = VkCompareOp(source_depth_function-0x200);
         VkPipelineColorBlendAttachmentState blend{};
         blend.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         VkPipelineColorBlendStateCreateInfo color_state{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
@@ -6165,18 +6168,30 @@ RendererConstantMode Renderer::constant_mode_control() {
 }
 RendererDepthMode Renderer::depth_mode_control() {
     const std::weak_ptr<Impl> owner=impl_;
-    return RendererDepthMode::issue(device_lease(),[owner](std::uint32_t mode) {
+    return RendererDepthMode::issue(device_lease(),[owner](RendererDepthSetting setting,std::uint32_t value) {
         auto impl=owner.lock();
-        if(!impl || mode!=2)throw FormatError("Native renderer depth mode is unsupported");
+        if(!impl || (setting==RendererDepthSetting::Mode && value!=2) ||
+           (setting==RendererDepthSetting::WriteEnable && value!=1) ||
+           (setting==RendererDepthSetting::Function && value!=0x203) ||
+           (setting==RendererDepthSetting::Bias && value!=0))
+            throw FormatError("Native renderer cold depth setting is unsupported");
         VkImageFormatProperties properties;
         if(impl->depth_format!=source_depth_format || !impl->depth || !impl->depth_memory ||
            !impl->depth_attachment_view || !impl->pipeline ||
            !source_depth_supported(impl->physical,properties))
             throw FormatError("Native renderer lacks its live integer W-depth attachment");
-        impl->source_depth_mode=mode;
+        // Only already-realized cold defaults are admitted. Nondefault
+        // authored passes retain their existing independent pipeline states.
+        switch(setting) {
+            case RendererDepthSetting::Mode:impl->source_depth_mode=value;break;
+            case RendererDepthSetting::WriteEnable:impl->source_depth_write=value;break;
+            case RendererDepthSetting::Function:impl->source_depth_function=value;break;
+            case RendererDepthSetting::Bias:impl->source_depth_bias=value;break;
+        }
         return RendererDepthConfiguration{impl->source_depth_mode,std::uint32_t(impl->depth_format),24,8,
             std::bit_cast<std::uint64_t>(impl->depth),
-            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(&impl->source_depth_mode))}};
+            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(&impl->source_depth_mode))},
+            impl->source_depth_write,impl->source_depth_function,impl->source_depth_bias};
     });
 }
 void Renderer::update_material_constants(std::span<const Material> materials) { impl_->update_material_constants(materials); }

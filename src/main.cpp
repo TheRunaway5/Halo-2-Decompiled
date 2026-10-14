@@ -20,6 +20,9 @@
 #include "halo2/simulation.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/native_action_prompt_hud.hpp"
+#include "halo2/native_weapon_hud.hpp"
+#include "halo2/native_weapon_inventory.hpp"
+#include "halo2/unit_scope_camera.hpp"
 #include "halo2/multiplayer_outcome.hpp"
 #include "halo2/native_vista_flow.hpp"
 #include "halo2/native_vista_loading_audio.hpp"
@@ -61,6 +64,7 @@ void usage() {
       << "               [--play] [--weapon NAME] [--place-squad NAME] "
          "[--script NAME] [--sound NAME] [--mute]\n"
       << "  halo2_native --inspect PATH\n"
+      << "  halo2_native --mcc-preview --map PATH previews MCC map assets without gameplay admission.\n"
       << "  halo2_native --multiplayer [--map PATH] [--local-players 1..4]\n"
       << "               [--host PORT | --join ADDRESS:PORT] [--dedicated]\n"
       << "               [--custom-slayer fiesta|infection]\n"
@@ -171,7 +175,7 @@ int main(int argc, char **argv) {
     halo2::FrontendOptions frontend;
     halo2::MultiplayerOptions multiplayer_options;
     const auto desktop = std::make_shared<halo2::DesktopSession>();
-    bool multiplayer=false;
+    bool multiplayer=false,mcc_preview=false,map_supplied=false;
     std::size_t bsp = 0;
     unsigned frame_limit = 0;
     std::string first_person_action;
@@ -198,8 +202,10 @@ int main(int argc, char **argv) {
         usage();
         return 0;
       }
-      if (arg == "--map")
-        map = next();
+      if(arg=="--mcc-preview")mcc_preview=true;
+      else if (arg == "--map") {
+        map = next();map_supplied=true;
+      }
       else if (arg == "--shared-maps")
         multiplayer_options.shared_maps = next();
       else if (arg == "--gameplay-xbe")
@@ -430,6 +436,13 @@ int main(int argc, char **argv) {
       else
         throw std::runtime_error("unknown option: " + arg);
     }
+    if(mcc_preview && !map_supplied)
+      throw halo2::FormatError("MCC content preview requires --map with an imported MCC map");
+    if(mcc_preview && (menu || play || campaign || multiplayer || simulate || inspect || validate ||
+        inspect_systems || validate_systems || bsp_replay || !weapon_name.empty() || !squad_name.empty() ||
+        !script_name.empty() || !camera_graph.empty() || !first_person_action.empty() || !sound_name.empty() ||
+        !play_sound_name.empty() || !loop_sound_name.empty()))
+      throw halo2::FormatError("MCC content preview is an asset viewer; native gameplay conversion is still incomplete");
     if (!first_person_action.empty() && menu)
       throw std::runtime_error("first person pose fixtures require a level scene");
     if (validate_systems) {
@@ -630,6 +643,8 @@ int main(int argc, char **argv) {
       return halo2::run_multiplayer(multiplayer_options, outcome);
     }
     const halo2::Cache cache(map);
+    if(mcc_preview && !cache.is_mcc())
+      throw halo2::FormatError("MCC content preview requires an imported Halo MCC map");
     if (!sound_name.empty()) {
       if (audio_output.empty())
         throw std::runtime_error("--decode-sound requires --audio-output");
@@ -979,6 +994,7 @@ int main(int argc, char **argv) {
     for (const auto &warning : mesh.material_warnings)
       std::cerr << "Rendering gap: " << warning << '\n';
     auto *window = desktop->window(viewport_width, viewport_height, hidden);
+    if(mcc_preview)SDL_SetWindowTitle(window,"Halo 2 — MCC content preview");
     halo2::MultiplayerKbm gameplay_keyboard(SDL_GetWindowID(window),desktop->keyboard_settings);
     const auto initial_bsp=bsp;
     const auto initial_spawn=spawns.empty()?halo2::Spawn{}:spawns.front();
@@ -1005,10 +1021,14 @@ int main(int argc, char **argv) {
       });
     };
     std::unique_ptr<halo2::NativeActionPromptHud> action_hud;
+    std::unique_ptr<halo2::NativeWeaponHud> weapon_hud;
     const auto prepare_action_hud=[&] {
       action_hud.reset();
+      weapon_hud.reset();
       if(simulation)action_hud=std::make_unique<halo2::NativeActionPromptHud>(cache,
           content->player.datum,cache.shared_directory()/"fonts",mesh,multiplayer_options.ui_assets);
+      if(simulation && play)weapon_hud=std::make_unique<halo2::NativeWeaponHud>(cache,*content,mesh,
+          cache.shared_directory()/"fonts",multiplayer_options.ui_assets);
     };
     prepare_pause();bind_training_settings();prepare_action_hud();
     std::unique_ptr<halo2::CampaignTextRenderer> campaign_text;
@@ -1019,6 +1039,12 @@ int main(int argc, char **argv) {
     const auto rumble_tables=cache.shader_function_tables();
     halo2::NativeInteractionHold pad_pickup_hold,pad_dual_hold;
     halo2::ControllerInput pad_previous,pad_pending;
+    std::int16_t campaign_view_zoom=-1;
+    std::uint32_t campaign_zoom_reset{};
+    halo2::UnitScopeCameraProducer campaign_scope_producer;
+    std::optional<halo2::UnitScopeCameraState> campaign_scope;
+    if(content && content->original_data->unit_scope_camera_constants)
+      campaign_scope=halo2::source_scope_camera_initial(*content->original_data->unit_scope_camera_constants);
     auto renderer = std::make_unique<halo2::Renderer>(window, mesh, validation);
     if(character_atmosphere)renderer->scene_bsp_atmosphere(*character_atmosphere);
     if(pause_menu)pause_menu->bind(window,*desktop,*renderer);
@@ -1371,7 +1397,8 @@ int main(int argc, char **argv) {
           (pause_menu && pause_menu->captures_game_input());
       gameplay_keyboard.settings(desktop->keyboard_settings);
       if(debug_capture)gameplay_keyboard.release();
-      const auto host_input=gameplay_keyboard.snapshot(camera.yaw,camera.pitch).controls;
+      const auto host_snapshot=gameplay_keyboard.snapshot(camera.yaw,camera.pitch);
+      const auto &host_input=host_snapshot.controls;
       if(audio) {audio->paused(game_paused);audio->master_volume(float(desktop->display_settings.volume)/10.f);}
       auto pad_input=debug_capture?halo2::ControllerInput{}:halo2::controller_input(halo2::sample_controller(controller.get()),desktop->controller_settings);
       const auto pad_now=SDL_GetTicks();
@@ -1383,6 +1410,7 @@ int main(int argc, char **argv) {
       pad_pending.flashlight|=pad_input.flashlight&&!pad_previous.flashlight;
       pad_pending.melee|=pad_input.melee&&!pad_previous.melee;
       pad_pending.switch_grenade|=pad_input.switch_grenade&&!pad_previous.switch_grenade;
+      pad_pending.zoom|=pad_input.zoom&&!pad_previous.zoom;
       pad_previous=pad_input;pad_input.switch_weapon=pad_pending.switch_weapon;pad_input.grenade=pad_pending.grenade;
       pad_input.flashlight=pad_pending.flashlight;pad_input.melee=pad_pending.melee;pad_input.switch_grenade=pad_pending.switch_grenade;
       if(!debug_capture && (!play || !simulation || simulation->presentation().player_camera_enabled))
@@ -1430,7 +1458,26 @@ int main(int argc, char **argv) {
         input.accept=pad_input.accept||host_input.accept;
         input.cancel=pad_input.cancel||host_input.cancel;input.melee=pad_input.melee||host_input.melee;input.flashlight=pad_input.flashlight||host_input.flashlight;
         input.switch_grenade=pad_input.switch_grenade||host_input.switch_grenade;input.look_stick=pad_input.look_pitch;
+        bool scope_pressed=host_snapshot.actions.scope_pressed || pad_pending.zoom;
         while (!game_paused && accumulator >= halo2::tick_seconds) {
+          const auto &unit=simulation->player();
+          if(campaign_zoom_reset!=unit.zoom_reset_serial) {
+            campaign_view_zoom=-1;campaign_zoom_reset=unit.zoom_reset_serial;
+          }
+          if(play && content->binocular_zoom) {
+            const auto found=content->weapons.find(unit.weapon.definition);
+            if(found!=content->weapons.end()) {
+              const auto &weapon=found->second;
+              const std::array<std::int16_t,1> modes{weapon.smg?unit.weapon.smg.magazine_mode:unit.weapon.magazine.mode};
+              const halo2::ZoomWeaponView primary{weapon.zoom,weapon.magazine?
+                  std::span(modes):std::span<const std::int16_t>{}};
+              if(!halo2::source_zoom_admitted({unit.source_parent,unit.source_action_word,{&primary,nullptr}}))
+                campaign_view_zoom=-1;
+              else if(scope_pressed && !halo2::native_hand_weapon(unit,1))
+                campaign_view_zoom=halo2::source_zoom_next(campaign_view_zoom,&primary,*content->binocular_zoom);
+            }
+          }
+          input.zoom=campaign_view_zoom;input.zoom_reset_serial=campaign_zoom_reset;scope_pressed=false;
           if (bsp_replay && simulation->ticks()==1 && !replay_streamed) {
             simulation->request_bsp(int(*bsp_replay)); replay_streamed=true;
           }
@@ -1482,6 +1529,30 @@ int main(int argc, char **argv) {
         const float fraction=presentation_paired?std::clamp(accumulator/halo2::tick_seconds,0.f,1.f):1.f;
         if (play) {
           camera.field_of_view = float(desktop->display_settings.field_of_view);
+          if(campaign_scope && content->binocular_zoom) {
+            const auto found=content->weapons.find(player.weapon.definition);
+            if(found!=content->weapons.end()) {
+              const auto &weapon=found->second;
+              const std::array<std::int16_t,1> modes{weapon.smg?player.weapon.smg.magazine_mode:player.weapon.magazine.mode};
+              const halo2::ZoomWeaponView primary{weapon.zoom,weapon.magazine?
+                  std::span(modes):std::span<const std::int16_t>{}};
+              if(campaign_zoom_reset!=player.zoom_reset_serial)campaign_view_zoom=-1;
+              const auto magnification=halo2::source_zoom_magnification(campaign_view_zoom,&primary,*content->binocular_zoom);
+              if(!magnification)throw halo2::FormatError("Campaign optic requires unavailable general power consumer");
+              const auto &constants=*content->original_data->unit_scope_camera_constants;
+              halo2::UnitScopeCameraPacket packet{1,0,0,0,0};
+              halo2::source_scope_camera_target(campaign_scope_producer,packet,
+                  halo2::source_scope_camera_fov(player.definition.camera_field_of_view,*magnification,constants),constants);
+              halo2::source_scope_camera_register(*campaign_scope,packet);
+              halo2::source_scope_camera_adopt(*campaign_scope,packet,constants);
+              if(!game_paused && halo2::source_scope_camera_motion(*campaign_scope,
+                  halo2::source_scope_camera_dt(dt,constants),constants))
+                throw halo2::FormatError("Campaign scope requires coupled observer cancellation owner");
+              camera.field_of_view=halo2::gameplay_observer_field_of_view(
+                  halo2::source_scope_camera_render_fov(*campaign_scope,constants),player.definition.camera_field_of_view,
+                  desktop->display_settings.field_of_view)*57.295779513f;
+            }
+          }
           camera.horizontal_field_of_view = true;
           camera.position = presentation_paired?halo2::render_lerp(previous_player.body.position,player.body.position,fraction):player.body.position;
           camera.position.z += player.definition.camera_height +
@@ -1550,8 +1621,9 @@ int main(int argc, char **argv) {
           !simulation->presentation().cinematic) {
         int width{},height{};SDL_Vulkan_GetDrawableSize(window,&width,&height);
         if(width>0 && height>0) {
-          const float fov=halo2::gameplay_field_of_view(desktop->display_settings.field_of_view);
-          render_camera.projection_vertical_angle=halo2::gameplay_camera_angles(fov,fov,float(width)/height).projection_angle;
+          const float fov=render_camera.field_of_view*.01745329238474369f;
+          render_camera.projection_vertical_angle=halo2::gameplay_camera_angles(fov,
+              halo2::gameplay_field_of_view(desktop->display_settings.field_of_view),float(width)/height).projection_angle;
           const auto &safe=halo2::hud_viewport(1,0).safe;
           const auto physical_safe=halo2::full_surface_viewport({safe.left,safe.top,
               safe.right-safe.left,safe.bottom-safe.top},unsigned(width),unsigned(height));
@@ -1857,10 +1929,17 @@ int main(int argc, char **argv) {
       }
       if(simulation)renderer->debug_panel().observe(halo2::observe_debug_game(*simulation,spawns));
       halo2::UiDraw pause_draw;
+      if(weapon_hud && play && simulation && !game_paused && effects.hud>0) {
+        int w{},h{};SDL_Vulkan_GetDrawableSize(window,&w,&h);
+        pause_draw.vertices=weapon_hud->frame(simulation->player(),std::uint32_t(simulation->ticks()),
+            unsigned(std::max(1,w)),unsigned(std::max(1,h)));
+        renderer->update_material_constants(mesh.materials);
+      }
       if(action_hud && play && simulation && !game_paused && effects.hud>0) {
         int w{},h{};SDL_Vulkan_GetDrawableSize(window,&w,&h);
-        pause_draw.vertices=action_hud->frame(simulation->action_prompt(),desktop->keyboard_settings,
+        auto prompt=action_hud->frame(simulation->action_prompt(),desktop->keyboard_settings,
             desktop->controller_settings,prompt_gamepad,unsigned(std::max(1,w)),unsigned(std::max(1,h))).vertices;
+        pause_draw.vertices.insert(pause_draw.vertices.end(),prompt.begin(),prompt.end());
       }
       if(campaign_text && simulation) {
         auto text=campaign_text->draw(simulation->training(),simulation->subtitle(),

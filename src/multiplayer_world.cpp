@@ -153,14 +153,12 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
     match.configure_melee_animation(cache,*cache->original_data()->melee_constants);
   if(cache->original_data() && cache->original_data()->grenade_constants)
     match.configure_grenades(cache,*cache->original_data()->grenade_constants);
-  std::vector<FirstPersonBindingDefinition> definitions;
   if(options.host_port || options.online_match)
     for(unsigned representation:{2u,3u})
       if(representation<content.player_representations.size() &&
           content.player_representations[representation].biped.datum!=null_datum)
         for(const auto &[datum,weapon]:content.weapons)if(!weapon.first_person_models.empty() && weapon.first_person_models.front().model!=null_datum && weapon.first_person_models.front().animation!=null_datum)
-          {auto definition=cache->load_first_person_binding(datum,representation);
-            match.configure_replicated_first_person(definition);if(shadow)definitions.push_back(std::move(definition));}
+          match.configure_replicated_first_person(cache->load_first_person_binding(datum,representation));
   if(shadow) {
     for(const auto &player:shadow->roster){const auto selected=std::ranges::find(shadow->selected,player.slot);
       std::optional<SourcePlayerConfiguration> profile;
@@ -168,13 +166,23 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
       if(match.join(player.name,rules.team_mode?player.team:-1,profile,player.slot)!=player.slot)
         throw FormatError("Source shadow birth changed an accepted native player slot");
     }
-    local_slots=shadow->locals;match.configure_local_views(local_slots,definitions);
+    bind_source_local_views(shadow->locals);
   }else if(!options.online_match && options.join.empty())
     for(unsigned i=0;i<options.local_players;++i)
       local_slots.push_back(match.join(options.selected_profiles.empty()?"Player "+std::to_string(i+1):
           native_player_configuration_name(options.selected_profiles[i]),
           options.selected_teams.empty()?-1:options.selected_teams[i],
           options.selected_profiles.empty()?std::nullopt:std::optional(options.selected_profiles[i])));
+}
+void MultiplayerPreparedWorld::bind_source_local_views(std::span<const unsigned> locals) {
+  if(!source_objects||!source_objects->owns_physics()||!cache->original_data()||cache->original_data()->image!=OriginalData::Image::TitleUpdate15)
+    throw FormatError("Source local views require this world's actual TU1.5 owner");
+  std::vector<FirstPersonBindingDefinition> definitions;
+  for(const auto &[datum,weapon]:content.weapons)
+    if(!weapon.first_person_models.empty()&&weapon.first_person_models.front().model!=null_datum&&weapon.first_person_models.front().animation!=null_datum)
+      for(unsigned representation:{2u,3u})if(representation<content.player_representations.size()&&content.player_representations[representation].biped.datum!=null_datum)
+        definitions.push_back(cache->load_first_person_binding(datum,representation));
+  match.configure_local_views(locals,definitions);local_slots.assign(locals.begin(),locals.end());
 }
 bool MultiplayerPreparedWorld::matches(const MultiplayerOptions& options) const {
   const bool same_spawns=native_spawn_inputs_.size()==options.native_spawn_inputs.size() &&

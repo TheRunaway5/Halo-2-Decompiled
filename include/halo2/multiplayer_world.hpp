@@ -23,6 +23,9 @@ public:
   static std::unique_ptr<MultiplayerPreparedWorld> source_shadow(
       const MultiplayerOptions&,SourceShadowViews,
       std::shared_ptr<PhysicsLiveClockSource> = {});
+  // Complete native view-definition bank without renderer/device ownership.
+  // Called after the accepted players have been born in this source world.
+  void bind_source_local_views(std::span<const unsigned>);
 
   bool matches(const MultiplayerOptions&) const;
   std::shared_ptr<const Cache> cache;

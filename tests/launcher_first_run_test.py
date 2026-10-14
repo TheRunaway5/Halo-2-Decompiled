@@ -224,6 +224,43 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertNotIn('--runtime-unavailable', self.call('home'))
         self.assertIn(str(binary), self.run_launcher('--launcher-info').stdout)
 
+    def test_preview_uses_private_mcc_assets_without_gameplay_admission(self):
+        self.ready_assets()
+        self.runtime()
+        result = self.run_launcher('--preview-mcc', '--frames', '1', '--hidden')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = self.call('runtime')['argv']
+        self.assertIn('--mcc-preview', args)
+        self.assertNotIn('--multiplayer', args)
+        self.assertNotIn('--menu-screen', args)
+        self.assertEqual(args[args.index('--map')+1], str(self.maps/'lockout.map'))
+        self.assertEqual(args[args.index('--shared-maps')+1], str(self.maps))
+        self.assertEqual(self.run_launcher('--launch-game', '--multiplayer').returncode, 1)
+
+    def test_preview_preserves_imported_mod_path_and_case(self):
+        self.ready_assets()
+        self.runtime()
+        mod = self.cache/'halo2/mods/My Mod/Custom.map'
+        mod.parent.mkdir(parents=True)
+        mod.write_text('fixture')
+        result = self.run_launcher('--preview-mcc', '--map', 'mods/My Mod/Custom.map')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = self.call('runtime')['argv']
+        self.assertEqual(args[args.index('--map')+1], str(mod))
+
+    def test_preview_rejects_gameplay_options_and_external_maps(self):
+        self.ready_assets()
+        self.runtime()
+        external = self.root/'external.map'
+        external.write_text('outside the selected MCC cache')
+        for arguments in [('--multiplayer',), ('--play',), ('--simulate', '1'),
+                          ('--campaign',), ('--map', str(external)),
+                          ('--shared-maps', str(self.root))]:
+            with self.subTest(arguments=arguments):
+                result = self.run_launcher('--preview-mcc', *arguments)
+                self.assertEqual(result.returncode, 1)
+        self.assertFalse((self.root/'runtime-call.json').exists())
+
     def test_explicit_mod_map_and_shared_directory_are_retained(self):
         self.ready_assets(True)
         self.runtime()

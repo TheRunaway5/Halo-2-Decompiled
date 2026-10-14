@@ -14,8 +14,8 @@ int main(int argc,char** argv)try {
     nlohmann::json depth_samples=nlohmann::json::array();
     std::filesystem::path capture_path,palette_output;
     for(int i=1;i+1<argc;i+=2) {
-        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-palette" || std::string_view(argv[i+1])=="graphics-constants" || std::string_view(argv[i+1])=="graphics-depth"))palette_probe=true;
-        if(std::string_view(argv[i])=="--frontier" && std::string_view(argv[i+1])=="graphics-depth")depth_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-palette" || std::string_view(argv[i+1])=="graphics-constants" || std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state"))palette_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state"))depth_probe=true;
         if(std::string_view(argv[i])=="--capture")capture_path=argv[i+1];
     }
     if(palette_probe) {

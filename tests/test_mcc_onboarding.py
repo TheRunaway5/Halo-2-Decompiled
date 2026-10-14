@@ -66,6 +66,20 @@ class MccOnboardingTests(unittest.TestCase):
         self.assertEqual((cache / 'halo2/data/My Mod/Texture.bin').read_bytes(), b'authored mod data')
         self.assertTrue((cache / 'halo2/tags/My Mod/Empty').is_dir())
 
+    def test_preview_lists_only_owned_mcc_map_paths_and_preserves_mod_case(self):
+        self.select()
+        mod = self.cache/'halo2/mods/My Mod/Custom.MAP'
+        mod.parent.mkdir(parents=True)
+        mod.write_bytes(b'owned mod map')
+        outside = self.root/'outside.map'
+        outside.write_bytes(b'outside')
+        (mod.parent/'outside.map').symlink_to(outside)
+        maps = onboarding.preview_maps(self.root)
+        self.assertEqual(maps['mods/My Mod/Custom.MAP'], mod)
+        self.assertIn('h2_maps_win64_dx11/lockout.map', maps)
+        self.assertFalse(any(Path(name).stem in ('mainmenu', 'shared', 'single_player_shared', 'outside') for name in maps))
+        self.assertEqual(onboarding.runtime_status(self.root), onboarding.NOT_PLAYABLE)
+
     def test_malformed_legacy_registries_have_no_effect(self):
         for name in ('asset-sources', 'gameplay-source', 'loading-source', 'hud-source', 'menu-source'):
             (self.root / ('assets/' + name + '.tsv')).write_text('invalid old data')

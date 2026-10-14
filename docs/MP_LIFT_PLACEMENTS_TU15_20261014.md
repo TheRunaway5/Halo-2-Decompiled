@@ -129,3 +129,26 @@ checks pass after the repair.
 These alternative HVAC fields overlap existing Backwash MACH fields. This
 proves explicit creation, force delivery and replicated live presentation,
 not an isolated field trajectory or default retail object admission.
+
+
+## Dune pod and completed player-flag placement matrix
+
+`dune-pod-normal-entry-v350` passes one normal earlier jump, 32 actual selected
+pod force deliveries and 181 exact UDP states. Initial Z is-1.175551, peak
+Z2.065187 and first selected force delivery Z.975532. Further rise after
+that delivery exceeds the authored player-height gate. The pod overlaps the
+actual tower field; the test retains that original composed world.
+
+Current bounded coverage is **32 placements across 16 map-local definitions**,
+with 5,812 exact UDP states and 1,804 actual upward force deliveries. The
+original `1D9FB0` admission code confirms that the other 11 inventoried
+placements exclude player bindings or biped type0 through bits3/5. Those are
+object/other-body field cases, not missing player lifts. This completes the
+player-flag candidate placement matrix within the 43-placement audit. It does
+not cover every dynamically spawned field, every size/dead/filter condition,
+all object fields or original quantitative trajectories. Two Backwash cases
+require explicit birth, and Ascension uses an in-field declared start.
+
+[Pod normal-entry recording](../analysis/multiplayer/physics-live-tu15-20261012/dune-pod-normal-entry-v350/dune-pod/lan-lift/window.mp4),
+[pod summary](../analysis/multiplayer/physics-live-tu15-20261012/dune-pod-verified-v350.json),
+[original flag classification](../analysis/multiplayer/physics-live-tu15-20261012/phantom-player-flag-classification-v350.json).

@@ -26042,5 +26042,5 @@ case 0x32b560u:run_32b560(s);break;
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return p==0x1d0670u;}
+bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return p==0x1d0670u || p==0x20b620u || p==0x20a160u || p==0x272550u;}
 } // namespace halo2

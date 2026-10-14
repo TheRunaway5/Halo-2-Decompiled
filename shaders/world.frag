@@ -70,6 +70,9 @@ vec4 fetchStage2D(uint stage,vec2 p) {
 #define TEXTURE_BUMP_MATRIX(i) material.bumpMatrices[i]
 #define TEXTURE_COLOR_SIGN(i) (material.textureEffects[i].y>>1u)
 #define TEXTURE_VOLUME(i) ((material.textureEffects[i].z&1u)!=0u)
+// Outputs that the original program never writes retain initialized W=1.
+// Keep that constant through projected sampling instead of interpolating it.
+#define TEXTURE_COORDINATE_W(i) ((material.alphaTest.w&(1u<<(i)))!=0u ? 1.0 : stageCoordinates[i].w)
 #include "texture_program.glsl"
 void textureAlphaKill(vec4 samples[4]) {
     // NV_PGRAPH_TEXCTL0_ALPHAKILLEN is bit 2 of the authored nibble. It

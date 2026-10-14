@@ -52,9 +52,17 @@ std::optional<float> source_zoom_magnification(std::int16_t current,
     if(!magazine_active(*primary) && primary->definition.levels!=0) {
       const auto count=primary->definition.levels;
       if(current<0 || current>=count)return 1.f;
-      if(count!=1)return std::nullopt;
+      if(count>2)return std::nullopt;
       // Original positive-bound fallback and power(...,0)*lower endpoint.
-      return primary->definition.minimum>0.f ? primary->definition.minimum : 1.f;
+      const float lower=primary->definition.minimum>0.f ? primary->definition.minimum : 1.f;
+      if(current==0)return lower;
+      const float upper=primary->definition.maximum>0.f ? primary->definition.maximum : 1.f;
+      //105240 reaches the CRT with exponent one at the second of two levels.
+      //Retain its x87 division/multiply at the source's 53-bit precision before
+      //the final binary32 store. Every authored Xbox optic has one/two levels.
+      volatile double ratio=double(upper)/double(lower);
+      volatile double product=ratio*double(lower);
+      return float(product);
     }
     if(primary->definition.flags&0x00010000u)return 1.f;
   }

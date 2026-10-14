@@ -3,6 +3,9 @@
 #ifndef H2_FIXED_STAGE_UNROLL
 #define H2_FIXED_STAGE_UNROLL
 #endif
+#ifndef TEXTURE_COORDINATE_W
+#define TEXTURE_COORDINATE_W(i) stageCoordinates[i].w
+#endif
 uint textureMode(uint stage) {return (word(54u)>>(stage*5u))&31u;}
 uint previousTexture(uint stage) {
     // Stage 1 always reads stage 0. PSInputTexture names the earlier inputs
@@ -41,10 +44,10 @@ void runTextureStages(out vec4 samples[4]) {
             // bit0x100; Elite's plasma definition has that bit clear.
             // NV2A PROJECT2D projects S/T by Q and supplies volume R=0.
             if(TEXTURE_VOLUME(i))
-                samples[i]=fetchStage3D(i,vec3(stageCoordinates[i].xy/stageCoordinates[i].w,0.0));
+                samples[i]=fetchStage3D(i,vec3(stageCoordinates[i].xy/TEXTURE_COORDINATE_W(i),0.0));
             else
 #endif
-            samples[i]=fetchStage2D(i,stageCoordinates[i].xy/stageCoordinates[i].w);
+            samples[i]=fetchStage2D(i,stageCoordinates[i].xy/TEXTURE_COORDINATE_W(i));
             valid[i]=true;continue;
         }
         if(mode==3u) {
@@ -56,10 +59,10 @@ void runTextureStages(out vec4 samples[4]) {
             // textureProj(sampler3D,pT.xyzw); a 2D binding consumes S/T/Q.
 #ifdef TEXTURE_VOLUME
             if(TEXTURE_VOLUME(i))
-                samples[i]=fetchStage3D(i,stageCoordinates[i].xyz/stageCoordinates[i].w);
+                samples[i]=fetchStage3D(i,stageCoordinates[i].xyz/TEXTURE_COORDINATE_W(i));
             else
 #endif
-                samples[i]=fetchStage2D(i,stageCoordinates[i].xy/stageCoordinates[i].w);
+                samples[i]=fetchStage2D(i,stageCoordinates[i].xy/TEXTURE_COORDINATE_W(i));
             valid[i]=true;continue;
         }
         if(mode==4u) {samples[i]=clamp(stageCoordinates[i],0.0,1.0);valid[i]=true;continue;}

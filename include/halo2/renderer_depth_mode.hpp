@@ -7,7 +7,9 @@ struct RendererDepthConfiguration {
     std::uint32_t mode{},format{},depth_bits{},stencil_bits{};
     std::uint64_t attachment_handle{};
     NativeRuntimeAddress state_backing;
+    std::uint32_t write_enabled{},function{},bias{};
 };
+enum class RendererDepthSetting { Mode, WriteEnable, Function, Bias };
 // Issued only by a live Renderer. Selects the existing world W-depth path;
 // each authored pass retains its own depth/stencil write and compare policy.
 class RendererDepthMode {
@@ -16,11 +18,15 @@ public:
     bool valid() const;
     NativeRuntimeAddress device_address() const;
     RendererDepthConfiguration select(std::uint32_t) const;
+    RendererDepthConfiguration write_enable(std::uint32_t) const;
+    RendererDepthConfiguration function(std::uint32_t) const;
+    RendererDepthConfiguration bias(std::uint32_t) const;
 private:
     friend class Renderer;
     static RendererDepthMode issue(RendererDeviceLease,
-        std::function<RendererDepthConfiguration(std::uint32_t)>);
+        std::function<RendererDepthConfiguration(RendererDepthSetting,std::uint32_t)>);
+    RendererDepthConfiguration apply(RendererDepthSetting,std::uint32_t) const;
     RendererDeviceLease device_;
-    std::function<RendererDepthConfiguration(std::uint32_t)> select_;
+    std::function<RendererDepthConfiguration(RendererDepthSetting,std::uint32_t)> select_;
 };
 }

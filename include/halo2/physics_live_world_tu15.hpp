@@ -231,6 +231,8 @@ public:
     // retained world. Only their actual command fields are published.
     void populate_weapon_targeting(std::uint32_t player,std::uint32_t object,
         std::span<std::byte,0x5c> command);
+    //13C8D4 target flags from the actual unit targeting record and model regions.
+    std::uint32_t weapon_hud_target_flags(std::uint32_t unit);
     std::optional<ParticleCollisionHit> particle_collision(std::uint32_t flags,Vec3 origin,Vec3 displacement);
     // Native local-view input delivery; the original158340 gate and245EA0
     // packet producer consume the retained source body, seat and authored
@@ -244,6 +246,10 @@ public:
     // source clock/cache/engine owners consume the same native session inputs.
     void configure_campaign_session(std::int16_t difficulty,
         std::uint16_t simulation_mode,std::int16_t tick_rate,std::uint32_t random_seed);
+    // Original ai_place overloads on this world's actual actor/object/script
+    // banks. References retain original packed AI identities; an absent count
+    // selects authored placement. Reached missing owners propagate as errors.
+    void place_ai(std::uint32_t reference,std::optional<std::int16_t> count={});
     // Original scenario kill-volume state on this world. Containment uses
     // the actual source object pose and clock, one scheduled volume per tick;
     // fatal damage stays in the

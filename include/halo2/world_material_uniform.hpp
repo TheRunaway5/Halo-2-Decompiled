@@ -18,6 +18,7 @@ struct WorldMaterialUniform {
     ShaderVector diffuse{}, specular{};
     std::array<VertexInstruction,136> vertex_instructions{};
     std::array<ShaderVector,16> vertex_constants{}, vertex_attributes{};
+    // xyz: authored alpha test; w: original unwritten texture-W output mask.
     std::array<std::uint32_t,4> alpha_test{};
     std::array<std::array<std::uint32_t,4>,4> texture_effects{};
     std::array<ShaderVector,6> fog_constants{};

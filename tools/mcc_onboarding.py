@@ -136,6 +136,25 @@ def runtime_status(root):
     return None
 
 
+def preview_maps(root):
+    """Owned imported map choices for the native asset viewer, not gameplay admission."""
+    try:
+        value = selected(root)
+    except (OSError, ValueError, KeyError):
+        return {}
+    if value is None:
+        return {}
+    owner = value[0] / "halo2"
+    result = {}
+    for path in sorted(owner.rglob("*"), key=lambda p: p.as_posix().casefold()):
+        if path.suffix.casefold() != ".map" or path.stem.casefold() in (
+                "shared", "single_player_shared", "mainmenu"):
+            continue
+        if path.is_file() and not path.is_symlink() and path.resolve().is_relative_to(owner):
+            result[path.relative_to(owner).as_posix()] = path
+    return result
+
+
 def setup(root, mcc_source=None, *, progress=print):
     root = Path(root).resolve()
     source = directory(mcc_source) if mcc_source is not None else discover()

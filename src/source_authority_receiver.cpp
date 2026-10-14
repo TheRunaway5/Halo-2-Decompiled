@@ -54,8 +54,9 @@ struct SourceAuthorityReceiver::Impl {
     }
     bool warm(){
         if(!eligible()||!admissions())return false;if(target)return true;const auto started=Clock::now();
-        target=MultiplayerPreparedWorld::source_shadow(options,MultiplayerPreparedWorld::SourceShadowViews::LocalPeer,candidate_clock);
-        authority=std::make_unique<SourceMatchAuthority>(target->match,*target->source_objects);stats.warm_microseconds=micros(started);stats.warmed=true;return true;
+        auto world=MultiplayerPreparedWorld::source_shadow(options,MultiplayerPreparedWorld::SourceShadowViews::LocalPeer,candidate_clock);
+        auto owner=std::make_unique<SourceMatchAuthority>(world->match,*world->source_objects);
+        target=std::move(world);authority=std::move(owner);stats.warm_microseconds=micros(started);stats.warmed=true;return true;
     }
     void decode(std::stop_token stop){
         while(!stop.stop_requested()){
@@ -83,7 +84,7 @@ struct SourceAuthorityReceiver::Impl {
 SourceAuthorityReceiver::SourceAuthorityReceiver(const MultiplayerOptions &o,std::shared_ptr<PhysicsLiveClockSource> c,std::shared_ptr<PhysicsLiveClockSource> w)
     :impl_(std::make_unique<Impl>(o,std::move(c),std::move(w))){}
 SourceAuthorityReceiver::~SourceAuthorityReceiver()=default;
-bool SourceAuthorityReceiver::warm(){auto &s=*impl_;s.own();s.sync();try{return s.warm();}catch(const std::exception &e){s.stats.error=e.what();return false;}}
+bool SourceAuthorityReceiver::warm(){auto &s=*impl_;s.own();if(!s.enabled)return false;s.sync();try{return s.warm();}catch(const std::exception &e){s.stats.error=e.what();return false;}}
 void SourceAuthorityReceiver::update(){
     auto &s=*impl_;s.own();if(!s.enabled)return;s.sync();if(!s.eligible())return;
     std::optional<Impl::Result> output;{std::lock_guard lock(s.mutex);output=std::move(s.result);s.result.reset();}
@@ -91,7 +92,7 @@ void SourceAuthorityReceiver::update(){
         s.stats.decode_microseconds=output->decode_us;
         if(output->generation==s.generation&&output->cut.context==s.context){
             if(!output->error.empty())s.stats.error=output->error;
-            else try {
+            else {bool commit_attempted=false;try {
                 const auto accepted=s.admissions();need(accepted&&*accepted==output->admitted&&output->checkpoint&&output->image&&s.warm());
                 const auto started=Clock::now();auto workspace=MultiplayerPreparedWorld::source_shadow(s.options,MultiplayerPreparedWorld::SourceShadowViews::IncomingHost,s.workspace_clock);
                 SourceMatchAuthority staging(workspace->match,*workspace->source_objects);
@@ -100,11 +101,13 @@ void SourceAuthorityReceiver::update(){
                     if(!s.options.selected_profiles.empty())need(expected&&output->checkpoint->match.players[slot].source_configuration==expected);}
                 auto prepared=s.authority->prepare_with_local_views(*output->checkpoint,source_authority_binding(output->cut.context),locals,staging,accepted->players);
                 need(s.session->authority_context()==s.context&&s.admissions()==accepted);
+                s.stats.ready.reset();commit_attempted=true;
                 need(s.authority->commit(std::move(prepared)));s.stats.prepare_microseconds=micros(started);
                 need(s.session->authority_context()==s.context&&s.session->acknowledge_authority(output->cut.context,output->cut.seal));
                 s.base=std::move(output->image);s.stats.ready=ValidatedAuthorityCut{s.session->self(),output->cut.context,output->cut.seal};
                 ++s.stats.prepared;s.stats.delta=output->delta;s.stats.error.clear();
-            }catch(const std::exception &e){s.stats.error=e.what();}
+            }catch(const std::exception &e){s.stats.error=e.what();if(commit_attempted){s.authority.reset();s.target.reset();s.stats.warmed=false;}}
+            }
         }
     }
     if(s.available())if(auto accepted=s.admissions())if(auto cut=s.session->received_authority()){

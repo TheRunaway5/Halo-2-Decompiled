@@ -23,9 +23,9 @@ class LauncherHomeTests(unittest.TestCase):
         self.release = threading.Event()
         self.calls = []
         self.failure = False
-        self.sandbox_calls = []
-        (self.root / "Halo2-Sandbox-Test").write_text("#!/bin/sh\nexit 0\n")
-        (self.root / "Halo2-Sandbox-Test").chmod(0o755)
+        self.preview_calls = []
+        self.preview_map = self.root / "assets/imported/mcc-test/halo2/h2_maps_win64_dx11/lockout.map"
+
 
         def update(root, build, progress):
             self.calls.append((root, build))
@@ -37,7 +37,8 @@ class LauncherHomeTests(unittest.TestCase):
             (root / "updated-runtime").touch()
 
         self.home = LauncherHome(self.window, self.root, self.root / "build", update, availability_function=lambda: None,
-                                 sandbox_launch_function=lambda argv: self.sandbox_calls.append(argv))
+                                 preview_maps_function=lambda: {"h2_maps_win64_dx11/lockout.map": self.preview_map},
+                                 preview_launch_function=lambda argv: self.preview_calls.append(argv))
         self.window.update()
 
     def destroy(self):
@@ -139,30 +140,30 @@ class LauncherHomeTests(unittest.TestCase):
                 self.assertFalse(x < ox + ow and x + w > ox and y < oy + oh and y + h > oy)
             rectangles.append((x, y, w, h))
 
-    def test_sandbox_uses_separate_route_while_mcc_play_is_unavailable(self):
+    def test_preview_uses_mcc_route_while_gameplay_is_unavailable(self):
         self.home.play_button.configure(state="disabled")
         self.home.unavailable = "MCC conversion remains incomplete."
-        self.home.sandbox_button.invoke()
-        self.assertEqual(self.sandbox_calls, [[str(self.root / "Halo2-Sandbox-Test")]])
+        self.home.preview_button.invoke()
+        self.assertEqual(self.preview_calls, [[str(self.root / "Halo2-Launcher"), "--preview-mcc", "--map", str(self.preview_map)]])
         self.assertTrue(self.home.closed)
         self.assertEqual(self.home.result, CANCELLED)
 
-    def test_failed_sandbox_start_keeps_launcher_open(self):
+    def test_failed_preview_start_keeps_launcher_open(self):
         def fail(argv):
-            raise OSError("Test package missing")
-        self.home.sandbox_launch = fail
-        self.home.sandbox_button.invoke()
+            raise OSError("MCC preview unavailable")
+        self.home.preview_launch = fail
+        self.home.preview_button.invoke()
         self.assertFalse(self.home.closed)
-        self.assertIn("Test package missing", self.home.status.cget("text"))
+        self.assertIn("MCC preview unavailable", self.home.status.cget("text"))
 
-    def test_pointer_click_on_sandbox_starts_only_the_test_route(self):
-        button = self.home.sandbox_button
+    def test_pointer_click_on_preview_starts_only_the_asset_route(self):
+        button = self.home.preview_button
         button.event_generate("<Enter>", x=10, y=10)
         self.window.update()
         button.event_generate("<ButtonPress-1>", x=10, y=10)
         button.event_generate("<ButtonRelease-1>", x=10, y=10)
         self.assertTrue(self.home.closed)
-        self.assertEqual(len(self.sandbox_calls), 1)
+        self.assertEqual(len(self.preview_calls), 1)
         self.assertEqual(self.home.result, CANCELLED)
 
 

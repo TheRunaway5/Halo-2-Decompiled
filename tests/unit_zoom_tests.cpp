@@ -37,7 +37,7 @@ int main(int argc,char **argv) {
    }else if(r[0]=="M") {
     const auto current=std::int16_t(std::stoi(r[12]));
     const auto value=halo2::source_zoom_magnification(current,&weapon,binocular);
-    if(weapon.definition.levels>1 && current>=0 && current<weapon.definition.levels && (mode<1 || mode>6)) {
+    if(weapon.definition.levels>2 && current>=0 && current<weapon.definition.levels && (mode<1 || mode>6)) {
      check(!value,context+" explicit unported power boundary");++unsupported;
     }else {check(value && std::bit_cast<std::uint32_t>(*value)==hex(r[14]),context+" exact XMM0 float");++magnification;}
    }else if(r[0]=="U") {
@@ -49,7 +49,7 @@ int main(int argc,char **argv) {
     check(halo2::source_zoom_weapon_input(0,state)==(hex(r[19])&0x40u),context+" carried weapon zoom bit; other flags remain external");++updates;
    }else throw std::runtime_error("Unknown source zoom fixture row");
   }
-  check(initial==1 && admission==43 && cycles==51 && magnification==36 && unsupported==2 && updates==10,"Complete original zoom fixture coverage");
+  check(initial==1 && admission==43 && cycles==51 && magnification==38 && unsupported==0 && updates==10,"Complete original zoom fixture coverage");
   std::cout<<admission<<" admissions, "<<cycles<<" selectors, "<<magnification<<" exact magnifications, "<<updates<<" full unit zoom phases matched; "<<unsupported<<" power cases explicitly unavailable\n";
  }catch(const std::exception &e) {std::cerr<<e.what()<<'\n';return 1;}
 }

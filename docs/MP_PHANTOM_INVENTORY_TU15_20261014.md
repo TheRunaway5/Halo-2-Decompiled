@@ -77,3 +77,25 @@ explicit creation/lift/UDP/render path in v346 after a source prop geometry
 preparation repair. They overlap the existing machinery fields and remain
 separate from default map birth. Current passing authored placement coverage
 is 31 across 15 map-local definitions; see the placement report for scope.
+
+
+## Player admission classification and remaining object fields
+
+Complete original `1D9FB0` chooses bit3 for a source object with an actual
+player binding and bit(type+5) for its source object type. Biped type0 thus
+checks bit5. Applying those original flag tests to the audited force rows
+finds 32 player-flag candidates and 11 excluded placements. All 32 candidates
+now have bounded native live force/rise evidence. This classifies flags only;
+size/dead/filter conditions and every dynamic/BSP field remain separate.
+
+The 11 excluded placements are Colossus grav_colossus(4), Midship phantom
+volume(1), Elongation crate cushions(2), Gemini gravity columns(2), and Turf
+hinge-door springs(2). They require actual object/body interaction tests.
+They must not be judged by a player lift assertion. The initial Colossus
+probe sees no field members during its tested interval; authored spawner and
+actual body lifetimes are being examined before claiming object-field proof.
+
+The normal Dune pod entry additionally passes untouched original i386
+comparison across 1,100 instructions and all 60,084,310 source bytes, with
+the documented host IF boundary.
+[Pod normal-entry original result](../analysis/multiplayer/physics-live-tu15-20261012/dune-pod-entry-original-hardware-v351/report.json).

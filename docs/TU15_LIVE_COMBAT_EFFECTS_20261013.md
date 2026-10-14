@@ -493,4 +493,44 @@ by the held-pose shading probe. Ordinary binaries have no retained-pose lookup.
 This replay supplies the captured render inputs to isolate native renderer
 residuals. It is explicitly component evidence, never independent gameplay
 animation acceptance. Its first SMG body/weapon palettes reproduce the captured
-original13A2E0 output bit for bit; GPU/pixel comparison remains pending.
+original13A2E0 output bit for bit. Strict GPU coverage and RGB comparisons are
+now retained below; the full acceptance gate remains open.
+
+## Strict held-pose pixel gate, October 14
+
+The retained SMG replay reproduces all44 original palette matrices, all48
+camera-bank words and all16 uploaded c0..c3 words exactly. The original2C470
+split-screen policy is retained separately; its coverage/secondary/effect
+scales are0.8/0.5/0.3. Matching original GPU draws use exact c0/c50 bytes;
+native draws are selected by exact WORLD-position words. Neither selection
+uses image alignment or an arbitrary screen-space crop around the character.
+
+The declared source viewport comparison covers1,364 triangle pixels with
+zero coverage differences. Strict RGB still fails: the initial NVIDIA replay
+has1,025 unequal pixels, max13 channel levels. A fresh Lavapipe replay reduces
+this to485 pixels, max2. Decoding compressed textures with the existing pinned
+decoder reproduces all130,944 original environment-cube bytes across six
+faces/five mips; the isolated decoded-storage control reduces the software
+residual to59 pixels, max2. Its NVIDIA control still fails967 pixels, max13.
+These are diagnostic controls, not accepted poses or a production decoder
+change. The original normal-map mip0 also equals native mip2 byte for byte.
+
+`tools/compare_held_pose_pixels.py` rejects any changed RGB channel, dimension
+mismatch or empty mask. Its negative controls include a one-level channel
+change and a one-pixel shift. The acceptance tolerance is zero. The generic
+world shader now receives the source-derived unwritten texture-W mask, reusing
+the independently checked original-program analysis; this preserves original
+initialized W=1 through projected sampling. Eight focused checks pass, but
+the retained SMG decoded-storage replay still fails59 software pixels and967
+NVIDIA pixels against the Mesa original. Replaying the original draw on NVIDIA
+as well reduces the NVIDIA residual to538 pixels, max10; it still fails. The
+constant-W preservation does not close this pose gate.
+
+`render-pose-fix/weapon-pose-reference-matrix.json` retains actual original
+render inputs for all15 resident Foundation starting-weapon choices. Seven
+have GPU exports; all15 retain completed nodes/palettes and screenshots. The
+fourteen additional weapon fixtures explicitly declare original B9960/B9B70
+constructor inputs, then use normal controller pickup. Constructors preserve
+the original executable and player pose. These fixtures are not described as
+normal-play-only provenance. Elite, dual wield, remaining authored inventory,
+independent native animation and the complete strict pixel matrix remain open.

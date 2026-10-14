@@ -3,8 +3,8 @@
 
 Every included routine retains its complete CFG, including untaken branches.
 The reference selects routine identities only. No captured result, actor state
-or service return is substituted for source instructions. Only1D0670 is
-exported; full campaign boot, every AI decision path and weapons remain open.
+or service return is substituted for source instructions. The frame and three
+shared helpers are exported; full campaign behavior remains open.
 """
 import argparse,json,re,struct
 from pathlib import Path
@@ -63,13 +63,13 @@ def main():
     generate(SimpleNamespace(output=a.output,manifest=a.directory/'generation.json',correspondence=correspondence,additional_entries=Path(__file__)),paired)
     source=a.output.read_text().replace('tools/generate_physics_live_support_tu15.py','tools/generate_ai_frame_tu15.py').replace('halo2/physics_live_support_tu15.hpp','halo2/source_ai_frame_tu15.hpp').replace('source_run_physics_live_support_tu15','source_run_ai_frame_tu15').replace('source_physics_live_support_tu15_owns_entry','source_ai_frame_tu15_owns_entry')
     source,n=re.subn(r'bool source_ai_frame_tu15_owns_entry\(std::uint32_t p\) \{[^\n]+',
-        'bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return p==0x1d0670u;}',source);assert n==1
+        'bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return p==0x1d0670u || p==0x20b620u || p==0x20a160u || p==0x272550u;}',source);assert n==1
     a.output.write_text(source)
     report=json.loads((a.directory/'generation.json').read_text())
     report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),
         original_reference_report_sha256=sha(references[0]/'report.json'),hardware_report_sha256=sha(references[0]/'hardware/report.json'),
         references=[dict(report=str(p/'report.json'),report_sha256=sha(p/'report.json'),hardware_report_sha256=sha(p/'hardware/report.json')) for p in references],
-        exported_entry=0x1d0670,scope=__doc__)
+        exported_entry=0x1d0670,exported_helpers=[0x20b620,0x20a160,0x272550],scope=__doc__)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
     print('Complete original AI frame bodies',len(entries),'instructions',len(instructions))
 

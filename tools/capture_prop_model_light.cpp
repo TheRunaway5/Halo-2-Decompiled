@@ -64,7 +64,8 @@ int main(int argc,char**argv)try {
   report["pinned_shader_directory"]=options.capture_shader_directory.string();
   std::set<std::uint32_t> owners;std::uint32_t source_tick{},light_tick{};unsigned light_packets{};
   Json current_inputs=Json::array();std::map<std::uint64_t,NativeGrenadeDetonation> events;
-  std::vector<unsigned> drawn(options.local_players),lit(options.local_players),visible(options.local_players);
+  std::vector<unsigned> drawn(options.local_players),lit(options.local_players),visible(options.local_players),
+      grenade_packets(options.local_players);
   std::vector<std::vector<Vertex>> geometry(options.local_players);
   const auto tag_name=[&](std::uint32_t id){const auto tag=cache.query_tag({.handle=TagHandle{id}});return tag?tag->name:std::string{};};
   options.input_observer=[&](unsigned,std::span<const Controls>,const MultiplayerState& state) {
@@ -81,6 +82,17 @@ int main(int argc,char**argv)try {
     if(state.tick==options.capture_tick)report["source_inputs"]=current_inputs;
   };
   options.effect_light_capture_request=[&](unsigned view,std::uint32_t tick,std::span<const EffectLightRawDraw> packets,std::span<const WorldEffectLight> lights) {
+    if(grenade && light_tick && tick==light_tick) {
+      check(source_tick==tick,"Local-view prop light capture lost its completed input frame");
+      for(const auto& packet:packets) {
+        const auto& owner=packet.source.owner();
+        if(owner.kind!=MenuWorldSourceOwnerKind::dynamic_object || !owner.generation ||
+           !owners.contains(*owner.generation))continue;
+        for(const auto& selected:report.at("model_light_sources"))
+          if(selected.at("identity").get<std::uint32_t>()==packet.light_identity)++grenade_packets.at(view);
+      }
+      return false;
+    }
     if(!grenade || view || light_tick || events.empty())return false;
     std::map<std::uint32_t,unsigned> selected;
     for(const auto& packet:packets) {
@@ -101,6 +113,7 @@ int main(int argc,char**argv)try {
         {"effect_owner",light->effect_owner},{"effect_definition",light->effect_definition},{"effect_tag",tag_name(light->effect_definition)},
         {"delivery_tick",light->tick},{"model_packets",count},{"original_effect_matches",matches}});light_packets+=count;
     }
+    grenade_packets.at(view)=light_packets;
     light_tick=tick;options.capture_tick=tick;report["source_inputs"]=current_inputs;return true;
   };
   options.prop_source_draw_observer=[&](unsigned view,std::uint32_t owner,std::uint32_t definition,const ObjectLightingState& light,bool valid,unsigned lod,std::span<const Vertex> vertices) {
@@ -125,9 +138,11 @@ int main(int argc,char**argv)try {
   };
   const auto result=run_multiplayer(options);report["runtime_exit"]=result;report["source_owners"]=owners;
   report["draw_counts"]=drawn;report["lit_draws"]=lit;report["model_light_tick"]=light_tick;report["model_light_packets"]=light_packets;
+  report["grenade_model_packets_by_view"]=grenade_packets;
   std::ofstream(out/"report.json")<<report.dump(2)<<'\n';
   check(result==0 && !owners.empty() && std::filesystem::exists(options.screenshot),"Live prop capture did not complete");
   check(!grenade || (light_tick && light_packets),"Actual grenade produced no source light packets on the selected BLOC owner");
   for(unsigned view=0;view<options.local_players;++view)check(drawn[view] && lit[view] && visible[view],"A local view lacks visible source prop base geometry and valid lighting");
+  if(grenade)for(const auto count:grenade_packets)check(count,"A local view lacks model packets from the actual selected grenade effect");
   std::cout<<"PASS visible live source BLOC base/light handoff; matched original pixels remain separate\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

@@ -1708,3 +1708,60 @@ Execution ABI remains32-bit. Full native64 gameplay, large mod admission,
 all-tag vanilla TU1.5 conversion, MCC-only world loading, complete graphical
 parity and the loading video with sound remain unfinished. Gameplay stays
 gated and the goal remains active.
+
+
+### Native world W-depth mode selection
+
+The reached `1265A -> 3FF5D0` mode2 request now resolves through a live Renderer
+control to the existing world W-depth path and its resident D24S8 attachment.
+The native owner validates the actual image, memory, attachment view, pipeline,
+format support and device identity. Its native state backing remains above
+4GiB; the Vulkan image identity remains a 64-bit opaque handle. The selected
+mode feeds the existing world camera push constants. Each authored pass keeps
+its own depth/stencil policy. Mode2 was already the native default, so existing
+presentation stays unchanged. All 168 shader source files and their ABI remain
+unchanged.
+
+The authenticated SDK body and its helper bodies are inventoried separately.
+Direct depth-test and Z-min/max methods are verified against the pinned NV2A
+source, and helper400470 supplies CONTROL0's W/perspective bit16. The native
+runtime reuses its existing per-view source camera/viewport constant path; it
+does not execute or import Xbox driver banks, matrix/program uploads or SDK
+register clobbers. Its void ABI removes the return and one argument (`ESP+=8`)
+while preserving the remaining GP, defined flags and FP state. Missing,
+duplicate, foreign and retired owners are rejected.
+
+The GPU proof uses two overlapping triangles through the actual renderer and
+preserved programs. Equal integer W accepts the later red triangle with depth
+123456; a position-dependent W row rejects the farther triangle and retains
+palette blue with depth65536. All 64,896 covered pixels in both controlled
+surfaces match their expected integer depth and color; both coverage masks
+match and stencil stays zero. These checks pass for empty input and four SDL
+virtual controllers in the integrated and independently rebuilt startup
+executables, plus the reference-free trace run. This proves the controlled
+native W-depth/write/LEQUAL behavior, not an Xbox gameplay framebuffer match.
+
+Original-reference comparisons retain 311,203 source instructions, 82,210
+ordered non-stack writes, defined CPU state, constructor banks, raw allocations,
+process heap and pending stack. No cold data was added: typed cold data remains
+261,392 bytes. All 100 focused checks pass without skips. The reference-free
+trace opens no Xbox/MCC executable, ISO or map and sends no external INET
+traffic. The initial missing-gradient probe fixture and subsequent bloom/color
+control diagnostic are retained; `native-empty-v3.json` and
+`native-controllers.json` are the passing native receipts.
+
+Evidence is indexed by
+`analysis/asset-setup/mcc-native-20261014/native-startup/renderer-depth-progress-report.json`.
+The frozen snapshot in `.local/mcc-native-20261014/native-renderer-depth/`
+rebuilds 47 direct startup sources and copies 65 current static libraries;
+library bodies are not independently rebuilt. The preserved shader sources,
+compiled programs, validation layer, full controlled GPU surfaces, oracle
+provenance and file digests are retained.
+
+The next reached call is `12669 -> 3FFDD0`, return `1266E` at `6000EFD8`, with
+ECX4035C and EDX1: the original depth-write-enable method. Its SDK body is
+inventoried, and its native owner remains pending. Initializer32 is incomplete;
+31 of68 slots have returned. Execution ABI remains32-bit. Full native64
+execution and large mod admission, all-tag vanilla TU1.5 conversion, MCC-only
+world loading, complete graphical parity and the loading video with sound
+remain unfinished. Gameplay stays gated and the full goal remains active.

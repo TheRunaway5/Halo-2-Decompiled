@@ -18,15 +18,32 @@ const RendererDepthConfiguration& NativeTu15RendererDepth::configuration() const
 }
 bool NativeTu15RendererDepth::try_call(SourcePhysicsContactMemory& bank,
     const SourcePhysicsContactRuntimeCall& call,SourcePhysicsWorldRuntimeAbi& abi) {
-    if(call.target!=0x3ff5d0u)return false;
-    if(&bank!=&memory_ || call.tail || std::this_thread::get_id()!=thread_ ||
-       call.instruction!=0x1265au || word(memory_,abi.gp[4])!=0x1265fu ||
-       word(memory_,abi.gp[4]+4)!=2u || configuration_)
-        throw std::invalid_argument("Native cold depth-mode caller or mode differs");
+    if(call.target!=0x3ff5d0u && call.target!=0x3ffdd0u && call.target!=0x3ffa90u)return false;
+    if(&bank!=&memory_ || call.tail || std::this_thread::get_id()!=thread_)
+        throw std::invalid_argument("Native cold depth caller has a foreign bank or thread");
+    unsigned operation=0,cleanup=0;
+    if(call.target==0x3ff5d0u && call.instruction==0x1265au &&
+       word(memory_,abi.gp[4])==0x1265fu && word(memory_,abi.gp[4]+4)==2u && !configuration_) {
+        operation=1;cleanup=8;
+    } else if(configuration_ && call.target==0x3ffdd0u && call.instruction==0x12669u &&
+       word(memory_,abi.gp[4])==0x1266eu && abi.gp[1]==0x4035cu && abi.gp[2]==1 && !state_calls_) {
+        operation=2;cleanup=4;
+    } else if(configuration_ && call.target==0x3ffdd0u && call.instruction==0x12682u &&
+       word(memory_,abi.gp[4])==0x12687u && abi.gp[1]==0x40354u && abi.gp[2]==0x203 && state_calls_==1) {
+        operation=3;cleanup=4;
+    } else if(configuration_ && call.target==0x3ffa90u && call.instruction==0x12692u &&
+       word(memory_,abi.gp[4])==0x12697u && word(memory_,abi.gp[4]+4)==0 && state_calls_==2) {
+        operation=4;cleanup=8;
+    } else throw std::invalid_argument("Native cold depth caller, value or order differs");
     if(!device_.initialized() || !control_.valid() || control_.device_address()!=device_.native_address())
         throw std::runtime_error("Native depth mode lacks its live renderer owner");
-    configuration_=control_.select(2);
-    abi.gp[4]+=8; // Native void graphics ABI; remove return and one argument.
+    switch(operation) {
+        case 1:configuration_=control_.select(2);break;
+        case 2:configuration_=control_.write_enable(1);++state_calls_;break;
+        case 3:configuration_=control_.function(0x203);++state_calls_;break;
+        case 4:configuration_=control_.bias(0);++state_calls_;break;
+    }
+    abi.gp[4]+=cleanup; // Native void graphics ABI; retain other GP/FP/flags.
     return true;
 }
 }

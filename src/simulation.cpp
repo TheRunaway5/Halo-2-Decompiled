@@ -1102,6 +1102,15 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     if(sword)return;
   }
   const auto active_actions=source_physics_movement_?u.grenade_action.active_actions():u.source_action_word;
+  if(source_control && content_.binocular_zoom && hand==0) {
+    if(source_control->zoom_reset_serial==u.zoom_reset_serial)
+      source_zoom_request(u.source_zoom,source_control->zoom);
+    const std::array<std::int16_t,1> modes{w.smg?state.smg.magazine_mode:state.magazine.mode};
+    const ZoomWeaponView primary{w.zoom,w.magazine?std::span(modes):std::span<const std::int16_t>{}};
+    const UnitZoomContext context{u.source_parent,active_actions,{&primary,nullptr}};
+    source_zoom_update(u.source_zoom,context,
+        !(u.definition.unit_flags&0x400u) && !(u.source_unit_10a&4u));
+  }
   const bool weapon_blocked=(active_actions & (0x400000u|(1u<<27)))!=0;
   if(weapon_blocked)fire=reload=false;
   if(multiplayer_weapon_steps_ && w.charged_cycle) {
@@ -1112,18 +1121,6 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     // idle/fire_1/reload_1 with no blocking overlay admit this transition;
     // unsupported melee/vehicle/switch/other action names remain separate.
     auto &native = state.smg;
-    // C8140 -> C6C50 -> C9920, using retained source constructor/action fields
-    // and the actual magazine mode. Ordinary jump/crouch were measured not to
-    // mutate this action word. Other weapon/action managers are separate.
-    if(source_control && content_.binocular_zoom && hand==0) {
-      if(source_control->zoom_reset_serial==u.zoom_reset_serial)
-        source_zoom_request(u.source_zoom,source_control->zoom);
-      const std::array<std::int16_t,1> modes{native.magazine_mode};
-      const ZoomWeaponView primary{w.zoom,modes};
-      const UnitZoomContext context{u.source_parent,active_actions,{&primary,nullptr}};
-      source_zoom_update(u.source_zoom,context,
-          !(u.definition.unit_flags&0x400u) && !(u.source_unit_10a&4u));
-    }
     smg_input(native, fire);
     for(unsigned timer=0;timer<2;++timer)native.hand_timers[timer]=u.source_weapon_hand_feedback[timer];
     native.input_flags=source_zoom_weapon_input(native.input_flags,u.source_zoom);
@@ -1733,8 +1730,7 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
                     Vec3{-facing.y, facing.x, 0} * intent.velocity.y,
                 input.jump, input.crouch);
     }
-    update_weapon(player_, input.fire, input.reload, -1, input.pitch,
-        multiplayer_weapon_steps_?&input:nullptr);
+    update_weapon(player_, input.fire, input.reload, -1, input.pitch,&input);
     if(participants.empty())step_campaign_pickups(input);
 
     if(native_hand_weapon(player_,1))

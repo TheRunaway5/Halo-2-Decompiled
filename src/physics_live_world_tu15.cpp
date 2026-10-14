@@ -42,6 +42,8 @@
 #include "halo2/source_effect_particle_draw_tu15.hpp"
 #include "halo2/source_ai_actor_tu15.hpp"
 #include "halo2/source_ai_frame_tu15.hpp"
+#include "halo2/source_ai_placement.hpp"
+#include "halo2/source_campaign_runtime_tu15.hpp"
 #include "halo2/source_kill_volumes.hpp"
 #include "halo2/source_state_context_startup_tu15.hpp"
 #include "halo2/source_sandbox_special_tu15.hpp"
@@ -304,6 +306,7 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x1563a0u); // Literal44B5B4 local player effect/impulse storage.
         call_actual(0x157e10u); // Literal44B3BC original director storage.
         for(auto entry:{0x381710u,0x381730u,0x381750u,0x381770u})call_actual(entry);
+        call_actual(0x2129d0u); // Actual row54 constructs HS syntax, object lists, threads and globals.
         call_actual(0x1cfa40u); // Actual44B6F8 complete AI storage initializer.
         const auto tags=cache.load_source_runtime_cache_tag_image();
         reserve_map_pages(tags);
@@ -880,6 +883,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_state_context_startup_tu15_owns_entry(c.target)) {
             source_run_state_context_startup_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_campaign_runtime_tu15_owns_entry(c.target)) {
+            source_run_campaign_runtime_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_ai_actor_tu15_owns_entry(c.target)) {
             source_run_ai_actor_tu15(m,c.target,a,fp,services(),o);return;
@@ -1814,8 +1820,28 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x12ecf0u); // Actual191AAF carves and activates texture backing.
         call_actual(0x1490b0u);
         call_actual(0x159ff0u); // Full source engine reset consumes the delivered variant.
+        call_actual(0x212a20u); // Actual row54 resets HS threads/globals before AI new-map initialization.
         call_actual(0x1cfc90u); // Actual44B700 AI reset consumes delivered game options.
         session_configured=true;
+    }
+    void place_ai(std::uint32_t reference,std::optional<std::int16_t> count) {
+        if(!session_configured)
+            throw FormatError("AI placement requires its configured source world");
+        SourceAiPlacementOwners owners;
+        owners.place_reference=[&](std::uint32_t value) {
+            auto a=frame({});a.gp[7]=value;run_actual(0x27d190u,a);
+        };
+        owners.place_squad=[&](std::int16_t squad,std::int16_t requested) {
+            const std::array args{std::uint32_t(std::int32_t(squad)),0xffffffffu,0u,1u};
+            auto a=frame(args);a.gp[0]=std::uint32_t(std::int32_t(requested));
+            run_actual(0x2097e0u,a);
+        };
+        owners.remember_reference=[&](std::uint32_t value) {
+            const auto pvs=word(bank,0x5020a8u);
+            if(!pvs)throw FormatError("AI placement requires its actual PVS state");
+            put(bank,pvs+0x364u,value);
+        };
+        source_place_ai(reference,count,owners);
     }
     void set_kill_volume_enabled(std::int16_t trigger,bool enabled) {
         if(trigger==-1)return;
@@ -1982,6 +2008,7 @@ std::uint32_t PhysicsLiveWorldTu15::child_object(std::uint32_t p,std::uint32_t d
 void PhysicsLiveWorldTu15::destroy_object(std::uint32_t object){Impl::PublicCall active(*impl_);impl_->destroy_object(object);}
 void PhysicsLiveWorldTu15::configure_session(const SourceGameVariant&v,std::uint16_t m,std::int16_t r,std::uint32_t s){Impl::PublicCall active(*impl_);impl_->configure_session(v,m,r,s);}
 void PhysicsLiveWorldTu15::configure_campaign_session(std::int16_t d,std::uint16_t m,std::int16_t r,std::uint32_t s){Impl::PublicCall active(*impl_);impl_->configure_session(source_game_variant_default(0),m,r,s,1u,d);}
+void PhysicsLiveWorldTu15::place_ai(std::uint32_t r,std::optional<std::int16_t> n){Impl::PublicCall active(*impl_);impl_->place_ai(r,n);}
 void PhysicsLiveWorldTu15::set_object_position(std::uint32_t o,Vec3 p){Impl::PublicCall active(*impl_);impl_->set_object_position(o,p);}
 void PhysicsLiveWorldTu15::set_kill_volume_enabled(std::int16_t t,bool e){Impl::PublicCall active(*impl_);impl_->set_kill_volume_enabled(t,e);}
 bool PhysicsLiveWorldTu15::object_in_kill_volume(std::uint32_t o){Impl::PublicCall active(*impl_);return impl_->object_in_kill_volume(o);}

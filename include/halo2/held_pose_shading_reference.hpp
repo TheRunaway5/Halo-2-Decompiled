@@ -22,5 +22,8 @@ struct HeldPoseShadingReference {
 const HeldPoseShadingReference* held_pose_shading_reference(std::uint32_t definition);
 double held_pose_shading_reference_time();
 RenderViewport held_pose_shading_reference_safe_rectangle();
+RenderViewport held_pose_shading_reference_outer_rectangle();
 SourceGeometryLodPolicy held_pose_shading_reference_policy();
+// Explicit retained-image storage input for isolated sampler experiments.
+bool held_pose_shading_reference_texture(Texture &);
 }
