@@ -3,6 +3,7 @@
 #include "halo2/source_object_view.hpp"
 #include "halo2/object_lighting.hpp"
 #include "halo2/appearance.hpp"
+#include "halo2/source_light_volume_draw.hpp"
 #include <memory>
 
 namespace halo2 {
@@ -24,6 +25,8 @@ public:
     ~NativeWeaponProjectileScene();
     void synchronize(std::span<const NativeWeaponProjectile>);
     const std::vector<NativeWeaponProjectileDraw>& draw_view(std::int32_t,const SourceObjectViewLod&);
+    const std::vector<SourceLightVolumeDraw>& light_volume_view(unsigned,Vec3 actual_camera_forward,
+        const SourceViewProjectionBank &,RenderViewport,float actual_w_distance);
 private:
     struct Impl;std::unique_ptr<Impl> impl_;
 };

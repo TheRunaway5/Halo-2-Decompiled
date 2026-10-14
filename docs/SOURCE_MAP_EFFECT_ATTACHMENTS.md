@@ -10,20 +10,88 @@ systems when the owner disappears. Repeated view preparation does not restart
 the effect. Clients wait for an accepted host snapshot and apply device state
 and prop tombstones before this synchronization.
 
+The bridge now also supplies the original constructor's explicit `up` and
+`gravity` seed locations at the actual object origin. It retains their local
+transforms once per generation and composes them with current node zero.
+[The shape 9 and seed-location continuation](SOURCE_MAP_PARTICLE_SHAPE9_TU15.md)
+records 3,072 exact original births and 2,048 exact original seed matrices.
+Missing arbitrary marker names still remain unresolved.
+
 The original absent-function inputs are A=0 and B=1. Four salted original
 allocator/attachment cases establish those values; the object lookup and
-eligibility services are explicit fixture inputs. Named functions remain
-unavailable. Particle death-effect definitions are recursively checked before
+eligibility services are explicit fixture inputs. Named attachments now consume
+completed original effect state as described below. Particle death-effect definitions are recursively checked before
 an attachment is admitted, including cyclic graphs. Missing child systems do
 not silently turn a partial graph into a prepared attachment.
 
 The Xbox 21-map cache bank contains 96 relevant authored attachments. The
-current native test prepares 58 and starts 55 initial attachments. It checks
+current resource test prepares **91** graphs: 83 native visual graphs and eight
+pure damage graphs owned by the original simulation. It starts 66 initial
+unnamed visual attachments. It checks
 180 simulation ticks, duplicate synchronization, repeated views, immediate
 retirement and salted recreation, using declared bind WORLD inputs. The summed
-particle peaks are 1,994. Foundation's four actual HVAC attachments produce a
+particle peaks are 2,716. Warlock's 12 attachments and Deltatap's nine now
+all prepare and start, with particle peaks of 492 and 203. Foundation's four actual HVAC attachments produce a
 197-particle peak. This test does not establish current original animation,
-spatial/PVS eligibility, factory scheduling or network history.
+spatial/PVS eligibility, factory scheduling or network history. The named
+attachments require the actual source packets and have a separate live bank.
+
+## Completed original object-function controls, October 14
+
+The source runtime already executes the original attached-effect update after
+its object phases. The new read-only adapter follows C0CD0's actual eight-byte
+attachment slots into the 400-byte effect pool at `4F720C`. It retains the full
+effect identity, definition, flags, A/B controls, colors and each retained
+location chain. The location pool is `4F7208`; its original 60-byte records
+retain the name, node index and 52-byte local transform. Object/effect/location
+salts, occupancy, body extents and chains are checked. The original raw datum
+lookup checks high-water and salt but does not check occupancy; the adapter
+therefore checks the bitmap separately. Reading never changes source state.
+
+Original `1794E0` (TU1.5 `17C370`) consumes the original object-function result
+and its enabled flag. `177260` pauses emission with flag4; `177310` resumes by
+selecting event zero. Flag8 suppresses new parts/emission according to the
+original visibility input, and flag40 retires while particles drain. The native
+presentation now consumes these completed values and retained frames rather
+than evaluating the function again. Current WORLD nodes compose the original
+local frames. Repeated snapshots retain the full instance; changed instances
+retire their old presentation before starting once. A missing source packet is
+an explicit boundary and cannot supply invented function values.
+
+Native protocol **75** carries these completed attachment packets on scene
+roots. The real UDP test compares all identities, raw float bits, flags,
+colors and location transforms. It activates Turf's actual `current_body_damage`
+function through native vitality-feedback delivery, pauses it by clearing that
+feedback, admits a four-player late join while paused and resumes it afterward.
+Duplicate delivery preserves the snapshot. Containment cannot be used as that
+pause fixture: its authored inverted expelled-core curve has a nonzero `.01`
+floor. The rejected fixture and corrected test are retained in the evidence.
+
+Six focused checks pass, including actual source worlds for Containment,
+Turf and Relic (`dune`). They prepare 10/10, 4/4 and 6/6 graphs, bind 6, 4 and
+3 current named allocations, and produce native total particle peaks of 236,
+90 and 45. The new read-only named-definition count separately records peaks
+of 76, 90 and 45 particle submissions. Relic starts five of its six initial attachments; preparation does
+not invent an absent source allocation. Turf stops emitting and drains after
+the actual function pauses. Repeated synchronization and repeated views retain
+particle values. The resource-only 21-map bank separately totals **83/96**
+prepared graphs, 66 initial unnamed starts and 2,716 summed particle peaks.
+
+`analysis/map-world-features/function-continuation-20261014/` retains the red
+Containment 4/10 reproduction, actual source state probes, authored function
+inventory, coherent source/overlay manifests, focused results and render
+receipts. Actual PVS input remains that of the source world; diagnostic cameras
+do not replace it. This transport does not establish an independent client's
+PVS, original particle history, event/RNG scheduling or Xbox framebuffer parity.
+Native protocol75 requires matching host/client builds.
+
+The new final-draw-only diagnostic leaves property evaluation, simulation and
+RNG running. Camera-only Containment core and Relic watchtower captures change
+3,427 and 19,992 pixels respectively, with byte-identical enabled repeats.
+Containment's ordinary spawn view has zero changed pixels; it is retained as
+a view that does not establish visibility. Both diagnostic cameras retain the
+automatic source world and its actual PVS inputs. These close views demonstrate
+native submissions, not ordinary-view or matched Xbox scene acceptance.
 
 The retained Foundation on/off/repeat Vulkan captures show 38,829 changed
 pixels and byte-identical enabled repeats. They use declared native root and
@@ -39,7 +107,24 @@ Evidence is under `analysis/map-world-features/attachments-20261013/latest/`:
 `snow-live/verification.json`, `ordinary/`, and immutable `versions/` snapshots.
 Earlier captures in the parent directory remain separate older-build evidence.
 
-## Original routines and delivery boundary
+The previous shape 9 package and seed receipts are under
+`analysis/map-world-features/attachment-continuation-20261014/`. Both normal
+launchers selected that tested runtime at its receipt. The current function
+delivery is recorded in [normal launcher delivery](SOURCE_WORLD_LAUNCHER_DELIVERY.md).
+Its 21 ordinary map captures plus four
+split-screen cases pass at one final hash. Camera-only Warlock stream and close
+Deltatap waterfall-volume captures show 3,572 and 123,784 changed pixels, with
+identical enabled repeats and simulation/RNG lines. The Deltatap diagnostic
+does not establish ordinary-view visibility or Xbox scene parity. Ordinary
+Lockout snow separately shows 20,028 changed pixels with an identical repeat.
+All new captures have zero Vulkan validation errors. Full original attachment
+scheduling and the launchers' separate MCC gameplay readiness remain open.
+
+## Historical original routines and delivery boundary
+
+The following records describe earlier continuation builds. Current startup,
+rendering and installed-runtime scope are recorded in
+[normal launcher delivery](SOURCE_WORLD_LAUNCHER_DELIVERY.md).
 
 `source_map_world_support_tu15_generated.cpp` retains complete original TU1.5
 bodies reached during startup and updates. Original function pointers or direct
@@ -78,10 +163,13 @@ matching rows `44B40C` and `44B454`. The actual reset marks the pool active and
 sets the cluster heads to NONE; those values are not host-supplied defaults.
 The real Zanzibar preparation regression checks this state before rendering.
 
-The current development module contains **100 complete bodies / 9,422 instructions**.
-The original banks now total **1,744 cases**: the 976 above, 512 complete
+The current development module contains **108 complete bodies / 10,172 instructions**.
+The original banks now total **1,745 cases**: the 976 above, 512 complete
 `11E490`/`1DB800` comparisons, and 256 `10B730` NONE/inactive-effect reset
-comparisons. The reset bank does not establish active `16E8A0` retirement.
+comparisons, plus one captured live Terminal callback comparison over 250
+executed instructions. That callback supplies the existing host RSQRTSS
+estimate policy explicitly and does not prove Xbox estimate bits. The reset
+bank does not establish active `16E8A0` retirement.
 These banks cover their stated routines, not every body. New retained routines include the decal constructor/reset, projection,
 lighting helpers, registered cache release/retention callbacks, authored
 object callbacks, and the cached render-state constructor/reset. The latter
@@ -124,19 +212,64 @@ packaging and its exact capture receipts are recorded separately in
 [normal launcher delivery](SOURCE_WORLD_LAUNCHER_DELIVERY.md). Historical
 gate/traversal receipts do not accept this automatic-original-world build.
 
-The coherent source build plus the 100-body module is recorded under
+The coherent source build plus the 108-body module is recorded under
 `analysis/map-world-features/coherent-peer-20261014/`. Its current 21-map bank
 completes the first ordinary source tick on 13 maps, including Terminal, with
 no regressions against its coherent 98-body baseline. Eight maps still fail:
 seven at the missing decal command owner, and Gemini at a separate missing
-backing pointer. Terminal's longer 1,200-tick attempt also fails at missing
-physics callback `2FA6F0` at step198; short startup is not complete train acceptance.
+backing pointer. [Terminal's original callback continuation](SOURCE_MAP_TERMINAL_CONTINUATION_TU15.md)
+now passes 1,200 ordinary source/rendered ticks with one view and 240 rendered
+ticks with four views. This does not establish complete train behavior.
 The current MCC-only launcher readiness gate is a separate unresolved path.
 
-The full goal remains open: 38 authored attachments are not prepared; named
-functions, swarm/wind controllers, shape9, external material bindings,
+The full goal remains open: **5** authored attachments are not prepared;
+swarm/wind controllers, external material bindings,
 nonvisual parts, full original scheduling/RNG/resource ownership, late-join
 particle history, resets, moving/crushing machinery, the Vista-only texture
 guards and matched original visual acceptance are unresolved. Current scene
 poses and repeated-view invariance are bounded native evidence, not full Xbox
 parity.
+
+The remaining graph inventory is Ascension1 and Colossus1 (external texture
+binding), Elongation1 (original lens rendering/admission evidence),
+and Backwash2 (swarm/wind controllers). This count describes resource admission,
+not a claim that the remaining all-map interaction and visual work is limited
+to those five graphs.
+
+## Original train damage ownership, October 14
+
+Terminal's eight cow-catcher attachment graphs contain only `jpt!` parts and
+no visual parts or particle systems. The ordinary source world already owns
+their complete event/part/damage path: `17D730`, actual request constructor
+`17D82C ->D8BB0`, then `17D8DA ->D91D0`. The bridge now accepts these pure
+graphs only through their completed source allocation. It binds the full
+instance and generation without creating a native event clock, RNG stream,
+particle or damage request. Mixed damage/presentation graphs still fail
+explicitly. This admission recognizes the existing source owner; it does not
+add a substitute train damage implementation.
+
+The new read-only observation runs immediately before and after that exact
+damage call, checking its real caller, request definition and live effect
+pool identity. It forwards the unchanged ABI into the original callee. Two
+actual-source tests place native-constructed bipeds at the active train's
+retained location and 64 units above it. Both record six completed calls and
+the near target's fatal transition inside the cow-catcher call at source
+tick123. With presentation disabled/enabled, near-body bits are `C19D5556`,
+far-body bits are `3F800000`, and both shields have the expected zero/one result.
+The enabled bridge binds twelve actual generations across initial creation
+and script recreation, with zero native effect instances for these graphs.
+
+Repeated synchronization and four native draw preparations preserve all
+256 effect records, 512 location records, source RNG, clock and the checked
+target body. Both source tests and seventeen existing focused/particle/event
+regressions pass. The new 21-map resource bank totals **91/96**, retaining 66
+initial visual starts and 2,716 summed particle peaks. Its bind-WORLD-only
+fixture deliberately omits the completed source packets, so it never invents
+train allocations. The separate live test establishes the original owner.
+
+The evidence is in `analysis/map-world-features/nonvisual-continuation-20261014/`.
+Declared target placement proves the actual damage call, not player-driven
+traversal, full train motion/riding/crushing, network/reset or Xbox acceptance.
+Elongation's rejected part is `lens`, not a gameplay damage part. `17D730`
+returns for that group; whether a separate original render owner consumes it
+remains unproven. Its admission stays guarded rather than inventing a flare.

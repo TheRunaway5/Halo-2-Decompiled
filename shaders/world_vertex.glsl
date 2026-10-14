@@ -78,6 +78,7 @@ void main() {
     float eyeDistance=length(toEye);
     float facing=eyeDistance>0.0?max(dot(normal,toEye/eyeDistance),0.0):0.0;
     forwardColor=clamp(material.diffuseColor*facing+material.specularColor*(1.0-facing),0.0,1.0);
+    if(material.flags.z==11u)forwardColor=vec4(color,sourceColorAlpha);
     for(uint i=0u;i<4u;++i)stageCoordinates[i]=vec4(texcoord,0,1);
     if(material.flags.w!=0u) {
         runVertexProgram();

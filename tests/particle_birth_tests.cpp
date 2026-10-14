@@ -17,10 +17,13 @@ template<class T>T read(std::ifstream &stream) {
 int main(int argc,char **argv) {
   try {
     const bool controlled=argc==5 && std::string_view(argv[1])=="--controlled-shapes";
-    if(argc!=4 && !controlled)throw halo2::FormatError("particle birth comparison requires map, inputs, original");
-    const unsigned first=controlled?2:1;
+    const bool tu15=argc==6 && std::string_view(argv[1])=="--tu15";
+    if(argc!=4 && !controlled && !tu15)throw halo2::FormatError("particle birth comparison requires map, inputs, original");
+    const unsigned first=tu15?3:controlled?2:1;
+    if(tu15 && !std::filesystem::is_regular_file(argv[2]))return 77;
     if(!std::filesystem::exists(argv[first+1]) || !std::filesystem::exists(argv[first+2]))return 77;
-    halo2::Cache assets(argv[first]);const auto functions=assets.shader_function_tables();
+    const auto original_data=tu15?halo2::OriginalData::load_xbe(argv[2]):std::shared_ptr<const halo2::OriginalData>{};
+    halo2::Cache assets(argv[first],{},original_data);const auto functions=assets.shader_function_tables();
     const auto data=assets.original_data();
     std::ifstream inputs(argv[first+1],std::ios::binary),original(argv[first+2],std::ios::binary);
     const auto count=read<std::uint32_t>(inputs);

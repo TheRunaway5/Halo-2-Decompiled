@@ -14,7 +14,7 @@ struct ResidentDrawStorage::Impl {
     VkDevice device;
     VkPhysicalDevice physical;
     VkDescriptorSetLayout layout;
-    VkDeviceSize uniform_size,stride;
+    VkDeviceSize uniform_size,stride,bank_offset;
     VkDescriptorPool pool{};
     VkBuffer buffer{};
     VkDeviceMemory memory{};
@@ -25,9 +25,12 @@ struct ResidentDrawStorage::Impl {
         :device(d),physical(p),layout(l),uniform_size(size) {
         if(!d || !p || !l || !size)throw FormatError("incomplete resident draw storage context");
         VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(p,&properties);
-        if(size>properties.limits.maxUniformBufferRange)throw FormatError("resident draw uniform exceeds Vulkan range");
+        if(size>properties.limits.maxUniformBufferRange ||
+           sizeof(PackedVertexProgramBank)>properties.limits.maxUniformBufferRange)
+            throw FormatError("resident draw uniform exceeds Vulkan range");
         const auto alignment=properties.limits.minUniformBufferOffsetAlignment;
-        stride=(size+alignment-1)/alignment*alignment;
+        bank_offset=(size+alignment-1)/alignment*alignment;
+        stride=bank_offset+(sizeof(PackedVertexProgramBank)+alignment-1)/alignment*alignment;
     }
     ~Impl(){clear();}
     void clear() {
@@ -74,34 +77,50 @@ struct ResidentDrawStorage::Impl {
         check(vkAllocateDescriptorSets(device,&allocation_sets,sets.data()),"allocate resident draw descriptors");
     }
     std::span<const VkDescriptorSet> upload(std::span<const ResidentDrawUpload> draws) {
-        for(const auto&draw:draws)if(!draw.resident || draw.material.size()!=uniform_size)
-            throw FormatError("incomplete resident draw upload");
+        for(const auto&draw:draws) {
+            if(!draw.resident || draw.material.size()!=uniform_size)
+                throw FormatError("incomplete resident draw upload");
+            if(draw.vertex_bank) {
+                const auto &range=draw.vertex_bank->range;
+                if(range[0]>192 || range[1]>158 || range[1]>192-range[0] || range[2]>1 || range[3]>1 ||
+                   (range[3] && (range[0]!=0 || range[1]<12)))
+                    throw FormatError("invalid resident owner vertex bank");
+            }
+        }
         if(draws.empty())return {};
         reserve(draws.size());
         // The caller has retired the previous frame. Retain these sets and
         // refresh all source descriptors, including live texture-frame changes.
-        std::vector<VkCopyDescriptorSet> copies(draws.size()*7);
-        std::vector<VkWriteDescriptorSet> writes(draws.size());
-        std::vector<VkDescriptorBufferInfo> uniforms(draws.size());
+        std::vector<VkCopyDescriptorSet> copies;copies.reserve(draws.size()*7);
+        std::vector<VkWriteDescriptorSet> writes;writes.reserve(draws.size()*2);
+        std::vector<std::array<VkDescriptorBufferInfo,2>> uniforms(draws.size());
         for(std::size_t i=0;i<draws.size();++i) {
             std::memcpy(static_cast<std::byte*>(mapping)+i*stride,draws[i].material.data(),uniform_size);
-            // Preserve all twelve sampled images and their resident source
-            // vertex bank; only binding4 changes to this owner's constants.
-            auto *copy=copies.data()+i*7;
+            // Never copy binding7 over the owner's bank: Vulkan processes
+            // writes before copies in a single vkUpdateDescriptorSets call.
             for(unsigned j=0;j<7;++j) {
                 const auto binding=j<4?j:j+1;
-                copy[j]={VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET};
-                copy[j].srcSet=draws[i].resident;copy[j].dstSet=sets[i];
-                copy[j].srcBinding=copy[j].dstBinding=binding;
-                copy[j].descriptorCount=(binding==5 || binding==6)?4:1;
+                if(binding==7 && draws[i].vertex_bank)continue;
+                auto &copy=copies.emplace_back(VkCopyDescriptorSet{VK_STRUCTURE_TYPE_COPY_DESCRIPTOR_SET});
+                copy.srcSet=draws[i].resident;copy.dstSet=sets[i];
+                copy.srcBinding=copy.dstBinding=binding;
+                copy.descriptorCount=(binding==5 || binding==6)?4:1;
             }
-            auto &uniform=uniforms[i];uniform={buffer,i*stride,uniform_size};
-            auto &write=writes[i];write={VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+            auto &uniform=uniforms[i][0];uniform={buffer,i*stride,uniform_size};
+            auto &write=writes.emplace_back(VkWriteDescriptorSet{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
             write.dstSet=sets[i];write.dstBinding=4;write.descriptorCount=1;
             write.descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;write.pBufferInfo=&uniform;
+            if(draws[i].vertex_bank) {
+                std::memcpy(static_cast<std::byte*>(mapping)+i*stride+bank_offset,
+                    &*draws[i].vertex_bank,sizeof(PackedVertexProgramBank));
+                auto &bank=uniforms[i][1];bank={buffer,i*stride+bank_offset,sizeof(PackedVertexProgramBank)};
+                auto &upload=writes.emplace_back(VkWriteDescriptorSet{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET});
+                upload.dstSet=sets[i];upload.dstBinding=7;upload.descriptorCount=1;
+                upload.descriptorType=VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;upload.pBufferInfo=&bank;
+            }
         }
         // Sources are the renderer's resident sets, never these owner sets.
-        // Binding4 writes and the other binding copies are disjoint, so batching
+        // Uniform writes and the sampled/resident binding copies are disjoint, so batching
         // Vulkan's writes-before-copies order preserves the original result.
         vkUpdateDescriptorSets(device,std::uint32_t(writes.size()),writes.data(),
             std::uint32_t(copies.size()),copies.data());

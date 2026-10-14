@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/source_dynamic_object.hpp"
 #include "halo2/source_effect_random.hpp"
 #include "halo2/custom_slayer.hpp"
 #include "halo2/frontend.hpp"
@@ -20,11 +21,19 @@
 #include "halo2/native_death_camera.hpp"
 #include "halo2/native_vehicle_camera.hpp"
 namespace halo2 {
+class SourceDynamicObjectScene;
+struct SourceLightVolumeDraw;
 struct FullScoreboardLayout;
 struct FullScoreboardPaintResult;
 struct AnimationRenderObservation;
 struct MultiplayerAudioSubmission;
 struct ParticleDraw;
+struct SourcePhysicsContactRuntimeAbi;
+using SourcePhysicsWorldRuntimeAbi = SourcePhysicsContactRuntimeAbi;
+class SourceRuntimeMemory;
+struct SourceFirstPersonCpuInputTu15;
+struct EffectLightRawDraw;
+struct WorldEffectLight;
 struct SourceBspShaderView;
 struct SourceBspShaderPart;
 struct SourcePortalMaskState;
@@ -40,6 +49,9 @@ struct MultiplayerFrameTiming {
 };
 constexpr unsigned multiplayer_capacity = 16;
 struct SlayerRules {
+  // Validated configuration that produced these rules. Handwritten fixtures
+  // can leave it absent; discovery must never invent settings for them.
+  std::optional<UiVariant> session_configuration;
   // Original registered engine type, independent of UI/catalog engine IDs.
   std::int32_t source_engine=2;
   std::string name = "Slayer";
@@ -84,6 +96,8 @@ unsigned multiplayer_representation(const std::optional<SourcePlayerConfiguratio
 const BipedDefinition &multiplayer_biped(const LevelContent &,unsigned representation);
 struct MultiplayerPlayer {
   std::uint32_t source_datum = null_datum;
+  // Present allocated roster row. An ordinary TU1.5 departure retains this
+  // row with source_flags bit2; gameplay/voice eligibility must exclude it.
   bool connected{}, death_counted{};
   std::string name;
   std::optional<SourcePlayerConfiguration> source_profile_request,source_configuration;
@@ -106,12 +120,20 @@ struct MultiplayerPlayer {
   std::int32_t source_field_194{}; // Birth0, successful spawn tick rate, pre-world countdown.
   std::array<std::int16_t,2> source_powerup_timers{}; // Original player+198/+19A.
 };
+// Authoritative weapon input/charge fields, retained independently per hand.
+struct NativeWeaponTriggerPublication {
+  std::uint16_t input_flags{};
+  std::int16_t ticks{};
+  std::uint8_t mode{},charge{};
+  bool operator==(const NativeWeaponTriggerPublication &)const=default;
+};
 struct NativeWeaponEffectEvent {
   std::uint32_t serial{},tick{},unit=null_datum,weapon=null_datum,effect=null_datum,a_bits{},b_bits{};
   SourceEffectColors colors;
   Vec3 velocity;
   std::uint32_t source_instance=null_datum;
-  bool source_presentation{};
+  bool source_presentation{},source_scheduled{},source_locations_observed{};
+  std::vector<SourceEffectLocation> source_locations;
 };
 struct WorldWeaponPresentation {
   std::uint32_t handle=null_datum,definition=null_datum;
@@ -201,11 +223,13 @@ struct MultiplayerState {
       bool reload_empty{};
       FirstPersonReplicatedClock clock;
       SourceWeaponShaderState shader;
+      NativeWeaponTriggerPublication trigger;
       int ammunition_available{}; // Authoritative104CF0 inventory read for FP reload pose.
     } secondary_weapon;
     DamageFeedbackState damage_feedback;
     bool shield_recharging{};
     SourceWeaponShaderState weapon_shader;
+    NativeWeaponTriggerPublication weapon_trigger;
     int ammunition_available{};
   };
   std::uint32_t tick{};
@@ -251,6 +275,7 @@ struct MultiplayerState {
   std::vector<WorldVehiclePresentation> world_vehicles;
   bool source_scene_roots_authoritative{};
   std::vector<SourceSceneRoot> source_scene_roots;
+  std::vector<SourceDynamicObject> source_dynamic_objects;
   std::vector<NativeWeaponProjectile> weapon_projectiles;
   bool source_body_poses_authoritative{};
   std::vector<SourceWorldPose> source_body_poses;
@@ -280,6 +305,31 @@ public:
   MultiplayerMatch &operator=(const MultiplayerMatch &) = delete;
   MultiplayerMatch(MultiplayerMatch &&) = delete;
   MultiplayerMatch &operator=(MultiplayerMatch &&) = delete;
+  using AuthorityDigest=Simulation::AuthorityDigest;
+  struct AuthorityCheckpoint;
+  class PreparedAuthority {
+  public:
+    ~PreparedAuthority();
+    PreparedAuthority(PreparedAuthority &&) noexcept;
+    PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+    bool for_owner(const MultiplayerMatch &) const noexcept;
+  private:
+    friend class MultiplayerMatch;
+    PreparedAuthority();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // The session executor must quiesce Match, its external source world and
+  // every borrowed reference. The binding is supplied by that executor; it
+  // is not peer authentication. Local view/service roles must already match.
+  AuthorityCheckpoint authority_checkpoint(AuthorityDigest admitted_binding,
+                                          bool qualified_source_world=false) const;
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &,AuthorityDigest,
+                                      const SourceRuntimeMemory *replacement_source_world=nullptr);
+  // For source-backed sessions publish the exact staged external world first.
+  // A premature call leaves the transaction intact. Publication allocates
+  // nothing; borrowed spans/references expire on successful publication.
+  bool commit_authority(PreparedAuthority &&) noexcept;
   unsigned join(std::string name, std::int8_t selected_team = -1,
       std::optional<SourcePlayerConfiguration> = std::nullopt,
       std::optional<unsigned> admitted_slot = std::nullopt);
@@ -290,6 +340,12 @@ public:
     return rules_.source_engine==4 ? &king_state_ : nullptr;
   }
   unsigned available_player_slots() const;
+  // Ordinary TU1.5 departure retains the allocated roster/profile/results.
+  // Its original unit-death request is adopted after a later world phase.
+  bool depart(unsigned);
+  // Failed native transport admission uses the existing allocation rollback;
+  // it is distinct from an admitted source-world participant's departure.
+  void cancel_join(unsigned);
   void leave(unsigned);
   // Explicit native service input to original1537F0. Authored pickup and
   // variant admission have separate owners; this API does not supply them.
@@ -313,6 +369,7 @@ public:
   // Optional presentation owner at the real pre-world engine update boundary,
   // after end checks and before object updates and post-world phase application.
   void set_game_engine_presentation_owner(std::function<void(const MultiplayerMatch&)> owner) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     game_engine_presentation_owner_=std::move(owner);
   }
   // Raw producer bank indexed by native live slots. Retained identity remapping,
@@ -339,13 +396,14 @@ public:
   void configure_first_person_event_owner(FirstPersonEventOwner);
   // Presentation callbacks capture session-local render/audio owners.
   // Detach them before those owners leave scope; the actual Match can survive.
-  void release_presentation_owners() noexcept;
+  void release_presentation_owners();
   // Declared original effect service boundary. A live owner must resolve
   // actual attachment/PVS/event/particle state; a shot counter is insufficient.
   void configure_weapon_effect_owner(
       std::function<std::uint32_t(const Unit &,const WeaponEffectInput &)>);
   void weapon_effect_presentation(std::uint32_t unit,std::uint32_t weapon,
-      const SourceWeaponEffectPresentation &,Vec3 velocity);
+      const SourceWeaponEffectPresentation &,Vec3 velocity,std::span<const SourceEffectLocation> locations={});
+  void publish_source_projectile_contact(const SourceProjectileDetonationTu15 &);
   void configure_world_weapon_effect_owner(
       std::function<std::uint32_t(const WeaponEffectInput &)>);
   void configure_grenades(std::shared_ptr<const Cache>,NativeGrenadeConstants);
@@ -354,7 +412,7 @@ public:
   std::span<const NativeGrenadeProjectile> grenade_projectiles()const {
     return simulation_.grenade_sandbox_?simulation_.grenade_sandbox_->projectiles():std::span<const NativeGrenadeProjectile>{};
   }
-  std::vector<NativeGrenadeEvent> take_grenade_events(){return simulation_.grenade_sandbox_?simulation_.grenade_sandbox_->take_events():std::vector<NativeGrenadeEvent>{};}
+  std::vector<NativeGrenadeEvent> take_grenade_events(){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.grenade_sandbox_?simulation_.grenade_sandbox_->take_events():std::vector<NativeGrenadeEvent>{};}
   const AnimationClip* grenade_clip(std::uint32_t graph,std::uint32_t clip)const{return simulation_.grenade_sandbox_?simulation_.grenade_sandbox_->action_clip(graph,clip):nullptr;}
   // Actual native salted object allocation, with explicit source-admitted
   // stock levitated rows. Ground/controller/widget services are separate.
@@ -372,11 +430,22 @@ public:
   MultiplayerState state() const;
   bool finished() const { return finished_; }
   const Simulation &simulation() const { return simulation_; }
+  void run_script(const std::string &name) {
+    NativeAuthorityBoundary::Call active(authority_calls_);
+    if(simulation_.devices().replicated())throw FormatError("Client cannot start an authoritative script");
+    ++authority_calls_.mutations;simulation_.run_script(name);
+  }
+
   bool source_object_world_bound() const {return source_object_world_!=nullptr;}
   MultiplayerObjectRuntime *source_object_runtime() {return source_object_world_;}
+  const std::optional<UiVariant> &session_configuration() const {return rules_.session_configuration;}
   // Explicit authored placement request through the retained source factory.
   // This does not stand in for automatic netgame-row scheduling.
   std::uint32_t create_world_vehicle(std::size_t placement);
+  // Authored scene lifecycle requests use the same retained constructor and
+  // destructor as initial placement. No solved root/velocity is supplied.
+  std::uint32_t create_world_object(std::size_t placement);
+  void destroy_world_object(std::uint32_t full_object);
   const OriginalData *original_data()const{return content_.original_data.get();}
   std::uint32_t presentation_seed()const{return rules_.random_seed;}
   std::vector<Transform> source_world_nodes(std::uint32_t object) const;
@@ -384,29 +453,39 @@ public:
   // Only an admitted game-tick effect owner may bind this deterministic word.
   // Render-batched visual playback must not consume gameplay RNG here.
   SourceEffectRandom source_effect_random(std::uint32_t &auxiliary) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     return {simulation_.source_primary_random(),auxiliary};
   }
   void advance_weather_view(double realtime,std::int16_t view_slot) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     simulation_.advance_weather_view(realtime,view_slot);
   }
-  void debug_settings(DebugGameSettings settings) { simulation_.debug_settings(std::move(settings)); }
+  void debug_settings(DebugGameSettings settings) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.debug_settings(std::move(settings)); }
   void debug_request(const DebugGameRequest& request,const Spawn* spawn=nullptr) {
+    NativeAuthorityBoundary::Call active(authority_calls_);
     if(request.player>=players_.size() || !players_[request.player].connected)
       throw FormatError("debug player is no longer connected");
+    ++authority_calls_.mutations;
     if(request.kind==DebugGameRequest::Heal)simulation_.debug_heal(request.player);
     else if(request.kind==DebugGameRequest::Teleport && spawn)simulation_.debug_teleport(request.player,*spawn);
     else throw FormatError("this debug request needs a campaign state owner");
   }
-  void advance_audio(float seconds){simulation_.advance_audio(seconds);}
-  std::vector<SoundEvent> take_sounds() { return simulation_.take_sounds(); }
-  std::vector<PropSandboxEvent> take_prop_events() { return simulation_.take_prop_events(); }
-  void replicate_prop_removals(std::span<const PropRemoval> rows) { simulation_.replicate_prop_removals(rows); }
-  void replicate_prop_regions(std::span<const PropRegionSnapshot> rows) { simulation_.replicate_prop_regions(rows); }
-  void replicate_source_scene(std::span<const SourceSceneRoot> roots,std::span<const SourceWorldPose> poses) { simulation_.replicate_source_scene(roots,poses); }
-  void replicate_devices(const SourceDeviceWorldSnapshot &s){simulation_.replicate_devices(s);}
-  SourceControlActivation activate_admitted_control(std::uint32_t h){return simulation_.activate_admitted_control(h);}
+  void advance_audio(float seconds){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.advance_audio(seconds);}
+  std::vector<SoundEvent> take_sounds() {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.take_sounds(); }
+  std::vector<PropSandboxEvent> take_prop_events() {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.take_prop_events(); }
+  void replicate_prop_removals(std::span<const PropRemoval> rows) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_prop_removals(rows); }
+  void replicate_prop_regions(std::span<const PropRegionSnapshot> rows) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_prop_regions(rows); }
+  void replicate_source_scene(std::span<const SourceSceneRoot> roots,std::span<const SourceWorldPose> poses) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_source_scene(roots,poses); }
+  void replicate_devices(const SourceDeviceWorldSnapshot &s){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_devices(s);}
+  SourceControlActivation activate_admitted_control(std::uint32_t h){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.activate_admitted_control(h);}
 
 private:
+  friend class SourceMatchAuthority;
+  mutable NativeAuthorityBoundary authority_calls_;
+  AuthorityDigest authority_configuration()const;
+  std::uint32_t authority_service_roles()const;
+  void adopt_source_prop_regions();
+  void adopt_source_devices();
   std::vector<RumbleJournalEvent> rumble_events_;
   std::uint64_t rumble_serial_{};
   const LevelContent &content_;
@@ -513,6 +592,9 @@ struct MultiplayerOptions {
   // update, independent of the optional source lifecycle/announcer adapters.
   std::function<void()> menu_audio_update;
   std::filesystem::path map = "assets/disc/maps/lockout.map", screenshot, shared_maps;
+  // Finite captures can pin unchanged compiled shader assets independently
+  // from concurrent builds. Ordinary sessions retain their configured path.
+  std::filesystem::path capture_shader_directory;
   std::filesystem::path gameplay_xbe; // Explicit user-owned update data source.
   // TU1.5 sessions automatically retain their original object/physics world.
   // This flag also requests the older source integration explicitly; an empty
@@ -556,6 +638,9 @@ struct MultiplayerOptions {
   // Observe the actual camera submitted for a local view; this is never an
   // alternate camera/input provider. Used by rendered scope verification.
   std::function<void(unsigned,const Camera &,float,std::int16_t)> view_observer;
+  // Actual submitted world rectangle in the full 640x480 UI surface.
+  // Read-only verification of local-player layout and live setting changes.
+  std::function<void(unsigned,const UiRect &)> view_rectangle_observer;
   // Actual snapshot and submitted camera in the same render frame. Network
   // receive can advance between fixed-rate input observations and rendering.
   std::function<void(unsigned,const MultiplayerState &,const Camera &)> view_state_observer;
@@ -581,8 +666,13 @@ struct MultiplayerOptions {
   std::function<void(std::uint32_t,std::uint32_t,std::uint32_t,float)> world_weapon_shader_input_observer;
   std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
       bool,unsigned,std::span<const Vertex>)> vehicle_draw_observer;
+  // Completed ordinary BLOC source base geometry and its actual light cache.
+  std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
+      bool,unsigned,std::span<const Vertex>)> prop_source_draw_observer;
   std::function<void(unsigned,std::uint32_t,std::uint32_t,std::uint32_t,
                      std::span<const Vertex>)> weapon_projectile_draw_observer;
+  // Actual recorded MGS2 GPU commands and their per-view projected inputs.
+  std::function<void(unsigned,std::uint32_t,const SourceLightVolumeDraw &)> weapon_light_volume_observer;
   // Application session owner runs after an authoritative world update and
   // returns true only when its real lifecycle has requested world teardown.
   // This is a control boundary, not an observer or a game-over shortcut.
@@ -603,14 +693,28 @@ struct MultiplayerOptions {
   std::function<void(const MultiplayerAudioSubmission&)> audio_observer;
   // Read-only actual per-view particle submissions; never supplies an effect.
   std::function<void(unsigned,std::uint32_t,std::span<const ParticleDraw>)> effect_observer;
+  std::function<void(bool,const SourcePhysicsContactRuntimeAbi&,const SourceRuntimeMemory&,
+      std::span<const std::uint32_t>,std::span<const SourceFirstPersonCpuInputTu15>)> source_particle_phase_observer;
+  // Completed source packets and their actual delivery provenance, before
+  // diagnostic pixel controls. A true result requests capture of this frame
+  // using the runtime-owned options; it cannot change simulation/light state.
+  std::function<bool(unsigned,std::uint32_t,std::span<const EffectLightRawDraw>,
+                     std::span<const WorldEffectLight>)> effect_light_capture_request;
   // Actual owner-separated world geometry, after source model/LOD/lighting
   // selection. Observation cannot create or change a projectile.
   std::function<void(unsigned,std::uint32_t,std::uint32_t,std::uint32_t,
                      std::span<const Vertex>)> grenade_draw_observer;
   // Read-only completed scene adoption before per-view model interpolation.
   std::function<void(const MultiplayerState &,const SceneObjects &)> source_scene_observer;
+  // Actual per-view prop geometry submission; no lifetime/pose is supplied.
+  std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)> prop_draw_observer;
+  std::function<void(const MultiplayerState &,const SourceDynamicObjectScene &)> source_dynamic_observer;
+  std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)> dynamic_draw_observer;
   unsigned capture_tick{}; // Exact local gameplay capture; no wall-clock substitution.
   std::optional<Camera> capture_camera;
+  // Finite pose-review capture only: show the current local source body and
+  // held weapon from capture_camera, suppressing its first-person models/HUD.
+  bool capture_third_person{};
   // Captured camera+28/+2C, radians and lighting/grid distance factor. This
   // diagnostic accompanies capture_camera and never supplies gameplay state.
   std::optional<Vec2> capture_projection;

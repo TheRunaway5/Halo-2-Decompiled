@@ -60,7 +60,12 @@ Fixture parse(const Words& v) {
     }
     if(at!=v.size())throw FormatError("draw-unit fixture trailing words");return f;
 }
-Words solve(Fixture f) {
+Words solve(Fixture f,bool lazy_pose=false) {
+    if(lazy_pose)for(auto& bank:f.banks)if(bank.geometry && bank.geometry->owner_pose) {
+        auto& geometry=*bank.geometry;
+        geometry.resolve_owner_pose=[pose=*geometry.owner_pose]{return pose;};
+        geometry.owner_pose.reset();
+    }
     const auto calls=f.shared_arena?
         source_draw_unit_sphere_cull(f.units,f.banks,f.arena,f.arena_address,f.context):
         source_draw_unit_sphere_cull(f.units,f.banks,f.masks,f.context);Words out;
@@ -77,7 +82,7 @@ int main(int argc,char** argv){try{
     if(argc==2 && std::string(argv[1])=="--probe"){std::string line;while(std::getline(std::cin,line)){const auto out=solve(parse(words(line)));for(auto w:out)std::cout<<std::hex<<w<<' ';std::cout<<'\n';}return 0;}
     std::ifstream in(argc==2?argv[1]:std::string(HALO2_SOURCE_DIR)+"/tests/fixtures/retail_source_draw_unit_cull.tsv");if(!in)throw std::runtime_error("draw-unit original fixture missing");
     unsigned cases=0;std::size_t checked=0;std::string line;Fixture eligible;
-    while(std::getline(in,line)){if(line.empty()||line[0]=='#')continue;const auto split=line.find('|');if(split==std::string::npos)throw std::runtime_error("draw-unit fixture separator");const auto f=parse(words(line.substr(0,split)));const auto expected=words(line.substr(split+1)),out=solve(f);if(out!=expected)throw std::runtime_error("source draw-unit words differ at case"+std::to_string(cases));checked+=out.size();++cases;if(f.units.size()==1 && f.context.query_mode==1 && (f.units[0].words[0]&0x41)==0x40 && f.banks[0].geometry && f.banks[0].geometry->subpart_count>0 && f.banks[0].geometry->accelerator_count<=0 && f.units[0].words[1]==0xffffffffu)eligible=f;}
+    while(std::getline(in,line)){if(line.empty()||line[0]=='#')continue;const auto split=line.find('|');if(split==std::string::npos)throw std::runtime_error("draw-unit fixture separator");const auto f=parse(words(line.substr(0,split)));const auto expected=words(line.substr(split+1)),out=solve(f);if(out!=expected)throw std::runtime_error("source draw-unit words differ at case"+std::to_string(cases));if(solve(f,true)!=expected)throw std::runtime_error("lazy source pose differs at case"+std::to_string(cases));checked+=out.size();++cases;if(f.units.size()==1 && f.context.query_mode==1 && (f.units[0].words[0]&0x41)==0x40 && f.banks[0].geometry && f.banks[0].geometry->subpart_count>0 && f.banks[0].geometry->accelerator_count<=0 && f.units[0].words[1]==0xffffffffu)eligible=f;}
     if(cases<1000||checked<20000||eligible.units.empty())throw std::runtime_error("draw-unit fixture lacks meaningful coverage");
     if(eligible.shared_arena) {
         auto invalid=eligible;invalid.units[0].words[5]=invalid.arena_address-4;reject(invalid);
@@ -95,7 +100,21 @@ int main(int argc,char** argv){try{
     bad=eligible;bad.units[0].words[1]=0xe000003f;bad.banks[0].geometry->subpart_bounds[0]=0;bad.banks[0].geometry->bounds={{{},1.f,0}};bad.masks[0].words[0]=0;bad.banks[0].geometry->owner_pose.reset();reject(bad);
     bad=eligible;bad.masks.push_back(bad.masks[0]);reject(bad);
     bad=eligible;bad.units[0].words[1]=0xe000003f;bad.banks[0].geometry->subpart_bounds[0]=0;bad.banks[0].geometry->bounds={{{},1.f,0}};bad.masks[0].words[0]=0;bad.banks[0].geometry->owner_pose=SourceCullOwnerPose{0xe0000040,{Transform{}},{}};reject(bad);
+    // A live pose provider may have no backing in branches that never read
+    // B8C00. The original masked/sentinel paths must leave it untouched.
+    auto lazy=eligible;lazy.units[0].words[1]=0xe000003f;
+    auto& geometry=*lazy.banks[0].geometry;
+    geometry.owner_pose.reset();
+    geometry.resolve_owner_pose=[]()->SourceCullOwnerPose {
+        throw FormatError("unconsumed live pose lookup");
+    };
+    std::fill(geometry.subpart_bounds.begin(),geometry.subpart_bounds.end(),0xffffu);
+    (void)solve(lazy);
+    geometry.subpart_bounds[0]=0;geometry.bounds={{{},1.f,0}};
+    for(auto& mask:lazy.masks)std::fill(mask.words.begin(),mask.words.end(),0xffffffffu);
+    (void)solve(lazy);
+    lazy.masks[0].words[0]&=~1u;reject(lazy);
     // The same unavailable services are unread for an already admitted unit.
     bad.units[0].words[0]|=1;bad.context.query_mode=0;bad.banks.clear();(void)source_draw_unit_sphere_cull(bad.units,bad.banks,bad.masks,bad.context);
-    std::cout<<cases<<" unchanged44720/45560 cases, "<<checked<<" exact words;10 unresolved-service controls and unread admitted-unit control passed\n";return 0;
+    std::cout<<cases<<" unchanged44720/45560 cases, "<<checked<<" exact words through supplied and lazy pose banks;10 unresolved-service controls and unread admitted-unit control passed\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

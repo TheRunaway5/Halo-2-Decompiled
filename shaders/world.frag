@@ -99,15 +99,12 @@ void main() {
         gl_FragDepth=worldD24Depth(worldWDepth(gl_FragCoord.xy,vec2(1),
             sourceEmblemWindow0,sourceEmblemWindow1,sourceEmblemWindow2,0,0,0));
 #endif
-    if(material.flags.y!=0u && material.flags.z==11u) {
-        // Native triangle decal adapter: source layers2/3 use .5/1 as
-        // their neutral value. Fade the source color before framebuffer
-        // multiplication; fading alpha would leave the mark opaque.
-        pixel=vec4(mix(vec3(material.diffuseColor.x),texture(diffuse,uv).rgb,tint),1);
-    } else if(material.flags.y!=0u) {
+    if(material.flags.y!=0u) {
         vec4 samples[4];
         vec2 coordinates[4];
-        if(material.flags.z==1u) {
+        if(material.flags.z==11u) {
+            for(uint i=0u;i<4u;++i)coordinates[i]=uv;
+        } else if(material.flags.z==1u) {
             // Original transparent program: c20..25 are paired affine rows
             // for oT1..3. The authored program below supplies oT0 reflection.
             coordinates[0]=vec2(0);

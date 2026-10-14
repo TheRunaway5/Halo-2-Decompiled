@@ -103,6 +103,7 @@ int main(int argc, char **argv) {
       view.set_pc_video_modes({{800, 600}, {1024, 768}}, 960, 720, false);
       view.open(vista_menu(menu));
       if(kind=="video" && i>=2)++i; // Native Internal Resolution follows Screen Resolution.
+      if(kind=="video" && i==8)i+=4; // Native FOV, CRT and split controls precede Restore Defaults.
       check(i < view.frame().entries.size(),
             "source row missing from native menu");
       auto expected = content.vista->localized(content.vista->screens.at(menu), sid);
@@ -252,9 +253,108 @@ int main(int argc, char **argv) {
     check(applied_display.internal_width==0 && applied_display.anti_aliasing==0 &&
           applied_display.brightness==3 && applied_display.gamma==0 && applied_display.detail==0 &&
           !applied_display.safe_area,"native render defaults were not restored");
+    state.open(vista_menu(256));
+    check(state.frame().entries.at(8).label=="Field of View" &&
+          state.frame().entries.at(9).label=="Vehicle Field of View" &&
+          state.pc_value_label(state.frame(),8)=="78" &&
+          state.pc_value_label(state.frame(),9)=="78","independent FOV video rows missing");
+    choose(state,8);
+    check(state.frame().context==video_fov_context && state.frame().selected==8 &&
+          state.frame().entries.front().value==70 && state.frame().entries.back().value==120,
+          "FOV range or saved selection differs");
+    state.select(50);state.back();
+    check(applied_display.field_of_view==78,"canceling FOV changed the camera");
+    choose(state,8);choose(state,50);
+    check(applied_display.field_of_view==120 && applied_display.vehicle_field_of_view==78 &&
+          applied_display.brightness==3,"on-foot FOV changed another setting");
+    choose(state,9);choose(state,20);
+    check(applied_display.field_of_view==120 && applied_display.vehicle_field_of_view==90,
+          "vehicle FOV was not independent");
+    MenuState fov_reload(content,preferences);
+    check(fov_reload.pc_display_settings()==applied_display,"FOV settings did not survive reload");
+    fov_reload.open(vista_menu(256));
+    check(fov_reload.pc_value_label(fov_reload.frame(),8)=="120" &&
+          fov_reload.pc_value_label(fov_reload.frame(),9)=="90","video menu lost saved FOV settings");
+    check(state.frame().entries.at(10).label=="CRT Filter" && state.pc_value_label(state.frame(),10)=="Off",
+          "dedicated CRT video toggle missing or initially enabled");
+    const auto video_depth=state.stack().size();
+    choose(state,10);
+    check(state.frame().screen==vista_menu(256) && state.frame().selected==10 &&
+          state.stack().size()==video_depth && applied_display.crt_filter &&
+          state.pc_value_label(state.frame(),10)=="On" && applied_display.field_of_view==120,
+          "CRT did not toggle immediately in Video Settings or changed another setting");
+    MenuState crt_reload(content,preferences);
+    check(crt_reload.pc_display_settings().crt_filter,"CRT On did not persist");
+    choose(state,10);
+    check(!applied_display.crt_filter && !MenuState(content,preferences).pc_display_settings().crt_filter,
+          "CRT Off did not apply and persist");
+    check(state.frame().entries.at(11).label=="2-Player Split Screen" &&
+          state.pc_value_label(state.frame(),11)=="Horizontal","horizontal two-player default missing");
+    choose(state,11);
+    check(state.frame().screen==vista_menu(256) && applied_display.two_player_split==TwoPlayerSplit::Vertical &&
+          state.pc_value_label(state.frame(),11)=="Vertical" && !applied_display.crt_filter &&
+          applied_display.field_of_view==120,"split selection changed another preference or left Video Settings");
+    check(MenuState(content,preferences).pc_display_settings().two_player_split==TwoPlayerSplit::Vertical,
+          "vertical two-player layout did not persist");
+    choose(state,11);
+    check(MenuState(content,preferences).pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
+          "horizontal two-player layout did not persist");
+    choose(state,11);choose(state,10);choose(state,12);choose(state,0);
+    check(applied_display.field_of_view==78 && applied_display.vehicle_field_of_view==78 && !applied_display.crt_filter &&
+          applied_display.two_player_split==TwoPlayerSplit::Horizontal,
+          "video defaults did not reset FOV, CRT and split controls");
+    {
+      MenuState rejected(content);
+      rejected.set_pc_display_adapter([](const DisplaySettings &value){return value.crt_filter?"CRT unavailable":std::string{};});
+      rejected.open(vista_menu(256));choose(rejected,10);
+      check(!rejected.pc_display_settings().crt_filter,"rejected CRT toggle modified preferences");
+      const auto invalid=preferences.string()+".invalid-crt";
+      {std::ofstream file(invalid);file<<"pc_crt_filter 2\npc_two_player_split 2\n";}
+      check(!MenuState(content,invalid).pc_display_settings().crt_filter,"invalid saved CRT value was accepted");
+      check(MenuState(content,invalid).pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
+            "invalid saved split layout was accepted");
+      std::filesystem::remove(invalid);
+    }
     Mesh mesh;
     FrontendPainter painter(content, std::filesystem::path(argv[1]) / "fonts",
                             mesh);
+    for(const auto size:{std::array<unsigned,2>{640,480},{1280,720},{2560,720}}) {
+      MenuState mouse(content);
+      mouse.set_pc_display_adapter([](const DisplaySettings &){return std::string{};});
+      const auto hit_entry=[&](unsigned index) {
+        painter.draw(mouse,5.f,-1,10000,size);
+        for(int y=0;y<480;y+=2)for(int x=0;x<640;x+=2)
+          if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==index)
+            return *hit;
+        throw std::runtime_error("FOV mouse target missing after list scroll");
+      };
+      for(unsigned row:{8u,9u}) {
+        mouse.open(vista_menu(256));mouse.select(row);
+        check(mouse.activate_pointer(hit_entry(row)),"FOV row mouse activation failed");
+        check(mouse.frame().context==(row==8?video_fov_context:video_vehicle_fov_context),
+              "mouse opened the wrong FOV control");
+        mouse.select(50);
+        const auto target=hit_entry(50);
+        check(mouse.activate_pointer(target),"last FOV choice cannot be clicked");
+        check(!mouse.activate_pointer(target),"FOV popup admitted a stale mouse target");
+        check((row==8?mouse.pc_display_settings().field_of_view:mouse.pc_display_settings().vehicle_field_of_view)==120,
+              "mouse FOV choice was not applied");
+      }
+      mouse.open(vista_menu(256));mouse.select(10);
+      const auto crt_target=hit_entry(10);
+      check(mouse.activate_pointer(crt_target) && mouse.pc_display_settings().crt_filter,
+            "CRT row mouse activation failed after list scroll");
+      check(!mouse.activate_pointer(crt_target) && mouse.pc_display_settings().crt_filter,
+            "CRT toggle admitted a stale duplicate click");
+      check(mouse.activate_pointer(hit_entry(10)) && !mouse.pc_display_settings().crt_filter,
+            "CRT row mouse activation could not disable the filter");
+      mouse.select(11);const auto split_target=hit_entry(11);
+      check(mouse.activate_pointer(split_target) && mouse.pc_display_settings().two_player_split==TwoPlayerSplit::Vertical,
+            "split row mouse activation failed after list scroll");
+      check(!mouse.activate_pointer(split_target),"split toggle admitted a stale duplicate click");
+      check(mouse.activate_pointer(hit_entry(11)) && mouse.pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
+            "split row mouse activation could not restore horizontal layout");
+    }
     {
       MenuState leave(content);
       leave.open_vista_lobby();
@@ -349,7 +449,27 @@ int main(int argc, char **argv) {
       check(!renderer.validate_display_settings(excessive).empty(),"oversized combined resolution accepted");
       desktop.display_settings={};
       check(renderer.draw(Camera{}, {},{},false,{},{},ui.vertices),"direct swapchain path failed after offscreen teardown");
-
+      MenuState video_live(content);
+      video_live.set_pc_display_adapter([&](const DisplaySettings &value) {
+        const auto error=renderer.validate_display_settings(value);
+        if(error.empty())desktop.display_settings=value;
+        return error;
+      });
+      video_live.open(vista_menu(256));
+      const auto capture_crt=[&](const char *name) {
+        const auto path=preferences.string()+name+".ppm";
+        check(renderer.draw(Camera{},path,{},false,{},{},ui.vertices),"video CRT capture failed");
+        std::ifstream file(path,std::ios::binary);
+        return std::vector<char>{std::istreambuf_iterator<char>(file),{}};
+      };
+      const auto crt_off=capture_crt(".crt-off");
+      choose(video_live,10);
+      check(desktop.display_settings.crt_filter,"video toggle did not reach the live shared renderer preference");
+      const auto crt_on=capture_crt(".crt-on");
+      check(crt_on!=crt_off,"video CRT toggle changed no rendered pixels");
+      choose(video_live,10);
+      check(!desktop.display_settings.crt_filter && capture_crt(".crt-disabled")==crt_off,
+            "video CRT Off did not restore exact unfiltered pixels");
     }
     std::filesystem::remove(preferences);
     std::cout << checks

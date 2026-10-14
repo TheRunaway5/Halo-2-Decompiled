@@ -42,6 +42,7 @@ public:
     std::span<const std::uint32_t> handles() const {return handles_;}
     std::uint32_t capacity() const {return capacity_;}
 private:
+    friend struct SourceAuthorityArchiveAccess;
     std::uint32_t capacity_;
     std::vector<std::byte> arena_;
     std::array<std::byte,64> scratch_{};

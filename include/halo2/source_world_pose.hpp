@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/source_shadow.hpp"
+#include "halo2/source_attached_effect.hpp"
 #include <vector>
 
 namespace halo2 {
@@ -14,6 +15,9 @@ struct SourceSceneRoot {
     Vec3 velocity;
     std::uint32_t runtime_flags{};
     bool frozen{};
+    // Authority's actual scene constructor tick, retained across late join.
+    std::uint64_t created_tick{};
+    std::vector<SourceAttachedEffect> attached_effects;
 };
 struct SourceWorldPose {
     std::uint32_t object{0xffffffffu};

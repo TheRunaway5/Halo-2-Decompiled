@@ -70,12 +70,12 @@ def main():
     for reg,value in ((R.UC_X86_REG_EFLAGS,2),(R.UC_X86_REG_FPCW,0x27f),(R.UC_X86_REG_FPSW,0),(R.UC_X86_REG_FPTAG,0xffff),(R.UC_X86_REG_MXCSR,0x1f80)):g.reg_write(reg,value)
     points={0x40e80:0x40e90,0x41c70:0x41c80,0x44ab0:0x44ac0,0x449d0:0x449e0,0x45cd0:0x45ce0,
         0x186e70:0x184000,0x460c0:0x460d0,0x41030:0x41040,0x1bf30:0x1bf50,0x40e20:0x40e30,0x3b9c0:0x3b9d0,0x1d690:0x1d6a0}
-    instructions={};count=0;calls=[]
+    instructions={};count=0;calls=[];trace_commands=True;palette_stops=[]
     def original(vm,pc,n,_):
         nonlocal count
         actual=bytes(vm.mem_read(pc,n));assert actual==image.read(pc,n),f'Non-original instruction at {pc:08x}'
         instructions[pc]=actual.hex();count+=1
-        if pc in points:calls.append(points[pc])
+        if trace_commands and pc in points:calls.append(points[pc])
     g.hook_add(UC_HOOK_CODE,original)
     differences=[];error=None;compared=0
     try:
@@ -92,6 +92,26 @@ def main():
             special_units=[words(g.mem_read(special+n*32,32)) for n in range(32)],
             special_count=int.from_bytes(g.mem_read(special+0x404,2),'little',signed=True)).items():
             if value!=expected[key]:differences.append(dict(field=key,original=value,native=expected[key]))
+        trace_commands=False
+        output=0x65009000
+        source_words(0x4c6834,[1]) # Declared ordinary selected geometry frame.
+        g.mem_write(output,bytes(1024*24))
+        g.mem_write(stack,pack([stop,headers[1],0,12,output]));g.reg_write(R.UC_X86_REG_ESP,stack)
+        g.emu_start(0x3baa0,stop,count=10000000);assert g.reg_read(R.UC_X86_REG_EIP)==stop
+        for key,value in dict(selected_count=g.reg_read(R.UC_X86_REG_EAX),
+            selected=[words(g.mem_read(output+n*24,24)) for n in range(1024)]).items():
+            if value!=expected[key]:differences.append(dict(field=key,original=value,native=expected[key]))
+        # Observe the unchanged4D820/15280 program at its first actual401410
+        # GPU constant-upload boundary. No device result or return is supplied.
+        for n,palette in enumerate(expected['palettes']):
+            put(stack,stop);g.reg_write(R.UC_X86_REG_ESP,stack);g.reg_write(R.UC_X86_REG_EBX,0x4c6958+n*32)
+            g.emu_start(0x4d820,0x401410,count=10000000)
+            assert g.reg_read(R.UC_X86_REG_EIP)==0x401410
+            pointer=g.reg_read(R.UC_X86_REG_EDX);start=g.reg_read(R.UC_X86_REG_ECX)
+            size=word(g.reg_read(R.UC_X86_REG_ESP)+4)
+            original=words(g.mem_read(pointer,size*4));native=[w for row in palette for w in row]
+            palette_stops.append(dict(unit=n,constant=start,words=size))
+            if start!=50 or original!=native:differences.append(dict(field='palette',unit=n,original=original,native=native))
         for p,b in reversed(declared):g.mem_write(p,b)
         for at,data in regions(a.case/'commands-after.bin'):
             if 0x60000000<=at<0x60200000:continue
@@ -104,7 +124,8 @@ def main():
     report=dict(scope=__doc__,passed=not error and not differences,error=error,original_sha256=NEW_PIN,
         original_instructions=count,unique_instructions=len(instructions),retained_bytes_compared=compared,
         original_pc=f'{g.reg_read(R.UC_X86_REG_EIP):08x}',tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        differences=differences,original_instruction_patches=[],callee_substitutions=0)
+        differences=differences,original_instruction_patches=[],callee_substitutions=0,
+        palette_observation_boundaries=palette_stops)
     (a.case/'original-commands.json').write_text(json.dumps(report,indent=2)+'\n')
     (a.case/'original-command-instructions.json').write_text(json.dumps(instructions,sort_keys=True)+'\n')
     print(json.dumps({k:v for k,v in report.items() if k!='differences'}))

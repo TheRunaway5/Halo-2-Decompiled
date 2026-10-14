@@ -23,4 +23,9 @@ MenuWorldVertexSource menu_world_vertex_source(const VertexProgram &);
 // Original local model corridor: v0..6, ARL and c[A0+50..52]. Relative reads
 // retain the whole c50..169 palette dependency; no current pose is selected.
 MenuWorldVertexSource menu_world_skinned_vertex_source(const VertexProgram &);
+// Bits0..3 identify texture outputs whose W is never written by an already
+// admitted straight-line program. Original output initialization leaves these
+// lanes exactly1; preserve that constant through the fragment interface rather
+// than introducing perspective-interpolator rounding into textureProj.
+std::uint32_t menu_world_vertex_default_texture_w_mask(const VertexProgram &);
 } // namespace halo2

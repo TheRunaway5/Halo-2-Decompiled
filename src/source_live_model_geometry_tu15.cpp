@@ -1,5 +1,6 @@
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
+#include "halo2/source_prt.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -27,6 +28,71 @@ struct Reader {
         return word(model+0x28u)+index*92u;
     }
 };
+}
+void SourceLiveModelBaseSelectionTu15::remember(const SourceObjectDrawCollector& collector) {
+    const Bytes c(collector.bytes);
+    const auto count=std::bit_cast<std::int16_t>(c.u16(0x166));
+    if(count<=0)return;
+    const auto lod=c.u16(0x168);
+    if(count>5 || lod>5)throw FormatError("live base collector exceeds original model/LOD bank");
+    for(unsigned n=0;n<unsigned(count);++n)
+        lods_[{c.u32(0x5cu+n*4u),c.u32(0x48u+n*4u)}]=lod;
+}
+ObjectColors source_live_model_base_colors_tu15(const SourceLiveModelBaseDrawTu15& draw,ObjectColors retained) {
+    if(draw.color_count>retained.size())throw FormatError("live base colors exceed their original destination bank");
+    constexpr float scale=std::bit_cast<float>(0x3b808081u);
+    for(unsigned n=0;n<draw.color_count;++n) {
+        const auto rgb=draw.packed_colors[n];
+        retained[n]={float(rgb>>16&255u)*scale,float(rgb>>8&255u)*scale,float(rgb&255u)*scale};
+    }
+    return retained;
+}
+bool source_live_model_base_matches_tu15(const SourceLiveModelBaseDrawTu15& base,
+    PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit) {
+    const auto& a=base.unit.words;const auto& b=unit.words;
+    if(a[1]!=b[1] || a[2]!=b[2] || a[4]!=b[4] ||
+        (a[3]&0xe003fe0fu)!=(b[3]&0xe003fe0fu) || base.lighting_class!=(b[0]>>29))return false;
+    const Reader r{world.memory()};if(base.object!=r.word(b[4]))return false;
+    const auto geometry=source_live_model_command_geometry_tu15(world,unit);
+    const auto rows=source_live_model_palette_rows_tu15(world,unit,geometry);
+    return rows.size()==base.palette_rows.size() &&
+        (rows.empty() || !std::memcmp(rows.data(),base.palette_rows.data(),rows.size()*sizeof(rows.front())));
+}
+std::vector<SourceLiveModelBaseDrawTu15> SourceLiveModelBaseSelectionTu15::copy(
+    PhysicsLiveWorldTu15& world,const SourceDrawUnitState& state,
+    const std::function<bool(const SourceCullDrawUnit&)>& available)const {
+    if(state.main_prefix!=state.draw_count || state.draw_count>state.units.size())
+        throw FormatError("live base handoff requires the completed main prefix before secondary queries");
+    const Reader r{world.memory()};std::vector<SourceLiveModelBaseDrawTu15> result;
+    for(unsigned n=0;n<state.main_prefix;++n) {
+        const auto& unit=state.units[n];if(unit.words[1]==0xffffffffu)continue;
+        if(available && !available(unit))continue;
+        const auto selected=lods_.find({unit.words[1],unit.words[4]});
+        if(selected==lods_.end())throw FormatError("live base unit has no completed builder selection");
+        SourceLiveModelBaseDrawTu15 out;
+        out.unit=unit;out.ordinal=n;out.lod=selected->second;out.lighting_class=unit.words[0]>>29;
+        out.coverage=state.coverage[n];out.override_slot=state.override_slots[n];
+        if(out.override_slot!=255) {
+            if(out.override_slot>=state.override_count || out.override_slot>=state.overrides.size())
+                throw FormatError("live base override escaped its completed bank");
+            out.shader_override=state.overrides[out.override_slot];
+        }
+        const auto context=unit.words[4];out.object=r.word(context);
+        (void)world.object_body(out.object); // Validate the complete source generation.
+        const auto body=r.word(r.word(r.word(0x4ecbd0u)+0x44u)+(out.object&65535u)*12u+8u);
+        out.definition=r.word(body);
+        out.object_flags=r.word(body+4u);
+        out.sphere=r.get<ShadowCasterSphere>(body+0x30u);
+        out.lighting=r.get<ObjectLightingState>(context+0x10u);
+        out.lighting_metadata=r.word(context+0x60u);
+        out.color_count=r.get<std::uint8_t>(context+0x74u);
+        if(out.color_count>4)throw FormatError("live base colors exceed the original four-channel bank");
+        for(unsigned i=0;i<out.color_count;++i)out.packed_colors[i]=r.word(context+0x64u+i*4u);
+        out.geometry=source_live_model_command_geometry_tu15(world,unit);
+        out.palette_rows=source_live_model_palette_rows_tu15(world,unit,out.geometry);
+        result.push_back(std::move(out));
+    }
+    return result;
 }
 SourceModelCommandGeometry source_live_model_command_geometry_tu15(
     PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit) {
@@ -62,6 +128,32 @@ SourceModelCommandGeometry source_live_model_command_geometry_tu15(
     if(matrices)std::memcpy(out.palette.matrices.data(),r.memory.view(palette+0x44u,matrices*48u).data(),matrices*48u);
     return out;
 }
+std::shared_ptr<const VertexProgramBank> source_live_model_prt_bank_tu15(
+    PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit,const SourcePrtDefinition& definition) {
+    const Reader r{world.memory()};const auto count=r.word(0x515ec8u);
+    if(count>24)throw FormatError("live PRT owner cache exceeds original capacity");
+    if(!count)return {};
+    const auto owner=r.word(unit.words[4]);
+    std::uint32_t record=0;
+    for(unsigned n=0;n<count;++n)if(r.word(0x4c51d0u+n*104u)==owner){record=0x4c51d0u+n*104u;break;}
+    if(!record)return {};
+    const auto region=unit.words[3]&15u;
+    const auto nodes=std::min(unsigned(r.get<std::uint8_t>(record+76u+region)),2u);
+    if(!nodes)return {};
+    if(definition.render_model!=unit.words[1] || definition.order!=3 || definition.clusters!=10 || definition.pca_vectors!=4)
+        throw FormatError("live PRT draw requires its admitted original coefficient dimensions");
+    const auto token=r.word(record+8u),offset=r.word(record+12u+region*4u);
+    if(std::bit_cast<std::int32_t>(token)<0)throw FormatError("live PRT coefficient allocation is absent");
+    const auto first=std::uint64_t(token&0x0fffffffu)+std::uint64_t(offset)*4u;
+    const auto bytes=nodes*640u,cursor=r.word(0x494338u);
+    if(first>cursor || bytes>cursor-first)throw FormatError("live PRT coefficients escape the current arena");
+    auto bank=std::make_shared<VertexProgramBank>();bank->first_constant=68;bank->prt_inputs=true;
+    const auto incident=r.get<Vec3>(record+92u);
+    bank->constants.push_back({incident.x,incident.y,incident.z,0});bank->constants.push_back(source_prt_scale_constants());
+    bank->constants.resize(2u+nodes*40u);
+    std::memcpy(bank->constants.data()+2,r.memory.view(0x49433cu+std::uint32_t(first),bytes).data(),bytes);
+    return bank;
+}
 SourceCullDrawBanks source_live_model_cull_geometry_tu15(
     PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit,const SourceBspRangeGeometry& ranges) {
     const Reader r{world.memory()};SourceCullDrawBanks out;out.geometry_resolved=true;
@@ -70,20 +162,24 @@ SourceCullDrawBanks source_live_model_cull_geometry_tu15(
     out.geometry=source_bsp_sphere_cull_geometry(ranges);
     if(unit.words[7])out.transform=r.get<Transform>(unit.words[7]);
     if(ranges.accelerator_count>0 || ranges.bounds.empty())return out;
-    SourceCullOwnerPose pose;pose.owner=r.word(unit.words[4]);
-    if(pose.owner!=0xffffffffu) {
-        (void)world.object_body(pose.owner);
-        const auto body=r.word(r.word(r.word(0x4ecbd0u)+0x44u)+(pose.owner&65535u)*12u+8u);
-        const auto bytes=r.get<std::int16_t>(body+0x114u),offset=r.get<std::int16_t>(body+0x116u);
-        if(bytes<0 || bytes%52 || offset<0)throw FormatError("live model WORLD node bank is malformed");
-        const unsigned count=unsigned(bytes)/52u;
-        pose.nodes.resize(count);
-        if(count)std::memcpy(pose.nodes.data(),r.memory.view(body+unsigned(offset),count*52u).data(),count*52u);
-        const auto inverse_count=r.word(model+0x48u),inverse=r.word(model+0x4cu);
-        if(inverse_count>256u)throw FormatError("live model inverse-bind bank exceeds source capacity");
-        for(unsigned n=0;n<inverse_count;++n)pose.inverse_bind.push_back(r.get<Transform>(inverse+n*96u+0x28u));
-    }
-    out.geometry->owner_pose=std::move(pose);return out;
+    out.geometry->resolve_owner_pose=[&world,model,context=unit.words[4]] {
+        const Reader r{world.memory()};
+        SourceCullOwnerPose pose;pose.owner=r.word(context);
+        if(pose.owner!=0xffffffffu) {
+            (void)world.object_body(pose.owner);
+            const auto body=r.word(r.word(r.word(0x4ecbd0u)+0x44u)+(pose.owner&65535u)*12u+8u);
+            const auto bytes=r.get<std::int16_t>(body+0x114u),offset=r.get<std::int16_t>(body+0x116u);
+            if(bytes<0 || bytes%52 || offset<0)throw FormatError("live model WORLD node bank is malformed");
+            const unsigned count=unsigned(bytes)/52u;
+            pose.nodes.resize(count);
+            if(count)std::memcpy(pose.nodes.data(),r.memory.view(body+unsigned(offset),count*52u).data(),count*52u);
+            const auto inverse_count=r.word(model+0x48u),inverse=r.word(model+0x4cu);
+            if(inverse_count>256u)throw FormatError("live model inverse-bind bank exceeds source capacity");
+            for(unsigned n=0;n<inverse_count;++n)pose.inverse_bind.push_back(r.get<Transform>(inverse+n*96u+0x28u));
+        }
+        return pose;
+    };
+    return out;
 }
 std::vector<std::array<float,12>> source_live_model_palette_rows_tu15(
     PhysicsLiveWorldTu15& world,const SourceCullDrawUnit& unit,const SourceModelCommandGeometry& geometry) {

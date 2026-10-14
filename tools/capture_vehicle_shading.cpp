@@ -7,6 +7,8 @@
 #include "halo2/source_netgame_weapon.hpp"
 #include "halo2/vehicle_shading_reference.hpp"
 #include "halo2/frontend_material.hpp"
+#include "halo2/effect_light_draw.hpp"
+#include "halo2/world_effects.hpp"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iostream>
@@ -32,6 +34,9 @@ const VehicleShadingReference* vehicle_shading_reference(std::uint32_t definitio
 }
 int main(int argc,char**argv)try{
   check(argc>=8 && argc<=11,"Supply MAP SHARED_MAPS TU15_XBE WIDTH HEIGHT VIEWS FRESH_OUTPUT [VEHICLE_TAG_NAME [PRIMARY_HEAVY_CHOICE [REFERENCE_INPUTS_JSON]]]");
+#ifdef HALO2_LIVE_VEHICLE_MODEL_CAPTURE
+  check(argc!=11,"The live model collector diagnostic does not accept substituted reference owners");
+#endif
   const auto original=OriginalData::load_xbe(argv[3]);check(original->image==OriginalData::Image::TitleUpdate15,"Vehicle captures require OG Xbox TU1.5");
   MultiplayerOptions options;
   if(argc>=10)options.variant.values.set(78,std::stoi(argv[9]));
@@ -87,9 +92,23 @@ int main(int argc,char**argv)try{
   options.source_object_world=true;options.source_object_savegame_directory=out/"source-savegame";
   options.hidden=true;options.validation=true;options.mute=true;options.starting_weapon=5;
   options.capture_tick=8;options.reference_tick_cadence=true;options.reference_render_fraction=0;
+  bool grenade_capture=false,grenade_detonated=false;unsigned grenade_light_tick{},grenade_light_packets{};
+  bool fixed_grenade_replay_end=false;
+#ifdef HALO2_LIVE_VEHICLE_MODEL_CAPTURE
+  grenade_capture=std::getenv("HALO2_CAPTURE_VEHICLE_GRENADE")!=nullptr;
+  if(grenade_capture){
+    options.capture_tick=200;options.reference_auxiliary_seed=0x12345678u;
+    if(const auto* end=std::getenv("HALO2_CAPTURE_VEHICLE_GRENADE_END_TICK")) {
+      const std::string value=end;std::size_t parsed{};const auto tick=std::stoul(value,&parsed);
+      check(parsed==value.size() && tick>=200 && tick<=1000000,"Cleanup replay requires a finite tick from200 to1000000");
+      options.capture_tick=unsigned(tick);fixed_grenade_replay_end=true;
+    }
+  }
+#endif
   options.native_spawn_inputs={spawn};options.input_script=out/"inputs.txt";options.screenshot=out/"vehicle.ppm";
   {std::ofstream input(options.input_script);input.precision(9);
-    for(unsigned t=0;t<options.capture_tick;++t)for(unsigned p=0;p<options.local_players;++p)input<<t<<' '<<p<<" 0 0 0 "<<yaw<<' '<<pitch<<'\n';}
+    for(unsigned t=0;t<options.capture_tick;++t)for(unsigned p=0;p<options.local_players;++p)
+      input<<t<<' '<<p<<" 0 0 "<<(grenade_capture && t==20 && p==0?1:0)<<' '<<yaw<<' '<<pitch<<'\n';}
   options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
   // Explicit pre-tick scene creation through the real source netgame/vehicle
   // constructor. Automatic netgame-row scheduling is a separate owner.
@@ -103,15 +122,63 @@ int main(int argc,char**argv)try{
     {"netgame_row",vehicle->netgame_row},{"definition",vehicle->definition},{"eye",{eye.x,eye.y,eye.z}},{"target",{target.x,target.y,target.z}},{"views",options.local_players},{"draws",Json::array()},{"source_inputs",Json::array()}};
   if(argc==11){report["original_frame_inputs"]=std::filesystem::absolute(argv[10]).string();report["boundary"]="Offline shader comparison with captured original camera, WORLD nodes, sphere, velocity and flags; native lighting is independently computed. Other world objects, clocks, first person and full simulation are not restored.";}
   report["reference_texture_storage"]=reference_image_storage?"xemu-0.8.136-expanded-bc":"ordinary-native-compressed";
+  const auto *forced_fog=std::getenv("HALO2_REFERENCE_FORCE_ATMOSPHERIC_FOG");
+  const bool fog_override=forced_fog && *forced_fog;
+  report["forced_atmospheric_fog_control"]=fog_override;
+  report["eligible_for_original_pixel_parity"]=!fog_override;
+  if(fog_override)report["boundary"]=report["boundary"].get<std::string>()+
+      " Counterfactual presentation-only atmospheric fog override; excluded from original pixel acceptance.";
+
   std::vector<unsigned> lit(options.local_players),drawn(options.local_players),visible(options.local_players);
   std::vector<std::vector<Vertex>> geometry(options.local_players);
   std::set<std::uint32_t> source_owners;
+  std::uint32_t source_input_tick{};Json current_source_inputs=Json::array();
+  std::map<std::uint64_t,NativeGrenadeDetonation> actual_detonations;
+  const auto tag_name=[&](std::uint32_t id){const auto tag=cache.query_tag({.handle=TagHandle{id}});return tag?tag->name:std::string{};};
   options.input_observer=[&](unsigned,std::span<const Controls>,const MultiplayerState& state){
+    if(grenade_capture && !grenade_detonated && !state.grenade_detonations.empty())
+      std::cout<<"Actual scripted grenade effect delivery: tick="<<state.tick
+          <<" events="<<state.grenade_detonations.size()<<'\n'<<std::flush;
+    grenade_detonated|=!state.grenade_detonations.empty();
+    for(const auto& d:state.grenade_detonations)actual_detonations.emplace(d.serial,d);
+    source_input_tick=state.tick;current_source_inputs=Json::array();
     for(const auto& v:state.world_vehicles){check(v.lighting_owner!=null_datum && v.lighting_definition!=null_datum,"Vehicle lost its actual source lighting owner");source_owners.insert(v.lighting_owner);
-      if(state.tick==options.capture_tick)report["source_inputs"].push_back({{"object",v.handle},{"root",v.lighting_owner},{"definition",v.lighting_definition},
+      current_source_inputs.push_back({{"object",v.handle},{"root",v.lighting_owner},{"definition",v.lighting_definition},
         {"origin",{v.lighting_origin.x,v.lighting_origin.y,v.lighting_origin.z}},{"velocity",{v.lighting_velocity.x,v.lighting_velocity.y,v.lighting_velocity.z}},
         {"flags",v.lighting_flags},{"frozen",v.lighting_frozen}});
     }
+    if(state.tick==options.capture_tick)report["source_inputs"]=current_source_inputs;
+  };
+  options.effect_light_capture_request=[&](unsigned view,std::uint32_t tick,
+      std::span<const EffectLightRawDraw> packets,std::span<const WorldEffectLight> lights) {
+    if(!grenade_capture || view || !grenade_detonated || grenade_light_tick)return false;
+    std::map<std::uint32_t,unsigned> model_packets;
+    for(const auto& packet:packets)if(packet.source.owner().kind==MenuWorldSourceOwnerKind::dynamic_object) {
+      ++model_packets[packet.light_identity];++grenade_light_packets;
+    }
+    if(!grenade_light_packets)return false;
+    // Capture the first completed post-detonation model-light frame. Its
+    // original effect identity determines the label; timing alone does not.
+    check(source_input_tick==tick,"Vehicle light capture lost its completed simulation input frame");
+    grenade_light_tick=tick;
+    report["first_model_light_source_inputs"]=current_source_inputs;
+    if(!fixed_grenade_replay_end){options.capture_tick=tick;report["source_inputs"]=current_source_inputs;}
+    report["model_light_sources"]=Json::array();
+    for(const auto& [identity,count]:model_packets) {
+      const auto light=std::find_if(lights.begin(),lights.end(),[&](const auto& l){return l.identity==identity;});
+      check(light!=lights.end(),"Submitted model light lost its actual occupied source identity");
+      Json matches=Json::array();
+      for(const auto& [serial,d]:actual_detonations)if(d.projectile==light->effect_owner)
+        matches.push_back({{"serial",serial},{"tick",d.tick},{"projectile",d.projectile},{"effect",d.effect},
+          {"effect_tag",tag_name(d.effect)},{"direct_effect_match",d.effect==light->effect_definition}});
+      report["model_light_sources"].push_back({{"identity",identity},{"definition",light->definition},
+        {"light_tag",tag_name(light->definition)},{"effect_owner",light->effect_owner},
+        {"effect_definition",light->effect_definition},{"effect_tag",tag_name(light->effect_definition)},
+        {"delivery_tick",light->tick},{"model_packets",count},{"grenade_owner_matches",matches},
+        {"position",{light->position.x,light->position.y,light->position.z}}});
+    }
+    report["capture_reason"]="First actual model-light packets after scripted grenade detonation; consult delivery provenance for effect attribution.";
+    return !fixed_grenade_replay_end;
   };
   options.vehicle_draw_observer=[&](unsigned view,std::uint32_t object,std::uint32_t definition,const ObjectLightingState& light,bool valid,unsigned lod,std::span<const Vertex> vertices){
     if(!vertices.empty()){++drawn.at(view);if(valid)++lit.at(view);}
@@ -155,10 +222,17 @@ int main(int argc,char**argv)try{
     report["original_lighting_and_geometry_verified"]=reference_verified;
   }
   std::ofstream(out/"report.json")<<report.dump(2)<<'\n';
+  if(grenade_capture) {
+    report["grenade_detonated"]=grenade_detonated;report["model_light_tick"]=grenade_light_tick;
+    report["model_light_packets"]=grenade_light_packets;
+    report["fixed_cleanup_replay"]=fixed_grenade_replay_end;report["capture_tick"]=options.capture_tick;
+    std::ofstream(out/"report.json")<<report.dump(2)<<'\n';
+    check(grenade_detonated && grenade_light_tick && grenade_light_packets,"No actual model-light packets were completed after the scripted grenade");
+  }
   check(reference_verified,"Captured original vehicle lighting/geometry differs or the fixture does not represent this view layout");
   check(result==0 && !source_owners.empty() && std::filesystem::exists(options.screenshot),"Vehicle capture did not complete");
   for(unsigned v=0;v<options.local_players;++v){check(drawn[v] && lit[v],"A local view lacks a live vehicle lighting draw");
-    check(visible[v]>0,"Vehicle geometry is outside the actual view or occluded by the map; draw admission is not appearance proof");}
+    if(!fixed_grenade_replay_end)check(visible[v]>0,"Vehicle geometry is outside the actual view or occluded by the map; draw admission is not appearance proof");}
   // Exercise the real transport after capturing, so the joining remote unit
   // cannot change the scene whose pixels were saved above.
   {

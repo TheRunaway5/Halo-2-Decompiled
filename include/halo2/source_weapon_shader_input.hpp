@@ -15,6 +15,10 @@ struct SourceWeaponShaderState {
 std::int16_t source_weapon_ready_begin(SourceWeaponShaderState &,float seconds,std::int16_t rate);
 void source_weapon_ready_tick(SourceWeaponShaderState &,std::int16_t &countdown);
 FunctionValue source_weapon_turned_on(const SourceWeaponShaderState &);
+// Whole1046C0 ->107140 primary-trigger selector over the actual published
+// signed timer/mode and authored charging interval. No byte quantization.
+FunctionValue source_weapon_primary_charge(std::uint8_t mode,std::int16_t ticks,
+    float charging_seconds,float tick_seconds);
 // Recovered turned_on, heat and age selectors. Other weapon inputs retain
 // their own source producers, including charge and magazine digits.
 std::optional<float> source_weapon_shader_input(std::uint32_t name,

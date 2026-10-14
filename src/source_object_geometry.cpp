@@ -15,22 +15,36 @@ namespace halo2 {
 void SourceObjectGeometry::load(const Cache&cache,const ScenarioObject&object,
     const SourceInitialModelDefinition&initial,const SourceInitialModelSelection&selection,
     std::uint32_t render_model,bool prepare_region_variants){
+    load_impl(cache,object,initial,&selection,render_model,prepare_region_variants);
+}
+void SourceObjectGeometry::load_union(const Cache &cache,const ScenarioObject &object,
+    const SourceInitialModelDefinition &initial,std::uint32_t render_model) {
+    load_impl(cache,object,initial,nullptr,render_model,true);
+}
+void SourceObjectGeometry::load_impl(const Cache&cache,const ScenarioObject&object,
+    const SourceInitialModelDefinition&initial,const SourceInitialModelSelection *selection,
+    std::uint32_t render_model,bool prepare_region_variants){
     invalidate_views();
-    if(!selection.resolved())throw FormatError("object geometry requires resolved source region bytes");
+    if(selection && !selection->resolved())throw FormatError("object geometry requires resolved source region bytes");
     lod_definition=cache.load_source_geometry_lod_definition(object.definition);
     prt=cache.load_source_prt_definition(render_model);
     if(prepare_region_variants)region_definition=initial;else region_definition.reset();
     //Keep the legacy diagnostic's sourceLOD5 slots first. Every other level
     //is decoded explicitly; an empty original collector stays empty.
     for(unsigned lod:{5u,0u,1u,2u,3u,4u}){
-        auto&g=lods[lod];active_sections[lod]=source_initial_model_sections(initial,selection,lod);
+        auto&g=lods[lod];active_sections[lod]=selection?source_initial_model_sections(initial,*selection,lod):std::vector<unsigned>{};
         g.sections=active_sections[lod];
         if(prepare_region_variants){
             // Resource union only. Active submission below retains original
             // region order and duplicate collector entries after every change.
-            g.sections=source_model_region_resource_sections(initial,selection,lod);
+            if(selection)g.sections=source_model_region_resource_sections(initial,*selection,lod);
+            else for(const auto &region:initial.render_sections)for(const auto &permutation:region) {
+                const auto section=permutation[lod];
+                if(section>=0 && std::find(g.sections.begin(),g.sections.end(),unsigned(section))==g.sections.end())
+                    g.sections.push_back(unsigned(section));
+            }
             g.model=cache.load_model_sections(object.definition,lod==5,object.variant,lod,g.sections);
-        }else g.model=cache.load_model(object.definition,lod==5,object.variant,selection,lod);
+        }else g.model=cache.load_model(object.definition,lod==5,object.variant,*selection,lod);
         g.authored_parts=cache.load_source_transparent_model_parts(render_model,g.sections);
         if(g.model.vertex_origins.size()!=g.model.mesh.vertices.size())
             throw FormatError("resident object geometry lacks source vertex identities: "+g.model.name);
@@ -77,11 +91,11 @@ SourceObjectGeometry::ViewDraw SourceObjectGeometry::active_draw(unsigned lod)co
 }
 SourceObjectGeometry::Stats SourceObjectGeometry::prepare(const Cache&cache,const ObjectColors&colors,
     std::span<const Transform>world_nodes,const SourcePrtLighting&sh,Mesh&mesh,
-    std::optional<float> camouflage){
+    std::optional<float> camouflage,std::optional<Vec3> retained_incident){
     invalidate_views();
     Stats counts;std::array<std::vector<SourcePrtSectionBank>,6>banks;
     for(unsigned lod=0;lod<6;++lod)if(prt && !lods[lod].sections.empty()){
-        banks[lod]=source_prt_section_banks(cache,lods[lod].model,*prt,lod,lods[lod].sections,world_nodes,sh);
+        banks[lod]=source_prt_section_banks(cache,lods[lod].model,*prt,lod,lods[lod].sections,world_nodes,sh,retained_incident);
         counts.union_section_banks+=unsigned(banks[lod].size());
     }
     counts.section_banks=unsigned(banks[5].size());
@@ -186,6 +200,17 @@ void SourceObjectGeometry::pose_world(const std::function<std::vector<Vertex>(co
             for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.vertex_materials.at(i);
     }
 }
+std::vector<SourcePrtMaterialBank> SourceObjectGeometry::owner_banks(const Cache&cache,
+    std::span<const Transform>world_nodes,const SourcePrtLighting&sh,unsigned lod,std::optional<Vec3> retained_incident)const {
+    const auto &g=lods.at(lod);std::vector<SourcePrtMaterialBank> result;
+    if(!prt || active_sections[lod].empty())return result;
+    const auto banks=source_prt_section_banks(cache,g.model,*prt,lod,active_sections[lod],world_nodes,sh,retained_incident);
+    for(const auto &slot:slots)if(slot.prt && slot.lod==lod) {
+        const auto bank=std::find_if(banks.begin(),banks.end(),[&](const auto &b){return b.section==slot.section;});
+        if(bank!=banks.end())result.push_back({slot.material,bank->bank,slot.section});
+    }
+    return result;
+}
 void SourceObjectGeometry::update_banks(const Cache&cache,std::span<const Transform>world_nodes,
     const SourcePrtLighting&sh,Mesh&mesh){
     if(!prt)return;
@@ -201,6 +226,45 @@ void SourceObjectGeometry::update_banks(const Cache&cache,std::span<const Transf
             material.environment_pass->vertex_bank=bank->bank;
         }
     }
+}
+SourceObjectGeometry::ViewDraw SourceObjectGeometry::selected_section(unsigned lod,unsigned section,
+    const SourceModelShaderCollector& collector,const SourceModelShaderView& view)const {
+    return selected_section_vertices(lod,section,collector,view,lods.at(lod).vertices);
+}
+SourceObjectGeometry::ViewDraw SourceObjectGeometry::selected_section_world(unsigned lod,unsigned section,
+    const SourceModelShaderCollector& collector,const SourceModelShaderView& view,
+    std::span<const Transform> nodes)const {
+    const auto vertices=skin_model_world_nodes(lods.at(lod).model,nodes);
+    return selected_section_vertices(lod,section,collector,view,vertices);
+}
+SourceObjectGeometry::ViewDraw SourceObjectGeometry::selected_section_vertices(unsigned lod,unsigned section,
+    const SourceModelShaderCollector& collector,const SourceModelShaderView& view,
+    std::span<const Vertex> vertices)const {
+    const auto& geometry=lods.at(lod);ViewDraw result;
+    if(vertices.size()!=geometry.model.mesh.vertices.size())
+        throw FormatError("source-selected model WORLD pose changed its complete vertex order");
+    if(std::find(geometry.sections.begin(),geometry.sections.end(),section)==geometry.sections.end())
+        throw FormatError("completed source model selected an unprepared section/LOD");
+    for(const auto& run:part_runs.at(lod)) {
+        const auto& part=parts.at(lod).at(run.part);if(part.section!=section)continue;
+        const auto choice=source_model_shader_part(collector,part.lod_scale,shader_definitions.at(part.source_material),view).choice;
+        if(!choice.accepted || choice.index<0)continue;
+        const auto selected=unsigned(choice.index);const auto first=result.vertices.size();
+        const auto source=vertices.subspan(run.first,run.count);
+        result.vertices.insert(result.vertices.end(),source.begin(),source.end());
+        for(auto n=first;n<result.vertices.size();++n)result.vertices[n].material=part.materials.at(selected);
+        result.ordinary_lighting|=part.ordinary.at(selected);
+        result.prt_lighting|=std::any_of(slots.begin(),slots.end(),[&](const auto& slot){return slot.material==part.materials.at(selected) && slot.prt;});
+    }
+    return result;
+}
+std::vector<SourcePrtMaterialBank> SourceObjectGeometry::selected_prt_banks(unsigned lod,unsigned section,
+    std::shared_ptr<const VertexProgramBank> bank)const {
+    std::vector<SourcePrtMaterialBank> result;
+    for(const auto& slot:slots)if(slot.prt && slot.lod==lod && slot.section==section)
+        result.push_back({slot.material,bank,section});
+    if(!result.empty() && !bank)throw FormatError("completed PRT source draw has no original coefficient bank");
+    return result;
 }
 SourceObjectViewSelection SourceObjectGeometry::select(std::size_t object,std::uint32_t handle,Vec3 center,
     float radius,const SourceObjectViewLod&view){

@@ -12,7 +12,8 @@ int main(int argc,char **argv)try {
   if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[3]))return 77;
   const auto original=OriginalData::load_xbe(argv[3]);
   const bool put_away=argc==6 && std::string(argv[5])=="put-away";
-  if(argc==6 && !put_away)throw FormatError("Unknown graph timing scope");
+  const bool charged=argc==6 && std::string(argv[5])=="charged";
+  if(argc==6 && !put_away && !charged)throw FormatError("Unknown graph timing scope");
   Cache cache(argv[1],argv[2],original);
   const auto content=put_away?std::optional<LevelContent>(cache.load_content(0,true)):std::nullopt;
   std::ifstream input(argv[4]);if(!input)return 77;
@@ -44,7 +45,7 @@ int main(int argc,char **argv)try {
     }
     ++cases;nonzero+=actual!=0;
   }
-  if(definitions.size()!=66 || cases!=(put_away?29568u:28512u) || no_models!=(put_away?14784u:14256u) || nonzero!=(put_away?5344u:4720u))
+  if(definitions.size()!=66 || cases!=(charged?38016u:put_away?29568u:28512u) || no_models!=(charged?19008u:put_away?14784u:14256u) || nonzero!=(charged?5776u:put_away?5344u:4720u))
     throw FormatError("Incomplete original graph timing coverage");
   std::cout<<"PASS "<<cases<<" actual graph timing queries, "<<definitions.size()
       <<" represented weapons, "<<nonzero<<" nonzero results, including dual and absent render models\n";

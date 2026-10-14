@@ -1,4 +1,7 @@
 #pragma once
+#include "halo2/renderer_device_lease.hpp"
+#include "halo2/renderer_palette.hpp"
+#include "halo2/renderer_constant_mode.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/appearance.hpp"
 #include "halo2/display_settings.hpp"
@@ -8,8 +11,10 @@
 #include "halo2/object_lighting.hpp"
 #include "halo2/scope_copy.hpp"
 #include "halo2/light_volume.hpp"
+#include "halo2/source_light_volume_draw.hpp"
 #include "halo2/particle_draw.hpp"
 #include "halo2/source_geometry_lod.hpp"
+#include "halo2/source_prt.hpp"
 #include "halo2/popup_blur.hpp"
 #include "halo2/source_shadow_plan.hpp"
 #include "halo2/renderer_timing.hpp"
@@ -19,6 +24,8 @@
 #include "halo2/source_weather_point_render.hpp"
 #include "halo2/source_weather_line_render.hpp"
 #include "halo2/source_weather_plate_render.hpp"
+#include "halo2/source_decal_draw.hpp"
+#include "halo2/source_contrail_draw.hpp"
 #include <SDL.h>
 #include <array>
 #include <functional>
@@ -64,6 +71,7 @@ struct ModelObjectDraw {
     std::optional<ObjectLightingState> lighting;
     std::optional<ObjectColors> colors;
     ShaderInput shader_input; // Evaluated into this owner's independent constant bank.
+    std::span<const SourcePrtMaterialBank> prt_banks;
 };
 // A clipped model viewport, ordered amongst the UI's textured triangles.
 struct ModelView {
@@ -77,6 +85,11 @@ struct ModelView {
     // Per-view source particle submissions. Each bank owns its current camera
     // constants and is clipped to this view, including split-screen views.
     std::span<const ParticleDraw> world_particles,foreground_particles;
+    // Actual per-view projected MGS2 draws. They join effect sorting through
+    // their retained42850 records and use this view's clip on GPU submission.
+    std::span<const SourceLightVolumeDraw> light_volumes;
+    std::span<const SourceContrailDraw> contrails;
+    std::function<void(const SourceLightVolumeDraw &)> light_volume_observer;
     std::span<const SourceWeatherPointDraw> weather_points;
     std::span<const SourceWeatherLineDraw> weather_lines;
     std::span<const SourceWeatherPlateDraw> weather_plates;
@@ -124,6 +137,11 @@ struct ModelView {
     // PC UI model widgets supply their separately truncated physical bounds.
     // Keeping those words avoids a second native canvas projection/rounding.
     std::optional<std::array<std::int32_t,4>> source_ui_viewport;
+    // Completed retained decal cache pages, in original layer/cluster order.
+    std::span<const SourceDecalDraw> source_decals;
+    // An independent first-person lens keeps hands, weapon geometry and
+    // deferred foreground draws in the same projection as their shader bank.
+    std::optional<float> foreground_projection_vertical_angle;
 };
 // SDL owns the platform window/input; only this module knows Vulkan handles.
 class Renderer {
@@ -136,7 +154,8 @@ public:
              std::span<const SourceShadowPlanMaterial> shadow_materials = {},
              const SourceBspResidentPlan *bsp_resident_plan = nullptr,
              const std::function<void()> &before_presentation = {},
-             const Renderer *presentation_owner = nullptr);
+             const Renderer *presentation_owner = nullptr,
+             const std::filesystem::path &shader_directory = {});
     ~Renderer();
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -172,12 +191,20 @@ public:
     std::size_t resident_material_images() const;
     // Update an existing 2D RGBA8 material image without recreating descriptors.
     void update_image(unsigned material, const Texture &);
+    // Expand through this renderer's actual stage palette, then use the
+    // existing single-level image update/fence/upload contract and shaders.
+    // Palette::decode retains complete mip chains for ordinary static uploads.
+    void update_palettized_image(unsigned material,unsigned stage,std::span<const std::byte>,
+        unsigned width,unsigned height,bool swizzled,unsigned additional_mips=0);
+    RendererPaletteFactory palette_factory();
+    RendererConstantMode constant_mode_control();
     // Queue constants and resident bitmap frames after the previous draw's fence.
     void update_material_constants(std::span<const Material>);
     void update_material_constants(std::span<const Material>, std::span<const unsigned> active_roots);
     void scene_clear_color(Vec3);
     void scene_atmosphere(MenuAtmosphere, BspAtmosphere);
     void scene_bsp_atmosphere(const BspAtmosphere &);
+    void source_fog_controls(SourceFogDrawControls);
     std::optional<BspPostprocessState> bsp_postprocess_state() const;
     void restore_bsp_postprocess_state(const BspPostprocessState &);
     void scene_bloom_threshold(float);
@@ -187,8 +214,11 @@ public:
     void scene_particles(std::vector<ParticleDraw>);
     std::string device_name() const;
     SourceWorldDeviceState source_world_device_state() const;
+    RendererDeviceLease device_lease();
 private:
     struct Impl;
-    std::unique_ptr<Impl> impl_;
+    std::shared_ptr<Impl> impl_;
+    RendererDeviceLease device_lease_;
+    RendererPaletteFactory palette_factory_;
 };
 } // namespace halo2

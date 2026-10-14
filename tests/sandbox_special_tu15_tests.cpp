@@ -13,7 +13,7 @@ std::vector<std::byte> bytes(const std::string &hex) {
 }
 }
 int main(int argc,char **argv)try {
-  check(argc==2,"Supply unchanged TU1.5 special movement fixture");
+  check(argc==2,"Supply unchanged TU1.5 sandbox fixture");
   std::ifstream file(argv[1]);if(!file)return 77;
   const auto fixture=nlohmann::json::parse(file);
   check(fixture.at("original_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
@@ -47,6 +47,6 @@ int main(int argc,char **argv)try {
     ++count;
   }
   check(count>0,"Original special movement fixture is empty");
-  std::cout<<"PASS unchanged TU1.5 special movement: "<<count<<" instruction/GP/SSE/flag/memory cases\n";
+  std::cout<<"PASS unchanged TU1.5 sandbox owners: "<<count<<" instruction/GP/SSE/flag/memory cases\n";
   return 0;
 }catch(const std::exception &e) {std::cerr<<e.what()<<'\n';return 1;}

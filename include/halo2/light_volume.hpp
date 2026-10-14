@@ -66,8 +66,8 @@ LightVolumeProjection light_volume_title_projection(Vec3 eye, Vec3 forward, Vec3
 // Original 48B00/480A0, before NV2A's 1/16-pixel vertex quantization.
 std::optional<std::array<LightVolumeVertex,4>> light_volume_quad(
     const LightVolumeSprite &, float cosine, float sine, const LightVolumeProjection &);
-// Original 4F010/4FF50. The title's cached phase and linear-offset paths;
-// force-linear-radius and fuzzy rendering remain explicitly unsupported.
+// Original4F010/4FF50: cached phase, linear offset and geometric radius
+// sampling. Fuzzy rendering retains its separate GPU owner.
 std::vector<LightVolumeBatch> light_volume_sprites(const LightVolumeDefinition &,
     const LightVolumeState &, const LightVolumeView &, const ShaderFunctionTables &);
 PixelProgram light_volume_program(); // Original 4FE20 non-fuzzy pixel program.

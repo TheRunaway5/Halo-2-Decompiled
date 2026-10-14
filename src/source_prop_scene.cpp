@@ -11,6 +11,7 @@
 #include "halo2/math.hpp"
 #include "source_object_geometry.hpp"
 #include "halo2/render_interpolation.hpp"
+#include "halo2/source_live_model_geometry_tu15.hpp"
 #include <algorithm>
 #include <map>
 #include <set>
@@ -23,12 +24,21 @@
 
 namespace halo2 {
 struct SourcePropScene::Impl {
+    std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,bool,unsigned,std::span<const Vertex>)> source_draw_observer;
+    std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)> draw_observer;
+    struct SourceMainSection {
+        unsigned lod{};
+        std::vector<Vertex> vertices;
+        ObjectColors colors;
+    };
+    struct SourceMainView {std::vector<SourceMainSection> sections;bool submitted{};};
     struct Prop {
         std::size_t source_object{};
         std::uint32_t handle=0xffffffffu;
         std::uint64_t created_tick{};
         bool active=true,visible=true;
         SourcePropDefinition definition;
+        std::uint32_t object_definition=0xffffffffu;
         SourceObjectGeometry geometry;
         SourcePropQueryState query_state;
         bool query_state_valid{};
@@ -41,6 +51,8 @@ struct SourcePropScene::Impl {
         std::vector<Transform> world_nodes;
         std::vector<std::uint8_t> active_permutations;
         ObjectLightingCache light;
+        ObjectColors initial_colors;
+        std::array<std::optional<SourceMainView>,4> source_views;
     };
     const Cache &cache;
     const CollisionWorld &collision;
@@ -61,13 +73,13 @@ struct SourcePropScene::Impl {
         for(std::size_t source_object=0;source_object<objects.size();++source_object){
             const auto&object=objects[source_object];
             if(object.type==11)prop_placements.insert(source_object);
-            //D5560's NeverPlaced gate controls automatic birth, not whether
-            //a later named HS object_create needs resident geometry. Prepare
-            //named props too, then synchronize their actual live generation.
-            if(object.type!=11 || (!scenery_automatic_creation_allowed(object,2) && object.name<0) ||
-                (object.origin_bsp>=0 && object.origin_bsp!=int(bsp)))continue;
+            //D5560's NeverPlaced gate controls automatic birth. Explicit
+            //source creation can also admit an unnamed authored placement.
+            //Prepare every prop in this BSP before renderer allocation;
+            //synchronize still admits geometry only for an actual live owner.
+            if(object.type!=11 || (object.origin_bsp>=0 && object.origin_bsp!=int(bsp)))continue;
             ++counts.placements;
-            Prop p;p.source_object=source_object;p.definition=cache.load_source_prop_definition(object.definition);
+            Prop p;p.source_object=source_object;p.object_definition=object.definition;p.definition=cache.load_source_prop_definition(object.definition);
             if(!p.definition.constructor_admitted)
                 throw FormatError("source prop constructor has no physics body bank: "+p.definition.name);
             if(p.definition.render_model==0xffffffffu){nonrendered_placements.insert(source_object);continue;}
@@ -93,6 +105,7 @@ struct SourcePropScene::Impl {
             const auto actual_variant=selection.variant_index<0?0u:
                 initial_definition.variants.at(unsigned(selection.variant_index)).name;
             const auto colors=source_object_initial_colors(color_definition,object.position,actual_variant);
+            p.initial_colors=colors;
             const auto resident=p.geometry.prepare(cache,colors,p.world_nodes,sh,mesh);
             counts.dynamic_materials+=resident.dynamic_materials;counts.prt_materials+=resident.prt_materials;
             counts.section_banks+=resident.section_banks;
@@ -151,8 +164,15 @@ struct SourcePropScene::Impl {
     void synchronize(const SceneObjects&scene){
         std::map<std::size_t,const SceneObjects::Object*> live;
         for(const auto&object:scene.objects())if(object.handle!=0xffffffffu){
-            if(!live.emplace(object.placement,&object).second)
-                throw FormatError("prop lifetime has duplicate live source placement");
+            // This bank owns type11 placements. Other scene types may retain
+            // multiple generations of one netgame row; they are not props.
+            if(!prop_placements.contains(object.placement))continue;
+            const auto [at,inserted]=live.emplace(object.placement,&object);
+            if(!inserted)
+                throw FormatError("prop lifetime has duplicate live source placement="+
+                    std::to_string(object.placement)+" handles="+std::to_string(at->second->handle)+
+                    ","+std::to_string(object.handle)+" prop="+
+                    std::to_string(prop_placements.contains(object.placement)));
             if(prop_placements.contains(object.placement) && !nonrendered_placements.contains(object.placement) &&
                 std::none_of(props.begin(),props.end(),[&](const auto&p){return p.source_object==object.placement;}))
                 throw FormatError("live prop placement requires unprepared source geometry");
@@ -216,6 +236,7 @@ SourcePropScene::~SourcePropScene()=default;
 SourcePropScene::SourcePropScene(SourcePropScene&&)noexcept=default;
 SourcePropScene&SourcePropScene::operator=(SourcePropScene&&)noexcept=default;
 void SourcePropScene::synchronize(const SceneObjects&scene){impl_->synchronize(scene);}
+void SourcePropScene::observe_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)> observer){impl_->draw_observer=std::move(observer);}
 void SourcePropScene::region_state(std::function<const SourceInitialModelSelection *(std::uint32_t)> state){impl_->region_state=std::move(state);}
 void SourcePropScene::interpolate(const SceneObjects &scene,const SceneInterpolation &history,float fraction){
     for(auto &p:impl_->props)if(p.active){
@@ -235,6 +256,10 @@ void SourcePropScene::append(std::vector<Vertex>&out,std::vector<ObjectLightingB
 void SourcePropScene::append_view(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings,
     const SourceObjectViewLod&view,std::vector<SourceObjectViewSelection>*selections){
     for(auto&p:impl_->props)if(p.active && p.visible){
+        if(const auto& source=p.source_views.at(view.view_index);source) {
+            if(!source->submitted)throw FormatError("retained source prop base was not submitted before legacy view");
+            continue;
+        }
         impl_->retain_query_state(p);
         const auto selected=p.geometry.select(p.source_object,p.handle,p.query_state.sphere.center,p.query_state.sphere.radius,view);
         const auto&g=p.geometry.view(view.view_index);
@@ -242,16 +267,75 @@ void SourcePropScene::append_view(std::vector<Vertex>&out,std::vector<ObjectLigh
         //The selected ordinary flag controls uniform binding only.
         impl_->query_lighting(p,impl_->render_frame,selected.source_distance);
         out.insert(out.end(),g.vertices.begin(),g.vertices.end());
+        if(impl_->draw_observer && !g.vertices.empty())
+            impl_->draw_observer(view.view_index,p.handle,std::uint32_t(p.source_object),g.vertices);
         if(g.ordinary_lighting && !g.vertices.empty())
             bindings.push_back({p.geometry.first_material,p.geometry.material_count,p.light.lighting});
         if(selections)selections->push_back(selected);
+    }
+}
+void SourcePropScene::observe_source_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,
+    const ObjectLightingState&,bool,unsigned,std::span<const Vertex>)> observer) {
+    impl_->source_draw_observer=std::move(observer);
+}
+std::vector<std::uint32_t> SourcePropScene::source_render_models()const {
+    std::set<std::uint32_t> models;
+    for(const auto& prop:impl_->props)models.insert(prop.definition.render_model);
+    return {models.begin(),models.end()};
+}
+void SourcePropScene::begin_source_frame() {
+    for(auto& prop:impl_->props)for(auto& view:prop.source_views)view.reset();
+}
+bool SourcePropScene::retain_source_view(unsigned view,std::span<const SourceLiveModelBaseDrawTu15> draws,
+    std::span<const Transform> nodes,const SourceModelShaderView& shader_view) {
+    if(view>=4)throw FormatError("source prop view exceeds the original four views");
+    if(draws.empty())return false;
+    const auto owner=draws.front().object;
+    const auto at=std::find_if(impl_->props.begin(),impl_->props.end(),[&](const auto& p){return p.active && p.visible && p.handle==owner;});
+    if(at==impl_->props.end())return false;
+    auto& prop=*at;Impl::SourceMainView retained;std::size_t count{};
+    for(const auto& draw:draws) {
+        // Full-owner admission is atomic. Unconsumed PRT/override state keeps
+        // its existing path and never receives a mismatched sphere-light pass.
+        if(draw.object!=owner || draw.definition!=prop.object_definition)
+            throw FormatError("source prop base lost its complete definition identity");
+        if(draw.lighting_class!=2 || draw.override_slot!=255 || !(draw.unit.words[0]&1u) ||
+           draw.unit.words[1]!=prop.definition.render_model || draw.lod>=6 || nodes.empty())return false;
+        const auto section=draw.unit.words[3]>>9&511u;
+        const auto& sections=prop.geometry.at(draw.lod).sections;
+        if(std::find(sections.begin(),sections.end(),section)==sections.end())return false;
+        const SourceModelShaderCollector collector{0,draw.coverage};
+        auto selected=prop.geometry.selected_section_world(draw.lod,section,collector,shader_view,nodes);
+        if(selected.prt_lighting)return false;
+        count+=selected.vertices.size();
+        retained.sections.push_back({draw.lod,std::move(selected.vertices),source_live_model_base_colors_tu15(draw,prop.initial_colors)});
+    }
+    if(!count)return false;
+    if(prop.source_views[view])throw FormatError("source prop owner was retained twice in one view");
+    prop.source_views[view]=std::move(retained);return true;
+}
+void SourcePropScene::append_source_models(std::vector<ModelObjectDraw>& out,const SourceObjectViewLod& view) {
+    for(auto& prop:impl_->props)if(prop.active && prop.visible) {
+        auto& source=prop.source_views.at(view.view_index);if(!source)continue;
+        if(source->submitted)throw FormatError("source prop base was submitted twice in one view");
+        if(!view.input)throw FormatError("source prop base lacks its current lighting-distance producer");
+        impl_->retain_query_state(prop);
+        const auto input=view.input(prop.source_object,prop.handle,prop.query_state.sphere.center,prop.query_state.sphere.radius);
+        impl_->query_lighting(prop,impl_->render_frame,input.draw_metric);
+        for(const auto& section:source->sections)if(!section.vertices.empty()) {
+            out.push_back({section.vertices,prop.light.lighting,section.colors});
+            if(impl_->source_draw_observer)impl_->source_draw_observer(view.view_index,prop.handle,prop.object_definition,
+                prop.light.lighting,prop.light.lighting_valid,section.lod,section.vertices);
+            if(impl_->draw_observer)impl_->draw_observer(view.view_index,prop.handle,std::uint32_t(prop.source_object),section.vertices);
+        }
+        source->submitted=true;
     }
 }
 const SourcePropSceneStats&SourcePropScene::stats()const{return impl_->counts;}
 std::vector<SourceSceneEffectOwner> SourcePropScene::effect_owners() const {
     std::vector<SourceSceneEffectOwner> out;
     for(const auto &p:impl_->props)if(p.active && p.handle!=0xffffffffu)
-        out.push_back({p.source_object,p.handle,p.created_tick,p.world_nodes,p.active_permutations});
+        out.push_back({p.source_object,p.handle,p.created_tick,p.world_nodes,p.active_permutations,p.object.position});
     return out;
 }
 }

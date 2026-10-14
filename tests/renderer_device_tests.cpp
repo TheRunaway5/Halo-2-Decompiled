@@ -2,6 +2,7 @@
 #include <vulkan/vulkan.h>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <sstream>
 using namespace halo2;
 namespace {
@@ -31,11 +32,16 @@ int main(int argc,char **argv) {
         Camera camera;camera.field_of_view=60;
         SourceWorldDeviceState state;
         std::string device;
+        RendererDeviceLease lease;
+        std::optional<RendererDeviceLease::Use> retained;
         std::ostringstream validation;
         auto *previous=std::cerr.rdbuf(validation.rdbuf());
         try {
             {
                 Renderer renderer(window,mesh,true);
+                lease=renderer.device_lease();retained.emplace(lease.acquire());
+                require(lease.valid() && retained->native_address().value>0xffffffffu,
+                    "native renderer lease lacks its actual widened device identity");
                 state=renderer.source_world_device_state();device=renderer.device_name();
                 require(state.instance_api_version>=VK_API_VERSION_1_1,
                     "ordinary native renderer lost its Vulkan1.1 contract");
@@ -51,7 +57,18 @@ int main(int argc,char **argv) {
                 }catch(const FormatError &) {rejected_fog=true;}
                 require(rejected_fog,"mainmenu aggregate was admitted without a title atmosphere");
                 require(renderer.draw(camera,output/"ordinary.ppm"),"ordinary native draw failed");
+                renderer.release_presentation();
+                require(!lease.valid(),"released presentation retained a valid source renderer lease");
+                require(renderer.draw(camera,output/"rebuilt.ppm"),"native presentation rebuild failed");
+                require(renderer.device_lease().valid() && !lease.valid(),
+                    "presentation rebuild revived a retired lease or failed to issue a live replacement");
             }
+            require(!lease.valid(),"departed renderer retained a valid logical device lease");
+            bool retired=false;
+            try{lease.acquire();}catch(const std::runtime_error &){retired=true;}
+            require(retired && retained->native_address().value>0xffffffffu,
+                "retirement admitted a new use or discarded an active device implementation");
+            retained.reset(); // Release old presentation ownership before the replacement scene.
             if(state.custom_border_colors_enabled) {
                 auto &sampler=mesh.materials.front().texture_states.front();
                 sampler.address_u=sampler.address_v=sampler.address_w=4;

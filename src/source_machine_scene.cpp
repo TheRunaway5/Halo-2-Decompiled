@@ -303,7 +303,8 @@ std::vector<SourceMachinePortalState> SourceMachineScene::portal_owners()const{
 std::vector<SourceSceneEffectOwner> SourceMachineScene::effect_owners() const {
     std::vector<SourceSceneEffectOwner> out;
     for(const auto &m:impl_->machines)if(m.active && m.handle!=0xffffffffu)
-        out.push_back({m.source_object,m.handle,m.created_tick,m.world_nodes,m.active_permutations});
+        out.push_back({m.source_object,m.handle,m.created_tick,m.world_nodes,m.active_permutations,
+            m.presentation?m.presentation->root.position:m.object.position});
     return out;
 }
 } // namespace halo2

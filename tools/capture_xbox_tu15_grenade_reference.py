@@ -283,7 +283,7 @@ set architecture i386
 set remotetimeout 15
 target remote 127.0.0.1:{gdb_port}
 {warmup}
-hbreak *0x4a1d0 if *(unsigned int*)(*(unsigned int*)(*(unsigned int*)0x4ecbdc+0x44)+($edx & 65535)*0x110+4)==0xe63a04c5
+hbreak *0x4a1d0 if (unsigned int)$edx!=0xffffffff && *(unsigned int*)(*(unsigned int*)(*(unsigned int*)0x4ecbdc+0x44)+($edx & 65535)*0x110+4)==0xe63a04c5
 echo WAITING_FOR_NORMAL_GRENADE\\n
 continue
 python
@@ -310,7 +310,7 @@ code=bytes(inferior.read_memory({text['address']},{text['file_size']}))
 assert hashlib.sha256(code).hexdigest()=={TEXT_SHA!r}
 (out/'tu15-text.bin').write_bytes(code)
 s=socket.socket(socket.AF_UNIX);s.settimeout(30);s.connect({str(qmp_path)!r});f=s.makefile('rwb',buffering=0);f.readline();replies=[]
-commands=[dict(execute='qmp_capabilities'),dict(execute='stop'),dict(execute='pmemsave',arguments={{'val':0,'size':67108864,'filename':str(out/'physical-ram.bin')}}),dict(execute='query-status')]
+commands=[dict(execute='qmp_capabilities'),dict(execute='stop'),dict(execute='human-monitor-command',arguments={{'command-line':'info registers'}}),dict(execute='pmemsave',arguments={{'val':0,'size':67108864,'filename':str(out/'physical-ram.bin')}}),dict(execute='query-status')]
 for n,c in enumerate(commands):
  c['id']=n;f.write((json.dumps(c)+'\\n').encode())
  while True:
@@ -319,7 +319,7 @@ for n,c in enumerate(commands):
  assert 'error' not in reply,reply
  replies.append(reply)
 f.close();s.close()
-(out/'source-state.json').write_text(json.dumps(dict(reference='OG Xbox TU1.5',qmp=replies,light_identity=identity,light_definition=0xe63a04c5,guest_pc=0x4a3c7,code_sha256=hashlib.sha256(code).hexdigest(),whole_live_text_matches_original=True,ram_sha256=hashlib.sha256((out/'physical-ram.bin').read_bytes()).hexdigest(),guest_code_patches=[]),indent=2)+'\\n')
+(out/'source-state.json').write_text(json.dumps(dict(reference='OG Xbox TU1.5',qmp=replies,registers_before=replies[2]['return'],light_identity=identity,light_definition=0xe63a04c5,guest_pc=0x4a3c7,code_sha256=hashlib.sha256(code).hexdigest(),whole_live_text_matches_original=True,ram_sha256=hashlib.sha256((out/'physical-ram.bin').read_bytes()).hexdigest(),guest_code_patches=[]),indent=2)+'\\n')
 (out/'SOURCE_READY').write_text('guest remains stopped and attached\\n')
 end
 ''')

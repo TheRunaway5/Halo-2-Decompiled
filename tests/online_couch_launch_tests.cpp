@@ -114,6 +114,13 @@ int main(int argc,char **argv)try {
     runtime.view_observer=[&](unsigned view,const Camera &,float,std::int16_t){views.insert(view);};
     runtime.input_observer=[&](auto t,auto controls,const auto &world){ticks=t;for(unsigned i=0;i<4;++i)controlled[i]|=controls[i].fire && controls[i].forward>.1f;peak=std::max(peak,unsigned(std::count_if(world.players.begin(),world.players.end(),[](const auto &p){return p.connected;})));};
     MultiplayerRuntimeOutcome outcome;run_multiplayer(runtime,outcome);
+    if(std::getenv("HALO2_COUCH_REQUIRE_SOURCE_ADMISSIONS")){
+      const auto accepted=session->source_players();const auto context=session->authority_context();
+      check(accepted&&context&&accepted->context==*context&&accepted->players.size()==8,"Native runtime omitted the admitted source player exchange");
+      for(unsigned slot=0;slot<8;++slot)check(accepted->players[slot].slot==slot&&(accepted->players[slot].player&65535u)==slot,
+          "Native runtime source allocations differ from the accepted couch slots");
+      std::cout<<"PASS native runtime exported and accepted all eight source allocations over direct encrypted peers\n";
+    }
     check(views==std::set<unsigned>{0,1,2,3} && peak==8 && ticks>10 && std::all_of(controlled.begin(),controlled.end(),[](bool v){return v;}),"Rendered four-view match lost a view, player, or independent input");
     check(outcome.reason==MultiplayerExitReason::captured_tick && outcome.state && outcome.state->tick>=120,"Four-view finite capture did not preserve its native snapshot");
     const auto barrier=std::filesystem::path(std::getenv("HALO2_COUCH_RENDER_BARRIER"));

@@ -75,6 +75,58 @@ void scene_history() {
     history.reset(8,std::span{&o,1});near(history.sample(o,0).position,o.position,"restore kept interpolation history");
     o.position.x=20;history.capture(12,std::span{&o,1});near(history.sample(o,0).position,o.position,"missing scene steps invented motion");
 }
+void body_lifecycle() {
+    MultiplayerState before;before.tick=100;before.source_body_poses_authoritative=true;
+    auto &player=before.players[0];player.connected=true;player.source_player=0x10000;
+    player.source_unit=0x20001;player.source_weapon=0x30002;player.secondary_weapon.datum=0x30003;
+    before.source_body_poses={{player.source_unit,{Transform{}}},{player.source_weapon,{Transform{}}},
+        {player.secondary_weapon.datum,{Transform{}}}};
+    const auto transition=[&](const MultiplayerState &old,const MultiplayerState &after,const char *message) {
+        SourceWorldInterpolation history;
+        capture_multiplayer_body_poses(history,old,old,true);
+        capture_multiplayer_body_poses(history,old,after);
+        for(float f:{0.f,.25f,.5f,.75f,1.f})for(const auto &pose:after.source_body_poses)
+            near(history.sample(pose.object,f).front().position,pose.nodes.front().position,message);
+    };
+    auto seated=before;++seated.tick;seated.players[0].source_parent=0x40003;seated.players[0].source_seat=0;
+    seated.players[0].position={4,2,1};
+    for(auto &pose:seated.source_body_poses)pose.nodes.front().position={4,2,1};
+    transition(before,seated,"Vehicle entry retained the standing body or held weapon at the pre-entry position");
+    auto exited=seated;++exited.tick;exited.players[0].source_parent=null_datum;exited.players[0].source_seat=-1;
+    for(auto &pose:exited.source_body_poses)pose.nodes.front().position={5,3,0};
+    transition(seated,exited,"Vehicle exit retained the attached body or held weapon pose");
+    auto other_seat=seated;++other_seat.tick;other_seat.players[0].source_seat=1;other_seat.players[0].position={7,2,1};
+    for(auto &pose:other_seat.source_body_poses)pose.nodes.front().position={7,2,1};
+    transition(seated,other_seat,"Seat transfer blended through the previous seat body/weapon pose");
+    near(multiplayer_presentation(seated,other_seat,0).players[0].position,other_seat.players[0].position,
+        "Seat transfer retained its previous seat root");
+    auto dead=before;++dead.tick;dead.players[0].dead=true;
+    dead.players[0].source_previous_unit=player.source_unit;dead.players[0].source_unit=null_datum;
+    dead.source_body_poses.resize(1);dead.source_body_poses.front().nodes.front().position={1,2,0};
+    dead.corpses.emplace_back();dead.corpses.back().object=player.source_unit;
+    transition(before,dead,"Death retained the standing pose instead of the completed corpse pose");
+    auto seated_death=dead;seated_death.tick=seated.tick+1;
+    transition(seated,seated_death,"Seated death retained the old attached body pose");
+    auto respawn=dead;++respawn.tick;respawn.players[0].dead=false;respawn.players[0].source_unit=0x30001;
+    respawn.source_body_poses.front().nodes.front().position={3,2,0};
+    respawn.source_body_poses.push_back({respawn.players[0].source_unit,{Transform{}}});
+    respawn.source_body_poses.back().nodes.front().position={10,2,0};
+    SourceWorldInterpolation history;capture_multiplayer_body_poses(history,dead,dead,true);
+    capture_multiplayer_body_poses(history,dead,respawn);
+    near(history.sample(player.source_unit,.5f).front().position,{2,2,0},"Respawn froze the retained corpse's motion");
+    near(history.sample(respawn.players[0].source_unit,0).front().position,{10,2,0},"Respawn retained the old live model");
+    auto moving=seated;++moving.tick;
+    for(auto &pose:moving.source_body_poses)pose.nodes.front().position={6,2,1};
+    capture_multiplayer_body_poses(history,seated,seated,true);capture_multiplayer_body_poses(history,seated,moving);
+    near(history.sample(player.source_unit,.5f).front().position,{5,2,1},"Ordinary seated movement stopped interpolating");
+    auto world_before=before,world_seated=seated;
+    world_before.source_body_poses.push_back({0x40003,{Transform{}}});
+    world_seated.source_body_poses.push_back({0x40003,{Transform{}}});
+    world_seated.source_body_poses.back().nodes.front().position={2,0,0};
+    capture_multiplayer_body_poses(history,world_before,world_before,true);
+    capture_multiplayer_body_poses(history,world_before,world_seated);
+    near(history.sample(0x40003,.5f).front().position,{1,0,0},"Player entry discarded the vehicle's independent motion history");
+}
 void particles_and_phase() {
     ParticleSimulationState a,b;a.salt=b.salt=5;a.position={0,0,0};b.position={4,0,0};
     a.velocity={120,0,0};b.velocity={-120,0,0};a.age=.2f;b.age=.4f;a.phase=1;b.phase=2;
@@ -103,10 +155,10 @@ void particles_and_phase() {
 }
 }
 int main(){try{
-    snapshots();scene_history();particles_and_phase();
+    snapshots();scene_history();body_lifecycle();particles_and_phase();
     for(float bad:{-1.f,2.f,std::numeric_limits<float>::quiet_NaN()}) {
         bool rejected=false;try{multiplayer_presentation({}, {},bad);}catch(const FormatError&){rejected=true;}
         check(rejected,"invalid fraction was admitted");
     }
-    std::cout<<"PASS world objects at 120 Hz samples over 30 Hz states, rotations, lifetimes, scene steps, particle collisions and source scenery loops\n";
+    std::cout<<"PASS world interpolation, vehicle entry/exit/seat transfer, death, respawn and retained corpse motion\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

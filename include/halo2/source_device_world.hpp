@@ -5,6 +5,7 @@
 #include "halo2/source_control_target.hpp"
 #include "halo2/content.hpp"
 #include "halo2/model_markers.hpp"
+#include "halo2/native_authority_boundary.hpp"
 #include <map>
 
 namespace halo2 {
@@ -99,15 +100,47 @@ public:
     const std::map<std::uint32_t,SourceDeviceWorldOwner> &owners()const{return owners_;}
     SourceDeviceWorldSnapshot snapshot(std::uint64_t tick)const;
     void apply_snapshot(const SourceDeviceWorldSnapshot &);
+    // Read back completed live TU1.5 state without binding a network replica.
+    void observe_source_snapshot(const SourceDeviceWorldSnapshot &);
     // Complete native device owner, separate from a display/replica snapshot.
     // A match continuation must validate all other owners and its completed
     // tick before publishing this restored authority.
     struct AuthorityCheckpoint {
-        std::uint32_t version=1;
+        std::uint32_t version=2;
         SourceDeviceWorldSnapshot state;
         std::vector<SourceDeviceWorldEvent> pending_events;
+        std::array<std::byte,32> definition_binding{};
+        // Exact last-built native geometry and its pose inputs. A dirty owner
+        // must retain the old cache until the ordinary synchronize boundary.
+        struct CollisionPose {
+            std::uint32_t handle=~0u;
+            std::size_t placement{};
+            std::uint64_t created_tick{};
+            Transform root;
+            float position{},power{};
+            bool bsp_hidden{};
+        };
+        std::map<std::uint32_t,CollisionPose> collision_poses;
+        std::vector<CollisionTriangle> triangles;
+        bool collision_dirty{};
+    };
+    class PreparedAuthority {
+    public:
+        ~PreparedAuthority();
+        PreparedAuthority(PreparedAuthority &&) noexcept;
+        PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+        bool for_owner(const SourceDeviceWorld &)const noexcept;
+    private:
+        friend class SourceDeviceWorld;
+        PreparedAuthority();
+        struct Impl;
+        std::unique_ptr<Impl> impl_;
     };
     AuthorityCheckpoint authority_checkpoint(std::uint64_t tick)const;
+    PreparedAuthority prepare_authority(const AuthorityCheckpoint &,std::uint64_t completed_tick);
+    bool commit_authority(PreparedAuthority &&) noexcept;
+    // Convenience wrapper over staged publication. The root still owns the
+    // barrier over scene identities, borrowers and its composed collision.
     void restore_authority(const AuthorityCheckpoint &,std::uint64_t completed_tick);
     bool replicated()const{return replica_tick_.has_value();}
     std::optional<std::uint64_t> replica_tick()const{return replica_tick_;}
@@ -125,6 +158,7 @@ public:
     float script_group_value(std::uint32_t group)const;
     bool script_group_set(std::uint32_t group,float value,bool immediate);
 private:
+    NativeAuthorityBoundary authority_;
     void script_immediate(SourceDeviceGroup &,float);
     const LevelContent *content_;
     std::vector<SourceDeviceGroup> groups_;
@@ -132,8 +166,10 @@ private:
     std::vector<SourceDeviceWorldEvent> events_;
     bool collision_dirty_=true;
     std::vector<CollisionTriangle> triangles_;
+    std::map<std::uint32_t,AuthorityCheckpoint::CollisionPose> collision_poses_;
     std::optional<std::uint64_t> replica_tick_;
     SourceDeviceGroup &group(SourceDeviceWorldOwner &,bool power);
     void step_impl(float dt,const DoorWorld *);
+    void apply_state(const SourceDeviceWorldSnapshot &,bool replica);
 };
 }

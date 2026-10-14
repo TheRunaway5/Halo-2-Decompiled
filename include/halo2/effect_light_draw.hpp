@@ -30,6 +30,9 @@ struct EffectLightRawDraw {
     MenuWorldRasterPacket raster;
     std::array<float,4> clip_range;
     std::array<float,2> fog_parameters;
+    // Actual occupied source light record and authored definition. Diagnostic
+    // provenance only; these fields do not enter the GPU constant banks.
+    std::uint32_t light_identity=0xffffffffu,light_definition=0xffffffffu;
 };
 // The original material upload covers c18..33 and3A550 covers c31..39.
 // Other owner/view constants survive, including compression/palette inputs

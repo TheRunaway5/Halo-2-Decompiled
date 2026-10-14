@@ -92,24 +92,65 @@ def bsp_rebound_slots(packet, address):
     return result
 
 
+def unit_rebound_slots(packet, address, group):
+    result = []
+    if group == 'vehi':
+        for bank in rows(packet, address, 0x2f8, 0x2a0):
+            count = u32(packet, bank + 0x38)
+            if count > 4:
+                raise ValueError('Vehicle exceeds its four inline multisphere slots')
+            if count:
+                result.extend(bank + n for n in (0, 8, 12))
+                for i in range(count):
+                    result.extend((bank + 0x18 + i * 8, bank + 0x60 + i * 0x90, bank + 0x68 + i * 0x90))
+    else:
+        descriptor = 0x284 if group == 'bipd' else 0xf4
+        for at, stride, slots in ((descriptor, 0x80, (0x20, 0x28, 0x30, 0x38, 0x3c)),
+                                 (descriptor + 8, 0x50, (0x20, 0x28)),
+                                 (descriptor + 16, 0x80, (0x20, 0x28, 0x30, 0x38, 0x3c))):
+            for shape in rows(packet, address, at, stride):
+                result.extend(shape + slot for slot in slots)
+    if any(u32(packet, at) for at in result):
+        raise ValueError('Converted unit retained an active runtime/tool pointer')
+    return result
+
+
 class Oracle:
-    def __init__(self, executable):
+    def __init__(self, executable, group):
         image = executable.read_bytes()
         if sha(image) != PIN:
             raise ValueError("Requires the authenticated English Xbox TU1.5 reference")
         self.cpu = Uc(UC_ARCH_X86, UC_MODE_32)
-        self.cpu.mem_map(0x10000, 0x7f0000)
+        unit = group in ('bipd', 'crea', 'vehi')
+        self.code_extent = ((0x20d810, 0x20d8a2) if group == 'vehi' else (0x1caf40, 0x1cb00f)) if unit else None
+        code_bound = False
+        if not unit:
+            self.cpu.mem_map(0x10000, 0x7f0000)
+        else:
+            # These complete constructors have no callees or program-data
+            # reads. Map only their authenticated instruction pages. Resident
+            # MCC unit addresses can overlap other, unused XBE sections.
+            entry, size = (0x20d000, 0x1000) if group == 'vehi' else (0x1ca000, 0x2000)
+            self.cpu.mem_map(entry, size)
         base, table = u32(image, 0x104), u32(image, 0x120)
         for index in range(u32(image, 0x11c)):
             at = table - base + index * 56
             address, extent, offset, size = struct.unpack_from("<IIII", image, at + 4)
             if size > extent or offset + size > len(image):
                 raise ValueError("Invalid reference section extent")
-            self.cpu.mem_write(address, image[offset:offset + size])
+            if not unit:
+                self.cpu.mem_write(address, image[offset:offset + size])
+            elif address <= entry and entry + (0x1000 if group == 'vehi' else 0x2000) <= address + size:
+                length = 0x1000 if group == 'vehi' else 0x2000
+                self.cpu.mem_write(entry, image[offset + entry - address:offset + entry - address + length])
+                code_bound = True
+        if unit and not code_bound:
+            raise ValueError('Authenticated unit constructor pages are unavailable')
         self.cpu.mem_map(TABLE, 0x100000)
         self.cpu.mem_map(STACK, 0x10000)
         self.cpu.mem_map(STOP, 0x1000)
-        self.cpu.mem_write(0x4f0414, struct.pack("<I", TABLE))
+        if not unit:
+            self.cpu.mem_write(0x4f0414, struct.pack("<I", TABLE))
         self.mapped = None
         self.state = None
         self.cpu.hook_add(UC_HOOK_CODE, self.code)
@@ -117,6 +158,8 @@ class Oracle:
         self.cpu.hook_add(UC_HOOK_MEM_WRITE, self.write)
 
     def code(self, cpu, address, size, user):
+        if self.code_extent and not self.code_extent[0] <= address < address + size <= self.code_extent[1]:
+            raise ValueError('Original unit constructor escaped its complete declared body')
         self.state["instructions"] += 1
 
     def read(self, cpu, access, address, size, value, user):
@@ -159,12 +202,17 @@ class Oracle:
         cpu.mem_write(STACK, bytes(0x10000))
         cpu.mem_write(SP, struct.pack("<II", STOP, clear))
         gp = [datum, 0x12340001, 0x12340002, 0x12340003, SP, 0x12340005, 0x12340006, 0x12340007]
+        if group in ('bipd', 'crea'):
+            gp[2] = base + (0x264 if group == 'bipd' else 0xd4)
+        elif group == 'vehi':
+            gp[0] = base + 0x2ac
         for reg, value in zip(REGISTERS, gp):
             cpu.reg_write(reg, value)
         cpu.reg_write(R.UC_X86_REG_EFLAGS, 0x202)
         cpu.reg_write(R.UC_X86_REG_FPCW, 0x27f)
         cpu.reg_write(R.UC_X86_REG_MXCSR, 0x1f80)
-        cpu.emu_start({"coll":0x21a580,"sbsp":0x171120,"phmo":ENTRY}[group], STOP, count=2000000)
+        cpu.emu_start({"coll":0x21a580,"sbsp":0x171120,"phmo":ENTRY,
+                      'bipd':0x1caf40,'crea':0x1caf40,'vehi':0x20d810}[group], STOP, count=2000000)
         if cpu.reg_read(R.UC_X86_REG_EIP) != STOP:
             raise ValueError("Original constructor did not return within its instruction bound")
         if clear == 0 and not state["rebound"] <= state["written"]:
@@ -186,7 +234,8 @@ class Oracle:
         page, prefix = base & ~0xfff, base & 0xfff
         self.mapped = page, (prefix + len(packet) + 0xfff) & ~0xfff
         self.cpu.mem_map(*self.mapped)
-        slots = {"coll":collision_rebound_slots,"sbsp":bsp_rebound_slots,"phmo":rebound_slots}[group](packet, base)
+        slots = (unit_rebound_slots(packet, base, group) if group in ('bipd','crea','vehi') else
+                 {"coll":collision_rebound_slots,"sbsp":bsp_rebound_slots,"phmo":rebound_slots}[group](packet, base))
         self.cpu.mem_write(TABLE + (datum & 65535) * 16, struct.pack("<IIII", int.from_bytes(group.encode(),"big"), datum, base, len(packet)))
         expected = []
         for poison in (False, True):
@@ -222,16 +271,20 @@ def main():
     parser.add_argument("--packets", type=Path, nargs="+", required=True)
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    oracle = Oracle(args.reference_xbe)
+    oracle = None
     results, seen, groups = [], {}, set()
     for directory in args.packets:
         manifest = json.loads((directory / "packets.json").read_text())
         if manifest["schema"] != "H2_MCC_PHYSICS_REFERENCE_PACKETS_V1":
             raise ValueError("Wrong physics packet manifest")
         group = manifest.get("group", "phmo")
-        if group not in ("phmo", "coll", "sbsp"):
+        if group not in ("phmo", "coll", "sbsp", 'bipd', 'crea', 'vehi'):
             raise ValueError("Unsupported physics constructor comparison")
         groups.add(group)
+        if len(groups) != 1:
+            raise ValueError("Compare one constructor group per report")
+        if oracle is None:
+            oracle = Oracle(args.reference_xbe, group)
         for row in manifest["packets"]:
             path = directory / row["file"]
             if path.parent != directory or path.suffix != ".bin":

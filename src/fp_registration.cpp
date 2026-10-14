@@ -146,12 +146,13 @@ FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weap
   const auto [sound_count,sound_base]=records(graph_root+0x14,12,10000);
   const auto [effect_count,effect_base]=records(graph_root+0x1c,12,10000);
   for(bool dual:{false,true})
-  for(const auto activity:std::array<std::uint32_t,28>{
+  for(const auto activity:std::array<std::uint32_t,36>{
       0x0400000c,0x06000006,0x05000024,0x0c000064,0x0b000065,0x0d000021,
       0x0e000607,0x0e000608,0x0e000609,0x0e00060a,
       0x0c000073,0x0c000075,0x0c000077,0x11000074,0x11000076,
       0x0a0005bb,0x0b0005b2,0x130005bc,0x140005b3,0x0500000a,
-      0x0b00006d,0x0a000066,0x08000071,0x0c0005ae,0x150005af,0x140005b0,0x0b0005b1,0x08000025}) {
+      0x0b00006d,0x0a000066,0x08000071,0x0c0005ae,0x150005af,0x140005b0,0x0b0005b1,0x08000025,
+      0x06000007,0x0900006a,0x0900006b,0x0b000067,0x08000063,0x09000062,0x1000006c,0x1000006e}) {
     // E95E0/EFE30 ->16A356 ->1680B3 selects the literal primary throw
     // activity0D000021. Resolve that StringID in the authored action table;
     // neither the body throw nor a guessed FP clip chooses the animation.

@@ -87,6 +87,9 @@ bool SceneObjects::retains(int previous, int next, Vec3 point) const {
   return !listed;
 }
 void SceneObjects::switch_bsp(std::size_t next, bool suppress_automatic) {
+  AuthorityCalls::Scope call(authority_calls_);
+  if(source_replica_)throw FormatError("Source scene replica cannot run authoritative BSP placement");
+  ++authority_calls_.mutations;
   for (auto &o:objects_) {
     if (o.handle == null_datum) continue;
     const auto &p=content_.objects[o.placement];
@@ -120,23 +123,28 @@ void SceneObjects::switch_bsp(std::size_t next, bool suppress_automatic) {
   }
 }
 void SceneObjects::visible(std::uint32_t handle,bool visible) {
+  AuthorityCalls::Scope call(authority_calls_);
   if (handle==null_datum) return;
-  auto &o=get(handle); o.script_hidden=!visible; o.visible=visible && !o.bsp_hidden;
+  auto &o=get(handle);++authority_calls_.mutations; o.script_hidden=!visible; o.visible=visible && !o.bsp_hidden;
 }
 void SceneObjects::restore(const SceneObjects &saved) {
+  AuthorityCalls::Scope call(authority_calls_);
   if (&content_ != &saved.content_)
     throw FormatError("scene checkpoint belongs to another level");
   if(shared_lifetimes_!=saved.shared_lifetimes_)
     throw FormatError("scene checkpoint belongs to another shared identity owner");
+  ++authority_calls_.mutations;
   bsp_ = saved.bsp_;
   game_context_ = saved.game_context_;
   render_attribution_definition_ = saved.render_attribution_definition_;
   source_owner_ = saved.source_owner_;
+  source_replica_ = saved.source_replica_;
   functions_ = saved.functions_;
   objects_ = saved.objects_;
   local_lifetimes_ = saved.local_lifetimes_;
   slots_ = saved.slots_;
   names_ = saved.names_;
+  authority_calls_.fault=saved.authority_calls_.fault;
 }
 NativeObjectLifetimes &SceneObjects::lifetime_owner() {
   return shared_lifetimes_?*shared_lifetimes_:*local_lifetimes_;
@@ -146,6 +154,8 @@ const NativeObjectLifetimes &SceneObjects::object_lifetimes() const {
 }
 std::uint32_t SceneObjects::place(std::size_t placement,
                                   std::uint64_t creation_tick) {
+  AuthorityCalls::Scope call(authority_calls_);
+  if(source_replica_)throw FormatError("Source scene replica cannot construct an authoritative object");
   if (placement >= content_.objects.size())
     throw FormatError("object placement outside scenario");
   const auto &p = content_.objects[placement];
@@ -173,6 +183,7 @@ std::uint32_t SceneObjects::place(std::size_t placement,
         0, definition).model_attribution_available;
   }
   if(p.type<0 || p.type>12)throw FormatError("scene object has unsupported original type");
+  ++authority_calls_.mutations;
   const auto handle=source_owner_.create ? source_owner_.create(p) :
       lifetime_owner().reserve(std::uint8_t(p.type));
   if(handle==null_datum)throw FormatError(source_owner_.create ?
@@ -201,6 +212,7 @@ std::uint32_t SceneObjects::resolve(int name) const {
 }
 std::uint32_t SceneObjects::create(int name, bool replace,
                                    std::uint64_t creation_tick) {
+  AuthorityCalls::Scope call(authority_calls_);
   const auto existing = resolve(name);
   if (name == -1)
     return null_datum;
@@ -223,20 +235,25 @@ std::uint32_t SceneObjects::create(int name, bool replace,
   throw FormatError("named object has no supported placement: " + n.name);
 }
 SceneObjects::Object &SceneObjects::get(std::uint32_t handle) {
+  if(authority_calls_.staging)throw FormatError("Mutable scene borrow during authority preparation");
   return const_cast<Object &>(std::as_const(*this).get(handle));
 }
 const SceneObjects::Object &SceneObjects::get(std::uint32_t handle) const {
   const auto index=slots_.find(handle);
-  if (index==slots_.end() || !object_lifetimes().contains(handle) ||
+  if (index==slots_.end() || (!source_replica_ && !object_lifetimes().contains(handle)) ||
       objects_[index->second].handle != handle)
     throw FormatError("stale/invalid scene object handle");
   return objects_[index->second];
 }
 void SceneObjects::destroy(std::uint32_t handle) {
+  AuthorityCalls::Scope call(authority_calls_);
   if (handle == null_datum)
     return;
   auto &o = get(handle);
-  if(source_owner_.destroy) {
+  ++authority_calls_.mutations;
+  if(source_replica_) {
+    // Snapshot omission/removal retires presentation only.
+  }else if(source_owner_.destroy) {
     source_owner_.destroy(handle);
     lifetime_owner().observe_source_retirement(handle);
   }else lifetime_owner().release(handle);
@@ -249,11 +266,12 @@ void SceneObjects::destroy(std::uint32_t handle) {
   std::erase_if(functions_,[&](const auto &v){return v.first.first==handle;});
 }
 void SceneObjects::observe_source_retirement(std::uint32_t handle) {
+  AuthorityCalls::Scope call(authority_calls_);
   const auto slot=slots_.find(handle);
   if(!source_owner_.create || slot==slots_.end() ||
       objects_[slot->second].handle!=handle || !lifetime_owner().header(handle).empty())
     throw FormatError("Scene retirement observation requires an actually retired source generation");
-  lifetime_owner().observe_source_retirement(handle);
+  ++authority_calls_.mutations;lifetime_owner().observe_source_retirement(handle);
   auto &o=objects_[slot->second];
   const auto name=content_.objects[o.placement].name;
   if(name>=0 && names_[name]==handle)names_[name]=null_datum;
@@ -274,12 +292,13 @@ std::optional<float> SceneObjects::function_variable(std::uint32_t object,
 }
 void SceneObjects::set_function_variable(std::uint32_t object,std::uint32_t name,
     float value,float frames,int tick) {
+  AuthorityCalls::Scope call(authority_calls_);
   if(object==null_datum || !name || name==null_datum) return;
   get(object);
   if(!std::isfinite(value) || !std::isfinite(frames) || frames>INT32_MAX)
     throw FormatError("invalid object shader function interpolation");
   const float initial=function_variable(object,name,tick).value_or(value);
-  functions_[{object,name}]={initial,value,tick,int(std::nearbyint(std::max(frames,0.f)))};
+  ++authority_calls_.mutations;functions_[{object,name}]={initial,value,tick,int(std::nearbyint(std::max(frames,0.f)))};
 }
 Vec3 SceneObjects::center(std::uint32_t handle) const {
   const auto &o = get(handle);
@@ -294,11 +313,13 @@ Vec3 SceneObjects::center(std::uint32_t handle) const {
   return o.position + Vec3{p.x, p.y, p.z};
 }
 void SceneObjects::destroy_all() {
+  AuthorityCalls::Scope call(authority_calls_);
   for (auto &o : objects_)
     if (o.handle != null_datum)
       destroy(o.handle);
 }
 void SceneObjects::destroy_type_mask(std::uint32_t mask) {
+  AuthorityCalls::Scope call(authority_calls_);
   for (auto &o:objects_)
     if (o.handle!=null_datum && (mask & (1u<<content_.objects[o.placement].type)))
       destroy(o.handle);
@@ -334,9 +355,10 @@ void Presentation::Transition::tick() {
 Presentation::Presentation(const LevelContent &content, AnimationLoader loader)
     : content_(content), loader_(std::move(loader)) {}
 void Presentation::restore(const Presentation &saved) {
+  NativeAuthorityBoundary::Call call(authority_);
   if (&content_ != &saved.content_)
     throw FormatError("presentation checkpoint belongs to another level");
-  cinematic = saved.cinematic;
+  ++authority_.mutations;cinematic = saved.cinematic;
   cinematic_outro = saved.cinematic_outro;
   scripted = saved.scripted;
   player_camera_enabled = saved.player_camera_enabled;
@@ -353,8 +375,10 @@ void Presentation::restore(const Presentation &saved) {
   camera_elapsed_ = saved.camera_elapsed_;
   animation_ = saved.animation_;
   anchor_ = saved.anchor_;
+  authority_.fault=saved.authority_.fault;
 }
 void Presentation::tick() {
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;
   fade_.tick();
   letterbox_.tick();
   hud_.tick();
@@ -364,39 +388,49 @@ void Presentation::tick() {
   update_camera();
 }
 void Presentation::fade(Vec3 color, bool out, int ticks) {
+  NativeAuthorityBoundary::Call call(authority_);
   if (!std::isfinite(color.x) || !std::isfinite(color.y) ||
       !std::isfinite(color.z))
     throw FormatError("nonfinite fade color");
-  fade_color_ = color;
+  if(ticks<0)throw FormatError("negative presentation duration");
+  ++authority_.mutations;fade_color_ = color;
   // Retail fade_in starts fully covered and reveals; fade_out starts clear.
   fade_ = {out ? 0.f : 1.f, out ? 0.f : 1.f};
   fade_.set(out ? 1.f : 0.f, ticks);
 }
 void Presentation::letterbox(bool show, bool immediate) {
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;
   letterbox_.set(show ? 1.f : 0.f, immediate ? 0 : 30);
 }
 void Presentation::hud(float value, int ticks) {
+  NativeAuthorityBoundary::Call call(authority_);
+  if(ticks<0)throw FormatError("negative presentation duration");
+  ++authority_.mutations;
   hud_.set(std::clamp(value, 0.f, 1.f), ticks);
 }
 void Presentation::field_of_view(float degrees, int ticks) {
+  NativeAuthorityBoundary::Call call(authority_);
   if (!std::isfinite(degrees) || degrees <= 1 || degrees >= 179)
     throw FormatError("invalid camera field of view");
-  fov_.set(degrees, ticks);
+  if(ticks<0)throw FormatError("negative presentation duration");
+  ++authority_.mutations;fov_.set(degrees, ticks);
 }
 void Presentation::cinematic_control(bool enabled) {
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;
   cinematic = enabled;
   letterbox(enabled, false);
   if (!enabled)
     fov_.set(70, 0);
 }
 void Presentation::camera_point(int index, int ticks) {
+  NativeAuthorityBoundary::Call call(authority_);
   if (index < 0 || std::size_t(index) >= content_.camera_points.size() ||
       ticks < 0)
     throw FormatError("invalid cutscene camera point");
   const auto &p = content_.camera_points[index];
   if (p.flags & 1 || p.type != 0)
     throw FormatError("relative/dolly camera point unsupported");
-  animation_.reset();
+  ++authority_.mutations;animation_.reset();
   camera_from_ = camera_;
   observer_.position = camera_.position;
   if (camera_.oriented) {
@@ -420,18 +454,20 @@ void Presentation::camera_point(int index, int ticks) {
   update_camera(.0001f);
 }
 void Presentation::control(bool enabled, const Camera &player) {
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;
   if (enabled && !scripted && !animation_)
     camera_ = camera_from_ = camera_to_ = player;
   scripted = enabled;
 }
 void Presentation::camera_animation(std::uint32_t graph, std::uint32_t name,
                                     int flag) {
+  NativeAuthorityBoundary::Call call(authority_);
   if (!loader_)
     throw FormatError("camera animation loader unavailable");
   if (flag < -1 ||
       (flag >= 0 && std::size_t(flag) >= content_.cutscene_flags.size()))
     throw FormatError("invalid camera anchor flag");
-  auto clip = loader_(graph, name);
+  ++authority_.mutations;auto clip = loader_(graph, name);
   if (clip.nodes.size() != 1 || !clip.frame_count)
     throw FormatError("camera animation requires one camera node");
   anchor_ = flag < 0 ? CutsceneFlag{} : content_.cutscene_flags[flag];

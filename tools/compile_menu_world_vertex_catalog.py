@@ -14,11 +14,18 @@ import struct
 import subprocess
 
 SCHEMA = 'halo2-menu-world-vertex-source-v1'
+PORT_SCHEMA = 'halo2-native-menu-world-vertex-source-v2'
 ABI = 2
 
 
 def sha(data):
     return hashlib.sha256(data).hexdigest()
+
+
+def digest(value):
+    if not isinstance(value, str) or len(value) != 64 or any(c not in '0123456789abcdef' for c in value):
+        raise ValueError('catalog SHA-256 identity is invalid')
+    return value
 
 
 def atomic(path, data):
@@ -149,7 +156,7 @@ def main():
     args = parser.parse_args()
     raw_manifest = args.sources.read_bytes()
     source_manifest = json.loads(raw_manifest)
-    if source_manifest.get('schema') != SCHEMA or source_manifest.get('abi') != ABI or source_manifest.get('target') != 'vulkan1.3':
+    if source_manifest.get('schema') not in (SCHEMA, PORT_SCHEMA) or source_manifest.get('abi') != ABI or source_manifest.get('target') != 'vulkan1.3':
         raise ValueError('native catalog generator schema/ABI/target differs')
     entries = source_manifest.get('entries')
     if not isinstance(entries, list) or not entries:
@@ -159,8 +166,10 @@ def main():
     compiler_version = run([compiler, '--version'])
     validator_version = run([validator, '--version'])
     directory = args.sources.parent
-    compiled = directory / 'compiled'
-    compiled.mkdir(exist_ok=True)
+    # Source-owned GLSL may be in a read-only checkout. All build outputs
+    # belong beside the requested generated header.
+    compiled = args.header.parent / 'compiled'
+    compiled.mkdir(parents=True, exist_ok=True)
     records, seen = [], set()
     header = ['#pragma once', '#include "halo2/menu_world_vertex_catalog.hpp"', '#include <array>',
               'namespace halo2::generated_menu_world_vertex_catalog {',
@@ -175,12 +184,20 @@ def main():
         constants = integers(entry['consumed_constants'], 0, 191, 'consumed constants')
         if inputs != sorted(set(inputs)) or constants != sorted(set(constants)):
             raise ValueError('catalog consumed sets are not canonical')
-        program = local(directory, entry['program']).read_bytes()
         source_path = local(directory, entry['source'])
         source = source_path.read_bytes()
-        if len(program) < 20 or len(program) > 4 + 136 * 16 or program[:2] != b'\x78\x20' or len(program) != 4 + struct.unpack_from('<H', program, 2)[0] * 16:
-            raise ValueError('catalog program extent/header is invalid')
-        key = (entry['class_index'], program, tuple(semantics))
+        if source_manifest['schema'] == SCHEMA:
+            program = local(directory, entry['program']).read_bytes()
+            if len(program) < 20 or len(program) > 4 + 136 * 16 or program[:2] != b'\x78\x20' or len(program) != 4 + struct.unpack_from('<H', program, 2)[0] * 16:
+                raise ValueError('catalog program extent/header is invalid')
+            program_bytes, program_sha = len(program), sha(program)
+        else:
+            if sha(source) != digest(entry['source_sha256']):
+                raise ValueError('preserved port GLSL differs from its declared source identity')
+            program_bytes, program_sha = entry['program_bytes'], digest(entry['program_sha256'])
+            if type(program_bytes) is not int or not 20 <= program_bytes <= 4 + 136 * 16 or (program_bytes - 4) % 16:
+                raise ValueError('catalog program extent is invalid')
+        key = (entry['class_index'], program_sha, program_bytes, tuple(semantics))
         if key in seen:
             raise ValueError('catalog has duplicate literal program/declaration identity')
         seen.add(key)
@@ -191,25 +208,26 @@ def main():
         spirv = output.read_bytes()
         words = spirv_contract(spirv, semantics)
         prefix = f'entry_{index}'
-        header.append(array(prefix + '_program', 'std::byte', list(program), lambda x: f'std::byte{{0x{x:02x}}}'))
         header.append(array(prefix + '_semantics', 'std::uint16_t', semantics, str))
         header.append(array(prefix + '_spirv', 'std::uint32_t', words, lambda x: f'0x{x:08x}u'))
         header.append(array(prefix + '_inputs', 'unsigned', inputs, lambda x: f'{x}u'))
         header.append(array(prefix + '_constants', 'unsigned', constants, lambda x: f'{x}u'))
-        records.append({**entry, 'source_sha256': sha(source), 'program_sha256': sha(program),
+        records.append({**entry, 'source_sha256': sha(source), 'program_sha256': program_sha, 'program_bytes': program_bytes,
                         'spirv_sha256': sha(spirv), 'spirv_bytes': len(spirv),
-                        'spirv': str(output.relative_to(directory)), 'command': [str(x) for x in command],
+                        'spirv': str(output.resolve()), 'command': [str(x) for x in command],
                         'compiler_log': build_log, 'validator_log': validate_log})
     header.append(f'inline constexpr std::array<MenuWorldVertexCatalogEntry,{len(records)}> entries{{{{')
     for i, record in enumerate(records):
         p = f'entry_{i}'
-        header.append(f'  {{{ABI},{record["class_index"]},{p}_program,{p}_semantics,{p}_spirv,{p}_inputs,{p}_constants,'
+        header.append(f'  {{{ABI},{record["class_index"]},"{record["program_sha256"]}",{record["program_bytes"]},{p}_semantics,{p}_spirv,{p}_inputs,{p}_constants,'
                       f'"{record["source_sha256"]}","{record["spirv_sha256"]}"}},')
     header += ['}};', '} // namespace halo2::generated_menu_world_vertex_catalog', '']
     header_bytes = '\n'.join(header).encode()
     report = {'schema': 'halo2-menu-world-vertex-compiled-v1', 'abi': ABI, 'target': 'vulkan1.3',
               'sources_manifest_sha256': sha(raw_manifest),
-              'cache_sha256': sha(Path(source_manifest['cache']).read_bytes()),
+              'cache_sha256': (sha(Path(source_manifest['cache']).read_bytes()) if source_manifest['schema'] == SCHEMA
+                               else digest(source_manifest['cache_sha256'])),
+              'original_asset_files_read': source_manifest['schema'] == SCHEMA,
               'compiler': {'path': str(compiler), 'sha256': sha(compiler.read_bytes()), 'version': compiler_version},
               'validator': {'path': str(validator), 'sha256': sha(validator.read_bytes()), 'version': validator_version},
               'header_sha256': sha(header_bytes), 'entries': records,

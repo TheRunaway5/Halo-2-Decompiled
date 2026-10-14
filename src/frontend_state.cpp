@@ -135,6 +135,15 @@ MenuState::MenuState(const FrontendContent &content,
           }
         } else if(kind=="pc_speakers") {
           unsigned speakers{};if(file>>speakers && speakers<5)pc_display_.speakers=speakers;
+        } else if(kind=="pc_two_player_split") {
+          unsigned layout{};if(file>>layout && layout<2)pc_display_.two_player_split=TwoPlayerSplit(layout);
+        } else if(kind=="pc_crt_filter") {
+          unsigned enabled{};if(file>>enabled && enabled<2)pc_display_.crt_filter=enabled!=0;
+        } else if(kind=="pc_fov") {
+          unsigned on_foot{},vehicle{};
+          if(file>>on_foot>>vehicle && valid_field_of_view(on_foot) && valid_field_of_view(vehicle)) {
+            pc_display_.field_of_view=on_foot;pc_display_.vehicle_field_of_view=vehicle;
+          }
         } else if (kind == "pc_video") {
           unsigned width{}, height{}, fullscreen{};
           if (file >> width >> height >> fullscreen && width >= 320 && height >= 240 &&
@@ -1886,6 +1895,9 @@ void MenuState::save() const {
        << ' ' << pc_display_.gamma << ' ' << pc_display_.detail << ' ' << pc_display_.safe_area
        << ' ' << pc_display_.volume << ' ' << pc_display_.subtitles << '\n';
   file << "pc_speakers " << pc_display_.speakers << '\n';
+  file << "pc_fov " << pc_display_.field_of_view << ' ' << pc_display_.vehicle_field_of_view << '\n';
+  file << "pc_crt_filter " << pc_display_.crt_filter << '\n';
+  file << "pc_two_player_split " << unsigned(pc_display_.two_player_split) << '\n';
   if (saved_pc_video_)
     file << "pc_video " << (*saved_pc_video_)[0] << ' ' << (*saved_pc_video_)[1]
          << ' ' << (*saved_pc_video_)[2] << '\n';

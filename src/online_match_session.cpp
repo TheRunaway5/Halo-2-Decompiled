@@ -38,6 +38,7 @@ std::string digest(std::span<const std::byte> bytes) {
   constexpr char digits[]="0123456789abcdef";std::string result;result.reserve(64);
   for(auto n:hash){result+=digits[n>>4];result+=digits[n&15];}return result;
 }
+std::uint64_t transfer_time(){return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now().time_since_epoch()).count();}
 }
 struct OnlineMatchSession::Impl {
   unsigned self, host = 16;
@@ -53,6 +54,9 @@ struct OnlineMatchSession::Impl {
   const bool supports_continuity;
   const OnlineMatchTransportOptions transport_options;
   OnlineContinuityState continuity_state;
+  AuthorityTransferDigest authority_session{};
+  std::shared_ptr<PeerAuthorityTransfer> authority;
+  std::shared_ptr<PeerSourceAdmissions> source_admissions;
   std::deque<MatchVoicePacket> voices;
   std::shared_ptr<GameVoice> audio;
   std::array<bool,16> voice_enabled{};
@@ -65,6 +69,7 @@ struct OnlineMatchSession::Impl {
   Clock::time_point voice_credit_at=Clock::now();
   std::atomic<bool> voice_focused{false};
   std::atomic<bool> control_online{false};
+  std::atomic<std::uint16_t> direct_ready{0};
   std::function<void()> postgame_voice_pump;
   std::jthread worker;
   const std::optional<bool> team_mode;
@@ -81,6 +86,7 @@ struct OnlineMatchSession::Impl {
     voice_members=std::uint16_t((1u<<roster.size())-1);
     continuity_state.members=voice_members;
     require(room.size() == 36 && room.find_first_not_of("0123456789abcdef-") == std::string::npos);
+    require(SHA256(reinterpret_cast<const unsigned char *>(room.data()),room.size(),reinterpret_cast<unsigned char *>(authority_session.data())));
     require(bearer.size() >= 32 && bearer.size() <= 128 && bearer.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == std::string::npos);
     require(origin.starts_with("https://") || (local && origin.starts_with("http://127.0.0.1:")));
     require(origin.find_first_of("@?#\\\r\n\t ") == std::string::npos);
@@ -139,12 +145,30 @@ struct OnlineMatchSession::Impl {
     phase=name=="running"?Phase::Running:name=="loading"?Phase::Loading:
         name=="awaiting_world"?Phase::AwaitingWorld:name=="migrating"?Phase::Migrating:
         name=="rebinding"?Phase::Rebinding:Phase::Connecting;
+    if(transport_options.direct_udp&&!authority&&(phase==Phase::Loading||phase==Phase::Running)&&host<16){
+      std::uint16_t physical=0;for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical|=std::uint16_t(1u<<player.slot);
+      const AuthorityTransferContext context{authority_session,continuity_state.epoch,0,physical,host};
+      authority=std::make_shared<PeerAuthorityTransfer>(self,context);
+      source_admissions=std::make_shared<PeerSourceAdmissions>(self,context,roster);
+    }
   }
   void queue_world(const char *action,const OnlineWorldSeal &seal) {
     require(supports_continuity && valid_world_digest(seal.digest) && continuation_outgoing.size()<64);
     continuation_outgoing.push_back(Json{{action,{{"epoch",seal.epoch},{"tick",seal.tick},{"digest",seal.digest}}}}.dump());
   }
   void datagram(unsigned source,std::span<const std::byte> packet,std::uint32_t epoch) {
+    if(PeerSourceAdmissions::is_packet(packet)){
+      std::shared_ptr<PeerSourceAdmissions> admissions;
+      {std::lock_guard lock(mutex);if(transport_options.direct_udp&&(phase==Phase::Loading||phase==Phase::Running||phase==Phase::Migrating||phase==Phase::Rebinding))admissions=source_admissions;}
+      if(admissions)admissions->receive(source,packet);
+      return;
+    }
+    if(PeerAuthorityTransfer::is_packet(packet)){
+      std::shared_ptr<PeerAuthorityTransfer> transfer;
+      {std::lock_guard lock(mutex);if(transport_options.direct_udp&&(phase==Phase::Loading||phase==Phase::Running||phase==Phase::Migrating||phase==Phase::Rebinding))transfer=authority;}
+      if(transfer)transfer->receive(source,packet,transfer_time());
+      return;
+    }
     std::lock_guard lock(mutex);
     if(phase!=Phase::Running && phase!=Phase::Reviewing && phase!=Phase::Postgame)return;
     require(source<roster.size() && source!=self && online_admission_peer(roster[source])==source);
@@ -193,6 +217,8 @@ struct OnlineMatchSession::Impl {
       bool announced=false;
       const auto started=Clock::now();
       while(!stop.stop_requested()) {
+        std::uint16_t ready_mask=0;for(auto peer:physical)if(peer!=self&&direct->ready(peer))ready_mask|=std::uint16_t(1u<<peer);
+        direct_ready.store(ready_mask,std::memory_order_relaxed);
         for(auto &signal:direct->signals()) {
           const auto value=Json{{"peer_signal",{{"peer",signal.peer},{"type",signal.type},{"payload",signal.payload},{"mid",signal.mid}}}}.dump();
           std::lock_guard lock(mutex);require(continuation_outgoing.size()<1024);continuation_outgoing.push_back(value);
@@ -221,12 +247,29 @@ struct OnlineMatchSession::Impl {
           }
           direct->send(frame.data,target);
         }
+        std::shared_ptr<PeerAuthorityTransfer> transfer;
+        {std::lock_guard lock(mutex);if(phase==Phase::Loading||phase==Phase::Running||phase==Phase::Migrating||phase==Phase::Rebinding)transfer=authority;}
+        if(transfer){const auto epoch=transfer->context().epoch;
+          // Gameplay and microphone frames are drained first. Authority data
+          // has its own rate/window budget and cannot grow the media queue.
+          for(auto packet:transfer->poll(transfer_time(),2)){
+            if(supports_continuity){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
+            direct->send(packet.bytes,packet.peer);
+          }
+        }
+        std::shared_ptr<PeerSourceAdmissions> admissions;
+        {std::lock_guard lock(mutex);if(phase==Phase::Loading||phase==Phase::Running||phase==Phase::Migrating||phase==Phase::Rebinding)admissions=source_admissions;}
+        if(admissions){const auto epoch=admissions->context().epoch;
+          for(auto packet:admissions->poll(transfer_time(),2)){
+            if(supports_continuity){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
+            direct->send(packet.bytes,packet.peer);
+          }
+        }
         {
           std::lock_guard lock(mutex);
           if(phase==Phase::Failed)return;
-          if(host<roster.size() && phase!=Phase::Postgame && phase!=Phase::Reviewing)
-            for(auto peer:physical)if(peer!=self && (self==host || peer==host) && direct->failed(peer))
-              throw std::runtime_error("Direct player connection was lost. Search again.");
+          if(host<roster.size()&&self!=host&&phase!=Phase::Postgame&&phase!=Phase::Reviewing&&direct->failed(host))
+            throw std::runtime_error("Direct player connection was lost. Search again.");
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(2));
       }
@@ -344,8 +387,10 @@ struct OnlineMatchSession::Impl {
               require(data.size()==2 && data["voice_host"].is_number_unsigned() && data["voice_members"].is_number_unsigned());
               const auto leader=data["voice_host"].get<unsigned>(),members=data["voice_members"].get<unsigned>();
               std::lock_guard lock(mutex);
-              require((phase==Phase::Postgame || (supports_continuity && phase==Phase::Reviewing)) && leader<roster.size() && (members&(1u<<leader)) &&
+              require((phase==Phase::Postgame || ((supports_continuity || transport_options.direct_udp) && phase==Phase::Reviewing)) && leader<roster.size() && (members&(1u<<leader)) &&
                   (members&(1u<<self)) && !(members&~((1u<<roster.size())-1)));
+              require(online_admission_peer(roster[leader])==leader && !roster[leader].guest);
+              for(const auto &p:roster)require(bool(members&(1u<<p.slot))==bool(members&(1u<<online_admission_peer(p))));
               host=leader;voice_members=std::uint16_t(members);
               for(unsigned slot=0;slot<16;++slot)if(!(members&(1u<<slot)))voice_enabled[slot]=false;
             } else if(data.contains("completed")) {
@@ -431,6 +476,49 @@ std::optional<OnlineContinuityState> OnlineMatchSession::continuity() const {
 }
 std::vector<OnlineWorldSeal> OnlineMatchSession::world_seals() {
   std::lock_guard lock(impl_->mutex);std::vector<OnlineWorldSeal> result(impl_->seals.begin(),impl_->seals.end());impl_->seals.clear();return result;
+}
+std::optional<AuthorityTransferContext> OnlineMatchSession::authority_context() const {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  if(!transfer)return std::nullopt;
+  return transfer->context();
+}
+bool OnlineMatchSession::authority_supported(unsigned peer) const {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&transfer->supported(peer);
+}
+bool OnlineMatchSession::publish_source_players(const AuthorityTransferContext &context,std::span<const SourcePlayerAdmission> players) {
+  std::shared_ptr<PeerSourceAdmissions> admissions;
+  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);admissions=impl_->source_admissions;}
+  return admissions&&admissions->publish(context,players);
+}
+std::optional<AcceptedSourcePlayers> OnlineMatchSession::source_players()const {
+  std::shared_ptr<PeerSourceAdmissions> admissions;{std::lock_guard lock(impl_->mutex);admissions=impl_->source_admissions;}
+  return admissions?admissions->accepted():std::nullopt;
+}
+bool OnlineMatchSession::source_players_confirmed(unsigned peer)const {
+  std::shared_ptr<PeerSourceAdmissions> admissions;{std::lock_guard lock(impl_->mutex);admissions=impl_->source_admissions;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&admissions&&admissions->confirmed(peer);
+}
+AuthorityCutSeal OnlineMatchSession::publish_authority(const AuthorityTransferContext &context,std::uint64_t tick,
+    std::vector<std::byte> archive,std::span<const unsigned> targets) {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;
+  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);
+    transfer=impl_->authority;require(bool(transfer));}
+  return transfer->publish(context,tick,std::move(archive),targets,transfer_time());
+}
+std::optional<ReceivedAuthorityCut> OnlineMatchSession::received_authority() {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  if(!transfer)return std::nullopt;
+  return transfer->take_completed();
+}
+bool OnlineMatchSession::acknowledge_authority(const AuthorityTransferContext &context,const AuthorityCutSeal &seal) {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return transfer&&transfer->acknowledge_validated(context,seal);
+}
+std::vector<ValidatedAuthorityCut> OnlineMatchSession::validated_authority() {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  if(!transfer)return {};
+  return transfer->validated_cuts();
 }
 void OnlineMatchSession::seal_world(std::uint64_t tick,const std::string &hash) {
   std::lock_guard lock(impl_->mutex);require(impl_->phase==Phase::Running && impl_->host==impl_->self);

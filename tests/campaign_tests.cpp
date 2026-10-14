@@ -1,6 +1,8 @@
 #include "halo2/simulation.hpp"
 #include "halo2/audio.hpp"
 #include "halo2/residency.hpp"
+#include "halo2/static_scenery_collision.hpp"
+#include "halo2/native_unit_interaction.hpp"
 #include <iostream>
 #include <algorithm>
 #include <bit>
@@ -500,6 +502,60 @@ void add_enemy(LevelContent &c) {
   squad.starts.push_back({{2,0,0},3.14159265f,0,2,3,{}});
   c.squads.push_back(squad);
 }
+void actor_reference_frames() {
+  constexpr unsigned axes[6][3]{{2,1,0},{2,0,1},{0,2,1},{1,2,0},{1,0,2},{0,1,2}};
+  for(unsigned order=0;order<6;++order)for(bool owner:{false,true}) {
+    auto c=arena();add_enemy(c);
+    const Vec3 local{.2f,.4f,.6f};
+    c.squads[0].starts[0].position=local;
+    c.squads[0].starts[0].reference_frame=13;
+    c.objects[0].type=7;c.object_names[0].type=7;
+    c.objects[0].position={10,20,0};c.objects[0].scale=1.5f;
+    c.objects[0].rotation={1.5707963267948966f,0,0};
+    auto collision=std::make_shared<StaticSceneryCollisionDefinition>();
+    ModelBone bone;bone.name=123;bone.bind.translation={1,2,0};
+    collision->hierarchy.bones.push_back(bone);
+    auto device=std::make_shared<SourceDeviceWorldDefinition>();
+    device->machine=SourceMachineDefinition{};device->collision=collision;
+    c.devices.resize(1);if(owner)c.devices[0]=device;
+    c.command_frames={{{13,0,0,std::int8_t(order/2),std::uint8_t(order%2)}}};
+    Simulation sim(c,0,{{0,0,0},0,0});
+    check(sim.place_squad("enemy")==1,"Reference-frame actor failed native ground admission");
+    const auto &actor=sim.actors().front();
+    const std::array values{local.x,local.y,local.z};
+    const Vec3 expected=owner?Vec3{10-1.5f*(2+values[axes[order][1]]),
+        20+1.5f*(1+values[axes[order][0]]),.002f}:Vec3{local.x,local.y,.002f};
+    check(length(actor.body.position-expected)<.00001f,
+        "Actor start lost original210850 node axes, world transform or unavailable-owner fallback");
+    check(actor.yaw==c.squads[0].starts[0].facing,
+        "Reference-point resolution rotated the separately authored actor facing");
+  }
+}
+void posed_unit_volume_center() {
+  auto c=arena();auto assets=std::make_shared<NativeUnitInteractionAssets>();
+  NativeUnitInteractionDefinition body;ModelBone root;
+  root.name=123;root.bind.translation={.25f,.5f,.75f};root.bind.scale=2;
+  body.hierarchy.bones.push_back(root);body.bound_offset={.25f,.125f,.0625f};body.bound_radius=.5f;
+  assets->units.emplace(c.player.datum,body);c.unit_interactions=assets;
+  c.trigger_volumes.push_back({"posed",-1,0,{1,0,0},{0,0,1},{.5f,.5f,.8f},{.5f,.5f,.2f}});
+  Program p;p.data.globals.push_back({"inside",5,p.scalar(0,5)});
+  p.script("query",p.call("set",{p.global(0,5),p.call("volume_test_object",{
+      p.scalar(0,13),p.scalar(0,50)},5)},5));
+  c.scripts=p.data;Simulation sim(c,0,{{0,0,0},0,0});
+  auto expected=sim.player().body.position+Vec3{.75f,.75f,.875f};
+  check(length(sim.object_center(0)-expected)<.000001f,
+      "Unit query center used its placement instead of BDEF0's current node0 sphere");
+  const auto sphere=native_unit_query_sphere(sim.player(),body,0);
+  check(sphere.radius==.5f,"Unit query radius multiplied node scale instead of object scale");
+  sim.run_script("query");sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.scripts().globals()[0].truth(),
+      "Authored volume did not consume the posed unit query center");
+  Controls input;input.yaw=1.5707963267948966f;sim.step(input);
+  expected=sim.player().body.position+Vec3{-.75f,.75f,.875f};
+  check(length(sim.object_center(0)-expected)<.000001f,"Unit query sphere did not follow current root orientation");
+  sim.run_script("query");sim.step(input);
+  check(!sim.scripts().globals()[0].truth(),"Volume query retained a stale unit sphere");
+}
 void tutorial_actor_commands_and_text() {
   auto c=arena();add_enemy(c);c.command_points={{{{3,0,0},-1,-1}}};
   c.cinematic_titles.push_back({123,0xffffff,0,{0,0,480,640},1,9,1,4,1});
@@ -920,7 +976,7 @@ void retail_audio_residency(const std::filesystem::path &directory) {
 int main(int argc, char **argv) {
   try {
     vm_checkpoint(); dispatch_boundary(); poll_boundaries(); scene_checkpoint();campaign_create_containing();
-    protection_flags(); tutorial_actor_commands_and_text(); checkpoint_audio_and_faults();
+    protection_flags(); actor_reference_frames(); posed_unit_volume_center(); tutorial_actor_commands_and_text(); checkpoint_audio_and_faults();
     campaign_fixed_upper_damage();
     player_controls_and_external_global();tutorial_controls_and_checkpoint();
     combat_checkpoint_replay(); projectile_lifetime_cleanup(); source_body_checkpoint(); bsp_builtin_boundary();

@@ -6,6 +6,7 @@
 #include "halo2/projectile_material_response.hpp"
 #include "halo2/scene.hpp"
 #include "halo2/source_model_regions.hpp"
+#include "halo2/native_authority_boundary.hpp"
 #include <map>
 
 namespace halo2 {
@@ -115,15 +116,51 @@ public:
   const SourceInitialModelSelection *region_selection(std::uint32_t)const;
   std::vector<PropRegionSnapshot> region_snapshot()const;
   void apply_regions(std::span<const PropRegionSnapshot>);
+  // Completed source authority owns these choices/effect handles. Observe
+  // them without changing this native mirror into a network replica.
+  void observe_source_regions(std::span<const PropRegionSnapshot>);
   const PropSandboxState& state(std::uint32_t)const;
   const std::vector<PropSandboxState> states()const;
+  struct AuthorityProp {
+    PropSandboxState state;Transform root;std::vector<Transform> nodes;bool active{};
+  };
+  struct AuthorityCheckpoint {
+    std::uint32_t version=1;
+    std::array<std::byte,32> scene_binding{},definition_binding{};
+    std::map<std::uint32_t,AuthorityProp> props;
+    std::vector<PropSandboxEvent> pending_events;
+    bool collision_dirty{};
+  };
+  class PreparedAuthority {
+  public:
+    ~PreparedAuthority();
+    PreparedAuthority(PreparedAuthority &&) noexcept;
+    PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+    bool for_owner(const PropSandbox &)const noexcept;
+  private:
+    friend class PropSandbox;
+    PreparedAuthority();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // The root admits the complete scene against target content/identities and
+  // quiesces every component/borrower. Definitions and RNG/effect callbacks
+  // stay local. Commit swaps preallocated values; the root publishes all
+  // components under one barrier before resuming. Not an Xbox/wire format.
+  AuthorityCheckpoint authority_checkpoint(const SceneObjects::AuthorityCheckpoint &)const;
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &,const SceneObjects::AuthorityCheckpoint &);
+  bool commit_authority(PreparedAuthority &&) noexcept;
+  bool replicated()const{return replica_;}
 private:
+  void apply_region_state(std::span<const PropRegionSnapshot>,bool replica);
+  NativeAuthorityBoundary authority_;
   struct Prop {PropSandboxState state;const PropSandboxDefinition* definition{};
     Transform root;std::vector<Transform> nodes;bool active{};};
   const LevelContent* content_;
   std::map<std::uint32_t,Prop> props_;
   std::vector<PropSandboxEvent> events_;
   bool collision_dirty_{};
+  bool replica_{};
   void deplete(Prop&,const SourceModelRegionOwners &);
   void dispatch(Prop&,unsigned section,unsigned response,const SourceModelRegionOwners &);
 };

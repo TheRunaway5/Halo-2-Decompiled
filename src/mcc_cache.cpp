@@ -391,6 +391,21 @@ void Cache::initialize_mcc() {
         storage_.resize(file_offset);storage_.insert(storage_.end(),converted.begin(),converted.end());
         t.address=std::uint32_t(next);t.size=std::uint32_t(converted.size());
     }
+    // Instanced collision physics changes layout while the surrounding BSP's
+    // render/resource data retains its existing mapping and byte contents.
+    for(const auto& t:tags_)if(t.group=="sbsp" && t.address && t.size) {
+        const auto at=metadata_offset(t.address,t.size);
+        const auto converted=normalize_mcc_structure_bsp_physics(Bytes(storage_).slice(at,t.size),t.address);
+        if(converted.size()!=t.size)throw FormatError("MCC instanced physics changed its BSP allocation extent");
+        std::copy(converted.begin(),converted.end(),storage_.begin()+std::ptrdiff_t(at));
+    }
+    for(const auto& t:tags_)if((t.group=="bipd" || t.group=="crea" || t.group=="vehi") && t.address && t.size) {
+        const auto at=metadata_offset(t.address,t.size);
+        const auto kind=t.group=="bipd"?MccUnitPhysicsKind::Biped:
+            t.group=="crea"?MccUnitPhysicsKind::Creature:MccUnitPhysicsKind::Vehicle;
+        const auto converted=normalize_mcc_unit_physics(Bytes(storage_).slice(at,t.size),t.address,kind);
+        std::copy(converted.begin(),converted.end(),storage_.begin()+std::ptrdiff_t(at));
+    }
     vista_metadata_regions_.clear();
     for(const auto& t:tags_)if(t.address && t.size)vista_metadata_regions_.emplace_back(t.address,t.size);
     std::ranges::sort(vista_metadata_regions_);
@@ -474,7 +489,7 @@ Texture Cache::load_mcc_bitmap(std::uint32_t datum,unsigned index,std::span<cons
     const auto& raw=resource.levels[0];
     if(resource.type==0 && resource.depth==1) {
         if(resource.format==18)return prepare_palettized_texture(Bytes(raw),resource.width,resource.height,flags&8,palette,mips);
-        if(resource.format==17)throw FormatError("MCC P8 bump resource requires a verified source palette");
+        if(resource.format==17)return prepare_palettized_texture(Bytes(raw),resource.width,resource.height,flags&8,tu15_bump_palette(),mips);
         return prepare_texture(Bytes(raw),resource.width,resource.height,resource.format,flags&8,mips);
     }
     if(resource.type==1) {

@@ -81,7 +81,9 @@ SourceOpaqueGeometryMetadata load_source_opaque_model_geometry_metadata(const Ca
     if(owned.group()!="mode")throw FormatError("source opaque model geometry requires mode metadata");
     const Bytes root(owned.bytes_at(owned.source_address(),0x2c));
     if(section>=root.u32(0x24))throw FormatError("source opaque model section escapes metadata");
-    const Bytes geometry(owned.bytes_at(root.u32(0x28)+section*92,0x16));
+    // Original44930 returns section+4 for models. Its +10/+14 selector
+    // reads therefore consume section+14/+18, not the section header itself.
+    const Bytes geometry(owned.bytes_at(root.u32(0x28)+section*92+4,0x16));
     const auto selectors=geometry.slice(0x10,2);
     return {{std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(selectors[0])),
              std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(selectors[1]))},geometry.u16(0x14)};

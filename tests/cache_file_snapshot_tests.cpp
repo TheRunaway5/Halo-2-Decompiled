@@ -1,9 +1,14 @@
 #include "halo2/cache_file_snapshot.hpp"
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <fstream>
 #include <iostream>
 #include <vector>
+#if defined(__linux__)
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 using namespace halo2;
 void require(bool value, const char *message) { if (!value) throw std::runtime_error(message); }
@@ -19,6 +24,19 @@ int main() try {
     { std::ofstream file(path, std::ios::binary); file.write(reinterpret_cast<const char *>(expected.data()), expected.size()); }
     auto first = CacheFileSnapshot::try_open(path), second = CacheFileSnapshot::try_open(path);
     require(first && second, "Snapshot backing unavailable");
+    auto captured = CacheFileSnapshot::try_capture(expected, std::array{std::byte{0xa9}});
+    require(captured && captured->bytes().size() == expected.size() + 1 &&
+        std::equal(expected.begin(), expected.end(), captured->bytes().begin()) &&
+        captured->bytes().back() == std::byte{0xa9}, "Captured bytes/suffix differ");
+#if defined(__linux__)
+    const auto source_fd = ::open(path.c_str(), O_RDONLY | O_CLOEXEC);
+    require(source_fd >= 0 && ::lseek(source_fd, 37, SEEK_SET) == 37, "Capture source descriptor setup failed");
+    auto from_descriptor = CacheFileSnapshot::try_capture_file(source_fd);
+    require(from_descriptor && ::lseek(source_fd, 0, SEEK_CUR) == 37 &&
+        std::equal(expected.begin(), expected.end(), from_descriptor->bytes().begin()),
+        "Descriptor capture changed position or complete bytes");
+    ::close(source_fd);
+#endif
     require(std::equal(first->bytes().begin(), first->bytes().end(), expected.begin(), expected.end()), "Snapshot bytes differ");
     first->mutable_bytes()[17] ^= std::byte{255};
     require(second->bytes()[17] == expected[17], "Private writes reached another snapshot");
@@ -29,6 +47,10 @@ int main() try {
             "Source truncation changed snapshot backing");
     std::filesystem::remove(path);
     require(second->bytes()[65537] == expected[65537], "Source unlink invalidated snapshot");
+#if defined(__linux__)
+    require(from_descriptor->bytes()[65537] == expected[65537], "Descriptor capture lost independence after source unlink");
+#endif
+    require(captured->bytes()[65537] == expected[65537], "Captured bytes lost independence after source unlink");
     auto retained = second; second.reset();
     require(retained->bytes()[65538] == expected[65538], "Retained snapshot lost its lifetime");
     require(!CacheFileSnapshot::try_open(path), "Missing source was accepted");

@@ -1,4 +1,4 @@
-"""Independent native processes: real queue/QoS/admission/game state and voice relay.
+"""Independent native processes: real queue/QoS/admission/game state and direct voice.
 
 Only external Discord identity endpoints are fixtures. No QoS score is injected.
 """
@@ -163,6 +163,10 @@ async def main():
                     print("PASS native preflight -> measured relay route -> retail query/countdown/selection -> retained gathering host")
                 assert all(room.closed for room in directory.match_transport.rooms.values())
                 db = directory.store.db
+                if mode == "nonhost-loss":
+                    assert db.execute("SELECT count(*) FROM match_results").fetchone()[0] == 0
+                    print("PASS real native direct nonhost departure retained the running host; no unfinished report was committed")
+                    return 0
                 assert db.execute("SELECT count(*) FROM match_results WHERE validation='native-unanimous-v1'").fetchone()[0] == (0 if mode == "mismatch" else 1)
                 assert db.execute("SELECT count(*) FROM match_result_players").fetchone()[0] == (0 if mode == "mismatch" else len(owners))
                 assert {tuple(row) for row in db.execute("SELECT playlist,ranked FROM match_results")} == (

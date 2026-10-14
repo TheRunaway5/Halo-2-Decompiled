@@ -37,6 +37,7 @@ public:
     PreparedOwnership(PreparedOwnership &&) noexcept;
     PreparedOwnership &operator=(PreparedOwnership &&) noexcept;
     bool for_owner(const SourceRuntimeHostPhysicalMemory &) const noexcept;
+    bool matches_memory(const SourceRuntimeMemory &) const noexcept;
   private:
     friend class SourceRuntimeHostPhysicalMemory;
     PreparedOwnership();
@@ -46,14 +47,18 @@ public:
   OwnershipCheckpoint ownership_checkpoint() const;
   // Stage actual pages/protections and retain the protection lock until commit
   // or cancellation on the same barrier thread. The complete world owner
-  // must first quiesce all users, and must outlive PreparedOwnership.
+  // first restores the separate replacement bank, then quiesces all users.
+  // Preparation binds the actual platform pages into that replacement; never
+  // restore it again before publication. Cancellation discards both staged
+  // resources and replacement. This owner must outlive PreparedOwnership.
   PreparedOwnership prepare_ownership(const OwnershipCheckpoint &,
-                                      const SourceRuntimeMemory::Checkpoint &) const;
+                                      const SourceRuntimeMemory::Checkpoint &,
+                                      SourceRuntimeMemory &replacement) const;
   // After admitted bank publication. Releases only old host mappings; the
   // imported logical regions and registered write-guard identity survive.
   bool commit_ownership(PreparedOwnership &&) noexcept;
 private:
-  struct Allocation { void *host; std::uint32_t bytes; };
+  struct Allocation { std::shared_ptr<SourceRuntimeMemoryBacking> backing; std::uint32_t bytes; };
   SourceRuntimeMemory &memory_;
   std::map<std::uint32_t, Allocation> allocations_;
 };

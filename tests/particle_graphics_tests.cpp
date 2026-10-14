@@ -1,5 +1,7 @@
 #include "halo2/particle_renderer.hpp"
+#include "halo2/vertex_program.hpp"
 #include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <fstream>
 #include <iostream>
@@ -33,8 +35,8 @@ class CaptureGpu {
   VkInstance instance{};VkPhysicalDevice physical{};VkDevice device{};VkQueue queue{};
   unsigned family{},width{},height{};VkFormat depth_format{};
   VkCommandPool commands{};VkCommandBuffer command{};VkRenderPass pass{};VkFramebuffer framebuffer{};
-  Image color,depth;Buffer color_input,depth_input,color_output,depth_output;
-  std::unique_ptr<ParticleRenderer> renderer;bool initialized{};
+  Image color,depth,scene;Buffer color_input,depth_input,color_output,depth_output;
+  std::unique_ptr<ParticleRenderer> renderer;bool initialized{},scene_initialized{};
   unsigned memory_type(unsigned bits,VkMemoryPropertyFlags flags) {
     VkPhysicalDeviceMemoryProperties p;vkGetPhysicalDeviceMemoryProperties(physical,&p);
     for(unsigned n=0;n<p.memoryTypeCount;++n)
@@ -76,7 +78,7 @@ class CaptureGpu {
       if(b.handle)vkDestroyBuffer(device,b.handle,nullptr);
       if(b.memory)vkFreeMemory(device,b.memory,nullptr);
     }
-    for(auto i:{color,depth}) {
+    for(auto i:{color,depth,scene}) {
       if(i.view)vkDestroyImageView(device,i.view,nullptr);
       if(i.handle)vkDestroyImage(device,i.handle,nullptr);
       if(i.memory)vkFreeMemory(device,i.memory,nullptr);
@@ -117,6 +119,7 @@ public:
       buffer(color_output,VK_BUFFER_USAGE_TRANSFER_DST_BIT);buffer(depth_output,VK_BUFFER_USAGE_TRANSFER_DST_BIT);
       const auto aspect=VK_IMAGE_ASPECT_DEPTH_BIT|(format==VK_FORMAT_D24_UNORM_S8_UINT?VK_IMAGE_ASPECT_STENCIL_BIT:0);
       image(color,VK_FORMAT_B8G8R8A8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,VK_IMAGE_ASPECT_COLOR_BIT);
+      image(scene,VK_FORMAT_B8G8R8A8_UNORM,VK_IMAGE_USAGE_SAMPLED_BIT,VK_IMAGE_ASPECT_COLOR_BIT);
       image(depth,format,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,aspect);
       VkAttachmentDescription attachments[2]{};
       for(auto &a:attachments){a.samples=VK_SAMPLE_COUNT_1_BIT;a.loadOp=VK_ATTACHMENT_LOAD_OP_LOAD;a.storeOp=VK_ATTACHMENT_STORE_OP_STORE;
@@ -149,7 +152,7 @@ public:
     // original fragment clip rejects their pixels. The retained first draw
     // must still produce exactly the captured color/depth after each resize.
     for(std::size_t n=1;n<draws.size();++n)draws[n].depth.clip_range[2]=draw.depth.clip_range[3]+1.f;
-    renderer->prepare(draws);check(vkResetCommandBuffer(command,0));VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};check(vkBeginCommandBuffer(command,&begin));
+    renderer->prepare(draws,{scene.view});check(vkResetCommandBuffer(command,0));VkCommandBufferBeginInfo begin{VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};check(vkBeginCommandBuffer(command,&begin));
     const auto aspect=VK_IMAGE_ASPECT_DEPTH_BIT|(depth_format==VK_FORMAT_D24_UNORM_S8_UINT?VK_IMAGE_ASPECT_STENCIL_BIT:0);
     const auto old=initialized?VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED;
     const auto access=initialized?VK_ACCESS_TRANSFER_READ_BIT:0;
@@ -158,6 +161,16 @@ public:
     barrier(depth,aspect,old,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,access,VK_ACCESS_TRANSFER_WRITE_BIT,stage,VK_PIPELINE_STAGE_TRANSFER_BIT);
     VkBufferImageCopy copy{};copy.imageSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};copy.imageExtent={width,height,1};
     vkCmdCopyBufferToImage(command,color_input.handle,color.handle,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
+    const bool feedback=std::any_of(draw.material->pass.textures.begin(),draw.material->pass.textures.end(),[](const auto &b){return b.external==23;});
+    if(feedback) {
+      barrier(scene,VK_IMAGE_ASPECT_COLOR_BIT,scene_initialized?VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,scene_initialized?VK_ACCESS_SHADER_READ_BIT:0,VK_ACCESS_TRANSFER_WRITE_BIT,
+          scene_initialized?VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT:VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT);
+      vkCmdCopyBufferToImage(command,color_input.handle,scene.handle,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
+      barrier(scene,VK_IMAGE_ASPECT_COLOR_BIT,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_SHADER_READ_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+      scene_initialized=true;
+    }
     copy.imageSubresource.aspectMask=VK_IMAGE_ASPECT_DEPTH_BIT;vkCmdCopyBufferToImage(command,depth_input.handle,depth.handle,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
     barrier(color,VK_IMAGE_ASPECT_COLOR_BIT,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_COLOR_ATTACHMENT_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
     barrier(depth,aspect,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,VK_ACCESS_TRANSFER_WRITE_BIT,VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT);
@@ -174,9 +187,134 @@ public:
   std::span<const std::byte> depth_bytes()const{return {static_cast<const std::byte*>(depth_output.mapped),std::size_t(width)*height*4};}
   std::span<const std::byte> initial_depth_bytes()const{return {static_cast<const std::byte*>(depth_input.mapped),std::size_t(width)*height*4};}
 };
+
+// Declared texture-stage inputs isolate the distortion program, signed
+// filtering and BUMPENVMAP. These are not an Xbox framebuffer capture or a
+// replacement for the live external23 producer.
+int distortion(const std::filesystem::path &map,const std::filesystem::path &output,bool feedback=false) {
+  if(!std::filesystem::is_regular_file(map))return 77;
+  std::filesystem::create_directories(output);Cache cache(map);
+  const auto particle=cache.query_tag({.group=TagGroup::from_string("prt3"),
+      .name="effects\\generic\\distortion\\distortion_ripple",.require_address=true});
+  if(!particle)throw FormatError("authored distortion particle missing");
+  auto material=std::make_shared<ParticleMaterial>();
+  material->vertex=cache.load_particle_vertex_selection(particle->datum,15,0);
+  if(material->vertex.classification!=7)throw FormatError("distortion classification differs");
+  material->pass.program.words[54]=1u|(6u<<5u);
+  material->pass.program.words[8]=0x900; // Final RGB = texture1.
+  material->pass.program.words[9]=0x1900; // Final alpha = texture1.a.
+  material->pass.states={{59,0},{64,0},{67,0x01010101},{147,0}};
+  ShaderTextureState sampler;sampler.address_u=sampler.address_v=sampler.address_w=3;
+  sampler.mip_filter=1;material->pass.texture_states={sampler,sampler};
+  Texture bump;bump.width=bump.height=2;bump.layers=1;bump.format=11;
+  for(const auto texel:std::array<std::array<unsigned,4>,4>{{{128,127,128,255},{127,128,127,255},
+      {64,64,192,255},{192,192,64,255}}})
+    for(auto byte:texel)bump.pixels.push_back(std::byte(byte));
+  bump.mips.push_back({2,2,0,16});material->textures[0]=bump;
+  constexpr unsigned side=32;Texture scene;scene.width=scene.height=side;scene.layers=1;scene.format=11;
+  for(unsigned y=0;y<side;++y)for(unsigned x=0;x<side;++x) {
+    for(auto byte:{x*8,y*8,(x+y)*4,255u})scene.pixels.push_back(std::byte(byte));
+  }
+  scene.mips.push_back({side,side,0,scene.pixels.size()});material->textures[1]=scene;
+  if(feedback){material->textures[1].reset();material->pass.textures.push_back({255,23,1,0});}
+  ParticleDraw draw;draw.material=material;auto &c=draw.vertex.constants;
+  c[0]={1,0,0,0};c[1]={0,1,0,0};c[3]={0,0,0,1};
+  c[4]={1,0,0,1};c[5]={0,1,0,0};c[10]={1,1,1,0};c[18]={1,1,0,0};
+  c[96]={0,1,0,0};c[148]={0,1,0,1};
+  c[174]={1,0,0,0};c[175]={0,1,0,0};c[176]={0,0,1,0};
+  auto &v=draw.vertex.attributes;v[2]={1,1,1,1};v[3]={0,0,1,1};v[4]={16,16,1,1};
+  v[5]={16,0,0,0};v[6]={-.5f,-.5f,1,1};v[8]={1,1,1,1};
+  draw.vertex.clip_range={0,65535,0,65535};draw.vertex.surface_fog={side,side,1,1};
+  draw.depth={draw.vertex.clip_range,{0,0,1,1}};
+  const auto program=decode_vertex_program(material->vertex.program);
+  std::array<VertexProgramState,4> corners;
+  constexpr std::array<ShaderVector,4> input_corners{{{0,0,0,0},{1,0,0,0},{1,1,0,0},{0,1,0,0}}};
+  for(unsigned i=0;i<4;++i) {
+    corners[i].constants=c;corners[i].attributes=v;corners[i].attributes[0]=input_corners[i];
+    execute_vertex_program(program,corners[i]);
+    const auto p=corners[i].outputs[0];
+    if((p[0]!=8 && p[0]!=24) || (p[1]!=8 && p[1]!=24) || p[3]!=1)
+      throw FormatError("declared distortion fixture does not bound the intended quad");
+  }
+  const auto sample=[](const Texture &texture,float u,float v,unsigned channel,bool signed_channel) {
+    const float x=u*texture.width-.5f,y=v*texture.height-.5f;
+    const int ix=int(std::floor(x)),iy=int(std::floor(y));const float fx=x-ix,fy=y-iy;
+    float result{};
+    for(int dy=0;dy<2;++dy)for(int dx=0;dx<2;++dx) {
+      const auto sx=std::clamp(ix+dx,0,int(texture.width)-1),sy=std::clamp(iy+dy,0,int(texture.height)-1);
+      const int byte=std::to_integer<unsigned>(texture.pixels[(sy*texture.width+sx)*4+channel]);
+      const float value=signed_channel?float(byte>=128?byte-256:byte)/128.f:float(byte)/255.f;
+      result+=value*(dx?fx:1-fx)*(dy?fy:1-fy);
+    }
+    return result;
+  };
+  std::vector<std::byte> background(side*side*4),depth(side*side*4,std::byte{255});
+  for(std::size_t at=0;at<background.size();at+=4) {
+    background[at]=std::byte{29};background[at+1]=std::byte{13};background[at+2]=std::byte{7};background[at+3]=std::byte{255};
+    if(feedback){background[at]=scene.pixels[at+2];background[at+1]=scene.pixels[at+1];background[at+2]=scene.pixels[at];}
+  }
+  std::vector<std::byte> first;unsigned cases{};
+  for(auto format:{VK_FORMAT_D24_UNORM_S8_UINT,VK_FORMAT_D32_SFLOAT}) {
+    CaptureGpu gpu(side,side,format,HALO2_PARTICLE_GRAPHICS_SHADER_DIR);
+    for(unsigned sign:{0xe0000000u,0u})for(bool perturbed:{true,false}) {
+      // Retain a separate immutable material per sampler operation. The
+      // production cache deliberately treats material pointers as immutable.
+      auto current=std::make_shared<ParticleMaterial>(*material);current->pass.texture_states[0].color_sign=sign;
+      draw.material=current;draw.bump_texture=ParticleBumpTextureState{
+          perturbed?ShaderVector{8,4,-4,8}:ShaderVector{},ShaderVector{1.f/side,1.f/side,0,0}};
+      gpu.run(draw,background,depth);
+      unsigned maximum{},changed{};
+      for(unsigned y=0;y<side;++y)for(unsigned x=0;x<side;++x) {
+        auto expected=std::array<unsigned,4>{29,13,7,255};
+        if(feedback)for(unsigned channel=0;channel<4;++channel)expected[channel]=std::to_integer<unsigned>(background[(y*side+x)*4+channel]);
+        if(x>=8 && x<24 && y>=8 && y<24) {
+          // Original transform maps corner X to screen Y and corner Y to X.
+          const float u=(float(y)+.5f-8)/16,v=(float(x)+.5f-8)/16;
+          float b=sample(bump,u,v,2,sign!=0),g=sample(bump,u,v,1,sign!=0);
+          if(!sign) {const auto signed_byte=[](float value){const float byte=value*255;return (byte>=128?byte-256:byte)/127;};b=signed_byte(b);g=signed_byte(g);}
+          const float sx=(float(x)+.5f+(perturbed?8*b-4*g:0))/side;
+          const float sy=(float(y)+.5f+(perturbed?4*b+8*g:0))/side;
+          for(unsigned channel=0;channel<4;++channel)
+            expected[channel]=unsigned(std::lround(std::clamp(sample(scene,sx,sy,channel,false),0.f,1.f)*255));
+          std::swap(expected[0],expected[2]);++changed;
+        }
+        for(unsigned channel=0;channel<4;++channel) {
+          const auto at=(y*side+x)*4+channel;
+          const auto difference=unsigned(std::abs(int(std::to_integer<unsigned>(gpu.color_bytes()[at]))-int(expected[channel])));
+          maximum=std::max(maximum,difference);
+        }
+      }
+      if(maximum>2 || changed!=256 || !std::equal(gpu.depth_bytes().begin(),gpu.depth_bytes().end(),gpu.initial_depth_bytes().begin()))
+        throw FormatError("distortion GPU pixels/depth differ from independent declared-input calculation; maximum "+std::to_string(maximum));
+      const auto label=std::to_string(format)+"-"+std::to_string(sign)+"-"+std::to_string(perturbed);
+      save(output/(label+".bgra"),gpu.color_bytes());
+      if(first.empty())first.assign(gpu.color_bytes().begin(),gpu.color_bytes().end());
+      else if(sign==0xe0000000u && !perturbed && std::equal(first.begin(),first.end(),gpu.color_bytes().begin()))
+        throw FormatError("distortion matrix negative control is insensitive");
+      else if(sign==0u && perturbed && std::equal(first.begin(),first.end(),gpu.color_bytes().begin()))
+        throw FormatError("distortion signed filtering negative control is insensitive");
+      std::cout<<"Distortion "<<label<<": 256 pixels, max byte difference "<<maximum<<", depth unchanged\n";++cases;
+    }
+    draw.bump_texture.reset();bool rejected{};
+    try{gpu.run(draw,background,depth);}catch(const FormatError &e){rejected=std::string_view(e.what()).find("texture-stage state")!=std::string_view::npos;}
+    if(!rejected)throw FormatError("distortion admitted a missing original bump state");
+    auto invalid=std::make_shared<ParticleMaterial>(*material);invalid->vertex.program[4]^=std::byte{1};
+    draw.material=invalid;rejected=false;
+    try{gpu.run(draw,background,depth);}catch(const FormatError &e){rejected=std::string_view(e.what()).find("program differs")!=std::string_view::npos;}
+    if(!rejected)throw FormatError("distortion admitted different original program tokens");
+    invalid=std::make_shared<ParticleMaterial>(*material);invalid->pass.program.words[54]=6u<<5u;
+    invalid->pass.textures.clear();invalid->textures[1]=scene;
+    draw.material=invalid;rejected=false;
+    try{gpu.run(draw,background,depth);}catch(const FormatError &e){rejected=std::string_view(e.what()).find("preceding texture stage")!=std::string_view::npos;}
+    if(!rejected)throw FormatError("distortion admitted an inactive dependency stage");
+  }
+  std::cout<<cases<<" authored distortion graphics cases passed; live external23 ownership remains separate\n";return 0;
+}
 }
 int main(int argc,char **argv) {
   try {
+    if(argc==4 && std::string_view(argv[1])=="--distortion")return distortion(argv[2],argv[3]);
+    if(argc==4 && std::string_view(argv[1])=="--distortion-feedback")return distortion(argv[2],argv[3],true);
     if(argc!=4)throw FormatError("original map, particle fixture and output directories required");
     const std::filesystem::path directory=argv[2],output=argv[3];
     if(!std::filesystem::is_regular_file(argv[1]) || !std::filesystem::is_regular_file(directory/"draws.bin"))return 77;
@@ -209,6 +347,16 @@ int main(int argc,char **argv) {
         gpu.run(draw,before,{depth_before.data(),bytes});
         if(r==rows.front()) {
           const std::vector<std::byte> color(gpu.color_bytes().begin(),gpu.color_bytes().end()),depth(gpu.depth_bytes().begin(),gpu.depth_bytes().end());
+          const auto original_material=draw.material;
+          for(const auto width:{0u,0x3f800000u,0x40000000u,0x42c80000u}) {
+            auto material=std::make_shared<ParticleMaterial>(*original_material);
+            material->pass.states.push_back({158,width});draw.material=material;
+            gpu.run(draw,before,{depth_before.data(),bytes});
+            if(!std::equal(color.begin(),color.end(),gpu.color_bytes().begin()) ||
+               !std::equal(depth.begin(),depth.end(),gpu.depth_bytes().begin()))
+              throw FormatError("Line width changed filled particle triangle color/depth");
+          }
+          draw.material=original_material;
           for(const auto padding:{64u,128u,0u}) {
             gpu.run(draw,before,{depth_before.data(),bytes},padding);
             if(!std::equal(color.begin(),color.end(),gpu.color_bytes().begin()) ||

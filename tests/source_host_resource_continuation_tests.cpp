@@ -153,11 +153,12 @@ int main() try {
     const auto old_vm=other_vm.ownership_checkpoint(),saved_vm=vm.ownership_checkpoint();
     const auto old_physical_owner=other_physical.ownership_checkpoint(),saved_physical=physical.ownership_checkpoint();
     const auto saved=source.checkpoint();
+    Bank replacement;replacement.restore(saved);
     const auto old_address=target.native_address(old_virtual.base,1);
     // Cancellation, wrong-owner commits and moves must not publish a prefix.
     {
       auto staged_vm=other_vm.prepare_ownership(saved_vm,saved);
-      auto staged_physical=other_physical.prepare_ownership(saved_physical,saved);
+      auto staged_physical=other_physical.prepare_ownership(saved_physical,saved,replacement);
       check(!vm.commit_ownership(std::move(staged_vm)),"Foreign virtual owner accepted staged resources");
       check(!physical.commit_ownership(std::move(staged_physical)),"Foreign physical owner accepted staged resources");
       auto moved=std::move(staged_vm);
@@ -166,6 +167,9 @@ int main() try {
     }
     check(other_vm.ownership_checkpoint()==old_vm && other_physical.ownership_checkpoint()==old_physical_owner,
           "Cancelled staging changed resource ownership");
+    rejects([&]{replacement.mutable_view(physical_base,1);});
+    marker(replacement,physical_base+0x2000,std::byte{0x62});
+    check(target.checkpoint()==old_bank,"Cancelled physical page leases altered current memory");
     // Validate malformed topology before publishing any incoming resource.
     auto bad_vm=saved_vm;bad_vm.version=2;rejects([&]{other_vm.prepare_ownership(bad_vm,saved);});
     bad_vm=saved_vm;bad_vm.next=reserve.base;rejects([&]{other_vm.prepare_ownership(bad_vm,saved);});
@@ -178,23 +182,26 @@ int main() try {
     bad_bank=saved;region(bad_bank,reserve.base).owner="foreign reservation";
     rejects([&]{other_vm.prepare_ownership(saved_vm,bad_bank);});
     auto bad_physical=saved_physical;bad_physical.version=2;
-    rejects([&]{other_physical.prepare_ownership(bad_physical,saved);});
+    rejects([&]{other_physical.prepare_ownership(bad_physical,saved,replacement);});
     bad_physical=saved_physical;bad_physical.allocations[0].read_only[0]=2;
-    rejects([&]{other_physical.prepare_ownership(bad_physical,saved);});
+    rejects([&]{other_physical.prepare_ownership(bad_physical,saved,replacement);});
     bad_physical=saved_physical;bad_physical.allocations[0].read_only.pop_back();
-    rejects([&]{other_physical.prepare_ownership(bad_physical,saved);});
+    rejects([&]{other_physical.prepare_ownership(bad_physical,saved,replacement);});
     bad_physical=saved_physical;bad_physical.allocations[1]=bad_physical.allocations[0];
-    rejects([&]{other_physical.prepare_ownership(bad_physical,saved);});
+    rejects([&]{other_physical.prepare_ownership(bad_physical,saved,replacement);});
     bad_physical=saved_physical;bad_physical.allocations.pop_back();
-    rejects([&]{other_physical.prepare_ownership(bad_physical,saved);});
+    rejects([&]{other_physical.prepare_ownership(bad_physical,saved,replacement);});
     bad_bank=saved;region(bad_bank,physical_base).access=Bank::Access::ReadOnly;
-    rejects([&]{other_physical.prepare_ownership(saved_physical,bad_bank);});
+    rejects([&]{other_physical.prepare_ownership(saved_physical,bad_bank,replacement);});
     check(target.checkpoint()==old_bank && target.native_address(old_virtual.base,1)==old_address &&
         other_vm.ownership_checkpoint()==old_vm && other_physical.ownership_checkpoint()==old_physical_owner,
         "Rejected staging changed current resources or invalidated views");
+    replacement.restore(saved);
     auto staged_vm=other_vm.prepare_ownership(saved_vm,saved);
-    auto staged_physical=other_physical.prepare_ownership(saved_physical,saved);
-    target.restore(saved);
+    auto staged_physical=other_physical.prepare_ownership(saved_physical,saved,replacement);
+    check(staged_physical.matches_memory(replacement),"Prepared physical pages are not bound to the replacement bank");
+    check(!other_physical.commit_ownership(std::move(staged_physical)),"Physical ownership published before the bank");
+    target.swap_backing(replacement);
     check(other_vm.commit_ownership(std::move(staged_vm)) &&
           other_physical.commit_ownership(std::move(staged_physical)),"Admitted owner publication failed");
     check(target.checkpoint()==saved && other_vm.ownership_checkpoint()==saved_vm &&
@@ -230,9 +237,10 @@ int main() try {
     // Repeated handoff restores active owners, rather than stacking old maps.
     for(int repeat=0;repeat<3;++repeat) {
       const auto copy=source.checkpoint();
+      Bank next;next.restore(copy);
       auto v=other_vm.prepare_ownership(vm.ownership_checkpoint(),copy);
-      auto p=other_physical.prepare_ownership(physical.ownership_checkpoint(),copy);
-      target.restore(copy);
+      auto p=other_physical.prepare_ownership(physical.ownership_checkpoint(),copy,next);
+      target.swap_backing(next);
       check(other_vm.commit_ownership(std::move(v)) && other_physical.commit_ownership(std::move(p)),"Repeated handoff failed");
     }
   }

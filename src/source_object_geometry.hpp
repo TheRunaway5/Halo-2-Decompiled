@@ -23,7 +23,7 @@ public:
     struct Slot {unsigned material{},section{},lod{};bool prt{};unsigned shader_lod{};};
     struct ViewDraw {
         std::vector<Vertex> vertices;
-        bool ordinary_lighting{};
+        bool ordinary_lighting{},prt_lighting{};
     };
     struct Stats {
         unsigned dynamic_materials{},prt_materials{},section_banks{};
@@ -33,13 +33,27 @@ public:
     SourceObjectGeometry()=default;
     void load(const Cache &,const ScenarioObject &,const SourceInitialModelDefinition &,
               const SourceInitialModelSelection &,std::uint32_t render_model,bool prepare_region_variants=false);
+    // Prepare every authored section without choosing a live permutation.
+    // Active draws stay empty until regions() receives completed source state.
+    void load_union(const Cache &,const ScenarioObject &,const SourceInitialModelDefinition &,
+                    std::uint32_t render_model);
     void regions(const SourceInitialModelSelection &);
     ViewDraw active_draw(unsigned lod)const;
     Stats prepare(const Cache &,const ObjectColors &,std::span<const Transform> world_nodes,
-                  const SourcePrtLighting &,Mesh &,std::optional<float> camouflage = {});
+                  const SourcePrtLighting &,Mesh &,std::optional<float> camouflage = {},
+                  std::optional<Vec3> retained_incident = {});
     // Callback already skins the rooted WORLD bank; do not place it again.
     void pose_world(const std::function<std::vector<Vertex>(const RenderModel &)> &);
     void update_banks(const Cache &,std::span<const Transform>,const SourcePrtLighting &,Mesh &);
+    std::vector<SourcePrtMaterialBank> owner_banks(const Cache &,std::span<const Transform>,
+                                                const SourcePrtLighting &,unsigned lod,
+                                                std::optional<Vec3> retained_incident = {})const;
+    ViewDraw selected_section(unsigned lod,unsigned section,const SourceModelShaderCollector&,
+                              const SourceModelShaderView&)const;
+    ViewDraw selected_section_world(unsigned lod,unsigned section,const SourceModelShaderCollector&,
+                              const SourceModelShaderView&,std::span<const Transform>)const;
+    std::vector<SourcePrtMaterialBank> selected_prt_banks(unsigned lod,unsigned section,
+                              std::shared_ptr<const VertexProgramBank>)const;
     SourceObjectViewSelection select(std::size_t source_object,std::uint32_t handle,
                                     Vec3 sphere_center,float radius,const SourceObjectViewLod &);
     // Same complete selector with caller-retained full-owner history. The
@@ -54,6 +68,10 @@ public:
     bool ordinary_lighting()const;
     unsigned first_material{},material_count{};
 private:
+    ViewDraw selected_section_vertices(unsigned,unsigned,const SourceModelShaderCollector&,
+                              const SourceModelShaderView&,std::span<const Vertex>)const;
+    void load_impl(const Cache &,const ScenarioObject &,const SourceInitialModelDefinition &,
+        const SourceInitialModelSelection *,std::uint32_t,bool);
     std::array<Lod,6> lods;
     std::optional<SourcePrtDefinition> prt;
     SourceGeometryLodDefinition lod_definition;

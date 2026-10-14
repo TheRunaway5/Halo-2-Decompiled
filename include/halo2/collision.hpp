@@ -49,15 +49,26 @@ public:
   std::span<const CollisionTriangle> triangles() const {
     return std::span<const CollisionTriangle>(*geometry_).first(count_);
   }
+  struct AuthorityNode {
+    Vec3 low, high;
+    std::uint32_t begin{},end{};
+    int left=-1,right=-1;
+  };
+  struct AuthorityCheckpoint {
+    std::uint32_t version=1;
+    std::vector<CollisionTriangle> triangles;
+    std::vector<std::uint32_t> order;
+    std::vector<AuthorityNode> nodes;
+  };
+  // BVH traversal order affects tie contacts and iterative capsule response.
+  // Retain its exact values; importing triangles alone would rebuild that order.
+  AuthorityCheckpoint authority_checkpoint()const;
+  static std::shared_ptr<const CollisionWorld> restore_authority(const AuthorityCheckpoint &);
 
 private:
-  struct Node {
-    Vec3 low, high;
-    std::size_t begin{}, end{};
-    int left = -1, right = -1;
-  };
+  using Node=AuthorityNode;
   struct Acceleration {
-    std::vector<std::size_t> order;
+    std::vector<std::uint32_t> order;
     std::vector<Node> nodes;
   };
   std::shared_ptr<std::vector<CollisionTriangle>> geometry_;

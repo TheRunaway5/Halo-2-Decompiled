@@ -26,6 +26,8 @@
 #include "halo2/frontend_frame_sampling.hpp"
 #include "halo2/frontend_post_raster.hpp"
 #include "halo2/particle_renderer.hpp"
+#include "halo2/source_decal_renderer.hpp"
+#include "halo2/source_contrail_renderer.hpp"
 #include "halo2/source_bsp_resident_plan.hpp"
 #include "halo2/source_render_policy.hpp"
 #include "halo2/source_bsp_admission.hpp"
@@ -45,6 +47,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <algorithm>
+#include <deque>
 #include <bit>
 #include <charconv>
 #include <cmath>
@@ -94,8 +97,8 @@ bool source_depth_supported(VkPhysicalDevice physical,VkImageFormatProperties &i
     check(result,"query original integer-depth image support");
     return (image.sampleCounts&VK_SAMPLE_COUNT_1_BIT) && image.maxMipLevels>=1 && image.maxArrayLayers>=1;
 }
-std::vector<std::uint32_t> shader(const char* name) {
-    const auto path = std::filesystem::path(HALO2_SHADER_DIR) / name;
+std::vector<std::uint32_t> shader_file(const std::filesystem::path& directory,const char* name) {
+    const auto path = directory / name;
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file) throw std::runtime_error("cannot open shader " + path.string());
     const auto end = file.tellg();
@@ -132,6 +135,8 @@ glm::mat4 view_projection(const Camera& camera, VkExtent2D extent, bool title = 
 } // namespace
 
 struct Renderer::Impl {
+    std::filesystem::path shader_directory{HALO2_SHADER_DIR};
+    std::vector<std::uint32_t> shader(const char* name)const{return shader_file(shader_directory,name);}
     // One platform window retains one Vulkan instance/surface across scene
     // devices. Destroying the old scene must not tear down the native surface
     // underlying the new scene's first image acquisition.
@@ -206,6 +211,7 @@ struct Renderer::Impl {
     std::array<VkDescriptorSet,4> view_fog_descriptors{};
     std::array<VkBuffer,4> view_fog_buffers{};
     std::array<VkDeviceMemory,4> view_fog_memories{};
+    SourceFogDrawControls fog_draw_controls{};
     VkSampler fog_depth_sampler{}, fog_gradient_sampler{};
     VkBuffer fog_buffer{};
     VkDeviceMemory fog_memory{};
@@ -318,9 +324,17 @@ struct Renderer::Impl {
     VkDeviceMemory light_volume_memory{};
     std::size_t light_volume_capacity{};
     std::vector<LightVolumeInstance> light_volumes;
+    std::vector<LightVolumeVertex> light_volume_staging;
+    std::vector<bool> light_volume_slots;
     std::vector<ParticleDraw> particle_draws;
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
     std::unique_ptr<ParticleRenderer> particle_renderer;
+#endif
+#if HALO2_SOURCE_DECALS_AVAILABLE
+    std::unique_ptr<SourceDecalRenderer> decal_renderer;
+#if HALO2_SOURCE_CONTRAILS_AVAILABLE
+    std::unique_ptr<SourceContrailRenderer> contrail_renderer;
+#endif
 #endif
     std::shared_ptr<const ShaderFunctionTables> light_volume_tables;
     struct LightVolumeDraw { std::uint32_t first{},count{},material{}; float sort_depth{}; };
@@ -396,6 +410,9 @@ struct Renderer::Impl {
     GpuTexture patchy_bitmap,patchy_target;
     GpuTexture bloom_scene;
     GpuTexture water_scene,water_reflection,water_refraction,water_depth;
+    GpuTexture particle_scene;
+    bool particle_scene_initialized{};
+    SourceParticleSamplerBank particle_sampler_state{};
     const BspAtmosphere *bsp_bank{};
     std::unique_ptr<BspPostprocess> bsp_postprocess;
     std::optional<BspPostprocessState> bsp_postprocess_state;
@@ -411,6 +428,7 @@ struct Renderer::Impl {
     std::vector<bool> weather_alias_pending;
     std::array<GpuTexture,2> bloom_targets{};
     std::vector<bool> after_fog;
+    std::vector<unsigned> projected_decal_layers;
     std::vector<unsigned> planar_materials;
     std::map<unsigned,MaterialPass> planar_passes;
     std::vector<std::array<unsigned,3>> world_planar_materials;
@@ -442,6 +460,9 @@ struct Renderer::Impl {
         return pack_vertex_program_bank(*material.vertex_bank);
     }
     std::vector<VertexBankUniform> vertex_bank_uniforms;
+    // Native programs already address logical c0..191 through the explicit
+    // camera/fog/material/extended banks. Vulkan injects no reserved constants.
+    std::uint32_t source_constant_mode=0x11;
     std::vector<bool> extended_vertex_banks;
     std::vector<std::size_t> changed_vertex_banks;
     using MaterialUniform=WorldMaterialUniform;
@@ -1094,7 +1115,7 @@ struct Renderer::Impl {
         };
         // 42850's negative camera depth and 1E700's non-plane comparison.
         std::stable_sort(ordered.begin(),ordered.end(),[&](auto *a,auto *b){return depth(a)<depth(b);});
-        std::vector<LightVolumeVertex> vertices;
+        auto &vertices=light_volume_staging;
         std::vector<LightVolumeDraw> draws;
         for(const auto *instance:ordered) {
             if(!instance->definition || instance->material>=material_count)
@@ -1112,7 +1133,11 @@ struct Renderer::Impl {
                 if(draw.count)draws.push_back(draw);
             }
         }
-        if(vertices.empty())return {};
+        return draws;
+    }
+    void upload_light_volumes() {
+        const auto &vertices=light_volume_staging;
+        if(vertices.empty())return;
         if(vertices.size()>dynamic_limit)throw FormatError("title light-volume geometry exceeds native limit");
         if(vertices.size()>light_volume_capacity) {
             if(light_volume_buffer)vkDestroyBuffer(device,light_volume_buffer,nullptr);
@@ -1126,7 +1151,6 @@ struct Renderer::Impl {
         check(vkMapMemory(device,light_volume_memory,0,vertices.size()*sizeof(LightVolumeVertex),0,&mapped),"map title light volumes");
         std::memcpy(mapped,vertices.data(),vertices.size()*sizeof(LightVolumeVertex));
         vkUnmapMemory(device,light_volume_memory);
-        return draws;
     }
 
     void set_atmosphere(MenuAtmosphere fog,BspAtmosphere source) {
@@ -1179,7 +1203,7 @@ struct Renderer::Impl {
         if(!bsp_bank)return;
         if(!can_capture)throw FormatError("BSP postprocessing requires readable color targets");
         BspPostprocessContext context{device,physical,extent,format,depth_format,
-            fog_pass,continuation_pass,depth,depth_view,HALO2_SHADER_DIR};
+            fog_pass,continuation_pass,depth,depth_view,shader_directory};
         context.scene_layout=scene_layout;
         std::size_t texture_index=0;
         bsp_postprocess=std::make_unique<BspPostprocess>(context,*bsp_bank,[&](const Texture &source) {
@@ -1478,7 +1502,11 @@ struct Renderer::Impl {
                 world_planar_materials[i][p]=unsigned(materials.size());
                 materials.push_back(pass.get());
             }
-        for(const auto *material:materials)light_volume_materials|=material->light_volume_pass;
+        light_volume_slots.clear();
+        for(const auto *material:materials) {
+            light_volume_materials|=material->light_volume_pass;
+            light_volume_slots.push_back(material->light_volume_pass);
+        }
         source_material_layers.reserve(materials.size());
         for(const auto *material:materials)
             source_material_layers.push_back(source_material_layer(*material));
@@ -1770,6 +1798,7 @@ struct Renderer::Impl {
                 }
             }
             after_fog.push_back(late);
+            projected_decal_layers.push_back(material.forward_vertex==11?material.forward_pass_index:~0u);
             if(!material.hud_pass && !material.light_volume_pass &&
                 (material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass)) {
                 const bool emblem_w_depth=material.template_name.ends_with("\\emblem_overlay_simple");
@@ -1918,6 +1947,12 @@ struct Renderer::Impl {
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
         particle_renderer.reset();
 #endif
+#if HALO2_SOURCE_DECALS_AVAILABLE
+        decal_renderer.reset();
+#if HALO2_SOURCE_CONTRAILS_AVAILABLE
+        contrail_renderer.reset();
+#endif
+#endif
         scope_render.reset();
         if(bsp_postprocess)bsp_postprocess_state=bsp_postprocess->persistent_state();
         bsp_postprocess.reset();
@@ -1928,7 +1963,8 @@ struct Renderer::Impl {
         if(water_copy_pass)vkDestroyRenderPass(device,water_copy_pass,nullptr);
         water_copy_pipeline=VK_NULL_HANDLE;water_reflection_framebuffer=water_copy_framebuffer=VK_NULL_HANDLE;
         water_reflection_pass=water_copy_pass=VK_NULL_HANDLE;water_scene_initialized=false;
-        for(auto target:{&water_scene,&water_reflection,&water_refraction,&water_depth}) {
+        particle_scene_initialized=false;
+        for(auto target:{&water_scene,&water_reflection,&water_refraction,&water_depth,&particle_scene}) {
             if(target->view)vkDestroyImageView(device,target->view,nullptr);
             if(target->image)vkDestroyImage(device,target->image,nullptr);
             if(target->memory)vkFreeMemory(device,target->memory,nullptr);
@@ -2028,7 +2064,9 @@ struct Renderer::Impl {
     }
 
     std::string validate_display(const DisplaySettings &s) const {
-        if(s.anti_aliasing>2 || s.brightness>9 || s.gamma>10 || s.detail>2)
+        if(s.anti_aliasing>2 || s.brightness>9 || s.gamma>10 || s.detail>2 ||
+           !valid_field_of_view(s.field_of_view) || !valid_field_of_view(s.vehicle_field_of_view) ||
+           (s.two_player_split!=TwoPlayerSplit::Horizontal && s.two_player_split!=TwoPlayerSplit::Vertical))
             return "Invalid native video setting.";
         int w{},h{};SDL_Vulkan_GetDrawableSize(window,&w,&h);
         const std::uint64_t scale=1u<<s.anti_aliasing;
@@ -2267,15 +2305,15 @@ struct Renderer::Impl {
         check(vkCreateRenderPass(device,&continuation,nullptr,&continuation_pass),"create fog continuation pass");
         if(!shadow_materials.empty()) {
             shadow_render=std::make_unique<SourceShadowRender>(SourceShadowRenderContext{
-                device,physical,extent,continuation_pass,HALO2_SHADER_DIR});
+                device,physical,extent,continuation_pass,shader_directory});
             shadow_storage=std::make_unique<SourceShadowDrawStorage>(SourceShadowDrawStorageContext{
                 device,physical,texture_layout,pipeline_layout,shadow_render->generation_pass(),
-                continuation_pass,HALO2_SHADER_DIR,sizeof(MaterialUniform)});
+                continuation_pass,shader_directory,sizeof(MaterialUniform)});
         }
         if(std::any_of(scope_materials.begin(),scope_materials.end(),[](bool value){return value;})) {
             if(!can_capture)throw FormatError("original scope copy requires a readable scene target");
             scope_render=std::make_unique<ScopeRender>(ScopeRenderContext{
-                device,physical,extent,format,continuation_pass,HALO2_SHADER_DIR,scene_layout});
+                device,physical,extent,format,continuation_pass,shader_directory,scene_layout});
             for(unsigned m=0;m<scope_materials.size();++m)if(scope_materials[m]) {
                 const VkDescriptorImageInfo image{stage_samplers[m][0],scope_render->target_view(),VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
                 VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};write.dstSet=scope_descriptors[m];
@@ -2546,6 +2584,7 @@ struct Renderer::Impl {
             stages[0].module=p.extended_vertex_bank?extended_vert:vert;
             input.vertexAttributeDescriptionCount=p.extended_vertex_bank?14:12;
             blend.blendEnable=p.blend!=0;
+            blend.colorBlendOp=blend.alphaBlendOp=p.blend==12?VK_BLEND_OP_MAX:VK_BLEND_OP_ADD;
             blend.srcColorBlendFactor=p.blend==9?VK_BLEND_FACTOR_DST_COLOR:p.blend==8?VK_BLEND_FACTOR_DST_ALPHA:p.blend==7?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_DST_COLOR:p.blend==1?VK_BLEND_FACTOR_SRC_ALPHA:VK_BLEND_FACTOR_ONE;
             blend.dstColorBlendFactor=p.blend==11?VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:p.blend==9?VK_BLEND_FACTOR_ZERO:p.blend==10?VK_BLEND_FACTOR_ONE:p.blend==8?VK_BLEND_FACTOR_ONE:p.blend==7?VK_BLEND_FACTOR_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_SRC_COLOR:p.blend==3?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
             // Planar fog's CONSTANT_COLOR is packed 00FFFFFF: source RGB
@@ -3075,7 +3114,7 @@ struct Renderer::Impl {
             if(!menu_world_native && !inputs.empty())menu_world_native=std::make_unique<MenuWorldNativeDraw>(
                 MenuWorldNativeDrawContext{device,physical,render_pass,texture_layout,
                     enabled.instance_api_version,enabled.geometry_shader_enabled,
-                    enabled.geometry_point_size_enabled,enabled.depth_clamp_enabled,enabled.demote_to_helper_enabled});
+                    enabled.geometry_point_size_enabled,enabled.depth_clamp_enabled,enabled.demote_to_helper_enabled,shader_directory});
             if(menu_world_native)menu_world_native->prepare(inputs);
         } catch(const FormatError &error) {
             // Storage/pipeline admission is also atomic. A failed preparation
@@ -3415,6 +3454,15 @@ struct Renderer::Impl {
                                 throw FormatError("source transparent callback requires resident shader LOD0/layer15/implementation0");
                         }
                         required+=geometry->vertices.size();
+                    } else if(const auto *binding=std::get_if<SourceTransparentContrailDraw>(&bank->bindings[j])) {
+                        if(!binding->draw || std::memcmp(&command,&binding->draw->command,sizeof(command)))
+                            throw FormatError("Source contrail callback lost its actual record owner");
+                    } else if(command.callback==source_light_volume_callback) {
+                        const auto *binding=std::get_if<SourceTransparentLightVolumeDraw>(&bank->bindings[j]);
+                        if(!binding || !binding->draw || binding->draw->object!=payload[0] || binding->draw->definition!=payload[1] ||
+                           binding->draw->material>=light_volume_slots.size() || !light_volume_slots[binding->draw->material] ||
+                           std::memcmp(&command,&binding->draw->command,sizeof(command)))
+                            throw FormatError("Source light-volume callback lost its actual record/material owner");
                     } else if(command.callback==0x173c90) {
                         const auto *range=std::get_if<SourceTransparentParticleRange>(&bank->bindings[j]);
                         if(!range || range->system!=payload[0] || range->location!=payload[1] ||
@@ -3426,6 +3474,15 @@ struct Renderer::Impl {
                     } else throw FormatError("source transparent callback service is unresolved");
                 }
             };
+            for(const auto &draw:view.light_volumes) {
+                if(draw.bitmap_materials.empty())throw FormatError("View light-volume submission has no actual bitmap bindings");
+                for(const auto &binding:draw.bitmap_materials)
+                    if(binding.material>=light_volume_slots.size() || !light_volume_slots[binding.material])
+                        throw FormatError("View light-volume bitmap lost its resident original program");
+                if(draw.material>=light_volume_slots.size() || !light_volume_slots[draw.material] ||
+                   draw.command.callback!=source_light_volume_callback || draw.object==0xffffffffu || draw.definition==0xffffffffu)
+                    throw FormatError("View light-volume submission lost its live owner/material");
+            }
             transparent_size(view.world_transparent,view.world_particles);
             transparent_size(view.foreground_transparent,view.foreground_particles);
             required+=view.foreground.size()+view.background.size()+view.water_reflection_background.size();
@@ -3579,28 +3636,95 @@ struct Renderer::Impl {
         struct TransparentStep {
             std::vector<Draw> geometry;
             std::optional<SourceTransparentParticleRange> particles;
+            std::vector<LightVolumeDraw> lights;
+            const SourceLightVolumeDraw *light_source{};
+            const SourceContrailDraw *contrail_source{};
             bool first_person_projection{};
             const ObjectLightingState *lighting{};
         };
+        light_volume_staging.clear();
+        std::vector<std::deque<SourceLightVolumeDraw>> projected_lights(views.size());
+        std::vector<bool> sorted_world_effects(views.size());
         std::vector<std::array<std::vector<TransparentStep>,2>> transparent_views(views.size());
         for(std::size_t i=0;i<views.size();++i)for(unsigned phase=0;phase<2;++phase) {
             const auto &view=views[i];const auto &bank=phase?view.foreground_transparent:view.world_transparent;
-            if(!bank)continue;
-            const auto order=source_transparent_sort(bank->commands,view.camera.position,bank->first);
+            if(!bank && (phase || (view.light_volumes.empty() && view.contrails.empty())))continue;
+            std::vector<SourceTransparentCommand> commands;
+            std::vector<SourceTransparentDrawBinding> bindings;
+            unsigned first{};
+            if(bank) {
+                commands.assign(bank->commands.begin(),bank->commands.end());
+                bindings.assign(bank->bindings.begin(),bank->bindings.end());first=bank->first;
+            }
+            const auto append=[&](const SourceTransparentCommand &command,SourceTransparentDrawBinding binding) {
+                if(commands.size()==1024)return;
+                commands.push_back(command);bindings.push_back(std::move(binding));
+            };
+            if(!phase) {
+                for(const auto &draw:view.contrails)append(draw.command,SourceTransparentContrailDraw{&draw});
+                for(const auto &draw:view.light_volumes)append(draw.command,SourceTransparentLightVolumeDraw{&draw});
+                if(!bank) {
+                    // Native world effects retain their own system/location namespace.
+                    // Their completed175EA0 center/depth becomes the original type3
+                    // comparison key; GPU ranges still reference actual native draws.
+                    for(unsigned n=0;n<view.world_particles.size();) {
+                        const auto &p=view.world_particles[n];
+                        if(!p.scene_sort_depth || !p.scene_sort_owner)
+                            throw FormatError("Mixed world effect sorting requires its actual location/center producer");
+                        const auto &owner=*p.scene_sort_owner;unsigned count=1;
+                        while(n+count<view.world_particles.size()) {
+                            const auto &next=view.world_particles[n+count];
+                            if(!next.scene_sort_owner || next.scene_sort_owner->system!=owner.system || next.scene_sort_owner->location!=owner.location)break;
+                            if(next.scene_sort_depth!=p.scene_sort_depth)throw FormatError("One particle location has inconsistent source depth");
+                            ++count;
+                        }
+                        if(owner.system>0xffffffffu || owner.location>0xffffffffu)
+                            throw FormatError("Native particle identity exceeds its transparent token adapter");
+                        SourceTransparentCommand command{};command.priority=3;command.depth=*p.scene_sort_depth;
+                        command.callback=0x173c90;command.center=owner.center;
+                        const std::array<std::uint32_t,2> payload{std::uint32_t(owner.system),std::uint32_t(owner.location)};
+                        std::memcpy(command.payload.data(),payload.data(),8);
+                        append(command,SourceTransparentParticleRange{payload[0],payload[1],n,count});n+=count;
+                    }
+                }
+                sorted_world_effects[i]=true;
+            }
+            const auto order=source_transparent_sort(commands,view.camera.position,first);
             for(auto ordinal:order) {
-                if(!bank->commands[ordinal].callback)continue;
+                if(!commands[ordinal].callback)continue;
                 auto &step=transparent_views[i][phase].emplace_back();
-                const auto &binding=bank->bindings[ordinal];
+                const auto &binding=bindings[ordinal];
+                if(const auto *trail=std::get_if<SourceTransparentContrailDraw>(&binding)) {
+                    if(phase || !trail->draw)throw FormatError("Contrail draw requires its actual ordinary world view");
+                    step.contrail_source=trail->draw;continue;
+                }
+                if(const auto *light=std::get_if<SourceTransparentLightVolumeDraw>(&binding)) {
+                    if(phase || !light->draw || !view.full_surface)
+                        throw FormatError("Light-volume draw requires its actual ordinary gameplay view");
+                    auto &draw=projected_lights[i].emplace_back(*light->draw);
+                    if(!draw.volume || !draw.tables || draw.actual_w_distance!=1024.f ||
+                       !(draw.viewport.width>0 && draw.viewport.height>0))
+                        throw FormatError("Light-volume draw lost its completed projection/definition inputs");
+                    const auto physical=full_surface_viewport({view.left,view.top,view.width,view.height},extent.width,extent.height);
+                    if(physical.width!=draw.viewport.width)draw.camera.viewport_half_metrics.x*=physical.width/draw.viewport.width;
+                    if(physical.height!=draw.viewport.height)draw.camera.viewport_half_metrics.y*=physical.height/draw.viewport.height;
+                    draw.viewport=physical;
+                    auto projected=source_light_volume_vertices(*draw.volume,draw.state,draw.camera,physical,draw.actual_w_distance,*draw.tables,draw.bitmap_materials);
+                    draw.vertices=std::move(projected.vertices);draw.ranges=std::move(projected.ranges);
+                    const auto first_vertex=std::uint32_t(light_volume_staging.size());
+                    light_volume_staging.insert(light_volume_staging.end(),draw.vertices.begin(),draw.vertices.end());
+                    for(const auto &range:draw.ranges)
+                        step.lights.push_back({first_vertex+range.first,range.count,range.material,draw.command.depth});
+                    step.light_source=&draw;continue;
+                }
                 const auto *shader_geometry=std::get_if<SourceTransparentShaderGeometryDraw>(&binding);
                 const auto *geometry=shader_geometry?&shader_geometry->geometry:
                     std::get_if<SourceTransparentGeometryDraw>(&binding);
                 if(geometry) {
-                    //One callback remains contiguous; neither material IDs nor
-                    //owner shader slots can reorder commands across callbacks.
                     group(geometry->vertices,step.geometry,true);
                     step.lighting=geometry->lighting?&*geometry->lighting:nullptr;
                     step.first_person_projection=geometry->render_cache_flags&0x800;
-                } else step.particles=std::get<SourceTransparentParticleRange>(bank->bindings[ordinal]);
+                } else step.particles=std::get<SourceTransparentParticleRange>(binding);
             }
         }
         std::vector<std::vector<Draw>> view_foreground;
@@ -3728,6 +3852,7 @@ struct Renderer::Impl {
         }
         const auto volume_draws=title_scene?prepare_light_volumes(camera,
             {viewport.x,viewport.y,viewport.width,viewport.height},menu_projection->scale):std::vector<LightVolumeDraw>{};
+        upload_light_volumes();
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
         struct ViewParticleRange {std::size_t world{},world_count{},foreground{},foreground_count{};};
         std::vector<ViewParticleRange> view_particle_ranges;
@@ -3757,9 +3882,41 @@ struct Renderer::Impl {
             if(!particle_draws.empty() && prepared_particles[particle_draws.size()-1].before_light_volume>volume_draws.size())
                 throw FormatError("particle transparent order exceeds the supplied glow groups");
             if(!particle_renderer)particle_renderer=std::make_unique<ParticleRenderer>(
-                physical,device,queue,queue_family,render_pass,HALO2_SHADER_DIR);
+                physical,device,queue,queue_family,render_pass,shader_directory);
         }
-        if(particle_renderer)particle_renderer->prepare(prepared_particles);
+        const bool scene_particles=std::any_of(prepared_particles.begin(),prepared_particles.end(),[](const auto &draw) {
+            return draw.material && std::any_of(draw.material->pass.textures.begin(),draw.material->pass.textures.end(),
+                [](const auto &binding){return binding.external==23;});
+        });
+        if(scene_particles && !particle_scene.view) {
+            if(!can_capture)throw FormatError("particle external23 requires a readable current scene surface");
+            make_post_image(particle_scene,extent,format,VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+        }
+        if(particle_renderer)particle_renderer->prepare(prepared_particles,{particle_scene.view});
+#endif
+        std::vector<std::pair<std::size_t,std::size_t>> decal_ranges(views.size());
+#if HALO2_SOURCE_DECALS_AVAILABLE
+        std::vector<SourceDecalDraw> prepared_decals;
+        for(std::size_t i=0;i<views.size();++i){decal_ranges[i]={prepared_decals.size(),views[i].source_decals.size()};prepared_decals.insert(prepared_decals.end(),views[i].source_decals.begin(),views[i].source_decals.end());}
+        if(!prepared_decals.empty() && !decal_renderer) {
+            if(!source_world_device.geometry_shader_enabled || !source_world_device.depth_clamp_enabled)
+                throw FormatError("Cached decal W-depth needs enabled geometry/depth-clamp features");
+            decal_renderer=std::make_unique<SourceDecalRenderer>(physical,device,queue,queue_family,render_pass,shader_directory);
+        }
+        if(decal_renderer)decal_renderer->prepare(prepared_decals);
+#endif
+        std::vector<std::size_t> contrail_first(views.size());
+#if HALO2_SOURCE_CONTRAILS_AVAILABLE
+        std::vector<SourceContrailDraw> prepared_contrails;
+        for(std::size_t i=0;i<views.size();++i){contrail_first[i]=prepared_contrails.size();prepared_contrails.insert(prepared_contrails.end(),views[i].contrails.begin(),views[i].contrails.end());}
+        if(!prepared_contrails.empty() && !contrail_renderer) {
+            if(!source_world_device.geometry_shader_enabled || !source_world_device.depth_clamp_enabled)
+                throw FormatError("Contrail W-depth needs enabled geometry/depth-clamp features");
+            contrail_renderer=std::make_unique<SourceContrailRenderer>(physical,device,queue,queue_family,render_pass,shader_directory);
+        }
+        if(contrail_renderer)contrail_renderer->prepare(prepared_contrails);
+#else
+        for(const auto &v:views)if(!v.contrails.empty())throw FormatError("Original contrail graphics unavailable");
 #endif
         std::vector<std::vector<std::size_t>> weather_draw_ranges(views.size());
         std::size_t weather_draw_index=0;
@@ -3777,7 +3934,7 @@ struct Renderer::Impl {
             if(inserted)upload_texture(*draw.sprite,texture->second);
             if(weather_draw_index==weather_point_renderers.size())
                 weather_point_renderers.push_back(std::make_unique<SourceWeatherPointRender>(
-                    SourceWeatherPointRenderContext{physical,device,render_pass,HALO2_SHADER_DIR,
+                    SourceWeatherPointRenderContext{physical,device,render_pass,shader_directory,
                         weather_large_points,source_world_device.depth_clamp_enabled}));
             SourceWeatherPointPacket packet{draw.vertex_program,draw.camera,draw.pixel,draw.points,
                 texture->second.view,weather_sprite_sampler,VK_FORMAT_BC3_UNORM_BLOCK,
@@ -3792,7 +3949,7 @@ struct Renderer::Impl {
         for(std::size_t view=0;view<views.size();++view)for(const auto &draw:views[view].weather_lines) {
             if(weather_line_index==weather_line_renderers.size())
                 weather_line_renderers.push_back(std::make_unique<SourceWeatherLineRender>(
-                    SourceWeatherLineRenderContext{physical,device,render_pass,HALO2_SHADER_DIR,
+                    SourceWeatherLineRenderContext{physical,device,render_pass,shader_directory,
                         source_world_device.geometry_shader_enabled,weather_wide_lines,
                         source_world_device.depth_clamp_enabled}));
             SourceWeatherLinePacket packet{draw.vertex_program,draw.camera,draw.pixel,draw.vertices,
@@ -3810,7 +3967,7 @@ struct Renderer::Impl {
         std::size_t weather_plate_index=0;
         for(std::size_t view=0;view<views.size();++view)if(!views[view].weather_plates.empty()) {
             if(!weather_aliases[view])weather_aliases[view]=std::make_unique<SourceWeatherDepthAlias>(
-                SourceWeatherDepthAliasContext{physical,device,queue_family,HALO2_SHADER_DIR});
+                SourceWeatherDepthAliasContext{physical,device,queue_family,shader_directory});
             weather_aliases[view]->prepare(extent);
             const auto alias=weather_aliases[view]->prepared_binding();
             if(!weather_sprite_sampler) {
@@ -3824,7 +3981,7 @@ struct Renderer::Impl {
                 if(!draw.submission.result.program)throw FormatError("live weather plate queued a source no-draw return");
                 if(weather_plate_index==weather_plate_renderers.size())
                     weather_plate_renderers.push_back(std::make_unique<SourceWeatherPlateRender>(
-                        SourceWeatherPlateRenderContext{physical,device,render_pass,HALO2_SHADER_DIR,
+                        SourceWeatherPlateRenderContext{physical,device,render_pass,shader_directory,
                             source_world_device.depth_clamp_enabled}));
                 SourceWeatherPlatePacket packet{};packet.vertex_program=draw.vertex_program;
                 packet.pixel=*draw.submission.result.program;packet.scroll=draw.submission.scroll;
@@ -4097,7 +4254,8 @@ struct Renderer::Impl {
                     rectangle={{int(physical.left),int(physical.top)},{unsigned(physical.width),unsigned(physical.height)}};
                 }
                 post_views.push_back({view.camera,*view.atmosphere,rectangle,
-                    source_player_bloom_screen_context(std::int16_t(post_views.size()))});
+                    source_player_bloom_screen_context(std::int16_t(post_views.size())),
+                    view.projection_clip_planes.value_or(Vec2{.015625f,1024.f})});
             }
             bsp_postprocess->prepare(post_views,views.front().effect_time);
         }
@@ -4231,11 +4389,14 @@ struct Renderer::Impl {
             admit_combiner(m,uniform);
             return uniform;
         };
+        std::array<bool,4> view_fog_enabled{};
         if(!views.empty()) {
             void *mapped{};
             for(std::size_t i=0;i<views.size();++i) if(views[i].atmosphere) {
                 if(!bsp_atmosphere)throw FormatError("viewport atmosphere gradient is unbound");
-                const auto composite=bsp_fog_composite(*views[i].atmosphere,1024.f);
+                const auto selected=bsp_fog_draw(*views[i].atmosphere,1024.f,fog_draw_controls);
+                if(!selected)continue;
+                view_fog_enabled[i]=true;const auto &composite=*selected;
                 check(vkMapMemory(device,view_fog_memories[i],0,272,0,&mapped),"map viewport fog composite");
                 std::memcpy(mapped,composite.program.words.data(),240);
                 std::memcpy(static_cast<std::byte*>(mapped)+240,composite.lookup_coordinates.data(),32);
@@ -4278,17 +4439,33 @@ struct Renderer::Impl {
         for(auto &draws:view_reflection_background)bind_geometry(draws);
         std::vector<std::map<std::pair<unsigned,unsigned>,std::size_t>> object_aliases;
         std::vector<MaterialUniform> object_uniforms;
+        std::vector<std::optional<VertexBankUniform>> object_vertex_banks;
         std::vector<VkDescriptorSet> object_residents;
         const auto alias_owner=[&](const ModelView &view,std::span<Draw> list,
-                                   const ObjectLightingState *lighting,const ObjectColors *colors=nullptr,const ShaderInput *input=nullptr) {
+                                   const ObjectLightingState *lighting,const ObjectColors *colors=nullptr,const ShaderInput *input=nullptr,
+                                   std::span<const SourcePrtMaterialBank> prt_banks=std::span<const SourcePrtMaterialBank>{}) {
             const auto owner=object_aliases.size();object_aliases.emplace_back();
             auto &aliases=object_aliases.back();
+            std::map<unsigned,VertexBankUniform> banks;
+            for(const auto &binding:prt_banks) {
+                if(binding.material>=material_count || !binding.bank || !binding.bank->prt_inputs ||
+                   binding.bank->camera_inputs || binding.bank->first_constant!=68 ||
+                   (binding.bank->constants.size()!=42 && binding.bank->constants.size()!=82))
+                    throw FormatError("owner PRT bank has invalid source material/range");
+                const auto target=environment_materials[binding.material];
+                if(target==~0u || !extended_vertex_banks[target] ||
+                   vertex_bank_uniforms[target].range!=pack_vertex_program_bank(*binding.bank).range ||
+                   !banks.emplace(target,pack_vertex_program_bank(*binding.bank)).second)
+                    throw FormatError("owner PRT bank differs from resident layer5 declaration");
+            }
             const auto add=[&](unsigned material,unsigned lightmap) {
                 if(material==~0u || aliases.contains({material,lightmap}))return;
                 if(water_materials[material] || scope_materials[material])
                     throw FormatError("owner draw cannot supply water or first-person external targets");
                 aliases.emplace(std::pair{material,lightmap},object_uniforms.size());
                 object_uniforms.push_back(view_material_uniform(view,material,lighting,colors,input));
+                const auto bank=banks.find(material);
+                object_vertex_banks.push_back(bank==banks.end()?std::nullopt:std::optional{bank->second});
                 object_residents.push_back(geometry_descriptor(material,lightmap));
             };
             for(auto &draw:list) {
@@ -4305,15 +4482,15 @@ struct Renderer::Impl {
             const auto &view=views[range.view];const auto &object=view.objects[range.object];
             alias_owner(view,std::span{view_draws[range.view]}.subspan(range.first,range.count),
                 object.lighting?&*object.lighting:nullptr,object.colors?&*object.colors:nullptr,
-                object.shader_input?&object.shader_input:nullptr);
+                object.shader_input?&object.shader_input:nullptr,object.prt_banks);
         }
         for(std::size_t i=0;i<views.size();++i)for(auto &phase:transparent_views[i])for(auto &step:phase) {
             bind_geometry(step.geometry);
-            if(!step.particles)alias_owner(views[i],step.geometry,step.lighting);
+            if(!step.particles && !step.light_source)alias_owner(views[i],step.geometry,step.lighting);
         }
         std::vector<ResidentDrawUpload> object_uploads;object_uploads.reserve(object_uniforms.size());
         for(std::size_t i=0;i<object_uniforms.size();++i)
-            object_uploads.push_back({object_residents[i],{reinterpret_cast<const std::byte*>(&object_uniforms[i]),sizeof(MaterialUniform)}});
+            object_uploads.push_back({object_residents[i],{reinterpret_cast<const std::byte*>(&object_uniforms[i]),sizeof(MaterialUniform)},object_vertex_banks[i]});
         if(!object_draw_storage && !object_uploads.empty())
             object_draw_storage=std::make_unique<ResidentDrawStorage>(device,physical,texture_layout,sizeof(MaterialUniform));
         const auto object_descriptors=object_draw_storage?object_draw_storage->upload(object_uploads):std::span<const VkDescriptorSet>{};
@@ -4493,7 +4670,7 @@ struct Renderer::Impl {
         if(!effect_light_native && !raw_light_inputs.empty())effect_light_native=std::make_unique<MenuWorldNativeDraw>(
             MenuWorldNativeDrawContext{device,physical,render_pass,texture_layout,enabled.instance_api_version,
                 enabled.geometry_shader_enabled,enabled.geometry_point_size_enabled,
-                enabled.depth_clamp_enabled,enabled.demote_to_helper_enabled});
+                enabled.depth_clamp_enabled,enabled.demote_to_helper_enabled,shader_directory});
         if(effect_light_native)effect_light_native->prepare(raw_light_inputs);
 #else
         if(raw_effect_light_draw_count)throw FormatError("Raw sphere diffuse catalog was not built");
@@ -4609,6 +4786,58 @@ struct Renderer::Impl {
         vkCmdSetScissor(command, 0, 1, &scissor);
         VkDeviceSize offset = 0;
         vkCmdBindVertexBuffers(command, 0, 1, &vertex_buffer, &offset);
+#ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
+        const auto record_particles=[&](VkViewport particle_view,VkRect2D clip,std::size_t first,std::size_t count) {
+            if(first>prepared_particles.size() || count>prepared_particles.size()-first)
+                throw FormatError("ordered particle draw escapes its prepared frame");
+            const auto *hide_value=std::getenv("HALO2_REFERENCE_PARTICLE_DISTORTION_HIDE");
+            const bool hide=hide_value && *hide_value;
+            std::size_t copies{},hidden{};
+            const auto end=first+count;
+            while(first<end) {
+                if(!particle_renderer->reads_scene_texture(first)) {
+                    auto next=first+1;while(next<end && !particle_renderer->reads_scene_texture(next))++next;
+                    particle_renderer->record(command,particle_view,clip,first,next-first);first=next;continue;
+                }
+                const auto &draw=prepared_particles.at(first);
+                source_apply_particle_sampler_writes(particle_sampler_state,draw.material->sampler_writes);
+                const auto width=draw.vertex.surface_fog[0],height=draw.vertex.surface_fog[1];
+                if(!(width>0 && height>0))throw FormatError("particle external23 has no completed surface dimensions");
+                particle_renderer->resolve_scene_lookup(first,{source_particle_bump_matrix(particle_sampler_state,1),{1.f/width,1.f/height,0,0}});
+                if(hide){++first;++hidden;continue;} // Final presentation control; source state writes still occur.
+                vkCmdEndRenderPass(command);
+                std::array<VkImageMemoryBarrier,2> barriers{};
+                for(auto &barrier:barriers) {
+                    barrier.sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                    barrier.srcQueueFamilyIndex=barrier.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
+                    barrier.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
+                }
+                auto &color=barriers[0],&target=barriers[1];
+                color.image=images[index];color.oldLayout=scene_layout;color.newLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+                color.srcAccessMask=VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;color.dstAccessMask=VK_ACCESS_TRANSFER_READ_BIT;
+                target.image=particle_scene.image;target.oldLayout=particle_scene_initialized?VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:VK_IMAGE_LAYOUT_UNDEFINED;
+                target.newLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                target.srcAccessMask=particle_scene_initialized?VK_ACCESS_SHADER_READ_BIT:0;target.dstAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;
+                vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,0,0,nullptr,0,nullptr,barriers.size(),barriers.data());
+                VkImageCopy copy{};copy.srcSubresource=copy.dstSubresource={VK_IMAGE_ASPECT_COLOR_BIT,0,0,1};copy.extent={extent.width,extent.height,1};
+                vkCmdCopyImage(command,images[index],VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,particle_scene.image,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,1,&copy);
+                color.oldLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;color.newLayout=scene_layout;
+                color.srcAccessMask=VK_ACCESS_TRANSFER_READ_BIT;color.dstAccessMask=VK_ACCESS_COLOR_ATTACHMENT_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+                target.oldLayout=VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;target.newLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                target.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;target.dstAccessMask=VK_ACCESS_SHADER_READ_BIT;
+                vkCmdPipelineBarrier(command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                    0,0,nullptr,0,nullptr,barriers.size(),barriers.data());particle_scene_initialized=true;
+                auto resumed=render;resumed.renderPass=continuation_pass;resumed.clearValueCount=0;resumed.pClearValues=nullptr;
+                vkCmdBeginRenderPass(command,&resumed,VK_SUBPASS_CONTENTS_INLINE);
+                particle_renderer->record(command,particle_view,clip,first,1);++first;++copies;
+            }
+            if((copies || hidden) && std::getenv("HALO2_REFERENCE_PARTICLE_DISTORTION_TRACE"))
+                std::cout<<"Source distortion: copies="<<copies<<" hidden="<<hidden
+                    <<" sdk22="<<particle_sampler_state[1][0]<<" sdk23="<<particle_sampler_state[1][1]
+                    <<" sdk24="<<particle_sampler_state[1][2]<<" sdk25="<<particle_sampler_state[1][3]<<'\n';
+        };
+#endif
         const auto matrix = view_projection(scene_camera,scissor.extent,bool(atmosphere));
         struct CameraUniform { glm::mat4 matrix; glm::vec4 eye, position, viewport; };
         const CameraUniform camera_uniform{matrix,glm::vec4(forward,atmosphere?1.f:0.f),
@@ -4659,6 +4888,7 @@ struct Renderer::Impl {
         auto draw_dynamic = [&](const std::vector<Draw>& list,int phase=-1) {
             vkCmdBindVertexBuffers(command, 0, 1, &debug_buffer, &offset);
             for (const auto &draw:list) if(draw.count && draw_visible(draw) && layer_enabled(draw.material) && !water_materials[draw.material] &&
+                projected_decal_layers[draw.material]==~0u &&
                 !texture_mapping_overlay(draw.material) &&
                 (phase<0 || after_fog[draw.material]==bool(phase))) {
                 material_pipeline(draw.material);
@@ -4666,6 +4896,17 @@ struct Renderer::Impl {
                 bind_draw_vertices(draw,debug_buffer);
                 vkCmdDraw(command,draw.count,1,draw.first,0);
             }
+        };
+        const auto draw_decals=[&](const std::vector<Draw>& list) {
+            // TU1.5 2C04A..2C068: layers2,3,4,5 follow dynamic lights and
+            // texture mapping, before25D30 fog. Do not sort them by texture.
+            for(unsigned layer=2;layer<=5;++layer)for(const auto &draw:list)
+                if(draw.count && draw_visible(draw) &&
+                   projected_decal_layers[draw.material]==layer) {
+                    material_pipeline(draw.material);bind_material(draw,draw.material);
+                    bind_draw_vertices(draw,debug_buffer);
+                    vkCmdDraw(command,draw.count,1,draw.first,0);
+                }
         };
         auto draw_texture_mapping_overlays = [&](const std::vector<Draw>& list,VkBuffer buffer) {
             // 2C052 submits layer2 after lighting/environment/self illumination
@@ -4816,6 +5057,7 @@ struct Renderer::Impl {
             draw_overlays(draws,true,vertex_buffer);
         }
         if (!debug.empty()) {draw_dynamic(dynamic_draws,atmosphere?0:-1);draw_environment(dynamic_draws);}
+        if(!debug.empty())draw_decals(dynamic_draws);
         if(atmosphere) {
             // 2BCD0 submits 25D50's selected pass before layer 16 and 15.
             // The plasma programs already attenuate
@@ -4906,7 +5148,7 @@ struct Renderer::Impl {
                 const auto first=particle_cursor;
                 while(particle_cursor<particle_draws.size() &&
                       prepared_particles[particle_cursor].before_light_volume==group)++particle_cursor;
-                if(particle_cursor>first)particle_renderer->record(command,full_viewport,scissor,
+                if(particle_cursor>first)record_particles(full_viewport,scissor,
                     first,particle_cursor-first);
 #endif
                 if(group==volume_draws.size())break;
@@ -5111,6 +5353,11 @@ struct Renderer::Impl {
                 vkCmdSetViewport(command,0,1,&model_view);vkCmdSetScissor(command,0,1,&clip);
                 vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline);
                 const auto model_matrix=view_projection(v.camera,{unsigned(model_view.width),unsigned(model_view.height)},bool(v.atmosphere),v.projection_clip_planes);
+                auto foreground_camera=v.camera;
+                if(v.foreground_projection_vertical_angle)
+                    foreground_camera.projection_vertical_angle=v.foreground_projection_vertical_angle;
+                const auto foreground_matrix=v.foreground_projection_vertical_angle?
+                    view_projection(foreground_camera,{unsigned(model_view.width),unsigned(model_view.height)},bool(v.atmosphere),v.projection_clip_planes):model_matrix;
                 visibility_bank=v.atmosphere_source;
                 bsp_admission=v.source_bsp_admission;
                 visible_clusters=visibility_bank && v.atmosphere?
@@ -5121,10 +5368,33 @@ struct Renderer::Impl {
                     glm::vec4(model_view.x,model_view.y,model_view.width,model_view.height)};
                 const auto draw_transparent=[&](unsigned phase) {
                     for(const auto &step:transparent_views[i][phase]) {
+                        if(step.contrail_source) {
+#if HALO2_SOURCE_CONTRAILS_AVAILABLE
+                            const auto index=std::size_t(step.contrail_source-v.contrails.data());
+                            if(!contrail_renderer || index>=v.contrails.size())throw FormatError("Contrail transparent range lost its prepared owner");
+                            contrail_renderer->record(command,model_view,clip,contrail_first[i]+index,1);
+#endif
+                            continue;
+                        }
+                        if(step.light_source) {
+                            for(const auto &draw:step.lights)if(draw.count) {
+                                auto push=model_uniform;push.viewport={0,0,float(extent.width),float(extent.height)};
+                                const VkViewport full{0,0,float(extent.width),float(extent.height),0,1};
+                                vkCmdSetViewport(command,0,1,&full);vkCmdSetScissor(command,0,1,&clip);
+                                vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(push),&push);
+                                vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,light_volume_pipeline);
+                                vkCmdBindVertexBuffers(command,0,1,&light_volume_buffer,&offset);
+                                vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,
+                                    &textures[draw.material].descriptor,1,&material_bank_offset);
+                                vkCmdDraw(command,draw.count,1,draw.first,0);
+                            }
+                            if(!step.lights.empty() && v.light_volume_observer)v.light_volume_observer(*step.light_source);
+                            continue;
+                        }
                         if(step.particles) {
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
                             const auto &range=view_particle_ranges[i];const auto &particles=*step.particles;
-                            if(particles.count)particle_renderer->record(command,
+                            if(particles.count)record_particles(
                                 {0,0,float(extent.width),float(extent.height),0,1},clip,
                                 (phase?range.foreground:range.world)+particles.first,particles.count);
 #endif
@@ -5133,6 +5403,7 @@ struct Renderer::Impl {
                         if(source_policy && !source_render_layer_enabled(*source_policy,15))continue;
                         auto push=model_uniform;
                         if(step.first_person_projection) {
+                            push.matrix=foreground_matrix;
                             push.position.w=2;
                             if(v.atmosphere){push.matrix*=.15f;push.eye.w=.15f;}
                         }
@@ -5179,6 +5450,14 @@ struct Renderer::Impl {
                 }
                 draw_dynamic(view_draws[i],v.atmosphere?0:-1);
                 draw_environment(view_draws[i]);
+#if HALO2_SOURCE_DECALS_AVAILABLE
+                if(decal_renderer) {
+                    const auto [first,count]=decal_ranges[i];
+                    decal_renderer->record(command,model_view,clip,first,count,1u);
+                    vkCmdSetViewport(command,0,1,&model_view);vkCmdSetScissor(command,0,1,&clip);
+                    vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
+                }
+#endif
                 if(!shadow_views[i].empty()) {
                     // Original335E0 follows world/environment layer8/20 and
                     // precedes fog, late transparency and first person.
@@ -5229,6 +5508,14 @@ struct Renderer::Impl {
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                 }
 #endif
+#if HALO2_SOURCE_DECALS_AVAILABLE
+                if(decal_renderer) {
+                    const auto [first,count]=decal_ranges[i];
+                    decal_renderer->record(command,model_view,clip,first,count,0x3eu);
+                    vkCmdSetViewport(command,0,1,&model_view);vkCmdSetScissor(command,0,1,&clip);
+                    vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
+                }
+#endif
                 if(retain_world_history && !v.background.empty()) {
                     // The named ordinary source schedule places main sky after
                     // world/shadows and before fog without clearing shared DS.
@@ -5239,8 +5526,9 @@ struct Renderer::Impl {
                     draw_dynamic(view_background[i]);draw_environment(view_background[i]);
                     sky_raster=false;
                 }
+                draw_decals(view_draws[i]);
                 if(v.atmosphere) {
-                    composite_view_fog(view_fog_descriptors[i]);
+                    if(view_fog_enabled[i])composite_view_fog(view_fog_descriptors[i]);
                     vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
                     vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                     for(const auto &draw:view_draws[i]) {
@@ -5322,6 +5610,12 @@ struct Renderer::Impl {
                 vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
                 for(const auto &draw:view_draws[i])if(draw_visible(draw) && water_materials[draw.material]) {
                     if(v.water.empty())throw FormatError("water draw has no authored viewport state");
+                    const int definition=water_material_definitions[draw.material];
+                    if(definition<0 || std::size_t(definition)>=v.water.size())throw FormatError("water sampler state has no source definition");
+                    // Source3C640 writes every logical SDK bump component.
+                    // Retain those raw values for later18540 particle writes.
+                    for(unsigned stage=1;stage<4;++stage)for(unsigned component=0;component<4;++component)
+                        particle_sampler_state[stage][component]=std::bit_cast<std::uint32_t>(v.water[definition].bump_matrices[stage][component]);
                     material_pipeline(draw.material);
                     vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&draw.descriptor,1,&material_bank_offset);
                     bind_draw_vertices(draw,debug_buffer);
@@ -5330,11 +5624,11 @@ struct Renderer::Impl {
                 // 2BCE0 -> 3C3C0 -> 2C340: independent water precedes the
                 // authored transparent queue (highest-LOD layer 15).
                 if(v.atmosphere)draw_dynamic(view_draws[i],1);
-                if(v.world_transparent)draw_transparent(0);
+                if(v.world_transparent || sorted_world_effects[i])draw_transparent(0);
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
                 const auto &particle_range=view_particle_ranges[i];
-                if(!v.world_transparent && particle_range.world_count)
-                    particle_renderer->record(command,{0,0,float(extent.width),float(extent.height),0,1},clip,
+                if(!v.world_transparent && !sorted_world_effects[i] && particle_range.world_count)
+                    record_particles({0,0,float(extent.width),float(extent.height),0,1},clip,
                         particle_range.world,particle_range.world_count);
                 vkCmdSetViewport(command,0,1,&model_view);vkCmdSetScissor(command,0,1,&clip);
 #endif
@@ -5385,6 +5679,7 @@ struct Renderer::Impl {
                     }
                     first_person_draw=bool(v.scope);
                     auto foreground_uniform=model_uniform;
+                    foreground_uniform.matrix=foreground_matrix;
                     foreground_uniform.position.w=2;
                     if(v.atmosphere) {
                         // 4D640 draw flag 0x800 selects 12D50's 0.15
@@ -5412,7 +5707,7 @@ struct Renderer::Impl {
                 }
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
                 if(!v.foreground_transparent && particle_range.foreground_count)
-                    particle_renderer->record(command,{0,0,float(extent.width),float(extent.height),0,1},clip,
+                    record_particles({0,0,float(extent.width),float(extent.height),0,1},clip,
                         particle_range.foreground,particle_range.foreground_count);
                 vkCmdSetViewport(command,0,1,&model_view);vkCmdSetScissor(command,0,1,&clip);
 #endif
@@ -5788,7 +6083,11 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
     std::span<const SourceShadowPlanMaterial> shadow_materials,
     const SourceBspResidentPlan *bsp_resident_plan,
     const std::function<void()> &before_presentation,
-    const Renderer *presentation_owner) : impl_(std::make_unique<Impl>()) {
+    const Renderer *presentation_owner,const std::filesystem::path &shader_directory) : impl_(std::make_shared<Impl>()) {
+    if(!shader_directory.empty()) {
+        impl_->shader_directory=shader_directory;
+        std::cout<<"Pinned renderer shaders: "<<impl_->shader_directory.string()<<'\n';
+    }
     if(presentation_owner)impl_->presentation=presentation_owner->impl_->presentation;
     if(const auto *path=std::getenv("HALO2_RENDER_TIMINGS");path && *path) {
         impl_->timing_report.open(path);
@@ -5800,13 +6099,16 @@ Renderer::Renderer(SDL_Window* window, const Mesh& mesh, bool validation,
     impl_->shadow_residency(mesh,shadow_materials);
     impl_->initialize(window, mesh, validation,before_presentation);
 }
-Renderer::~Renderer() = default;
+Renderer::~Renderer() {
+    device_lease_.retire();
+}
 bool Renderer::draw_loading(unsigned base,std::span<const Material> materials,
     std::span<const Vertex> vertices,const std::filesystem::path& screenshot) {
     return impl_->draw_loading(base,materials,vertices,screenshot);
 }
 void Renderer::prepare_loading(){impl_->prepare_loading();}
 void Renderer::release_presentation(){
+    device_lease_.retire();
     check(vkDeviceWaitIdle(impl_->device),"retire presentation before renderer handoff");
     impl_->destroy_swapchain();impl_->dirty=true;
 }
@@ -5826,6 +6128,37 @@ std::size_t Renderer::resident_material_images() const {
     return images.size();
 }
 void Renderer::update_image(unsigned material, const Texture& image) { impl_->update_image(material,image); }
+void Renderer::update_palettized_image(unsigned material,unsigned stage,std::span<const std::byte> raw,
+    unsigned width,unsigned height,bool swizzled,unsigned mips) {
+    auto image=palette_factory().bound(stage).decode(raw,width,height,swizzled,mips);
+    // update_image represents its sole resident level without a mip table.
+    // Remove only that redundant descriptor; multi-level chains stay intact
+    // and retain update_image's existing admission rules.
+    if(image.mips.size()==1)image.mips.clear();
+    update_image(material,image);
+}
+RendererPaletteFactory Renderer::palette_factory() {
+    if(!palette_factory_.valid())palette_factory_=RendererPaletteFactory::issue(device_lease());
+    return palette_factory_;
+}
+RendererConstantMode Renderer::constant_mode_control() {
+    const std::weak_ptr<Impl> owner=impl_;
+    return RendererConstantMode::issue(device_lease(),[owner](std::uint32_t mode) {
+        auto impl=owner.lock();
+        if(!impl || mode!=0x11)throw FormatError("Native renderer constant mode is unsupported");
+        VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(impl->physical,&properties);
+        if(!impl->material_buffer || !impl->vertex_bank_buffer || !impl->material_mapping ||
+           impl->material_uniforms.empty() || impl->vertex_bank_uniforms.empty() ||
+           properties.limits.maxUniformBufferRange<sizeof(Impl::MaterialUniform) ||
+           properties.limits.maxUniformBufferRange<sizeof(Impl::VertexBankUniform))
+            throw FormatError("Native renderer lacks its live vertex constant storage");
+        impl->source_constant_mode=mode;
+        return RendererConstantConfiguration{impl->source_constant_mode,192,true,
+            sizeof(Impl::MaterialUniform),sizeof(Impl::VertexBankUniform),
+            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->material_mapping))},
+            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->vertex_bank_uniforms.data()))}};
+    });
+}
 void Renderer::update_material_constants(std::span<const Material> materials) { impl_->update_material_constants(materials); }
 void Renderer::update_material_constants(std::span<const Material> materials,std::span<const unsigned> active) {
     impl_->update_material_constants(materials,active);
@@ -5840,6 +6173,7 @@ void Renderer::scene_atmosphere(MenuAtmosphere fog,BspAtmosphere source) {
     impl_->set_atmosphere(std::move(fog),std::move(source));
 }
 void Renderer::scene_bsp_atmosphere(const BspAtmosphere &fog) { impl_->set_bsp_atmosphere(fog); }
+void Renderer::source_fog_controls(SourceFogDrawControls controls) { impl_->fog_draw_controls=controls; }
 std::optional<BspPostprocessState> Renderer::bsp_postprocess_state() const {
     if(impl_->bsp_postprocess)return impl_->bsp_postprocess->persistent_state();
     return impl_->bsp_postprocess_state;
@@ -5875,6 +6209,15 @@ void Renderer::scene_bloom_threshold(float threshold) {
 }
 std::string Renderer::device_name() const { return impl_->gpu; }
 SourceWorldDeviceState Renderer::source_world_device_state() const { return impl_->source_world_device; }
+RendererDeviceLease Renderer::device_lease() {
+    if(!impl_->device || !impl_->physical || !impl_->queue || !impl_->render_pass || !impl_->depth_view ||
+       impl_->depth_format!=VK_FORMAT_D24_UNORM_S8_UINT ||
+       (impl_->format!=VK_FORMAT_B8G8R8A8_UNORM && impl_->format!=VK_FORMAT_R8G8B8A8_UNORM))
+        throw FormatError("Source device binding requires the live native classic color/depth renderer");
+    if(!device_lease_.valid())
+        device_lease_=RendererDeviceLease::create(NativeRuntimeAddress{reinterpret_cast<std::uintptr_t>(impl_->device)},impl_);
+    return device_lease_;
+}
 } // namespace halo2
 
 namespace halo2 { std::string Renderer::validate_display_settings(const DisplaySettings &s) const { return impl_->validate_display(s); } }

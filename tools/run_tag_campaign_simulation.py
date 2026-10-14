@@ -32,12 +32,18 @@ def main():
     parser.add_argument('--route', help='Comma-separated authored trigger volume names')
     parser.add_argument('--route-after', help='Wait for this authored device to open before following the route')
     parser.add_argument('--command-route', help='Reach these authored SET/POINT references before the volume route')
+    parser.add_argument('--route-wait-device', help='Hold inside authored VOLUME=DEVICE pairs until each device opens')
+    parser.add_argument('--restart-at', type=int, help='Request the normal checkpoint restart at this submitted step')
     parser.add_argument('--runner', type=Path, help='Small native controller, executed inside the same memory budget')
     args = parser.parse_args()
     if not 1 <= args.ticks <= 100000 or not 10 <= args.timeout <= 600:
         parser.error('Use 1..100000 steps and a 10..600 second timeout')
+    if args.restart_at is not None and not 0 <= args.restart_at < args.ticks:
+        parser.error('--restart-at must be within the submitted step budget')
     if args.route_after and not args.route:
         parser.error('--route-after requires --route')
+    if args.route_wait_device and not args.route:
+        parser.error('--route-wait-device requires --route')
     if args.command_route and not args.route:
         parser.error('--command-route requires --route')
     for path in (args.native, args.map, args.xbe):
@@ -57,9 +63,11 @@ def main():
     for option in ('require_completion', 'no_skip'):
         if getattr(args, option):
             command.append('--' + option.replace('_', '-'))
-    for option in ('route', 'route_after', 'command_route'):
+    for option in ('route', 'route_after', 'command_route', 'route_wait_device'):
         if getattr(args, option):
             command.append('--' + option.replace('_', '-') + '=' + getattr(args, option))
+    if args.restart_at is not None:
+        command.append('--restart-at=' + str(args.restart_at))
     if args.runner:
         # Replace this in-budget Python process. Hashing, child execution and
         # validation all remain inside the exact same verified cgroup.

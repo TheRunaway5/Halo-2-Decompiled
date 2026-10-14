@@ -1,4 +1,5 @@
 #include "halo2/native_unit_interaction.hpp"
+#include "halo2/source_ai_squad_team.hpp"
 #include "halo2/content.hpp"
 #include "halo2/fp_registration.hpp"
 #include "halo2/math.hpp"
@@ -166,6 +167,9 @@ BspContent Cache::load_bsp_content(std::size_t index) const {
              instances = TagAddressSpace(meta, magic).block(16 + 0x140, 0x58);
   std::vector<std::vector<CollisionTriangle>> prototypes(definitions.count);
   std::vector<bool> loaded(definitions.count);
+  auto triangle_count = out.collision.size();
+  // Count the retained prototypes before appending instances. Reserving their
+  // exact total avoids a second large collision buffer during BSP streaming.
   for (std::size_t i = 0; i < instances.count; ++i) {
     const auto at = instances.offset + i * 0x58;
     const auto def = meta.u16(at + 0x34);
@@ -176,6 +180,16 @@ BspContent Cache::load_bsp_content(std::size_t index) const {
           collision(meta, definitions.offset + def * 0xc8 + 0x70, magic);
       loaded[def] = true;
     }
+    if (prototypes[def].size() > out.collision.max_size() - triangle_count)
+      throw FormatError("collision expansion limit exceeded");
+    triangle_count += prototypes[def].size();
+    if (triangle_count > 5000000)
+      throw FormatError("collision expansion limit exceeded");
+  }
+  out.collision.reserve(triangle_count);
+  for (std::size_t i = 0; i < instances.count; ++i) {
+    const auto at = instances.offset + i * 0x58;
+    const auto def = meta.u16(at + 0x34);
     const auto scale = real(meta, at);
     std::array<float, 12> m{};
     for (std::size_t j = 0; j < m.size(); ++j)
@@ -197,8 +211,6 @@ BspContent Cache::load_bsp_content(std::size_t index) const {
       tri.source.instance=static_cast<std::int32_t>(i);
       out.collision.push_back(tri);
     }
-    if (out.collision.size() > 5000000)
-      throw FormatError("collision expansion limit exceeded");
   }
   return out;
 }
@@ -699,6 +711,79 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
             w.damage_camouflage_amount=real(data,d+0x30);
           }
         }
+        // Literal single charge trigger with two free-projectile barrels.
+        // Import both immutable views before admitting their native consumer.
+        if(multiplayer && w.triggers.size()==1 && w.triggers[0].input==0 &&
+            w.triggers[0].behavior==2 && w.triggers[0].charging_type==1 &&
+            w.triggers[0].discharge_type==0 && w.triggers[0].charged_action==0 &&
+            w.triggers[0].discharging_seconds==0 && barrels.count==2 &&
+            w.weapon_type==3 && real(data,p+0x154)>0 && real(data,p+0x15c)==0 &&
+            !(w.inventory_flags&((1u<<19)|(1u<<25)|(1u<<27))) && out.original_data &&
+            out.original_data->image!=OriginalData::Image::Base && out.original_data->unit_animation_constants) {
+          const auto base=w;const auto &constants=*out.original_data->unit_animation_constants;
+          for(unsigned index=0;index<2;++index) {
+            const auto at=barrels.offset+index*0xec;auto v=std::make_shared<WeaponDefinition>(base);
+            v->barrel_timing=WeaponDefinition::BarrelTiming{
+              {data.u32(at),real(data,at+4),real(data,at+8),real(data,at+0x20),real(data,at+0x24),
+                real(data,p+0x258),std::int16_t(i16(data,at+0x1c)),std::int16_t(i16(data,at+0x1e))},
+              {std::bit_cast<float>(constants.one_bits),std::bit_cast<float>(constants.frame_subtractor_bits)},
+              real(data,at+0xd4),real(data,at+0xd8),std::int16_t(index),real(data,at+0xcc)};
+            v->energy=WeaponDefinition::Energy{
+              {real(data,p+0x150),real(data,p+0x154),real(data,p+0x160),real(data,p+0x168),
+                real(data,p+0x254),std::int16_t(w.weapon_type),data.u32(p+0x170)},
+              {data.u32(p+0x2fc),data.u32(p+0x304)},real(data,at+0xa4),real(data,at+0xa8),
+              std::bit_cast<float>(constants.one_bits),std::bit_cast<float>(constants.rng_scale_bits),
+              real(data,p+0x25c),real(data,p+0x260),real(data,p+0x158),real(data,p+0x15c)};
+            v->barrel_effect_a_threshold=real(data,at+0x9c);v->barrel_effect_b_threshold=real(data,at+0xa0);
+            v->barrel_effect_a_decay=real(data,at+0xd0);v->barrel_rate_threshold=real(data,at+0x18);
+            v->barrel_charge_scale=real(data,at+0x14);
+            v->rounds_per_shot=i16(data,at+0x2a);v->minimum_rounds=i16(data,at+0x2c);
+            v->rounds_per_second=real(data,at+4);v->fire_recovery=real(data,at+0x20);
+            v->burst=i16(data,at+0x1c);v->projectiles_per_shot=i16(data,at+0x6a);
+            v->distribution=i16(data,at+0x68);v->distribution_angle=real(data,at+0x6c);v->minimum_error=real(data,at+0x70);
+            v->dual_damage_scale=real(data,at+0x64);
+            v->firing_error=w.barrel_ammunition.at(index).error;
+            v->projectile=data.u32(at+0x90);v->random_firing_effects=(data.u32(at)&2u)!=0;
+            v->firing_effects.clear();const auto bank=TagAddressSpace(data,metadata_magic_).block(at+0xe4,0x34);
+            for(unsigned entry=0;entry<bank.count;++entry) {
+              const auto e=bank.offset+entry*0x34;WeaponFiringEffectDefinition definition;
+              definition.minimum=i16(data,e);definition.maximum=i16(data,e+2);
+              for(unsigned selection=0;selection<3;++selection) {
+                definition.effects[selection]=data.u32(e+8+selection*8);
+                definition.damage_effects[selection]=data.u32(e+0x20+selection*8);
+              }
+              v->firing_effects.push_back(definition);
+            }
+            if(i16(data,at+0x28)!=-1 || v->distribution!=0 || v->projectiles_per_shot!=1 ||
+                v->random_firing_effects || (data.u32(at)&(1u<<12)) || v->barrel_rate_threshold!=0 ||
+                bank.count==0 || bank.count>16 ||
+                !std::all_of(v->firing_effects.begin(),v->firing_effects.end(),[](const auto &e){return e.minimum==1 && e.maximum==1;}))
+              throw FormatError("Charged barrel requires additional original preparation owners");
+            v->firing_presentation=WeaponDefinition::FiringPresentation{real(data,at+0xd4),real(data,at+0xd8)};
+            v->sound=effect_sound(v->firing_effects[0].effects[0],0);
+            const auto *projectile=find(v->projectile,"proj");if(!projectile)throw FormatError("Charged barrel projectile is missing");
+            const auto q=root(*projectile,0x1a4);
+            if(real(data,q+0x17c)!=real(data,q+0x180) || real(data,q+0xd4)!=0 || real(data,q+0xd8)!=0 ||
+                real(data,q+0xcc)!=0 || (data.u32(q+0xbc)&~0x401u))
+              throw FormatError("Charged projectile requires additional original birth owners");
+            v->projectile_speed=real(data,q+0x17c);v->projectile_gravity=real(data,q+0x164);
+            v->projectile_flags=data.u32(q+0xbc);v->projectile_dry_damage_range=real(data,q+0x16c);
+            v->range=real(data,q+0xe0);v->instantaneous=(v->projectile_flags&32u)!=0;
+            const auto responses=TagAddressSpace(data,metadata_magic_).block(q+0x19c,0x58);
+            const auto bytes=data.slice(responses.offset,responses.count*0x58);
+            v->projectile_material_responses.assign(bytes.begin(),bytes.end());
+            v->damage=data.u32(q+0x14c);const auto *damage=find(v->damage,"jpt!");
+            if(!damage)throw FormatError("Charged projectile damage definition is missing");
+            const auto d=root(*damage,0x58);
+            v->damage_min=real(data,d+0x1c);v->damage_max=real(data,d+0x24);
+            v->damage_amount=DamageAmountDefinition{real(data,d+0x1c),real(data,d+0x20),real(data,d+0x24)};
+            v->damage_flags=data.u32(d+0x14);v->damage_group=data.u32(d+0x50);v->damage_group_b=data.u32(d+0x54);
+            v->damage_side_effect=i16(data,d+0x10);v->damage_category=i16(data,d+0x12);v->damage_camouflage_amount=real(data,d+0x30);
+            w.barrel_views.push_back(std::move(v));
+          }
+          w.charged_cycle=true;w.barrel_timing=w.barrel_views[0]->barrel_timing;
+          w.energy=w.barrel_views[0]->energy;w.firing_presentation=w.barrel_views[0]->firing_presentation;
+        }
         if(w.barrel_timing)for(unsigned representation=0;representation<2;++representation) {
           const auto binding=load_first_person_binding(w.datum,int(representation+2));
           for(unsigned dual=0;dual<2;++dual) {
@@ -717,6 +802,14 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
         out.limitations.push_back(tag.name + ": " + e.what());
       }
     }
+  if(const auto globals=query_tag({.group=tag_groups::globals})) {
+    const auto g=root(*globals,0x100);
+    if(data.u32(g+0xf8) && data.u32(g+0xfc)) {
+      const auto d=metadata_offset(data.u32(g+0xfc),0xb0);std::array<float,4> scale;
+      for(unsigned level=0;level<4;++level)scale[level]=real(data,d+0xa0+level*4);
+      out.projectile_difficulty_speed=scale;
+    }
+  }
   std::set<std::uint32_t> visiting;
   std::function<CharacterDefinition(std::uint32_t)> character =
       [&](std::uint32_t id) {
@@ -736,8 +829,10 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
         if (data.u32(p + 0x10) != null_datum)
           c.biped = biped(data.u32(p + 0x10));
         const auto general = TagAddressSpace(data, metadata_magic_).block(p + 0x34, 0xc);
-        if (general.count)
+        if (general.count) {
           c.actor_type = i16(data, general.offset + 4);
+          c.general_flags = data.u32(general.offset);
+        }
         const auto vitality = TagAddressSpace(data, metadata_magic_).block(p + 0x3c, 0x70),
                    perception = TagAddressSpace(data, metadata_magic_).block(p + 0x4c, 0x34);
         if (vitality.count) {
@@ -1065,12 +1160,13 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
         out.multiplayer_starting_equipment_flags = data.u32(at);
       }
     }
-    const auto killers=TagAddressSpace(data, metadata_magic_).block(s+0x230, 2);
-    for(std::size_t i=0;i<killers.count;++i) {
-      const auto index=data.u16(killers.offset+i*2);
-      if(index>=out.trigger_volumes.size())throw FormatError("Kill trigger index outside authored volumes");
-      out.kill_triggers.push_back(index);
-    }
+  }
+  // Kill triggers belong to every scenario, including campaign.
+  const auto killers=TagAddressSpace(data, metadata_magic_).block(s+0x230, 2);
+  for(std::size_t i=0;i<killers.count;++i) {
+    const auto index=data.u16(killers.offset+i*2);
+    if(index>=out.trigger_volumes.size())throw FormatError("Kill trigger index outside authored volumes");
+    out.kill_triggers.push_back(index);
   }
   if (scenario->size >= 0x388) {
     const auto transitions = TagAddressSpace(data, metadata_magic_).block(s + 0x380, 8);
@@ -1082,20 +1178,30 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
       out.bsp_transitions.push_back({data.u32(p),volume});
     }
   }
+  const auto squad_groups = TagAddressSpace(data, metadata_magic_).block(s + 0x158, 0x24, 100);
+  for (std::size_t i = 0; i < squad_groups.count; ++i)
+    out.squad_group_parents.push_back(std::int16_t(i16(data, squad_groups.offset + i*0x24 + 0x20)));
   for (std::size_t i = 0; i < squads.count; ++i) {
     const auto p = squads.offset + i * 0x74;
     SquadDefinition squad;
     squad.name = data.string(p, 32);
     squad.flags = data.u32(p + 0x20);
-    squad.team = i16(data, p + 0x24);
-    if (!squad.team) {
+    squad.parent_group = std::int16_t(i16(data, p + 0x26));
+    const auto authored_team = std::to_integer<std::uint8_t>(data.slice(p + 0x24, 1)[0]);
+    squad.team = std::int8_t(authored_team);
+    if (!authored_team) {
       const auto id = palette(chars, 8, i16(data, p + 0x36));
       const auto c = character(id);
-      squad.team = c.biped.team;
-      constexpr int teams[]{3, 7, 3, 3, 3,  3, 1, 2, 2, 4,
-                            4, 4, 5, 5, -1, 3, 7, 7, 7, 4};
-      if (!squad.team && c.actor_type >= 0 && c.actor_type < 20)
-        squad.team = teams[c.actor_type];
+      std::uint8_t local_team{};
+      if (const auto *definition = find(id, "char")) {
+        const auto q = root(*definition, 0x20);
+        auto unit = data.u32(q + 0x10);
+        auto group = tag_groups::unit;
+        if (unit == null_datum) { unit = data.u32(q + 0x18); group = tag_groups::creature; }
+        if (const auto *preferred = find_tag({unit}, group); preferred && preferred->address)
+          local_team = std::to_integer<std::uint8_t>(data.slice(root(*preferred, 0xc1) + 0xc0, 1)[0]);
+      }
+      squad.team = std::int8_t(source_ai_squad_team(authored_team, local_team, std::int16_t(c.actor_type)));
     }
     squad.count = i16(data, p + 0x2c);
     squad.zone = i16(data, p + 0x38);
@@ -1114,7 +1220,8 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
         wi = i16(data, p + 0x3c);
       ActorPlacement a{point(data, q + 4),         real(data, q + 0x14),
                        data.u32(q + 0x1c),         palette(chars, 8, ci),
-                       palette(weapons, 0x28, wi), data.string(q + 0x40, 32)};
+                       palette(weapons, 0x28, wi), data.string(q + 0x40, 32),
+                       std::int16_t(i16(data,q+0x10)), data.u32(q)};
       if (a.character != null_datum)
         character(a.character);
       squad.starts.push_back(std::move(a));
@@ -1206,22 +1313,34 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
   // 15AAD0's stock vehicle choices retain the collection's definition and variant.
   // Templates remain cold until the phased netgame row actually allocates them.
   const auto heavy=source_game_variant_get(variant,78);
+  if(multiplayer)out.light_vehicle_options={source_game_variant_get(variant,76),source_game_variant_get(variant,77)};
+  const auto &light=out.light_vehicle_options;
+  for(const auto &row:out.netgame_equipment)if(row.classification==1 || row.classification==2) {
+    const auto choice=light[row.classification-1];
+    if(choice<0 || choice>7 || choice==6)
+      throw FormatError("Random or invalid Light Vehicle choice needs its original per-birth RNG/template owner");
+  }
   std::array<std::uint32_t,2> heavy_choices{null_datum,null_datum};
-  if(multiplayer && heavy) {
-    if(heavy!=1 && heavy!=2 && heavy!=4)
+  std::array<std::uint32_t,7> vehicle_choices{};vehicle_choices.fill(null_datum);
+  if(multiplayer && (heavy || light[0] || light[1])) {
+    if(heavy && heavy!=1 && heavy!=2 && heavy!=4)
       throw FormatError("Random Primary Heavy Vehicle needs its original per-birth RNG/template owner");
     // Literal TU1.5 15CC70 uses matg+16C -> mulg+C -> runtime+74.
     // Choices1/2 are the authored reference rows at+14/+1C, with the
     // original default variant B00078B. No definition is inferred by name.
     const auto globals=query_tag({.group=tag_groups::globals});
-    if(!globals)throw FormatError("Missing original heavy-vehicle globals");
+    if(!globals)throw FormatError("Missing original vehicle-choice globals");
     const auto *mulg=find(data.u32(root(*globals,0x170)+0x16c),"mulg");
-    if(!mulg)throw FormatError("Missing original heavy-vehicle runtime globals");
+    if(!mulg)throw FormatError("Missing original vehicle-choice runtime globals");
     const auto runtime=TagAddressSpace(data,metadata_magic_).block(root(*mulg,0x10)+8,0x568,1);
-    if(runtime.count!=1)throw FormatError("Missing original heavy-vehicle runtime block");
+    if(runtime.count!=1)throw FormatError("Missing original vehicle-choice runtime block");
     const auto choices=TagAddressSpace(data,metadata_magic_).block(runtime.offset+0x70,8);
     if(choices.count<4)throw FormatError("Missing original heavy-vehicle choices");
     heavy_choices={data.u32(choices.offset+0x14),data.u32(choices.offset+0x1c)};
+    if(light[0] || light[1]) {
+      if(choices.count<vehicle_choices.size())throw FormatError("Missing original light-vehicle choices");
+      for(unsigned i=0;i<vehicle_choices.size();++i)vehicle_choices[i]=data.u32(choices.offset+i*8+4);
+    }
   }
   for(unsigned row_index=0;row_index<out.netgame_equipment.size();++row_index){const auto &row=out.netgame_equipment[row_index];
     if(row.classification<=0 || row.classification>=10)continue;
@@ -1231,6 +1350,20 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
       definition=heavy_choices.at(unsigned(heavy-1));selected_variant=0x0b00078bu;
     } else if(row.items.size()==1 && row.items.front().group==0x76656869u) {
       definition=row.items.front().definition;selected_variant=row.items.front().variant;
+    }
+    if(multiplayer && (row.classification==1 || row.classification==2)) {
+      // Literal15CEF0 class1/2 ->15CB60: fixed reference rows and variant
+      // writes. Choice0 retains the collection; choice6 requires per-birth RNG.
+      switch(light[row.classification-1]) {
+        case 0:break;
+        case 1:definition=vehicle_choices[0];selected_variant=0;break;
+        case 2:definition=vehicle_choices[0];selected_variant=0x05000694u;break;
+        case 3:definition=vehicle_choices[1];selected_variant=0;break;
+        case 4:definition=vehicle_choices[6];selected_variant=0;break;
+        case 5:definition=vehicle_choices[5];selected_variant=0;break;
+        case 7:definition=null_datum;break;
+        default:throw FormatError("Unresolved original light-vehicle choice");
+      }
     }
     if(definition==null_datum)continue;
     ScenarioObject vehicle;

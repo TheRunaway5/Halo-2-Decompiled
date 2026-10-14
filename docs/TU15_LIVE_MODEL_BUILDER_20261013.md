@@ -60,8 +60,50 @@ construction/reset and the CPU bitmap-view helper from concurrent work. These
 are dependencies, not newly authored substitutes or shader fixes. The frozen
 tree remains separate from the current combined launcher delivery.
 
-Still required: finish live render-entry/presentation/draw collection and
-shared BSP/model light commands; validate current owner/palette lifetimes;
-obtain a visibly active matched original model-light case. The current complete
+The native live collector now joins original render-entry, presentation and
+resource owners, producing eight draw units from two genuinely created bipeds.
+The shared BSP/model light owner uses current native object admission, draw
+units, palettes, commands, opaque selection and indexed ranges without an
+intermediate expected-result fixture. Its controlled two-biped query produces
+10 raw model packets / 1,896 indices with two distinct full object owners.
+
+`live-collection-v3/collect/original-commands.json` compares the unchanged
+TU1.5 `40E80` and `3BAA0` against these native outputs. All three command banks,
+ordered calls, selected opaque records and 58,994,774 retained bytes agree;
+14,820 original instructions / 1,429 distinct instructions were authenticated.
+Eight unchanged `4D820` / `15280` executions reach their actual `401410` upload
+boundary with exactly the native c50 words. No instruction or callee result is
+substituted. The declared caller inputs and excluded temporary ranges are
+recorded by the oracle. This is CPU-path evidence, not an original image.
+
+This test exposed and fixed an actual geometry-header error: original `44930`
+returns mode section+4. Reading section+0 incorrectly classified skinned
+sections as rigid in opaque selection. The original opaque selector now
+confirms the corrected class. Seven focused receiver/range/cull regressions
+pass (`live-light-regressions-v1.log`).
+
+Attachment queue traversal uses the compiled original `41C70` / `41C10` /
+`D7230` / `41970` entries. The current fresh-biped cases consume empty
+attachment lists; nonempty antenna/cloth services and deep attachment context
+remain open. The partial-sphere cull adapter also still requires a live case.
+
+The controlled Vulkan capture `live-light-gpu-v3` now shows visible grenade
+illumination on a freshly created Chief using current native pose, cache
+lighting and raw model packets:5 packets /33,022 changed RGB channels at960x720.
+The original depth EQUAL contract is retained and validation reports no errors.
+`comparison-crop.png` is a labeled native diagnostic, not a matched Xbox frame.
+
+Six genuine smaller-sphere queries and three explicitly declared subpart-cull
+requests agree with unchanged44710/45550 (`live-collection-v5/collect/
+original-cull.json`). All58,994,774 retained bytes per case also agree. However,
+the actual cold Chief has no mode+74/+7C attribution, and its selected subparts
+are unconditional. The24 declared subpart calls perform zeroBAC30 node reads.
+The oracle therefore rejects its required posed-bound coverage gate; this
+cannot establish visible partial-body culling. No production flags or bounds
+were changed to manufacture that coverage.
+
+Still required: join the shared owner into
+normal gameplay with matching base-pass pose/geometry, validate owner/palette
+lifetimes, and obtain matched original model-light frames. The current complete
 28-draw grenade segment remains at164 differing pixels, so strict pixel parity
 is still open. No invisible draw or passing CPU fixture closes that gate.

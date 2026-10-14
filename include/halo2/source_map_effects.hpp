@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/source_scene_effect_owner.hpp"
 #include "halo2/world_effects.hpp"
+#include "halo2/source_world_pose.hpp"
 #include <memory>
 
 namespace halo2 {
@@ -19,7 +20,8 @@ class SourceMapEffects {
 public:
     SourceMapEffects(const Cache &,std::span<const ScenarioObject>,NativeWorldEffects &);
     ~SourceMapEffects();
-    void synchronize(std::span<const SourceSceneEffectOwner>,std::uint64_t tick);
+    void synchronize(std::span<const SourceSceneEffectOwner>,std::uint64_t tick,
+        std::span<const SourceSceneRoot> source_roots={});
     SourceMapEffectStats stats() const;
 private:
     struct Impl;

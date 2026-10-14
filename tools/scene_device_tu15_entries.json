@@ -502,6 +502,61 @@
         3104537,
         3104552
       ]
+    },
+    "0011e100": {
+      "count": 17,
+      "calls": [
+        1171840
+      ],
+      "indirect_call_sites": []
+    },
+    "0011e180": {
+      "count": 60,
+      "calls": [
+        1098384
+      ],
+      "indirect_call_sites": [],
+      "tables": [
+        {
+          "address": 1172064,
+          "width": 4,
+          "count": 4,
+          "raw_hex": "e1e11100f4e11100efe11100fee11100"
+        }
+      ]
+    },
+    "0010c1f0": {
+      "count": 23,
+      "calls": [
+        758672,
+        1098384
+      ],
+      "indirect_call_sites": []
+    },
+    "0010c240": {
+      "count": 22,
+      "calls": [
+        758672,
+        1098384,
+        1099216
+      ],
+      "indirect_call_sites": []
+    },
+    "0010c420": {
+      "count": 19,
+      "calls": [
+        1098976
+      ],
+      "indirect_call_sites": []
+    },
+    "0010c4e0": {
+      "count": 63,
+      "calls": [
+        758672,
+        773856,
+        1099216
+      ],
+      "indirect_call_sites": []
     }
   }
 }

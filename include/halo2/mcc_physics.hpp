@@ -28,4 +28,10 @@ std::vector<std::byte> normalize_mcc_collision_model(
 // TU1.5 171120/24FF70 is repacked in its existing reserved 0xA0-byte bank.
 std::vector<std::byte> normalize_mcc_structure_bsp_physics(
     std::span<const std::byte> payload, std::uint32_t source_address);
+enum class MccUnitPhysicsKind { Biped, Creature, Vehicle };
+// Preserve the complete object/unit definition and its allocation. Compact
+// only the embedded shape banks consumed by actual1CAF40 /20D810. Original
+// constructors must bind their runtime-only slots before gameplay admission.
+std::vector<std::byte> normalize_mcc_unit_physics(
+    std::span<const std::byte> payload, std::uint32_t source_address, MccUnitPhysicsKind);
 }

@@ -11,7 +11,7 @@ namespace {
 constexpr std::size_t maximum=128ull*1024*1024;
 enum class Record { Copy, Root, NodeEdge, Region, Permutation, Curve,
     Body, Sphere, MultiSphere, Pill, Box, Triangle, Polyhedron, List, ListChild, Mopp, Phantom,
-    CollisionRoot, CollisionRegion, CollisionPermutation, CollisionBsp, CollisionPhysics };
+    CollisionRoot, CollisionRegion, CollisionPermutation, CollisionBsp, CollisionPhysics, VehiclePhantom };
 struct Block {unsigned offset,source_stride,target_stride;Record record;bool data=false;unsigned target_offset=offset;};
 // Assembly fd14ef3c46135e9422966c6a64cd926fb0bd23fb Halo2MCC/Halo2 phmo;
 // original TU1.5 1F2C70 / 1F31E0 establish the pre-bind runtime slots.
@@ -86,6 +86,20 @@ void pack(Record kind,std::span<const std::byte> input,std::span<std::byte> out)
         std::fill(out.begin(),out.end(),std::byte{});
         shape_header(0,0);copy(0x20,0x10,0x30);
         shape_header(0x50,0x40);shape_header(0x70,0x50);copy(0x98,0x64,8);return;
+    }
+    if(kind==Record::VehiclePhantom) {
+        // Actual20D810 binds the list, its child pointers/filters, and each
+        // active multisphere. The compiled bank reserves four multisphere
+        // slots, not merely the first slot described by the generic plugin.
+        if(source.u32(0x68)>4)throw FormatError("MCC vehicle phantom exceeds four inline child slots");
+        shape_header(0,0);copy(0x20,0x10,8);copy(0x68,0x38,0x28);
+        for(unsigned i=0;i<4;++i) {
+            copy(0x30+i*0x10,0x1c+i*8,4);
+            shape_header(0x90+i*0xa0,0x60+i*0x90);
+            copy(0xa8+i*0xa0,0x6c+i*0x90,4);
+            copy(0xb0+i*0xa0,0x70+i*0x90,0x80);
+        }
+        return;
     }
     if(kind==Record::CollisionPermutation && source.u32(0xc) && source.u32(0xc)!=source.u32(4))
         throw FormatError("MCC collision physics does not correspond to its BSP array");
@@ -256,6 +270,65 @@ std::vector<std::byte> normalize_mcc_structure_bsp_physics(
     for(auto bank:banks) {
         pack(Record::CollisionPhysics,source.slice(bank,0xa0),std::span(result).subspan(bank,0x70));
         if(!source.u32(bank+0x98))word(result,bank+0x68,0);
+    }
+    return result;
+}
+std::vector<std::byte> normalize_mcc_unit_physics(
+    std::span<const std::byte> payload,std::uint32_t source_address,MccUnitPhysicsKind kind) {
+    const Bytes source(payload);
+    const unsigned root_size=kind==MccUnitPhysicsKind::Biped?0x314:kind==MccUnitPhysicsKind::Creature?0x180:0x300;
+    source.require(0,root_size);
+    if(payload.size()>maximum || std::uint64_t(source_address)+payload.size()>0x100000000ull)
+        throw FormatError("Excessive MCC embedded unit physics allocation");
+    const auto offset=[&](std::uint32_t address,std::size_t bytes) {
+        if(address<source_address || std::uint64_t(address)-source_address>payload.size() ||
+           bytes>payload.size()-(std::uint64_t(address)-source_address))
+            throw FormatError("MCC embedded unit physics escapes its tag owner");
+        return std::size_t(address-source_address);
+    };
+    // Pinned Assembly MCC root block descriptors, excluding the converted
+    // shapes. Their authored records must not alias a converted shape bank.
+    constexpr std::array<std::pair<unsigned,unsigned>,17> other_blocks{{
+        {0x5c,0x10},{0x64,0x20},{0x94,0x18},{0x9c,8},{0xa4,0x50},{0xac,0x10},{0xb4,8},
+        {0xe8,8},{0x198,0x10},{0x1a0,8},{0x1a8,0xc},{0x1b8,8},{0x1c0,8},{0x1c8,0xb0},
+        {0x268,0x44},{0x2e8,0x4c},{0x2f0,0x4c}}};
+    std::vector<std::pair<std::size_t,std::size_t>> authored{{0,root_size}};
+    const auto retain=[&](unsigned descriptor,unsigned stride) {
+        const auto count=source.u32(descriptor);
+        if(count>65536)throw FormatError("Excessive MCC embedded unit block count");
+        if(count)authored.emplace_back(offset(source.u32(descriptor+4),std::size_t(count)*stride),std::size_t(count)*stride);
+    };
+    for(std::size_t i=0;i<(kind==MccUnitPhysicsKind::Creature?7:kind==MccUnitPhysicsKind::Biped?14:17);++i)
+        retain(other_blocks[i].first,other_blocks[i].second);
+    if(kind==MccUnitPhysicsKind::Biped)retain(0x2f8,4);
+    struct Bank {std::size_t at;unsigned count,source_stride,target_stride;Record record;};
+    std::vector<Bank> banks;
+    const auto add=[&](unsigned descriptor,unsigned from,unsigned to,Record record) {
+        const auto count=source.u32(descriptor);
+        if(count>65536)throw FormatError("Excessive MCC embedded shape count");
+        if(!count)return;
+        const auto at=offset(source.u32(descriptor+4),std::size_t(count)*from),bytes=std::size_t(count)*from;
+        const auto overlap=[&](std::size_t p,std::size_t size){return at<p+size && p<at+bytes;};
+        for(const auto& [p,size]:authored)if(overlap(p,size))throw FormatError("MCC embedded physics overlaps authored unit metadata");
+        for(const auto& bank:banks)if(overlap(bank.at,std::size_t(bank.count)*bank.source_stride)) {
+            if(at==bank.at && count==bank.count && record==bank.record)return;
+            throw FormatError("MCC embedded shape banks overlap with different layouts");
+        }
+        banks.push_back({at,count,from,to,record});
+    };
+    if(kind==MccUnitPhysicsKind::Vehicle) {
+        if(source.u32(0x2f8)>1)throw FormatError("MCC vehicle has more than its verified single phantom bank");
+        add(0x2f8,0x310,0x2a0,Record::VehiclePhantom);
+    }else {
+        const auto descriptor=kind==MccUnitPhysicsKind::Biped?0x284u:0xf4u;
+        add(descriptor,0xa0,0x80,Record::Sphere);add(descriptor+8,0x60,0x50,Record::Pill);
+        add(descriptor+16,0xa0,0x80,Record::Sphere);
+    }
+    std::vector<std::byte> result(payload.begin(),payload.end());
+    for(const auto& bank:banks)for(std::size_t i=0;i<bank.count;++i) {
+        std::vector<std::byte> packed(bank.target_stride);
+        pack(bank.record,source.slice(bank.at+i*bank.source_stride,bank.source_stride),packed);
+        std::copy(packed.begin(),packed.end(),result.begin()+std::ptrdiff_t(bank.at+i*bank.target_stride));
     }
     return result;
 }

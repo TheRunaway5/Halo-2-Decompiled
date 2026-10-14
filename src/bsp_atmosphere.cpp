@@ -522,6 +522,29 @@ MenuFogComposite bsp_fog_composite(const BspFogSample &fog,float far) {
     result.lookup_coordinates={{{far*pr,0,-fog.primary.start*pr,0},{far*sr,0,-fog.secondary.start*sr,0}}};
     return result;
 }
+std::optional<SourceFogDrawKind> source_fog_draw_selection(unsigned classification,
+    SourceFogDrawControls controls) {
+    if(controls.suppressed)return {};
+    if(classification==1 || classification==4 || classification==5 || controls.force_atmospheric)
+        return SourceFogDrawKind::Atmospheric;
+    if(classification==2 || classification==3)return SourceFogDrawKind::Sky;
+    return {};
+}
+std::optional<MenuFogComposite> bsp_fog_draw(const BspFogSample &fog,float far,
+    SourceFogDrawControls controls) {
+    const auto selected=source_fog_draw_selection(fog.classification,controls);
+    if(!selected)return {};
+    if(*selected==SourceFogDrawKind::Atmospheric)return bsp_fog_composite(fog,far);
+    // Whole26500 admits only a positive491FD4 eye opacity. Its quad is at
+    // maximum W with LEQUAL; word54=0 retains that depth test in fog.frag.
+    if(!(fog.sky_opacity>0.f))return {};
+    const auto byte=[](float v){return std::uint32_t(std::nearbyint(double(saturated(v))*255.));};
+    const auto rgb=fog.sky_color_premultiplied;
+    MenuFogComposite result;auto &w=result.program.words;
+    w[8]=0x01200000;w[9]=0x1100;
+    w[43]=byte(fog.sky_opacity)<<24|byte(rgb.x)<<16|byte(rgb.y)<<8|byte(rgb.z);
+    w[53]=0x11001;return result;
+}
 std::optional<unsigned> bsp_planar_fog_implementation(const BspFogSample &fog,bool containing) {
     // 1332F0 sets admission bits 0x80/0x100; 4CBF0 layer 16 consumes them.
     if(fog.classification!=3 || (!containing && fog.planar_only))return {};

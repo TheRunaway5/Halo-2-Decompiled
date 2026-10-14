@@ -5,6 +5,23 @@
 #include <unordered_map>
 
 namespace halo2 {
+void capture_multiplayer_body_poses(SourceWorldInterpolation &history,
+    const MultiplayerState &previous,const MultiplayerState &current,bool reset) {
+    if(reset || previous.source_body_poses_authoritative!=current.source_body_poses_authoritative) {
+        history.reset(current.tick,current.source_body_poses);return;
+    }
+    std::vector<std::uint32_t> cuts;
+    for(unsigned i=0;i<current.players.size();++i) {
+        const auto &a=previous.players[i],&b=current.players[i];
+        if(a.connected==b.connected && a.dead==b.dead && a.source_player==b.source_player &&
+            a.source_unit==b.source_unit && a.source_parent==b.source_parent && a.source_seat==b.source_seat)continue;
+        // The native root already treats attachment/death as discrete. Apply
+        // that same boundary to the actual skin and both carried weapons.
+        for(auto object:{a.source_unit,b.source_unit,a.source_weapon,b.source_weapon,
+            a.secondary_weapon.datum,b.secondary_weapon.datum})if(object!=null_datum)cuts.push_back(object);
+    }
+    history.capture(current.tick,current.source_body_poses,cuts);
+}
 MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
     const MultiplayerState &current,float fraction) {
     validate_render_fraction(fraction);
@@ -16,7 +33,7 @@ MultiplayerState multiplayer_presentation(const MultiplayerState &previous,
         const auto &a=previous.players[i],&b=current.players[i];auto &out=shown.players[i];
         if(!a.connected || !b.connected || a.dead || b.dead ||
            a.source_player!=b.source_player || a.source_unit!=b.source_unit ||
-           a.source_parent!=b.source_parent || length(a.position-b.position)>=5)continue;
+           a.source_parent!=b.source_parent || a.source_seat!=b.source_seat || length(a.position-b.position)>=5)continue;
         out.position=render_lerp(a.position,b.position,fraction);
         out.yaw=render_angle(a.yaw,b.yaw,fraction);
         out.pitch=std::lerp(a.pitch,b.pitch,fraction);out.crouch=std::lerp(a.crouch,b.crouch,fraction);

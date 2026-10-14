@@ -135,20 +135,21 @@ int main(int argc,char **argv) try {
   }
   const auto saved=original->ownership_checkpoint(),old=resumed.ownership_checkpoint();
   const auto bank=source.checkpoint(),old_bank=target.checkpoint();
+  SourceRuntimeMemory replacement;replacement.restore(bank);
   {
     SourceRuntimeMemory empty;
     SourcePhysicsGameArenaNative cold(empty,{target_files.path,0x60100000u,{0x27f,0x1f80},{}});
     cold.stop();
-    rejects([&]{cold.prepare_ownership(saved,bank);}); // Imported bytes cannot fabricate a local startup thread.
+    rejects([&]{cold.prepare_ownership(saved,bank,replacement);}); // Imported bytes cannot fabricate a local startup thread.
     check(empty.checkpoint().regions.empty(),"Rejected cold-owner import changed its bank");
   }
   const auto old_native=target.native_address(retained,1);
   const auto fd_count=descriptors();const auto wait_count=target_schedule.idle;
   {
-    auto stage=resumed.prepare_ownership(saved,bank);
+    auto stage=resumed.prepare_ownership(saved,bank,replacement);
     check(stage.for_owner(resumed) && descriptors()==fd_count+2,"Arena files were not staged as real independent descriptors");
     rejects([&]{resumed.ownership_checkpoint();});
-    rejects([&]{resumed.prepare_ownership(saved,bank);});
+    rejects([&]{resumed.prepare_ownership(saved,bank,replacement);});
     rejects([&]{resumed.protect_pages(retained,1,4);});
     rejects([&]{resumed.stop();});
     check(!original->commit_ownership(std::move(stage)),"Foreign arena accepted staged resources");
@@ -156,29 +157,32 @@ int main(int argc,char **argv) try {
     check(target.checkpoint()==old_bank,"Arena staging changed the byte bank");
   }
   check(descriptors()==fd_count && resumed.ownership_checkpoint()==old,"Cancelled arena staging leaked files or changed resources");
-  auto bad=saved;bad.version=2;rejects([&]{resumed.prepare_ownership(bad,bank);});
-  bad=saved;++bad.worker;rejects([&]{resumed.prepare_ownership(bad,bank);});
-  bad=saved;++bad.scratch.next;rejects([&]{resumed.prepare_ownership(bad,bank);});
-  bad=saved;bad.files[0].name="../savegame0.bin";rejects([&]{resumed.prepare_ownership(bad,bank);});
-  bad=saved;bad.files[1].alias=bad.files[0].alias;rejects([&]{resumed.prepare_ownership(bad,bank);});
-  bad=saved;bad.files.pop_back();--bad.next_file;rejects([&]{resumed.prepare_ownership(bad,bank);});
-  bad=saved;bad.synchronization.objects.back().count=1;rejects([&]{resumed.prepare_ownership(bad,bank);});
-  bad=saved;bad.synchronization.version=2;rejects([&]{resumed.prepare_ownership(bad,bank);});
-  bad=saved;bad.physical.allocations.back().read_only.back()=2;rejects([&]{resumed.prepare_ownership(bad,bank);});
-  auto wrong_bank=bank;put(wrong_bank,0x4ef1bcu,1);rejects([&]{resumed.prepare_ownership(saved,wrong_bank);});
-  wrong_bank=bank;put(wrong_bank,0x4ecc30u,0);rejects([&]{resumed.prepare_ownership(saved,wrong_bank);});
+  auto bad=saved;bad.version=2;rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  bad=saved;++bad.worker;rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  bad=saved;++bad.scratch.next;rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  bad=saved;bad.files[0].name="../savegame0.bin";rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  bad=saved;bad.files[1].alias=bad.files[0].alias;rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  bad=saved;bad.files.pop_back();--bad.next_file;rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  bad=saved;bad.synchronization.objects.back().count=1;rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  bad=saved;bad.synchronization.version=2;rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  bad=saved;bad.physical.allocations.back().read_only.back()=2;rejects([&]{resumed.prepare_ownership(bad,bank,replacement);});
+  auto wrong_bank=bank;put(wrong_bank,0x4ef1bcu,1);rejects([&]{resumed.prepare_ownership(saved,wrong_bank,replacement);});
+  wrong_bank=bank;put(wrong_bank,0x4ecc30u,0);rejects([&]{resumed.prepare_ownership(saved,wrong_bank,replacement);});
   put(source,0x4ef1bcu,1);rejects([&]{original->ownership_checkpoint();});put(source,0x4ef1bcu,0);
   // Fail real file staging after page/synchronization resources were already
   // prepared. Existing open files and the current bank must survive unwind.
   const auto moved_directory=target_files.path.string()+"-temporarily-moved";
   std::filesystem::rename(target_files.path,moved_directory);
-  try {rejects([&]{resumed.prepare_ownership(saved,bank);});}
+  try {rejects([&]{resumed.prepare_ownership(saved,bank,replacement);});}
   catch(...) {std::filesystem::rename(moved_directory,target_files.path);throw;}
   std::filesystem::rename(moved_directory,target_files.path);
   check(descriptors()==fd_count && target.checkpoint()==old_bank && resumed.ownership_checkpoint()==old,
         "Rejected arena import leaked resources or changed current ownership");
-  auto stage=resumed.prepare_ownership(saved,bank);
-  target.restore(bank);check(resumed.commit_ownership(std::move(stage)),"Arena ownership publication failed");
+  replacement.restore(bank);
+  auto stage=resumed.prepare_ownership(saved,bank,replacement);
+  check(stage.matches_memory(replacement),"Staged arena pages differ from replacement bank");
+  check(!resumed.commit_ownership(std::move(stage)),"Arena committed resources before replacement publication");
+  target.swap_backing(replacement);check(resumed.commit_ownership(std::move(stage)),"Arena ownership publication failed");
   check(descriptors()==fd_count && resumed.ownership_checkpoint()==saved && target.checkpoint()==source.checkpoint(),
         "Imported arena files, protections, handles or bytes differ");
   check(target_schedule.idle==wait_count,"Import restarted or replaced the local source worker/schedule");
@@ -192,8 +196,9 @@ int main(int argc,char **argv) try {
   resumed.stop();auto state=abi(fixture.at("steps")[0].at("entry_abi"));
   rejects([&]{resumed.run(0x1221b0u,state);});
   for(int repeat=0;repeat<3;++repeat) {
-    const auto snapshot=source.checkpoint();auto prepared=resumed.prepare_ownership(original->ownership_checkpoint(),snapshot);
-    target.restore(snapshot);check(resumed.commit_ownership(std::move(prepared)),"Repeated arena handoff failed");
+    const auto snapshot=source.checkpoint();SourceRuntimeMemory next;next.restore(snapshot);
+    auto prepared=resumed.prepare_ownership(original->ownership_checkpoint(),snapshot,next);
+    target.swap_backing(next);check(resumed.commit_ownership(std::move(prepared)),"Repeated arena handoff failed");
     check(descriptors()==fd_count,"Repeated arena handoff leaked a descriptor");
   }
   for(auto *arena:{original.get(),&resumed})arena->protect_pages(retained,1,4);

@@ -27,7 +27,7 @@ int main(int argc,char **argv) {try {
             const auto selection=cache.load_initial_model_selection(placed.definition,placed.variant);
             if(!selection.resolved()){banks.pop_back();continue;}
             permutations.push_back(selection.permutations);
-            inputs.push_back({{object.placement,object.handle,object.created_tick,{},{}},banks.size()-1});
+            inputs.push_back({{object.placement,object.handle,object.created_tick,{},{},object.position},banks.size()-1});
         }
         std::vector<SourceSceneEffectOwner> owners;
         for(auto &in:inputs){in.owner.nodes=banks[in.bank];in.owner.permutations=permutations[in.bank];owners.push_back(in.owner);}
@@ -44,9 +44,15 @@ int main(int argc,char **argv) {try {
             (void)effects.take_sounds();
         }
         const auto state=attachments.stats();
+        for(const auto &gap:state.unavailable)std::cout<<"BOUNDARY "<<path.stem().string()<<' '<<gap<<'\n';
         if(path.stem()=="foundation" && (state.attachments!=4 || state.prepared!=4 || state.spawned!=4 || peak==0))
             throw FormatError("Foundation actual four HVAC attachments did not produce particles");
-        for(const auto &gap:state.unavailable)std::cout<<"BOUNDARY "<<path.stem().string()<<' '<<gap<<'\n';
+        if(path.stem()=="warlock" && (state.attachments!=12 || state.prepared!=12 || state.spawned!=12 || peak==0))
+            throw FormatError("Warlock actual twelve attachments, including shape9 streams, did not produce particles");
+        if(path.stem()=="deltatap" && (state.attachments!=9 || state.prepared!=9 || state.spawned!=9 || peak==0))
+            throw FormatError("Deltatap waterfall attachments: authored="+std::to_string(state.attachments)+
+                " prepared="+std::to_string(state.prepared)+" spawned="+std::to_string(state.spawned)+
+                " peak="+std::to_string(peak));
         //Complete lifetime removal must retire attached particles immediately.
         attachments.synchronize({},180);
         if(effects.diagnostics().effects || effects.diagnostics().particles)

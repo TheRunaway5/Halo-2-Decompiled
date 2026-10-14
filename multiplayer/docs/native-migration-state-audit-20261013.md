@@ -10,8 +10,13 @@ defines those requirements.
 owners, plus the live game's retired startup-arena/file owner, now have staged
 continuation tests. The arena requires actual local worker retirement at its
 idle source frontier; it does not import an executing worker or a CPU context.
-Full `PhysicsLiveWorldTu15` composition is still absent. Current source also
-requires retaining/rebinding the following live-world sidecars:
+The subsequent `PhysicsLiveWorldTu15::AuthorityCheckpoint` now composes these
+owners and the sidecars below, with fresh native continuation/sanitizer evidence
+in [the progress record](player-host-continuity-progress-20261013.md). Complete
+`MultiplayerMatch` capture, peer transfer and runtime promotion are
+still absent. A subsequent native `Simulation` staged seam is qualified below;
+it is not a complete cross-process match seal. This inventory remains useful for
+every future owner change:
 
 - `lock_events`, source critical-section records and local thread-identity
   bindings; native `std::thread::id` values must remain local.
@@ -29,8 +34,131 @@ requires retaining/rebinding the following live-world sidecars:
 - Authenticated immutable executable/cache/BSP/tag bindings, including the
   biped definition map, and the native clock/timestamp adaptation boundaries.
 
-These are current-state integration requirements, not evidence that a complete
-world seal or native gameplay promotion may now be advertised.
+2026-10-14 outer-binding follow-up: source `DatumPool` views and the native
+`NativeObjectLifetimes` sidecars now stage against the physics transaction's
+exact replacement allocation and rebind after publication. Original pool
+fixtures continue across imports; the actual TU1.5 test retains these views and
+ordered lifetime records across sixty future ticks, later birth and retirement.
+This removes the pool-copy/address-rebind obstacle for the forthcoming outer
+transaction; the campaign checkpoint guards and complete match requirements
+below remain in force. See the progress record for test boundaries.
+
+The subsequent TU1.5 `MultiplayerObjectRuntime::AuthorityCheckpoint` also retains
+pending fatal-report operands outside the physics owner. Actual source reaction
+and later cleanup continue after import with identical bytes, and the bridge
+guards completed multi-call operations and returned native observer services.
+The user confirmed TU1.5 as the sole gameplay target; TU1.1 construction is not
+an ONLINE acceptance gate. Complete outer match/results/departure and peer
+integration remain required, as detailed in the progress record.
+
+The composed source physics owner is bounded evidence. It does not permit a
+complete match-world seal or native gameplay promotion to be advertised yet.
+
+2026-10-14 scene follow-up: `SceneObjects` now stages its complete native value
+bank and lookup/function state while retaining target-local content and callbacks.
+It composes with the actual TU1.5 world and source lifetime rebind, with native
+biped continuation and selected-owner sanitizer evidence in the progress record.
+This is one outer component, not complete `Simulation`/`MultiplayerMatch` capture.
+An admitted Zanzibar scenery deletion additionally exposed missing original
+TU1.5 callback `10F2F0` through `10DCEA`/`BA490`; original scenery deletion remains
+an explicit open acceptance item without a substituted owner.
+
+2026-10-14 prop/collision follow-up: pointer-free `PropSandbox` checkpoints now
+retain implemented vitality, damage countdowns/owners, region/effect choices,
+poses, dirty state and pending requests. `StaticSceneryCollision` stages its
+owners and exact cached triangle order against the target definitions. Both
+retain local content bindings and completed-call qualification, with real
+Lockout/Zanzibar component and selected sanitizer evidence in the progress
+record. They still need a complete outer root transaction; this does not close
+projectile/grenade, unit/inventory, result/departure or live peer-promotion gaps.
+
+2026-10-14 script/presentation follow-up: native authority imports now retain
+the complete implemented script thread/frame/global/diagnostic/suspension bank
+and camera/observer/transition/animation values while preserving local program,
+host/RNG/list callbacks and animation loaders. These are component seams under
+the future root barrier; referenced object-list/RNG ownership and complete
+unit/grenade/projectile/result composition remain required. New native world
+first-person phase trace and CPU-input sidecars also need capture-policy review;
+prior physics-owner evidence predates them and cannot close that audit.
+
+2026-10-14 grenade follow-up: `NativeGrenadeSandbox` now stages its implemented
+projectile, attachment, event and detonation-journal banks, with local definition/
+animation-cache rebinding and completed-call qualification. Held native frag and
+plasma grenades resume release, native triangle flight, fuse, attributed blast
+and retirement against the actual TU1.5 inputs. Source-driven adoption remains
+presentation only and requires the caller to qualify the complete source world;
+the declared source-input test does not establish that composition. Unit actions,
+allocator ownership and full outer match publication remain the root's duties.
+See the progress record and private grenade verification capsule for bounds.
+
+2026-10-14 device cache follow-up: the version1 restore rebuilt collision too
+early. Version2 now stages the exact last-built triangle bank, its ordered pose
+provenance and pending rebuild state, alongside all motion/door/group/event
+values. Target-local metadata and reconstructed cached geometry are validated
+before allocation-free publication. Real Zanzibar/TU1.5 native continuation and
+a declared door-timeout fixture cover this prerequisite; full outer composition
+and peer promotion remain open. See the progress record for qualification scope.
+
+2026-10-14 simulation follow-up: a native staged transaction now composes the
+implemented typed Simulation values, deep animation ownership, exact collision
+traversal and child authority owners. Source-backed lifetimes bind to the exact
+staged TU1.5 allocation, with actual world/pool/scene/simulation continuation
+evidence. Its admission digest and parent quiescence remain caller obligations;
+this does not authenticate a peer, encode a wire record, restore match/recording/
+result/departure owners or enable gameplay promotion. The progress record lists
+the declared native fixture inputs and remaining source-owner acceptance gates.
+
+2026-10-14 match follow-up: `MultiplayerMatch::AuthorityCheckpoint` now composes
+that Simulation transaction with its player allocation view, native roster and
+profiles, retained units/corpses, pickups, engine/round/game-over state, statistics,
+recording event ring, effect/rumble journals and first-person clocks. Definitions
+and callbacks remain target-local and their configuration/roles must match.
+Owned native Slayer and King continuation fixtures pass; this is not an actual
+source-backed Match restoration or a peer promotion. Different local-view
+rosters still require session rebinding. Ordinary retained departure, original
+PCR header/machine/identity owners, cross-process transfer and the source-world
+sidecar audit remain open. See the progress record for exact qualification.
+
+2026-10-14 coupled-source follow-up: `SourceMatchAuthority` now stages the
+actual TU1.5 world and complete native Match together, validating their source
+tick/player-pool/current-unit/profile/membership bindings and locally admitted
+mode/rate/seed/variant. Four real source player records and local views on the
+authored Lockout world continue across publication. A second cut after actual
+SMG firing includes a real attached grenade; forty subsequent authoritative
+input/world ticks agree, including native unit/inventory projections and the
+complete raw source bank. This supersedes the previous whole-Match fixture
+gap, not the original departure/PCR, different-local-roster rebind, source
+sidecar coverage or portable peer promotion gates. The progress record and
+private qualification capsule state the exact limits.
+
+2026-10-14 departure follow-up: the actual TU1.5 identity gate88C50,
+leave155920, engine leave15A860 and retained-result remap19AE70 now run in the
+native source world through complete authenticated generated bodies. The
+four-player Lockout fixture retains salts/profiles, removes actual source local
+controls, rejects repeat/stale departure and consumes the deferred death request
+in the original later world phase. It also exposed a separate initialization
+bug: calling record constructor14EBE0 directly omitted active census ownership.
+The already-allocated new-player continuation14EAD0 now owns that constructor,
+census increment and engine/results join15A950. Source active count and retained
+allocation count are consequently distinct on departure. The fixture's raw
+source recording gate is zero, so unchanged numeric banks do not establish
+active source stat-writer suppression. The live native Match still has the
+deleting `leave()` path described below; transport, room policies and retained
+PCR integration remain open. See the progress record for qualification.
+
+2026-10-14 native departure follow-up: TU1.5 source-backed
+`MultiplayerMatch::leave()` now uses `depart()`, retaining its allocated native
+roster/profile/results and adopting the original later source corpse/equipment
+without a second kill, drop, garbage admission or numerical death. The existing
+`connected` field denotes retained roster presence in this path; flag2 excludes
+departed gameplay/voice participation. Native snapshots therefore carry these
+left rows instead of omitting them. A pending held-grenade departure continues
+across the coupled authority transaction, and actual localhost UDP graceful and
+silent-peer timeout cases preserve the other players. The failed-admission
+branch now names its existing allocation rollback `cancel_join()` explicitly;
+complete original source cancellation remains unqualified. Native-owned custom
+worlds still have the older deleting compatibility path, so the historical
+deletion finding below remains relevant there. See the current progress record.
 
 2026-10-13. Source inspection of the current native runtime and the recovered
 retail migration/departure owners. This is an implementation inventory, not a
@@ -264,3 +392,57 @@ event/voice rebinding. Each successful survival case must finish with a valid
 retained PCR, correct left-player/team placements and guest-stat exclusion.
 An election fixture or a visible player-position match cannot substitute for
 those proofs.
+
+2026-10-14 archive-delta follow-up: the actual runtime mutates source state
+outside `Match::step`, including per-frame effects and view/model consumers;
+network broadcast also runs retained source camera owners. A controls-only
+replay does not cover that boundary. Complete canonical archive deltas now
+reconstruct every byte against an exact retained sender base, then require the
+normal codec/schema and owning world preparation. Actual eight-player source
+cuts with an out-of-step source particle phase pass encrypted UDP restoration,
+four local view rebinding and subsequent matching source object bodies.
+Measured preparation is still about1.8s; this is not a few-frame live migration.
+
+The running native loop retains its world and host/client role at entry, while
+`MultiplayerPreparedWorld` omits a source physics owner for an ordinary remote
+client. `PhysicsLiveWorldTu15` mutations and preparation remain bound to the
+executor thread that constructed it. Runtime capture/publication, authenticated
+source identities, a retained warm shadow, explicit view/resource ownership and
+an agreed promotion transaction must therefore be integrated before enabling
+gameplay migration. A display snapshot or a worker-thread pointer swap cannot
+provide that transaction. See the migration progress record and private
+authority-delta capsule for exact evidence and remaining boundaries.
+
+2026-10-14 publisher follow-up: a bounded source capture/worker/publish owner now
+uses actual `OnlineMatchSession` delivery and prepared-world receipts, with two
+native processes/eight admitted source players. It retains an acknowledged
+canonical delta base, rejects overlapping capture and stale encoder work, and
+keeps source operations on their retained executor. Source admissions remain
+separately trusted fixture inputs; default remote clients still have no warm
+source owner and no gameplay promotion has been enabled.
+
+Capture profiling attributes about394ms to Simulation and83ms to the source
+world, so moving encoding alone does not meet the few-frame target. The expanded
+transport sanitizer audit also remains open after one reproducible usrsctp
+receive-window counter fix. See the publisher qualification capsule and progress
+record for native/ASan passes, retained lock/race reports and the independent
+concurrent renderer build limitation.
+
+
+2026-10-14 source-admission follow-up: the initial host now exports its actual
+TU1.5 source allocations through `SourceMatchAuthority::player_admissions` and
+`PeerSourceAdmissions` over the authenticated direct session path. The ordered
+couch roster, private presentation keys, full handles and original identities
+are immutable within their accepted room/host/membership context. The normal
+runtime publishes after native hello/profile admission; metadata receipts are
+separate from complete-world validation. The real eight-player publisher test
+uses this exchange instead of its private identity file and prepares/continues
+four rebound views, with native and selected ASan/UBSan/leak evidence. Protocol
+loss/replay/context/invalid-roster and concurrent tests, including sixteen
+players, pass ordinary and isolated ThreadSanitizer checks. The rendered
+receiver confirms automatic source admissions, but the full GPU run fails at
+the host's source-shield authored-part guard; renderer acceptance remains open.
+This supplies initial trusted source identities, not warm client executors,
+input catch-up, certified generation change or actual host promotion. Full
+transport sanitizer and physical/WAN gates also remain outstanding. See
+`.local/player-host-continuity-20261014/source-admissions/verification.json`.

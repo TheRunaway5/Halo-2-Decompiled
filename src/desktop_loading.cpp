@@ -24,7 +24,8 @@ public:
   ~DesktopLoadingBridge(){cancel();}
 
   std::shared_ptr<Renderer> make_renderer(SDL_Window *window,Mesh& mesh,bool validation,
-      std::span<const SourceShadowPlanMaterial> shadows,const SourceBspResidentPlan *bsp) {
+      std::span<const SourceShadowPlanMaterial> shadows,const SourceBspResidentPlan *bsp,
+      const std::filesystem::path &shader_directory) {
     unsigned base{};
     std::shared_ptr<Renderer> previous;
     {
@@ -45,7 +46,7 @@ public:
         current_->release_presentation();
         retired_=std::move(current_);
       }
-    },previous.get());
+    },previous.get(),shader_directory);
     {
       std::lock_guard lock(mutex_);rethrow();
       pending_=renderer;pending_base_=base;
@@ -230,10 +231,11 @@ void DesktopSession::configure_loading(const std::filesystem::path& directory) {
   loading_=std::make_shared<DesktopLoadingBridge>(window_,assets);
 }
 std::shared_ptr<Renderer> DesktopSession::make_renderer(Mesh& mesh,bool validation,
-    std::span<const SourceShadowPlanMaterial> shadows,const SourceBspResidentPlan *bsp) {
+    std::span<const SourceShadowPlanMaterial> shadows,const SourceBspResidentPlan *bsp,
+      const std::filesystem::path &shader_directory) {
   if(!window_)throw FormatError("renderer requires the desktop window");
-  if(!loading_)return std::make_shared<Renderer>(window_,mesh,validation,shadows,bsp);
-  return loading_->make_renderer(window_,mesh,validation,shadows,bsp);
+  if(!loading_)return std::make_shared<Renderer>(window_,mesh,validation,shadows,bsp,std::function<void()>{},nullptr,shader_directory);
+  return loading_->make_renderer(window_,mesh,validation,shadows,bsp,shader_directory);
 }
 void DesktopSession::renderer_ready(const std::shared_ptr<Renderer>& renderer) {
   if(loading_)loading_->ready(renderer);

@@ -33,6 +33,16 @@ int main()try {
   rejected=false;try{OnlinePeerTransport bad(0,{0,4},{"turn:127.0.0.1:3478"});}catch(const std::exception &){rejected=true;}
   check(rejected,"TURN fallback accepted");
   OnlinePeerTransport couch(0,{0},{});check(!couch.send(sent,0),"Self network route accepted");
+  OnlinePeerTransport survivor(0,{0,4},{});
+  {
+    auto leaving=std::make_unique<OnlinePeerTransport>(4,std::vector<unsigned>{0,4},std::vector<std::string>{});
+    wait([&]{for(auto signal:survivor.signals()){signal.peer=0;leaving->signal(signal);}
+      for(auto signal:leaving->signals()){signal.peer=4;survivor.signal(signal);}return survivor.ready(4)&&leaving->ready(0);});
+    leaving.reset();sent.resize(1400);
+    // A closure racing ready()/send() is ordinary datagram loss. The owning
+    // host keeps its other links and lets the gameplay departure path run.
+    for(unsigned i=0;i<100;++i){survivor.send(sent,4);std::this_thread::sleep_for(1ms);}
+  }
   std::cout<<"PASS actual encrypted direct UDP in both directions; admitted peers, packet bounds, TCP/TURN denial\n";
   return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

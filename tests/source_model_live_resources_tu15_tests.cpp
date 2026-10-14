@@ -36,7 +36,27 @@ int main(int argc,char**argv)try {
     const auto word=[&](std::uint32_t p){return Bytes(world.memory().view(p,4)).u32(0);};
     bool rejected=false;try{world.preload_render_model(model->datum);}catch(const FormatError&){rejected=true;}
     if(!rejected)throw FormatError("model resource load accepted an unconfigured session");
-    world.configure_session(source_game_variant_default(0),1,30,0x12345678u);
+    auto variant=source_game_variant_default(0);
+    const bool scenario_vehicles=argc>=5 && std::string_view(argv[4])=="--preload-scenario-vehicles";
+    if(scenario_vehicles && argc==6)source_game_variant_set(variant,78,std::stoi(argv[5]));
+    world.configure_session(variant,1,30,0x12345678u);
+    if(scenario_vehicles) {
+        world.initialize_map();
+        const auto content=cache.load_content(0,true,variant);std::set<std::uint32_t> models;
+        for(const auto &object:content.objects)if(object.type==1 && object.definition!=null_datum)
+            models.insert(cache.load_initial_model_definition(object.definition).render_model);
+        for(const auto datum:models) {
+            std::cout<<"Source scenario vehicle preload: "<<datum<<'\n'<<std::flush;
+            try{world.preload_render_model(datum);}catch(const FormatError&) {
+                const auto pool=word(word(0x4f2d6cu)+0x64u);
+                std::cout<<"Actual model cache: capacity="<<word(pool+0x20u)
+                    <<" slot_extent="<<word(pool+0x38u)<<'\n'<<std::flush;
+                throw;
+            }
+        }
+        std::cout<<"PASS actual scenario vehicle model resource set: "<<models.size()<<" models\n";
+        return 0;
+    }
     world.preload_render_model(model->datum);
     const auto mode=word(word(0x4f0414u)+(model->datum&65535u)*16u+8u);
     const auto sections=word(mode+0x28u),count=word(mode+0x24u);
@@ -230,6 +250,17 @@ int main(int argc,char**argv)try {
             [&](auto& state,auto mode){world.append_render_attachments(state,receivers,mode);});
         dump_collection("commands-after.bin");
         if(!commands.banks[1].header[1])throw FormatError("live model light collector produced no diffuse commands");
+        SourceTagMetadataStore shader_store(std::shared_ptr<const Cache>(&cache,[](const Cache*){}),{"shad","stem","spas","vrtx"});
+        std::map<std::pair<std::uint32_t,unsigned>,SourceBspRangeGeometry> selected_geometry;
+        std::array<SourceOpaqueSortRecord,1024> selected{};
+        const auto selected_count=source_effect_light_opaque_select(commands.banks[1],units.units,shader_store.providers(),
+            [&](unsigned index) {
+                const auto& unit=units.units.at(index);const auto key=std::pair{unit.words[1],unit.words[3]>>9&511u};
+                auto at=selected_geometry.find(key);
+                if(at==selected_geometry.end())at=selected_geometry.emplace(key,load_source_model_range_geometry(cache,key.first,key.second)).first;
+                return SourceOpaqueGeometrySelection{load_source_opaque_model_geometry_metadata(cache,key.first,key.second),at->second.parts};
+            },selected);
+        if(!selected_count)throw FormatError("live model light commands lost all selected shader programs");
         if(argc==6) {
             nlohmann::json j;
             j["player_multiplier"]=std::bit_cast<std::uint32_t>(command_context.player_multiplier);
@@ -242,6 +273,15 @@ int main(int argc,char**argv)try {
             }
             for(const auto& u:commands.special_units)j["special_units"].push_back(u.words);
             j["special_count"]=commands.special_count;
+            j["selected_count"]=selected_count;
+            for(const auto& record:selected)j["selected"].push_back(record.words);
+            for(unsigned n=0;n<units.draw_count;++n) {
+                const auto& unit=units.units[n];nlohmann::json rows=nlohmann::json::array();
+                for(const auto& matrix:source_live_model_palette_rows_tu15(world,unit,command_world.model(unit))) {
+                    std::array<std::uint32_t,12> bits;std::memcpy(bits.data(),matrix.data(),48);rows.push_back(bits);
+                }
+                j["palettes"].push_back(rows);
+            }
             std::ofstream out(std::filesystem::path(argv[5])/"collect"/"commands.json");out<<j.dump(2)<<'\n';
             if(!out)throw FormatError("live model command export failed");
         }
@@ -265,21 +305,164 @@ int main(int argc,char**argv)try {
         light_view.records.push_back(light);
         WorldEffectLightReceiver receiver;receiver.identity=light.runtime.identity;receiver.selected_fade=1;
         receiver.view.visibility=visible;
-        SourceEffectLightModelViewTu15 objects{world,{},view,fog};
+        SourceObjectAdmissionInput main_input;main_input.containing_fog=fog;
+        // The earlier sphere query deliberately has no camera groups. Main
+        // admission needs a real163DB0/441B0 frustum, even for this declared
+        // all-cluster diagnostic (which does not claim portal traversal).
+        auto main_visible=visible;
+        const auto camera=source_frustum_camera({view.entry.eye,view.forward,{0,0,1},
+            .015625f,1024.f,source_frustum_projection(projection).clipping_rectangle()});
+        main_visible.groups.push_back(camera);main_visible.frustums.push_back(camera.full_frustum);
+        for(auto& cluster:main_visible.clusters)cluster.counts[0]=1;
+        SourceLiveModelBaseSelectionTu15 base_selection;
+        std::vector<SourceLiveModelBaseDrawTu15> base_draws;
+        unsigned main_copies=0;
+        auto main_context=view;
+        main_context.built=[&](const auto& collector){base_selection.remember(collector);};
+        SourceEffectLightModelViewTu15 objects{world,world.admit_render_objects(main_visible,main_input),main_context,fog};
+        objects.main_draws=[&](const auto& state){
+            ++main_copies;base_draws=base_selection.copy(world,state);
+        };
         world.begin_model_frame();
+        world.begin_model_view();
         const auto packets=light_draws.draw(light_view,std::span(&receiver,1),{},view.draw.rendering,{},
             view.entry.eye,view.draw.viewport,{640,480},1,&objects);
         if(packets.empty())throw FormatError("live model shared light frame produced no raw packets");
+        if(main_copies!=1 || base_draws.empty())throw FormatError("live model frame lost its completed main-view handoff");
         std::set<std::uint32_t> packet_owners;unsigned indices=0;
         for(const auto& packet:packets) {
             if(packet.source.owner().kind!=MenuWorldSourceOwnerKind::dynamic_object || !packet.source.owner().generation)
                 throw FormatError("live model packet lost its full object owner");
             packet_owners.insert(*packet.source.owner().generation);
+            const auto base=std::find_if(base_draws.begin(),base_draws.end(),[&](const auto& draw){
+                return draw.object==*packet.source.owner().generation && draw.unit.words[1]==packet.source.draw().geometry->owner_datum() &&
+                    (draw.unit.words[3]>>9&511u)==packet.source.draw().geometry->section();
+            });
+            if(base==base_draws.end() || base->palette_rows!=packet.source.draw().object_rows)
+                throw FormatError("model illumination differs from the completed main-view geometry/palette");
             indices+=unsigned(packet.source.draw().indices().size());
         }
         if(packet_owners!=std::set{object,warmup})throw FormatError("live light packets lost one receiver's palette/owner");
         std::cout<<"Live model shared light frame: "<<packets.size()<<" raw packets / "<<indices
             <<" indices / "<<packet_owners.size()<<" actual object palettes\n";
+        // A frame with no receivers still completes the same base handoff.
+        // It cannot rely on an explosion to select ordinary model geometry.
+        const auto lit_base=base_draws;
+        for(const auto& draw:lit_base) {
+            if(!source_live_model_base_matches_tu15(draw,world,draw.unit))
+                throw FormatError("completed main unit no longer owns its actual original palette");
+            auto wrong=draw;wrong.object^=0x10000u;
+            if(source_live_model_base_matches_tu15(wrong,world,draw.unit))
+                throw FormatError("base/light handoff admitted a different full owner generation");
+            wrong=draw;
+            if(wrong.palette_rows.empty())throw FormatError("base/light negative control has no actual c50 row");
+            wrong.palette_rows[0][0]=std::bit_cast<float>(std::bit_cast<std::uint32_t>(wrong.palette_rows[0][0])^1u);
+            if(source_live_model_base_matches_tu15(wrong,world,draw.unit))
+                throw FormatError("base/light handoff accepted a one-bit pose difference behind matching tokens");
+        }
+        // Every byte is exactly idempotent through the existing renderer's
+        // 131ED0/131BB0 boundary; absent source channels retain prior values.
+        for(unsigned byte=0;byte<256;++byte)for(unsigned count=0;count<=4;++count) {
+            SourceLiveModelBaseDrawTu15 draw;draw.color_count=std::uint8_t(count);
+            draw.packed_colors.fill((byte<<16)|((255-byte)<<8)|((byte*73)&255u));
+            const ObjectColors prior{{{.1f,.2f,.3f},{.2f,.3f,.4f},{.3f,.4f,.5f},{.4f,.5f,.6f}}};
+            const auto actual=source_live_model_base_colors_tu15(draw,prior);
+            const auto repeated=source_object_render_colors(actual);
+            for(unsigned n=0;n<4;++n) {
+                if(n<count) {
+                    if(pack_object_lighting_rgb(actual[n])!=draw.packed_colors[n] ||
+                        std::memcmp(&actual[n],&repeated[n],sizeof(Vec3)))
+                        throw FormatError("completed live source color changed at the renderer boundary");
+                } else if(std::memcmp(&actual[n],&prior[n],sizeof(Vec3)))
+                    throw FormatError("absent live source color overwrote retained caller state");
+            }
+        }
+        const auto unlit=light_draws.draw({}, {}, {}, view.draw.rendering,{},
+            view.entry.eye,view.draw.viewport,{640,480},1,&objects);
+        if(!unlit.empty() || main_copies!=2 || base_draws.size()!=lit_base.size())
+            throw FormatError("unlit source frame skipped or changed its ordinary model handoff");
+        for(unsigned n=0;n<base_draws.size();++n) {
+            const auto& a=base_draws[n];const auto& b=lit_base[n];
+            if(a.unit.words!=b.unit.words || a.lod!=b.lod || a.lighting_class!=b.lighting_class ||
+                a.coverage!=b.coverage || a.palette_rows!=b.palette_rows ||
+                std::memcmp(&a.lighting,&b.lighting,sizeof(a.lighting)))
+                throw FormatError("secondary query changed retained ordinary model draw inputs");
+        }
+        std::cout<<"Live model base/light handoff: "<<base_draws.size()<<" owned main units, identical c50 rows; no-light handoff retained\n";
+        objects.model_available=[](const auto&){return false;};
+        const auto unavailable=light_draws.draw(light_view,std::span(&receiver,1),{},view.draw.rendering,{},
+            view.entry.eye,view.draw.viewport,{640,480},1,&objects);
+        if(!unavailable.empty() || base_draws.size()!=lit_base.size())
+            throw FormatError("unavailable native model base still submitted an unmatched light pass");
+        objects.model_available={};
+
+        // Actual smaller queries retain the original attribution gate. These
+        // cold bipeds lack mode+74/+7C attribution and legitimately bypass
+        // subpart culling. Additional explicitly declared cull requests test
+        // the posed adapter without claiming original live admission.
+        struct Sphere {Vec3 offset;float radius;};
+        const std::array spheres{Sphere{{0,0,.1f},.04f},Sphere{{0,0,.3f},.05f},
+            Sphere{{0,0,.6f},.1f},Sphere{{.8f,0,.4f},.3f},
+            Sphere{{0,0,0},2.f},Sphere{{4,0,.4f},.1f},
+            Sphere{{0,0,.1f},.04f},Sphere{{0,0,.3f},.05f},Sphere{{0,0,.6f},.1f}};
+        unsigned partial_calls=0,marked=0;std::map<unsigned,SourceBspRangeGeometry> ranges;
+        for(unsigned case_index=0;case_index<spheres.size();++case_index) {
+            const auto& sphere=spheres[case_index];auto input=admission;
+            input.sphere_center=position+sphere.offset;input.sphere_radius=sphere.radius;
+            auto query=world.admit_render_objects(visible,input);
+            SourceDrawUnitState partial;
+            source_live_model_draws_tu15(world,query,partial,view);
+            std::array<SourceCullDrawBanks,850> banks;
+            for(unsigned n=partial.main_prefix;n<partial.draw_count;++n) {
+                auto& unit=partial.units[n];
+                if(case_index<6 && ((unit.words[0]&1u) || !(unit.words[0]&0x40u)))continue;
+                const auto section=(unit.words[3]>>9)&511u;
+                auto at=ranges.find(section);
+                if(at==ranges.end())at=ranges.emplace(section,load_source_model_range_geometry(cache,model->datum,section)).first;
+                if(case_index>=6) {
+                    // Declared isolated part-cull input, not an admission
+                    // output. Retain genuine model/context/pose/geometry.
+                    const auto mask=partial.arena.allocate(at->second.subpart_count);
+                    if(!mask)continue;
+                    unit.words[0]=(unit.words[0]&~1u)|0x40u;
+                    unit.words[5]=view.draw.draw.mask_arena_address+*mask*4u;
+                }
+                banks[n]=source_live_model_cull_geometry_tu15(world,unit,at->second);
+            }
+            nlohmann::json cull_case;
+            if(argc==6) {
+                for(const auto& unit:partial.units)cull_case["before"]["units"].push_back(unit.words);
+                cull_case["before"]["arena"]=partial.arena.words;
+                cull_case["before"]["arena_used"]=partial.arena.used;
+                cull_case["declared_subpart_request"]=case_index>=6;
+                cull_case["prefix"]=partial.main_prefix;cull_case["total"]=partial.draw_count;
+                cull_case["center"]={std::bit_cast<std::uint32_t>(input.sphere_center.x),
+                    std::bit_cast<std::uint32_t>(input.sphere_center.y),std::bit_cast<std::uint32_t>(input.sphere_center.z)};
+                cull_case["radius"]=std::bit_cast<std::uint32_t>(sphere.radius);
+                cull_case["arena_address"]=view.draw.draw.mask_arena_address;
+                const auto path=std::string("cull-")+std::to_string(case_index)+"-inputs.bin";
+                dump_collection(path.c_str());
+            }
+            const auto calls=source_draw_unit_sphere_cull(partial.units,banks,partial.arena,
+                view.draw.draw.mask_arena_address,{partial.main_prefix,partial.draw_count,1,1,input.sphere_center,sphere.radius});
+            partial_calls+=unsigned(calls.size());
+            for(unsigned n=partial.main_prefix;n<partial.draw_count;++n)marked+=bool(partial.units[n].words[0]&1u);
+            if(argc==6) {
+                for(const auto& unit:partial.units)cull_case["after"]["units"].push_back(unit.words);
+                cull_case["after"]["arena"]=partial.arena.words;
+                cull_case["after"]["arena_used"]=partial.arena.used;
+                cull_case["calls"]=nlohmann::json::array();
+                for(const auto& call:calls)cull_case["calls"].push_back({call.unit,
+                    std::bit_cast<std::uint32_t>(call.center.x),std::bit_cast<std::uint32_t>(call.center.y),
+                    std::bit_cast<std::uint32_t>(call.center.z),std::bit_cast<std::uint32_t>(call.radius)});
+                std::ofstream out(std::filesystem::path(argv[5])/"collect"/("cull-"+std::to_string(case_index)+".json"));
+                out<<cull_case.dump(2)<<'\n';
+                if(!out)throw FormatError("live model cull diagnostic export failed");
+            }
+            std::cout<<(case_index>=6?"Declared subpart sphere ":"Live partial sphere ")<<case_index<<": "<<query.objects.size()<<" objects / "
+                <<partial.draw_count<<" units / "<<calls.size()<<" subpart cull calls\n";
+        }
+        if(!partial_calls || !marked)throw FormatError("live partial sphere suite never consumed model bounds");
     }
     std::cout<<"PASS "<<model->name<<": "<<checked<<" live sections / "<<resources<<" original resources / "<<bytes
         <<" exact authored bytes; model collection and pixels remain separate gates\n";

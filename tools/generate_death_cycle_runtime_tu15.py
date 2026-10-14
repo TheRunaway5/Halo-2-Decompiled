@@ -223,6 +223,28 @@ ENTRIES = (
     0x17c020,
     0x17a420,
     0x17a030,
+    # Actual170663 initializes the complete96-byte effect creation request
+    # before the original projectile-state event calls17A030.
+    0x178d80,
+    # ActualDB862 prepares damage-owner identity from the current source
+    # object table; keep the complete15-instruction D2AD0 body.
+    0xd2ad0,
+    # ActualDB397 dispatches this complete attached-effect request owner;
+    # BAD60/1791C0/178E30 retain their existing external ownership.
+    0x179700,
+    # ActualDBC7A accumulates matching authored damage-material bits.
+    0xdcfa0,
+    # ActualDE17E finds the first authored signed-byte damage-state row.
+    0x1706f0,
+    # ActualDBA2E during live constructor delivery selects/marks the original
+    # indexed object state record through1054B0, including its low-AL return.
+    0x1054b0,
+    # ActualD72D6 reaches this original light-receiver instance callback.
+    # Mode1 returns without reading its pool; mode0 keeps47860 external.
+    0x118760,
+    # Actual311522 cleanup callback reached after the live grenade replay.
+    # Complete source body clears its selected physical record flag.
+    0x282780,
     0x17a2f0,
     0x177fa0,
     0x177020,
@@ -390,6 +412,10 @@ def main():
         'halo2/death_cycle_runtime_tu15.hpp').replace('source_run_physics_live_support_tu15',
         'source_run_death_cycle_runtime_tu15').replace('source_physics_live_support_tu15_owns_entry',
         'source_death_cycle_runtime_tu15_owns_entry')
+    # Keep a frozen component composition independent of optional application
+    # observers when none of its authenticated instruction sites use them.
+    if 'SourceProjectileUpdateScope' not in source and 'source_begin_projectile_contact_effect_tu15' not in source:
+        source = source.replace('#include "halo2/source_projectile_effect_observer.hpp"\n', '')
     args.output.write_text(source)
     report = json.loads((args.directory / 'generation.json').read_text())
     report['bounded_blocks'] = {'000dbd64': {'stop_before': '000dbfcc',

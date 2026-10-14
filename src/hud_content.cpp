@@ -32,10 +32,16 @@ HudContent Cache::load_hud(std::uint32_t biped, std::uint32_t weapon) const {
   std::vector<std::pair<std::uint32_t, unsigned>> interfaces;
   const auto unit_interfaces = metadata_block_offsets(root(biped, "bipd", 0x1a8) + 0x1a0, 8);
   if(weapon!=null_datum) {
-    const auto wp = root(weapon, "weap", 0x2c8);
+    const auto wp = root(weapon, "weap", 0x2d0);
     interfaces.emplace_back(data.u32(wp + 0x2b4), 1);
     const auto magazines = metadata_block_offsets(wp + 0x2c0, 0x5c, 16);
     out.weapon_magazine_count=unsigned(magazines.size());
+    const auto triggers=metadata_block_offsets(wp+0x2c8,0x40,16);
+    out.weapon_trigger_count=unsigned(triggers.size());
+    if(!triggers.empty()) {
+      out.weapon_trigger_behavior=std::bit_cast<std::int16_t>(data.u16(triggers[0]+6));
+      out.weapon_charging_type=std::bit_cast<std::int16_t>(data.u16(triggers[0]+0x18));
+    }
     if (!magazines.empty()) {
       out.clip_capacity=std::bit_cast<std::int16_t>(data.u16(magazines[0]+0xa));
       out.reserve_capacity=std::bit_cast<std::int16_t>(data.u16(magazines[0]+0xc));

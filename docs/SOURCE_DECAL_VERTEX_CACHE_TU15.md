@@ -14,8 +14,11 @@ now invokes both original bodies in the order of their literal lifecycle rows.
 The initialization regression is intentionally separate from first-tick
 graphics acceptance. Its original red receipt is
 `analysis/map-world-features/graphics-owner-20261013/regression-before-fix.log`.
-The state-only check now passes. Ordinary Zanzibar still stops at `439F4` when
-no native graphics owner is bound.
+The state-only check passes. The historical ordinary Zanzibar stop at `439F4`
+is now closed by the authenticated native CPU vertex view and
+[the live cached decal GPU consumer](SOURCE_CACHED_DECAL_RENDER_TU15.md).
+The following capture remains a separate CPU fixture and is never loaded into
+production gameplay.
 
 ## Completed CPU capture
 

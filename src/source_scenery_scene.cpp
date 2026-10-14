@@ -230,6 +230,9 @@ struct SourceSceneryScene::Impl {
     void synchronize(const SceneObjects &scene,const LifetimeSelection &selected) {
         std::map<std::size_t,const SceneObjects::Object*> live;
         for(const auto &object:scene.objects())if(object.handle!=0xffffffffu) {
+            // Only prepared SCEN placement ownership belongs to this bank.
+            // Vehicle netgame rows can have more than one live generation.
+            if(!source_placements.contains(object.placement))continue;
             if(!live.emplace(object.placement,&object).second)throw FormatError("SCEN duplicate source lifetime");
             if(source_placements.contains(object.placement) && !nonrendered_placements.contains(object.placement) &&
                 std::none_of(scenery.begin(),scenery.end(),[&](const auto &s){return s.source_object==object.placement;}))
@@ -365,7 +368,7 @@ void SourceSceneryScene::update_pose(std::uint64_t tick,std::int32_t frame,Mesh&
 std::vector<SourceSceneEffectOwner> SourceSceneryScene::effect_owners() const {
     std::vector<SourceSceneEffectOwner> out;
     for(const auto &s:impl_->scenery)if(s.active && s.handle!=0xffffffffu)
-        out.push_back({s.source_object,s.handle,s.created_tick,s.world_nodes,s.selection.permutations});
+        out.push_back({s.source_object,s.handle,s.created_tick,s.world_nodes,s.selection.permutations,s.root.position});
     return out;
 }
 void SourceSceneryScene::append_view(std::vector<Vertex>&vertices,std::vector<ObjectLightingBinding>&bindings,

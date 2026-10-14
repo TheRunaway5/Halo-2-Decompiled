@@ -9,6 +9,8 @@ independently exported original draw-owner JSON.
 FX_SELECTION may instead name a retained explicit frame/event selection. This
 supports a separately authenticated TU1.5 capture whose actual draw count and
 shader variants differ from the historical base-disc fixture.
+FX_ALL_DRAWS=1 retains every selected draw and declared reseed. Without it,
+the export contains only segment endpoints and cannot seed a per-draw replay.
 """
 import hashlib
 import json
@@ -62,6 +64,28 @@ def digest(path):
         return hashlib.file_digest(f,'sha256').hexdigest()
 
 
+def captured_driver(controller):
+    # Capture-time GL implementation is distinct from the GPU used to replay
+    # this file. Host-dependent filtering must not erase that provenance.
+    for chunk in controller.GetStructuredFile().chunks:
+        if chunk.name!='Internal::Driver Initialisation Parameters':
+            continue
+        for index in range(chunk.NumChildren()):
+            parameters=chunk.GetChild(index)
+            if parameters.name!='InitParams':
+                continue
+            result={}
+            for field in range(parameters.NumChildren()):
+                value=parameters.GetChild(field)
+                if value.name in ('renderer','version'):
+                    result[value.name]=value.AsString()
+            if result:
+                return result
+        break
+    return None
+
+
+exit_status=1
 try:
     capture=Path(os.environ['FX_RDC'])
     reference=Path(os.environ['FX_REFERENCE'])
@@ -111,6 +135,7 @@ try:
         frames=[f for f in frames if f['ordinal']==int(os.environ['FX_FRAME'])]
         assert frames
     exported=set()
+    exported_phases=[]
     for frame in frames:
         directory=OUT/f"frame-{frame['ordinal']}"
         directory.mkdir()
@@ -126,6 +151,8 @@ try:
                     phases.append((f'draw-{i:02d}-before',frame['reseeds'][str(i)]))
                 phases.append((f'draw-{i:02d}',event))
             phases += [('after',frame['last']),('present',frame['present']-2)]
+        exported_phases.append(dict(ordinal=frame['ordinal'],
+            phases=[dict(name=name,event=event) for name,event in phases]))
         for phase,event in phases:
             progress(f"frame {frame['ordinal']} {phase} replay to {event}")
             ctrl.SetFrameEvent(event,True)
@@ -186,12 +213,16 @@ try:
                     ctrl.SaveTexture(save,str(stem.with_suffix('.png')))
             (directory/(phase+'-state.json')).write_text(json.dumps(state,indent=2)+'\n')
         progress(f"frame {frame['ordinal']} exported")
-    report=dict(scope=__doc__,capture_sha256=digest(capture),reference_sha256=digest(reference),
-                tool_sha256=digest(Path(os.environ['FX_TOOL'])),frames=frames,native_framebuffer_parity=False)
+    report=dict(scope=__doc__,capture_driver=captured_driver(ctrl),replay_api=plain(ctrl.GetAPIProperties()),capture_sha256=digest(capture),reference_sha256=digest(reference),
+                tool_sha256=digest(Path(os.environ['FX_TOOL'])),frames=frames,
+                replay_optimisation=str(options.optimisation),
+                all_selected_draws_exported=bool(os.environ.get('FX_ALL_DRAWS')),
+                exported_frame_phases=exported_phases,native_framebuffer_parity=False)
     if selection:
         report.update(selection_sha256=digest(selection),selection=json.loads(selection.read_text()))
     (OUT/'manifest.json').write_text(json.dumps(report,indent=2)+'\n')
     progress('original frame export complete')
+    exit_status=0
 except Exception:
     (OUT/'error.txt').write_text(traceback.format_exc())
-os._exit(0)
+os._exit(exit_status)

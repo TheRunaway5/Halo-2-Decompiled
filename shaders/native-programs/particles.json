@@ -1,0 +1,56 @@
+{
+  "schema": "H2_NATIVE_PARTICLE_SOURCES_V1",
+  "entries": [
+    {
+      "vertex_datum": "e20e0099",
+      "classification": 7,
+      "instructions": 51,
+      "original_program_sha256": "3cc3d35a41c96091239df1bd7a4f3f7d51cc674eb7d6c9ca899b29ac6e1458ba",
+      "source_sha256": "4527db19be2c4cf4c3601bb830c2c7eec44b74a3728d9ed64f4ea66f4e12bc11",
+      "expected_vertices_embedded": false,
+      "source": "particle_program.glsl",
+      "program_fnv64": "0x2b67638b8d57aa48"
+    },
+    {
+      "vertex_datum": "e20e0099",
+      "classification": 8,
+      "instructions": 63,
+      "original_program_sha256": "d26ff2fda42091c5d4912799b3a31359325724d77e1e86ab901896d5802a2b7e",
+      "source_sha256": "bfc9a24f92b01f30395134f2f81b22da22e416af7df21d8cb0b18218b7f897fb",
+      "expected_vertices_embedded": false,
+      "source": "particle_directional_program.glsl",
+      "program_fnv64": "0x93c69296e450b61c"
+    },
+    {
+      "vertex_datum": "e20e0099",
+      "classification": 9,
+      "instructions": 72,
+      "original_program_sha256": "d9bb0c93e67ccece88904656d99d15b699e0d33da893d7db8d947318c1e8329a",
+      "source_sha256": "3a787aa91b0116ccf8bac6b74530d0fe31dc02dae75244dae5d4899a4339ee3d",
+      "expected_vertices_embedded": false,
+      "source": "particle_perpendicular_program.glsl",
+      "program_fnv64": "0x3e8f2d9052454432"
+    },
+    {
+      "vertex_datum": "e1ec0077",
+      "classification": 1,
+      "instructions": 15,
+      "original_program_sha256": "61c77ad60ddccc2e69790af78a8995c45e9f316bb6a951acb3786edcf2d42ac7",
+      "source_sha256": "1736ca1d897678588124ae8b705321b3d6c9dc36139d128c94a2fcfd8329479a",
+      "expected_vertices_embedded": false,
+      "source": "particle_model_program.glsl",
+      "program_fnv64": "0x1f670b778798858e"
+    },
+    {
+      "vertex_datum": "e21900a4",
+      "classification": 7,
+      "instructions": 44,
+      "original_program_sha256": "8087762549a70544d2d07a2120dd052fbaf4c34594a040007fc06a80ad52aaf9",
+      "source_sha256": "76e55b4c2fc7eb8679f2f45c0013fd3d1ed2374eea1a02ea00d0e4941dc2eb9a",
+      "expected_vertices_embedded": false,
+      "variant": "distortion",
+      "source": "particle_distortion_program.glsl",
+      "program_fnv64": "0x9b39913b8d5b07a3"
+    }
+  ]
+}

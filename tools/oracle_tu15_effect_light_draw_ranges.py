@@ -19,7 +19,7 @@ def pack(v):return struct.pack('<'+'I'*len(v),*(x&NONE for x in v))
 def words(v):return list(struct.unpack('<'+'I'*(len(v)//4),v))
 def sha(v):return hashlib.sha256(v).hexdigest()
 def main():
- p=argparse.ArgumentParser(description=__doc__);p.add_argument('--snapshot',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--map',type=Path,required=True);p.add_argument('--native',type=Path);p.add_argument('--xbe',type=Path,required=True);p.add_argument('--include-models',action='store_true');a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False)
+ p=argparse.ArgumentParser(description=__doc__);p.add_argument('--snapshot',type=Path,required=True);p.add_argument('--output',type=Path,required=True);p.add_argument('--map',type=Path,required=True);p.add_argument('--native',type=Path);p.add_argument('--xbe',type=Path,required=True);p.add_argument('--include-models',action='store_true');p.add_argument('--captured-command-bank',action='store_true',help='Use the bank actually retained at4A3C7 instead of rebuilding the collectors');a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False)
  s=Snapshot(a.snapshot);state=json.loads((a.snapshot/'source-state.json').read_text());assert state['reference']=='OG Xbox TU1.5' and state['whole_live_text_matches_original'] and not state['guest_code_patches'];assert sha(s.ram)==state['ram_sha256'];x=Xbe(a.xbe);assert sha(x.data)==TU15
  text=x.section('.text');assert s.read(text.va,text.rsize)==x.read(text.va,text.rsize), 'Live TU1.5 text differs from the unchanged image'
  g=s.guest();stack,stop,out=0x700fe000,0x700fff00,0x70000000;g.mem_map(0x70000000,0x100000)
@@ -32,7 +32,8 @@ def main():
  def write(at,raw):read(at,len(raw));g.mem_write(at,raw)
  def call(entry,end,args=()):
   g.mem_write(stack,pack([stop,*args]));g.reg_write(R.UC_X86_REG_ESP,stack);g.reg_write(R.UC_X86_REG_FPCW,0x023f);g.reg_write(R.UC_X86_REG_MXCSR,0x1fa0);g.emu_start(entry,end,count=30000000);assert g.reg_read(R.UC_X86_REG_EIP)==end,hex(g.reg_read(R.UC_X86_REG_EIP))
- call(0xc35d0,stop);call(0x31c70,0x31177);header=0x4ce280;h=words(read(header,24));print("command count",h[1],flush=True)
+ if not a.captured_command_bank:call(0xc35d0,stop);call(0x31c70,0x31177)
+ header=0x4ce280;h=words(read(header,24));print("command count",h[1],flush=True)
  write(0x4c6834,pack([1]));call(0x3baa0,stop,[header,0,12,out]);selected=g.reg_read(R.UC_X86_REG_EAX);print("selected",selected,flush=True)
  context=val(0x4cd3a0);base=context+0x25c;original_mask=words(read(base,2048));bsp=val(0x4ecc18);instances=val(bsp+0x144)
  selected_records=[words(read(out+i*24,24))for i in range(selected)];ordered=[];models=[]
@@ -91,7 +92,7 @@ def main():
    fixture.extend([row['command'],row['index'],row['vertex_class'],row['kind'],row['section'],*unit,row['part'],part_flags,subparts,base,*mask,*observed,returned,len(submissions),*[w for draw in submissions for w in draw]])
    cases.append(dict(label=label,mutation=v,sorted_ordinal=ordinal,command=row['command'],unit=row['index'],kind=row['kind'],section=row['section'],part=row['part'],topology=observed[0],filtered=observed[1],draws=len(submissions),indices=returned))
    write(row['up'],pack(row['unit']));write(row['pp']+2,struct.pack('<H',row['flags']));write(row['geometry']+8,pack([row['subparts']]))
- path=a.output/'fixture.bin';path.write_bytes(pack(fixture));(a.output/'tool.py').write_bytes(Path(__file__).read_bytes());report=dict(boundary=__doc__,snapshot_sha256=sha(s.ram),original_xbe_sha256=sha(x.data),original_map_sha256=sha(a.map.read_bytes()),reference='OG Xbox TU1.5',original_sorted_commands=[r['command']for r in ordered],separate_model_commands=models,instruction_count=len(executed),instruction_bank_sha256=sha(b''.join(pack([pc])+raw for pc,raw in sorted(executed.items()))),intercepted_services=intercepts,cases=cases,draws=sum(c['draws']for c in cases),indices=sum(c['indices']for c in cases),fixture_sha256=sha(path.read_bytes()),tool_sha256=sha(Path(__file__).read_bytes()))
+ path=a.output/'fixture.bin';path.write_bytes(pack(fixture));(a.output/'tool.py').write_bytes(Path(__file__).read_bytes());report=dict(boundary=__doc__,command_bank_source='actual captured4A3C7 bank' if a.captured_command_bank else 'replayed C35D0/31C70 collectors',snapshot_sha256=sha(s.ram),original_xbe_sha256=sha(x.data),original_map_sha256=sha(a.map.read_bytes()),reference='OG Xbox TU1.5',original_sorted_commands=[r['command']for r in ordered],separate_model_commands=models,instruction_count=len(executed),instruction_bank_sha256=sha(b''.join(pack([pc])+raw for pc,raw in sorted(executed.items()))),intercepted_services=intercepts,cases=cases,draws=sum(c['draws']for c in cases),indices=sum(c['indices']for c in cases),fixture_sha256=sha(path.read_bytes()),tool_sha256=sha(Path(__file__).read_bytes()))
  if a.native:
   result=subprocess.run([str(a.native.resolve()),str(path.resolve()),str(a.map.resolve())],capture_output=True,text=True);report.update(native_binary_sha256=sha(a.native.read_bytes()),native_returncode=result.returncode,native_stdout=result.stdout,native_stderr=result.stderr)
  (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');path.with_suffix('.provenance.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items()if k!='cases'},indent=2))

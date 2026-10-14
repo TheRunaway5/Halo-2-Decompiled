@@ -125,6 +125,7 @@ NativeActionPrompt Simulation::unit_action_prompt(const Unit &u,NativeActionProm
  return current;
 }
 bool Simulation::take_unit_action(Unit &u,const NativeActionPrompt &prompt) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
  if(content_.unit_interactions && u.source_parent!=null_datum && prompt.target.action==0 && prompt.target.object==u.source_parent && prompt.target.index==u.source_seat) {
   if(u.seat_action.phase!=Unit::SeatAction::Seated)return false;
   const auto &o=scene_.get(u.source_parent);const auto &d=content_.unit_interactions->units.at(content_.objects[o.placement].definition);
@@ -159,6 +160,7 @@ bool Simulation::take_unit_action(Unit &u,const NativeActionPrompt &prompt) {
  u.source_player_actions.flags|=0x10u;source_zoom_reset(u.source_zoom);++u.zoom_reset_serial;return true;
 }
 void Simulation::step_unit_interactions(const Controls &input) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
  if(!content_.unit_interactions)return;
  const auto &assets=*content_.unit_interactions;
  //15AE70: each row updates once per source second, retaining its salted object.

@@ -1,5 +1,6 @@
 #include "halo2/animation_presentation.hpp"
 #include "halo2/multiplayer_network.hpp"
+#include "halo2/native_weapon_inventory.hpp"
 #include <bit>
 #include <iostream>
 #include <set>
@@ -68,10 +69,15 @@ int main(int argc,char **argv) {
     MultiplayerMatch server(content,0,cache.spawns(),rules),observed(content,0,cache.spawns(),rules);
     // Explicit transport fixture values, supplied at the real prepared-shot
     //presentation boundary; this is no claim of original color/allocation.
+    bool sent_large_location_bank{};
     server.configure_weapon_effect_owner([&](const Unit &unit,const WeaponEffectInput &input) {
       if(unit.source_player==null_datum || input.effect==null_datum)return null_datum;
       const SourceWeaponEffectPresentation presentation{0x12340001u,{0xff123456u,0xffabcdefu},true};
-      server.weapon_effect_presentation(unit.source_datum,input.weapon,presentation,{.125f,-.25f,.5f});
+      Transform first;first.position={float(server.simulation().ticks()),2,3};
+      Transform second;second.position={4,5,6};second.scale=.5f;second.basis={Vec3{0,1,0},Vec3{-1,0,0},Vec3{0,0,1}};
+      std::vector<SourceEffectLocation> locations{{0x0c000010,first},{0x0c000010,second}};
+      if(!sent_large_location_bank){locations.resize(36,locations.back());sent_large_location_bank=true;}
+      server.weapon_effect_presentation(unit.source_datum,input.weapon,presentation,{.125f,-.25f,.5f},locations);
       return presentation.instance;
     });
     server.configure_replicated_first_person(definition);
@@ -128,13 +134,25 @@ int main(int argc,char **argv) {
       if(tick==40 || tick==50)check(commands[0].melee,"Short/lost F press was not recovered from its newer release");
       if(tick==41 || tick==51)check(!commands[0].melee,"Recovered F press was delivered twice");
       for(unsigned id=1;id<4;++id)check(!commands[id].melee,"Melee delivery leaked to another participant");
-      server.step(commands);observed.step(commands);host.broadcast();
+      server.step(commands);observed.step(commands);
+      // Declared full-byte charge values exercise native publication through
+      // actual fragmentation/reordering, beyond the ordinary SMG zero value.
+      for(unsigned id=0;id<16;++id)if(auto *w=native_hand_weapon(const_cast<Unit &>(server.unit(id)),0))
+        w->charge_fraction=std::uint8_t(tick+id*17);
+      host.broadcast();
       auto packets=proxy.pump();maximum_fragments=std::max(maximum_fragments,unsigned(packets.size()));
       const auto prior_tick=client.state().tick;
       if(tick==60) {stale=packets;client.receive();check(client.state().tick==prior_tick,"Lost snapshot published partial clock");continue;}
       proxy.deliver(packets,tick%2,tick%3==0);client.receive();
       check(client.state().tick==server.state().tick,"Complete clock snapshot did not recover after UDP loss/reorder");
       if(tick==61) {proxy.deliver(stale,true,true);client.receive();check(client.state().tick==server.state().tick,"Late clock snapshot rolled back rendered state");}
+      const auto authoritative=server.state();
+      for(unsigned id=0;id<16;++id) {
+        check(client.state().players[id].weapon_trigger==authoritative.players[id].weapon_trigger,
+            "Primary trigger/charge publication changed under UDP loss/reordering");
+        check(client.state().players[id].secondary_weapon.trigger==authoritative.players[id].secondary_weapon.trigger,
+            "Secondary trigger/charge publication changed under UDP loss/reordering");
+      }
       const auto expected_effects=server.state().weapon_effects;
       const auto &received_effects=client.state().weapon_effects;
       check(expected_effects.size()==received_effects.size(),"Fragmented snapshot lost prepared weapon effects");
@@ -142,9 +160,21 @@ int main(int argc,char **argv) {
         const auto &a=expected_effects[n],&b=received_effects[n];
         check(a.serial==b.serial && a.tick==b.tick && a.unit==b.unit && a.weapon==b.weapon && a.effect==b.effect &&
             a.a_bits==b.a_bits && a.b_bits==b.b_bits && a.source_instance==b.source_instance &&
-            a.source_presentation==b.source_presentation && a.colors.a==b.colors.a && a.colors.b==b.colors.b &&
+            a.source_presentation==b.source_presentation && a.source_scheduled==b.source_scheduled &&
+            a.colors.a==b.colors.a && a.colors.b==b.colors.b &&
             a.velocity.x==b.velocity.x && a.velocity.y==b.velocity.y && a.velocity.z==b.velocity.z,
             "Prepared effect journal changed under UDP loss/reorder/duplicates");
+        check(a.source_locations_observed && b.source_locations_observed && (a.source_locations.size()==2 || a.source_locations.size()==36) &&
+            b.source_locations.size()==a.source_locations.size(),"Fragmented weapon effects lost the completed location bank");
+        for(unsigned i=0;i<a.source_locations.size();++i) {
+          const auto &x=a.source_locations[i],&y=b.source_locations[i];
+          check(x.name==y.name && x.frame.scale==y.frame.scale && x.frame.position.x==y.frame.position.x &&
+              x.frame.position.y==y.frame.position.y && x.frame.position.z==y.frame.position.z,
+              "UDP changed source firing marker multiplicity/position/scale");
+          for(unsigned axis=0;axis<3;++axis)check(x.frame.basis[axis].x==y.frame.basis[axis].x &&
+              x.frame.basis[axis].y==y.frame.basis[axis].y && x.frame.basis[axis].z==y.frame.basis[axis].z,
+              "UDP changed source firing marker orientation");
+        }
       }
       for(unsigned id=0;id<16;++id) {
         const auto &received=client.state().players[id].damage_feedback;

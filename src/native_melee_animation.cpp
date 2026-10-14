@@ -1,4 +1,5 @@
 #include "halo2/native_melee_animation.hpp"
+#include "world_continuation_bindings.hpp"
 #include "halo2/fp_registration.hpp"
 #include "halo2/native_weapon_inventory.hpp"
 #include "halo2/source_tag_metadata.hpp"
@@ -77,6 +78,14 @@ NativeMeleeAnimation::NativeMeleeAnimation(std::shared_ptr<const Cache> cache,co
       const auto datum=content.player_representations[i].biped.datum;
       representations_.emplace(datum,int(i));graphs_.emplace(datum,cache_->load_model(datum,false).animation);
     }
+}
+NativeMeleeAnimation::AuthorityDigest NativeMeleeAnimation::authority_binding()const {
+  return world_continuation::melee_binding(*cache_,constants_,movement_forward_,representations_,graphs_);
+}
+std::shared_ptr<NativeMeleeAnimation> NativeMeleeAnimation::prepare_authority_owner(const LevelContent &content,AuthorityDigest expected)const {
+  auto next=std::make_shared<NativeMeleeAnimation>(cache_,content,constants_);
+  if(next->authority_binding()!=expected)throw FormatError("Melee continuation has different local immutable inputs");
+  return next;
 }
 Vec3 NativeMeleeAnimation::pyramid(const Unit &u)const {
   if(u.weapon.definition==null_datum)return {};

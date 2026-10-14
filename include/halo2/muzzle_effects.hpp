@@ -21,7 +21,7 @@ struct AuthoredMuzzleEffect {
   std::vector<FixedEffectEventDefinition> events;
   std::vector<SourceEffectEventDefinition> clocks;
   std::vector<EffectSoundCue> sounds;
-  bool light_parts{};
+  bool light_parts{},damage_parts{},acceleration_parts{};
   struct System {
     std::uint32_t marker{};
     unsigned event{},source_index{};
@@ -55,6 +55,8 @@ public:
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors);
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity);
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity,bool light_parts_owned);
+  std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity,
+      bool light_parts_owned,bool source_gameplay_parts_owned);
   using Marker=std::function<Transform(std::uint32_t)>;
   using Markers=std::function<std::vector<Transform>(std::uint32_t)>;
   // Completed FP marker bank at a simulation tick. Birth never depends on a draw.
@@ -63,6 +65,10 @@ public:
   // Retained object attachment: repeat flag2, zero initial interval, and
   // current completed object-function scalars. It owns a separate lifetime.
   std::uint32_t attachment(std::uint32_t effect,std::uint32_t weapon,std::uint32_t tick,SourceEffectControls,bool enabled=true);
+  std::uint32_t attachment(std::uint32_t effect,std::uint32_t weapon,std::uint32_t tick,
+      SourceEffectControls,bool enabled,std::uint32_t authored_marker_alias);
+  std::uint32_t attachment(std::uint32_t effect,std::uint32_t weapon,std::uint32_t tick,
+      SourceEffectControls,bool enabled,std::uint32_t authored_marker_alias,bool source_gameplay_parts_owned);
   void retire_attachments_except(std::span<const std::uint32_t> weapons);
   void advance(std::uint32_t tick,float tick_seconds);
   void collision_query(ParticleCollisionQuery);

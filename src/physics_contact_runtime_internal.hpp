@@ -91,6 +91,19 @@ inline std::uint32_t integer_spill(long double x) {
     throw std::runtime_error("Original contact integer spill backend unavailable");
 #endif
 }
+// FISTP overwrites C1 with its actual rounding direction. The logical x87
+// stack does not inherit C1 from an earlier sqrt/trigonometric instruction.
+inline std::uint32_t integer_spill(long double x,std::uint16_t &status) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    std::uint32_t result;std::uint16_t actual;
+    asm volatile("fldt %2\n\tfistpl %0\n\tfnstsw %1"
+        :"=m"(result),"=m"(actual):"m"(x):"st");
+    status=(status&~0x200u)|(actual&0x200u);
+    return result;
+#else
+    throw std::runtime_error("Original contact integer spill backend unavailable");
+#endif
+}
 struct State {
     M &memory;const O &observe;const SourcePhysicsContactRuntimeServices &services;SourcePhysicsContactImage image;
     std::array<std::uint32_t,8> gp;__m128 xmm[8];Flags flags;ExtendedStack fp;

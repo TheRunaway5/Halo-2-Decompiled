@@ -187,5 +187,44 @@ int main()try {
         rejects([&]{(void)halo2::normalize_mcc_physics_model(invalid,original,canonical);});
         rejects([&]{(void)halo2::normalize_mcc_physics_model(source,original,0xfffffff0u);});
     }
-    std::cout<<"MCC phmo/coll authored record packing, owned geometry/MOPP, nested aliases and pointer-width rejection passed\n";return 0;
+    for(const auto kind:{halo2::MccUnitPhysicsKind::Biped,halo2::MccUnitPhysicsKind::Creature}) {
+        Buffer unit(0xc00);const unsigned descriptor=kind==halo2::MccUnitPhysicsKind::Biped?0x284:0xf4;
+        block(unit,descriptor,0x400,3);block(unit,descriptor+8,0x600,2);block(unit,descriptor+16,0x700,2);
+        for(unsigned i=0;i<3;++i) {
+            word(unit,0x400+i*0xa0+0x20,0xdeadbeef);word(unit,0x400+i*0xa0+0x24,0xfedcba98);
+            word(unit,0x400+i*0xa0+0x38,0x3f800000u+i);word(unit,0x400+i*0xa0+0x60,0x3f000000u+i);
+        }
+        const auto out=halo2::normalize_mcc_unit_physics(unit,original,kind);
+        check(out.size()==unit.size(),"Embedded unit conversion moved its owner");
+        for(unsigned i=0;i<3;++i) {
+            check(halo2::Bytes(out).u32(0x400+i*0x80+0x20)==0 &&
+                  halo2::Bytes(out).u32(0x400+i*0x80+0x2c)==0x3f800000u+i &&
+                  halo2::Bytes(out).u32(0x400+i*0x80+0x40)==0x3f000000u+i,
+                  "Embedded sphere packing lost authored values or retained tool pointers");
+        }
+        equal_bytes(unit,0,out,0,0x400);equal_bytes(unit,0x800,out,0x800,0x400);
+        auto invalid=unit;word(invalid,descriptor+12,original+0x410);
+        rejects([&]{(void)halo2::normalize_mcc_unit_physics(invalid,original,kind);});
+        invalid=unit;block(invalid,0x5c,0x400);
+        rejects([&]{(void)halo2::normalize_mcc_unit_physics(invalid,original,kind);});
+        invalid=unit;word(invalid,descriptor+4,original+0xb00);
+        rejects([&]{(void)halo2::normalize_mcc_unit_physics(invalid,original,kind);});
+    }
+    {
+        Buffer vehicle(0x900);block(vehicle,0x2f8,0x400);word(vehicle,0x468,4);
+        for(unsigned i=0;i<4;++i) {
+            word(vehicle,0x490+i*0xa0,0xdeadbeefu);word(vehicle,0x494+i*0xa0,0xfedcba98u);
+            word(vehicle,0x4a8+i*0xa0,8);word(vehicle,0x4b0+i*0xa0,0x3f000000u+i);
+        }
+        const auto out=halo2::normalize_mcc_unit_physics(vehicle,original,halo2::MccUnitPhysicsKind::Vehicle);
+        for(unsigned i=0;i<4;++i)check(halo2::Bytes(out).u32(0x460+i*0x90)==0 &&
+            halo2::Bytes(out).u32(0x46c+i*0x90)==8 && halo2::Bytes(out).u32(0x470+i*0x90)==0x3f000000u+i,
+            "Vehicle inline multisphere layout or authored geometry differs");
+        equal_bytes(vehicle,0,out,0,0x400);equal_bytes(vehicle,0x6a0,out,0x6a0,0x260);
+        auto invalid=vehicle;word(invalid,0x468,5);
+        rejects([&]{(void)halo2::normalize_mcc_unit_physics(invalid,original,halo2::MccUnitPhysicsKind::Vehicle);});
+        invalid=vehicle;word(invalid,0x2f8,2);
+        rejects([&]{(void)halo2::normalize_mcc_unit_physics(invalid,original,halo2::MccUnitPhysicsKind::Vehicle);});
+    }
+    std::cout<<"MCC model/BSP/unit authored physics packing, owned geometry/MOPP, aliases and pointer-width rejection passed\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

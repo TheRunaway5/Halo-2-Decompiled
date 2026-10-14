@@ -4,6 +4,11 @@
 
 namespace halo2 {
 SourceRuntimeCacheAnimationImage Cache::load_source_runtime_animation_image(std::uint32_t descriptor) const {
+  return load_source_runtime_animation_image(descriptor,[this](auto p,auto bytes){return raw_data(p,bytes);});
+}
+SourceRuntimeCacheAnimationImage Cache::load_source_runtime_animation_image(std::uint32_t descriptor,
+    const std::function<std::vector<std::byte>(std::uint32_t,std::uint32_t)> &resources) const {
+  if(!resources)throw FormatError("Source animation resource owner is unavailable");
   if(vista_)throw FormatError("Source animation resource delivery requires the Xbox cache");
   const Bytes data(cache_bytes());
   for(const auto &tag:select_tags({.group=tag_groups::model_animation_graph,.require_address=true})) {
@@ -23,7 +28,7 @@ SourceRuntimeCacheAnimationImage Cache::load_source_runtime_animation_image(std:
             throw FormatError("Canonical animation resource escapes its graph owner");
           const auto bytes=size?data.slice(file,size):std::span<const std::byte>{};
           out.bytes.assign(bytes.begin(),bytes.end());
-        } else out.bytes=raw_data(data.u32(at+8),data.u32(at+4));
+        } else out.bytes=resources(data.u32(at+8),data.u32(at+4));
     return out;
   }
   throw FormatError("Animation I/O request is not an actual jmad resource descriptor");

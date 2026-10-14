@@ -1,6 +1,7 @@
 #include "halo2/menu_world_vertex_catalog.hpp"
 #include <algorithm>
 #include <sstream>
+#include <openssl/evp.h>
 
 namespace halo2 {
 namespace {
@@ -82,9 +83,6 @@ constexpr const char epilogue[]=R"GLSL(    vec4 screen=vpOut[0];
     v_vtxPos0=screen;v_vtxPos1=screen;v_vtxPos2=screen;v_triMZ=0.0;
 }
 )GLSL";
-bool equal(std::span<const std::byte> a,std::span<const std::byte> b) {
-  return a.size()==b.size() && std::equal(a.begin(),a.end(),b.begin());
-}
 bool equal(std::span<const std::uint16_t> a,std::span<const std::uint16_t> b) {
   return a.size()==b.size() && std::equal(a.begin(),a.end(),b.begin());
 }
@@ -115,9 +113,16 @@ const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
   // Full module validation belongs to the generated-catalog build. This
   // trusted immutable storage needs only identity and compatibility admission.
   declaration(inputs);
+  std::array<unsigned char,32> digest{};unsigned digest_bytes{};
+  if(EVP_Digest(program.data(),program.size(),digest.data(),&digest_bytes,EVP_sha256(),nullptr)!=1 || digest_bytes!=digest.size())
+    throw FormatError("menu vertex program SHA-256 failed");
+  std::array<char,64> identity{};
+  constexpr char hex[]="0123456789abcdef";
+  for(std::size_t i=0;i<digest.size();++i){identity[2*i]=hex[digest[i]>>4];identity[2*i+1]=hex[digest[i]&15];}
   const MenuWorldVertexCatalogEntry *match{};
   for(const auto &entry:catalog) {
-    if(entry.class_index!=inputs.class_index || !equal(entry.program,program) ||
+    if(entry.class_index!=inputs.class_index || entry.program_bytes!=program.size() ||
+       entry.program_sha256!=std::string_view(identity.data(),identity.size()) ||
        !equal(entry.semantics,inputs.semantics))continue;
     if(entry.abi!=menu_world_vertex_catalog_abi || entry.spirv.size()<5 ||
        entry.spirv[0]!=0x07230203u || entry.spirv[1]!=0x00010600u || entry.spirv[4]!=0)

@@ -32,6 +32,7 @@ std::array<int,16> selections(const PropSandboxDefinition& d,std::span<const std
 }
 PropSandbox::PropSandbox(const LevelContent& c):content_(&c){}
 bool PropSandbox::synchronize(const SceneObjects& scene){
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;
   bool changed=std::exchange(collision_dirty_,false);std::set<std::uint32_t> present;
   for(const auto& o:scene.objects()){
     if(o.handle==null_datum || o.placement>=content_->prop_sandbox.size())continue;
@@ -109,10 +110,12 @@ bool PropSandbox::damage(std::uint32_t handle,const WeaponDefinition& weapon,flo
 }
 PropSandbox::DamageContactResult PropSandbox::damage_contact(std::uint32_t handle,
     const WeaponDefinition& weapon,float amount,PropDamageOwner owner,bool radius,const SourceModelRegionOwners &owners){
+  NativeAuthorityBoundary::Call call(authority_);
   auto& p=props_.at(handle);
   const auto before=p.state.vitality;
   UnitDamageResult result;
   if(!before.dead){
+    ++authority_.mutations;
     p.state.owner=owner;
     result=apply_unit_damage(p.state.vitality,p.definition->vitality,weapon,
         content_->damage_groups,content_->damage_materials,amount,radius);
@@ -184,22 +187,24 @@ Vec3 PropSandbox::closest_point(std::uint32_t handle,Vec3 origin)const{
   return result;
 }
 std::vector<PropSandboxEvent> PropSandbox::tick(const std::function<void(const PropSandboxEvent&)>& owner,const SourceModelRegionOwners &owners){
+  NativeAuthorityBoundary::Call call(authority_);
   std::vector<std::uint32_t> order;
   for(const auto& [h,_]:props_)order.push_back(h);
   std::sort(order.begin(),order.end(),[](auto a,auto b){return (a&0xffff)<(b&0xffff);});
   std::size_t delivered=0;
   const auto deliver=[&]{while(delivered<events_.size()){
-    const auto event=events_[delivered++];if(owner)owner(event);
+    const auto event=events_[delivered++];if(owner){++authority_.mutations;owner(event);}
   }};
   deliver();
   for(auto h:order){auto& p=props_.at(h);if(!p.active)continue;
     for(unsigned s=0;s<p.state.sections.size();++s){auto& state=p.state.sections[s];
       const auto count=state.pending>>3;if(!count)continue;
+      ++authority_.mutations;
       state.pending=std::uint16_t(((count-1)<<3)|(state.pending&7));
       if(count==1){dispatch(p,s,state.pending&7,owners);deliver();}
     }
   }
-  auto result=std::move(events_);events_.clear();return result;
+  ++authority_.mutations;auto result=std::move(events_);events_.clear();return result;
 }
 const PropSandboxState& PropSandbox::state(std::uint32_t handle)const{return props_.at(handle).state;}
 const SourceInitialModelSelection *PropSandbox::region_selection(std::uint32_t handle)const{
@@ -211,6 +216,14 @@ std::vector<PropRegionSnapshot> PropSandbox::region_snapshot()const{
   return result;
 }
 void PropSandbox::apply_regions(std::span<const PropRegionSnapshot> rows){
+  apply_region_state(rows,true);
+}
+void PropSandbox::observe_source_regions(std::span<const PropRegionSnapshot> rows){
+  if(replica_)throw FormatError("Prop replica cannot consume another local source authority");
+  apply_region_state(rows,false);
+}
+void PropSandbox::apply_region_state(std::span<const PropRegionSnapshot> rows,bool replica){
+  NativeAuthorityBoundary::Call call(authority_);
   if(rows.size()!=props_.size())throw FormatError("native prop region snapshot is not a complete live bank");
   std::set<std::uint32_t> handles;
   for(const auto &row:rows){
@@ -233,10 +246,12 @@ void PropSandbox::apply_regions(std::span<const PropRegionSnapshot> rows){
     }
     (void)source_initial_model_sections(p.definition->region_definition,selection,5);
   }
+  ++authority_.mutations;
   for(const auto &row:rows){auto &p=props_.at(row.handle);
     collision_dirty_|=p.state.regions.selection.permutations!=row.regions.selection.permutations;
     p.state.regions=row.regions;
   }
+  replica_=replica;
 }
 const std::vector<PropSandboxState> PropSandbox::states()const{
   std::vector<PropSandboxState> result;for(const auto& [_,p]:props_)result.push_back(p.state);return result;

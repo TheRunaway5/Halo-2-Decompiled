@@ -1,5 +1,7 @@
 #pragma once
 #include <cstdint>
+#include <array>
+#include <memory>
 #include <span>
 #include <string>
 #include <string_view>
@@ -48,7 +50,41 @@ public:
   std::span<std::uint8_t> element_storage();
   SourceRuntimeMemory *source_memory() const {return source_memory_;}
   NativeRuntimeAddress address() const {return source_pool_;}
+  // A source-backed view saves only its logical binding and immutable pool
+  // shape. Allocation metadata, salt/occupancy and elements belong to the
+  // enclosing whole-bank checkpoint; no native pointer is serialized.
+  struct SourceBinding {
+    std::uint32_t version=1,pool{},capacity{},stride{};
+    std::array<std::byte,32> name{};
+    bool operator==(const SourceBinding &) const = default;
+  };
+  class PreparedSourceView {
+  public:
+    ~PreparedSourceView();
+    PreparedSourceView(PreparedSourceView &&) noexcept;
+    PreparedSourceView &operator=(PreparedSourceView &&) noexcept;
+    bool for_owner(const DatumPool &) const noexcept;
+  private:
+    friend class DatumPool;
+    PreparedSourceView();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  SourceBinding source_binding() const;
+  // Both pools/banks must be externally quiescent. The replacement is the
+  // exact staged backing that the enclosing world will publish, not a second
+  // independently restored copy. Preparation never changes the current view.
+  // The view owner and staged backing must outlive preparation; cancel staged
+  // views before cancelling their enclosing replacement bank.
+  PreparedSourceView prepare_source_view(const SourceBinding &,
+                                         const SourceRuntimeMemory &replacement) const;
+  // True only after the exact staged backing has moved into source_memory().
+  // Commit is allocation-free and consumes the token on success; a premature
+  // or foreign commit leaves the view/token intact. Borrowed spans expire.
+  bool source_view_ready(const PreparedSourceView &) const noexcept;
+  bool commit_source_view(PreparedSourceView &&) noexcept;
 private:
+  friend struct SourceAuthorityArchiveAccess;
   std::string name_;
   std::int32_t capacity_{}, stride_{}, cursor_{}, high_water_{}, count_{};
   std::uint16_t flags_{}, next_salt_{};

@@ -263,14 +263,16 @@ struct BspPostprocess::Impl {
                 const float aspect=float(rectangle.extent.width)/float(rectangle.extent.height);
                 view.frame=bsp_patchy_fog_frame(*definition,*sample.patchy,view.state,random,
                     inverse_transform(to_world),f.z,camera_vertical_field_of_view(camera,aspect),
-                    float(rectangle.extent.height)/float(rectangle.extent.width),time);
+                    float(rectangle.extent.height)/float(rectangle.extent.width),time,
+                    view.input.clip_planes.y,view.input.clip_planes.x);
                 std::array<VkImageView,4> selected;const auto &frames=noise_frames.at(sample.patchy_datum);
                 for(unsigned layer=0;layer<4;++layer)selected[layer]=frames.at(view.frame.bitmaps[layer]);
                 image_binding(view.descriptors[0],2,selected,repeat_sampler);
                 const float inverse=1.f/std::max(.0001f,sample.patchy->distance[1]-sample.patchy->distance[0]);
                 for(unsigned pass=0;pass<2;++pass) {
                     const PatchyUniform uniform{(pass?view.frame.shading.direct:view.frame.shading.noise).words,view.frame.shading.rows,
-                        {view.frame.shading.vertical,float(pass?view.size.width:view.half.width),float(pass?view.size.height:view.half.height),0},
+                        {view.frame.shading.vertical,float(pass?view.size.width:view.half.width),float(pass?view.size.height:view.half.height),
+                            pass?view.frame.composite_minimum_depth:0.f},
                         {1024.f*inverse,0,0.f-sample.patchy->distance[0]*inverse,0}};
                     write_uniform(view.uniforms[pass],uniform);
                 }

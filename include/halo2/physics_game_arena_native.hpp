@@ -43,7 +43,7 @@ public:
   struct FileCheckpoint {
     std::uint32_t alias{},position{};
     std::string name;
-    std::vector<std::byte> bytes;
+    SourceRuntimeSnapshotBytes bytes;
     bool operator==(const FileCheckpoint &) const = default;
   };
   struct OwnershipCheckpoint {
@@ -60,6 +60,7 @@ public:
     PreparedOwnership(PreparedOwnership &&) noexcept;
     PreparedOwnership &operator=(PreparedOwnership &&) noexcept;
     bool for_owner(const SourcePhysicsGameArenaNative &) const noexcept;
+    bool matches_memory(const SourceRuntimeMemory &) const noexcept;
   private:
     friend class SourcePhysicsGameArenaNative;
     PreparedOwnership();
@@ -74,11 +75,14 @@ public:
   // worker. Keep that real local thread's terminal alias; never serialize a
   // native thread ID/entry closure. Stage private real files, pages and sync
   // objects without altering the current bank or the savegame-directory files.
+  // The already restored replacement bank receives those actual page leases;
+  // publish it by swap_backing before committing the resource owners.
   // Both owners must be quiescent. Commit/cancel on the same barrier thread.
   // The enclosing complete-world owner authenticates the immutable image/map
   // and budgets incoming byte/file data before constructing this subowner.
   PreparedOwnership prepare_ownership(const OwnershipCheckpoint &,
-                                      const SourceRuntimeMemory::Checkpoint &) const;
+                                      const SourceRuntimeMemory::Checkpoint &,
+                                      SourceRuntimeMemory &replacement) const;
   // After admitted whole-bank publication. Callback/schedule bindings remain
   // local, and run() remains stopped; only existing resource operations resume.
   bool commit_ownership(PreparedOwnership &&) noexcept;

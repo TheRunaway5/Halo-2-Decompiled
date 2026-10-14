@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/math.hpp"
 #include <cstdint>
+#include <array>
+#include <optional>
 
 namespace halo2 {
 // Native simulation/transport owner, distinct from the original raw proj body.
@@ -34,4 +36,10 @@ Vec3 source_weapon_projectile_up(Vec3 forward);
 float source_projectile_acceleration_range(float traveled,float initial_velocity,
     float final_velocity,float start_distance,float inverse_distance,std::uint32_t projectile_flags);
 Vec3 source_projectile_rgb_color(Vec3 lower,Vec3 upper,float amount);
+}
+namespace halo2 {
+// Literal101990/1028B0 ->1ED030 difficulty table10. Player identity is full
+// datum presence, not native ownership or a guessed projectile family.
+float source_projectile_speed_scale(std::uint32_t flags,std::uint32_t player,
+    bool campaign,std::int16_t difficulty,const std::optional<std::array<float,4>> &table);
 }

@@ -23,6 +23,12 @@ void compare(std::span<const EffectLightRawDraw> draws,const Json& expected) {
     for(unsigned n=0;n<draws.size();++n) {
         const auto& actual=draws[n].source;const auto& source=actual.draw();const auto& e=expected[n];
         const bool instance=actual.owner().kind==MenuWorldSourceOwnerKind::bsp_instance;
+        if(source.geometry->section()!=e.at("section").get<unsigned>() ||
+           source.part!=e.at("part").get<unsigned>() ||
+           (instance && actual.owner().ordinal!=e.at("instance").get<unsigned>()))
+            std::cerr<<"Draw "<<n<<" native kind/section/instance/part "<<instance<<'/'<<source.geometry->section()<<'/'
+                <<actual.owner().ordinal<<'/'<<source.part<<" original "<<e.at("kind")<<'/'<<e.at("section")<<'/'
+                <<e.at("instance")<<'/'<<e.at("part")<<'\n';
         require(instance==bool(e.at("kind").get<unsigned>()),"live original BSP light owner order differs");
         require(source.geometry->section()==e.at("section").get<unsigned>(),"live original BSP light section order differs");
         if(instance)require(actual.owner().ordinal==e.at("instance").get<unsigned>(),"live original BSP light instance order differs");

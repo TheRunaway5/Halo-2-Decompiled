@@ -105,6 +105,19 @@ struct Schedule {
  };}
  void idle_after_four_jobs(){std::unique_lock lock(mutex);check(changed.wait_for(lock,std::chrono::seconds(5),[&]{return waits>=5;}),"Ungated source worker did not retire its four actual file jobs");}
 };
+struct StopAtLastJobMutex {
+ std::mutex mutex;std::condition_variable_any changed;unsigned completed_jobs{};
+ SourcePhysicsGameArenaSchedule services(){return {
+  [this](std::uint32_t handle,std::stop_token stop){
+   // This is the real completed-job free-list mutex. Hold only the fourth
+   // native acquisition until stop is requested. No source completion, queue
+   // word or synchronization permit is supplied by this schedule.
+   if(handle!=0xf3000001u)return;
+   std::unique_lock lock(mutex);
+   if(++completed_jobs==4)changed.wait(lock,stop,[]{return false;});
+  },{}
+ };}
+};
 
 }
 int main(int argc,char **argv) {
@@ -176,6 +189,23 @@ int main(int argc,char **argv) {
    ungated.idle_after_four_jobs();native.stop();
    check(word(fresh,0x4f2950)==fixture.at("arena") && word(fresh,0x4f2954)==fixture.at("arena_offset") && word(fresh,0x4f295c)==fixture.at("arena_checksum"),"Ungated arena pointer/offset/CRC differs");
    for(unsigned i=0;i<2;++i)check(std::filesystem::file_size(ungated_files.path/("savegame"+std::to_string(i)+".bin"))==fixture.at("cache_files")[i].at("bytes"),"Ungated actual file extent differs");
+  }
+  {
+   auto fresh=load_source_runtime_image(argv[2],SourcePhysicsContactImage::TitleUpdate15);
+   fresh.mount(stack,std::vector<std::byte>(0x10000),SourceRuntimeMemory::Access::ReadWrite,"stop-at-job-mutex native caller stack");
+   TemporaryDirectory stopped_files;StopAtLastJobMutex schedule;
+   SourcePhysicsGameArenaNative native(fresh,{stopped_files.path,0x60100000u,{0x27f,0x1f80},schedule.services()});
+   for(const auto &step:fixture.at("steps")){
+    auto state=abi(step.at("entry_abi"));put(native.memory(),state.gp[4],0x60200000u);unsigned index=0;
+    for(const auto &arg:step.at("arguments"))put(native.memory(),state.gp[4]+4+4*index++,arg);
+    native.run(std::stoul(step.at("entry").get<std::string>(),nullptr,16),state);
+    same_abi(state,step.at("exit_abi"),"Stop-at-job-mutex original arena return");
+   }
+   native.stop();
+   {std::lock_guard lock(schedule.mutex);check(schedule.completed_jobs==4,"Stop did not overlap actual last-job cleanup");}
+   const auto retired=native.ownership_checkpoint();
+   check(retired.files.size()==2,"Stop-at-job-mutex lost actual file owners");
+   check(word(fresh,0x4f2950)==fixture.at("arena") && word(fresh,0x4f2954)==fixture.at("arena_offset") && word(fresh,0x4f295c)==fixture.at("arena_checksum"),"Stop-at-job-mutex changed original arena result");
   }
   // Missing source/platform owners retain the exact original call frontier.
   for(const auto entry:{0x1221b0u,0x125280u}){

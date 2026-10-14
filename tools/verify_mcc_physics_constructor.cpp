@@ -54,7 +54,8 @@ int main(int argc,char** argv)try {
     check(report.at("schema")=="H2_MCC_PHYSICS_TU15_CONSTRUCTOR_ORACLE_V1","Wrong original comparison report");
     check(report.at("reference_xbe_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Wrong original update reference");
     const auto group=report.value("tag_group",std::string("phmo"));
-    check(group=="phmo" || group=="coll" || group=="sbsp","Unsupported constructor comparison group");
+    check(group=="phmo" || group=="coll" || group=="sbsp" || group=="bipd" || group=="crea" || group=="vehi",
+          "Unsupported constructor comparison group");
     const bool collision=group!="phmo";
     std::size_t cases=0,phases=0,stores=0;
     for(const auto& row:report.at("rows")) {
@@ -65,9 +66,12 @@ int main(int argc,char** argv)try {
         if(row.contains("runtime_pointer_offsets"))for(const auto& offset:row.at("runtime_pointer_offsets"))
             for(unsigned byte=0;byte<4;++byte)memory.rebound.insert(base+offset.get<std::uint32_t>()+byte);
         check(memory.regions.at(base).bytes.size()==row.at("bytes").get<std::size_t>(),"Changed reference packet extent");
-        Buffer global(4);word(global,0,0x70000000u);memory.regions.emplace(0x4f0414u,Memory::Region{std::move(global),false});
+        if(group!="bipd" && group!="crea" && group!="vehi") {
+            Buffer global(4);word(global,0,0x70000000u);memory.regions.emplace(0x4f0414u,Memory::Region{std::move(global),false});
+        }
         Buffer directory(0x100000);const auto at=(datum&65535u)*16;
-        word(directory,at,group=="coll"?0x636f6c6cu:group=="sbsp"?0x73627370u:0x70686d6fu);word(directory,at+4,datum);word(directory,at+8,base);
+        std::uint32_t group_word{};for(unsigned char c:group)group_word=(group_word<<8)|c;
+        word(directory,at,group_word);word(directory,at+4,datum);word(directory,at+8,base);
         word(directory,at+12,row.at("bytes"));memory.regions.emplace(0x70000000u,Memory::Region{std::move(directory),false});
         for(const auto& phase:row.at("phases"))for(const auto& read:phase.at("program_reads")) {
             const auto address=read.at("address").get<std::uint32_t>();const auto bytes=hex(read.at("bytes"));
@@ -94,7 +98,8 @@ int main(int argc,char** argv)try {
             const auto observe=[&](const auto& store){
                     if(store.address>=base && std::uint64_t(store.address)-base<size)actual.push_back(store);
                 };
-            if(collision)halo2::source_run_physics_live_support_tu15(memory,group=="coll"?0x21a580u:0x171120u,state,{0x27f,0x1f80},services,observe);
+            const auto entry=group=="coll"?0x21a580u:group=="sbsp"?0x171120u:group=="vehi"?0x20d810u:0x1caf40u;
+            if(collision)halo2::source_run_physics_live_support_tu15(memory,entry,state,{0x27f,0x1f80},services,observe);
             else halo2::source_run_physics_world_runtime(memory,0x1ee380u,state,halo2::SourcePhysicsContactImage::TitleUpdate15,
                 {0x27f,0x1f80},services,observe);
             const auto expected=read_file(packet.parent_path()/phase.at("after_file").get<std::string>());
@@ -123,5 +128,5 @@ int main(int argc,char** argv)try {
         }
         ++cases;
     }
-    std::cout<<"TU1.5 native physics constructors: "<<cases<<" unique packets, "<<phases<<" bind/release phases, "<<stores<<" exact ordered stores passed\n";return 0;
+    std::cout<<"TU1.5 native physics constructors: "<<cases<<" unique packets, "<<phases<<" constructor phases, "<<stores<<" exact ordered stores passed\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

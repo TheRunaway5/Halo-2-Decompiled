@@ -39,6 +39,7 @@ int main(int argc,char **argv) {try {
   const auto catalog=std::span(generated_menu_world_vertex_catalog::entries);
   require(!catalog.empty(),"embedded menu vertex catalog is empty");
   unsigned original_rows=0,supported_tags=0,rejected_tags=0,rejections=0;
+  std::vector<std::byte> first_program;
   for(const auto [event,datum]:std::array<std::pair<unsigned,std::uint32_t>,4>{{
       {1335,0xe1cc0057u},{1448,0xe1dd0068u},{1880,0xe1ba0045u},{2409,0xe1ba0045u}}}) {
     const auto bytes=cache.load_vertex_shader_code(datum,1);
@@ -76,31 +77,40 @@ int main(int argc,char **argv) {try {
     }
     ++original_rows;
   }
-  // Every current class0/class1 payload is generated and found literally, or
+  // Every supported class0..6 payload is generated and found by its complete
+  // program identity, or
   // rejected explicitly by this bounded producer. No supported tag is omitted.
-  for(const auto &tag:cache.tags())if(tag.group=="vrtx")for(unsigned classification:{0u,1u}) {
+  for(const auto &tag:cache.tags())if(tag.group=="vrtx")for(unsigned classification:{0u,1u,2u,3u,4u,5u,6u}) {
     std::vector<std::byte> bytes;SourceVertexDeclaration declaration;
     try {
       bytes=cache.load_vertex_shader_code(tag.datum,classification);
       declaration=cache.load_source_vertex_declaration(tag.datum,classification);
       (void)menu_world_vertex_shader_source(bytes,declaration);
     }catch(const FormatError &){++rejected_tags;continue;}
-    (void)menu_world_vertex_catalog_lookup(catalog,bytes,declaration);++supported_tags;
+    const auto& entry=menu_world_vertex_catalog_lookup(catalog,bytes,declaration);++supported_tags;
+    if(&entry==&catalog.front())first_program=bytes;
   }
   const auto &first=catalog.front();
+  require(!first_program.empty(),"first catalog identity has no original program fixture");
   SourceVertexDeclaration declaration;declaration.class_index=first.class_index;
   declaration.semantics.assign(first.semantics.begin(),first.semantics.end());
   std::array<MenuWorldVertexCatalogEntry,2> duplicate{first,first};
-  rejects([&]{(void)menu_world_vertex_catalog_lookup(duplicate,first.program,declaration);},rejections,
+  rejects([&]{(void)menu_world_vertex_catalog_lookup(duplicate,first_program,declaration);},rejections,
       "catalog accepted two modules for one literal identity");
   auto damaged=first;damaged.abi++;
-  rejects([&]{(void)menu_world_vertex_catalog_lookup(std::span(&damaged,1),first.program,declaration);},rejections,
+  rejects([&]{(void)menu_world_vertex_catalog_lookup(std::span(&damaged,1),first_program,declaration);},rejections,
       "catalog accepted an incompatible wrapper ABI");
   const std::array<std::uint32_t,5> invalid_spirv{0,0x00010600,0,1,0};damaged=first;damaged.spirv=invalid_spirv;
-  rejects([&]{(void)menu_world_vertex_catalog_lookup(std::span(&damaged,1),first.program,declaration);},rejections,
+  rejects([&]{(void)menu_world_vertex_catalog_lookup(std::span(&damaged,1),first_program,declaration);},rejections,
       "catalog accepted a malformed embedded module");
+  damaged=first;damaged.program_bytes++;
+  rejects([&]{(void)menu_world_vertex_catalog_lookup(std::span(&damaged,1),first_program,declaration);},rejections,
+      "catalog ignored the complete source program extent");
+  damaged=first;damaged.program_sha256="0000000000000000000000000000000000000000000000000000000000000000";
+  rejects([&]{(void)menu_world_vertex_catalog_lookup(std::span(&damaged,1),first_program,declaration);},rejections,
+      "catalog ignored the complete source program SHA-256");
   declaration.semantics[0]=std::uint16_t(SourceVertexSemantic::Incident);
-  rejects([&]{(void)menu_world_vertex_shader_source(first.program,declaration);},rejections,
+  rejects([&]{(void)menu_world_vertex_shader_source(first_program,declaration);},rejections,
       "catalog silently supplied an unsupported raw semantic");
   // Caller values are not catalog state: two arbitrary banks, including a
   // negative zero payload, retain distinct bytes while resolving one module.

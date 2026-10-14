@@ -8,6 +8,9 @@ struct SourceModelNodeWorld {
     // DeepBD610 animation/deferred-node production remains an explicit owner.
     // Its caller-owned bank may be mutated before the returned token is read.
     std::function<std::uint32_t(std::uint32_t,std::uint32_t,std::uint32_t)> deferred_nodes;
+    // Read-only handoff of the effective WORLD input before palette creation,
+    // including models whose original deferred-node gate returns immediately.
+    std::function<void(std::uint32_t,std::uint32_t,std::int32_t)> observed_world_nodes;
 };
 // Whole1376C0 over current WORLD nodes and literal inverse binds. Output is
 // three float4 rows per node; every remaining output byte survives.

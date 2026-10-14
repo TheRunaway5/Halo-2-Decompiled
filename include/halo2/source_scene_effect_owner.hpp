@@ -2,6 +2,7 @@
 #include "halo2/transform.hpp"
 #include <cstdint>
 #include <span>
+#include <optional>
 
 namespace halo2 {
 // A read-only view of the same current WORLD nodes used by scene geometry.
@@ -12,5 +13,7 @@ struct SourceSceneEffectOwner {
     std::uint64_t created_tick{};
     std::span<const Transform> nodes;
     std::span<const std::uint8_t> permutations;
+    // BBE00's completed world origin, separately from animated node zero.
+    std::optional<Vec3> origin;
 };
 } // namespace halo2

@@ -11,10 +11,17 @@ struct SourceEffectLightModelViewTu15 {
     SourceObjectAdmission main;
     SourceLiveModelDrawContextTu15 context;
     std::span<const std::uint8_t> containing_fog;
+    // Consume the completed main prefix before a light query can mutate its
+    // shared contexts/arena. The caller copies all retained draw inputs here.
+    std::function<void(const SourceDrawUnitState&)> main_draws;
+    // Native renderer availability, after genuine source collection. Rejected
+    // model units keep their original ordinals but submit no light pass.
+    std::function<bool(const SourceCullDrawUnit&)> model_available;
 };
-// BSP-owned part of31C80. Immutable cache resources are loaded before renderer
-// creation; tick state, selection and receiver queries come from the live
-// NativeWorldEffects owner. Dynamic objects and their collector are separate.
+// Shared BSP/model part of31C80. Immutable cache resources are loaded before
+// renderer creation; tick state, selection and receiver queries come from the
+// live NativeWorldEffects owner. Optional model views supply the actual live
+// object world and main-view queue; both families use one command/range sort.
 class SourceBspEffectLights {
 public:
     SourceBspEffectLights(const Cache&,Mesh&,std::size_t bsp,

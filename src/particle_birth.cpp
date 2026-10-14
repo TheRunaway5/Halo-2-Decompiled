@@ -28,17 +28,16 @@ Vec3 scale(Vec3 v,float factor) {
 ParticleBirthState initialize_particle_birth(const ParticleBirthDefinition &definition,
     const std::array<float,17> &values,std::uint32_t &seed,
     const OriginalData &data,const ShaderFunctionTables &tables) {
-  if(definition.shape>5)
+  if(definition.shape>5 && definition.shape!=9)
     throw FormatError("particle birth shape requires original initialization evidence");
   ParticleBirthState out;
   const float life=property(definition.properties[0],values,tables);
   out.inverse_lifetime=1.f/(life>.01f?life:.01f);
   out.rotation_rate=property(definition.properties[2],values,tables)*(1.f/360.f);
-  if(definition.shape==0 || definition.shape==5) {
-    // TU1.1 24B294..24B352: position stays zero. Two local-bank draws
-    // produce azimuth and polar, retaining x87 products through sin/cos.
-    // The actual SMG's authored angle is zero; signed sine/cosine products
-    // and both RNG draws still belong to the original successful birth.
+  if(definition.shape==0 || definition.shape==5 || definition.shape==9) {
+    // Two local-bank draws produce azimuth and polar, retaining x87 products
+    // through sin/cos. Shape 0 (TU1.1 24B294..24B352) keeps the zero origin;
+    // shapes 5 and 9 select their respective third draw below.
     const double azimuth_fraction=double(random_next(seed)>>16)*double(1.f/65535.f);
     const float azimuth=float(azimuth_fraction*double(6.2831855f));
     const float maximum_polar=property(definition.properties[4],values,tables)*.017453292f;
@@ -47,17 +46,26 @@ ParticleBirthState initialize_particle_birth(const ParticleBirthDefinition &defi
     const double radial=std::sin(polar);
     out.velocity={float(std::cos(polar)),float(std::sin(double(azimuth))*radial),
       float(radial*std::cos(double(azimuth)))};
-    if(definition.shape==5) {
+    if(definition.shape==5 || definition.shape==9) {
       // This branch stores polar before FCOS and radial before either
       // azimuth product; the zero-origin cone keeps the x87 intermediates.
       const float stored_radial=float(radial);
       out.velocity={float(std::cos(double(float(polar)))),
         float(std::sin(double(azimuth))*double(stored_radial)),
         float(std::cos(double(azimuth))*double(stored_radial))};
-      // Original249170/24B240's offset-cone branch then samples a third
-      // random value for a table direction on the authored radius sphere.
       const float radius=property(definition.properties[3],values,tables);
-      out.position=scale(random_direction(seed,data),radius);
+      if(definition.shape==5) {
+        // Original249170/24B240's offset-cone branch samples a third
+        // random value for a table direction on the authored radius sphere.
+        out.position=scale(random_direction(seed,data),radius);
+      }else {
+        // TU1.5 252BD8..252CE0 samples only the Y position, through 259B0.
+        // Keep the SSE subtraction's zero sign and x87 double intermediates;
+        // storing the fraction or range as float changes authored births.
+        const float lower=0.f-radius;
+        const double fraction=double(random_next(seed)>>16)*double(1.f/65535.f);
+        out.position={0.f,float((double(radius)-double(lower))*fraction+double(lower)),0.f};
+      }
     }
   }else if(definition.shape==1) {
     // Original249170's ring branch uses one draw. Sine/cosine are stored

@@ -5,6 +5,9 @@
 #include <fstream>
 #include <iostream>
 #include <thread>
+#include <future>
+#include <mutex>
+#include <deque>
 #ifndef _WIN32
 #include <arpa/inet.h>
 #include <sys/socket.h>
@@ -73,6 +76,153 @@ SlayerRules rules() {
   r.weapon = 3;
   return r;
 }
+void heavy_vehicle_replica_admission() {
+  const auto content=arena();const auto spawn=starts();
+  for(int mode:{1,2,4}) {
+    auto selected=rules();selected.primary_heavy_vehicle=mode;
+    MultiplayerMatch replica(content,0,spawn,selected);
+    const auto before=replica.state().tick;
+    rejects([&]{replica.step({});},"Heavy vehicle display replica advanced without a source authority");
+    check(replica.state().tick==before,"Rejected heavy vehicle authority changed the world clock");
+  }
+}
+void session_configuration() {
+  // Transport fixture: ordered configuration inputs, not supplied physics.
+  const auto content=arena();const auto spawn=starts();
+  MultiplayerMatch match(content,0,spawn,rules());
+  UiVariant variant{"Authoritative source settings",0,{}};
+  for(unsigned n=0;n<600;++n) {
+    variant.values.append(76,n%2?5:1);
+    variant.values.append(89,5);
+  }
+  LanHost host(match,0,0x5155455259ull,variant);
+  const auto before=match.state().tick;
+  std::array<Controls,multiplayer_capacity> controls{};
+#ifndef _WIN32
+  struct SocketGuard {int fd;~SocketGuard(){close(fd);}} proxy{::socket(AF_INET,SOCK_DGRAM,0)};
+  check(proxy.fd>=0,"Session query proxy socket");
+  sockaddr_in proxy_address{};proxy_address.sin_family=AF_INET;
+  proxy_address.sin_addr.s_addr=htonl(INADDR_LOOPBACK);
+  check(!bind(proxy.fd,reinterpret_cast<sockaddr*>(&proxy_address),sizeof(proxy_address)),"Bind session query proxy");
+  socklen_t address_bytes=sizeof(proxy_address);
+  check(!getsockname(proxy.fd,reinterpret_cast<sockaddr*>(&proxy_address),&address_bytes),"Read session query proxy port");
+  sockaddr_in authority=proxy_address;authority.sin_port=htons(host.port());
+  sockaddr_in client{};bool have_client{},dropped{},reordered{};unsigned duplicates{};
+  std::vector<std::vector<std::byte>> pending;
+  auto result=std::async(std::launch::async,[&] {
+    return query_lan_session("127.0.0.1:"+std::to_string(ntohs(proxy_address.sin_port)),std::chrono::seconds(3));
+  });
+  while(result.wait_for(std::chrono::milliseconds(0))!=std::future_status::ready) {
+    std::array<std::byte,1500> packet{};sockaddr_in from{};socklen_t length=sizeof(from);
+    for(int n;(n=recvfrom(proxy.fd,packet.data(),packet.size(),MSG_DONTWAIT,
+        reinterpret_cast<sockaddr*>(&from),&length))>0;length=sizeof(from)) {
+      if(from.sin_port!=authority.sin_port) {
+        client=from;have_client=true;
+        sendto(proxy.fd,packet.data(),n,0,reinterpret_cast<sockaddr*>(&authority),sizeof(authority));
+      }else {
+        check(have_client && n>=31 && std::to_integer<unsigned>(packet[6])==7,"Unexpected session description fragment");
+        const auto index=std::to_integer<unsigned>(packet[23])|(std::to_integer<unsigned>(packet[24])<<8);
+        const auto count=std::to_integer<unsigned>(packet[25])|(std::to_integer<unsigned>(packet[26])<<8);
+        check(count>1,"Session description did not exercise fragmentation");
+        if(!dropped && index==0){dropped=true;continue;}
+        pending.emplace_back(packet.begin(),packet.begin()+n);
+        if(index+1==count) {
+          for(auto it=pending.rbegin();it!=pending.rend();++it) {
+            sendto(proxy.fd,it->data(),it->size(),0,reinterpret_cast<sockaddr*>(&client),sizeof(client));
+            if(!duplicates) {
+              sendto(proxy.fd,it->data(),it->size(),0,reinterpret_cast<sockaddr*>(&client),sizeof(client));++duplicates;
+            }
+          }
+          pending.clear();reordered=true;
+        }
+      }
+    }
+    host.receive(controls);std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  const auto description=result.get();
+  check(dropped && reordered && duplicates,"Session query loss/reorder/duplicate routes were not exercised");
+#else
+  auto result=std::async(std::launch::async,[&] {
+    return query_lan_session("127.0.0.1:"+std::to_string(host.port()),std::chrono::seconds(3));
+  });
+  while(result.wait_for(std::chrono::milliseconds(0))!=std::future_status::ready) {
+    host.receive(controls);std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  const auto description=result.get();
+#endif
+  check(description.fingerprint==0x5155455259ull && description.variant.name==variant.name &&
+      description.variant.engine==variant.engine && description.variant.values==variant.values,
+      "Complete ordered host configuration did not survive actual UDP");
+  const auto after=match.state();
+  check(host.peers()==0 && after.tick==before &&
+      std::none_of(after.players.begin(),after.players.end(),[](const auto &p){return p.connected;}),
+      "Configuration query admitted a player or changed the world");
+  auto handwritten=rules();handwritten.session_configuration.reset();
+  MultiplayerMatch undeclared(content,0,spawn,handwritten);
+  LanHost legacy(undeclared,0,0x5155455259ull);
+  auto missing=std::async(std::launch::async,[&] {
+    return query_lan_session("127.0.0.1:"+std::to_string(legacy.port()),std::chrono::seconds(3));
+  });
+  while(missing.wait_for(std::chrono::milliseconds(0))!=std::future_status::ready) {
+    legacy.receive(controls);std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  rejects([&]{(void)missing.get();},"Host without declared session settings returned invented configuration");
+  struct Bus {
+    std::mutex mutex;
+    std::array<std::deque<std::pair<unsigned,std::vector<std::byte>>>,2> packets;
+  };
+  struct Endpoint final : MultiplayerDatagrams {
+    std::shared_ptr<Bus> bus;unsigned self;
+    Endpoint(std::shared_ptr<Bus> b,unsigned id):bus(std::move(b)),self(id){}
+    void send(std::span<const std::byte> bytes,unsigned peer) override {
+      std::lock_guard lock(bus->mutex);
+      bus->packets.at(peer).emplace_back(self,std::vector<std::byte>(bytes.begin(),bytes.end()));
+    }
+    bool receive(std::vector<std::byte> &bytes,unsigned &peer) override {
+      std::lock_guard lock(bus->mutex);auto &queue=bus->packets[self];
+      if(queue.empty())return false;
+      peer=queue.front().first;bytes=std::move(queue.front().second);queue.pop_front();return true;
+    }
+  };
+  const auto bus=std::make_shared<Bus>();
+  auto host_endpoint=std::make_shared<Endpoint>(bus,0),client_endpoint=std::make_shared<Endpoint>(bus,1);
+  LanHost relay(match,host_endpoint,0x5155455259ull,{},variant);
+  auto relayed=std::async(std::launch::async,[&] {
+    return query_lan_session(client_endpoint,0,std::chrono::seconds(3));
+  });
+  while(relayed.wait_for(std::chrono::milliseconds(0))!=std::future_status::ready) {
+    relay.receive(controls);std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  const auto online=relayed.get();
+  check(online.fingerprint==description.fingerprint && online.variant.values==variant.values &&
+      relay.peers()==0 && match.state().tick==before,"Session transport endpoint failed complete configuration query");
+}
+void session_configuration_while_loading() {
+  const auto content=arena();const auto spawn=starts();
+  const auto selected=rules();MultiplayerMatch match(content,0,spawn,selected);
+  LanHost host(match,0,0x4c4f4144494e47ull);
+  // The rendering/loading thread is not pumping gameplay receive yet.
+  // Discovery must still answer without creating a player or world tick.
+  const auto before=match.state();
+  const auto description=query_lan_session("127.0.0.1:"+std::to_string(host.port()),
+      std::chrono::milliseconds(150));
+  check(description.fingerprint==0x4c4f4144494e47ull &&
+      description.variant.values==selected.session_configuration->values &&
+      host.peers()==0 && match.state().tick==before.tick,
+      "Loading host did not answer its actual session configuration independently");
+  LanClient client("127.0.0.1:"+std::to_string(host.port()),description.fingerprint,1);
+  const std::array<Controls,1> neutral{};client.send(neutral);
+  std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  check(host.peers()==0 && match.state().tick==before.tick,
+      "Loading transport service executed gameplay admission");
+  std::array<Controls,multiplayer_capacity> controls{};
+  for(unsigned n=0;n<64 && !client.ready();++n) {
+    host.receive(controls);host.broadcast();client.receive();
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  check(client.ready() && host.peers()==1 && match.state().tick==before.tick,
+      "Owner thread did not consume the queued real join request");
+}
 void sneaking_presentation() {
   for(bool ceiling:{false,true}) {
     auto content=arena();
@@ -125,8 +275,9 @@ void rules_and_match() {
           "Recovered win-stat provider did not admit source limit one");
   rejects([] { slayer_rules({"Team Slayer", 0, {{0x5b, 1}}}); },
           "Unsupported teams accepted");
-  rejects([] { slayer_rules({"Rockets", 0, {{0x59, 7}}}); },
-          "Unsupported weapon option ignored");
+  for(int choice=3;choice<=20;++choice)
+    check(slayer_rules({"Specific weapon",0,{{0x59,choice}}}).starting_weapon==unsigned(choice),
+        "Supported specific weapon option changed during admission");
   check(slayer_rules({"SMG Slayer", 0, {{0x59, 5}}}).starting_weapon == 5,
         "Original SMG variant option rejected");
   rejects([] { slayer_rules({"Random", 0, {{0x59, 2}}}); },
@@ -263,6 +414,52 @@ void asset_identity() {
   }
   std::filesystem::remove(b / "maps/shared.map");
   rejects([&] { identity(b); }, "Missing shared game data silently fingerprinted");
+}
+void network_vehicle_intent() {
+  const auto content=arena();const auto spawn=starts();
+  MultiplayerMatch match(content,0,spawn,rules());LanHost host(match,0,789);
+  LanClient client("127.0.0.1:"+std::to_string(host.port()),789,1);
+  std::array<Controls,1> local{};std::array<Controls,16> delivered{};
+  for(unsigned i=0;i<64 && !client.ready();++i) {
+    client.send(local);host.receive(delivered);host.broadcast();client.receive();
+  }
+  check(client.ready() && client.slots().size()==1,"Vehicle intent UDP admission");
+  const auto slot=client.slots()[0];const auto before=match.state().tick;
+  const std::array<std::optional<SourcePlayerActionTarget>,4> targets{
+    SourcePlayerActionTarget{5,0,0x80010002u},
+    SourcePlayerActionTarget{6,4,0x80010002u},
+    SourcePlayerActionTarget{},std::nullopt};
+  for(const auto &target:targets) {
+    local[0].vehicle_interaction_target=target;local[0].pickup=bool(target && target->action);
+    bool received=false;
+    for(unsigned i=0;i<64 && !received;++i) {
+      client.send(local);host.receive(delivered);
+      const auto &actual=delivered[slot].vehicle_interaction_target;
+      received=actual.has_value()==target.has_value() &&
+        (!target || (actual->action==target->action && actual->index==target->index && actual->object==target->object));
+      if(!received)std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    check(received,"Vehicle action/object/seat intent changed in actual UDP transport");
+    if(target && target->action)
+      check(delivered[slot].pickup,"Vehicle intent lost its held pickup input");
+    // Original input delivery also emits the completed pickup pulse on
+    // release, so a neutral target need not clear the button in this tick.
+  }
+  const SourcePlayerActionTarget release_target{5,0,0x80010002u};
+  const SourcePlayerActionTarget subsequent_target{5,1,0x80020003u};
+  local[0].pickup=true;local[0].pickup_milliseconds=600;
+  local[0].vehicle_interaction_target=release_target;client.send(local);host.receive(delivered);
+  local[0].pickup=false;local[0].pickup_milliseconds=0;
+  client.send(local); // Release and its target belong to this same input frame.
+  local[0].vehicle_interaction_target=subsequent_target;client.send(local);
+  host.receive(delivered); // Coalesce both actual UDP packets before gameplay.
+  check(delivered[slot].pickup && delivered[slot].pickup_milliseconds==600 &&
+      delivered[slot].vehicle_interaction_target==release_target,
+      "Completed pickup hold was retargeted by a later neutral UDP packet");
+  host.receive(delivered);
+  check(!delivered[slot].pickup && delivered[slot].vehicle_interaction_target==subsequent_target,
+      "Completed vehicle intent repeated or replaced subsequent continuous input");
+  check(match.state().tick==before,"Vehicle intent transport advanced physics");
 }
 void network() {
   auto c = arena();
@@ -581,6 +778,24 @@ void retail(const std::filesystem::path &maps) {
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if(argc==2 && std::string(argv[1])=="--vehicle-intent") {
+      network_vehicle_intent();
+      std::cout<<"Vehicle action and seat intent survives actual UDP without advancing physics\n";return 0;
+    }
+    if(argc==2 && std::string(argv[1])=="--session-config") {
+      session_configuration();
+      std::cout<<"Complete ordered host configuration survives UDP loss/reorder/duplicates without player admission\n";
+      return 0;
+    }
+    if(argc==2 && std::string(argv[1])=="--session-config-loading") {
+      session_configuration_while_loading();
+      std::cout<<"Loading host configuration discovery leaves gameplay on its owner thread\n";return 0;
+    }
+    if(argc==2 && std::string(argv[1])=="--heavy-replica") {
+      heavy_vehicle_replica_admission();
+      std::cout<<"Heavy vehicle replicas construct; source-free authority stepping rejects before mutation\n";
+      return 0;
+    }
     if(argc==2 && std::string(argv[1])=="--crouch") {
       sneaking_presentation();
       std::cout<<"Sneaking stance follows actual capsule release and blocked stand-up\n";
@@ -591,9 +806,12 @@ int main(int argc, char **argv) {
       std::cout<<"Actual UDP joined after preparation exceeded the connection deadline\n";
       return 0;
     }
+    heavy_vehicle_replica_admission();
+    session_configuration();
     sneaking_presentation();
     rules_and_match();
     asset_identity();
+    network_vehicle_intent();
     network();
     network_snapshot_fragments();
     if (argc > 1)

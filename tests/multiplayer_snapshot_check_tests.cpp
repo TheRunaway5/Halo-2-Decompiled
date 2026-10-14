@@ -28,8 +28,21 @@ int main() try {
     prop.handle=0x80010050;prop.placement=39;prop.definition=0xe9a00001;
     prop.regions.selection.variant_index=0;prop.regions.selection.permutations={1};
     prop.regions.selection.states={{0,4,0}};prop.regions.looping_effects={0xffffffffu};
+    expected.source_scene_roots_authoritative=true;expected.source_scene_roots.emplace_back();
+    auto &root=expected.source_scene_roots.back();root.object=0xe2750006;root.definition=0xea9c0100;root.placement=27;
+    root.attached_effects.push_back({0,0x83,0xe6650000,0xea790904,-0.f,1,{0x01234567,0x89abcdef},
+        {{0x020000ca,0,{}}}});
     struct Mutation { const char *name; void (*apply)(MultiplayerState &); };
     const Mutation mutations[] = {
+        {"source owner",[](auto &s){s.source_scene_roots[0].object^=0x10000u;}},
+        {"source effect count",[](auto &s){s.source_scene_roots[0].attached_effects.clear();}},
+        {"source effect generation",[](auto &s){s.source_scene_roots[0].attached_effects[0].instance^=0x10000u;}},
+        {"source effect slot",[](auto &s){++s.source_scene_roots[0].attached_effects[0].slot;}},
+        {"source effect flags",[](auto &s){s.source_scene_roots[0].attached_effects[0].flags^=4;}},
+        {"source effect signed zero",[](auto &s){s.source_scene_roots[0].attached_effects[0].scale_a=0.f;}},
+        {"source effect color",[](auto &s){s.source_scene_roots[0].attached_effects[0].colors[1]^=1;}},
+        {"source effect local node",[](auto &s){++s.source_scene_roots[0].attached_effects[0].locations[0].node;}},
+        {"source effect local frame",[](auto &s){s.source_scene_roots[0].attached_effects[0].locations[0].local.position.x=1;}},
         {"prop bank", [](auto &s) { s.prop_regions.clear(); }},
         {"prop generation", [](auto &s) { s.prop_regions[0].handle^=0x10000; }},
         {"prop placement", [](auto &s) { ++s.prop_regions[0].placement; }},
@@ -59,6 +72,14 @@ int main() try {
         {"velocity", [](auto &s) { s.players[0].velocity.x = 1; }},
         {"reload timing", [](auto &s) { s.players[0].reload_seconds = 1; }},
         {"weapon shader", [](auto &s) { s.players[0].weapon_shader.weapon_flags ^= 1; }},
+        {"primary charge", [](auto &s) { ++s.players[0].weapon_trigger.charge; }},
+        {"primary input", [](auto &s) { ++s.players[0].weapon_trigger.input_flags; }},
+        {"primary trigger mode", [](auto &s) { ++s.players[0].weapon_trigger.mode; }},
+        {"primary trigger ticks", [](auto &s) { --s.players[0].weapon_trigger.ticks; }},
+        {"secondary charge", [](auto &s) { ++s.players[0].secondary_weapon.trigger.charge; }},
+        {"secondary input", [](auto &s) { ++s.players[0].secondary_weapon.trigger.input_flags; }},
+        {"secondary trigger mode", [](auto &s) { ++s.players[0].secondary_weapon.trigger.mode; }},
+        {"secondary trigger ticks", [](auto &s) { --s.players[0].secondary_weapon.trigger.ticks; }},
         {"secondary ammunition", [](auto &s) { ++s.players[0].secondary_weapon.loaded; }},
         {"grenade inventory", [](auto &s) { ++s.players[0].grenades[0]; }},
         {"grenade animation", [](auto &s) { s.players[0].grenade_action.frame = 1; }},

@@ -30,7 +30,8 @@ struct SourceObserverAim {
 // perpendicular up and authored matg+0xF0 control record+0x18/+0x1C.
 SourceObserverAim source_observer_aim(Vec3 forward, Vec3 up,
     float observer_horizontal_angle, Vec2 screen_offset,
-    float observer_aspect = 1.3333333730697632f);
+    float observer_aspect = 1.3333333730697632f,
+    float vertical_angle_scale = 1.f);
 struct SourceHudAimCamera {
   Vec3 position{}, forward{}, up{};
   float projection_angle{};

@@ -1,8 +1,49 @@
 #pragma once
 #include "halo2/source_bsp_part_commands.hpp"
+#include "halo2/source_draw_unit.hpp"
+#include "halo2/source_object_draw_collector.hpp"
+#include "halo2/object_lighting.hpp"
+#include "halo2/appearance.hpp"
+#include "halo2/source_shadow.hpp"
+#include <map>
 
 namespace halo2 {
 class PhysicsLiveWorldTu15;
+struct SourcePrtDefinition;
+// An owned main-view handoff. Secondary queries reuse the source cache and
+// frame arena, so every input below is copied before those queries run.
+struct SourceLiveModelBaseDrawTu15 {
+    SourceCullDrawUnit unit;
+    unsigned ordinal{},lod{},lighting_class{};
+    std::uint8_t coverage{},override_slot{};
+    std::uint32_t shader_override=0xffffffffu,object{},definition{},object_flags{},lighting_metadata{};
+    ObjectLightingState lighting;
+    ShadowCasterSphere sphere;
+    std::array<std::uint32_t,4> packed_colors{};
+    std::uint8_t color_count{};
+    SourceModelCommandGeometry geometry;
+    std::vector<std::array<float,12>> palette_rows;
+};
+// Original131BB0 unpack of the completed cache's actual color channels.
+// Unwritten channels retain the caller's prior bank; no color is invented.
+ObjectColors source_live_model_base_colors_tu15(const SourceLiveModelBaseDrawTu15&,
+    ObjectColors retained);
+// Validate a secondary unit against its retained main selection and actual
+// current c50 upload, including bitwise matrix equality. Tokens alone cannot
+// establish that the geometry arena still contains the same pose.
+bool source_live_model_base_matches_tu15(const SourceLiveModelBaseDrawTu15&,
+    PhysicsLiveWorldTu15&,const SourceCullDrawUnit&);
+class SourceLiveModelBaseSelectionTu15 {
+public:
+    // Observe each completed4B5D0 output, including recursively built children.
+    // Neither method changes original admission, ordering or source storage.
+    void remember(const SourceObjectDrawCollector&);
+    std::vector<SourceLiveModelBaseDrawTu15> copy(PhysicsLiveWorldTu15&,
+        const SourceDrawUnitState&,
+        const std::function<bool(const SourceCullDrawUnit&)>& available={})const;
+private:
+    std::map<std::pair<std::uint32_t,std::uint32_t>,unsigned> lods_;
+};
 // Read the selected unit's actual resident resource and current1D690 palette.
 // The palette belongs to this live cache token, never to a shared model tag.
 SourceModelCommandGeometry source_live_model_command_geometry_tu15(
@@ -15,4 +56,8 @@ SourceCullDrawBanks source_live_model_cull_geometry_tu15(
 // branch and the selected region's actual remapped matrix range.
 std::vector<std::array<float,12>> source_live_model_palette_rows_tu15(
     PhysicsLiveWorldTu15&,const SourceCullDrawUnit&,const SourceModelCommandGeometry&);
+// Read completed24020 c68.. banks by full owner and the draw's region ordinal.
+// Absent owner/zero node count preserves the original no-upload result.
+std::shared_ptr<const VertexProgramBank> source_live_model_prt_bank_tu15(
+    PhysicsLiveWorldTu15&,const SourceCullDrawUnit&,const SourcePrtDefinition&);
 }

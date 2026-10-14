@@ -65,6 +65,19 @@ std::string source(std::string value,unsigned slot) {
   return (negative?"-":"")+value+'.'+swizzle;
 }
 struct Semantic {std::vector<std::string> statements;std::vector<unsigned> operations;};
+void compare_default_texture_w(const VertexProgram &program,const Semantic &original) {
+  unsigned expected=15;
+  for(unsigned stage=0;stage<4;++stage) {
+    const auto destination="|vpOut["+std::to_string(9+stage)+"]|";
+    for(const auto &statement:original.statements) {
+      const auto at=statement.find(destination);if(at==std::string::npos)continue;
+      const auto first=at+destination.size(),end=statement.find('|',first);
+      if(statement.substr(first,end-first).find('w')!=std::string::npos)expected&=~(1u<<stage);
+    }
+  }
+  require(menu_world_vertex_default_texture_w_mask(program)==expected,
+      "default texture W mask differs from independent original shader writes");
+}
 Semantic expected_semantic(const std::string &text) {
   Semantic out;std::istringstream lines(text);std::string line;unsigned slot=0;
   const std::regex slot_pattern(R"(^\s*/\* Slot ([0-9]+):.*$)");
@@ -297,6 +310,7 @@ int main(int argc,char **argv) {try {
         "Cache class1 program differs from original imported token fixture");
     const auto program=decode_vertex_program(bytes);auto source=menu_world_vertex_source(program);
     const auto reference=expected_semantic(read(directory/("event-"+std::to_string(event)+"-source-straight-line.vert")));
+    compare_default_texture_w(program,reference);
     compare_semantic(source,reference,"event "+std::to_string(event));
     const auto repeated=menu_world_vertex_source(program);
     require(source.helpers==repeated.helpers && source.statements==repeated.statements,
@@ -338,7 +352,9 @@ int main(int argc,char **argv) {try {
       require(bytes.size()==raw.size() && std::equal(bytes.begin(),bytes.end(),reinterpret_cast<const std::byte *>(raw.data())),
           "Cache extension program differs from literal original token fixture");
       const auto program=decode_vertex_program(bytes);auto source=menu_world_vertex_source(program);
-      compare_semantic(source,expected_semantic(read(directory/semantic_name)),raw_name);
+      const auto reference=expected_semantic(read(directory/semantic_name));
+      compare_default_texture_w(program,reference);
+      compare_semantic(source,reference,raw_name);
       require(program.count==expected_slots && source.helper_operations.size()==expected_calls,
           "extension fixture slot/static-call count differs");
       require(source.consumed_inputs==(is_sphere?std::vector<unsigned>{0,1,2,3,4}:(datum==0xe1b80043u?std::vector<unsigned>{0,1,2,3,4}:std::vector<unsigned>{0,1})),

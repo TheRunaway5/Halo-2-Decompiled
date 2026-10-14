@@ -1,4 +1,5 @@
 #include "halo2/source_combat_action_tu15.hpp"
+#include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include <fstream>
 #include <iostream>
@@ -19,7 +20,11 @@ int main(int argc,char **argv)try {
     services.required_owner=[&](auto &memory,const auto &call,auto &state,const auto &observe){
       if(call.instruction==0x1d2eau && call.target==0x407c00u && !call.tail)
         source_native_cache_bitmap_view_tu15(memory,state,{0x27f,0x1f80},services,observe);
-      else throw std::runtime_error("Unexpected combat action child owner");
+      else if(source_combat_action_tu15_owns_entry(call.target))
+        source_run_combat_action_tu15(memory,call.target,state,{0x27f,0x1f80},services,observe);
+      else if(source_physics_live_support_tu15_owns_entry(call.target))
+        source_run_physics_live_support_tu15(memory,call.target,state,{0x27f,0x1f80},services,observe);
+      else throw std::runtime_error("Unexpected combat action child owner "+std::to_string(call.instruction)+" -> "+std::to_string(call.target));
     };
     source_run_combat_action_tu15(m,c.value("entry",fixture.at("entry").get<unsigned>()),abi,{0x27f,0x1f80},services);
     check(abi.gp==c.at("exit_gp").get<decltype(abi.gp)>(),"Original movement/facing GP output differs");

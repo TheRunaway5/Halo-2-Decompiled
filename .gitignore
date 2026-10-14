@@ -28,6 +28,7 @@
 /dist/
 /.tools/
 /analysis/
+/work/
 /tools/reference/
 /.ark-*/
 CMakeFiles/

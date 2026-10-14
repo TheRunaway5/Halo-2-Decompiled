@@ -2,13 +2,23 @@
 #include <cstdint>
 #include "halo2/source_geometry_lod.hpp"
 namespace halo2 {
+inline constexpr unsigned minimum_field_of_view=70, maximum_field_of_view=120;
+inline constexpr unsigned default_field_of_view=78;
+// Native contexts reuse the imported numeric-choice pane without adding retail IDs.
+inline constexpr unsigned video_fov_context=2, video_vehicle_fov_context=3;
+constexpr bool valid_field_of_view(unsigned degrees) {
+    return degrees>=minimum_field_of_view && degrees<=maximum_field_of_view;
+}
+enum class TwoPlayerSplit : std::uint8_t { Horizontal, Vertical };
 // Native presentation preferences shared across menu/game renderer lifetimes.
 struct DisplaySettings {
     bool crt_filter{};
+    TwoPlayerSplit two_player_split=TwoPlayerSplit::Horizontal;
     unsigned internal_width{}, internal_height{}; // Zero follows the drawable.
     unsigned anti_aliasing{}; // Native SSAA: 0=off, 1=2x, 2=4x per axis.
     unsigned brightness=3, gamma=0, detail=0;
     bool safe_area{};
+    unsigned field_of_view=default_field_of_view, vehicle_field_of_view=default_field_of_view;
     unsigned volume=10, subtitles=0, speakers=4;
     bool operator==(const DisplaySettings &) const = default;
 };

@@ -1,6 +1,7 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/math.hpp"
+#include "halo2/source_decal_vertex_cache.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -18,7 +19,8 @@ int main(int argc,char **argv)try {
   const bool firing=mode.starts_with("fire-");
   const bool lunge=mode=="lunge";
   const bool target=mode=="target" || mode=="sword-target" || mode=="primary-target" || lunge;
-  const bool plasma=mode=="plasma";
+  const bool strict_decal_cache=mode=="plasma-cache";
+  const bool plasma=mode=="plasma" || strict_decal_cache;
   const bool grenade=mode=="grenade" || plasma,special=mode=="primary" || mode=="special" || mode=="primary-target" || lunge;
   const bool sword=mode=="sword" || mode=="sword-target" || special || plasma;
   check(grenade || sword || target || mode=="melee" || firing,"Invalid source combat acceptance mode");
@@ -96,7 +98,16 @@ int main(int argc,char **argv)try {
   Vec3 attack_origin{},idle_previous{};
   float idle_motion{},lunge_motion{},closest_distance=1e9f;
   std::array<Controls,16> input{};input[0].yaw=spawn.facing;
-  for(unsigned tick=0;tick<180;++tick) {
+  std::set<std::uint32_t> source_glows;
+  std::set<std::uint32_t> observed_decal_definitions;
+  bool source_glow_faded=false;unsigned peak_source_decals{};
+  for(unsigned tick=0;tick<(strict_decal_cache?240u:180u);++tick) {
+    if(strict_decal_cache && tick==79) {
+      const std::array<unsigned,1> views{0};
+      match.configure_local_views(views,world.cache->load_first_person_binding(match.unit(0).weapon.definition,2));
+    }
+    if(strict_decal_cache && tick>=79)
+      world.source_objects->publish_native_observer_position(0,match.unit(0).body.position+Vec3{0,0,content.player.camera_height});
     if(target && tick>1) {
       const auto delta=match.unit(1).body.position-match.unit(0).body.position;
       input[0].yaw=std::atan2(delta.y,delta.x);input[1].yaw=input[0].yaw+3.14159265358979323846f;
@@ -109,6 +120,21 @@ int main(int argc,char **argv)try {
     input[0].fire|=firing && tick>=80 && tick<92;
     input[0].grenade=tick==80 && grenade;input[0].pitch=plasma?-1.2f:grenade?.3f:0.f;match.step(input);
     const auto state=match.state();const auto &unit=match.unit(0);
+    if(plasma) {
+      const auto decals=source_decal_vertex_cache_tu15(world.source_objects->memory());
+      peak_source_decals=std::max(peak_source_decals,unsigned(decals.size()));
+      for(const auto &decal:decals)if(observed_decal_definitions.insert(decal.definition).second)
+        std::cout<<"Source cached decal definition="<<std::hex<<decal.definition<<std::dec
+                 <<" name="<<world.cache->query_tag({.handle=TagHandle{decal.definition}})->name
+                 <<" layer="<<unsigned(decal.layer)<<" lifetime="<<decal.lifetime
+                 <<" decay="<<decal.decay<<" birth="<<decal.tick<<" observed="<<state.tick
+                 <<" alpha="<<(decal.tint>>24)<<" quads="<<decal.quads.size()<<'\n';
+      for(const auto &decal:decals)if(decal.layer==5 && decal.lifetime>0) {
+        source_glows.insert(decal.datum);
+        const auto alpha=decal.tint>>24;
+        source_glow_faded|=alpha>0 && alpha<255;
+      }
+    }
     if(lunge && tick>=65 && tick<=79) {
       if(tick>65)idle_motion=std::max(idle_motion,length(unit.body.position-idle_previous));
       idle_previous=unit.body.position;
@@ -178,6 +204,15 @@ int main(int argc,char **argv)try {
     std::cout<<"PASS actual TU1.5 prepared-shot creation/colors; retained allocations="<<allocated_effects<<'\n';return 0;
   }
   if(grenade) {
+    if(strict_decal_cache) {
+      const auto remaining=source_decal_vertex_cache_tu15(world.source_objects->memory());
+      check(!source_glows.empty() && source_glow_faded && peak_source_decals>0,
+          "Actual plasma source-cache glow never created/faded");
+      check(std::none_of(remaining.begin(),remaining.end(),[&](const auto &decal){return source_glows.contains(decal.datum);}),
+          "Actual plasma source-cache glow outlived its original lifetime");
+      std::cout<<"Source cached decal peak="<<peak_source_decals<<" glow identities="<<source_glows.size()
+               <<"; actual packed alpha faded and original cache allocations retired\n";
+    }
     const auto counts=match.unit(0).grenades;
     check(detonations==1 && int(counts[0])+counts[1]==int(initial_grenades[0])+initial_grenades[1]-1,
       "Live TU1.5 grenade detonation/count acceptance incomplete");

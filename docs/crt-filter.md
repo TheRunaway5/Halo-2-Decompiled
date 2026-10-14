@@ -1,8 +1,10 @@
 # Optional CRT filter
 
-Open F1, select **Display**, and enable **CRT Filter**. It starts disabled and
-lasts for the session, including menu-to-game transitions, window resizes, and
-campaign BSP transitions.
+Open **Settings → Video Settings → CRT Filter** and select the row to toggle
+**On / Off**. The same control is available in the pause menu's Video Settings.
+It starts disabled, saves in `menu.cfg` as `pc_crt_filter`, and survives restarts,
+menu-to-game transitions, window resizes, and campaign BSP transitions. Video
+Defaults resets it to Off. The former F1 Display control has been removed.
 The completed game image, including movies, menus, and HUD, is filtered before
 the native debug panel is drawn.
 
@@ -35,10 +37,18 @@ claim about original Xbox CRT simulation or original game rendering parity.
 
 ## Validation
 
-The optional debug-panel GPU test exercises the real Display checkbox,
-unfiltered pixel identity after disabling, repeat-frame identity, renderer
+The settings tests exercise the real video toggle, persistence, default reset,
+mouse activation and pause navigation. The optional debug-panel GPU test checks
+removal of the F1 Display tab, unfiltered pixel identity after disabling, repeat-frame identity, renderer
 replacement, and 640x480, 960x720, 1280x720, 1920x1080, 2560x1080, and
 1920x1440 resize paths with Vulkan synchronization validation enabled.
+
+The video-setting migration was built and verified on 2026-10-14. The live
+settings test toggled CRT through Video Settings and restored exact original
+pixels after switching Off. Packaged On/Off UI captures at 4:3, 16:9 and 32:9,
+test results, and launcher-selection proofs are recorded under
+`analysis/crt-filter/video-settings-20261014/`. Both root launchers select the
+verified `.local/crt-20261014/halo2_native` package.
 
 A local cross-API check compiled Phase-Distorter's original `crt_filter.cpp`
 and fragment shader without changing their implementation, then supplied the
@@ -48,7 +58,7 @@ The reference capture harness and comparison report are in
 `analysis/crt-filter/`. This establishes the filter conversion on that GPU;
 other drivers and physical displays have not been compared.
 
-The updated title launcher also rendered 1920x1080 captures with the filter
+Earlier title-launcher validation rendered 1920x1080 captures with the filter
 disabled, enabled, and enabled with F1 open. Scripted SDL input selected the
 Display tab and checked CRT Filter; the open-panel capture was visually
 verified. These captures pinned the menu fog seed and completed with no Vulkan

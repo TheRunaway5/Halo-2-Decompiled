@@ -17,6 +17,7 @@
 #include "halo2/online_directory.hpp"
 #include "halo2/online_matchmaking.hpp"
 #include "halo2/online_account.hpp"
+#include "halo2/native_tu15_online_services.hpp"
 #include "halo2/vista_pcr_screen.hpp"
 #include "halo2/vista_pcr_appearance.hpp"
 #include "halo2/vista_lobby_leave_task.hpp"
@@ -389,6 +390,7 @@ struct FrontendLaunch {
   std::vector<std::int32_t> input_instances;
   std::shared_ptr<OnlineMatchSession> online_match;
   bool match_voice{};
+  std::shared_ptr<NativeTu15OnlineServices> online_services;
 };
 enum class FrontendLobbySessionAction { Start, Setup, Back, Auxiliary };
 // Native pointer actions share the menu's existing command handlers. Prompt

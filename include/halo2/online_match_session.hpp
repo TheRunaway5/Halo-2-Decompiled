@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/multiplayer_datagrams.hpp"
 #include "halo2/game_voice.hpp"
+#include "halo2/peer_authority_transfer.hpp"
+#include "halo2/peer_source_admissions.hpp"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -49,6 +51,18 @@ public:
   bool master_connected() const;
   std::optional<OnlineContinuityState> continuity() const;
   std::vector<OnlineWorldSeal> world_seals();
+  std::optional<AuthorityTransferContext> authority_context() const;
+  bool authority_supported(unsigned physical_peer) const;
+  // Current host's native allocations, exchanged independently of world cuts
+  // over direct encrypted peers and bound to the accepted couch roster.
+  bool publish_source_players(const AuthorityTransferContext &,std::span<const SourcePlayerAdmission>);
+  std::optional<AcceptedSourcePlayers> source_players()const;
+  bool source_players_confirmed(unsigned physical_peer)const;
+  AuthorityCutSeal publish_authority(const AuthorityTransferContext &,std::uint64_t tick,
+      std::vector<std::byte>,std::span<const unsigned> physical_targets);
+  std::optional<ReceivedAuthorityCut> received_authority();
+  bool acknowledge_authority(const AuthorityTransferContext &,const AuthorityCutSeal &);
+  std::vector<ValidatedAuthorityCut> validated_authority();
   // These controls certify the complete authoritative continuation owner,
   // never MultiplayerState. The caller must capture/validate that owner before
   // sealing, acknowledging, accepting promotion or rebinding a peer.

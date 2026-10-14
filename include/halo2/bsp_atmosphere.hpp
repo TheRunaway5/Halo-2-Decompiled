@@ -18,6 +18,9 @@ struct BspPatchyFrame {
     std::array<float,4> interpolation{};
     float depth_scale=16777215.f;
     bool quantized_composite{};
+    // 3A5C0 -> 27520 -> 350E0: integer W of the direct fog quad.
+    // Zero preserves the original disabled-Z/fallback branch.
+    float composite_minimum_depth{};
 };
 struct BspBloomFrame {
     MenuBloom programs;
@@ -121,6 +124,14 @@ struct BspAtmosphere {
 std::array<ShaderVector,6> bsp_fog_constants(const BspFogSample &, Vec3 eye, Vec3 forward);
 MenuFogExterns bsp_fog_externs(const BspFogSample &);
 MenuFogComposite bsp_fog_composite(const BspFogSample &, float far_clip);
+struct SourceFogDrawControls { bool suppressed{},force_atmospheric{}; };
+enum class SourceFogDrawKind { Atmospheric, Sky };
+// Whole TU1.5 25D30 selection before its GPU submission/state cleanup.
+std::optional<SourceFogDrawKind> source_fog_draw_selection(unsigned classification,
+    SourceFogDrawControls = {});
+std::optional<MenuFogComposite> bsp_fog_draw(const BspFogSample &,float far_clip,
+    SourceFogDrawControls = {});
+
 void prepare_bsp_planar_fog(const Cache &, Mesh &, const BspAtmosphere &);
 std::optional<unsigned> bsp_planar_fog_implementation(const BspFogSample &, bool containing_geometry);
 PixelProgram bsp_planar_fog_program(const MaterialPass &, const BspFogSample &);
@@ -128,7 +139,8 @@ void apply_bsp_fog_pixel_externs(PixelProgram &, const MaterialPass &,
     const BspFogSample &, std::span<const std::int32_t> switches = {});
 BspPatchyFrame bsp_patchy_fog_frame(const BspPatchyDefinition &,const PatchyFog &sample,
     PatchyFogState &,std::uint32_t &random_state,const Transform &world_to_view,
-    float forward_z,float vertical_fov,float height_over_width,float time,float far_clip=1024.f);
+    float forward_z,float vertical_fov,float height_over_width,float time,float far_clip=1024.f,
+    float near_clip=.015625f);
 // 137A0/13870: initial cinematic amount/brightness are both 0.5 (22590).
 // Sky aggregation supplies the blend amount, threshold, brightness and gamma.
 BspBloomFrame bsp_bloom_frame(const BspFogSample &,float cinematic_amount=.5f,

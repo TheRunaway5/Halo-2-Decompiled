@@ -22,7 +22,8 @@ std::string hex(std::span<const std::uint8_t> bytes) {
 int main(int argc,char **argv) {
   try {
     if (argc!=2 && argc!=3) throw FormatError("Supply original datum fixtures and optional source-bound mode");
-    const bool bound=argc==3 && std::string_view(argv[2])=="source-bound";
+    const bool continuation=argc==3 && std::string_view(argv[2])=="source-continuation";
+    const bool bound=continuation || (argc==3 && std::string_view(argv[2])=="source-bound");
     if(argc==3 && !bound)throw FormatError("Unknown source datum mode");
     if (!std::filesystem::exists(argv[1])) return 77;
     std::ifstream file(argv[1]);std::unique_ptr<SourceRuntimeMemory> memory; std::unique_ptr<DatumPool> pool;
@@ -81,6 +82,13 @@ int main(int argc,char **argv) {
           check(!bytes.empty(),"Original occupied datum does not resolve");
           if (full) { std::string record;row>>record;check(hex(bytes)==record,"Original allocated element bytes differ"); }
         }
+        if(continuation) {
+          const auto binding=pool->source_binding();
+          SourceRuntimeMemory replacement;replacement.restore(memory->checkpoint());
+          auto prepared=pool->prepare_source_view(binding,replacement);
+          memory->swap_backing(replacement);
+          check(pool->commit_source_view(std::move(prepared)),"Original source pool view did not rebind");
+        }
         ++snapshots;
       } else throw FormatError("Unknown datum fixture operation");
       check(!row.fail(),"Incomplete datum fixture");std::string extra;
@@ -88,7 +96,8 @@ int main(int argc,char **argv) {
     }
     check(allocations && snapshots && lookups,"Empty original datum comparisons");
     std::cout<<allocations<<" source allocation outcomes, "<<snapshots
-             <<" pool snapshots and "<<lookups<<" full-datum lookups matched\n";
+             <<" pool snapshots and "<<lookups<<" full-datum lookups matched"
+             <<(continuation?" with staged whole-bank handoff after every snapshot":"")<<'\n';
     return 0;
   } catch(const std::exception &e) { std::cerr<<e.what()<<'\n';return 1; }
 }

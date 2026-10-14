@@ -10,7 +10,29 @@ ENTRIES=(0x10b5c0,0x117870,0x10c0b0,0x1888a0,0x381710,0x381730,0x381750,0x381770
 LIGHTING_ENTRIES=(1511440, 1184192, 873680, 74592, 89264, 118672, 119504, 119952, 147872, 148592, 219328, 867104, 867184, 867264, 873216, 874000, 874240, 874720, 875232, 875376, 1263968, 1278816, 1279248, 1279440, 1279712, 1279872, 1281056, 1281424, 1281904, 1281984, 1311952, 1312016, 1511664, 2271360, 2271456, 2271824, 2271888, 2375456)
 RENDER_MAP_ENTRIES=(0x3ddc0,0x3dd00,0x2c390,0x323560,0xc5b00,0x2f3670,0x2f1cc0,0x2b480,0x2b520,0x3d260,0x3b890,0x16780,0x50680,0x3235f0,0x11e490,0x1db800,0x2e1110,0x10b730,0x2fa6f0)
 RENDER_MAP_ENTRIES+= (0x2e9610,0x30a960,0x30a320,0x2e3080,0x2e30e0,0x2e2d10,0x2e2e00)
-NATIVE_REACHED_CALLS={0x3ddc0:0x17e4aa,0x2fa6f0:0x2fac7a}
+# Actual248270 game-event sound admission reaches this complete request
+# constructor during a network late join, before the existing18CDD0 owner.
+RENDER_MAP_ENTRIES+=(0x18c4b0,)
+# Original 136EA0 view admission allocates its cluster-bit row through
+# 1372C5 ->136E10. Preserve the complete count, bounds and bit publication.
+RENDER_MAP_ENTRIES+=(0x136e10,)
+# Actual ordinary game-event string lookup/format calls reached after cache
+# publication. Keep their complete UTF/CRT bodies; template-token expansion
+# remains an explicit required owner when it is actually requested.
+RENDER_MAP_ENTRIES+=(0x1a9d90,0x11f440,0x1a9f60,0x1a9ee0,0x142f40,
+                     0x1a7c10,0x32bdc2,0x32a970,0x32a8ed,0x25aaf1,0x1a8290,
+                     0x248270,0x248470,0x248430,0x31e1f0,0x325a60,0x3233a0,
+                     0x31e3b0,0x325ce0,0x325bd0,0x325c40,0x315e10,0x315d10,0x31e330,0x323bb0,0x2f35f0,0x2f3580,
+                     0x323860,0x3238a0,0x2f6f40,0x2e44d0,0x2f4460,0x2f36f0,
+                     0x324410,0x1e0690,0x2e5810,0x1e1010,0x2f83b0,
+                     0x144090,0x2e4470,0x2e4820,0x2f8300,
+                     0x18c1f0,0x1902e0,0x18c3e0,0x18c090,0x18c130,
+                     0x18cdd0,0x18be00,0x228220,0x223b20,0x2f1990,0x2f16f0,
+                     0x2f6390,0x2f5e60,0x304b90,0x2f4bc0,0x186ca0,0x186c90,0x186c00,0x10be20,0x2f2930,0x2f20f0,
+                     0x219080,0x2190c0,0x2190f0,0x2191d0,0x219150,0x148de0,0x2f9b30,0x1f7330,0x2e88b0,0x212c70,0x2f75f0,0x2f7480,0x2f6ca0,0x2f5530,0x2f59e0)
+NATIVE_REACHED_CALLS={0x3ddc0:0x17e4aa,0x2fa6f0:0x2fac7a,0x136e10:0x1372c5,
+                     0x1a9d90:0x1a84f5,0x1a7c10:0x1a850b,
+                     0x25aaf1:0x1a857b,0x1a8290:0x1a85e6,0x31e1f0:0x1dffbb,0x31e3b0:0x1e0012,0x1e0690:0x1e0507,0x18c1f0:0x18b0ab,0x148de0:0x25267f,0x1f7330:0x1f7d4a}
 BASE_ENTRIES=(*ENTRIES,*RENDER_MAP_ENTRIES,0x43810,0x43840,0x1806a0,0x1806f0,0x130d20,0x22a790)
 ENTRIES=tuple(dict.fromkeys((*BASE_ENTRIES,*LIGHTING_ENTRIES)))
 def main():
@@ -61,8 +83,55 @@ def main():
    pc=0x2f55d3 if entry==0x2f3670 else 0x2f1d43;i=code.at(pc)
    assert i.mnemonic=='mov' and i.operands[-1].imm==entry
    found.append(dict(callback=f'{entry:08x}',kind='source-callback-registration-argument',original_source_instruction=f'{pc:08x}',source_instruction=bytes(i.bytes).hex()))
+  if not found and entry==0x2f83b0:
+   # Actual collision-agent registration publishes this stack descriptor;
+   # the live query loads its callback from the original agent table.
+   i=code.at(0x2f8ec0);assert i.mnemonic=='mov' and i.operands[-1].imm==entry
+   assert bytes(code.at(0x2f0e7f).bytes)==bytes.fromhex('ffd7')
+   assert bytes(code.at(0x2f0e71).bytes)==bytes.fromhex('8bbcb88c010000')
+   found.append(dict(callback=f'{entry:08x}',kind='source-agent-registration-argument',
+      original_source_instruction='002f8ec0',source_instruction=bytes(i.bytes).hex(),
+      original_live_dispatch='002f0e7f',original_callback_load='002f0e71'))
+  if not found and entry==0x2f6390:
+   producers=(0x2f6c33,0x2f82b3)
+   assert all(code.at(pc).mnemonic=='mov' and code.at(pc).operands[-1].imm==entry for pc in producers)
+   assert bytes(code.at(0x3159dc).bytes)==bytes.fromhex('ff948a8c210000')
+   found.append(dict(callback=f'{entry:08x}',kind='source-agent-registration-argument',
+      original_source_instructions=[f'{pc:08x}' for pc in producers],
+      source_instructions=[bytes(code.at(pc).bytes).hex() for pc in producers],
+      original_live_dispatch='003159dc'))
+  if not found and entry==0x2f2930:
+   i=code.at(0x2f30a3);assert i.mnemonic=='mov' and i.operands[-1].imm==entry
+   assert bytes(code.at(0x2f5f19).bytes)==bytes.fromhex('ff94818c210000')
+   found.append(dict(callback=f'{entry:08x}',kind='source-agent-registration-argument',
+      original_source_instruction='002f30a3',source_instruction=bytes(i.bytes).hex(),
+      original_live_dispatch='002f5f19'))
+  if not found and entry==0x2f9b30:
+   i=code.at(0x2f9e60);assert i.mnemonic=='mov' and i.operands[-1].imm==entry
+   assert bytes(code.at(0x2f222a).bytes)==bytes.fromhex('ffd0')
+   found.append(dict(callback=f'{entry:08x}',kind='source-agent-registration-argument',
+      original_source_instruction='002f9e60',source_instruction=bytes(i.bytes).hex(),
+      original_live_dispatch='002f222a'))
+  if not found and entry==0x2190f0:
+   i=code.at(0x2190d7);assert i.mnemonic=='jmp' and i.operands[-1].imm==entry
+   found.append(dict(callback=f'{entry:08x}',kind='original-tail-target',
+      original_source_jump='002190d7',source_instruction=bytes(i.bytes).hex()))
+  if not found and entry==0x2f75f0:
+   i=code.at(0x2f7733);assert i.mnemonic=='mov' and i.operands[-1].imm==entry
+   assert bytes(code.at(0x2f7e2e).bytes)==bytes.fromhex('ffd0')
+   found.append(dict(callback=f'{entry:08x}',kind='source-agent-registration-argument',
+      original_source_instruction='002f7733',source_instruction=bytes(i.bytes).hex(),
+      original_live_dispatch='002f7e2e'))
+  if not found and entry==0x2f5530:
+   producers=(0x2f55a3,0x2f5c13)
+   assert all(code.at(pc).mnemonic=='mov' and code.at(pc).operands[-1].imm==entry for pc in producers)
+   assert bytes(code.at(0x2f76f3).bytes)==bytes.fromhex('ffd7')
+   found.append(dict(callback=f'{entry:08x}',kind='source-agent-registration-argument',
+      original_source_instructions=[f'{pc:08x}' for pc in producers],
+      source_instructions=[bytes(code.at(pc).bytes).hex() for pc in producers],
+      original_live_dispatch='002f76f3'))
   if not found and entry in RENDER_MAP_ENTRIES:
-   pc=NATIVE_REACHED_CALLS.get(entry,direct_callers.get(entry));assert pc is not None;i=code.at(pc)
+   pc=NATIVE_REACHED_CALLS.get(entry,direct_callers.get(entry));assert pc is not None, f"Missing original entry registration {entry:08x}";i=code.at(pc)
    assert i.mnemonic=='call' and i.operands[0].imm==entry
    found.append(dict(callback=f'{entry:08x}',kind='native-reached-original-function',original_source_call=f'{pc:08x}',source_instruction=bytes(i.bytes).hex()))
    if entry==0x2fa6f0:

@@ -1,0 +1,22 @@
+add_library(halo2_bink_memory_startup_tu15 STATIC src/source_bink_memory_startup_tu15_generated.cpp src/native_tu15_bink_memory_startup_data.cpp)
+target_include_directories(halo2_bink_memory_startup_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_features(halo2_bink_memory_startup_tu15 PUBLIC cxx_std_20)
+if(MSVC)
+    target_compile_options(halo2_bink_memory_startup_tu15 PRIVATE /fp:strict)
+else()
+    target_compile_options(halo2_bink_memory_startup_tu15 PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+endif()
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(halo2_bink_memory_startup_tu15 PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(halo2_bink_memory_startup_tu15 PUBLIC -fsanitize=address,undefined)
+endif()
+target_link_libraries(halo2_systems PUBLIC halo2_bink_memory_startup_tu15)
+if(BUILD_TESTING)
+    target_link_libraries(native_tu15_network_link_tests PRIVATE halo2_bink_memory_startup_tu15)
+    add_test(NAME native_tu15_bink_memory_startup_callback COMMAND native_tu15_network_link_tests --frontier bink-memory)
+    add_test(NAME original_tu15_bink_memory_startup_callback COMMAND native_tu15_network_link_tests --frontier bink-memory
+        --input-devices none
+        --reference-xbe "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        --original-fixture ${CMAKE_CURRENT_SOURCE_DIR}/analysis/asset-setup/mcc-native-20261014/native-startup/original-bink-memory-startup/report.json)
+    set_tests_properties(native_tu15_bink_memory_startup_callback original_tu15_bink_memory_startup_callback PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+endif()

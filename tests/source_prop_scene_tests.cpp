@@ -93,6 +93,32 @@ int main(int argc,char**argv){try{
   totals.union_dynamic_materials+=s.union_dynamic_materials;totals.union_prt_materials+=s.union_prt_materials;
   totals.union_section_banks+=s.union_section_banks;
   SceneObjects objects(content,0);scene.synchronize(objects);
+  if(std::string(names[i])=="coagulation") {
+   const auto vehicle=std::find_if(content.objects.begin(),content.objects.end(),[](const auto &o){
+    return o.type==1 && o.name<0 && o.definition!=null_datum;
+   });
+   if(vehicle==content.objects.end())throw FormatError("prop unrelated-lifetime fixture has no vehicle placement");
+   auto repeated=objects;const auto placement=std::size_t(vehicle-content.objects.begin());
+   const auto first=repeated.create_placement(placement,19),second=repeated.create_placement(placement,20);
+   if(first==second)throw FormatError("unrelated vehicle fixture lost distinct full generations");
+   scene.synchronize(repeated);scene.synchronize(objects);
+   std::cout<<"prop lifetime: two vehicle generations sharing a placement stay outside the prop bank\n";
+  }
+  if(std::string(names[i])=="zanzibar") {
+   auto repeated_content=content;
+   const auto prop=std::find_if(repeated_content.objects.begin(),repeated_content.objects.end(),[](const auto &o){
+    return o.type==11 && o.definition!=null_datum;
+   });
+   if(prop==repeated_content.objects.end())throw FormatError("duplicate prop lifetime fixture missing");
+   const auto placement=std::size_t(prop-repeated_content.objects.begin());prop->name=-1;
+   SceneObjects repeated(repeated_content,0);repeated.create_placement(placement,20);
+   repeated.create_placement(placement,21);
+   bool rejected=false;try{scene.synchronize(repeated);}catch(const FormatError &e){
+    rejected=std::string(e.what()).find("duplicate live source placement")!=std::string::npos;
+   }
+   if(!rejected)throw FormatError("duplicate owned prop generations escaped lifetime validation");
+   scene.synchronize(objects);
+  }
   if(std::string(names[i])=="zanzibar")crane_submission(cache,content,collision);
   std::vector<Vertex> world;std::vector<ObjectLightingBinding> light;scene.append(world,light);
   if(std::string(names[i])=="zanzibar")crane_bank(mesh,world);
@@ -109,6 +135,24 @@ int main(int argc,char**argv){try{
    }
    if(!created)throw FormatError("Actual map has no named script-created prop fixture");
    std::cout<<names[i]<<": "<<created<<" script-created prop generations prepared and retired\n";
+  }
+  if(std::string(names[i])=="backwash") {
+   unsigned created=0;
+   for(unsigned index=0;index<content.objects.size();++index) {
+    const auto &placement=content.objects[index];
+    if(placement.type!=11 || !(placement.flags&1) || placement.name>=0)continue;
+    const auto handle=objects.create_placement(index,17);
+    scene.synchronize(objects);std::vector<Vertex> spawned;std::vector<ObjectLightingBinding> live;
+    scene.append(spawned,live);
+    if(live.size()!=light.size()+1 || spawned.size()<=world.size())
+      throw FormatError("Unnamed initially absent prop has no prepared live geometry");
+    objects.destroy(handle);scene.synchronize(objects);spawned.clear();live.clear();scene.append(spawned,live);
+    if(live.size()!=light.size() || spawned.size()!=world.size())
+      throw FormatError("Unnamed initially absent prop retirement retained geometry");
+    ++created;
+   }
+   if(created!=2)throw FormatError("Original Backwash absent prop inventory differs");
+   std::cout<<"Backwash: two unnamed initially absent prop placements prepared, created and retired\n";
   }
   for(const auto&v:world)if(v.material>=mesh.materials.size())throw FormatError("prop vertex lost resident material slot");
   for(const auto&binding:light)if(binding.first_material+binding.material_count>mesh.materials.size())

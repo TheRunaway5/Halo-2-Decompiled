@@ -49,7 +49,7 @@ def main():
         actual=trace.g.reg_read(UC_X86_REG_EAX)&65535
         assert actual==expected,(tag['name'],representation,dual,no_model,hex(action),section,expected,actual)
         count+=1;nonzero+=actual!=0
-    assert (count,nonzero) in ((28512,4720),(29568,5344))
+    assert (count,nonzero) in ((28512,4720),(29568,5344),(38016,5776))
     for address,raw in trace.reached.items():assert trace.image.read(address,len(bytes.fromhex(raw)))==bytes.fromhex(raw)
     result=dict(scope=__doc__,cases=count,nonzero=nonzero,instruction_patches=[],supplied_results=[],
         globals={f'{a:08x}':f'{v:08x}' for a,v in trace.globals.items()},

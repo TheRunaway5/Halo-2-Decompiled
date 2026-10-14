@@ -50,12 +50,17 @@ def main():
     ap.add_argument('--weapon', action='append', help='Run only named cases; repeat as needed')
     ap.add_argument('--xbe', type=Path, default=Path.home() /
         '.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe')
+    ap.add_argument('--representation', type=int, choices=(2,3), default=2)
+    ap.add_argument('--local-players', type=int, choices=(1,2,4), default=1)
+    ap.add_argument('--capture', action='store_true')
+    ap.add_argument('--glow-records', action='store_true', help='Retain actual submitted plasma glow vertices and camera inputs')
+    ap.add_argument('--pistol-tap', action='store_true', help='Probe the primary plasma pistol bolt after a short actual SDL press')
     args = ap.parse_args()
     assert hashlib.sha256(args.xbe.read_bytes()).hexdigest() == '21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd'
     build = args.build.resolve()
     args.output.mkdir(parents=True, exist_ok=True)
     env = dict(os.environ)
-    env.update(SDL_AUDIODRIVER='dummy', SDL_VIDEODRIVER='x11', SDL_VIDEO_DRIVER='x11',
+    env.update(HALO2_TEST_LOCAL_PLAYERS=str(args.local_players), HALO2_TEST_REPRESENTATION=str(args.representation), SDL_AUDIODRIVER='dummy', SDL_VIDEODRIVER='x11', SDL_VIDEO_DRIVER='x11',
         HALO2_ANIMATION_VALIDATION='1',
         VK_LAYER_PATH=str(ROOT / '.tools/validation/usr/share/vulkan/explicit_layer.d'))
     env['LD_LIBRARY_PATH'] = ':'.join([str(ROOT / '.tools/validation/usr/lib'),
@@ -67,10 +72,14 @@ def main():
         ('sword', 'lockout', ['', 'ready']),
         ('plasma_rifle', 'lockout', ['', 'heat']),
         ('beam_rifle', 'burial_mounds', ['', 'heat']),
+        ('plasma_pistol', 'lockout', ['', 'charge']),
         ('brute_plasma_rifle', str(Path.home()/'.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/c/4d53006400000002/turf.map'), ['', 'heat'])]
     if args.weapon:
         assert set(args.weapon) <= {weapon for weapon, _, _ in cases}, 'Unknown weapon case'
         cases = [case for case in cases if case[0] in args.weapon]
+    if args.pistol_tap:
+        assert args.weapon==['plasma_pistol'], '--pistol-tap requires only --weapon plasma_pistol'
+        cases=[(weapon,map_,['','tap']) for weapon,map_,_ in cases]
     with private_display(args.output) as display:
         env['DISPLAY'] = display
         run_cases(args, build, env, cases)
@@ -79,6 +88,12 @@ def main():
 def run_cases(args, build, env, cases):
     results = []
     for weapon, map_, extra in cases:
+        env.pop('HALO2_TEST_GLOW_RECORDS',None)
+        glow_records=(args.output/(weapon+'.glow.bin')).resolve()
+        if args.glow_records:env['HALO2_TEST_GLOW_RECORDS']=str(glow_records)
+        if args.capture:
+            capture=str((args.output/(weapon+'.ppm')).resolve())
+            extra=[capture,*extra[1:]] if extra else [capture]
         map_path=Path(map_) if map_.endswith('.map') else ROOT/'assets/disc/maps'/(map_+'.map')
         command = [str(build / 'native_covenant_weapon_runtime_tests'),
             str(map_path),
@@ -95,14 +110,21 @@ def run_cases(args, build, env, cases):
         errors = len(re.findall(r'Validation Error|VUID-', text))
         passed = (status == 0 and f'PASS {weapon}' in text and errors == 0 and
                   'Native SDL video driver: x11' in text)
-        result = dict(weapon=weapon, map=map_, command=command, exit=status,
+        result = dict(weapon=weapon, pistol_tap=args.pistol_tap, local_players=args.local_players, representation=args.representation, map=map_, command=command, exit=status,
             passed=passed, validation_errors=errors, log=str(log),
             log_sha256=hashlib.sha256(log.read_bytes()).hexdigest(),
             observations=[line for line in text.splitlines() if line.startswith(
                 ('PASS ', 'Ordinary firing observations:', 'Needler live effects:',
                  'Needler ammunition observations:', 'Ready observations:', 'Multiplayer frames=',
-                 'Energy heat observations:', 'Attack observations:', 'Native SDL video driver:'))])
+                 'Energy heat observations:', 'Charge observations:', 'Bolt glow ', 'LIMIT ', 'Attack observations:', 'Native SDL video driver:'))])
         results.append(result)
+        if args.glow_records and glow_records.exists():
+            result['glow_records']=str(glow_records)
+            result['glow_records_sha256']=hashlib.sha256(glow_records.read_bytes()).hexdigest()
+        if args.capture:
+            raw_capture=args.output/(weapon+'.ppm')
+            passed=result['passed']=passed and raw_capture.exists()
+            if raw_capture.exists():result['capture_sha256']=hashlib.sha256(raw_capture.read_bytes()).hexdigest()
         report = dict(scope=__doc__, tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             executable_sha256=hashlib.sha256(Path(command[0]).read_bytes()).hexdigest(),
             xbe_sha256=hashlib.sha256(args.xbe.read_bytes()).hexdigest(), cases=results)

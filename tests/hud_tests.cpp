@@ -1,5 +1,6 @@
 #include "halo2/hud.hpp"
 #include "halo2/native_player_profile.hpp"
+#include "halo2/render_view.hpp"
 #include <algorithm>
 #include <cmath>
 #include <fstream>
@@ -51,6 +52,38 @@ void layout() {
             hud_screen_mode(320, 480, 2, true) == 1 &&
             hud_screen_mode(640, 480, 3, true) == 0,
         "Original widescreen bottom-right half-layout promotion");
+  check(DisplaySettings{}.two_player_split==TwoPlayerSplit::Horizontal,
+        "Native two-player default must be horizontal");
+  const auto words=[](const HudViewport &v) {return std::array<float,9>{v.outer.top,v.outer.left,
+      v.outer.bottom,v.outer.right,v.safe.top,v.safe.left,v.safe.bottom,v.safe.right,float(v.mode)};};
+  for(bool wide:{false,true}) {
+    const auto h0=hud_viewport(2,0,wide,TwoPlayerSplit::Horizontal),
+        h1=hud_viewport(2,1,wide,TwoPlayerSplit::Horizontal),
+        v0=hud_viewport(2,0,wide,TwoPlayerSplit::Vertical),
+        v1=hud_viewport(2,1,wide,TwoPlayerSplit::Vertical);
+    check(h0.outer.right==640 && h0.outer.bottom==240 && h1.outer.top==240 &&
+          h1.outer.right==640 && h1.outer.bottom==480 && h0.safe.bottom==236 && h1.safe.top==244,
+          "Selected horizontal layout lost player order, full width or safe gutter");
+    check(v0.outer.right==320 && v0.outer.bottom==480 && v1.outer.left==320 &&
+          v1.outer.right==640 && v1.outer.bottom==480 && v0.safe.right==316 && v1.safe.left==324,
+          "Selected vertical layout lost player order, full height or safe gutter");
+    for(auto split:{TwoPlayerSplit::Horizontal,TwoPlayerSplit::Vertical}) {
+      for(unsigned players:{1u,3u,4u})for(unsigned view=0;view<players;++view)
+        check(words(hud_viewport(players,view,wide,split))==words(hud_viewport(players,view,wide)),
+              "Two-player preference changed another player count");
+      for(const auto size:{std::array{640u,480u},std::array{1280u,720u},std::array{2560u,720u},std::array{853u,479u}}) {
+        std::array<RenderViewport,2> physical;
+        for(unsigned view=0;view<2;++view) {
+          const auto r=hud_viewport(2,view,wide,split).outer;
+          physical[view]=full_surface_viewport({r.left,r.top,r.right-r.left,r.bottom-r.top},size[0],size[1]);
+        }
+        const auto &a=physical[0],&b=physical[1];
+        check(a.width*a.height+b.width*b.height==float(size[0]*size[1]) &&
+              (split==TwoPlayerSplit::Horizontal ? a.top+a.height==b.top : a.left+a.width==b.left),
+              "Selected split has a gap/overlap at an odd or wide drawable size");
+      }
+    }
+  }
   HudWidget w;
   w.yes = {1, 0, 1, 0};
   check(hud_widget_visible(w, {1, 0, 0, 0}) &&

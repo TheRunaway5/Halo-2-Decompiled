@@ -180,6 +180,11 @@ void source_run_physics_phantom_force_tu15_runtime(M &m,std::uint32_t entry,
 }
 } // namespace halo2
 '''
+ target='vw(s.memory,s.observe,0x3239f7u,(0x40u+s.gp[1]),s.xmm[0]);'
+ replacement='if(s.observe){SourceVelocityObservationScope observed_frame(s.gp);vw(s.memory,s.observe,0x3239f7u,(0x40u+s.gp[1]),s.xmm[0]);}else{vw(s.memory,s.observe,0x3239f7u,(0x40u+s.gp[1]),s.xmm[0]);}'
+ assert text.count(target)==1
+ text=text.replace(target,replacement).replace('#include "halo2/physics_phantom_force_tu15.hpp"',
+  '#include "halo2/physics_phantom_force_tu15.hpp"\n#include "halo2/physics_velocity_observation.hpp"')
  a.output.parent.mkdir(parents=True,exist_ok=True);a.output.write_text(text)
  manifest=dict(schema=1,parity_target='English TU1.5 only',generator_sha256=sha(__file__),research_sha256=sha(a.research),
   original_sha256=NEW_PIN,generated_cpp_sha256=sha(a.output),native_entries={f'{p:08x}':q for p,q in entries.items()},

@@ -1,6 +1,6 @@
+target_link_libraries(halo2_cache PRIVATE halo2_snapshot_storage)
 # The shared tag module is linked into every cache consumer and the engine.
 target_sources(halo2_cache PRIVATE
-    src/cache_file_snapshot.cpp
     src/tags/types.cpp
     src/tags/binary.cpp
     src/tags/directory.cpp
@@ -26,7 +26,7 @@ if(BUILD_TESTING)
     target_link_libraries(multiplayer_snapshot_check_tests PRIVATE halo2_systems)
     add_test(NAME native_multiplayer_snapshot_checks COMMAND multiplayer_snapshot_check_tests)
     add_executable(cache_file_snapshot_tests tests/cache_file_snapshot_tests.cpp)
-    target_link_libraries(cache_file_snapshot_tests PRIVATE halo2_cache)
+    target_link_libraries(cache_file_snapshot_tests PRIVATE halo2_snapshot_storage)
     add_test(NAME cache_file_snapshot COMMAND cache_file_snapshot_tests)
     set_tests_properties(cache_file_snapshot PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(native_footstep_position_tests tests/native_footstep_position_tests.cpp)

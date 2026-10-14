@@ -31,6 +31,12 @@ std::shared_ptr<const VertexProgramBank> source_prt_bank(const SourcePrtDefiniti
 std::shared_ptr<const VertexProgramBank> source_prt_bank(const SourcePrtDefinition &,
     unsigned source_lod,std::span<const SourcePrtSh> rotated_nodes,Vec3 object_incident);
 struct SourcePrtSectionBank {unsigned section{};std::shared_ptr<const VertexProgramBank> bank;};
+// A completed layer5 bank for one owner and one resident source material.
+// The image/pass owner stays resident; this immutable bank follows the draw.
+struct SourcePrtMaterialBank {
+    unsigned material{};std::shared_ptr<const VertexProgramBank> bank;
+    unsigned section{};
+};
 struct SourcePrtShRecord {Vec3 position{};SourcePrtSh lighting;};
 struct SourcePrtLighting {bool structure_matches{};std::vector<SourcePrtShRecord> records;};
 //1376C0+23600: query the actual world node position, and rotate SH
@@ -42,7 +48,7 @@ SourcePrtSh source_prt_node_lighting(const RenderModel &,unsigned node,
 std::vector<SourcePrtSectionBank> source_prt_section_banks(const Cache &,
     const RenderModel &,const SourcePrtDefinition &,unsigned source_lod,
     std::span<const unsigned> selected_sections,std::span<const Transform> world_nodes,
-    const SourcePrtLighting &);
+    const SourcePrtLighting &,std::optional<Vec3> retained_incident = {});
 // Original22CF0/22C30: nearest sample, then nearest opposite halfspace,
 // followed by the original projected interpolation. No triangle heuristic.
 SourcePrtSh source_prt_sample(std::span<const SourcePrtShRecord>,Vec3 position);

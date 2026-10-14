@@ -6,7 +6,10 @@
 #include "halo2/source_script.hpp"
 #include "halo2/pickup_visibility.hpp"
 #include "halo2/native_weapon_inventory.hpp"
+#include "halo2/native_unit_interaction.hpp"
 #include "halo2/weapon_hand_feedback.hpp"
+#include "simulation_world.hpp"
+#include "native_heap_reclaim.hpp"
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -27,54 +30,20 @@ float direct_damage_amount(const WeaponDefinition &weapon) {
   return weapon.damage_min;
 }
 }
-struct Simulation::BspWorld {
-  std::shared_ptr<const std::vector<NavigationSector>> sectors;
-  std::shared_ptr<const CollisionWorld> collision;
-  NavigationWorld navigation;
-  explicit BspWorld(BspContent value)
-      : sectors(std::make_shared<const std::vector<NavigationSector>>(std::move(value.navigation))),
-        collision(std::make_shared<const CollisionWorld>(std::move(value.collision))),
-        navigation(*sectors) {}
-  BspWorld(std::shared_ptr<const std::vector<NavigationSector>> sectors,
-           std::shared_ptr<const CollisionWorld> collision)
-      : sectors(std::move(sectors)), collision(std::move(collision)), navigation(*this->sectors) {}
-};
 const CollisionWorld &Simulation::collision() const { return prop_collision_?*prop_collision_:*world_->collision; }
 void Simulation::replicate_source_scene(std::span<const SourceSceneRoot> roots,
     std::span<const SourceWorldPose> poses) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(source_physics_movement_)throw FormatError("Source authority cannot consume replica scene poses");
-  if(roots.size()>2048)throw FormatError("Source replica scene exceeds the original object capacity");
-  std::set<std::uint32_t> placements,objects;
-  for(const auto &root:roots) {
-    if(root.placement>=content_.objects.size() || root.object==null_datum ||
-        !placements.insert(root.placement).second || !objects.insert(root.object).second ||
-        content_.objects[root.placement].type==1 || content_.objects[root.placement].definition!=root.definition)
-      throw FormatError("Source replica scene root differs from its authored placement");
-    const auto native=std::find_if(scene_.objects().begin(),scene_.objects().end(),[&](const auto &object){
-      return object.handle!=null_datum && object.placement==root.placement;
-    });
-    if(native==scene_.objects().end() || native->handle!=root.object)
-      throw FormatError("Source replica scene generation differs from the local placement");
-    const auto pose=std::find_if(poses.begin(),poses.end(),[&](const auto &p){return p.object==root.object;});
-    if(root.has_world_nodes!=(pose!=poses.end()))
-      throw FormatError("Source replica scene lost its completed WORLD hierarchy");
-  }
-  std::vector<std::uint32_t> retired;
-  for(const auto &object:scene_.objects())if(object.handle!=null_datum &&
-      content_.objects[object.placement].type!=1 && !placements.contains(object.placement))retired.push_back(object.handle);
-  for(const auto handle:retired)scene_.destroy(handle);
-  for(const auto &root:roots) {
-    auto &object=scene_.get(root.object);object.solved_transform=root.transform;
-    object.position=root.transform.position;object.scale=root.transform.scale;object.visible=root.visible;
-    const auto pose=std::find_if(poses.begin(),poses.end(),[&](const auto &p){return p.object==root.object;});
-    object.solved_nodes=pose==poses.end()?std::vector<Transform>{}:pose->nodes;
-  }
+  scene_.adopt_source_replicas(roots,poses);
   synchronize_props();
 }
 void Simulation::replicate_devices(const SourceDeviceWorldSnapshot &snapshot){
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   devices_.apply_snapshot(snapshot);synchronize_props();
 }
 void Simulation::replicate_prop_regions(std::span<const PropRegionSnapshot> rows){
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   props_.apply_regions(rows);synchronize_props();
 }
 void Simulation::synchronize_props(bool force){
@@ -84,6 +53,9 @@ void Simulation::synchronize_props(bool force){
   const bool scenery_changed=scenery_collision_.synchronize(scene_);
   const bool fixed_changed = scenery_changed || devices_changed || force || !static_collision_;
   if (props_changed || fixed_changed || !prop_collision_) {
+    // Loading and checkpoint publication can retain two worlds. Release dead
+    // loader/layer buffers before allocating the newly composed collision bank.
+    if (force) reclaim_unused_host_heap_pages();
     const auto layers = CollisionWorld::compose(world_->collision,
         {scenery_collision_.triangles(), devices_.triangles(), props_.triangles()},
         {std::move(static_collision_), std::move(prop_collision_), fixed_changed});
@@ -93,6 +65,7 @@ void Simulation::synchronize_props(bool force){
   }
 }
 void Simulation::replicate_prop_removals(std::span<const PropRemoval> rows){
+  NativeAuthorityBoundary::Call active(authority_calls_);
   if(rows.size()>2048)throw FormatError("Native prop removal bank exceeds scene capacity");
   std::set<std::uint32_t> handles,placements;
   for(const auto& row:rows){
@@ -108,16 +81,19 @@ void Simulation::replicate_prop_removals(std::span<const PropRemoval> rows){
     for(const auto& object:scene_.objects())if(object.handle!=null_datum && object.placement==row.placement && object.handle!=row.handle)
       throw FormatError("Native prop removal has a stale scene generation");
   }
+  ++authority_calls_.mutations;
   for(const auto& row:rows){
     for(const auto& object:scene_.objects())if(object.handle==row.handle){scene_.destroy(row.handle);break;}
   }
   prop_removals_.assign(rows.begin(),rows.end());synchronize_props();
 }
 void Simulation::request_bsp(int target) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   // Original 0x12B850: invalid targets are ignored; requesting the current
   // BSP cancels an earlier pending transition. Both HS forms compile ordinals.
   if (target < 0 || std::size_t(target) >= content_.bsp_count)
     return;
+  ++authority_calls_.mutations;
   if (std::size_t(target) == bsp_)
     pending_bsp_.reset();
   else
@@ -198,14 +174,16 @@ struct Simulation::SavedState {
   std::map<std::uint32_t,ObjectAnimation> object_animations;
 };
 void Simulation::request_checkpoint() {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   if (revert_pending_)
     throw FormatError("checkpoint requested during revert");
-  save_pending_ = true;
+  ++authority_calls_.mutations;save_pending_ = true;
 }
 void Simulation::request_revert() {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   if (!checkpoint_)
     throw FormatError("no recoverable campaign checkpoint");
-  revert_pending_ = true;
+  ++authority_calls_.mutations;revert_pending_ = true;
   scripts_->suspend_tick();
 }
 void Simulation::capture_checkpoint() {
@@ -293,27 +271,32 @@ void Simulation::restore_checkpoint() {
   ++checkpoint_restores_;
 }
 void Simulation::debug_save_snapshot(const std::string& name) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   if(multiplayer_weapon_steps_)throw FormatError("multiplayer snapshots need the complete match-state owner");
   if(name.empty() || name.size()>64 || std::any_of(name.begin(),name.end(),[](unsigned char c){return c<32;}))
     throw FormatError("snapshot name must contain 1..64 printable bytes");
   if(save_pending_ || revert_pending_ || pending_bsp_)throw FormatError("wait for the pending campaign transition before saving a snapshot");
   if(!debug_snapshots_.contains(name) && debug_snapshots_.size()>=16)throw FormatError("session snapshot limit is sixteen");
   const auto checkpoint=checkpoint_;
+  ++authority_calls_.mutations;
   capture_checkpoint();
   const auto saved=checkpoint_;
   checkpoint_=checkpoint;
   debug_snapshots_.insert_or_assign(name,std::pair{saved,checkpoint});
 }
 void Simulation::debug_load_snapshot(const std::string& name) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   if(multiplayer_weapon_steps_)throw FormatError("multiplayer snapshots need the complete match-state owner");
   const auto it=debug_snapshots_.find(name);
   if(it==debug_snapshots_.end())throw FormatError("session snapshot no longer exists");
-  checkpoint_=it->second.first;
+  ++authority_calls_.mutations;checkpoint_=it->second.first;
   restore_checkpoint();
   checkpoint_=it->second.second;
 }
 void Simulation::debug_delete_snapshot(const std::string& name) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   if(!debug_snapshots_.erase(name))throw FormatError("session snapshot no longer exists");
+  ++authority_calls_.mutations;
 }
 std::vector<std::string> Simulation::debug_snapshot_names() const {
   std::vector<std::string> names;
@@ -437,7 +420,7 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
         return ScriptValue::numeric(0, 7);
       },SourceHsObjectListServices{
         [this]{if(multiplayer_script_lists_){auto roots=scripts_->object_list_roots();std::erase(roots,0x80000000u);multiplayer_script_lists_->roots(roots);return multiplayer_script_lists_->allocate();}if(script_lists_.size()>=65536 || next_script_list_==null_datum)throw FormatError("Native script list bank exhausted");const auto id=next_script_list_++;script_lists_.emplace(id,std::vector<std::uint32_t>{});return id;},
-        [this](std::uint32_t list,std::uint32_t object){if(multiplayer_script_lists_)multiplayer_script_lists_->append(list,object);else{(void)script_center(object);script_lists_.at(list).push_back(object);}}});
+        [this](std::uint32_t list,std::uint32_t object){if(multiplayer_script_lists_)multiplayer_script_lists_->append(list,object);else{(void)object_center(object);script_lists_.at(list).push_back(object);}}});
   scripts_->set_random_choice([this](unsigned count,std::uint32_t visited) {
     return source_hs_begin_random(random_state_,count,visited);
   });
@@ -447,6 +430,7 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
       place_squad(squad.name);
 }
 void Simulation::respawn(Spawn spawn) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   const auto equipped = player_.weapon.definition;
   if(!content_.multiplayer_spawn)
     for(const auto handle:player_.source_inventory.slots)if(handle!=null_datum) {
@@ -475,11 +459,14 @@ void Simulation::respawn(Spawn spawn) {
     equip(content_.starting_weapon);
 }
 void Simulation::equip(std::uint32_t id) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   const auto &weapon = content_.weapons.at(id);
+  ++authority_calls_.mutations;
   if(!content_.multiplayer_spawn)equip_inventory(player_,id);
   else player_.weapon = {id, weapon.capacity, std::max(0, weapon.reserve), 0, 0, 0};
 }
 std::size_t Simulation::place_squad(const std::string &name) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   const auto found =
       std::find_if(content_.squads.begin(), content_.squads.end(),
                    [&](const auto &s) { return s.name == name; });
@@ -493,14 +480,18 @@ std::size_t Simulation::place_squad(const std::string &name) {
       }))
     return 0;
   std::size_t count = 0;
+  ++authority_calls_.mutations;
   for (const auto &start : found->starts) {
     if (int(count) >= found->count && !(start.flags & 8))
       continue;
     const auto c = content_.characters.find(start.character);
     if (c == content_.characters.end() || c->second.biped.radius <= 0)
       continue;
+    // 1E0850 supplies start+4 to210850: resolve its current object-node
+    // reference frame, falling back to the authored local point if unavailable.
+    const auto position=reference_point(start.position,start.reference_frame).value_or(start.position);
     const auto ground =
-        world_->collision->raycast(start.position + Vec3{0, 0, .1f}, {0, 0, -1}, 3);
+        world_->collision->raycast(position + Vec3{0, 0, .1f}, {0, 0, -1}, 3);
     if (!ground || ground->normal.z < c->second.biped.maximum_slope_cosine)
       continue; // no guessed BSP assignment or airborne spawn
     if (actors_.size() >= 256)
@@ -511,7 +502,7 @@ std::size_t Simulation::place_squad(const std::string &name) {
     u.bsp = int(bsp_);
     u.vitality.body = u.definition.vitality.health > 0 ? 1.f : 0.f;
     u.vitality.shield = u.definition.vitality.shield > 0 ? 1.f : 0.f;
-    u.body = {start.position,      {},    u.definition.height,
+    u.body = {position,      {},    u.definition.height,
               u.definition.radius, false, u.definition.maximum_slope_cosine};
     u.body.position.z = ground->position.z + .002f;
     u.yaw = start.facing;
@@ -534,9 +525,14 @@ Unit &Simulation::script_unit(std::uint32_t handle) {
   for(auto &actor:actors_)if(actor.exists && actor.source_datum==handle)return actor;
   throw FormatError("Script unit is not a live native object");
 }
-Vec3 Simulation::script_center(std::uint32_t handle)const {
-  if(handle==0)return halo2::center(player_);
-  for(const auto &actor:actors_)if(actor.exists && actor.source_datum==handle)return halo2::center(actor);
+Vec3 Simulation::object_center(std::uint32_t handle)const {
+  const auto unit_center=[&](const Unit &unit) {
+    if(content_.unit_interactions)return native_unit_query_sphere(unit,
+        content_.unit_interactions->units.at(unit.definition.datum),ticks_).center;
+    return halo2::center(unit); // Explicit model-free diagnostic fixtures.
+  };
+  if(handle==0)return unit_center(player_);
+  for(const auto &actor:actors_)if(actor.exists && actor.source_datum==handle)return unit_center(actor);
   return scene_.center(handle);
 }
 std::vector<std::uint32_t> Simulation::script_objects(std::uint32_t list)const {
@@ -546,29 +542,33 @@ std::vector<std::uint32_t> Simulation::script_objects(std::uint32_t list)const {
   if(const auto at=script_lists_.find(list);at!=script_lists_.end())return at->second;
   throw FormatError("Script object list is not live");
 }
+std::optional<Vec3> Simulation::reference_point(Vec3 position,std::int16_t reference_frame)const {
+  if(reference_frame==-1)return position;
+  if(bsp_>=content_.command_frames.size())return std::nullopt;
+  for(const auto &frame:content_.command_frames[bsp_])if(frame.frame==reference_frame) {
+    for(const auto &[handle,owner]:devices_.owners())if(owner.placement==frame.placement) {
+      const auto &definition=*content_.devices.at(owner.placement);
+      if(!definition.machine || !definition.collision)return std::nullopt;
+      const auto &model=definition.collision->hierarchy;
+      const auto locals=source_machine_local_pose(model,*definition.machine,owner.motion.position,owner.motion.power);
+      const auto nodes=pose_model_locals_nodes_world(model,owner.root,locals);
+      if(frame.node>=nodes.size())return std::nullopt;
+      // Unchanged original210D60 table at440BB8, including all six orders.
+      constexpr unsigned axes[6][3]{{2,1,0},{2,0,1},{0,2,1},{1,2,0},{1,0,2},{0,1,2}};
+      const int order=int(frame.axis)*2+frame.order;if(order<0 || order>=6)throw FormatError("Invalid command reference axes");
+      const std::array p{position.x,position.y,position.z};const auto &t=nodes[frame.node];const auto &a=axes[order];
+      return Vec3{t.position+(t.basis[0]*p[a[0]]+t.basis[1]*p[a[1]]+t.basis[2]*p[a[2]])*t.scale};
+    }
+    return std::nullopt;
+  }
+  return std::nullopt;
+}
 Vec3 Simulation::script_point(std::uint32_t reference)const {
   const auto set=reference>>16,index=reference&65535;
   if(set>=content_.command_points.size() || index>=content_.command_points[set].size())throw FormatError("Command point outside scenario");
   const auto &point=content_.command_points[set][index];
-  if(point.reference_frame==-1)return point.position;
-  if(bsp_>=content_.command_frames.size())throw FormatError("Missing command reference-frame table");
-  for(const auto &frame:content_.command_frames[bsp_])if(frame.frame==point.reference_frame) {
-    for(const auto &[handle,owner]:devices_.owners())if(owner.placement==frame.placement) {
-      const auto &definition=*content_.devices.at(owner.placement);
-      if(!definition.machine || !definition.collision)throw FormatError("Command frame lacks actual machine node hierarchy");
-      const auto &model=definition.collision->hierarchy;
-      const auto locals=source_machine_local_pose(model,*definition.machine,owner.motion.position,owner.motion.power);
-      const auto nodes=pose_model_locals_nodes_world(model,owner.root,locals);
-      if(frame.node>=nodes.size())throw FormatError("Command frame node outside current machine pose");
-      // Unchanged original210D60 table at440BB8, including all six orders.
-      constexpr unsigned axes[6][3]{{2,1,0},{2,0,1},{0,2,1},{1,2,0},{1,0,2},{0,1,2}};
-      const int order=int(frame.axis)*2+frame.order;if(order<0 || order>=6)throw FormatError("Invalid command reference axes");
-      const std::array p{point.position.x,point.position.y,point.position.z};const auto &t=nodes[frame.node];const auto &a=axes[order];
-      return t.position+(t.basis[0]*p[a[0]]+t.basis[1]*p[a[1]]+t.basis[2]*p[a[2]])*t.scale;
-    }
-    throw FormatError("Command frame has no live device generation");
-  }
-  throw FormatError("Command frame is not registered in this BSP");
+  if(const auto position=reference_point(point.position,point.reference_frame))return *position;
+  throw FormatError("Command point has no current machine reference-frame owner");
 }
 void Simulation::update_command(Unit &actor) {
   auto &command=actor.command;Vec3 desired{};
@@ -591,10 +591,10 @@ void Simulation::update_command(Unit &actor) {
     }
   }
   std::optional<Vec3> target=command.face_point;
-  if(command.face_object)target=script_center(*command.face_object);
+  if(command.face_object)target=object_center(*command.face_object);
   if(command.face_player)target=eye(player_);
   if(target){const auto d=*target-eye(actor);actor.yaw=std::atan2(d.y,d.x);}
-  target=command.look_point;if(command.look_object)target=script_center(*command.look_object);
+  target=command.look_point;if(command.look_object)target=object_center(*command.look_object);
   if(target){const auto d=*target-eye(actor);actor.pitch=std::atan2(d.z,std::hypot(d.x,d.y));}
   move_unit(actor,desired,false,false);
 }
@@ -752,9 +752,11 @@ void Simulation::damage(Unit &unit, const WeaponDefinition &w, const DamageOwner
 }
 void Simulation::area_damage(const PropAreaDamageDefinition& definition,Vec3 origin,
     const DamageOwner& owner,int native_owner,std::uint32_t ignored_scene_prop,std::uint32_t projectile_definition){
+  NativeAuthorityBoundary::Call active(authority_calls_);
   const auto& w=definition.damage;
   if(!w.damage_amount || w.damage_amount->upper_minimum!=w.damage_amount->upper_maximum)
     throw FormatError("Area damage requires original random upper-bound owner");
+  ++authority_calls_.mutations;
   const auto amount=[&](Vec3 point){
     const auto normalized=pickup_side_normalizer(point-origin);
     if(normalized.returned>prop_area_candidate_radius(definition))return 0.f;
@@ -928,9 +930,11 @@ std::optional<unsigned> Simulation::select_weapon_firing_effect(WeaponState &sta
 }
 void Simulation::shot(Unit &unit, int owner, float pitch,
                       const Vec3 *prepared_direction, const Vec3 *prepared_velocity, WeaponState *selected,
-                      bool effects_prepared) {
+                      bool effects_prepared,std::int16_t barrel_index) {
   auto &state=selected?*selected:unit.weapon;
-  auto w = content_.weapons.at(state.definition);
+  const auto &base=content_.weapons.at(state.definition);
+  auto w=barrel_index<0?base:*base.barrel_views.at(unsigned(barrel_index));
+  const auto &selected_barrel=barrel_index==1?state.alternate_barrel:state.smg.barrel;
   if(multiplayer_weapon_steps_ && native_hand_weapon(unit,1)) {
     w.damage_min*=w.dual_damage_scale;w.damage_max*=w.dual_damage_scale;
     if(w.damage_amount) {
@@ -958,7 +962,7 @@ void Simulation::shot(Unit &unit, int owner, float pitch,
           unit.yaw + w.distribution_angle * (2.f * i / (count - 1) - 1), pitch);
     if(!prepared_direction && multiplayer_weapon_steps_ && w.barrel_timing) {
       if(!content_.original_data)throw FormatError("Original direction data is required for barrel dispatch");
-      dir=weapon_random_deviation(dir,weapon_error_angles(w.firing_error,state.smg.barrel.error,weapon_hand_blend(unit,state)),
+      dir=weapon_random_deviation(dir,weapon_error_angles(w.firing_error,selected_barrel.error,weapon_hand_blend(unit,state)),
           random_state_,content_.original_data->weapon_directions);
     } else if (!prepared_direction && w.minimum_error > 0) {
       auto random = [&] {
@@ -984,8 +988,8 @@ void Simulation::shot(Unit &unit, int owner, float pitch,
           birth=source_needler_projectile_birth(*w.needler_projectile,dir,{},30,random_state_);
         }
         projectiles_.push_back(
-            {origin, birth ? birth->velocity : prepared_velocity ? *prepared_velocity : dir * w.projectile_speed,
-             0, w.datum, owner, int(bsp_), datum, captured,dir,source_weapon_projectile_up(dir),birth});
+            {origin, birth ? birth->velocity : prepared_velocity ? *prepared_velocity : dir * (source_projectile_speed_scale(w.projectile_flags,captured.player,!multiplayer_weapon_steps_,std::int16_t(difficulty_),content_.projectile_difficulty_speed)*w.projectile_speed),
+             0, w.datum, owner, int(bsp_), datum, captured,dir,source_weapon_projectile_up(dir),birth,barrel_index});
         // Retain the weapon adapter's actual projectile definition (or explicit
         // NONE); this does not claim complete original projectile creation.
         if(publish_object_ && datum!=null_datum)
@@ -996,6 +1000,10 @@ void Simulation::shot(Unit &unit, int owner, float pitch,
 }
 void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
                                float pitch,const Controls *source_control,unsigned hand) {
+  // The original unit/child-weapon owners consume delivered controls during
+  // step_objects. A parallel native update would spend ammunition, prepare
+  // projectiles and advance clocks a second time before that source phase.
+  if(source_physics_movement_ && multiplayer_weapon_steps_)return;
   const bool infinite=debug_settings_for(u).unlimited_ammo;
   if(infinite)debug_refill_weapon(u);
   struct Refill {
@@ -1093,10 +1101,12 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
         },special?2:1);
     if(sword)return;
   }
-  if(source_physics_movement_ && multiplayer_weapon_steps_ && (w.inventory_flags&(1u<<24)))return;
   const auto active_actions=source_physics_movement_?u.grenade_action.active_actions():u.source_action_word;
   const bool weapon_blocked=(active_actions & (0x400000u|(1u<<27)))!=0;
   if(weapon_blocked)fire=reload=false;
+  if(multiplayer_weapon_steps_ && w.charged_cycle) {
+    update_charged_weapon(u,state,w,fire,weapon_blocked,hand,owner);return;
+  }
   if (multiplayer_weapon_steps_ && w.smg) {
     // Original player control ->151C90/C8140 ->C6E19/CD310. Recovered SMG
     // idle/fire_1/reload_1 with no blocking overlay admit this transition;
@@ -1508,7 +1518,8 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
   if(!dry_shot && multiplayer_weapon_steps_ && !(w.zoom.flags&(1u<<24)) && u.source_player!=null_datum)
     disrupt_camouflage(u,w.firing_camouflage_amount,w.firing_camouflage_limit);
   if(!dry_shot)weapon_activity(u,state,
-      misfire?0x0900006au:(w.zoom.flags&(1u<<24))?0x0e000607u:0x06000006u);
+      misfire?(w.barrel_timing && w.barrel_timing->index?0x0900006bu:0x0900006au):
+      (w.zoom.flags&(1u<<24))?0x0e000607u:(w.barrel_timing && w.barrel_timing->index?0x06000007u:0x06000006u));
   std::optional<WeaponEffectInput> prepared_request;
   if(prepared_effect) {
     //107160 emits the prepared-shot effect before the projectile postpass.
@@ -1571,14 +1582,17 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
   }
 }
 void Simulation::step(const Controls &controls) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   step_impl(controls,{});
 }
 void Simulation::step_players(std::span<const Controls> controls) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
   if (controls.size()!=16) throw FormatError("multiplayer controls require sixteen slots");
   step_impl(controls[0],controls);
 }
 void Simulation::step_impl(const Controls &controls,std::span<const Controls> participants) {
   if(devices_.replicated())throw FormatError("client device replica cannot step an authoritative simulation");
+  ++authority_calls_.mutations;
   const bool skip = controls.skip_cinematic && !skip_held_;
   skip_held_ = controls.skip_cinematic;
   if (skip && cinematic_skippable())
@@ -1728,7 +1742,17 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
   }
   for (std::size_t i = 0; i < actors_.size(); ++i) {
     auto &a = actors_[i];
-    if(a.source_parent!=null_datum)continue;
+    if(a.source_parent!=null_datum) {
+      // A controlled passenger/driver still supplies camera look input.
+      // Attachment suppresses this native movement/weapon path, while the
+      // source vehicle and camera consume the completed delivered command.
+      if(a.controlled) {
+        if(participants.empty() || i+1>=participants.size())
+          throw FormatError("missing seated multiplayer participant input");
+        a.yaw=participants[i+1].yaw;a.pitch=participants[i+1].pitch;
+      }
+      continue;
+    }
     if(a.command.active && (!a.exists || a.vitality.dead))scripts_->stop_command(a.source_datum);
     if(a.command.active && !scripts_->command_running(null_datum,a.source_datum))a.command={};
     if(a.command.active && a.exists && !a.vitality.dead){update_command(a);continue;}
@@ -1828,7 +1852,14 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
         if(!state)continue;
         const auto &weapon=content_.weapons.at(state->definition);
         if(!weapon.smg) {
-          if(weapon.barrel_timing && (state->smg.barrel.flags&2u)) {
+          if(weapon.charged_cycle) {
+            for(unsigned index=0;index<weapon.barrel_views.size();++index) {
+              auto &barrel=index?state->alternate_barrel:state->smg.barrel;
+              if(!(barrel.flags&2u))continue;
+              barrel.flags&=~2u;state->shader.weapon_flags&=~1u;
+              shot(u,owner,pitch,nullptr,nullptr,state,true,std::int16_t(index));
+            }
+          } else if(weapon.barrel_timing && (state->smg.barrel.flags&2u)) {
             state->smg.barrel.flags&=~2u;state->shader.weapon_flags&=~1u;
             shot(u,owner,pitch,nullptr,nullptr,state,true);
           }
@@ -1851,7 +1882,8 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
       dispatch(actors_[i], int(i), actors_[i].pitch);
   }
   for (auto &p : projectiles_) {
-    const auto &w = content_.weapons.at(p.weapon);
+    const auto &base=content_.weapons.at(p.weapon);
+    const auto &w=p.barrel_index<0?base:*base.barrel_views.at(unsigned(p.barrel_index));
     const auto flight = projectile_flight(
         p.position, p.velocity,
         0.f - projectile_acceleration(w.projectile_gravity, retail_gravity),
@@ -1869,7 +1901,8 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
     }
   }
   std::erase_if(projectiles_, [&](const auto &p) {
-    const float range = content_.weapons.at(p.weapon).range;
+    const auto &base=content_.weapons.at(p.weapon);
+    const float range = p.barrel_index<0?base.range:base.barrel_views.at(unsigned(p.barrel_index))->range;
     const bool remove = !std::isfinite(p.traveled) || (range > 0 && p.traveled > range);
     if (remove && release_object_ && p.source_datum != null_datum)
       release_object_(p.source_datum);
@@ -1956,16 +1989,38 @@ ScriptValue Simulation::host(const std::string &name,
     return units;
   };
   if(name=="device_get_position" || name=="device_get_power") {
-    arity(1);devices_.synchronize(scene_);return ScriptValue::numeric(devices_.script_value(args[0].bits,name=="device_get_power"));
+    arity(1);
+    if(source_physics_movement_ && !devices_.replicated()) {
+      if(!source_device_script_)throw FormatError("TU1.5 device scripts require their original bank owner");
+      return source_device_script_(name,args);
+    }
+    devices_.synchronize(scene_);return ScriptValue::numeric(devices_.script_value(args[0].bits,name=="device_get_power"));
   }
   if(name=="device_set_position" || name=="device_set_position_immediate" || name=="device_set_power") {
-    arity(2);devices_.synchronize(scene_);const bool power=name=="device_set_power";
+    arity(2);
+    if(source_physics_movement_ && !devices_.replicated()) {
+      if(!source_device_script_)throw FormatError("TU1.5 device scripts require their original bank owner");
+      return source_device_script_(name,args);
+    }
+    devices_.synchronize(scene_);const bool power=name=="device_set_power";
     const bool changed=devices_.script_set(args[0].bits,power,float(args[1].number()),power || name.ends_with("immediate"));
     return name=="device_set_position"?ScriptValue::numeric(changed,5):ScriptValue{};
   }
-  if(name=="device_group_get") {arity(1);return ScriptValue::numeric(devices_.script_group_value(args[0].bits));}
+  if(name=="device_group_get") {
+    arity(1);
+    if(source_physics_movement_ && !devices_.replicated()) {
+      if(!source_device_script_)throw FormatError("TU1.5 group scripts require their original bank owner");
+      return source_device_script_(name,args);
+    }
+    return ScriptValue::numeric(devices_.script_group_value(args[0].bits));
+  }
   if(name=="device_group_set" || name=="device_group_set_immediate") {
-    arity(name=="device_group_set"?3:2);const auto group=args[name=="device_group_set"?1:0].bits;
+    arity(name=="device_group_set"?3:2);
+    if(source_physics_movement_ && !devices_.replicated()) {
+      if(!source_device_script_)throw FormatError("TU1.5 group scripts require their original bank owner");
+      return source_device_script_(name,args);
+    }
+    const auto group=args[name=="device_group_set"?1:0].bits;
     const bool changed=devices_.script_group_set(group,float(args.back().number()),name.ends_with("immediate"));
     return name=="device_group_set"?ScriptValue::numeric(changed,5):ScriptValue{};
   }
@@ -2010,7 +2065,7 @@ ScriptValue Simulation::host(const std::string &name,
       if(name=="cs_face"){command.face_player=false;command.face_object.reset();}else command.look_object.reset();return {};
     }
     if(name=="cs_face_object" || name=="cs_look_object" || name=="cs_aim_object") {
-      arity(2);if(args[0].truth() && args[1].bits!=null_datum)(void)script_center(args[1].bits);
+      arity(2);if(args[0].truth() && args[1].bits!=null_datum)(void)object_center(args[1].bits);
       auto &target=name=="cs_face_object"?command.face_object:command.look_object;
       target=args[0].truth() && args[1].bits!=null_datum?std::optional<std::uint32_t>(args[1].bits):std::nullopt;
       if(name=="cs_face_object"){command.face_player=false;command.face_point.reset();command.face_reference.reset();}else {command.look_point.reset();command.look_reference.reset();}return {};
@@ -2055,7 +2110,7 @@ ScriptValue Simulation::host(const std::string &name,
     arity(3);if(args[1].bits==null_datum)return ScriptValue::numeric(false,5);
     const float angle=float(args[2].number())*.017453292519943295f;
     bool visible=false;for(const auto handle:script_objects(args[0].bits)) {
-      const auto &unit=script_unit(handle);const auto delta=script_center(args[1].bits)-eye(unit);const float distance=length(delta);
+      const auto &unit=script_unit(handle);const auto delta=object_center(args[1].bits)-eye(unit);const float distance=length(delta);
       // Retail29F7A0 ->CC2B0 is a facing-cone test with a strict boundary;
       // it never queries occlusion, including the target machine's collision.
       visible|=distance>0 && dot(direction(unit.yaw,handle==0?player_pitch_:unit.pitch),delta/distance)>std::cos(angle);
@@ -2064,9 +2119,9 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if(name=="objects_distance_to_flag" || name=="objects_distance_to_object") {
     arity(2);if(args[0].bits==null_datum || (name=="objects_distance_to_object" && args[1].bits==null_datum))return ScriptValue::numeric(-1);
-    Vec3 target;if(name=="objects_distance_to_object")target=script_center(args[1].bits);
+    Vec3 target;if(name=="objects_distance_to_object")target=object_center(args[1].bits);
     else {const auto flag=std::int16_t(args[1].bits);if(flag<0 || std::size_t(flag)>=content_.cutscene_flags.size())throw FormatError("Invalid distance flag");target=content_.cutscene_flags[flag].position;}
-    float distance=-1;for(const auto handle:script_objects(args[0].bits)){const float d=length(target-script_center(handle));if(distance<0 || d<distance)distance=d;}
+    float distance=-1;for(const auto handle:script_objects(args[0].bits)){const float d=length(target-object_center(handle));if(distance<0 || d<distance)distance=d;}
     return ScriptValue::numeric(distance);
   }
   if(name=="object_get_health" || name=="object_set_shield") {
@@ -2438,10 +2493,10 @@ ScriptValue Simulation::host(const std::string &name,
         const auto overlaps=[&](auto position,float radius){const auto d=position-center;const auto r=radius+v.query_radius;return (d.z*d.z+d.y*d.y)+d.x*d.x<=r*r;};
         for(const auto &o:scene_.objects())if(o.handle!=null_datum && !o.bsp_hidden &&
             overlaps(scene_.center(o.handle),content_.objects[o.placement].bounding_radius*o.scale))objects.push_back(o.handle);
-        if(player_.exists && overlaps(halo2::center(player_),player_.definition.bounding_radius))objects.push_back(0);
-        for(const auto &actor:actors_)if(actor.exists && overlaps(halo2::center(actor),actor.definition.bounding_radius))objects.push_back(actor.source_datum);
+        if(player_.exists && overlaps(object_center(0),player_.definition.bounding_radius))objects.push_back(0);
+        for(const auto &actor:actors_)if(actor.exists && overlaps(object_center(actor.source_datum),actor.definition.bounding_radius))objects.push_back(actor.source_datum);
         return objects;
-      },[&](auto object){return scene_.contains(v,script_center(object));}});
+      },[&](auto object){return scene_.contains(v,object_center(object));}});
     return {31,list,{}};
   }
   if (name == "volume_test_object" || name == "volume_test_objects" ||
@@ -2451,10 +2506,10 @@ ScriptValue Simulation::host(const std::string &name,
     if (volume < 0 || std::size_t(volume) >= content_.trigger_volumes.size())
       throw FormatError("invalid trigger volume");
     const auto &v = content_.trigger_volumes[volume];
-    if(name=="volume_test_object")return ScriptValue::numeric(args[1].bits!=null_datum && scene_.contains(v,script_center(args[1].bits)),5);
+    if(name=="volume_test_object")return ScriptValue::numeric(args[1].bits!=null_datum && scene_.contains(v,object_center(args[1].bits)),5);
     const auto objects=script_objects(args[1].bits);bool result=name=="volume_test_objects_all";
     for(const auto handle:objects) {
-      const bool inside=scene_.contains(v,script_center(handle));
+      const bool inside=scene_.contains(v,object_center(handle));
       if(name=="volume_test_objects_all")result&=inside;else result|=inside;
     }
     return ScriptValue::numeric(result,5);
@@ -2532,7 +2587,7 @@ ScriptValue Simulation::host(const std::string &name,
       throw FormatError("invalid sound_impulse_start");
     const auto position = args[1].bits == null_datum || args[1].bits == 0
                               ? eye(player_)
-                              : script_center(args[1].bits);
+                              : object_center(args[1].bits);
     sounds_.push_back({args[0].bits, position, float(args[2].number())});
     if(sound_duration_) {
       auto at=std::find_if(impulse_clocks_.begin(),impulse_clocks_.end(),[&](const auto &clock){return clock.datum==args[0].bits || clock.datum==null_datum || clock.start+clock.duration<=ticks_;});
@@ -2545,7 +2600,7 @@ ScriptValue Simulation::host(const std::string &name,
       throw FormatError("invalid sound_looping_start");
     const auto position = args[1].bits == null_datum || args[1].bits == 0
                               ? eye(player_)
-                              : script_center(args[1].bits);
+                              : object_center(args[1].bits);
     const SoundEvent event{args[0].bits, position, float(args[2].number()),
                            SoundEvent::LoopStart};
     sounds_.push_back(event);
@@ -2627,6 +2682,7 @@ ScriptValue Simulation::host(const std::string &name,
   throw FormatError("unsupported builtin '" + name + "'");
 }
 std::vector<SoundEvent> Simulation::take_sounds() {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   auto result = std::move(sounds_);
   sounds_.clear();
   return result;
@@ -2658,7 +2714,7 @@ Simulation::debug_mesh(std::span<const std::uint32_t> rendered_models,
   for (const auto &p : projectiles_) {
     auto position=p.position;
     const auto old=std::find_if(previous_projectiles.begin(),previous_projectiles.end(),[&](const auto &o){
-      return p.source_datum!=null_datum && o.datum==p.source_datum && o.definition==content_.weapons.at(p.weapon).projectile;
+      return p.source_datum!=null_datum && o.datum==p.source_datum && o.definition==(p.barrel_index<0?content_.weapons.at(p.weapon).projectile:content_.weapons.at(p.weapon).barrel_views.at(unsigned(p.barrel_index))->projectile);
     });
     if(old!=previous_projectiles.end())position=render_lerp(old->position,position,fraction);
     cube(vertices, position - Vec3{.025f, .025f, .025f},
@@ -2668,7 +2724,7 @@ Simulation::debug_mesh(std::span<const std::uint32_t> rendered_models,
 }
 std::vector<NativeWeaponProjectile> Simulation::presentation_projectiles() const {
   std::vector<NativeWeaponProjectile> out;out.reserve(projectiles_.size());
-  for(const auto &p:projectiles_)out.push_back({p.source_datum,content_.weapons.at(p.weapon).projectile,
+  for(const auto &p:projectiles_)out.push_back({p.source_datum,p.barrel_index<0?content_.weapons.at(p.weapon).projectile:content_.weapons.at(p.weapon).barrel_views.at(unsigned(p.barrel_index))->projectile,
       p.position,p.velocity,p.forward,p.up,p.traveled});
   return out;
 }

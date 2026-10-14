@@ -12,6 +12,10 @@
 #include <random>
 #include <set>
 #include <vector>
+#include <thread>
+#include <limits>
+#include <mutex>
+#include <deque>
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -41,8 +45,12 @@ enum Type : unsigned {
   input = 2,
   snapshot = 3,
   leave = 4,
-  reject = 5
+  reject = 5,
+  session_query = 6,
+  session_info = 7
 };
+constexpr unsigned session_header=31,session_chunk=packet_limit-session_header;
+constexpr unsigned session_limit=65536;
 using Packet = std::vector<std::byte>;
 using Clock = std::chrono::steady_clock;
 #ifdef _WIN32
@@ -181,6 +189,76 @@ struct Reader {
 bool newer(std::uint32_t a, std::uint32_t b) {
   return std::bit_cast<std::int32_t>(a - b) > 0;
 }
+Packet encode_session_variant(const UiVariant &variant) {
+  if(variant.name.size()>1024 || variant.values.size()>4096)
+    throw FormatError("Native session configuration exceeds its transport bounds");
+  Packet out;put(out,variant.name.size(),2);
+  for(unsigned char c:variant.name)put(out,c,1);
+  put(out,variant.engine,4);put(out,variant.values.size(),4);
+  for(const auto &[parameter,value]:variant.values) {
+    put(out,parameter,4);put(out,std::uint32_t(value),4);
+  }
+  return out;
+}
+UiVariant decode_session_variant(const Packet &bytes) {
+  Reader r{bytes};const auto length=r.get(2);
+  if(length>1024)throw FormatError("Native session title exceeds its transport bounds");
+  UiVariant out;out.name.clear();
+  for(unsigned n=0;n<length;++n)out.name.push_back(char(r.get(1)));
+  const auto engine=r.get(4),count=r.get(4);
+  if(engine>std::numeric_limits<unsigned>::max() || count>4096)
+    throw FormatError("Invalid native session configuration");
+  out.engine=unsigned(engine);
+  for(unsigned n=0;n<count;++n) {
+    const auto parameter=unsigned(r.get(4));const auto value=r.integer();
+    out.values.append(parameter,value);
+  }
+  r.end();return out;
+}
+LanSessionDescription query_session(Udp &udp,sockaddr_in host,std::chrono::milliseconds timeout) {
+  if(timeout<=std::chrono::milliseconds::zero() || timeout>std::chrono::seconds(30))
+    throw FormatError("Invalid native session query timeout");
+  const auto nonce=random_id();const auto deadline=Clock::now()+timeout;
+  auto next=Clock::now();std::uint64_t fingerprint{};unsigned total{},count{},received{};
+  std::vector<Packet> fragments;std::vector<bool> present;
+  while(Clock::now()<deadline) {
+    if(Clock::now()>=next) {
+      auto request=header(session_query);put(request,nonce,8);udp.send(request,host);
+      next=Clock::now()+std::chrono::milliseconds(250);
+    }
+    Packet p;sockaddr_in from{};
+    for(unsigned packets=0;packets<256 && udp.receive(p,from);++packets) {
+      if(!same(from,host))continue;
+      Reader r{p};Type type;
+      try{type=r.type();if(r.get(8)!=nonce)continue;}catch(const FormatError &){continue;}
+      if(type==reject) {
+        std::string reason;while(r.at<p.size())reason.push_back(char(r.get(1)));
+        throw FormatError("Native session query rejected: "+reason);
+      }
+      if(type!=session_info)continue;
+      const auto identity=r.get(8);const auto index=unsigned(r.get(2));
+      const auto parts=unsigned(r.get(2)),bytes=unsigned(r.get(4));
+      if(!bytes || bytes>session_limit || parts!=(bytes+session_chunk-1)/session_chunk ||
+          index>=parts || p.size()-r.at!=std::min(session_chunk,bytes-index*session_chunk))
+        throw FormatError("Malformed native session fragment");
+      if(fragments.empty()) {
+        fingerprint=identity;total=bytes;count=parts;fragments.resize(parts);present.resize(parts);
+      } else if(fingerprint!=identity || total!=bytes || count!=parts)
+        throw FormatError("Native session configuration changed during its query");
+      Packet payload(p.begin()+r.at,p.end());
+      if(present[index]) {
+        if(fragments[index]!=payload)throw FormatError("Conflicting native session fragments");
+      }else {fragments[index]=std::move(payload);present[index]=true;++received;}
+      if(received==count) {
+        Packet body;body.reserve(total);
+        for(const auto &fragment:fragments)body.insert(body.end(),fragment.begin(),fragment.end());
+        return {fingerprint,decode_session_variant(body)};
+      }
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(2));
+  }
+  throw FormatError("Timed out reading the host's native session configuration");
+}
 void encode_profile(Packet& packet,const std::optional<SourcePlayerConfiguration>& profile) {
   put(packet,profile.has_value(),1);
   if(profile)for(auto byte:*profile)put(packet,byte,1);
@@ -197,9 +275,27 @@ std::optional<SourcePlayerConfiguration> decode_profile(Reader& reader) {
 // latest-continuous-input coalescing. Source action admission remains unchanged.
 using PressSerials=std::array<std::uint32_t,10>;
 using InteractionDurations=std::array<std::uint16_t,2>;
-struct WireControl {Controls control;PressSerials presses{};InteractionDurations completed{};};
+using VehicleIntent=std::optional<SourcePlayerActionTarget>;
+void encode_vehicle_intent(Packet &p,const VehicleIntent &intent) {
+  put(p,intent.has_value(),1);
+  if(intent) {put(p,std::uint16_t(intent->action),2);put(p,std::uint16_t(intent->index),2);put(p,intent->object,4);}
+}
+VehicleIntent decode_vehicle_intent(Reader &r) {
+  const auto present=r.get(1);
+  if(present>1)throw FormatError("Invalid LAN vehicle-intent presence");
+  if(!present)return std::nullopt;
+  SourcePlayerActionTarget target;
+  target.action=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
+  target.index=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));target.object=r.get(4);
+  if(target.action==0) {
+    if(target.index || target.object!=null_datum)throw FormatError("Invalid neutral LAN vehicle intent");
+  } else if(target.action<4 || target.action>6 || target.index<0 || target.index>=64 || target.object==null_datum)
+    throw FormatError("Invalid LAN vehicle action intent");
+  return target;
+}
+struct WireControl {Controls control;PressSerials presses{};InteractionDurations completed{};VehicleIntent completed_vehicle;};
 void encode_control(Packet &p, const Controls &c,const PressSerials &presses,
-    const InteractionDurations &completed) {
+    const InteractionDurations &completed,const VehicleIntent &completed_vehicle) {
   put_float(p, c.forward);
   put_float(p, c.right);
   put_float(p, c.yaw);
@@ -210,6 +306,8 @@ void encode_control(Packet &p, const Controls &c,const PressSerials &presses,
   put(p,c.pickup_milliseconds,2);put(p,c.dual_wield_milliseconds,2);
   for(auto duration:completed)put(p,duration,2);
   for(auto serial:presses)put(p,serial,4);
+  encode_vehicle_intent(p,c.vehicle_interaction_target);
+  encode_vehicle_intent(p,completed_vehicle);
 }
 WireControl decode_control(Reader &r) {
   WireControl wire;auto &c=wire.control;
@@ -232,6 +330,8 @@ WireControl decode_control(Reader &r) {
   c.pickup_milliseconds=r.get(2);c.dual_wield_milliseconds=r.get(2);
   for(auto &duration:wire.completed)duration=r.get(2);
   for(auto &serial:wire.presses)serial=r.get(4);
+  c.vehicle_interaction_target=decode_vehicle_intent(r);
+  wire.completed_vehicle=decode_vehicle_intent(r);
   return wire;
 }
 void encode_fp_channel(Packet &p,const FirstPersonChannelState &s) {
@@ -295,6 +395,7 @@ std::vector<SourceWorldPoseOwner> body_pose_owners(const MultiplayerState &s) {
   for(const auto &corpse:s.corpses)owners.push_back({corpse.object,true});
   for(const auto &vehicle:s.world_vehicles)owners.push_back({vehicle.handle,true});
   for(const auto &root:s.source_scene_roots)owners.push_back({root.object,root.has_world_nodes});
+  for(const auto &object:s.source_dynamic_objects)owners.push_back({object.object,object.has_world_nodes});
   return owners;
 }
 void validate_corpses(const MultiplayerState &s) {
@@ -402,6 +503,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,u.weapon_shader.item_flags,4);put(p,u.weapon_shader.weapon_flags,4);
     put(p,std::bit_cast<std::uint32_t>(u.weapon_shader.power_fraction),4);
     put(p,std::bit_cast<std::uint32_t>(u.weapon_shader.heat),4);put(p,std::uint32_t(u.ammunition_available),4);
+    put(p,u.weapon_trigger.input_flags,2);put(p,std::uint16_t(u.weapon_trigger.ticks),2);put(p,u.weapon_trigger.mode,1);put(p,u.weapon_trigger.charge,1);
     for(float v:{u.velocity.x,u.velocity.y,u.velocity.z})put_float(p,v);
     put_float(p,u.native_forward);put_float(p,u.native_right);
     put(p,u.native_grounded|(u.native_crouching<<1),1);put(p,u.native_support_material,2);
@@ -460,6 +562,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,offhand.shader.item_flags,4);put(p,offhand.shader.weapon_flags,4);
     put(p,std::bit_cast<std::uint32_t>(offhand.shader.power_fraction),4);
     put(p,std::bit_cast<std::uint32_t>(offhand.shader.heat),4);put(p,std::uint32_t(offhand.ammunition_available),4);
+    put(p,offhand.trigger.input_flags,2);put(p,std::uint16_t(offhand.trigger.ticks),2);put(p,offhand.trigger.mode,1);put(p,offhand.trigger.charge,1);
     if(offhand.clock.present){encode_fp_channel(p,offhand.clock.origin);encode_fp_channel(p,offhand.clock.current);}
     const auto &effect=u.weapon_effect;
     for(auto word:{effect.serial,effect.tick,effect.unit,effect.weapon,effect.effect,effect.a_bits,effect.b_bits})
@@ -600,8 +703,17 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
   for(const auto &effect:s.weapon_effects) {
     for(auto word:{effect.serial,effect.tick,effect.unit,effect.weapon,effect.effect,effect.a_bits,effect.b_bits,
         effect.colors.a,effect.colors.b,effect.source_instance})put(p,word,4);
-    put(p,effect.source_presentation,1);
+    put(p,unsigned(effect.source_presentation)|(unsigned(effect.source_scheduled)<<1)|
+        (unsigned(effect.source_locations_observed)<<2),1);
     for(float f:{effect.velocity.x,effect.velocity.y,effect.velocity.z})put_float(p,f);
+    if(effect.source_locations.size()>512 || (!effect.source_locations_observed && !effect.source_locations.empty()))
+      throw FormatError("Invalid source firing location bank");
+    put(p,effect.source_locations.size(),2);
+    for(const auto &location:effect.source_locations) {
+      put(p,location.name,4);const auto &t=location.frame;put_float(p,t.scale);
+      for(float value:{t.position.x,t.position.y,t.position.z})put_float(p,value);
+      for(const auto &axis:t.basis)for(float value:{axis.x,axis.y,axis.z})put_float(p,value);
+    }
   }
   put(p,s.unit_damage_voices.size(),1);
   for(const auto &e:s.unit_damage_voices) {
@@ -623,6 +735,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     throw FormatError("Invalid source scene authority or root count");
   put(p,s.source_scene_roots_authoritative,1);put(p,s.source_scene_roots.size(),2);
   for(const auto &root:s.source_scene_roots) {
+    if(root.created_tick>s.tick)throw FormatError("Source scene creation follows its snapshot tick");
     if(!std::isfinite(root.velocity.x) || !std::isfinite(root.velocity.y) || !std::isfinite(root.velocity.z))
       throw FormatError("Non-finite source scene velocity");
     put(p,root.object,4);put(p,root.definition,4);put(p,root.placement,4);
@@ -632,6 +745,40 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     for(float value:{root.transform.position.x,root.transform.position.y,root.transform.position.z})put_float(p,value);
     put(p,root.runtime_flags,4);
     for(float value:{root.velocity.x,root.velocity.y,root.velocity.z})put_float(p,value);
+    put(p,root.created_tick,8);
+    validate_source_attached_effects(root.attached_effects);
+    put(p,root.attached_effects.size(),2);
+    for(const auto &effect:root.attached_effects) {
+      put(p,effect.slot,2);put(p,effect.flags,2);
+      put(p,effect.instance,4);put(p,effect.definition,4);
+      put_float(p,effect.scale_a);put_float(p,effect.scale_b);
+      put(p,effect.colors[0],4);put(p,effect.colors[1],4);
+      put(p,effect.locations.size(),2);
+      for(const auto &location:effect.locations) {
+        put(p,location.name,4);put(p,std::uint16_t(location.node),2);
+        put_float(p,location.local.scale);
+        for(const auto &axis:location.local.basis)for(float f:{axis.x,axis.y,axis.z})put_float(p,f);
+        for(float f:{location.local.position.x,location.local.position.y,location.local.position.z})put_float(p,f);
+      }
+    }
+  }
+  validate_source_dynamic_objects(s.source_dynamic_objects);
+  if(!s.source_scene_roots_authoritative && !s.source_dynamic_objects.empty())
+    throw FormatError("Source dynamic objects require the completed source scene authority");
+  put(p,s.source_dynamic_objects.size(),2);
+  for(const auto &o:s.source_dynamic_objects) {
+    put(p,o.object,4);put(p,o.definition,4);put(p,o.parent,4);put(p,o.type,1);
+    put(p,unsigned(o.visible)|(unsigned(o.frozen)<<1)|(unsigned(o.has_world_nodes)<<2),1);
+    put_float(p,o.transform.scale);
+    for(const auto &v:o.transform.basis)for(float f:{v.x,v.y,v.z})put_float(p,f);
+    for(const auto v:{o.transform.position,o.velocity,o.sphere.center})for(float f:{v.x,v.y,v.z})put_float(p,f);
+    put_float(p,o.sphere.radius);put(p,o.runtime_flags,4);put(p,o.control_flags,2);
+    const auto &s=o.regions.selection;put(p,std::bit_cast<std::uint32_t>(s.variant_index),4);put(p,s.permutations.size(),1);
+    for(unsigned i=0;i<s.permutations.size();++i) {
+      put(p,s.permutations[i],1);put(p,std::uint8_t(s.states[i].variant_permutation),1);
+      put(p,s.states[i].damage,1);put(p,s.states[i].properties,1);put(p,o.regions.looping_effects[i],4);
+    }
+    put(p,o.colors.size(),1);for(auto v:o.colors)for(float f:{v.x,v.y,v.z})put_float(p,f);
   }
   const auto poses=encode_source_world_poses(s.source_body_poses_authoritative,s.source_body_poses,body_pose_owners(s));
   p.insert(p.end(),poses.begin(),poses.end());
@@ -733,6 +880,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     u.reload_seconds = r.real();
     u.weapon_shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4))),
         std::bit_cast<float>(std::uint32_t(r.get(4)))};u.ammunition_available=r.integer();
+    u.weapon_trigger={std::uint16_t(r.get(2)),std::bit_cast<std::int16_t>(std::uint16_t(r.get(2))),std::uint8_t(r.get(1)),std::uint8_t(r.get(1))};
     u.velocity={r.real(),r.real(),r.real()};
     u.native_forward=r.real();u.native_right=r.real();
     const auto support_flags=r.get(1);u.native_support_material=std::uint16_t(r.get(2));
@@ -833,6 +981,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     const auto empty=r.get(1),present=r.get(1);
     offhand.shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4))),
         std::bit_cast<float>(std::uint32_t(r.get(4)))};offhand.ammunition_available=r.integer();
+    offhand.trigger={std::uint16_t(r.get(2)),std::bit_cast<std::int16_t>(std::uint16_t(r.get(2))),std::uint8_t(r.get(1)),std::uint8_t(r.get(1))};
     if(empty>1 || present>1 || offhand.loaded<0 || offhand.reserve<0 || offhand.reload_seconds<0 ||
         ((offhand.datum==null_datum)!=(offhand.definition==null_datum)) ||
         (offhand.datum!=null_datum && (u.source_unit==null_datum || offhand.datum==u.source_weapon)) ||
@@ -1040,9 +1189,21 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
   for(unsigned i=0;i<weapon_effect_count;++i) {
     NativeWeaponEffectEvent e;e.serial=r.get(4);e.tick=r.get(4);e.unit=r.get(4);e.weapon=r.get(4);
     e.effect=r.get(4);e.a_bits=r.get(4);e.b_bits=r.get(4);e.colors.a=r.get(4);e.colors.b=r.get(4);
-    e.source_instance=r.get(4);const auto observed=r.get(1);e.source_presentation=observed;
-    e.velocity={r.real(),r.real(),r.real()};
-    if(!e.serial || (previous_effect && !newer(e.serial,previous_effect)) || newer(e.tick,s.tick) || observed>1 ||
+    e.source_instance=r.get(4);const auto observed=r.get(1);e.source_presentation=observed&1u;e.source_scheduled=(observed&2u)!=0;
+    e.velocity={r.real(),r.real(),r.real()};e.source_locations_observed=(observed&4u)!=0;
+    const auto locations=r.get(2);
+    if(locations>512 || (!e.source_locations_observed && locations))throw FormatError("Invalid source firing location bank");
+    for(unsigned n=0;n<locations;++n) {
+      SourceEffectLocation location;location.name=r.get(4);auto &t=location.frame;t.scale=r.real();
+      t.position={r.real(),r.real(),r.real()};for(auto &axis:t.basis)axis={r.real(),r.real(),r.real()};
+      if(location.name==null_datum || std::abs(t.scale)>1e6 ||
+          std::abs(t.position.x)>1e6 || std::abs(t.position.y)>1e6 || std::abs(t.position.z)>1e6)
+        throw FormatError("Invalid LAN source firing location");
+      for(const auto &axis:t.basis)if(std::abs(axis.x)>2.f || std::abs(axis.y)>2.f || std::abs(axis.z)>2.f)
+        throw FormatError("Invalid LAN source firing location basis");
+      e.source_locations.push_back(location);
+    }
+    if(!e.serial || (previous_effect && !newer(e.serial,previous_effect)) || newer(e.tick,s.tick) || observed>7 ||
         e.unit==null_datum || e.weapon==null_datum || e.effect==null_datum ||
         !std::isfinite(e.velocity.x) || !std::isfinite(e.velocity.y) || !std::isfinite(e.velocity.z))
       throw FormatError("Invalid retained weapon effect request");
@@ -1082,13 +1243,55 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     root.transform.scale=r.real();for(auto &axis:root.transform.basis)axis={r.real(),r.real(),r.real()};
     root.transform.position={r.real(),r.real(),r.real()};
     root.runtime_flags=r.get(4);root.velocity={r.real(),r.real(),r.real()};
+    root.created_tick=r.get(8);
+    const auto effect_count=r.get(2);
+    if(effect_count>4095)throw FormatError("Source effect attachment bank exceeds signed body extent");
+    for(unsigned i=0;i<effect_count;++i) {
+      SourceAttachedEffect effect;effect.slot=r.get(2);effect.flags=r.get(2);
+      effect.instance=r.get(4);effect.definition=r.get(4);
+      effect.scale_a=r.real();effect.scale_b=r.real();
+      effect.colors={std::uint32_t(r.get(4)),std::uint32_t(r.get(4))};
+      const auto location_count=r.get(2);
+      if(location_count>512)throw FormatError("Source effect locations exceed their original pool");
+      for(unsigned j=0;j<location_count;++j) {
+        SourceAttachedEffectLocation location;location.name=r.get(4);
+        location.node=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
+        location.local.scale=r.real();
+        for(auto &axis:location.local.basis)axis={r.real(),r.real(),r.real()};
+        location.local.position={r.real(),r.real(),r.real()};effect.locations.push_back(location);
+      }
+      root.attached_effects.push_back(effect);
+    }
+    validate_source_attached_effects(root.attached_effects);
     if(root.object==null_datum || !(root.object>>16) || (root.object&65535u)>=2048 ||
-        root.definition==null_datum || root.placement>=65536 || flags>7 || !(root.transform.scale>0) ||
+        root.definition==null_datum || root.placement>=65536 || flags>7 || !(root.transform.scale>0) || root.created_tick>s.tick ||
         !std::isfinite(root.velocity.x) || !std::isfinite(root.velocity.y) || !std::isfinite(root.velocity.z) ||
         !scene_objects.insert(root.object).second || !scene_placements.insert(root.placement).second)
       throw FormatError("Invalid source scene root identity or frame");
     s.source_scene_roots.push_back(root);
   }
+  const auto dynamic_count=r.get(2);
+  if(dynamic_count>2048 || (!s.source_scene_roots_authoritative && dynamic_count))
+    throw FormatError("Invalid source dynamic object authority/count");
+  for(unsigned n=0;n<dynamic_count;++n) {
+    SourceDynamicObject o;o.object=r.get(4);o.definition=r.get(4);o.parent=r.get(4);o.type=r.get(1);
+    const auto flags=r.get(1);if(flags>7)throw FormatError("Invalid source dynamic visibility flags");
+    o.visible=flags&1;o.frozen=flags&2;o.has_world_nodes=flags&4;
+    o.transform.scale=r.real();for(auto &v:o.transform.basis)v={r.real(),r.real(),r.real()};
+    o.transform.position={r.real(),r.real(),r.real()};o.velocity={r.real(),r.real(),r.real()};
+    o.sphere.center={r.real(),r.real(),r.real()};o.sphere.radius=r.real();o.runtime_flags=r.get(4);o.control_flags=r.get(2);
+    auto &model=o.regions.selection;model.variant_index=r.integer();const auto count=r.get(1);
+    if(count>16)throw FormatError("Source dynamic region count exceeds original16 slots");
+    for(unsigned i=0;i<count;++i) {
+      model.permutations.push_back(r.get(1));const auto choice=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
+      const auto damage=std::uint8_t(r.get(1)),properties=std::uint8_t(r.get(1));
+      model.states.push_back({choice,damage,properties});o.regions.looping_effects.push_back(r.get(4));
+    }
+    const auto colors=r.get(1);if(colors>4)throw FormatError("Source dynamic color count exceeds original4 channels");
+    for(unsigned i=0;i<colors;++i)o.colors.push_back({r.real(),r.real(),r.real()});
+    s.source_dynamic_objects.push_back(std::move(o));
+  }
+  validate_source_dynamic_objects(s.source_dynamic_objects);
   auto poses=decode_source_world_poses(std::span(r.p).subspan(r.at),body_pose_owners(s));
   r.at+=poses.consumed;s.source_body_poses_authoritative=poses.authoritative;
   s.source_body_poses=std::move(poses.poses);
@@ -1123,6 +1326,16 @@ sockaddr_in resolve(std::string address) {
   return at;
 }
 } // namespace
+LanSessionDescription query_lan_session(const std::string &address,std::chrono::milliseconds timeout) {
+  Udp udp(0);return query_session(udp,resolve(address),timeout);
+}
+LanSessionDescription query_lan_session(std::shared_ptr<MultiplayerDatagrams> transport,
+    unsigned host,std::chrono::milliseconds timeout) {
+  if(!transport || host>=multiplayer_capacity)throw FormatError("Invalid native session transport or host");
+  Udp udp(std::move(transport));sockaddr_in endpoint{};
+  endpoint.sin_family=AF_INET;endpoint.sin_addr.s_addr=htonl(host+1);
+  return query_session(udp,endpoint,timeout);
+}
 std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,
                                      const std::filesystem::path &shared_maps,
                                      std::uint32_t bsp,
@@ -1191,6 +1404,7 @@ struct LanHost::Impl {
     std::array<Controls, 4> controls{};
     std::array<PressSerials,4> received_presses{},delivered_presses{};
     std::array<InteractionDurations,4> completed{};
+    std::array<VehicleIntent,4> completed_vehicle{};
     std::unique_ptr<NativeVehicleCamera> vehicle_camera;
     std::optional<std::uint32_t> vehicle_camera_tick;
     std::array<std::optional<NativeDeathCameraView>,4> vehicle_views;
@@ -1203,9 +1417,42 @@ struct LanHost::Impl {
   Udp udp;
   std::vector<OnlineAdmission> admissions;
   std::uint64_t fingerprint;
+  Packet session_configuration;
   std::vector<Peer> peers;
   // Explicit native presentation RNG; camera draws never consume gameplay RNG.
   std::uint32_t camera_random;
+  struct PendingPacket {Packet bytes;sockaddr_in from;};
+  std::mutex receive_mutex;
+  std::deque<PendingPacket> pending_packets;
+  // Declared last: stop/join before destroying the socket or queue.
+  std::jthread configuration_service;
+  bool receive_packet(Packet &p,sockaddr_in &from) {
+    std::lock_guard lock(receive_mutex);
+    if(pending_packets.empty())return udp.receive(p,from);
+    p=std::move(pending_packets.front().bytes);from=pending_packets.front().from;
+    pending_packets.pop_front();return true;
+  }
+  void start_configuration_service() {
+    if(udp.relay || session_configuration.empty())return;
+    configuration_service=std::jthread([this](std::stop_token stop) {
+      while(!stop.stop_requested()) {
+        Packet p;sockaddr_in from{};std::optional<std::uint64_t> query;bool consumed{};
+        {
+          std::lock_guard lock(receive_mutex);
+          if(pending_packets.size()<256 && udp.receive(p,from)) {
+            consumed=true;
+            try {
+              Reader r{p};
+              if(r.type()==session_query) {query=r.get(8);r.end();}
+              else pending_packets.push_back({std::move(p),from});
+            }catch(const FormatError &) {query.reset();}
+          }
+        }
+        if(query)describe(from,*query);
+        if(!consumed)std::this_thread::sleep_for(std::chrono::milliseconds(2));
+      }
+    });
+  }
   static MultiplayerMatch& admitted(MultiplayerMatch& match) {
     if(match.source_engine()!=2 && match.source_engine()!=4)
       throw FormatError("Selected engine has no complete native objective replication binding");
@@ -1281,6 +1528,20 @@ struct LanHost::Impl {
       udp.send(p,peer.address);
     }
   }
+  void describe(sockaddr_in from,std::uint64_t nonce) {
+    if(session_configuration.empty()) {
+      rejection(from,nonce,"Session configuration is unavailable for this host");return;
+    }
+    const auto total=session_configuration.size();
+    const unsigned count=unsigned((total+session_chunk-1)/session_chunk);
+    for(unsigned index=0;index<count;++index) {
+      auto p=header(session_info);put(p,nonce,8);put(p,fingerprint,8);
+      put(p,index,2);put(p,count,2);put(p,total,4);
+      const auto first=session_configuration.begin()+index*session_chunk;
+      const auto last=session_configuration.begin()+std::min(total,std::size_t(index+1)*session_chunk);
+      p.insert(p.end(),first,last);udp.send(p,from);
+    }
+  }
   void rejection(sockaddr_in from, std::uint64_t nonce, std::string reason) {
     auto p = header(reject);
     put(p, nonce, 8);
@@ -1298,22 +1559,40 @@ LanHost::LanHost(MultiplayerMatch &m, unsigned port, std::uint64_t f)
     : impl_(std::make_unique<Impl>(m, port, f)) {
   if (port > 65535)
     throw FormatError("Invalid LAN port");
+  if(m.session_configuration())impl_->session_configuration=encode_session_variant(*m.session_configuration());
+  impl_->start_configuration_service();
 }
 LanHost::~LanHost() = default;
+LanHost::LanHost(MultiplayerMatch &m,unsigned port,std::uint64_t f,const UiVariant &variant)
+    :impl_(std::make_unique<Impl>(m,port,f)) {
+  impl_->session_configuration=encode_session_variant(variant);impl_->start_configuration_service();
+}
 LanHost::LanHost(MultiplayerMatch &m, std::shared_ptr<MultiplayerDatagrams> relay,
                  std::uint64_t f, std::vector<OnlineAdmission> roster)
-    : impl_(std::make_unique<Impl>(m, std::move(relay), f, std::move(roster))) {}
+    : impl_(std::make_unique<Impl>(m, std::move(relay), f, std::move(roster))) {
+  if(m.session_configuration())impl_->session_configuration=encode_session_variant(*m.session_configuration());
+  impl_->start_configuration_service();
+}
+LanHost::LanHost(MultiplayerMatch &m,std::shared_ptr<MultiplayerDatagrams> relay,
+    std::uint64_t f,std::vector<OnlineAdmission> roster,const UiVariant &variant)
+    :impl_(std::make_unique<Impl>(m,std::move(relay),f,std::move(roster))) {
+  impl_->session_configuration=encode_session_variant(variant);
+  impl_->start_configuration_service();
+}
 unsigned LanHost::port() const { return impl_->udp.port(); }
 unsigned LanHost::peers() const { return unsigned(impl_->peers.size()); }
 void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
   auto &h = *impl_;
   Packet p;
   sockaddr_in from{};
-  for (unsigned packets = 0; packets < 256 && h.udp.receive(p, from); ++packets)
+  for (unsigned packets = 0; packets < 256 && h.receive_packet(p, from); ++packets)
     try {
       Reader r{p};
       auto type = r.type();
       auto nonce = r.get(8);
+      if(type==session_query) {
+        r.end();h.describe(from,nonce);continue;
+      }
       if (type == hello) {
         const auto fingerprint = r.get(8);
         const auto count = r.get(1);
@@ -1385,7 +1664,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
                 : "LAN Player",selected_teams[i],profiles[i], !admissions.empty() ? std::optional(admissions[i]->slot) : std::nullopt));
         } catch (const FormatError &e) {
           for (auto id : created.ids)
-            h.match.leave(id);
+            h.match.cancel_join(id);
           h.rejection(from, nonce, e.what());
           continue;
         }
@@ -1427,6 +1706,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
             peer->controls[view]=decoded[view].control;
             peer->received_presses[view]=decoded[view].presses;
             peer->completed[view]=decoded[view].completed;
+            peer->completed_vehicle[view]=decoded[view].completed_vehicle;
           }
           peer->sequence = sequence;
           peer->seen = true;
@@ -1459,7 +1739,10 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
             *actions[action]=true;
             if(action==4 || action==5) {
               auto &duration=action==4?c.pickup_milliseconds:c.dual_wield_milliseconds;
-              duration=std::max(duration,peer.completed[j][action-4]);
+              if(action==4) {
+                duration=peer.completed[j][0];
+                c.vehicle_interaction_target=peer.completed_vehicle[j];
+              } else duration=std::max(duration,peer.completed[j][1]);
               // A completion serial owns its saved duration, independently of
               // the latest held input. Later neutral packets repeat both.
               peer.delivered_presses[j][action]=peer.received_presses[j][action];
@@ -1493,6 +1776,7 @@ struct LanClient::Impl {
   std::array<PressSerials,4> presses{};
   std::array<std::array<bool,6>,4> held{};
   std::array<InteractionDurations,4> active_interactions{},completed_interactions{};
+  std::array<VehicleIntent,4> completed_vehicle{};
   std::uint32_t snapshot_sequence{};
   std::map<std::uint32_t,Assembly> assemblies;
   bool connected{};
@@ -1583,6 +1867,7 @@ void LanClient::send(std::span<const Controls> c) {
         active=std::max(active,durations[action]);
       } else if(v.held[view][4+action]) {
         v.completed_interactions[view][action]=active;
+        if(action==0)v.completed_vehicle[view]=c[view].vehicle_interaction_target;
         ++v.presses[view][4+action];active=0;
       }
     }
@@ -1594,7 +1879,7 @@ void LanClient::send(std::span<const Controls> c) {
     if(c[view].melee)++v.presses[view][8];
     if(c[view].switch_grenade)++v.presses[view][9];
     v.held[view]=down;
-    encode_control(p,c[view],v.presses[view],v.completed_interactions[view]);
+    encode_control(p,c[view],v.presses[view],v.completed_interactions[view],v.completed_vehicle[view]);
   }
   v.udp.send(p, v.host);
 }

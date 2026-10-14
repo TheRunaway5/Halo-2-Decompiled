@@ -1,5 +1,12 @@
 # TU1.5 live prop blast integration
 
+October14 extension: [source-created object evidence](MP_DYNAMIC_OBJECTS_TU15_20261014.md)
+records `v228`/`v230` live debris and dropped equipment presentation, actual
+current-region adoption, exact UDP snapshots and repeated512-byte original
+impulse comparisons. These supersede the older blanket "spawned debris
+presentation open" statement for the tested power-module fixture; other
+definitions and all destruction paths remain unverified.
+
 The current retained world executes the original grenade, radial damage,
 point-impulse, object destruction/retirement and effect update paths. The native
 renderer reads completed source bounds, velocity, runtime flags and frozen
@@ -55,9 +62,39 @@ against unchanged TU1.5 across1160 cases and all four rounding modes.
 
 ## Remaining scope
 
+October14 follow-up: current-root `v219` repeats both prop cases successfully.
+`v221` subsequently passes pre-join recreation, actual grenade movement and
+retirement, and another source birth after the blast, with181 exact UDP states
+and both generations' prop geometry in both client views. Its two actual
+point impulses compare all512 bytes exactly against unchanged TU1.5. See
+[scene lifecycle evidence](MP_SOURCE_SCENE_REPLICATION_TU15_20261013.md) for the
+bounded lifecycle/visibility distinction and the remaining renderer coverage.
+
 These are bounded live prop movement/destruction and transport checks. They do
 not establish all object types, spawned debris presentation, generation
-recreation/late join, every model-region transition, complete effect/audio
+recreation/late join for all resources, every model-region transition, complete effect/audio
 presentation, all contact/solver behavior, physical Xbox floating-point bits
 or complete TU1.5 physics parity. The current packaged launcher checks predate
 this prop update; its production delivery still needs verification.
+
+
+`isolated-movement-objects-v303` reruns the fully composed object sequence
+with the full source player creator and extended contact agents. Movement
+passes181 exact UDP samples; object recreation/blast/debris passes182.
+Both retired/recreated full prop generations render in both client views,
+and actual source-created debris travels1.635351 units. The independent
+unchanged TU1.5 point-impulse replay again matches all512 compared motion bytes
+across the two captured impulses (`isolated-impulse-oracle-v303.log`). Raw
+acceptance reports retain their broader `dynamic_prop_impulses_verified=false`
+limit; that field is not rewritten by the separate bounded point-impulse oracle.
+This is isolated protocol78 evidence. Current protocol80 is independently
+built and tested before any current-workspace validation claim.
+
+
+`current-movement-objects-v313` repeats movement and the full
+recreation/blast/debris sequence on coherent native protocol80. Both pass182
+exact observed UDP snapshots with continuously verified live mirrors and stable
+executables. `current-point-impulse-oracle-v313.log` and the retained independent
+comparison match all512 motion bytes across two actual source impulses. These
+remain bounded live/native plus original-instruction results, not a claim of
+full contact/solver or original quantitative trajectory coverage.

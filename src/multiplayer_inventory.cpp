@@ -11,9 +11,11 @@
 namespace halo2 {
 void MultiplayerMatch::configure_world_weapon_effect_owner(
     std::function<std::uint32_t(const WeaponEffectInput &)> owner) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   simulation_.world_weapon_effect_hook_=std::move(owner);
 }
 void MultiplayerMatch::configure_weapon_pickups() {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(weapon_pickups_configured_ || simulation_.ticks()!=0)
     throw FormatError("Native weapon pickups must be configured once before stepping");
   weapon_pickups_configured_=true;

@@ -6,6 +6,8 @@
 
 namespace halo2 {
 void Simulation::step_devices() {
+    // The retained TU1.5 object/world phases own live device motion.
+    if(source_physics_movement_)return;
     std::array<SourceMachineDoorUnit,16> nearby;
     SourceDeviceWorld::DoorWorld world;
     world.tick=std::uint32_t(ticks_);

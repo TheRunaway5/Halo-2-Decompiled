@@ -37,18 +37,20 @@ MenuWorldVertexShaderSource menu_world_vertex_shader_source(
     std::span<const std::byte> program,const SourceVertexDeclaration &);
 
 // Generated immutable storage owns these spans for the binary's lifetime.
-// Source bytes and ordered semantics are the lookup identity; datum/name are
-// deliberately absent. SPIR-V is compiled at build time for Vulkan1.3.
+// The complete source program's SHA-256, extent and ordered semantics are the
+// lookup identity; datum/name are deliberately absent. Only port GLSL and
+// program identities ship in the source tree. SPIR-V is compiled at build time.
 struct MenuWorldVertexCatalogEntry {
   std::uint32_t abi{}, class_index{};
-  std::span<const std::byte> program;
+  std::string_view program_sha256;
+  std::size_t program_bytes{};
   std::span<const std::uint16_t> semantics;
   std::span<const std::uint32_t> spirv;
   std::span<const unsigned> consumed_inputs, consumed_constants;
   std::string_view source_sha256, spirv_sha256;
 };
 // Requires trusted generated catalog storage, fully checked by the build-time
-// SPIR-V validator. Runtime admission checks literal identity, ambiguity and
+// SPIR-V validator. Runtime admission checks program identity, ambiguity and
 // ABI/SPIR-V header compatibility; it is not a validator for arbitrary modules.
 // No subprocess, compiler, filesystem fallback or captured-identity selector.
 const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(

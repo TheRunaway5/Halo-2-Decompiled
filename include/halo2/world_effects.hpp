@@ -9,6 +9,7 @@
 #include "halo2/effect_light_view.hpp"
 #include "halo2/effect_light_receiver.hpp"
 #include "halo2/muzzle_effects.hpp"
+#include "halo2/source_attached_effect.hpp"
 #include <memory>
 #include <map>
 
@@ -42,6 +43,7 @@ struct WorldEffectLight {
   // by a retained projectile/contact event.
   std::uint32_t effect_owner=0xffffffffu;
   SourceEffectLightRegistration registration;
+  std::uint32_t identity=0xffffffffu,effect_definition=0xffffffffu;
 };
 struct WorldEffectLightReceiver {
   std::uint32_t identity{},epoch{};
@@ -76,11 +78,17 @@ public:
       std::uint32_t owner,std::uint64_t tick,SourceEffectColors={},SourceEffectControls={});
   void request_weapon(std::uint32_t effect,std::uint32_t weapon,std::uint64_t tick,
       SourceEffectColors,Vec3 velocity,float scale_a,float scale_b,std::uint32_t source_instance,
-      bool sounds);
+      bool sounds,const ObjectMarkers *source_locations=nullptr);
+  void update_weapon_locations(std::uint32_t weapon,std::uint32_t instance,const ObjectMarkers &);
   //1766B0/175FA0 object attachment branch. The caller supplies current posed
   //markers and original function values; marker aliases are per attachment.
   void spawn_looping_attached(std::uint32_t effect,std::uint32_t full_handle,
-      std::uint64_t tick,std::string marker,float scale_a,float scale_b);
+      std::uint64_t tick,std::string marker,float scale_a,float scale_b,
+      const SourceAttachedEffect *source=nullptr,const ObjectMarkers *locations=nullptr);
+  // Completed source flags retain independent function pause (4), PVS hide
+  // (8) and draining retirement (40). Values alone never decide admission.
+  bool update_looping_attached(std::uint32_t full_handle,std::uint32_t instance,
+      const SourceAttachedEffect &,const ObjectMarkers &locations={});
   // Original object attachment creator1766B0 sets the retained repeat flag.
   // Import static scenery's actual effe attachments and root transforms.
   std::size_t attach_scenery(const LevelContent &);

@@ -25,7 +25,9 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--fixture',type=Path,required=True)
+    parser.add_argument('--charged-actions',action='store_true',help='Include both firing/misfire barrels and charge actions')
     args=parser.parse_args()
+    actions=ACTIONS+((0x06000007,0x0900006a,0x0900006b,0x0b000067,0x08000063,0x09000062,0x1000006c,0x1000006e) if args.charged_actions else ())
     cache=Cache(ROOT/'assets/disc/maps/lockout.map');trace=Trace(1)
     reached={}
     trace.g.hook_add(4,lambda g,address,size,data:reached.setdefault(address,bytes(g.mem_read(address,size)).hex()))
@@ -42,7 +44,7 @@ def main():
                     preferred=1 if representation==3 else 0
                     record=records[preferred if len(records)>preferred else 0] if records else None
                     if no_model and record is not None:trace.w(record+cache.magic+4,0xffffffff)
-                    for action in ACTIONS:
+                    for action in actions:
                         for section in (0,1,2,3):
                             trace.events.clear();trace.entry_counts.clear()
                             trace.run(0x16a06a,(action,section),((UC_X86_REG_ECX,WI),))
@@ -53,7 +55,7 @@ def main():
                     if no_model and record is not None:trace.w(record+cache.magic+4,cache.u(record+4))
         print(tag['name'],flush=True)
     args.fixture.parent.mkdir(parents=True,exist_ok=True);args.fixture.write_text('\n'.join(lines)+'\n')
-    report=dict(scope=__doc__,counts=counts,weapons=weapons,actions=[f'{v:08x}' for v in ACTIONS],
+    report=dict(scope=__doc__,counts=counts,weapons=weapons,actions=[f'{v:08x}' for v in actions],
       xbe_sha256=hashlib.sha256(trace.image.data).hexdigest(),cache_sha256=hashlib.sha256(cache.data).hexdigest(),
       tool_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
       inherited_tool_sha256=hashlib.sha256((ROOT/'tools/oracle_smg_firing_1_1.py').read_bytes()).hexdigest(),

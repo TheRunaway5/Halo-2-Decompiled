@@ -29,6 +29,14 @@ bool replace(const Unit &u,const WeaponState &w,const LevelContent &c,bool actor
   return source_weapon_carry_permissions(q,item(w,c))[2];
 }
 Vec3 trade_center(const Unit &u,const NativeUnitInteractionDefinition &d,std::uint64_t tick) {
+  Transform root;root.position=u.body.position;
+  const auto nodes=native_unit_world_nodes(u,d,tick);
+  const auto markers=pose_model_markers(d.markers.at(0x04000095u),nodes,d.permutations,{},1);
+  // B8D30 count-zero output is the object's resolved root.
+  return markers.empty()?root.position:markers.front().world.position;
+}
+}
+std::vector<Transform> native_unit_world_nodes(const Unit &u,const NativeUnitInteractionDefinition &d,std::uint64_t tick) {
   Transform root;root.position=u.body.position;const auto b=authored_basis({u.yaw,0,0});root.basis={b.forward,b.left,b.up};
   const auto *clip=u.custom_animation?u.custom_animation.get():d.idle.get();
   auto nodes=pose_model_nodes_world(d.hierarchy,root);
@@ -43,10 +51,13 @@ Vec3 trade_center(const Unit &u,const NativeUnitInteractionDefinition &d,std::ui
     const auto posed=pose_model_nodes_world(animated,root,clip,seconds);
     for(std::size_t i=0;i<mapping.size();++i)nodes[mapping[i]]=posed[i];
   }
-  const auto markers=pose_model_markers(d.markers.at(0x04000095u),nodes,d.permutations,{},1);
-  // B8D30 count-zero output is the object's resolved root.
-  return markers.empty()?root.position:markers.front().world.position;
+  return nodes;
 }
+ShadowCasterSphere native_unit_query_sphere(const Unit &u,const NativeUnitInteractionDefinition &d,std::uint64_t tick) {
+  const auto nodes=native_unit_world_nodes(u,d,tick);
+  if(nodes.empty())throw FormatError("Unit query sphere lacks its current model node0");
+  ShadowCasterDefinition bounds;bounds.bounding_offset=d.bound_offset;bounds.bounding_radius=d.bound_radius;
+  return source_shadow_sphere(bounds,nodes.front(),1);
 }
 bool native_can_trade_weapon(const Unit &player,const Unit &ally,const LevelContent &content,bool allied,std::uint64_t tick) {
   if(!content.unit_interactions || !player.exists || player.vitality.dead || player.source_parent!=null_datum ||

@@ -85,7 +85,9 @@ const SourceDeviceWorldOwner *SourceDeviceWorld::find(std::uint32_t handle)const
     const auto at=owners_.find(handle);return at==owners_.end()?nullptr:&at->second;
 }
 bool SourceDeviceWorld::synchronize(const SceneObjects &scene){
+    NativeAuthorityBoundary::Call call(authority_);
     if(replicated())return false; // Client scene allocations are a different owner.
+    ++authority_.mutations;
     bool changed=false;std::set<std::uint32_t> present;
     for(const auto&o:scene.objects()){
         if(o.handle==null_datum || o.placement>=content_->devices.size() || !content_->devices[o.placement])continue;
@@ -118,13 +120,16 @@ bool SourceDeviceWorld::synchronize(const SceneObjects &scene){
     collision_dirty_|=changed;return changed;
 }
 void SourceDeviceWorld::step(float dt){
+    NativeAuthorityBoundary::Call call(authority_);
     step_impl(dt,nullptr);
 }
 void SourceDeviceWorld::step(float dt,const DoorWorld &world){
+    NativeAuthorityBoundary::Call call(authority_);
     step_impl(dt,&world);
 }
 void SourceDeviceWorld::step_impl(float dt,const DoorWorld *world){
     if(replicated())throw FormatError("replicated devices cannot advance an independent client clock");
+    ++authority_.mutations;
     // Source scans pool slots, so generation salts cannot reorder updates.
     std::vector<SourceDeviceWorldOwner*> order;for(auto&[_,o]:owners_)order.push_back(&o);
     std::sort(order.begin(),order.end(),[](const auto*a,const auto*b){return (a->handle&0xffff)<(b->handle&0xffff);});
@@ -175,23 +180,32 @@ void SourceDeviceWorld::step_impl(float dt,const DoorWorld *world){
     }
 }
 bool SourceDeviceWorld::synchronize_collision(){
+    NativeAuthorityBoundary::Call call(authority_);
     if(!collision_dirty_)return false;
-    triangles_.clear();
-    for(const auto&[_,o]:owners_)if(!o.bsp_hidden){
-        const auto&d=*content_->devices[o.placement];if(!d.collision)continue;
-        const auto locals=source_machine_local_pose(d.collision->hierarchy,*d.machine,o.motion.position,o.motion.power);
-        const auto nodes=pose_model_locals_nodes_world(d.collision->hierarchy,o.root,locals);
-        auto triangles=model_collision_triangles(d.collision->collision,nodes,d.collision->permutations,o.placement);
-        triangles_.insert(triangles_.end(),triangles.begin(),triangles.end());
+    std::vector<CollisionTriangle> triangles;
+    std::map<std::uint32_t,AuthorityCheckpoint::CollisionPose> poses;
+    for(const auto &[h,o]:owners_)poses.emplace(h,AuthorityCheckpoint::CollisionPose{
+        h,o.placement,o.created_tick,o.root,o.motion.position,o.motion.power,o.bsp_hidden});
+    // Build from the retained pose inputs once. This also records the exact
+    // cache provenance needed when later channel writes leave it dirty.
+    for(const auto &[h,p]:poses)if(!p.bsp_hidden){
+        (void)h;const auto &d=*content_->devices[p.placement];if(!d.collision)continue;
+        const auto locals=source_machine_local_pose(d.collision->hierarchy,*d.machine,p.position,p.power);
+        const auto nodes=pose_model_locals_nodes_world(d.collision->hierarchy,p.root,locals);
+        auto part=model_collision_triangles(d.collision->collision,nodes,d.collision->permutations,p.placement);
+        triangles.insert(triangles.end(),part.begin(),part.end());
     }
+    ++authority_.mutations;triangles_.swap(triangles);collision_poses_.swap(poses);
     collision_dirty_=false;return true;
 }
 SourceControlActivation SourceDeviceWorld::activate_admitted_control(std::uint32_t handle){
+    NativeAuthorityBoundary::Call call(authority_);
     if(replicated())throw FormatError("replicated devices cannot admit a client group write");
     auto at=owners_.find(handle);if(at==owners_.end())throw FormatError("control action has stale device owner");
     auto&o=at->second;const auto&d=*content_->devices[o.placement];
     if(!d.control)throw FormatError("control action does not name a control");
     if(d.control->triggers_when!=0)return {};
+    ++authority_.mutations;
     const auto result=source_control_activate(*d.control,&group(o,false));
     if(result.effect!=null_datum)events_.push_back({handle,result.effect});
     return result;
@@ -204,19 +218,27 @@ bool SourceDeviceWorld::consider_control_target(const SourceControlTargetQuery &
     candidate.device_flags=owner->motion.flags;candidate.control_flags=owner->control_flags;
     return source_control_target_candidate(q,candidate,current,current_root);
 }
-std::vector<SourceDeviceWorldEvent> SourceDeviceWorld::take_events(){return std::exchange(events_,{});}
+std::vector<SourceDeviceWorldEvent> SourceDeviceWorld::take_events(){
+    NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;return std::exchange(events_,{});
+}
 SourceDeviceWorldSnapshot SourceDeviceWorld::snapshot(std::uint64_t tick)const{
     SourceDeviceWorldSnapshot result;result.tick=replica_tick_.value_or(tick);result.groups=groups_;
     for(const auto&[_,owner]:owners_)
         result.owners.push_back({content_->objects.at(owner.placement).definition,owner});
     validate_source_device_world_snapshot(result);return result;
 }
-void SourceDeviceWorld::apply_snapshot(const SourceDeviceWorldSnapshot &s){
+void SourceDeviceWorld::apply_snapshot(const SourceDeviceWorldSnapshot &s){apply_state(s,true);}
+void SourceDeviceWorld::observe_source_snapshot(const SourceDeviceWorldSnapshot &s){
+    if(replicated())throw FormatError("device replica cannot observe a separate source authority");
+    apply_state(s,false);
+}
+void SourceDeviceWorld::apply_state(const SourceDeviceWorldSnapshot &s,bool replica){
+    NativeAuthorityBoundary::Call call(authority_);
     validate_source_device_world_snapshot(s);
     if(s.groups.size()!=content_->device_groups.size())throw FormatError("native device groups differ from this level");
     if(replica_tick_ && s.tick<*replica_tick_)throw FormatError("stale native device snapshot");
     std::map<std::uint32_t,SourceDeviceWorldOwner> next;
-    bool pose_changed=!replica_tick_ || s.owners.size()!=owners_.size();
+    bool pose_changed=(replica && !replica_tick_) || s.owners.size()!=owners_.size();
     for(const auto&entry:s.owners){const auto&o=entry.state;
         if(o.placement>=content_->devices.size() || !content_->devices[o.placement] ||
            o.placement>=content_->objects.size() || content_->objects[o.placement].definition!=entry.definition)
@@ -235,27 +257,9 @@ void SourceDeviceWorld::apply_snapshot(const SourceDeviceWorldSnapshot &s){
     }
     // No mutation above this point: malformed banks cannot consume a one-use
     // group or partially replace the current client owners.
-    groups_=s.groups;owners_=std::move(next);replica_tick_=s.tick;
-    events_.clear();collision_dirty_|=pose_changed;
-}
-SourceDeviceWorld::AuthorityCheckpoint SourceDeviceWorld::authority_checkpoint(std::uint64_t tick)const {
-    if(replicated())throw FormatError("A device display replica is not an authority checkpoint");
-    return {1,snapshot(tick),events_};
-}
-void SourceDeviceWorld::restore_authority(const AuthorityCheckpoint &saved,std::uint64_t completed_tick) {
-    if(saved.version!=1 || saved.state.tick!=completed_tick)
-        throw FormatError("Device authority checkpoint version or completed tick differs");
-    // Stage authored identity/group validation and posed collision before
-    // changing any current owner. Promotion itself never initializes motion.
-    SourceDeviceWorld next(*content_);next.apply_snapshot(saved.state);
-    for(const auto &event:saved.pending_events)
-        if(event.handle==null_datum || event.tag==null_datum || event.serial || event.tick)
-            throw FormatError("Invalid pending device authority effect request");
-    next.events_=saved.pending_events;next.replica_tick_.reset();
-    next.synchronize_collision();
-    groups_=std::move(next.groups_);owners_=std::move(next.owners_);
-    events_=std::move(next.events_);triangles_=std::move(next.triangles_);
-    collision_dirty_=false;replica_tick_.reset();
+    ++authority_.mutations;groups_=s.groups;owners_=std::move(next);
+    if(replica){replica_tick_=s.tick;events_.clear();}
+    collision_dirty_|=pose_changed;
 }
 float SourceDeviceWorld::script_value(std::uint32_t handle,bool power)const {
     if(handle==null_datum)return 0;const auto &owner=owners_.at(handle);
@@ -270,9 +274,11 @@ void SourceDeviceWorld::script_immediate(SourceDeviceGroup &target,float value) 
     collision_dirty_=true;
 }
 bool SourceDeviceWorld::script_set(std::uint32_t handle,bool power,float value,bool immediate) {
+    NativeAuthorityBoundary::Call call(authority_);
     if(replicated())throw FormatError("Client cannot script device state");
     if(!std::isfinite(value))throw FormatError("Nonfinite scripted device value");
     if(handle==null_datum)return false;auto &owner=owners_.at(handle);auto &target=group(owner,power);
+    ++authority_.mutations;
     if(immediate) {
         if(power){script_immediate(target,value);owner.motion.flags|=0x80;}
         else {owner.motion.flags|=4;owner.motion.position=value;source_device_group_set(target,value);collision_dirty_=true;}
@@ -284,9 +290,11 @@ float SourceDeviceWorld::script_group_value(std::uint32_t id)const {
     if(id==null_datum)return 0;return groups_.at(id&0xffffu).value;
 }
 bool SourceDeviceWorld::script_group_set(std::uint32_t id,float value,bool immediate) {
+    NativeAuthorityBoundary::Call call(authority_);
     if(replicated())throw FormatError("Client cannot script device groups");
     if(!std::isfinite(value))throw FormatError("Nonfinite scripted device group");
     if(id==null_datum)return false;auto &target=groups_.at(id&0xffffu);
+    ++authority_.mutations;
     if(immediate){script_immediate(target,value);return true;}return source_device_group_set(target,value);
 }
 }

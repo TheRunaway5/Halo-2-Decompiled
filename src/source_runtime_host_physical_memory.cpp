@@ -1,5 +1,6 @@
 #include "halo2/source_runtime_host_physical_memory.hpp"
 #include "halo2/source_runtime_write_protection.hpp"
+#include "source_runtime_page_copy.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <stdexcept>
@@ -24,6 +25,29 @@ struct PhysicalProtection {
   std::mutex mutex;
   std::set<std::uint32_t> read_only;
 };
+struct StagedPhysicalProtection {
+  std::set<std::uint32_t> read_only;
+  bool active=true;
+  void validate(std::uint32_t address,std::size_t bytes) const {
+    if(!active || !bytes)return;
+    const auto first=read_only.lower_bound(address&~(page-1));
+    if(first!=read_only.end() && *first<std::uint64_t(address)+bytes)
+      throw std::runtime_error("Original runtime write to read-only staged physical page");
+  }
+};
+std::shared_ptr<SourceRuntimeMemoryBacking> physical_backing(std::uint32_t bytes,
+    SourceRuntimeMemoryBacking::WriteGuard guard={}) {
+#if defined(__linux__)
+  auto *host=::mmap(nullptr,bytes,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
+  if(host==MAP_FAILED)
+    throw std::system_error(errno,std::generic_category(),"Host source physical allocation");
+  auto lifetime=std::shared_ptr<void>(host,[bytes](void *p){::munmap(p,bytes);});
+  return std::make_shared<SourceRuntimeMemoryBacking>(std::move(lifetime),
+      std::span(static_cast<std::byte*>(host),bytes),std::move(guard));
+#else
+  unsupported();
+#endif
+}
 std::mutex physical_protection_mutex;
 std::map<const SourceRuntimeHostPhysicalMemory *,std::shared_ptr<PhysicalProtection>> physical_protections;
 std::shared_ptr<PhysicalProtection> protection_of(const SourceRuntimeHostPhysicalMemory *owner) {
@@ -58,9 +82,7 @@ SourceRuntimeHostPhysicalMemory::~SourceRuntimeHostPhysicalMemory() {
   source_runtime_unregister_write_guard(memory_,this);
   {std::lock_guard lock(physical_protection_mutex);physical_protections.erase(this);}
   for (const auto &[base, allocation] : allocations_) {
-#if defined(__linux__)
-    ::munmap(allocation.host, allocation.bytes);
-#endif
+    (void)allocation;
     try { memory_.release(base); } catch (...) {}
   }
 }
@@ -81,21 +103,12 @@ std::uint32_t SourceRuntimeHostPhysicalMemory::allocate(SourcePhysicalAllocation
   if (physical + bytes > std::uint64_t(q.highest) + 1 || bytes > UINT32_MAX)
     return 0; // Actual native resource namespace exhaustion.
   const auto token = std::uint32_t(physical) | 0x80000000u;
-#if defined(__linux__)
-  auto *host = ::mmap(nullptr, bytes, PROT_READ | PROT_WRITE,
-                      MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  if (host == MAP_FAILED)
-    throw std::system_error(errno, std::generic_category(), "Host source physical allocation");
-  try {
-    memory_.mount(token, {static_cast<const std::byte *>(host), std::size_t(bytes)},
+  auto backing=physical_backing(std::uint32_t(bytes));
+  memory_.mount(token,backing,
         SourceRuntimeMemory::Access::ReadWrite, allocation_owner);
-    try { allocations_.emplace(token, Allocation{host, std::uint32_t(bytes)}); }
-    catch (...) { memory_.release(token); throw; }
-  } catch (...) { ::munmap(host, bytes); throw; }
+  try { allocations_.emplace(token, Allocation{std::move(backing), std::uint32_t(bytes)}); }
+  catch (...) { memory_.release(token); throw; }
   return token;
-#else
-  unsupported();
-#endif
 }
 void SourceRuntimeHostPhysicalMemory::protect(std::uint32_t address,
                                               std::uint32_t bytes,
@@ -125,7 +138,7 @@ void SourceRuntimeHostPhysicalMemory::protect(std::uint32_t address,
     if(protection==2)next.insert(std::uint32_t(p));else next.erase(std::uint32_t(p));
   }
 #if defined(__linux__)
-  if (::mprotect(static_cast<std::byte *>(found->second.host) + protected_begin,
+  if (::mprotect(found->second.backing->bytes().data() + protected_begin,
                  std::size_t(protected_end - protected_begin),
                  protection==2?PROT_READ:PROT_READ | PROT_WRITE))
     throw std::system_error(errno, std::generic_category(), "Host source physical protection");
@@ -142,13 +155,9 @@ struct SourceRuntimeHostPhysicalMemory::PreparedOwnership::Impl {
   std::unique_lock<std::mutex> lock;
   std::map<std::uint32_t,Allocation> allocations;
   std::set<std::uint32_t> read_only;
+  std::shared_ptr<StagedPhysicalProtection> staged_protection=std::make_shared<StagedPhysicalProtection>();
   Impl(const SourceRuntimeHostPhysicalMemory *owner,std::shared_ptr<PhysicalProtection> state)
       :owner(owner),protection(std::move(state)),lock(protection->mutex) {}
-  ~Impl() {
-#if defined(__linux__)
-    for(const auto &[base,allocation]:allocations)::munmap(allocation.host,allocation.bytes);
-#endif
-  }
 };
 SourceRuntimeHostPhysicalMemory::PreparedOwnership::PreparedOwnership()=default;
 SourceRuntimeHostPhysicalMemory::PreparedOwnership::~PreparedOwnership()=default;
@@ -156,6 +165,12 @@ SourceRuntimeHostPhysicalMemory::PreparedOwnership::PreparedOwnership(PreparedOw
 SourceRuntimeHostPhysicalMemory::PreparedOwnership &SourceRuntimeHostPhysicalMemory::PreparedOwnership::operator=(PreparedOwnership &&) noexcept=default;
 bool SourceRuntimeHostPhysicalMemory::PreparedOwnership::for_owner(const SourceRuntimeHostPhysicalMemory &owner) const noexcept {
   return impl_ && impl_->owner==&owner;
+}
+bool SourceRuntimeHostPhysicalMemory::PreparedOwnership::matches_memory(const SourceRuntimeMemory &bank) const noexcept {
+  if(!impl_)return false;
+  for(const auto &[base,allocation]:impl_->allocations)
+    if(!bank.has_backing(base,allocation.backing))return false;
+  return true;
 }
 SourceRuntimeHostPhysicalMemory::OwnershipCheckpoint SourceRuntimeHostPhysicalMemory::ownership_checkpoint() const {
   const auto state=protection_of(this);std::lock_guard lock(state->mutex);
@@ -169,7 +184,9 @@ SourceRuntimeHostPhysicalMemory::OwnershipCheckpoint SourceRuntimeHostPhysicalMe
   return saved;
 }
 SourceRuntimeHostPhysicalMemory::PreparedOwnership SourceRuntimeHostPhysicalMemory::prepare_ownership(
-    const OwnershipCheckpoint &saved,const SourceRuntimeMemory::Checkpoint &bank) const {
+    const OwnershipCheckpoint &saved,const SourceRuntimeMemory::Checkpoint &bank,
+    SourceRuntimeMemory &replacement) const {
+  if(&replacement==&memory_)throw std::invalid_argument("Physical staging requires a separate quiescent memory bank");
   SourceRuntimeMemory::validate_checkpoint(bank);
   if(saved.version!=1 || std::count_if(bank.regions.begin(),bank.regions.end(),
       [](const auto &region){return region.owner==allocation_owner;})!=std::ptrdiff_t(saved.allocations.size()))
@@ -191,20 +208,32 @@ SourceRuntimeHostPhysicalMemory::PreparedOwnership SourceRuntimeHostPhysicalMemo
         region->page_bytes || !region->committed.empty())
       throw std::invalid_argument("Physical allocation differs from the incoming source bank");
 #if defined(__linux__)
-    auto *host=::mmap(nullptr,allocation.bytes,PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS,-1,0);
-    if(host==MAP_FAILED)throw std::system_error(errno,std::generic_category(),"Stage native source physical allocation");
-    try {prepared.impl_->allocations.emplace(allocation.base,Allocation{host,allocation.bytes});}
-    catch(...) {::munmap(host,allocation.bytes);throw;}
-    std::memcpy(host,region->bytes.data(),allocation.bytes);
+    const auto policy=prepared.impl_->staged_protection;
+    const auto guard=[policy](auto p,auto n){policy->validate(p,n);};
+    auto backing=replacement.prepare_snapshot_backing(*region,page,guard);
+    const bool retained=bool(backing);
+    if(!backing)backing=physical_backing(allocation.bytes,guard);
+    auto *host=backing->bytes().data();
+    prepared.impl_->allocations.emplace(allocation.base,Allocation{backing,allocation.bytes});
+    if(retained) {
+      // A canceled preparation may have protected these same staging pages.
+      // Reset the real mapping before applying this incoming protection set.
+      if(::mprotect(host,allocation.bytes,PROT_READ|PROT_WRITE))
+        throw std::system_error(errno,std::generic_category(),"Reset staged source physical protection");
+    } else source_runtime_detail::restore_zero_filled_pages(
+        std::span(host,allocation.bytes),std::span(region->bytes),page);
     for(std::size_t index=0;index<allocation.read_only.size();) {
       if(!allocation.read_only[index]){++index;continue;}
       const auto first=index;
       while(index<allocation.read_only.size() && allocation.read_only[index]) {
-        prepared.impl_->read_only.insert(allocation.base+std::uint32_t(index*page));++index;
+        const auto address=allocation.base+std::uint32_t(index*page);
+        prepared.impl_->read_only.insert(address);
+        policy->read_only.insert(address);++index;
       }
-      if(::mprotect(static_cast<std::byte*>(host)+first*page,(index-first)*page,PROT_READ))
+      if(::mprotect(host+first*page,(index-first)*page,PROT_READ))
         throw std::system_error(errno,std::generic_category(),"Stage native source physical protection");
     }
+    replacement.bind_backing(*region,std::move(backing));
 #else
     unsupported();
 #endif
@@ -212,9 +241,11 @@ SourceRuntimeHostPhysicalMemory::PreparedOwnership SourceRuntimeHostPhysicalMemo
   return prepared;
 }
 bool SourceRuntimeHostPhysicalMemory::commit_ownership(PreparedOwnership &&prepared) noexcept {
-  if(!prepared.for_owner(*this))return false;
+  if(!prepared.for_owner(*this) || !prepared.matches_memory(memory_))return false;
   allocations_.swap(prepared.impl_->allocations);
   prepared.impl_->protection->read_only.swap(prepared.impl_->read_only);
+  prepared.impl_->staged_protection->active=false;
+  prepared.impl_->staged_protection->read_only.clear();
   prepared.impl_.reset();return true;
 }
 bool source_try_native_death_physical_call_1_1(

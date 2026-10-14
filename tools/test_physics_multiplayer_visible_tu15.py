@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -60,10 +61,55 @@ def capture_window_state(display_name, window):
     finally:library.XCloseDisplay(display)
 
 
+def inspect_mirror(args):
+    if not args.visible_mirror_display:
+        return None
+    if not args.mirror_process_info:
+        raise RuntimeError("Isolated visible acceptance requires --mirror-process-info")
+    info = json.loads(args.mirror_process_info.read_text())
+    if info["display"] != os.environ["DISPLAY"] or info["mirror_display"] != args.visible_mirror_display:
+        raise RuntimeError("Mirror source/destination does not match the actual displays")
+    capture = Path(f"/proc/{int(info['capture_pid'])}")
+    mirror = Path(f"/proc/{int(info['mirror_pid'])}")
+    for process in (capture, mirror):
+        state = process.joinpath("stat").read_text().rpartition(") ")[2].split()[0]
+        if state in {"T", "t", "Z", "X"}:
+            raise RuntimeError("Mirror capture/player is stopped or terminated")
+    capture_command = capture.joinpath("cmdline").read_bytes().split(b"\0")
+    mirror_command = mirror.joinpath("cmdline").read_bytes().split(b"\0")
+    if not capture_command or Path(os.fsdecode(capture_command[0])).name != "ffmpeg" or b"x11grab" not in capture_command:
+        raise RuntimeError("Mirror has no actual X11 capture producer")
+    if b"-i" not in capture_command or os.fsencode(info["display"]) != capture_command[capture_command.index(b"-i") + 1]:
+        raise RuntimeError("Mirror captures a different display")
+    if any(flag in capture_command for flag in (b"-vf", b"-filter_complex", b"-filter:v")):
+        raise RuntimeError("Visible proof requires an unaltered capture stream")
+    if not mirror_command or Path(os.fsdecode(mirror_command[0])).name != "ffplay":
+        raise RuntimeError("Mirror player is not running")
+    pipe = os.readlink(capture / "fd/1")
+    if not pipe.startswith("pipe:[") or pipe != os.readlink(mirror / "fd/0"):
+        raise RuntimeError("Capture producer is not connected to the mirror player")
+    environment = dict(item.split(b"=", 1) for item in mirror.joinpath("environ").read_bytes().split(b"\0") if b"=" in item)
+    if environment.get(b"DISPLAY") != os.fsencode(args.visible_mirror_display):
+        raise RuntimeError("Mirror player uses a different desktop")
+    env = {**os.environ, "DISPLAY": args.visible_mirror_display}
+    clients = subprocess.run(["xprop", "-root", "_NET_CLIENT_LIST"], env=env,
+        capture_output=True, text=True, check=True).stdout
+    for identifier in re.findall(r"0x[0-9a-fA-F]+", clients):
+        owner = subprocess.run(["xprop", "-id", identifier, "_NET_WM_PID"], env=env,
+            capture_output=True, text=True, check=True).stdout
+        if re.search(r"=\s*" + str(info["mirror_pid"]) + r"\s*$", owner):
+            window = capture_window_state(args.visible_mirror_display, int(identifier, 16))
+            if window["map_state"] != 2 or window["width"] <= 0 or window["height"] <= 0:
+                raise RuntimeError("Mirror desktop window is not viewable")
+            return {"capture_pid": info["capture_pid"], "mirror_pid": info["mirror_pid"],
+                "pipe": pipe, "window": window}
+    raise RuntimeError("Mirror player has no mapped desktop window")
+
+
 def run(args, scenario):
     out = args.output / scenario
     out.mkdir(parents=True, exist_ok=False)
-    map_path = args.maps / ("coagulation.map" if scenario in ("vehicle", "lan-vehicle") else "lockout.map")
+    map_path = args.map or args.maps / ("coagulation.map" if scenario in ("vehicle", "lan-vehicle") else "lockout.map")
     command = [str(args.runtime), str(map_path), str(args.maps), str(args.xbe),
                str(args.ui), str(out), scenario]
     env = os.environ.copy()
@@ -75,9 +121,29 @@ def run(args, scenario):
     record_log = None
     runtime_before = digest(args.runtime)
     runtime_executed = runtime_before
+    mirror_checks = []
+    mirror_errors = []
+    mirror_stop = threading.Event()
+    if args.visible_mirror_display:
+        mirror_checks.append(inspect_mirror(args))
     with (out / "runtime.log").open("w") as log:
         process = subprocess.Popen(command, cwd=ROOT, env=env, stdout=subprocess.PIPE,
                                    stderr=subprocess.STDOUT, text=True, bufsize=1)
+        def monitor_mirror():
+            while not mirror_stop.wait(.5):
+                try:
+                    observed = inspect_mirror(args)
+                    observed["elapsed_seconds"] = time.monotonic() - started
+                    mirror_checks.append(observed)
+                except Exception as error:
+                    mirror_errors.append(str(error))
+                    if process.poll() is None:
+                        process.terminate()
+                    return
+        monitor = None
+        if args.visible_mirror_display:
+            monitor = threading.Thread(target=monitor_mirror, daemon=True)
+            monitor.start()
         try:
             # A shared build can replace the path while this process runs.
             # Linux retains the actually executed inode through /proc.
@@ -104,6 +170,9 @@ def run(args, scenario):
                     print(line.rstrip(), flush=True)
             exit_code = process.wait(timeout=15)
         finally:
+            mirror_stop.set()
+            if monitor is not None:
+                monitor.join(timeout=5)
             if process.poll() is None:
                 process.terminate()
                 process.wait(timeout=10)
@@ -122,9 +191,14 @@ def run(args, scenario):
                 "runtime_stable": runtime_before == runtime_executed == runtime_after,
                 "native_display": env.get("DISPLAY"),
                 "visible_mirror_display": args.visible_mirror_display,
+                "mirror_checks": mirror_checks, "mirror_errors": mirror_errors,
+                "mirror_continuously_verified": bool(mirror_checks) and not mirror_errors,
                 "tu15_xbe_sha256": digest(args.xbe),
                 "map_sha256": digest(map_path), "visible_x11_window": window,
                 "record_command": record_command, "record_exit_code": record.returncode if record else None}
+    if mirror_errors and exit_code == 0:
+        manifest["native_exit_code"] = exit_code
+        exit_code = manifest["exit_code"] = 1
     # Preserve the actual native result even if the window closed before the
     # recorder obtained its first frame or a later media inspection fails.
     (out / "execution.json").write_text(json.dumps(manifest, indent=2) + "\n")
@@ -176,9 +250,11 @@ def main():
     parser.add_argument("--maps", type=Path, default=ROOT / "assets/disc/maps")
     parser.add_argument("--xbe", type=Path, required=True)
     parser.add_argument("--ui", type=Path, required=True)
+    parser.add_argument("--map", type=Path, help="Explicit original map for authored placement cases")
     parser.add_argument("--scenario", action="append", choices=["movement", "objects", "lift", "vehicle", "lan-movement", "lan-lift", "lan-vehicle", "lan-objects"])
     parser.add_argument("--record", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--visible-mirror-display", help="Desktop displaying an unaltered live mirror when input is isolated")
+    parser.add_argument("--mirror-process-info", type=Path, help="Owned live capture/player process metadata")
     args = parser.parse_args()
     for name in ("runtime", "output", "maps", "xbe", "ui"):
         setattr(args, name, getattr(args, name).resolve())

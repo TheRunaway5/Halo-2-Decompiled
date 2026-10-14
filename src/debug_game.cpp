@@ -22,18 +22,22 @@ const DebugPlayerSettings& Simulation::debug_settings_for(const Unit& unit) cons
     return disabled;
 }
 void Simulation::debug_heal(unsigned slot) {
+    NativeAuthorityBoundary::Call active(authority_calls_);
     auto& u=debug_player_mutable(slot);
     if(!u.exists || u.vitality.dead)throw FormatError("restore vitality needs a living player");
+    ++authority_calls_.mutations;
     u.vitality.body=u.definition.vitality.health>0?u.definition.vitality.body_max:0;
     u.vitality.shield=u.definition.vitality.shield>0?1.f:0;
     u.vitality.body_stun=u.vitality.shield_stun=0;
 }
 void Simulation::debug_teleport(unsigned slot,const Spawn& spawn) {
+    NativeAuthorityBoundary::Call active(authority_calls_);
     if(spawn.bsp!=bsp_ || !std::isfinite(spawn.position.x) || !std::isfinite(spawn.position.y) ||
        !std::isfinite(spawn.position.z) || !std::isfinite(spawn.facing))
         throw FormatError("debug teleport needs an authored spawn in the loaded BSP");
     auto& u=debug_player_mutable(slot);
     if(!u.exists || u.vitality.dead)throw FormatError("teleport needs a living player");
+    ++authority_calls_.mutations;
     u.body.position=spawn.position;u.body.velocity={};u.body.grounded=false;
     u.yaw=spawn.facing;u.pitch=0;
     if(slot==0)player_pitch_=0;

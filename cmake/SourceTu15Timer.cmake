@@ -17,6 +17,7 @@ endif()
 if(BUILD_TESTING)
     add_executable(source_tu15_timer_startup_tests tests/source_tu15_timer_startup_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+    target_link_libraries(source_tu15_timer_startup_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_timer_startup_tests PRIVATE halo2_source_tu15_timer nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_fresh_startup_timer COMMAND source_tu15_timer_startup_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-timer-startup-20261012/startup-original-v2/fixture.json
@@ -26,6 +27,7 @@ if(BUILD_TESTING)
     set_tests_properties(original_tu15_fresh_startup_timer PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_tu15_timer_procedures_tests tests/source_tu15_timer_procedures_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_host_virtual_memory.cpp)
+    target_link_libraries(source_tu15_timer_procedures_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_timer_procedures_tests PRIVATE halo2_source_tu15_timer nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_timer_procedures COMMAND source_tu15_timer_procedures_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-timer-startup-20261012/procedures-original-v1/fixture.json

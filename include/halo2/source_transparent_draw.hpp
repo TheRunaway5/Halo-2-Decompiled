@@ -2,6 +2,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/object_lighting.hpp"
 #include "halo2/source_transparent_sort.hpp"
+#include "halo2/source_light_volume_draw.hpp"
 #include <variant>
 
 namespace halo2 {
@@ -28,8 +29,11 @@ struct SourceTransparentParticleRange {
     std::uint32_t system{},location{};
     unsigned first{},count{};
 };
+struct SourceContrailDraw;
+struct SourceTransparentContrailDraw {const SourceContrailDraw *draw{};};
+struct SourceTransparentLightVolumeDraw {const SourceLightVolumeDraw *draw{};};
 using SourceTransparentDrawBinding=std::variant<std::monostate,
-    SourceTransparentGeometryDraw,SourceTransparentParticleRange,SourceTransparentShaderGeometryDraw>;
+    SourceTransparentGeometryDraw,SourceTransparentParticleRange,SourceTransparentShaderGeometryDraw,SourceTransparentLightVolumeDraw,SourceTransparentContrailDraw>;
 // Snapshot of one1E370 drain, before40870 restores count. Bindings are indexed
 // by absolute command ordinal, including the prefix and null callbacks. Every
 // nonnull callback in[first,count) requires its actual completed service.

@@ -1,19 +1,350 @@
 # Normal launcher world-feature delivery
 
-## Current map and peer delivery, October 14
+## Current particle-context and source-pool bridge delivery, October 14
 
-Both root launchers now select `.local/map-world-20261014/halo2_native`,
-SHA-256 `4f0caddf049367c06cd5fc2a215a1f948180398b266a9bf49656029e3a1e0c8d`.
+Both normal root launchers select `.local/map-world-particle-bridge-20261014/halo2_native`,
+SHA-256 `3562494b9839953bb594c9ec121774343c4da0421380c829b603952f02b77bb4`. Both installed `--launcher-info` outputs verify
+that path. The existing MCC-only policy still reports native MCC gameplay
+unavailable. Direct owned-XBE tests do not establish that separate entry path.
+
+World and muzzle draws now supply the original sprite atlas selection, bitmap
+aspect ratio and shared-value prelude. **3,655 original context prefixes across
+21 Xbox maps** agree, including 282 non-square ratios and 3,138 atlas selections.
+The added 40-instruction view helper passes **1,024 original calls** with full
+GP/SIMD/flags, instruction paths, ordered writes and retained banks compared.
+The map module now has **188 bodies / 14,808 instructions**; all previous187
+bodies remain unchanged. The five swarm bodies /668 instructions remain linked.
+[Original particle setup and remaining integration](SOURCE_PARTICLE_SPRITE_CONTEXT_TU15.md)
+
+The source-pool draw bridge is also compiled and linked in this package. It reads
+actual completed particle pools and matches **14 callback inputs** from the
+whole original1784B0 Backwash render producer. Its stale/foreign rejection and
+unchanged-pool checks pass. A declared-camera probe retains14 particles through
+240 original frame/admission calls, accumulating478 unconsumed commands below
+the original1024 bound. **The normal renderer does not yet invoke this bridge.**
+Backwash glowbug rendering and complete source frame/queue scheduling remain
+open. Resource preparation stays **93/96**, including85 visual graphs and eight
+original simulation damage graphs; Elongation lens and two Backwash graphs
+remain outside complete visual admission.
+
+The context candidate passes **22 selected source checks**, all21 ordinary Xbox
+map renders, and four additional ordinary split-screen renders. Its four enabled
+lift/snow images and simulation/RNG lines match the protected positive
+on/off/repeat banks exactly. A separate sword on/repeat/prior comparison is
+also exact; it has zero changed pixels and is not evidence of a newly visible
+effect. No Vulkan validation errors occurred in the accepted captures.
+
+The final readback-API extension passes real UDP/four-player late join and both
+original train-damage ownership cases: **three final extension source checks**.
+Its **six final-package captures** preserve those four enabled pixel-bank images
+and source simulation/RNG exactly, and pass Backwash ordinary one/four-view
+startup. The separate21-map candidate bank is not presented as execution of the
+final extended hash. Visible split-screen lift and Xbox framebuffer acceptance
+remain open.
+
+The **12,033-file** manifest combines the protected coherent source
+with explicit context/view-helper/source-pool overlays. Only owned consumer
+hunks are composed over the tested base; concurrent unrelated source edits are
+preserved in the checkout. Exact source, compile, object, archive, shader,
+original-input and capture pins are retained. The diagnostic observer/export
+and original callback recorder are excluded. Shader-path relocation changes
+only native `.rodata`; other allocated ELF sections are preserved.
+
+Receipt: `analysis/map-world-features/swarm-lifecycle-20261014/launcher-extension/installed.json`.
+Original graphics/frame scheduling, all map interactions, independent client
+PVS/particle histories, resets, Vista-only resources, MCC gameplay and full
+Xbox visual acceptance remain open. The all-map goal stays **active**.
+
+## Previous live-distortion and swarm-kernel delivery, October 14
+
+Both normal root launchers select .local/map-world-swarm-20261014/halo2_native,
+SHA-256 81090c298fa0c3600637c2d5cb92241b7987b468986f9454593c561cc30502d6. Both installed --launcher-info outputs verify that path.
+Their existing MCC-only readiness policy still reports native MCC gameplay
+unavailable; owned-XBE validation does not establish that separate path.
+
+Ascension and Colossus now render their authored lift distortion through ordered
+original sampler writes, retained SDK state, signed bump filtering and copies
+of the current render surface. Resource admission rises to **93/96**: **85 visual
+graphs and eight original simulation damage graphs**. Elongation lens1 and
+Backwash's two controller attachments remain unavailable. This resource count
+does not establish complete map effects or interactions.
+[Distortion implementation and limits](SOURCE_MAP_DISTORTION_TU15.md)
+
+The final package also registers the complete original swarm2 controller and
+four helpers: **five bodies / 668 instructions**. A source-created Backwash call
+matches untouched TU1.5 code executed on host x86, including all GP/XMM/FP
+outputs except Linux IF and **58,970,198 retained bytes** outside private stack
+storage. The frame probe reaches14 particles but does not establish continuous
+glowbug lifetimes or connect their ordinary native rendering.
+[Swarm ownership and remaining integration](SOURCE_PARTICLE_SWARM_TU15.md)
+
+The protected rendering base passes **25 selected source/graphics checks**,
+all **21 ordinary Xbox map renders**, nine four-view renders, and Terminal
+240-tick one/four-view continuity: **32 cases**, zero Vulkan validation errors.
+Four on/off/repeat banks show Ascension **32,176** changed pixels, Colossus
+**91,151**, ordinary one-view Lockout snow **20,039**, and four-view snow
+**24,046**. Enabled repeats are exact and source simulation/RNG lines agree.
+Lift close-ups are camera-only one-view diagnostics. The finite camera replay
+rejects four-player overrides; ordinary four-view lift startup passes, while
+visible split-screen lift acceptance remains open.
+
+The final kernel extension retains byte-identical enabled images and identical
+simulation/RNG for all four pixel banks, plus new ordinary Backwash one/four-view
+startup. Its linked world/kernel objects pass real UDP four-player late join
+and both original train-damage ownership cases: **three extension source checks
+and six final-package captures**. The separate32-case bank is not mislabelled
+as execution of the final extended hash. Near/far vitality remains
+C19D5556/3F800000 with presentation disabled/enabled.
+
+The **12,019-file** source manifest combines the protected coherent source with
+explicit swarm registration overlays. The extension compiles those owners and
+fully links the native runtime against protected base objects. Its diagnostic
+observation wrapper is excluded. Source, compiled object, link input, shader,
+original-input and capture pins were checked before installation. Equal-length
+shader-path relocation changes only native .rodata; other allocated ELF sections
+and all original instructions are preserved.
+
+Evidence and installed.json:
+analysis/map-world-features/swarm-frame-20261014/launcher-extension/.
+The protected rendering base and failed harness attempts remain under
+analysis/map-world-features/distortion-live-20261014/. Original frame and graphics
+startup/batching, all interactions, independent client PVS/particle history,
+resets, Vista-only resources and Xbox framebuffer parity remain open.
+The all-map goal stays **active**.
+
+## Previous guarded distortion-renderer delivery, October 14
+
+Both root launchers select `.local/map-world-distortion-20261014/halo2_native`,
+SHA-256 `6bf8421cb8c9652ea2956918bfd301729cae4b32bc0efc52da9949920ee0e257`.
+Both installed `--launcher-info` outputs verify that path. The existing
+MCC-only entry path still reports native MCC gameplay unavailable; direct
+owned-XBE checks do not establish MCC gameplay acceptance.
+
+The production particle renderer now contains the separate authenticated
+44-instruction distortion vertex program, signed texture filtering and
+dependent BUMPENVMAP consumer. Sixteen declared-input GPU cases pass within
+one byte level, with unchanged depth and effective matrix/sign controls.
+Missing original bump state, inactive dependencies and different programs are
+rejected. The existing original captured particle graphics check still passes.
+Live Ascension/Colossus admission remains guarded until the completed original
+stage-state handoff and ordered current-render-surface consumption are connected.
+Untouched original calls separately prove120 external23 bindings, eight SDK
+surface rotations and six authored bump-state updates. SDK indices and NV2A
+matrix order remain distinct in those evidence records.
+[Implementation and source boundaries](SOURCE_MAP_DISTORTION_TU15.md)
+
+The final package passes22 focused tests without skips, all21 Xbox ordinary
+map renders, seven four-view map renders, and Terminal240-tick one/four-view
+continuity:30 render cases with zero Vulkan validation errors. Three visible
+on/off/repeat banks pass with exact enabled repeats and equal simulation/RNG
+lines: Containment core3,427 changed pixels, Relic watchtower19,545 and ordinary
+Lockout snow20,039. Core/watchtower retain camera-only diagnostic placement;
+Lockout uses no camera or root override. These are host checks, not Xbox pixel
+parity or complete interaction/network acceptance.
+
+The coherent11,981-file source snapshot, explicit overlays,39 pinned captures,
+tests, original execution evidence and installation receipt are preserved in
+`analysis/map-world-features/texture-continuation-20261014/`. The package source,
+shader, original-input and capture hashes were verified before installation.
+Resource admission remains91/96, and the full all-map goal remains active.
+
+## Previous original train-damage ownership delivery, October 14
+
+The preceding accepted delivery selected `.local/map-world-damage-20261014/halo2_native`,
+SHA-256 `2646a5a0164a84810260910ef10dfa266df6e44b6094f9a149b15c4e391e9b18`.
+At that delivery, both installed `--launcher-info` outputs verified that path. The existing
+MCC-only policy still reports native MCC gameplay unavailable; owned-XBE
+acceptance does not close that separate gameplay path.
+
+Terminal's eight pure cow-catcher damage graphs now bind their actual source
+allocations. The original `17D730 ->D91D0` owner already executes these parts;
+the bridge creates no additional damage, native event clock or particle.
+Read-only before/after observation confirms fatal damage inside the actual
+call for a declared near target and preserved far vitality. Presentation
+disabled/enabled produces identical raw vitality bits and source call counts.
+Repeated snapshots and four draw views preserve the checked source effect and
+location pools, RNG, clock and target body. This is original ownership evidence,
+not player-driven traversal or complete train/crushing/network/reset acceptance.
+
+The resource bank now prepares **91/96** graphs: **83 native visual graphs**
+and **8 original simulation damage graphs**. Its declared bind-WORLD fixture
+starts 66 unnamed visual attachments and retains 2,716 summed particle peaks.
+Actual source allocations are checked separately. **19 focused/particle/event
+checks pass without skips**, including both original damage-owner cases.
+
+At this final packaged hash, all **21 Xbox maps** pass ordinary 15-tick render
+checks. Seven maps pass 60 ticks with four views; Terminal separately passes
+240 ticks with one/four views. All **30 render cases** have zero Vulkan
+validation errors. Three final on/off/repeat banks retain identical enabled
+repeats and simulation/RNG lines: Containment core3,427 pixels, Relic
+watchtower19,992 and ordinary Lockout snow20,028. Core/watchtower use declared
+camera-only diagnostics in the actual source world/PVS; they do not establish
+ordinary-view or Xbox scene parity. Snow uses no camera/root override.
+
+`analysis/map-world-features/nonvisual-continuation-20261014/` retains the
+current red checks, authored part inventory, actual source probes, original
+caller identities, 11,921-file coherent source/overlay manifests, test results,
+render/pixel receipts and `installed.json`. The 186-body / 14,749-address map
+module remains included. Shader-directory relocation changes only an
+equal-length `.rodata` literal; all other allocated ELF sections remain
+unchanged from the built executable. Source, shaders and prior launcher hashes
+are checked before installation. No original/native instructions are patched.
+
+The goal stays **active**. Five graphs remain: Ascension/Colossus external
+texture bindings, Elongation's original lens rendering/admission evidence and
+two Backwash swarm/wind graphs. The original simulation dispatcher returns
+for `lens`; a separate draw owner is not yet proven, so no flare is invented.
+Both Vista-only raw caches still fail admission before rendering. Complete
+machinery, original scheduling/RNG, independent client PVS/particle history,
+network/reset and Xbox visual acceptance remain open.
+
+## Historical completed attachment-control delivery, October 14
+
+Both root launchers now select `.local/map-world-functions-20261014-v2/halo2_native`,
+SHA-256 `e8dd87d1e8ff1a34554bf43f668c7ed646053e49f061aed2bdbe3977f0ccfb64`.
+Both installed `--launcher-info` outputs verify this exact path. Their existing
+MCC-only policy remains, with native MCC gameplay still unavailable. Updating
+the selected runtime does not accept that separate gameplay path.
+
+[The completed attached-effect bridge](SOURCE_MAP_EFFECT_ATTACHMENTS.md)
+consumes actual original allocations, function controls, pause/visibility/retire
+flags, colors and retained local frames. The 21-map resource bank now prepares
+**83/96** graphs. Its declared bind WORLD inputs start 66 unnamed attachments;
+actual source-world tests separately bind Containment6, Turf4 and Relic3 current
+named allocations. Turf's original damage function activates, pauses and drains
+its trash effect. Native protocol75 transports the completed packets, including
+a real UDP pause/resume and four-player late join. Original particle history,
+event/RNG ownership and independent client PVS remain open.
+
+All **21 Xbox maps** pass an ordinary 15-tick render check at this packaged hash.
+Zanzibar, Lockout, Warlock, Deltatap, Containment, Turf and Relic also pass
+60 ticks with four views. These **28** cases have zero Vulkan validation errors.
+Six new focused checks and eleven particle/event regressions pass with no
+skips. Those regressions retain the 3,072 exact TU1.5 shape9 births and 2,048
+exact seed-location matrices. The coherent freeze includes the 186-body map
+module and its 14,749 unique authenticated instruction addresses.
+
+Final-draw-only on/off/repeat captures change **3,427** Containment core pixels
+and **19,992** Relic watchtower pixels. Enabled repeats and simulation/RNG lines
+match exactly. These are declared close diagnostic cameras in the automatic
+source world, with actual source PVS and no root override; they do not establish
+ordinary-view or Xbox scene parity. The ordinary Containment spawn view has
+zero changed pixels and is retained separately. Ordinary Lockout snow changes
+**20,028** pixels with an identical repeat and no camera/root override.
+
+`analysis/map-world-features/function-continuation-20261014/` retains source and
+overlay manifests, actual source probes, red/failing fixtures, corrected checks,
+resource/render/pixel reports and `installed.json`. The first staged runtime
+failed on a weapon attachment alias outside its requesting tag payload; the
+resident-owner correction already present in shared source was incorporated
+into the isolated build before final validation. Both staged candidates remain
+preserved. Shader-path relocation changes only an equal-length `.rodata`
+literal, with every other allocated ELF section unchanged. No original or
+native instructions are patched. Source, shader and existing-launcher hashes
+are checked before replacement; prior launchers remain in the package.
+
+The two Vista-only raw-cache attempts stop at `unsupported or truncated Vista
+cache`, before rendering. They are retained as admission failures, not passed
+map tests. Their conversion/resource owners remain unresolved. The full goal
+stays **active**: thirteen attachment graphs still need their original owners,
+and complete machinery, original scheduling, network/reset and Xbox visual
+acceptance remain outstanding.
+
+## Historical particle shape 9 and attachment seed delivery, October 14
+
+Both root launchers now select `.local/map-world-shape9-20261014/halo2_native`,
+SHA-256 `ef5dde661200f2b3b73261db133be1eaa67d5dc6a6a0a5f72925ff94b47ce441`.
+Both installed `--launcher-info` outputs confirm that path. The MCC-only policy
+remains and native MCC gameplay still reports unavailable; direct owned-XBE
+checks do not establish that separate gameplay path.
+
+[The particle and constructor seed continuation](SOURCE_MAP_PARTICLE_SHAPE9_TU15.md)
+adds 3,072 exact whole TU1.5 birth comparisons and 2,048 exact seed matrices.
+The native 21-map attachment bank prepares 69 of 96 graphs, starts 66 initial
+attachments and passes 180-tick lifetimes, repeated views, retirement and salted
+recreation with declared bind WORLD/origin inputs. Warlock's 12 and Deltatap's
+nine attachments all prepare, start and emit particles. Original eligibility,
+scheduling, resource/RNG ownership and network history remain open.
+
+All **21 Xbox maps** pass an ordinary 15-tick rendered check at this exact
+packaged hash. Zanzibar, Lockout, Warlock and Deltatap also pass 60 ticks with
+four views. Every case has zero Vulkan validation errors. This is one coherent
+source build, with base/overlay file hashes checked before installation.
+The existing cached decal consumer and 186-body map module remain included.
+
+Shape-9 draw on/off/repeat captures change 3,572 pixels in Warlock and 123,784
+in Deltatap, with identical enabled repeats and captured simulation/RNG lines.
+These are declared camera-only diagnostic views in the automatic source world.
+The close Deltatap camera is in the waterfall volume and does not establish
+ordinary view visibility or Xbox scene parity. Ordinary Lockout snow separately
+changes **20,028 pixels**, with an identical enabled repeat and no camera/root
+override. Neither original gameplay instructions nor native instructions are
+patched. Shader-directory relocation changes only an equal-length `.rodata`
+literal, with all other allocated ELF sections verified unchanged.
+
+`analysis/map-world-features/attachment-continuation-20261014/` retains the
+source/overlay manifests, original helper disassemblies and fixtures, eight
+focused test results, native attachment bank, 25 ordinary render receipts,
+pixel receipts and `installed.json`. The accepted package records its frozen
+shader hashes and prior launchers. The full 23-map effects/interactions goal
+remains active, including 27 unprepared attachment graphs, named functions,
+nonvisual parts, swarm/wind, complete machinery, Vista resource owners and
+matched Xbox/network acceptance.
+
+## Historical cached decal and map delivery, October 14
+
+Both root launchers now select `.local/map-world-20261014-v3/halo2_native`,
+SHA-256 `c57be1fc4e0520e03090733f31d55429ffe8d63ab86f8017b113d860c76a3abc`.
+Both installed `--launcher-info` outputs confirm the path. Their MCC-only
+readiness policy is preserved and still reports native MCC gameplay unavailable;
+direct owned-XBE tests do not establish normal MCC gameplay acceptance.
+
+[The original cached decal consumer](SOURCE_CACHED_DECAL_RENDER_TU15.md) is
+included in ordinary source-world rendering. Zanzibar now has actual native
+GPU cache submissions with one/four views: hiding only those draws changes
+2,680/605 pixels at 60 ticks, with identical enabled repeats and zero Vulkan
+validation errors. The actual cache, bitmaps and authenticated 13-instruction
+vertex program supply the data; no captured geometry or driver is installed.
+
+The map module now contains **186 complete original bodies / 14,749
+instructions**, up from 108. The original bounded banks pass 1,745 prior cases
+plus 1,038 new continuation cases. The six decal programs/states, original
+20-draw/22-quad fixture, real cache export and 180 native vertex-view cases pass.
+These checks do not independently cover every new body or full Xbox pixels.
+
+All **21 Xbox maps** pass one ordinary source tick. The 21-map short-render
+bank also passes, with hashes retained per incremental callback build; this is
+not a claim that every earlier case was rerun at the final hash. The final
+packaged hash separately passes Zanzibar 60 ticks with one/four views, Lockout
+snow 60 ticks, Gemini 15 ticks and Turf 15 ticks. The continuation preserves
+Terminal 1,200 one-view ticks and 240 four-view ticks. Snow changes 20,078 pixels;
+Foundation's declared root/camera lift fixture changes 38,829. Enabled repeats
+are identical, with zero Vulkan validation errors. The two Vista maps, complete
+interactions/effects, original frame/scheduling parity and network acceptance
+remain open. The full all-map goal remains active.
+
+`analysis/map-world-features/decal-consumer-20261014/` retains the source and
+fixes manifests, original registrations, fixtures, failures before each fix,
+focused checks, GPU receipts and `installed.json`. Shader-directory relocation
+changes only an equal-length native `.rodata` literal; every other allocated
+ELF section is unchanged. Neither original XBE nor native instructions are
+patched. `.local/map-world-20261014-v3/package.json` records the exact shader
+hashes and accepted scope. Prior root launchers remain in `prior-launchers/`.
+
+## Historical first October 14 combined delivery
+
+At this earlier receipt, both root launchers selected `.local/map-world-20261014-v2/halo2_native`,
+SHA-256 `b65799ae9fdb0314e9f4a7dd74b89491fe4870acc47537013a11b2d9df781208`.
 Both installed `--launcher-info` outputs confirm that path. Their current
 MCC-only import/readiness policy is preserved: native MCC gameplay remains
 unavailable, and `--launch-game` rejects that unresolved state. The direct
 original-XBE captures below do not establish MCC launcher gameplay acceptance.
 
 The combined runtime uses one frozen current source set, preserving peer
-networking and combat changes, plus the authenticated 100-body / 9,422-instruction
+networking and combat changes, plus the authenticated 108-body / 10,172-instruction
 map module. Source, overlay, compiler/link inputs and original registration
 receipts are under `analysis/map-world-features/coherent-peer-20261014/`.
-The final original banks pass **1,744 bounded cases**. Native physical byte
+The final original banks pass **1,745 bounded cases**. Native physical byte
 protection, the actual decal cache export and real encrypted direct UDP also
 pass. These are scoped tests, not complete game or Xbox visual parity.
 
@@ -27,16 +358,18 @@ capture is diagnostic; its ordinary startup/rendering is checked separately.
 The runtime's shader-directory literal is relocated to a frozen packaged set
 using an equal-length path, preserving compiled literal extents. Every other
 allocated ELF section is unchanged; original XBE and native instructions are
-unchanged. `.local/map-world-20261014/package.json` records that relocation,
+unchanged. `.local/map-world-20261014-v2/package.json` records that relocation,
 shader hashes, accepted scope and prior launcher hashes. `installed.json`
-records both installed launchers. The former launchers remain in the package's
-`prior-launchers/`; the earlier 98-body candidate remains in `versions/98/`.
+records both installed launchers. That earlier receipt is under
+`analysis/map-world-features/terminal-continuation-20261014/installed.json`. The former launchers remain in the new package's `prior-launchers/`. The
+100-body package and its earlier 98-body candidate remain preserved separately.
 
 The 21-map first-source-tick bank now passes 13 maps, including Terminal, with
 no regressions against the coherent 98-body baseline. Eight still fail: seven
 at the absent native decal command owner, and Gemini at separate missing
-backing. Terminal's longer attempt fails at step198 on missing physics callback
-`2FA6F0`; its short rendering check does not accept complete train behavior.
+backing. [Terminal's eight additional original routines](SOURCE_MAP_TERMINAL_CONTINUATION_TU15.md)
+now pass 1,200 source/rendered ticks with one view and 240 rendered ticks with
+four views; complete train behavior remains unproven.
 Zanzibar's earlier computer/barrier receipts remain historical and do not
 close the current graphics owner. The full all-map goal remains active.
 

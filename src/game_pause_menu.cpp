@@ -109,8 +109,7 @@ void GamePauseMenu::bind(SDL_Window *window,DesktopSession &desktop,Renderer &re
     const auto error=renderer_->validate_display_settings(settings);
     if(error.empty()) {
       if(audio_layout_)if(auto failure=audio_layout_(settings.speakers);!failure.empty())return failure;
-      const bool crt=desktop_->display_settings.crt_filter;
-      desktop_->display_settings=settings;desktop_->display_settings.crt_filter=crt;
+      desktop_->display_settings=settings;
     }
     return error;
   });

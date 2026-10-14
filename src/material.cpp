@@ -93,24 +93,7 @@ Texture Cache::load_bitmap(std::uint32_t datum, std::uint32_t index,
     return prepare_cubemap(Bytes(raw),w,fmt,flags & 8,mip_count);
   }
   if (fmt == 17) {
-    // The supported retail XBE's fixed bump palette is game data, kept in
-    // the user's extracted disc rather than copied into native sources.
-    // File offset 0x4646C8 maps to guest address 0x468848 in this build.
-    std::ifstream executable(shared_directory_.parent_path() / "default.xbe",
-                             std::ios::binary);
-    if (!executable)
-      throw FormatError("P8 bump map requires retail default.xbe");
-    std::array<std::byte, 1024> colors;
-    executable.seekg(0x4646c8);
-    if (!executable.read(reinterpret_cast<char *>(colors.data()),
-                         colors.size()))
-      throw FormatError("truncated retail bump palette");
-    std::uint64_t hash = 14695981039346656037ull;
-    for (const auto color : colors)
-      hash = (hash ^ std::to_integer<unsigned>(color)) * 1099511628211ull;
-    if (hash != 0xf932f88f2118bc22ull)
-      throw FormatError("unsupported retail bump palette");
-    return prepare_palettized_texture(Bytes(raw), w, h, flags & 8, colors,
+    return prepare_palettized_texture(Bytes(raw), w, h, flags & 8, tu15_bump_palette(),
                                       mip_count);
   }
   if (fmt == 18)

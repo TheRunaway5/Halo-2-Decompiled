@@ -11,6 +11,16 @@ TagSystem world_tags(std::shared_ptr<const Cache> cache, std::size_t bsp) {
   tags.load_bsp(bsp);
   return tags;
 }
+LevelContent world_content(const Cache &cache,const MultiplayerOptions &options,
+    std::optional<ScriptProgram> &script_input) {
+  auto content=cache.load_content(options.bsp,true,source_game_variant(options.variant));
+  if(script_input) {
+    if(options.online_match || options.host_port || !options.join.empty() || options.dedicated)
+      throw FormatError("Declared script inputs require an offline acceptance world");
+    content.scripts=std::move(*script_input);
+  }
+  return content;
+}
 SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options) {
   auto variant=options.variant;
   if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
@@ -40,7 +50,7 @@ std::shared_ptr<const std::filesystem::path> source_storage(
       cache.original_data()->image==OriginalData::Image::TitleUpdate15 && rules.custom==CustomSlayer::none &&
       !options.replay && !options.capture_root && options.reference_player.empty();
   if(!automatic && !options.source_object_world)return {};
-  if(cache.is_mcc())throw FormatError("MCC native world startup and converted collision/physics are incomplete; Xbox reference executables are not runtime inputs");
+  if(cache.is_mcc())throw FormatError("MCC native world startup and complete Xbox TU1.5 gameplay conversion are incomplete; Xbox reference executables are not runtime inputs");
   if(options.gameplay_xbe.empty())throw FormatError("Source world requires its authenticated executable");
   if(!options.source_object_savegame_directory.empty()) {
     std::filesystem::create_directories(options.source_object_savegame_directory);
@@ -66,15 +76,30 @@ std::unique_ptr<MultiplayerObjectRuntime> object_world(
   auto variant=options.variant;
   if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
   world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
+  if(options.reference_auxiliary_seed) {
+    if(options.input_script.empty() || !options.capture_tick || options.frames || options.ticks ||
+        options.screenshot.empty() || options.host_port || !options.join.empty() ||
+        options.dedicated || options.replay || options.online_match)
+      throw FormatError("Reference source RNG input requires an isolated finite local script capture");
+    // Declared finite replay input for the constructed146240 auxiliary word,
+    // delivered before scenario factories consume the original source stream.
+    auto &memory=world->memory();const auto rng=Bytes(memory.view(0x4f3cd8u,4)).u32(0);
+    if(!rng)throw FormatError("Reference source RNG requires its constructed owner");
+    memory.view(rng,8);const auto seed=*options.reference_auxiliary_seed;
+    memory.write(rng+4u,std::as_bytes(std::span(&seed,1)));
+  }
   return world;
 }
 }
 MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options)
+  :MultiplayerPreparedWorld(options,std::nullopt) {}
+MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options,
+    std::optional<ScriptProgram> script_input)
   :cache(std::make_shared<const Cache>(options.map,options.shared_maps,
        options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:
            OriginalData::load_xbe(options.gameplay_xbe))),
    tags(world_tags(cache,options.bsp)),
-   content(cache->load_content(options.bsp,true,source_game_variant(options.variant))),rules(world_rules(*cache,options)),
+   content(world_content(*cache,options,script_input)),rules(world_rules(*cache,options)),
    source_savegames(source_storage(*cache,options,rules)),
    source_objects(object_world(*cache,options,rules,source_savegames)),
    match(content,options.bsp,options.native_spawn_inputs.empty()?cache->spawns():

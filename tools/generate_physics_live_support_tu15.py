@@ -99,6 +99,13 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             extended=extra_instruction(i)
             if extended is not None:return extended
         if mn=='nop':return ';'
+        if mn=='xchg':
+            # The original CRT stack probe swaps ESP/EAX. Register XCHG
+            # reads both old operands and preserves every status flag.
+            assert len(op)==2 and all(q.type==1 and q.size==4 for q in op)
+            assert all(name(i,q) in ('eax','ecx','edx','ebx','esp','ebp','esi','edi') for q in op)
+            return ('{const auto left='+get(i,op[0])+';const auto right='+get(i,op[1])+';'
+                    +put(i,op[0],'right')+put(i,op[1],'left')+'}')
         if mn=='movq':
             assert all(q.size==8 for q in op)
             value=f'native_read64(s.memory,{addr(i,op[1])})' if op[1].type==3 else get(i,op[1])
@@ -257,8 +264,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn=='cld':return 's.other_flags&=~1024u;'
         if mn=='ret':return f's.pop();s.gp[4]+={op[0].imm if op else 0}u;return;'
         if mn=='rdtsc':return 'if(!s.services.timestamp_counter)throw std::runtime_error("Required original contact RDTSC owner unavailable");{const auto x=s.services.timestamp_counter();s.gp[0]=std::uint32_t(x);s.gp[2]=std::uint32_t(x>>32u);}'
-        if mn in ('rep stosd','rep stosb'):
-            width=4 if mn=='rep stosd' else 1
+        if mn in ('rep stosd','rep stosw','rep stosb'):
+            width={'rep stosd':4,'rep stosw':2,'rep stosb':1}[mn]
             return f'while(s.gp[1]){{w(s.memory,s.observe,0x{p:x}u,s.gp[7],{width},s.gp[0]);const auto delta=(s.other_flags&1024u)?{0x100000000-width}u:{width}u;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0x{p:x}u);}}'
         if mn in ('stosd','stosw','stosb'):
             width={'stosd':4,'stosw':2,'stosb':1}[mn]
@@ -298,6 +305,11 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             return '{const auto x='+get(i,op[1])+';if('+condition+'){'+put(i,op[0],'x')+'}}'
         if mn=='call':
             used_addresses.add(next)
+            if p in (0x10098f,0x100a19,0x100c1c,0x101fd1,0x179520):
+                assert op[0].type==2 and op[0].imm==0x178e30
+                return (f'{{const auto observed=source_begin_projectile_contact_effect_tu15(s.memory,s.gp[5],s.gp[4],0x{p:x}u);'
+                    f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{get(i,op[0])},false);'
+                    'if(observed)source_complete_projectile_contact_effect_tu15(s.memory,*observed,s.gp[0]);}')
             if p==0x1d94ce:
                 # Keep the actual point-impulse ABI observable after this
                 # virtual target becomes internal. The live owner executes
@@ -306,11 +318,12 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 assert i.bytes.hex()=='ff5060'
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return '{const auto target='+target+f';s.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,target,false);'+'}'
-            if p in (0xd1fbf,0x101db8,0x183e17):
+            if p in (0xd1fbf,0x101db8,0x183e17,0x18cefc,0x10517f,0x107c40):
                 # Preserve native publication even when the complete callee
                 # becomes internal to this composition. The required owner
                 # observes the real ABI and runs the original callee itself.
-                expected={0xd1fbf:0xd13d0,0x101db8:0x178e30,0x183e17:0x439c0}[p]
+                expected={0xd1fbf:0xd13d0,0x101db8:0x178e30,0x183e17:0x439c0,0x18cefc:0x223b20,
+                          0x10517f:0x108a70,0x107c40:0x108a70}[p]
                 assert op[0].type==2 and op[0].imm==expected
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'
@@ -346,8 +359,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn=='fistp':
             if op[0].size==8:
                 assert op[0].type==3
-                return f'w(s.memory,s.observe,0x{p:x}u,{addr(i,op[0])},8,native_integer_spill64(s.fp.st(0)));s.fp.pop();'
-            return put(i,op[0],'integer_spill(s.fp.st(0))')+'s.fp.pop();'
+                return f'w(s.memory,s.observe,0x{p:x}u,{addr(i,op[0])},8,native_integer_spill64(s.fp.st(0),s.fp.status));s.fp.pop();'
+            return put(i,op[0],'integer_spill(s.fp.st(0),s.fp.status)')+'s.fp.pop();'
         if mn=='fild':
             if op[0].size==8:
                 assert op[0].type==3
@@ -363,8 +376,10 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn in ('fst','fstp'):
             value='s.fp.st(0)'
             if op[0].type==3 and op[0].size==8:
-                return f'w(s.memory,s.observe,0x{p:x}u,{addr(i,op[0])},8,native_double_spill({value}));'+('s.fp.pop();' if mn=='fstp' else '')
-            if op[0].type==3:value=f'u(spill({value}))'
+                return f'w(s.memory,s.observe,0x{p:x}u,{addr(i,op[0])},8,native_double_spill({value},s.fp.status));'+('s.fp.pop();' if mn=='fstp' else '')
+            if op[0].type==3:
+                assert op[0].size==4
+                value=f'native_single_spill({value},s.fp.status)'
             return put(i,op[0],value)+('s.fp.pop();' if mn=='fstp' else '')
         if mn=='fxch':
             # Capstone includes implicit ST(0) before the encoded ST(i).
@@ -428,6 +443,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 if table not in tables:continue
                 targets.update(table_targets(table,old))
         lines=[f'static void run_{entry:x}(WorldState &s) {{']
+        if entry==0xfdeb0:
+            lines.append('SourceProjectileUpdateScope projectile_scope(s.memory,r(s.memory,s.gp[4]+4u,4));')
         for i in ins:
             translated=emit(i);lowered[f'{i.address:08x}']=dict(mnemonic=i.mnemonic,source_bytes=i.bytes.hex())
             label=f'L{i.address:x}: ' if i.address in targets else ''
@@ -444,6 +461,7 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics_world_runtime_internal.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
+#include "halo2/source_projectile_effect_observer.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -604,19 +622,34 @@ std::uint64_t native_read64(const M &memory,std::uint32_t address) {
     for(unsigned i=0;i<8;++i)result|=std::uint64_t(std::to_integer<unsigned>(bytes[i]))<<(i*8u);
     return result;
 }
-std::uint64_t native_integer_spill64(long double x) {
+std::uint64_t native_integer_spill64(long double x,std::uint16_t &status) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
-    std::int64_t result;
-    asm volatile("fistpq %0":"=m"(result):"t"(x):"st");
+    std::int64_t result;std::uint16_t actual;
+    asm volatile("fldt %2\\n\\tfistpq %0\\n\\tfnstsw %1"
+        :"=m"(result),"=m"(actual):"m"(x):"st");
+    status=(status&~0x200u)|(actual&0x200u);
     return std::bit_cast<std::uint64_t>(result);
 #else
     throw std::runtime_error("Required TU1.5 FISTP64 backend unavailable");
 #endif
 }
-std::uint64_t native_double_spill(long double x) {
+std::uint32_t native_single_spill(long double x,std::uint16_t &status) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
-    double result;
-    asm volatile("fstpl %0":"=m"(result):"t"(x):"st");
+    float result;std::uint16_t actual;
+    asm volatile("fldt %2\\n\\tfstps %0\\n\\tfnstsw %1"
+        :"=m"(result),"=m"(actual):"m"(x):"st");
+    status=(status&~0x200u)|(actual&0x200u);
+    return std::bit_cast<std::uint32_t>(result);
+#else
+    throw std::runtime_error("Required TU1.5 FSTP32 backend unavailable");
+#endif
+}
+std::uint64_t native_double_spill(long double x,std::uint16_t &status) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    double result;std::uint16_t actual;
+    asm volatile("fldt %2\\n\\tfstpl %0\\n\\tfnstsw %1"
+        :"=m"(result),"=m"(actual):"m"(x):"st");
+    status=(status&~0x200u)|(actual&0x200u);
     return std::bit_cast<std::uint64_t>(result);
 #else
     throw std::runtime_error("Required TU1.5 FSTP64 backend unavailable");

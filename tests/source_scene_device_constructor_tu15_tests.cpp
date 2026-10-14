@@ -35,7 +35,11 @@ int main(int argc,char** argv)try{
       check(w.instruction==e.at("instruction") && w.address==e.at("address") && w.before==bytes(e.at("before")) && w.written==bytes(e.at("written")),"Original constructor ordered store differs");}
     ++count;stores+=unsigned(writes.size());instructions+=unsigned(trace.size());
   }
-  check(count==344,"Incomplete original constructor/group fixture");
-  std::cout<<"PASS "<<count<<" original TU1.5 DEVI/MACH callbacks / "<<instructions<<" instructions / "<<stores<<" ordered stores, full GP/XMM/flags and untouched body bytes\n";
+  const bool controls=fixture.value("suite",std::string{})=="control_activation";
+  const bool scripts=fixture.value("suite",std::string{})=="device_script";
+  check(count==(scripts?256u:controls?144u:400u),"Incomplete original device fixture");
+  if(scripts)check(fixture.at("api_sites_covered").size()==127,"Incomplete original device API coverage");
+  if(controls)check(fixture.at("activation_sites_covered").size()==77,"Incomplete original activation coverage");
+  std::cout<<"PASS "<<count<<" original TU1.5 device "<<(scripts?"script setters":controls?"activation":"birth/group/machine-bank")<<" cases / "<<instructions<<" instructions / "<<stores<<" ordered stores, full GP/XMM/flags and untouched body bytes\n";
   return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

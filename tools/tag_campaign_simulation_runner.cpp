@@ -39,7 +39,7 @@ void require_memory_budget() {
       fs::path("/sys/fs/cgroup") / fs::path(group.substr(3)).relative_path();
   for (const auto &[name, expected] :
        std::array<std::pair<const char *, const char *>, 4>{
-           {{"memory.max", "67108864"},
+           {{"memory.max", "62914560"},
             {"memory.high", "max"},
             {"memory.swap.max", "0"},
             {"memory.oom.group", "1"}}}) {

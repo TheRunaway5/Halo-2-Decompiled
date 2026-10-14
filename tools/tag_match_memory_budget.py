@@ -11,7 +11,10 @@ import subprocess
 import sys
 import time
 
-LIMIT_BYTES = 64 * 1024 * 1024
+CEILING_BYTES = 64 * 1024 * 1024
+# Linux can report transient batched charges above memory.max. Leave 4 MiB
+# below the user ceiling and independently reject any measured overshoot.
+LIMIT_BYTES = 60 * 1024 * 1024
 HOST_RESERVE_BYTES = 4 * 1024**3
 # Enforce the hard cap without memory.high reclaim delays on each temporary
 # snapshot allocation. The RAM and swap limits remain unchanged.
@@ -71,7 +74,9 @@ def run_in_memory_budget(command, output, timeout):
     if report_path.exists() or (output / 'report.json').exists():
         print('Refusing to overwrite existing match evidence: ' + str(output), file=sys.stderr)
         return 2
-    report = {'limit_bytes': LIMIT_BYTES, 'high_bytes': None, 'swap_limit_bytes': 0,
+    report = {'limit_bytes': LIMIT_BYTES, 'ceiling_bytes': CEILING_BYTES,
+              'accounting_headroom_bytes': CEILING_BYTES - LIMIT_BYTES,
+              'high_bytes': None, 'swap_limit_bytes': 0,
               'scope': 'Match runner and all native child processes together',
               'command': command, 'unit': UNIT, 'passed': False, 'errors': []}
     lock = None
@@ -109,10 +114,13 @@ def run_in_memory_budget(command, output, timeout):
         if result.returncode:
             raise RuntimeError('Cannot establish match memory cgroup: ' + result.stderr.strip())
         launched = True
-        print('Match test: aggregate 64 MiB RAM, zero swap; ' + str(log), flush=True)
+        print('Match test: aggregate 60 MiB RAM, 64 MiB measured ceiling, zero swap; ' + str(log), flush=True)
         while True:
             props = _properties()
             report['kernel'] = props
+            peak = props.get('MemoryPeak', '')
+            if peak.isdecimal() and int(peak) > CEILING_BYTES:
+                raise RuntimeError('Kernel measured peak exceeds the 64 MiB ceiling: ' + peak)
             if props.get('ControlGroup'):
                 try:
                     report['verified_limits'] = _limits(props['ControlGroup'])
@@ -140,6 +148,11 @@ def run_in_memory_budget(command, output, timeout):
             time.sleep(.2)
         if 'verified_limits' not in report:
             raise RuntimeError('Contained job ended before required kernel controls were verified')
+        peak = props.get('MemoryPeak', '')
+        if not peak.isdecimal() or int(peak) <= 0:
+            raise RuntimeError('Kernel did not provide a measured memory peak')
+        if int(peak) > CEILING_BYTES:
+            raise RuntimeError('Kernel measured peak exceeds the 64 MiB ceiling: ' + peak)
         report['passed'] = props.get('Result') == 'success' and props.get('ExecMainStatus') == '0'
         if not report['passed']:
             report['errors'].append('Contained job failed: ' + props.get('Result', 'unknown') +
@@ -169,3 +182,20 @@ def run_in_memory_budget(command, output, timeout):
     print(json.dumps({'passed': report['passed'], 'memory_budget': str(report_path),
                       'errors': report['errors']}), flush=True)
     return 0 if report['passed'] else 1
+
+
+if __name__ == '__main__':
+    import argparse
+    import uuid
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--output-root', type=Path, required=True)
+    parser.add_argument('--timeout', type=float, default=60)
+    parser.add_argument('command', nargs=argparse.REMAINDER)
+    args = parser.parse_args()
+    command = args.command
+    if command and command[0] == '--':
+        command = command[1:]
+    if not command or not 0 < args.timeout <= 7200:
+        parser.error('Supply a command and a timeout in (0, 7200] seconds')
+    output = args.output_root / str(uuid.uuid4())
+    raise SystemExit(run_in_memory_budget(command, output, args.timeout))

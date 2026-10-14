@@ -185,8 +185,8 @@ original capture files and gameplay remain unchanged.
 
 | Vehicle | Original TU1.5 frame | Latest native comparison | Source geometry LOD | Strict pixels |
 | --- | --- | --- | --- | --- |
-| Wraith, Waterworks | `original-session-v3/wraith-view-v4` | `wraith-matched-inputs-native-v6/comparison.png` | 3, independently selected | Open |
-| Scorpion, Waterworks / authored heavy option 1 | `original-session-v3/scorpion-view-v3` | `scorpion-matched-inputs-native-v5/comparison.png` | 4, independently selected | Open |
+| Wraith, Waterworks | `original-session-v3/wraith-view-v4` | `analysis/shader-parity-20261013/wraith-matched-current-v1/comparison.png` | 3, independently selected | Open |
+| Scorpion, Waterworks / authored heavy option 1 | `original-session-v3/scorpion-view-v3` | `analysis/shader-parity-20261013/scorpion-matched-current-v2/comparison.png` | 4, independently selected | Open |
 
 The previous vehicle path always used preview geometry LOD 5. It now prepares
 all six literal source banks, with one material bank covering their section
@@ -222,10 +222,10 @@ lighting/reflection outputs. Those unambiguous outputs still have small floating
 point differences. This is not an all-vertex or final-pixel equality claim.
 
 Strict equality remains open. The latest Wraith rectangle `(215,163)-(363,226)`
-has 3,376 unequal pixels of 9,324, mean RGB absolute error 0.24328/255 and maximum
-channel difference 49. Before correcting geometry it had 5,969 unequal pixels,
+has 3,454 unequal pixels of 9,324, mean RGB absolute error 0.25665/255 and maximum
+channel difference 50 after the source fog-gate correction. Before correcting geometry it had 5,969 unequal pixels,
 mean 0.7833 and maximum 73. The latest Scorpion rectangle
-`(43,225)-(345,357)` has 31,524 unequal pixels of 39,864, mean 2.31247/255 and
+`(43,225)-(345,357)` has 26,364 unequal pixels of 39,864, mean 2.20066/255 and
 maximum 246; this rectangle also intersects HUD/reticle pixels and background,
 so it is not an isolated tank-surface score. Its smaller retained interior
 patches also differ. No threshold has been relaxed to report a pixel pass.
@@ -273,3 +273,122 @@ Grenade lighting remains part of the larger goal. The combined original/native
 banks and native vehicle map/sky lighting do not close that gate. See
 [TU1.5 model light receivers](TU15_MODEL_LIGHT_RECEIVERS_20261013.md) and
 [grenade light frames](TU15_GRENADE_LIGHT_FRAMES_20261013.md).
+
+
+## PRT vehicle bank ownership, 2026-10-14
+
+The native vehicle path now admits the authored PRT section/geometry/shader LOD
+union through `SourceObjectGeometry`. Each `ModelObjectDraw` supplies immutable
+per-owner layer5 banks; resident images and samplers remain shared. The renderer
+uploads independent material and PRT UBO slices and excludes binding7 from
+resident descriptor copies when an owner bank is supplied. Vehicle geometry
+uses the original PRT cap and separate per-owner/per-view LOD history.
+
+`source_prt_owner_gpu_tests` compares two same-model owners against independently
+allocated material banks. New Mombasa and Delta Control's upper/rear turrets pass
+exact RGB equality at 960x720 and 1280x720, in one/four views, including owner
+retirement and recreation. Their swaps change about 20,000-33,000 channels.
+Old Mombasa's BSP2 has an isotropic SH sample: swap response is reported without
+inventing a light difference. These are declared native diagnostic poses and
+cameras, not matched gameplay captures. Reports and screenshots are under
+`analysis/shader-parity-20261013/scarab-prt-*`.
+
+TU1.5 `22830/23670` and their complete SH/rotation/PCA owners are now native model
+services. Cairo tram full-builder comparisons pass all 58,962,006 retained bytes
+for valid, explicitly empty, and explicitly invalid lightmap inputs. The C++
+section-bank helper matches 2,277 consumed words, including retained incident
+vectors. See [fixture provenance](../tests/fixtures/tu15_prt_fallback.md).
+
+Populated SH banks are integrated for vehicle rendering. A live PRT vehicle in
+an empty/invalid bank still requires its actual source cache incident to be
+connected to the presentation caller. The new fallback API accepts that explicit
+state and rejects its absence. Delta Cliffs and Turf contain loaded Scarab tags
+with no authored SH records; their loaded-tag inventory is not proof of a live
+Scarab placement. The older ordinary-only census above has not been relabeled
+as full PRT admission or matched visual proof.
+
+The NVIDIA Wayland multi-renderer destruction crash reproduces with the
+pre-change `build-vehicle-parity-20261013-v1` binary. Native X11 and lavapipe
+owner tests pass; the separate Wayland lifetime failure remains open. These
+shader builds do not replace or certify the combined installed launchers.
+
+
+## Ordinary multiplayer main-view model ownership, 2026-10-14
+
+Ordinary local multiplayer now retains the original live main-view vehicle
+section/LOD/coverage and current WORLD palette before effect-light collection.
+Per-owner PRT banks are copied from the actual source cache before that arena is
+reused. Source-selected geometry and model light packets must share the full
+owner and bit-identical current palette. Unsupported owners remain explicit.
+
+The new `live_vehicle_model_capture` target uses the ordinary runtime path.
+`analysis/shader-parity-20261013/live-vehicle-main-warthog-v2` is a fresh 960x540
+native Warthog capture with two live owners and ten main-view units. It passes
+visibility and bit-exact UDP geometry checks. The earlier v1 red-tint failure is
+retained; the repair shares the existing C++ map-light query/cache rather than
+consuming a newly constructed default native lighting bank. Packed source colors
+also retain absent channels instead of inventing a replacement tint.
+
+The diagnostic can throw a real grenade with
+`HALO2_CAPTURE_VEHICLE_GRENADE=1` and isolate dynamic model light contribution with
+`HALO2_REFERENCE_DISABLE_MODEL_EFFECT_LIGHTS=1`. The first frozen grenade runs
+revealed missing original source callback composition and then a scene lifetime
+failure; they have not produced an accepted visible grenade frame. These controls
+are validation seams, not original framebuffer proof. Scorpion/Wraith strict
+surface differences, matched explosion frames, all-resolution coverage and the
+fresh combined installed runtime remain open.
+
+
+### Source resource capacity reproduction
+
+The joined Waterworks/Scorpion run exposed eager preload exhaustion:
+`live-main-scorpion-waterworks-v1.log`. The resource-only reproduction
+`source_model_live_resources_tu15_tests XBE waterworks.map scorpion
+--preload-scenario-vehicles 1` reaches model F0470EC1 section130, the513th
+cumulative authored section. The original cache has512 records. The same
+Scorpion model alone publishes all131 sections and524 resources successfully;
+its original assets are intact. Reports are under
+`analysis/shader-parity-20261013/live-waterworks-*`.
+
+The ordinary joined path now uses the existing complete4C190/4C2B0 selection
+and native130980 request service, rather than eagerly loading every authored
+vehicle LOD before any view. This preserves the original capacity and requires
+actual source publication for selected sections. No successful residency flag,
+loaded record, larger cache or substituted admission result is supplied.
+Live Scorpion/Wraith captures must confirm this selected-resource path.
+
+
+`live-main-scorpion-waterworks-v2` now completes1280x720 with three source base
+owners/21 units. `live-main-wraith-waterworks-split4-v1` completes1280x720 in four
+views with three owners/17 units in each final view. Both retain visible geometry
+and bit-exact UDP lighting inputs. Original source section requests also work on
+the first rendered frame (Scorpion13 units; Wraith9 units per view). The resource
+probe independently observes the unchanged cache capacity and slot extent as512.
+These are native live integration captures; the matched-reference strict pixel
+gates above remain open and are being refreshed with the current frozen source.
+
+
+## Current fog gate and damage-section checkpoint
+
+TU1.5's complete25D30 selector is now native, with81 original-executable cases.
+It selects sky-only26500 for classification2/3 unless the actual override is
+set. Native controls are read from492295/492080. Both matched Waterworks vehicle
+headers have classification3 and zero sky opacity, so no fog draw is admitted.
+The old atmospheric composite added a contribution absent from the original
+sampled tank pixels. No lighting color or pixel threshold was tuned.
+
+The refreshed Scorpion hull patch `(100,292)-(225,320)` improves from2,765 to
+1,675 unequal pixels of3,500, mean RGB error0.67752 to0.30010/255 and maximum9 to8.
+Wraith remains a strict failure and its rectangle score increases slightly;
+the source-correct branch is retained. A counterfactual forced-fog control is
+excluded from pixel acceptance and checks this contribution independently.
+The current images and strict reports are in `scorpion-matched-current-v2` and
+`wraith-matched-current-v1` under `analysis/shader-parity-20261013`.
+
+Ordinary rigid vehicle geometry now prepares the selected variant's reachable
+authored damage sections across all six LODs. The live original collector selects
+actual sections; unused states are not submitted. Legacy rendering retains its
+prior initial bank/order. The real grenade reproduction advances past its former
+frame26 unprepared-section failure, then reaches light collection at frame60.
+The visible grenade/model-light and complete matched original frame gates remain
+open; recovered CPU helpers do not close those gates.

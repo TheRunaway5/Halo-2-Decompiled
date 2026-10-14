@@ -1,5 +1,6 @@
 // Generated from complete owned TU1.5 instructions. No runtime decoder.
 #include "halo2/physics_phantom_force_tu15.hpp"
+#include "halo2/physics_velocity_observation.hpp"
 #include "physics_vehicle_motion_math_internal.hpp"
 namespace halo2 {
 namespace {
@@ -1379,7 +1380,7 @@ throw std::runtime_error("TU1.5 phantom force fell outside authenticated CFG");
 void run_3239f0(MathState &s) {
 if(s.services.instruction)s.services.instruction(0x3239f0u); s.set(0,r(s.memory,(0x4u+s.gp[4]),4),4,0);
 if(s.services.instruction)s.services.instruction(0x3239f4u); s.xmm[0]=v(s.memory,(0x0u+s.gp[0]));
-if(s.services.instruction)s.services.instruction(0x3239f7u); vw(s.memory,s.observe,0x3239f7u,(0x40u+s.gp[1]),s.xmm[0]);
+if(s.services.instruction)s.services.instruction(0x3239f7u); if(s.observe){SourceVelocityObservationScope observed_frame(s.gp);vw(s.memory,s.observe,0x3239f7u,(0x40u+s.gp[1]),s.xmm[0]);}else{vw(s.memory,s.observe,0x3239f7u,(0x40u+s.gp[1]),s.xmm[0]);}
 if(s.services.instruction)s.services.instruction(0x3239fbu); s.pop();s.gp[4]+=4u;return;
 throw std::runtime_error("TU1.5 phantom force fell outside authenticated CFG");
 }

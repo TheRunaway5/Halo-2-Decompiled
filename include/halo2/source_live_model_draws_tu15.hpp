@@ -11,6 +11,9 @@ struct SourceLiveModelDrawContextTu15 {
     unsigned view{},local_players=1;
     bool view_modifier{};
     std::uint32_t children=1;
+    // Observe the completed native builder before its presentation/children
+    // consume it. The collector's caller storage expires after collection.
+    std::function<void(const SourceObjectDrawCollector&)> built;
 };
 // TU1.5 136230 orchestration with the native original entry/presentation/draw
 // owners and live4B5C0 builder. Shares the caller's BSP prefix, arena, coverage,

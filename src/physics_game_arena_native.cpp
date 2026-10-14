@@ -308,12 +308,16 @@ struct SourcePhysicsGameArenaNative::Impl {
     case 0x2e0478: {
       const auto h=arg(0),ms=arg(1);
       require(ms==0xffffffffu,"Original async wait request differs");
+      const bool idle=call.instruction==0x12236au && h==worker_semaphore;
       try {
         if(stop.stop_possible() && config.schedule.before_worker_wait)
           config.schedule.before_worker_wait(h,stop);
-        acquire_native_synchronization(sync,h,ms,stop,5);
+        // A completed source job must retire its queue/free-list ownership
+        // and release its mutexes before cancellation. Only the original
+        // worker's idle semaphore wait is a native shutdown boundary.
+        acquire_native_synchronization(sync,h,ms,idle?stop:std::stop_token{},5);
       } catch(const NativeWorkerStopped &) {
-        if(stop.stop_possible())stopped_at_idle=(call.instruction==0x12236au && h==worker_semaphore);
+        if(stop.stop_possible())stopped_at_idle=idle;
         throw;
       }
       finish(8,0);return true;
@@ -437,15 +441,9 @@ SourcePhysicsGameArenaNative::OwnershipCheckpoint SourcePhysicsGameArenaNative::
     const auto position=::lseek(file.fd,0,SEEK_CUR);
     require(S_ISREG(before.st_mode) && before.st_size>=0 && std::uint64_t(before.st_size)<=UINT32_MAX &&
             position>=0 && std::uint64_t(position)<=UINT32_MAX,"Arena file exceeds retained source ABI");
-    FileCheckpoint copy{alias,std::uint32_t(position),file.name,std::vector<std::byte>(std::size_t(before.st_size))};
-    for(std::size_t done=0;done<copy.bytes.size();) {
-      const auto count=::pread(file.fd,copy.bytes.data()+done,copy.bytes.size()-done,off_t(done));
-      if(count<0 && errno==EINTR)continue;
-      if(count<=0)throw std::system_error(count<0?errno:EIO,std::generic_category(),"Capture arena file bytes");
-      done+=std::size_t(count);
-    }
+    FileCheckpoint copy{alias,std::uint32_t(position),file.name,SourceRuntimeSnapshotBytes::capture_file(file.fd)};
     if(::fstat(file.fd,&after))throw std::system_error(errno,std::generic_category(),"Recheck arena file extent");
-    require(before.st_size==after.st_size && before.st_mtim.tv_sec==after.st_mtim.tv_sec &&
+    require(copy.bytes.size()==std::uint64_t(before.st_size) && before.st_size==after.st_size && before.st_mtim.tv_sec==after.st_mtim.tv_sec &&
         before.st_mtim.tv_nsec==after.st_mtim.tv_nsec && ::lseek(file.fd,0,SEEK_CUR)==position,
         "Arena file changed during checkpoint");
     saved.files.push_back(std::move(copy));
@@ -467,7 +465,7 @@ struct SourcePhysicsGameArenaNative::PreparedOwnership::Impl {
   std::map<std::uint32_t,SourcePhysicsGameArenaNative::Impl::NativeFile> files;
   std::uint32_t next_file;
   Impl(SourcePhysicsGameArenaNative::Impl &target,const OwnershipCheckpoint &saved,
-       const SourceRuntimeMemory::Checkpoint &bank)
+       const SourceRuntimeMemory::Checkpoint &bank,SourceRuntimeMemory &replacement)
       :owner(&target),operation(target.operation_gate,std::try_to_lock),
        bank_lock(target.shared.mutex,std::defer_lock),next_file(saved.next_file) {
     require(operation.owns_lock() && !target.active_calls && !target.staging,"Arena import has active native callers or restore");
@@ -476,7 +474,7 @@ struct SourcePhysicsGameArenaNative::PreparedOwnership::Impl {
             saved.worker_semaphore==target.worker_semaphore,"Arena import cannot rebind a different native worker namespace");
     barrier.emplace(target);
     scratch.emplace(target.scratch.prepare_cursor(saved.scratch));
-    physical.emplace(target.physical.prepare_ownership(saved.physical,bank));
+    physical.emplace(target.physical.prepare_ownership(saved.physical,bank,replacement));
     synchronization.emplace(target.synchronization.prepare_restore(saved.synchronization));
     for(const auto &saved_file:saved.files) {
 #if defined(__linux__)
@@ -489,11 +487,27 @@ struct SourcePhysicsGameArenaNative::PreparedOwnership::Impl {
       if(::unlink(path.data()))throw std::system_error(errno,std::generic_category(),"Unlink private arena staging file");
       if(::fcntl(fd,F_SETFD,FD_CLOEXEC)<0 || ::ftruncate(fd,off_t(saved_file.bytes.size())))
         throw std::system_error(errno,std::generic_category(),"Stage arena file extent/ownership");
+      // The new file was extended with actual zero bytes. Preserve zero pages
+      // as holes, including when the caller's save directory is on tmpfs;
+      // writing them would create an unnecessary second resident file bank.
+      std::size_t pending=0;
       for(std::size_t done=0;done<saved_file.bytes.size();) {
-        const auto count=::pwrite(fd,saved_file.bytes.data()+done,saved_file.bytes.size()-done,off_t(done));
-        if(count<0 && errno==EINTR)continue;
-        if(count<=0)throw std::system_error(count<0?errno:EIO,std::generic_category(),"Stage arena file bytes");
-        done+=std::size_t(count);
+        const auto bytes=std::span(saved_file.bytes).subspan(done,
+            std::min<std::size_t>(0x1000,saved_file.bytes.size()-done));
+        if(std::any_of(bytes.begin(),bytes.end(),[](auto byte){return byte!=std::byte{};})) {
+          for(std::size_t written=0;written<bytes.size();) {
+            const auto count=::pwrite(fd,bytes.data()+written,bytes.size()-written,off_t(done+written));
+            if(count<0 && errno==EINTR)continue;
+            if(count<=0)throw std::system_error(count<0?errno:EIO,std::generic_category(),"Stage arena file bytes");
+            written+=std::size_t(count);
+          }
+          pending+=bytes.size();
+          if(pending>=1024*1024) {
+            if(::fdatasync(fd))throw std::system_error(errno,std::generic_category(),"Synchronize staged arena bytes");
+            pending=0;
+          }
+        }
+        done+=bytes.size();
       }
       if(::lseek(fd,saved_file.position,SEEK_SET)<0)
         throw std::system_error(errno,std::generic_category(),"Stage arena file position");
@@ -511,14 +525,19 @@ SourcePhysicsGameArenaNative::PreparedOwnership &SourcePhysicsGameArenaNative::P
 bool SourcePhysicsGameArenaNative::PreparedOwnership::for_owner(const SourcePhysicsGameArenaNative &owner) const noexcept {
   return impl_ && impl_->owner==owner.impl_.get();
 }
+bool SourcePhysicsGameArenaNative::PreparedOwnership::matches_memory(const SourceRuntimeMemory &bank) const noexcept {
+  return impl_ && impl_->physical->matches_memory(bank);
+}
 SourcePhysicsGameArenaNative::PreparedOwnership SourcePhysicsGameArenaNative::prepare_ownership(
-    const OwnershipCheckpoint &saved,const SourceRuntimeMemory::Checkpoint &bank) const {
+    const OwnershipCheckpoint &saved,const SourceRuntimeMemory::Checkpoint &bank,
+    SourceRuntimeMemory &replacement) const {
   validate_arena_ownership(saved,bank);
-  PreparedOwnership prepared;prepared.impl_=std::make_unique<PreparedOwnership::Impl>(*impl_,saved,bank);
+  PreparedOwnership prepared;prepared.impl_=std::make_unique<PreparedOwnership::Impl>(*impl_,saved,bank,replacement);
   return prepared;
 }
 bool SourcePhysicsGameArenaNative::commit_ownership(PreparedOwnership &&prepared) noexcept {
-  if(!prepared.for_owner(*this) || !prepared.impl_->scratch->for_owner(impl_->scratch) ||
+  if(!prepared.for_owner(*this) || !prepared.matches_memory(impl_->shared.bank) ||
+      !prepared.impl_->scratch->for_owner(impl_->scratch) ||
       !prepared.impl_->physical->for_owner(impl_->physical) ||
       !prepared.impl_->synchronization->for_owner(impl_->synchronization))return false;
   // All resources/locks were staged before bank publication. The retired local

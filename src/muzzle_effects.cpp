@@ -1,4 +1,5 @@
 #include "halo2/muzzle_effects.hpp"
+#include "halo2/source_particle_sprite_context.hpp"
 #include "halo2/particle_presentation.hpp"
 #include "halo2/particle_effect_color.hpp"
 #include "halo2/math.hpp"
@@ -39,8 +40,11 @@ AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const {
       const auto e=first_event+event*0x38;
       for(const auto value:{b.f32(e+4),b.f32(e+8),b.f32(e+12),b.f32(e+16),b.f32(e+20)})
         if(!std::isfinite(value) || value<0)throw FormatError("Invalid authored muzzle event range");
-      if(b.u32(e+0x20) || b.u32(e+0x28))
-        throw FormatError("muzzle event requires original beam/acceleration owner");
+      if(b.u32(e+0x20))
+        throw FormatError("muzzle event requires original beam owner");
+      // Acceleration is a gameplay part. Preserve the event's particle systems
+      // only when the request has its explicit original gameplay-part owner.
+      d.acceleration_parts|=b.u32(e+0x28)!=0;
       d.events.push_back({b.f32(e+8),b.f32(e+16)});
       d.clocks.push_back({b.f32(e+4),b.f32(e+8),b.f32(e+12),b.f32(e+16),b.f32(e+20)});
       const auto parts=b.u32(e+0x18);
@@ -48,6 +52,7 @@ AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const {
       for(unsigned n=0;n<parts;++n)if(b.u32(part+n*0x38+0x10)!=0xffffffffu) {
         const auto group=b.u32(part+n*0x38+8);
         if(group==0x6c696768u)d.light_parts=true;
+        else if(group==0x6a707421u)d.damage_parts=true;
         else if(group!=0x736e6421u)throw FormatError("muzzle part requires its original non-sound owner");
       }
       const auto count=b.u32(e+0x30);
@@ -138,8 +143,10 @@ struct NativeMuzzleEffects::Impl {
     struct Pose {std::map<std::uint32_t,std::vector<Transform>> markers;MuzzleEffectView view;};
     std::optional<Pose> pose;
     bool attachment{};
+    std::uint32_t marker_alias{};
   };
   std::map<std::uint32_t,Definition> definitions;
+  std::map<std::uint32_t,std::optional<SourceParticleSpriteContext>> sprite_contexts;
   std::map<std::uint32_t,Effect> effects;
   std::map<std::uint32_t,ParticleSimulationState> particles;
   std::map<std::uint32_t,ParticleSimulationState> previous_particles;
@@ -152,7 +159,14 @@ struct NativeMuzzleEffects::Impl {
   float random_fraction(){return float(double(next_random()>>16)*double(1.f/65535.f));}
   Definition &definition(std::uint32_t datum) {
     if(auto i=definitions.find(datum);i!=definitions.end())return i->second;
-    return definitions.emplace(datum,cache.load_muzzle_effect(datum)).first->second;
+    auto loaded=cache.load_muzzle_effect(datum);
+    for(auto &system:loaded.systems) {
+      const auto [context,inserted]=sprite_contexts.try_emplace(system.definition.particle_datum,
+          source_particle_sprite_context(cache,system.definition.particle_datum,system.sprite));
+      (void)inserted;
+      if(context->second && !context->second->has_bitmap)system.sprite.bitmap_type=-1;
+    }
+    return definitions.emplace(datum,std::move(loaded)).first->second;
   }
   ParticleValueSources sources(const Effect &effect,const System &s,const Location &location,const MuzzleEffectView &view,std::uint32_t tick,float seconds) {
     ParticleValueSources out;
@@ -188,7 +202,7 @@ struct NativeMuzzleEffects::Impl {
       //173FD0 owns two RNG fields once per system;248620 owns a separate
       //byte and emitter bank for each actual marker location.
       s.random_a=random_fraction();s.random_b=random_fraction();
-      const auto placements=marker(authored.marker);
+      const auto placements=marker(effect.attachment && effect.marker_alias?effect.marker_alias:authored.marker);
       for(unsigned n=0;n<placements.size();++n) {
         const auto location=location_pool.allocate();
         if(location==DatumPool::none)throw FormatError("native muzzle location pool exhausted");
@@ -206,7 +220,7 @@ struct NativeMuzzleEffects::Impl {
     for(unsigned n=0;n<effect.systems.size();++n) {
       auto &s=effect.systems[n];const auto &authored=d.systems[s.definition_index];
       if(authored.event!=slice.event)continue;
-      const auto placements=marker(authored.marker);
+      const auto placements=marker(effect.attachment && effect.marker_alias?effect.marker_alias:authored.marker);
       for(auto &location:s.locations) {
       if(location.marker_index>=placements.size())throw FormatError("Muzzle location lost its original marker ordinal");
       auto placement=placements[location.marker_index];
@@ -256,7 +270,11 @@ std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::u
   return request(input,tick,colors,velocity,false);
 }
 std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::uint32_t tick,SourceEffectColors colors,Vec3 velocity,bool light_parts_owned) {
+  return request(input,tick,colors,velocity,light_parts_owned,false);
+}
+std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::uint32_t tick,SourceEffectColors colors,Vec3 velocity,bool light_parts_owned,bool source_gameplay_parts_owned) {
   auto &i=*impl_;const auto &d=i.definition(input.effect);
+  if((d.damage_parts || d.acceleration_parts) && !source_gameplay_parts_owned)throw FormatError("FP effect requires its original gameplay-part owner");
   if(d.light_parts && !light_parts_owned)throw FormatError("Muzzle light parts require their live world owner");
   if(auto found=i.effects.find(input.previous_handle);found!=i.effects.end() && found->second.definition==input.effect) {
     auto &e=found->second;e.pending=true;e.retiring=false;e.tick=tick;
@@ -284,9 +302,18 @@ std::vector<NativeMuzzleEffects::Sound> NativeMuzzleEffects::take_sounds(){retur
 void NativeMuzzleEffects::collision_query(ParticleCollisionQuery query){impl_->collision=std::move(query);}
 std::uint32_t NativeMuzzleEffects::attachment(std::uint32_t definition,std::uint32_t weapon,
     std::uint32_t tick,SourceEffectControls controls,bool enabled) {
+  return attachment(definition,weapon,tick,controls,enabled,0);
+}
+std::uint32_t NativeMuzzleEffects::attachment(std::uint32_t definition,std::uint32_t weapon,
+    std::uint32_t tick,SourceEffectControls controls,bool enabled,std::uint32_t marker_alias) {
+  return attachment(definition,weapon,tick,controls,enabled,marker_alias,false);
+}
+std::uint32_t NativeMuzzleEffects::attachment(std::uint32_t definition,std::uint32_t weapon,
+    std::uint32_t tick,SourceEffectControls controls,bool enabled,std::uint32_t marker_alias,bool source_gameplay_parts_owned) {
   auto &i=*impl_;const auto &d=i.definition(definition);
+  if((d.damage_parts || d.acceleration_parts) && !source_gameplay_parts_owned)throw FormatError("FP attachment requires its original gameplay-part owner");
   if(d.flags&0x18u || d.light_parts)throw FormatError("FP attachment requires its completed lighting owner");
-  for(auto &[handle,e]:i.effects)if(e.attachment && !e.retiring && e.weapon==weapon && e.definition==definition) {
+  for(auto &[handle,e]:i.effects)if(e.attachment && !e.retiring && e.weapon==weapon && e.definition==definition && e.marker_alias==marker_alias) {
     e.a=std::bit_cast<std::uint32_t>(controls.a);e.b=std::bit_cast<std::uint32_t>(controls.b);
     // Complete17C370: a false A function stops through17A0F0; its next
     //true result restarts through17A1A0. Linked particles retain lifetime.
@@ -300,7 +327,7 @@ std::uint32_t NativeMuzzleEffects::attachment(std::uint32_t definition,std::uint
   const auto handle=i.effect_pool.allocate();if(handle==DatumPool::none)return handle;
   auto &e=i.effects.emplace(handle,Impl::Effect{handle,definition,weapon,tick,
       std::bit_cast<std::uint32_t>(controls.a),std::bit_cast<std::uint32_t>(controls.b),true,false,{}}).first->second;
-  e.attachment=true;e.event.flags=enabled?2u:6u;
+  e.attachment=true;e.marker_alias=marker_alias;e.event.flags=enabled?2u:6u;
   source_effect_event_select(e.event,d.clocks,0,i.random_streams.event(d.flags),{[] {}});
   //175FA0 ->179850 starts retained attachments with zero, regardless of
   //the one-shot creator's definition bit1 initial interval.
@@ -321,8 +348,10 @@ void NativeMuzzleEffects::pose(std::uint32_t weapon,const Markers &marker,const 
   auto &i=*impl_;
   for(auto &[handle,e]:i.effects)if(e.weapon==weapon) {
     e.pose.emplace();e.pose->view=view;
-    for(const auto &system:i.definition(e.definition).systems)
-      e.pose->markers.try_emplace(system.marker,marker(system.marker));
+    for(const auto &system:i.definition(e.definition).systems) {
+      const auto name=e.attachment && e.marker_alias?e.marker_alias:system.marker;
+      e.pose->markers.try_emplace(name,marker(name));
+    }
     const auto retained=[&](std::uint32_t name){return e.pose->markers.at(name);};
     for(const auto &slice:e.slices)i.birth(e,retained,view,tick,seconds,slice);
     e.slices.clear();
@@ -434,9 +463,16 @@ std::vector<ParticleDraw> NativeMuzzleEffects::draw(std::uint32_t weapon,const M
         }
       }
       ParticleRenderValueCache values; // Re-evaluate actual interpolated render state each frame.
+      const auto &context=i.sprite_contexts.at(a.definition.particle_datum);
+      if(!context)continue;
+      values.system_identity=state.system_identity;
+      values.location_identity=state.location_identity;
+      complete_particle_values(values.values,a.sprite.required_values&0x107f0u,state.sources);
       for_each_particle_render_input(a.definition,state,values,*i.cache.shader_function_tables(),
           [&](std::uint64_t,const ParticleSpriteInput &input,ParticleValueCache &cache,const ParticleValueSources &sources) {
-        const auto sprite=particle_sprite_submission(a.sprite,input,cache,sources,*i.cache.shader_function_tables());
+        auto completed=input;completed.width=context->width;
+        completed.selected_sequence=context->selected_sequence;
+        const auto sprite=particle_sprite_submission(a.sprite,completed,cache,sources,*i.cache.shader_function_tables());
         ParticleDraw draw;draw.material=a.material;draw.effect_definition=e.definition;draw.effect_owner=e.weapon;
         std::copy(a.material->pass.constants[1].begin(),a.material->pass.constants[1].end(),draw.vertex.constants.begin()+18);
         std::copy(view.camera.begin(),view.camera.end(),draw.vertex.constants.begin());

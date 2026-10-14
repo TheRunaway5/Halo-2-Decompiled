@@ -85,10 +85,11 @@ class MatchResults:
                        (room.id, proposal.playlist, proposal.revision, proposal.game.map,
                         proposal.game.variant, int(room.ranked), self.store.now(),
                         room.result_digest, "native-unanimous-v1"))
-            if getattr(room, "supports_continuity", False):
+            if getattr(room, "supports_continuity", False) or (
+                    getattr(room, "direct_udp", False) and room.departed_slots):
                 db.execute("INSERT INTO match_result_consensus VALUES(?,?,?,?,?,?)",
                            (room.id, "native-survivors-v1", len(room.admitted_owners),
-                            len(room.tokens), room.departed_slots, room.continuity.epoch))
+                            len(room.tokens), room.departed_slots, room.continuity.epoch if room.continuity else 0))
             raw = room.result
             if room.team_mode:
                 for team in sorted({team for _, _, team in room.players}):

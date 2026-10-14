@@ -53,13 +53,14 @@ Image capture(Renderer& renderer,const std::filesystem::path& path,
 }
 struct Frames {Image baseline,effects;};
 Frames run(Renderer& renderer,SDL_Window* window,std::array<unsigned,2> extent,
-           unsigned players,bool wide,const std::filesystem::path& prefix) {
+           unsigned players,bool wide,const std::filesystem::path& prefix,
+           std::optional<TwoPlayerSplit> split = {}) {
   SDL_SetWindowSize(window,int(extent[0]),int(extent[1]));SDL_PumpEvents();renderer.resized();
   int w,h;SDL_Vulkan_GetDrawableSize(window,&w,&h);
   require(w==int(extent[0]) && h==int(extent[1]),"window did not adopt requested odd drawable extent");
   std::array<ModelView,4> views;std::array<std::vector<Vertex>,4> world,foreground;
   for(unsigned i=0;i<players;++i) {
-    const auto r=hud_viewport(players,i,wide).outer;auto& v=views[i];
+    const auto r=hud_viewport(players,i,wide,split).outer;auto& v=views[i];
     v.left=r.left;v.top=r.top;v.width=r.right-r.left;v.height=r.bottom-r.top;v.full_surface=true;
     const auto physical=full_surface_viewport({v.left,v.top,v.width,v.height},extent[0],extent[1]);
     const float aspect=physical.width/physical.height;v.camera.field_of_view=90;
@@ -155,6 +156,13 @@ int main(int argc,char**argv) {try {
           channels+=prior.effects.pixels.size()*2;
         }
         SDL_DestroyWindow(fresh_window);
+      }
+    for(const auto extent:std::array{std::array{1281u,721u},std::array{2560u,720u}})
+      for(auto split:{TwoPlayerSplit::Horizontal,TwoPlayerSplit::Vertical}) {
+        const auto name=std::to_string(extent[0])+"x"+std::to_string(extent[1])+"-native-"+
+            (split==TwoPlayerSplit::Horizontal?"horizontal":"vertical");
+        const auto frames=run(reused,reused_window,extent,2,true,directory/name,split);
+        channels+=frames.effects.pixels.size()*2;
       }
   }
   SDL_DestroyWindow(reused_window);SDL_Quit();

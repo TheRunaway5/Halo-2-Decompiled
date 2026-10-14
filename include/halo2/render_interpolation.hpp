@@ -19,6 +19,10 @@ class SourceWorldInterpolation {
 public:
     void reset(std::uint64_t tick,std::span<const SourceWorldPose>);
     void capture(std::uint64_t tick,std::span<const SourceWorldPose>);
+    // Attachment and death transitions retain the salted object but replace
+    // its pose owner. Their completed nodes must not blend with standing nodes.
+    void capture(std::uint64_t tick,std::span<const SourceWorldPose>,
+        std::span<const std::uint32_t> discontinuities);
     std::vector<Transform> sample(std::uint32_t object,float fraction)const;
 private:
     std::uint64_t tick_{};

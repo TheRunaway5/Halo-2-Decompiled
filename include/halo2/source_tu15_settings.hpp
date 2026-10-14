@@ -13,6 +13,7 @@ public:
     std::span<const std::byte,96> bytes() const { return bytes_; }
     bool checksum_valid() const;
     std::uint32_t miscellaneous_flags() const;
+    std::uint32_t audio_flags() const;
 private:
     std::array<std::byte,96> bytes_;
     std::string owner_;
@@ -21,6 +22,12 @@ private:
 // ABI preserves other live CPU state and consumes the full stdcall frame.
 // Observations are logical primary output writes, not Xbox kernel store PCs.
 bool source_try_tu15_settings_query(SourceRuntimeMemory &,
+    const SourcePhysicsContactRuntimeCall &,SourcePhysicsContactRuntimeAbi &,
+    const SourceTu15UserSettings &,const SourcePhysicsContactRecordObserver & = {});
+// Actual37DA9A XC_AUDIO request through2E101C: null ResultLength and
+// caller-owned type/value cells. Returns actual checksum/query status only;
+// later boot-SMC mode/hardware/device prerequisites remain separate owners.
+bool source_try_tu15_audio_settings_query(SourceRuntimeMemory &,
     const SourcePhysicsContactRuntimeCall &,SourcePhysicsContactRuntimeAbi &,
     const SourceTu15UserSettings &,const SourcePhysicsContactRecordObserver & = {});
 void source_run_tu15_settings_runtime(SourcePhysicsContactMemory &,

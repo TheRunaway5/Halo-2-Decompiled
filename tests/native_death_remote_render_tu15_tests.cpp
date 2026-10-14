@@ -16,6 +16,7 @@
 #include <future>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <thread>
 using namespace halo2;
 namespace {
@@ -79,6 +80,7 @@ int main(int argc,char **argv)try {
   options.validation=std::getenv("HALO2_DEATH_VALIDATION");
   MultiplayerState state;std::uint32_t victim=null_datum;
   bool dead{},corpse{},camera{},board{},respawn{},restored{},retained{},submitted{},quitting{};
+  std::map<std::uint32_t,unsigned> body_draws;
   options.input_observer=[&](unsigned,std::span<const Controls>,const MultiplayerState &snapshot) {
     if(server_failed)std::rethrow_exception(server_failure);
     state=snapshot;advance=true;check(state.tick<450,"Remote rendered cycle timed out");
@@ -88,6 +90,15 @@ int main(int argc,char **argv)try {
     if(dead && !p.dead){respawn=true;check(p.source_unit!=null_datum && p.source_unit!=victim && !p.source_death_camera,"Remote respawn retained the old camera or body");}
   };
   options.view_state_observer=[&](unsigned,const MultiplayerState &rendered,const Camera &view) {
+    for(const auto &[unit,count]:body_draws) {
+      check(count==1,"Remote death/respawn submitted a duplicate player model");
+      const bool living=std::any_of(rendered.players.begin(),rendered.players.end(),[&](const auto &p){
+        return p.connected && !p.dead && p.source_unit==unit;
+      });
+      const bool retained_corpse=std::any_of(rendered.corpses.begin(),rendered.corpses.end(),[&](const auto &p){return p.object==unit;});
+      check(living!=retained_corpse,"Remote death/respawn submitted an unowned or both live and corpse model");
+    }
+    body_draws.clear();
     if(rendered.players[1].source_death_camera) {
       const auto &expected=*rendered.players[1].source_death_camera;
       check(length(view.position-expected.position)<.0001f && length(view.forward-expected.forward)<.0001f,
@@ -95,6 +106,9 @@ int main(int argc,char **argv)try {
     }
   };
   options.animation_observer=[&](unsigned,unsigned,const AnimationRenderObservation &draw) {
+    if(!draw.first_person) {
+      check(++body_draws[draw.unit]==1,"Remote death/respawn submitted a duplicate player model");
+    }
     if(dead && !draw.first_person && draw.unit==victim){check(!draw.vertices.empty() && !draw.body_nodes.empty(),"Remote corpse geometry unavailable");corpse=true;retained|=respawn;}
   };
   options.scoreboard_observer=[&](unsigned,bool normal,const FullScoreboardLayout &layout,const FullScoreboardPaintResult &paint) {

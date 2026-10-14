@@ -109,9 +109,11 @@ CollisionWorld::CollisionWorld(std::shared_ptr<std::vector<CollisionTriangle>> g
       acceleration_(acceleration ? std::move(acceleration) : accelerate(triangles())) {}
 std::shared_ptr<const CollisionWorld::Acceleration> CollisionWorld::accelerate(
     std::span<const CollisionTriangle> triangles) {
+  if(triangles.size()>std::numeric_limits<std::uint32_t>::max())
+    throw FormatError("Collision triangle indices exceed their 32-bit storage");
   auto acceleration = std::make_shared<Acceleration>();
   acceleration->order.resize(triangles.size());
-  std::iota(acceleration->order.begin(), acceleration->order.end(), 0);
+  std::iota(acceleration->order.begin(), acceleration->order.end(), std::uint32_t{0});
   if (!triangles.empty()) build(triangles, *acceleration, 0, triangles.size());
   return acceleration;
 }
@@ -167,8 +169,8 @@ int CollisionWorld::build(std::span<const CollisionTriangle> triangles, Accelera
   auto &order = acceleration.order;
   auto &nodes = acceleration.nodes;
   Node n;
-  n.begin = begin;
-  n.end = end;
+  n.begin = std::uint32_t(begin);
+  n.end = std::uint32_t(end);
   n.low = {INFINITY, INFINITY, INFINITY};
   n.high = {-INFINITY, -INFINITY, -INFINITY};
   for (auto i = begin; i < end; ++i) {

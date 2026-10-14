@@ -146,10 +146,10 @@ def main():
         if mn=='rdtsc':return 'if(!s.services.timestamp_counter)throw std::runtime_error("Required original contact RDTSC owner unavailable");{const auto x=s.services.timestamp_counter();s.gp[0]=std::uint32_t(x);s.gp[2]=std::uint32_t(x>>32u);}'
         if mn in ('rep stosd','rep stosb'):
             width=4 if mn=='rep stosd' else 1
-            return f'while(s.gp[1]){{w(s.memory,s.observe,0x{p:x}u,s.gp[7],{width},s.gp[0]);const auto delta=(s.other_flags&1024u)?{0x100000000-width}u:{width}u;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0x{p:x}u);}}'
+            return f'while(s.gp[1]){{w(s.memory,s.observe,0x{p:x}u,s.gp[7],{width},s.gp[0]);const auto delta=(s.other_flags&1024u)?{0x100000000-width}u:{width}u;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(selected(0x{p:x}u,s.image));}}'
         if mn in ('rep movsd','rep movsb'):
             width=4 if mn=='rep movsd' else 1
-            return f'while(s.gp[1]){{const auto x=r(s.memory,s.gp[6],{width});w(s.memory,s.observe,0x{p:x}u,s.gp[7],{width},x);const auto delta=(s.other_flags&1024u)?{0x100000000-width}u:{width}u;s.gp[6]+=delta;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0x{p:x}u);}}'
+            return f'while(s.gp[1]){{const auto x=r(s.memory,s.gp[6],{width});w(s.memory,s.observe,0x{p:x}u,s.gp[7],{width},x);const auto delta=(s.other_flags&1024u)?{0x100000000-width}u:{width}u;s.gp[6]+=delta;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(selected(0x{p:x}u,s.image));}}'
         if mn in ('comiss','ucomiss'):return f's.flags.scalar_compare({get(i,op[0])},{xv(i,op[1])},{str(mn=="ucomiss").lower()});'
         if mn=='lahf':return 's.set(0,s.flags.bits()|2u,1,8);'
         if mn in ('sete','setne','setb','setle','setl','setg'):
@@ -229,9 +229,12 @@ def main():
             translated=emit(i);lowered[f'{i.address:08x}']=dict(mnemonic=i.mnemonic,source_bytes=i.bytes.hex())
             if i.mnemonic.startswith('f') and i.mnemonic!='fnstsw':translated='s.require_x87();'+translated
             label=f'L{i.address:x}: ' if i.address in targets else ''
-            lines.append(f'{label}if(s.services.instruction){{s.services.instruction(0x{i.address:x}u);}} {translated}')
+            lines.append(f'{label}if(s.services.instruction){{s.services.instruction(selected(0x{i.address:x}u,s.image));}} {translated}')
         lines.append('throw std::runtime_error("Original solver fell outside authenticated CFG");\n}')
         bodies.append('\n'.join(lines))
+    # Observers now publish the selected image's PC for every instruction,
+    # including sites that never appeared as an immediate operand.
+    used_addresses.update(instruction_map)
     used_addresses.update(ENTRIES)
     assert used_addresses<=set(addresses),(used_addresses-set(addresses))
     addresses.update({int(k,16):v for k,v in paired['entries'].items()})

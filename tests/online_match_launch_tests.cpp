@@ -302,6 +302,16 @@ int main(int argc,char **argv)try {
   wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;});
   const auto self=session->self(),other=(self+1)%participants;const bool hosting=self==session->host();
   check(session->direct_udp()==(o.compatibility=="halo2-native-queue-v12"),"Match did not use the admitted transport");
+  if(mode=="nonhost-loss"){
+    wait([&]{return session->authority_supported(other);});barrier("direct-peer-ready-before-departure");
+    if(!hosting){session.reset();std::cout<<"PASS nonhost closed its real direct UDP and signaling session\n";return 0;}
+    const auto until=std::chrono::steady_clock::now()+std::chrono::seconds(3);
+    while(std::chrono::steady_clock::now()<until){check(session->phase()==OnlineMatchSession::Phase::Running,
+        "Nonhost direct link closure ended the host session");std::this_thread::sleep_for(10ms);}
+    check(session->master_connected(),"Nonhost departure dropped the host signaling connection");
+    check(!session->authority_supported(other),"Closed physical peer remained a live authority transfer target");
+    std::cout<<"PASS native host session survives actual nonhost DTLS/signaling closure\n";return 0;
+  }
   std::unique_ptr<LanHost> host;std::unique_ptr<LanClient> client;
   std::array<std::uint8_t,9> appearance{};const auto profile=native_selected_player_configuration("Same Pilot",appearance,team?session->roster()[self].team:-1);
   if(hosting){match.join("Same Pilot",team?session->roster()[self].team:-1,profile,self);host=std::make_unique<LanHost>(match,session,fingerprint,session->roster());}
@@ -320,8 +330,23 @@ int main(int argc,char **argv)try {
   unsigned roster{},tick{},minimum_loaded=1000,muted_before{},audible_before{},capture_checkpoint{};bool mute_checked{},talking_seen{};Vec3 initial{};bool position_set{},moved{};
   const auto start=std::chrono::steady_clock::now();
   unsigned offline_ticks{},offline_audible{},offline_at{},offline_audio_at{};bool offline_seen{};
+  std::vector<std::byte> authority_fixture;
+  bool authority_published=false,authority_received=false;
+  if(mode=="authority"){authority_fixture.resize(512*1024);for(unsigned i=0;i<authority_fixture.size();++i)authority_fixture[i]=std::byte((i*37+i/13)&255);}
   for(unsigned n=0;n<210;++n) {
     const auto now=std::chrono::steady_clock::now();
+    if(mode=="authority"){
+      if(hosting&&!authority_published&&n>5&&session->authority_supported(other)){
+        const auto context=session->authority_context();check(bool(context),"Direct authority context absent");
+        const std::array<unsigned,1> targets{other};session->publish_authority(*context,match.simulation().ticks(),authority_fixture,targets);authority_published=true;
+      }
+      if(!hosting)if(auto cut=session->received_authority()){
+        check(*cut->bytes==authority_fixture,"Session authority bytes differ");authority_received=true;
+        // This fixture is only a byte owner; it does not claim a decoded,
+        // prepared world or invoke acknowledge_authority for these bytes.
+      }
+      check(session->validated_authority().empty(),"Byte fixture falsely acknowledged a prepared world");
+    }
     voice.blocks(session->voice_blocks());
     if(blocks) {
       if(n==30 && owner=="one")check(blocks->update({blocked_subject}),"Private native block sync was not queued");
@@ -375,6 +400,10 @@ int main(int argc,char **argv)try {
   check(roster==participants && tick>150 && moved && minimum_loaded<60,"Matched native state did not replicate movement/fire and real roster");
   check(mute_checked && audio->audible>audible_before+10 && audio->captures>50,"Match voice failed capture/relay/playback or unmute recovery");
   check(group?talking_seen:voice.snapshot().talking[other],"Actual matched speaker indicator absent");
+  if(mode=="authority"){
+    check(hosting?authority_published:authority_received,"Authority delivery did not complete beside native gameplay/voice");
+    std::cout<<"PASS direct session authority byte delivery beside native gameplay and synthetic-device Opus voice; no unvalidated world acknowledgement\n";
+  }
   if(std::getenv("HALO2_TEST_MASTER_OUTAGE")) {
     check(offline_seen && offline_ticks>30 && offline_audible>20,"Master outage stalled player-hosted simulation or direct voice");
     std::cout<<"PASS master signaling outage: direct gameplay advanced "<<offline_ticks<<" ticks and voice delivered "<<offline_audible<<" audible frames\n";
@@ -421,7 +450,10 @@ int main(int argc,char **argv)try {
   complete_and_requeue(mode=="team" && std::getenv("DISPLAY"));
   check(!voice.snapshot().enabled,"Done left the departed session microphone enabled");
   session->loaded(fingerprint,variant);wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;});
-  if(owner=="one")session.reset();
+  barrier("fresh-room-running-before-host-loss");
+  // QoS chooses the new host independently of fixture account order. Closing
+  // a nonhost now deliberately preserves the host's running session.
+  if(session->self()==session->host())session.reset();
   else {
     wait([&]{return session->phase()==OnlineMatchSession::Phase::Failed;});
     MultiplayerOptions aborted;aborted.map=maps/"lockout.map";aborted.shared_maps=maps;aborted.online_match=session;

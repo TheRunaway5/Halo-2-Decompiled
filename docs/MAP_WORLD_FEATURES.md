@@ -6,22 +6,43 @@ split-screen and LAN checks. [Rain](SOURCE_WEATHER_LIVE_RAIN.md) and
 [Lockout/Warlock background layers](SOURCE_WEATHER_LIVE_PLATES.md) now have
 live consumers and repeatable pixel comparisons too.
 [The authored attachment bridge](SOURCE_MAP_EFFECT_ATTACHMENTS.md) now uses
-actual scene lifetimes and WORLD nodes. Its 21-map bank prepares 58 of 96
-attachments; Foundation's lift particles have repeatable GPU evidence.
-The earlier normal-launcher continuation passed Lockout and Foundation
-one/four-view rendering, with byte-identical effect repeats. The later 21-map
-first-tick comparison has seven improvements and no regressions against its
-death/spectating baseline; ten maps still fail on missing original owners.
-Both normal launchers now select the coherent combined 100-routine build.
-Their MCC-only readiness gate still reports MCC gameplay as unavailable, so
-the direct original-XBE captures do not establish normal MCC gameplay. The
-new build passes a 13-of-21 first-source-tick bank; eight
-maps still fail. Terminal now passes short rendering but its longer sequence
-still reaches a missing physics callback. Complete MCC launcher gameplay
-acceptance remains open.
-[The original decal cache export](SOURCE_DECAL_VERTEX_CACHE_TU15.md) now
-retains actual clipped geometry, but its CPU capture does not close Zanzibar's
-native graphics binding. Remaining maps and interactions still need acceptance.
+actual scene lifetimes, WORLD nodes and object origins. Its 21-map bank prepares
+**93 of 96** attachment graphs, including 85 native visual graphs and eight
+Terminal damage graphs owned by the original simulation. The train bridge
+binds those actual allocations without replaying damage or creating native
+particles. Original before/after call checks kill a declared near target and
+preserve a distant target; normal player traversal and full train acceptance
+remain open. Containment, Turf and Relic's named attachments
+now consume completed original effect allocations, function controls, flags,
+colors and local frames. Actual source-world checks pass, including Turf damage
+activation/pause/drain, repeated views and real UDP/four-player late joins.
+This does not establish original particle history or independent client PVS.
+[Shape 9 and explicit constructor seed locations](SOURCE_MAP_PARTICLE_SHAPE9_TU15.md)
+now let all Warlock and Deltatap attachments start and emit particles;
+Foundation's lift particles have repeatable GPU evidence.
+Both normal launchers now select the coherent 188-map-routine plus five-swarm-routine build in
+[the current delivery receipt](SOURCE_WORLD_LAUNCHER_DELIVERY.md). All 21 Xbox
+maps pass ordinary source startup, and the short-render bank passes with its
+per-build hashes retained. Their MCC-only readiness gate still reports native
+MCC gameplay unavailable; direct owned-XBE evidence does not close that gate.
+[Terminal retains 1,200 rendered ticks with one view and 240 with four views](SOURCE_MAP_TERMINAL_CONTINUATION_TU15.md).
+Ascension and Colossus now render their authored lift distortion through the
+[current-surface consumer](SOURCE_MAP_DISTORTION_TU15.md). The complete
+[original swarm kernel](SOURCE_PARTICLE_SWARM_TU15.md) is registered and matches
+bounded original host execution. The new [original sprite setup and source-pool draw bridge](SOURCE_PARTICLE_SPRITE_CONTEXT_TU15.md)
+match the authored atlas/aspect contexts and14 original Backwash render inputs.
+The source-pool bridge is linked but its normal frame/queue/graphics consumer
+remains unfinished; ordinary Backwash glowbugs and Elongation lens rendering
+remain open.
+Complete train behavior, all authored effects/interactions, the two Vista maps,
+network and full Xbox visual acceptance remain open.
+[The original decal cache export](SOURCE_DECAL_VERTEX_CACHE_TU15.md) retains
+actual clipped geometry. [Its cached decal GPU consumer](SOURCE_CACHED_DECAL_RENDER_TU15.md)
+now has visible ordinary Zanzibar evidence: hiding its draws changes 2,680
+pixels and enabled repeats are identical, with zero Vulkan validation errors.
+Its draw planner also matches the original 20-draw/22-quad fixture. The fresh
+runtime passes all 21 first-source-tick checks and 60 rendered Zanzibar ticks
+with one/four views. Both installed normal launchers now select that packaged runtime. Remaining maps and interactions still need acceptance.
 [Zanzibar's computer now has native idle button
 prompts and player-held interaction](HUD_ACTION_PROMPTS.md), using the source
 scalar control gates, authored static model bounds and current device groups.
@@ -41,8 +62,9 @@ the script/list kernels and ordinary authored root activation. The production
 probe runs all 23 maps for 1,200 ticks without VM faults; Colossus cans,
 Elongation crates and Terminal trains now have live script lifetimes. This
 does not establish conveyor/crate physics, full prop replication/reset or
-complete attached effects. The two Vista-only maps still have a rendering
-blocker in their exclusive lightmap texture loading.
+complete attached effects. The current direct Vista-only cache check stops
+earlier at the missing admitted resource-binding owner. The separate Xbox
+texture-donor authority guard also remains; neither boundary is bypassed.
 
 All four authored controls now pass actual native prompt/hold/group/motion/
 repeat checks with one and four native players: Zanzibar's computer, both
@@ -483,3 +505,16 @@ input/camera constructor 1888A0 before scene construction, so live Zanzibar
 acceptance of this factory change is still unproven. Full normal-launcher
 acceptance and all-map completion remain open. Earlier accepted snapshots
 remain archived; their receipts do not establish the current launcher state.
+
+## Ascension and Colossus distortion continuation, October 14
+
+The production particle renderer now contains the separate authored distortion
+vertex program, signed texture filtering and dependent BUMPENVMAP consumer.
+Sixteen declared-input graphics cases pass within one byte level, alongside
+the existing captured particle graphics check. Untouched TU1.5 calls establish
+the rotating framebuffer alias and authored bump writes, including retained
+SDK state24. Live admission remains guarded until the original completed stage
+state and ordered render-surface consumption are connected. The resource bank
+remains91/96; this does not close the full map-effects/interactions goal.
+See [SOURCE_MAP_DISTORTION_TU15.md](SOURCE_MAP_DISTORTION_TU15.md) for source
+identities, complete-call evidence and the remaining native handoff.

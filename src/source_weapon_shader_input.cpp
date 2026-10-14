@@ -37,4 +37,16 @@ std::optional<float> source_weapon_shader_input(std::uint32_t name,
     }
     return {};
 }
+FunctionValue source_weapon_primary_charge(std::uint8_t mode,std::int16_t ticks,
+    float charging_seconds,float tick_seconds) {
+    float value=0.f;
+    if(mode==1) {
+        const float divided=float(ticks)/charging_seconds;
+        const float elapsed=divided*tick_seconds;
+        value=1.f-elapsed;
+    } else if(mode==2)value=1.f;
+    if(value<0.f)value=0.f;
+    else if(value>1.f)value=1.f;
+    return {value,value>0.f};
+}
 } // namespace halo2

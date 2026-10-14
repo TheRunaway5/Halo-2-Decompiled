@@ -20,9 +20,10 @@ ScriptVm::Snapshot ScriptVm::snapshot() const {
   return result;
 }
 void ScriptVm::restore(const Snapshot &snapshot) {
+  NativeAuthorityBoundary::Call call(authority_);
   if (updating_ || !snapshot.state_ || snapshot.state_->program != &program_)
     throw FormatError("invalid script checkpoint restore");
-  threads_ = snapshot.state_->threads;
+  ++authority_.mutations;threads_ = snapshot.state_->threads;
   globals_ = snapshot.state_->globals;
   // Fault reports describe observed execution, including discarded timelines.
   // Keep this history outside the checkpoint so a revert cannot hide a fault.
@@ -264,6 +265,7 @@ ScriptAudit ScriptVm::audit() const {
   return result;
 }
 void ScriptVm::start(const std::string &name) {
+  NativeAuthorityBoundary::Call call(authority_);
   const auto found =
       std::find_if(program_.scripts.begin(), program_.scripts.end(),
                    [&](const auto &s) { return s.name == name; });
@@ -282,7 +284,7 @@ ScriptVm::Thread &ScriptVm::activate(std::size_t index, std::uint64_t wake) {
     if (t.script == index) {
       if (t.faulted)
         throw FormatError("cannot wake faulted script: " + script.name);
-      t.wake = wake;
+      ++authority_.mutations;t.wake = wake;
       t.dormant = false;
       t.stopped = false;
       if (t.stack.empty())
@@ -292,6 +294,7 @@ ScriptVm::Thread &ScriptVm::activate(std::size_t index, std::uint64_t wake) {
   if (threads_.size() >= 320)
     throw FormatError("script thread capacity exhausted");
   Thread t;
+  ++authority_.mutations;
   t.script = index;
   t.wake = wake;
   t.stack.push_back(Frame{script.root});
@@ -299,6 +302,7 @@ ScriptVm::Thread &ScriptVm::activate(std::size_t index, std::uint64_t wake) {
   return threads_.back();
 }
 void ScriptVm::start_level() {
+  NativeAuthorityBoundary::Call call(authority_);
   for (std::size_t i = 0; i < program_.scripts.size(); ++i) {
     const auto type = program_.scripts[i].type;
     if (type <= 2) {
@@ -308,13 +312,16 @@ void ScriptVm::start_level() {
   }
 }
 void ScriptVm::start_command(unsigned script,std::uint32_t actor) {
+  NativeAuthorityBoundary::Call call(authority_);
   if(script>=program_.scripts.size() || program_.scripts[script].type!=5 || actor==null_datum)
     throw FormatError("Command script requires a live actor and command definition");
   Thread next;next.script=script;next.actor=actor;next.stack.push_back(Frame{program_.scripts[script].root});
+  ++authority_.mutations;
   for(auto &thread:threads_)if(thread.actor==actor){thread=std::move(next);return;}
   if(threads_.size()>=320)throw FormatError("Script thread capacity exhausted");threads_.push_back(std::move(next));
 }
 void ScriptVm::stop_command(std::uint32_t actor) {
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;
   for(auto &thread:threads_)if(thread.actor==actor){thread.stopped=true;thread.command_wait=false;}
 }
 bool ScriptVm::command_running(unsigned script,std::uint32_t actor)const {
@@ -328,12 +335,14 @@ std::vector<std::uint32_t> ScriptVm::object_list_roots()const {
   return result;
 }
 void ScriptVm::wait_for_command() {
+  NativeAuthorityBoundary::Call call(authority_);
   if(!current_thread_ || !current_thread_->actor || !command_ready_)throw FormatError("Command wait has no actor completion owner");
-  current_thread_->command_wait=true;
+  ++authority_.mutations;current_thread_->command_wait=true;
 }
 void ScriptVm::set_random_choice(RandomChoice choice) {
+  NativeAuthorityBoundary::Call call(authority_);
   if(updating_)throw FormatError("script random source changed during dispatch");
-  random_choice_=std::move(choice);
+  ++authority_.mutations;random_choice_=std::move(choice);
 }
 std::size_t ScriptVm::running() const {
   return std::count_if(threads_.begin(), threads_.end(),
@@ -559,18 +568,20 @@ void ScriptVm::update(Thread &thread, std::uint64_t tick) {
     } else if (name == "sleep") {
       if (args.empty() || args.size() > 2)
         throw FormatError("invalid sleep arity");
-      if (args[0].number() < 0)
-        throw FormatError("negative sleep");
-      const auto until = tick + std::uint64_t(std::nearbyint(args[0].number()));
+      // Retail2087E0 reads a signed short and ignores negative delays and
+      // nonpositive converted tick counts. These are not sleep_forever.
+      const auto delay = std::int16_t(scalar_cast_bits(args[0].bits,args[0].type,7));
+      const auto duration = delay < 0 ? 0 : wait_ticks(delay);
       if (args.size() == 2) {
         const auto target = args[1].bits & 65535u;
         if (target >= program_.scripts.size())
           throw FormatError("sleep target outside scripts");
-        for (auto &t : threads_)
-          if (t.script == target && !t.stopped)
-            t.wake = until;
-      } else
-        thread.wake = until;
+        if (duration > 0)
+          for (auto &t : threads_)
+            if (t.script == target && !t.stopped)
+              t.wake = tick + std::uint64_t(duration);
+      } else if (duration > 0)
+        thread.wake = tick + std::uint64_t(duration);
       finish({});
       if (thread.wake > tick)
         return;
@@ -618,9 +629,14 @@ void ScriptVm::update(Thread &thread, std::uint64_t tick) {
     thread.wake = tick + 1; // cooperative budget, preserving the stack
 }
 void ScriptVm::tick(std::uint64_t tick) {
+  NativeAuthorityBoundary::Call call(authority_);
   if (updating_)
     throw FormatError("recursive script dispatch");
-  updating_ = true;
+  ++authority_.mutations;updating_ = true;
+  struct DispatchExit {
+    bool &updating;Thread *&thread;std::optional<std::uint32_t> &actor;
+    ~DispatchExit(){updating=false;thread=nullptr;actor.reset();}
+  } dispatch_exit{updating_,current_thread_,current_actor_};
   suspended_ = false;
   const auto count = threads_.size();
   for (std::size_t i = 0; i < count; ++i) {

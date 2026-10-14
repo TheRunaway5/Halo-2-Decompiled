@@ -73,6 +73,77 @@ def group_cases(image, code):
     return result
 
 
+def machine_bank_cases(image, code):
+    """Complete original BSP getter and machine-reference publication bodies."""
+    entries = [0x202ab0]*8 + [0x2184a0]*48
+    all_sites = {p: set(complete_body(code, p).code) for p in set(entries)}
+    covered = {p: set() for p in all_sites}
+    rng = random.Random(0x2184a0)
+    registers = [UC_X86_REG_EAX, UC_X86_REG_ECX, UC_X86_REG_EDX, UC_X86_REG_EBX,
+        UC_X86_REG_ESP, UC_X86_REG_EBP, UC_X86_REG_ESI, UC_X86_REG_EDI]
+    result = []
+    for n, entry in enumerate(entries):
+        cpu = Uc(UC_ARCH_X86, UC_MODE_32)
+        cpu.mem_map(0x10000, 0x800000)
+        for section in image.sections:
+            cpu.mem_write(section.va, image.section_bytes(section))
+        stack, stop, pool, body = 0x600f0000, 0x60300000, 0x61000000, 0x62000000
+        bsp, bank, rows, refs, records = 0x63000000, 0x63001000, 0x63002000, 0x63003000, 0x64000000
+        for address, size in ((stack-4096,8192), (stop,4096), (pool,8192),
+                (body,4096), (bsp,0x4000), (records,4096)):
+            cpu.mem_map(address, size)
+        datum = (rng.randrange(1,65535)<<16) | (n%8)
+        initial = bytearray(rng.randbytes(0x240))
+        sb = bytearray(rng.randbytes(128)); struct.pack_into('<I',sb,0,stop)
+        pb = bytearray(rng.randbytes(0x100)); struct.pack_into('<I',pb,0x44,pool+4096)
+        bb = bytearray(rng.randbytes(0xd0))
+        struct.pack_into('<iI',bb,0xc4,(-1,0,1,2,-2147483648,2147483647,0,1)[n%8],bank)
+        bank_bytes = bytearray(rng.randbytes(0x38)); struct.pack_into('<II',bank_bytes,0x30,2,rows)
+        row_bytes = bytearray(rng.randbytes(2*0x1c))
+        # Include every early return, both accepted object types, and a
+        # multi-reference loop. These are explicit inputs, not live captures.
+        variant = n%12
+        initial[0xaa] = (0,6,7,7,7,7,7,7,6,6,7,7)[variant]
+        index = (-1,-1,-1,2,0,0,0,1,0,1,0,1)[variant]
+        struct.pack_into('<h',initial,0x130,index)
+        struct.pack_into('<h',initial,0x1d4,index)
+        for i in range(2):
+            row_bytes[i*0x1c] = 0 if variant == 4 else 1
+            count = 0 if variant == 5 else (-1 if variant == 6 else (1 if variant == 7 else 4))
+            struct.pack_into('<iI',row_bytes,i*0x1c+0x14,count,refs)
+        ref_bytes = b''.join(struct.pack('<hBB',i*2+1,(n+i)&255,(n*3+i)&255) for i in range(4))
+        regions = [(stack-64,rng.randbytes(64)), (stack,sb), (pool,pb),
+            (pool+4096+(datum&65535)*12+8,struct.pack('<I',body)), (body,initial),
+            (0x4ecbd0,struct.pack('<I',pool)), (0x4ecc18,struct.pack('<I',bsp)),
+            (0x505e78,struct.pack('<I',records)), (bsp,bb), (bank,bank_bytes),
+            (rows,row_bytes), (refs,ref_bytes), (records,rng.randbytes(256))]
+        for p,b in regions: cpu.mem_write(p,bytes(b))
+        gp = [rng.getrandbits(32) for _ in registers]; gp[0]=bank; gp[2]=datum; gp[4]=stack
+        xmm = [[rng.getrandbits(32) for _ in range(4)] for _ in range(8)]
+        flags = 0x202 | ((n&1)*0x8d5)
+        for register,value in zip(registers,gp): cpu.reg_write(register,value)
+        for i,words in enumerate(xmm): cpu.reg_write(UC_X86_REG_XMM0+i,int.from_bytes(struct.pack('<4I',*words),'little'))
+        cpu.reg_write(UC_X86_REG_EFLAGS,flags)
+        trace, stores = [], []
+        def instruction(uc,pc,size,_):
+            assert pc in all_sites[entry],hex(pc)
+            assert bytes(uc.mem_read(pc,size)) == image.read(pc,size)
+            trace.append(pc); covered[entry].add(pc)
+        def store(uc,_,address,size,value,__):
+            stores.append(dict(instruction=uc.reg_read(UC_X86_REG_EIP),address=address,
+                before=bytes(uc.mem_read(address,size)).hex(),written=(value&((1<<(size*8))-1)).to_bytes(size,'little').hex()))
+        cpu.hook_add(UC_HOOK_CODE,instruction); cpu.hook_add(UC_HOOK_MEM_WRITE,store)
+        cpu.emu_start(entry,stop,count=10000)
+        assert cpu.reg_read(UC_X86_REG_EIP)==stop
+        result.append(dict(entry=entry,regions=[dict(address=p,bytes=bytes(b).hex()) for p,b in regions],
+            input=dict(gp=gp,xmm=xmm,eflags=flags),expected=dict(gp=[cpu.reg_read(r) for r in registers],
+                xmm=[list(struct.unpack('<4I',cpu.reg_read(UC_X86_REG_XMM0+i).to_bytes(16,'little'))) for i in range(8)],
+                eflags=cpu.reg_read(UC_X86_REG_EFLAGS),body=bytes(cpu.mem_read(body,len(initial))).hex(),stores=stores,trace=trace)))
+    assert covered == all_sites, {hex(p):sorted(all_sites[p]-covered[p]) for p in all_sites}
+    print('Original machine bank helpers: 56 cases, all 73 instructions, no replaced services')
+    return result
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', type=Path, required=True)
@@ -172,9 +243,10 @@ def main():
     assert all(covered[p] == all_sites[p] for p in (0x10b5c0, 0x117870, 0x118120, 0xa9be0))
     assert 0x10c145 not in covered[0x10c0b0] and 0x10c16f not in covered[0x10c0b0]
     rows.extend(group_cases(image,code))
+    rows.extend(machine_bank_cases(image,code))
     a.output.parent.mkdir(parents=True, exist_ok=True)
     a.output.write_text(json.dumps(dict(reference='OG Xbox TU1.5', xbe_sha256=NEW_PIN,
-        boundary='Unchanged original DEVI/MACH birth, portal, fresh pose, collision-type, device-group allocation/resolution and map groups, CTRL/LIFI post-birth and fresh channel lookup; declared input banks. No replaced instructions or services. Live animation and machine physics branches are not claimed by these cases; not full gameplay.',
+        boundary='Unchanged original DEVI/MACH birth, portal, fresh pose, collision-type, device-group allocation/resolution and map groups, CTRL/LIFI post-birth, fresh channel lookup, BSP machine bank lookup and collision-reference publication; declared input banks. No replaced instructions or services. Live animation and remaining machine physics branches are not claimed by these cases; not full gameplay.',
         oracle_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), cases=rows), indent=2)+'\n')
     print(f'PASS {len(rows)} unchanged original DEVI/MACH birth, portal, collision-type and fresh pose-change cases, {sum(len(r["expected"]["trace"]) for r in rows)} instructions, all 161 birth/portal/type CFG instructions and {len(covered[0x10c0b0])}/63 pose-change instructions covered, no external services')
 

@@ -1,5 +1,12 @@
 # TU1.5 vehicle camera live integration
 
+October14 correction: the heavy-vehicle recordings exposed a shared frozen-look
+defect in remote seated players. Exact authority/client camera agreement alone
+did not detect it. The native controlled-actor path now retains delivered look
+input while attached. `v236` Scorpion/Wraith runs additionally require camera
+response to a deliberate mouse turn and pass with0.6 radians of submitted
+camera motion. See [recorded failures, fix and live evidence](MP_HEAVY_VEHICLES_CAMERA_TU15_20261014.md).
+
 The driver view now executes actual English TU1.5 `245EA0`, selected by the
 original instruction at `15850D`. Its complete `189FD0` camera-block resolver,
 `245C70` pitch-to-track search, `2455F0` authored-track interpolation, marker,
@@ -27,6 +34,19 @@ physical world independently. Wire admission requires a live seated owner,
 finite coordinates/FOV and a valid orthogonal camera basis.
 
 ## Visible evidence
+
+October14 current-root `live-root-camera-lift-regression-v226/lan-vehicle`
+passes Banshee entry, open flight, steering and exit after scene-generation,
+input-routing and additional contact-query integration. All902 UDP snapshots
+match the actual authority. The renderer submits562 exact original seated
+camera packets and446 views after exit, including horizontal FOV comparisons.
+Horizontal flight covers13.382885 units, climb5.403625 units and steering
+0.613376 radians. The stable runtime is
+`323c16f52e406c35c388de19e51f985b5b265bee726dad2790e8979ac8927d16`;
+its unaltered X11 recording contains919 frames over30.633333 seconds.
+The same build also passes the UDP lift with181 exact comparisons and the
+surviving-observer prop destruction/recreation fixture with182 comparisons.
+These remain bounded native tests with the retail-coverage limits below.
 
 The isolated, coherent `source-v3` build was tested in real X11 windows with
 ordinary SDL keyboard/gamepad input and unaltered window recording:

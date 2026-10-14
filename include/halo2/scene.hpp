@@ -4,9 +4,12 @@
 #include "halo2/camera_motion.hpp"
 #include "halo2/object_light_contacts.hpp"
 #include "halo2/native_object_lifetimes.hpp"
+#include "halo2/source_world_pose.hpp"
+#include "halo2/native_authority_boundary.hpp"
 #include <functional>
 #include <optional>
 #include <map>
+#include <exception>
 namespace halo2 {
 struct Camera {
   Vec3 position;
@@ -81,6 +84,10 @@ public:
   // Source deletion has already retired this full generation. Remove only
   // its presentation and lifetime sidecar; never invoke the destructor again.
   void observe_source_retirement(std::uint32_t handle);
+  // Completed authority snapshots own replica identities. This presentation
+  // does not reserve headers, construct bodies or advance another world.
+  // Vehicles are presented by the separate authoritative vehicle bank.
+  void adopt_source_replicas(std::span<const SourceSceneRoot>,std::span<const SourceWorldPose>);
   void destroy_all();
   void destroy_type_mask(std::uint32_t);
   Object &get(std::uint32_t);
@@ -96,23 +103,79 @@ public:
   bool retains(int previous_bsp, int next_bsp, Vec3 center) const;
   void switch_bsp(std::size_t, bool suppress_automatic = false);
   void visible(std::uint32_t,bool);
+  struct AuthorityFunction {float from{},to{};int start{},duration{};};
+  enum class AuthorityPool {LocalOwned,SharedOwned,SharedSource};
+  struct AuthorityCheckpoint {
+    std::uint32_t version=1;
+    std::array<std::byte,32> content_binding{};
+    std::size_t bsp{};
+    AuthorityPool pool=AuthorityPool::LocalOwned;
+    bool source_factory{},render_attribution_resolver{};
+    std::vector<Object> objects;
+    std::map<std::uint32_t,std::size_t> slots;
+    std::vector<std::uint32_t> names;
+    std::map<std::pair<std::uint32_t,std::uint32_t>,AuthorityFunction> functions;
+    std::optional<NativeObjectLifetimes> local_lifetimes;
+  };
+  class PreparedAuthority {
+  public:
+    ~PreparedAuthority();
+    PreparedAuthority(PreparedAuthority &&) noexcept;
+    PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+    bool for_owner(const SceneObjects &) const noexcept;
+  private:
+    friend class SceneObjects;
+    PreparedAuthority();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // Pointer-free scene values; local content, factory/resolver callbacks and
+  // shared identity-owner addresses never import. The enclosing transaction
+  // must authenticate the complete map/image and quiesce every scene borrower.
+  // A display replica is not an authority checkpoint.
+  AuthorityCheckpoint authority_checkpoint() const;
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &); // Standalone owned scene.
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &,const NativeObjectLifetimes &incoming_owned);
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &,
+      const NativeObjectLifetimes::SourceAuthorityCheckpoint &,const SourceRuntimeMemory &replacement);
+  // Shared identity owners must publish first; source views must rebind to the
+  // exact staged bank. Owner and shared bank outlive preparation. Commit/cancel
+  // on the enclosing executor; commit consumes the token only on success.
+  bool commit_authority(PreparedAuthority &&) noexcept;
 
 private:
+  struct AuthorityCalls {
+    std::size_t depth{};
+    std::uint64_t mutations{};
+    bool staging{},fault{};
+    AuthorityCalls()=default;
+    AuthorityCalls(const AuthorityCalls &other):fault(other.fault){}
+    struct Scope {
+      AuthorityCalls &owner;int exceptions=std::uncaught_exceptions();std::uint64_t before;
+      explicit Scope(AuthorityCalls &owner):owner(owner),before(owner.mutations) {
+        if(owner.staging)throw FormatError("Scene mutation during authority preparation");
+        ++owner.depth;
+      }
+      ~Scope(){if(std::uncaught_exceptions()>exceptions && before!=owner.mutations)owner.fault=true;--owner.depth;}
+    };
+  } authority_calls_;
   const LevelContent &content_;
   std::size_t bsp_;
   std::optional<SourceSceneGameContext> game_context_;
   RenderAttributionDefinitionResolver render_attribution_definition_;
   SourceSceneObjectOwner source_owner_;
+  bool source_replica_{};
   bool factory_game_allowed(const ScenarioObject &) const;
   // Standalone scenes own a value bank. Simulation supplies its shared bank
   // before any placement and snapshots/restores that bank separately.
   std::optional<NativeObjectLifetimes> local_lifetimes_;
   NativeObjectLifetimes *shared_lifetimes_{};
   NativeObjectLifetimes &lifetime_owner();
+  PreparedAuthority prepare_authority_values(const AuthorityCheckpoint &);
   std::vector<Object> objects_;
   std::map<std::uint32_t,std::size_t> slots_;
   std::vector<std::uint32_t> names_;
-  struct FunctionVariable { float from{}, to{}; int start{}, duration{}; };
+  using FunctionVariable=AuthorityFunction;
   std::map<std::pair<std::uint32_t,std::uint32_t>,FunctionVariable> functions_;
   std::uint32_t place(std::size_t, std::uint64_t creation_tick = 0);
 };
@@ -136,8 +199,41 @@ public:
   int camera_time() const;
   bool cinematic{}, scripted{}, player_camera_enabled = true;
   bool cinematic_outro{}; // Retail HUD/cinematic globals+22; retained until level teardown.
+  struct AuthorityTransition {float from{},to{};int duration{},elapsed{};};
+  struct AuthorityCheckpoint {
+    std::uint32_t version=1;
+    std::array<std::byte,32> content_binding{};
+    bool loader{},cinematic{},scripted{},player_camera_enabled{},cinematic_outro{};
+    std::array<AuthorityTransition,4> transitions;
+    Vec3 fade_color;
+    Camera camera,camera_from,camera_to;
+    CameraMotion observer;
+    int camera_duration{},camera_elapsed{};
+    std::optional<AnimationClip> animation;
+    CutsceneFlag anchor;
+  };
+  class PreparedAuthority {
+  public:
+    ~PreparedAuthority();
+    PreparedAuthority(PreparedAuthority &&) noexcept;
+    PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+    bool for_owner(const Presentation &)const noexcept;
+  private:
+    friend class Presentation;
+    PreparedAuthority();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // Value-only continuation with a target-local content reference/loader.
+  // The enclosing root owns quiescence of direct public flags and consumers.
+  // It authenticates the complete image/map/schema and publishes all owners
+  // before resuming. Campaign restore remains a separate policy/API.
+  AuthorityCheckpoint authority_checkpoint()const;
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &);
+  bool commit_authority(PreparedAuthority &&) noexcept;
 
 private:
+  NativeAuthorityBoundary authority_;
   struct Transition {
     float from{}, to{};
     int duration{}, elapsed{};

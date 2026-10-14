@@ -17,7 +17,7 @@ struct Host {
   Controls shooter;
   std::atomic<bool> fire{},removed{};
   std::exception_ptr error;std::mutex mutex;std::jthread worker;
-  static SlayerRules rules(const Cache &c){SlayerRules r;r.weapon=c.slayer_starting_weapon(5);r.time_ticks=r.score_limit=0;return r;}
+  static SlayerRules rules(const Cache &c){auto r=slayer_rules(UiVariant{"Slayer",0,{{2,0},{10,0},{89,5}}});r.weapon=c.slayer_starting_weapon(5);return r;}
   Host(const MultiplayerOptions &o):cache(o.map,o.shared_maps,OriginalData::load_xbe(o.gameplay_xbe)),
     content(cache.load_content(0,true)),match(content,0,cache.spawns(),rules(cache)),host(match,0,
       multiplayer_fingerprint(o.map,cache.shared_directory(),0,cache.slayer_starting_weapon(5),o.gameplay_xbe)) {

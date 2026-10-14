@@ -14,16 +14,35 @@
 // services, inject world state, initialize a renderer or open audio devices.
 int main(int argc, char **argv) try {
     using namespace halo2;
-    if (argc < 6 || argc > 11) throw FormatError("Supply MAP SHARED XBE TICKS OUTPUT_DIRECTORY [--require-completion] [--no-skip] [--route=VOLUME,...] [--route-after=DEVICE] [--command-route=SET/POINT,...]");
+    if (argc < 6 || argc > 13) throw FormatError("Supply MAP SHARED XBE TICKS OUTPUT_DIRECTORY [--require-completion] [--no-skip] [--route=VOLUME,...] [--route-after=DEVICE] [--command-route=SET/POINT,...] [--route-wait-device=VOLUME=DEVICE,...] [--restart-at=STEP]");
     bool require_completion{}, allow_skip=true;
     std::vector<std::string> route_names;
     std::string route_after;
+    std::optional<unsigned> restart_step;
+    std::vector<std::pair<std::string,std::string>> route_wait_names;
     std::vector<std::pair<unsigned,unsigned>> command_references;
     for(int i=6;i<argc;++i) {
         const std::string_view option=argv[i];
         if(option=="--require-completion")require_completion=true;
         else if(option=="--no-skip")allow_skip=false;
+        else if(option.starts_with("--restart-at=")) {
+            std::size_t used{};const auto text=std::string(option.substr(13));const auto value=std::stoul(text,&used);
+            if(used!=text.size() || value>100000)throw FormatError("Invalid checkpoint restart step");
+            restart_step=unsigned(value);
+        }
         else if(option.starts_with("--route-after="))route_after=option.substr(14);
+        else if(option.starts_with("--route-wait-device=")) {
+            auto names=option.substr(20);
+            while(!names.empty()) {
+                const auto comma=names.find(',');const auto token=names.substr(0,comma);
+                const auto equals=token.find('=');
+                if(equals==std::string_view::npos || !equals || equals+1==token.size())
+                    throw FormatError("Route wait needs VOLUME=DEVICE pairs");
+                route_wait_names.emplace_back(token.substr(0,equals),token.substr(equals+1));
+                if(comma==std::string_view::npos)break;
+                names.remove_prefix(comma+1);
+            }
+        }
         else if(option.starts_with("--command-route=")) {
             auto names=option.substr(16);
             while(!names.empty()) {
@@ -57,6 +76,7 @@ int main(int argc, char **argv) try {
     }
     const auto limit = std::stoul(argv[4]);
     if (!limit || limit > 100000) throw FormatError("Invalid campaign tick limit");
+    if(restart_step && *restart_step>=limit)throw FormatError("Checkpoint restart step is outside the test budget");
     const std::filesystem::path output = argv[5];
     std::filesystem::create_directories(output);
     Cache cache(argv[1], argv[2], OriginalData::load_xbe(argv[3]));
@@ -77,7 +97,18 @@ int main(int argc, char **argv) try {
         if(at==content.trigger_volumes.end())throw FormatError("Unknown campaign route volume: "+name);
         volume_route.push_back(unsigned(at-content.trigger_volumes.begin()));
     }
+    std::vector<int> route_wait_devices(volume_route.size(),-1);
+    for(const auto &[volume,device]:route_wait_names) {
+        const auto v=std::find(route_names.begin(),route_names.end(),volume);
+        const auto d=std::find_if(content.object_names.begin(),content.object_names.end(),
+            [&](const auto &n){return n.name==device;});
+        if(v==route_names.end() || d==content.object_names.end())throw FormatError("Unknown route wait owner");
+        auto &slot=route_wait_devices[std::size_t(v-route_names.begin())];
+        if(slot!=-1)throw FormatError("Duplicate route wait volume");
+        slot=int(d-content.object_names.begin());
+    }
     std::size_t volume_waypoint{};
+    bool route_entered{};
     int route_device=-1;
     if(!route_after.empty()) {
         const auto at=std::find_if(content.object_names.begin(),content.object_names.end(),
@@ -118,8 +149,21 @@ int main(int argc, char **argv) try {
     unsigned moved{}, maximum_actors{}, skip_inputs{};
     bool skip_held{};
     bool light_diagnostic{};
-    unsigned steps{};
+    unsigned steps{},restart_inputs{};
+    struct RouteState {std::size_t volume{},command{};bool entered{},lights{},skip{};};
+    std::vector<RouteState> route_history;
     for (unsigned step = 0; step < limit && !simulation.level_finished(); ++step) {
+        const auto old_restores=simulation.checkpoint_restores();
+        if(restart_step) {
+            const auto tick=simulation.ticks();
+            if(tick>route_history.size())throw FormatError("Checkpoint control history has a missing tick");
+            const RouteState state{volume_waypoint,command_waypoint,route_entered,light_diagnostic,skip_held};
+            if(tick==route_history.size())route_history.push_back(state);else route_history[std::size_t(tick)]=state;
+            if(step==*restart_step) {
+                if(!simulation.has_checkpoint())throw FormatError("Requested restart has no authored checkpoint");
+                simulation.request_revert();++restart_inputs;
+            }
+        }
         Controls input;
         std::uint32_t selected_target=null_datum;Vec3 selected_position{},selected_goal{};
         const auto &player = simulation.player();
@@ -222,16 +266,13 @@ int main(int argc, char **argv) try {
                     input.forward=std::hypot(delta.x,delta.y)>.2f?.7f:0;
                     input.right=0;
                     if(!command_route.empty() && command_waypoint==command_route.size())
-                        input.jump=player.body.grounded && goal.z>player.body.position.z+.1f &&
+                        input.jump=!route_entered && player.body.grounded && goal.z>player.body.position.z+.1f &&
                             std::hypot(delta.x,delta.y)<2.f && step%90==0;
                     if(!command_route.empty() && command_waypoint==command_route.size() && target) {
                         // Keep looking at the actual ally while walking to the
                         // final volume, just as a player can walk and look
                         // independently during the sergeant's explanation.
-                        const auto offset=target->definition.bounding_offset;
-                        const auto facing=direction(target->yaw);
-                        const auto point=target->body.position+facing*offset.x+
-                            Vec3{-facing.y,facing.x,0}*offset.y+Vec3{0,0,offset.z};
+                        const auto point=simulation.object_center(target->source_datum);
                         const auto look=point-origin;
                         input.yaw=std::atan2(look.y,look.x);
                         input.pitch=std::clamp(std::atan2(look.z,std::hypot(look.x,look.y)),-1.5f,1.5f);
@@ -241,14 +282,32 @@ int main(int argc, char **argv) try {
                         input.forward=speed*dot(walk,forward);
                         input.right=-speed*dot(walk,Vec3{-forward.y,forward.x,0});
                     }
-                    const auto offset=player.definition.bounding_offset;
-                    const auto center=player.body.position+direction(player.yaw)*offset.x+
-                        Vec3{-std::sin(player.yaw),std::cos(player.yaw),0}*offset.y+Vec3{0,0,offset.z};
-                    if(volume_waypoint+1<volume_route.size() && simulation.scene().contains(volume,center))++volume_waypoint;
+                    const auto center=simulation.object_center(0);
+                    route_entered |= simulation.scene().contains(volume,center);
+                    const auto wait=route_wait_devices[volume_waypoint];
+                    const auto ready=wait<0 || [&] {
+                        const auto owner=simulation.devices().owners().find(simulation.scene().resolve(wait));
+                        return owner!=simulation.devices().owners().end() && owner->second.motion.position>=.999f;
+                    }();
+                    if(route_entered && !ready) {
+                        // Stay aboard a moving lift after entering its actual
+                        // volume. Read scripted readiness without changing it.
+                        input.forward=input.right=0;input.jump=false;
+                    }
+                    if(volume_waypoint+1<volume_route.size() && route_entered && ready) {
+                        ++volume_waypoint;route_entered=false;ally_route.clear();
+                    }
                 }
             }
         }
         simulation.step(input);
+        if(restart_step && simulation.checkpoint_restores()!=old_restores) {
+            const auto tick=simulation.ticks();
+            if(tick>=route_history.size())throw FormatError("Restored checkpoint lacks control history");
+            const auto state=route_history[std::size_t(tick)];
+            volume_waypoint=state.volume;command_waypoint=state.command;route_entered=state.entered;
+            light_diagnostic=state.lights;skip_held=state.skip;ally_route.clear();
+        }
         ++steps;
         simulation.advance_audio(tick_seconds);
         simulation.take_sounds();
@@ -280,6 +339,27 @@ int main(int argc, char **argv) try {
         std::cerr<<"Campaign route at limit: waypoint="<<volume_waypoint
             <<" command_waypoint="<<command_waypoint
             <<" navigation_sector="<<navigation.locate(player.body.position).value_or(std::size_t(-1))<<'\n';
+        const auto volume_membership=[&](const Unit &unit) {
+            const auto center=simulation.object_center(&unit==&simulation.player()?0:unit.source_datum);
+            std::cerr<<" center="<<center.x<<','<<center.y<<','<<center.z;
+            if(!volume_route.empty())std::cerr<<" in_current_volume="<<simulation.scene().contains(
+                content.trigger_volumes[volume_route[volume_waypoint]],center);
+        };
+        std::cerr<<"Campaign player at limit:";volume_membership(player);std::cerr<<'\n';
+        for(const auto &actor:simulation.actors())if(actor.exists) {
+            std::cerr<<"Campaign actor at limit: squad="<<actor.squad<<" handle="<<actor.source_datum
+                <<" position="<<actor.body.position.x<<','<<actor.body.position.y<<','<<actor.body.position.z
+                <<" route_points="<<actor.route.size()<<" waypoint="<<actor.waypoint;
+            volume_membership(actor);
+            if(actor.command.goal)std::cerr<<" goal="<<actor.command.goal->x<<','<<actor.command.goal->y<<','<<actor.command.goal->z;
+            std::cerr<<'\n';
+        }
+        for(const auto wait:route_wait_devices)if(wait>=0) {
+            const auto owner=simulation.devices().owners().find(simulation.scene().resolve(wait));
+            if(owner!=simulation.devices().owners().end())std::cerr<<"Campaign route device at limit: "
+                <<content.object_names[unsigned(wait)].name<<" position="<<owner->second.motion.position
+                <<" power="<<owner->second.motion.power<<'\n';
+        }
         const auto middle=player.body.position+Vec3{0,0,player.body.height*.5f};
         if(const auto wall=simulation.collision().raycast(middle,direction(player.yaw),1.f)) {
             std::cerr<<"Campaign forward obstruction: triangle="<<wall->triangle
@@ -298,10 +378,11 @@ int main(int argc, char **argv) try {
         }
         throw FormatError("Campaign step budget ended before authored level completion");
     }
+    if(restart_step && restart_inputs!=1)throw FormatError("Campaign finished before its requested checkpoint restart");
     if(!trace)throw FormatError("Campaign trace write failed");
     std::cout << "PASS bounded campaign simulation: " << simulation.status()
               << " moved_ticks=" << moved << " peak_actors=" << maximum_actors
-              << " skip_inputs=" << skip_inputs << " steps=" << steps
+              << " skip_inputs=" << skip_inputs << " restart_inputs=" << restart_inputs << " steps=" << steps
               << " level_finished=" << simulation.level_finished()
               << " machine_owners=" << simulation.devices().owners().size()
               << " resident_models=" << residency.model_count()

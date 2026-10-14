@@ -79,6 +79,7 @@ std::vector<CollisionTriangle> model_collision_triangles(const ModelCollision&d,
 }
 StaticSceneryCollision::StaticSceneryCollision(const LevelContent&content):content_(&content){}
 bool StaticSceneryCollision::synchronize(const SceneObjects&scene){
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;
   bool changed{};std::set<std::uint32_t> present;
   for(const auto&o:scene.objects()){
     if(o.handle==null_datum||o.placement>=content_->static_scenery_collision.size()||

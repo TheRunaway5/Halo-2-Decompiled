@@ -73,10 +73,17 @@ void SourceWorldInterpolation::reset(std::uint64_t tick,std::span<const SourceWo
     current_=std::move(next);previous_.clear();tick_=tick;initialized_=true;paired_=false;
 }
 void SourceWorldInterpolation::capture(std::uint64_t tick,std::span<const SourceWorldPose> poses) {
+    capture(tick,poses,{});
+}
+void SourceWorldInterpolation::capture(std::uint64_t tick,std::span<const SourceWorldPose> poses,
+    std::span<const std::uint32_t> discontinuities) {
     if(!initialized_ || tick<=tick_ || tick-tick_!=1){reset(tick,poses);return;}
     validate_source_world_poses(poses);
     auto next=std::vector<SourceWorldPose>(poses.begin(),poses.end());
     previous_=std::move(current_);current_=std::move(next);tick_=tick;paired_=true;
+    std::erase_if(previous_,[&](const auto &pose) {
+        return std::find(discontinuities.begin(),discontinuities.end(),pose.object)!=discontinuities.end();
+    });
 }
 std::vector<Transform> SourceWorldInterpolation::sample(std::uint32_t object,float f)const {
     validate_render_fraction(f);

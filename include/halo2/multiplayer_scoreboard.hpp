@@ -22,7 +22,7 @@ public:
     FullScoreboardPaintResult paint;
   };
   Draw draw(const MultiplayerState &,std::span<const unsigned> local_ids,
-      unsigned view,unsigned width,unsigned height) const;
+      unsigned view,unsigned width,unsigned height,std::optional<TwoPlayerSplit> split = {}) const;
 private:
   std::shared_ptr<const OriginalData> original_;
   FullScoreboardAssets assets_;

@@ -15,7 +15,8 @@ std::uint32_t r(std::span<const std::byte> data, std::size_t p) {
 }
 SourceRuntimeMemory load(const std::filesystem::path &path, SourcePhysicsContactImage image,
                          const SourceRuntimeKernelHardwareInfo *hardware,
-                         const SourceRuntimeKernelTickCount *tick=nullptr) {
+                         const SourceRuntimeKernelTickCount *tick=nullptr,
+                         const SourceRuntimeKernelBootSmcVideoMode *boot_mode=nullptr) {
   if (image != SourcePhysicsContactImage::MapPack11 && image != SourcePhysicsContactImage::TitleUpdate15)
     throw FormatError("Unverified source runtime image selection");
   if (hardware && (image != SourcePhysicsContactImage::TitleUpdate15 ||
@@ -23,6 +24,9 @@ SourceRuntimeMemory load(const std::filesystem::path &path, SourcePhysicsContact
     throw FormatError("Kernel hardware data requires its actual TU1.5 resource address and owner");
   if(tick && (tick->address<0x60000000u || tick->address>0xfffffffcu || tick->owner.empty()))
     throw FormatError("Kernel tick-count data requires its actual native resource and owner");
+  if(boot_mode && (image!=SourcePhysicsContactImage::TitleUpdate15 ||
+      boot_mode->address<0x60000000u || boot_mode->address>0xfffffffcu || boot_mode->owner.empty()))
+    throw FormatError("Boot SMC data requires its actual TU1.5 resource and owner");
   std::ifstream in(path, std::ios::binary | std::ios::ate);
   if (!in)
     throw FormatError("Source runtime image is unavailable: " + path.string());
@@ -52,7 +56,7 @@ SourceRuntimeMemory load(const std::filesystem::path &path, SourcePhysicsContact
   const std::string selected = later ? "TU1.5" : "TU1.1";
   memory.mount(base, std::span<const std::byte>(bytes).first(headers),
                SourceRuntimeMemory::Access::ReadOnly, "authenticated literal " + selected + " XBE header");
-  bool bound = false,tick_bound=false;
+  bool bound = false,tick_bound=false,boot_mode_bound=false;
   for (unsigned i = 0; i < sections; ++i) {
     const auto p = std::uint64_t(table) - base + std::uint64_t(i) * 56;
     const auto flags = r(bytes, p), address = r(bytes, p + 4),
@@ -78,6 +82,15 @@ SourceRuntimeMemory load(const std::filesystem::path &path, SourcePhysicsContact
       for(unsigned k=0;k<4;++k)region[offset+k]=std::byte(tick->address>>(8*k));
       tick_bound=true;
     }
+    constexpr auto boot_mode_cell=0x41b784u;
+    if(boot_mode && address<=boot_mode_cell &&
+        std::uint64_t(address)+length>=std::uint64_t(boot_mode_cell)+4u) {
+      const auto offset=boot_mode_cell-address;
+      if(boot_mode_bound || r(region,offset)!=0x80000164u)
+        throw FormatError("TU1.5 boot SMC import cell does not retain ordinal356");
+      for(unsigned k=0;k<4;++k)region[offset+k]=std::byte(boot_mode->address>>(8*k));
+      boot_mode_bound=true;
+    }
     memory.mount(address, region,
                  (flags & 1u) ? SourceRuntimeMemory::Access::ReadWrite
                               : SourceRuntimeMemory::Access::ReadOnly,
@@ -91,6 +104,10 @@ SourceRuntimeMemory load(const std::filesystem::path &path, SourcePhysicsContact
   if(tick) {
     if(!tick_bound)throw FormatError("Selected tick-count import cell is unavailable");
     memory.mount(tick->address,tick->bytes,SourceRuntimeMemory::Access::ReadWrite,tick->owner);
+  }
+  if(boot_mode) {
+    if(!boot_mode_bound)throw FormatError("TU1.5 boot SMC import cell is unavailable");
+    memory.mount(boot_mode->address,boot_mode->bytes,SourceRuntimeMemory::Access::ReadOnly,boot_mode->owner);
   }
   return memory;
 }
@@ -109,5 +126,9 @@ SourceRuntimeMemory load_source_runtime_image(const std::filesystem::path &path,
 }
 SourceRuntimeMemory load_source_runtime_image_1_1(const std::filesystem::path &path) {
   return load_source_runtime_image(path, SourcePhysicsContactImage::MapPack11);
+}
+SourceRuntimeMemory load_source_runtime_image(const std::filesystem::path &path,
+    SourcePhysicsContactImage image,const SourceRuntimeKernelBootSmcVideoMode &boot_mode) {
+  return load(path,image,nullptr,nullptr,&boot_mode);
 }
 } // namespace halo2

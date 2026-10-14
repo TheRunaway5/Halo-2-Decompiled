@@ -99,8 +99,29 @@ ParticleMaterial Cache::load_particle_material(std::uint32_t datum,unsigned laye
       std::to_integer<std::uint8_t>(raw[1]),std::to_integer<std::uint8_t>(raw[2]),
       std::to_integer<std::uint8_t>(raw[3])};
     pass.textures.push_back(binding);
-    if(binding.stage>=4 || binding.external || binding.flags)
+    if(binding.stage>=4 || binding.flags)
       throw FormatError("particle texture requires original external binding state");
+    if(binding.external) {
+      if(binding.external!=23 || binding.stage!=1 || binding.parameter!=255 || pass.program.words[54]!=0xc1u)
+        throw FormatError("particle texture requires original external binding state");
+      const auto animation=read_shader_animation(b,pp.offset,metadata_magic_);
+      if(animation.lods.empty() || layer>=32 || !(animation.lods[0].available_layers&(1u<<layer)))
+        throw FormatError("particle sampler animation LOD/layer missing");
+      const auto layers=animation.lods[0].layers;
+      if(layers.first()>animation.layers.size() || layer>=layers.count() || layers.count()>animation.layers.size()-layers.first())
+        throw FormatError("particle sampler animation layers escape definition");
+      const auto passes=animation.layers[layers.first()+layer];
+      if(passes.first()>animation.passes.size() || layer_pass>=passes.count() || passes.count()>animation.passes.size()-passes.first())
+        throw FormatError("particle sampler animation passes escape definition");
+      const auto implementations=animation.passes[passes.first()+layer_pass];
+      const auto bank=metadata_block(pp.offset+52,10);
+      if(implementations.first()>bank.count || implementation>=implementations.count() || implementations.count()>bank.count-implementations.first())
+        throw FormatError("particle sampler animation implementation missing");
+      result.sampler_writes=source_constant_particle_sampler_writes(animation,
+          ShaderRange{b.u16(bank.offset+(implementations.first()+implementation)*10+4)});
+      if(result.sampler_writes.empty())throw FormatError("particle external23 has no original sampler producer");
+      continue;
+    }
     const auto remap=std::find_if(pass.bitmap_remaps.begin(),pass.bitmap_remaps.end(),
       [&](const auto &r){return (r.destination&255)==binding.parameter;});
     if(remap==pass.bitmap_remaps.end() || remap->source>=bitmaps.count)

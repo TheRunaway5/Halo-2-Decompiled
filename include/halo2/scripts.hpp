@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/content.hpp"
 #include "halo2/source_script.hpp"
+#include "halo2/native_authority_boundary.hpp"
 #include <deque>
 #include <functional>
 #include <map>
@@ -14,6 +15,7 @@ struct ScriptValue {
   double number() const;
   bool truth() const { return number() != 0; }
   static ScriptValue numeric(double, std::uint16_t type = 6);
+  bool operator==(const ScriptValue &)const=default;
 };
 struct ScriptAudit {
   std::size_t active{}, calls{}, script_calls{};
@@ -48,7 +50,7 @@ public:
   std::vector<std::uint32_t> object_list_roots()const;
   std::optional<std::uint32_t> command_actor()const{return current_actor_;}
   void wait_for_command();
-  void command_ready(std::function<bool(std::uint32_t)> ready){command_ready_=std::move(ready);}
+  void command_ready(std::function<bool(std::uint32_t)> ready){NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;command_ready_=std::move(ready);}
   void start_level();
   void set_random_choice(RandomChoice);
   void tick(std::uint64_t tick);
@@ -56,13 +58,11 @@ public:
   void restore(const Snapshot &);
   // The host may request a world restore during a call. Finish that call,
   // then stop dispatching until the simulation reaches a safe boundary.
-  void suspend_tick() { suspended_ = true; }
+  void suspend_tick() {NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;suspended_ = true;}
   const std::vector<std::string> &diagnostics() const { return diagnostics_; }
   std::size_t running() const;
   const std::vector<ScriptValue> &globals() const { return globals_; }
-
-private:
-  struct Frame {
+  struct AuthorityFrame {
     std::uint32_t id{};
     bool entered{}, returned_call{};
     std::string name;
@@ -71,17 +71,55 @@ private:
     std::size_t next{};
     unsigned wait_state{};
     std::uint64_t wait_start{};
-    std::int64_t wait_interval = 30, wait_timeout = -1;
+    std::int64_t wait_interval=30,wait_timeout=-1;
     std::uint32_t random_visited{};
+    bool operator==(const AuthorityFrame &)const=default;
   };
-  struct Thread {
+  struct AuthorityThread {
     std::size_t script{};
     std::uint64_t wake{};
-    bool stopped{}, dormant{}, faulted{};
-    std::vector<Frame> stack;
+    bool stopped{},dormant{},faulted{};
+    std::vector<AuthorityFrame> stack;
     std::optional<std::uint32_t> actor;
     bool command_wait{};
+    bool operator==(const AuthorityThread &)const=default;
   };
+  struct AuthorityCheckpoint {
+    std::uint32_t version=1;
+    std::array<std::byte,32> program_binding{};
+    std::array<bool,7> local_services{};
+    std::deque<AuthorityThread> threads;
+    std::vector<ScriptValue> globals;
+    std::vector<std::string> diagnostics;
+    bool suspended{};
+    std::optional<std::uint32_t> actor;
+    bool operator==(const AuthorityCheckpoint &)const=default;
+  };
+  class PreparedAuthority {
+  public:
+    ~PreparedAuthority();
+    PreparedAuthority(PreparedAuthority &&) noexcept;
+    PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+    bool for_owner(const ScriptVm &)const noexcept;
+  private:
+    friend class ScriptVm;
+    PreparedAuthority();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // Separate from campaign revert: retain diagnostics/suspension and accept
+  // an equivalent independently bound program. Services stay local. The root
+  // restores referenced list/object banks and RNG under the same barrier.
+  AuthorityCheckpoint authority_checkpoint()const;
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &);
+  bool commit_authority(PreparedAuthority &&) noexcept;
+
+private:
+  using Frame=AuthorityFrame;
+  using Thread=AuthorityThread;
+  NativeAuthorityBoundary authority_;
+  std::array<bool,7> authority_services()const;
+  void validate_authority(const AuthorityCheckpoint &)const;
   const ScriptProgram &program_;
   Host host_;
   ObjectResolver object_resolver_;

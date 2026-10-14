@@ -179,7 +179,8 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
     const SourceViewProjectionBank& camera,const BspFogSample& fog,Vec3 eye,
     std::array<std::int16_t,4> viewport,std::array<std::uint32_t,2> surface,unsigned players,
     SourceEffectLightModelViewTu15* objects) {
-    auto& i=*impl_;std::vector<EffectLightRawDraw> output;if(receivers.empty())return output;
+    auto& i=*impl_;std::vector<EffectLightRawDraw> output;
+    if(receivers.empty() && (!objects || !objects->main_draws))return output;
     const auto coverage=source_shader_coverage_camera(camera);
     SourceBspDrawWorld draw_world{i.bsp,i.clusters,i.definitions,i.instances,i.lightmap_matches};
     auto admission=main;source_bsp_range_arena_begin(i.main_arena);i.units.arena=i.main_arena;
@@ -187,6 +188,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
     const auto object_context=[&](const SourceBspDrawContext& c) {
         auto out=objects->context;
         out.entry.mode=out.draw.draw.mode=c.mode;
+        if(c.mode)out.built={}; // A secondary query cannot replace the base selection.
         out.draw.draw.mask_arena_address=c.mask_arena_address;
         out.entry.eye=out.draw.eye=eye;out.draw.viewport=viewport;out.draw.rendering=camera;
         out.entry.coverage=coverage;out.local_players=players;
@@ -196,6 +198,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
     };
     if(objects)source_live_model_draws_tu15(objects->world,objects->main,i.units,
         object_context({0,Impl::main_arena_token,0,fog,coverage}));
+    if(objects && objects->main_draws)objects->main_draws(i.units);
     i.main_arena=i.units.arena;
     SourceBspPartCommandWorld command_world{i.cluster_commands,i.definition_commands,i.instance_definitions,
         i.materials,i.visibility,std::int16_t(i.bsp_index),[&](auto datum)->const SourceBspCommandShader&{return i.shaders.at(datum);}};
@@ -233,6 +236,11 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             object_receivers=objects->world.admit_render_objects(receiver.view.visibility,input,query.associations);
             query.associations=object_receivers.associations;
             source_live_model_draws_tu15(objects->world,object_receivers,units,object_context(draw_context));
+            if(objects->model_available)for(unsigned n=units.main_prefix;n<units.draw_count;++n) {
+                auto& unit=units.units[n];
+                if(unit.words[1]!=0xffffffffu && !objects->model_available(unit))
+                    unit.words[0]&=~0x1fffffu;
+            }
         };
         world.object_commands=[&](auto& state,auto mode) {
             if(objects)objects->world.append_render_attachments(state,object_receivers,mode);
@@ -244,7 +252,8 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             }
             const auto& section=i.sections.at(i.key(unit));SourceCullDrawBanks result;
             result.geometry_resolved=true;result.geometry=source_bsp_sphere_cull_geometry(section.ranges);
-            if(unit.words[0]&0x1000u)result.transform=i.transforms.at(unit.words[3]>>18&2047u);return result;
+            if(unit.words[0]&0x1000u)result.transform=i.transforms.at(unit.words[3]>>18&2047u);
+            return result;
         };
         world.opaque_geometry=[&](unsigned ordinal) {
             const auto& unit=i.units.units.at(ordinal);
@@ -255,6 +264,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         context.draw={receiver.view.pass_mode,Impl::light_arena_token,std::int8_t(receiver.view.flags),fog,coverage};
         context.cull.query_mode=receiver.view.query_mode;context.cull.center=runtime.spatial_center;context.cull.radius=runtime.spatial_radius;
         context.commands.player_multiplier=source_shader_lod_player_multiplier(players);
+        context.commands.view_modifier=objects && objects->context.view_modifier;
         context.commands.lod_view=source_shader_lod_view(viewport[0],viewport[2],false,false);
         const auto result=source_effect_light_geometry_frame(i.units,query,i.commands,i.opaque,world,context);
         i.light_arena=i.units.arena;
@@ -312,7 +322,8 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             if(u.words[1]!=0xffffffffu) {
                 const auto& bound=model_bindings.at(range.command);
                 for(const auto& indices:range.selected.ranges) {
-                    auto packet=bound;auto draw=bound.source.draw();draw.range=indices;
+                    auto packet=bound;packet.light_identity=runtime.identity;packet.light_definition=light->definition_identity;
+                    auto draw=bound.source.draw();draw.range=indices;
                     packet.source=menu_world_source_binding_class(i.cache,bound.source.owner(),std::move(draw),
                         bound.source.vertex_shader(),range.vertex_class,bound.source.constants());
                     output.push_back(std::move(packet));
@@ -331,8 +342,10 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             for(const auto& indices:range.selected.ranges) {
                 auto draw=bound.draw();draw.range=indices;
                 auto binding=menu_world_source_binding_class(i.cache,bound.owner(),std::move(draw),bound.vertex_shader(),range.vertex_class,bound.constants());
-                output.push_back(source_effect_light_raw_draw(slot.material,completed_material,slot.pass,std::move(binding),packet,
-                    {0,16777215.f,depth.minimum_w,depth.maximum_w},{1,1}));
+                auto completed_draw=source_effect_light_raw_draw(slot.material,completed_material,slot.pass,std::move(binding),packet,
+                    {0,16777215.f,depth.minimum_w,depth.maximum_w},{1,1});
+                completed_draw.light_identity=runtime.identity;completed_draw.light_definition=light->definition_identity;
+                output.push_back(std::move(completed_draw));
             }
         }
     }

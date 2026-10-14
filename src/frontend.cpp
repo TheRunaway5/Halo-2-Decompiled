@@ -655,16 +655,19 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     return SDL_OpenURL(url.c_str())==0;
   });
   state.set_discord_social(session->discord_social);
-  state.set_online_account(std::make_shared<OnlineAccount>(discord_login, online_account_environment()));
-  state.set_online_directory(std::make_shared<OnlineDirectory>(online_directory_environment()));
-  state.set_online_matchmaking(std::make_shared<OnlineMatchmaking>(discord_login, online_matchmaking_environment(options.maps)));
+  auto online_services=std::make_shared<NativeTu15OnlineServices>();
+  online_services->login=discord_login;
+  online_services->account=std::make_shared<OnlineAccount>(discord_login,online_account_environment());
+  online_services->directory=std::make_shared<OnlineDirectory>(online_directory_environment());
+  online_services->matchmaking=std::make_shared<OnlineMatchmaking>(discord_login,online_matchmaking_environment(options.maps));
+  state.set_online_account(online_services->account);
+  state.set_online_directory(online_services->directory);
+  state.set_online_matchmaking(online_services->matchmaking);
   state.set_pc_display_adapter([&](const DisplaySettings &value) {
     const auto error=renderer.validate_display_settings(value);
     if(error.empty()) {
       if(audio_state.engine)if(auto failure=audio_state.engine->speaker_layout(value.speakers);!failure.empty())return failure;
-      const bool crt=desktop->display_settings.crt_filter;
       desktop->display_settings=value;
-      desktop->display_settings.crt_filter=crt;
     }
     return error;
   });
@@ -698,7 +701,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     const auto rules=slayer_rules(launch.variant,true);
     if(rules.primary_light_vehicle) {
       const Cache selected_map(options.maps/launch.map);
-      validate_slayer_map_options(selected_map.load_content(0,true),rules);
+      validate_slayer_map_options(selected_map.load_content(0,true,source_game_variant(launch.variant)),rules);
     }
   });
   if (options.screen != 9)
@@ -1571,8 +1574,10 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
             << effect_diagnostics.systems << " systems\n";
   for(const auto &boundary:effect_diagnostics.unavailable)
     std::cerr << "Title effect boundary: " << boundary << '\n';
-  if (state.launch)
+  if (state.launch) {
     state.launch->map = options.maps / state.launch->map;
+    state.launch->online_services=std::move(online_services);
+  }
   desktop->keyboard_settings=state.pc_keyboard_settings();
   desktop->controller_settings=state.controller_settings();
   return state.launch;

@@ -234,4 +234,16 @@ MenuWorldVertexSource menu_world_vertex_source(const VertexProgram &program) {
 MenuWorldVertexSource menu_world_skinned_vertex_source(const VertexProgram &program) {
   return emit_vertex_source(program,true);
 }
+std::uint32_t menu_world_vertex_default_texture_w_mask(const VertexProgram &program) {
+  if(program.count==0 || program.count>program.instructions.size())
+    throw FormatError("default texture W analysis requires a valid admitted program");
+  std::uint32_t result=15;
+  for(unsigned i=0;i<program.count;++i) {
+    const auto token=program.instructions[i][3];
+    const auto output=(token>>3)&255u;
+    if((token&2048u) && (token&(1u<<12)) && output>=9 && output<=12)
+      result&=~(1u<<(output-9));
+  }
+  return result;
+}
 } // namespace halo2

@@ -50,6 +50,9 @@ struct Controls {
   std::uint16_t pickup_milliseconds{}, dual_wield_milliseconds{};
   bool accept{},cancel{},melee{},flashlight{},start{},back{};
   float look_stick{};
+  // Delivered TU1.5 command+28/+2C vehicle intent. An engaged neutral target
+  // means the sender selected no action; absence retains other input owners.
+  std::optional<SourcePlayerActionTarget> vehicle_interaction_target;
 };
 struct WeaponState {
   std::uint32_t definition = null_datum;
@@ -72,6 +75,15 @@ struct WeaponState {
   std::uint16_t firing_effect_visited{};
   WeaponMagazineState magazine;
   SmgBarrelState alternate_barrel;
+  WeaponTriggerInputState trigger_input; // Original weapon+170..174.
+  std::uint8_t charge_fraction{}; // Literal weapon+175 accumulator.
+  WeaponTriggerTarget trigger_target;
+  // Read-only publication of the actual fixed TU1.5 runtime records. These
+  // records never supply a second weapon update or synthesized ammunition.
+  std::array<SmgBarrelState,2> source_barrels;
+  std::array<WeaponTriggerState,2> source_triggers;
+  std::array<WeaponMagazineState,2> source_magazines;
+  bool source_runtime_published{};
 };
 struct NativeWeaponPickup {
   std::uint32_t handle=null_datum, definition=null_datum, unlock_tick{};
@@ -192,6 +204,10 @@ public:
              std::optional<SourceSceneGameContext> = {},
              std::optional<NativeObjectLifetimes> = {},
              SourceSceneObjectOwner = {});
+  Simulation(const Simulation &)=delete;
+  Simulation &operator=(const Simulation &)=delete;
+  Simulation(Simulation &&)=delete;
+  Simulation &operator=(Simulation &&)=delete;
   void step(const Controls &);
   void step_players(std::span<const Controls>);
   NativeActionPrompt control_action_prompt()const;
@@ -199,14 +215,14 @@ public:
   NativeActionPrompt unit_action_prompt(const Unit &,NativeActionPrompt current={},Vec3 current_root={})const;
   bool take_unit_action(Unit &,const NativeActionPrompt &);
   void step_unit_interactions(const Controls &);
-  void configure_vehicle_rows(int engine,int timer_option=0){vehicle_engine_=engine;vehicle_timer_option_=timer_option;}
-  void configure_vehicle_allegiance(std::function<bool(const Unit&,const Unit&)> fn){vehicle_allied_=std::move(fn);}
+  void configure_vehicle_rows(int engine,int timer_option=0){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;vehicle_engine_=engine;vehicle_timer_option_=timer_option;}
+  void configure_vehicle_allegiance(std::function<bool(const Unit&,const Unit&)> fn){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;vehicle_allied_=std::move(fn);}
   std::span<const NativeWeaponPickup> weapon_pickups()const{return campaign_weapon_pickups_;}
   void respawn(Spawn);
   void equip(std::uint32_t);
   std::size_t place_squad(const std::string &);
-  void run_script(const std::string &name) { scripts_->start(name); }
-  void start_level() { scripts_->start_level(); }
+  void run_script(const std::string &name) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;scripts_->start(name);}
+  void start_level() {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;scripts_->start_level();}
   bool level_finished()const{return level_finished_;}
   bool reset_requested()const{return reset_requested_;}
   bool has_checkpoint() const { return bool(checkpoint_); }
@@ -216,7 +232,7 @@ public:
   void request_checkpoint();
   void request_revert();
   std::uint64_t checkpoint_restores() const { return checkpoint_restores_; }
-  void advance_audio(float seconds) { sound_classes_.advance(seconds); }
+  void advance_audio(float seconds) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;sound_classes_.advance(seconds);}
   const SoundClassFades &sound_classes() const { return sound_classes_; }
   const std::array<int,5> &objectives() const { return objectives_; }
   bool flashlights_allowed() const { return flashlights_allowed_; }
@@ -224,9 +240,11 @@ public:
   bool ambience_details_enabled() const { return ambience_details_enabled_; }
   void set_difficulty(unsigned value) {
     if(value>3)throw FormatError("invalid campaign difficulty");
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     difficulty_=value;
   }
   void preview_camera(std::uint32_t graph, std::uint32_t name, int flag) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     presentation_.camera_animation(graph, name, flag);
     presentation_.scripted = presentation_.cinematic = true;
     presentation_.field_of_view(60, 0);
@@ -242,24 +260,27 @@ public:
   void request_bsp(int);
   const ScriptVm &scripts() const { return *scripts_; }
   const SceneObjects &scene() const { return scene_; }
+  Vec3 object_center(std::uint32_t)const;
   const SourceDeviceWorld &devices()const{return devices_;}
   std::span<const SourceDeviceWorldEvent> device_events()const{return device_events_;}
   void replicate_devices(const SourceDeviceWorldSnapshot &);
   void replicate_source_scene(std::span<const SourceSceneRoot>,std::span<const SourceWorldPose>);
   // Original action dispatch calls this only after target/action admission.
-  SourceControlActivation activate_admitted_control(std::uint32_t h){return devices_.activate_admitted_control(h);}
+  SourceControlActivation activate_admitted_control(std::uint32_t h){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return devices_.activate_admitted_control(h);}
   const NativeObjectLifetimes &object_lifetimes() const {return object_lifetimes_;}
   const SourceObjectBodyStorage &source_object_bodies() const {return object_bodies_;}
   // Raw construction storage, never a completed native/source game object.
   // Complete constructor/teardown services remain the caller's responsibility.
   std::uint32_t allocate_source_body_storage(std::int16_t extent) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     return object_bodies_.allocate(object_lifetimes_,extent);}
   bool append_source_body_storage(std::uint32_t h,std::int16_t field,std::int16_t bytes,std::uint8_t alignment) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     return object_bodies_.append(object_lifetimes_,h,field,bytes,alignment);}
-  std::span<std::byte> source_body_storage(std::uint32_t h) {return object_bodies_.body(object_lifetimes_,h);}
-  void release_source_body_storage(std::uint32_t h) {object_bodies_.release(object_lifetimes_,h);}
+  std::span<std::byte> source_body_storage(std::uint32_t h) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return object_bodies_.body(object_lifetimes_,h);}
+  void release_source_body_storage(std::uint32_t h) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;object_bodies_.release(object_lifetimes_,h);}
   const PropSandbox& props()const{return props_;}
-  std::vector<PropSandboxEvent> take_prop_events(){auto result=std::move(prop_events_);prop_events_.clear();return result;}
+  std::vector<PropSandboxEvent> take_prop_events(){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;auto result=std::move(prop_events_);prop_events_.clear();return result;}
   std::span<const PropRemoval> prop_removals()const{return prop_removals_;}
   std::span<const BulletImpact> bullet_impacts()const{return bullet_impacts_;}
   std::span<const MeleeImpact> melee_impacts()const{return melee_impacts_;}
@@ -273,28 +294,67 @@ public:
       std::uint32_t ignored_scene_prop=null_datum,std::uint32_t projectile_definition=null_datum);
   const SourceWeatherState &weather() const { return weather_; }
   const SourceWeatherClock &weather_clock() const { return weather_clock_; }
-  std::uint32_t &source_primary_random() { return random_state_; }
+  std::uint32_t &source_primary_random() {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return random_state_;}
   // Render-time weather advancement belongs to source view0. Callers supply
   // absolute realtime; game ticks and additional local views do not advance it.
   void advance_weather_view(double realtime,std::int16_t view_slot) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     source_weather_view_tick(weather_,weather_clock_,realtime,view_slot,&weather_record_);
   }
   const Presentation &presentation() const { return presentation_; }
   const PlayerTrainingState &training() const {return training_;}
   void training_definitions(std::span<const TrainingEventDefinition> definitions) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     training_definitions_.assign(definitions.begin(),definitions.end());
   }
   const CampaignSubtitle &subtitle() const {return subtitle_;}
   const auto &titles() const {return titles_;}
   struct ObjectAnimation {std::shared_ptr<const AnimationClip> clip;std::uint64_t tick{};bool loop{};};
+  struct VehicleFlip {std::uint32_t object;std::uint8_t direction{},ticks{};Vec3 velocity;};
+  struct ImpulseClock {std::uint32_t datum=null_datum;std::uint64_t start{},duration{};};
+  struct Projectile {
+    Vec3 position, velocity;
+    float traveled{};
+    std::uint32_t weapon{};
+    int owner{};
+    int bsp = -1;
+    std::uint32_t source_datum = null_datum;
+    DamageOwner captured_owner;
+    Vec3 forward,up;
+    std::optional<SourceNeedlerProjectileBirth> source_birth;
+    std::int16_t barrel_index=-1;
+  };
+  using AuthorityDigest=std::array<std::byte,32>;
+  struct AuthorityCheckpoint; // Value definition in simulation_authority.hpp.
+  class PreparedAuthority {
+  public:
+    ~PreparedAuthority();
+    PreparedAuthority(PreparedAuthority &&) noexcept;
+    PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+    bool for_owner(const Simulation &)const noexcept;
+  private:
+    friend class Simulation;
+    PreparedAuthority();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // Parent admission binds complete immutable map/image/resources/schema and
+  // quiesces the match, raw borrowers and callbacks through publication.
+  // Source-backed pools require the exact staged complete world allocation.
+  // This native simulation transaction is not a complete match or wire save.
+  AuthorityCheckpoint authority_checkpoint(AuthorityDigest admitted_binding,bool qualified_source_world=false)const;
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &,AuthorityDigest admitted_binding,
+      const SourceRuntimeMemory *replacement_source_world=nullptr);
+  bool commit_authority(PreparedAuthority &&) noexcept;
   const ObjectAnimation *object_animation(std::uint32_t handle) const {
     const auto at=object_animations_.find(handle);return at==object_animations_.end()?nullptr:&at->second;
   }
   void cinematic_text_services(std::function<bool(std::uint32_t)> localized,std::function<float(std::uint32_t)> duration) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     subtitle_localized_=std::move(localized);sound_duration_=std::move(duration);
   }
-  std::vector<RumbleEvent> take_rumble(){auto result=std::move(rumble_events_);rumble_events_.clear();return result;}
-  void controller_look_settings(std::function<bool()> get,std::function<void(bool)> set){look_invert_get_=std::move(get);look_invert_set_=std::move(set);}
+  std::vector<RumbleEvent> take_rumble(){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;auto result=std::move(rumble_events_);rumble_events_.clear();return result;}
+  void controller_look_settings(std::function<bool()> get,std::function<void(bool)> set){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;look_invert_get_=std::move(get);look_invert_set_=std::move(set);}
 
   Camera camera(const Camera &player) const {
     return presentation_.camera(player);
@@ -310,7 +370,7 @@ public:
   std::uint64_t hits() const { return hits_; }
   std::string status() const;
   // Explicit optional workbench state, excluded from retail checkpoints.
-  void debug_settings(DebugGameSettings value) { debug_settings_=std::move(value); }
+  void debug_settings(DebugGameSettings value) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;debug_settings_=std::move(value);}
   const DebugGameSettings& debug_settings() const { return debug_settings_; }
   const Unit& debug_player(unsigned slot) const;
   void debug_heal(unsigned slot);
@@ -322,6 +382,8 @@ public:
 
 private:
   friend class MultiplayerMatch;
+  mutable NativeAuthorityBoundary authority_calls_;
+  std::uint32_t authority_service_roles()const;
   void step_impl(const Controls &, std::span<const Controls>);
   void step_devices();
   void disrupt_camouflage(Unit&,float amount,float limit);
@@ -340,7 +402,6 @@ private:
   SceneObjects scene_;
   SourceDeviceWorld devices_;
   std::vector<NativeWeaponPickup> campaign_weapon_pickups_;
-  struct VehicleFlip {std::uint32_t object;std::uint8_t direction{},ticks{};Vec3 velocity;};
   std::vector<VehicleFlip> vehicle_flips_;
   std::vector<NetgameWeaponState> vehicle_rows_;
   int vehicle_engine_=2,vehicle_timer_option_{};
@@ -368,7 +429,6 @@ private:
   std::map<std::uint32_t,ObjectAnimation> object_animations_;
   std::vector<RumbleEvent> rumble_events_;
   bool ai_dialogue_enabled_=true;
-  struct ImpulseClock {std::uint32_t datum=null_datum;std::uint64_t start{},duration{};};
   std::array<ImpulseClock,16> impulse_clocks_;
   // Native object-list bank. Source20A620 conversion allocates/appends through
   // these actual owners; interpreter roots retain lists over sleeps/saves.
@@ -382,17 +442,6 @@ private:
   std::vector<Unit> actors_;
   std::unique_ptr<ScriptVm> scripts_;
   std::vector<SoundEvent> sounds_;
-  struct Projectile {
-    Vec3 position, velocity;
-    float traveled{};
-    std::uint32_t weapon{};
-    int owner{};
-    int bsp = -1;
-    std::uint32_t source_datum = null_datum;
-    DamageOwner captured_owner;
-    Vec3 forward,up;
-    std::optional<SourceNeedlerProjectileBirth> source_birth;
-  };
   std::vector<Projectile> projectiles_;
   std::vector<BulletImpact> bullet_impacts_;
   std::vector<MeleeImpact> melee_impacts_;
@@ -420,6 +469,7 @@ private:
   bool multiplayer_weapon_steps_{};
   std::function<SourceVehicleSeatTarget(std::uint32_t,std::uint32_t)> source_vehicle_seat_query_;
   bool source_physics_movement_{};
+  ScriptVm::Host source_device_script_;
   std::function<std::uint32_t(std::uint8_t)> allocate_object_;
   std::function<void(std::uint32_t,std::uint32_t)> publish_object_;
   std::function<void(std::uint32_t)> release_object_;
@@ -450,12 +500,13 @@ private:
   void move_unit(Unit &, Vec3 desired, bool jump, bool crouch,
                  bool player_control = false);
   Unit &script_unit(std::uint32_t);
-  Vec3 script_center(std::uint32_t)const;
+  std::optional<Vec3> reference_point(Vec3,std::int16_t)const;
   Vec3 script_point(std::uint32_t)const;
   std::vector<std::uint32_t> script_objects(std::uint32_t)const;
   void update_command(Unit &);
   void update_weapon(Unit &, bool fire, bool reload, int owner, float pitch,
                      const Controls *source_control = nullptr, unsigned hand = 0);
+  void update_charged_weapon(Unit &,WeaponState &,const WeaponDefinition &,bool fire,bool blocked,unsigned hand,int owner);
   void update_passive_weapon(WeaponState &,Unit *);
   void clear_weapon_for_holster(Unit &,WeaponState &);
   float weapon_hand_blend(const Unit &,const WeaponState &) const;
@@ -463,7 +514,7 @@ private:
   std::optional<unsigned> select_weapon_firing_effect(WeaponState &,const WeaponDefinition &);
   void shot(Unit &, int owner, float pitch, const Vec3 *prepared_direction = nullptr,
             const Vec3 *prepared_velocity = nullptr, WeaponState *weapon = nullptr,
-            bool effects_prepared = false);
+            bool effects_prepared = false, std::int16_t barrel_index = -1);
   bool trace(Vec3 origin, Vec3 direction, float distance,
              const WeaponDefinition &, int owner, const DamageOwner &,
              std::uint32_t projectile=null_datum,const Vec3 *velocity=nullptr,

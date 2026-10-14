@@ -21,6 +21,7 @@ inline void same_device_snapshot(const SourceDeviceWorldSnapshot&a,const SourceD
         scalar(x.motion.position,y.motion.position);scalar(x.motion.position_velocity,y.motion.position_velocity);
         scalar(x.motion.power,y.motion.power);scalar(x.motion.power_velocity,y.motion.power_velocity);
         require(x.motion.flags==y.motion.flags && x.motion.delay_ticks==y.motion.delay_ticks);
+        require(x.door.flags==y.door.flags && x.door.open_ticks==y.door.open_ticks);
         group(x.private_power,y.private_power);group(x.private_position,y.private_position);
         static_assert(sizeof(Transform)==13*sizeof(float));
         require(std::memcmp(&x.root,&y.root,sizeof(Transform))==0);

@@ -39,6 +39,9 @@ int main(int argc,char **argv)try {
         row["flags"]=word(definition_tag->address);
         row["particle_systems"]=Json::array();
         const auto events=word(definition_tag->address+0x14),event_rows=word(definition_tag->address+0x18);
+        unsigned beams{},accelerations{};
+        for(unsigned event=0;event<events;++event){beams+=word(event_rows+event*0x38+0x20);accelerations+=word(event_rows+event*0x38+0x28);}
+        row["beam_count"]=beams;row["acceleration_count"]=accelerations;
         for(unsigned event=0;event<events;++event) {
           const auto event_at=event_rows+event*0x38;
           const auto systems=word(event_at+0x30);

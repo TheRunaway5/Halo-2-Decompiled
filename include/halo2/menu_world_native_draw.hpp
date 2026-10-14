@@ -4,6 +4,7 @@
 #include "halo2/menu_world_source_storage.hpp"
 #include "halo2/menu_world_vertex_catalog.hpp"
 #include <memory>
+#include <filesystem>
 
 namespace halo2 {
 struct MenuWorldNativeDrawContext {
@@ -15,6 +16,9 @@ struct MenuWorldNativeDrawContext {
   std::uint32_t api_version{};
   bool geometry_shader_enabled{},geometry_point_size_enabled{};
   bool depth_clamp_enabled{},demote_to_helper_enabled{};
+  // Empty retains the configured production directory. Explicit captures
+  // carry the same private shader snapshot through the raw geometry backend.
+  std::filesystem::path shader_directory;
 };
 struct MenuWorldNativeDrawInput {
   MenuWorldSourceBinding source;

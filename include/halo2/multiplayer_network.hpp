@@ -2,7 +2,18 @@
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_datagrams.hpp"
 #include <memory>
+#include <chrono>
 namespace halo2 {
+struct LanSessionDescription {
+  std::uint64_t fingerprint{};
+  UiVariant variant;
+};
+// Read the host's complete configuration before cold world/model preparation.
+// This query does not admit a player, allocate a body or start a peer timeout.
+LanSessionDescription query_lan_session(const std::string &address,
+    std::chrono::milliseconds timeout = std::chrono::seconds(5));
+LanSessionDescription query_lan_session(std::shared_ptr<MultiplayerDatagrams>,unsigned host,
+    std::chrono::milliseconds timeout = std::chrono::seconds(5));
 // Native port protocol. It does not speak the retail Xbox System Link protocol.
 // Paths themselves are excluded: identical imported data may live in different
 // directories on each computer. Every supported shared cache and font is part
@@ -15,8 +26,11 @@ std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,
 class LanHost {
 public:
   LanHost(MultiplayerMatch &, unsigned port, std::uint64_t fingerprint);
+  LanHost(MultiplayerMatch &, unsigned port, std::uint64_t fingerprint,const UiVariant &);
   LanHost(MultiplayerMatch &, std::shared_ptr<MultiplayerDatagrams>, std::uint64_t,
           std::vector<OnlineAdmission>);
+  LanHost(MultiplayerMatch &, std::shared_ptr<MultiplayerDatagrams>, std::uint64_t,
+          std::vector<OnlineAdmission>,const UiVariant &);
   ~LanHost();
   unsigned port() const;
   void receive(std::array<Controls, multiplayer_capacity> &);

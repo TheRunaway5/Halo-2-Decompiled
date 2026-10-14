@@ -19,6 +19,8 @@ struct SourceDecalCacheGeometry {
     std::uint8_t layer,flags;
     float lifetime,decay;
     std::vector<std::array<SourceDecalCacheVertex,4>> quads;
+    std::uint32_t primary_datum{},next_cluster_datum{};
+    std::int8_t bitmap_index{};
 };
 // Source owns all pools, salts, cache pages and clipping. Requires a quiescent
 // completed source update. No records or cache allocations are synthesized.

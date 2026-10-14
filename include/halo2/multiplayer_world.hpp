@@ -11,6 +11,11 @@ namespace halo2 {
 class MultiplayerPreparedWorld {
 public:
   explicit MultiplayerPreparedWorld(const MultiplayerOptions&);
+  // Declared local script input is admitted before the VM/match constructor.
+  // It supplies commands only; network and physical results remain owned by
+  // the actual native authority. Ordinary construction retains map scripts.
+  MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>);
+
   bool matches(const MultiplayerOptions&) const;
   std::shared_ptr<const Cache> cache;
   TagSystem tags;

@@ -1,6 +1,7 @@
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/source_model_effect_lights.hpp"
 #include "halo2/menu_world_native_packet.hpp"
+#include "halo2/menu_world_vertex_source.hpp"
 #include "halo2/sampler.hpp"
 #include "source_effect_light_gpu_fixture.hpp"
 #include "menu_world_vertex_catalog.generated.hpp"
@@ -20,8 +21,8 @@ using namespace halo2_effect_light_fixture;
 using Json=nlohmann::json;
 namespace fs=std::filesystem;
 namespace {
-Json json(const fs::path& p){std::ifstream f(p);require(bool(f),"missing light frame JSON");Json j;f>>j;return j;}
-std::vector<std::byte> read(const fs::path& p){std::ifstream f(p,std::ios::binary|std::ios::ate);require(bool(f)&&f.tellg()>0,"missing light frame bytes");std::vector<std::byte>b(static_cast<std::size_t>(f.tellg()));f.seekg(0);require(bool(f.read(reinterpret_cast<char*>(b.data()),b.size())),"short light frame bytes");return b;}
+Json json(const fs::path& p){std::ifstream f(p);require(bool(f),("missing light frame JSON: "+p.string()).c_str());Json j;f>>j;return j;}
+std::vector<std::byte> read(const fs::path& p){std::ifstream f(p,std::ios::binary|std::ios::ate);require(bool(f)&&f.tellg()>0,("missing light frame bytes: "+p.string()).c_str());std::vector<std::byte>b(static_cast<std::size_t>(f.tellg()));f.seekg(0);require(bool(f.read(reinterpret_cast<char*>(b.data()),b.size())),("short light frame bytes: "+p.string()).c_str());return b;}
 void save(const fs::path& p,std::span<const std::byte> b){std::ofstream f(p,std::ios::binary);require(bool(f.write(reinterpret_cast<const char*>(b.data()),b.size())),"light frame write failed");}
 float real(std::uint32_t word){return std::bit_cast<float>(word);}
 SourceBspAdmission admission(const Json& j){SourceBspAdmission a;require(j.at("entries").size()==a.cluster_entries.size(),"light frame cluster bank");for(unsigned n=0;n<a.cluster_entries.size();++n)a.cluster_entries[n]=j.at("entries")[n].get<std::uint8_t>();
@@ -49,9 +50,33 @@ std::vector<EffectLightRawDraw> draws(SourceBspEffectLights& owner,const EffectL
         const Key key{model.at("model"),model.at("section")};
         if(!models.contains(key))models.emplace(key,std::make_unique<SourceModelEffectLights>(cache,mesh,key.first,key.second,ids));
     }
-    unsigned next_bsp{};std::vector<EffectLightRawDraw> combined;
+    // This GPU fixture consumes the captured combined schedule. Sorting a
+    // BSP-only subset can permute equal-key records differently from the full
+    // original model/BSP sort. Resolve each packet by its geometry and range;
+    // never pair original textures with the next unrelated BSP-only packet.
+    // Full native command/range ordering has its separate original CPU test.
+    std::vector<bool> used(bsp.size());std::vector<EffectLightRawDraw> combined;
     for(const auto& expected:j.at("expected")){
-        if(expected.at("kind")!=2){require(next_bsp<bsp.size(),"combined source BSP plan escaped native output");combined.push_back(std::move(bsp[next_bsp++]));continue;}
+        if(expected.at("kind")!=2){
+            unsigned selected=bsp.size();
+            for(unsigned n=0;n<bsp.size();++n){
+                if(used[n])continue;
+                const auto& binding=bsp[n].source;const auto& draw=binding.draw();
+                const bool instance=binding.owner().kind==MenuWorldSourceOwnerKind::bsp_instance;
+                if(instance!=bool(expected.at("kind").get<unsigned>()) ||
+                   draw.geometry->section()!=expected.at("section").get<unsigned>() ||
+                   (instance && binding.owner().ordinal!=expected.at("instance").get<unsigned>()) ||
+                   draw.part!=expected.at("part").get<unsigned>() || !draw.range ||
+                   draw.range->first!=expected.at("first").get<unsigned>() ||
+                   draw.range->count!=expected.at("count").get<unsigned>())continue;
+                require(selected==bsp.size(),"ambiguous captured BSP packet identity");selected=n;
+            }
+            require(selected<bsp.size(),"captured BSP packet is absent from native generated output");
+            const auto indices=bsp[selected].source.draw().indices();
+            require(indices.size()==expected.at("indices").size(),"captured BSP index count differs");
+            for(unsigned n=0;n<indices.size();++n)require(indices[n]==expected.at("indices")[n].get<unsigned>(),"captured BSP index differs");
+            used[selected]=true;combined.push_back(std::move(bsp[selected]));continue;
+        }
         const auto found=std::find_if(j.at("models").begin(),j.at("models").end(),[&](const auto& model){
             return model.at("model")==expected.at("model") && model.at("object")==expected.at("object") &&
                 model.at("section")==expected.at("section") && model.at("part")==expected.at("part");});
@@ -71,7 +96,7 @@ std::vector<EffectLightRawDraw> draws(SourceBspEffectLights& owner,const EffectL
         in.clip_range=bsp.front().clip_range;in.fog_parameters=bsp.front().fog_parameters;
         combined.push_back(models.at({model.at("model"),model.at("section")})->draw(in));
     }
-    require(next_bsp==bsp.size(),"combined source plan dropped native BSP light output");return combined;
+    require(std::all_of(used.begin(),used.end(),[](bool v){return v;}),"combined source plan dropped native BSP light output");return combined;
 }
 void barrier(Gpu&g,Image image,VkImageAspectFlags aspects,VkImageLayout old,VkImageLayout next,VkAccessFlags src,VkAccessFlags dst,VkPipelineStageFlags before,VkPipelineStageFlags after,unsigned layers=1){VkImageMemoryBarrier b{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};b.image=image.handle;b.subresourceRange={aspects,0,image.mip_levels,0,layers};b.oldLayout=old;b.newLayout=next;b.srcAccessMask=src;b.dstAccessMask=dst;b.srcQueueFamilyIndex=b.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;vkCmdPipelineBarrier(g.command,before,after,0,0,nullptr,0,nullptr,1,&b);}
 void seed(Gpu&g,Image color,Image depth,const std::vector<std::byte>&rgba,const std::vector<std::byte>&original){
@@ -127,7 +152,13 @@ Json difference(std::span<const std::byte>a,std::span<const std::byte>b){
 }
 }
 int main(int argc,char**argv)try{
-    require(argc==5,"Supply MAP ORIGINAL_OWNER_JSON ORIGINAL_GPU_EXPORT NEW_OUTPUT");const fs::path gpu=argv[3],out=argv[4];const auto manifest=json(gpu/"manifest.json");require(manifest.at("frames").size()==1,"select one original light frame");const auto frame=gpu/("frame-"+std::to_string(manifest.at("frames")[0].at("ordinal").get<unsigned>()));require(!fs::exists(out),"light frame output already exists");fs::create_directories(out);
+    require(argc==5 || argc==6,"Supply MAP ORIGINAL_OWNER_JSON ORIGINAL_GPU_EXPORT NEW_OUTPUT [PINNED_SHADER_DIRECTORY]");
+    const fs::path shader_directory=argc==6?fs::path(argv[5]):fs::path{};
+    require(shader_directory.empty() || fs::is_directory(shader_directory),"missing pinned shader directory");
+    const fs::path gpu=argv[3],out=argv[4];const auto manifest=json(gpu/"manifest.json");
+    require(manifest.value("all_selected_draws_exported",true),
+        "per-draw light replay requires FX_ALL_DRAWS=1 original export");
+    require(manifest.at("frames").size()==1,"select one original light frame");const auto frame=gpu/("frame-"+std::to_string(manifest.at("frames")[0].at("ordinal").get<unsigned>()));require(!fs::exists(out),"light frame output already exists");fs::create_directories(out);
     Cache cache(argv[1]);Mesh mesh;const auto reference=json(argv[2]);const std::array ids{reference.at("light")[1].get<std::uint32_t>()};const auto definition=load_effect_light(cache,ids[0]);SourceBspEffectLights owner(cache,mesh,0,ids);const auto selected=draws(owner,definition,reference,cache,mesh);require(selected.size()==reference.at("expected").size(),"original light draw count differs");
     Gpu g;if(!g.initialize())return 77;VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(g.physical,&properties);
     const auto color=g.image({640,480},VK_FORMAT_R8G8B8A8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT);const auto depth=g.image({640,480},VK_FORMAT_D24_UNORM_S8_UINT,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT);const auto pass=g.scene_pass(false,VK_FORMAT_D24_UNORM_S8_UINT);const auto fb=g.framebuffer(pass,{640,480},color,depth);
@@ -151,7 +182,7 @@ int main(int argc,char**argv)try{
     }
     const auto limit=std::getenv("HALO2_LIGHT_FRAME_DRAW_LIMIT");const auto count=limit?std::stoul(limit):packets.size();require(count>begin_draw&&count<=packets.size(),"light frame draw limit");
     const auto rb=g.buffer(before.size(),VK_BUFFER_USAGE_TRANSFER_DST_BIT);g.begin();g.readback(color.handle,{640,480},VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,rb);g.end();require(std::memcmp(rb.mapped,before.data(),before.size())==0,"source before color seed is not exact");
-    {MenuWorldNativeDraw renderer({g.device,g.physical,pass,g.descriptor_layout,VK_API_VERSION_1_3,true,true,true,true});renderer.prepare(packets);
+    {MenuWorldNativeDraw renderer({g.device,g.physical,pass,g.descriptor_layout,VK_API_VERSION_1_3,true,true,true,true,shader_directory});renderer.prepare(packets);
 #if __has_include("renderdoc_app.h") && !defined(_WIN32)
         RENDERDOC_API_1_6_0* capture=nullptr;
         if(const auto path=std::getenv("HALO2_LIGHT_FRAME_CAPTURE"))if(auto library=dlopen("librenderdoc.so",RTLD_NOW|RTLD_NOLOAD)) {
@@ -160,7 +191,7 @@ int main(int argc,char**argv)try{
             capture->SetCaptureFilePathTemplate(path);capture->StartFrameCapture(RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(g.instance),nullptr);
         }
 #endif
-        for(unsigned n=begin_draw;n<count;++n){g.begin();VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};begin.renderPass=pass;begin.framebuffer=fb;begin.renderArea={{0,0},{640,480}};vkCmdBeginRenderPass(g.command,&begin,VK_SUBPASS_CONTENTS_INLINE);VkViewport viewport{0,0,640,480,0,1};VkRect2D rect{{0,0},{640,480}};vkCmdSetViewport(g.command,0,1,&viewport);vkCmdSetScissor(g.command,0,1,&rect);renderer.record(g.command,n);vkCmdEndRenderPass(g.command);g.readback(color.handle,{640,480},VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,rb);g.end();char label[32];std::snprintf(label,sizeof(label),"draw-%02u",n);const auto expected=read(frame/(std::string(label)+"-color0.bin"));auto result=difference({static_cast<const std::byte*>(rb.mapped),before.size()},expected);result["draw"]=n;measurements.push_back(result);save(out/(std::string(label)+"-native.bin"),{static_cast<const std::byte*>(rb.mapped),before.size()});}
+        for(unsigned n=begin_draw;n<count;++n){g.begin();VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};begin.renderPass=pass;begin.framebuffer=fb;begin.renderArea={{0,0},{640,480}};vkCmdBeginRenderPass(g.command,&begin,VK_SUBPASS_CONTENTS_INLINE);VkViewport viewport{0,0,640,480,0,1};VkRect2D rect{{0,0},{640,480}};vkCmdSetViewport(g.command,0,1,&viewport);vkCmdSetScissor(g.command,0,1,&rect);renderer.record(g.command,n);vkCmdEndRenderPass(g.command);g.readback(color.handle,{640,480},VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,rb);g.end();char label[32];std::snprintf(label,sizeof(label),"draw-%02u",n);const auto expected=read(frame/(std::string(label)+"-color0.bin"));auto result=difference({static_cast<const std::byte*>(rb.mapped),before.size()},expected);result["draw"]=n;result["default_texture_w_mask"]=menu_world_vertex_default_texture_w_mask(decode_vertex_program(packets[n].source.program_bytes()));result["vertex_source_sha256"]=std::string(packets[n].vertex_shader->source_sha256);measurements.push_back(result);save(out/(std::string(label)+"-native.bin"),{static_cast<const std::byte*>(rb.mapped),before.size()});}
 #if __has_include("renderdoc_app.h") && !defined(_WIN32)
         if(capture)require(capture->EndFrameCapture(RENDERDOC_DEVICEPOINTER_FROM_VKINSTANCE(g.instance),nullptr),"light frame GPU capture failed");
 #endif
@@ -169,5 +200,5 @@ int main(int argc,char**argv)try{
     save(out/"native-color.bin",{static_cast<const std::byte*>(rb.mapped),before.size()});const auto expected=read(frame/last);save(out/"original-color.bin",expected);save(out/"before-color.bin",before);
     auto final=difference({static_cast<const std::byte*>(rb.mapped),before.size()},expected);
     const auto contribution=difference(before,expected);const bool visible=contribution.at("changed_rgb_channels").get<unsigned>()!=0;
-    const Json result{{"scope","original illumination-pass replay only; reference update version must be independently authenticated"},{"reference",reference.value("reference",std::string("original Xbox diagnostic"))},{"device",properties.deviceName},{"begin_draw",begin_draw},{"end_draw_exclusive",count},{"non_seamless_cube_map",!std::getenv("HALO2_LIGHT_FRAME_SEAMLESS_CONTROL")},{"source_color_depth_stencil_seed_exact",true},{"draws",packets.size()},{"consumed_vertex_bank_word_differences",bank_errors},{"combiner_constant_word_differences",combiner_errors},{"validation_errors",validation_errors},{"reference_contribution_from_seed",contribution},{"reference_segment_visible",visible},{"per_draw",measurements},{"final",final}};std::ofstream(out/"report.json")<<result.dump(2)<<'\n';std::cout<<result.dump()<<'\n';require(validation_errors==0,"light frame validation errors");require(bank_errors==0&&combiner_errors==0,"light frame consumed source inputs differ");require(visible,"original segment changes no RGB pixels; visible illumination parity is unproven");require(final.at("changed_channels")==0,"light frame pixels differ; inspect report");
+    const Json result{{"scope","original illumination-pass replay only; reference update version must be independently authenticated"},{"reference",reference.value("reference",std::string("original Xbox diagnostic"))},{"device",properties.deviceName},{"pinned_shader_directory",shader_directory.string()},{"begin_draw",begin_draw},{"end_draw_exclusive",count},{"non_seamless_cube_map",!std::getenv("HALO2_LIGHT_FRAME_SEAMLESS_CONTROL")},{"source_color_depth_stencil_seed_exact",true},{"draws",packets.size()},{"consumed_vertex_bank_word_differences",bank_errors},{"combiner_constant_word_differences",combiner_errors},{"validation_errors",validation_errors},{"reference_contribution_from_seed",contribution},{"reference_segment_visible",visible},{"per_draw",measurements},{"final",final}};std::ofstream(out/"report.json")<<result.dump(2)<<'\n';std::cout<<result.dump()<<'\n';require(validation_errors==0,"light frame validation errors");require(bank_errors==0&&combiner_errors==0,"light frame consumed source inputs differ");require(visible,"original segment changes no RGB pixels; visible illumination parity is unproven");require(final.at("changed_channels")==0,"light frame pixels differ; inspect report");
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

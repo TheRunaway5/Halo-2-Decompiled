@@ -23,7 +23,7 @@ void snapshots(){
     // Move a complete device owner into a fresh process-world instance at a
     // completed tick. Future motion, one-use groups and effect requests must
     // match; merely drawing the same gate position would not establish this.
-    const auto checkpoint=host.authority_checkpoint(180);
+    host.synchronize_collision();const auto checkpoint=host.authority_checkpoint(180);
     SourceDeviceWorld continued(content);continued.restore_authority(checkpoint,180);
     test::same_device_snapshot(baseline,continued.snapshot(180));
     require(!continued.replicated(),"restored complete owner remained a display replica");
@@ -39,7 +39,7 @@ void snapshots(){
             "authority restore changed effect owner/order");
     require(!continued.activate_admitted_control(control).changed,
         "authority restore reset a consumed one-use group");
-    auto invalid_checkpoint=checkpoint;invalid_checkpoint.version=2;
+    auto invalid_checkpoint=checkpoint;invalid_checkpoint.version=3;
     bool checkpoint_rejected=false;
     try{continued.restore_authority(invalid_checkpoint,180);}catch(const FormatError&){checkpoint_rejected=true;}
     require(checkpoint_rejected,"unknown device checkpoint version accepted");

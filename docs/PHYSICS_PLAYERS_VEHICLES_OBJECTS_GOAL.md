@@ -24,7 +24,116 @@ All new parity execution and acceptance validation target TU1.5.
 | Objects | Dynamic crates/props/items, equipment and projectile physical behavior, attached/parented objects, devices and moving machinery; lifts/conveyors and occupancy queries; breakage and destructive state transitions; collision masks, contact/material/impulse delivery and object creation/retirement. Combat effects/damage remain separately owned, with the actual physics events delivered to their owners. |
 | Composed runtime | Replace the temporary player terrain mover only after real source contact/solver ownership exists. Preserve identity, state ordering, moving supports, player interactions and multiplayer authority. Verify campaign and multiplayer authored scenarios, maps, split-screen and LAN paths. |
 
+## October14 authored multiplayer lifts and contact-agent closure
+
+All20 authored placements of the nine surveyed gravity-lift definitions pass
+visible protocol80 source-world multiplayer acceptance, with3,633 exact UDP
+observations and1,053 actual upward force deliveries. Seventeen placements use
+ordinary no-jump approaches; all three raised Midship pillar fields use one
+normal jump and pass actual-force/post-entry-rise gates. The Midship contact
+path includes16 added complete original routines and1,457 instruction sites.
+All six moving passenger/turret cases also pass on the current coherent build,
+with4,053 exact UDP states and original actor/driver cameras. Fresh movement
+and object recreation/blast/debris regressions pass182 states each; all512
+captured point-impulse motion bytes match unchanged TU1.5. Moving machinery,
+retail quantitative trajectories and full physics scope remain open. See [live lift integration](MP_LIFTS_LIVE_TU15_20261014.md).
+
+## October14 complete driver matrix and activated gate
+
+All eight surveyed driver/controller choices pass visible protocol80 multiplayer
+in `current-driver-matrix-v314`: Warthog, Ghost, Banshee, Scorpion, Wraith,
+Spectre, Secondary Spectre and Gauss Warthog. The matrix records 6,615 exact
+UDP snapshots, ordinary entry/driving/steering/aim/exit and actual original
+vehicle cameras. See [vehicle evidence](MP_HEAVY_VEHICLES_CAMERA_TU15_20261014.md).
+
+The Zanzibar gate switch exposes and now closes a further real integration
+gap. Complete original `11E100`/`11E180` activation owners run from the normal
+control pickup path; completed original device/group readback replaces the
+independent live native device clock. Visible `gate-control-live-v319` reaches
+full opening in both original and native state, with zero differences across
+5,572 paired machinery observations and 902 exact UDP states. See
+[machinery integration](MP_MACHINE_LIVE_TU15_20261014.md). Script routing,
+supported riders, remaining physics branches and full original behavior
+comparison remain required; these matrices do not complete the full goal.
+
+## October14 original player-team birth and cooperative Spectre
+
+Actual native roster delivery now precedes source player allocation; complete
+original mask/configuration owners admit the selected team. Actual player
+identity/team/configuration inputs also reach original biped creation. Native
+LAN protocol78 carries the displayed vehicle action/object/seat into the
+original command rather than selecting another target during delivery.
+
+The cooperative Spectre passenger1 case now passes visibly with813 exact UDP
+states, source team0 on all three actual unit bodies, normal driver entry,
+28.907700 units of occupied travel, passenger aim/exit and698 passenger/576
+driver original-camera submissions. Camera position/basis/FOV match authority
+packets. The source runtime stays stable and its live desktop mirror is
+verified continuously. All six moving passenger/turret combinations pass in `v282`/`v283`;
+the release-frame target/duration regression also passes. Team departure/change,
+quantitative retail comparisons and full stated physics scope remain open.
+See [player-team birth evidence](MP_PLAYER_TEAM_BIRTH_TU15_20261014.md).
+
 ## October13 live integration checkpoint
+
+October14 fixed light-option integration: unchanged `15CEF0 ->15CB60` and the
+native cold-template loader agree on91 Primary/Secondary Light cases and45
+authored child templates. The frontend validates the selected option rather
+than Map Default; affected source-free authority stepping remains rejected.
+Recorded Spectre `v238` passes17.249096 units of driving and902 exact UDP states;
+Gauss Warthog `v243` passes32.557823 units and901 exact states, both with0.6
+radians of actual original vehicle-camera response. A consistent isolated
+source build was required after a shared attachment-header edit produced
+28/56-byte ABI disagreement in the earlier linked candidate. All failed
+recordings/logs remain retained. The Gauss path also exposed a legal original
+cross-tag attachment block; the isolated runtime adopts the root's containing
+owner lookup rather than discarding those authored rows. See
+[light vehicle source and live evidence](MP_LIGHT_VEHICLES_TU15_20261014.md).
+Latest isolated `v245` repeats Gauss/Spectre with902 exact states each and
+checks the actual submitted vehicle definitions and geometry in both views:
+1184/1045 submissions per view. Their actual travel is34.480911/18.908596 units,
+and both submit0.6 radians of original seated-camera response. Isolated
+movement/lift/object regressions also pass, including the two original impulse
+comparisons over all512 motion bytes.
+
+The earlier independent client-preference case failed: Spectre host option5 and
+client Map Default0 joined, then the client's Warthog hierarchy rejected the
+authority's WORLD bank. Native protocol76 now discovers complete ordered host
+settings before LAN client world preparation and verifies the resulting asset
+fingerprint. Recorded Spectre/Gauss/Wraith cases also override a different saved
+starting weapon and pass actual geometry, controls and original cameras. Fixed
+Secondary Light parameter77 is admitted after its original selector/loader
+integration. Discovery while a LAN host is loading answers on a transport
+service; queued gameplay admission still runs on its owner thread. Original
+light choices, full native multiplayer, configuration fragmentation and loading
+ownership tests pass. See [session configuration evidence](MP_SESSION_CONFIGURATION_TU15_20261014.md).
+Actual ONLINE loading configuration adoption, all vehicle/seat, random-birth,
+campaign and retail-trajectory coverage remain open.
+
+Additional visible seat coverage now passes Warthog passenger/turret, both
+Spectre passengers, Spectre turret and Gauss turret with actual source-selected
+seats, ordinary input, original camera response and exact UDP WORLD state.
+A second real player also walks around, boards and drives the Warthog with an
+occupied passenger:5.340403 units of actual travel,901 exact states,816 passenger
+and929 driver original-camera submissions. The original Scorpion rider flags reject player occupants; that restriction is
+being verified explicitly rather than allowing unsupported player entry.
+NPC rider/controller coverage remains open.
+See [vehicle seat integration](MP_VEHICLE_SEATS_TU15_20261014.md).
+
+October14 camera correction: remote seated controlled actors skipped native
+look-input retention. Authority/client camera equality checks missed the shared
+frozen-look defect. The live binding now updates seated yaw/pitch while retaining
+source physics ownership. Recorded `v236` Scorpion, Wraith, Ghost and Banshee
+sequences additionally require a real submitted-camera response to mouse aim;
+each passes with0.6 radians of camera turn. Scorpion/Wraith also pass ordinary
+heavy-option construction, boarding, driving, turning and exit, with901/902 exact
+UDP states. Movement/lift/object regressions pass with181 states each and all512
+actual point-impulse motion bytes still match unchanged TU1.5. See
+[heavy vehicles and seated look evidence](MP_HEAVY_VEHICLES_CAMERA_TU15_20261014.md).
+Warthog `v237` also passes its longer drive and deliberate mouse-turn sequence:
+36.505600 units,0.862927 radians of vehicle turn,0.6 radians of camera response,
+631 original seated camera frames and901 exact UDP states. This does not
+complete all vehicle classes, seats, camera modes or retail trajectories.
 
 The current checkout builds `halo2_native` and
 `physics_multiplayer_acceptance`. `live-root-v151` passes seven recorded live
@@ -39,9 +148,9 @@ below; historical component seals remain unchanged.
 | --- | --- |
 | Retained TU1.5 world and bipeds | Actual source-created bodies, world stepping, root/WORLD readback and normal delivered SDL inputs run in the match. Visible walking/jump/crouch and lift travel pass; all support/contact/movement modes and retail trajectories still need coverage. |
 | Warthog | Normal entry, forward driving, steering and exit pass locally and over UDP. The actual245EA0 authored camera reaches rendering; UDP camera position/basis is checked against authority output. Other vehicle/controller classes, seats and quantitative retail contact/force behavior remain open. |
-| Grenades and prop blast | Actual source prepare/create/release/flight/detonation/retirement passes locally and over UDP. Current-root `v217` also passes a close-range authored power-module blast through movement and actual retirement; two captured point impulses per mode compare all512 motion bytes against unchanged TU1.5. All181 UDP states match, including live prop bounds/query inputs. Other object types, spawned debris and all destruction/model-region paths remain open. |
-| Scene replicas | Complete authored source scene roots and WORLD banks are admitted and adopted by the client, then checked before interpolation. Missing roots retire their native presentation. Recreation/late-join generation changes and spawned debris remain open. |
-| Delivery | The world constructor automatically selects TU1.5 physics for ordinary authoritative Slayer. The installed direct-peer runtime includes original camera/seat bindings and passes normal180-frame two-view Lockout/Coagulation launch/render checks through both launchers. The newer prop wiring passes in the current production checkout; its packaged delivery still needs verification. |
+| Grenades and prop blast | Actual source prepare/create/release/flight/detonation/retirement passes locally and over UDP. Current-root `v230` also renders the actual source-created debris crate and dropped grenade equipment, adopts authored current regions, and passes prop movement/retirement/recreation with181 exact UDP states. Two captured point impulses still compare all512 motion bytes against unchanged TU1.5. Other object types and all destruction/model-region paths remain open. |
+| Scene replicas | Complete authored roots/WORLD banks, live query inputs and actual creation ticks reach client presentation. Protocol73 additionally carries source-created equipment/garbage/crate state without allocating client bodies or selecting new model/RNG results. `v230` renders the debris owner174 times in each client view and observes1.591729 units of actual source movement. Arbitrary definitions, late-join resources, attachments and all model-region histories remain open. |
+| Delivery | The world constructor automatically selects TU1.5 physics for ordinary authoritative Slayer. Production `halo2_native` and acceptance targets build with the seated camera fix in `v236`; `v237` extends the Warthog fixture. Earlier direct-peer launch/render evidence remains historical: current launcher-info checks select `.local/map-world-shape9-20261014/halo2_native` and report MCC-only assets with native MCC gameplay unavailable. This task's latest TU1.5 physics is verified against original Xbox maps through its explicit native test/runtime paths; current packaged delivery remains unverified. |
 
 Current-root `v164` also passes the Ghost with an actual seated camera and
 exact UDP FOV submission checks. Original CB3D0/CB090 seat selection is wired
@@ -52,9 +161,36 @@ These bounded native sequences still require quantitative retail comparison
 and coverage of the other vehicle classes/seats. Current-root `v217` repeats
 Warthog/Ghost camera, movement and lift passes after the prop integration. Its
 long Banshee flight reaches an additional rigid-body deactivation callback;
-the original gameplay admission and motion checks are wired and pending that
-rerun. [Prop blast evidence](MP_PROP_BLAST_TU15_20261014.md) supersedes the
+the original gameplay admission and motion checks are wired. Banshee `v219`
+passes13.888749 units of travel,5.631904 units of climb, turning and exit with902
+exact UDP comparisons and532 original camera submissions. The local/UDP prop
+blast also passes again after this deactivation integration. [Prop blast
+evidence](MP_PROP_BLAST_TU15_20261014.md) supersedes the
 earlier private-only impulse and red post-explosion checkpoints.
+
+Current-root `v221` also passes the scene-generation lifecycle above and repeats
+the original point-impulse comparison on its recreated source body: all512
+motion bytes match. Its UDP Warthog/lift regressions pass with301/181 exact
+snapshots; the Warthog submits292 actual original seated cameras and135 views
+after exit. The first recreation recording proves geometry submission;
+`live-root-scene-observer-v226` also passes with a surviving observer facing the
+recreated prop for58 actual render frames, both generations' geometry in both
+views,182 exact UDP states and another512-byte original impulse comparison.
+The fixture also exposes and fixes keyboard/mouse routing to an explicitly
+assigned second local view. Additional original collision-mask storage and
+inverted-contact query routines are joined after their actual live boundaries.
+The same `v226` runtime repeats Banshee flight, turning and exit with902 exact
+UDP comparisons,562 original seated-camera submissions,13.382885 horizontal
+units and5.403625 units of climb. Its UDP lift also passes181 exact comparisons.
+The production `halo2_native` target builds with these changes. This does not
+verify the separately selected current MCC-only launcher package.
+
+The [source-created object integration](MP_DYNAMIC_OBJECTS_TU15_20261014.md)
+adds actual model-region/color readback and dynamic presentation. Its field
+readers compare against unchanged TU1.5 BC6C0/BCD80. Current-root `v230` passes
+the live debris/prop sequence, Banshee camera/flight, lifts and movement with
+181/902/181/181 exact UDP comparisons. These are bounded composed checks;
+they do not establish every dynamic definition, controller or retail trajectory.
 
 [Vehicle camera evidence](MP_VEHICLE_CAMERA_TU15_20261013.md) and
 [scene replication evidence](MP_SOURCE_SCENE_REPLICATION_TU15_20261013.md)
@@ -607,3 +743,13 @@ Fresh native context/clock construction, timer expiry/DPC servicing, process
 heap/global installation, source world/body/contact/controller creation and
 `Simulation::step` integration remain open. Visible multiplayer lift and
 vehicle acceptance remains red. The complete physics goal is unfinished.
+
+
+Current additional checkpoint: 28 lift/player-field placements across 13
+map-local definitions have bounded visible multiplayer evidence (5,088 exact
+UDP comparisons, 1,374 observed upward deliveries). The broader 43-placement
+phantom data inventory includes initially absent and non-player fields. Dune
+tower/pod behavior and moving/rotating supported riders remain open. Original
+device script APIs now have a 127-site closure, 256 original differential cases
+and eight real VM/UDP stages. These are incremental integration gates and do
+not close the all-player/vehicle/object TU1.5 parity goal.

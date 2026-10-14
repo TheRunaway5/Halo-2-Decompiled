@@ -13,8 +13,9 @@ struct ParticleBirthState {
   float inverse_lifetime{},rotation_rate{};
   Vec3 position{},velocity{};
 };
-// Original 249170 initialization for shapes 0 through 5. Other shapes require
-// independent evidence and are rejected. RNG ownership is supplied explicitly.
+// Original 249170 initialization for shapes 0 through 5 and TU1.5 252480's
+// shape 9. Other shapes require independent evidence and are rejected.
+// RNG ownership is supplied explicitly.
 // Normalization follows the observed Xemu CPU result; this does not establish
 // the approximate RSQRTSS result on physical Xbox hardware.
 ParticleBirthState initialize_particle_birth(const ParticleBirthDefinition &,

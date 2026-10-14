@@ -61,3 +61,13 @@ Vec3 source_projectile_rgb_color(Vec3 lower,Vec3 upper,float amount) {
         std::clamp(lower.z*inverse+upper.z*amount,0.f,1.f)};
 }
 }
+
+namespace halo2 {
+float source_projectile_speed_scale(std::uint32_t flags,std::uint32_t player,
+    bool campaign,std::int16_t difficulty,const std::optional<std::array<float,4>> &table) {
+  if(!(flags&0x400u))return 1.f;
+  if(player!=0xffffffffu)return 1.5f; // Original446548/449FD4, bits3FC00000.
+  if(!table)return 1.f;
+  return (*table)[campaign?std::clamp<int>(difficulty,0,3):1];
+}
+}

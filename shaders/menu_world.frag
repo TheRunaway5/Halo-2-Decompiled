@@ -17,6 +17,10 @@ layout(location=10) flat in vec4 v_vtxPos1;
 layout(location=11) flat in vec4 v_vtxPos2;
 layout(location=12) flat in float v_triMZ;
 layout(location=0) out vec4 pixel;
+// Derived from the admitted original vertex program's actual output writes.
+// An untouched texture W remains the original initialized constant1. Explicit
+// W writes keep their ordinary interpolated value, including projected effects.
+layout(constant_id=0) const uint defaultTextureWMask=0u;
 layout(set=0,binding=0) uniform sampler2D diffuse;
 layout(set=0,binding=1) uniform sampler2D detail;
 layout(set=0,binding=2) uniform sampler2D bump;
@@ -98,5 +102,7 @@ vec4 fetchStage3D(uint stage,vec3 p) {
 void main() {
     stageCoordinates[0]=v_vtxT0;stageCoordinates[1]=v_vtxT1;
     stageCoordinates[2]=v_vtxT2;stageCoordinates[3]=v_vtxT3;
+    for(uint stage=0u;stage<4u;++stage)
+        if((defaultTextureWMask&(1u<<stage))!=0u)stageCoordinates[stage].w=1.0;
     pixel=menuWorldFragment(v_vtxD0,v_vtxD1,v_vtxPos0,v_vtxPos1,v_vtxPos2,v_triMZ);
 }

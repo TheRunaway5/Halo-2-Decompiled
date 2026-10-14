@@ -1,0 +1,6 @@
+target_sources(halo2_systems PRIVATE src/source_pool_continuation.cpp)
+if(BUILD_TESTING)
+    add_executable(source_pool_continuation_tests tests/source_pool_continuation_tests.cpp)
+    target_link_libraries(source_pool_continuation_tests PRIVATE halo2_systems)
+    add_test(NAME native_source_pool_continuation COMMAND source_pool_continuation_tests)
+endif()

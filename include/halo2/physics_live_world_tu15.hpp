@@ -11,10 +11,18 @@
 #include "halo2/unit_damage.hpp"
 #include "halo2/particle_collision.hpp"
 #include "halo2/source_weapon_shader_input.hpp"
+#include "halo2/weapon_effect.hpp"
+#include "halo2/source_runtime_resources.hpp"
+#include "halo2/physics_game_arena_native.hpp"
+#include "halo2/source_runtime_host_virtual_memory.hpp"
+#include "halo2/physics_pool_host_storage.hpp"
+#include "halo2/physics_platform_locks.hpp"
+#include "halo2/source_object_draw_collector.hpp"
 
 namespace halo2 {
 class Cache;
 struct WeaponEffectInput;
+struct FirstPersonViewBinding;
 struct SourceGameVariant;
 struct ScenarioObject;
 struct SourceObjectDrawCollector;
@@ -22,6 +30,38 @@ struct SourceObjectBuildRequest;
 struct SourcePortalVisibilitySet;
 struct SourceObjectAdmission;
 struct SourceObjectAdmissionInput;
+// Local native input owner. Callback objects never cross a world checkpoint.
+// Monotonic domains rebase on import; UTC remains an absolute external input.
+class PhysicsLiveClockSource {
+public:
+    virtual ~PhysicsLiveClockSource()=default;
+    virtual std::uint32_t milliseconds() const noexcept=0;
+    virtual std::uint64_t cycles() const noexcept=0;
+    virtual std::uint64_t utc_filetime() const noexcept=0;
+};
+// Read-only diagnostics around the real168CA1 frame phase. CPU estimates and
+// timestamp samples are external platform inputs, never gameplay call returns.
+struct SourceFirstPersonCpuInputTu15 {
+    std::uint32_t kind,input;
+    std::uint64_t value;
+};
+// Read-only before/after the actual original1DA750 child call. The retained
+// ABI and memory belong to the running world; no force or contact is supplied.
+using SourceBodyVelocityInputObserverTu15=std::function<void(std::uint32_t,
+    const SourcePhysicsWorldRuntimeAbi &,const SourceRuntimeMemory &)>;
+using SourcePhysicsStoreObserverTu15=std::function<void(std::uint32_t,
+    const SourcePhysicsContactRecordStore &)>;
+using SourcePhantomPhaseObserverTu15=std::function<void(bool,
+    const SourcePhysicsWorldRuntimeAbi &,const SourceRuntimeMemory &)>;
+using SourceFirstPersonPhaseObserverTu15=std::function<void(bool,
+    const SourcePhysicsWorldRuntimeAbi &,const SourceRuntimeMemory &,
+    std::span<const std::uint32_t>,std::span<const SourceFirstPersonCpuInputTu15>)>;
+// Read-only18CEFC ->223B20 submit boundary over the actual160-byte request.
+// Before/after callbacks retain the true source ABI/result; observers never
+// supply an audio admission, source voice or successful platform return.
+using SourceSoundSubmitObserverTu15=std::function<void(bool,std::uint32_t,
+    std::uint32_t,const SourcePhysicsWorldRuntimeAbi &,const SourceRuntimeMemory &,
+    std::span<const std::uint32_t>,std::span<const SourceFirstPersonCpuInputTu15>)>;
 struct SourceBspPartCommandState;
 // Read-only publication of the actual101BC0 ->178E30 explosion request.
 // Locations are the completed source effect's retained3C records, including
@@ -33,6 +73,13 @@ struct SourceProjectileDetonationTu15 {
     std::vector<SourceEffectLocation> effect_locations;
     SourceEffectColors colors;
     SourceEffectControls controls;
+};
+// Actual168DED draw records: model, owner, mode and original model-order
+// world matrices. Skinning consumes these completed records without sampling
+// another animation/IK owner. The native caller supplies its real view camera.
+struct SourceFirstPersonModelTu15 {
+    std::uint32_t render_model,owner,mode;
+    std::vector<Transform> nodes;
 };
 struct SourcePlayerEquipmentTu15 {
     std::array<std::uint32_t,4> weapons,definitions,ready_ticks;
@@ -47,6 +94,22 @@ struct SourceBodyImpulseTu15 {
     std::array<std::byte,0x100> before,after;
     std::array<std::byte,16> impulse,point;
 };
+// Completed original108A70 request made by the live source weapon scheduler.
+// Observers receive presentation data after the original callee returns.
+struct SourceWeaponEffectEventTu15 {
+    std::uint32_t tick{},unit=0xffffffffu;
+    WeaponEffectInput input;
+    SourceWeaponEffectPresentation presentation;
+    Vec3 velocity;
+};
+// Actual17D8DA ->D91D0 jpt! dispatch. The request address is scoped to the
+// callback, and observers only read the retained bank before/after the real
+// callee. They cannot admit damage, replace a result or allocate an effect.
+struct SourceEffectDamageCallTu15 {
+    std::uint32_t tick,instance,effect,owner,damage,request;
+};
+using SourceEffectDamageObserverTu15=std::function<void(bool,
+    const SourceEffectDamageCallTu15 &,const SourceRuntimeMemory &)>;
 // One fresh TU1.5 bank and its native process/arena/pool resources. Source
 // constructors own all allocator, renderer, world and body state. The host
 // process binding is explicit; it is not a claim of complete Xbox boot.
@@ -54,6 +117,9 @@ class PhysicsLiveWorldTu15 {
 public:
     PhysicsLiveWorldTu15(const Cache &,const std::filesystem::path &xbe,
                         const std::filesystem::path &savegame_directory,std::size_t bsp=0);
+    PhysicsLiveWorldTu15(const Cache &,const std::filesystem::path &xbe,
+                        const std::filesystem::path &savegame_directory,std::size_t bsp,
+                        std::shared_ptr<PhysicsLiveClockSource>);
     ~PhysicsLiveWorldTu15();
     PhysicsLiveWorldTu15(const PhysicsLiveWorldTu15 &)=delete;
     PhysicsLiveWorldTu15 &operator=(const PhysicsLiveWorldTu15 &)=delete;
@@ -82,6 +148,16 @@ public:
     void preload_render_model(std::uint32_t render_model);
     bool request_render_geometry(std::uint32_t flags,std::uint32_t resource_header);
     void begin_model_frame();
+    // Publish a completed native173130 portal result into the actual render
+    // collector, then run whole3F3E0. Calls union the local views; the literal
+    //2B630..2B63A reset occurs once through begin_model_frame().
+    void publish_render_visibility(const SourcePortalVisibilitySet&);
+    // Original per-view12D19 -> 22830 PRT cache reset and SH preparation.
+    void begin_model_view();
+    // Effective render pose after BF640/gates, copied before scratch is reused.
+    // This differs from the collision WORLD bank (notably the finger nodes).
+    // Present only after this frame's actual model builder requests it.
+    std::optional<std::vector<Transform>> rendered_world_nodes(std::uint32_t object) const;
     // Original41C70/41C10/D7230 traversal over the actual attachment/child
     // chains. Deep unowned attachment services propagate their real boundary.
     void append_render_attachments(SourceBspPartCommandState&,
@@ -98,7 +174,30 @@ public:
     // machine; it does not bind the original four local input/view records.
     void construct_player(std::uint32_t player,unsigned native_identity_ordinal,
                           const SourcePlayerConfiguration &,const SourceMachineIdentity &);
+    // Native roster input, before player allocation/configuration. Original
+    // team-mask and existing-player configuration owners consume the change.
+    void publish_roster_team(unsigned user,std::int8_t team);
     void bind_player(std::uint32_t player,std::uint32_t object);
+    // Complete88C50 identity gate and155920/15A860 ordinary departure.
+    // Retains the allocated player/profile/results; unit death is deferred
+    // through the source world update. A stale/already-left identity returnsfalse.
+    bool depart_player(std::uint32_t player);
+    // Native selects its real local view; original151C90 owns the player,
+    // view map, input binding and first-person unit transition. -1 releases.
+    void set_local_player(std::uint32_t player,std::int16_t view);
+    // Native presentation's actual camera position, published to172200's
+    // retained observer record.1755B0 uses it for source effect admission.
+    // This supplies a native camera input, not the original camera scheduler.
+    void publish_native_observer_position(unsigned view,Vec3 position);
+    FirstPersonViewBinding first_person_view(unsigned view) const;
+    std::vector<SourceFirstPersonModelTu15> prepare_first_person_models(unsigned view,
+        Vec3 position,Vec3 forward,Vec3 up,const SourceFirstPersonPhaseObserverTu15 & = {});
+    void observe_first_person_phase(SourceFirstPersonPhaseObserverTu15);
+    void observe_sound_submissions(SourceSoundSubmitObserverTu15);
+    // Bind an actual owned EEPROM resource before source audio construction.
+    // This retains only its immutable non-key UserSettings section; absence
+    // never becomes a speaker/configuration or initialized-device default.
+    void bind_sound_user_settings(const std::filesystem::path &);
     // Original152078..152098 post-birth activation and full1613B0 equipment
     // setup.1A8B50 selects authored loadouts and creates/attaches real weapons.
     SourcePlayerEquipmentTu15 initialize_player_equipment(std::uint32_t player,
@@ -113,8 +212,18 @@ public:
     // by its13AB49 effect update and13ABD8 clock increment. Other game-frame
     // systems, including the preceding audio phase, are separate owners.
     void step_objects();
+    // Original13AA28's complete179DF0 particle phase. The caller delivers its
+    // actual frame delta once per frame. Other13A9B0 owners remain separate.
+    void advance_effect_particles(float frame_seconds,const SourceFirstPersonPhaseObserverTu15& observer={});
     std::vector<SourceProjectileDetonationTu15> take_projectile_detonations();
     void observe_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)>);
+    void observe_phantom_phase(SourcePhantomPhaseObserverTu15);
+    void observe_physics_stores(SourcePhysicsStoreObserverTu15);
+    void observe_body_velocity_inputs(SourceBodyVelocityInputObserverTu15);
+    void observe_weapon_effects(std::function<void(const SourceWeaponEffectEventTu15 &)>);
+    // Read-only retained ABI/bank snapshots around the real scheduled108A70.
+    void observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15);
+    void observe_effect_damage(SourceEffectDamageObserverTu15);
     std::vector<MeleeImpact> take_melee_impacts();
     std::vector<UnitDamageEffectEvent> take_unit_damage_effects();
     SourceWeaponEffectPresentation request_weapon_effect(const WeaponEffectInput &);
@@ -131,6 +240,18 @@ public:
     NativeRuntimeAddress object_body(std::uint32_t full_datum) const;
     void configure_session(const SourceGameVariant &,std::uint16_t simulation_mode,
                            std::int16_t tick_rate,std::uint32_t random_seed);
+    // Deliver campaign kind1 and its actual signed difficulty field. The
+    // source clock/cache/engine owners consume the same native session inputs.
+    void configure_campaign_session(std::int16_t difficulty,
+        std::uint16_t simulation_mode,std::int16_t tick_rate,std::uint32_t random_seed);
+    // Original scenario kill-volume state on this world. Containment uses
+    // the actual source object pose and clock, one scheduled volume per tick;
+    // fatal damage stays in the
+    // original biped/vehicle update rather than this query.
+    // Original B95D0 owns pose/physics delivery for this external position input.
+    void set_object_position(std::uint32_t object,Vec3 position);
+    void set_kill_volume_enabled(std::int16_t trigger,bool enabled);
+    bool object_in_kill_volume(std::uint32_t object);
     // One complete original game physics frame (actual1CC8D0), using the
     // source clock configured for this session and the owner's retained ABI.
     // Command delivery and game-clock advancement belong to the game tick.
@@ -140,7 +261,7 @@ public:
     SourcePhysicsWorldRuntimeAbi step_physics(
         const SourcePhysicsContactRecordObserver & = {});
     std::uint32_t create_biped(std::uint32_t definition,const Vec3 &position,
-                               const Vec3 &forward);
+                               const Vec3 &forward,std::uint32_t player=0xffffffffu);
     // Actual C1120 receives the original placement and palette addressed by
     // the source type table. D75A0 owns request construction, including UID,
     // frozen state, authored orientation, scale and type-specific fields.
@@ -154,6 +275,57 @@ public:
     std::uint32_t child_object(std::uint32_t parent,std::uint32_t definition) const;
     // Complete BA3E0 deactivation and BA490 deletion precede header retirement.
     void destroy_object(std::uint32_t full_datum);
+    struct AuthorityCheckpoint {
+        struct Allocation {std::uint32_t payload,bytes,flags;};
+        struct ResourceRead {std::uint32_t descriptor,destination,bytes;};
+        std::uint32_t version=1,bsp{},main_thread_token{},last_instruction{},delivered_players{};
+        std::uint64_t next_thread_token{};
+        std::uint32_t logical_milliseconds{};
+        std::uint64_t logical_cycles{};
+        SourceRuntimeResources::Identity resources;
+        SourceRuntimeMemory::Checkpoint bank;
+        SourceRuntimeHostVirtualMemory::OwnershipCheckpoint virtual_memory;
+        SourcePhysicsPoolHostStorage::OwnershipCheckpoint pool_storage;
+        SourcePhysicsGameArenaNative::OwnershipCheckpoint arena;
+        PhysicsPlatformLocks::OwnershipCheckpoint locks;
+        NativeSynchronization::Checkpoint events;
+        std::map<std::uint32_t,std::uint32_t> lock_events;
+        std::vector<Allocation> allocations;
+        std::map<std::uint32_t,ResourceRead> resource_reads;
+        std::uint64_t next_resource_read{},next_model_collector{};
+        std::map<std::pair<unsigned,std::uint32_t>,SourceObjectDrawCollector> model_collectors;
+        bool session_configured{},model_scratch_mounted{};
+        std::vector<std::uint32_t> exit_callbacks;
+        std::vector<SourceProjectileDetonationTu15> projectile_detonations;
+        std::vector<UnitDamageEffectEvent> unit_damage_effects;
+        std::vector<MeleeImpact> melee_impacts;
+    };
+    class PreparedAuthority {
+    public:
+        ~PreparedAuthority();
+        PreparedAuthority(PreparedAuthority &&) noexcept;
+        PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+        bool for_owner(const PhysicsLiveWorldTu15 &) const noexcept;
+        // Read-only access for enclosing owners to validate and stage their
+        // native-address bindings to this exact replacement allocation.
+        // The reference expires when preparation commits or is cancelled.
+        const SourceRuntimeMemory &replacement_memory() const;
+    private:
+        friend class PhysicsLiveWorldTu15;
+        PreparedAuthority();
+        struct Impl;
+        std::unique_ptr<Impl> impl_;
+    };
+    // Completed-call barrier on the retained executor thread; the enclosing
+    // match must also quiesce raw memory borrowers and presentation consumers.
+    // This captures the source physics owner, not the outer match/simulation.
+    AuthorityCheckpoint authority_checkpoint() const;
+    PreparedAuthority prepare_authority(const AuthorityCheckpoint &);
+    // No-throw publication of all staged backing/resources/sidecars. Callers
+    // must rebind every borrowed view/native address afterward. Services and
+    // observers remain local; no host pointers or native thread IDs import.
+    // This owner must outlive preparation; commit/cancel on its executor thread.
+    bool commit_authority(PreparedAuthority &&) noexcept;
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

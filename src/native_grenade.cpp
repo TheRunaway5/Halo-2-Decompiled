@@ -6,10 +6,12 @@
 #include "halo2/math.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/projectile_material_response.hpp"
+#include "world_continuation_bindings.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
 #include <cstring>
+#include <set>
 
 namespace halo2 {
 namespace {
@@ -78,7 +80,7 @@ struct NativeGrenadeSandbox::UnitDefinition {
 };
 struct NativeGrenadeSandbox::WeaponClips {AnimationClip ordinary;std::optional<AnimationClip> preferred;};
 NativeGrenadeSandbox::NativeGrenadeSandbox(std::shared_ptr<const Cache> cache,
-    std::uint32_t unit,NativeGrenadeConstants constants):cache_(std::move(cache)){
+    std::uint32_t unit,NativeGrenadeConstants constants):initial_unit_(unit),constants_(constants),cache_(std::move(cache)){
   if(!cache_)throw FormatError("Grenade adapter requires a retained Cache");
   const auto original=cache_->original_data();
   if(!original||!original->unit_animation_constants||!original->sound_driver_startup_operands)
@@ -108,6 +110,7 @@ NativeGrenadeSandbox::NativeGrenadeSandbox(std::shared_ptr<const Cache> cache,
   for(unsigned i=0;i<mn;++i)d->parents.push_back(std::bit_cast<std::int16_t>(materials.u16(i*0xb4+8)));
   definition_=std::move(d);
   unit_definition(unit);
+  binding_=world_continuation::grenade_binding(*cache_,unit,constants);
 }
 const NativeGrenadeSandbox::UnitDefinition &NativeGrenadeSandbox::unit_definition(std::uint32_t unit) {
   if(const auto i=units_.find(unit);i!=units_.end())return *i->second;
@@ -134,6 +137,7 @@ std::shared_ptr<const NativeGrenadeSandbox::WeaponClips> NativeGrenadeSandbox::w
   release_ticks(c->ordinary);clips_[key]=c;return c;
 }
 const AnimationClip* NativeGrenadeSandbox::action_clip(std::uint32_t graph,std::uint32_t clip)const{
+  NativeAuthorityBoundary::Call call(authority_);
   for(const auto&[_,c]:clips_){if(c->ordinary.source_graph==graph&&c->ordinary.source_index==clip)return &c->ordinary;
     if(c->preferred&&c->preferred->source_graph==graph&&c->preferred->source_index==clip)return &*c->preferred;}
   if(graph==null_datum||clip==null_datum)return nullptr;
@@ -141,10 +145,11 @@ const AnimationClip* NativeGrenadeSandbox::action_clip(std::uint32_t graph,std::
   if(const auto i=selected_clips_.find(key);i!=selected_clips_.end())return &i->second;
   // A native replica carries the authoritative selected graph/index, not a
   // request for reselection. Decoding real Cache backing is its residency.
-  return &selected_clips_.emplace(key,cache_->load_animation(graph,clip)).first->second;
+  ++authority_.mutations;return &selected_clips_.emplace(key,cache_->load_animation(graph,clip)).first->second;
 }
 void NativeGrenadeSandbox::update_unit(Unit&u,bool pressed,int owner,const Allocate&allocate,const Activity&activity,
     const Constructed&constructed){
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;
   auto&s=u.grenade_action;
   if(pressed&&!u.vitality.dead&&u.source_parent==null_datum&&!(u.source_unit_10a&4)&&
       !(u.source_action_word&0x400001u)&&u.grenade_current>=0&&
@@ -203,6 +208,7 @@ void NativeGrenadeSandbox::update_unit(Unit&u,bool pressed,int owner,const Alloc
 }
 void NativeGrenadeSandbox::adopt_source_projectiles(std::vector<NativeGrenadeProjectile> next,
     std::span<const PresentationOwner> units) {
+  NativeAuthorityBoundary::Call call(authority_);
   for(auto &projectile:next) {
     // Full source creator identity comes from body+C4/+C8/+C2, independently
     // of attachment (a plasma grenade can attach to an opposing unit). Only
@@ -214,10 +220,11 @@ void NativeGrenadeSandbox::adopt_source_projectiles(std::vector<NativeGrenadePro
     for(const auto &owner:units)if(projectile.player!=null_datum && owner.unit &&
         projectile.player==owner.unit->source_player)projectile.native_owner=owner.native_owner;
   }
-  projectiles_=std::move(next);
+  ++authority_.mutations;projectiles_=std::move(next);source_driven_=true;
 }
 void NativeGrenadeSandbox::adopt_source_detonations(std::uint64_t tick,
     std::span<const SourceProjectileDetonationTu15> completed) {
+  NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;source_driven_=true;
   for(const auto &event:completed) {
     // Original101330 owns damage, retirement and its selected effect request.
     // This bridge only publishes the completed effect's actual location frame.
@@ -226,6 +233,7 @@ void NativeGrenadeSandbox::adopt_source_detonations(std::uint64_t tick,
     if(event.effect_instance==null_datum)continue; // Actual source admission rejected it.
     if(event.effect_locations.empty())
       throw FormatError("Completed TU1.5 explosion effect has no retained presentation location");
+    if(detonation_serial_==UINT64_MAX)throw FormatError("Native grenade detonation serial exhausted");
     const auto &frame=event.effect_locations.front().frame;
     detonations_.push_back({++detonation_serial_,tick,event.projectile,event.definition,
         event.effect,event.player,event.unit,frame.position,frame.basis[0],frame.basis[2],event.effect_locations,event.colors,event.controls});
@@ -286,7 +294,9 @@ void NativeGrenadeSandbox::release(Unit&u){
       i->position,i->velocity,s.activity,s.graph,s.clip,s.counter(),3});
 }
 void NativeGrenadeSandbox::cancel_unit(Unit&u){
+  NativeAuthorityBoundary::Call call(authority_);
   if(!(u.source_action_word&0x400000u))return;
+  ++authority_.mutations;
   // E9A50 invokes E8F30 even with heldNONE, then clears phase. In the
   // ordinary player-owner release branch E8F30 clears the early flag before
   // random non-player launch adjustment, so the same player launch applies.
@@ -295,6 +305,8 @@ void NativeGrenadeSandbox::cancel_unit(Unit&u){
 }
 void NativeGrenadeSandbox::update_projectiles(std::uint64_t tick,const CollisionWorld&world,const Area&area,
     const std::function<void(std::uint32_t)>&release_object,const CollisionObjectType&object_type){
+  NativeAuthorityBoundary::Call call(authority_);
+  if(!projectiles_.empty())++authority_.mutations;
   const auto&d=*definition_;
   for(auto i=projectiles_.begin();i!=projectiles_.end();){
     auto&p=*i;const auto&g=d.grenades.at(unsigned(p.type));const auto q=root(g.tag);
@@ -345,6 +357,7 @@ void NativeGrenadeSandbox::update_projectiles(std::uint64_t tick,const Collision
     }
     const bool detonate=p.state==2||(p.state==1&&(p.arming_step==0||p.arming>=d.one));
     if(detonate){
+      if(detonation_serial_==UINT64_MAX)throw FormatError("Native grenade detonation serial exhausted");
       if(g.damage){if(!area)throw FormatError("Grenade detonation requires real area-damage owner");
         area(*g.damage,p.position,p.player,p.unit,p.designator,p.native_owner,p.definition);}
       events_.push_back({NativeGrenadeEvent::Detonated,p.unit,p.datum,p.definition,g.detonation_effect,p.position,p.velocity});
@@ -355,5 +368,99 @@ void NativeGrenadeSandbox::update_projectiles(std::uint64_t tick,const Collision
     }else ++i;
   }
 }
-std::vector<NativeGrenadeEvent> NativeGrenadeSandbox::take_events(){auto r=std::move(events_);events_.clear();return r;}
+std::vector<NativeGrenadeEvent> NativeGrenadeSandbox::take_events(){NativeAuthorityBoundary::Call call(authority_);++authority_.mutations;auto r=std::move(events_);events_.clear();return r;}
+
+void NativeGrenadeSandbox::validate_authority(const AuthorityCheckpoint &saved,std::span<const Unit> units)const {
+  using namespace world_continuation;
+  if(saved.version!=1 || saved.initial_unit!=initial_unit_ || saved.binding!=binding_ || saved.projectiles.size()>2048 ||
+      saved.detonations.size()>64 || saved.detonation_serial==UINT64_MAX || !saved.unit_bindings.contains(initial_unit_))
+    throw FormatError("Grenade continuation has incompatible bindings or frontier");
+  std::map<std::uint32_t,AuthorityDigest> unit_bindings;
+  for(const auto &[id,d]:units_)unit_bindings.emplace(id,grenade_unit(d->model,d->marker,d->permutations,d->speed));
+  std::map<std::pair<std::uint32_t,std::uint32_t>,AuthorityDigest> weapon_bindings,selected_bindings;
+  for(const auto &[key,c]:clips_)weapon_bindings.emplace(key,grenade_clips(c->ordinary,c->preferred));
+  for(const auto &[key,c]:selected_clips_)selected_bindings.emplace(key,animation_clip(c));
+  if(unit_bindings!=saved.unit_bindings || weapon_bindings!=saved.weapon_clip_bindings || selected_bindings!=saved.selected_clip_bindings)
+    throw FormatError("Grenade continuation decoded bindings differ from local resources");
+  const auto handle=[](std::uint32_t h){return h!=null_datum && (h>>16) && (h&65535u)<2048;};
+  const auto reference=[&](std::uint32_t h){return h==null_datum || handle(h);};
+  std::set<std::uint32_t> handles,slots;
+  for(const auto &p:saved.projectiles) {
+    if(!handle(p.datum) || !handles.insert(p.datum).second || !slots.insert(p.datum&65535u).second ||
+        p.type<0 || std::size_t(p.type)>=definition_->grenades.size() || p.definition!=definition_->grenades[unsigned(p.type)].datum ||
+        !reference(p.parent) || !reference(p.unit) || !finite(p.position) || !finite(p.velocity) || !finite(p.forward) || !finite(p.up) ||
+        !std::isfinite(p.timer) || !std::isfinite(p.timer_step) || !std::isfinite(p.arming) || !std::isfinite(p.arming_step) || !std::isfinite(p.traveled))
+      throw FormatError("Grenade continuation has invalid projectile identity/state");
+    if(!saved.source_driven && p.parent!=null_datum && !saved.attachments.contains(p.datum))
+      throw FormatError("Native held grenade continuation lost its attachment frame");
+  }
+  for(const auto &[h,a]:saved.attachments) {
+    const auto p=std::ranges::find(saved.projectiles,h,&NativeGrenadeProjectile::datum);
+    if(p==saved.projectiles.end() || p->parent==null_datum || !finite(a.second.position) || !finite(a.second.forward) || !finite(a.second.up))
+      throw FormatError("Grenade continuation has an orphaned or invalid attachment");
+    const auto unit=std::ranges::find(units,p->parent,&Unit::source_datum);
+    if(unit==units.end() || unit->grenade_action.held()!=h || !units_.contains(unit->definition.datum) ||
+        a.first>=units_.at(unit->definition.datum)->model.bones.size())
+      throw FormatError("Grenade continuation attachment differs from its restored unit");
+  }
+  if(!saved.source_driven)for(const auto &u:units)if(u.grenade_action.held()!=null_datum) {
+    const auto p=std::ranges::find(saved.projectiles,u.grenade_action.held(),&NativeGrenadeProjectile::datum);
+    if(p==saved.projectiles.end() || p->parent!=u.source_datum || !saved.attachments.contains(p->datum))
+      throw FormatError("Restored unit grenade action lost its held projectile");
+  }
+  for(const auto &e:saved.pending_events)if(e.kind<NativeGrenadeEvent::Begin || e.kind>NativeGrenadeEvent::Unavailable ||
+      !reference(e.unit) || !reference(e.projectile) || !finite(e.position) || !finite(e.velocity))
+    throw FormatError("Grenade continuation has an invalid pending event");
+  std::uint64_t previous=0;
+  for(const auto &d:saved.detonations) {
+    if(!d.serial || d.serial<=previous || d.serial>saved.detonation_serial || !handle(d.projectile) || !reference(d.unit) ||
+        !finite(d.position) || !finite(d.forward) || !finite(d.up) || !std::isfinite(d.controls.a) || !std::isfinite(d.controls.b))
+      throw FormatError("Grenade continuation has an invalid detonation journal");
+    for(const auto &location:d.source_locations)if(!finite(location.frame))
+      throw FormatError("Grenade continuation has an invalid source effect location");
+    previous=d.serial;
+  }
+  if(previous!=saved.detonation_serial)throw FormatError("Grenade continuation lost its retained detonation frontier");
+}
+struct NativeGrenadeSandbox::PreparedAuthority::Impl {
+  NativeGrenadeSandbox *owner{};bool *staging{};
+  std::unique_ptr<NativeGrenadeSandbox> next;
+  ~Impl(){if(staging)*staging=false;}
+};
+NativeGrenadeSandbox::PreparedAuthority::PreparedAuthority()=default;
+NativeGrenadeSandbox::PreparedAuthority::~PreparedAuthority()=default;
+NativeGrenadeSandbox::PreparedAuthority::PreparedAuthority(PreparedAuthority &&) noexcept=default;
+NativeGrenadeSandbox::PreparedAuthority &NativeGrenadeSandbox::PreparedAuthority::operator=(PreparedAuthority &&) noexcept=default;
+bool NativeGrenadeSandbox::PreparedAuthority::for_owner(const NativeGrenadeSandbox &owner)const noexcept{return impl_ && impl_->owner==&owner;}
+NativeGrenadeSandbox::AuthorityCheckpoint NativeGrenadeSandbox::authority_checkpoint(std::span<const Unit> units,bool qualified_source_world)const {
+  authority_.capture();if(source_driven_ && !qualified_source_world)throw FormatError("Grenade presentation requires its qualified complete source world");
+  AuthorityCheckpoint s;s.initial_unit=initial_unit_;s.binding=binding_;s.source_driven=source_driven_;
+  for(const auto &[id,d]:units_)s.unit_bindings.emplace(id,world_continuation::grenade_unit(d->model,d->marker,d->permutations,d->speed));
+  for(const auto &[key,c]:clips_)s.weapon_clip_bindings.emplace(key,world_continuation::grenade_clips(c->ordinary,c->preferred));
+  for(const auto &[key,c]:selected_clips_)s.selected_clip_bindings.emplace(key,world_continuation::animation_clip(c));
+  s.projectiles=projectiles_;s.pending_events=events_;s.detonations=detonations_;s.detonation_serial=detonation_serial_;s.attachments=attachments_;
+  validate_authority(s,units);return s;
+}
+NativeGrenadeSandbox::PreparedAuthority NativeGrenadeSandbox::prepare_authority(const AuthorityCheckpoint &saved,std::span<const Unit> units,bool qualified_source_world) {
+  authority_.prepare();
+  if(saved.version!=1 || saved.initial_unit!=initial_unit_ || saved.binding!=binding_ || (saved.source_driven && !qualified_source_world))
+    throw FormatError("Grenade continuation import has incompatible local bindings");
+  PreparedAuthority p;p.impl_=std::make_unique<PreparedAuthority::Impl>();
+  p.impl_->owner=this;p.impl_->staging=&authority_.staging;authority_.staging=true;
+  auto &next=p.impl_->next;next=std::make_unique<NativeGrenadeSandbox>(cache_,initial_unit_,constants_);
+  if(next->binding_!=saved.binding)throw FormatError("Grenade resident cache changed after admission");
+  for(const auto &[id,digest]:saved.unit_bindings){(void)digest;next->unit_definition(id);}
+  for(const auto &[key,digest]:saved.weapon_clip_bindings){(void)digest;next->weapon_clips(key.first,key.second);}
+  for(const auto &[key,digest]:saved.selected_clip_bindings){(void)digest;
+    next->selected_clips_.emplace(key,cache_->load_animation(key.first,key.second));}
+  next->validate_authority(saved,units);
+  next->projectiles_=saved.projectiles;next->events_=saved.pending_events;next->detonations_=saved.detonations;
+  next->attachments_=saved.attachments;next->detonation_serial_=saved.detonation_serial;next->source_driven_=saved.source_driven;return p;
+}
+bool NativeGrenadeSandbox::commit_authority(PreparedAuthority &&p) noexcept {
+  if(!p.for_owner(*this) || !authority_.staging || authority_.depth)return false;
+  auto &n=*p.impl_->next;units_.swap(n.units_);clips_.swap(n.clips_);selected_clips_.swap(n.selected_clips_);
+  projectiles_.swap(n.projectiles_);events_.swap(n.events_);detonations_.swap(n.detonations_);attachments_.swap(n.attachments_);
+  detonation_serial_=n.detonation_serial_;source_driven_=n.source_driven_;authority_.fault=false;p.impl_.reset();return true;
+}
 } // namespace halo2

@@ -57,11 +57,12 @@ std::vector<std::uint8_t> Cache::source_prt_section_nodes(std::uint32_t datum,un
 }
 SourcePrtSh source_prt_node_lighting(const RenderModel&model,unsigned node,const Transform&world_node,const SourcePrtLighting&lighting){
     if(node>=model.bones.size())throw FormatError("PRT section references a missing model node");
-    //This helper requires the valid authored bank used by all admitted
-    //Zanzibar/Triplicate machine draws.23690's invalid-bank white SH and
-    //cached-incident fallback require their explicit retained caller state.
-    if(!lighting.structure_matches || lighting.records.empty())throw FormatError("PRT node lighting requires the source active SH bank");
-    auto sh=source_prt_sample(lighting.records,world_node.position);const auto& b=model.bones[node];
+    auto sh=source_prt_sample(lighting.structure_matches?std::span<const SourcePrtShRecord>{lighting.records}:
+        std::span<const SourcePrtShRecord>{},world_node.position);
+    // TU1.5 2372C evaluates white SH for an invalid lightmap bank.22CD0's
+    // empty valid bank evaluates green SH. Both leave the incident untouched.
+    if(!lighting.structure_matches)sh.coefficients[0]=sh.coefficients[2]=sh.coefficients[1];
+    const auto& b=model.bones[node];
     const Transform inverse_bind{b.inverse_scale,{{{b.inverse[0],b.inverse[1],b.inverse[2]},
         {b.inverse[3],b.inverse[4],b.inverse[5]},{b.inverse[6],b.inverse[7],b.inverse[8]}}},
         {b.inverse[9],b.inverse[10],b.inverse[11]}};
@@ -195,8 +196,9 @@ std::shared_ptr<const VertexProgramBank> source_prt_bank(const SourcePrtDefiniti
 }
 std::vector<SourcePrtSectionBank> source_prt_section_banks(const Cache&cache,const RenderModel&model,
     const SourcePrtDefinition&definition,unsigned lod,std::span<const unsigned> sections,
-    std::span<const Transform> world_nodes,const SourcePrtLighting&lighting){
-    std::vector<std::vector<SourcePrtSh>> selected;Vec3 incident{};bool incident_valid=false;
+    std::span<const Transform> world_nodes,const SourcePrtLighting&lighting,std::optional<Vec3> retained_incident){
+    std::vector<std::vector<SourcePrtSh>> selected;Vec3 incident=retained_incident.value_or(Vec3{});
+    bool incident_valid=retained_incident.has_value();
     for(const auto section:sections){
         const auto nodes=cache.source_prt_section_nodes(definition.render_model,section);
         std::vector<SourcePrtSh> bank;

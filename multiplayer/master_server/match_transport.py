@@ -116,8 +116,36 @@ class Room:
     def retire_capability(self, player):
         self.tokens.pop(player, None)
         self.confirmations.discard(player)
+        self.pending_signals.pop(player, None)
         self.departed_slots |= sum(1 << i for i, (p, _, _) in enumerate(self.players)
                                    if self.owners[p] == player)
+
+    async def depart_direct(self, player):
+        """Explicit authenticated leave; TCP loss alone never retires UDP admission."""
+        require(self.direct_udp and player in self.tokens, "Invalid direct departure")
+        if self.phase not in ("running", "reviewing", "postgame"):
+            await self.close("A player left before the match started.")
+            return
+        if self.phase == "running" and self.host == self.index(player):
+            # No simulation successor may be elected without its validated
+            # complete world. This remains the explicit live migration gate.
+            await self.close("The host left before a surviving authority was ready.")
+            return
+        self.peers.pop(player, None)
+        self.retire_capability(player)
+        if not self.tokens:
+            await self.close("Match completed.")
+            return
+        if self.phase == "running":
+            # Native leave/timeout and simulation/voice remain direct UDP.
+            # Retire only this connection's future confirmation requirement;
+            # keep every admitted participant's result row and identity.
+            return
+        if self.host == self.index(player):
+            self.host = min(self.index(p) for p in self.tokens)
+        if self.phase == "reviewing":
+            self.finish_review()
+        self.broadcast(self.voice_membership())
 
     async def depart(self, player):
         if player not in self.peers:
@@ -399,7 +427,8 @@ class MatchTransport:
         # A complete 1400-byte native datagram plus its route byte is valid.
         socket = web.WebSocketResponse(max_msg_size=120000, compress=False)
         await socket.prepare(request)
-        if room.closed or (player in room.peers and not room.direct_udp):
+        if room.closed or not secrets.compare_digest(room.tokens.get(player, ""), bearer[7:]) or (
+                player in room.peers and not room.direct_udp):
             await socket.close(code=1008)
             return socket
         peer = Peer(socket)
@@ -431,16 +460,9 @@ class MatchTransport:
                         peer.challenge = ""
                     elif set(data) == {"leave"}:
                         require(room.direct_udp and data["leave"] is True, "Invalid match departure")
-                        if room.phase != "postgame":
-                            await room.close("A player left the match. Search again.")
-                        else:
-                            room.tokens.pop(player, None)
-                            room.peers.pop(player, None)
-                            if room.peers:
-                                room.host = min(room.index(p) for p in room.tokens)
-                                room.broadcast(room.voice_membership())
-                            else:
-                                await room.close("Match completed.")
+                        if room.peers.get(player) is not peer:
+                            break  # A replaced reader cannot retire the newer connection.
+                        await room.depart_direct(player)
                         break
                     elif set(data) == {"peer_signal"}:
                         require(room.direct_udp, "Peer signaling is unavailable")
@@ -452,6 +474,13 @@ class MatchTransport:
                         require(signal["type"] in ("offer", "answer", "candidate") and isinstance(signal["payload"], str)
                                 and 0 < len(signal["payload"]) <= 16384 and isinstance(signal["mid"], str)
                                 and len(signal["mid"]) <= 32, "Invalid peer signal")
+                        destination = room.owners[room.players[target][0]]
+                        if destination not in room.tokens:
+                            # The descriptor is immutable and ICE callbacks
+                            # can already be queued when this owner leaves.
+                            # Retired endpoints cannot consume signaling or
+                            # terminate the surviving running/reviewing room.
+                            continue
                         key = source, target
                         room.signal_counts[key] = room.signal_counts.get(key, 0) + 1
                         require(room.signal_counts[key] <= 65, "Too many peer candidates")
@@ -461,7 +490,6 @@ class MatchTransport:
                             room.signaled_descriptions.add(key)
                         else:
                             require(len(signal["payload"]) <= 1024, "Invalid peer candidate")
-                        destination = room.owners[room.players[target][0]]
                         packet = json.dumps({"peer_signal": dict(signal, peer=source)})
                         if destination in room.peers:
                             require(not room.peers[destination].queue.full(), "Peer signaling reader stalled")

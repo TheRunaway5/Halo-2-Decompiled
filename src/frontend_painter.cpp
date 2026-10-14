@@ -1784,12 +1784,21 @@ struct FrontendPainter::Impl {
         UiBitmap b;
         b.datum = skin.arrows;
         b.position = skin.arrow_up;
+        if(is_vista_settings(frame.screen,256) || (is_vista_settings(frame.screen,272) &&
+            (frame.context==video_fov_context || frame.context==video_vehicle_fov_context))) {
+          const auto bounds=skin_bounds(skin);
+          if(content.images.contains(b.datum) && !content.images.at(b.datum).images.empty())
+            b.position.y=bounds.top+float(content.images.at(b.datum).images.front().height)+4.f;
+        }
         bitmap(b, {parent.x + list.position.x, parent.y + list.position.y});
       }
       if (first + count < frame.entries.size()) {
         UiBitmap b;
         b.datum = skin.arrows;
         b.position = skin.arrow_down;
+        if(is_vista_settings(frame.screen,256) || (is_vista_settings(frame.screen,272) &&
+            (frame.context==video_fov_context || frame.context==video_vehicle_fov_context)))
+          b.position.y=skin_bounds(skin).bottom-float(count-1)*row-4.f;
         if (frame.screen == 26 && frame.context == 1)
           b.position.y -= clan_footer_offset();
         b.frame = 1;

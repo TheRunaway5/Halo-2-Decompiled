@@ -8,6 +8,7 @@ struct EffectLightDefinition {
   std::array<std::byte,228> bytes{};
   std::uint32_t flags{},lens=0xffffffffu;
   float radius{},specular_radius{},duration{};
+  std::shared_ptr<const std::array<std::uint8_t,1024>> timed_curve;
 };
 struct EffectLightState {
   float size{},control{};

@@ -12,6 +12,7 @@ endif()
 if(BUILD_TESTING)
     add_executable(native_tu15_startup_platform_tests tests/native_tu15_startup_platform_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+    target_link_libraries(native_tu15_startup_platform_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(native_tu15_startup_platform_tests PRIVATE halo2_native_tu15_startup_platform nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_startup_without_bios COMMAND native_tu15_startup_platform_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/native-tu15-startup-platform-20261012/original-v1/fixture.json

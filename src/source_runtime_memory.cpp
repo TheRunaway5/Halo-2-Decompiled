@@ -7,7 +7,19 @@
 #include <stdexcept>
 
 namespace halo2 {
+SourceRuntimeMemoryBacking::SourceRuntimeMemoryBacking(std::shared_ptr<void> lifetime,
+    std::span<std::byte> bytes, WriteGuard guard)
+    :lifetime_(std::move(lifetime)),bytes_(bytes),write_guard_(std::move(guard)) {
+  if(!lifetime_ || bytes_.empty())
+    throw std::invalid_argument("Source backing requires its actual allocation lifetime and bytes");
+}
+void SourceRuntimeMemory::swap_backing(SourceRuntimeMemory &other) noexcept {
+  regions_.swap(other.regions_);native_regions_.swap(other.native_regions_);
+}
 namespace {
+struct RestoredSnapshotDelete {
+  void operator()(SourceRuntimeSnapshotBytes *bytes) const noexcept { delete bytes; }
+};
 std::uint64_t end(std::uint32_t p, std::size_t n) {
   if (n > (std::uint64_t{1} << 32) - p)
     throw std::out_of_range("Original runtime memory extent wraps32 bits");
@@ -28,8 +40,64 @@ void SourceRuntimeMemory::mount(std::uint32_t p,
         "Original runtime region requires backing and an owner");
   check_extent(p, initial.size());
   regions_.emplace(
-      p, Region{{initial.begin(), initial.end()}, access, std::move(owner)});
+      p, Region{std::vector<std::byte>(initial.begin(), initial.end()), access, std::move(owner)});
   try{index_native_region(p);}catch(...){regions_.erase(p);throw;}
+}
+void SourceRuntimeMemory::mount(std::uint32_t p,
+    std::shared_ptr<SourceRuntimeMemoryBacking> backing, Access access, std::string owner) {
+  if(!backing || owner.empty())throw std::invalid_argument("Shared source region requires backing and an owner");
+  check_extent(p,backing->bytes().size());
+  if(backing->mounted_.exchange(true))throw std::invalid_argument("Source backing is already published by a region");
+  try {
+    regions_.emplace(p,Region{backing,access,std::move(owner)});
+    try{index_native_region(p);}catch(...){regions_.erase(p);throw;}
+  }catch(...){backing->mounted_.store(false);throw;}
+}
+void SourceRuntimeMemory::bind_backing(const CheckpointRegion &expected,
+    std::shared_ptr<SourceRuntimeMemoryBacking> backing) {
+  const auto p=expected.address;
+  auto found=regions_.find(p);
+  if(found==regions_.end() || !backing || expected.page_bytes || !expected.committed.empty() ||
+      found->second.page_bytes || !found->second.committed.empty() ||
+      found->second.owner!=expected.owner || found->second.access!=expected.access ||
+      backing->bytes().size()!=expected.bytes.size() ||
+      !std::ranges::equal(found->second.storage(),expected.bytes) ||
+      !std::ranges::equal(backing->bytes(),expected.bytes))
+    throw std::invalid_argument("Prepared source backing differs from its complete staged region");
+  auto &region=found->second;
+  if(region.shared==backing)return;
+  if(backing->mounted_.exchange(true))throw std::invalid_argument("Prepared source backing is already published");
+  try{index_native_span(p,backing->bytes());}catch(...){backing->mounted_.store(false);throw;}
+  native_regions_.erase(reinterpret_cast<std::uintptr_t>(region.storage().data()));
+  if(region.shared)region.shared->mounted_.store(false);
+  region.shared=std::move(backing);
+  std::vector<std::byte>().swap(region.bytes);
+}
+bool SourceRuntimeMemory::has_backing(std::uint32_t p,
+    const std::shared_ptr<SourceRuntimeMemoryBacking> &backing) const noexcept {
+  const auto found=regions_.find(p);
+  return backing && found!=regions_.end() && found->second.shared==backing;
+}
+std::shared_ptr<SourceRuntimeMemoryBacking> SourceRuntimeMemory::prepare_snapshot_backing(
+    const CheckpointRegion &expected,std::size_t alignment,
+    SourceRuntimeMemoryBacking::WriteGuard guard) {
+  if(!alignment || (alignment&(alignment-1)))
+    throw std::invalid_argument("Snapshot backing alignment must be a power of two");
+  const auto found=regions_.find(expected.address);
+  if(found==regions_.end() || !found->second.shared || found->second.shared.use_count()!=1)
+    return {};
+  auto &backing=found->second.shared;
+  // Only this owner's restored byte containers may become platform mappings.
+  // A vector-backed buffer is not safe to protect, even if malloc happened to
+  // align its address: freeing it can write allocator metadata into its pages.
+  if(!std::get_deleter<RestoredSnapshotDelete>(backing->lifetime_) ||
+      !static_cast<SourceRuntimeSnapshotBytes*>(backing->lifetime_.get())->mapped_ ||
+      reinterpret_cast<std::uintptr_t>(backing->bytes().data())%alignment ||
+      backing->bytes().size()%alignment)
+    return {};
+  bind_backing(expected,backing); // Full admission before changing a guard.
+  backing->write_guard_=std::move(guard);
+  return backing;
 }
 void SourceRuntimeMemory::check_extent(std::uint32_t p, std::size_t bytes) const {
   const auto limit = end(p, bytes);
@@ -38,7 +106,7 @@ void SourceRuntimeMemory::check_extent(std::uint32_t p, std::size_t bytes) const
     throw std::invalid_argument("Original runtime regions overlap");
   if (next != regions_.begin()) {
     const auto previous = std::prev(next);
-    if (std::uint64_t(previous->first) + previous->second.bytes.size() > p)
+    if (std::uint64_t(previous->first) + previous->second.storage().size() > p)
       throw std::invalid_argument("Original runtime regions overlap");
   }
 }
@@ -61,13 +129,13 @@ void SourceRuntimeMemory::commit(std::uint32_t p,
   const auto offset = std::size_t(p - found->first);
   if (!region.page_bytes || initial.empty() || offset % region.page_bytes ||
       initial.size() % region.page_bytes ||
-      initial.size() > region.bytes.size() - offset)
+      initial.size() > region.storage().size() - offset)
     throw std::invalid_argument("Original commit must fit aligned reserved pages");
   const std::vector<std::byte> staged(initial.begin(), initial.end());
   for (std::size_t done = 0; done < staged.size(); done += region.page_bytes) {
     const auto page = (offset + done) / region.page_bytes;
     if (!region.committed[page]) {
-      std::memcpy(region.bytes.data() + offset + done, staged.data() + done,
+      std::memcpy(region.storage().data() + offset + done, staged.data() + done,
                   region.page_bytes);
       region.committed[page] = true;
     }
@@ -77,19 +145,19 @@ void SourceRuntimeMemory::release(std::uint32_t p) {
   const auto found=regions_.find(p);
   if(found==regions_.end())
     throw std::out_of_range("Original runtime release has no region owner");
-  native_regions_.erase(reinterpret_cast<std::uintptr_t>(found->second.bytes.data()));
+  native_regions_.erase(reinterpret_cast<std::uintptr_t>(found->second.storage().data()));
   regions_.erase(found);
 }
 void SourceRuntimeMemory::visit_committed(const std::function<void(std::uint32_t,
     std::span<const std::byte>)>&visit) const {
   for(const auto&[address,region]:regions_) {
-    if(!region.page_bytes) {visit(address,region.bytes);continue;}
+    if(!region.page_bytes) {visit(address,region.storage());continue;}
     for(std::size_t page=0;page<region.committed.size();) {
       if(!region.committed[page]) {++page;continue;}
       const auto first=page;
       while(page<region.committed.size() && region.committed[page])++page;
       const auto offset=first*region.page_bytes,bytes=(page-first)*region.page_bytes;
-      visit(address+std::uint32_t(offset),std::span(region.bytes).subspan(offset,bytes));
+      visit(address+std::uint32_t(offset),region.storage().subspan(offset,bytes));
     }
   }
 }
@@ -97,12 +165,33 @@ SourceRuntimeMemory::Checkpoint SourceRuntimeMemory::checkpoint() const {
   Checkpoint result;
   result.regions.reserve(regions_.size());
   for(const auto &[address,region]:regions_) {
-    CheckpointRegion copy{address,region.access,region.owner,region.page_bytes,region.bytes,{}};
+    const auto bytes=region.storage();
+    CheckpointRegion copy{address,region.access,region.owner,region.page_bytes,{bytes.begin(),bytes.end()},{}};
     copy.committed.reserve(region.committed.size());
     for(bool page:region.committed)copy.committed.push_back(page?1:0);
     result.regions.push_back(std::move(copy));
   }
   return result;
+}
+bool SourceRuntimeMemory::matches_read_only_checkpoint(const Checkpoint &saved) const noexcept {
+  if(saved.version!=1)return false;
+  auto live=regions_.begin();
+  for(const auto &incoming:saved.regions) {
+    if(incoming.access!=Access::ReadOnly)continue;
+    while(live!=regions_.end() && live->second.access!=Access::ReadOnly)++live;
+    if(live==regions_.end())return false;
+    const auto &[address,region]=*live;
+    const auto bytes=region.storage();
+    if(address!=incoming.address || region.access!=incoming.access ||
+        region.owner!=incoming.owner || region.page_bytes!=incoming.page_bytes ||
+        region.committed.size()!=incoming.committed.size() ||
+        !std::ranges::equal(region.committed,incoming.committed) ||
+        !std::ranges::equal(bytes,incoming.bytes))
+      return false;
+    ++live;
+  }
+  while(live!=regions_.end() && live->second.access!=Access::ReadOnly)++live;
+  return live==regions_.end();
 }
 void SourceRuntimeMemory::validate_checkpoint(const Checkpoint &saved) {
   if(saved.version!=1)throw std::invalid_argument("Unsupported source memory checkpoint version");
@@ -128,15 +217,14 @@ void SourceRuntimeMemory::restore(const Checkpoint &saved) {
   validate_checkpoint(saved);
   SourceRuntimeMemory replacement;
   for(const auto &region:saved.regions) {
-    if(!region.page_bytes) {
-      replacement.mount(region.address,region.bytes,region.access,region.owner);
-    } else {
-      replacement.reserve(region.address,region.bytes.size(),region.page_bytes,region.owner);
-      auto &backing=replacement.regions_.at(region.address);
-      backing.bytes=region.bytes;
-      for(std::size_t page=0;page<region.committed.size();++page)
-        backing.committed[page]=region.committed[page]!=0;
-    }
+    auto bytes=std::shared_ptr<SourceRuntimeSnapshotBytes>(
+        new SourceRuntimeSnapshotBytes(region.bytes),RestoredSnapshotDelete{});
+    auto backing=std::make_shared<SourceRuntimeMemoryBacking>(bytes,std::span(*bytes));
+    replacement.mount(region.address,std::move(backing),region.access,region.owner);
+    auto &restored=replacement.regions_.at(region.address);
+    restored.page_bytes=region.page_bytes;
+    restored.committed.reserve(region.committed.size());
+    for(auto page:region.committed)restored.committed.push_back(page!=0);
   }
   replacement.rebuild_native_index();
   regions_.swap(replacement.regions_);native_regions_.swap(replacement.native_regions_);
@@ -147,7 +235,7 @@ SourceRuntimeMemory::locate(std::uint32_t p) const {
   if (found == regions_.begin())
     missing(p);
   --found;
-  if (std::uint64_t(p) - found->first >= found->second.bytes.size())
+  if (std::uint64_t(p) - found->first >= found->second.storage().size())
     missing(p);
   return found;
 }
@@ -162,7 +250,7 @@ void SourceRuntimeMemory::validate(std::uint32_t p, std::size_t n,
                                found->second.owner);
     const auto &region = found->second;
     const auto region_end = std::min(limit, std::uint64_t(found->first) +
-                                               region.bytes.size());
+                                               region.storage().size());
     if (region.page_bytes) {
       const auto first = (current - found->first) / region.page_bytes;
       const auto last = (region_end - 1 - found->first) / region.page_bytes;
@@ -170,23 +258,38 @@ void SourceRuntimeMemory::validate(std::uint32_t p, std::size_t n,
         if (!region.committed[page])
           missing(found->first + std::uint32_t(page * region.page_bytes));
     }
+    if(writable && region.shared && region.shared->write_guard_)
+      region.shared->write_guard_(std::uint32_t(current),std::size_t(region_end-current));
     current = region_end;
   }
   if(writable)source_runtime_validate_write(*this,p,n);
 }
+bool SourceRuntimeMemory::is_read_only(std::uint32_t p,std::size_t n) const {
+  validate(p,n,false);const auto found=locate(p);
+  if(n>found->second.storage().size()-std::size_t(p-found->first))throw std::out_of_range("Read-only resource query spans region owners");
+  return found->second.access==Access::ReadOnly;
+}
 void SourceRuntimeMemory::read(std::uint32_t p,
                                std::span<std::byte> output) const {
   validate(p, output.size(), false);
-  // Stage before publishing to preserve aliases and leave the destination
-  // untouched when the requested source extent includes missing backing.
+  if (output.empty()) return;
+  const auto first = locate(p);
+  const auto &region = first->second;
+  const auto offset = std::size_t(p - first->first);
+  if (output.size() <= region.storage().size() - offset) {
+    std::memmove(output.data(), region.storage().data() + offset, output.size());
+    return;
+  }
+  // Cross-owner transfers stage before publishing to preserve aliases.
+  // Whole-extent validation above also keeps rejected output untouched.
   std::vector<std::byte> staged(output.size());
   std::size_t done = 0;
   while (done < staged.size()) {
     const auto found = locate(p + std::uint32_t(done));
     const auto offset = std::size_t(std::uint64_t(p) + done - found->first);
     const auto count =
-        std::min(staged.size() - done, found->second.bytes.size() - offset);
-    std::memcpy(staged.data() + done, found->second.bytes.data() + offset,
+        std::min(staged.size() - done, found->second.storage().size() - offset);
+    std::memcpy(staged.data() + done, found->second.storage().data() + offset,
                 count);
     done += count;
   }
@@ -196,6 +299,14 @@ void SourceRuntimeMemory::read(std::uint32_t p,
 void SourceRuntimeMemory::write(std::uint32_t p,
                                 std::span<const std::byte> input) {
   validate(p, input.size(), true);
+  if (input.empty()) return;
+  const auto found = locate(p);
+  auto &region = regions_.at(found->first);
+  const auto offset = std::size_t(p - found->first);
+  if (input.size() <= region.storage().size() - offset) {
+    std::memmove(region.storage().data() + offset, input.data(), input.size());
+    return;
+  }
   const std::vector<std::byte> staged(input.begin(), input.end());
   std::size_t done = 0;
   while (done < staged.size()) {
@@ -203,8 +314,8 @@ void SourceRuntimeMemory::write(std::uint32_t p,
     auto &region = regions_.at(found->first);
     const auto offset = std::size_t(std::uint64_t(p) + done - found->first);
     const auto count =
-        std::min(staged.size() - done, region.bytes.size() - offset);
-    std::memcpy(region.bytes.data() + offset, staged.data() + done, count);
+        std::min(staged.size() - done, region.storage().size() - offset);
+    std::memcpy(region.storage().data() + offset, staged.data() + done, count);
     done += count;
   }
 }
@@ -213,10 +324,10 @@ std::span<const std::byte> SourceRuntimeMemory::view(std::uint32_t p,
   end(p, n);
   const auto found = locate(p);
   const auto offset = std::size_t(p - found->first);
-  if (n > found->second.bytes.size() - offset)
+  if (n > found->second.storage().size() - offset)
     throw std::out_of_range("Original runtime view crosses its region owner");
   validate(p, n, false);
-  return std::span(found->second.bytes).subspan(offset, n);
+  return found->second.storage().subspan(offset, n);
 }
 std::span<std::byte> SourceRuntimeMemory::mutable_view(std::uint32_t p,
                                                        std::size_t n) {
@@ -227,12 +338,29 @@ std::span<std::byte> SourceRuntimeMemory::mutable_view(std::uint32_t p,
         "Original runtime mutable view of read-only owner " +
         found->second.owner);
   source_runtime_validate_write(*this,p,n);
-  return std::span(regions_.at(found->first).bytes)
+  if(found->second.shared && found->second.shared->write_guard_)
+    found->second.shared->write_guard_(p,n);
+  return regions_.at(found->first).storage()
       .subspan(p - found->first, bytes.size());
+}
+void SourceRuntimeMemory::validate_mutable_view(std::uint32_t p,std::size_t n) const {
+  (void)view(p,n);validate(p,n,true);
 }
 void SourceRuntimeMemory::index_native_region(std::uint32_t source) {
   static_assert(sizeof(std::uintptr_t)==8,"Live runtime memory requires a 64-bit host");
-  const auto address=reinterpret_cast<std::uintptr_t>(regions_.at(source).bytes.data());
+  index_native_span(source,regions_.at(source).storage());
+}
+void SourceRuntimeMemory::index_native_span(std::uint32_t source,std::span<const std::byte> bytes) {
+  const auto address=reinterpret_cast<std::uintptr_t>(bytes.data());
+  const auto limit=(NativeRuntimeAddress{address}+bytes.size()).value;
+  const auto next=native_regions_.lower_bound(address);
+  if(next!=native_regions_.end() && next->first<limit)
+    throw std::logic_error("Native runtime allocations overlap their backing");
+  if(next!=native_regions_.begin()) {
+    const auto previous=std::prev(next);
+    if(previous->first+regions_.at(previous->second).storage().size()>address)
+      throw std::logic_error("Native runtime allocations overlap their backing");
+  }
   if(!native_regions_.emplace(address,source).second)
     throw std::logic_error("Native runtime allocations alias their backing");
 }
@@ -248,7 +376,7 @@ std::uint32_t SourceRuntimeMemory::source_address(NativeRuntimeAddress address,s
   if(found==native_regions_.begin())throw std::out_of_range("Native runtime address has no owner");
   --found;const auto& region=regions_.at(found->second);
   const auto offset=address.value-found->first;
-  if(offset>=region.bytes.size() || bytes>region.bytes.size()-offset ||
+  if(offset>=region.storage().size() || bytes>region.storage().size()-offset ||
       offset>std::numeric_limits<std::uint32_t>::max()-found->second)
     throw std::out_of_range("Native runtime address escapes its owner");
   const auto source=found->second+std::uint32_t(offset);

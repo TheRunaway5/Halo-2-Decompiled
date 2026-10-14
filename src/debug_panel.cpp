@@ -182,13 +182,6 @@ ImDrawData* DebugPanel::build_frame() {
                 if(!p.status.empty())ImGui::TextWrapped("%s",p.status.c_str());
                 ImGui::EndTabItem();
             }
-            if(ImGui::BeginTabItem("Display")) {
-                ImGui::Checkbox("CRT Filter",&p.shared_display->crt_filter);
-                if(ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Flat CRT-Lottes Fast filter: scanlines and aperture-grille detail.\nBrightness compensated for OLED. No curvature or temporal ghosting.");
-                ImGui::TextWrapped("Display changes last for this session. F1 or Escape closes this panel.");
-                ImGui::EndTabItem();
-            }
             ImGui::EndTabBar();
         }
     }

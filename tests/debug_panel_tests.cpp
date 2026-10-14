@@ -52,22 +52,19 @@ int main(int argc,char** argv) {
                 check(renderer.draw(camera,out/"closed-after.ppm"),"closed-after draw failed");
                 check(bytes(out/"closed-before.ppm")==bytes(out/"closed-after.ppm"),"closed overlay changed game pixels");
                 key(window,SDLK_F1);drain(panel);
-                check(renderer.draw(camera),"display tab setup failed");
+                check(renderer.draw(camera),"debug tab setup failed");
                 auto* settings_window=ImGui::FindWindowByName("Halo 2 Settings (F1)");
                 check(settings_window,"settings window missing");
                 auto* tabs=panel.context()->TabBars.GetByKey(settings_window->GetID("settings"));
                 check(tabs,"settings tab bar missing");
                 const auto display_id=ImHashStr("Display",0,tabs->ID);
-                check(ImGui::TabBarFindTabByID(tabs,display_id),"Display tab missing");
-                tabs->NextSelectedTabId=display_id;
-                check(renderer.draw(camera),"display tab draw failed");
-                ImGui::ActivateItemByID(ImHashStr("CRT Filter",0,display_id));
-                check(renderer.draw(camera,out/"crt-open.ppm"),"CRT checkbox draw failed");
-                check(panel.display_settings().crt_filter,"Display checkbox did not enable CRT");
-                check(display_settings.crt_filter,"CRT checkbox did not update the desktop session");
+                check(!ImGui::TabBarFindTabByID(tabs,display_id),"F1 retained its former CRT Display tab");
+                display_settings.crt_filter=true;
+                check(renderer.draw(camera,out/"crt-open.ppm"),"shared CRT setting draw failed");
+                check(panel.display_settings().crt_filter,"renderer did not consume the shared CRT preference");
                 key(window,SDLK_F1);drain(panel);
                 check(renderer.draw(camera,out/"crt-closed.ppm"),"closed CRT draw failed");
-                check(bytes(out/"closed-before.ppm")!=bytes(out/"crt-closed.ppm"),"CRT checkbox did not change game pixels");
+                check(bytes(out/"closed-before.ppm")!=bytes(out/"crt-closed.ppm"),"CRT preference did not change game pixels");
                 check(renderer.draw(camera,out/"crt-repeat.ppm"),"repeat CRT draw failed");
                 check(bytes(out/"crt-closed.ppm")==bytes(out/"crt-repeat.ppm"),"CRT retained temporal history");
                 panel.display_settings({false});
@@ -104,7 +101,7 @@ int main(int argc,char** argv) {
         std::cerr.rdbuf(previous);
         check(validation.str().empty(),validation.str().c_str());
         SDL_DestroyWindow(window);SDL_Quit();
-        std::cout<<"F1 input/text/mouse capture, Display CRT checkbox, exact disabled pixels, no temporal history, 4:3/16:9/ultrawide Vulkan resize and cleanup passed\n";
+        std::cout<<"F1 input/text/mouse capture without Display tab, shared CRT preference, exact disabled pixels, no temporal history, 4:3/16:9/ultrawide Vulkan resize and cleanup passed\n";
         return 0;
     }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}
 }

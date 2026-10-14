@@ -200,6 +200,22 @@ int main(int argc,char **argv) {
     std::cout<<"Needler firing: "<<firing_draws<<" particle draws, "<<firing_sounds
         <<" sounds, "<<observed_bitmaps.size()<<" exact authored bitmap identities; "
         <<sequence_rows<<" event states and "<<camera_rows<<" camera controls match original\n";
+    const auto magnum=std::find_if(content.weapons.begin(),content.weapons.end(),[](const auto &p){return p.second.name.ends_with("\\magnum");});
+    check(magnum!=content.weapons.end(),"Original Magnum is absent");
+    NativeMuzzleEffects magnum_effects(cache,0x12345678);
+    const auto magnum_model=cache.load_model(magnum->second.first_person_model,false);
+    const auto magnum_nodes=pose_model_nodes_world(magnum_model,Transform{},nullptr,0);
+    unsigned missing_groups{};
+    const NativeMuzzleEffects::Markers magnum_markers=[&](std::uint32_t name) {
+      const auto markers=pose_model_markers(source_model_markers(cache.load_source_tag_metadata(magnum->second.first_person_model),name),magnum_nodes);
+      if(markers.empty())++missing_groups;
+      std::vector<Transform> result;for(const auto &marker:markers)result.push_back(marker.world);return result;
+    };
+    const auto magnum_firing=magnum->second.firing_effects.at(0).effects[0];
+    magnum_effects.request({magnum_firing,0x70000,null_datum,0x3f800000,0},0,SourceEffectColors{});
+    magnum_effects.pose(0x70000,magnum_markers,view,0,tick_seconds);
+    check(missing_groups && !magnum_effects.draw(0x70000,view,0,0,tick_seconds).empty(),
+        "An absent optional Magnum marker discarded its actual other particle systems");
     const auto sword=std::find_if(content.weapons.begin(),content.weapons.end(),[](const auto &p){return p.second.name.ends_with("\\energy_blade");});
     check(sword!=content.weapons.end() && sword->second.ready_seconds==.7f && sword->second.ready_effect==0xe2fb0186u,
         "Sword ready authored fields changed");
@@ -264,6 +280,34 @@ int main(int argc,char **argv) {
     for(unsigned t=930;t<1230;++t)attached.advance(t,tick_seconds);
     check(!attached.particle_count(),"Retired blade attachment retained expired particles");
     std::cout<<"Persistent blade: "<<blade_draws<<" draws across 600 ticks, retained handle and complete retirement\n";
+    const auto *charge=cache.query_tag({.group=tag_groups::effect,
+        .name="effects\\objects\\weapons\\pistol\\plasma_pistol\\charging_bolt"});
+    check(charge,"Original charging attachment is absent");
+    constexpr std::uint32_t charging_marker=0x110000dcu;
+    const NativeMuzzleEffects::Markers alias_only=[&](std::uint32_t name) {
+      check(name==charging_marker,"Attachment ignored its authored marker alias");
+      return std::vector<Transform>{Transform{}};
+    };
+    NativeMuzzleEffects charging(cache,0x12345678);unsigned charging_draws{};
+    for(unsigned t=0;t<360;++t) {
+      charging.attachment(charge->datum,0x70000,t,{t<40?1.f:0.f,1.f},t<40,charging_marker,true);
+      charging.pose(0x70000,alias_only,view,t,tick_seconds);charging.advance(t,tick_seconds);
+      charging_draws+=charging.draw(0x70000,view,t,0,tick_seconds).size();
+    }
+    check(charging_draws>0 && !charging.particle_count(),
+        "Aliased charging attachment lost births or continued after function stop");
+    const auto *mortar=cache.query_tag({.group=tag_groups::effect,
+        .name="effects\\objects\\vehicles\\wraith\\turrets\\mortar\\wraith_fire"});
+    check(mortar,"Original Wraith firing graph is absent");
+    const auto mortar_effect=cache.load_muzzle_effect(mortar->datum);
+    check(mortar_effect.acceleration_parts && mortar_effect.events.size()==4 && !mortar_effect.systems.empty(),
+        "Wraith acceleration admission discarded its authored particle event bank");
+    NativeMuzzleEffects mortar_particles(cache,0x12345678);bool refused_unowned{};
+    try {mortar_particles.request({mortar->datum,0x80000,0xffffffffu,0,0},0,{}, {},true,false);}
+    catch(const FormatError &){refused_unowned=true;}
+    check(refused_unowned,"Wraith particles admitted acceleration without its gameplay owner");
+    check(mortar_particles.request({mortar->datum,0x80000,0xffffffffu,0,0},0,{}, {},true,true)!=0xffffffffu,
+        "Original-owned Wraith firing graph lost its particle presenter");
     std::cout<<"PASS 600 actual SMG births/expiry, original Sword countdown/event timeline, "
         <<activation_draws<<" Sword particle draws and one delayed ready sound\n";
   }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

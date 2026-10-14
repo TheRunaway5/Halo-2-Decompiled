@@ -12,6 +12,10 @@ layout(location=0) out vec4 pixel;
 void main() {
     float depth=texelFetch(depthImage,ivec2(gl_FragCoord.xy),0).r;
     uint encoded=uint(round(clamp(depth,0.0,1.0)*16777215.0));
+    // The original direct quad uses non-writing integer W LESSEQUAL.
+    // This color-only pass samples the same depth attachment, so retain
+    // that comparison before the range combiner can wrap below its start.
+    if(encoded<uint(floor(material.controls.w)))discard;
     vec4 samples[4];
     samples[0]=vec4((encoded>>8u)&255u,encoded&255u,0,encoded>>16u)/255.0;
     vec4 noise=texture(noiseImages[0],uv);

@@ -101,6 +101,12 @@ struct WeaponFiringEffectDefinition {
   std::array<std::uint32_t,3> effects{}, damage_effects{};
 };
 struct WeaponDefinition {
+  // Immutable projections of each actual authored barrel. Children retain
+  // their own projectile/effect/damage operands and have no child views.
+  std::vector<std::shared_ptr<const WeaponDefinition>> barrel_views;
+  bool charged_cycle{};
+  float barrel_effect_a_threshold{},barrel_effect_b_threshold{},barrel_effect_a_decay{};
+  float barrel_rate_threshold{},barrel_charge_scale{};
   std::uint32_t datum = null_datum, projectile = null_datum,
                 damage = null_datum, sound = null_datum;
   std::string name;
@@ -192,6 +198,7 @@ struct CharacterDefinition {
   float vision_distance{}, vision_angle{}, acknowledgement{};
   int actor_type = -1;
   std::optional<DamageFadeDefinition> damage_fade;
+  std::uint32_t general_flags{}; // First inherited nonempty char general block.
 };
 struct ActorPlacement {
   Vec3 position;
@@ -199,12 +206,15 @@ struct ActorPlacement {
   std::uint32_t flags{};
   std::uint32_t character = null_datum, weapon = null_datum;
   std::string placement_script;
+  std::int16_t reference_frame=-1; // actor start+10, consumed by retail210850.
+  std::uint32_t starting_location_name{}; // Authored start+0 SID, retail203780.
 };
 struct SquadDefinition {
   std::string name;
   std::uint32_t flags{};
   int team{}, count{}, zone{}, bsp = -1;
   std::vector<ActorPlacement> starts;
+  std::int16_t parent_group=-1; // scnr squad+26, retail2009D0.
 };
 struct ScriptNode {
   std::uint16_t salt{}, opcode{}, type{}, flags{};
@@ -311,6 +321,7 @@ struct LevelContent {
   float auto_level_scale{};int auto_level_minimum_ticks{};
   float pickup_hold_seconds{}; // matg player-control record+7C, original187610.
   std::optional<BinocularZoomDefinition> binocular_zoom;
+  std::optional<std::array<float,4>> projectile_difficulty_speed; // matg+F8 first record+A0, original1ED030 table10.
   std::vector<DamageGroup> damage_groups;
   struct DamageMaterial {
     std::uint32_t armor_a{}, armor_b{};
@@ -320,6 +331,7 @@ struct LevelContent {
   std::unordered_map<std::uint32_t, WeaponDefinition> weapons;
   std::unordered_map<std::uint32_t, CharacterDefinition> characters;
   std::vector<SquadDefinition> squads;
+  std::vector<std::int16_t> squad_group_parents; // scnr+158 groups, parent+20.
   struct CommandPoint {Vec3 position;std::int16_t reference_frame=-1;std::int32_t surface=-1;};
   std::vector<std::vector<CommandPoint>> command_points;
   struct CommandFrame {std::int16_t frame{};std::size_t placement{};unsigned node{};std::int8_t axis{};std::uint8_t order{};};
@@ -353,6 +365,9 @@ struct LevelContent {
   std::optional<SpawnSettings> multiplayer_spawn;
   // Original scnr+120/+124 order is also the timer phase/object row identity.
   std::vector<NetgameEquipment> netgame_equipment;
+  // Variant inputs used to resolve cold class1/2 templates. The original
+  // netgame factory still owns each birth, controller and physical state.
+  std::array<std::int32_t,2> light_vehicle_options{};
   std::vector<std::string> limitations;
   std::string describe() const;
 };

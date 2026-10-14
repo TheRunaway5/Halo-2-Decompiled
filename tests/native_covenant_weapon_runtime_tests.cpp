@@ -4,8 +4,14 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/desktop_session.hpp"
 #include "halo2/multiplayer_audio.hpp"
+#include "halo2/source_light_volume_draw.hpp"
+#include "halo2/source_tag_metadata.hpp"
+#include "halo2/hud.hpp"
 #include <algorithm>
 #include <bit>
+#include <cmath>
+#include <cstring>
+#include <fstream>
 #include <iostream>
 #include <set>
 using namespace halo2;
@@ -26,11 +32,22 @@ void fire(Uint32 window,bool down) {
 int main(int argc,char **argv)try {
   check(argc==5 || argc==6 || argc==7,"Supply MAP SHARED XBE WEAPON [CAPTURE [idle|ready|ignite|lit|world|fire]]");
   if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]))return 77;
+  const auto *representation_option=std::getenv("HALO2_TEST_REPRESENTATION");
+  const unsigned representation=representation_option?unsigned(std::stoul(representation_option)):2u;
+  check(representation==2 || representation==3,"Unsupported actual multiplayer representation");
+  const auto *players_option=std::getenv("HALO2_TEST_LOCAL_PLAYERS");
+  const unsigned local_players=players_option?unsigned(std::stoul(players_option)):1u;
+  check(local_players==1 || local_players==2 || local_players==4,"Unsupported diagnostic local-view count");
   const bool shotgun=std::string(argv[4])=="shotgun";
   const bool sword=std::string(argv[4])=="sword";
+  const bool plasma_pistol=std::string(argv[4])=="plasma_pistol";
+  const bool charge_cycle=argc==7 && std::string(argv[6])=="charge";
+  const bool pistol_tap=argc==7 && std::string(argv[6])=="tap";
+  check(!charge_cycle || plasma_pistol,"Charge probe requires plasma pistol");
+  check(!pistol_tap || plasma_pistol,"Tap probe requires plasma pistol");
   const bool needler=std::string(argv[4])=="needler";
   const std::set<std::string> ordinary{"magnum","battle_rifle","covenant_carbine",
-      "sniper_rifle","brute_shot","rocket_launcher","plasma_rifle","brute_plasma_rifle","beam_rifle"};
+      "sniper_rifle","brute_shot","rocket_launcher","plasma_pistol","plasma_rifle","brute_plasma_rifle","beam_rifle"};
   check(sword||shotgun||needler||ordinary.contains(argv[4]),"Unknown weapon probe");
   const bool ammunition=argc==7 && std::string(argv[6])=="ammo";
   const bool heat_cycle=argc==7 && std::string(argv[6])=="heat";
@@ -42,19 +59,27 @@ int main(int argc,char **argv)try {
   const bool ignite=argc==7 && std::string(argv[6])=="ignite";
   const bool lit=argc==7 && std::string(argv[6])=="lit";
   const bool ready=argc==7 && (std::string(argv[6])=="ready" || ignite || lit);
-  check(argc!=7 || idle || world || ready || ammunition || firing_capture || heat_cycle,"Unknown capture phase");
+  check(argc!=7 || idle || world || ready || ammunition || firing_capture || heat_cycle || charge_cycle || pistol_tap,"Unknown capture phase");
   // This probe supplies keyboard/mouse events. Physical controller input is
   // independent host activity and must not switch/fire the tested inventory.
   SDL_SetHintWithPriority(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0xffff/0xffff",SDL_HINT_OVERRIDE);
   SDL_SetMainReady();MultiplayerOptions o;o.map=argv[1];o.shared_maps=argv[2];o.gameplay_xbe=argv[3];
-  o.width=800;o.height=600;o.local_players=1;o.starting_weapon=5;o.mute=false;
+  o.width=800;o.height=600;o.local_players=local_players;o.starting_weapon=5;o.mute=false;
   // Finite native SDL probe: one game tick and a declared mid-tick sample
   // per rendered frame. Short authored clips must not depend on host load.
-  o.frames=heat_cycle?700u:ammunition?450u:240u;
+  o.frames=heat_cycle?700u:ammunition?450u:charge_cycle?320u:240u;
   o.reference_tick_cadence=true;o.reference_render_fraction=.5f;
-  o.input_instances={-1}; // This SDL input probe has no controller owner.
+  o.input_instances.assign(local_players,-1); // This SDL input probe has no controller owner.
   o.validation=std::getenv("HALO2_ANIMATION_VALIDATION");
   if(const auto *ui=std::getenv("HALO2_TEST_HUD_UI_ASSETS"))o.ui_assets=ui;
+  if(representation==3) {
+    auto profile=source_default_player_configuration();profile[0x44]=1;o.selected_profiles.assign(local_players,profile);
+  }
+  if(local_players>1) {
+    Cache placements(o.map,o.shared_maps,OriginalData::load_xbe(o.gameplay_xbe));
+    o.native_spawn_inputs=placements.spawns();
+    for(auto &spawn:o.native_spawn_inputs)spawn.facing=0; // Declared stationary multi-view input, before birth.
+  }
   o.prepared_world=std::make_shared<MultiplayerPreparedWorld>(o);
   const auto &c=o.prepared_world->content;const auto &cache=*o.prepared_world->cache;
   const auto weapon=std::find_if(c.weapons.begin(),c.weapons.end(),[&](const auto &p){
@@ -66,8 +91,11 @@ int main(int argc,char **argv)try {
   const auto row=std::find_if(c.netgame_equipment.begin(),c.netgame_equipment.end(),[&](const auto &r){
     return r.items.size()==1 && r.items[0].definition==target;
   });check(row!=c.netgame_equipment.end(),"Authored target pickup row absent");
-  const auto definition=cache.load_first_person_binding(target,2);
-  const auto activity=ready?0x05000024u:sword?0x0e000607u:0x06000006u;
+  const auto definition=cache.load_first_person_binding(target,int(representation));
+  const auto activity=ready?0x05000024u:sword?0x0e000607u:
+      (charge_cycle || (w.barrel_timing && w.barrel_timing->index==1))?0x06000007u:0x06000006u;
+  const auto firing_sound=charge_cycle?w.barrel_views.at(1)->sound:w.sound;
+  const auto fired_projectile=charge_cycle?w.barrel_views.at(1)->projectile:w.projectile;
   const auto action=std::find_if(definition.clock_clips.begin(),definition.clock_clips.end(),
       [&](const auto &clip){return clip.activity==activity;});
   check(action!=definition.clock_clips.end(),"Authored attack clip absent");
@@ -87,6 +115,13 @@ int main(int argc,char **argv)try {
   bool overheated{},vented{};std::optional<unsigned> cooled_tick;unsigned vent_draws{};
   float maximum_heat{},maximum_spent{};
   std::optional<unsigned> ready_sound_tick;
+  unsigned glow_draws{},glow_vertices{},glow_views{},glow_screen_views{};std::set<std::uint32_t> glow_owners;
+  std::ofstream glow_records;
+  if(const auto *path=std::getenv("HALO2_TEST_GLOW_RECORDS")) {
+    glow_records.open(path,std::ios::binary);check(bool(glow_records),"Cannot open actual glow GPU input records");
+    glow_records.write("LVG2",4);
+  }
+  unsigned charged_pose_draws{},charged_live_samples{};std::set<std::uint32_t> charged_live_owners;
   unsigned projectile_draws{};std::set<std::uint32_t> projectile_owners;
   std::uint32_t owner=null_datum;bool posed{},shader{},blade{},carried_pose{};
   std::set<float> frames;MultiplayerState state;
@@ -109,6 +144,14 @@ int main(int argc,char **argv)try {
   o.input_observer=[&](unsigned t,std::span<const Controls> controls,const MultiplayerState &s){
     if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
     tick=t;state=s;const auto &p=s.players[slot];
+    if(local_players>1 && picked)for(unsigned view=1;view<local_players;++view) {
+      auto spectator=at;spectator.position.x-=.6f*float(view);
+      o.prepared_world->match.debug_request({DebugGameRequest::Teleport,o.prepared_world->local_slots.at(view)},&spectator);
+    }
+    if(charge_cycle || pistol_tap)for(const auto &projectile:s.weapon_projectiles)if(projectile.definition==fired_projectile) {
+      check(projectile.datum!=null_datum,"Actual charged projectile lost its full live owner");
+      charged_live_owners.insert(projectile.datum);++charged_live_samples;
+    }
     if(world) {
       at.position.x=row->position.x;at.position.y=row->position.y-1.2f;at.facing=1.5707963267948966f;
       at.position.z=row->position.z-c.player.camera_height;
@@ -127,7 +170,7 @@ int main(int argc,char **argv)try {
           <<" effect="<<std::hex<<p.weapon_effect.effect<<" effect_weapon="<<p.weapon_effect.weapon<<std::dec
           <<" effect_tick="<<p.weapon_effect.tick<<" effect_serial="<<p.weapon_effect.serial<<'\n';
       if(!o.screenshot.empty()) {
-        if(ammunition)o.capture_tick=400;else if(ready)o.capture_tick=t+(ignite?19:lit?24:10);else if(idle)o.capture_tick=t+48;else o.capture_tick=t+(firing_capture?67:73);
+        if(ammunition)o.capture_tick=400;else if(ready)o.capture_tick=t+(ignite?19:lit?24:10);else if(idle)o.capture_tick=t+48;else if(charge_cycle)o.capture_tick=t+130;else if(pistol_tap)o.capture_tick=t+68;else o.capture_tick=t+(firing_capture?67:73);
       }
     }
     if(ready && (controls[0].fire || controls[0].fire_secondary))std::cerr<<"Unexpected input: tick="<<t<<" fire="<<controls[0].fire<<" secondary="<<controls[0].fire_secondary<<" controllers="<<SDL_NumJoysticks()<<'\n';
@@ -163,13 +206,14 @@ int main(int argc,char **argv)try {
       // clip. Let the first shot finish before the held empty/refill sequence,
       // so this probe separately verifies the complete authored attack pose.
       if(ammunition && elapsed==61)fire(window_id,false);
+      if(pistol_tap && elapsed==61)fire(window_id,false);
       if(ammunition && elapsed==60+unsigned(action->frames)+5)fire(window_id,true);
       if(heat_cycle) {
         if(w.trigger_behavior==1 && (elapsed==61 || elapsed==71))fire(window_id,false);
         if(w.trigger_behavior==1 && elapsed==70)fire(window_id,true);
         if(overheated)fire(window_id,false);
         if(cooled_tick && t>*cooled_tick+20){SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit completed native heat cycle");}
-      } else if(!ready && !ammunition && elapsed==72)fire(window_id,false);
+      } else if(!ready && !ammunition && elapsed==(charge_cycle?120u:72u))fire(window_id,false);
       if(ammunition && !empty_tick && p.loaded==0) {
         empty_tick=t;fire(window_id,false);key(window_id,SDL_SCANCODE_R,true);
         if(!o.screenshot.empty())o.capture_tick=s.tick;
@@ -178,9 +222,9 @@ int main(int argc,char **argv)try {
       if(ammunition && empty_tick && t>*empty_tick+70 && p.loaded==w.capacity) {
         refilled=true;SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit completed Needler refill probe");
       }
-      if(!ammunition && !heat_cycle && elapsed==110){SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit weapon probe");}
+      if(!ammunition && !heat_cycle && elapsed==(charge_cycle?160u:110u)){SDL_Event q{};q.type=SDL_QUIT;check(SDL_PushEvent(&q)==1,"Exit weapon probe");}
     }
-    check(t<(heat_cycle?700u:ammunition?450u:240u),"Actual SDL covenant pickup/attack timed out");
+    check(t<(heat_cycle?700u:ammunition?450u:charge_cycle?320u:240u),"Actual SDL covenant pickup/attack timed out");
   };
   o.animation_observer=[&](unsigned,unsigned,const AnimationRenderObservation &sample){
     if(SDL_GetKeyboardFocus()!=window){SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);}
@@ -199,6 +243,12 @@ int main(int argc,char **argv)try {
       if(p.loaded==w.capacity)full_needle_scale=sample.weapon_nodes[*needle_node].scale;
       if(p.loaded<w.capacity)used_needle_scale=used_needle_scale<0?sample.weapon_nodes[*needle_node].scale:
           std::min(used_needle_scale,sample.weapon_nodes[*needle_node].scale);
+    }
+    if(charge_cycle && sample.first_person && sample.weapon==owner) {
+      const auto charged=std::find_if(definition.clock_clips.begin(),definition.clock_clips.end(),
+          [](const auto &clip){return clip.activity==0x0b000067u;});
+      check(charged!=definition.clock_clips.end(),"Actual charged_1 clip absent");
+      if(sample.animation==charged->index && !sample.vertices.empty())++charged_pose_draws;
     }
     if(sample.first_person && sample.weapon==owner && sample.animation==action->index) {
       posed=true;frames.insert(sample.frame);++draws;check(!sample.vertices.empty(),"Actual attack pose has no vertices");
@@ -246,7 +296,7 @@ int main(int argc,char **argv)try {
   };
   o.audio_observer=[&](const MultiplayerAudioSubmission &s){
     if(s.owner==owner && attack_sounds.contains(s.sound))++sounds;
-    if(!sword && s.sound==w.sound) {
+    if(!sword && s.sound==firing_sound) {
       check(s.owner==owner,"Firing sound bypassed its actual picked effect owner");
       check(s.frames>0,"Firing sound submitted an empty PCM packet");++firing_sounds;
     }
@@ -265,12 +315,57 @@ int main(int argc,char **argv)try {
   };
   o.weapon_projectile_draw_observer=[&](unsigned,std::uint32_t,std::uint32_t handle,
       std::uint32_t definition,std::span<const Vertex> vertices) {
-    if(!needler || definition!=w.projectile)return;
+    if((!needler && !charge_cycle) || definition!=fired_projectile)return;
     check(!vertices.empty(),"Actual fired Needler shard submitted empty geometry");
     check(std::any_of(state.weapon_projectiles.begin(),state.weapon_projectiles.end(),
         [&](const auto &p){return p.datum==handle && p.definition==definition;}),
         "Actual fired shard draw has no live salted owner");
     ++projectile_draws;projectile_owners.insert(handle);
+  };
+  o.weapon_light_volume_observer=[&](unsigned view,std::uint32_t rendered_tick,const SourceLightVolumeDraw &draw) {
+    if(!charge_cycle && !pistol_tap)return;
+    const auto projectile=std::find_if(state.weapon_projectiles.begin(),state.weapon_projectiles.end(),
+        [&](const auto &p){return p.datum==draw.object && p.definition==fired_projectile;});
+    if(projectile==state.weapon_projectiles.end())return;
+    if(glow_records.is_open()) {
+      static_assert(sizeof(LightVolumeState)==68 && sizeof(LightVolumeVertex)==40);
+      const std::array<std::uint32_t,5> identity{rendered_tick,view,draw.object,draw.definition,unsigned(draw.vertices.size())};
+      const std::array<float,4> viewport{draw.viewport.left,draw.viewport.top,draw.viewport.width,draw.viewport.height};
+      const auto write=[&](const auto &value){glow_records.write(reinterpret_cast<const char*>(&value),sizeof(value));};
+      write(identity);write(draw.state);write(draw.camera);write(viewport);write(draw.actual_w_distance);
+      glow_records.write(reinterpret_cast<const char*>(draw.vertices.data()),std::streamsize(draw.vertices.size()*sizeof(LightVolumeVertex)));
+      write(std::uint32_t(draw.bitmap_materials.size()));
+      for(const auto &binding:draw.bitmap_materials)write(std::array<std::uint32_t,2>{binding.bitmap,binding.material});
+      write(std::uint32_t(draw.ranges.size()));
+      for(const auto &range:draw.ranges)write(std::array<std::uint32_t,3>{range.first,range.count,range.material});
+      check(bool(glow_records),"Cannot retain actual recorded glow inputs");
+    }
+    check(view<local_players && draw.command.callback==source_light_volume_callback,
+        "Recorded bolt glow lost its actual view/callback");
+    check(draw.vertices.size()>0 && draw.vertices.size()%6==0,"Recorded bolt glow has no complete sprite triangles");
+    std::array<std::uint32_t,2> payload{};std::memcpy(payload.data(),draw.command.payload.data(),8);
+    check(payload==std::array{draw.object,draw.definition},"Recorded bolt glow lost its actual attachment identities");
+    const auto rect=hud_viewport(local_players,view,false).outer;
+    const auto expected=full_surface_viewport({rect.left,rect.top,rect.right-rect.left,rect.bottom-rect.top},800,600);
+    check(draw.viewport.left==expected.left && draw.viewport.top==expected.top &&
+        draw.viewport.width==expected.width && draw.viewport.height==expected.height,
+        "Recorded bolt glow lost the actual gameplay viewport");
+    for(const auto &v:draw.vertices)check(v.screen[3]>0 && std::isfinite(v.screen[0]) && std::isfinite(v.screen[1]),
+        "Recorded bolt glow has invalid original projected vertices");
+    float left=draw.vertices[0].screen[0],right=left,top=draw.vertices[0].screen[1],bottom=top;
+    bool colored{};
+    for(const auto &v:draw.vertices) {
+      left=std::min(left,v.screen[0]);right=std::max(right,v.screen[0]);
+      top=std::min(top,v.screen[1]);bottom=std::max(bottom,v.screen[1]);
+      colored|=v.color[3]>0 && (v.color[0]>0 || v.color[1]>0 || v.color[2]>0);
+    }
+    if(colored && right>expected.left && left<expected.left+expected.width &&
+        bottom>expected.top && top<expected.top+expected.height)glow_screen_views|=1u<<view;
+    if(!(glow_views&(1u<<view)) || (!o.screenshot.empty() && rendered_tick==o.capture_tick))
+      std::cout<<"Bolt glow bounds: tick="<<rendered_tick<<" view="<<view<<" xy="<<left<<','<<top<<','<<right<<','<<bottom
+          <<" root="<<draw.state.marker.position.x<<','<<draw.state.marker.position.y<<','<<draw.state.marker.position.z
+          <<" eye="<<draw.camera.camera_to_world.position.x<<','<<draw.camera.camera_to_world.position.y<<','<<draw.camera.camera_to_world.position.z<<'\n';
+    ++glow_draws;glow_views|=1u<<view;glow_vertices+=unsigned(draw.vertices.size());glow_owners.insert(draw.object);
   };
   if(argc>=6 && *argv[5]){o.frames=0;o.screenshot=argv[5];o.capture_tick=(idle||world)?90:115;}
   check(run_multiplayer(o)==0,"Actual covenant weapon runtime failed");
@@ -329,6 +424,31 @@ int main(int argc,char **argv)try {
     if(!energy)check(fired_rounds==unsigned(std::max<std::int16_t>(1,w.barrel_timing->definition.burst_minimum)),
         "Actual held SDL trigger repeated or interrupted its authored burst");
     std::cout<<"Ordinary firing observations: "<<fired_rounds<<" rounds, "<<firing_sounds<<" owned sounds\n";
+  }
+  if(charge_cycle) {
+    check(charged_pose_draws>10,"Actual full charge never submitted advancing charged_1 poses");
+    check(fired_rounds==1 && maximum_spent>=.15f,"Full charge lost its secondary barrel age/shot stores");
+    const auto metadata=cache.load_source_tag_metadata(fired_projectile);
+    const Bytes projectile(metadata.bytes_at(metadata.source_address(),0x9c));
+    check(charged_live_samples>0 && charged_live_owners.size()==1,"Full charge lost its actual live secondary projectile");
+    if(projectile.u32(0x38)!=null_datum)
+      check(projectile_draws>0 && projectile_owners.size()==1,"Actual charged bolt model never reached renderer submission");
+    else {
+      check(glow_draws>0 && glow_vertices>=84 && glow_owners==charged_live_owners && glow_views==((1u<<local_players)-1),
+          "Actual charged bolt MGS2 glow never reached GPU recording");
+      std::cout<<"Bolt glow observations: "<<glow_draws<<" recorded draws, "<<glow_vertices<<" projected vertices, "<<local_players<<" actual views\n";
+      std::cout<<"Bolt glow screen bounds: intersected view mask="<<glow_screen_views<<'\n';
+      std::cout<<"LIMIT bolt MGS2 is recorded; remaining light/effect/looping-sound attachment owners need validation\n";
+    }
+    std::cout<<"Charge observations: "<<charged_pose_draws<<" charged poses, "<<projectile_draws<<" charged bolt draws\n";
+  }
+  if(pistol_tap) {
+    check(fired_rounds==1 && maximum_spent>=.004f && maximum_spent<.15f,
+        "Actual early release lost its primary barrel age/shot stores");
+    check(charged_live_samples>0 && charged_live_owners.size()==1 && glow_owners==charged_live_owners &&
+        glow_draws>0 && glow_views==((1u<<local_players)-1),"Actual primary bolt glow did not reach each gameplay view");
+    std::cout<<"Bolt glow observations: "<<glow_draws<<" primary recorded draws, "<<glow_vertices<<" projected vertices, "<<local_players<<" actual views\n";
+    std::cout<<"Bolt glow screen bounds: intersected view mask="<<glow_screen_views<<'\n';
   }
   if(heat_cycle) {
     check(overheated && vented && cooled_tick && vent_draws>4 && maximum_spent>0.f && maximum_heat==1.f,

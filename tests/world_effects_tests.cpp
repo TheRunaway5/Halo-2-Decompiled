@@ -55,6 +55,44 @@ int main(int argc, char **argv) {
     view.width = 640;
     view.height = 480;
     view.orientation = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+    // Declared presentation boundary: an actual authored firing graph with
+    // completed source locations must not require a native player/model owner.
+    // The ordinary model-marker path supplies an independent equivalent bank.
+    {
+      const auto needler=std::find_if(content.weapons.begin(),content.weapons.end(),
+          [](const auto &w){return w.second.name.ends_with("\\needler");});
+      check(needler!=content.weapons.end(),"Missing original Needler firing definition");
+      const auto firing=needler->second.firing_effects.at(0).effects[0];
+      const auto definition=cache->load_muzzle_effect(firing);
+      NativeWorldEffects::ObjectMarkers locations;
+      const WorldEffectFrame frame{{1,2,3},{0,0,1},{1,0,0},{1,0,0},{0,0,1},false};
+      locations[cache->string_id(definition.marker)]={frame};
+      for(const auto &system:definition.systems)locations[cache->string_id(system.marker)]={frame};
+      Mesh source_mesh,model_mesh;
+      NativeWorldEffects source(*cache,source_mesh,match.simulation().collision(),0x10203040);
+      NativeWorldEffects model(*cache,model_mesh,match.simulation().collision(),0x10203040);
+      constexpr std::uint32_t weapon=0x12340001,instance=0x45670002;
+      model.object_markers(weapon,locations);
+      source.request_weapon(firing,weapon,1,{}, {},1,1,instance,false,&locations);
+      model.request_weapon(firing,weapon,1,{}, {},1,1,instance,false);
+      std::size_t peak{};
+      for(unsigned tick=1;tick<20;++tick) {
+        if(tick==4) {
+          for(auto &[name,frames]:locations)for(auto &f:frames)f.position.x+=2;
+          source.update_weapon_locations(weapon,instance,locations);
+          model.object_markers(weapon,locations);
+        }
+        source.advance(tick,tick_seconds);model.advance(tick,tick_seconds);
+        const auto a=source.draw(view,0,tick_seconds),b=model.draw(view,0,tick_seconds);
+        peak=std::max(peak,a.size());
+        check(a.size()==b.size(),"Source firing locations lost or duplicated authored systems");
+        for(unsigned i=0;i<a.size();++i)check(a[i].vertex.attributes==b[i].vertex.attributes,
+            "Moving source firing locations differ from equivalent authored model markers");
+      }
+      check(peak>0,"Unmapped source firing locations silently discarded every particle");
+      source.advance(6000,tick_seconds);
+      check(source.diagnostics().particles==0,"Unmapped source firing particles did not retire");
+    }
     std::array<Controls, 16> controls{};
     controls[player].yaw = match.unit(player).yaw;
     controls[player].pitch = -1.2f;

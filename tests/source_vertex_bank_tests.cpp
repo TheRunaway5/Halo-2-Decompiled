@@ -262,6 +262,17 @@ int main(int argc,char**argv){try{
         globals.first_constant=68;globals.constants.assign(prt.begin(),prt.end());globals.prt_inputs=true;ordinary.bank=pack_vertex_program_bank(globals);
         check(ordinary.bank.range==std::array<std::uint32_t,4>{68,82,1,0},"PRT bank flags/range changed");fixtures.push_back(ordinary);
     }
+    {
+        auto extrema=samples.front().fixture;extrema.flags[3]=0;extrema.control={};
+        VertexProgramBank bank;bank.constants.resize(158);
+        for(unsigned i=0;i<158;++i)bank.constants[i]={float(i+1),-float(i+1),float(i+1)*.5f,1};
+        extrema.bank=pack_vertex_program_bank(bank);
+        check(exact(bound_constant(extrema,58),bank.constants[24]) &&
+              exact(bound_constant(extrema,59),bank.constants[25]) &&
+              exact(bound_constant(extrema,191),bank.constants[157]),
+              "native application-owned or highest source constant is unavailable");
+        fixtures.push_back(extrema);
+    }
     if(argc==2){
         require_validation_environment();
         halo2_test::Compute<Fixture,208> compute(HALO2_VERTEX_BANK_TEST_SHADER);const auto gpu=compute.run(fixtures);

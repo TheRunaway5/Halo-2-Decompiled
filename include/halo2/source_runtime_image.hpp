@@ -20,6 +20,13 @@ struct SourceRuntimeKernelTickCount {
   std::array<std::byte,4> bytes;
   std::string owner;
 };
+// TU1.5 ordinal356 is immutable boot-time SMC data. An actual named owner
+// must supply its retained word. No AV-pack value or failure is selected here.
+struct SourceRuntimeKernelBootSmcVideoMode {
+  std::uint32_t address;
+  std::array<std::byte,4> bytes;
+  std::string owner;
+};
 // Authenticated selected TU1.1/u5 image backing at original virtual addresses, with
 // section-declared writable data and loader-zeroed virtual tails. The literal
 // XBE header is mounted read-only as a native input policy, not a recovered
@@ -33,6 +40,8 @@ SourceRuntimeMemory load_source_runtime_image(const std::filesystem::path &,
     SourcePhysicsContactImage, const SourceRuntimeKernelHardwareInfo &);
 SourceRuntimeMemory load_source_runtime_image(const std::filesystem::path &,
     SourcePhysicsContactImage, const SourceRuntimeKernelTickCount &);
+SourceRuntimeMemory load_source_runtime_image(const std::filesystem::path &,
+    SourcePhysicsContactImage, const SourceRuntimeKernelBootSmcVideoMode &);
 // Existing explicit TU1.1 entry keeps its selected-image contract.
 SourceRuntimeMemory
 load_source_runtime_image_1_1(const std::filesystem::path &);

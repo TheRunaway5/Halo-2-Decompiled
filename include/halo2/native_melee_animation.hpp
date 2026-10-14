@@ -54,6 +54,11 @@ public:
       const std::function<void(const NativeMeleeAction&)> &impact={},int kind=1);
   Vec3 pyramid(const Unit &)const;
   std::shared_ptr<const PropAreaDamageDefinition> damage_definition(const Unit &,std::uint32_t activity);
+  // Only immutable decoded memo tables live here; action/RNG live in Unit/
+  // Simulation. Root restore reconstructs this owner against local resources.
+  using AuthorityDigest=std::array<std::byte,32>;
+  AuthorityDigest authority_binding()const;
+  std::shared_ptr<NativeMeleeAnimation> prepare_authority_owner(const LevelContent &,AuthorityDigest)const;
 private:
   std::shared_ptr<const Cache> cache_;
   NativeMeleeConstants constants_;

@@ -60,7 +60,7 @@ int main(int argc,char **argv)try {
     check(std::ranges::equal(memory.view(0x70000000u,final.size()),final),"Original helper retained bytes differ");
     stores+=index;++count;
   }
-  check(count==224,"Original helper coverage changed");
+  check(count==480,"Original helper coverage changed");
   std::cout<<count<<" original helper cases, "<<stores<<" ordered stores, retained bytes and GP/SSE ABI match\n";
   return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

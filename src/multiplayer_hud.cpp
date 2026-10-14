@@ -27,8 +27,12 @@ SourceWeaponHudState multiplayer_hud_weapon_state(const MultiplayerState::Player
   //Real snapshots carry104CF0 (loaded plus shared reserve). Datum-less HUD
   //scalar fixtures provide the already-produced reserve word directly.
   input.shared_reserve=datum==null_datum?reserve:available-loaded;
-  //Charge/tracking/trigger/marker publication has separate gameplay owners;
-  //their previous unavailable fields remain outside this bridge's claim.
+  const auto &trigger=hand?p.secondary_weapon.trigger:p.weapon_trigger;
+  input.input_flags=trigger.input_flags;input.charge=trigger.charge;
+  input.trigger_present=content.weapon_trigger_count!=0;
+  input.trigger_behavior=content.weapon_trigger_behavior;input.charging_type=content.weapon_charging_type;
+  input.trigger_state=trigger.mode;input.trigger_ticks=trigger.ticks;
+  // Target acquisition and marker queries retain their separate live owners.
   SourceWeaponHudState result;weapon_hud_project(result,input);return result;
 }
 namespace { std::vector<unsigned> codepoints(const std::string &); }
@@ -349,13 +353,15 @@ unsigned hud_screen_mode(unsigned width, unsigned height, unsigned anchor,
   // widescreen displays. This selects each widget's authored layout slot.
   return mode == 1 && anchor == 3 && widescreen ? 2 : mode;
 }
-HudViewport hud_viewport(unsigned players, unsigned view, bool widescreen) {
+HudViewport hud_viewport(unsigned players, unsigned view, bool widescreen,std::optional<TwoPlayerSplit> split) {
   if (players < 1 || players > 4 || view >= players)
     throw FormatError("HUD viewport outside local player grid");
+  if(split && *split!=TwoPlayerSplit::Horizontal && *split!=TwoPlayerSplit::Vertical)
+    throw FormatError("Invalid two-player split-screen layout");
   // Original 2234E0 selects mode 1 (standard) or 2 (widescreen), then
   // 223080 calls 2F600, 2F640 and 2F6B0. Reproduce their grid and span rules;
   // three participants occupy the whole surface, with one spanning view.
-  const auto layout=source_view_grid(players,view,widescreen);
+  const auto layout=source_view_grid(players,view,hud_layout_widescreen(players,widescreen,split));
   const unsigned columns=layout.grid[0],rows=layout.grid[1],span_x=layout.span[0],span_y=layout.span[1];
   const unsigned x=layout.position[0],y=layout.position[1];
   const unsigned cell_w = (592 - 48) / columns, cell_h = (444 - 36) / rows;
@@ -715,7 +721,8 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
                                          unsigned view, unsigned players,
                                          unsigned width, unsigned height,
                                          int limit, unsigned time_ticks,
-                                         std::optional<Vec2> player_aim_anchor_pixels) {
+                                         std::optional<Vec2> player_aim_anchor_pixels,
+                                         std::optional<TwoPlayerSplit> split) {
   if (id >= multiplayer_capacity || view >= materials_.size() || !width ||
       !height)
     throw FormatError("Invalid HUD draw viewport");
@@ -724,8 +731,9 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
     return out;
   const auto score=multiplayer_hud_score_display(s,id,limit,time_ticks,content_);
   // Native output aspect selects the corresponding retail display mode.
-  const bool widescreen = std::uint64_t(width) * 3 > std::uint64_t(height) * 4;
-  auto viewport = hud_viewport(players, view, widescreen);
+  const bool widescreen = hud_layout_widescreen(players,
+      std::uint64_t(width) * 3 > std::uint64_t(height) * 4,split);
+  auto viewport = hud_viewport(players, view, widescreen,split);
   const unsigned logical_width =
                      unsigned(viewport.outer.right - viewport.outer.left),
                  logical_height =

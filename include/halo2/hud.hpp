@@ -39,7 +39,8 @@ struct HudContent {
   } action_messages;
   float multiplayer_scale = 1;
   int clip_cutoff{}, ammo_cutoff{}, clip_capacity{}, reserve_capacity{};
-  unsigned weapon_magazine_count{};
+  unsigned weapon_magazine_count{},weapon_trigger_count{};
+  std::int16_t weapon_trigger_behavior{},weapon_charging_type{};
   bool score_scenario_present{};
   std::vector<SourceHudScoreColor> score_appearance_colors, score_team_colors;
   struct Sensor {
@@ -59,8 +60,14 @@ struct HudViewport {
   UiRect outer, safe;
   unsigned mode{};
 };
+// Omitted preferences retain the original aspect-selected grid for reference
+// callers. Ordinary gameplay supplies its explicit two-player preference.
+constexpr bool hud_layout_widescreen(unsigned players,bool widescreen,
+    std::optional<TwoPlayerSplit> split = {}) {
+  return players==2 && split ? *split==TwoPlayerSplit::Vertical : widescreen;
+}
 HudViewport hud_viewport(unsigned players, unsigned view,
-                         bool widescreen = false);
+                         bool widescreen = false,std::optional<TwoPlayerSplit> split = {});
 bool hud_widget_visible(const HudWidget &, std::array<std::uint16_t, 4> state);
 unsigned hud_screen_mode(unsigned width, unsigned height, unsigned anchor = 0,
                          bool widescreen = false);
@@ -95,7 +102,8 @@ public:
                            unsigned view, unsigned players, unsigned width,
                            unsigned height, int score_limit,
                            unsigned time_ticks,
-                           std::optional<Vec2> player_aim_anchor_pixels = {});
+                           std::optional<Vec2> player_aim_anchor_pixels = {},
+                           std::optional<TwoPlayerSplit> split = {});
   // Per-viewport shader copies bind the original widget inputs independently.
   void animate(const MultiplayerState &, unsigned player, unsigned view,
                int score_limit, unsigned time_ticks, double seconds);

@@ -17,6 +17,7 @@ endif()
 if(BUILD_TESTING AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_executable(native_tu15_startup_timer_tests tests/native_tu15_startup_timer_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+    target_link_libraries(native_tu15_startup_timer_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(native_tu15_startup_timer_tests PRIVATE halo2_native_tu15_startup_timer nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_startup_timer COMMAND native_tu15_startup_timer_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/native-tu15-startup-timer-20261012/original-v5/fixture.json

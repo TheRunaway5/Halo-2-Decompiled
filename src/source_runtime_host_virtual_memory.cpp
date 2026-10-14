@@ -1,4 +1,5 @@
 #include "halo2/source_runtime_host_virtual_memory.hpp"
+#include "source_runtime_page_copy.hpp"
 #include <cerrno>
 #include <algorithm>
 #include <cstring>
@@ -180,7 +181,8 @@ SourceRuntimeHostVirtualMemory::PreparedOwnership SourceRuntimeHostVirtualMemory
       auto *destination=static_cast<std::byte*>(host)+offset;
       if(::mprotect(destination,bytes,PROT_READ|PROT_WRITE))
         throw std::system_error(errno,std::generic_category(),"Stage native source commitment");
-      std::memcpy(destination,region->bytes.data()+offset,bytes);
+      source_runtime_detail::restore_zero_filled_pages(std::span(destination,bytes),
+          std::span(region->bytes).subspan(offset,bytes),page_bytes);
     }
 #else
     unsupported();

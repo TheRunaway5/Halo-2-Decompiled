@@ -4,6 +4,7 @@
 #include "halo2/native_grenade_constants.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/source_effect_location.hpp"
+#include "halo2/native_authority_boundary.hpp"
 #include <functional>
 #include <map>
 
@@ -90,7 +91,47 @@ public:
   std::vector<NativeGrenadeEvent> take_events();
   std::span<const NativeGrenadeDetonation> detonations()const{return detonations_;}
   const AnimationClip* action_clip(std::uint32_t graph,std::uint32_t clip)const;
+  using AuthorityDigest=std::array<std::byte,32>;
+  struct AuthorityCheckpoint {
+    std::uint32_t version=1,initial_unit=0xffffffffu;
+    AuthorityDigest binding{};
+    bool source_driven{};
+    std::map<std::uint32_t,AuthorityDigest> unit_bindings;
+    std::map<std::pair<std::uint32_t,std::uint32_t>,AuthorityDigest> weapon_clip_bindings,selected_clip_bindings;
+    std::vector<NativeGrenadeProjectile> projectiles;
+    std::vector<NativeGrenadeEvent> pending_events;
+    std::vector<NativeGrenadeDetonation> detonations;
+    std::uint64_t detonation_serial{};
+    std::map<std::uint32_t,std::pair<unsigned,ObjectAttachmentFrame>> attachments;
+  };
+  class PreparedAuthority {
+  public:
+    ~PreparedAuthority();
+    PreparedAuthority(PreparedAuthority &&) noexcept;
+    PreparedAuthority &operator=(PreparedAuthority &&) noexcept;
+    bool for_owner(const NativeGrenadeSandbox &)const noexcept;
+  private:
+    friend class NativeGrenadeSandbox;
+    PreparedAuthority();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // The root quiesces/restores Unit action records, object identities and the
+  // complete simulation/source world together. Source-driven presentation
+  // requires that source world; it is not a second grenade solver. Cached
+  // definitions/clips rebind locally and must match their recorded digests.
+  // The root also authenticates immutable image/map/shared-resource/schema
+  // identity. Borrowed clip pointers/views expire on successful publication.
+  AuthorityCheckpoint authority_checkpoint(std::span<const Unit>,bool qualified_source_world=false)const;
+  PreparedAuthority prepare_authority(const AuthorityCheckpoint &,std::span<const Unit> incoming_units,bool qualified_source_world=false);
+  bool commit_authority(PreparedAuthority &&) noexcept;
 private:
+  mutable NativeAuthorityBoundary authority_;
+  std::uint32_t initial_unit_;
+  NativeGrenadeConstants constants_;
+  AuthorityDigest binding_{};
+  bool source_driven_{};
+  void validate_authority(const AuthorityCheckpoint &,std::span<const Unit>)const;
   struct Definition;
   struct UnitDefinition;
   struct WeaponClips;

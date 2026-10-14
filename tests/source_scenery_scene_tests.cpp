@@ -42,7 +42,19 @@ Counts verify(const std::filesystem::path &path) {
         });SceneObjects objects(content,0);
     require(scene.stats().unresolved_selections==counts.unresolved &&
         scene.unresolved_selection_owners().size()==counts.unresolved,"SCEN unresolved owner boundary lost content identity");
-    scene.synchronize(objects);std::map<std::size_t,unsigned> reads;
+    scene.synchronize(objects);
+    if(cache.name()=="coagulation") {
+        const auto vehicle=std::find_if(content.objects.begin(),content.objects.end(),[](const auto &o){
+            return o.type==1 && o.name<0 && o.definition!=null_datum;
+        });
+        require(vehicle!=content.objects.end(),"SCEN unrelated-lifetime fixture has no vehicle placement");
+        auto repeated=objects;const auto placement=std::size_t(vehicle-content.objects.begin());
+        const auto first=repeated.create_placement(placement,19),second=repeated.create_placement(placement,20);
+        require(first!=second,"SCEN unrelated vehicle fixture lost distinct full generations");
+        scene.synchronize(repeated);scene.synchronize(objects);
+        std::cout<<"SCEN lifetime: repeated vehicle placements stay outside the scenery bank\n";
+    }
+    std::map<std::size_t,unsigned> reads;
     scene.animation_time([&](std::size_t index,std::uint32_t handle,std::uint64_t born,std::uint64_t tick) {
         require(objects.get(handle).placement==index && objects.get(handle).created_tick==born && tick>=born,
             "SCEN animation producer lost actual owner/birth clock");

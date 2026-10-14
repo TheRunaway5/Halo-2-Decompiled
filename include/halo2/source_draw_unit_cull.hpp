@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/transform.hpp"
+#include <functional>
 #include <optional>
 #include <span>
 #include <vector>
@@ -26,6 +27,10 @@ struct SourceCullLinearGeometry {
     // Borrowed resident geometry+2C bytecode and literal mapping. Consumed
     // only by the positive accelerator path; must outlive this cull call.
     const SourceBspRangeGeometry *accelerator{};
+    // The original reads the context owner and WORLD nodes only for an
+    // unmasked, bounded model subpart. Resolve live banks at that point;
+    // accelerator, FFFF bounds and already selected subparts do not read them.
+    std::function<SourceCullOwnerPose()> resolve_owner_pose;
 };
 struct SourceCullPartMask {
     std::uint32_t source_address{}; // Literal draw-unit+14 backing identity.

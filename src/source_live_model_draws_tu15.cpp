@@ -69,6 +69,7 @@ void source_live_model_draws_tu15(PhysicsLiveWorldTu15& world,SourceObjectAdmiss
     presentation.copy_identity=allocate;
     presentation.build=[&](auto& collector,const auto& request){
         world.build_render_model(collector,request,context.view,context.local_players,context.view_modifier);
+        if(context.built)context.built(collector);
     };
     auto draw=context.draw;draw.temporary_address=allocate();
     presentation.collect=[&](const auto& collector,auto filter){
@@ -81,22 +82,37 @@ void source_live_model_draws_tu15(PhysicsLiveWorldTu15& world,SourceObjectAdmiss
         std::vector<SourceModelFadeOwner> os;
         std::vector<SourceModelFadeDefinition> ds;
         std::vector<SourceModelFadeModel> ms;
-        std::set<std::uint32_t> seen;
-        for(auto current=owner;current!=0xffffffffu;) {
-            if(!seen.insert(current).second)throw FormatError("TU1.5 fade owner parent cycle");
-            const auto b=read(body_address(current),0x40);
-            os.push_back({current,b.u32(4),b.u32(0x14),b.u32(0),b.f32(0x3c)});
-            const auto definition=b.u32(0),model=word(metadata(definition)+0x38);
-            unique(ds,SourceModelFadeDefinition{definition,model});
-            if(model!=0xffffffffu) {
-                const auto m=read(metadata(model),0x4e);SourceModelFadeModel value;
-                value.identity=model;value.fade_end=m.f32(0x28);value.fade_start=m.f32(0x2c);
-                for(unsigned n=0;n<5;++n)value.render_cutoffs[n]=m.f32(0x34+n*4);
-                value.render_lod_count=m.u16(0x4c);unique(ms,value);
-            }
-            current=b.u32(0x14);
+        const SourceModelFadeInput input{owner,metric,std::uint8_t(context.view_modifier)};
+        const auto read_owner=[&](std::uint32_t id) {
+            const auto b=read(body_address(id),0x40);
+            return SourceModelFadeOwner{id,b.u32(4),b.u32(0x14),b.u32(0),b.f32(0x3c)};
+        };
+        os.push_back(read_owner(owner));
+        // Whole4BAE0 returns before any definition/model/parent service for
+        // these overrides. Do not resolve unconsumed metadata eagerly.
+        if((*os.front().flags&0x80000u) || context.view_modifier)
+            return source_model_fade(os,ds,ms,input);
+        const auto owner_model=[&](const SourceModelFadeOwner& o) {
+            const auto definition=*o.definition,model=word(metadata(definition)+0x38u);
+            unique(ds,SourceModelFadeDefinition{definition,model});return model;
+        };
+        auto selected=owner_model(os.front());
+        if(selected==0xffffffffu)return source_model_fade(os,ds,ms,input);
+        std::set<std::uint32_t> seen{owner};
+        while(*os.back().parent!=0xffffffffu) {
+            const auto parent=*os.back().parent;
+            if(!seen.insert(parent).second)throw FormatError("TU1.5 fade owner parent cycle");
+            os.push_back(read_owner(parent));
         }
-        return source_model_fade(os,ds,ms,{owner,metric,std::uint8_t(context.view_modifier)});
+        if(os.back().identity!=owner) {
+            const auto root_model=owner_model(os.back());
+            if(root_model!=0xffffffffu)selected=root_model;
+        }
+        const auto m=read(metadata(selected),0x4e);SourceModelFadeModel value;
+        value.identity=selected;value.fade_end=m.f32(0x28);value.fade_start=m.f32(0x2c);
+        for(unsigned n=0;n<5;++n)value.render_cutoffs[n]=m.f32(0x34+n*4);
+        value.render_lod_count=m.u16(0x4c);ms.push_back(value);
+        return source_model_fade(os,ds,ms,input);
     };
     entry.build=presentation.build;
     entry.present=[&](auto& collector,auto children,auto skip,auto flags) {

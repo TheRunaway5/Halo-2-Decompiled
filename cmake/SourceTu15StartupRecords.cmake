@@ -12,6 +12,7 @@ endif()
 if(BUILD_TESTING)
     add_executable(source_tu15_startup_records_tests tests/source_tu15_startup_records_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+    target_link_libraries(source_tu15_startup_records_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_startup_records_tests PRIVATE halo2_source_tu15_startup_records nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_fresh_startup_records COMMAND source_tu15_startup_records_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-startup-records-20261011/original-verified/fixture.json

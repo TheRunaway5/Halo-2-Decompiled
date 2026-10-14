@@ -1,4 +1,5 @@
 #include "halo2/menu_world_native_draw.hpp"
+#include "halo2/menu_world_vertex_source.hpp"
 #include "halo2/world_material_uniform.hpp"
 #include <algorithm>
 #include <bit>
@@ -6,6 +7,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <map>
 #include <type_traits>
@@ -168,6 +170,8 @@ struct MenuWorldNativeDraw::Impl {
   std::map<std::vector<std::uint32_t>,VkPipeline> pipelines;
   std::unique_ptr<Frame> frame;
   explicit Impl(MenuWorldNativeDrawContext input):context(input),geometry({input.device,input.physical}) {
+    if(context.shader_directory.empty())context.shader_directory=HALO2_SHADER_DIR;
+    else std::cout<<"Pinned raw world shaders: "<<context.shader_directory.string()<<'\n';
     try {initialize();}catch(...) {destroy();throw;}
   }
   ~Impl() {destroy();}
@@ -222,8 +226,8 @@ struct MenuWorldNativeDraw::Impl {
     VkPipelineLayoutCreateInfo create{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
     create.setLayoutCount=2;create.pSetLayouts=sets;create.pushConstantRangeCount=1;create.pPushConstantRanges=&push;
     check(vkCreatePipelineLayout(context.device,&create,nullptr,&layout),"create raw world pipeline layout");
-    geometry_shader=module(shader(std::filesystem::path(HALO2_SHADER_DIR)/"menu_world.geom.spv"));
-    fragment_shader=module(shader(std::filesystem::path(HALO2_SHADER_DIR)/"menu_world.frag.spv"));
+    geometry_shader=module(shader(context.shader_directory/"menu_world.geom.spv"));
+    fragment_shader=module(shader(context.shader_directory/"menu_world.frag.spv"));
   }
   std::unique_ptr<Buffer> buffer(VkDeviceSize size) {
     auto result=std::make_unique<Buffer>(context.device);result->size=size;
@@ -322,7 +326,10 @@ struct MenuWorldNativeDraw::Impl {
     if(draw.topology!=VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST || draw.index_type!=VK_INDEX_TYPE_UINT16 ||
         !draw.index_count || !draw.indices.buffer || draw.vertex_buffers.empty())
       throw FormatError("raw world draw is not a nonempty source-ordered ushort triangle list");
+    const auto default_texture_w=menu_world_vertex_default_texture_w_mask(
+        decode_vertex_program(input.source.program_bytes()));
     const auto state=fixed_state(input);auto identity=key(draw,*input.vertex_shader,state);
+    identity.push_back(default_texture_w);
     if(const auto found=pipelines.find(identity);found!=pipelines.end())return found->second;
     std::vector<std::uint32_t> words(input.vertex_shader->spirv.begin(),input.vertex_shader->spirv.end());
     auto found=vertex_modules.find(words);
@@ -331,10 +338,12 @@ struct MenuWorldNativeDraw::Impl {
       try {found=vertex_modules.emplace(std::move(words),handle).first;}
       catch(...) {vkDestroyShaderModule(context.device,handle,nullptr);throw;}
     }
+    const VkSpecializationMapEntry projection_entry{0,0,sizeof(default_texture_w)};
+    const VkSpecializationInfo projection{1,&projection_entry,sizeof(default_texture_w),&default_texture_w};
     const VkPipelineShaderStageCreateInfo stages[]{
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,found->second,"main",nullptr},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,geometry_shader,"main",nullptr},
-        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,fragment_shader,"main",nullptr}};
+        {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_FRAGMENT_BIT,fragment_shader,"main",&projection}};
     VkPipelineVertexInputStateCreateInfo vertex{VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO};
     vertex.vertexBindingDescriptionCount=std::uint32_t(draw.vertex_bindings.size());vertex.pVertexBindingDescriptions=draw.vertex_bindings.data();
     vertex.vertexAttributeDescriptionCount=std::uint32_t(draw.vertex_attributes.size());vertex.pVertexAttributeDescriptions=draw.vertex_attributes.data();

@@ -40,6 +40,8 @@ float v_triMZ;
 #include "particle_perpendicular_program.glsl"
 #elif defined(PARTICLE_DIRECTIONAL)
 #include "particle_directional_program.glsl"
+#elif defined(PARTICLE_DISTORTION)
+#include "particle_distortion_program.glsl"
 #else
 #include "particle_program.glsl"
 #endif

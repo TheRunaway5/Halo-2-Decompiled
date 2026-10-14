@@ -17,6 +17,7 @@ endif()
 if(BUILD_TESTING)
     add_executable(source_tu15_status_tests tests/source_tu15_status_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_image.cpp src/source_runtime_host_virtual_memory.cpp)
+    target_link_libraries(source_tu15_status_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_status_tests PRIVATE halo2_source_tu15_status nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_fresh_startup_status COMMAND source_tu15_status_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-status-startup-20261012/original-v1/fixture.json
@@ -26,6 +27,7 @@ if(BUILD_TESTING)
     set_tests_properties(original_tu15_fresh_startup_status PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_tu15_status_tables_tests tests/source_tu15_status_tables_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_host_virtual_memory.cpp)
+    target_link_libraries(source_tu15_status_tables_tests PRIVATE halo2_snapshot_storage)
     target_link_libraries(source_tu15_status_tables_tests PRIVATE halo2_source_tu15_status nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_status_tables COMMAND source_tu15_status_tables_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/sandbox-source/tu15-status-startup-20261012/table-original-v1/fixture.json

@@ -177,7 +177,7 @@ void MultiplayerScoreboard::step(unsigned view,bool requested,
     throw FormatError("Scoreboard input outside original bounds");
 }
 MultiplayerScoreboard::Draw MultiplayerScoreboard::draw(const MultiplayerState &state,
-    std::span<const unsigned> ids,unsigned view,unsigned width,unsigned height) const {
+    std::span<const unsigned> ids,unsigned view,unsigned width,unsigned height,std::optional<TwoPlayerSplit> split) const {
   Draw out;
   if(!available() || view>=ids.size() || !width || !height)return out;
   const FullScoreboardClock clock{30,tick_seconds,std::int32_t(state.tick)};
@@ -224,7 +224,7 @@ MultiplayerScoreboard::Draw MultiplayerScoreboard::draw(const MultiplayerState &
     roster.push_back(row);
   }
   const bool wide=std::uint64_t(width)*3>std::uint64_t(height)*4;
-  auto viewport=hud_viewport(unsigned(ids.size()),view,wide);
+  auto viewport=hud_viewport(unsigned(ids.size()),view,wide,split);
   // Same native output delivery as the HUD: preserve original font pixels,
   // expand each physical player cell, and retain its authored safe margins.
   const float scale=std::min(width/640.f,height/480.f),

@@ -59,10 +59,10 @@ Vec3 normalize_source(Vec3 v) {
 }
 }
 SourceObserverAim source_observer_aim(Vec3 forward,Vec3 up,float horizontal,
-    Vec2 offset,float aspect) {
-  if(!(aspect>0))throw FormatError("source observer aspect must be positive");
+    Vec2 offset,float aspect,float vertical_scale) {
+  if(!(aspect>0 && vertical_scale>0))throw FormatError("source observer aspect and angle scale must be positive");
   const auto original=forward;
-  const long double vertical=2*std::atan(std::tan(static_cast<long double>(horizontal)*.5L)/aspect);
+  const long double vertical=2*std::atan(std::tan(static_cast<long double>(horizontal)*.5L)/aspect)*vertical_scale;
   const long double half_tangent=std::tan(vertical*.5L);
   const auto horizontal_rotation=std::atan(half_tangent*offset.x);
   const float vertical_rotation=float(std::atan(half_tangent*offset.y));

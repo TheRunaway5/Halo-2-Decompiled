@@ -41,6 +41,9 @@ source_decal_vertex_cache_tu15(const SourceRuntimeMemory &memory) {
             word(address+0x24u),std::bit_cast<std::int16_t>(std::uint16_t(word(address+0xau,2))),
             std::uint8_t(word(address+3u,1)),std::uint8_t(word(address+2u,1)),
             scalar(address+0x1cu),scalar(address+0x20u),{}};
+        out.primary_datum=word(address+0x38u);
+        out.next_cluster_datum=word(address+0x34u);
+        out.bitmap_index=std::bit_cast<std::int8_t>(std::uint8_t(word(address+0x29u,1)));
         for(unsigned q=0;q<count;++q) {
             std::array<SourceDecalCacheVertex,4> quad;
             for(unsigned v=0;v<4;++v) {

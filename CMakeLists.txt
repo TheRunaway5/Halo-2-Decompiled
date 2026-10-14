@@ -30,11 +30,17 @@ if(NOT HALO2_XBOX_ADPCM)
     message(FATAL_ERROR "FFmpeg headers must provide AV_CODEC_ID_ADPCM_IMA_XBOX; generic IMA WAV is not compatible with Xbox audio.")
 endif()
 find_program(GLSLANG_VALIDATOR glslangValidator REQUIRED)
+include(cmake/SnapshotStorage.cmake)
 
 add_library(halo2_cache src/cache.cpp src/material.cpp src/shader_animation.cpp src/bitmap_animation.cpp src/appearance.cpp src/model_environment.cpp src/sky.cpp src/lightmap.cpp src/render_program.cpp src/render_view.cpp src/atmosphere.cpp src/fog_composite.cpp src/patchy_fog.cpp src/menu_bloom.cpp src/menu_atmosphere.cpp src/vertex_program.cpp src/texture.cpp src/texture_state.cpp src/cubemap.cpp src/bitmap_mips.cpp src/content.cpp src/model.cpp src/model_pose.cpp src/transform.cpp src/frontend_content.cpp src/frontend_font.cpp src/frontend_material.cpp)
 target_sources(halo2_cache PRIVATE src/source_game_variant.cpp)
+target_sources(halo2_cache PRIVATE src/tu15_bump_palette.cpp)
+add_library(halo2_renderer_palette src/renderer_palette.cpp)
+target_sources(halo2_renderer_palette PRIVATE src/renderer_constant_mode.cpp)
+target_include_directories(halo2_renderer_palette PUBLIC include)
+target_link_libraries(halo2_renderer_palette PUBLIC halo2_cache halo2_renderer_device_lease)
 target_sources(halo2_cache PRIVATE src/custom_slayer.cpp)
-target_link_libraries(halo2_cache PUBLIC nlohmann_json::nlohmann_json)
+target_link_libraries(halo2_cache PUBLIC nlohmann_json::nlohmann_json OpenSSL::Crypto)
 target_compile_definitions(halo2_cache PRIVATE HALO2_VARIANT_TAG_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data/tags/variants")
 target_sources(halo2_cache PRIVATE src/particle_movement.cpp)
 target_sources(halo2_cache PRIVATE src/particle_collision.cpp)
@@ -396,6 +402,7 @@ target_sources(halo2_cache PRIVATE src/particle_emitter.cpp)
 target_sources(halo2_cache PRIVATE src/particle_creation.cpp)
 target_sources(halo2_cache PRIVATE src/particle_vertex.cpp)
 target_sources(halo2_cache PRIVATE src/particle_material.cpp)
+target_sources(halo2_cache PRIVATE src/source_particle_sampler.cpp)
 target_sources(halo2_cache PRIVATE src/material_effects.cpp)
 target_sources(halo2_cache PRIVATE src/particle_view.cpp)
 target_sources(halo2_cache PRIVATE src/first_person_ik.cpp)
@@ -598,6 +605,11 @@ if(BUILD_TESTING)
     add_test(NAME original_tu15_heavy_vehicle_choices COMMAND heavy_vehicle_choices_tu15_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_heavy_vehicle_choices.original.json)
     set_tests_properties(original_tu15_heavy_vehicle_choices PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(light_vehicle_choices_tu15_tests tests/light_vehicle_choices_tu15_tests.cpp)
+    target_link_libraries(light_vehicle_choices_tu15_tests PRIVATE halo2_systems)
+    add_test(NAME original_tu15_light_vehicle_choices COMMAND light_vehicle_choices_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_light_vehicle_choices.original.json)
+    set_tests_properties(original_tu15_light_vehicle_choices PROPERTIES SKIP_RETURN_CODE 77)
 endif()
 if(BUILD_TESTING)
     add_executable(campaign_character_shader_probe tools/campaign_character_shader_probe.cpp)
@@ -605,6 +617,11 @@ if(BUILD_TESTING)
     add_executable(vehicle_shading_capture tools/capture_vehicle_shading.cpp src/multiplayer_runtime.cpp)
     target_link_libraries(vehicle_shading_capture PRIVATE halo2_renderer halo2_systems SDL2::SDL2)
     target_compile_definitions(vehicle_shading_capture PRIVATE HALO2_VEHICLE_SHADING_REFERENCE=1)
+    add_executable(live_vehicle_model_capture tools/capture_vehicle_shading.cpp src/multiplayer_runtime.cpp)
+    target_link_libraries(live_vehicle_model_capture PRIVATE halo2_renderer halo2_systems SDL2::SDL2)
+    target_compile_definitions(live_vehicle_model_capture PRIVATE HALO2_LIVE_VEHICLE_MODEL_CAPTURE=1)
+    add_executable(live_prop_model_capture tools/capture_prop_model_light.cpp src/multiplayer_runtime.cpp)
+    target_link_libraries(live_prop_model_capture PRIVATE halo2_renderer halo2_systems SDL2::SDL2)
     add_executable(vehicle_shader_alias_tests tests/vehicle_shader_alias_tests.cpp)
     target_link_libraries(vehicle_shader_alias_tests PRIVATE halo2_cache)
     add_test(NAME original_vehicle_shader_aliases COMMAND vehicle_shader_alias_tests
@@ -786,7 +803,7 @@ target_link_libraries(halo2_systems PUBLIC halo2_online_directory)
 add_library(halo2_online_matchmaking src/online_matchmaking.cpp src/online_match_session.cpp src/online_search_qos.cpp)
 include(cmake/OnlinePeers.cmake)
 target_include_directories(halo2_online_matchmaking PUBLIC include)
-target_link_libraries(halo2_online_matchmaking PRIVATE halo2_online_peers halo2_discord_identity CURL::libcurl OpenSSL::Crypto nlohmann_json::nlohmann_json Threads::Threads)
+target_link_libraries(halo2_online_matchmaking PRIVATE halo2_online_peers halo2_authority_transfer halo2_source_admissions halo2_discord_identity CURL::libcurl OpenSSL::Crypto nlohmann_json::nlohmann_json Threads::Threads)
 target_compile_options(halo2_online_matchmaking PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic>)
 add_executable(online_search_qos_tests tests/online_search_qos_tests.cpp)
 target_link_libraries(online_search_qos_tests PRIVATE halo2_online_matchmaking)
@@ -1062,6 +1079,13 @@ else()
 endif()
 target_sources(halo2_systems PRIVATE src/unit_damage.cpp)
 target_sources(halo2_systems PRIVATE src/datum_pool.cpp src/native_object_lifetimes.cpp)
+include(cmake/SourcePoolContinuation.cmake)
+include(cmake/MultiplayerObjectContinuation.cmake)
+include(cmake/SceneContinuation.cmake)
+include(cmake/WorldComponentsContinuation.cmake)
+include(cmake/ScriptPresentationContinuation.cmake)
+include(cmake/GrenadeContinuation.cmake)
+include(cmake/SimulationContinuation.cmake)
 target_sources(halo2_systems PRIVATE src/source_object_body_storage.cpp)
 target_sources(halo2_systems PRIVATE src/lethal_attribution.cpp)
 target_sources(halo2_systems PRIVATE src/object_garbage.cpp)
@@ -1073,6 +1097,10 @@ else()
     set_source_files_properties(src/object_light_query.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
 endif()
 target_sources(halo2_systems PRIVATE src/source_script.cpp src/source_script_lists.cpp)
+target_sources(halo2_systems PRIVATE src/source_ai_actor.cpp src/source_ai_references.cpp
+    src/source_ai_import.cpp src/source_unit_control.cpp src/source_ai_actor_binding.cpp
+    src/source_ai_actor_lifecycle.cpp src/source_ai_actor_slot_table_base.cpp
+    src/source_ai_actor_control.cpp src/source_ai_actor_membership.cpp)
 target_sources(halo2_systems PRIVATE src/source_weather.cpp)
 target_sources(halo2_systems PRIVATE src/source_weather_world.cpp)
 target_sources(halo2_systems PRIVATE src/source_game_time.cpp)
@@ -1192,120 +1220,120 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/menu_world.frag.sp
         shaders/world_depth_fragment.glsl VERBATIM)
 add_custom_target(menu_world_fragment_shader
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/shaders/menu_world.frag.spv)
-set(HALO2_MAINMENU_CACHE "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map")
-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/asset-sources.tsv")
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/asset-sources.tsv")
-    file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/assets/asset-sources.tsv" asset_source_rows)
-    list(POP_FRONT asset_source_rows asset_source_schema)
-    if(asset_source_schema STREQUAL "H2_ASSET_SOURCES_V1")
-        foreach(row IN LISTS asset_source_rows)
-            if(row MATCHES "^xbox\t(.+)$")
-                set(xbox_source_root "${CMAKE_MATCH_1}")
-                cmake_path(ABSOLUTE_PATH xbox_source_root BASE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" NORMALIZE)
-                set(HALO2_MAINMENU_CACHE "${xbox_source_root}/maps/mainmenu.map")
-            endif()
-        endforeach()
-    endif()
+# Port shader sources are part of the engine. Normal builds must not require
+# private Xbox/Vista caches or derive shader programs from MCC donor assets.
+set(NATIVE_SHADER_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/shaders/native-programs)
+find_program(SPIRV_VALIDATOR spirv-val REQUIRED)
+if(NOT CMAKE_CROSSCOMPILING)
+    # Explicit offline reference maintenance; never a normal shader dependency.
+    add_executable(generate_menu_world_vertex_catalog tools/generate_menu_world_vertex_catalog.cpp)
+    target_link_libraries(generate_menu_world_vertex_catalog PRIVATE halo2_cache)
 endif()
-if(EXISTS "${HALO2_MAINMENU_CACHE}")
-    if(NOT CMAKE_CROSSCOMPILING)
-        find_program(SPIRV_VALIDATOR spirv-val REQUIRED)
-        add_executable(generate_menu_world_vertex_catalog tools/generate_menu_world_vertex_catalog.cpp)
-        target_link_libraries(generate_menu_world_vertex_catalog PRIVATE halo2_cache)
-        set(MENU_WORLD_VERTEX_CATALOG_DIR ${CMAKE_CURRENT_BINARY_DIR}/menu-world-vertex-catalog)
-        set(MENU_WORLD_VERTEX_CATALOG_HEADER ${MENU_WORLD_VERTEX_CATALOG_DIR}/menu_world_vertex_catalog.generated.hpp)
-        add_custom_command(OUTPUT ${MENU_WORLD_VERTEX_CATALOG_HEADER} ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json
-            COMMAND $<TARGET_FILE:generate_menu_world_vertex_catalog>
-                --map "${HALO2_MAINMENU_CACHE}"
-                --output ${MENU_WORLD_VERTEX_CATALOG_DIR}
-            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_menu_world_vertex_catalog.py
-                --sources ${MENU_WORLD_VERTEX_CATALOG_DIR}/sources.json
-                --compiler ${GLSLANG_VALIDATOR} --validator ${SPIRV_VALIDATOR}
-                --header ${MENU_WORLD_VERTEX_CATALOG_HEADER}
-                --manifest ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json
-            DEPENDS generate_menu_world_vertex_catalog "${HALO2_MAINMENU_CACHE}"
-                tools/compile_menu_world_vertex_catalog.py ${GLSLANG_VALIDATOR} ${SPIRV_VALIDATOR}
-            VERBATIM)
-        add_custom_target(menu_world_vertex_catalog
-            DEPENDS ${MENU_WORLD_VERTEX_CATALOG_HEADER} ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json)
+set(MENU_WORLD_VERTEX_CATALOG_DIR ${CMAKE_CURRENT_BINARY_DIR}/menu-world-vertex-catalog)
+set(MENU_WORLD_VERTEX_CATALOG_HEADER ${MENU_WORLD_VERTEX_CATALOG_DIR}/menu_world_vertex_catalog.generated.hpp)
+file(GLOB native_menu_vertex_sources CONFIGURE_DEPENDS ${NATIVE_SHADER_SOURCE_DIR}/menu/*.vert)
+add_custom_command(OUTPUT ${MENU_WORLD_VERTEX_CATALOG_HEADER} ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_menu_world_vertex_catalog.py
+        --sources ${NATIVE_SHADER_SOURCE_DIR}/menu/sources.json
+        --compiler ${GLSLANG_VALIDATOR} --validator ${SPIRV_VALIDATOR}
+        --header ${MENU_WORLD_VERTEX_CATALOG_HEADER}
+        --manifest ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json
+    DEPENDS ${NATIVE_SHADER_SOURCE_DIR}/menu/sources.json ${native_menu_vertex_sources}
+        tools/compile_menu_world_vertex_catalog.py ${GLSLANG_VALIDATOR} ${SPIRV_VALIDATOR}
+    VERBATIM)
+add_custom_target(menu_world_vertex_catalog
+    DEPENDS ${MENU_WORLD_VERTEX_CATALOG_HEADER} ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.hpp
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.json
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
+        --preserved-sources ${NATIVE_SHADER_SOURCE_DIR}/particles.json
+        --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl
+    DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
+        tools/compile_menu_world_vertex_catalog.py ${NATIVE_SHADER_SOURCE_DIR}/particles.json
+        ${NATIVE_SHADER_SOURCE_DIR}/particle_program.glsl VERBATIM)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.hpp
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.json
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
+        --preserved-sources ${NATIVE_SHADER_SOURCE_DIR}/particles.json
+        --classification 8 --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl
+    DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
+        tools/compile_menu_world_vertex_catalog.py ${NATIVE_SHADER_SOURCE_DIR}/particles.json
+        ${NATIVE_SHADER_SOURCE_DIR}/particle_directional_program.glsl VERBATIM)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
+    COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_DIRECTIONAL=1
+        -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.vert
+        -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
+    DEPENDS shaders/particle.vert shaders/particle_vertex_output.glsl
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl VERBATIM)
+foreach(particle_stage vert geom)
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.${particle_stage}.spv
+        COMMAND ${GLSLANG_VALIDATOR} -V -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
+            ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.${particle_stage}
+            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.${particle_stage}.spv
+        DEPENDS shaders/particle.${particle_stage} shaders/particle_vertex_output.glsl
+            ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl VERBATIM)
+endforeach()
+foreach(particle_family perpendicular model)
+    if(particle_family STREQUAL "model")
+        set(particle_class 1)
+        set(particle_macro PARTICLE_MODEL)
+    else()
+        set(particle_class 9)
+        set(particle_macro PARTICLE_PERPENDICULAR)
     endif()
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.hpp
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.json
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.hpp
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.json
         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
-            --cache "${HALO2_MAINMENU_CACHE}"
-            --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl
+            --preserved-sources ${NATIVE_SHADER_SOURCE_DIR}/particles.json --classification ${particle_class}
+            --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl
         DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
-            tools/audit_rendering.py "${HALO2_MAINMENU_CACHE}" VERBATIM)
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.hpp
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.json
-        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
-            --cache "${HALO2_MAINMENU_CACHE}"
-            --classification 8 --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl
-        DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
-            tools/audit_rendering.py "${HALO2_MAINMENU_CACHE}" VERBATIM)
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
-        COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_DIRECTIONAL=1
+            tools/compile_menu_world_vertex_catalog.py ${NATIVE_SHADER_SOURCE_DIR}/particles.json
+            ${NATIVE_SHADER_SOURCE_DIR}/particle_${particle_family}_program.glsl VERBATIM)
+    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}.vert.spv
+        COMMAND ${GLSLANG_VALIDATOR} -V -D${particle_macro}=1
             -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
             ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.vert
-            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
+            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}.vert.spv
         DEPENDS shaders/particle.vert shaders/particle_vertex_output.glsl
-            ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional_program.glsl VERBATIM)
-    foreach(particle_stage vert geom)
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.${particle_stage}.spv
-            COMMAND ${GLSLANG_VALIDATOR} -V -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
-                ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.${particle_stage}
-                -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.${particle_stage}.spv
-            DEPENDS shaders/particle.${particle_stage} shaders/particle_vertex_output.glsl
-                ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_program.glsl VERBATIM)
-    endforeach()
-    foreach(particle_family perpendicular model)
-        if(particle_family STREQUAL "model")
-            set(particle_class 1)
-            set(particle_macro PARTICLE_MODEL)
-            get_filename_component(particle_map_directory "${HALO2_MAINMENU_CACHE}" DIRECTORY)
-            set(particle_program_cache "${particle_map_directory}/lockout.map")
-        else()
-            set(particle_class 9)
-            set(particle_macro PARTICLE_PERPENDICULAR)
-            set(particle_program_cache "${HALO2_MAINMENU_CACHE}")
-        endif()
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl
-            ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.hpp
-            ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.json
-            COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
-                --cache "${particle_program_cache}" --classification ${particle_class}
-                --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl
-            DEPENDS tools/generate_particle_graphics_program.py tools/generate_particle_vertex_probe.py
-                tools/audit_rendering.py "${particle_program_cache}" VERBATIM)
-        add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}.vert.spv
-            COMMAND ${GLSLANG_VALIDATOR} -V -D${particle_macro}=1
-                -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
-                ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.vert
-                -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}.vert.spv
-            DEPENDS shaders/particle.vert shaders/particle_vertex_output.glsl
-                ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl VERBATIM)
-    endforeach()
-    add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
-        COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_MODEL=1
-            ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.geom
-            -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
-        DEPENDS shaders/particle.geom VERBATIM)
-    add_custom_target(particle_graphics_shaders DEPENDS
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular.vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.vert.spv
-        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.geom.spv)
-    add_library(halo2_particle_renderer src/particle_renderer.cpp)
-    target_link_libraries(halo2_particle_renderer PUBLIC halo2_cache Vulkan::Vulkan)
-    target_include_directories(halo2_particle_renderer PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-    add_dependencies(halo2_particle_renderer particle_graphics_shaders halo2_shaders)
-    target_compile_options(halo2_particle_renderer PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wno-missing-field-initializers>)
-endif()
+            ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_${particle_family}_program.glsl VERBATIM)
+endforeach()
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_distortion_program.glsl
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_distortion_program.hpp
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_distortion_program.json
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_particle_graphics_program.py
+        --preserved-sources ${NATIVE_SHADER_SOURCE_DIR}/particles.json --classification 7 --variant distortion
+        --output ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_distortion_program.glsl
+    DEPENDS tools/generate_particle_graphics_program.py tools/compile_menu_world_vertex_catalog.py
+        ${NATIVE_SHADER_SOURCE_DIR}/particles.json ${NATIVE_SHADER_SOURCE_DIR}/particle_distortion_program.glsl VERBATIM)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_distortion.vert.spv
+    COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_DISTORTION=1
+        -I${CMAKE_CURRENT_BINARY_DIR}/shaders -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.vert
+        -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_distortion.vert.spv
+    DEPENDS shaders/particle.vert shaders/particle_vertex_output.glsl
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_distortion_program.glsl VERBATIM)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
+    COMMAND ${GLSLANG_VALIDATOR} -V -DPARTICLE_MODEL=1
+        ${CMAKE_CURRENT_SOURCE_DIR}/shaders/particle.geom
+        -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
+    DEPENDS shaders/particle.geom VERBATIM)
+add_custom_target(particle_graphics_shaders DEPENDS
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_distortion.vert.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_perpendicular.vert.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.vert.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_model.geom.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle_directional.vert.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.vert.spv
+    ${CMAKE_CURRENT_BINARY_DIR}/shaders/particle.geom.spv)
+add_library(halo2_particle_renderer src/particle_renderer.cpp)
+target_link_libraries(halo2_particle_renderer PUBLIC halo2_cache Vulkan::Vulkan)
+target_include_directories(halo2_particle_renderer PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+add_dependencies(halo2_particle_renderer particle_graphics_shaders halo2_shaders)
+target_compile_options(halo2_particle_renderer PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wno-missing-field-initializers>)
 foreach(shadow_filter_shader source_shadow_filter.vert source_shadow_filter.frag)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/${shadow_filter_shader}.spv
         COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders
@@ -1324,7 +1352,12 @@ target_compile_definitions(halo2_shadow_render PRIVATE HALO2_SHADOW_FILTER_SHADE
 add_dependencies(halo2_shadow_render source_shadow_filter_shaders)
 add_library(halo2_menu_world_storage src/menu_world_source_storage.cpp)
 target_link_libraries(halo2_menu_world_storage PUBLIC halo2_cache Vulkan::Vulkan)
+add_library(halo2_renderer_device_lease src/renderer_device_lease.cpp)
+target_include_directories(halo2_renderer_device_lease PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(halo2_renderer src/renderer.cpp src/bsp_postprocess.cpp src/scope_render.cpp)
+target_link_libraries(halo2_renderer PUBLIC halo2_renderer_device_lease)
+target_link_libraries(halo2_renderer PUBLIC halo2_renderer_palette)
+target_sources(halo2_renderer PRIVATE src/renderer_device_lease.cpp)
 target_sources(halo2_renderer PRIVATE src/desktop_loading.cpp)
 target_sources(halo2_renderer PRIVATE src/resident_draw_storage.cpp src/source_grenade_scene.cpp)
 target_sources(halo2_renderer PRIVATE src/native_weapon_projectile_scene.cpp)
@@ -1349,6 +1382,16 @@ target_link_libraries(world_presentation_tests PRIVATE halo2_systems)
 add_test(NAME native_world_presentation COMMAND world_presentation_tests)
 add_executable(resident_object_draw_gpu_tests tests/resident_object_draw_gpu_tests.cpp)
 target_link_libraries(resident_object_draw_gpu_tests PRIVATE halo2_renderer)
+add_executable(source_prt_owner_gpu_tests tests/source_prt_owner_gpu_tests.cpp)
+target_link_libraries(source_prt_owner_gpu_tests PRIVATE halo2_renderer)
+add_executable(source_prt_fallback_tu15_tests tests/source_prt_fallback_tu15_tests.cpp)
+target_link_libraries(source_prt_fallback_tu15_tests PRIVATE halo2_cache)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/01b_spacestation.map" AND
+   EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_prt_fallback.original.json")
+    add_test(NAME original_tu15_prt_fallback COMMAND source_prt_fallback_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/01b_spacestation.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_prt_fallback.original.json)
+endif()
 add_executable(multiplayer_death_momentum_tests tests/multiplayer_death_momentum_tests.cpp)
 target_link_libraries(multiplayer_death_momentum_tests PRIVATE halo2_systems)
 add_executable(multiplayer_death_cycle_tests tests/multiplayer_death_cycle_tests.cpp)
@@ -1411,7 +1454,14 @@ target_sources(halo2_systems PRIVATE src/death_object_phases.cpp src/death_objec
 target_sources(halo2_systems PRIVATE src/death_startup_runtime.cpp src/death_startup_runtime_generated.cpp src/source_runtime_host_physical_memory.cpp src/death_startup_native.cpp)
 target_sources(halo2_systems PRIVATE src/source_runtime_cache_tags.cpp)
 target_sources(halo2_systems PRIVATE src/multiplayer_object_runtime.cpp)
-target_sources(halo2_systems PRIVATE src/raw_datum_pool_identity.cpp)
+add_library(halo2_raw_datum_pool_identity STATIC src/raw_datum_pool_identity.cpp)
+target_include_directories(halo2_raw_datum_pool_identity PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(halo2_raw_datum_pool_identity PUBLIC cxx_std_20)
+if(HALO2_SANITIZERS AND NOT MSVC)
+    target_compile_options(halo2_raw_datum_pool_identity PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(halo2_raw_datum_pool_identity PUBLIC -fsanitize=address,undefined)
+endif()
+target_link_libraries(halo2_systems PUBLIC halo2_raw_datum_pool_identity)
 target_sources(halo2_systems PRIVATE src/source_geometry_resource_acquire.cpp)
 target_sources(halo2_systems PRIVATE src/source_physical_cache.cpp)
 target_sources(halo2_systems PRIVATE src/source_geometry_resource_retirement.cpp)
@@ -1451,7 +1501,8 @@ target_sources(halo2_systems PRIVATE src/biped_movement.cpp)
 target_sources(halo2_systems PRIVATE src/biped_physical_step.cpp)
 target_sources(halo2_systems PRIVATE src/unit_animation_runtime.cpp src/unit_animation_channels.cpp)
 target_sources(halo2_systems PRIVATE src/unit_animation_selection_runtime.cpp src/unit_animation_selection_call.cpp)
-target_sources(halo2_systems PRIVATE src/source_runtime_memory.cpp)
+target_sources(halo2_systems PRIVATE src/source_runtime_memory.cpp src/source_attached_effect.cpp)
+target_link_libraries(halo2_systems PRIVATE halo2_snapshot_storage)
 target_sources(halo2_systems PRIVATE src/unit_pickup_runtime.cpp src/player_inventory_admission.cpp)
 target_sources(halo2_systems PRIVATE src/unit_weapon_routing.cpp)
 target_sources(halo2_systems PRIVATE src/unit_object_runtime.cpp src/unit_object_runtime_generated.cpp)
@@ -1705,14 +1756,81 @@ if(BUILD_TESTING)
     add_executable(source_runtime_memory_tests tests/source_runtime_memory_tests.cpp)
     target_link_libraries(source_runtime_memory_tests PRIVATE halo2_systems)
     add_test(NAME source_runtime_retained_memory COMMAND source_runtime_memory_tests)
+    add_executable(source_runtime_immutable_tests tests/source_runtime_immutable_tests.cpp src/source_runtime_memory.cpp)
+    target_include_directories(source_runtime_immutable_tests PRIVATE include)
+    target_link_libraries(source_runtime_immutable_tests PRIVATE halo2_snapshot_storage Threads::Threads)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_test(NAME source_runtime_immutable_comparison COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+            --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-immutable-comparison" --timeout 60
+            -- $<TARGET_FILE:source_runtime_immutable_tests>)
+        set_tests_properties(source_runtime_immutable_comparison PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+    endif()
+    add_executable(source_runtime_snapshot_memory_tests tests/source_runtime_snapshot_memory_tests.cpp
+        src/source_runtime_memory.cpp src/source_runtime_host_physical_memory.cpp)
+    target_include_directories(source_runtime_snapshot_memory_tests PRIVATE include)
+    target_link_libraries(source_runtime_snapshot_memory_tests PRIVATE halo2_snapshot_storage Threads::Threads)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        foreach(snapshot_case checkpoint restore copy contracts storage adoption)
+            add_test(NAME source_runtime_snapshot_${snapshot_case} COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-snapshot-${snapshot_case}" --timeout 180
+                -- $<TARGET_FILE:source_runtime_snapshot_memory_tests> ${snapshot_case})
+            set_tests_properties(source_runtime_snapshot_${snapshot_case} PROPERTIES RUN_SERIAL TRUE TIMEOUT 210)
+        endforeach()
+    endif()
+    add_executable(source_runtime_shared_backing_tests tests/source_runtime_shared_backing_tests.cpp src/source_runtime_memory.cpp)
+    target_link_libraries(source_runtime_shared_backing_tests PRIVATE halo2_snapshot_storage)
+    target_include_directories(source_runtime_shared_backing_tests PRIVATE include)
+    target_link_libraries(source_runtime_shared_backing_tests PRIVATE Threads::Threads)
+    add_executable(source_physical_backing_tests tests/source_physical_backing_tests.cpp
+        src/source_runtime_memory.cpp src/source_runtime_host_physical_memory.cpp)
+    target_link_libraries(source_physical_backing_tests PRIVATE halo2_snapshot_storage)
+    target_include_directories(source_physical_backing_tests PRIVATE include)
+    target_link_libraries(source_physical_backing_tests PRIVATE Threads::Threads)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_test(NAME source_runtime_shared_backing COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+            --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-shared-backing" --timeout 60
+            -- $<TARGET_FILE:source_runtime_shared_backing_tests>)
+        set_tests_properties(source_runtime_shared_backing PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+        foreach(physical_case large protection)
+            add_test(NAME source_physical_backing_${physical_case} COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-physical-${physical_case}" --timeout 60
+                -- $<TARGET_FILE:source_physical_backing_tests> ${physical_case})
+            set_tests_properties(source_physical_backing_${physical_case} PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+        endforeach()
+    else()
+        add_test(NAME source_runtime_shared_backing COMMAND source_runtime_shared_backing_tests)
+        set_tests_properties(source_runtime_shared_backing PROPERTIES RUN_SERIAL TRUE)
+    endif()
+    add_executable(source_runtime_transfer_tests tests/source_runtime_transfer_tests.cpp src/source_runtime_memory.cpp)
+    target_link_libraries(source_runtime_transfer_tests PRIVATE halo2_snapshot_storage)
+    target_include_directories(source_runtime_transfer_tests PRIVATE include)
+    target_link_libraries(source_runtime_transfer_tests PRIVATE Threads::Threads)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        foreach(transfer_case read write boundaries)
+            add_test(NAME source_runtime_transfer_${transfer_case} COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-transfer-${transfer_case}" --timeout 60
+                -- $<TARGET_FILE:source_runtime_transfer_tests> ${transfer_case})
+            set_tests_properties(source_runtime_transfer_${transfer_case} PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+        endforeach()
+    else()
+        add_test(NAME source_runtime_transfer_boundaries COMMAND source_runtime_transfer_tests boundaries)
+        set_tests_properties(source_runtime_transfer_boundaries PROPERTIES RUN_SERIAL TRUE)
+    endif()
     add_executable(source_runtime_host_virtual_memory_tests tests/source_runtime_host_virtual_memory_tests.cpp
         src/source_runtime_host_virtual_memory.cpp src/source_runtime_memory.cpp)
+    target_link_libraries(source_runtime_host_virtual_memory_tests PRIVATE halo2_snapshot_storage)
     target_include_directories(source_runtime_host_virtual_memory_tests PRIVATE include)
     add_test(NAME source_runtime_host_virtual_memory COMMAND source_runtime_host_virtual_memory_tests)
     add_executable(source_host_resource_continuation_tests tests/source_host_resource_continuation_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_host_virtual_memory.cpp
         src/source_runtime_host_physical_memory.cpp src/object_body_heap.cpp
         src/source_runtime_host_storage.cpp src/physics_pool_host_storage.cpp)
+    target_link_libraries(source_host_resource_continuation_tests PRIVATE halo2_snapshot_storage)
     target_include_directories(source_host_resource_continuation_tests PRIVATE include)
     add_test(NAME source_host_resource_continuation COMMAND source_host_resource_continuation_tests)
     set_tests_properties(source_host_resource_continuation PROPERTIES SKIP_RETURN_CODE 77)
@@ -1926,6 +2044,7 @@ target_link_libraries(halo2_renderer PRIVATE halo2_imgui)
 target_link_libraries(halo2_renderer PUBLIC halo2_shadow_render halo2_menu_world_storage)
 target_sources(halo2_renderer PRIVATE src/source_machine_scene.cpp)
 target_sources(halo2_renderer PRIVATE src/source_prop_scene.cpp src/source_object_geometry.cpp)
+target_sources(halo2_renderer PRIVATE src/source_dynamic_object_scene.cpp)
 target_sources(halo2_renderer PRIVATE src/source_scenery_scene.cpp)
 target_sources(halo2_renderer PRIVATE src/source_netgame_weapon_scene.cpp)
 target_link_libraries(halo2_renderer PUBLIC halo2_systems Vulkan::Vulkan)
@@ -1969,6 +2088,17 @@ add_executable(multiplayer_scope_runtime_tests tests/multiplayer_scope_runtime_t
 target_link_libraries(multiplayer_scope_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
 target_compile_definitions(multiplayer_scope_runtime_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
 add_dependencies(multiplayer_scope_runtime_tests halo2_shaders)
+add_executable(gameplay_fov_runtime_tests tests/gameplay_fov_runtime_tests.cpp src/multiplayer_runtime.cpp)
+target_link_libraries(gameplay_fov_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+target_compile_definitions(gameplay_fov_runtime_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
+add_dependencies(gameplay_fov_runtime_tests halo2_shaders)
+add_executable(two_player_split_runtime_tests tests/two_player_split_runtime_tests.cpp src/multiplayer_runtime.cpp)
+target_link_libraries(two_player_split_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+target_compile_definitions(two_player_split_runtime_tests PRIVATE HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
+add_dependencies(two_player_split_runtime_tests halo2_shaders)
+add_executable(first_person_fov_render_tests tests/first_person_fov_render_tests.cpp)
+target_link_libraries(first_person_fov_render_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
+add_dependencies(first_person_fov_render_tests halo2_shaders)
 add_executable(multiplayer_scoreboard_runtime_tests tests/multiplayer_scoreboard_runtime_tests.cpp src/multiplayer_runtime.cpp)
 add_executable(source_shield_live_runtime_tests tests/source_shield_live_runtime_tests.cpp src/multiplayer_runtime.cpp)
 target_link_libraries(source_shield_live_runtime_tests PRIVATE halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm)
@@ -2072,6 +2202,7 @@ if(NOT MSVC)
 endif()
 
 include(CTest)
+include(cmake/CampaignKillVolumes.cmake)
 if(BUILD_TESTING)
     # Keep movie decoding independently buildable from gameplay/source oracles.
     add_executable(movie_tests tests/movie_tests.cpp src/movie.cpp src/audio.cpp src/mcc_audio.cpp
@@ -2323,6 +2454,16 @@ if(BUILD_TESTING)
             ${CMAKE_CURRENT_SOURCE_DIR}/analysis/frontend/xemu-capture/particle-graphics-fixture
             ${CMAKE_CURRENT_BINARY_DIR}/particle-graphics-capture)
         set_tests_properties(original_particle_graphics_gpu PROPERTIES SKIP_RETURN_CODE 77)
+        foreach(distortion_map ascension colossus)
+            add_test(NAME authored_${distortion_map}_distortion_graphics_gpu COMMAND particle_graphics_tests
+                --distortion ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/${distortion_map}.map
+                ${CMAKE_CURRENT_BINARY_DIR}/${distortion_map}-distortion-capture)
+            set_tests_properties(authored_${distortion_map}_distortion_graphics_gpu PROPERTIES SKIP_RETURN_CODE 77)
+            add_test(NAME authored_${distortion_map}_distortion_feedback_gpu COMMAND particle_graphics_tests
+                --distortion-feedback ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/${distortion_map}.map
+                ${CMAKE_CURRENT_BINARY_DIR}/${distortion_map}-distortion-feedback-capture)
+            set_tests_properties(authored_${distortion_map}_distortion_feedback_gpu PROPERTIES SKIP_RETURN_CODE 77)
+        endforeach()
     endif()
     add_executable(particle_material_tests tests/particle_material_tests.cpp)
     target_link_libraries(particle_material_tests PRIVATE halo2_cache)
@@ -3367,6 +3508,9 @@ if(BUILD_TESTING)
     add_test(NAME retail_source_bound_datum_pool COMMAND datum_pool_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/integration/datum-pool-fixtures.tsv source-bound)
     set_tests_properties(retail_source_bound_datum_pool PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME retail_source_datum_pool_continuation COMMAND datum_pool_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/integration/datum-pool-fixtures.tsv source-continuation)
+    set_tests_properties(retail_source_datum_pool_continuation PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(multiplayer_identity_tests tests/multiplayer_identity_tests.cpp)
     target_link_libraries(multiplayer_identity_tests PRIVATE halo2_systems)
     add_test(NAME retail_multiplayer_identity COMMAND multiplayer_identity_tests
@@ -3587,6 +3731,9 @@ if(BUILD_TESTING)
     add_test(NAME native_king_runtime COMMAND king_runtime_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03)
     add_test(NAME native_multiplayer COMMAND multiplayer_tests)
+    add_test(NAME native_vehicle_intent COMMAND multiplayer_tests --vehicle-intent)
+    add_test(NAME native_session_configuration COMMAND multiplayer_tests --session-config)
+    add_test(NAME native_session_configuration_loading COMMAND multiplayer_tests --session-config-loading)
     add_test(NAME native_lan_startup COMMAND multiplayer_tests --startup-delay)
     add_executable(multiplayer_species_tests tests/multiplayer_species_tests.cpp)
     target_link_libraries(multiplayer_species_tests PRIVATE halo2_systems)
@@ -4802,6 +4949,11 @@ if(BUILD_TESTING)
     set_tests_properties(retail_frontend_font_sampling PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(frontend_extension_catalog_tests tests/frontend_extension_catalog_tests.cpp)
     add_executable(frontend_vista_settings_tests tests/frontend_vista_settings_tests.cpp)
+    add_executable(gameplay_fov_tests tests/gameplay_fov_tests.cpp)
+    target_link_libraries(gameplay_fov_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_gameplay_fov COMMAND gameplay_fov_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/mcc_gameplay_fov.tsv
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/mcc_first_person_fov.tsv)
     target_link_libraries(frontend_vista_settings_tests PRIVATE halo2_renderer)
     add_dependencies(frontend_vista_settings_tests halo2_shaders)
     add_test(NAME retail_frontend_vista_settings COMMAND frontend_vista_settings_tests
@@ -5581,6 +5733,15 @@ if(BUILD_TESTING)
         target_compile_definitions(patchy_fog_gpu_tests PRIVATE HALO2_PATCHY_TEST_SHADER="${CMAKE_CURRENT_BINARY_DIR}/shaders/patchy_fog.comp.spv")
         add_dependencies(patchy_fog_gpu_tests patchy_test_shader)
         add_test(NAME retail_patchy_fog_gpu COMMAND patchy_fog_gpu_tests ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps)
+        add_executable(bsp_patchy_depth_gpu_tests tests/bsp_patchy_depth_gpu_tests.cpp)
+        target_link_libraries(bsp_patchy_depth_gpu_tests PRIVATE halo2_cache Vulkan::Vulkan)
+        add_dependencies(bsp_patchy_depth_gpu_tests halo2_shaders)
+        add_test(NAME tu15_bsp_patchy_depth_gpu COMMAND bsp_patchy_depth_gpu_tests ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+        add_executable(bsp_patchy_depth_tests tests/bsp_patchy_depth_tests.cpp)
+        target_link_libraries(bsp_patchy_depth_tests PRIVATE halo2_cache)
+        add_test(NAME tu15_bsp_patchy_depth COMMAND bsp_patchy_depth_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_bsp_patchy_depth.tsv)
+        set_tests_properties(tu15_bsp_patchy_depth PROPERTIES SKIP_RETURN_CODE 77)
         add_executable(patchy_fog_quad_tests tests/patchy_fog_quad_tests.cpp)
         target_link_libraries(patchy_fog_quad_tests PRIVATE halo2_cache)
         add_test(NAME original_patchy_fog_quad COMMAND patchy_fog_quad_tests --compare
@@ -5712,6 +5873,8 @@ if(BUILD_TESTING)
     add_test(NAME native_mcc_physics COMMAND mcc_physics_tests)
     add_test(NAME mcc_source_distribution COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mcc_source_distribution.py)
+    add_test(NAME native_shader_source_distribution COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_native_shader_sources.py)
     add_executable(mcc_audio_tests tests/mcc_audio_tests.cpp)
     target_link_libraries(mcc_audio_tests PRIVATE halo2_cache)
     add_test(NAME native_mcc_opus COMMAND mcc_audio_tests)
@@ -5800,6 +5963,14 @@ if(BUILD_TESTING)
         add_executable(source_prop_scene_tests tests/source_prop_scene_tests.cpp)
         target_link_libraries(source_prop_scene_tests PRIVATE halo2_renderer)
         add_test(NAME retail_source_prop_scene COMMAND source_prop_scene_tests)
+        add_executable(source_prop_main_view_tu15_tests tests/source_prop_main_view_tu15_tests.cpp)
+        target_link_libraries(source_prop_main_view_tu15_tests PRIVATE halo2_renderer)
+        add_test(NAME native_tu15_prop_main_view COMMAND source_prop_main_view_tu15_tests
+            "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps")
+        set_tests_properties(native_tu15_prop_main_view PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+
         set_tests_properties(retail_source_prop_scene PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
         add_executable(source_scenery_scene_tests tests/source_scenery_scene_tests.cpp)
         add_executable(source_scenery_shader_tests tests/source_scenery_shader_tests.cpp)
@@ -5840,6 +6011,123 @@ if(BUILD_TESTING)
         target_link_libraries(source_device_tests PRIVATE halo2_cache)
         add_test(NAME retail_source_devices COMMAND source_device_tests)
         set_tests_properties(retail_source_devices PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+        add_executable(source_ai_actor_tests tests/source_ai_actor_tests.cpp)
+        add_executable(source_ai_reference_tests tests/source_ai_reference_tests.cpp)
+        target_link_libraries(source_ai_reference_tests PRIVATE halo2_systems)
+        add_executable(source_ai_import_tests tests/source_ai_import_tests.cpp)
+        target_link_libraries(source_ai_import_tests PRIVATE halo2_systems)
+        add_executable(source_unit_control_tests tests/source_unit_control_tests.cpp)
+        target_link_libraries(source_unit_control_tests PRIVATE halo2_systems)
+        add_executable(source_ai_actor_binding_tests tests/source_ai_actor_binding_tests.cpp)
+        target_link_libraries(source_ai_actor_binding_tests PRIVATE halo2_systems)
+        add_executable(source_ai_actor_lifecycle_tests tests/source_ai_actor_lifecycle_tests.cpp)
+        target_link_libraries(source_ai_actor_lifecycle_tests PRIVATE halo2_systems)
+        add_executable(source_ai_actor_control_tests tests/source_ai_actor_control_tests.cpp)
+        target_link_libraries(source_ai_actor_control_tests PRIVATE halo2_systems)
+        add_executable(source_ai_actor_membership_tests tests/source_ai_actor_membership_tests.cpp)
+        target_link_libraries(source_ai_actor_membership_tests PRIVATE halo2_systems)
+        target_link_libraries(source_ai_actor_tests PRIVATE halo2_systems)
+        if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND Python3_Interpreter_FOUND)
+            add_test(NAME retail_source_ai_actor COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActor" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_ctor_base.md")
+            set_tests_properties(retail_source_ai_actor PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_references COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiReferences" --timeout 60
+                -- $<TARGET_FILE:source_ai_reference_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_references_base.md")
+            set_tests_properties(retail_source_ai_references PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_import COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiImport" --timeout 60
+                -- $<TARGET_FILE:source_ai_import_tests>
+                "${CMAKE_SOURCE_DIR}/assets/disc/maps/01a_tutorial.map"
+                "${CMAKE_SOURCE_DIR}/assets/disc/maps"
+                "${CMAKE_SOURCE_DIR}/assets/disc/default.xbe")
+            set_tests_properties(retail_source_ai_import PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_unit_control COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceUnitControl" --timeout 60
+                -- $<TARGET_FILE:source_unit_control_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_unit_control_base.md"
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_unit_seats_base.md")
+            set_tests_properties(retail_source_unit_control PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_binding COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorBinding" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_binding_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_binding_base.md")
+            set_tests_properties(retail_source_ai_actor_binding PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_binding_lifecycle COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorBindingLifecycle" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_binding_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_binding_lifecycle_base.md")
+            set_tests_properties(retail_source_ai_actor_binding_lifecycle PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_lifecycle COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorLifecycle" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_lifecycle_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_lifecycle_base.md")
+            set_tests_properties(retail_source_ai_actor_lifecycle PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_commands_lifecycle COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorCommandsLifecycle" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_lifecycle_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_commands_lifecycle_base.md")
+            set_tests_properties(retail_source_ai_actor_commands_lifecycle PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_lifecycle_source_owned COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorLifecycleSourceOwned" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_lifecycle_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_lifecycle_base.md" source-owned)
+            set_tests_properties(retail_source_ai_actor_lifecycle_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_commands_lifecycle_source_owned COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorCommandsLifecycleSourceOwned" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_lifecycle_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_commands_lifecycle_base.md" source-owned)
+            set_tests_properties(retail_source_ai_actor_commands_lifecycle_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_control COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorControl" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_control_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_control_base.md")
+            set_tests_properties(retail_source_ai_actor_control PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_control_source_owned COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorControlSourceOwned" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_control_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_control_base.md" source-owned)
+            set_tests_properties(retail_source_ai_actor_control_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_membership COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorMembership" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_membership_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_membership_base.md")
+            set_tests_properties(retail_source_ai_actor_membership PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_membership_source_owned COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorMembershipSourceOwned" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_membership_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_membership_base.md" source-owned)
+            set_tests_properties(retail_source_ai_actor_membership_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_binding_source_owned COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorBindingSourceOwned" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_binding_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_binding_base.md" source-owned)
+            set_tests_properties(retail_source_ai_actor_binding_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+            add_test(NAME retail_source_ai_actor_binding_lifecycle_source_owned COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorBindingLifecycleSourceOwned" --timeout 60
+                -- $<TARGET_FILE:source_ai_actor_binding_tests>
+                "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_binding_lifecycle_base.md" source-owned)
+            set_tests_properties(retail_source_ai_actor_binding_lifecycle_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
+        endif()
         add_executable(source_script_tests tests/source_script_tests.cpp)
         target_link_libraries(source_script_tests PRIVATE halo2_systems)
         add_test(NAME retail_source_script COMMAND source_script_tests)
@@ -5855,11 +6143,13 @@ if(BUILD_TESTING)
         add_executable(source_weather_assets_tests tests/source_weather_assets_tests.cpp)
         add_executable(source_weather_world_tests tests/source_weather_world_tests.cpp
             src/source_weather_world.cpp src/source_runtime_memory.cpp src/source_weather_wind.cpp)
+        target_link_libraries(source_weather_world_tests PRIVATE halo2_snapshot_storage)
         target_include_directories(source_weather_world_tests PRIVATE include)
         target_link_libraries(source_weather_world_tests PRIVATE halo2_cache halo2_weather_simulation)
         add_test(NAME source_weather_world COMMAND source_weather_world_tests ${CMAKE_CURRENT_SOURCE_DIR})
         add_executable(source_weather_world_caller_tests tests/source_weather_world_caller_tests.cpp
             src/source_weather_world.cpp src/source_runtime_memory.cpp src/source_weather_wind.cpp src/source_weather.cpp)
+        target_link_libraries(source_weather_world_caller_tests PRIVATE halo2_snapshot_storage)
         target_include_directories(source_weather_world_caller_tests PRIVATE include)
         target_link_libraries(source_weather_world_caller_tests PRIVATE halo2_cache halo2_weather_simulation)
         if(NOT MSVC)
@@ -6914,6 +7204,7 @@ if(BUILD_TESTING)
     src/native_vista_widget_managers.cpp src/vista_widget_manager_lifetime.cpp
     src/native_vista_widget_cache.cpp src/vista_widget_cache.cpp
     src/vista_widget_screen_disposal.cpp src/vista_widget_locale.cpp)
+  target_link_libraries(native_vista_widget_memory_tests PRIVATE halo2_snapshot_storage)
   target_include_directories(native_vista_widget_memory_tests PRIVATE include)
   target_link_libraries(native_vista_widget_memory_tests PRIVATE nlohmann_json::nlohmann_json)
   add_test(NAME native_vista_widget_memory_lifetime COMMAND native_vista_widget_memory_tests
@@ -7768,9 +8059,35 @@ include(cmake/SourceTu15Timer.cmake)
 include(cmake/SourceTu15Interrupt.cmake)
 include(cmake/PhysicsPhysicalStorage.cmake)
 include(cmake/PhysicsGameArena.cmake)
+include(cmake/NativeTu15StaticOwners.cmake)
+include(cmake/NativeTu15GameStartup.cmake)
+include(cmake/NativeTu15NetworkStorage.cmake)
+include(cmake/NativeTu15NetworkLink.cmake)
+include(cmake/NativeTu15NetworkSession.cmake)
+include(cmake/NativeTu15CacheStartup.cmake)
+include(cmake/NativeTu15InputStartup.cmake)
+include(cmake/NativeTu15BinkMemoryStartup.cmake)
+include(cmake/NativeTu15LevelHandlesStartup.cmake)
+include(cmake/NativeTu15RendererStartup.cmake)
+include(cmake/NativeTu15ClockStartup.cmake)
+include(cmake/NativeTu15StateContextStartup.cmake)
+include(cmake/NativeTu15PlayerStartup.cmake)
+include(cmake/NativeTu15ViewStorage.cmake)
+include(cmake/NativeTu15StaticRegistration.cmake)
+include(cmake/NativeTu15ScalarState.cmake)
+include(cmake/NativeTu15ObjectStorage.cmake)
+include(cmake/NativeTu15AuxObjectState.cmake)
+include(cmake/NativeTu15RendererRequest.cmake)
+include(cmake/NativeTu15GraphicsDevice.cmake)
+include(cmake/NativeTu15RendererState.cmake)
+include(cmake/NativeTu15RendererPool.cmake)
+include(cmake/NativeTu15RendererPalette.cmake)
+include(cmake/NativeTu15RendererConstants.cmake)
 include(cmake/PhysicsEarlyInitializer.cmake)
 include(cmake/PhysicsRendererStorage.cmake)
 include(cmake/PhysicsLiveWorldTu15.cmake)
+include(cmake/MultiplayerContinuation.cmake)
+include(cmake/AuthorityCodec.cmake)
 include(cmake/PhysicsNativeFrameTu15.cmake)
 include(cmake/SourceScenePhysics.cmake)
 if(MSVC)
@@ -7925,6 +8242,12 @@ if(BUILD_TESTING)
     add_test(NAME original_tu15_map_object_effect_reset COMMAND source_map_world_startup_tu15_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/map-world-features/map-world-support-20261013/effect-reset-cases.jsonl 256)
     set_tests_properties(original_tu15_map_object_effect_reset PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_tu15_terminal_live_callback COMMAND source_map_world_startup_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/map-world-features/terminal-continuation-20261014/callback-original.jsonl 1)
+    set_tests_properties(original_tu15_terminal_live_callback PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_tu15_map_event_strings COMMAND source_map_world_startup_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/analysis/map-world-features/decal-consumer-20261014/original-event-strings.jsonl 1038)
+    set_tests_properties(original_tu15_map_event_strings PROPERTIES SKIP_RETURN_CODE 77)
     set_tests_properties(original_tu15_map_world_startup original_tu15_map_light_shape original_tu15_map_light_vector PROPERTIES SKIP_RETURN_CODE 77)
 endif()
 
@@ -7983,3 +8306,78 @@ if(BUILD_TESTING)
 endif()
 
 target_sources(halo2_systems PRIVATE src/source_live_model_geometry_tu15.cpp)
+
+if(TARGET halo2_renderer)
+    add_executable(capture_live_model_light_tu15 tools/capture_live_model_light_tu15.cpp)
+    target_link_libraries(capture_live_model_light_tu15 PRIVATE halo2_renderer)
+    add_executable(capture_live_model_base_tu15 tools/capture_live_model_base_tu15.cpp)
+    target_link_libraries(capture_live_model_base_tu15 PRIVATE halo2_renderer)
+endif()
+
+# Pure original decal state remains available without local Xbox shader assets.
+target_sources(halo2_cache PRIVATE src/source_decal_state.cpp)
+
+# Original cached decal stream, independently owned from procedural impacts.
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/zanzibar.map")
+    set(SOURCE_DECAL_SHADER_DIR "${CMAKE_CURRENT_BINARY_DIR}/shaders")
+    add_custom_command(OUTPUT ${SOURCE_DECAL_SHADER_DIR}/source_decal_program.glsl
+        ${SOURCE_DECAL_SHADER_DIR}/source_decal_program.hpp ${SOURCE_DECAL_SHADER_DIR}/source_decal_program.json
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_source_decal_program_tu15.py
+            --cache ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/zanzibar.map
+            --output ${SOURCE_DECAL_SHADER_DIR}/source_decal_program.glsl
+        DEPENDS tools/generate_source_decal_program_tu15.py tools/generate_particle_graphics_program.py
+            tools/generate_particle_vertex_probe.py tools/audit_rendering.py assets/disc/maps/zanzibar.map VERBATIM)
+    add_custom_target(source_decal_program DEPENDS ${SOURCE_DECAL_SHADER_DIR}/source_decal_program.hpp)
+    foreach(stage vert geom frag)
+        add_custom_command(OUTPUT ${SOURCE_DECAL_SHADER_DIR}/source_decal.${stage}.spv
+            COMMAND ${GLSLANG_VALIDATOR} -V -I${SOURCE_DECAL_SHADER_DIR} -I${CMAKE_CURRENT_SOURCE_DIR}/shaders
+                ${CMAKE_CURRENT_SOURCE_DIR}/shaders/source_decal.${stage}
+                -o ${SOURCE_DECAL_SHADER_DIR}/source_decal.${stage}.spv
+            DEPENDS shaders/source_decal.${stage} shaders/combiner.glsl shaders/world_depth_fragment.glsl
+                ${SOURCE_DECAL_SHADER_DIR}/source_decal_program.glsl VERBATIM)
+    endforeach()
+    add_custom_target(source_decal_shaders DEPENDS ${SOURCE_DECAL_SHADER_DIR}/source_decal.vert.spv
+        ${SOURCE_DECAL_SHADER_DIR}/source_decal.geom.spv ${SOURCE_DECAL_SHADER_DIR}/source_decal.frag.spv)
+    target_sources(halo2_systems PRIVATE src/source_decal_draw.cpp)
+    set_source_files_properties(src/source_decal_draw.cpp PROPERTIES
+        INCLUDE_DIRECTORIES "${SOURCE_DECAL_SHADER_DIR}")
+    add_dependencies(halo2_systems source_decal_program)
+    target_sources(halo2_renderer PRIVATE src/source_decal_renderer.cpp)
+    target_compile_definitions(halo2_renderer PRIVATE HALO2_SOURCE_DECALS_AVAILABLE=1)
+    target_compile_definitions(halo2_native PRIVATE HALO2_SOURCE_DECALS_AVAILABLE=1)
+    add_dependencies(halo2_renderer source_decal_shaders)
+endif()
+if(TARGET source_decal_program AND BUILD_TESTING)
+    add_executable(source_decal_draw_tests tests/source_decal_draw_tests.cpp)
+    target_link_libraries(source_decal_draw_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_source_cached_decal_draw COMMAND source_decal_draw_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/zanzibar.map"
+        "${CMAKE_CURRENT_SOURCE_DIR}/analysis/map-world-features/graphics-owner-20261013/cache-fixture.json"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/decal_pass_tu15_original.json"
+        "${CMAKE_CURRENT_SOURCE_DIR}/analysis/map-world-features/decal-consumer-20261014/original-cache-traversal.json")
+    set_tests_properties(native_source_cached_decal_draw PROPERTIES SKIP_RETURN_CODE 77)
+endif()
+
+# Original-placement receiver cull diagnostic; matched CPU/GPU gates stay separate.
+add_executable(capture_live_model_cull_tu15 tools/capture_live_model_cull_tu15.cpp)
+target_link_libraries(capture_live_model_cull_tu15 PRIVATE halo2_systems halo2_menu_world_storage nlohmann_json::nlohmann_json)
+
+include(cmake/MapParticleBirthTu15.cmake)
+
+include(cmake/MapAttachedEffectsTu15.cmake)
+include(cmake/MapSourceDamageTu15.cmake)
+include(cmake/MapDistortionTu15.cmake)
+include(cmake/SourceParticleSwarmTu15.cmake)
+include(cmake/SourceRenderVisibilityRowTu15.cmake)
+include(cmake/SourceParticleSpriteContext.cmake)
+include(cmake/SourceParticleRenderStateTu15.cmake)
+include(cmake/SourceWorldParticleDrawsTu15.cmake)
+
+include(cmake/SourceContrailGraphics.cmake)
+
+if(BUILD_TESTING)
+  add_executable(fog_draw_selection_tu15_tests tests/fog_draw_selection_tu15_tests.cpp)
+  target_link_libraries(fog_draw_selection_tu15_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+  add_test(NAME original_tu15_fog_draw_selection COMMAND fog_draw_selection_tu15_tests
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_fog_draw_selection.original.json)
+endif()

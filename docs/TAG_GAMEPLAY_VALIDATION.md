@@ -822,3 +822,29 @@ See [preserved results](../analysis/tags/gameplay-validation-20261013/campaign-o
 The final guarded startup survey passes 2/15 windows, with three contained memory failures and ten script-owner failures. Armory's explicit player route reaches an authored equipment-case obstruction with no native navigation route. The full five-actor Old Mombasa encounter still fails: authored jackal shields reject SMG damage while the native capsule adapter lacks exposed hit-region selection. No materials or completion assertions were weakened.
 
 Three full multiplayer regression simulations (Turf, Gemini with UDP faults, and Coagulation with UDP faults) retain byte-identical tick/final traces and verify 24,459 UDP deliveries. Native tests remain serial under an aggregate 64 MiB, zero-swap cap. Nine current-root translation units compile against captured headers; current-root full linking/runtime delivery and Xbox TU1.5 visual parity remain unverified. Later unrelated header drift is recorded separately. The goal is not complete.
+
+
+### Campaign completion continuation (2026-10-14)
+
+[Preserved results and remaining map matrix](../analysis/tags/gameplay-validation-20261013/campaign-completion/RESULTS.md)
+record The Armory's authored native completion at tick 4150 with no cinematic
+skip or script faults. A checkpoint restart also completes at tick 4150 after
+one restore and 4983 submitted steps. The route uses normal Controls and reads
+actual scripted device readiness; it does not inject mission state. Native
+completion does not certify original animation/combat, rendering/audio, later
+level handoffs or the full campaign. The remaining 14 entry probes still fail
+on unsupported services, so the campaign goal remains active.
+
+The guard now configures 60 MiB for the aggregate simulation job and zero swap,
+leaving accounting headroom and rejecting measured peaks above the user 64 MiB
+ceiling. Earlier UDP results that exceeded that measured ceiling are excluded.
+The final Turf/Gemini/Coagulation full simulations pass the stricter admission;
+both tick and final-state traces match the captured baseline and pre-compaction
+runtime byte for byte. This retains the one-authority/lightweight-loopback-peer
+scope, with independent rendered worlds and real WAN matches still unverified.
+
+The captured source/runtime is pinned by `source-runtime-pins.json`; it includes
+actor reference-frame, short-sleep, posed query-center, navigation adjacency,
+compressed sound prediction and collision-memory changes. Its application and
+selected validation targets link under a separate serial 1 GiB build cap.
+Use the [current reproduction procedure](../analysis/tags/gameplay-validation-20261013/campaign-completion/REPRODUCE.md).

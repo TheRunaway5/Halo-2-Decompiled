@@ -1,4 +1,5 @@
 #include "halo2/world_effects.hpp"
+#include "halo2/source_particle_sprite_context.hpp"
 #include "halo2/source_effect_event.hpp"
 #include "halo2/particle_presentation.hpp"
 #include "halo2/particle_effect_color.hpp"
@@ -13,6 +14,7 @@
 #include "halo2/effect_light_lifetime.hpp"
 #include "halo2/effect_part_control.hpp"
 #include "halo2/bsp_atmosphere.hpp"
+#include "halo2/source_decal_pass.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -111,7 +113,7 @@ struct NativeWorldEffects::Impl {
     TerrainCollision terrain;
     SourceEffectLightDatumPool pool;
     SourceEffectLightSpatialPool spatial;
-    struct Delivery {std::uint32_t effect_owner=none;std::uint64_t tick{};};
+    struct Delivery {std::uint32_t effect_owner=none;std::uint64_t tick{};std::uint32_t effect_definition=none;};
     std::array<Delivery,SourceEffectLightDatumPool::capacity> deliveries;
     explicit LightWorld(const Cache& c)
         :locations(c.load_bsp_atmosphere(0)),memberships(c.load_object_light_spatial_bsp(0)),
@@ -136,6 +138,7 @@ struct NativeWorldEffects::Impl {
     float low{}, high{}, rejection{}, life_low{}, life_high{}, decay_low{},
         decay_high{};
     float maximum_sprite_extent{};
+    Vec3 color_low,color_high;
     std::vector<Sprite> sprites;
     Texture texture;
   };
@@ -152,6 +155,7 @@ struct NativeWorldEffects::Impl {
   struct SystemDefinition {
     ParticleSystemRenderDefinition render;
     ParticleSpriteDefinition sprite;
+    std::optional<SourceParticleSpriteContext> sprite_context;
     std::shared_ptr<const ParticleModelDefinition> model;
     std::shared_ptr<const ParticleMaterial> material;
     std::vector<ParticleMovementDefinition> movement;
@@ -221,6 +225,8 @@ struct NativeWorldEffects::Impl {
     Vec3 velocity;
     std::uint32_t source_instance=none;
     bool sounds=true,refresh_step{};
+    std::optional<SourceAttachedEffect> source_attachment;
+    bool source_restart{};
   };
   std::deque<Effect> effects;
   std::vector<WorldEffectFrame> frames(const Effect &e,const std::string &name) const {
@@ -275,9 +281,13 @@ struct NativeWorldEffects::Impl {
           out.life_high = d.root.f32(0x38);
           out.decay_low = d.root.f32(0x3c);
           out.decay_high = d.root.f32(0x40);
-          if (out.layer != 2 && out.layer != 3)
+          out.color_low={d.root.f32(0x1c),d.root.f32(0x20),d.root.f32(0x24)};
+          out.color_high={d.root.f32(0x28),d.root.f32(0x2c),d.root.f32(0x30)};
+          if (out.layer < 2 || out.layer > 5)
             throw FormatError(
-                "decal layer requires original light/add/max pass: " + t.name);
+                "decal layer requires original lighting/error owner: " + t.name);
+          if(out.flags&6)
+            throw FormatError("Decal requires original HSV/more-colors interpolation: "+t.name);
           if (out.flags & 8)
             throw FormatError(
                 "Directional decal tangent requires source impact frame: " +
@@ -308,8 +318,12 @@ struct NativeWorldEffects::Impl {
           m.diffuse = out.texture;
           m.forward_pass = true;
           m.forward_vertex = 11;
-          m.forward_diffuse = {out.layer == 2 ? .5f : 1.f, 0, 0, 0};
-          m.forward_blend = out.layer == 2 ? 6 : 9;
+          // Procedural decal materials use this index for43A30's layer;
+          // they carry no shader-template pass bank.
+          m.forward_pass_index=out.layer;
+          const auto pass=source_decal_pass(out.layer);
+          m.forward_program=pass.program;
+          m.forward_blend=pass.blend;
           m.forward_raster.cull = 0;
           m.forward_raster.depth_write = 0;
           out.material = unsigned(mesh.materials.size());
@@ -427,7 +441,11 @@ struct NativeWorldEffects::Impl {
           Packet particle(cache, out.render.particle_datum);
           if(particle.tag.group=="PRTM") {
             out.model=std::make_shared<const ParticleModelDefinition>(load_particle_model(cache,out.render.particle_datum));
-          }else out.sprite = cache.load_particle_sprite(out.render.particle_datum);
+          }else {
+            out.sprite = cache.load_particle_sprite(out.render.particle_datum);
+            out.sprite_context=source_particle_sprite_context(cache,out.render.particle_datum,out.sprite);
+            if(out.sprite_context && !out.sprite_context->has_bitmap)out.sprite.bitmap_type=-1;
+          }
           if (!out.model && particle.root.u32(0x78) != none) {
             const auto group=particle.root.u32(0x74);
             if(group==0x736e6421u)
@@ -476,7 +494,7 @@ struct NativeWorldEffects::Impl {
               }
             }
             const auto shape = out.render.emitters[k].birth.shape;
-            if (shape > 5)
+            if (shape > 5 && shape != 9)
               throw FormatError("World effect requires particle shape" +
                                 std::to_string(shape));
           }
@@ -583,6 +601,9 @@ struct NativeWorldEffects::Impl {
               range(d.decay_low, d.decay_high),
               at,
               {}};
+    const auto packed_color=source_decal_rgb(d.color_low,d.color_high,fraction());
+    const Vec3 color{float((packed_color>>16)&255)/255.f,
+                     float((packed_color>>8)&255)/255.f,float(packed_color&255)/255.f};
     struct Point {
       Vec3 world;
       float u, v;
@@ -632,7 +653,7 @@ struct NativeWorldEffects::Impl {
           v.uv = {
               sprite.u0 + ((p.u - x0) / (x1 - x0)) * (sprite.u1 - sprite.u0),
               sprite.v0 + ((p.v - y0) / (y1 - y0)) * (sprite.v1 - sprite.v0)};
-          v.color = {1, 1, 1};
+          v.color = color;
           v.material = d.material;
           out.vertices.push_back(v);
         }
@@ -657,7 +678,7 @@ struct NativeWorldEffects::Impl {
           const auto id=source_standalone_effect_light_create(light_world->pool,light_world->spatial,
             d,part.light,source_effect_part_control(part.light_scale_a,part.light_scale_b,e.frame.scale_a,e.frame.scale_b),
             marker.position,frame.forward,frame.up,light_inputs(t));
-          if(id!=none)light_world->deliveries[id&0xffffu]={e.owner,t};
+          if(id!=none)light_world->deliveries[id&0xffffu]={e.owner,t,e.definition->datum};
           continue;
         }
         if (part.sound != none && e.sounds) {
@@ -775,8 +796,8 @@ void NativeWorldEffects::spawn_attached(std::uint32_t datum,std::uint32_t target
   e.initial_attached_step=true;
 }
 void NativeWorldEffects::request_weapon(std::uint32_t datum,std::uint32_t weapon,std::uint64_t tick,
-    SourceEffectColors colors,Vec3 velocity,float a,float b,std::uint32_t source_instance,bool sounds) {
-  if(datum==none || !impl_->object_markers.contains(weapon))return;
+    SourceEffectColors colors,Vec3 velocity,float a,float b,std::uint32_t source_instance,bool sounds,const ObjectMarkers *locations) {
+  if(datum==none || (!locations && !impl_->object_markers.contains(weapon)))return;
   preload_attached(datum);
   if(source_instance!=none)for(auto &e:impl_->effects)
     if(e.source_instance==source_instance && e.target==weapon && e.definition->datum==datum) {
@@ -785,15 +806,25 @@ void NativeWorldEffects::request_weapon(std::uint32_t datum,std::uint32_t weapon
       e.finished=false;e.clock.flags&=~0x44u;e.tick=tick;
       source_effect_event_select(e.clock,e.definition->clocks,0,
           impl_->random_streams.event(e.definition->flags),{[] {}});
-      e.initial_attached_step=true;e.refresh_step=true;e.sounds=sounds;return;
+      e.initial_attached_step=true;e.refresh_step=true;e.sounds=sounds;
+      if(locations)e.source_locations=*locations;
+      return;
     }
-  spawn_attached(datum,weapon,weapon,tick,colors);
-  auto &e=impl_->effects.back();e.frame.scale_a=a;e.frame.scale_b=b;
+  spawn(datum,weapon,tick,{});
+  auto &e=impl_->effects.back();e.target=weapon;e.colors=colors;e.initial_attached_step=true;
+  e.frame.scale_a=a;e.frame.scale_b=b;
   e.velocity=velocity;e.source_instance=source_instance;e.sounds=sounds;
+  if(locations)e.source_locations=*locations;
+}
+void NativeWorldEffects::update_weapon_locations(std::uint32_t weapon,std::uint32_t instance,const ObjectMarkers &locations) {
+  if(instance==none)return;
+  for(auto &e:impl_->effects)if(!e.attached && e.target==weapon && e.source_instance==instance)
+    e.source_locations=locations;
 }
 void NativeWorldEffects::spawn_looping_attached(std::uint32_t datum,std::uint32_t target,
-    std::uint64_t tick,std::string marker,float scale_a,float scale_b) {
-  if(datum==none || target==none || !impl_->object_markers.contains(target))
+    std::uint64_t tick,std::string marker,float scale_a,float scale_b,const SourceAttachedEffect *source,
+    const ObjectMarkers *locations) {
+  if(datum==none || target==none || (!locations && !impl_->object_markers.contains(target)))
     throw FormatError("Map attachment requires its current full object/marker owner");
   preload_attached(datum);
   spawn(datum,target,tick,{});
@@ -802,6 +833,36 @@ void NativeWorldEffects::spawn_looping_attached(std::uint32_t datum,std::uint32_
   //175FA0's retained-repeat branch starts through179850 with a zero update,
   //independently of the definition's one-shot damage-effect bit1.
   e.initial_attached_step=true;
+  if(source) {
+    if(source->instance==none || source->definition!=datum)
+      throw FormatError("Map attachment source allocation differs from its authored definition");
+    e.source_instance=source->instance;e.source_attachment=*source;
+    e.frame.scale_a=source->scale_a;e.frame.scale_b=source->scale_b;
+    e.colors={source->colors[0],source->colors[1]};
+    if(!locations)throw FormatError("Source map attachment requires its actual completed location bank");
+    e.source_locations=*locations;
+  }
+}
+bool NativeWorldEffects::update_looping_attached(std::uint32_t target,std::uint32_t instance,
+    const SourceAttachedEffect &source,const ObjectMarkers &locations) {
+  if(instance==none)throw FormatError("Map attachment update requires its full source instance");
+  for(auto &e:impl_->effects)if(e.attached && e.target==target && e.source_instance==instance) {
+    if(source.instance==none) {
+      e.finished=true;e.clock.flags|=0x44u;
+      e.source_attachment=source;return true;
+    }
+    if(source.instance!=instance || source.definition!=e.definition->datum)
+      throw FormatError("Map attachment changed its current source generation or definition");
+    const auto previous=e.source_attachment?e.source_attachment->flags:0u;
+    e.source_restart=e.source_restart || ((previous&4u) && !(source.flags&4u));
+    e.source_attachment=source;e.frame.scale_a=source.scale_a;e.frame.scale_b=source.scale_b;
+    e.colors={source.colors[0],source.colors[1]};
+    e.source_locations=locations;
+    if(source.flags&0x40u){e.finished=true;e.clock.flags|=0x44u;}
+    else e.clock.flags=std::uint16_t((e.clock.flags&~0xcu)|(source.flags&0xcu));
+    return true;
+  }
+  return false;
 }
 std::size_t NativeWorldEffects::attach_scenery(const LevelContent &content) {
   std::size_t count{};
@@ -959,6 +1020,11 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
           //later skips. Native allocation/birth remains a separate owner.
           if(!source_effect_event_select(e.clock,e.definition->clocks,0,
                 i.random_streams.event(e.definition->flags),select_services))e.finished=true;
+          if(e.source_attachment) {
+            e.clock.flags|=e.source_attachment->flags&0x4cu;
+            if(e.source_attachment->flags&0x40u)e.finished=true;
+          }
+          e.source_restart=false; // Initial selection already owns this birth.
         }
         for (auto &event : e.events) {
           for (auto &s : event.systems) {
@@ -1075,6 +1141,13 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
               e.clock.flags|=0x44u;
               return false;
             }};
+          if(e.source_restart) {
+            //177310 clears the function stop and selects event zero again.
+            //Existing linked particles retain their own drain/lifetime.
+            e.source_restart=false;e.clock.flags&=~4u;
+            source_effect_event_select(e.clock,e.definition->clocks,0,
+                i.random_streams.event(e.definition->flags),services);
+          }
           //175FA0/179850: attached damage effects with definition bit1
           //start with a one-second event update; recharge starts at zero.
           const float interval=e.initial_attached_step?((!e.refresh_step && !e.attached && (e.definition->flags&2u))?1.f:0.f):seconds;
@@ -1111,7 +1184,7 @@ std::vector<WorldEffectLight> NativeWorldEffects::lights() const {
     const auto light=source_standalone_effect_light(i.light_world->pool,id);
     const auto& d=i.light_definitions.at(light.definition);const auto& delivery=i.light_world->deliveries[id&0xffffu];
     out.push_back({light.definition,none,d.lens,d.flags,delivery.tick,light.registration.position,
-      light.forward,light.up,d.radius,d.specular_radius,light.state,delivery.effect_owner,light.registration});
+      light.forward,light.up,d.radius,d.specular_radius,light.state,delivery.effect_owner,light.registration,id,delivery.effect_definition});
   }
   return out;
 }
@@ -1184,6 +1257,10 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
   auto &i = *impl_;
   std::vector<ParticleDraw> result;
   const auto hide_map=std::getenv("HALO2_REFERENCE_MAP_EFFECTS_HIDE");
+  const auto hide_shape9_value=std::getenv("HALO2_REFERENCE_PARTICLE_SHAPE9_HIDE");
+  const bool hide_shape9=hide_shape9_value && *hide_shape9_value;
+  const auto hide_source_value=std::getenv("HALO2_REFERENCE_SOURCE_ATTACHMENTS_HIDE");
+  const bool hide_source=hide_source_value && *hide_source_value;
   for (const auto &e : i.effects)
     if(!(hide_map && *hide_map && e.attached && e.target!=none))
     for (const auto &event : e.events)
@@ -1218,7 +1295,9 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
         state.sources.camera_position = view.position;
         state.sources.camera_forward = view.forward;
         state.sources.camera_up = view.up;
-        for (const auto &emitter : s.emitters) {
+        std::set<std::uint64_t> hidden_particles;
+        for (std::size_t emitter_index=0;emitter_index<s.emitters.size();++emitter_index) {
+          const auto &emitter=s.emitters[emitter_index];
           auto &out = state.emitters.emplace_back();
           out.rotation = emitter.state.rotation;
           out.position = emitter.state.position;
@@ -1231,6 +1310,8 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
             const float age=p.age;
             if (age > 1)
               continue;
+            if(hide_shape9 && a.render.emitters[emitter_index].birth.shape==9)
+              hidden_particles.insert(identity);
             out.particles.push_back(
                 {identity,
                  {age, p.system_fraction, p.phase,p.position,p.random},
@@ -1239,9 +1320,17 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
           }
         }
         ParticleRenderValueCache values;
+        if(!a.model) {
+          if(!a.sprite_context)continue;
+          //22AEC4..22AEFF establishes both owners and completes the sprite's
+          //shared values before1784B0 begins emitter/particle evaluation.
+          values.system_identity=state.system_identity;
+          values.location_identity=state.location_identity;
+          complete_particle_values(values.values,a.sprite.required_values&0x107f0u,state.sources);
+        }
         for_each_particle_render_input(
             a.render, state, values, *i.cache.shader_function_tables(),
-            [&](auto, const ParticleSpriteInput &input,
+            [&](auto identity, const ParticleSpriteInput &input,
                 ParticleValueCache &cache,
                 const ParticleValueSources &sources) {
               ParticleDraw d;
@@ -1270,7 +1359,10 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
                 std::copy(model.transform.begin(),model.transform.end(),d.vertex.attributes.begin()+12);
                 d.vertex.attributes[2]=input.color; //1C330: authored radiance semantic ordinal2.
               }else {
-                const auto sprite=particle_sprite_submission(a.sprite,input,cache,sources,*i.cache.shader_function_tables());
+                if(!a.sprite_context)return;
+                auto completed=input;completed.width=a.sprite_context->width;
+                completed.selected_sequence=a.sprite_context->selected_sequence;
+                const auto sprite=particle_sprite_submission(a.sprite,completed,cache,sources,*i.cache.shader_function_tables());
                 d.vertex.attributes = particle_sprite_vertex_attributes(sprite);
               }
               d.vertex.clip_range = view.clip_range;
@@ -1278,7 +1370,11 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
                                       1};
               d.depth = {view.clip_range, {0, 0, 1, 1}};
               d.scene_sort_depth = sort_depth;
-              result.push_back(std::move(d));
+              d.scene_sort_owner=ParticleDraw::SortOwner{state.system_identity,state.location_identity,center};
+              // Diagnostic changes only final native submissions. Property
+              // cache evaluation, simulation, particles and RNG still run.
+              if(!(hide_source && e.source_attachment) && !hidden_particles.contains(identity))
+                result.push_back(std::move(d));
             });
       }
   return result;
@@ -1289,12 +1385,10 @@ std::vector<Vertex> NativeWorldEffects::decals(std::uint64_t tick,
   std::vector<Vertex> result;
   for (const auto &d : impl_->decal_bank) {
     const float elapsed = (float(tick - d.tick) + fraction) * seconds;
-    const float fade =
-        d.lifetime > 0 && d.decay > 0
-            ? std::clamp((d.lifetime - elapsed) / d.decay, 0.f, 1.f)
-            : 1;
     for (auto v : d.vertices) {
-      v.color = {fade, fade, fade};
+      // The original vertex color retains RGB and fades only its alpha.
+      // 17FB60 packs the decaying alpha using256, then clamps at255.
+      v.source_color_alpha=float(source_decal_alpha(d.lifetime,d.decay,elapsed))/255.f;
       result.push_back(v);
     }
   }

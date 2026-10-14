@@ -54,6 +54,7 @@ void linear(SourceCullDrawUnit& u,SourceCullLinearGeometry& g,
             const auto& b=g.bounds[index];finite(b.center);
             if(!std::isfinite(b.radius))throw FormatError("source draw-unit bound radius is nonfinite");
             if(u.words[1]!=0xffffffffu) {
+                if(!g.owner_pose && g.resolve_owner_pose)g.owner_pose=g.resolve_owner_pose();
                 if(!g.owner_pose)throw FormatError("source draw-unit context owner bank is unavailable");
                 const auto& pose=*g.owner_pose;
                 // The source's MOVZX byte then compare-FFFFFFFF never treatsFF

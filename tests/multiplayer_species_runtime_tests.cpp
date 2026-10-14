@@ -30,8 +30,8 @@ struct Host {
   std::mutex mutex;
   std::atomic<bool> advance{};
   std::jthread worker;
-  static SlayerRules rules(const Cache &cache){SlayerRules rules;rules.weapon=cache.slayer_starting_weapon(5);
-    rules.time_ticks=rules.score_limit=0;return rules;}
+  static SlayerRules rules(const Cache &cache){auto rules=slayer_rules(UiVariant{"Slayer",0,{{2,0},{10,0},{89,5}}});
+    rules.weapon=cache.slayer_starting_weapon(5);return rules;}
   explicit Host(const MultiplayerOptions &o):cache(std::make_shared<const Cache>(
       o.map,o.shared_maps,OriginalData::load_xbe(o.gameplay_xbe))),content(cache->load_content(0,true)),
       match(content,0,cache->spawns(),rules(*cache)),host(match,0,
@@ -113,7 +113,11 @@ int main(int argc,char **argv)try {
   SDL_Event focus{};focus.type=SDL_WINDOWEVENT;focus.window.windowID=window_id;
   focus.window.event=SDL_WINDOWEVENT_FOCUS_GAINED;check(SDL_PushEvent(&focus)==1,"SDL focus failed");
   bool prepared{},released{},fire_down{},fire_up{},reload_sent{},grenade_sent{};unsigned last_tick{};
-  options.input_observer=[&](unsigned tick,std::span<const Controls>,const MultiplayerState &state) {
+  unsigned delivered_fire{},delivered_reload{},delivered_grenade{};
+  options.input_observer=[&](unsigned tick,std::span<const Controls> commands,const MultiplayerState &state) {
+    if(!commands.empty()) {
+      delivered_fire+=commands[0].fire;delivered_reload+=commands[0].reload;delivered_grenade+=commands[0].grenade;
+    }
     if(host)host->advance=true; // Shader/GPU setup must finish before the test's source clock starts.
     const auto phase=mode=="lan"?state.tick:tick;
     last_tick=std::max(last_tick,phase);
@@ -167,6 +171,9 @@ int main(int argc,char **argv)try {
     check(fp_frames[i] && camera_frames[i],"Selected local species was never rendered");
     if(options.local_players>1)check(body_frames[i],"Mixed species body was never rendered in another viewport");
   }
+  if(std::getenv("HALO2_TU15_SPECIES_TRACE"))std::cout<<"Delivered species controls: fire="<<delivered_fire
+      <<" reload="<<delivered_reload<<" grenade="<<delivered_grenade<<" prepared="<<prepared<<" released="<<released
+      <<" OS_focus="<<bool(SDL_GetWindowFlags(window)&SDL_WINDOW_INPUT_FOCUS)<<'\n';
   check(prepared&&released,"Actual Elite grenade input did not prepare and release its projectile");
   std::cout<<"PASS saved Elite normal Start: "<<mode<<", actual Vulkan bodies/arms/cameras and original Elite grenade attachment/release\n";
   return 0;

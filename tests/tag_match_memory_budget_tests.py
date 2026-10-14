@@ -47,6 +47,22 @@ class MatchMemoryBudgetTests(unittest.TestCase):
         self.assertEqual(report['verified_limits'], limits)
         self.assertEqual(report['kernel']['SubState'], 'exited')
 
+    def test_measured_peak_above_ceiling_fails_even_when_job_succeeds(self):
+        exited = {'LoadState': 'loaded', 'ActiveState': 'active',
+                  'SubState': 'exited', 'ControlGroup': '',
+                  'Result': 'success', 'ExecMainStatus': '0',
+                  'MemoryPeak': str(guard.CEILING_BYTES + 4096)}
+        with mock.patch.object(guard, '_properties', side_effect=[
+                {'LoadState': 'not-found'}, exited]), \
+             mock.patch.object(guard, '_systemctl', return_value=subprocess.CompletedProcess([], 0, '', '')), \
+             mock.patch.object(guard.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, '', '')):
+            self.assertNotEqual(run_in_memory_budget(['/usr/bin/true'], self.output, 8), 0)
+        report = json.loads((self.output / 'memory-budget.json').read_text())
+        self.assertFalse(report['passed'])
+        self.assertIn('measured peak exceeds', report['errors'][0])
+        self.assertEqual(report['ceiling_bytes'], 64 * 1024 * 1024)
+        self.assertEqual(report['accounting_headroom_bytes'], 4 * 1024 * 1024)
+
     def test_released_cgroup_without_verified_limits_fails_closed(self):
         running = {'LoadState': 'loaded', 'ActiveState': 'active',
                    'SubState': 'running', 'ControlGroup': '/released',

@@ -1,5 +1,4 @@
 #include "halo2/cache.hpp"
-#include "halo2/mcc_physics.hpp"
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <iomanip>
@@ -7,11 +6,14 @@
 #include <sstream>
 
 int main(int argc,char** argv)try {
-    if(argc!=3 && argc!=4)throw halo2::FormatError("usage: inspect_mcc_physics MCC_MAP NEW_REFERENCE_PACKET_DIRECTORY [--collision|--bsp]");
+    if(argc!=3 && argc!=4)throw halo2::FormatError("usage: inspect_mcc_physics MCC_MAP NEW_REFERENCE_PACKET_DIRECTORY [--collision|--bsp|--biped|--creature|--vehicle]");
     std::string group="phmo";
     if(argc==4) {
         if(std::string(argv[3])=="--collision")group="coll";
         else if(std::string(argv[3])=="--bsp")group="sbsp";
+        else if(std::string(argv[3])=="--biped")group="bipd";
+        else if(std::string(argv[3])=="--creature")group="crea";
+        else if(std::string(argv[3])=="--vehicle")group="vehi";
         else throw halo2::FormatError("Unknown physics packet option");
     }
     const halo2::Cache cache(argv[1]);
@@ -24,12 +26,7 @@ int main(int argc,char** argv)try {
         // Export the exact canonical definition published by normal Cache
         // loading. A second conversion would reinterpret an original layout
         // as an MCC donor layout and invalidate the comparison.
-        auto packet=cache.tag_payload({tag.datum});
-        std::vector<std::byte> converted;
-        if(group=="sbsp") {
-            converted=halo2::normalize_mcc_structure_bsp_physics(packet,tag.address);
-            packet=converted;
-        }
+        const auto packet=group=="sbsp"?cache.read_tag_bytes(tag.address,tag.size):cache.tag_payload({tag.datum});
         std::ostringstream filename;filename<<std::hex<<std::setfill('0')<<std::setw(8)<<tag.datum<<".bin";
         std::ofstream file(output/filename.str(),std::ios::binary);
         file.write(reinterpret_cast<const char*>(packet.data()),std::streamsize(packet.size()));

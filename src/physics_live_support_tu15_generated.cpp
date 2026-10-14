@@ -2,6 +2,7 @@
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics_world_runtime_internal.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
+#include "halo2/source_projectile_effect_observer.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -18695,7 +18696,7 @@ if(s.services.instruction){s.services.instruction(0xc70d6u);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xc70dau);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a130u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xc70e2u);} w(s.memory,s.observe,0xc70e2u,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xc70e8u);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xc70ecu);} w(s.memory,s.observe,0xc70ecu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xc70ecu);} w(s.memory,s.observe,0xc70ecu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xc70f0u);} s.set(1,r(s.memory,(selected(0x1ecu,s.image)+s.gp[7]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xc70f6u);} s.set(0,s.reg(1,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0xc70f8u);} s.gp[2]=si(s.gp[0])<0?0xffffffffu:0u;
@@ -19091,7 +19092,7 @@ if(s.services.instruction){s.services.instruction(0xc76deu);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xc76e2u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a16cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xc76eau);} w(s.memory,s.observe,0xc76eau,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xc76f0u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xc76f4u);} w(s.memory,s.observe,0xc76f4u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xc76f4u);} w(s.memory,s.observe,0xc76f4u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xc76f8u);} s.xmm[2]=_mm_cvtsi32_ss(s.xmm[2],si(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4)));
 if(s.services.instruction){s.services.instruction(0xc76feu);} s.xmm[0]=s.xmm[1];
 if(s.services.instruction){s.services.instruction(0xc7701u);} s.xmm[0]=_mm_div_ss(s.xmm[0],s.xmm[2]);
@@ -19115,7 +19116,7 @@ if(s.services.instruction){s.services.instruction(0xc774bu);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xc774fu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x456910u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xc7757u);} w(s.memory,s.observe,0xc7757u,(selected(0xcu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xc775du);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xc7761u);} w(s.memory,s.observe,0xc7761u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xc7761u);} w(s.memory,s.observe,0xc7761u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xc7765u);} s.xmm[0]=_mm_cvtsi32_ss(s.xmm[0],si(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4)));
 if(s.services.instruction){s.services.instruction(0xc776bu);} s.xmm[2]=_mm_set_ss(f(r(s.memory,(selected(0x46a0d0u,s.image)),4)));
 if(s.services.instruction){s.services.instruction(0xc7773u);} s.xmm[2]=_mm_div_ss(s.xmm[2],s.xmm[0]);
@@ -33825,7 +33826,7 @@ if(s.services.instruction){s.services.instruction(0xdf99bu);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xdf99fu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a234u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xdf9a7u);} w(s.memory,s.observe,0xdf9a7u,(selected(0x28u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xdf9adu);} s.fp.push(ext(f(r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xdf9b1u);} w(s.memory,s.observe,0xdf9b1u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xdf9b1u);} w(s.memory,s.observe,0xdf9b1u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xdf9b5u);} s.set(2,r(s.memory,(selected(0x1fcu,s.image)+s.gp[5]),2),2,0);
 if(s.services.instruction){s.services.instruction(0xdf9bcu);} s.flags.minus(s.reg(2,2,0),selected(0xffffffffu,s.image),2);
 if(s.services.instruction){s.services.instruction(0xdf9c0u);} s.set(0,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4),4,0);
@@ -35273,19 +35274,19 @@ if(s.services.instruction){s.services.instruction(0xe2011u);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xe2015u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x20u,s.image)+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0xe201au);} w(s.memory,s.observe,0xe201au,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe2020u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe2024u);} w(s.memory,s.observe,0xe2024u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe2024u);} w(s.memory,s.observe,0xe2024u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe2028u);} s.set(1,sign_extend(r(s.memory,(selected(0x2u,s.image)+s.gp[1]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0xe202cu);} s.xmm[0]=_mm_cvtsi32_ss(s.xmm[0],si(s.reg(1,4,0)));
 if(s.services.instruction){s.services.instruction(0xe2030u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x24u,s.image)+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0xe2035u);} w(s.memory,s.observe,0xe2035u,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe203bu);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe203fu);} w(s.memory,s.observe,0xe203fu,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe203fu);} w(s.memory,s.observe,0xe203fu,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe2043u);} s.set(2,sign_extend(r(s.memory,(selected(0x17eu,s.image)+s.gp[0]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0xe204au);} s.xmm[0]=_mm_cvtsi32_ss(s.xmm[0],si(s.reg(2,4,0)));
 if(s.services.instruction){s.services.instruction(0xe204eu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x28u,s.image)+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0xe2053u);} w(s.memory,s.observe,0xe2053u,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe2059u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe205du);} w(s.memory,s.observe,0xe205du,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe205du);} w(s.memory,s.observe,0xe205du,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe2061u);} s.set(1,sign_extend(r(s.memory,(selected(0x17cu,s.image)+s.gp[0]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0xe2068u);} s.set(2,r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xe206cu);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(selected(0x19cu,s.image)+s.gp[0]),4)));
@@ -36336,7 +36337,7 @@ if(s.services.instruction){s.services.instruction(0xe350eu);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xe3512u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x456918u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xe351au);} w(s.memory,s.observe,0xe351au,(selected(0x5cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe3520u);} s.fp.push(ext(f(r(s.memory,(selected(0x5cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe3524u);} w(s.memory,s.observe,0xe3524u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe3524u);} w(s.memory,s.observe,0xe3524u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe3528u);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[0]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xe352bu);} s.set(0,s.flags.plus(s.reg(0,4,0),s.reg(1,4,0),4),4,0);
 if(s.services.instruction){s.services.instruction(0xe352du);} s.gp[2]=si(s.gp[0])<0?0xffffffffu:0u;
@@ -38282,7 +38283,7 @@ if(s.services.instruction){s.services.instruction(0xe5534u);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xe5538u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0ccu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xe5540u);} w(s.memory,s.observe,0xe5540u,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe5546u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe554au);} w(s.memory,s.observe,0xe554au,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe554au);} w(s.memory,s.observe,0xe554au,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe554eu);} s.set(2,r(s.memory,(selected(0xcu,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0xe5552u);} s.set(2,s.flags.minus(0,s.reg(2,1,0),1),1,0);
 if(s.services.instruction){s.services.instruction(0xe5554u);} s.set(7,s.pop(),4,0);
@@ -38327,7 +38328,7 @@ if(s.services.instruction){s.services.instruction(0xe55dfu);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xe55e3u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0ccu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xe55ebu);} w(s.memory,s.observe,0xe55ebu,(selected(0xcu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe55f1u);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe55f5u);} w(s.memory,s.observe,0xe55f5u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe55f5u);} w(s.memory,s.observe,0xe55f5u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe55f9u);} s.set(2,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0xe55fdu);} s.set(2,s.flags.minus(0,s.reg(2,1,0),1),1,0);
 if(s.services.instruction){s.services.instruction(0xe55ffu);} w(s.memory,s.observe,0xe55ffu,(selected(0x398u,s.image)+s.gp[6]),1,s.reg(2,1,0));
@@ -38476,7 +38477,7 @@ if(s.services.instruction){s.services.instruction(0xe5852u);} s.set(1,sign_exten
 if(s.services.instruction){s.services.instruction(0xe5856u);} s.xmm[0]=_mm_cvtsi32_ss(s.xmm[0],si(s.reg(1,4,0)));
 if(s.services.instruction){s.services.instruction(0xe585au);} w(s.memory,s.observe,0xe585au,(selected(0x1cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe5860u);} s.fp.push(ext(f(r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe5864u);} w(s.memory,s.observe,0xe5864u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe5864u);} w(s.memory,s.observe,0xe5864u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe5868u);} s.set(2,r(s.memory,(selected(0x3abu,s.image)+s.gp[7]),1),4,0);
 if(s.services.instruction){s.services.instruction(0xe586fu);} s.flags.minus(s.reg(2,4,0),r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4),4);
 if(s.services.instruction){s.services.instruction(0xe5873u);} if(s.flags.sf!=s.flags.of)goto Le58bf;
@@ -39308,7 +39309,7 @@ if(s.services.instruction){s.services.instruction(0xe65d9u);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xe65ddu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a458u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xe65e5u);} w(s.memory,s.observe,0xe65e5u,(selected(0x0u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe65eau);} s.fp.push(ext(f(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe65edu);} w(s.memory,s.observe,0xe65edu,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe65edu);} w(s.memory,s.observe,0xe65edu,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe65f1u);} s.set(1,sign_extend(r(s.memory,(selected(0x399u,s.image)+s.gp[0]),1),1),4,0);
 if(s.services.instruction){s.services.instruction(0xe65f8u);} s.flags.minus(s.reg(1,4,0),r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4);
 if(s.services.instruction){s.services.instruction(0xe65fcu);} if(s.flags.sf!=s.flags.of)goto Le6619;
@@ -39522,7 +39523,7 @@ if(s.services.instruction){s.services.instruction(0xe6958u);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xe695cu);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0xe6960u);} w(s.memory,s.observe,0xe6960u,(selected(0x4u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0xe6966u);} s.fp.push(ext(f(r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe696au);} w(s.memory,s.observe,0xe696au,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe696au);} w(s.memory,s.observe,0xe696au,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe696eu);} s.set(2,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xe6972u);} s.flags.logic((s.reg(2,4,0))&(s.reg(2,4,0)),4);
 if(s.services.instruction){s.services.instruction(0xe6974u);} if(s.flags.zf||(s.flags.sf!=s.flags.of))goto Le6994;
@@ -39727,7 +39728,7 @@ if(s.services.instruction){s.services.instruction(0xe6c1cu);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xe6c20u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x456918u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xe6c28u);} w(s.memory,s.observe,0xe6c28u,(selected(0xcu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe6c2eu);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe6c32u);} w(s.memory,s.observe,0xe6c32u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe6c32u);} w(s.memory,s.observe,0xe6c32u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe6c36u);} s.flags.minus(r(s.memory,(selected(0x13cu,s.image)+s.gp[6]),4),selected(0xffffffffu,s.image),4);
 if(s.services.instruction){s.services.instruction(0xe6c3du);} if(s.flags.zf)goto Le6c4c;
 if(s.services.instruction){s.services.instruction(0xe6c3fu);} s.set(2,sign_extend(r(s.memory,(selected(0x39eu,s.image)+s.gp[6]),1),1),4,0);
@@ -40526,7 +40527,7 @@ if(s.services.instruction){s.services.instruction(0xe7d5bu);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xe7d5fu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a458u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xe7d67u);} w(s.memory,s.observe,0xe7d67u,(selected(0x0u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xe7d6cu);} s.fp.push(ext(f(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xe7d6fu);} w(s.memory,s.observe,0xe7d6fu,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xe7d6fu);} w(s.memory,s.observe,0xe7d6fu,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xe7d73u);} s.set(2,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0xe7d77u);} w(s.memory,s.observe,0xe7d77u,(selected(0x399u,s.image)+s.gp[0]),1,s.reg(2,1,0));
 if(s.services.instruction){s.services.instruction(0xe7d7du);} s.push(0xe7d7du,s.reg(1,4,0));
@@ -44626,7 +44627,7 @@ if(s.services.instruction){s.services.instruction(0xec6bau);} s.xmm[1]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xec6beu);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0xec6c2u);} w(s.memory,s.observe,0xec6c2u,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0xec6c8u);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xec6ccu);} w(s.memory,s.observe,0xec6ccu,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xec6ccu);} w(s.memory,s.observe,0xec6ccu,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xec6d0u);} s.set(2,r(s.memory,(selected(0x4ecbd0u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xec6d6u);} s.set(0,r(s.memory,(selected(0x44u,s.image)+s.gp[2]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xec6d9u);} s.set(7,r(s.memory,(selected(0x8u,s.image)+s.gp[0]+s.gp[7]*1u),4),4,0);
@@ -47225,7 +47226,7 @@ if(s.services.instruction){s.services.instruction(0xee9dfu);} s.xmm[1]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xee9e3u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0xee9e7u);} w(s.memory,s.observe,0xee9e7u,(selected(0x10u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0xee9edu);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xee9f1u);} w(s.memory,s.observe,0xee9f1u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xee9f1u);} w(s.memory,s.observe,0xee9f1u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xee9f5u);} s.set(0,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0xee9fau);} w(s.memory,s.observe,0xee9fau,(selected(0x1cu,s.image)+s.gp[6]),2,s.reg(0,2,0));
 if(s.services.instruction){s.services.instruction(0xee9feu);} w(s.memory,s.observe,0xee9feu,(selected(0x8u,s.image)+s.gp[6]),4,s.flags.logic((r(s.memory,(selected(0x8u,s.image)+s.gp[6]),4))|(selected(0x200u,s.image)),4));
@@ -47245,7 +47246,7 @@ Leea22: if(s.services.instruction){s.services.instruction(0xeea22u);} s.xmm[0]=_
 if(s.services.instruction){s.services.instruction(0xeea26u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x456910u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xeea2eu);} w(s.memory,s.observe,0xeea2eu,(selected(0x10u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xeea34u);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xeea38u);} w(s.memory,s.observe,0xeea38u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xeea38u);} w(s.memory,s.observe,0xeea38u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xeea3cu);} s.set(0,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0xeea41u);} w(s.memory,s.observe,0xeea41u,(selected(0x1cu,s.image)+s.gp[6]),2,s.reg(0,2,0));
 if(s.services.instruction){s.services.instruction(0xeea45u);} w(s.memory,s.observe,0xeea45u,(selected(0x8u,s.image)+s.gp[6]),4,s.flags.logic((r(s.memory,(selected(0x8u,s.image)+s.gp[6]),4))|(selected(0x200u,s.image)),4));
@@ -48655,7 +48656,7 @@ if(s.services.instruction){s.services.instruction(0xefe4eu);} s.xmm[1]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xefe52u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0xefe56u);} w(s.memory,s.observe,0xefe56u,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0xefe5cu);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xefe60u);} w(s.memory,s.observe,0xefe60u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xefe60u);} w(s.memory,s.observe,0xefe60u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xefe64u);} goto Lefe94;
 Lefe66: if(s.services.instruction){s.services.instruction(0xefe66u);} s.set(0,s.reg(3,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0xefe68u);} s.push(0xefe68u,selected(0xefe6du,s.image));run_1cf150(s);
@@ -48666,7 +48667,7 @@ if(s.services.instruction){s.services.instruction(0xefe7eu);} s.xmm[1]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xefe82u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0xefe86u);} w(s.memory,s.observe,0xefe86u,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0xefe8cu);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xefe90u);} w(s.memory,s.observe,0xefe90u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xefe90u);} w(s.memory,s.observe,0xefe90u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 Lefe94: if(s.services.instruction){s.services.instruction(0xefe94u);} s.set(2,r(s.memory,(selected(0xcu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0xefe99u);} w(s.memory,s.observe,0xefe99u,(selected(0x3eu,s.image)+s.gp[6]),2,s.reg(2,2,0));
 Lefe9d: if(s.services.instruction){s.services.instruction(0xefe9du);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[6]),4),4,0);
@@ -52434,7 +52435,7 @@ if(s.services.instruction){s.services.instruction(0xfb795u);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xfb799u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a108u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xfb7a1u);} w(s.memory,s.observe,0xfb7a1u,(selected(0x38u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xfb7a7u);} s.fp.push(ext(f(r(s.memory,(selected(0x38u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xfb7abu);} w(s.memory,s.observe,0xfb7abu,(selected(0x48u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xfb7abu);} w(s.memory,s.observe,0xfb7abu,(selected(0x48u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xfb7afu);} s.set(0,r(s.memory,(selected(0x48u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xfb7b3u);} s.push(0xfb7b3u,s.reg(0,4,0));
 if(s.services.instruction){s.services.instruction(0xfb7b4u);} s.push(0xfb7b4u,selected(0x1u,s.image));
@@ -52993,7 +52994,7 @@ if(s.services.instruction){s.services.instruction(0xfc1c2u);} s.xmm[0]=_mm_cvtsi
 if(s.services.instruction){s.services.instruction(0xfc1c6u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a20cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0xfc1ceu);} w(s.memory,s.observe,0xfc1ceu,(selected(0x10u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0xfc1d4u);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0xfc1d8u);} w(s.memory,s.observe,0xfc1d8u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0xfc1d8u);} w(s.memory,s.observe,0xfc1d8u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0xfc1dcu);} s.set(1,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xfc1e0u);} s.set(2,r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xfc1e4u);} s.push(0xfc1e4u,s.reg(1,4,0));
@@ -54798,6 +54799,7 @@ throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
 static void run_fdeb0(WorldState &s) {
+SourceProjectileUpdateScope projectile_scope(s.memory,r(s.memory,s.gp[4]+4u,4));
 if(s.services.instruction){s.services.instruction(0xfdeb0u);} s.set(4,s.flags.minus(s.reg(4,4,0),selected(0x118u,s.image),4),4,0);
 if(s.services.instruction){s.services.instruction(0xfdeb6u);} s.push(0xfdeb6u,s.reg(3,4,0));
 if(s.services.instruction){s.services.instruction(0xfdeb7u);} s.push(0xfdeb7u,s.reg(5,4,0));
@@ -56956,7 +56958,7 @@ if(s.services.instruction){s.services.instruction(0x100981u);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x100985u);} w(s.memory,s.observe,0x100985u,(selected(0x78u,s.image)+s.gp[4]),2,s.reg(2,2,0));
 L10098a: if(s.services.instruction){s.services.instruction(0x10098au);} s.set(0,(selected(0x60u,s.image)+s.gp[4]),4,0);
 if(s.services.instruction){s.services.instruction(0x10098eu);} s.push(0x10098eu,s.reg(0,4,0));
-if(s.services.instruction){s.services.instruction(0x10098fu);} {const auto target=selected(0x178e30u,s.image);s.push(0x10098fu,selected(0x100994u,s.image));dispatch(s,target,0x10098fu,false);}
+if(s.services.instruction){s.services.instruction(0x10098fu);} {const auto observed=source_begin_projectile_contact_effect_tu15(s.memory,s.gp[5],s.gp[4],0x10098fu);s.push(0x10098fu,selected(0x100994u,s.image));s.required(0x10098fu,selected(0x178e30u,s.image),false);if(observed)source_complete_projectile_contact_effect_tu15(s.memory,*observed,s.gp[0]);}
 if(s.services.instruction){s.services.instruction(0x100994u);} s.set(0,selected(0x1u,s.image),1,0);
 L100996: if(s.services.instruction){s.services.instruction(0x100996u);} s.set(7,s.flags.increment(s.reg(7,4,0),4,false),4,0);
 if(s.services.instruction){s.services.instruction(0x100997u);} s.flags.minus(s.reg(7,4,0),selected(0x3u,s.image),4);
@@ -56993,7 +56995,7 @@ if(s.services.instruction){s.services.instruction(0x100a0bu);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x100a0fu);} w(s.memory,s.observe,0x100a0fu,(selected(0x78u,s.image)+s.gp[4]),2,s.reg(1,2,0));
 L100a14: if(s.services.instruction){s.services.instruction(0x100a14u);} s.set(2,(selected(0x60u,s.image)+s.gp[4]),4,0);
 if(s.services.instruction){s.services.instruction(0x100a18u);} s.push(0x100a18u,s.reg(2,4,0));
-if(s.services.instruction){s.services.instruction(0x100a19u);} {const auto target=selected(0x178e30u,s.image);s.push(0x100a19u,selected(0x100a1eu,s.image));dispatch(s,target,0x100a19u,false);}
+if(s.services.instruction){s.services.instruction(0x100a19u);} {const auto observed=source_begin_projectile_contact_effect_tu15(s.memory,s.gp[5],s.gp[4],0x100a19u);s.push(0x100a19u,selected(0x100a1eu,s.image));s.required(0x100a19u,selected(0x178e30u,s.image),false);if(observed)source_complete_projectile_contact_effect_tu15(s.memory,*observed,s.gp[0]);}
 if(s.services.instruction){s.services.instruction(0x100a1eu);} s.set(0,selected(0x1u,s.image),1,0);
 L100a20: if(s.services.instruction){s.services.instruction(0x100a20u);} s.set(3,s.flags.logic((s.reg(3,4,0))^(s.reg(3,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x100a22u);} goto L100a30;
@@ -57111,7 +57113,7 @@ if(s.services.instruction){s.services.instruction(0x100c0eu);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x100c12u);} w(s.memory,s.observe,0x100c12u,(selected(0x78u,s.image)+s.gp[4]),2,s.reg(1,2,0));
 L100c17: if(s.services.instruction){s.services.instruction(0x100c17u);} s.set(2,(selected(0x60u,s.image)+s.gp[4]),4,0);
 if(s.services.instruction){s.services.instruction(0x100c1bu);} s.push(0x100c1bu,s.reg(2,4,0));
-if(s.services.instruction){s.services.instruction(0x100c1cu);} {const auto target=selected(0x178e30u,s.image);s.push(0x100c1cu,selected(0x100c21u,s.image));dispatch(s,target,0x100c1cu,false);}
+if(s.services.instruction){s.services.instruction(0x100c1cu);} {const auto observed=source_begin_projectile_contact_effect_tu15(s.memory,s.gp[5],s.gp[4],0x100c1cu);s.push(0x100c1cu,selected(0x100c21u,s.image));s.required(0x100c1cu,selected(0x178e30u,s.image),false);if(observed)source_complete_projectile_contact_effect_tu15(s.memory,*observed,s.gp[0]);}
 L100c21: if(s.services.instruction){s.services.instruction(0x100c21u);} s.set(0,sign_extend(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x100c26u);} s.flags.minus(s.reg(0,4,0),selected(0x6u,s.image),4);
 if(s.services.instruction){s.services.instruction(0x100c29u);} if(!s.flags.cf&&!s.flags.zf)goto L100cf6;
@@ -58181,7 +58183,7 @@ if(s.services.instruction){s.services.instruction(0x101fc4u);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x101fc8u);} w(s.memory,s.observe,0x101fc8u,(selected(0x2cu,s.image)+s.gp[4]),4,s.reg(0,4,0));
 L101fcc: if(s.services.instruction){s.services.instruction(0x101fccu);} s.set(1,(selected(0x18u,s.image)+s.gp[4]),4,0);
 if(s.services.instruction){s.services.instruction(0x101fd0u);} s.push(0x101fd0u,s.reg(1,4,0));
-if(s.services.instruction){s.services.instruction(0x101fd1u);} {const auto target=selected(0x178e30u,s.image);s.push(0x101fd1u,selected(0x101fd6u,s.image));dispatch(s,target,0x101fd1u,false);}
+if(s.services.instruction){s.services.instruction(0x101fd1u);} {const auto observed=source_begin_projectile_contact_effect_tu15(s.memory,s.gp[5],s.gp[4],0x101fd1u);s.push(0x101fd1u,selected(0x101fd6u,s.image));s.required(0x101fd1u,selected(0x178e30u,s.image),false);if(observed)source_complete_projectile_contact_effect_tu15(s.memory,*observed,s.gp[0]);}
 if(s.services.instruction){s.services.instruction(0x101fd6u);} s.set(0,r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4),4,0);
 L101fda: if(s.services.instruction){s.services.instruction(0x101fdau);} s.set(0,s.flags.increment(s.reg(0,4,0),4,false),4,0);
 if(s.services.instruction){s.services.instruction(0x101fdbu);} s.flags.minus(s.reg(0,4,0),selected(0x3u,s.image),4);
@@ -59306,7 +59308,7 @@ if(s.services.instruction){s.services.instruction(0x105177u);} s.push(0x105177u,
 if(s.services.instruction){s.services.instruction(0x105179u);} s.push(0x105179u,selected(0x0u,s.image));
 if(s.services.instruction){s.services.instruction(0x10517bu);} s.push(0x10517bu,selected(0xffffffffu,s.image));
 if(s.services.instruction){s.services.instruction(0x10517du);} s.set(1,s.reg(7,4,0),4,0);
-if(s.services.instruction){s.services.instruction(0x10517fu);} s.push(0x10517fu,selected(0x105184u,s.image));run_108a70(s);
+if(s.services.instruction){s.services.instruction(0x10517fu);} s.push(0x10517fu,selected(0x105184u,s.image));s.required(0x10517fu,selected(0x108a70u,s.image),false);
 L105184: if(s.services.instruction){s.services.instruction(0x105184u);} s.set(0,r(s.memory,(selected(0x24u,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x105188u);} s.flags.logic((s.reg(0,1,0))&(s.reg(0,1,0)),1);
 if(s.services.instruction){s.services.instruction(0x10518au);} if(s.flags.zf)goto L10519e;
@@ -59324,7 +59326,7 @@ if(s.services.instruction){s.services.instruction(0x1051b3u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1051b7u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x138u,s.image)+s.gp[1]),4))));
 if(s.services.instruction){s.services.instruction(0x1051bfu);} w(s.memory,s.observe,0x1051bfu,(selected(0x20u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1051c5u);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1051c9u);} w(s.memory,s.observe,0x1051c9u,(selected(0x24u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1051c9u);} w(s.memory,s.observe,0x1051c9u,(selected(0x24u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1051cdu);} s.set(2,r(s.memory,(selected(0x24u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x1051d2u);} s.push(0x1051d2u,selected(0x1u,s.image));
 if(s.services.instruction){s.services.instruction(0x1051d4u);} s.push(0x1051d4u,selected(0x5000024u,s.image));
@@ -60570,7 +60572,7 @@ if(s.services.instruction){s.services.instruction(0x107c38u);} s.push(0x107c38u,
 if(s.services.instruction){s.services.instruction(0x107c3au);} s.push(0x107c3au,selected(0x0u,s.image));
 if(s.services.instruction){s.services.instruction(0x107c3cu);} s.push(0x107c3cu,selected(0xffffffffu,s.image));
 if(s.services.instruction){s.services.instruction(0x107c3eu);} s.set(1,s.reg(5,4,0),4,0);
-if(s.services.instruction){s.services.instruction(0x107c40u);} s.push(0x107c40u,selected(0x107c45u,s.image));run_108a70(s);
+if(s.services.instruction){s.services.instruction(0x107c40u);} s.push(0x107c40u,selected(0x107c45u,s.image));s.required(0x107c40u,selected(0x108a70u,s.image),false);
 if(s.services.instruction){s.services.instruction(0x107c45u);} s.set(7,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x107c46u);} s.set(6,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x107c47u);} s.set(5,s.pop(),4,0);
@@ -61119,7 +61121,7 @@ if(s.services.instruction){s.services.instruction(0x10abc4u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x10abc8u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x18u,s.image)+s.gp[0]),4))));
 if(s.services.instruction){s.services.instruction(0x10abcdu);} w(s.memory,s.observe,0x10abcdu,(selected(0x1cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x10abd3u);} s.fp.push(ext(f(r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x10abd7u);} w(s.memory,s.observe,0x10abd7u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x10abd7u);} w(s.memory,s.observe,0x10abd7u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x10abdbu);} s.set(0,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x10abdfu);} w(s.memory,s.observe,0x10abdfu,(selected(0x1cu,s.image)+s.gp[4]),4,s.reg(0,4,0));
 if(s.services.instruction){s.services.instruction(0x10abe3u);} goto L10ac25;
@@ -64880,7 +64882,7 @@ if(s.services.instruction){s.services.instruction(0x111e9bu);} s.xmm[0]=_mm_mul_
 L111ea3: if(s.services.instruction){s.services.instruction(0x111ea3u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a20cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x111eabu);} w(s.memory,s.observe,0x111eabu,(selected(0xcu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x111eb1u);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x111eb5u);} w(s.memory,s.observe,0x111eb5u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x111eb5u);} w(s.memory,s.observe,0x111eb5u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x111eb9u);} s.set(2,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x111ebdu);} s.set(1,s.flags.logic((s.reg(1,4,0))^(s.reg(1,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x111ebfu);} s.flags.minus(s.reg(0,4,0),s.reg(2,4,0),4);
@@ -68776,7 +68778,7 @@ if(s.services.instruction){s.services.instruction(0x116ce4u);} s.xmm[1]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x116ce8u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x116cecu);} w(s.memory,s.observe,0x116cecu,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0x116cf2u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x116cf6u);} w(s.memory,s.observe,0x116cf6u,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x116cf6u);} w(s.memory,s.observe,0x116cf6u,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x116cf9u);} s.set(0,r(s.memory,(selected(0x0u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x116cfdu);} s.set(1,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x116cfeu);} s.pop();s.gp[4]+=4u;return;
@@ -68788,7 +68790,7 @@ if(s.services.instruction){s.services.instruction(0x116d13u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x116d17u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0ccu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x116d1fu);} w(s.memory,s.observe,0x116d1fu,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x116d25u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x116d29u);} w(s.memory,s.observe,0x116d29u,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x116d29u);} w(s.memory,s.observe,0x116d29u,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x116d2cu);} s.set(0,r(s.memory,(selected(0x0u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x116d30u);} s.set(1,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x116d31u);} s.pop();s.gp[4]+=4u;return;
@@ -68798,7 +68800,7 @@ if(s.services.instruction){s.services.instruction(0x116d3eu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x116d42u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x449fd4u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x116d4au);} w(s.memory,s.observe,0x116d4au,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x116d50u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x116d54u);} w(s.memory,s.observe,0x116d54u,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x116d54u);} w(s.memory,s.observe,0x116d54u,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x116d57u);} s.set(0,r(s.memory,(selected(0x0u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x116d5bu);} s.set(1,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x116d5cu);} s.pop();s.gp[4]+=4u;return;
@@ -68844,7 +68846,7 @@ if(s.services.instruction){s.services.instruction(0x1172b0u);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x1172b5u);} w(s.memory,s.observe,0x1172b5u,(selected(0x18u,s.image)+s.gp[4]),4,s.reg(1,4,0));
 if(s.services.instruction){s.services.instruction(0x1172b9u);} w(s.memory,s.observe,0x1172b9u,(selected(0x4cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1172bfu);} s.fp.push(ext(f(r(s.memory,(selected(0x4cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1172c3u);} w(s.memory,s.observe,0x1172c3u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1172c3u);} w(s.memory,s.observe,0x1172c3u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1172c7u);} s.set(6,r(s.memory,(selected(0x50u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1172cbu);} s.flags.logic((s.reg(6,4,0))&(s.reg(6,4,0)),4);
 if(s.services.instruction){s.services.instruction(0x1172cdu);} s.set(1,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),2),2,0);
@@ -68920,7 +68922,7 @@ if(s.services.instruction){s.services.instruction(0x117398u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x11739cu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x449fd4u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1173a4u);} w(s.memory,s.observe,0x1173a4u,(selected(0x10u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1173aau);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1173aeu);} w(s.memory,s.observe,0x1173aeu,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1173aeu);} w(s.memory,s.observe,0x1173aeu,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1173b2u);} s.set(0,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x1173b7u);} w(s.memory,s.observe,0x1173b7u,(selected(0x3cu,s.image)+s.gp[7]),2,s.reg(0,2,0));
 L1173bb: if(s.services.instruction){s.services.instruction(0x1173bbu);} s.set(0,s.flags.logic((s.reg(0,4,0))^(s.reg(0,4,0)),4),4,0);
@@ -69599,7 +69601,7 @@ if(s.services.instruction){s.services.instruction(0x11ba14u);} {std::uint16_t st
 if(s.services.instruction){s.services.instruction(0x11ba18u);} w(s.memory,s.observe,0x11ba18u,(selected(0x10u,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x11ba1cu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x11ba1eu);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x11ba22u);} w(s.memory,s.observe,0x11ba22u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x11ba22u);} w(s.memory,s.observe,0x11ba22u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x11ba26u);} s.set(1,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x11ba2bu);} w(s.memory,s.observe,0x11ba2bu,(selected(0x206u,s.image)+s.gp[2]),2,s.reg(1,2,0));
 if(s.services.instruction){s.services.instruction(0x11ba32u);} s.set(6,s.pop(),4,0);
@@ -75402,10 +75404,10 @@ if(s.services.instruction){s.services.instruction(0x13498du);} s.fp.st(4)=mul(s.
 if(s.services.instruction){s.services.instruction(0x13498fu);} s.fp.st(3)=mul(s.fp.st(3),s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x134991u);} s.fp.st(2)=mul(s.fp.st(2),s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x134993u);} s.fp.st(1)=mul(s.fp.st(1),s.fp.st(0));s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x134995u);} w(s.memory,s.observe,0x134995u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x134999u);} w(s.memory,s.observe,0x134999u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x13499du);} w(s.memory,s.observe,0x13499du,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x1349a1u);} w(s.memory,s.observe,0x1349a1u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x134995u);} w(s.memory,s.observe,0x134995u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x134999u);} w(s.memory,s.observe,0x134999u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x13499du);} w(s.memory,s.observe,0x13499du,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1349a1u);} w(s.memory,s.observe,0x1349a1u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1349a5u);} s.set(2,r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1349a9u);} s.set(3,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1349adu);} s.set(1,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4),4,0);
@@ -75437,14 +75439,14 @@ if(s.services.instruction){s.services.instruction(0x134a04u);} s.fp.push(ext(f(r
 if(s.services.instruction){s.services.instruction(0x134a08u);} s.fp.st(3)=mul(s.fp.st(3),s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x134a0au);} s.fp.st(2)=mul(s.fp.st(2),s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x134a0cu);} s.fp.st(1)=mul(s.fp.st(1),s.fp.st(0));s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x134a0eu);} w(s.memory,s.observe,0x134a0eu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x134a0eu);} w(s.memory,s.observe,0x134a0eu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x134a11u);} w(s.memory,s.observe,0x134a11u,(selected(0x0u,s.image)+s.gp[4]),4,s.flags.logic((r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))&(selected(0xffu,s.image)),4));
 if(s.services.instruction){s.services.instruction(0x134a18u);} s.set(2,r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4),4,0);
-if(s.services.instruction){s.services.instruction(0x134a1bu);} w(s.memory,s.observe,0x134a1bu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x134a1bu);} w(s.memory,s.observe,0x134a1bu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x134a1eu);} w(s.memory,s.observe,0x134a1eu,(selected(0x0u,s.image)+s.gp[4]),4,s.flags.logic((r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))&(selected(0xffu,s.image)),4));
 if(s.services.instruction){s.services.instruction(0x134a25u);} w(s.memory,s.observe,0x134a25u,(selected(0x0u,s.image)+s.gp[4]),4,s.flags.shift(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4),selected(0x8u,s.image),4));
 if(s.services.instruction){s.services.instruction(0x134a29u);} s.set(2,s.flags.logic((s.reg(2,4,0))|(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4)),4),4,0);
-if(s.services.instruction){s.services.instruction(0x134a2cu);} w(s.memory,s.observe,0x134a2cu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x134a2cu);} w(s.memory,s.observe,0x134a2cu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x134a2fu);} w(s.memory,s.observe,0x134a2fu,(selected(0x0u,s.image)+s.gp[4]),4,s.flags.logic((r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))&(selected(0xffu,s.image)),4));
 if(s.services.instruction){s.services.instruction(0x134a36u);} w(s.memory,s.observe,0x134a36u,(selected(0x0u,s.image)+s.gp[4]),4,s.flags.shift(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4),selected(0x10u,s.image),4));
 if(s.services.instruction){s.services.instruction(0x134a3au);} s.set(2,s.flags.logic((s.reg(2,4,0))|(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4)),4),4,0);
@@ -76044,7 +76046,7 @@ if(s.services.instruction){s.services.instruction(0x138dc1u);} s.xmm[1]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x138dc5u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],s.xmm[1]);
 if(s.services.instruction){s.services.instruction(0x138dc9u);} w(s.memory,s.observe,0x138dc9u,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x138dcfu);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x138dd3u);} w(s.memory,s.observe,0x138dd3u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x138dd3u);} w(s.memory,s.observe,0x138dd3u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x138dd7u);} s.set(5,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x138ddbu);} goto L138ddf;
 L138ddd: if(s.services.instruction){s.services.instruction(0x138dddu);} s.set(5,s.flags.logic((s.reg(5,4,0))^(s.reg(5,4,0)),4),4,0);
@@ -76101,13 +76103,13 @@ if(s.services.instruction){s.services.instruction(0x138e7cu);} s.xmm[1]=_mm_sub_
 if(s.services.instruction){s.services.instruction(0x138e80u);} w(s.memory,s.observe,0x138e80u,(selected(0x20u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0x138e86u);} if(!s.flags.zf)goto L138e99;
 if(s.services.instruction){s.services.instruction(0x138e88u);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x138e8cu);} w(s.memory,s.observe,0x138e8cu,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x138e8cu);} w(s.memory,s.observe,0x138e8cu,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x138e90u);} s.set(1,r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x138e94u);} s.set(3,s.flags.increment(s.reg(3,4,0),4,true),4,0);
 if(s.services.instruction){s.services.instruction(0x138e95u);} s.set(3,s.flags.logic((s.reg(3,4,0))&(s.reg(1,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x138e97u);} goto L138eb5;
 L138e99: if(s.services.instruction){s.services.instruction(0x138e99u);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x138e9du);} w(s.memory,s.observe,0x138e9du,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x138e9du);} w(s.memory,s.observe,0x138e9du,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x138ea1u);} s.set(0,r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x138ea5u);} s.gp[2]=si(s.gp[0])<0?0xffffffffu:0u;
 if(s.services.instruction){s.services.instruction(0x138ea6u);} s.quotient(s.reg(1,4,0),true);
@@ -76126,12 +76128,12 @@ if(s.services.instruction){s.services.instruction(0x138ec6u);} s.xmm[1]=_mm_sub_
 if(s.services.instruction){s.services.instruction(0x138ecau);} w(s.memory,s.observe,0x138ecau,(selected(0x20u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0x138ed0u);} if(!s.flags.zf)goto L138ee3;
 if(s.services.instruction){s.services.instruction(0x138ed2u);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x138ed6u);} w(s.memory,s.observe,0x138ed6u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x138ed6u);} w(s.memory,s.observe,0x138ed6u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x138edau);} s.set(6,(selected(0xffffffffu,s.image)+s.gp[0]),4,0);
 if(s.services.instruction){s.services.instruction(0x138eddu);} s.set(6,s.flags.logic((s.reg(6,4,0))&(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x138ee1u);} goto L138efb;
 L138ee3: if(s.services.instruction){s.services.instruction(0x138ee3u);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x138ee7u);} w(s.memory,s.observe,0x138ee7u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x138ee7u);} w(s.memory,s.observe,0x138ee7u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x138eebu);} s.set(0,r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x138eefu);} s.gp[2]=si(s.gp[0])<0?0xffffffffu:0u;
 if(s.services.instruction){s.services.instruction(0x138ef0u);} s.quotient(s.reg(1,4,0),true);
@@ -76365,7 +76367,7 @@ if(s.services.instruction){s.services.instruction(0x13b4c3u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x13b4c7u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a2b8u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x13b4cfu);} w(s.memory,s.observe,0x13b4cfu,(selected(0x0u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x13b4d4u);} s.fp.push(ext(f(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x13b4d7u);} w(s.memory,s.observe,0x13b4d7u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x13b4d7u);} w(s.memory,s.observe,0x13b4d7u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x13b4dbu);} s.set(1,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x13b4dfu);} w(s.memory,s.observe,0x13b4dfu,(selected(0x112cu,s.image)+s.gp[0]),4,s.reg(1,4,0));
 if(s.services.instruction){s.services.instruction(0x13b4e5u);} w(s.memory,s.observe,0x13b4e5u,(selected(0x1129u,s.image)+s.gp[0]),1,selected(0x0u,s.image));
@@ -77279,7 +77281,7 @@ if(s.services.instruction){s.services.instruction(0x13e74fu);} switch(canonical_
 L13e756: if(s.services.instruction){s.services.instruction(0x13e756u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a148u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x13e75eu);} w(s.memory,s.observe,0x13e75eu,(selected(0x8u,s.image)+s.gp[5]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x13e763u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[5]),4))));
-if(s.services.instruction){s.services.instruction(0x13e766u);} w(s.memory,s.observe,0x13e766u,(selected(0xfffffff8u,s.image)+s.gp[5]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x13e766u);} w(s.memory,s.observe,0x13e766u,(selected(0xfffffff8u,s.image)+s.gp[5]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x13e769u);} s.set(1,r(s.memory,(selected(0xfffffff8u,s.image)+s.gp[5]),1),4,0);
 if(s.services.instruction){s.services.instruction(0x13e76du);} s.set(0,s.reg(1,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x13e76fu);} s.set(0,s.flags.logic((s.reg(0,4,0))|(selected(0xffffff00u,s.image)),4),4,0);
@@ -79589,7 +79591,7 @@ if(s.services.instruction){s.services.instruction(0x1494fau);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1494feu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
 if(s.services.instruction){s.services.instruction(0x149504u);} w(s.memory,s.observe,0x149504u,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x14950au);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x14950eu);} w(s.memory,s.observe,0x14950eu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x14950eu);} w(s.memory,s.observe,0x14950eu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x149511u);} s.set(0,r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x149514u);} s.set(1,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x149515u);} s.pop();s.gp[4]+=4u;return;
@@ -81571,7 +81573,7 @@ if(s.services.instruction){s.services.instruction(0x14f8cau);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x14f8ceu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0e4u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x14f8d6u);} w(s.memory,s.observe,0x14f8d6u,(selected(0x0u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x14f8dbu);} s.fp.push(ext(f(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x14f8deu);} w(s.memory,s.observe,0x14f8deu,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x14f8deu);} w(s.memory,s.observe,0x14f8deu,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x14f8e2u);} s.set(1,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x14f8e6u);} w(s.memory,s.observe,0x14f8e6u,(selected(0xa0u,s.image)+s.gp[0]),4,s.reg(1,4,0));
 L14f8ec: if(s.services.instruction){s.services.instruction(0x14f8ecu);} s.set(4,s.flags.plus(s.reg(4,4,0),selected(0x8u,s.image),4),4,0);
@@ -82153,7 +82155,7 @@ if(s.services.instruction){s.services.instruction(0x15005cu);} s.xmm[1]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x150060u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],s.xmm[1]);
 if(s.services.instruction){s.services.instruction(0x150064u);} w(s.memory,s.observe,0x150064u,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x15006au);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x15006eu);} w(s.memory,s.observe,0x15006eu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x15006eu);} w(s.memory,s.observe,0x15006eu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x150072u);} s.set(0,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x150076u);} w(s.memory,s.observe,0x150076u,(selected(0x164u,s.image)+s.gp[7]),4,s.reg(0,4,0));
 L15007c: if(s.services.instruction){s.services.instruction(0x15007cu);} s.flags.minus(s.reg(5,4,0),r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4),4);
@@ -84134,7 +84136,7 @@ if(s.services.instruction){s.services.instruction(0x152837u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x15283bu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a190u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x152843u);} w(s.memory,s.observe,0x152843u,(selected(0x20u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x152849u);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x15284du);} w(s.memory,s.observe,0x15284du,(selected(0x24u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x15284du);} w(s.memory,s.observe,0x15284du,(selected(0x24u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x152851u);} s.set(0,r(s.memory,(selected(0x24u,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x152855u);} s.set(1,r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x152859u);} w(s.memory,s.observe,0x152859u,(selected(0x3fu,s.image)+s.gp[1]),1,s.reg(0,1,0));
@@ -84240,13 +84242,13 @@ if(s.services.instruction){s.services.instruction(0x152a03u);} s.xmm[0]=_mm_mul_
 if(s.services.instruction){s.services.instruction(0x152a08u);} w(s.memory,s.observe,0x152a08u,(selected(0x13u,s.image)+s.gp[4]),1,selected(0x0u,s.image));
 if(s.services.instruction){s.services.instruction(0x152a0du);} w(s.memory,s.observe,0x152a0du,(selected(0x24u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x152a13u);} s.fp.push(ext(f(r(s.memory,(selected(0x24u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x152a17u);} w(s.memory,s.observe,0x152a17u,(selected(0x20u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x152a17u);} w(s.memory,s.observe,0x152a17u,(selected(0x20u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x152a1bu);} s.set(0,sign_extend(r(s.memory,(selected(0x2u,s.image)+s.gp[0]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x152a1fu);} s.xmm[0]=_mm_cvtsi32_ss(s.xmm[0],si(s.reg(0,4,0)));
 if(s.services.instruction){s.services.instruction(0x152a23u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x24u,s.image)+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0x152a28u);} w(s.memory,s.observe,0x152a28u,(selected(0x24u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x152a2eu);} s.fp.push(ext(f(r(s.memory,(selected(0x24u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x152a32u);} w(s.memory,s.observe,0x152a32u,(selected(0x28u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x152a32u);} w(s.memory,s.observe,0x152a32u,(selected(0x28u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x152a36u);} s.set(1,r(s.memory,(selected(0x4ecbd0u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x152a3cu);} s.set(2,r(s.memory,(selected(0x44u,s.image)+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x152a3fu);} s.set(0,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4),4,0);
@@ -84361,7 +84363,7 @@ if(s.services.instruction){s.services.instruction(0x152bb1u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x152bb5u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],s.xmm[2]);
 if(s.services.instruction){s.services.instruction(0x152bb9u);} w(s.memory,s.observe,0x152bb9u,(selected(0x28u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x152bbfu);} s.fp.push(ext(f(r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x152bc3u);} w(s.memory,s.observe,0x152bc3u,(selected(0x24u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x152bc3u);} w(s.memory,s.observe,0x152bc3u,(selected(0x24u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x152bc7u);} s.set(7,sign_extend(r(s.memory,(selected(0x17cu,s.image)+s.gp[6]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x152bceu);} s.set(7,s.flags.minus(s.reg(7,4,0),r(s.memory,(selected(0x24u,s.image)+s.gp[4]),4),4),4,0);
 if(s.services.instruction){s.services.instruction(0x152bd2u);} s.set(1,selected(0x0u,s.image),4,0);
@@ -85752,7 +85754,7 @@ if(s.services.instruction){s.services.instruction(0x154a37u);} s.xmm[1]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x154a3bu);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x154a3fu);} w(s.memory,s.observe,0x154a3fu,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0x154a45u);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x154a49u);} w(s.memory,s.observe,0x154a49u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x154a49u);} w(s.memory,s.observe,0x154a49u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x154a4du);} s.set(2,r(s.memory,(selected(0x2u,s.image)+s.gp[0]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x154a50u);} s.set(1,s.flags.logic((s.reg(1,1,0))^(s.reg(1,1,0)),1),1,0);
 if(s.services.instruction){s.services.instruction(0x154a52u);} s.flags.logic((s.reg(2,1,0))&(selected(0x10u,s.image)),1);
@@ -87040,7 +87042,7 @@ if(s.services.instruction){s.services.instruction(0x157dd2u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x157dd6u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x0u,s.image)+s.gp[2]),4))));
 if(s.services.instruction){s.services.instruction(0x157ddau);} w(s.memory,s.observe,0x157ddau,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x157de0u);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x157de4u);} w(s.memory,s.observe,0x157de4u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x157de4u);} w(s.memory,s.observe,0x157de4u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x157de8u);} s.set(1,r(s.memory,(selected(0x88u,s.image)+s.gp[0]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x157deeu);} s.set(2,r(s.memory,(selected(0xcu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x157df3u);} s.set(1,s.flags.logic((s.reg(1,1,0))|(selected(0x4u,s.image)),1),1,0);
@@ -89544,7 +89546,7 @@ if(s.services.instruction){s.services.instruction(0x15f9deu);} s.xmm[1]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x15f9e2u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],s.xmm[1]);
 if(s.services.instruction){s.services.instruction(0x15f9e6u);} w(s.memory,s.observe,0x15f9e6u,(selected(0x20u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x15f9ecu);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x15f9f0u);} w(s.memory,s.observe,0x15f9f0u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x15f9f0u);} w(s.memory,s.observe,0x15f9f0u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x15f9f4u);} s.set(0,r(s.memory,(selected(0x168u,s.image)+s.gp[7]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x15f9fau);} s.set(1,r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x15f9feu);} s.set(0,s.flags.plus(s.reg(0,4,0),s.reg(1,4,0),4),4,0);
@@ -89599,12 +89601,12 @@ if(s.services.instruction){s.services.instruction(0x15fab7u);} s.xmm[0]=_mm_mul_
 if(s.services.instruction){s.services.instruction(0x15fabbu);} w(s.memory,s.observe,0x15fabbu,(selected(0x20u,s.image)+s.gp[4]),4,s.reg(2,4,0));
 if(s.services.instruction){s.services.instruction(0x15fabfu);} w(s.memory,s.observe,0x15fabfu,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x15fac5u);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x15fac9u);} w(s.memory,s.observe,0x15fac9u,(selected(0x34u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x15fac9u);} w(s.memory,s.observe,0x15fac9u,(selected(0x34u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x15facdu);} s.set(1,sign_extend(r(s.memory,(selected(0x2u,s.image)+s.gp[5]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x15fad1u);} s.xmm[0]=_mm_cvtsi32_ss(s.xmm[0],si(s.reg(1,4,0)));
 if(s.services.instruction){s.services.instruction(0x15fad5u);} w(s.memory,s.observe,0x15fad5u,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x15fadbu);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x15fadfu);} w(s.memory,s.observe,0x15fadfu,(selected(0x30u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x15fadfu);} w(s.memory,s.observe,0x15fadfu,(selected(0x30u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x15fae3u);} s.set(0,r(s.memory,(selected(0x168u,s.image)+s.gp[7]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x15fae9u);} s.set(1,r(s.memory,(selected(0x30u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x15faedu);} s.flags.minus(s.reg(0,4,0),s.reg(1,4,0),4);
@@ -91100,7 +91102,7 @@ if(s.services.instruction){s.services.instruction(0x1653cbu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1653cfu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0ccu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1653d7u);} w(s.memory,s.observe,0x1653d7u,(selected(0x10u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1653ddu);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1653e1u);} w(s.memory,s.observe,0x1653e1u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1653e1u);} w(s.memory,s.observe,0x1653e1u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1653e5u);} s.set(1,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x1653e9u);} goto L16546a;
 L1653eb: if(s.services.instruction){s.services.instruction(0x1653ebu);} s.flags.minus(s.reg(1,1,0),s.reg(2,1,0),1);
@@ -91121,7 +91123,7 @@ if(s.services.instruction){s.services.instruction(0x165411u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x165415u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0ccu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x16541du);} w(s.memory,s.observe,0x16541du,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x165423u);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x165427u);} w(s.memory,s.observe,0x165427u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x165427u);} w(s.memory,s.observe,0x165427u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x16542bu);} s.set(2,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x16542fu);} w(s.memory,s.observe,0x16542fu,(selected(0x15u,s.image)+s.gp[0]),1,s.reg(2,1,0));
 L165432: if(s.services.instruction){s.services.instruction(0x165432u);} w(s.memory,s.observe,0x165432u,(selected(0x16u,s.image)+s.gp[0]),1,s.reg(1,1,0));
@@ -91136,7 +91138,7 @@ if(s.services.instruction){s.services.instruction(0x16544cu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x165450u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0ccu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x165458u);} w(s.memory,s.observe,0x165458u,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x16545eu);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x165462u);} w(s.memory,s.observe,0x165462u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x165462u);} w(s.memory,s.observe,0x165462u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x165466u);} s.set(1,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),1),1,0);
 L16546a: if(s.services.instruction){s.services.instruction(0x16546au);} w(s.memory,s.observe,0x16546au,(selected(0x15u,s.image)+s.gp[0]),1,s.reg(1,1,0));
 L16546d: if(s.services.instruction){s.services.instruction(0x16546du);} s.set(2,sign_extend(r(s.memory,(selected(0x14u,s.image)+s.gp[0]),1),1),4,0);
@@ -101346,7 +101348,7 @@ if(s.services.instruction){s.services.instruction(0x17f7d4u);} s.xmm[3]=_mm_set_
 if(s.services.instruction){s.services.instruction(0x17f7dau);} s.xmm[0]=_mm_sub_ss(s.xmm[0],s.xmm[3]);
 if(s.services.instruction){s.services.instruction(0x17f7deu);} w(s.memory,s.observe,0x17f7deu,(selected(0xcu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x17f7e4u);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x17f7e8u);} w(s.memory,s.observe,0x17f7e8u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x17f7e8u);} w(s.memory,s.observe,0x17f7e8u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x17f7ecu);} s.set(2,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x17f7f0u);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(selected(0x46a0c4u,s.image)),4)));
 if(s.services.instruction){s.services.instruction(0x17f7f8u);} s.set(1,sign_extend(s.reg(6,2,0),2),4,0);
@@ -101420,7 +101422,7 @@ if(s.services.instruction){s.services.instruction(0x17f8f4u);} s.xmm[0]=_mm_sub_
 if(s.services.instruction){s.services.instruction(0x17f8fcu);} w(s.memory,s.observe,0x17f8fcu,(selected(0xcu,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x17f900u);} w(s.memory,s.observe,0x17f900u,(selected(0x4u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x17f906u);} s.fp.push(ext(f(r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x17f90au);} w(s.memory,s.observe,0x17f90au,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x17f90au);} w(s.memory,s.observe,0x17f90au,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x17f90eu);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x17f912u);} s.flags.minus(s.reg(0,2,0),selected(0x3ffu,s.image),2);
 if(s.services.instruction){s.services.instruction(0x17f916u);} s.xmm[3]=_mm_set_ss(f(r(s.memory,(selected(0x46a0d0u,s.image)),4)));
@@ -105289,7 +105291,7 @@ if(s.services.instruction){s.services.instruction(0x183e08u);} s.set(3,s.flags.l
 if(s.services.instruction){s.services.instruction(0x183e0eu);} s.set(3,s.flags.shift(s.reg(3,4,0),selected(0x6u,s.image),4),4,0);
 if(s.services.instruction){s.services.instruction(0x183e11u);} s.set(3,s.flags.plus(s.reg(3,4,0),s.reg(2,4,0),4),4,0);
 if(s.services.instruction){s.services.instruction(0x183e13u);} w(s.memory,s.observe,0x183e13u,(selected(0x44u,s.image)+s.gp[4]),4,s.reg(3,4,0));
-if(s.services.instruction){s.services.instruction(0x183e17u);} s.push(0x183e17u,selected(0x183e1cu,s.image));s.required(0x183e17u,0x439c0u,false);
+if(s.services.instruction){s.services.instruction(0x183e17u);} s.push(0x183e17u,selected(0x183e1cu,s.image));s.required(0x183e17u,selected(0x439c0u,s.image),false);
 if(s.services.instruction){s.services.instruction(0x183e1cu);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
 if(s.services.instruction){s.services.instruction(0x183e1eu);} w(s.memory,s.observe,0x183e1eu,(selected(0x1cu,s.image)+s.gp[4]),4,s.reg(0,4,0));
 if(s.services.instruction){s.services.instruction(0x183e22u);} if(s.flags.zf)goto L18465d;
@@ -112556,7 +112558,7 @@ if(s.services.instruction){s.services.instruction(0x1c45a6u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1c45aau);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a110u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1c45b2u);} w(s.memory,s.observe,0x1c45b2u,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1c45b8u);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1c45bcu);} w(s.memory,s.observe,0x1c45bcu,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1c45bcu);} w(s.memory,s.observe,0x1c45bcu,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1c45c0u);} s.set(2,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x1c45c5u);} s.set(0,r(s.memory,(selected(0x5020c8u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1c45cau);} w(s.memory,s.observe,0x1c45cau,(selected(0x2f4u,s.image)+s.gp[5]),2,s.reg(2,2,0));
@@ -112782,7 +112784,7 @@ if(s.services.instruction){s.services.instruction(0x1c48ffu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1c4903u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a110u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1c490bu);} w(s.memory,s.observe,0x1c490bu,(selected(0x30u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1c4911u);} s.fp.push(ext(f(r(s.memory,(selected(0x30u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1c4915u);} w(s.memory,s.observe,0x1c4915u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1c4915u);} w(s.memory,s.observe,0x1c4915u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1c4919u);} s.set(1,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x1c491eu);} w(s.memory,s.observe,0x1c491eu,(selected(0xau,s.image)+s.gp[0]),2,s.reg(1,2,0));
 if(s.services.instruction){s.services.instruction(0x1c4922u);} s.set(0,s.reg(7,4,0),4,0);
@@ -112813,7 +112815,7 @@ if(s.services.instruction){s.services.instruction(0x1c4989u);} s.xmm[1]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1c498du);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x1c4991u);} w(s.memory,s.observe,0x1c4991u,(selected(0x30u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0x1c4997u);} s.fp.push(ext(f(r(s.memory,(selected(0x30u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1c499bu);} w(s.memory,s.observe,0x1c499bu,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1c499bu);} w(s.memory,s.observe,0x1c499bu,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1c499fu);} s.set(2,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x1c49a4u);} w(s.memory,s.observe,0x1c49a4u,(selected(0x31eu,s.image)+s.gp[0]),2,s.reg(2,2,0));
 if(s.services.instruction){s.services.instruction(0x1c49abu);} w(s.memory,s.observe,0x1c49abu,(selected(0x320u,s.image)+s.gp[0]),2,selected(0x0u,s.image));
@@ -116730,7 +116732,7 @@ if(s.services.instruction){s.services.instruction(0x1d27acu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1d27b0u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0e4u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1d27b8u);} w(s.memory,s.observe,0x1d27b8u,(selected(0x1cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1d27beu);} s.fp.push(ext(f(r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1d27c2u);} w(s.memory,s.observe,0x1d27c2u,(selected(0x20u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1d27c2u);} w(s.memory,s.observe,0x1d27c2u,(selected(0x20u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1d27c6u);} s.set(2,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d27cau);} s.set(1,r(s.memory,(selected(0x10u,s.image)+s.gp[3]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d27cdu);} s.set(0,r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4),4,0);
@@ -116790,7 +116792,7 @@ if(s.services.instruction){s.services.instruction(0x1d288eu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1d2892u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],s.xmm[7]);
 if(s.services.instruction){s.services.instruction(0x1d2896u);} w(s.memory,s.observe,0x1d2896u,(selected(0x24u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1d289cu);} s.fp.push(ext(f(r(s.memory,(selected(0x24u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1d28a0u);} w(s.memory,s.observe,0x1d28a0u,(selected(0x28u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1d28a0u);} w(s.memory,s.observe,0x1d28a0u,(selected(0x28u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1d28a4u);} s.set(2,r(s.memory,(selected(0x10u,s.image)+s.gp[0]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d28a7u);} s.set(1,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d28abu);} s.set(0,r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4),4,0);
@@ -121460,7 +121462,7 @@ if(s.services.instruction){s.services.instruction(0x1d7c1cu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1d7c20u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a238u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1d7c28u);} w(s.memory,s.observe,0x1d7c28u,(selected(0x4u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1d7c2eu);} s.fp.push(ext(f(r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1d7c32u);} w(s.memory,s.observe,0x1d7c32u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1d7c32u);} w(s.memory,s.observe,0x1d7c32u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1d7c36u);} s.set(6,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d7c3au);} s.xmm[0]=_mm_xor_ps(s.xmm[0],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x1d7c3du);} w(s.memory,s.observe,0x1d7c3du,(selected(0x18u,s.image)+s.gp[0]),1,s.reg(2,1,0));
@@ -121574,7 +121576,7 @@ if(s.services.instruction){s.services.instruction(0x1d80b0u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1d80b4u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a238u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1d80bcu);} w(s.memory,s.observe,0x1d80bcu,(selected(0x0u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1d80c1u);} s.fp.push(ext(f(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1d80c4u);} w(s.memory,s.observe,0x1d80c4u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1d80c4u);} w(s.memory,s.observe,0x1d80c4u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1d80c8u);} s.set(1,r(s.memory,(selected(0x10u,s.image)+s.gp[2]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d80cbu);} s.set(2,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d80cfu);} s.set(0,s.flags.minus(s.reg(0,4,0),s.reg(1,4,0),4),4,0);
@@ -121596,7 +121598,7 @@ if(s.services.instruction){s.services.instruction(0x1d80f0u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1d80f4u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a238u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1d80fcu);} w(s.memory,s.observe,0x1d80fcu,(selected(0x0u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1d8101u);} s.fp.push(ext(f(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1d8104u);} w(s.memory,s.observe,0x1d8104u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1d8104u);} w(s.memory,s.observe,0x1d8104u,(selected(0x4u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1d8108u);} s.set(0,s.flags.minus(s.reg(0,4,0),r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d810cu);} s.set(2,r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1d8110u);} s.set(0,s.flags.increment(s.reg(0,4,0),4,false),4,0);
@@ -128534,7 +128536,7 @@ if(s.services.instruction){s.services.instruction(0x1e14fau);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1e14feu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
 if(s.services.instruction){s.services.instruction(0x1e1504u);} w(s.memory,s.observe,0x1e1504u,(selected(0x8u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1e150au);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1e150eu);} w(s.memory,s.observe,0x1e150eu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1e150eu);} w(s.memory,s.observe,0x1e150eu,(selected(0x0u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1e1511u);} s.set(2,r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e1514u);} s.flags.minus(s.reg(2,4,0),selected(0x1u,s.image),4);
 if(s.services.instruction){s.services.instruction(0x1e1517u);} if(s.flags.sf==s.flags.of)goto L1e1520;
@@ -129555,7 +129557,7 @@ if(s.services.instruction){s.services.instruction(0x1e2298u);} s.fp.st(0)=s.fp.s
 if(s.services.instruction){s.services.instruction(0x1e229au);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1e229cu);} w(s.memory,s.observe,0x1e229cu,(selected(0x3cu,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1e22a0u);} s.fp.push(ext(f(r(s.memory,(selected(0x40u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1e22a4u);} w(s.memory,s.observe,0x1e22a4u,(selected(0x58u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1e22a4u);} w(s.memory,s.observe,0x1e22a4u,(selected(0x58u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1e22a8u);} s.set(7,r(s.memory,(selected(0x10u,s.image)+s.gp[0]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e22abu);} s.set(2,r(s.memory,(selected(0x58u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e22afu);} s.set(1,s.flags.minus(s.reg(1,4,0),s.reg(7,4,0),4),4,0);
@@ -129617,7 +129619,7 @@ if(s.services.instruction){s.services.instruction(0x1e2399u);} w(s.memory,s.obse
 if(s.services.instruction){s.services.instruction(0x1e239du);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[6]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e23a0u);} w(s.memory,s.observe,0x1e23a0u,(selected(0x54u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1e23a6u);} s.fp.push(ext(f(r(s.memory,(selected(0x54u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1e23aau);} w(s.memory,s.observe,0x1e23aau,(selected(0x40u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1e23aau);} w(s.memory,s.observe,0x1e23aau,(selected(0x40u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1e23aeu);} s.set(1,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e23b2u);} s.set(6,r(s.memory,(selected(0x10u,s.image)+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e23b5u);} s.set(2,r(s.memory,(selected(0x40u,s.image)+s.gp[4]),4),4,0);
@@ -135633,7 +135635,7 @@ if(s.services.instruction){s.services.instruction(0x1e7b49u);} s.xmm[1]=_mm_mul_
 if(s.services.instruction){s.services.instruction(0x1e7b4du);} s.set(2,s.flags.logic((s.reg(2,4,0))^(s.reg(2,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e7b4fu);} w(s.memory,s.observe,0x1e7b4fu,(selected(0x10u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0x1e7b55u);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1e7b59u);} w(s.memory,s.observe,0x1e7b59u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1e7b59u);} w(s.memory,s.observe,0x1e7b59u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1e7b5du);} s.set(0,s.reg(1,4,0),4,0);
 if(s.services.instruction){s.services.instruction(0x1e7b5fu);} s.set(0,s.flags.minus(s.reg(0,4,0),r(s.memory,(selected(0x10u,s.image)+s.gp[6]),4),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1e7b62u);} s.flags.minus(s.reg(0,4,0),r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4),4);
@@ -136737,7 +136739,7 @@ if(s.services.instruction){s.services.instruction(0x1ea9a3u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1ea9a7u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x456914u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1ea9afu);} w(s.memory,s.observe,0x1ea9afu,(selected(0x20u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1ea9b5u);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1ea9b9u);} w(s.memory,s.observe,0x1ea9b9u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1ea9b9u);} w(s.memory,s.observe,0x1ea9b9u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1ea9bdu);} s.set(1,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x1ea9c2u);} w(s.memory,s.observe,0x1ea9c2u,(selected(0x31eu,s.image)+s.gp[3]),2,s.flags.plus(r(s.memory,(selected(0x31eu,s.image)+s.gp[3]),2),s.reg(1,2,0),2));
 L1ea9c9: if(s.services.instruction){s.services.instruction(0x1ea9c9u);} s.set(2,r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4),4,0);
@@ -137277,7 +137279,7 @@ if(s.services.instruction){s.services.instruction(0x1ed96fu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1ed973u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x456918u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1ed97bu);} w(s.memory,s.observe,0x1ed97bu,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1ed981u);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1ed985u);} w(s.memory,s.observe,0x1ed985u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1ed985u);} w(s.memory,s.observe,0x1ed985u,(selected(0x18u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1ed989u);} s.set(2,r(s.memory,(selected(0x18u,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x1ed98du);} w(s.memory,s.observe,0x1ed98du,(selected(0x1u,s.image)+s.gp[0]),1,s.reg(2,1,0));
 if(s.services.instruction){s.services.instruction(0x1ed990u);} s.set(0,s.flags.plus(s.reg(0,4,0),selected(0x10u,s.image),4),4,0);
@@ -138638,7 +138640,7 @@ if(s.services.instruction){s.services.instruction(0x1f2300u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1f2304u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a120u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1f230cu);} w(s.memory,s.observe,0x1f230cu,(selected(0x68u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1f2312u);} s.fp.push(ext(f(r(s.memory,(selected(0x68u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1f2316u);} w(s.memory,s.observe,0x1f2316u,(selected(0x28u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1f2316u);} w(s.memory,s.observe,0x1f2316u,(selected(0x28u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1f231au);} s.set(1,s.flags.minus(s.reg(1,4,0),r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1f231eu);} w(s.memory,s.observe,0x1f231eu,(selected(0x30u,s.image)+s.gp[4]),4,s.reg(1,4,0));
 if(s.services.instruction){s.services.instruction(0x1f2322u);} s.set(1,r(s.memory,(selected(0x8u,s.image)+s.gp[0]),4),4,0);
@@ -138647,7 +138649,7 @@ if(s.services.instruction){s.services.instruction(0x1f2329u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x1f232du);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a10cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x1f2335u);} w(s.memory,s.observe,0x1f2335u,(selected(0x68u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x1f233bu);} s.fp.push(ext(f(r(s.memory,(selected(0x68u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x1f233fu);} w(s.memory,s.observe,0x1f233fu,(selected(0x28u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x1f233fu);} w(s.memory,s.observe,0x1f233fu,(selected(0x28u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x1f2343u);} s.set(1,s.flags.minus(s.reg(1,4,0),r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1f2347u);} s.set(5,s.flags.logic((s.reg(5,4,0))&(selected(0xffffu,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x1f234du);} s.set(0,s.reg(5,4,0),4,0);
@@ -144166,7 +144168,7 @@ if(s.services.instruction){s.services.instruction(0x2043acu);} s.set(1,sign_exte
 if(s.services.instruction){s.services.instruction(0x2043b0u);} s.xmm[0]=_mm_cvtsi32_ss(s.xmm[0],si(s.reg(1,4,0)));
 if(s.services.instruction){s.services.instruction(0x2043b4u);} w(s.memory,s.observe,0x2043b4u,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x2043bau);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x2043beu);} w(s.memory,s.observe,0x2043beu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x2043beu);} w(s.memory,s.observe,0x2043beu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x2043c2u);} s.set(2,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x2043c7u);} w(s.memory,s.observe,0x2043c7u,(selected(0x1eu,s.image)+s.gp[6]),2,s.reg(2,2,0));
 L2043cb: if(s.services.instruction){s.services.instruction(0x2043cbu);} s.set(2,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4),4,0);
@@ -144294,7 +144296,7 @@ if(s.services.instruction){s.services.instruction(0x20452bu);} s.set(2,sign_exte
 if(s.services.instruction){s.services.instruction(0x20452fu);} s.xmm[0]=_mm_cvtsi32_ss(s.xmm[0],si(s.reg(2,4,0)));
 if(s.services.instruction){s.services.instruction(0x204533u);} w(s.memory,s.observe,0x204533u,(selected(0x1cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x204539u);} s.fp.push(ext(f(r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x20453du);} w(s.memory,s.observe,0x20453du,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x20453du);} w(s.memory,s.observe,0x20453du,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x204541u);} s.set(0,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x204546u);} w(s.memory,s.observe,0x204546u,(selected(0x1eu,s.image)+s.gp[6]),2,s.reg(0,2,0));
 L20454a: if(s.services.instruction){s.services.instruction(0x20454au);} s.push(0x20454au,selected(0xffffffffu,s.image));
@@ -147855,7 +147857,7 @@ if(s.services.instruction){s.services.instruction(0x2152d2u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x2152d6u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a16cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x2152deu);} w(s.memory,s.observe,0x2152deu,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x2152e4u);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x2152e8u);} w(s.memory,s.observe,0x2152e8u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x2152e8u);} w(s.memory,s.observe,0x2152e8u,(selected(0x10u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x2152ecu);} s.set(2,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x2152f0u);} s.set(1,sign_extend(r(s.memory,(selected(0x1cu,s.image)+s.gp[2]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x2152f4u);} s.set(7,r(s.memory,(selected(0x14u,s.image)+s.gp[2]),4),4,0);
@@ -147988,7 +147990,7 @@ if(s.services.instruction){s.services.instruction(0x21547du);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x215481u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x30u,s.image)+s.gp[1]+s.gp[2]*1u),4))));
 if(s.services.instruction){s.services.instruction(0x215487u);} w(s.memory,s.observe,0x215487u,(selected(0x3cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x21548du);} s.fp.push(ext(f(r(s.memory,(selected(0x3cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x215491u);} w(s.memory,s.observe,0x215491u,(selected(0x34u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x215491u);} w(s.memory,s.observe,0x215491u,(selected(0x34u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x215495u);} s.set(2,r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x215499u);} s.set(1,r(s.memory,(selected(0x34u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x21549du);} s.set(1,s.flags.plus(s.reg(1,4,0),s.reg(2,4,0),4),4,0);
@@ -148093,7 +148095,7 @@ if(s.services.instruction){s.services.instruction(0x2155cdu);} s.xmm[1]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x2155d1u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],s.xmm[0]);
 if(s.services.instruction){s.services.instruction(0x2155d5u);} w(s.memory,s.observe,0x2155d5u,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0x2155dbu);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x2155dfu);} w(s.memory,s.observe,0x2155dfu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x2155dfu);} w(s.memory,s.observe,0x2155dfu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x2155e3u);} s.set(0,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x2155e8u);} s.set(1,r(s.memory,(selected(0x2cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x2155ecu);} w(s.memory,s.observe,0x2155ecu,(selected(0x686u,s.image)+s.gp[6]),2,s.reg(0,2,0));
@@ -148137,7 +148139,7 @@ if(s.services.instruction){s.services.instruction(0x21568du);} s.xmm[1]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x215691u);} s.xmm[1]=_mm_mul_ss(s.xmm[1],_mm_set_ss(f(r(s.memory,(selected(0x38u,s.image)+s.gp[7]),4))));
 if(s.services.instruction){s.services.instruction(0x215696u);} w(s.memory,s.observe,0x215696u,(selected(0x28u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[1])));
 if(s.services.instruction){s.services.instruction(0x21569cu);} s.fp.push(ext(f(r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x2156a0u);} w(s.memory,s.observe,0x2156a0u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x2156a0u);} w(s.memory,s.observe,0x2156a0u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x2156a4u);} s.set(1,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x2156a8u);} s.set(0,r(s.memory,(selected(0x12cu,s.image)+s.gp[2]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x2156aeu);} s.push(0x2156aeu,selected(0x2156b3u,s.image));run_1fb8d0(s);
@@ -148188,7 +148190,7 @@ if(s.services.instruction){s.services.instruction(0x215758u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x21575cu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a11cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x215764u);} w(s.memory,s.observe,0x215764u,(selected(0x28u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x21576au);} s.fp.push(ext(f(r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x21576eu);} w(s.memory,s.observe,0x21576eu,(selected(0x24u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x21576eu);} w(s.memory,s.observe,0x21576eu,(selected(0x24u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x215772u);} s.set(2,r(s.memory,(selected(0x24u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x215777u);} s.set(0,r(s.memory,(selected(0x2cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x21577bu);} w(s.memory,s.observe,0x21577bu,(selected(0x686u,s.image)+s.gp[6]),2,s.reg(2,2,0));
@@ -150193,7 +150195,7 @@ if(s.services.instruction){s.services.instruction(0x217713u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x217717u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x24u,s.image)+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0x21771cu);} w(s.memory,s.observe,0x21771cu,(selected(0x14u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x217722u);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x217726u);} w(s.memory,s.observe,0x217726u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x217726u);} w(s.memory,s.observe,0x217726u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x21772au);} s.set(2,r(s.memory,(selected(0x2cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x21772eu);} s.set(0,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x217732u);} s.set(0,s.flags.plus(s.reg(0,4,0),s.reg(2,4,0),4),4,0);
@@ -150204,7 +150206,7 @@ if(s.services.instruction){s.services.instruction(0x21773eu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x217742u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x28u,s.image)+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0x217747u);} w(s.memory,s.observe,0x217747u,(selected(0x2cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x21774du);} s.fp.push(ext(f(r(s.memory,(selected(0x2cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x217751u);} w(s.memory,s.observe,0x217751u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x217751u);} w(s.memory,s.observe,0x217751u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x217755u);} s.set(2,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x21775au);} w(s.memory,s.observe,0x21775au,(selected(0x18u,s.image)+s.gp[5]),2,s.reg(2,2,0));
 if(s.services.instruction){s.services.instruction(0x21775eu);} s.set(0,sign_extend(r(s.memory,(selected(0x2u,s.image)+s.gp[3]),2),2),4,0);
@@ -150212,7 +150214,7 @@ if(s.services.instruction){s.services.instruction(0x217762u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x217766u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x2cu,s.image)+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0x21776bu);} w(s.memory,s.observe,0x21776bu,(selected(0x2cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x217771u);} s.fp.push(ext(f(r(s.memory,(selected(0x2cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x217775u);} w(s.memory,s.observe,0x217775u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x217775u);} w(s.memory,s.observe,0x217775u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x217779u);} s.set(1,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x21777eu);} w(s.memory,s.observe,0x21777eu,(selected(0x1au,s.image)+s.gp[5]),2,s.reg(1,2,0));
 if(s.services.instruction){s.services.instruction(0x217782u);} s.set(2,sign_extend(r(s.memory,(selected(0x2u,s.image)+s.gp[3]),2),2),4,0);
@@ -150220,7 +150222,7 @@ if(s.services.instruction){s.services.instruction(0x217786u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x21778au);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x20u,s.image)+s.gp[6]),4))));
 if(s.services.instruction){s.services.instruction(0x21778fu);} w(s.memory,s.observe,0x21778fu,(selected(0x2cu,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x217795u);} s.fp.push(ext(f(r(s.memory,(selected(0x2cu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x217799u);} w(s.memory,s.observe,0x217799u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x217799u);} w(s.memory,s.observe,0x217799u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x21779du);} s.set(0,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x2177a2u);} s.set(1,s.flags.logic((s.reg(1,4,0))^(s.reg(1,4,0)),4),4,0);
 if(s.services.instruction){s.services.instruction(0x2177a4u);} s.set(1,r(s.memory,(selected(0x22u,s.image)+s.gp[5]),2),2,0);
@@ -150245,7 +150247,7 @@ if(s.services.instruction){s.services.instruction(0x2177dfu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x2177e3u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a130u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x2177ebu);} w(s.memory,s.observe,0x2177ebu,(selected(0x30u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x2177f1u);} s.fp.push(ext(f(r(s.memory,(selected(0x30u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x2177f5u);} w(s.memory,s.observe,0x2177f5u,(selected(0x2cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x2177f5u);} w(s.memory,s.observe,0x2177f5u,(selected(0x2cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x2177f9u);} s.set(0,r(s.memory,(selected(0x2cu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x2177feu);} w(s.memory,s.observe,0x2177feu,(selected(0x1eu,s.image)+s.gp[5]),2,s.reg(0,2,0));
 L217802: if(s.services.instruction){s.services.instruction(0x217802u);} s.set(1,r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4),4,0);
@@ -152181,7 +152183,7 @@ L226239: if(s.services.instruction){s.services.instruction(0x226239u);} s.xmm[0]
 L22623c: if(s.services.instruction){s.services.instruction(0x22623cu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a148u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x226244u);} w(s.memory,s.observe,0x226244u,(selected(0x18u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x22624au);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x22624eu);} w(s.memory,s.observe,0x22624eu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x22624eu);} w(s.memory,s.observe,0x22624eu,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x226252u);} s.set(0,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),1),1,0);
 if(s.services.instruction){s.services.instruction(0x226256u);} s.flags.minus(s.reg(0,1,0),selected(0xffu,s.image),1);
 if(s.services.instruction){s.services.instruction(0x226258u);} if(s.flags.cf||s.flags.zf)goto L226261;
@@ -154807,7 +154809,7 @@ if(s.services.instruction){s.services.instruction(0x2483c4u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x2483c8u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a11cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x2483d0u);} w(s.memory,s.observe,0x2483d0u,(selected(0x4u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x2483d6u);} s.fp.push(ext(f(r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x2483dau);} w(s.memory,s.observe,0x2483dau,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x2483dau);} w(s.memory,s.observe,0x2483dau,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x2483deu);} s.set(2,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x2483e3u);} s.set(0,selected(0xfffffc18u,s.image),4,0);
 if(s.services.instruction){s.services.instruction(0x2483e8u);} w(s.memory,s.observe,0x2483e8u,(selected(0x50ee32u,s.image)),2,s.reg(2,2,0));
@@ -156004,7 +156006,7 @@ if(s.services.instruction){s.services.instruction(0x26585au);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x26585eu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a11cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x265866u);} w(s.memory,s.observe,0x265866u,(selected(0x20u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x26586cu);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x265870u);} w(s.memory,s.observe,0x265870u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x265870u);} w(s.memory,s.observe,0x265870u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x265874u);} s.set(2,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x265879u);} w(s.memory,s.observe,0x265879u,(selected(0x686u,s.image)+s.gp[5]),2,s.reg(2,2,0));
 if(s.services.instruction){s.services.instruction(0x265880u);} w(s.memory,s.observe,0x265880u,(selected(0x688u,s.image)+s.gp[5]),2,selected(0x1u,s.image));
@@ -156033,7 +156035,7 @@ if(s.services.instruction){s.services.instruction(0x265960u);} s.xmm[0]=_mm_mul_
 if(s.services.instruction){s.services.instruction(0x265968u);} s.push(0x265968u,s.reg(6,4,0));
 if(s.services.instruction){s.services.instruction(0x265969u);} w(s.memory,s.observe,0x265969u,(selected(0x4u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x26596fu);} s.fp.push(ext(f(r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x265973u);} w(s.memory,s.observe,0x265973u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x265973u);} w(s.memory,s.observe,0x265973u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x265977u);} s.set(2,r(s.memory,(selected(0x44u,s.image)+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x26597au);} s.set(6,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x26597fu);} w(s.memory,s.observe,0x26597fu,(selected(0x686u,s.image)+s.gp[2]+s.gp[0]*1u),2,s.reg(6,2,0));
@@ -156155,7 +156157,7 @@ if(s.services.instruction){s.services.instruction(0x265b11u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x265b15u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0e4u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x265b1du);} w(s.memory,s.observe,0x265b1du,(selected(0x10u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x265b23u);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x265b27u);} w(s.memory,s.observe,0x265b27u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x265b27u);} w(s.memory,s.observe,0x265b27u,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x265b2bu);} s.set(6,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x265b2fu);} s.set(1,r(s.memory,(selected(0x178u,s.image)+s.gp[3]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x265b35u);} s.set(1,s.flags.plus(s.reg(1,4,0),s.reg(6,4,0),4),4,0);
@@ -157341,7 +157343,7 @@ if(s.services.instruction){s.services.instruction(0x26e2bbu);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x26e2bfu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a100u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x26e2c7u);} w(s.memory,s.observe,0x26e2c7u,(selected(0x44u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x26e2cdu);} s.fp.push(ext(f(r(s.memory,(selected(0x44u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x26e2d1u);} w(s.memory,s.observe,0x26e2d1u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x26e2d1u);} w(s.memory,s.observe,0x26e2d1u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x26e2d5u);} s.set(1,r(s.memory,(selected(0x50u,s.image)+s.gp[5]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x26e2d8u);} s.set(2,r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x26e2dcu);} s.set(0,r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4),4,0);
@@ -157464,7 +157466,7 @@ if(s.services.instruction){s.services.instruction(0x26e46au);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x26e46eu);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a16cu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x26e476u);} w(s.memory,s.observe,0x26e476u,(selected(0x44u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x26e47cu);} s.fp.push(ext(f(r(s.memory,(selected(0x44u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x26e480u);} w(s.memory,s.observe,0x26e480u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x26e480u);} w(s.memory,s.observe,0x26e480u,(selected(0x1cu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x26e484u);} s.set(1,sign_extend(r(s.memory,(selected(0x66u,s.image)+s.gp[5]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x26e488u);} s.flags.minus(s.reg(1,4,0),r(s.memory,(selected(0x1cu,s.image)+s.gp[4]),4),4);
 if(s.services.instruction){s.services.instruction(0x26e48cu);} if(s.flags.sf!=s.flags.of)goto L26e49a;
@@ -167325,7 +167327,7 @@ if(s.services.instruction){s.services.instruction(0x29f144u);} s.xmm[0]=_mm_cvts
 if(s.services.instruction){s.services.instruction(0x29f148u);} s.xmm[0]=_mm_mul_ss(s.xmm[0],_mm_set_ss(f(r(s.memory,(selected(0x46a0e4u,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x29f150u);} w(s.memory,s.observe,0x29f150u,(selected(0x10u,s.image)+s.gp[4]),4,u(_mm_cvtss_f32(s.xmm[0])));
 if(s.services.instruction){s.services.instruction(0x29f156u);} s.fp.push(ext(f(r(s.memory,(selected(0x10u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x29f15au);} w(s.memory,s.observe,0x29f15au,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x29f15au);} w(s.memory,s.observe,0x29f15au,(selected(0x14u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x29f15eu);} s.set(1,r(s.memory,(selected(0x14u,s.image)+s.gp[4]),2),2,0);
 if(s.services.instruction){s.services.instruction(0x29f163u);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(selected(0x46a11cu,s.image)),4)));
 if(s.services.instruction){s.services.instruction(0x29f16bu);} w(s.memory,s.observe,0x29f16bu,(selected(0x24u,s.image)+s.gp[7]),2,s.reg(1,2,0));
@@ -175145,7 +175147,7 @@ if(s.services.instruction){s.services.instruction(0x30a0b6u);} vw(s.memory,s.obs
 if(s.services.instruction){s.services.instruction(0x30a0bbu);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[2]),4))));
 if(s.services.instruction){s.services.instruction(0x30a0beu);} w(s.memory,s.observe,0x30a0beu,(selected(0x8u,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a0c2u);} s.fp.push(ext(f(r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x30a0c6u);} w(s.memory,s.observe,0x30a0c6u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30a0c6u);} w(s.memory,s.observe,0x30a0c6u,(selected(0xcu,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a0cau);} s.set(0,r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x30a0ceu);} s.fp.push(ext(f(r(s.memory,(selected(0x20u,s.image)+s.gp[4]),4))));
 if(s.services.instruction){s.services.instruction(0x30a0d2u);} s.set(0,s.flags.increment(s.reg(0,4,0),4,true),4,0);
@@ -175155,7 +175157,7 @@ if(s.services.instruction){s.services.instruction(0x30a0d9u);} s.fp.st(0)=sub(s.
 if(s.services.instruction){s.services.instruction(0x30a0dbu);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[0]),4))));
 if(s.services.instruction){s.services.instruction(0x30a0deu);} w(s.memory,s.observe,0x30a0deu,(selected(0xcu,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a0e2u);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x30a0e6u);} w(s.memory,s.observe,0x30a0e6u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30a0e6u);} w(s.memory,s.observe,0x30a0e6u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a0eau);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x30a0eeu);} s.fp.push(ext(f(r(s.memory,(selected(0x14u,s.image)+s.gp[4]),4))));
 if(s.services.instruction){s.services.instruction(0x30a0f2u);} s.set(0,s.flags.increment(s.reg(0,4,0),4,true),4,0);
@@ -175165,7 +175167,7 @@ if(s.services.instruction){s.services.instruction(0x30a0f9u);} s.fp.st(0)=sub(s.
 if(s.services.instruction){s.services.instruction(0x30a0fcu);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[0]),4))));
 if(s.services.instruction){s.services.instruction(0x30a0ffu);} w(s.memory,s.observe,0x30a0ffu,(selected(0xcu,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a103u);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x30a107u);} w(s.memory,s.observe,0x30a107u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30a107u);} w(s.memory,s.observe,0x30a107u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a10bu);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x30a10fu);} s.fp.push(ext(f(r(s.memory,(selected(0x24u,s.image)+s.gp[4]),4))));
 if(s.services.instruction){s.services.instruction(0x30a113u);} s.set(0,s.flags.increment(s.reg(0,4,0),4,true),4,0);
@@ -175175,7 +175177,7 @@ if(s.services.instruction){s.services.instruction(0x30a11au);} s.fp.st(0)=sub(s.
 if(s.services.instruction){s.services.instruction(0x30a11du);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[0]),4))));
 if(s.services.instruction){s.services.instruction(0x30a120u);} w(s.memory,s.observe,0x30a120u,(selected(0xcu,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a124u);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x30a128u);} w(s.memory,s.observe,0x30a128u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30a128u);} w(s.memory,s.observe,0x30a128u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a12cu);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x30a130u);} s.fp.push(ext(f(r(s.memory,(selected(0x18u,s.image)+s.gp[4]),4))));
 if(s.services.instruction){s.services.instruction(0x30a134u);} s.set(0,s.flags.increment(s.reg(0,4,0),4,true),4,0);
@@ -175185,7 +175187,7 @@ if(s.services.instruction){s.services.instruction(0x30a13bu);} s.fp.st(0)=sub(s.
 if(s.services.instruction){s.services.instruction(0x30a13eu);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[0]),4))));
 if(s.services.instruction){s.services.instruction(0x30a141u);} w(s.memory,s.observe,0x30a141u,(selected(0xcu,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a145u);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x30a149u);} w(s.memory,s.observe,0x30a149u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30a149u);} w(s.memory,s.observe,0x30a149u,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a14du);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x30a151u);} s.fp.push(ext(f(r(s.memory,(selected(0x28u,s.image)+s.gp[4]),4))));
 if(s.services.instruction){s.services.instruction(0x30a155u);} s.set(0,s.flags.increment(s.reg(0,4,0),4,true),4,0);
@@ -175195,7 +175197,7 @@ if(s.services.instruction){s.services.instruction(0x30a15cu);} s.fp.st(0)=sub(s.
 if(s.services.instruction){s.services.instruction(0x30a15fu);} s.fp.st(0)=mul(s.fp.st(0),ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[0]),4))));
 if(s.services.instruction){s.services.instruction(0x30a162u);} w(s.memory,s.observe,0x30a162u,(selected(0xcu,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a166u);} s.fp.push(ext(f(r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4))));
-if(s.services.instruction){s.services.instruction(0x30a16au);} w(s.memory,s.observe,0x30a16au,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0)));s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30a16au);} w(s.memory,s.observe,0x30a16au,(selected(0x8u,s.image)+s.gp[4]),4,integer_spill(s.fp.st(0),s.fp.status));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30a16eu);} s.set(6,sign_extend(r(s.memory,(selected(0x22u,s.image)+s.gp[1]),2),2),4,0);
 if(s.services.instruction){s.services.instruction(0x30a172u);} s.set(0,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
 if(s.services.instruction){s.services.instruction(0x30a176u);} w(s.memory,s.observe,0x30a176u,(selected(0x40u,s.image)+s.gp[4]),4,s.reg(6,4,0));

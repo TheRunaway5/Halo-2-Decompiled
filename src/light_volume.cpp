@@ -184,7 +184,6 @@ LightVolumeDefinition Cache::load_light_volume(std::uint32_t datum) const {
     volume.flags=b.u32(at);volume.bitmap=b.u32(at+8);
     volume.sprite_count=b.u32(at+0xc);volume.runtime_flags=b.u32(at+0x5c);
     if(volume.sprite_count>256)throw FormatError("light-volume exceeds original sprite limit");
-    if(volume.runtime_flags&1)throw FormatError("linear-radius light-volume path not implemented");
     for(unsigned c=0;c<5;++c)volume.curves[c]=curve(at+0x10+c*8);
     const auto [aspects,aspect]=metadata_block(at+0x38, 0x1c);
     if(aspects)volume.aspect=LightVolumeAspect{{curve(aspect),curve(aspect+8)},
@@ -200,15 +199,18 @@ std::vector<LightVolumeBatch> light_volume_sprites(const LightVolumeDefinition &
     const LightVolumeState &s,const LightVolumeView &v,const ShaderFunctionTables &tables) {
   std::vector<LightVolumeBatch> batches;
   auto to_eye=v.eye-s.marker.position;
-  const float distance=std::sqrt(to_eye.x*to_eye.x+to_eye.y*to_eye.y+to_eye.z*to_eye.z);
-  if(std::abs(distance)>=.00009999999747378752f)to_eye=to_eye*(1.f/distance);
+  //30BF0 keeps X*X + Y*Y + Z*Z and sqrt at x87 PC53 precision,
+  // then stores the distance before the SSE reciprocal/vector multiplies.
+  const double wide_distance=std::sqrt((double(to_eye.x)*to_eye.x+double(to_eye.y)*to_eye.y)+double(to_eye.z)*to_eye.z);
+  const bool normalize=std::abs(wide_distance)>=double(.00009999999747378752f);
+  const float distance=normalize?float(wide_distance):0.f;
+  if(normalize)to_eye=to_eye*(1.f/distance);
   const float opacity=(d.cutoff>d.falloff?saturate((d.cutoff-distance)/(d.cutoff-d.falloff)):1.f)*s.opacity;
   if(opacity<=0.f)return batches;
   const auto forward=s.marker.basis[0];
   const float cosine=std::abs(float((double(to_eye.z)*forward.z+double(to_eye.y)*forward.y)+double(to_eye.x)*forward.x));
   for(const auto &volume:d.volumes) {
     if(!volume.sprite_count)continue;
-    if(volume.runtime_flags&1)throw FormatError("linear-radius light-volume path not implemented");
     const float facing=shader_function_fraction(volume.curves[4],saturate(1.f-cosine),0,tables);
     const float range=1.f-facing;
     float strength=1;
@@ -228,9 +230,35 @@ std::vector<LightVolumeBatch> light_volume_sprites(const LightVolumeDefinition &
       }
     }
     const float step=1.f/float(volume.sprite_count-1);
+    float radius_start{},radius_end{},radius_current{},radius_growth=1.f,radius_inverse=1.f,radius_bias{};
+    if(volume.runtime_flags&1u) {
+      // Retail4F26A / TU1.1+TU1.5 4F25A: geometric sampling of the actual
+      // radius curve followed by its linear phase conversion. It is not a
+      // replacement radius or a guessed evenly spaced sprite sequence.
+      radius_start=shader_function_value(volume.curves[1],0.f,range,tables);
+      radius_end=shader_function_value(volume.curves[1],1.f,range,tables);
+      constexpr float minimum_ratio=0.00390625f; // Original45DFA0, one/256.
+      constexpr float epsilon=0.00009999999747378752f; // Original45DBDC.
+      if(radius_start<=radius_end) {
+        const float minimum=radius_end*minimum_ratio;
+        if(radius_start<=minimum)radius_start=minimum;
+      } else {
+        const float minimum=radius_start*minimum_ratio;
+        if(radius_end<=minimum)radius_end=minimum;
+      }
+      if(std::abs(double(radius_start))>=double(epsilon))
+        radius_growth=float(std::pow(double(radius_end)/double(radius_start),double(step)));
+      if(std::abs(double(radius_start)-double(radius_end))>=double(epsilon))
+        radius_inverse=1.f/(radius_end-radius_start);
+      radius_bias=0.f-radius_start*radius_inverse;radius_current=radius_start;
+    }
     for(unsigned i=0;i<volume.sprite_count;++i) {
       float phase=0;
       if(volume.runtime_flags&2)phase=float(i)*step;
+      else if(volume.runtime_flags&1u) {
+        phase=radius_inverse*radius_current+radius_bias;
+        radius_current=radius_current*radius_growth;
+      }
       else if(volume.phases.size()==volume.sprite_count)
         phase=(1.f-range)*volume.phases[i].x+volume.phases[i].y*range;
       const float offset=shader_function_value(volume.curves[0],phase,range,tables)*s.marker.scale;

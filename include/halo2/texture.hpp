@@ -29,6 +29,9 @@ Texture prepare_volume_texture(const Bytes& raw, std::uint32_t width,
     std::uint32_t height,std::uint32_t depth,std::uint16_t format,
     bool swizzled,unsigned additional_mips=0);
 // P8 indices and the bound Xbox BGRA palette are expanded before interpolation.
+// This immutable fixed bump table is byte-identical in MCC and Xbox TU1.5.
+// Runtime bitmap loading does not read an Xbox or MCC executable.
+std::span<const std::byte,1024> tu15_bump_palette();
 Texture prepare_palettized_texture(const Bytes& raw, std::uint32_t width, std::uint32_t height,
     bool swizzled, std::span<const std::byte> palette, unsigned additional_mips = 0);
 // A native-only storage format: mixed signed RGB/unsigned alpha must be

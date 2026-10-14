@@ -2,6 +2,7 @@
 #include "halo2/model_markers.hpp"
 #include "halo2/model.hpp"
 #include "halo2/native_action_prompt.hpp"
+#include "halo2/source_shadow.hpp"
 #include <map>
 namespace halo2 {
 struct NativeVehicleSeatDefinition {
@@ -32,6 +33,11 @@ struct NativeUnitInteractionAssets {
   std::map<unsigned,std::size_t> netgame_placements;
 };
 std::shared_ptr<const NativeUnitInteractionAssets> load_native_unit_interaction_assets(const Cache &,const LevelContent &);
+// Current native body pose shared by marker and query-bound consumers.
+// This retains the existing native idle/custom-clip owner and clock; it does
+// not replace the remaining original locomotion/animation controller work.
+std::vector<Transform> native_unit_world_nodes(const Unit &,const NativeUnitInteractionDefinition &,std::uint64_t tick);
+ShadowCasterSphere native_unit_query_sphere(const Unit &,const NativeUnitInteractionDefinition &,std::uint64_t tick);
 bool native_can_trade_weapon(const Unit &,const Unit &,const LevelContent &,bool allied,std::uint64_t tick=0);
 bool native_trade_weapons(Unit &,Unit &,const LevelContent &,std::uint32_t tick,bool allied);
 NativeActionPrompt native_ally_action_prompt(const Unit &,std::span<const Unit>,const LevelContent &,

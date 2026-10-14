@@ -18,6 +18,12 @@ using namespace halo2;
 using Buffer=std::vector<std::byte>;
 void check(bool value,const char* message){if(!value)throw std::runtime_error(message);}
 void word(Buffer& b,std::size_t at,std::uint32_t value){for(unsigned i=0;i<4;++i)b.at(at+i)=std::byte(value>>(8*i));}
+void replace_bitmap_group(Buffer& b,std::uint32_t group) {
+    word(b,1056,group);word(b,1112,group);
+    // A vehicle sorts after scnr. Preserve the actual cache directory order
+    // when substituting a fixture group, including its ancestor words.
+    if(group>Bytes(b).u32(1068))for(unsigned i=0;i<12;++i)std::swap(b[1056+i],b[1068+i]);
+}
 void text(Buffer& b,std::size_t at,const std::string& value){for(std::size_t i=0;i<value.size();++i)b.at(at+i)=std::byte(value[i]);}
 void save(const std::filesystem::path& path,const Buffer& b){std::ofstream out(path,std::ios::binary);out.write(reinterpret_cast<const char*>(b.data()),std::streamsize(b.size()));check(bool(out),"Fixture write failed");}
 template<class F>void rejects(F action){try{action();}catch(const FormatError&){return;}throw std::runtime_error("Malformed MCC data was admitted");}
@@ -125,7 +131,7 @@ int main(){
         {
             auto physics_local=local,physics_shared=shared;
             for(auto* owner:{&physics_local,&physics_shared}) {
-                word(*owner,1056,0x70686d6f);word(*owner,1112,0x70686d6f);
+                replace_bitmap_group(*owner,0x70686d6f);
             }
             word(physics_shared,1124,0x200);
             std::fill(physics_shared.begin()+4096,physics_shared.begin()+4608,std::byte{});
@@ -154,7 +160,7 @@ int main(){
         {
             auto collision_local=local,collision_shared=shared;
             for(auto* owner:{&collision_local,&collision_shared}) {
-                word(*owner,1056,0x636f6c6c);word(*owner,1112,0x636f6c6c);
+                replace_bitmap_group(*owner,0x636f6c6c);
             }
             word(collision_shared,1124,0x200);
             std::fill(collision_shared.begin()+4096,collision_shared.begin()+4608,std::byte{});
@@ -181,9 +187,64 @@ int main(){
             save(root/"shared.map",shared);
         }
         {
+            auto bsp_local=local,bsp_shared=shared;
+            for(auto* owner:{&bsp_local,&bsp_shared}) {
+                replace_bitmap_group(*owner,0x73627370);
+            }
+            word(bsp_shared,1124,0x600);
+            std::fill(bsp_shared.begin()+4096,bsp_shared.begin()+5632,std::byte{});
+            const auto descriptor=[&](unsigned at,unsigned offset,unsigned count=1) {
+                word(bsp_shared,4096+at,count);word(bsp_shared,4096+at+4,0x100000+offset);
+            };
+            descriptor(0x138,0x240);descriptor(0x240+0xb0,0x400);descriptor(0x240+0x98,0x520);
+            descriptor(0x498,0x500,6);
+            word(bsp_shared,4096+0x400,0x12345678u);word(bsp_shared,4096+0x404,0xabcdef01u);
+            word(bsp_shared,4096+0x420,0x3fa00000u);
+            for(unsigned i=0;i<6;++i)bsp_shared[4096+0x500+i]=std::byte(i*13+7);
+            save(root/"instanced.map",bsp_local);save(root/"shared.map",bsp_shared);
+            const Cache converted(root/"instanced.map");
+            const auto* tag=converted.find_tag({0xe1000002u},TagGroup{"sbsp"});
+            check(tag && tag->address==0x100000 && tag->size==0x600,"Instanced physics moved its BSP allocation");
+            const Bytes bytes(converted.read_tag_bytes(tag->address,tag->size));
+            check(bytes.u32(0x400)==0 && bytes.u32(0x410)==0x3fa00000u && bytes.u32(0x468)==0x100500u &&
+                  bytes.slice(0x505,1)[0]==std::byte{72},"BSP loading did not normalize instanced physics or preserve MOPP data");
+            check(std::ranges::equal(bytes.slice(0,0x400),std::span(bsp_shared).subspan(4096,0x400)) &&
+                  std::ranges::equal(bytes.slice(0x470,0x190),std::span(bsp_shared).subspan(4096+0x470,0x190)),
+                  "Instanced physics changed surrounding BSP metadata or render bindings");
+            save(root/"shared.map",shared);
+        }
+        for(const auto& [group,option]:std::array<std::pair<std::uint32_t,unsigned>,3>{{
+                {0x62697064u,0x284},{0x63726561u,0xf4},{0x76656869u,0x2f8}}}) {
+            auto unit_local=local,unit_shared=shared;
+            for(auto* owner:{&unit_local,&unit_shared}) {
+                replace_bitmap_group(*owner,group);
+            }
+            word(unit_shared,1124,0x800);
+            std::fill(unit_shared.begin()+4096,unit_shared.begin()+6144,std::byte{});
+            word(unit_shared,4096+option,1);word(unit_shared,4096+option+4,0x100400);
+            if(group==0x76656869u) {
+                word(unit_shared,4096+0x468,2);word(unit_shared,4096+0x490,0xdeadbeefu);
+                word(unit_shared,4096+0x494,0xfedcba98u);word(unit_shared,4096+0x4b0,0x3f000000u);
+                word(unit_shared,4096+0x550,0x3f400000u);
+            }else {
+                word(unit_shared,4096+0x420,0xdeadbeefu);word(unit_shared,4096+0x424,0xfedcba98u);
+                word(unit_shared,4096+0x438,0x3f000000u);word(unit_shared,4096+0x460,0x3f400000u);
+            }
+            save(root/"embedded-unit.map",unit_local);save(root/"shared.map",unit_shared);
+            const Cache converted(root/"embedded-unit.map");
+            const auto* tag=converted.find_tag({0xe1000002u});
+            check(tag && tag->address==0x100000 && tag->size==0x800,"Embedded unit physics moved its vanilla definition");
+            const Bytes bytes(converted.tag_payload({tag->datum}));
+            if(group==0x76656869u)check(bytes.u32(0x460)==0 && bytes.u32(0x470)==0x3f000000u &&
+                bytes.u32(0x500)==0x3f400000u,"Cache omitted vehicle inline multisphere conversion");
+            else check(bytes.u32(0x420)==0 && bytes.u32(0x42c)==0x3f000000u && bytes.u32(0x440)==0x3f400000u,
+                "Cache omitted embedded biped/creature sphere conversion");
+            save(root/"shared.map",shared);
+        }
+        {
             auto animation_local=local,animation_shared=shared;
             for(auto* owner:{&animation_local,&animation_shared}) {
-                word(*owner,1056,0x6a6d6164);word(*owner,1112,0x6a6d6164);
+                replace_bitmap_group(*owner,0x6a6d6164);
             }
             word(animation_shared,1124,1024);
             std::fill(animation_shared.begin()+4096,animation_shared.begin()+5120,std::byte{});
@@ -266,6 +327,22 @@ int main(){
             const auto image=Cache(root/"fixture.map").load_bitmap(0xe1000002u,0);
             check(image.depth==2 && image.layers==1 && image.mips.size()==2 && image.mips[1].depth==1,"MCC volume/mip dimensions changed");
             for(unsigned pixel=0;pixel<9;++pixel)check(image.pixels[pixel*4]==std::byte(pixel+1),"MCC volume texels were reordered");
+        }
+        {
+            // Exercise the public MCC bitmap loader with a P8-Bump record,
+            // including a separately authored mip; no executable is present.
+            auto bump_source=shared;const auto p=4096+80;
+            word(bump_source,p+12,17|(513u<<16));word(bump_source,p+20,1);word(bump_source,p+80,13);
+            save(root/"shared.map",bump_source);
+            Buffer bump(13);word(bump,0,1);word(bump,4,std::uint32_t(-5));
+            for(unsigned i=0;i<5;++i)bump[8+i]=std::byte(std::array{0,3,12,15,0}[i]);
+            save(root/"textures.dat",bump);
+            const auto image=Cache(root/"fixture.map").load_bitmap(0xe1000002u,0);
+            Buffer expected;
+            for(unsigned color:{126,126,255,255,126,129,255,255,129,126,255,255,129,129,255,255,126,126,255,255})
+                expected.push_back(std::byte(color));
+            check(image.format==11 && image.pixels==expected && image.mips.size()==2 && image.mips[1].offset==16,
+                "MCC fixed bump palette, channel order or authored mip changed");
         }
         save(root/"shared.map",shared);save(root/"textures.dat",texture);
         auto bad=shared;text(bad,2112,"textures\\different");save(root/"shared.map",bad);

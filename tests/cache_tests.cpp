@@ -80,6 +80,19 @@ int main() {
         expect(texture.mips.size() == 3 && texture.pixels.size() == 44);
         expect(texture.mips[1].offset == 32 && texture.mips[2].offset == 40);
         expect(texture.pixels[32] == std::byte{80} && texture.pixels[36] == std::byte{90} && texture.pixels[40] == std::byte{100});
+        // The same immutable palette is present in MCC and TU1.5. Preserve
+        // every entry, BGRA expansion and the independently authored tail mip.
+        const auto palette=halo2::tu15_bump_palette();
+        std::uint64_t palette_hash=14695981039346656037ull;
+        for(auto color:palette)palette_hash=(palette_hash^std::to_integer<unsigned>(color))*1099511628211ull;
+        expect(palette_hash==0xf932f88f2118bc22ull);
+        data={std::byte{0},std::byte{3},std::byte{12},std::byte{15},std::byte{0}};
+        texture=halo2::prepare_palettized_texture(halo2::Bytes(data),2,2,false,palette,1);
+        std::vector<std::byte> bump_expected;
+        for(unsigned color:{126,126,255,255,126,129,255,255,129,126,255,255,129,129,255,255,126,126,255,255})
+            bump_expected.push_back(std::byte(color));
+        expect(texture.format==11 && texture.pixels==bump_expected && texture.mips.size()==2 &&
+            texture.mips[1].width==1 && texture.mips[1].height==1 && texture.mips[1].offset==16);
         // A synthetic header exercises size checks before any tag data allocation.
         auto temp = std::filesystem::temp_directory_path() / ("halo2-cache-test-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()));
         std::filesystem::create_directory(temp);

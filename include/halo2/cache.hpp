@@ -209,7 +209,7 @@ struct Material {
     bool light_volume_pass{}; // Procedural 4FE20 glow; no material-template pass/remaps.
     std::uint32_t forward_pass_index = 0xffffffffu;
     unsigned forward_vertex{}; // 1: transparent; 2: emissive; 3: texture; 4: environment; 5: planar fog; 6: world lighting; 7/8: water; 9: PRT; 10: shadow; 11: projected decal; 12: immediate world RGBA11.
-    unsigned forward_blend{}; // 1: alpha; 2: premultiplied; 3: additive; 5: planar constant color; 10: sphere RGB additive/alpha replace.
+    unsigned forward_blend{}; // 1: alpha; 2: premultiplied; 3: additive; 5: planar constant color; 10: sphere RGB additive/alpha replace; 12: component max.
     std::uint32_t forward_blend_color{}; // Original dynamic state75, ARGB bytes.
     ForwardRasterState forward_raster;
     PixelProgram forward_program;
@@ -526,6 +526,9 @@ public:
     // Actual jmad+AC descriptor and raw local/shared resource bytes. This
     // performs file I/O only; resource pools and residency are separate owners.
     SourceRuntimeCacheAnimationImage load_source_runtime_animation_image(std::uint32_t descriptor) const;
+    SourceRuntimeCacheAnimationImage load_source_runtime_animation_image(std::uint32_t descriptor,
+        const std::function<std::vector<std::byte>(std::uint32_t,std::uint32_t)> &resources) const;
+    std::span<const std::byte> source_runtime_cache_bytes() const { return cache_bytes(); }
     // Literal local/shared file bytes at an encoded source resource offset.
     // The caller supplies the original I/O extent, including sector padding.
     std::vector<std::byte> load_source_runtime_resource(std::uint32_t encoded_offset,std::uint32_t bytes) const;

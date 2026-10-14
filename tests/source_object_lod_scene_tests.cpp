@@ -118,14 +118,24 @@ void prt_section_binding(){
     const auto object=source_object_transform(source->position,basis.forward,basis.up,source->scale,false);
     geometry.pose_world([&](const RenderModel&m){return pose_model_world(m,object);});Mesh mesh;
     geometry.prepare(cache,cache.load_object_colors(source->definition,source->variant),world_nodes,cache.load_source_prt_lighting(),mesh);
+    const auto sh=cache.load_source_prt_lighting();
     unsigned banks=0,components=0;
     for(unsigned lod=0;lod<6;++lod){const auto&g=geometry.at(lod);
         require(g.sections==std::vector<unsigned>({0,1,2}),"lower source crane collector differs from retained palette order");
+        const auto owner=geometry.owner_banks(cache,world_nodes,sh,lod);
+        auto moved=world_nodes;for(auto &node:moved)node.position.x+=10.f;
+        const auto another=geometry.owner_banks(cache,moved,sh,lod);
+        require(owner.size()==another.size() && !owner.empty(),"independent PRT owner lost selected section banks");
         std::set<std::pair<unsigned,unsigned>>used;
         for(unsigned i=0;i<g.vertices.size();++i){const auto material=g.vertices[i].material;const auto&m=mesh.materials.at(material);
             if(m.environment_pass && m.environment_pass->forward_vertex==9)used.emplace(g.model.vertex_origins[i].section,material);}
         require(used.size()==3,"resident crane LOD lost a PRT section/material identity");
-        for(const auto[section,material]:used){const auto&bank=*mesh.materials.at(material).environment_pass->vertex_bank;
+        for(const auto[section,material]:used){
+            const auto binding=std::find_if(owner.begin(),owner.end(),[&](const auto &b){return b.material==material;});
+            require(binding!=owner.end(),"owner PRT draw lost source material identity");
+            const auto&bank=*binding->bank;
+            require(bank.constants==mesh.materials.at(material).environment_pass->vertex_bank->constants,
+                "another owner modified the source resident or retained PRT coefficients");
             const auto&words=expected.at(section);require(bank.first_constant==68 && bank.constants.size()*4==words.size(),"LOD coefficient bank range differs");
             for(unsigned i=0;i<words.size();++i){if(i==3 || (i>=8 && (i-8)%16==3))continue;
                 require(std::bit_cast<std::uint32_t>(bank.constants[i/4][i%4])==words[i],"resident LOD bound another section's original PCA bank");++components;}

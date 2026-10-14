@@ -13,7 +13,13 @@ from unicorn import x86_const as R
 ROOT=Path(__file__).resolve().parents[1]
 def u(b,a=0):return struct.unpack_from('<I',b,a)[0]
 class Snapshot:
- def __init__(self,p):self.ram=(p/'physical-ram.bin').read_bytes();self.cr3=0xf000
+ def __init__(self,p):
+  self.ram=(p/'physical-ram.bin').read_bytes();self.cr3=0xf000;self.registers=''
+  state=p/'source-state.json'
+  if state.exists():self.registers=json.loads(state.read_text()).get('registers_before','')
+  if self.registers:
+   cr3=re.search(r'CR3=([0-9a-fA-F]+)',self.registers);assert cr3,'Missing captured CR3'
+   self.cr3=int(cr3[1],16)
  def physical(self,a):
   pde=u(self.ram,self.cr3+(a>>22)*4);assert pde&1,hex(a)
   if pde&128:return (pde&0xffc00000)+(a&0x3fffff)
@@ -33,6 +39,21 @@ class Snapshot:
    except Exception as e:print('Unmapped original data',hex(a),str(e));return False
    guest.mem_map(at,4096);guest.mem_write(at,raw);return True
   g.hook_add(UC_HOOK_MEM_UNMAPPED,unmapped)
+  if self.registers:
+   # Load the actual captured descriptors. Spatial queries use FS:[0] for
+   # their SEH chain; a synthetic flat FS silently changes original behavior.
+   gdtr=re.search(r'GDT=\s*([0-9a-fA-F]+)\s+([0-9a-fA-F]+)',self.registers)
+   assert gdtr,'Missing captured GDT'
+   address,limit=(int(v,16) for v in gdtr.groups())
+   for page in range(address&~4095,(address+limit+4096)&~4095,4096):
+    g.mem_map(page,4096);g.mem_write(page,self.read(page,4096))
+   g.reg_write(R.UC_X86_REG_GDTR,(0,address,limit,0))
+   for name in ('CS','SS','DS','ES','FS','GS'):
+    segment=re.search(r'^'+name+r'\s*=\s*([0-9a-fA-F]+)\s+([0-9a-fA-F]+)',self.registers,re.M)
+    assert segment,'Missing captured '+name
+    g.reg_write(getattr(R,'UC_X86_REG_'+name),int(segment[1],16))
+    if name=='FS':
+     assert g.reg_read(getattr(R,'UC_X86_REG_'+name+'_BASE'))==int(segment[2],16),'Captured '+name+' descriptor mismatch'
   return g
 
 def main():

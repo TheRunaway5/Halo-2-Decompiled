@@ -30,6 +30,7 @@
 #include "halo2/source_object_colors.hpp"
 #include "halo2/object_light_query.hpp"
 #include "halo2/source_camera.hpp"
+#include "halo2/gameplay_fov.hpp"
 #include "halo2/source_frustum_camera.hpp"
 #include "halo2/source_view_projection.hpp"
 #include <SDL.h>
@@ -1480,8 +1481,7 @@ int main(int argc, char **argv) {
         const auto &player = simulation->player();
         const float fraction=presentation_paired?std::clamp(accumulator/halo2::tick_seconds,0.f,1.f):1.f;
         if (play) {
-          camera.field_of_view =
-              player.definition.camera_field_of_view * 57.29577951308232f;
+          camera.field_of_view = float(desktop->display_settings.field_of_view);
           camera.horizontal_field_of_view = true;
           camera.position = presentation_paired?halo2::render_lerp(previous_player.body.position,player.body.position,fraction):player.body.position;
           camera.position.z += player.definition.camera_height +
@@ -1543,9 +1543,24 @@ int main(int argc, char **argv) {
         renderer->resized();
       }
       const bool capture = !screenshot.empty() && frames + 1 == frame_limit;
-      const auto render_camera =
+      auto render_camera =
           simulation && play ? simulation->presentation().camera(camera,
               presentation_paired?std::clamp(accumulator/halo2::tick_seconds,0.f,1.f):0.f) : camera;
+      if(simulation && play && !simulation->presentation().scripted &&
+          !simulation->presentation().cinematic) {
+        int width{},height{};SDL_Vulkan_GetDrawableSize(window,&width,&height);
+        if(width>0 && height>0) {
+          const float fov=halo2::gameplay_field_of_view(desktop->display_settings.field_of_view);
+          render_camera.projection_vertical_angle=halo2::gameplay_camera_angles(fov,fov,float(width)/height).projection_angle;
+          const auto &safe=halo2::hud_viewport(1,0).safe;
+          const auto physical_safe=halo2::full_surface_viewport({safe.left,safe.top,
+              safe.right-safe.left,safe.bottom-safe.top},unsigned(width),unsigned(height));
+          const auto lens=halo2::source_camera_projection(*render_camera.projection_vertical_angle,
+              {0,0,float(width),float(height)},physical_safe,false);
+          render_camera.projection_clip_scale=lens.clip_scale;
+          render_camera.projection_clip_offset=lens.clip_offset;
+        }
+      }
       std::vector<halo2::Vertex> debug, foreground, background;
       std::vector<std::vector<halo2::Vertex>> character_poses;
       std::vector<halo2::ModelObjectDraw> character_draws;
@@ -1560,12 +1575,25 @@ int main(int argc, char **argv) {
         if(character_width<=0 || character_height<=0)continue;
         if(character_width>32767 || character_height>32767)
           throw halo2::FormatError("Campaign source camera rectangle exceeds signed-short storage");
-        const auto angles=halo2::source_camera_angles(render_camera.field_of_view*.01745329238474369f);
+        const auto angles=render_camera.projection_vertical_angle && simulation && play &&
+            !simulation->presentation().scripted && !simulation->presentation().cinematic?
+            halo2::gameplay_camera_angles(halo2::gameplay_field_of_view(desktop->display_settings.field_of_view),
+                halo2::gameplay_field_of_view(desktop->display_settings.field_of_view),float(character_width)/character_height):
+            halo2::source_camera_angles(render_camera.field_of_view*.01745329238474369f);
         character_distance_scale=angles.lighting_distance_scale;
         halo2::SourceFrustumProjectionInput projection;
-        projection.projection_angle=render_camera.horizontal_field_of_view?angles.projection_angle:
+        projection.projection_angle=render_camera.projection_vertical_angle?*render_camera.projection_vertical_angle:
+            render_camera.horizontal_field_of_view?angles.projection_angle:
             halo2::camera_vertical_field_of_view(render_camera,float(character_width)/character_height);
         projection.outer=projection.safe={0,0,std::int16_t(character_height),std::int16_t(character_width)};
+        if(render_camera.projection_vertical_angle && simulation && play &&
+            !simulation->presentation().scripted && !simulation->presentation().cinematic) {
+          const auto &safe=halo2::hud_viewport(1,0).safe;
+          const auto physical=halo2::full_surface_viewport({safe.left,safe.top,
+              safe.right-safe.left,safe.bottom-safe.top},unsigned(character_width),unsigned(character_height));
+          projection.safe={std::int16_t(physical.top),std::int16_t(physical.left),
+              std::int16_t(physical.top+physical.height),std::int16_t(physical.left+physical.width)};
+        }
         projection.scenario_present=true;projection.scenario_type=0;
         const auto projected=halo2::source_frustum_projection(projection);
         const auto forward=render_camera.oriented?render_camera.forward:halo2::direction(render_camera.yaw,render_camera.pitch);
@@ -1578,7 +1606,16 @@ int main(int argc, char **argv) {
         character_camera_constants.emplace();
         character_camera_constants->world=halo2::source_view_shader_constants(bank,1024.f,false);
         character_camera_constants->reflection=character_camera_constants->world;
-        const auto fp=halo2::source_view_shader_constants(bank,1024.f,true);
+        auto foreground_bank=bank;
+        if(render_camera.projection_vertical_angle && simulation && play &&
+            !simulation->presentation().scripted && !simulation->presentation().cinematic) {
+          auto foreground_projection=projection;
+          foreground_projection.projection_angle=halo2::gameplay_first_person_projection_angle;
+          foreground_bank=halo2::source_view_projection({render_camera.position,forward,
+              render_camera.oriented?render_camera.up:halo2::Vec3{0,0,1},.015625f,1024.f,{},
+              halo2::source_frustum_projection(foreground_projection).projection_program});
+        }
+        const auto fp=halo2::source_view_shader_constants(foreground_bank,1024.f,true);
         std::copy_n(fp.begin(),4,character_camera_constants->foreground.begin());
         character_camera.projection_vertical_angle=projection.projection_angle;
       }
@@ -1854,6 +1891,9 @@ int main(int argc, char **argv) {
         view.foreground=foreground;view.background=background;view.effect_time=character_time;
         view.source_render_policy=halo2::source_geometry_lod_policy(1);
         view.source_view_shader_constants=character_camera_constants;
+        if(render_camera.projection_vertical_angle && simulation && play &&
+            !simulation->presentation().scripted && !simulation->presentation().cinematic)
+          view.foreground_projection_vertical_angle=halo2::gameplay_first_person_projection_angle;
         view.atmosphere=character_atmosphere->sample(character_camera.position,
             character_camera.oriented?character_camera.forward:halo2::direction(character_camera.yaw,character_camera.pitch));
         view.atmosphere_source=&*character_atmosphere;

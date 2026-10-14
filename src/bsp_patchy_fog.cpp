@@ -9,7 +9,8 @@ float saturated(float v) {return std::clamp(v,0.f,1.f);}
 std::uint32_t byte(float v) {return std::uint32_t(std::nearbyint(double(saturated(v))*255.));}
 std::uint32_t rgb(const ShaderVector &v) {return byte(v[0])<<16|byte(v[1])<<8|byte(v[2]);}
 std::uint32_t next_random(std::uint32_t &random) {return random=random*1664525u+1013904223u;}
-std::optional<PixelProgram> quantized_patchy(const PatchyFog &fog,bool cached,float far) {
+std::optional<PixelProgram> quantized_patchy(const PatchyFog &fog,bool cached,float far,
+    float *minimum_distance=nullptr) {
     // 3A5C0 mode 2, called by 26E50 only for the shared-layer-depth path.
     float start=(1.f/far)*fog.distance[0],end=(1.f/far)*fog.distance[1];
     const bool low_byte=end*256.f<=1.f;
@@ -41,12 +42,18 @@ std::optional<PixelProgram> quantized_patchy(const PatchyFog &fog,bool cached,fl
     w[39]=0x39111912;w[43]=cached?0:rgb({fog.color.x,fog.color.y,fog.color.z,0});
     w[45]=0x3045;w[46]=0xc00;w[47]=0x4d00;w[48]=0xc00;
     w[49]=scale(power,2,3)<<12|0xd00;w[50]=0xd00;w[53]=0x11108;w[54]=0x21;
+    // 3B830..3B840 reports the quantized range start to 27520, which
+    // places a LESSEQUAL, non-writing W-depth quad at that distance.
+    if(minimum_distance) {
+        *minimum_distance=far*start;
+        if(low_byte)*minimum_distance*=.00390625f;
+    }
     return result;
 }
 }
 BspPatchyFrame bsp_patchy_fog_frame(const BspPatchyDefinition &definition,const PatchyFog &sample,
     PatchyFogState &state,std::uint32_t &random,const Transform &view,float forward_z,
-    float fov,float height_over_width,float time,float far) {
+    float fov,float height_over_width,float time,float far,float near) {
     if(sample.noise.empty())throw FormatError("patchy fog has no noise bitmaps");
     if(!state.initialized) {
         state={};
@@ -117,9 +124,14 @@ BspPatchyFrame bsp_patchy_fog_frame(const BspPatchyDefinition &definition,const 
     if(!(fog.flags&1)) {
         noise[8]=0x2c;noise[9]=0x2c00;noise[12]=noise[20]=noise[43]=0;
         noise[36]=0x28292a2b;noise[37]=0x0c0d0000;noise[47]=0xcd;noise[48]=0xc0;noise[53]=0x11004;
-        if(const auto cached=quantized_patchy(fog,true,far)) {
+        float minimum_distance{};
+        if(const auto cached=quantized_patchy(fog,true,far,&minimum_distance)) {
             result.shading.cached=*cached;result.shading.direct=*quantized_patchy(fog,false,far);
             result.quantized_composite=true;
+            // 3B850..3B864 disables Z when the near clip reaches the start.
+            if(near<minimum_distance)
+                result.composite_minimum_depth=std::clamp((minimum_distance/far)*16777215.f,
+                    0.f,16777215.f);
         }
     }
     return result;

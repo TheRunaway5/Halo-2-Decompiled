@@ -1,6 +1,7 @@
 #include "halo2/effect_light.hpp"
 #include "halo2/kernels.hpp"
 #include "halo2/source_tag_metadata.hpp"
+#include "halo2/shader_animation.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -10,7 +11,7 @@ EffectLightDefinition source_effect_light_definition(std::span<const std::byte> 
   if(p.u16(4)!=0)throw FormatError("Effect light requires original frustum shape owner");
   if(p.u32(0x34)!=0)throw FormatError("Effect light requires original HSV interpolation owner");
   if(p.u32(0xc4)||p.u32(0xcc)||p.u32(0xd4))throw FormatError("Effect light requires original animation owner");
-  if(p.u16(0xb6)!=0 && p.u16(0xb6)!=5)throw FormatError("Effect light requires original alternate fade curve");
+  if(p.u16(0xb6)>=16)throw FormatError("Effect light fade curve escapes its original table bank");
   EffectLightDefinition out;std::copy_n(raw.begin(),228,out.bytes.begin());
   out.flags=p.u32(0);out.lens=p.u32(0x94);out.radius=p.f32(0x18);out.specular_radius=p.f32(0x1c);out.duration=p.f32(0xb0);
   return out;
@@ -18,7 +19,13 @@ EffectLightDefinition source_effect_light_definition(std::span<const std::byte> 
 EffectLightDefinition load_effect_light(const Cache &cache,std::uint32_t datum){
   const auto p=cache.load_source_tag_metadata(datum);
   if(p.group()!="ligh")throw FormatError("Effect light reference is not ligh");
-  return source_effect_light_definition(p.bytes_at(p.source_address(),228));
+  auto definition=source_effect_light_definition(p.bytes_at(p.source_address(),228));
+  const auto type=Bytes(definition.bytes).u16(0xb6);
+  if(type && type!=5) {
+    const auto tables=cache.shader_function_tables();
+    definition.timed_curve={tables,&tables->transition[type]};
+  }
+  return definition;
 }
 EffectLightState source_effect_light_state(const EffectLightDefinition &d,float control,
     std::int32_t elapsed,std::int16_t tick_rate,std::span<const std::uint8_t,1024> curve){
@@ -27,7 +34,10 @@ EffectLightState source_effect_light_state(const EffectLightDefinition &d,float 
   if(d.duration>0){
     const float duration=float(tick_rate)*d.duration;
     const float fraction=float(elapsed)/duration;
-    const float fade=p.u16(0xb6)==5?fade_curve_fraction(fraction,curve):std::clamp(fraction,0.f,1.f);
+    const auto type=p.u16(0xb6);
+    if(type && type!=5 && !d.timed_curve)throw FormatError("Effect light requires its actual selected transition table");
+    const float fade=type?fade_curve_fraction(fraction,d.timed_curve?
+        std::span<const std::uint8_t,1024>(*d.timed_curve):curve):std::clamp(fraction,0.f,1.f);
     out.control=(1.f-fade)*control;
     const auto color=[&](unsigned low,unsigned high){
       const float a=p.f32(low)*(1.f-out.control),b=p.f32(high)*out.control;

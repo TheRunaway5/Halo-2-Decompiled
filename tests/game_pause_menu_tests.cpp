@@ -68,6 +68,41 @@ int main(int argc,char **argv) try {
     check(!painter.draw(menu,2,-1,2000).vertices.empty(),"Gameplay Settings failed to render");++draws;
     menu.back();check(menu.frame().screen==vista_menu(259),"Settings Back lost pause hub");
   }
+  menu.set_pc_display_adapter([](const DisplaySettings &){return std::string{};});
+  menu.open_game_pause(false);choose(menu,1);choose(menu,3);choose(menu,8);choose(menu,50);
+  check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().field_of_view==120 &&
+      menu.pc_display_settings().vehicle_field_of_view==78,"pause on-foot FOV did not apply independently");
+  choose(menu,9);choose(menu,20);
+  check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().vehicle_field_of_view==90,
+      "pause vehicle FOV did not return to the video menu");
+  check(!painter.draw(menu,2,-1,2000).vertices.empty(),"pause FOV rows did not render");
+  choose(menu,10);
+  check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().crt_filter &&
+      menu.pc_value_label(menu.frame(),10)=="On" && menu.pc_display_settings().field_of_view==120,
+      "pause CRT toggle did not apply in place or changed FOV");
+  choose(menu,10);
+  check(!menu.pc_display_settings().crt_filter && menu.pc_value_label(menu.frame(),10)=="Off",
+      "pause CRT toggle could not disable the filter");
+  check(menu.pc_value_label(menu.frame(),11)=="Horizontal","pause two-player default is not horizontal");
+  choose(menu,11);
+  check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().two_player_split==TwoPlayerSplit::Vertical &&
+      menu.pc_display_settings().field_of_view==120 && !menu.pc_display_settings().crt_filter,
+      "pause split toggle did not apply in place or changed other preferences");
+  choose(menu,11);check(menu.pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
+      "pause split toggle could not restore horizontal layout");
+  menu.select(10);
+  for(const auto size:{std::array<unsigned,2>{640,480},{1280,720},{2560,720}}) {
+    painter.draw(menu,2,-1,2000,size);bool hit_crt=false;
+    for(int y=0;y<480 && !hit_crt;y+=2)for(int x=0;x<640 && !hit_crt;x+=2)
+      if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==10)
+        hit_crt=true;
+    check(hit_crt,"pause CRT row has no mouse target after scrolling");
+    menu.select(11);painter.draw(menu,2,-1,2000,size);bool hit_split=false;
+    for(int y=0;y<480 && !hit_split;y+=2)for(int x=0;x<640 && !hit_split;x+=2)
+      if(auto hit=painter.pointer_hit(x,y);hit && hit->action==FrontendPointerAction::Entry && hit->index==11)
+        hit_split=true;
+    check(hit_split,"pause split row has no mouse target after scrolling");menu.select(10);
+  }
   for(unsigned row=0;row<6;++row) {
     menu.open_game_pause(false);choose(menu,1);choose(menu,0);choose(menu,row);
     check(is_vista_menu(menu.frame().screen),"Controller submenu lost its Vista artwork");

@@ -1,0 +1,80 @@
+--- a/usrsctplib/netinet/sctp_pcb.h
++++ b/usrsctplib/netinet/sctp_pcb.h
+@@ -628,6 +628,36 @@
+ #endif
+ };
+ 
++/* Native peer transport: this advisory counter crosses sockbuf and TCB
++ * lock domains. Keep every userspace access atomic without changing layout.
++ * Its value publishes no other association state, so relaxed ordering suffices.
++ */
++static inline uint32_t
++sctp_freed_bytes_take(struct sctp_tcb *stcb)
++{
++#if defined(__Userspace__) && (defined(__GNUC__) || defined(__clang__))
++	return __atomic_exchange_n(&stcb->freed_by_sorcv_sincelast, 0, __ATOMIC_RELAXED);
++#elif defined(__Userspace__) && defined(_WIN32)
++	return (uint32_t)InterlockedExchange((volatile LONG *)&stcb->freed_by_sorcv_sincelast, 0);
++#else
++	uint32_t previous = stcb->freed_by_sorcv_sincelast;
++	stcb->freed_by_sorcv_sincelast = 0;
++	return previous;
++#endif
++}
++
++static inline void
++sctp_freed_bytes_set(struct sctp_tcb *stcb, uint32_t value)
++{
++#if defined(__Userspace__) && (defined(__GNUC__) || defined(__clang__))
++	__atomic_store_n(&stcb->freed_by_sorcv_sincelast, value, __ATOMIC_RELAXED);
++#elif defined(__Userspace__) && defined(_WIN32)
++	(void)InterlockedExchange((volatile LONG *)&stcb->freed_by_sorcv_sincelast, (LONG)value);
++#else
++	stcb->freed_by_sorcv_sincelast = value;
++#endif
++}
++
+ #if defined(__FreeBSD__) && !defined(__Userspace__)
+ #include <netinet/sctp_lock_bsd.h>
+ #elif defined(__APPLE__) && !defined(__Userspace__)
+--- a/usrsctplib/netinet/sctputil.c
++++ b/usrsctplib/netinet/sctputil.c
+@@ -6058,7 +6058,7 @@
+ 		SCTP_TCB_UNLOCK(stcb);
+ 	} else {
+ 		/* Update how much we have pending */
+-		stcb->freed_by_sorcv_sincelast = dif;
++		sctp_freed_bytes_set(stcb, dif);
+ 	}
+  out:
+ 	if (so && r_unlocked && hold_rlock) {
+@@ -6496,8 +6496,7 @@
+ 			 * we then will go to the sctp_user_rcvd() that will
+ 			 * not lock until it KNOWs it MUST send a WUP-SACK.
+ 			 */
+-			freed_so_far = (uint32_t)stcb->freed_by_sorcv_sincelast;
+-			stcb->freed_by_sorcv_sincelast = 0;
++			freed_so_far = sctp_freed_bytes_take(stcb);
+ 		}
+ 	}
+ 	if (stcb &&
+@@ -7131,7 +7130,7 @@
+ #endif
+ 		}
+ 		/* Save the value back for next time */
+-		stcb->freed_by_sorcv_sincelast = freed_so_far;
++		sctp_freed_bytes_set(stcb, freed_so_far);
+ 		atomic_subtract_int(&stcb->asoc.refcnt, 1);
+ 	}
+ 	if (SCTP_BASE_SYSCTL(sctp_logging_level) &SCTP_RECV_RWND_LOGGING_ENABLE) {
+--- a/usrsctplib/netinet/sctp_output.c
++++ b/usrsctplib/netinet/sctp_output.c
+@@ -11323,7 +11323,7 @@
+ 	}
+ #endif
+ 	/* reset the readers interpretation */
+-	stcb->freed_by_sorcv_sincelast = 0;
++	sctp_freed_bytes_set(stcb, 0);
+ 
+ 	if (type == SCTP_SELECTIVE_ACK) {
+ 		sack = mtod(a_chk->data, struct sctp_sack_chunk *);

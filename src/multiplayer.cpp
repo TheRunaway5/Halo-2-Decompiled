@@ -2,6 +2,8 @@
 #include "halo2/multiplayer.hpp"
 #include "halo2/math.hpp"
 #include "halo2/native_weapon_inventory.hpp"
+#include "halo2/native_unit_interaction.hpp"
+#include "halo2/source_player_departure.hpp"
 #include "halo2/inventory.hpp"
 #include "halo2/slayer.hpp"
 #include "halo2/source_game_variant.hpp"
@@ -14,6 +16,9 @@
 #include "halo2/source_shadow.hpp"
 #include "halo2/player_command.hpp"
 #include "halo2/source_scene_physics.hpp"
+#include "halo2/source_model_admission.hpp"
+#include "halo2/source_effect_world_locations.hpp"
+#include "halo2/raw_datum_pool.hpp"
 #include <algorithm>
 #include <limits>
 #include <bit>
@@ -23,6 +28,15 @@
 #include <ctime>
 namespace halo2 {
 namespace {
+std::optional<std::vector<SourceEffectLocation>> weapon_effect_locations(
+    MultiplayerObjectRuntime *world,std::uint32_t instance,std::uint32_t definition) {
+  if(!world || !world->owns_physics() || instance==null_datum)return {};
+  const auto &memory=world->memory();
+  const auto pool=Bytes(memory.view(0x4f720cu,4)).u32(0);
+  const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return memory.view(p,n);}};
+  if(!source_raw_datum_lookup(pool,instance,storage))return {};
+  return source_effect_world_locations_tu15(memory,instance,definition);
+}
 void infection_appearance(MultiplayerPlayer &player,std::uint8_t color) {
   auto &profile=player.source_configuration;
   if(!profile) {
@@ -117,7 +131,7 @@ SlayerRules native_engine_rules(const UiVariant &variant, bool team_session) {
   // initialization/death/respawn/end/scoreboard owners consume the field.
   // Round selector0 remains the default: original15DDC0 finishes index0
   // directly, so this admission does not require the later-round reset owner.
-  for(const unsigned id : {1u,2u,3u,4u,5u,6u,7u,8u,9u,10u,16u,17u,18u,15u,90u,89u,88u,76u,78u,83u,24u,104u,105u}) permit(id);
+  for(const unsigned id : {1u,2u,3u,4u,5u,6u,7u,8u,9u,10u,16u,17u,18u,15u,90u,89u,88u,76u,77u,78u,83u,24u,104u,105u}) permit(id);
   if(custom!=CustomSlayer::none)permit(94);
   if(!king)for(const unsigned id : {29u,30u})permit(id);
   if(king)for(const unsigned id : {38u,39u,40u,41u,42u})permit(id);
@@ -127,6 +141,7 @@ SlayerRules native_engine_rules(const UiVariant &variant, bool team_session) {
     if((source.bytes[n]^defaults.bytes[n]) & std::uint8_t(~supported[n]))
       throw FormatError("This option is unfinished in the native source-settings adapter.");
   SlayerRules rules;
+  rules.session_configuration=variant;
   rules.custom=custom;rules.secondary_starting_weapon=unsigned(setting(94));
   if(custom!=CustomSlayer::none && (king || teams || starting_weapon<0 || starting_weapon>20 || rules.secondary_starting_weapon>20))
     throw FormatError("Custom Slayer requires free-for-all Slayer and admitted weapon options");
@@ -189,15 +204,15 @@ SlayerRules king_rules(const UiVariant &variant,bool team_session) {
   return native_engine_rules(variant,team_session);
 }
 void validate_slayer_map_options(const LevelContent &content,const SlayerRules &rules) {
-  if(!rules.primary_light_vehicle)return;
   // Original15C110->15BB10 (u5 15D4F0->15CEF0) passes the authored
   // netgame row+14 classification. Only case1 reads variant+CD/options+209;
   // changing this option never synthesizes an additional spawn location.
-  // Retain the value on maps with no such rows. Do not substitute vehicles
-  // on affected maps before their original creation/control owner is present.
+  // Retain the value on maps with no such rows. Affected maps require cold
+  // templates resolved from the same variant, before any source birth.
   if(std::any_of(content.netgame_equipment.begin(),content.netgame_equipment.end(),
-      [](const auto &row){return row.classification==1;}))
-    throw FormatError("Primary Light Vehicle overrides are unavailable on this map. Set Primary Light Vehicle to Map Default.");
+      [](const auto &row){return row.classification==1;}) &&
+      content.light_vehicle_options[0]!=rules.primary_light_vehicle)
+    throw FormatError("Primary Light Vehicle templates do not match the selected variant");
 }
 bool slayer_spawn(const Spawn &spawn, std::size_t bsp, bool initial) {
   // 14EF00 (updated 150640) scores every player-start position. Its
@@ -256,13 +271,21 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
   simulation_.source_physics_movement_=source_object_world_ && source_object_world_->owns_physics();
   if(simulation_.source_physics_movement_)simulation_.source_vehicle_seat_query_=
       [this](auto unit,auto vehicle){return source_object_world_->vehicle_seat_target(unit,vehicle);};
+  if(simulation_.source_physics_movement_)simulation_.source_device_script_=
+      [this](const auto &name,const auto &arguments) {
+        const auto result=source_object_world_->script_device(name,arguments);
+        if(name!="device_get_position" && name!="device_get_power" && name!="device_group_get")
+          adopt_source_devices();
+        return result;
+      };
+
   if(rules_.weapon_set && !simulation_.source_physics_movement_)
     throw FormatError("Weapon-set variants require the original source equipment owner");
-  if(rules_.primary_heavy_vehicle && !simulation_.source_physics_movement_)
-    throw FormatError("Primary Heavy Vehicle overrides require the retained original source world");
   if(simulation_.source_physics_movement_) {
     publish_source_scene_physics(simulation_.scene_,source_object_world_->memory(),source_object_world_->object_pool());
+    adopt_source_devices();
     simulation_.synchronize_props();
+    adopt_source_prop_regions();
   }
   if(rules_.source_engine!=2 && rules_.source_engine!=4)
     throw FormatError("Native match requires a bound original game engine");
@@ -303,13 +326,12 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
     throw FormatError("Missing multiplayer starting weapon");
   if (content.player.datum == null_datum)
     throw FormatError("Missing multiplayer player representation");
-  if (content.weapons.at(rules.weapon).capacity <= 0 &&
-      !(content.weapons.at(rules.weapon).inventory_flags&(1u<<24)))
-    throw FormatError(
-        "This map starts with an energy weapon; battery and heat combat are "
-        "unfinished. Choose an SMG-start map such as Lockout.");
-  if (content.weapons.at(rules.weapon).initial_rounds < 0 &&
-      !(content.weapons.at(rules.weapon).inventory_flags&(1u<<24)))
+  const auto &starting=content.weapons.at(rules.weapon);
+  const bool energy_ready=starting.energy && starting.barrel_timing && starting.firing_presentation;
+  if(starting.capacity<=0 && !(starting.inventory_flags&(1u<<24)) && !energy_ready)
+    throw FormatError("Starting weapon requires its original trigger/energy owner");
+  if (starting.capacity>0 && starting.initial_rounds < 0 &&
+      !(starting.inventory_flags&(1u<<24)))
     throw FormatError("Missing authored initial magazine ammunition");
   simulation_.actors_.clear(); // No AI squads in a player-controlled match.
   simulation_.actors_.resize(multiplayer_capacity - 1);
@@ -368,6 +390,7 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
     return source_player_damage_scale(true,rules_.player_flags,owner.player,victim,services);
   };
   simulation_.first_person_activity_hook_=[this](const Unit &unit,const WeaponState &weapon,std::uint32_t activity) {
+    if(simulation_.source_physics_movement_)return;
     auto apply=[&](FirstPersonViewBinding &view,const auto &definitions) {
       if(view.unit!=unit.source_datum)return;
       const auto found=definitions.find({unsigned(view.representation),weapon.definition});
@@ -425,6 +448,29 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
     }
     return weapon_effect_owner_?weapon_effect_owner_(unit,input):null_datum;
   };
+  if(simulation_.source_physics_movement_)source_object_world_->observe_weapon_effects(
+      [this](const SourceWeaponEffectEventTu15 &event) {
+    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+    if(event.unit==null_datum || event.input.effect==null_datum ||
+       event.presentation.instance==null_datum || !event.presentation.colors_observed)return;
+    NativeWeaponEffectEvent completed{++weapon_effect_serial_,event.tick,event.unit,event.input.weapon,
+        event.input.effect,event.input.a_bits,event.input.b_bits};
+    completed.colors=event.presentation.colors;completed.velocity=event.velocity;
+    completed.source_instance=event.presentation.instance;completed.source_presentation=true;completed.source_scheduled=true;
+    if(auto locations=weapon_effect_locations(source_object_world_,completed.source_instance,completed.effect)) {
+      completed.source_locations=std::move(*locations);completed.source_locations_observed=true;
+    }
+    // A source weapon's parent can be a vehicle or AI unit. The global
+    // presentation journal does not require a native player-slot owner.
+    if(const auto *unit=unit_from_datum(event.unit);unit && unit->source_player!=null_datum) {
+      const auto id=unit->source_player&0xffffu;
+      if(id>=players_.size() || players_[id].source_datum!=unit->source_player)
+        throw FormatError("Scheduled weapon effect lost its full native player owner");
+      weapon_effect_events_[id]=completed;
+    }
+    weapon_effect_journal_.push_back(std::move(completed));
+    if(weapon_effect_journal_.size()>64)weapon_effect_journal_.erase(weapon_effect_journal_.begin());
+  });
   // No participants or world objects exist at the original first-active
   // boundary. The shared owner initializes the clock, stat validity and bank.
   apply_round_phase();
@@ -434,37 +480,49 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
   simulation_.multiplayer_script_lists_.emplace();
   simulation_.start_level();
 }
-void MultiplayerMatch::release_presentation_owners() noexcept {
+void MultiplayerMatch::release_presentation_owners() {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   weapon_effect_owner_={};first_person_event_owner_={};
   simulation_.world_weapon_effect_hook_={};
 }
 void MultiplayerMatch::configure_weapon_effect_owner(
     std::function<std::uint32_t(const Unit &,const WeaponEffectInput &)> owner) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   weapon_effect_owner_=std::move(owner);
 }
 void MultiplayerMatch::weapon_effect_presentation(std::uint32_t unit,std::uint32_t weapon,
-    const SourceWeaponEffectPresentation &source,Vec3 velocity) {
+    const SourceWeaponEffectPresentation &source,Vec3 velocity,std::span<const SourceEffectLocation> locations) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(weapon_effect_journal_.empty() || weapon_effect_journal_.back().unit!=unit ||
       weapon_effect_journal_.back().weapon!=weapon || !source.colors_observed)
     throw FormatError("Weapon presentation differs from its completed prepared-shot request");
   auto &event=weapon_effect_journal_.back();event.colors=source.colors;event.velocity=velocity;
   event.source_instance=source.instance;event.source_presentation=true;
+  if(!locations.empty()) {
+    event.source_locations.assign(locations.begin(),locations.end());event.source_locations_observed=true;
+  }else if(auto frames=weapon_effect_locations(source_object_world_,source.instance,event.effect)) {
+    event.source_locations=std::move(*frames);event.source_locations_observed=true;
+  }
   for(auto &latest:weapon_effect_events_)if(latest.serial==event.serial)latest=event;
 }
 void MultiplayerMatch::configure_melee_animation(std::shared_ptr<const Cache> cache,NativeMeleeConstants constants) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(simulation_.melee_animation_)throw FormatError("Melee animation owner already configured");
   simulation_.melee_animation_=std::make_shared<NativeMeleeAnimation>(std::move(cache),content_,constants);
 }
 void MultiplayerMatch::configure_grenades(std::shared_ptr<const Cache> cache,NativeGrenadeConstants constants) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(simulation_.grenade_sandbox_)throw FormatError("Grenade owner is already configured");
   simulation_.grenade_sandbox_=std::make_shared<NativeGrenadeSandbox>(std::move(cache),content_.player.datum,constants);
 }
 void MultiplayerMatch::configure_first_person_event_owner(FirstPersonEventOwner owner) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if (!owner)
     throw FormatError("First-person events require an explicit owner consumer");
   first_person_event_owner_ = std::move(owner);
 }
 void MultiplayerMatch::configure_world_weapon_rows(std::span<const SourceNetgameWeaponRegistration> records){
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(world_weapon_configured_ || simulation_.ticks()!=0)
     throw FormatError("source netgame rows must be configured once before the native clock");
   if(content_.netgame_equipment.size()>100)
@@ -589,6 +647,7 @@ SourceCamouflageServices MultiplayerMatch::camouflage_services() {
   return services;
 }
 void MultiplayerMatch::grant_powerup(unsigned id,std::int16_t index,std::int16_t ticks) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   const auto& player=players_.at(id);
   if(!player.connected || player.source_current_object==null_datum)
     throw FormatError("Native powerup grant requires a current participant unit");
@@ -666,10 +725,49 @@ void MultiplayerMatch::synchronize_source_equipment(Unit &unit,const SourcePlaye
     if(!states[slot])states[slot]=native_weapon_state(content_.weapons.at(source.definitions[slot]),handle);
     if(states[slot]->definition!=source.definitions[slot])
       throw FormatError("Source inventory changed the definition of a live weapon identity");
-    // Melee-only weapons already use the complete original update owner.
-    // Publish its actual ready/power fields for blade shaders and attachments.
-    if(content_.weapons.at(source.definitions[slot]).inventory_flags&(1u<<24))
-      states[slot]->shader=source.shaders[slot];
+    auto &state=*states[slot];
+    const auto &definition=content_.weapons.at(source.definitions[slot]);
+    const auto body=source_object_world_->object_body(handle);
+    const auto &memory=source_object_world_->memory();
+    const auto read=[&]<class T>(unsigned offset,T &value) {
+      static_assert(std::endian::native==std::endian::little);
+      const auto bytes=memory.view(body+offset,sizeof(T));
+      std::memcpy(&value,bytes.data(),sizeof(T));
+    };
+    // The fixed52/12/16-byte runtime banks belong to the original constructor
+    // and1021D0/1030F0 update. Preserve both banks even when only one is used.
+    read(0x1a4,state.source_barrels);read(0x20c,state.source_triggers);
+    read(0x224,state.source_magazines);
+    state.source_runtime_published=true;
+    state.shader=source.shaders[slot];state.ready_clock=false;
+    read(0x19e,state.ready_countdown);read(0x188,state.cooling_inhibitor);
+    read(0x244,state.overheat_handle);read(0x17c,state.energy_blocking_ticks);
+    read(0x178,state.smg.weapon_state);read(0x16c,state.smg.weapon_flags);
+    read(0x16e,state.smg.input_flags);
+    state.smg.trigger_state=state.source_triggers[0].mode;
+    state.smg.trigger_ticks=state.source_triggers[0].ticks;
+    state.smg.trigger_flags=state.source_triggers[0].flags;
+    state.smg.trigger_effect_handle=state.source_triggers[0].effect;
+    state.smg.second_trigger_state=state.source_triggers[1].mode;
+    state.loaded=state.reserve=0;
+    if(!definition.triggers.empty() && definition.triggers[0].primary_barrel>=0) {
+      const auto barrel=unsigned(definition.triggers[0].primary_barrel);
+      if(barrel>=state.source_barrels.size() || barrel>=definition.barrel_ammunition.size())
+        throw FormatError("Original primary trigger selects an unavailable barrel");
+      state.smg.barrel=state.source_barrels[barrel];
+      state.alternate_barrel=state.source_barrels[1u-barrel];
+      const auto magazine=definition.barrel_ammunition[barrel].magazine;
+      if(magazine>=0) {
+        if(unsigned(magazine)>=state.source_magazines.size())
+          throw FormatError("Original barrel selects an unavailable magazine");
+        state.magazine=state.source_magazines[unsigned(magazine)];
+        state.loaded=state.magazine.loaded;state.reserve=state.magazine.reserve;
+        state.smg.loaded=state.magazine.loaded;state.smg.reserve=state.magazine.reserve;
+        state.smg.magazine_mode=state.magazine.mode;state.smg.magazine_ticks=state.magazine.ticks;
+        state.smg.transfer_ticks=state.magazine.transfer_ticks;
+        state.smg.magazine_other_ticks=state.magazine.other_ticks;
+      }
+    }
   }
   int primary=source.current[0];
   if(primary<0)primary=source.requested[0];
@@ -699,12 +797,16 @@ void MultiplayerMatch::synchronize_source_equipment(Unit &unit,const SourcePlaye
 }
 void MultiplayerMatch::configure_local_views(std::span<const unsigned> ids,
                                             const FirstPersonBindingDefinition &definition) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   configure_local_views(ids,std::span(&definition,1));
 }
 void MultiplayerMatch::configure_local_views(std::span<const unsigned> ids,
     std::span<const FirstPersonBindingDefinition> definitions) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(ids.size()>first_person_views_.size())
     throw FormatError("Too many local first-person views");
+  if(std::set<unsigned>(ids.begin(),ids.end()).size()!=ids.size())
+    throw FormatError("A source player cannot own two local views");
   std::map<std::pair<unsigned,std::uint32_t>,FirstPersonBindingDefinition> selected;
   for(const auto &definition:definitions) {
     if(!content_.weapons.contains(definition.weapon_definition) ||
@@ -726,17 +828,37 @@ void MultiplayerMatch::configure_local_views(std::span<const unsigned> ids,
     // registration while player+2C/current unit is NONE. Retain the genuine
     // deferred birth without substituting a starting weapon or spawning here.
   }
+  if(simulation_.source_physics_movement_) {
+    for(auto id:first_person_players_)if(players_[id].connected)
+      source_object_world_->set_local_player(players_[id].source_datum,-1);
+    for(unsigned view=0;view<ids.size();++view)
+      source_object_world_->set_local_player(players_[ids[view]].source_datum,std::int16_t(view));
+  }
   for(auto &view:first_person_views_)release_first_person_binding(view);
   first_person_players_.assign(ids.begin(),ids.end());first_person_definitions_=std::move(selected);
   if(first_person_definitions_.empty())for(unsigned id=0;id<players_.size();++id)for(unsigned hand=0;hand<2;++hand)
     if(auto *weapon=native_hand_weapon(unit_mutable(id),hand))weapon->smg.hand_timer_registered=false;
   update_first_person_views();
+  if(simulation_.source_physics_movement_) {
+    first_person_clock_origins_=first_person_views_;
+    for(unsigned view=0;view<first_person_players_.size();++view) {
+      const auto id=first_person_players_[view];
+      replicated_fp_origins_[id]=first_person_views_[view];
+      replicated_fp_views_[id]=first_person_views_[view];
+    }
+  }
 }
 void MultiplayerMatch::update_first_person_views() {
   if(first_person_definitions_.empty())return;
   for(unsigned v=0;v<first_person_players_.size();++v) {
     const auto id=first_person_players_[v];const auto &player=players_[id];
     if(!player.connected) {release_first_person_binding(first_person_views_[v]);continue;}
+    if(simulation_.source_physics_movement_) {
+      first_person_views_[v]=source_object_world_->first_person_view(v);
+      if(first_person_views_[v].unit!=player.source_current_object)
+        throw FormatError("Original first-person view and player disagree about the current unit");
+      continue;
+    }
     FirstPersonBindingInput input;input.player=player.source_datum;input.unit=player.source_current_object;
     input.representation=multiplayer_representation(player.source_configuration);
     if(input.unit!=null_datum)for(unsigned h=0;h<2;++h)
@@ -765,6 +887,7 @@ void MultiplayerMatch::update_first_person_views() {
     }
 }
 void MultiplayerMatch::configure_replicated_first_person(const FirstPersonBindingDefinition &definition) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   const auto key=std::pair{unsigned(definition.representation),definition.weapon_definition};
   if(simulation_.ticks()!=0 || !content_.weapons.contains(definition.weapon_definition) ||
       (definition.representation!=2 && definition.representation!=3) || replicated_fp_definitions_.contains(key))
@@ -901,6 +1024,7 @@ void MultiplayerMatch::validate_player_configuration(const SourcePlayerConfigura
 void MultiplayerMatch::set_source_player_activation_owner(bool deferred,
     std::function<void(MultiplayerPlayer&,unsigned)> birth,
     std::function<void(MultiplayerMatch&)> update) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(!deferred || !birth || !update || rules_.team_mode ||
       std::any_of(players_.begin(),players_.end(),[](const auto& p){return p.connected;}))
     throw FormatError("Source player activation requires a complete pre-join local FFA policy");
@@ -909,6 +1033,7 @@ void MultiplayerMatch::set_source_player_activation_owner(bool deferred,
 }
 void MultiplayerMatch::apply_source_player_activation(std::uint32_t datum,
     std::uint16_t expected,std::uint16_t after) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(!player_birth_owner_ || datum==null_datum || (datum&0xffffu)>=players_.size())
     throw FormatError("Source player activation requires its actual allocated owner");
   auto& player=players_[datum&0xffffu];
@@ -919,6 +1044,7 @@ void MultiplayerMatch::apply_source_player_activation(std::uint32_t datum,
 }
 unsigned MultiplayerMatch::join(std::string name, std::int8_t selected_team,
     std::optional<SourcePlayerConfiguration> profile, std::optional<unsigned> admitted_slot) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if (finished_)
     throw FormatError("Match has ended");
   if(rules_.team_mode && (selected_team < 0 || selected_team > 7))
@@ -928,6 +1054,8 @@ unsigned MultiplayerMatch::join(std::string name, std::int8_t selected_team,
     if (!players_[i].connected && (!admitted_slot || *admitted_slot == i)) {
       players_[i] = {};
       end_stats_.players[i] = {};
+      if(rules_.team_mode && source_object_world_ && source_object_world_->owns_physics())
+        source_object_world_->publish_roster_team(i,selected_team);
       players_[i].source_datum = player_pool_.allocate_at(std::int32_t(i));
       if (players_[i].source_datum == null_datum)
         throw FormatError("Original player datum allocation failed");
@@ -994,8 +1122,46 @@ unsigned MultiplayerMatch::available_player_slots() const {
   return count;
 }
 void MultiplayerMatch::leave(unsigned id) {
+  if(simulation_.source_physics_movement_) {depart(id);return;}
+  // The older native-owned compatibility world has no original deferred
+  // departure owner yet. Keep its existing behavior isolated from TU1.5.
+  cancel_join(id);
+}
+bool MultiplayerMatch::depart(unsigned id) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
+  auto &p=players_.at(id);
+  if(!p.connected || (p.source_flags&2u))return false;
+  if(!simulation_.source_physics_movement_)
+    throw FormatError("Retained departure requires the actual TU1.5 world");
+  ++authority_calls_.mutations;
+  if(!source_object_world_->depart_player(p.source_datum))
+    throw FormatError("Native Match departure disagrees with its original player owner");
+  SourceDeparturePlayer raw;
+  const auto bytes=player_pool_.lookup(p.source_datum);
+  if(bytes.size()!=sizeof(raw))throw FormatError("Departure lost its retained source player record");
+  std::memcpy(&raw,bytes.data(),sizeof(raw));
+  p.source_flags=raw.flags;p.source_current_object=raw.current_unit;
+  p.source_current_unit=raw.current_unit!=null_datum;p.source_previous_unit=raw.previous_unit;
+  // This latch excludes the later original unowned-unit death from the native
+  // weapon/environmental death accountant. No kill/death/score is fabricated.
+  p.death_counted=true;
+  auto &u=unit_mutable(id);
+  if(u.exists && u.source_datum!=null_datum) {
+    const auto body=source_object_world_->object_body(u.source_datum);
+    auto &bank=source_object_world_->memory();
+    bank.read(body+0x13cu,std::as_writable_bytes(std::span(&u.source_player,1)));
+    bank.read(body+0x140u,std::as_writable_bytes(std::span(&u.source_previous_player,1)));
+  }
+  native_presentation_controls_[id]={};
+  update_first_person_views();update_replicated_first_person_views();
+  return true;
+}
+void MultiplayerMatch::cancel_join(unsigned id) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   auto &player = players_.at(id);
   if (!player.connected) return;
+  if(simulation_.source_physics_movement_)
+    source_object_world_->set_local_player(player.source_datum,-1);
   drop_carried_weapons(unit_mutable(id));
   unit_mutable(id).source_previous_player = unit_mutable(id).source_player;
   unit_mutable(id).source_player = null_datum;
@@ -1084,7 +1250,8 @@ bool MultiplayerMatch::spawn(unsigned id, bool initial) {
   const auto &biped=multiplayer_biped(content_,multiplayer_representation(players_[id].source_configuration));
   const auto unit_datum = source_object_world_
       ? source_object_world_->create_biped(biped.datum,selected->position,
-          authored_basis({selected->facing,0,0}).forward)
+          authored_basis({selected->facing,0,0}).forward,
+          source_object_world_->owns_physics()?players_[id].source_datum:null_datum)
       : allocate_object(0);
   if (unit_datum == null_datum) throw FormatError("Original shared object pool is full");
   if(source_object_world_)simulation_.object_lifetimes_.observe_source_birth(unit_datum);
@@ -1432,6 +1599,17 @@ void MultiplayerMatch::update_infection() {
 }
 void MultiplayerMatch::step(
     const std::array<Controls, multiplayer_capacity> &controls) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  // Remote clients retain these authored templates and consume completed
+  // authority state. Require the original factory when advancing a world,
+  // rather than rejecting a display replica during construction.
+  if(rules_.primary_heavy_vehicle && !simulation_.source_physics_movement_)
+    throw FormatError("Primary Heavy Vehicle authority requires the retained original source world");
+  if(!simulation_.source_physics_movement_ &&
+      std::any_of(content_.netgame_equipment.begin(),content_.netgame_equipment.end(),[&](const auto &row) {
+        return (row.classification==1 || row.classification==2) &&
+            content_.light_vehicle_options[row.classification-1]!=0;
+      }))throw FormatError("Light Vehicle authority requires the retained original source world");
   if(simulation_.devices().replicated())throw FormatError("replicated device match cannot step as authority");
   if(pre_player_update_owner_)pre_player_update_owner_(*this);
   if(rules_.custom==CustomSlayer::infection && !infection_started_)start_infection();
@@ -1538,14 +1716,23 @@ void MultiplayerMatch::step(
       // flags to unit+148; E4A40 consumes bit0 and the jump owner consumes bit1.
       //15265C..15281C admits ordinary melee from bit5 and sword trigger
       //from bit6; the original106390 predicate is authored weapon flag24.
+      // Original1889D0 at1895B7/1895CA/1895D2 publishes the held trigger
+      // flags. ActualC7DD0 consumes them; bit28 requests manual reload through
+      // original1524E9 andC7F7A's action0/action10 dispatch.
       const auto held=content_.weapons.find(unit(i).weapon.definition);
       const bool sword=held!=content_.weapons.end() && (held->second.inventory_flags&(1u<<24));
       put(0,unsigned(input.crouch)|(unsigned(input.jump)<<1)|(input.grenade?0x04000000u:0u)|
-          (input.melee?0x20u:0u)|((sword && input.fire)?0x40u:0u));
+          (input.melee?0x20u:0u)|((sword && input.fire)?0x40u:0u)|
+          (input.fire?0x00010000u:0u)|(input.fire_secondary?0x00220000u:0u)|
+          (input.reload?0x10000000u:0u));
       put(4,std::bit_cast<std::uint32_t>(input.yaw));
       put(8,std::bit_cast<std::uint32_t>(input.pitch));
       put(0xc,std::bit_cast<std::uint32_t>(input.forward));
       put(0x10,std::bit_cast<std::uint32_t>(-input.right));
+      // Actual1530FE/153170 and153176/153196 retain command+14/+18;
+      // C92F0..C92FC publishes them to unit+1C0/+1C4 unchanged.
+      put(0x14,std::bit_cast<std::uint32_t>(input.fire?1.f:0.f));
+      put(0x18,std::bit_cast<std::uint32_t>(input.fire_secondary?1.f:0.f));
       const auto buttons=source_pickup_buttons(input.pickup,input.pickup?input.pickup_milliseconds:0,
           input.dual_wield,input.dual_wield?input.dual_wield_milliseconds:0,
           source_pickup_hold_threshold(content_.pickup_hold_seconds));
@@ -1557,7 +1744,26 @@ void MultiplayerMatch::step(
           input.switch_grenade?1:0);
       if(selected_grenade!=-1)grenade_owner.grenade_requested=selected_grenade;
       put(0x22,std::uint16_t(grenade_owner.grenade_requested),2);
-      const auto target=action_prompt(i).target;
+      auto target=input.vehicle_interaction_target?*input.vehicle_interaction_target:action_prompt(i).target;
+      if(input.vehicle_interaction_target && target.object!=null_datum) {
+        bool admitted=false;
+        try {
+          const auto body=source_object_world_->object_body(target.object);
+          std::array<std::byte,1> kind{};source_object_world_->memory().read(body+0xaau,kind);
+          const auto type=std::to_integer<unsigned>(kind[0]);
+          const auto definition=source_object_world_->object_definition(target.object);
+          const auto *assets=content_.unit_interactions.get();
+          if(assets) {
+            const auto unit=assets->units.find(definition);
+            if(unit!=assets->units.end()) {
+              admitted=target.action==4 && type==1;
+              if((target.action==5 || target.action==6) && type<2 && target.index>=0)
+                admitted=unsigned(target.index)<unit->second.seats.size();
+            }
+          }
+        } catch(const FormatError &) {} // A retired source generation has no action.
+        if(!admitted)target={};
+      }
       if(target.object!=null_datum) {
         put(0x28,std::uint16_t(target.action)|(std::uint32_t(std::uint16_t(target.index))<<16));
         put(0x2c,target.object);
@@ -1566,17 +1772,24 @@ void MultiplayerMatch::step(
       source_object_world_->deliver_command(p.source_datum,p.source_current_object,command);
     }
   }
-  simulation_.step_players(controls);
+  auto delivered=controls;
+  for(unsigned i=0;i<players_.size();++i)if(players_[i].source_flags&2u) {
+    delivered[i]={};delivered[i].yaw=unit(i).yaw;delivered[i].pitch=unit(i).pitch;
+  }
+  simulation_.step_players(delivered);
   // Detached native items remain live weapon objects. The source-object
   // backend owns its separate raw update/observation path.
   if(!simulation_.source_physics_movement_)
     for(auto &item:weapon_pickups_)if(item.weapon)simulation_.update_passive_weapon(*item.weapon,nullptr);
   for(const auto &event:simulation_.take_rumble())rumble_events_.push_back({event,++rumble_serial_,simulation_.ticks()});
   if(rumble_events_.size()>64)rumble_events_.erase(rumble_events_.begin(),rumble_events_.end()-64);
-  native_presentation_controls_=controls;
+  native_presentation_controls_=delivered;
   // TU1.5 source object/world phases produce the pose consumed by this
   // tick's kill-volume and death handling, rendering and snapshots.
-  if(simulation_.source_physics_movement_)source_object_world_->step_objects();
+  if(simulation_.source_physics_movement_) {
+    first_person_clock_origins_=first_person_views_;
+    source_object_world_->step_objects();
+  }
   if(simulation_.source_physics_movement_) {
     for(auto effect:source_object_world_->take_unit_damage_effects()) {
       effect.serial=++simulation_.unit_damage_effect_serial_;effect.tick=simulation_.ticks();
@@ -1591,7 +1804,9 @@ void MultiplayerMatch::step(
     if(simulation_.melee_impacts_.size()>64)
       simulation_.melee_impacts_.erase(simulation_.melee_impacts_.begin(),simulation_.melee_impacts_.end()-64);
     publish_source_scene_physics(simulation_.scene_,source_object_world_->memory(),source_object_world_->object_pool());
+    adopt_source_devices();
     simulation_.synchronize_props();
+    adopt_source_prop_regions();
     // Read back after this tick's original prepare/release/physics owners.
     // Construction precedes player join, so adopting only there loses every
     // subsequently thrown grenade and leaves released poses stale.
@@ -1605,20 +1820,30 @@ void MultiplayerMatch::step(
     }
   }
   if(simulation_.source_physics_movement_)for(unsigned i=0;i<players_.size();++i) {
-    if(!players_[i].connected || players_[i].source_current_object==null_datum)continue;
-    const auto motion=source_object_world_->biped_motion(players_[i].source_current_object);
-    auto &u=unit_mutable(i);u.body.position=motion.position;u.body.velocity=motion.velocity;
+    auto &p=players_[i];auto &u=unit_mutable(i);
+    const bool departed=p.connected && (p.source_flags&2u) && u.exists && u.source_previous_player==p.source_datum;
+    const auto object=p.source_current_object!=null_datum?p.source_current_object:departed?u.source_datum:null_datum;
+    if(!p.connected || object==null_datum)continue;
+    if(simulation_.object_lifetimes_.header(object).empty()) {
+      if(!departed)throw FormatError("Active source player lost its current unit");
+      simulation_.object_lifetimes_.observe_source_retirement(object);u.exists=false;continue;
+    }
+    const auto motion=source_object_world_->biped_motion(object);
+    u.body.position=motion.position;u.body.velocity=motion.velocity;
+    // E4A40 copies the actual physical result's unsupported bit to348. It
+    // changes on takeoff/contact while physical state1 remains walking mode.
+    u.body.grounded=(motion.support_flags&1u)==0;
     u.source_parent=motion.parent;u.source_seat=motion.seat;
     u.source_action_word=motion.action_word;u.source_unit_10a=motion.unit_flags;
     const auto previous_grenade=u.grenade_action;
-    u.grenade_action=source_object_world_->grenade_action(players_[i].source_current_object);
+    u.grenade_action=source_object_world_->grenade_action(object);
     if(u.grenade_action.animation_active && (!previous_grenade.animation_active ||
         previous_grenade.graph!=u.grenade_action.graph || previous_grenade.clip!=u.grenade_action.clip ||
         u.grenade_action.frame<previous_grenade.frame) && simulation_.first_person_activity_hook_)
       simulation_.first_person_activity_hook_(u,u.weapon,u.grenade_action.activity);
-    u.grenade_current=source_object_world_->current_grenade(players_[i].source_current_object);
+    u.grenade_current=source_object_world_->current_grenade(object);
     const auto previous_melee=u.melee_action;
-    u.melee_action=source_object_world_->melee_action(players_[i].source_current_object);
+    u.melee_action=source_object_world_->melee_action(object);
     const bool melee_began=u.melee_action.active() && (!previous_melee.active() ||
         previous_melee.activity!=u.melee_action.activity || u.melee_action.progress<previous_melee.progress);
     //This timestamp belongs to native presentation; the source component
@@ -1636,8 +1861,16 @@ void MultiplayerMatch::step(
       u.vitality.dead=true;u.state=Unit::Dead;
       u.last_damager=-2;
     }
-    if(!u.vitality.dead)
-      synchronize_source_equipment(u,source_object_world_->player_equipment(players_[i].source_current_object));
+    if(departed || !u.vitality.dead)
+      synchronize_source_equipment(u,source_object_world_->player_equipment(object));
+    if(departed && u.vitality.dead && !corpses_.contains(object)) {
+      // Original CBDC0 has already cleaned this body in the source world.
+      // Adopt its presentation and detached equipment without a second kill,
+      // weapon drop, native garbage admission or numerical death publication.
+      u.source_death_tick=clock;
+      corpses_.insert_or_assign(object,MultiplayerState::Corpse{object,u.definition.datum,
+          p.source_datum,clock,p.source_configuration,u.body.velocity});
+    }
     // Delivered view angles remain the camera/aim inputs. Physical root facing
     // is independently published by the source WORLD hierarchy; a turning or
     // parented body must not replace the player's look direction.
@@ -1671,7 +1904,7 @@ void MultiplayerMatch::step(
         }
   for (unsigned i = 0; i < players_.size(); ++i) {
     auto &p = players_[i];
-    if (!p.connected)
+    if (!p.connected || (p.source_flags&2u))
       continue;
     if (unit(i).vitality.dead && !p.death_counted) {
       if(results_finalized_) {
@@ -1721,9 +1954,21 @@ void MultiplayerMatch::step(
   // Original139750 calls1678C1 after object update/postpass. Startup's native
   // configure call is a declared observer-creation boundary, not a full retail frame.
   update_first_person_views();
-  first_person_clock_origins_=first_person_views_;
+  if(simulation_.source_physics_movement_) {
+    // A clock interval belongs to one source unit/hand registration. Birth,
+    // replacement or a graph change starts at the actual new source sample;
+    // a released/previous identity cannot be its interpolation endpoint.
+    for(unsigned view=0;view<first_person_players_.size();++view) {
+      auto &origin=first_person_clock_origins_[view];const auto &current=first_person_views_[view];
+      if(origin.unit!=current.unit || origin.representation!=current.representation)origin=current;
+      else for(unsigned h=0;h<2;++h)
+        if(origin.hands[h].weapon!=current.hands[h].weapon || origin.hands[h].graph!=current.hands[h].graph)
+          origin.hands[h]=current.hands[h];
+    }
+  } else first_person_clock_origins_=first_person_views_;
   for(unsigned view=0;view<first_person_players_.size();++view)
     for(unsigned h=0;h<2;++h) {
+      if(simulation_.source_physics_movement_)continue;
       auto &binding=first_person_views_[view];auto &hand=binding.hands[h];
       const auto *w=weapon_from_datum(hand.weapon);if(!w)continue;
       const auto found=first_person_definitions_.find({unsigned(binding.representation),w->definition});
@@ -1732,8 +1977,16 @@ void MultiplayerMatch::step(
             if(first_person_event_owner_)first_person_event_owner_(view,h,binding,event);
           });
     }
-  update_replicated_first_person_views();replicated_fp_origins_=replicated_fp_views_;
+  update_replicated_first_person_views();
+  if(simulation_.source_physics_movement_) {
+    for(unsigned view=0;view<first_person_players_.size();++view) {
+      const auto id=first_person_players_[view];
+      replicated_fp_origins_[id]=first_person_clock_origins_[view];
+      replicated_fp_views_[id]=first_person_views_[view];
+    }
+  } else replicated_fp_origins_=replicated_fp_views_;
   for(auto &view:replicated_fp_views_)for(auto &hand:view.hands) {
+    if(simulation_.source_physics_movement_)continue;
     const auto *w=weapon_from_datum(hand.weapon);if(!w)continue;
     const auto found=replicated_fp_definitions_.find({unsigned(view.representation),w->definition});
     if(found!=replicated_fp_definitions_.end())first_person_animation_clock(hand,found->second,tick_seconds);
@@ -1787,9 +2040,28 @@ void MultiplayerMatch::finalize_results() {
   source_game_end_accumulate(end_stats_,true);
   results_finalized_=true;
 }
+void MultiplayerMatch::adopt_source_prop_regions() {
+  auto rows=simulation_.props_.region_snapshot();
+  for(auto &row:rows)row.regions=source_object_world_->object_model_regions(row.handle);
+  simulation_.props_.observe_source_regions(rows);
+  simulation_.synchronize_props();
+}
 std::uint32_t MultiplayerMatch::create_world_vehicle(std::size_t placement) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(!source_object_world_ || !source_object_world_->owns_physics() || placement>=content_.objects.size() || content_.objects[placement].type!=1)
     throw FormatError("Vehicle placement requires an authored type1 and the retained source world");
+  return create_world_object(placement);
+}
+void MultiplayerMatch::destroy_world_object(std::uint32_t object) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  if(!source_object_world_ || !source_object_world_->owns_physics())
+    throw FormatError("World object retirement requires the retained source world");
+  simulation_.scene_.destroy(object);
+}
+std::uint32_t MultiplayerMatch::create_world_object(std::size_t placement) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  if(!source_object_world_ || !source_object_world_->owns_physics() || placement>=content_.objects.size())
+    throw FormatError("World object placement requires its authored definition and retained source world");
   for(const auto& object:simulation_.scene_.objects())if(object.handle!=null_datum && object.placement==placement)return object.handle;
   const auto handle=simulation_.scene_.create_placement(placement,simulation_.ticks());
   if(content_.objects[placement].model_attachment) {
@@ -1856,7 +2128,7 @@ MultiplayerState MultiplayerMatch::state() const {
       const auto &u = unit(i);
       const auto &p = players_[i];
       result.players[i] = {true,
-                           u.vitality.dead,
+                           u.vitality.dead || bool(p.source_flags&2u),
                            u.body.position,
                            u.yaw,
                            i ? u.pitch : simulation_.player_pitch_,
@@ -1875,18 +2147,23 @@ MultiplayerState MultiplayerMatch::state() const {
       result.players[i].reload_empty = u.weapon.reload_empty;
       result.players[i].action_prompt=action_prompt(i);
       result.players[i].weapon_shader=u.weapon.shader;
+      result.players[i].weapon_trigger={u.weapon.smg.input_flags,u.weapon.smg.trigger_ticks,
+          u.weapon.smg.trigger_state,u.weapon.charge_fraction};
       result.players[i].ammunition_available=native_weapon_ammunition_available(u,u.weapon);
       result.players[i].damage_feedback=u.damage_feedback;
       result.players[i].shield_recharging=u.vitality.shield_recharging;
-      if(const auto *offhand=native_hand_weapon(u,1)) {
+      if(const auto *offhand=p.source_current_object!=null_datum?native_hand_weapon(u,1):nullptr) {
         auto &out=result.players[i].secondary_weapon;
         out.definition=offhand->definition;out.datum=offhand->source_datum;
         out.loaded=offhand->loaded;out.reserve=offhand->reserve;
         out.shot_tick=std::uint32_t(offhand->last_shot);out.reload_tick=std::uint32_t(offhand->reload_started);
         out.reload_seconds=offhand->reload;out.reload_empty=offhand->reload_empty;
         out.shader=offhand->shader;
+        out.trigger={offhand->smg.input_flags,offhand->smg.trigger_ticks,offhand->smg.trigger_state,offhand->charge_fraction};
         out.ammunition_available=native_weapon_ammunition_available(u,*offhand);
-        if(replicated_fp_views_[i].hands[1].weapon==offhand->source_datum)
+        if((!simulation_.source_physics_movement_ ||
+            std::find(first_person_players_.begin(),first_person_players_.end(),i)!=first_person_players_.end()) &&
+            replicated_fp_views_[i].hands[1].weapon==offhand->source_datum)
           out.clock={true,first_person_channel_state(replicated_fp_origins_[i].hands[1]),
               first_person_channel_state(replicated_fp_views_[i].hands[1])};
       }
@@ -1940,7 +2217,9 @@ MultiplayerState MultiplayerMatch::state() const {
       const ZoomWeaponView primary{definition!=content_.weapons.end() ? definition->second.zoom : ZoomWeaponDefinition{},modes};
       result.players[i].source_hud_zoom_mask=source_zoom_hud_mask(source_zoom_hud_status(
           u.source_zoom.current,result.players[i].source_weapon!=null_datum && definition!=content_.weapons.end() ? &primary : nullptr));
-      if(!replicated_fp_definitions_.empty() && result.tick && replicated_fp_origins_[i].unit==replicated_fp_views_[i].unit &&
+      if((!simulation_.source_physics_movement_ ||
+          std::find(first_person_players_.begin(),first_person_players_.end(),i)!=first_person_players_.end()) &&
+          !replicated_fp_definitions_.empty() && result.tick && replicated_fp_origins_[i].unit==replicated_fp_views_[i].unit &&
           replicated_fp_origins_[i].hands[0].weapon==replicated_fp_views_[i].hands[0].weapon &&
           replicated_fp_views_[i].unit==p.source_current_object &&
           p.source_current_object!=null_datum && replicated_fp_views_[i].hands[0].weapon==u.weapon.source_datum)
@@ -1957,10 +2236,21 @@ MultiplayerState MultiplayerMatch::state() const {
   result.unit_damage_effects.assign(damage_effects.begin(),damage_effects.end());
   const auto voices=simulation_.unit_damage_voices();
   result.unit_damage_voices.assign(voices.begin(),voices.end());
-  for(const auto &projectile:simulation_.projectiles_)
-    result.weapon_projectiles.push_back({projectile.source_datum,
-        content_.weapons.at(projectile.weapon).projectile,projectile.position,
-        projectile.velocity,projectile.forward,projectile.up,projectile.traveled});
+  result.weapon_projectiles=simulation_.presentation_projectiles();
+  if(simulation_.source_physics_movement_) {
+    result.weapon_projectiles.clear();
+    const auto &memory=source_object_world_->memory();
+    for(const auto &object:source_object_world_->live_objects()) {
+      if(object.type!=5 || object.parent!=null_datum ||
+          std::any_of(result.grenade_projectiles.begin(),result.grenade_projectiles.end(),
+              [&](const auto &g){return g.datum==object.object;}))continue;
+      const auto body=source_object_world_->object_body(object.object);
+      const auto scalar=[&](unsigned offset){return std::bit_cast<float>(Bytes(memory.view(body+offset,4)).u32(0));};
+      const auto root=source_object_world_->object_transform(object.object);
+      result.weapon_projectiles.push_back({object.object,object.definition,root.position,
+          {scalar(0x88),scalar(0x8c),scalar(0x90)},root.basis[0],root.basis[2],scalar(0x168)});
+    }
+  }
   for(const auto &item:weapon_pickups_)if(item.weapon)
     result.world_weapons.push_back({item.handle,item.definition,item.position,item.forward,item.up,
         item.weapon->loaded,item.weapon->reserve,item.weapon->shader});
@@ -1982,6 +2272,18 @@ MultiplayerState MultiplayerMatch::state() const {
     result.corpses.push_back(std::move(corpse));
   }
   result.weapon_effects=weapon_effect_journal_;
+  // Read-only current source frames follow moving parents on remote views too.
+  // A retired source instance retains its completed birth bank in the journal.
+  std::map<std::uint32_t,std::vector<SourceEffectLocation>> live_effect_locations;
+  for(auto &event:result.weapon_effects)if(event.source_presentation) {
+    if(!live_effect_locations.contains(event.source_instance))
+      if(auto locations=weapon_effect_locations(source_object_world_,event.source_instance,event.effect))
+        live_effect_locations.emplace(event.source_instance,std::move(*locations));
+    if(const auto found=live_effect_locations.find(event.source_instance);found!=live_effect_locations.end()) {
+      event.source_locations=found->second;event.source_locations_observed=true;
+    }
+    for(auto &player:result.players)if(player.weapon_effect.serial==event.serial)player.weapon_effect=event;
+  }
   if(source_object_world_) {
     for(const auto &player:result.players)if(player.connected && !player.dead && player.source_unit!=null_datum)
       result.source_body_poses.push_back({player.source_unit,source_object_world_->world_nodes(player.source_unit),
@@ -2010,9 +2312,34 @@ MultiplayerState MultiplayerMatch::state() const {
       root.velocity=source_object_world_->object_linear_velocity(object.handle);
       bank.read(body+4u,std::as_writable_bytes(std::span(&root.runtime_flags,1)));
       root.frozen=(std::to_integer<unsigned>(bank.view(body+0xc1u,1)[0])&1u)!=0;
+      root.created_tick=object.created_tick;
+      root.attached_effects=source_object_world_->attached_effects(object.handle);
       result.source_scene_roots.push_back(root);
       if(!object.solved_nodes->empty())result.source_body_poses.push_back({object.handle,*object.solved_nodes,
           source_object_world_->object_sphere(object.handle)});
+    }
+    std::set<std::uint32_t> placed;
+    for(const auto &object:simulation_.scene().objects())if(object.handle!=null_datum)placed.insert(object.handle);
+    SourceModelResourceWorld visibility;auto &bank=source_object_world_->memory();
+    visibility.banks.objects=source_object_world_->source_object_pool();
+    visibility.banks.read=[&bank](auto p,auto n){return bank.view(p,n);};
+    for(const auto &object:source_object_world_->live_objects()) {
+      if((object.type!=3 && object.type!=4 && object.type!=11) || placed.contains(object.object))continue;
+      const auto body=source_object_world_->source_object_body(object.object);
+      SourceDynamicObject dynamic;dynamic.object=object.object;dynamic.definition=object.definition;
+      dynamic.parent=object.parent;dynamic.type=object.type;
+      dynamic.transform=source_object_world_->object_transform(object.object);
+      dynamic.velocity=source_object_world_->object_linear_velocity(object.object);
+      dynamic.sphere=source_object_world_->object_sphere(object.object);
+      dynamic.visible=!source_model_owner_hidden(object.object,visibility);
+      bank.read(body+4u,std::as_writable_bytes(std::span(&dynamic.runtime_flags,1)));
+      bank.read(body+0x10au,std::as_writable_bytes(std::span(&dynamic.control_flags,1)));
+      dynamic.frozen=(std::to_integer<unsigned>(bank.view(body+0xc1u,1)[0])&1u)!=0;
+      dynamic.regions=source_object_world_->object_model_regions(object.object);
+      dynamic.colors=source_live_object_colors_tu15(bank,source_object_world_->object_pool(),object.object);
+      auto nodes=source_object_world_->world_nodes(object.object);dynamic.has_world_nodes=!nodes.empty();
+      if(dynamic.has_world_nodes)result.source_body_poses.push_back({object.object,std::move(nodes),dynamic.sphere});
+      result.source_dynamic_objects.push_back(std::move(dynamic));
     }
   }
   return result;

@@ -9,6 +9,9 @@ namespace halo2 {
 class CollisionWorld;
 class SceneObjects;
 struct ObjectLightingBinding;
+struct ModelObjectDraw;
+struct ObjectLightingState;
+struct SourceLiveModelBaseDrawTu15;
 struct SourcePropDefinition {
     std::string name;
     std::uint16_t object_flags{};
@@ -51,6 +54,8 @@ public:
     SourcePropScene(const SourcePropScene &)=delete;
     SourcePropScene &operator=(const SourcePropScene &)=delete;
     void synchronize(const SceneObjects &);
+    // Actual selected per-view geometry after source pose/LOD selection.
+    void observe_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)>);
     // Observe completed authority/client region choices without re-running RNG.
     void region_state(std::function<const SourceInitialModelSelection *(std::uint32_t)>);
     void interpolate(const SceneObjects &,const class SceneInterpolation &,float fraction);
@@ -69,6 +74,17 @@ public:
     //inputs. Empty exact collectors emit no geometry or lighting bindings.
     void append_view(std::vector<Vertex> &,std::vector<ObjectLightingBinding> &,
                      const SourceObjectViewLod &,std::vector<SourceObjectViewSelection> * = nullptr);
+    // Actual model roots prepared before renderer allocation. The native
+    // source view must retain a complete eligible owner before light admission.
+    void observe_source_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,
+        const ObjectLightingState&,bool,unsigned,std::span<const Vertex>)>);
+    std::vector<std::uint32_t> source_render_models() const;
+    void begin_source_frame();
+    bool retain_source_view(unsigned,std::span<const SourceLiveModelBaseDrawTu15>,
+                            std::span<const Transform>,const SourceModelShaderView&);
+    // Submit the retained base geometry once. append_view then skips only
+    // these completed owners; forgotten or duplicate submission is rejected.
+    void append_source_models(std::vector<ModelObjectDraw>&,const SourceObjectViewLod&);
     const SourcePropSceneStats &stats() const;
 private:
     struct Impl;

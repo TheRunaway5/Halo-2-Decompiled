@@ -21,6 +21,7 @@ public:
   std::array<float, sound_class_count> gains() const;
 
 private:
+  friend struct SourceAuthorityArchiveAccess;
   std::array<Fade, sound_class_count> fades_{};
 };
 } // namespace halo2

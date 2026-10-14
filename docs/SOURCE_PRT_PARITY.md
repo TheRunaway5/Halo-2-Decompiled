@@ -50,7 +50,7 @@ This is a loaded-tag inventory. It is not a claim that all 13 models are placed 
 
 ## SH sampling and coefficient binding
 
-Active BSP lightmap-group SH records are the `+0x38` block with stride `0xDC`. Each record contains position, three nine-float SH channels, and incident at `+0xA4`. All 21 maps contain 20 such records in total. The admitted machine PRT path requires the original active structure-checksum/bitmap conditions and a nonempty SH bank. An invalid bank needs the source white-SH branch and retained caller incident; that branch remains explicitly gated rather than substituting a fabricated direction.
+Active BSP lightmap-group SH records are the `+0x38` block with stride `0xDC`. Each record contains position, three nine-float SH channels, and incident at `+0xA4`. All 21 multiplayer maps contain 20 such records in total. The initial machine path uses populated valid banks. Empty valid banks select green SH; invalid structure/bitmap banks select white SH. Both require the caller's explicitly retained incident when assembling a complete object bank. The TU1.5 full-builder and coefficient tests now cover these branches; see [fixture provenance](../tests/fixtures/tu15_prt_fallback.md). Live callers without that source state continue to reject.
 
 `c68.xyz` is the retained object incident. `c68.w` contains adjacent cache metadata in the original and is not read by the admitted shaders. `c69` is retained as literal source bits:
 
@@ -91,7 +91,7 @@ Address-register floor semantics are supported by the [NVIDIA primary specificat
 
 ## Live admission constraints
 
-The source machine CPU decoder and source coefficient/stream path are implemented. Live callers must provide selected sections in original order, actual channel state and posed world nodes, and one independent material bank per section/palette. Admission must retain the original active-bank conditions, actual source LOD, exact PRT resource declaration, and supported authored material program. Missing or invalid metadata throws; authored NONE remains optional. Unverified invalid-bank incident retention, later scripted channel progression, model/permutation transitions, and source shadow/filter passes are not covered by the initial machine proof. The separate renderer/interpreter GPU tests and live integration must pass before claiming that this CPU/metadata work establishes an on-screen PRT result.
+The source machine CPU decoder and source coefficient/stream path are implemented. Live callers must provide selected sections in original order, actual channel state and posed world nodes, and one independent material bank per section/palette. Admission must retain the original active-bank conditions, actual source LOD, exact PRT resource declaration, and supported authored material program. Missing or invalid metadata throws; authored NONE remains optional. Later scripted channel progression, model/permutation transitions, and source shadow/filter passes are not covered by the initial machine proof. The separate renderer/interpreter GPU tests and live integration must pass before claiming that this CPU/metadata work establishes an on-screen PRT result.
 
 ## SourceMachineScene integration seam
 
@@ -114,3 +114,21 @@ binding only. See [owner cache admission](SOURCE_MODEL_SHADER_PARITY.md#owner-li
 The initial variant/permutation and resident section-collector ordering are now independently verified for all 49 MACH placements. The machine scene requires a resolved `Cache::load_initial_model_selection`, retains the actual fixed model-region permutation bytes, and obtains its ordered sections from `source_initial_model_sections` (source `4C2B0`/`137800`, every LOD0..5). Duplicate section entries remain duplicated. Every expanded mesh vertex's source section must belong to that literal collector array; section order is no longer inferred from triangle expansion or sorted IDs. The collector oracle supplies residency=true, so asynchronous cache-residency fallback remains outside this proof. The immutable bank may be shared by multiple materials within the same section; distinct object/LOD/section palettes retain separate banks. The machine union has 89 ordinary and 66 PRT material slots; 78 section banks are calculated from authored metadata, including banks with no material consumer. Captured source bank assertions inspect actually submitted IDs rather than all same-name resident slots. Per-frame shader/bitmap animation remains in the common runtime animation scheduler, after scene pose/bank updates and before uploading material constants.
 
 Machine lifetime synchronization now consumes the simulation's actual `SceneObjects` full generation handles, global content placement indices, visibility and creation ticks before posing. Destroyed machines stop submitting geometry and lighting bindings; fresh private-group generations reset controller/group state and lighting cache, then advance from their actual birth tick. Original `106680` destruction and fresh construction are tested for all 49 records. Named groups preserve current shared state in the original, so native recreation requires that producer rather than resetting them. Triplicate's four scripted machines use private groups. Detailed HS chronology, shared primary random semantics and remaining activation boundaries are recorded in [SOURCE_MAP_SCRIPT_PARITY.md](SOURCE_MAP_SCRIPT_PARITY.md).
+
+
+## TU1.5 completed-cache Vulkan bindings, 2026-10-14
+
+The source model service includes authenticated complete TU1.5 `22830`, `23670`
+and their SH/rotation/projection dependencies. `PhysicsLiveWorldTu15::begin_model_view`
+exposes the original `12D19 -> 22830` per-view reset separately from frame entry.
+`source_live_model_prt_bank_tu15` reads the completed `24020` cache by full object
+handle and region ordinal, copying actual c68/69/coefficient words into an
+immutable owner draw bank. It preserves no-upload results and rejects an
+out-of-arena coefficient range. Fresh Cairo valid/empty/invalid controls each
+match 771 consumed words; unchanged full-builder replay matches every compared
+retained byte. The Vulkan tram diagnostic binds two original PRT material banks
+and preserves its prior baseline/illuminated images byte for byte.
+
+The material/presentation path still needs original gameplay admission ordering,
+per-view lifetime and live cache incident wiring across all requested entities.
+The matched-frame and installed-runtime gates remain open.

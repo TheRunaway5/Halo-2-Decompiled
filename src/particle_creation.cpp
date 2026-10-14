@@ -23,7 +23,7 @@ void create_emitter_particle(const ParticleSystemRenderDefinition &definition,un
     const OriginalData &data,const ShaderFunctionTables &tables) {
   if(index>=definition.emitters.size())throw FormatError("particle creation exceeds authored emitter definitions");
   const auto &birth=definition.emitters[index].birth;
-  if(birth.shape>5)
+  if(birth.shape>5 && birth.shape!=9)
     throw FormatError("particle creation shape requires original initialization evidence");
   particle.next_particle=emitter.first_particle;emitter.first_particle=input.allocated_datum;
   particle.flags=std::uint16_t((particle.flags&0xe004u)|4u);

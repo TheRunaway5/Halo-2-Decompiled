@@ -60,6 +60,23 @@ inline void verify_prop_region_snapshot(const MultiplayerState &expected,const M
     }
 }
 inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const MultiplayerState &actual) {
+    require_snapshot(expected.source_scene_roots_authoritative==actual.source_scene_roots_authoritative &&
+        expected.source_scene_roots.size()==actual.source_scene_roots.size(),"UDP source scene authority/bank differs");
+    for(unsigned n=0;n<expected.source_scene_roots.size();++n) {
+        const auto &a=expected.source_scene_roots[n],&b=actual.source_scene_roots[n];
+        require_snapshot(a.object==b.object && a.definition==b.definition && a.placement==b.placement &&
+            a.created_tick==b.created_tick && a.attached_effects.size()==b.attached_effects.size(),
+            "UDP attachment owner/generation differs");
+        for(unsigned i=0;i<a.attached_effects.size();++i) {
+            const auto &x=a.attached_effects[i],&y=b.attached_effects[i];
+            require_snapshot(x.slot==y.slot && x.instance==y.instance && x.definition==y.definition &&
+                x.flags==y.flags && same_snapshot_float(x.scale_a,y.scale_a) && same_snapshot_float(x.scale_b,y.scale_b) &&
+                x.colors==y.colors && x.locations.size()==y.locations.size(),"UDP source effect state differs");
+            for(unsigned j=0;j<x.locations.size();++j)
+                require_snapshot(x.locations[j].name==y.locations[j].name && x.locations[j].node==y.locations[j].node &&
+                    same_snapshot_transform(x.locations[j].local,y.locations[j].local),"UDP source effect local location differs");
+        }
+    }
     verify_prop_region_snapshot(expected,actual);
     verify_device_snapshot(expected.devices,actual.devices);
     { const auto &a = expected, &b = actual;
@@ -134,6 +151,7 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
             a.reload_tick == b.reload_tick &&
             a.reload_empty == b.reload_empty &&
             a.ammunition_available == b.ammunition_available &&
+            a.weapon_trigger == b.weapon_trigger &&
             a.weapon_shader.item_flags == b.weapon_shader.item_flags &&
             a.weapon_shader.weapon_flags == b.weapon_shader.weapon_flags &&
             a.grenades == b.grenades &&
@@ -186,7 +204,8 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
             same_snapshot_float(a.damage_feedback.body.accumulated, b.damage_feedback.body.accumulated) &&
             same_snapshot_clock(a.first_person_clock, b.first_person_clock),
             "UDP zoom/prompt/camouflage/damage/FP state differs from authority");
-        require_snapshot(a.secondary_weapon.definition == b.secondary_weapon.definition &&
+        require_snapshot(a.secondary_weapon.trigger == b.secondary_weapon.trigger &&
+            a.secondary_weapon.definition == b.secondary_weapon.definition &&
             a.secondary_weapon.datum == b.secondary_weapon.datum &&
             a.secondary_weapon.shot_tick == b.secondary_weapon.shot_tick &&
             a.secondary_weapon.reload_tick == b.secondary_weapon.reload_tick &&

@@ -172,6 +172,7 @@ for index in range(word(pool+0x38)):
     table=struct.unpack_from('<I',cb,0x70)[0];rb=retain(table+primary*0x60,0x60)
     rigid=retain(struct.unpack_from('<I',rb,0x40)[0],0x50)
     if rigid[0x40]==0:retain(struct.unpack_from('<I',rigid,0x3c)[0],0x50)
+ if data[0xaa] in (0,1,2):
   token=struct.unpack_from('<I',data,0xcc)[0]
   if token!=0xffffffff:
    cached=read(cache_rows+(token&65535)*0x100,0x100)
@@ -179,8 +180,19 @@ for index in range(word(pool+0x38)):
    (out/(f'cache-{{object:08x}}.bin')).write_bytes(cached)
    row['lighting_words']=list(struct.unpack_from('<21I',cached,0x54))
  objects.append(row)
+clock=read(word(0x51df54),0x24);(out/'game-clock.bin').write_bytes(clock)
+(out/'game-options.bin').write_bytes(read(word(0x4f3218),0x2e0))
+player_pool=word(0x4f54f4);player_rows=word(player_pool+0x44);players=[]
+units={{o['object'] for o in objects if o['type']==0}}
+for index in range(word(player_pool+0x20)):
+ row=player_rows+index*0x21c;data=read(row,0x21c)
+ current=struct.unpack_from('<I',data,0x2c)[0]
+ if current not in units:continue
+ player=(struct.unpack_from('<H',data)[0]<<16)|index
+ (out/(f'player-{{player:08x}}.bin')).write_bytes(data)
+ players.append(dict(player=player,unit=current,configuration=data[0x44:0xd4].hex()))
 (out/'velocity-banks.json').write_text(json.dumps(velocity_banks)+'\\n')
-(out/'state.json').write_text(json.dumps(dict(reference='OG Xbox TU1.5',physical_xbox_capture=False,whole_live_text_matches_original=True,text_sha256=hashlib.sha256(text).hexdigest(),pc=int(gdb.parse_and_eval('$eip')),camera_words=list(struct.unpack('<48I',camera)),pool=pool,objects=objects,guest_code_patches=[],guest_memory_patches=[]),indent=2)+'\\n')
+(out/'state.json').write_text(json.dumps(dict(reference='OG Xbox TU1.5',physical_xbox_capture=False,whole_live_text_matches_original=True,text_sha256=hashlib.sha256(text).hexdigest(),pc=int(gdb.parse_and_eval('$eip')),camera_words=list(struct.unpack('<48I',camera)),pool=pool,objects=objects,players=players,clock_words=list(struct.unpack('<9I',clock)),guest_code_patches=[],guest_memory_patches=[]),indent=2)+'\\n')
 end
 delete 1
 detach

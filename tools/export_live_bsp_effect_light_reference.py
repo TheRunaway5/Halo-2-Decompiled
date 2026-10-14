@@ -98,19 +98,45 @@ def main():
     identity=state['light_identity'] if tu15 else 0xe9810015;pool=val(address(0x4e030c))
     light=words(read(val(pool+0x44)+(identity&65535)*0x110,0x110))
     fixture=a.range_fixture or ROOT/'tests/fixtures/effect_light_draw_ranges.original.bin'
+    # Palettes and model commands for the matched GPU frame must come from
+    # the captured bank. Re-running a collector on a mid-frame snapshot may
+    # append new model owners, so discard that replay before model uploads.
+    g=s.guest();g.mem_map(0x70000000,0x100000);g.hook_add(UC_HOOK_CODE,trace)
     data=words(fixture.read_bytes());assert data[:2]==[0x474e524c,1]
-    at=3;expected=[]
+    at=3;expected=[];models=[];palettes={}
     for _ in range(data[2] if tu15 else 13):
         command,unit,vertex_class,kind,section=data[at:at+5];at+=5
         row=data[at:at+8];at+=8
         part,flags,subparts,base=data[at:at+4];at+=4+512
         topology,filtered,returned,n=data[at:at+4];at+=4
+        model=None
+        if kind==2:
+            assert tu15,'Model palette export requires the authenticated TU1.5 addresses'
+            assert unit<val(0x4cd398) and words(read(0x4c6958+unit*32,32))==row,'Range fixture does not name the actual captured model bank'
+            if unit not in palettes:
+                # Observe the unchanged source upload boundary. Only original
+                # CPU code runs; no GPU service result is substituted.
+                g.mem_write(stack,struct.pack('<I',stop));g.reg_write(R.UC_X86_REG_ESP,stack)
+                g.reg_write(R.UC_X86_REG_EBX,0x4c6958+unit*32)
+                g.emu_start(0x4d820,0x401410,count=1000000)
+                assert g.reg_read(R.UC_X86_REG_EIP)==0x401410
+                pointer=g.reg_read(R.UC_X86_REG_EDX);size=val(g.reg_read(R.UC_X86_REG_ESP)+4)
+                assert g.reg_read(R.UC_X86_REG_ECX)==50 and size>0 and size%12==0
+                palettes[unit]=[list(struct.unpack('<12f',read(pointer+i*48,48))) for i in range(size//12)]
+            c=words(read(val(0x4ce280+20)+command*24,24))
+            assert c[3]>>8&65535==unit and c[3]&255==part
+            model=dict(command=command,unit=unit,model=row[1],section=section,object=val(row[4]),
+                shader=c[2],part=part,lod=c[5]>>8&255,pass_index=c[5]&255,
+                vertex_class=vertex_class,flags=row[0],palette=palettes[unit])
+            models.append(model)
         for _ in range(n):
             primitive,first,count=data[at:at+3];at+=3
             indices=data[at:at+count];at+=count
-            expected.append(dict(kind=kind,section=section,instance=(row[3]>>18)&2047,
+            draw=dict(kind=kind,section=section,instance=(row[3]>>18)&2047,
                                  part=part,vertex_class=vertex_class,topology=topology,
-                                 first=first,count=count,indices=indices))
+                                 first=first,count=count,indices=indices)
+            if model:draw.update(model=model['model'],object=model['object'])
+            expected.append(draw)
     report=dict(boundary=__doc__,reference='OG Xbox TU1.5' if tu15 else 'original base-disc Xbox diagnostic',
                 snapshot_sha256=snapshot_sha,main=main_query,receiver=receiver,
                 camera=camera,fog=fog,pass_mode=pass_mode,query_mode=query_mode,
@@ -119,8 +145,9 @@ def main():
                 executed_instruction_addresses=len(executed),intercepted_instructions=0,
                 original_xbe_sha256=hashlib.sha256(xbe.data).hexdigest(),
                 range_fixture_sha256=hashlib.sha256(fixture.read_bytes()).hexdigest())
+    if models:report.update(models=models,model_palette_boundary='Unchanged TU1.5 4D820/15280 observed at its first 401410 c50 GPU upload; no device service executed or replaced')
     if tu15:
-        assert uniforms==json.loads((a.snapshot/'uniforms.json').read_text()),'Replay differs from the actual paused TU1.5 light bank'
+        assert uniforms==words(s.read(address(0x48597c),144)),'Replay differs from the actual paused TU1.5 light bank'
         report.update(guest_code_patches=[],address_correspondence={hex(k):hex(v) for k,v in addresses.items()})
     a.output.parent.mkdir(parents=True,exist_ok=True)
     with a.output.open('x') as f:json.dump(report,f,indent=2);f.write('\n')

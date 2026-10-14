@@ -145,7 +145,10 @@ bool OnlinePeerTransport::send(std::span<const std::byte> packet,unsigned peer) 
   auto dc=impl_->links[peer].channel;
   // Late audio/snapshots are discarded instead of growing a TCP-style queue.
   if(!dc || dc->bufferedAmount()>65536)return false;
-  dc->send(packet.data(),packet.size());return true;
+  // Closing the other endpoint can race the ready check. A lost datagram is
+  // handled by its native protocol; it must not tear down healthy room peers.
+  try {dc->send(packet.data(),packet.size());return true;}
+  catch(const std::exception &){return false;}
 }
 bool OnlinePeerTransport::receive(std::vector<std::byte> &packet,unsigned &peer) {
   std::lock_guard lock(impl_->state->mutex);auto &queue=impl_->state->packets;

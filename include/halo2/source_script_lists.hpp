@@ -33,6 +33,7 @@ public:
   const DatumPool &headers()const{return headers_;}
   const DatumPool &references()const{return references_;}
 private:
+  friend struct SourceAuthorityArchiveAccess;
   DatumPool headers_,references_;
 };
 }
