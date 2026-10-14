@@ -1071,9 +1071,9 @@ std::uint32_t MultiplayerObjectRuntime::create_biped(std::uint32_t definition,
   if(player!=0xffffffffu)throw FormatError("Player creation context requires the TU1.5 live world");
   return impl_->create_biped(definition,position,forward);
 }
-std::uint32_t MultiplayerObjectRuntime::create_scenario_object(const ScenarioObject &placement) {Continuation::PublicCall active(*continuation_);
+std::uint32_t MultiplayerObjectRuntime::create_scenario_object(const ScenarioObject &placement,SourceScenarioBirth birth) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Original scene body construction requires the TU1.5 physics owner");
-  return tu15_->create_scenario_object(placement);
+  return tu15_->create_scenario_object(placement,birth);
 }
 std::uint32_t MultiplayerObjectRuntime::create_netgame_object(unsigned row) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Netgame body birth requires the TU1.5 live physics world");
@@ -1103,6 +1103,16 @@ void MultiplayerObjectRuntime::step_objects(){Continuation::PublicCall active(*c
 SourceWeaponEffectPresentation MultiplayerObjectRuntime::request_weapon_effect(const WeaponEffectInput &input) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Original weapon effect allocation requires the TU1.5 world");
   return tu15_->request_weapon_effect(input);
+}
+std::uint32_t MultiplayerObjectRuntime::weapon_hud_target_flags(std::uint32_t unit) {
+  Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Weapon HUD targeting requires the TU1.5 source owner");
+  return tu15_->weapon_hud_target_flags(unit);
+}
+WeaponHudTarget MultiplayerObjectRuntime::weapon_hud_target(std::uint32_t weapon) {
+  Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Weapon HUD locking requires the TU1.5 source owner");
+  return tu15_->weapon_hud_target(weapon);
 }
 void MultiplayerObjectRuntime::populate_weapon_targeting(std::uint32_t player,std::uint32_t object,
     std::span<std::byte,0x5c> command) {Continuation::PublicCall active(*continuation_);

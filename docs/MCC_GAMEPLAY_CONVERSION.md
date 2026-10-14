@@ -1765,3 +1765,74 @@ inventoried, and its native owner remains pending. Initializer32 is incomplete;
 execution and large mod admission, all-tag vanilla TU1.5 conversion, MCC-only
 world loading, complete graphical parity and the loading video with sound
 remain unfinished. Gameplay stays gated and the full goal remains active.
+
+### Native cold depth-write, comparison and bias setup
+
+The reached `12669 -> 3FFDD0` depth-write1 request, `12682 -> 3FFDD0`
+LEQUAL203 request and `12692 -> 3FFA90` bias0 request now resolve through the
+same live Renderer depth control. The main Vulkan pipeline consumes these
+settings; authored per-pass state remains intact. Only these already-realized
+cold defaults are admitted. Non-default, missing, foreign, out-of-order and
+retired requests are rejected. The native void returns advance ESP by4,4,8
+bytes and retain other GP, defined flags and FP state. Xbox SDK internal
+register clobbers and driver/FIFO banks are not imported or claimed.
+
+Two authenticated virtual-tail zero scalar caches at411678 and41165C add8
+typed cold bytes. Unmodified12560 writes the original1 and203 values. The
+prefix now retains311,213 instructions and82,212 ordered non-stack writes;
+typed cold data totals261,400 bytes. All104 focused checks pass without skips.
+Empty-input and four-controller original comparisons pass in the integrated
+and separately rebuilt startup executables. Full controlled depth/color
+surfaces and the reference-free trace pass. The latter opens no executable
+reference, ISO or map and sends no external INET traffic.
+
+Evidence is indexed by
+`analysis/asset-setup/mcc-native-20261014/native-startup/renderer-depth-state-progress-report.json`.
+The immutable snapshot `.local/mcc-native-20261014/native-renderer-depth-state/`
+has2,486 verified file pins,48 rebuilt direct startup sources and68 unique
+copied archives; archive bodies are not independently rebuilt. This stage
+changes no shader source. Concurrent edits to `texture_program.glsl` and
+`world.frag` are recorded in shader provenance; byte identity to the previous
+snapshot is not claimed.
+
+The next reached call is `1269E -> 3FFDD0`, return126A3 at6000EFD8,
+ECX40338/EDX0, disabling polygon-offset fill. Initializer32 is still incomplete,
+with31 of68 returned. Source execution ABI remains32-bit. This bounded startup
+work does not establish full native64 gameplay, complete tag conversion,
+MCC-only world loading or retail framebuffer parity.
+
+### Installed launcher access to MCC content preview
+
+Both installed launchers now offer an imported-map selector and **Preview MCC
+content**. Choices come from the owned, selected MCC cache, including mod
+subdirectories with their imported spelling and case. The current cache lists
+40 non-shared map choices. The preview opens the existing native map renderer
+at an authored player start using cached map, texture and lightmap resources
+and the existing native shader family. It does not admit gameplay tags as
+converted vanilla data or enable native gameplay. Play remains gated by
+`runtime_active` and `full_tu15_parity`.
+
+The command-line equivalent is `./Halo2-Launcher --preview-mcc --map lockout.map`.
+The title-first launcher supports the same route. Preview accepts owned cached
+maps and viewer/capture options, rejecting gameplay options and external map
+or shared-map overrides. Existing viewer controls apply: click for mouse look,
+WASD to move, Q/E down/up, Shift for faster movement, Tab for another player
+start, and Escape to release the mouse or exit. Reopen an already-running
+launcher to load the new controls.
+
+Four launcher/onboarding test groups and ten real Tk interaction checks pass.
+Both installed launchers report the tested runtime at
+`.local/mcc-native-20261013/cmake/halo2_native`. Lockout and Zanzibar render on
+the RTX5080 with Vulkan validation enabled and no reported validation messages.
+Traces read the private MCC cache, without opening Xbox executable/ISO
+references, the live MCC installation or the discarded Vista loading bank.
+The existing loading shaders remain part of the native renderer. Zanzibar
+still reports five missing resident bitmap material uses; these captures are
+asset-preview evidence, not proof of Xbox visual parity or finished gameplay.
+
+Installed hashes, previous-launcher backups, route and gate checks, UI state,
+captures and file-access audits are indexed by
+`analysis/asset-setup/mcc-native-20261014/launcher-integration/delivery-report.json`.
+The full goal remains active, including native64 execution, complete TU1.5
+vanilla conversion, native world loading, remaining graphics corrections and
+the loading presentation video with sound.

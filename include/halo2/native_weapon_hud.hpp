@@ -9,7 +9,7 @@ public:
   NativeWeaponHud(const Cache &,const LevelContent &,Mesh &,
       const std::filesystem::path &fonts,const std::filesystem::path &assets);
   std::vector<Vertex> frame(const Unit &,std::uint32_t tick,unsigned width,unsigned height,
-      std::optional<Vec2> aim_anchor={});
+      std::optional<Vec2> aim_anchor={},std::optional<SourceHudAimCamera> target_camera={});
 private:
   const LevelContent &content_;
   std::unique_ptr<MultiplayerHud> binocular_;

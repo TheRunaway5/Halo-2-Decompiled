@@ -3,6 +3,7 @@
 #include "halo2/multiplayer.hpp"
 #include "halo2/hud_bitmap_geometry.hpp"
 #include "halo2/weapon_hud.hpp"
+#include "halo2/source_camera.hpp"
 #include "halo2/source_hud_score.hpp"
 #include "halo2/motion_sensor.hpp"
 namespace halo2 {
@@ -103,7 +104,8 @@ public:
                            unsigned height, int score_limit,
                            unsigned time_ticks,
                            std::optional<Vec2> player_aim_anchor_pixels = {},
-                           std::optional<TwoPlayerSplit> split = {});
+                           std::optional<TwoPlayerSplit> split = {},
+                           std::optional<SourceHudAimCamera> target_camera = {});
   // Per-viewport shader copies bind the original widget inputs independently.
   void animate(const MultiplayerState &, unsigned player, unsigned view,
                int score_limit, unsigned time_ticks, double seconds);

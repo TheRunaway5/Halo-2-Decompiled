@@ -41,7 +41,9 @@ int main(int argc,char **argv) {
     check(biped!=cache.tags().end(),"Missing original multiplayer biped");
     MultiplayerState state;
     for(auto &p:state.players) {p.connected=true;p.loaded=60;p.reserve=120;p.health=p.shield=1;
-      p.secondary_weapon.datum=1;p.secondary_weapon.loaded=60;p.secondary_weapon.reserve=120;}
+      p.secondary_weapon.datum=1;p.secondary_weapon.loaded=60;p.secondary_weapon.reserve=120;
+      p.weapon_trigger.target_position=std::array{10.f,0.f,0.f};
+      p.secondary_weapon.trigger.target_position=p.weapon_trigger.target_position;}
     unsigned weapons=0,widgets=0,vertices=0,bindings=0;
     std::set<std::pair<std::string,unsigned>> selected;
     for(const auto &tag:cache.tags()) {
@@ -76,8 +78,9 @@ int main(int argc,char **argv) {
             ++bindings;
           }
           for(unsigned width:{640u,1280u})for(unsigned players=1;players<=4;++players)for(unsigned view=0;view<players;++view) {
-            const auto a=original.draw(state,view,view,players,width,width==640?480:720,25,14400);
-            const auto b=hd.draw(state,view,view,players,width,width==640?480:720,25,14400);
+            const SourceHudAimCamera camera{{},{1,0,0},{0,0,1},1.f,false};
+            const auto a=original.draw(state,view,view,players,width,width==640?480:720,25,14400,{}, {},camera);
+            const auto b=hd.draw(state,view,view,players,width,width==640?480:720,25,14400,{}, {},camera);
             check(a.size()==b.size() && !b.empty(),"Missing authored crosshair row: "+tag.name);
             for(unsigned n=0;n<a.size();++n) {
               check(a[n].position.x==b[n].position.x && a[n].position.y==b[n].position.y &&

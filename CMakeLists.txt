@@ -38,6 +38,7 @@ target_sources(halo2_cache PRIVATE src/tu15_bump_palette.cpp)
 add_library(halo2_renderer_palette src/renderer_palette.cpp)
 target_sources(halo2_renderer_palette PRIVATE src/renderer_constant_mode.cpp)
 target_sources(halo2_renderer_palette PRIVATE src/renderer_depth_mode.cpp)
+target_sources(halo2_renderer_palette PRIVATE src/renderer_output_state.cpp)
 target_include_directories(halo2_renderer_palette PUBLIC include)
 target_link_libraries(halo2_renderer_palette PUBLIC halo2_cache halo2_renderer_device_lease)
 target_sources(halo2_cache PRIVATE src/custom_slayer.cpp)
@@ -2204,6 +2205,7 @@ endif()
 
 include(CTest)
 include(cmake/CampaignKillVolumes.cmake)
+include(cmake/CampaignAiPlacement.cmake)
 if(BUILD_TESTING)
     # Keep movie decoding independently buildable from gameplay/source oracles.
     add_executable(movie_tests tests/movie_tests.cpp src/movie.cpp src/audio.cpp src/mcc_audio.cpp

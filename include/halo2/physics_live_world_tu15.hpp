@@ -1,4 +1,6 @@
 #pragma once
+#include "halo2/source_scenario_birth.hpp"
+#include "halo2/weapon_hud.hpp"
 #include "halo2/physics_world_runtime.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include <filesystem>
@@ -233,6 +235,7 @@ public:
         std::span<std::byte,0x5c> command);
     //13C8D4 target flags from the actual unit targeting record and model regions.
     std::uint32_t weapon_hud_target_flags(std::uint32_t unit);
+    WeaponHudTarget weapon_hud_target(std::uint32_t weapon);
     std::optional<ParticleCollisionHit> particle_collision(std::uint32_t flags,Vec3 origin,Vec3 displacement);
     // Native local-view input delivery; the original158340 gate and245EA0
     // packet producer consume the retained source body, seat and authored
@@ -271,7 +274,7 @@ public:
     // Actual C1120 receives the original placement and palette addressed by
     // the source type table. D75A0 owns request construction, including UID,
     // frozen state, authored orientation, scale and type-specific fields.
-    std::uint32_t create_scenario_object(const ScenarioObject &);
+    std::uint32_t create_scenario_object(const ScenarioObject &,SourceScenarioBirth = SourceScenarioBirth::automatic);
     // Actual15D4F0 consumes the original netgame row and admitted variant,
     // selects its collection, constructs its body and retains its row owner.
     std::uint32_t create_netgame_object(unsigned row);

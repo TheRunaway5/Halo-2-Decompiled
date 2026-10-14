@@ -654,3 +654,44 @@ It preserves the other63 modules. `prop-shader-assets-v2` was an incomplete
 The final GPU fixture runtime is pinned in `native-default-w-runtime-v2`.
 The root application/live-capture rebuild and ordinary live validation are
 tracked separately; no launcher delivery claim follows from the GPU fixture.
+
+
+### Fresh root runtime and local views, 2026-10-14
+
+`default-texture-w-root-build-v1.log` completes the current root application,
+live prop tool, original-source tests and frame GPU fixture. The root source
+checks pass2/2. `default-w-root-matched-controls-v2` repeats both software
+illumination comparisons on the fresh root fixture:0 unequal channels, exact
+source seeds/banks and0 Vulkan validation errors. The interrupted v1 execution
+has no completed results and is explicitly rejected.
+
+Pinned application/tool hashes are in `native-default-w-root-runtime-v1`.
+The actual live grenade at tick69 produces one model packet on the selected
+BLOC owner. Its paired same-runtime model-consumer removal control preserves
+source owners, WORLD nodes, sphere/velocity, all observed base draws, actual
+light/effect provenance, camera visibility and64 shader files. It changes
+6,892 RGB pixels /18,541 channels, max125, bounds(448,319)-(529,446). Evidence:
+`live-prop-default-w-contribution-v1`. Both960x540 and1920x1080 captures pass
+with identical source poses and actual effect delivery; these native views are
+not matched original-scene frames.
+
+The capture tool now observes every local view's model packets for the selected
+actual grenade light identity. It rejects a view with zero such packets, even
+when its ordinary base lighting is valid. `native-default-w-root-runtime-v2`
+pins this stricter live tool. The1920x1080 four-view capture and paired removal
+control both pass at their actual delivery tick73, with[1,1,1,1] grenade model
+packets. All recorded source fields match between the two runs. Isolated RGB
+contribution counts are[1876,1570,5,262], retained in
+`live-prop-default-w-split4-contribution-v1/report.json`. View2 exposes only five
+contributing pixels; broader visible view/pose coverage remains necessary.
+The different one/four-player delivery ticks are retained, not forced to match.
+
+The current root `src/main.cpp` campaign path creates `ModelObjectDraw` character
+lighting and assigns `ModelView.objects`, but supplies neither effect-light draw
+span. `SourceBspEffectLights`/`SourceEffectLightModelViewTu15` collection remains
+in `src/multiplayer_runtime.cpp`, whose joined main/light consumers currently
+cover vehicles and ordinary BLOC owners. Campaign needs actual event/light and
+completed model-owner wiring; exposing cached ordinary actor lighting alone
+would not implement grenade illumination. Multiplayer actor/held-weapon, PRT,
+override, client and the remaining full-goal gates remain open. No installed
+launcher was repointed during this checkpoint.

@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/source_scenario_birth.hpp"
 #include "halo2/source_live_objects_tu15.hpp"
 #include "halo2/death_startup_native.hpp"
 #include "halo2/source_runtime_cache_tags.hpp"
@@ -88,6 +89,8 @@ public:
   SourceWeaponEffectPresentation request_weapon_effect(const WeaponEffectInput &);
   void populate_weapon_targeting(std::uint32_t player,std::uint32_t object,
       std::span<std::byte,0x5c> command);
+  std::uint32_t weapon_hud_target_flags(std::uint32_t unit);
+  WeaponHudTarget weapon_hud_target(std::uint32_t weapon);
   std::optional<ParticleCollisionHit> particle_collision(std::uint32_t flags,Vec3 origin,Vec3 displacement);
   std::int8_t current_grenade(std::uint32_t unit) const;
   // Read-only actual type5 bodies whose definitions occur in the retained
@@ -150,7 +153,7 @@ public:
   // Returns the actual salted source handle; never reserves a parallel header.
   std::uint32_t create_biped(std::uint32_t definition,const Vec3 &position,
                              const Vec3 &forward,std::uint32_t player=0xffffffffu);
-  std::uint32_t create_scenario_object(const ScenarioObject &);
+  std::uint32_t create_scenario_object(const ScenarioObject &,SourceScenarioBirth = SourceScenarioBirth::automatic);
   std::uint32_t create_netgame_object(unsigned row);
   std::uint32_t netgame_object(unsigned row) const;
   std::uint32_t child_object(std::uint32_t parent,std::uint32_t definition) const;

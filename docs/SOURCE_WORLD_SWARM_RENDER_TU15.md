@@ -40,14 +40,20 @@ application's legacy visual channel receives the same explicit replay input.
 Both final source words are recorded. This makes the capture's inputs explicit;
 the application/source stream handoff across all native consumers remains open.
 
-Accepted pixel counts and the installed runtime are recorded in
-[the launcher delivery receipt](SOURCE_WORLD_LAUNCHER_DELIVERY.md). A camera-only
-one-view comparison and a four-view comparison using declared native look
-controls establish visible particle submissions. Ordinary four-view initial
-cameras have no visible glowbugs and are retained as a zero-pixel case. None of
-these captures relocates an object/effect or bypasses the one-player camera
-override restriction. Exact enabled repeats and source/native RNG agreement
-are required, with zero Vulkan validation errors.
+The staged v4 runtime has a positive camera-only one-view comparison: 14
+source-created draws produce 39 changed pixels, and the enabled repeat is exact
+with equal source/native RNG words. The tested ordinary and controlled-look
+four-view captures remain zero-pixel cases. In the walked/downward-looking
+capture, seven actual source draw packets project inside view1. Each unchanged
+packet produces 4-7 RGB pixels in the production particle subrenderer against
+cleared depth, and zero against that frame's actual captured scene depth.
+This establishes occlusion for that sightline; it is not positive split-screen
+visibility evidence. The packets, depth and pinned comparison are retained in
+`analysis/map-world-features/swarm-lifecycle-20261014/live-swarm/debug/occlusion-verification.json`.
+No object/effect is relocated and the one-player camera override restriction
+remains intact. The launcher selection changed concurrently to the current MCC
+build, which also links this consumer; direct acceptance of that selected
+runtime is being recorded separately. The staged v4 package is not installed.
 
 The legacy NativeWorldEffects path continues to reject controller2; this new
 consumer handles the original particles separately. Full glowbug effect graph

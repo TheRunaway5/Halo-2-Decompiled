@@ -45,12 +45,12 @@ NativeWeaponHud::NativeWeaponHud(const Cache &cache,const LevelContent &content,
   }
 }
 std::vector<Vertex> NativeWeaponHud::frame(const Unit &unit,std::uint32_t tick,
-    unsigned width,unsigned height,std::optional<Vec2> aim_anchor) {
+    unsigned width,unsigned height,std::optional<Vec2> aim_anchor,std::optional<SourceHudAimCamera> target_camera) {
   MultiplayerState state;state.tick=tick;state.players[0]=native_weapon_hud_player(unit,content_);
   std::vector<Vertex> result;
   const auto append=[&](MultiplayerHud &hud) {
     hud.animate(state,0,0,0,0,double(tick)*tick_seconds);
-    auto vertices=hud.draw(state,0,0,1,width,height,0,0,aim_anchor);
+    auto vertices=hud.draw(state,0,0,1,width,height,0,0,aim_anchor,{},target_camera);
     result.insert(result.end(),vertices.begin(),vertices.end());
   };
   if(const auto found=primary_.find(unit.weapon.definition);found!=primary_.end())append(*found->second);

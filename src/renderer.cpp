@@ -467,6 +467,7 @@ struct Renderer::Impl {
     // selects that same mode; each pass retains its authored raster policy.
     std::uint32_t source_depth_mode=2;
     std::uint32_t source_depth_write=1,source_depth_function=0x203,source_depth_bias=0;
+    std::array<std::uint32_t,8> source_output_state=renderer_cold_output_values;
     std::vector<bool> extended_vertex_banks;
     std::vector<std::size_t> changed_vertex_banks;
     using MaterialUniform=WorldMaterialUniform;
@@ -1684,8 +1685,9 @@ struct Renderer::Impl {
                                     {material.static_lightmap_pass?1u:0u,material.forward_pass?1u:0u,
                                      material.per_vertex_lighting?4u:material.forward_vertex,0},
                                     material.forward_transforms,material.forward_diffuse,material.forward_specular};
-            uniform.alpha_test={material.forward_pass?material.forward_raster.alpha_test:0,
-                material.forward_raster.alpha_function,material.forward_raster.alpha_reference,0};
+            uniform.alpha_test={material.forward_pass?material.forward_raster.alpha_test:source_output_state[1],
+                material.forward_pass?material.forward_raster.alpha_function:source_output_state[2],
+                material.forward_pass?material.forward_raster.alpha_reference:source_output_state[3],0};
             for(unsigned stage=0;stage<4;++stage) {
                 const auto &state=material.texture_states[stage];
                 const Texture *stage_textures[]{&material.diffuse,&material.detail,&material.bump,&material.auxiliary};
@@ -2514,7 +2516,7 @@ struct Renderer::Impl {
         raster.cullMode = VK_CULL_MODE_NONE;
         raster.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         raster.lineWidth = 1;
-        raster.depthBiasEnable=source_depth_bias!=0;
+        raster.depthBiasEnable=source_depth_bias!=0 && source_output_state[0]!=0;
         VkPipelineMultisampleStateCreateInfo samples{VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO};
         samples.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
         VkPipelineDepthStencilStateCreateInfo depth_state{VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO};
@@ -2522,6 +2524,11 @@ struct Renderer::Impl {
         depth_state.depthWriteEnable = source_depth_write!=0;
         depth_state.depthCompareOp = VkCompareOp(source_depth_function-0x200);
         VkPipelineColorBlendAttachmentState blend{};
+        blend.blendEnable=source_output_state[4]!=0;
+        // The cold native interface admits ONE, ZERO and FUNC_ADD only.
+        blend.srcColorBlendFactor=blend.srcAlphaBlendFactor=source_output_state[5]?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ZERO;
+        blend.dstColorBlendFactor=blend.dstAlphaBlendFactor=source_output_state[6]?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ZERO;
+        blend.colorBlendOp=blend.alphaBlendOp=VkBlendOp(source_output_state[7]-0x8006);
         blend.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
         VkPipelineColorBlendStateCreateInfo color_state{VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO};
         color_state.attachmentCount = 1;
@@ -6192,6 +6199,22 @@ RendererDepthMode Renderer::depth_mode_control() {
             std::bit_cast<std::uint64_t>(impl->depth),
             NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(&impl->source_depth_mode))},
             impl->source_depth_write,impl->source_depth_function,impl->source_depth_bias};
+    });
+}
+RendererOutputState Renderer::output_state_control() {
+    const std::weak_ptr<Impl> owner=impl_;
+    return RendererOutputState::issue(device_lease(),[owner](RendererOutputSetting setting,std::uint32_t value) {
+        auto impl=owner.lock();const auto index=unsigned(setting);
+        if(!impl || index>=renderer_cold_output_values.size() || value!=renderer_cold_output_values[index])
+            throw FormatError("Native renderer cold output setting is unsupported");
+        if(!impl->pipeline || !impl->material_buffer || !impl->material_mapping || impl->material_uniforms.empty())
+            throw FormatError("Native renderer lacks its live pipeline or material output storage");
+        // These defaults are already realized in the main pipeline and shader
+        // constants. Authored material passes keep their own output policies.
+        impl->source_output_state[index]=value;
+        return RendererOutputConfiguration{impl->source_output_state,std::bit_cast<std::uint64_t>(impl->pipeline),
+            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->source_output_state.data()))},
+            NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(impl->material_mapping))}};
     });
 }
 void Renderer::update_material_constants(std::span<const Material> materials) { impl_->update_material_constants(materials); }

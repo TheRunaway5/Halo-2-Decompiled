@@ -5,6 +5,8 @@
 #include "halo2/source_game_variant.hpp"
 #include "source_device_snapshot_check.hpp"
 #include <bit>
+#include <set>
+#include <map>
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
@@ -27,13 +29,14 @@ std::uint32_t word(const SourceRuntimeMemory &memory,auto address){return Bytes(
 int main(int argc,char **argv)try{
   std::cout<<std::unitbuf;
   const bool wheel=argc==4 && std::string_view(argv[3])=="--wheel-power";
-  if((argc!=3 && !wheel) || !std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]))return 77;
+  const bool props=argc==4 && std::string_view(argv[3])=="--script-props";
+  if((argc!=3 && !wheel && !props) || !std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]))return 77;
   Files files;Cache cache(argv[2],{},OriginalData::load_xbe(argv[1]));auto content=cache.load_content(0,true);
-  int gate_name=-1;
-  for(unsigned n=0;n<content.objects.size();++n)if(n<content.devices.size() && content.devices[n] &&
+  int gate_name=props?0:-1;
+  for(unsigned n=0;!props && n<content.objects.size();++n)if(n<content.devices.size() && content.devices[n] &&
       content.devices[n]->machine && content.devices[n]->placement.position_group==0)gate_name=content.objects[n].name;
   check(gate_name>=0,"Original Zanzibar gate has no current name input");
-  Program program(gate_name);content.scripts=std::move(program.data);
+  Program program(gate_name);if(!props)content.scripts=std::move(program.data);
   MultiplayerObjectRuntime world(argv[1],cache,0,files.path);
   UiVariant variant{"Slayer",0,{{0x59,5}}};auto rules=slayer_rules(variant);
   rules.weapon=cache.slayer_starting_weapon(5);rules.score_limit=rules.time_ticks=0;
@@ -56,6 +59,33 @@ int main(int argc,char **argv)try{
     std::this_thread::sleep_for(std::chrono::milliseconds(2));
   }
   check(peer.ready() && host.peers()==1,"Actual source script UDP admission failed");
+  if(props) {
+    unsigned comparisons{},dynamic_observations{};std::set<std::uint32_t> moved;
+    std::map<std::uint32_t,Vec3> first;
+    for(unsigned tick=0;tick<650;++tick) {
+      peer.send(std::span(&remote,1));host.receive(controls);match.step(controls);host.broadcast();
+      check(match.simulation().scripts().diagnostics().empty(),"Actual authored prop spawner faulted");
+      const auto sent=match.state();const auto until=std::chrono::steady_clock::now()+std::chrono::seconds(2);
+      do{peer.receive();if(peer.state().tick>=sent.tick)break;std::this_thread::sleep_for(std::chrono::milliseconds(1));}
+        while(std::chrono::steady_clock::now()<until);
+      check(peer.state().tick==sent.tick,"Authored prop physics snapshot missed its actual UDP tick");
+      test::same_device_snapshot(sent.devices,peer.state().devices);++comparisons;
+      for(const auto &object:match.simulation().scene().objects()) {
+        const auto &placed=content.objects.at(object.placement);
+        const auto *tag=cache.find_tag(TagHandle{placed.definition});
+        if(object.handle==null_datum || object.created_tick==0 || placed.type!=11 || (placed.flags&0x100u) ||
+            !tag || tag->name.find("gas_container")==std::string::npos)continue;
+        const auto body=world.object_body(object.handle);
+        check((std::to_integer<unsigned>(world.memory().view(body+0xc1u,1)[0])&1u)==0,
+            "Script-created source prop was incorrectly forced frozen by the automatic placement caller");
+        ++dynamic_observations;const auto position=world.object_transform(object.handle).position;
+        const auto [prior,inserted]=first.emplace(object.handle,position);
+        if(!inserted && length(position-prior->second)>.1f)moved.insert(object.handle);
+      }
+    }
+    check(dynamic_observations>0 && moved.size()>=2,"Authored source prop spawners did not produce two moving physical generations");
+    std::cout<<"PASS authored Colossus source prop creation/dynamics, "<<moved.size()<<" moving generations, "<<comparisons<<" exact UDP device banks\n";return 0;
+  }
   if(wheel) {
     const auto selected=std::find_if(cache.tags().begin(),cache.tags().end(),[](const auto &tag){return tag.group=="mach" &&
         tag.name=="scenarios\\objects\\multi\\zanzibar\\big_wheel\\big_wheel";});

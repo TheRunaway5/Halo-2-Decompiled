@@ -2,6 +2,10 @@
 #include "halo2/cache.hpp"
 #include <optional>
 namespace halo2 {
+struct WeaponHudTarget {
+  bool acquired{};
+  std::optional<Vec3> position;
+};
 // Original per-weapon HUD status at13C719/13DA89. Padding is caller-owned.
 struct SourceWeaponHudState {
   std::uint32_t datum=0xffffffffu;

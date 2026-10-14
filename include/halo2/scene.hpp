@@ -1,4 +1,5 @@
 #pragma once
+#include "halo2/source_scenario_birth.hpp"
 #include "halo2/content.hpp"
 #include "halo2/model.hpp"
 #include "halo2/camera_motion.hpp"
@@ -36,7 +37,7 @@ struct SourceSceneGameContext {
 // Simulation supplies these before automatic placements. A source birth owns
 // allocation, body construction and registration in the retained source world.
 struct SourceSceneObjectOwner {
-  std::function<std::uint32_t(const ScenarioObject &)> create;
+  std::function<std::uint32_t(const ScenarioObject &,SourceScenarioBirth)> create;
   std::function<void(std::uint32_t)> destroy;
 };
 class SceneObjects {
@@ -177,7 +178,8 @@ private:
   std::vector<std::uint32_t> names_;
   using FunctionVariable=AuthorityFunction;
   std::map<std::pair<std::uint32_t,std::uint32_t>,FunctionVariable> functions_;
-  std::uint32_t place(std::size_t, std::uint64_t creation_tick = 0);
+  std::uint32_t place(std::size_t, std::uint64_t creation_tick = 0,
+                      SourceScenarioBirth = SourceScenarioBirth::runtime);
 };
 class Presentation {
 public:

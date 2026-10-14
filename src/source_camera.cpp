@@ -1,4 +1,5 @@
 #include "halo2/source_camera.hpp"
+#include "halo2/math.hpp"
 #include <cmath>
 
 namespace halo2 {
@@ -148,5 +149,26 @@ Vec2 source_hud_aim_anchor(const SourceHudAimCamera &camera,RenderViewport outer
   }
   result.x=std::floor(result.x+.5f);result.y=std::floor(result.y+.5f);
   return result;
+}
+std::optional<Vec2> source_hud_target_anchor(const SourceHudAimCamera &camera,
+    RenderViewport outer,RenderViewport safe,Vec3 point) {
+  const Vec3 r=normalize_source(cross(camera.forward,camera.up));
+  const Vec3 u=normalize_source(cross(r,camera.forward));
+  const Vec3 b=normalize_source({-camera.forward.x,-camera.forward.y,-camera.forward.z});
+  const Vec3 negative{-camera.position.x,-camera.position.y,-camera.position.z};
+  const auto transform=[&](Vec3 axis,bool final) {
+    const float translation=final?axis.x*negative.x+axis.z*negative.z+axis.y*negative.y:
+        axis.z*negative.z+axis.x*negative.x+axis.y*negative.y;
+    return axis.z*point.z+axis.y*point.y+axis.x*point.x+translation;
+  };
+  const Vec3 view{transform(r,false),transform(u,false),transform(b,true)};
+  if(!(view.z<0))return {};
+  const auto projection=source_camera_projection(camera.projection_angle,outer,safe,camera.widescreen);
+  const float reciprocal=-1/view.z;
+  const float x=(projection.horizontal_scale*view.x+projection.horizontal_offset*view.z)*reciprocal;
+  const float y=0.f-(projection.vertical_scale*view.y+projection.vertical_offset*view.z)*reciprocal;
+  if(!(x>=-1 && x<=1 && y>=-1 && y<=1))return {};
+  return Vec2{std::floor(((x+1)*.5f*float(int(outer.left+outer.width)-int(outer.left))+float(int(outer.left)))+.5f),
+      std::floor(((y+1)*.5f*float(int(outer.top+outer.height)-int(outer.top))+float(int(outer.top)))+.5f)};
 }
 } // namespace halo2

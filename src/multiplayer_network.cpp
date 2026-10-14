@@ -504,6 +504,8 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,std::bit_cast<std::uint32_t>(u.weapon_shader.power_fraction),4);
     put(p,std::bit_cast<std::uint32_t>(u.weapon_shader.heat),4);put(p,std::uint32_t(u.ammunition_available),4);
     put(p,u.weapon_trigger.input_flags,2);put(p,std::uint16_t(u.weapon_trigger.ticks),2);put(p,u.weapon_trigger.mode,1);put(p,u.weapon_trigger.charge,1);
+    put(p,unsigned(u.weapon_trigger.target_acquired)|(u.weapon_trigger.target_position?2u:0u),1);
+    if(u.weapon_trigger.target_position)for(float v:*u.weapon_trigger.target_position)put_float(p,v);
     for(float v:{u.velocity.x,u.velocity.y,u.velocity.z})put_float(p,v);
     put_float(p,u.native_forward);put_float(p,u.native_right);
     put(p,u.native_grounded|(u.native_crouching<<1),1);put(p,u.native_support_material,2);
@@ -547,6 +549,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put_float(p,u.source_camouflage.primary);put_float(p,u.source_camouflage.secondary);
     put_float(p,u.source_camouflage.fade_speed);
     put(p,u.source_hud_zoom_mask,2);
+    put(p,u.source_hud_target_flags,4);
     put(p,u.motion_sensor_control,1);
     put(p,u.first_person_clock.present,1);
     if(u.first_person_clock.present) {
@@ -563,6 +566,8 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,std::bit_cast<std::uint32_t>(offhand.shader.power_fraction),4);
     put(p,std::bit_cast<std::uint32_t>(offhand.shader.heat),4);put(p,std::uint32_t(offhand.ammunition_available),4);
     put(p,offhand.trigger.input_flags,2);put(p,std::uint16_t(offhand.trigger.ticks),2);put(p,offhand.trigger.mode,1);put(p,offhand.trigger.charge,1);
+    put(p,unsigned(offhand.trigger.target_acquired)|(offhand.trigger.target_position?2u:0u),1);
+    if(offhand.trigger.target_position)for(float v:*offhand.trigger.target_position)put_float(p,v);
     if(offhand.clock.present){encode_fp_channel(p,offhand.clock.origin);encode_fp_channel(p,offhand.clock.current);}
     const auto &effect=u.weapon_effect;
     for(auto word:{effect.serial,effect.tick,effect.unit,effect.weapon,effect.effect,effect.a_bits,effect.b_bits})
@@ -881,6 +886,10 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     u.weapon_shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4))),
         std::bit_cast<float>(std::uint32_t(r.get(4)))};u.ammunition_available=r.integer();
     u.weapon_trigger={std::uint16_t(r.get(2)),std::bit_cast<std::int16_t>(std::uint16_t(r.get(2))),std::uint8_t(r.get(1)),std::uint8_t(r.get(1))};
+    const auto target_flags=r.get(1);
+    if(target_flags>3u)throw FormatError("Invalid LAN weapon HUD target flags");
+    u.weapon_trigger.target_acquired=target_flags&1u;
+    if(target_flags&2u)u.weapon_trigger.target_position=std::array{r.real(),r.real(),r.real()};
     u.velocity={r.real(),r.real(),r.real()};
     u.native_forward=r.real();u.native_right=r.real();
     const auto support_flags=r.get(1);u.native_support_material=std::uint16_t(r.get(2));
@@ -966,6 +975,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     u.source_camouflage.primary=r.real();u.source_camouflage.secondary=r.real();
     u.source_camouflage.fade_speed=r.real();
     u.source_hud_zoom_mask=r.get(2);
+    u.source_hud_target_flags=r.get(4);
     u.motion_sensor_control=r.get(1);
     if(u.motion_sensor_control&~0x21u)throw FormatError("Invalid native radar control flags");
     const auto clock_present=r.get(1);
@@ -982,6 +992,10 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     offhand.shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4))),
         std::bit_cast<float>(std::uint32_t(r.get(4)))};offhand.ammunition_available=r.integer();
     offhand.trigger={std::uint16_t(r.get(2)),std::bit_cast<std::int16_t>(std::uint16_t(r.get(2))),std::uint8_t(r.get(1)),std::uint8_t(r.get(1))};
+    const auto secondary_target_flags=r.get(1);
+    if(secondary_target_flags>3u)throw FormatError("Invalid LAN secondary HUD target flags");
+    offhand.trigger.target_acquired=secondary_target_flags&1u;
+    if(secondary_target_flags&2u)offhand.trigger.target_position=std::array{r.real(),r.real(),r.real()};
     if(empty>1 || present>1 || offhand.loaded<0 || offhand.reserve<0 || offhand.reload_seconds<0 ||
         ((offhand.datum==null_datum)!=(offhand.definition==null_datum)) ||
         (offhand.datum!=null_datum && (u.source_unit==null_datum || offhand.datum==u.source_weapon)) ||
@@ -995,6 +1009,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
       throw FormatError("Invalid native LAN weapon effect owner");
     if(u.source_hud_zoom_mask&~std::uint16_t(0x5c0))
       throw FormatError("Invalid LAN source zoom HUD mask");
+    if(u.source_hud_target_flags&~0x1fu)throw FormatError("Invalid LAN source HUD aim flags");
     const auto slot=std::size_t(&u-s.players.data());
     if(u.source_player==null_datum || (u.source_player&0xffffu)!=slot ||
         (u.source_unit==null_datum && u.source_weapon!=null_datum))

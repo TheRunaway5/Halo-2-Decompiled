@@ -1387,6 +1387,9 @@ int main(int argc, char **argv) {
         simulation->set_difficulty(menu_difficulty);bind_training_settings();bind_cinematic_text();rumble.clear();rumble_output={};if(campaign)simulation->start_level();
         observed_bsp_revision=std::numeric_limits<std::uint64_t>::max();update_bsp();
         camera.yaw=simulation->player().yaw;camera.pitch=simulation->player_pitch();
+        campaign_view_zoom=-1;campaign_zoom_reset=simulation->player().zoom_reset_serial;
+        campaign_scope_producer={};
+        if(campaign_scope)campaign_scope=halo2::source_scope_camera_initial(*content->original_data->unit_scope_camera_constants);
         accumulator=0;presentation_paired=false;restart_level=false;observed_restores=0;
         scene_interpolation.reset(simulation->ticks(),simulation->scene().objects());
         previous_actors.clear();previous_projectiles.clear();
@@ -1932,7 +1935,11 @@ int main(int argc, char **argv) {
       if(weapon_hud && play && simulation && !game_paused && effects.hud>0) {
         int w{},h{};SDL_Vulkan_GetDrawableSize(window,&w,&h);
         pause_draw.vertices=weapon_hud->frame(simulation->player(),std::uint32_t(simulation->ticks()),
-            unsigned(std::max(1,w)),unsigned(std::max(1,h)));
+            unsigned(std::max(1,w)),unsigned(std::max(1,h)),{},halo2::SourceHudAimCamera{
+                render_camera.position,render_camera.oriented?render_camera.forward:halo2::direction(render_camera.yaw,render_camera.pitch),
+                render_camera.oriented?render_camera.up:halo2::cross(halo2::direction(render_camera.yaw,render_camera.pitch),
+                    {-std::sin(render_camera.yaw),std::cos(render_camera.yaw),0}),
+                render_camera.projection_vertical_angle.value_or(halo2::camera_vertical_field_of_view(render_camera,float(std::max(1,w))/std::max(1,h))),false});
         renderer->update_material_constants(mesh.materials);
       }
       if(action_hud && play && simulation && !game_paused && effects.hud>0) {

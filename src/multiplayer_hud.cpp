@@ -32,7 +32,9 @@ SourceWeaponHudState multiplayer_hud_weapon_state(const MultiplayerState::Player
   input.trigger_present=content.weapon_trigger_count!=0;
   input.trigger_behavior=content.weapon_trigger_behavior;input.charging_type=content.weapon_charging_type;
   input.trigger_state=trigger.mode;input.trigger_ticks=trigger.ticks;
-  // Target acquisition and marker queries retain their separate live owners.
+  input.acquire_target=trigger.target_acquired;
+  if(trigger.target_position)input.target_position=Vec3{(*trigger.target_position)[0],
+      (*trigger.target_position)[1],(*trigger.target_position)[2]};
   SourceWeaponHudState result;weapon_hud_project(result,input);return result;
 }
 namespace { std::vector<unsigned> codepoints(const std::string &); }
@@ -84,7 +86,10 @@ std::array<std::uint16_t, 4> conditions(const HudWidget &w,const HudContent &con
   const auto projected=multiplayer_hud_weapon_state(p,content,hand);
   const auto *item=w.weapon_type==1?&projected:nullptr;
   const auto weapon=weapon_hud_cutoffs(item,w.cutoffs,weapon_hud_mask(item,w.weapon_type==1?(hand?2u:1u):w.weapon_type));
-  return {unit, 0, weapon, std::uint16_t(source_hud_score_mask(score) | (talking?0x800:0))};
+  const auto flags=p.source_hud_target_flags;
+  const auto target=std::uint16_t((flags&1u)|((flags&8u)?2u:0u)|((flags&0x10u)?4u:0u)|
+      ((flags&4u)?8u:0u)|((flags&2u)?0x10u:0u));
+  return {unit, target, weapon, std::uint16_t(source_hud_score_mask(score) | (talking?0x800:0))};
 }
 std::array<float, 4> widget_inputs(const HudWidget &w,
                                    const HudContent &content,
@@ -106,6 +111,9 @@ std::array<float, 4> widget_inputs(const HudWidget &w,
       break;
     case 17:
       out[i] = p.health;
+      break;
+    case 18:
+      out[i]=(p.source_hud_target_flags&8u)?1.f:0.f;
       break;
     case 19:
       out[i] = p.grenades[0] == 0 && p.grenades[1] == 0 ? 1.f : 0.f;
@@ -722,7 +730,8 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
                                          unsigned width, unsigned height,
                                          int limit, unsigned time_ticks,
                                          std::optional<Vec2> player_aim_anchor_pixels,
-                                         std::optional<TwoPlayerSplit> split) {
+                                         std::optional<TwoPlayerSplit> split,
+                                         std::optional<SourceHudAimCamera> target_camera) {
   if (id >= multiplayer_capacity || view >= materials_.size() || !width ||
       !height)
     throw FormatError("Invalid HUD draw viewport");
@@ -762,6 +771,17 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
     const auto input =
         widget_inputs(w, content_, s, id, score, winning_[view].amount,hand_);
     Vec2 p = anchor(w.anchor, viewport), ax{1, 0}, ay{0, 1};
+    if(w.anchor==5) {
+      if(!target_camera)continue;
+      const auto &trigger=hand_?s.players[id].secondary_weapon.trigger:s.players[id].weapon_trigger;
+      const Vec3 point=trigger.target_position?Vec3{(*trigger.target_position)[0],
+          (*trigger.target_position)[1],(*trigger.target_position)[2]}:Vec3{};
+      const auto physical=[&](UiRect r) {return RenderViewport{r.left*scale+left,r.top*scale+top,
+          (r.right-r.left)*scale,(r.bottom-r.top)*scale};};
+      const auto projected=source_hud_target_anchor(*target_camera,physical(viewport.outer),physical(viewport.safe),point);
+      if(!projected)continue;
+      p={(projected->x-left)/scale,(projected->y-top)/scale};
+    }
     if(w.anchor==4 && player_aim_anchor_pixels)
       p={(player_aim_anchor_pixels->x-left)/scale,
          (player_aim_anchor_pixels->y-top)/scale};

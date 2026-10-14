@@ -125,6 +125,8 @@ struct NativeWeaponTriggerPublication {
   std::uint16_t input_flags{};
   std::int16_t ticks{};
   std::uint8_t mode{},charge{};
+  bool target_acquired{};
+  std::optional<std::array<float,3>> target_position;
   bool operator==(const NativeWeaponTriggerPublication &)const=default;
 };
 struct NativeWeaponEffectEvent {
@@ -207,6 +209,7 @@ struct MultiplayerState {
     std::uint8_t source_unit_10a{};
     std::uint32_t zoom_reset_serial{};
     std::uint16_t source_hud_zoom_mask = 0x40;
+    std::uint32_t source_hud_target_flags{}; //13C8D4; consumed by13B7C0's aim mask.
     // Unit+14A bits0/5 are primary/secondary trigger holds (C6C50), read by
     // 1A20E6. Grenade visibility uses the retained component+0C throw phase.
     std::uint8_t motion_sensor_control{};

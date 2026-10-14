@@ -14,8 +14,8 @@ int main(int argc,char** argv)try {
     nlohmann::json depth_samples=nlohmann::json::array();
     std::filesystem::path capture_path,palette_output;
     for(int i=1;i+1<argc;i+=2) {
-        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-palette" || std::string_view(argv[i+1])=="graphics-constants" || std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state"))palette_probe=true;
-        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state"))depth_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-palette" || std::string_view(argv[i+1])=="graphics-constants" || std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output"))palette_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output"))depth_probe=true;
         if(std::string_view(argv[i])=="--capture")capture_path=argv[i+1];
     }
     if(palette_probe) {
@@ -27,7 +27,7 @@ int main(int argc,char** argv)try {
     }
     if(depth_probe && SDL_setenv("HALO2_DEPTH_DIAGNOSTICS","1",1))throw std::runtime_error("Cannot enable actual depth readback");
     std::ostringstream diagnostics;auto* previous=std::cerr.rdbuf(diagnostics.rdbuf());
-    std::string gpu;halo2::RendererDeviceLease observed;halo2::RendererPaletteFactory observed_palettes;halo2::RendererConstantMode observed_constants;halo2::RendererDepthMode observed_depth;
+    std::string gpu;halo2::RendererDeviceLease observed;halo2::RendererPaletteFactory observed_palettes;halo2::RendererConstantMode observed_constants;halo2::RendererDepthMode observed_depth;halo2::RendererOutputState observed_output;
     try {
         halo2::Mesh mesh;halo2::Material material;
         halo2::BspAtmosphere depth_atmosphere;
@@ -53,10 +53,11 @@ int main(int argc,char** argv)try {
         auto palettes=renderer.palette_factory();observed_palettes=palettes;
         auto constants=renderer.constant_mode_control();observed_constants=constants;
         auto depth=renderer.depth_mode_control();observed_depth=depth;
+        auto output=renderer.output_state_control();observed_output=output;
         halo2::Camera camera;camera.field_of_view=60;
         if(palette_probe && !renderer.draw(camera,palette_output/"before.ppm"))
             throw std::runtime_error("Native palette baseline draw failed");
-        result=halo2::run_native_tu15_startup_test(argc,argv,std::move(lease),palettes,constants,depth);
+        result=halo2::run_native_tu15_startup_test(argc,argv,std::move(lease),palettes,constants,depth,output);
         if(!result && palette_probe) {
             for(unsigned stage=0;stage<4;++stage)if(!palettes.bound(stage).valid())
                 throw std::runtime_error("Native palette stage has no live renderer color resource");
@@ -105,6 +106,7 @@ int main(int argc,char** argv)try {
     }catch(...) {std::cerr.rdbuf(previous);std::cerr<<diagnostics.str();SDL_DestroyWindow(window);SDL_Quit();throw;}
     std::cerr.rdbuf(previous);std::cerr<<diagnostics.str();
     SDL_DestroyWindow(window);SDL_Quit();
+    if(observed_output.valid())throw std::runtime_error("Departed renderer retained a live output-state control");
     if(observed_depth.valid())throw std::runtime_error("Departed renderer retained a live depth-mode control");
     if(observed_constants.valid())throw std::runtime_error("Departed renderer retained a live constant-mode control");
     if(observed_palettes.valid())throw std::runtime_error("Departed renderer retained a live palette factory");
@@ -121,6 +123,7 @@ int main(int argc,char** argv)try {
             report["native_palette_gpu_images"]=palette_output.string();
         }
         if(depth_probe) {report["native_depth_gpu_samples"]=depth_samples;report["native_depth_gpu_attachment_and_occlusion_verified"]=true;report["native_depth_control_retirement_verified"]=true;}
+        report["native_output_control_retirement_verified"]=true;
         report["native_gpu_name"]=gpu;report["native_renderer_retirement_verified"]=true;report["native_constant_control_retirement_verified"]=true;
         std::ofstream output(argv[i+1]);output<<report.dump(2)<<'\n';
         if(!output)throw std::runtime_error("Cannot retain native Vulkan validation evidence");

@@ -946,6 +946,10 @@ void Simulation::shot(Unit &unit, int owner, float pitch,
   const auto origin = eye(unit);
   const DamageOwner captured{unit.source_player, unit.source_datum, unit.source_membership};
   ++shots_;
+  if(!multiplayer_weapon_steps_ && unit.source_zoom.current!=-1 &&
+      (w.zoom.levels==0 || (state.magazine.mode>=1 && state.magazine.mode<=6))) {
+    source_zoom_reset(unit.source_zoom);++unit.zoom_reset_serial;
+  }
   state.last_shot = ticks_ + 1; // presentation observes the completed tick
   if(!prepared_direction && !effects_prepared)
     if(const auto index=select_weapon_firing_effect(state,w);index &&

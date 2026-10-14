@@ -899,7 +899,7 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
           representation.hands=data.u32(representations.offset+i*0xbc+4);
         }
       }
-      if (multiplayer) {
+      if (multiplayer || players.count) {
         // C9CC0/C9BE0 use the first player-information pointer without a
         // block-count guard. Preserve that source walk with host bounds.
         const auto q = metadata_offset(data.u32(p + 0x134), 0xc4);

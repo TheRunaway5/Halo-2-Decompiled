@@ -1276,3 +1276,34 @@ elements and the complete goal remain open.
 Final resource continuation regression: v57 completes the coherent30-target
 build,102/102 selected CTests, and lunge/sword/frag checks successfully. No
 whole-element coverage or accepted-checkpoint advancement follows this result.
+
+
+Current v78 continuation: common retained-memory copies and registry operations
+now use a per-bank recursive guard. A borrowed span needs an AccessScope or a
+quiescent/immutable owner; there is no whole-frame lock. The direct done-byte
+polling test and a real TSan concurrency run pass. This does not bind the live
+persistent cache worker or its continuation, cancellation and buffer lifetimes.
+
+Interactive delivery found additional original owners. Whole102C70 (74 original
+instructions) now resolves the actual carried weapon and calls realE8E10/E8E50.
+Two declared primary-hand action inputs compare exactly against unchanged TU1.5:
+683/513 ordered instructions, fullCPU and60084310 retained bytes per case. This
+is not all hand/action states or complete player birth.
+
+The real idle channel selected authored clips26/27 outside the native startup
+clock subset. Presentation now decodes the exact graph and packed selection,
+including its authored inherited-graph owner. A natural idle-variant case and
+its draw match unchanged original code on the host i386 backend:23215/7589
+instructions and every retained byte accounted. Unicorn rounding/exception-bit
+differences remain recorded; hostCPU evidence is not Xbox hardware pixels/PCM.
+
+Four-player grenade input then reached missing particle-contact2C2D90. Its
+whole body, literal helper closure and actual metadata callbacks are lowered;
+the expanded frame module has71 roots/3874 instructions. The same four-view
+45-second combat sequence now exits normally. Original contact-phase comparison
+and a fresh coherent regression run are pending. Temporary FP debug tags were
+removed; existing unsupported-model guards remain. These bounded results do
+not complete any of the102 whole elements. Accepted staysv14, candidatev15
+unaccepted; the installed preview is still the older known-stopping binary until
+validation and package refresh. Full menus/maps/game and live source cache,
+render/audio/LAN integration remain required.

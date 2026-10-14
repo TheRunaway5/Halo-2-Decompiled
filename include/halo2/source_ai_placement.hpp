@@ -13,4 +13,4 @@ struct SourceAiPlacementOwners {
 };
 void source_place_ai(std::uint32_t reference, std::optional<std::int16_t> count,
                      const SourceAiPlacementOwners &);
-}
+} // namespace halo2

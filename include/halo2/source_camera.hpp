@@ -54,4 +54,7 @@ SourceCameraProjection source_camera_projection(float camera_projection_angle,
 Vec2 source_hud_aim_anchor(const SourceHudAimCamera &,
     RenderViewport outer, RenderViewport safe, float observer_displacement,
     bool active_first_person = true);
+//1396C7 mode5, including30710's front-facing/viewport admission and rounding.
+std::optional<Vec2> source_hud_target_anchor(const SourceHudAimCamera &,
+    RenderViewport outer,RenderViewport safe,Vec3 target);
 } // namespace halo2

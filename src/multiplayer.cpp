@@ -238,7 +238,7 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
                   source_object_world ? std::optional<NativeObjectLifetimes>(std::in_place,
                       source_object_world->memory(),source_object_world->object_pool()) : std::nullopt,
                   source_object_world && source_object_world->owns_physics() ? SourceSceneObjectOwner{
-                      [source_object_world,&content](const auto &placement){
+                      [source_object_world,&content](const auto &placement,SourceScenarioBirth birth){
                           if(placement.netgame_row>=0)
                               return source_object_world->create_netgame_object(unsigned(placement.netgame_row));
                           if(placement.model_attachment) {
@@ -256,7 +256,7 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
                               if(child==null_datum)throw FormatError("Original source vehicle constructor has not published its authored model child");
                               return child;
                           }
-                          return source_object_world->create_scenario_object(placement);
+                          return source_object_world->create_scenario_object(placement,birth);
                       },
                       [source_object_world](auto object){source_object_world->destroy_object(object);}}
                       : SourceSceneObjectOwner{}),
@@ -1773,7 +1773,7 @@ void MultiplayerMatch::step(
         put(0x28,std::uint16_t(target.action)|(std::uint32_t(std::uint16_t(target.index))<<16));
         put(0x2c,target.object);
       }
-      if(sword)source_object_world_->populate_weapon_targeting(p.source_datum,p.source_current_object,command);
+      source_object_world_->populate_weapon_targeting(p.source_datum,p.source_current_object,command);
       source_object_world_->deliver_command(p.source_datum,p.source_current_object,command);
     }
   }
@@ -2162,6 +2162,12 @@ MultiplayerState MultiplayerMatch::state() const {
       result.players[i].weapon_shader=u.weapon.shader;
       result.players[i].weapon_trigger={u.weapon.smg.input_flags,u.weapon.smg.trigger_ticks,
           u.weapon.smg.trigger_state,u.weapon.charge_fraction};
+      const auto publish_target=[&](std::uint32_t weapon,NativeWeaponTriggerPublication &out) {
+        if(!simulation_.source_physics_movement_ || weapon==null_datum)return;
+        const auto target=source_object_world_->weapon_hud_target(weapon);out.target_acquired=target.acquired;
+        if(target.position)out.target_position=std::array{target.position->x,target.position->y,target.position->z};
+      };
+      publish_target(p.source_current_object!=null_datum?u.weapon.source_datum:null_datum,result.players[i].weapon_trigger);
       result.players[i].ammunition_available=native_weapon_ammunition_available(u,u.weapon);
       result.players[i].damage_feedback=u.damage_feedback;
       result.players[i].shield_recharging=u.vitality.shield_recharging;
@@ -2173,6 +2179,7 @@ MultiplayerState MultiplayerMatch::state() const {
         out.reload_seconds=offhand->reload;out.reload_empty=offhand->reload_empty;
         out.shader=offhand->shader;
         out.trigger={offhand->smg.input_flags,offhand->smg.trigger_ticks,offhand->smg.trigger_state,offhand->charge_fraction};
+        publish_target(out.datum,out.trigger);
         out.ammunition_available=native_weapon_ammunition_available(u,*offhand);
         if((!simulation_.source_physics_movement_ ||
             std::find(first_person_players_.begin(),first_person_players_.end(),i)!=first_person_players_.end()) &&
@@ -2215,7 +2222,11 @@ MultiplayerState MultiplayerMatch::state() const {
       result.players[i].source_membership=p.source_membership;
       result.players[i].source_ffa_identity=p.source_ffa_identity;
       result.players[i].source_zoom=u.source_zoom;
-      result.players[i].source_zoom_magazine_mode=u.weapon.smg.magazine_mode;
+      if(simulation_.source_physics_movement_ && p.source_current_object!=null_datum)
+        result.players[i].source_hud_target_flags=source_object_world_->weapon_hud_target_flags(p.source_current_object);
+      result.players[i].source_zoom_magazine_mode=u.weapon.source_runtime_published ||
+          (content_.weapons.contains(u.weapon.definition) && content_.weapons.at(u.weapon.definition).smg)?
+          u.weapon.smg.magazine_mode:u.weapon.magazine.mode;
       result.players[i].source_parent=u.source_parent;
       result.players[i].source_seat=u.source_seat;
       result.players[i].source_action_word=simulation_.source_physics_movement_?u.grenade_action.active_actions():u.source_action_word;
@@ -2226,7 +2237,7 @@ MultiplayerState MultiplayerMatch::state() const {
           (native_presentation_controls_[i].fire_secondary?0x20u:0u);
       result.players[i].zoom_reset_serial=u.zoom_reset_serial;
       const auto definition=content_.weapons.find(u.weapon.definition);
-      const std::array<std::int16_t,1> modes{u.weapon.smg.magazine_mode};
+      const std::array<std::int16_t,1> modes{result.players[i].source_zoom_magazine_mode};
       const ZoomWeaponView primary{definition!=content_.weapons.end() ? definition->second.zoom : ZoomWeaponDefinition{},modes};
       result.players[i].source_hud_zoom_mask=source_zoom_hud_mask(source_zoom_hud_status(
           u.source_zoom.current,result.players[i].source_weapon!=null_datum && definition!=content_.weapons.end() ? &primary : nullptr));

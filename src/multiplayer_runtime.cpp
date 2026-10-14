@@ -4479,13 +4479,15 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         auto vertices=unit_hud.draw(current,id,i,options.local_players,drawable_w,
             drawable_h,current.score_limit,current.time_ticks,aim_anchor,split);
         auto weapon_vertices=hud.draw(current,id,i,options.local_players,drawable_w,
-            drawable_h,current.score_limit,current.time_ticks,aim_anchor,split);
+            drawable_h,current.score_limit,current.time_ticks,aim_anchor,split,
+            SourceHudAimCamera{camera.position,view_forward,camera.up,source_angles.projection_angle,false});
         vertices.insert(vertices.end(),weapon_vertices.begin(),weapon_vertices.end());
         if(p.secondary_weapon.datum!=null_datum) {
           auto &secondary_hud=*offhand_huds.at({multiplayer_representation(p.source_configuration),p.secondary_weapon.definition});
           secondary_hud.animate(current,id,i,current.score_limit,current.time_ticks,float(current.tick)*tick_seconds);
           auto secondary_vertices=secondary_hud.draw(current,id,i,options.local_players,drawable_w,drawable_h,
-              current.score_limit,current.time_ticks,aim_anchor,split);
+              current.score_limit,current.time_ticks,aim_anchor,split,
+              SourceHudAimCamera{camera.position,view_forward,camera.up,source_angles.projection_angle,false});
           vertices.insert(vertices.end(),secondary_vertices.begin(),secondary_vertices.end());
         }
         if(platform.desktop->display_settings.safe_area) {

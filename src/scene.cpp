@@ -69,7 +69,7 @@ SceneObjects::SceneObjects(const LevelContent &content, std::size_t bsp,
     const auto &p=content.objects[i];
     if (p.definition != null_datum && !(p.flags & 1) &&
         factory_game_allowed(p) && globally_created(p))
-      place(i);
+      place(i,0,SourceScenarioBirth::automatic);
   }
   switch_bsp(bsp);
 }
@@ -119,7 +119,7 @@ void SceneObjects::switch_bsp(std::size_t next, bool suppress_automatic) {
           return o.handle != null_datum && o.placement == i; })) continue;
     const bool allowed=p.bsp_policy == 2 ? next < 16 && (p.manual_bsps & (1u<<next)) :
         p.origin_bsp == -1 || p.origin_bsp == int(next) || globally_created(p);
-    if (allowed) place(i);
+    if (allowed) place(i,0,SourceScenarioBirth::automatic);
   }
 }
 void SceneObjects::visible(std::uint32_t handle,bool visible) {
@@ -153,7 +153,7 @@ const NativeObjectLifetimes &SceneObjects::object_lifetimes() const {
   return shared_lifetimes_?*shared_lifetimes_:*local_lifetimes_;
 }
 std::uint32_t SceneObjects::place(std::size_t placement,
-                                  std::uint64_t creation_tick) {
+                                  std::uint64_t creation_tick,SourceScenarioBirth birth) {
   AuthorityCalls::Scope call(authority_calls_);
   if(source_replica_)throw FormatError("Source scene replica cannot construct an authoritative object");
   if (placement >= content_.objects.size())
@@ -184,7 +184,7 @@ std::uint32_t SceneObjects::place(std::size_t placement,
   }
   if(p.type<0 || p.type>12)throw FormatError("scene object has unsupported original type");
   ++authority_calls_.mutations;
-  const auto handle=source_owner_.create ? source_owner_.create(p) :
+  const auto handle=source_owner_.create ? source_owner_.create(p,birth) :
       lifetime_owner().reserve(std::uint8_t(p.type));
   if(handle==null_datum)throw FormatError(source_owner_.create ?
       "original source rejected scene placement type="+std::to_string(p.type)+

@@ -446,3 +446,21 @@ This supplies initial trusted source identities, not warm client executors,
 input catch-up, certified generation change or actual host promotion. Full
 transport sanitizer and physical/WAN gates also remain outstanding. See
 `.local/player-host-continuity-20261014/source-admissions/verification.json`.
+
+
+2026-10-14 complete client executor follow-up: `source_shadow` now constructs a
+private TU1.5 native prepared world, files, physics, accepted prototype roster
+and complete local-view bank. `SourceAuthorityReceiver` asynchronously decodes
+full/canonical-delta cuts and prepares/rebinds them on its owner executor using
+independent source admissions for ALL allocated players. Native grouped profile
+admission plus real encrypted two-process transfer exercises a rejected forged
+remote identity, two exact complete-world cuts, in-flight decoder cancellation,
+actual host transport loss, exact-cut world ownership transfer, original departure
+of the host's four local players and ten surviving source ticks. Source readied
+world ownership is distinct from an election/epoch certificate and transport
+promotion. The client loop pumps the receiver, but automatic host publication and
+retention/promotion before runtime teardown remain to integrate. Warm construction
+is about742ms and native preparation about2.3s; loading-time scheduling/performance,
+source-audio/resource roles, the retained rendered shield guard, input catch-up,
+full transport sanitizer and physical/WAN gates remain open. See
+`.local/player-host-continuity-20261014/source-receiver/verification.json`.

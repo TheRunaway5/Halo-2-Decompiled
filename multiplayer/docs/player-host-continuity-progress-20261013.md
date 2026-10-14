@@ -1430,3 +1430,73 @@ rendered/audio/resource continuation, native-owned custom modes, transport race
 findings and physical/WAN validation remain open. No runtime/launcher was
 installed or backend release deployed. Xbox TU1.5, high-resolution Vista UI and
 the full ONLINE goal remain the required final state.
+
+
+## 2026-10-14: client-owned complete source replacement world
+
+`MultiplayerPreparedWorld::source_shadow` now uses the actual native world
+initializer to construct a private TU1.5 executor for an accepted direct ONLINE
+roster. It owns separate cache/files, original physics, source player allocations,
+selected local profiles and the complete first-person definition bank. Candidate
+views belong to the receiving PC; disposable staging views belong to the incoming
+source host. A shadow prototype fails ordinary `matches()` admission, so it cannot
+silently become the visible gameplay world. Construction alone grants neither
+world validation nor hosting authority.
+
+`SourceAuthorityReceiver` owns this candidate. One bounded worker job decodes an
+owning complete archive or exact-base delta; native construction, preparation
+and publication stay on the constructing executor. The sender/context/tick,
+complete accepted slot/name roster and local selected configurations are checked.
+The extended `SourceMatchAuthority::prepare_with_local_views` then validates every
+allocated source identity against the independently accepted full roster, including
+remote players, before changing the candidate. Complete native world/Match
+preparation and commit precede the exact executor receipt. The canonical producer
+image remains the delta base; the locally rebound world is never used as that base.
+
+A context change or cancellation discards queued/stale worker output. A cancelled
+receiver stays stopped. Host connection loss alone preserves an already prepared
+candidate. `take_world` transfers only the exact held context/seal to an external
+continuation owner, clearing local readiness; it does not elect a host, change
+membership, grant an authority epoch, rebind transport, catch up inputs or attach
+controllers/audio/renderers. Commit/receipt failure clears candidate readiness,
+and a possibly changed candidate is discarded rather than labeled as its prior cut.
+
+The native client loop now pumps this receiver for source-backed TU1.5 sessions.
+It remains lightweight until a cut arrives. Automatic host capture/publication and
+the controller that retains/takes this world before runtime teardown are not yet
+integrated. The current runtime still leaves on host connection failure; only the
+component test explicitly keeps/takes its candidate across that failure.
+
+The actual two-process test uses normal native prepared-world initialization,
+real grouped `LanHost`/`LanClient` profile admission, measured host selection,
+independent source admissions and encrypted peer transfer. The recipient's
+prototype identities deliberately differ. A well-formed/checksummed cut with a
+forged NONLOCAL identity is rejected before candidate mutation or a world receipt.
+A full cut and subsequent delta then preserve all live source object bodies and
+original player rows, except the deliberate local-index word, with four rebound
+views. An additional owning decoder job is cancelled in flight; its stale result
+never creates a world or acknowledgement. After the host process closes its real
+transport, the exact prepared candidate remains available. The test transfers it,
+applies the original departure of the host's four-player group without invented
+numeric deaths or released player identities, and continues ten source ticks
+with four surviving players and no match end. It does not perform a certified
+network role switch or prove communication between two remote survivors.
+
+The qualified native run reduces an 8,395,013-byte full cut to a 34,277-byte later
+delta. Decode takes 250,389/283,924us; cold candidate construction takes 742,183us;
+preparation takes 2,273,950/2,385,948us including the disposable executor. This is
+not a few-frame handoff. Cold construction and native preparation still block
+this executor and need loading-time scheduling or further proven optimization
+before regular live publication can be enabled. The unchanged original local-view
+rebind test also passes. Frozen qualification and additional sanitizer results
+are recorded in
+`.local/player-host-continuity-20261014/source-receiver/verification.json`.
+
+The current rendered client target builds with the receive owner. No Vista UI
+asset or renderer guard was changed. The earlier source-shield authored-part
+failure remains an open rendered gate; this headless native test does not close
+it. Full transport ThreadSanitizer findings, live source-audio/resource roles,
+native-owned custom modes, input/call catch-up, certified authority/membership
+changes, actual gameplay/voice/profile rebinding, independent NATs/controllers/
+headsets and delivery remain open. No runtime/launcher was installed and no backend
+release was deployed. Xbox TU1.5 and the full ONLINE goal remain the target.

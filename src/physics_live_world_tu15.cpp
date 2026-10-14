@@ -1371,6 +1371,103 @@ struct PhysicsLiveWorldTu15::Impl {
             }
         }
     }
+    WeaponHudTarget weapon_hud_target(std::uint32_t weapon) {
+        const auto body=object_body(weapon);WeaponHudTarget result;
+        const auto definition=cache_owner.query_tag({.handle=TagHandle{word(bank,body)},.require_address=true});
+        if(!definition)throw FormatError("HUD weapon lost its resident definition");
+        if(!word(bank,definition->address+0x2c8u) ||
+            word(bank,word(bank,definition->address+0x2ccu)+6u,2)!=5u ||
+            std::bit_cast<std::int16_t>(std::uint16_t(word(bank,body+0x22cu,2)))<=0)return result;
+        const auto mode=word(bank,body+0x20cu,1),target=word(bank,body+0x194u);
+        if(target==0xffffffffu)return result;
+        std::uint32_t other{};
+        try {other=object_body(target);}catch(const FormatError &) {return result;}
+        if(mode==0u) {
+            //Complete10A410: recent retained target, valid full datum. Tick
+            //subtraction and comparison are signed source DWORD operations.
+            const auto clock=word(bank,0x51df54u);
+            const auto elapsed=std::bit_cast<std::int32_t>(word(bank,clock+8u)-word(bank,body+0x24cu));
+            const auto rate=std::bit_cast<std::int16_t>(std::uint16_t(word(bank,clock+2u,2)));
+            result.acquired=elapsed<rate;
+        } else if(mode==5u || mode==6u) {
+            const auto region=std::bit_cast<std::int8_t>(std::uint8_t(word(bank,body+0x177u,1)));
+            if(region<0)return result;
+            const auto tag=cache_owner.query_tag({.handle=TagHandle{word(bank,other)},.require_address=true});
+            if(!tag)throw FormatError("HUD lock target lost its definition");
+            const auto model=word(bank,tag->address+0x38u);
+            if(model==0xffffffffu)return result;
+            const auto model_tag=cache_owner.query_tag({.handle=TagHandle{model},.require_address=true});
+            if(!model_tag)throw FormatError("HUD lock target lost its model");
+            if(region>=std::bit_cast<std::int32_t>(word(bank,model_tag->address+0x68u)))return result;
+            const auto marker=word(bank,word(bank,model_tag->address+0x6cu)+std::uint32_t(region)*0x1cu);
+            constexpr std::uint32_t output=0x60057000u;
+            auto a=frame(std::array{target,marker,1u});a.gp[1]=0;a.gp[3]=output;
+            Execution execution(*this);
+            source_run_damage_delivery_runtime(bank,0xb9c20u,a,image,fp,services());
+            if((a.gp[0]&65535u)==1u)result.position=Vec3{
+                std::bit_cast<float>(word(bank,output+0x60u)),std::bit_cast<float>(word(bank,output+0x64u)),
+                std::bit_cast<float>(word(bank,output+0x68u))};
+        }
+        return result;
+    }
+    std::uint32_t weapon_hud_target_flags(std::uint32_t unit) {
+        const auto body=object_body(unit),target=word(bank,body+0x1c8u);
+        if(target==0xffffffffu)return 0;
+        std::uint32_t other{};
+        try {other=object_body(target);}catch(const FormatError &) {return 0;}
+        const auto definition=cache_owner.query_tag({.handle=TagHandle{word(bank,other)},.require_address=true});
+        if(!definition)throw FormatError("HUD target lost its resident definition");
+        const auto type=word(bank,other+0xaau,1);
+        std::uint32_t flags{};
+        if(type<2u) {
+            auto a=frame({});a.gp[1]=word(bank,body+0x138u,2);a.gp[6]=word(bank,other+0x138u,2);
+            Execution execution(*this);
+            source_run_damage_delivery_runtime(bank,0x1e2f50u,a,image,fp,services());
+            if(!(a.gp[0]&255u))flags|=1u;
+        }
+        const auto model=word(bank,definition->address+0x38u);
+        const auto region=std::bit_cast<std::int32_t>(word(bank,body+0x1ccu));
+        std::uint32_t region_flags{};
+        if(model!=0xffffffffu && region!=-1) {
+            const auto tag=cache_owner.query_tag({.handle=TagHandle{model},.require_address=true});
+            if(!tag)throw FormatError("HUD target lost its resident model");
+            const auto count=std::bit_cast<std::int32_t>(word(bank,tag->address+0x68u));
+            if(region<count) {
+                if(region<0)throw FormatError("HUD target region precedes its authored model bank");
+                region_flags=word(bank,word(bank,tag->address+0x6cu)+std::uint32_t(region)*0x1cu+0x14u);
+            }
+        }
+        const auto confidence=std::bit_cast<float>(word(bank,body+0x1e4u));
+        if(confidence>=1.f) {
+            if(region_flags&4u)flags|=0x10u;
+            if(region_flags&8u)flags|=4u;
+        }
+        bool charged{};
+        for(unsigned hand=0;hand<2;++hand) {
+            const auto slot=std::bit_cast<std::int8_t>(std::uint8_t(word(bank,body+0x212u+hand,1)));
+            if(slot<0)continue;
+            if(slot>=4)throw FormatError("HUD target hand escapes source inventory");
+            const auto weapon=word(bank,body+0x218u+unsigned(slot)*4u);
+            if(weapon==0xffffffffu)continue;
+            const auto wp=object_body(weapon);
+            const auto tag=cache_owner.query_tag({.handle=TagHandle{word(bank,wp)},.require_address=true});
+            if(!tag)throw FormatError("HUD target hand lost its weapon definition");
+            if(word(bank,tag->address+0x2c8u)) {
+                const auto trigger=word(bank,tag->address+0x2ccu);
+                charged|=word(bank,wp+0x20cu,1)==2u && word(bank,trigger+6u,2)==2u && word(bank,trigger+0x18u,2)==1u;
+            }
+        }
+        if(charged && confidence>=1.f) {
+            //10A4B0's biped and model-region autoaim eligibility, including
+            //its exact positive vitality test. No native target is substituted.
+            const bool alive=std::bit_cast<float>(word(bank,other+0xf0u))>0.f &&
+                std::bit_cast<float>(word(bank,other+0xe8u))>0.f;
+            const auto biped_flags=type==0u?word(bank,definition->address+0x240u):0u;
+            if((alive && ((biped_flags&2u)||(region_flags&2u))) ||
+                (biped_flags&4u) || (region_flags&0x10u))flags|=8u;
+        }
+        return flags;
+    }
     std::optional<ParticleCollisionHit> particle_collision(std::uint32_t flags,Vec3 origin,Vec3 delta) {
         constexpr std::uint32_t start_=0x60041400u,delta_=0x60041420u,result_=0x60041500u;
         for(const auto &[p,v]:std::array<std::pair<std::uint32_t,Vec3>,2>{{{start_,origin},{delta_,delta}}}) {
@@ -1560,7 +1657,7 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         return result;
     }
-    std::uint32_t create_scenario_object(const ScenarioObject &placement) {
+    std::uint32_t create_scenario_object(const ScenarioObject &placement,SourceScenarioBirth birth) {
         if(!session_configured || !word(bank,0x52be48u) ||
             placement.type<0 || placement.type>12 || placement.placement<0)
             throw FormatError("TU1.5 scene birth requires its live world and authored placement identity");
@@ -1584,7 +1681,13 @@ struct PhysicsLiveWorldTu15::Impl {
         if(choice<0 || std::uint32_t(choice)>=word(bank,palette) ||
             word(bank,word(bank,palette+4u)+std::uint32_t(choice)*0x28u+4u)!=placement.definition)
             throw FormatError("TU1.5 placement definition differs from its original palette");
-        const std::array args{std::uint32_t(placement.type),std::uint32_t(placement.placement),palette,1u,1u};
+        if(birth!=SourceScenarioBirth::automatic && birth!=SourceScenarioBirth::runtime)
+            throw FormatError("TU1.5 scenario birth requires its actual caller context");
+        // D7AA0/D7B80 automatic calls use1/1. B15B0 runtime creation uses0/0.
+        // D75A0 then honors the authored at-rest flag rather than forcing
+        // creation flag8 for runtime bipeds/vehicles/crates/creatures.
+        const auto automatic=birth==SourceScenarioBirth::automatic?1u:0u;
+        const std::array args{std::uint32_t(placement.type),std::uint32_t(placement.placement),palette,automatic,automatic};
         auto a=frame(args);a.gp[0]=input;run_actual(0xc1120u,a);return a.gp[0];
     }
     void destroy_object(std::uint32_t object) {
@@ -1919,6 +2022,8 @@ void PhysicsLiveWorldTu15::build_render_model(SourceObjectDrawCollector& collect
 }
 SourceWeaponEffectPresentation PhysicsLiveWorldTu15::request_weapon_effect(const WeaponEffectInput&i){Impl::PublicCall active(*impl_);return impl_->request_weapon_effect(i);}
 void PhysicsLiveWorldTu15::populate_weapon_targeting(std::uint32_t p,std::uint32_t o,std::span<std::byte,0x5c> c){Impl::PublicCall active(*impl_);impl_->populate_weapon_targeting(p,o,c);}
+std::uint32_t PhysicsLiveWorldTu15::weapon_hud_target_flags(std::uint32_t unit){Impl::PublicCall active(*impl_);return impl_->weapon_hud_target_flags(unit);}
+WeaponHudTarget PhysicsLiveWorldTu15::weapon_hud_target(std::uint32_t weapon){Impl::PublicCall active(*impl_);return impl_->weapon_hud_target(weapon);}
 std::optional<ParticleCollisionHit> PhysicsLiveWorldTu15::particle_collision(std::uint32_t f,Vec3 p,Vec3 d){Impl::PublicCall active(*impl_);return impl_->particle_collision(f,p,d);}
 std::uint32_t PhysicsLiveWorldTu15::source_world()const{Impl::PublicCall active(*impl_,false);return word(impl_->bank,0x52be48);}
 NativeRuntimeAddress PhysicsLiveWorldTu15::world()const {Impl::PublicCall active(*impl_,false);
@@ -2001,7 +2106,7 @@ std::optional<DeathCameraPacket> PhysicsLiveWorldTu15::vehicle_camera_packet(uns
 std::uint32_t PhysicsLiveWorldTu15::source_object_body(std::uint32_t d)const{Impl::PublicCall active(*impl_,false);return impl_->object_body(d);}
 NativeRuntimeAddress PhysicsLiveWorldTu15::object_body(std::uint32_t d)const{Impl::PublicCall active(*impl_,false);return impl_->bank.native_address(source_object_body(d),4);}
 std::uint32_t PhysicsLiveWorldTu15::create_biped(std::uint32_t d,const Vec3&p,const Vec3&f,std::uint32_t player){Impl::PublicCall active(*impl_);return impl_->create_biped(d,p,f,player);}
-std::uint32_t PhysicsLiveWorldTu15::create_scenario_object(const ScenarioObject&p){Impl::PublicCall active(*impl_);return impl_->create_scenario_object(p);}
+std::uint32_t PhysicsLiveWorldTu15::create_scenario_object(const ScenarioObject&p,SourceScenarioBirth birth){Impl::PublicCall active(*impl_);return impl_->create_scenario_object(p,birth);}
 std::uint32_t PhysicsLiveWorldTu15::create_netgame_object(unsigned r){Impl::PublicCall active(*impl_);return impl_->create_netgame_object(r);}
 std::uint32_t PhysicsLiveWorldTu15::netgame_object(unsigned r)const{Impl::PublicCall active(*impl_,false);return impl_->netgame_object(r);}
 std::uint32_t PhysicsLiveWorldTu15::child_object(std::uint32_t p,std::uint32_t d)const{Impl::PublicCall active(*impl_,false);return impl_->child_object(p,d);}

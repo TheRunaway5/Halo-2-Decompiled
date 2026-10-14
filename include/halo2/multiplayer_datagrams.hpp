@@ -37,7 +37,8 @@ namespace halo2 {
 //75 carries current full attached-effect identities, controls, colors and flags.
 //76 adds complete host configuration discovery before client preparation.
 //80 carries all512 possible linked source firing locations, preserving names/transforms.
-inline constexpr unsigned native_multiplayer_protocol = 80;
+//81 carries source HUD aim flags, lock admission and per-hand marker positions.
+inline constexpr unsigned native_multiplayer_protocol = 81;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {
