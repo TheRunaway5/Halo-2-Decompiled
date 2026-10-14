@@ -29,8 +29,12 @@ consumer is exercised by the retained GPU frame fixture. It has **not** been
 joined to live object receiver collection and does not provide native palette
 production. The later [local vertex checkpoint](TU15_SKINNED_LIGHT_VERTEX_20261013.md)
 adds raw rigid-boned/skinned class2..6 binding, original byte influence fetches
-and GPU-verified palette addressing. Live palette/cache production and receiver
-submission remain open.
+and GPU-verified palette addressing. The later
+[live builder checkpoint](TU15_LIVE_MODEL_BUILDER_20261013.md) supplies native
+pose/cache/resource production, four exact original CPU view comparisons and
+337 exact object-light receiver queries. Its joined live collection currently
+produces eight draw units from two actual native bipeds. Joining that output to
+shared light-layer GPU submission and visible matched frames remains open.
 
 ## Independent original checks
 
@@ -86,6 +90,13 @@ constants, and combiner constants match; Vulkan validation reports zero errors.
 The strict result remains **357 differing pixels / 478 channels**: 268 RGB
 pixels and 95 alpha pixels differ, with overlap. The original segment changes
 RGB at 24,284 pixels relative to its seed, so this reference is visibly active.
+
+The subsequent frozen shader checkpoint in
+`analysis/shader-parity-20261013/tu15-full-light-frame-v1` reduces this to
+**164 pixels /197 channels**, with75 RGB and95 alpha pixels differing. Input
+targets/constants remain exact and validation reports zero errors. That build
+also includes earlier Xbox texture filtering work; this reduction must not be
+attributed solely to the skinned vertex changes. Strict equality still fails.
 
 The isolated model comparison `tu15-model-native-frame-v2` initially reported
 zero differing pixels. The original model draw also changes **zero pixels**

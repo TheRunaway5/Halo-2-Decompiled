@@ -74,12 +74,20 @@ over 22 view-frames. This proves live request-to-draw delivery, not Xbox pixel
 equivalence. Lockout sword terrain action 15 contains twelve sound rows and
 zero visual rows; no invented terrain sparks are added.
 
-Sword lunge/magnetism remains unverified. The exploratory lunge fixture's
+Full sword lunge/magnetism coverage remains incomplete. The exploratory lunge fixture's
 declared placement was superseded by actual source spawning: the two players
 were 0.344 units apart, and original selection chose an ordinary action. The
 fixture explicitly fails its distance/special-activity check and cannot be
 used as lunge evidence. Blade attachment/lens, blood, attack feedback and
 complete attached-effect color/lifecycle parity remain separate work.
+
+The [complete sandbox continuation](SANDBOX_TU15_PARITY_GOAL.md) supersedes
+that failed fixture for one actual distant target: 180 source-owned ticks now
+pass with distance `2.40331`, source-selected lunge/attack, `1.90626` units of
+closing movement, authored contact/damage and completed action. Its coherent
+build passes the existing close-sword/frag checks and six focused regressions.
+This is headless source integration; broad lunge/magnetism, rendered local/LAN
+sequences and matched Xbox visual/audio acceptance remain open.
 
 ## Firing particles
 

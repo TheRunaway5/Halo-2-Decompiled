@@ -123,6 +123,18 @@ remains unchanged through the test. Test inputs align ordinary look with the
 completed vehicle forward vector, depart horizontally, then look up and turn;
 no body motion, attachment or camera result is supplied by the fixture.
 
+After the live prop transport update, current-root Warthog/Ghost `v217` pass
+again through protocol69. The longer Banshee run reaches the original
+rigid-body deactivation query1D9B70, previously unvisited in these sequences.
+Complete1D9B70/1D9BC0/31E690 and their vehicle/player admission predicates are
+now wired into the retained world. The unchanged `v219` flight sequence passes:
+13.888749 units of travel,5.631904 units of climb,0.594441 radians of turning,
+boarding and exit,902 exact UDP comparisons,532 submitted original vehicle
+camera frames and455 frames after exit. Its unaltered window recording has922
+frames. Executed ELF SHA-256
+`87a34ce0caaeb9b572d7e0798430c16017eab81615a3e27d6e142d0fb30b4684`
+remains stable throughout the run.
+
 ## Installed launcher verification
 
 The shared checkout's latest installed launchers select

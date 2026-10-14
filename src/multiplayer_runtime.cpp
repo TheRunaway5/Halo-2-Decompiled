@@ -2077,7 +2077,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         pad_input.crouch=mapped.crouch;pad_input.reload=mapped.reload;pad_input.fire=mapped.fire;
         const bool dual=i<ids.size()&&current.players[ids[i]].secondary_weapon.datum!=null_datum;
         pad_input.fire_secondary=dual&&mapped.secondary;pad_input.grenade=!dual&&mapped.grenade;
-        pad_input.melee=mapped.melee;
+        pad_input.melee=mapped.melee;pad_input.switch_grenade=mapped.switch_grenade;
         pad_input.pickup=mapped.pickup;pad_input.dual_wield=mapped.dual_wield;pad_input.switch_weapon=mapped.switch_weapon;
         const auto held_pad=pad_input;
         const auto input_now=SDL_GetTicks();
@@ -2090,7 +2090,10 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         pad_input.switch_weapon = !held_pad.switch_weapon && pad_previous[i].switch_weapon;
         pad_input.grenade &= !pad_previous[i].grenade;
         pad_input.melee &= !pad_previous[i].melee;
+        pad_input.switch_grenade &= !pad_previous[i].switch_grenade;
         pad_previous[i]=held_pad;
+        pad_pending[i].switch_grenade|=pad_input.switch_grenade;
+        pad_input.switch_grenade=pad_pending[i].switch_grenade;
         pad_pending[i].melee|=pad_input.melee;
         pad_input.melee=pad_pending[i].melee;
         pad_pending[i].switch_weapon|=pad_input.switch_weapon;pad_pending[i].grenade|=pad_input.grenade;
@@ -2100,7 +2103,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         local[i].dual_wield_milliseconds=std::max(local[i].dual_wield_milliseconds,pad_input.dual_wield_milliseconds);
         local[i].switch_weapon|=pad_input.switch_weapon;local[i].grenade|=pad_input.grenade;
         local[i].fire_secondary|=pad_input.fire_secondary;
-        local[i].melee|=pad_input.melee;
+        local[i].melee|=pad_input.melee;local[i].switch_grenade|=pad_input.switch_grenade;
         local[i].jump |= pad_input.jump;
         local[i].crouch |= pad_input.crouch;
         local[i].reload |= pad_input.reload;
@@ -2368,8 +2371,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       for(auto &pending:pad_pending)pending={};
       pad_zoom_pending={};
       for(auto &holds:pad_holds)for(auto &hold:holds)hold.consume();
-      for(auto &pad:pad_controls)pad.pickup=pad.dual_wield=pad.switch_weapon=pad.grenade=pad.melee=false;
-      for(auto &command:local)command.pickup=command.dual_wield=command.switch_weapon=command.grenade=command.melee=false;
+      for(auto &pad:pad_controls)pad.pickup=pad.dual_wield=pad.switch_weapon=pad.grenade=pad.melee=pad.switch_grenade=false;
+      for(auto &command:local)command.pickup=command.dual_wield=command.switch_weapon=command.grenade=command.melee=command.switch_grenade=false;
       for(auto &player:rumble)player.advance(tick_seconds);
       accumulator -= tick_seconds;
       ++steps;

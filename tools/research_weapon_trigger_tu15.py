@@ -10,7 +10,7 @@ from pathlib import Path
 import research_weapon_effect_u5 as correspondence
 OWNERS=(0x1021d0,0x1045e0,0x1066f0,0x106960,0x106c30,0x106d40,
         0x106e10,0x106e70,0x106f10,0x106fc0,0x1070c0,0x107120,
-        0x107c40,0x107cc0,0x107d20,0x107d80,0x107df0,0x107e90,0x107f80)
+        0x107c40,0x107cc0,0x107d20,0x107d80,0x107df0,0x107e90,0x107f80,0x1081e0)
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args()
  correspondence.OWNERS=OWNERS;correspondence.BOUNDARIES=();correspondence.run(a.output)

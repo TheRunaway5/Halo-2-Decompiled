@@ -1554,8 +1554,7 @@ void MultiplayerMatch::step(
       put(0x1c,buttons,2);
       auto &grenade_owner=unit_mutable(i);
       const auto selected_grenade=grenade_ready_type(grenade_owner.grenade_current,grenade_owner.grenades,
-          input.switch_grenade && !grenade_owner.grenade_switch_held?1:0);
-      grenade_owner.grenade_switch_held=input.switch_grenade;
+          input.switch_grenade?1:0);
       if(selected_grenade!=-1)grenade_owner.grenade_requested=selected_grenade;
       put(0x22,std::uint16_t(grenade_owner.grenade_requested),2);
       const auto target=action_prompt(i).target;

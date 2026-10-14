@@ -125,6 +125,58 @@ int main()try {
               "External list's inactive inline storage was admitted");
     }
     {
+        Buffer collision(0x200);block(collision,0x1c,0x40);
+        block(collision,0x44,0x50);block(collision,0x54,0x70);block(collision,0x5c,0xc0);
+        block(collision,0x70+0x2c,0x1a0);
+        for(unsigned at:{0xc0u,0xd0u,0x110u,0x120u,0x130u,0x140u}) {
+            word(collision,at,0x12345678u);word(collision,at+4,0xabcdef01u);
+        }
+        word(collision,0xc0+8,0x80000000u);word(collision,0xc0+0x58,0x80000000u);
+        word(collision,0xc0+0x78,0x80000000u);
+        for(unsigned i=0;i<0x30;++i)collision[0xc0+0x20+i]=std::byte((i*27+19)&255);
+        block(collision,0xc0+0x98,0x180,6);
+        for(unsigned i=0;i<6;++i)collision[0x180+i]=std::byte(i*13+7);
+        for(unsigned i=0;i<8;++i)collision[0x1a0+i]=std::byte(i*17+3);
+        const auto owned=halo2::normalize_mcc_collision_model(collision,original,canonical);
+        const auto region=row(owned,0x1c),permutation=row(owned,region+4);
+        const auto bsp=row(owned,permutation+4),physics=row(owned,permutation+0xc);
+        equal_bytes(collision,0xe0,owned,physics+0x10,0x30);
+        for(unsigned offset:{0u,8u,0xcu,0x40u,0x48u,0x4cu,0x50u,0x58u,0x5cu,0x60u,0x6cu})
+            check(halo2::Bytes(owned).u32(physics+offset)==0,"Collision retained an unbound MCC tool pointer/padding");
+        equal_bytes(collision,0x180,owned,row(owned,physics+0x64),6);
+        equal_bytes(collision,0x1a0,owned,row(owned,bsp+0x2c),8);
+        auto invalid=collision;word(invalid,0x5c,2);
+        rejects([&]{(void)halo2::normalize_mcc_collision_model(invalid,original,canonical);});
+        invalid=collision;word(invalid,0,1);
+        rejects([&]{(void)halo2::normalize_mcc_collision_model(invalid,original,canonical);});
+    }
+    {
+        Buffer bsp(0x600);block(bsp,0x138,0x240,2);
+        for(unsigned definition:{0x240u,0x308u}) {
+            block(bsp,definition+0xb0,0x400);
+            block(bsp,definition+0x98,0x520);
+        }
+        word(bsp,0x400,0x12345678u);word(bsp,0x404,0xabcdef01u);
+        word(bsp,0x420,0x3fa00000u);block(bsp,0x498,0x500,6);
+        for(unsigned i=0;i<6;++i)bsp[0x500+i]=std::byte(i*13+7);
+        for(unsigned i=0;i<8;++i)bsp[0x520+i]=std::byte(i*17+3);
+        const auto before=bsp;
+        const auto owned=halo2::normalize_mcc_structure_bsp_physics(bsp,original);
+        check(bsp==before && owned.size()==bsp.size(),"Instanced physics moved or changed its donor allocation");
+        equal_bytes(bsp,0,owned,0,0x400);equal_bytes(bsp,0x470,owned,0x470,bsp.size()-0x470);
+        check(halo2::Bytes(owned).u32(0x400)==0 && halo2::Bytes(owned).u32(0x410)==0x3fa00000u &&
+              halo2::Bytes(owned).u32(0x464)==6 && halo2::Bytes(owned).u32(0x468)==original+0x500,
+              "Instanced physics changed authored bounds or its retained MOPP owner");
+        auto invalid=bsp;word(invalid,0x240+0xb0,2);
+        rejects([&]{(void)halo2::normalize_mcc_structure_bsp_physics(invalid,original);});
+        invalid=bsp;word(invalid,0x240+0xb0,0);
+        rejects([&]{(void)halo2::normalize_mcc_structure_bsp_physics(invalid,original);});
+        invalid=bsp;word(invalid,0x49c,original+0x400);
+        rejects([&]{(void)halo2::normalize_mcc_structure_bsp_physics(invalid,original);});
+        invalid=bsp;word(invalid,0x240+0xb4,original+0x5ff);
+        rejects([&]{(void)halo2::normalize_mcc_structure_bsp_physics(invalid,original);});
+    }
+    {
         auto invalid=source;word(invalid,source_rows[0]+0x3c,1);
         rejects([&]{(void)halo2::normalize_mcc_physics_model(invalid,original,canonical);});
         invalid=source;word(invalid,source_rows[10]+0x3c,1);
@@ -135,5 +187,5 @@ int main()try {
         rejects([&]{(void)halo2::normalize_mcc_physics_model(invalid,original,canonical);});
         rejects([&]{(void)halo2::normalize_mcc_physics_model(source,original,0xfffffff0u);});
     }
-    std::cout<<"MCC phmo authored record packing, owned nested aliases and pointer-width rejection passed\n";return 0;
+    std::cout<<"MCC phmo/coll authored record packing, owned geometry/MOPP, nested aliases and pointer-width rejection passed\n";return 0;
 }catch(const std::exception& error){std::cerr<<error.what()<<'\n';return 1;}

@@ -105289,7 +105289,7 @@ if(s.services.instruction){s.services.instruction(0x183e08u);} s.set(3,s.flags.l
 if(s.services.instruction){s.services.instruction(0x183e0eu);} s.set(3,s.flags.shift(s.reg(3,4,0),selected(0x6u,s.image),4),4,0);
 if(s.services.instruction){s.services.instruction(0x183e11u);} s.set(3,s.flags.plus(s.reg(3,4,0),s.reg(2,4,0),4),4,0);
 if(s.services.instruction){s.services.instruction(0x183e13u);} w(s.memory,s.observe,0x183e13u,(selected(0x44u,s.image)+s.gp[4]),4,s.reg(3,4,0));
-if(s.services.instruction){s.services.instruction(0x183e17u);} s.push(0x183e17u,selected(0x183e1cu,s.image));run_439c0(s);
+if(s.services.instruction){s.services.instruction(0x183e17u);} s.push(0x183e17u,selected(0x183e1cu,s.image));s.required(0x183e17u,0x439c0u,false);
 if(s.services.instruction){s.services.instruction(0x183e1cu);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
 if(s.services.instruction){s.services.instruction(0x183e1eu);} w(s.memory,s.observe,0x183e1eu,(selected(0x1cu,s.image)+s.gp[4]),4,s.reg(0,4,0));
 if(s.services.instruction){s.services.instruction(0x183e22u);} if(s.flags.zf)goto L18465d;

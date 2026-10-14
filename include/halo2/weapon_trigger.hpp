@@ -54,3 +54,28 @@ void weapon_trigger_lock(WeaponTriggerState &,WeaponTriggerLockPhase,
     std::int16_t tick_rate,bool has_unit,const WeaponTriggerServices &);
 void weapon_trigger_clear_barrel(std::span<SmgBarrelState>,std::int16_t index);
 }
+namespace halo2 {
+struct WeaponTriggerTarget {
+  std::uint32_t datum=0xffffffffu;
+  std::uint8_t marker=255;
+};
+struct WeaponTriggerPhaseContext {
+  std::int16_t tick_rate=30;
+  bool blocked{},held{},pressed{},alternate{},has_unit{},has_player{},editor{};
+  float spent{};
+  unsigned barrel_count{};
+  std::uint32_t detonation_effect=0xffffffffu; // Actual weapon definition+180.
+};
+struct WeaponTriggerPhaseServices : WeaponTriggerServices {
+  std::function<bool(std::int16_t barrel)> barrel_admitted;
+  std::function<void(std::uint32_t effect)> stop_effect;
+  std::function<std::optional<WeaponTriggerTarget>()> acquire_target,track_target;
+  std::function<void()> destroy_weapon;
+};
+// Complete original1021D0/1030F0 per-trigger phase. Caller supplies its real
+// pre-phase inputs, magazine/barrel admission and target/action/effect owners.
+// The shared analog-byte and target storage remain owned by the actual weapon.
+bool weapon_trigger_step(WeaponTriggerState &,const WeaponTriggerDefinition &,
+    std::span<SmgBarrelState>,WeaponTriggerInputState &,WeaponTriggerTarget &,
+    unsigned index,const WeaponTriggerPhaseContext &,const WeaponTriggerPhaseServices &);
+}

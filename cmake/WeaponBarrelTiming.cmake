@@ -1,10 +1,10 @@
-target_sources(halo2_systems PRIVATE src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp)
+target_sources(halo2_systems PRIVATE src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/weapon_trigger.cpp)
 add_executable(audit_weapon_muzzle_admission tools/audit_weapon_muzzle_admission.cpp)
 target_link_libraries(audit_weapon_muzzle_admission PRIVATE halo2_systems)
 if(MSVC)
-  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/weapon_trigger.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/weapon_trigger.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
 endif()
 # Dedicated progress launchers retain the original Xbox gameplay HUD.
 foreach(weapon_launcher IN ITEMS halo2_weapons_launcher halo2_weapons_title_launcher)
@@ -20,6 +20,12 @@ set_target_properties(halo2_weapons_launcher PROPERTIES OUTPUT_NAME "Halo2-Weapo
 set_target_properties(halo2_weapons_title_launcher PROPERTIES OUTPUT_NAME "Halo2-Weapons-Title-Launcher")
 target_compile_definitions(halo2_weapons_title_launcher PRIVATE HALO2_TITLE_FIRST=1)
 if(BUILD_TESTING)
+  add_executable(weapon_trigger_tests tests/weapon_trigger_tests.cpp)
+  target_link_libraries(weapon_trigger_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_trigger COMMAND weapon_trigger_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_trigger_original.tsv
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_trigger_phase_original.tsv)
+  set_tests_properties(original_weapon_trigger PROPERTIES SKIP_RETURN_CODE 77)
   add_executable(weapon_hud_gameplay_tests tests/weapon_hud_gameplay_tests.cpp)
   target_link_libraries(weapon_hud_gameplay_tests PRIVATE halo2_systems)
   add_test(NAME original_weapon_hud_gameplay COMMAND weapon_hud_gameplay_tests
@@ -61,6 +67,12 @@ if(BUILD_TESTING)
       ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
       ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_dual_cycles_original.tsv)
   set_tests_properties(original_weapon_dual_cycles PROPERTIES SKIP_RETURN_CODE 77)
+  add_test(NAME original_weapon_registered_trigger_cycles COMMAND weapon_dual_cycles_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_registered_trigger_cycles_original.tsv registered-trigger)
+  set_tests_properties(original_weapon_registered_trigger_cycles PROPERTIES SKIP_RETURN_CODE 77)
   add_test(NAME original_weapon_registered_dual_cycles COMMAND weapon_dual_cycles_tests
       ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
       ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps

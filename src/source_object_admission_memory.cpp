@@ -32,7 +32,7 @@ SourceObjectAdmission source_object_admission_memory(const SourcePortalVisibilit
         const auto b=read(address,0xacu);
         const auto sphere=[&](unsigned p){return ObjectLightSpatialSphere{
             {b.f32(p),b.f32(p+4),b.f32(p+8)},b.f32(p+12)};};
-        objects.push_back({(std::uint32_t(raw.u16(n*12))<<16)|n,b.u32(4),std::int8_t(b.u8(0xaa)),
+        objects.push_back({(std::uint32_t(raw.u16(n*12))<<16)|n,b.u32(4),std::int8_t(std::to_integer<unsigned>(b.slice(0xaa,1)[0])),
             sphere(0x30),sphere(0x50)});
     }
     return source_object_admission(visibility,collidable,noncollidable,objects,in,prior);

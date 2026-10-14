@@ -78,10 +78,21 @@ The following actual native subowners now support continuation:
    Active calls/waits and acquired mutexes reject export/import; thread IDs and
    waiters cannot be serialized. A service gate is a safeguard, not a substitute
    for joining/quiescing the enclosing world's workers.
+7. `SourcePhysicsGameArenaNative` now stages the current live game's **retired
+   startup arena**: actual physical pages/protections, scratch extent/cursor,
+   native mutex/semaphore aliases and two retained file handles with their
+   contents and positions. Export requires a real worker join at the original
+   idle semaphore wait (`12236A` in the bound correspondence), an empty source
+   queue and no pending permits. The replacement retains its own matching,
+   actually retired worker; thread IDs, CPU contexts and entry closures never
+   cross machines. Imported handles use independent private native files without
+   overwriting the replacement's savegame-directory files. Pending/executing
+   source jobs cannot be exported through this retired-arena API.
 
 These are subowners. None claims a complete physics world or match save. The
-arena's file/worker ownership, physics lock sidecars and live-world callbacks,
-typed simulation/match state and transport promotion remain outstanding.
+retired arena still needs composition into the full live-world transaction.
+Physics lock sidecars, live-world callbacks, typed simulation/match state and
+transport promotion remain outstanding.
 
 ## Resource continuation evidence
 
@@ -108,6 +119,37 @@ recorded existing generated runtime archives. The small registered continuation
 targets compile all their sources freshly. This resource stage has not received
 a full native application rebuild/install or a physical gameplay handoff, and
 does not replace the installed direct peer runtime.
+
+## Retired arena continuation evidence
+
+The additional private capsule is `.local/player-host-continuity-20261013/arena/`.
+
+- `continuation-final.log`: two independently initialized original TU1.5 arenas,
+  with actual startup workers and files. Import preserves file contents/seek
+  positions, page protections, scratch and synchronization ownership; native
+  addresses rebind. Cancellation, malformed inputs and real file-staging failure
+  preserve the current owner. Repeated handoffs retain descriptor counts, and
+  destroying the source owner/files leaves the imported resources usable.
+- The same test covers callback reentry, worker resource callbacks, rejection
+  of nested restore/protect/stop/snapshot during preparation, and rejection of
+  an idle-but-running worker, queued jobs and unretired startup owners. These
+  guards do not substitute for the complete world's external caller barrier.
+- `original-regression.log`: the existing 13 source arena calls still match
+  1,049,656 ordered writes and 52,667,416 final bank bytes, including the actual
+  source worker and two files, with the changed native arena owner.
+- `continuation-asan.log`: the arena continuation test passes with its changed
+  arena, memory, physical storage, raw storage, synchronization and native-thread
+  modules instrumented by AddressSanitizer/UndefinedBehaviorSanitizer.
+- `verification.json`, `build-commands.json`, `asan-build-commands.json` and
+  `regression-link-command.json`: source/fixture/binary/archive hashes and exact
+  focused build/link commands.
+
+Both tests use the recorded existing generated source-runtime archives; this
+does not establish a fresh full application build, gameplay migration, a running
+worker/CPU-context transfer, immutable map/image admission or WAN/physical-PC
+handoff. The registered `native_physics_game_arena_continuation_tu15` test will
+also run with a normal full build. The installed launchers/runtime, UI asset
+selection and backend are unchanged by this arena stage.
 
 ## Evidence
 

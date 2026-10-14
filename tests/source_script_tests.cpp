@@ -130,6 +130,49 @@ void freed_syntax_records() {
     bool rejected=false;try{ScriptVm stale(builder.program,{});}catch(const FormatError&){rejected=true;}
     if(!rejected)throw std::runtime_error("zero-salt syntax reference was accepted");
 }
+void nonpositive_sleep() {
+    ProgramBuilder builder;
+    for(const auto delay:{-32768,-7,-2,-1,0,65535}) {
+        const auto id=unsigned(builder.program.scripts.size());
+        const auto root=builder.call("begin",{
+            builder.call("sleep",{builder.integer(delay)}),
+            builder.call("record",{builder.integer(int(id))}),
+            builder.call("sleep",{builder.integer(2)}),
+            builder.call("record",{builder.integer(int(id+100))})});
+        builder.program.scripts.push_back({"source_sleep_"+std::to_string(id),0,4,root});
+    }
+    unsigned tick=0;std::vector<std::array<unsigned,2>> records;
+    ScriptVm vm(builder.program,[&](const auto &name,const auto &args)->ScriptValue {
+        if(name!="record")throw std::runtime_error("unexpected sleep fixture service");
+        records.push_back({tick,args.at(0).bits});return {};
+    });
+    vm.start_level();
+    for(tick=0;tick<4;++tick)vm.tick(tick);
+    std::vector<std::array<unsigned,2>> expected;
+    for(unsigned id=0;id<6;++id)expected.push_back({0,id});
+    for(unsigned id=0;id<6;++id)expected.push_back({2,id+100});
+    if(!vm.diagnostics().empty() || records!=expected || vm.running())
+        throw std::runtime_error("Original sleep ignores nonpositive short delays and continues dispatch");
+
+    // Nonpositive external sleeps leave the target's existing wake intact.
+    ProgramBuilder target;
+    target.program.scripts.push_back({"sleeping_target",0,4,target.call("begin",{
+        target.call("sleep",{target.integer(100)}),target.call("record",{target.integer(9)})})});
+    const auto script=target.add({0,21,21,9,null_datum,0,0});
+    target.program.scripts.push_back({"caller",1,4,target.call("begin",{
+        target.call("sleep",{target.integer(-1),script}),
+        target.call("sleep",{target.integer(0),target.add({0,21,21,9,null_datum,0,0})}),
+        target.call("record",{target.integer(1)})})});
+    records.clear();
+    ScriptVm other(target.program,[&](const auto &,const auto &args)->ScriptValue {
+        records.push_back({tick,args.at(0).bits});return {};
+    });
+    tick=0;other.start_level();other.tick(tick);
+    other.start("caller");tick=1;other.tick(tick);
+    tick=99;other.tick(tick);tick=100;other.tick(tick);
+    if(!other.diagnostics().empty() || records!=std::vector<std::array<unsigned,2>>{{1,1},{100,9}})
+        throw std::runtime_error("Nonpositive external sleep changed the target's wake");
+}
 void host_failure_context() {
     ProgramBuilder builder;
     builder.program.scripts.push_back({"campaign_start",0,4,builder.call("device_set_position_immediate",{})});
@@ -199,5 +242,6 @@ int main(int argc,char **argv) {
     object_list_conversions();
     freed_syntax_records();
     host_failure_context();
+    nonpositive_sleep();
     std::cout<<"source HS primary RNG, resumable begin_random and explicit object-list fixtures passed\n";
 }

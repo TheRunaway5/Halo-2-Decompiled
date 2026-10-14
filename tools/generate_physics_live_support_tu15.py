@@ -306,11 +306,11 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 assert i.bytes.hex()=='ff5060'
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return '{const auto target='+target+f';s.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,target,false);'+'}'
-            if p in (0xd1fbf,0x101db8):
+            if p in (0xd1fbf,0x101db8,0x183e17):
                 # Preserve native publication even when the complete callee
                 # becomes internal to this composition. The required owner
                 # observes the real ABI and runs the original callee itself.
-                expected={0xd1fbf:0xd13d0,0x101db8:0x178e30}[p]
+                expected={0xd1fbf:0xd13d0,0x101db8:0x178e30,0x183e17:0x439c0}[p]
                 assert op[0].type==2 and op[0].imm==expected
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'

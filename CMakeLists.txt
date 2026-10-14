@@ -7947,6 +7947,10 @@ if(BUILD_TESTING)
     add_test(NAME native_tag_campaign_sound_prediction COMMAND tag_campaign_sound_prediction_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/01b_spacestation.map)
     set_tests_properties(native_tag_campaign_sound_prediction PROPERTIES SKIP_RETURN_CODE 77)
+    if(UNIX AND NOT APPLE)
+        add_executable(tag_campaign_simulation_runner tools/tag_campaign_simulation_runner.cpp)
+        target_link_libraries(tag_campaign_simulation_runner PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+    endif()
 endif()
 
 add_executable(texture_filtering_tu15_tests tests/texture_filtering_tu15_tests.cpp)
@@ -7956,7 +7960,7 @@ add_test(NAME original_tu15_texture_filtering COMMAND texture_filtering_tu15_tes
 
 if(BUILD_TESTING)
     add_executable(source_model_live_resources_tu15_tests tests/source_model_live_resources_tu15_tests.cpp)
-    target_link_libraries(source_model_live_resources_tu15_tests PRIVATE halo2_systems halo2_menu_world_storage)
+    target_link_libraries(source_model_live_resources_tu15_tests PRIVATE halo2_systems halo2_menu_world_storage nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_model_resource_publication COMMAND source_model_live_resources_tu15_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map" "masterchief")
@@ -7968,6 +7972,7 @@ if(BUILD_TESTING)
 endif()
 
 target_sources(halo2_physics_world_runtime PRIVATE src/source_model_render_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_model_draws_tu15.cpp)
 
 if(BUILD_TESTING)
     add_executable(source_object_light_admission_tu15_tests tests/source_object_light_admission_tu15_tests.cpp)
@@ -7976,3 +7981,5 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_object_light_admission.original.json")
     set_tests_properties(original_tu15_object_light_admission PROPERTIES SKIP_RETURN_CODE 77)
 endif()
+
+target_sources(halo2_systems PRIVATE src/source_live_model_geometry_tu15.cpp)

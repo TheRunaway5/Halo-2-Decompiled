@@ -8,6 +8,7 @@ Use --require-completion to reject a run that ends at its step budget.
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
@@ -31,6 +32,7 @@ def main():
     parser.add_argument('--route', help='Comma-separated authored trigger volume names')
     parser.add_argument('--route-after', help='Wait for this authored device to open before following the route')
     parser.add_argument('--command-route', help='Reach these authored SET/POINT references before the volume route')
+    parser.add_argument('--runner', type=Path, help='Small native controller, executed inside the same memory budget')
     args = parser.parse_args()
     if not 1 <= args.ticks <= 100000 or not 10 <= args.timeout <= 600:
         parser.error('Use 1..100000 steps and a 10..600 second timeout')
@@ -43,6 +45,8 @@ def main():
             parser.error('Missing input file: ' + str(path))
     if not args.shared.is_dir():
         parser.error('Missing shared cache directory')
+    if args.runner and not args.runner.is_file():
+        parser.error('Missing native campaign controller')
     contained = enter_memory_budget(args.output, args.timeout)
     if contained is not None:
         return contained
@@ -56,6 +60,11 @@ def main():
     for option in ('route', 'route_after', 'command_route'):
         if getattr(args, option):
             command.append('--' + option.replace('_', '-') + '=' + getattr(args, option))
+    if args.runner:
+        # Replace this in-budget Python process. Hashing, child execution and
+        # validation all remain inside the exact same verified cgroup.
+        os.execv(str(args.runner.resolve()),
+                 [str(args.runner.resolve()), *command, '--timeout=' + str(args.timeout)])
     inputs = {name: digest(getattr(args, name)) for name in ('native', 'map', 'xbe')}
     started = time.monotonic()
     errors = []

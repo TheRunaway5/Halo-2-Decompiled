@@ -6,6 +6,32 @@ focused verification. Complete gameplay-world continuation and live retained
 departure remain outstanding; this historical audit's owner inventory still
 defines those requirements.
 
+2026-10-14 resource follow-up: native VM/physical/pool and synchronization
+owners, plus the live game's retired startup-arena/file owner, now have staged
+continuation tests. The arena requires actual local worker retirement at its
+idle source frontier; it does not import an executing worker or a CPU context.
+Full `PhysicsLiveWorldTu15` composition is still absent. Current source also
+requires retaining/rebinding the following live-world sidecars:
+
+- `lock_events`, source critical-section records and local thread-identity
+  bindings; native `std::thread::id` values must remain local.
+- Allocation notifications, completed `resource_reads` and their next-token
+  cursor. The current resource-I/O adaptation completes reads synchronously,
+  but its retained request identities are still part of this owner.
+- The native exit callback registrations (currently closures over original
+  callback addresses), pending projectile/damage/melee events, session state
+  and the delivered-player mask. Closures/observers must bind to the replacement
+  owner rather than carry source-process captures.
+- The newer `model_collectors` bank, `next_model_collector`, model scratch
+  mount state and their retained source addresses. Presentation scratch and
+  allocator bindings cannot be omitted merely because they are absent from
+  the network's visible player projection.
+- Authenticated immutable executable/cache/BSP/tag bindings, including the
+  biped definition map, and the native clock/timestamp adaptation boundaries.
+
+These are current-state integration requirements, not evidence that a complete
+world seal or native gameplay promotion may now be advertised.
+
 2026-10-13. Source inspection of the current native runtime and the recovered
 retail migration/departure owners. This is an implementation inventory, not a
 claim of implemented host migration. No product code, deployed service,

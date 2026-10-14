@@ -18,9 +18,11 @@ struct WeaponEffectInput;
 struct SourceGameVariant;
 struct ScenarioObject;
 struct SourceObjectDrawCollector;
+struct SourceObjectBuildRequest;
 struct SourcePortalVisibilitySet;
 struct SourceObjectAdmission;
 struct SourceObjectAdmissionInput;
+struct SourceBspPartCommandState;
 // Read-only publication of the actual101BC0 ->178E30 explosion request.
 // Locations are the completed source effect's retained3C records, including
 // their full34-byte world frames. No trajectory or effect frame is inferred.
@@ -78,11 +80,20 @@ public:
     // Original1717B0 requests authored sections;130980 owns allocation,
     // real cache-sector I/O and22A680 pointer publication on this same bank.
     void preload_render_model(std::uint32_t render_model);
+    bool request_render_geometry(std::uint32_t flags,std::uint32_t resource_header);
     void begin_model_frame();
+    // Original41C70/41C10/D7230 traversal over the actual attachment/child
+    // chains. Deep unowned attachment services propagate their real boundary.
+    void append_render_attachments(SourceBspPartCommandState&,
+        const SourceObjectAdmission&,std::uint32_t mode);
     SourceObjectAdmission admit_render_objects(const SourcePortalVisibilitySet&,
         const SourceObjectAdmissionInput&,std::span<const std::array<std::uint32_t,4>> prior={})const;
     SourceObjectDrawCollector build_world_model(std::uint32_t object,unsigned view,
         unsigned local_players,bool view_modifier,float geometry_metric,float lighting_metric);
+    // Complete builder for a current render-entry/child request. The caller
+    // owns the mounted collector storage and its lifetime through this call.
+    void build_render_model(SourceObjectDrawCollector&,const SourceObjectBuildRequest&,
+        unsigned view,unsigned local_players,bool view_modifier);
     // The native roster ordinal disambiguates offline identities on this
     // machine; it does not bind the original four local input/view records.
     void construct_player(std::uint32_t player,unsigned native_identity_ordinal,

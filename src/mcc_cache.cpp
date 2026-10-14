@@ -377,13 +377,14 @@ void Cache::initialize_mcc() {
     // Authored phmo values enter the same ordinary directory with checked
     // original consumer layouts. Runtime-only Havok/tool pointers are rebound
     // by the native TU1.5 constructor, never truncated from MCC host pointers.
-    for(auto& t:tags_)if(t.group=="phmo" && t.address && t.size) {
+    for(const auto* group:{"phmo","coll"})for(auto& t:tags_)if(t.group==group && t.address && t.size) {
         const auto next=(std::uint64_t(std::int64_t(storage_.size())+metadata_magic_)+15)&~std::uint64_t(15);
         const auto padding=next-std::uint64_t(std::int64_t(storage_.size())+metadata_magic_);
         const auto file_offset=storage_.size()+std::size_t(padding);
         if(next>0xffffffffu)throw FormatError("Canonical MCC physics address overflow");
         const auto original=Bytes(storage_).slice(metadata_offset(t.address,t.size),t.size);
-        const auto converted=normalize_mcc_physics_model(original,t.address,std::uint32_t(next),
+        const auto normalize=t.group=="coll"?normalize_mcc_collision_model:normalize_mcc_physics_model;
+        const auto converted=normalize(original,t.address,std::uint32_t(next),
             [&](std::uint32_t address,std::size_t size){return Bytes(storage_).slice(metadata_offset(address,size),size);});
         if(next+converted.size()-first>128ull*1024*1024 || file_offset+converted.size()>maximum_cache)
             throw FormatError("Excessive canonical physics metadata span");

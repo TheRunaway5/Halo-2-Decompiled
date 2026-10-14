@@ -57,6 +57,41 @@ def rebound_slots(packet, address):
     return result
 
 
+def collision_rebound_slots(packet, address):
+    result = []
+    for region in rows(packet, address, 0x1c, 0xc):
+        for permutation in rows(packet, address, region + 4, 0x14):
+            bsps = rows(packet, address, permutation + 4, 0x44)
+            physics = rows(packet, address, permutation + 0xc, 0x70)
+            if physics and len(physics) != len(bsps):
+                raise ValueError("Original collision BSP/physics correspondence is unavailable")
+            for bsp, shape in zip(bsps, physics):
+                if not u32(packet, bsp + 0x2c):
+                    continue  #24FF70 leaves inactive empty BSPs unconstructed.
+                for slot in (0, 8, 0xc, 0x40, 0x48, 0x4c, 0x50, 0x58, 0x5c, 0x60):
+                    at = shape + slot
+                    if u32(packet, at):
+                        raise ValueError("Converted collision retained a runtime/tool pointer")
+                    result.append(at)
+    return result
+
+
+def bsp_rebound_slots(packet, address):
+    result = []
+    for definition in rows(packet, address, 0x138, 0xc8):
+        if not u32(packet, definition + 0x98):
+            continue
+        physics = rows(packet, address, definition + 0xb0, 0x70)
+        if len(physics) != 1:
+            raise ValueError("Original instanced BSP requires its single physics record")
+        for slot in (0, 8, 0xc, 0x40, 0x48, 0x4c, 0x50, 0x58, 0x5c, 0x60):
+            at = physics[0] + slot
+            if u32(packet, at):
+                raise ValueError("Converted BSP retained a runtime/tool pointer")
+            result.append(at)
+    return result
+
+
 class Oracle:
     def __init__(self, executable):
         image = executable.read_bytes()
@@ -114,7 +149,7 @@ class Oracle:
         elif not STACK <= address < STACK + 0x10000:
             raise ValueError(f"Original constructor wrote outside its declared procedure outputs: {address:x}")
 
-    def call(self, datum, base, size, clear, slots):
+    def call(self, datum, base, size, clear, slots, group):
         cpu = self.cpu
         state = dict(base=base, size=size, mapped_base=self.mapped[0],
             mapped_end=sum(self.mapped), clear=clear,
@@ -129,7 +164,7 @@ class Oracle:
         cpu.reg_write(R.UC_X86_REG_EFLAGS, 0x202)
         cpu.reg_write(R.UC_X86_REG_FPCW, 0x27f)
         cpu.reg_write(R.UC_X86_REG_MXCSR, 0x1f80)
-        cpu.emu_start(ENTRY, STOP, count=2000000)
+        cpu.emu_start({"coll":0x21a580,"sbsp":0x171120,"phmo":ENTRY}[group], STOP, count=2000000)
         if cpu.reg_read(R.UC_X86_REG_EIP) != STOP:
             raise ValueError("Original constructor did not return within its instruction bound")
         if clear == 0 and not state["rebound"] <= state["written"]:
@@ -145,14 +180,14 @@ class Oracle:
             stores=state["stores"], program_reads=[dict(address=r["address"], bytes=bytes(r["bytes"]).hex()) for r in reads],
             after=bytes(cpu.mem_read(base, size)))
 
-    def verify(self, packet, datum, base, export):
+    def verify(self, packet, datum, base, export, group):
         if self.mapped:
             self.cpu.mem_unmap(*self.mapped)
         page, prefix = base & ~0xfff, base & 0xfff
         self.mapped = page, (prefix + len(packet) + 0xfff) & ~0xfff
         self.cpu.mem_map(*self.mapped)
-        slots = rebound_slots(packet, base)
-        self.cpu.mem_write(TABLE + (datum & 65535) * 16, struct.pack("<IIII", 0x70686d6f, datum, base, len(packet)))
+        slots = {"coll":collision_rebound_slots,"sbsp":bsp_rebound_slots,"phmo":rebound_slots}[group](packet, base)
+        self.cpu.mem_write(TABLE + (datum & 65535) * 16, struct.pack("<IIII", int.from_bytes(group.encode(),"big"), datum, base, len(packet)))
         expected = []
         for poison in (False, True):
             before = bytearray(packet)
@@ -161,8 +196,8 @@ class Oracle:
                     struct.pack_into("<I", before, at, 0xad000001 + index)
             self.cpu.mem_write(base, bytes(before))
             phases = []
-            for clear in (0, 1):
-                phase = self.call(datum, base, len(packet), clear, slots)
+            for clear in ((0, 1) if group == "phmo" else (0,)):
+                phase = self.call(datum, base, len(packet), clear, slots, group)
                 phases.append(phase)
             if not poison:
                 expected = phases
@@ -188,11 +223,15 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     oracle = Oracle(args.reference_xbe)
-    results, seen = [], {}
+    results, seen, groups = [], {}, set()
     for directory in args.packets:
         manifest = json.loads((directory / "packets.json").read_text())
         if manifest["schema"] != "H2_MCC_PHYSICS_REFERENCE_PACKETS_V1":
             raise ValueError("Wrong physics packet manifest")
+        group = manifest.get("group", "phmo")
+        if group not in ("phmo", "coll", "sbsp"):
+            raise ValueError("Unsupported physics constructor comparison")
+        groups.add(group)
         for row in manifest["packets"]:
             path = directory / row["file"]
             if path.parent != directory or path.suffix != ".bin":
@@ -201,16 +240,18 @@ def main():
             digest = sha(packet)
             if len(packet) != row["bytes"]:
                 raise ValueError("Physics packet extent changed")
-            key = digest, row["address"], row["datum"]
+            key = group, digest, row["address"], row["datum"]
             if key in seen:
                 result = dict(**row, map=manifest["map"], packet_sha256=digest, duplicate_of=seen[key])
             else:
-                detail = oracle.verify(packet, row["datum"], row["address"], path)
+                detail = oracle.verify(packet, row["datum"], row["address"], path, group)
                 result = dict(**row, map=manifest["map"], packet_sha256=digest, packet_path=str(path.resolve()), **detail)
                 seen[key] = len(results)
             results.append(result)
         print(directory.name, "packets", len(manifest["packets"]), "unique cumulative", len(seen), flush=True)
-    report = dict(schema="H2_MCC_PHYSICS_TU15_CONSTRUCTOR_ORACLE_V1", reference_xbe_sha256=PIN,
+    if len(groups) != 1:
+        raise ValueError("Compare one constructor group per report")
+    report = dict(schema="H2_MCC_PHYSICS_TU15_CONSTRUCTOR_ORACLE_V1", tag_group=next(iter(groups)), reference_xbe_sha256=PIN,
         original_instruction_patches=False, supplied_callee_results=False, live_world_or_simulation_parity=False,
         cases=len(results), unique_cases=len(seen), rows=results)
     args.output.parent.mkdir(parents=True, exist_ok=True)

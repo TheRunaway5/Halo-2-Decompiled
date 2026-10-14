@@ -111,3 +111,148 @@ void weapon_trigger_clear_barrel(std::span<SmgBarrelState> barrels,std::int16_t 
   if(barrels[unsigned(index)].mode!=1)barrels[unsigned(index)].flags&=~0x40u;
 }
 }
+namespace halo2 {
+bool weapon_trigger_step(WeaponTriggerState &state,const WeaponTriggerDefinition &definition,
+    std::span<SmgBarrelState> barrels,WeaponTriggerInputState &analog,WeaponTriggerTarget &target,
+    unsigned index,const WeaponTriggerPhaseContext &context,const WeaponTriggerPhaseServices &services) {
+  bool dirty=state.ticks>0;if(dirty)--state.ticks;
+  const bool held=!context.blocked && (context.held || (state.flags&0x80u));
+  const bool pressed=!context.blocked && context.pressed;
+  auto admitted=[&](std::int16_t barrel) {
+    if(!services.barrel_admitted)throw std::runtime_error("Original trigger barrel admission owner unavailable");
+    return services.barrel_admitted(barrel);
+  };
+  auto fire=[&](std::int16_t barrel,bool consume_latch=false) {
+    if(barrel==-1 || !admitted(barrel))return;
+    if(barrel<0 || unsigned(barrel)>=barrels.size())throw std::runtime_error("Original trigger fire has no barrel storage");
+    barrels[unsigned(barrel)].flags|=1u;if(consume_latch)state.flags&=~1u;
+  };
+  auto clear=[&]{weapon_trigger_clear_barrel(barrels,definition.primary_barrel);
+      weapon_trigger_clear_barrel(barrels,definition.secondary_barrel);};
+  auto charge_ok=[&]{
+    if(context.barrel_count>barrels.size())throw std::runtime_error("Original trigger barrel count exceeds actual storage");
+    return weapon_trigger_charge_admitted(definition,barrels.first(context.barrel_count),context.spent);
+  };
+  auto charge=[&]{weapon_trigger_start_charge(state,definition,context.tick_rate,context.has_unit,services);};
+  auto lock=[&](WeaponTriggerLockPhase phase){weapon_trigger_lock(state,phase,context.tick_rate,context.has_unit,services);};
+  auto acquire=[&]() {
+    if(!services.acquire_target)throw std::runtime_error("Original trigger target acquisition owner unavailable");
+    return services.acquire_target();
+  };
+  auto stop=[&] {
+    if(state.effect==0xffffffffu)return;
+    if(!services.stop_effect)throw std::runtime_error("Original trigger effect lifetime owner unavailable");
+    services.stop_effect(state.effect);state.effect=0xffffffffu;
+  };
+  auto release_state=[&]{state.mode=0;state.ticks=0;};
+  switch(state.mode) {
+    case 0:
+      switch(definition.behavior) {
+        case 0:
+          if((held || pressed) && definition.primary_barrel!=-1 && admitted(definition.primary_barrel)) {
+            state.flags|=0x20u;
+            if(definition.primary_barrel<0 || unsigned(definition.primary_barrel)>=barrels.size())
+              throw std::runtime_error("Original automatic trigger has no primary barrel storage");
+            barrels[unsigned(definition.primary_barrel)].flags|=1u;
+          } else state.flags&=~0x20u;
+          if(!held || pressed)weapon_trigger_clear_barrel(barrels,definition.primary_barrel);
+          break;
+        case 1:
+          if(!held){state.flags|=1u;weapon_trigger_clear_barrel(barrels,definition.primary_barrel);}
+          else if(state.flags&1u)fire(definition.primary_barrel,true);
+          break;
+        case 2:
+          if(context.blocked){analog.previous=analog.current=analog.direction=0;break;}
+          if(!analog.current && !analog.previous) {
+            if(!pressed){state.flags&=~0x18u;clear();}
+            else if(definition.charging_type==1 && charge_ok()){charge();state.flags|=0x40u;}
+          } else {
+            const auto input=weapon_trigger_input(analog,state,definition,context.tick_rate);
+            if(input.primary) {
+              state.flags|=8u;
+              switch(definition.discharge_type) {
+                case 0:fire(definition.primary_barrel);break;
+                case 1:if(charge_ok())charge();break;
+                case 2:lock(WeaponTriggerLockPhase::Seeking);break;
+                case 3:fire(definition.secondary_barrel);break;
+              }
+            }
+            if(input.charged) {
+              state.flags|=0x10u;
+              switch(definition.charging_type) {
+                case 0:fire(definition.secondary_barrel);break;
+                case 1:if(charge_ok())charge();break;
+                case 2:lock(context.has_player?WeaponTriggerLockPhase::Seeking:WeaponTriggerLockPhase::Locked);break;
+                case 3:fire(definition.primary_barrel);break;
+              }
+            }
+            if(input.released){state.flags&=~0x18u;clear();}
+          }
+          break;
+        case 3:
+          if(!(held || pressed) || !charge_ok())weapon_trigger_clear_barrel(barrels,definition.primary_barrel);
+          else {if(pressed)state.flags|=0x40u;charge();}
+          break;
+        case 4:
+          if(!held){state.flags|=1u;clear();}
+          else if(state.flags&1u)fire(context.alternate?definition.secondary_barrel:definition.primary_barrel,true);
+          break;
+        case 5:
+          if(!held){state.flags|=1u;clear();}
+          else if((state.flags&1u) && admitted(0)) {
+            if(!context.has_player)fire(definition.secondary_barrel,true);
+            else if(acquire())lock(WeaponTriggerLockPhase::Acquiring);
+            else fire(definition.primary_barrel,true);
+          }
+          break;
+      }
+      break;
+    case 1:
+      if(!state.ticks)weapon_trigger_finish_charge(state,definition,context.tick_rate,index,services);
+      else if(!held && !pressed) {
+        if(!(state.flags&0x40u)) {
+          const auto barrel=definition.primary_barrel;
+          if(barrel!=-1) {
+            if(barrel<0 || unsigned(barrel)>=barrels.size())throw std::runtime_error("Original early charge release has no barrel storage");
+            barrels[unsigned(barrel)].flags|=1u;
+          }
+        } else state.flags&=~0x40u;
+        release_state();stop();
+      }
+      break;
+    case 2:
+      if(!(state.flags&0x40u)) {
+        if(!held && !context.blocked)weapon_trigger_release_charge(state,definition,barrels,context.tick_rate);
+        if(!state.ticks) {
+          if(definition.charged_action==1 && !context.editor) {
+            if(!services.allocate_effect || !services.destroy_weapon)throw std::runtime_error("Original charged weapon destruction owner unavailable");
+            (void)services.allocate_effect(context.detonation_effect);services.destroy_weapon();
+          } else if(definition.charged_action==2)weapon_trigger_release_charge(state,definition,barrels,context.tick_rate);
+        }
+      } else if(!pressed){release_state();stop();state.flags&=~0x40u;}
+      break;
+    case 3:case 7:
+      if(!held && !context.blocked) {
+        if(state.mode!=7)fire(definition.primary_barrel,true);
+        release_state();
+      } else if(acquire())lock(WeaponTriggerLockPhase::Acquiring);
+      break;
+    case 5:
+      if(!held && !context.blocked){fire(definition.primary_barrel,true);release_state();}
+      else if(const auto acquired=acquire()) {
+        if(acquired->datum==target.datum){target.marker=acquired->marker;if(!state.ticks)lock(WeaponTriggerLockPhase::Locked);}
+        else {lock(WeaponTriggerLockPhase::Acquiring);target=*acquired;}
+      } else lock(WeaponTriggerLockPhase::Lost);
+      break;
+    case 6:
+      if(!held && !context.blocked){fire(definition.secondary_barrel);release_state();}
+      else {
+        if(!services.track_target)throw std::runtime_error("Original trigger tracking owner unavailable");
+        if(const auto tracked=services.track_target();tracked && tracked->datum==target.datum)lock(WeaponTriggerLockPhase::Locked);
+        if(!state.ticks && context.has_player)lock(WeaponTriggerLockPhase::Lost);
+      }
+      break;
+  }
+  return dirty || state.mode!=0 || held || pressed;
+}
+}

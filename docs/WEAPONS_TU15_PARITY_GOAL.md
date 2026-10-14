@@ -455,6 +455,14 @@ Unit/inventory/pose/action/physics composition, nonlocal and coalesced effect
 histories, and matched rendered sequences across all weapons and owners.
 No weapon is marked fully feature-and-visually complete by this checkpoint.
 
+The [complete sandbox goal](SANDBOX_TU15_PARITY_GOAL.md) now adds one passing
+source-owned distant sword lunge: actual targeting, closing movement, posed
+contact/damage and action completion across 180 ticks in a coherent native
+build. It also retains a failing original-weapon input regression: ordinary
+primary fire currently leaves the source unit trigger neutral and its SMG at
+60 rounds. The parallel native weapon adapter is not original-world weapon
+ownership; composing that input/state/event path remains required.
+
 Next coverage must include complete unit/own-model/aim-response arbitration
 and charge/tracking/target-marker publication, extending the bounded
 inactive/world clock and numeric HUD evidence above. Initial energy-weapon carry remains guarded in the

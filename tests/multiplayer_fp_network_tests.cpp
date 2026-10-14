@@ -103,6 +103,7 @@ int main(int argc,char **argv) {
     unsigned sampled{},fractional{},maximum_fragments{},cuts{};
     for(unsigned tick=0;tick<270;++tick) {
       local[0].melee=tick==40 || tick==50;
+      local[0].switch_grenade=tick==30 || tick==65;
       local[0].fire=tick>=6 && tick<20;local[0].reload=tick==24;
       local[1].fire=tick<210;local[1].reload=false;
       local[2].fire=false;local[2].reload=false;
@@ -112,11 +113,14 @@ int main(int argc,char **argv) {
         if(tick==50)proxy.pump(true);
         auto release=local;release[0].melee=false;client.send(release);
       }
+      if(tick==65) {proxy.pump(true);auto release=local;release[0].switch_grenade=false;client.send(release);}
       if(tick==24) {auto release=local;release[0].reload=false;client.send(release);}
       if(tick==115) {
         proxy.pump(true);auto release=local;release[3].reload=false;client.send(release);
       }
       proxy.pump();host.receive(commands);
+      if(tick==30 || tick==65)check(commands[0].switch_grenade,"Grenade selector press was lost in native UDP delivery");
+      if(tick==31 || tick==66)check(!commands[0].switch_grenade,"Grenade selector press was delivered twice");
       if(tick==24)check(commands[0].reload,"Coalesced short R press was lost before original reload owner");
       if(tick==25)check(!commands[0].reload,"Coalesced short R press was delivered twice");
       if(tick==115)check(commands[3].reload,"Lost R press packet was not recovered from its newer release");

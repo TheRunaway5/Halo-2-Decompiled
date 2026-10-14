@@ -7,6 +7,7 @@
 #include "halo2/original_data.hpp"
 #include "halo2/weapon_error.hpp"
 #include "halo2/smg.hpp"
+#include "halo2/weapon_trigger.hpp"
 #include "halo2/damage_amount.hpp"
 #include "halo2/damage_feedback.hpp"
 #include "halo2/spawn.hpp"
@@ -166,6 +167,7 @@ struct WeaponDefinition {
   float range{}, fire_recovery{};
   int burst{}, projectiles_per_shot{};
   bool instantaneous{};
+  std::vector<WeaponTriggerDefinition> triggers; // All actual authored64-byte trigger records.
   std::int16_t trigger_behavior{}; // Single authored trigger+6; 1 releases before firing again.
   std::uint32_t damage_flags{};
   std::uint32_t damage_group{}, damage_group_b{};

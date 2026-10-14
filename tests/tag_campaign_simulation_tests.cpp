@@ -221,6 +221,9 @@ int main(int argc, char **argv) try {
                     input.yaw=std::atan2(delta.y,delta.x);
                     input.forward=std::hypot(delta.x,delta.y)>.2f?.7f:0;
                     input.right=0;
+                    if(!command_route.empty() && command_waypoint==command_route.size())
+                        input.jump=player.body.grounded && goal.z>player.body.position.z+.1f &&
+                            std::hypot(delta.x,delta.y)<2.f && step%90==0;
                     if(!command_route.empty() && command_waypoint==command_route.size() && target) {
                         // Keep looking at the actual ally while walking to the
                         // final volume, just as a player can walk and look

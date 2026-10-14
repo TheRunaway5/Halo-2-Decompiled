@@ -53,6 +53,9 @@ int main(int argc,char** argv)try {
     std::ifstream file(argv[1]);const auto report=Json::parse(file);
     check(report.at("schema")=="H2_MCC_PHYSICS_TU15_CONSTRUCTOR_ORACLE_V1","Wrong original comparison report");
     check(report.at("reference_xbe_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Wrong original update reference");
+    const auto group=report.value("tag_group",std::string("phmo"));
+    check(group=="phmo" || group=="coll" || group=="sbsp","Unsupported constructor comparison group");
+    const bool collision=group!="phmo";
     std::size_t cases=0,phases=0,stores=0;
     for(const auto& row:report.at("rows")) {
         if(row.contains("duplicate_of"))continue;
@@ -64,7 +67,7 @@ int main(int argc,char** argv)try {
         check(memory.regions.at(base).bytes.size()==row.at("bytes").get<std::size_t>(),"Changed reference packet extent");
         Buffer global(4);word(global,0,0x70000000u);memory.regions.emplace(0x4f0414u,Memory::Region{std::move(global),false});
         Buffer directory(0x100000);const auto at=(datum&65535u)*16;
-        word(directory,at,0x70686d6fu);word(directory,at+4,datum);word(directory,at+8,base);
+        word(directory,at,group=="coll"?0x636f6c6cu:group=="sbsp"?0x73627370u:0x70686d6fu);word(directory,at+4,datum);word(directory,at+8,base);
         word(directory,at+12,row.at("bytes"));memory.regions.emplace(0x70000000u,Memory::Region{std::move(directory),false});
         for(const auto& phase:row.at("phases"))for(const auto& read:phase.at("program_reads")) {
             const auto address=read.at("address").get<std::uint32_t>();const auto bytes=hex(read.at("bytes"));
@@ -88,10 +91,12 @@ int main(int argc,char** argv)try {
                 std::ostringstream s;s<<"Unowned constructor callee "<<std::hex<<call.target<<" at "<<call.instruction;
                 throw std::runtime_error(s.str());
             };
-            halo2::source_run_physics_world_runtime(memory,0x1ee380u,state,halo2::SourcePhysicsContactImage::TitleUpdate15,
-                {0x27f,0x1f80},services,[&](const auto& store){
+            const auto observe=[&](const auto& store){
                     if(store.address>=base && std::uint64_t(store.address)-base<size)actual.push_back(store);
-                });
+                };
+            if(collision)halo2::source_run_physics_live_support_tu15(memory,group=="coll"?0x21a580u:0x171120u,state,{0x27f,0x1f80},services,observe);
+            else halo2::source_run_physics_world_runtime(memory,0x1ee380u,state,halo2::SourcePhysicsContactImage::TitleUpdate15,
+                {0x27f,0x1f80},services,observe);
             const auto expected=read_file(packet.parent_path()/phase.at("after_file").get<std::string>());
             const auto name=row.at("path").get<std::string>()+" clear="+phase.at("clear").dump();
             if(memory.binding)check(std::includes(memory.written.begin(),memory.written.end(),
@@ -106,7 +111,7 @@ int main(int argc,char** argv)try {
                 // IDs; live TU1.5 callees report actual TU1.5 IDs. Those are
                 // diagnostic labels. Compare the complete ordered data stores
                 // without inventing a PC mapping between the two label spaces.
-                check(a.address==e.at("address") &&
+                check((!collision || a.instruction==e.at("instruction")) && a.address==e.at("address") &&
                       a.before==hex(e.at("before")) && a.written==hex(e.at("written")),
                       name+": native original store differs at "+std::to_string(i)+
                       " native PC="+std::to_string(a.instruction)+" original PC="+e.at("instruction").dump()+

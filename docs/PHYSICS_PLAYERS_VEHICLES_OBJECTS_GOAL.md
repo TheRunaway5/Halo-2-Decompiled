@@ -39,9 +39,9 @@ below; historical component seals remain unchanged.
 | --- | --- |
 | Retained TU1.5 world and bipeds | Actual source-created bodies, world stepping, root/WORLD readback and normal delivered SDL inputs run in the match. Visible walking/jump/crouch and lift travel pass; all support/contact/movement modes and retail trajectories still need coverage. |
 | Warthog | Normal entry, forward driving, steering and exit pass locally and over UDP. The actual245EA0 authored camera reaches rendering; UDP camera position/basis is checked against authority output. Other vehicle/controller classes, seats and quantitative retail contact/force behavior remain open. |
-| Grenades | Actual source prepare/create/release/flight/detonation/retirement passes locally and over UDP. Native presentation consumes the source body and original completed explosion locations. A close-range authored power-module blast reaches further damage/lighting owners and is still RED; no prop impulse/destruction pass is claimed. |
+| Grenades and prop blast | Actual source prepare/create/release/flight/detonation/retirement passes locally and over UDP. Current-root `v217` also passes a close-range authored power-module blast through movement and actual retirement; two captured point impulses per mode compare all512 motion bytes against unchanged TU1.5. All181 UDP states match, including live prop bounds/query inputs. Other object types, spawned debris and all destruction/model-region paths remain open. |
 | Scene replicas | Complete authored source scene roots and WORLD banks are admitted and adopted by the client, then checked before interpolation. Missing roots retire their native presentation. Recreation/late-join generation changes and spawned debris remain open. |
-| Delivery | The world constructor automatically selects TU1.5 physics for ordinary authoritative Slayer. The latest installed direct-peer runtime includes the original camera/seat bindings and passes normal180-frame two-view Lockout/Coagulation launch/render checks through both launchers. The close-range prop continuation still needs production integration and delivery. |
+| Delivery | The world constructor automatically selects TU1.5 physics for ordinary authoritative Slayer. The installed direct-peer runtime includes original camera/seat bindings and passes normal180-frame two-view Lockout/Coagulation launch/render checks through both launchers. The newer prop wiring passes in the current production checkout; its packaged delivery still needs verification. |
 
 Current-root `v164` also passes the Ghost with an actual seated camera and
 exact UDP FOV submission checks. Original CB3D0/CB090 seat selection is wired
@@ -49,12 +49,12 @@ into the live world and passes the Warthog and Ghost sequences. Banshee `v190`
 passes boarding, open-flight travel10.374212 units, climb3.404600 units, turning
 and exit, with435 submitted original camera frames and902 exact UDP comparisons.
 These bounded native sequences still require quantitative retail comparison
-and coverage of the other vehicle classes/seats. The close-range
-power-module fixture's actual324F80 point impulse compares exactly against the
-unchanged TU1.5 body across all256 captured motion bytes in private `v166`.
-Rendering advances after the blast with completed source bounds/velocity/flags;
-further damage/animation/effect owners still stop the full local fixture, and
-its UDP/production integration remains open.
+and coverage of the other vehicle classes/seats. Current-root `v217` repeats
+Warthog/Ghost camera, movement and lift passes after the prop integration. Its
+long Banshee flight reaches an additional rigid-body deactivation callback;
+the original gameplay admission and motion checks are wired and pending that
+rerun. [Prop blast evidence](MP_PROP_BLAST_TU15_20261014.md) supersedes the
+earlier private-only impulse and red post-explosion checkpoints.
 
 [Vehicle camera evidence](MP_VEHICLE_CAMERA_TU15_20261013.md) and
 [scene replication evidence](MP_SOURCE_SCENE_REPLICATION_TU15_20261013.md)

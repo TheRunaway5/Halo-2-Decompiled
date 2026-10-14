@@ -152,6 +152,35 @@ int main(){
             save(root/"shared.map",shared);
         }
         {
+            auto collision_local=local,collision_shared=shared;
+            for(auto* owner:{&collision_local,&collision_shared}) {
+                word(*owner,1056,0x636f6c6c);word(*owner,1112,0x636f6c6c);
+            }
+            word(collision_shared,1124,0x200);
+            std::fill(collision_shared.begin()+4096,collision_shared.begin()+4608,std::byte{});
+            const auto descriptor=[&](unsigned at,unsigned offset,unsigned count=1) {
+                word(collision_shared,4096+at,count);word(collision_shared,4096+at+4,0x100000+offset);
+            };
+            descriptor(0x1c,0x40);descriptor(0x44,0x50);descriptor(0x54,0x70);descriptor(0x5c,0xc0);
+            descriptor(0x70+0x2c,0x1a0);descriptor(0xc0+0x98,0x180,6);
+            word(collision_shared,4096+0xe0,0x3fa00000u);
+            word(collision_shared,4096+0xc0,0x12345678u);word(collision_shared,4096+0xc4,0xabcdef01u);
+            for(unsigned i=0;i<6;++i)collision_shared[4096+0x180+i]=std::byte(i*13+7);
+            save(root/"collision.map",collision_local);save(root/"shared.map",collision_shared);
+            TagSystem tags(std::make_shared<const Cache>(root/"collision.map"));
+            const auto collision=tags.get({0xe1000002u},TagGroup{"coll"});
+            const auto region=collision.block(0x1c,0xc).element(0);
+            const auto permutation=region.block(4,0x14).element(0);
+            const auto physics=permutation.block(0xc,0x70).element(0);
+            check(collision.source_address()!=0x100000 && collision.info().name=="textures\\original" &&
+                  physics.address().value>0xffffffffull && physics.u32(0)==0 && physics.u32(0x10)==0x3fa00000u,
+                  "Canonical collision did not preserve identity, native ownership or authored bounds");
+            const auto code=physics.block(0x64,1);
+            check(code.size()==6 && code.element(5).bytes()[0]==std::byte{72},"Canonical collision changed MOPP bytecode");
+            rejects([&]{(void)tags.read_source(0x100000,1);});
+            save(root/"shared.map",shared);
+        }
+        {
             auto animation_local=local,animation_shared=shared;
             for(auto* owner:{&animation_local,&animation_shared}) {
                 word(*owner,1056,0x6a6d6164);word(*owner,1112,0x6a6d6164);

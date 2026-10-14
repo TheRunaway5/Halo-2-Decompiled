@@ -25,10 +25,20 @@ PhysicsPlatformLockBoundary::PhysicsPlatformLockBoundary(
     PhysicsPlatformLockBoundaryKind boundary, std::uint32_t p)
     : std::runtime_error("Required native physics platform lock owner unavailable"),
       kind(boundary), critical_section(p) {}
+PhysicsPlatformLocks::ActiveCall::ActiveCall(PhysicsPlatformLocks &owner):owner(owner) {
+    std::lock_guard gate(owner.call_gate_);
+    if(owner.staging_)throw std::runtime_error("Physics critical sections have a prepared restore");
+    ++owner.active_calls_;
+}
+PhysicsPlatformLocks::ActiveCall::~ActiveCall() {
+    std::lock_guard gate(owner.call_gate_);--owner.active_calls_;
+}
 
 void PhysicsPlatformLocks::initialize(SourcePhysicsContactMemory &memory, std::uint32_t p,
     const PhysicsPlatformLockObserver &observe) {
+    ActiveCall call(*this);
     std::lock_guard guard(mutex_);
+    known_[&memory].insert(p);
     // Preserve the event's Absolute and Inserted bytes, as the source does.
     store(memory,p,1,1,observe);
     store(memory,p+2,4,1,observe);
@@ -41,11 +51,13 @@ void PhysicsPlatformLocks::initialize(SourcePhysicsContactMemory &memory, std::u
 }
 void PhysicsPlatformLocks::enter(SourcePhysicsContactMemory &memory, std::uint32_t p,
     const PhysicsPlatformLockServices &services, const PhysicsPlatformLockObserver &observe) {
+    ActiveCall call(*this);
     if (!services.current_thread)
         throw PhysicsPlatformLockBoundary(PhysicsPlatformLockBoundaryKind::CurrentThread,p);
     const auto identity = services.current_thread();
     if (!identity) throw std::runtime_error("Native physics platform thread identity must be nonzero");
     std::unique_lock guard(mutex_);
+    known_[&memory].insert(p);
     const auto count = read_word(memory,p+16)+1u;
     store(memory,p+16,count,4,observe);
     if (count != 0) {
@@ -69,7 +81,9 @@ void PhysicsPlatformLocks::enter(SourcePhysicsContactMemory &memory, std::uint32
 }
 void PhysicsPlatformLocks::leave(SourcePhysicsContactMemory &memory, std::uint32_t p,
     const PhysicsPlatformLockServices &services, const PhysicsPlatformLockObserver &observe) {
+    ActiveCall call(*this);
     std::unique_lock guard(mutex_);
+    known_[&memory].insert(p);
     const auto depth = read_word(memory,p+20)-1u;
     store(memory,p+20,depth,4,observe);
     const auto count = read_word(memory,p+16)-1u;

@@ -1,22 +1,50 @@
 # Normal launcher world-feature delivery
 
-## Current launcher boundary, October 13
+## Current map and peer delivery, October 14
 
-The root launchers currently select the direct-peer runtime at
-`.local/direct-peer-20261013/runtime/halo2_native`, SHA-256
-`efc4084714b0184d0f7952966629da01a7a800cd2388ef1f066c474d8d1afaae`.
-Their newer MCC-only import/readiness policy reports native MCC gameplay as
-unavailable and rejects the historical `--gameplay-xbe` launcher option.
-The legacy map captures below therefore describe historical receipts; they do
-not establish gameplay acceptance through the current launcher. The current
-MCC policy must be preserved when delivering map changes.
+Both root launchers now select `.local/map-world-20261014/halo2_native`,
+SHA-256 `4f0caddf049367c06cd5fc2a215a1f948180398b266a9bf49656029e3a1e0c8d`.
+Both installed `--launcher-info` outputs confirm that path. Their current
+MCC-only import/readiness policy is preserved: native MCC gameplay remains
+unavailable, and `--launch-game` rejects that unresolved state. The direct
+original-XBE captures below do not establish MCC launcher gameplay acceptance.
 
-An attempted link from copied online-peer build inputs was rejected before
-installation: both its baseline and its map candidate crash before world
-startup in `NativeMeleeAnimation`. The shared archives were rebuilt at different
-times. Its package `.local/map-peer-20261013/package.json` is marked unaccepted.
-A coherent build from one frozen source set is tracked separately under
-`analysis/map-world-features/coherent-peer-20261014/`.
+The combined runtime uses one frozen current source set, preserving peer
+networking and combat changes, plus the authenticated 100-body / 9,422-instruction
+map module. Source, overlay, compiler/link inputs and original registration
+receipts are under `analysis/map-world-features/coherent-peer-20261014/`.
+The final original banks pass **1,744 bounded cases**. Native physical byte
+protection, the actual decal cache export and real encrypted direct UDP also
+pass. These are scoped tests, not complete game or Xbox visual parity.
+
+`captures/ordinary-verification.json` records **15 ordinary rendering cases**:
+all 13 maps that complete the first source tick, plus four-view Lockout and
+Foundation. Six additional captures establish Lockout snow (**20,078 changed
+pixels**) and Foundation steam (**38,829**), with byte-identical enabled
+repeats and zero Vulkan validation errors. Foundation's steam camera/root
+capture is diagnostic; its ordinary startup/rendering is checked separately.
+
+The runtime's shader-directory literal is relocated to a frozen packaged set
+using an equal-length path, preserving compiled literal extents. Every other
+allocated ELF section is unchanged; original XBE and native instructions are
+unchanged. `.local/map-world-20261014/package.json` records that relocation,
+shader hashes, accepted scope and prior launcher hashes. `installed.json`
+records both installed launchers. The former launchers remain in the package's
+`prior-launchers/`; the earlier 98-body candidate remains in `versions/98/`.
+
+The 21-map first-source-tick bank now passes 13 maps, including Terminal, with
+no regressions against the coherent 98-body baseline. Eight still fail: seven
+at the absent native decal command owner, and Gemini at separate missing
+backing. Terminal's longer attempt fails at step198 on missing physics callback
+`2FA6F0`; its short rendering check does not accept complete train behavior.
+Zanzibar's earlier computer/barrier receipts remain historical and do not
+close the current graphics owner. The full all-map goal remains active.
+
+An earlier copied-input relink was rejected before installation: baseline and
+candidate both crashed before world startup in `NativeMeleeAnimation`.
+`.local/map-peer-20261013/package.json` is explicitly marked unaccepted. The
+coherent rebuild eliminated that failure; it did not replace the current MCC
+launcher policy with an older one.
 
 ## Historical October 13 map attachment delivery
 

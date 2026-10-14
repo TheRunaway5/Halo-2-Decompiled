@@ -2,10 +2,21 @@
 target_sources(halo2_systems PRIVATE src/physics_live_world_tu15.cpp src/source_runtime_cache_tags_tu15.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/physics_live_support_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_object_sound_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_physics_deactivation_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_combat_action_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_sandbox_special_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_cache_bitmap_view_tu15.cpp)
 if(BUILD_TESTING)
+    add_executable(cache_vertex_view_tu15_tests tests/cache_vertex_view_tu15_tests.cpp)
+    target_link_libraries(cache_vertex_view_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME original_tu15_cache_vertex_view COMMAND cache_vertex_view_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/cache_vertex_view_tu15_original.json")
+    add_executable(native_grenade_input_tests tests/native_grenade_input_tests.cpp)
+    target_link_libraries(native_grenade_input_tests PRIVATE halo2_systems)
+    add_test(NAME native_grenade_selector_input COMMAND native_grenade_input_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
     add_executable(grenade_selection_tu15_tests tests/grenade_selection_tu15_tests.cpp src/inventory.cpp)
     target_include_directories(grenade_selection_tu15_tests PRIVATE include)
     target_link_libraries(grenade_selection_tu15_tests PRIVATE nlohmann_json::nlohmann_json)

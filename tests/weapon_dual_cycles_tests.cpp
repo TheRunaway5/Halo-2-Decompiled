@@ -8,7 +8,8 @@ using namespace halo2;
 int main(int argc,char **argv)try {
   if(argc!=5 && argc!=6)throw FormatError("Supply MAP SHARED XBE ORIGINAL_DUAL_FIXTURE [smg]");
   const bool smg_suite=argc==6 && std::string(argv[5])=="smg";
-  const bool registered=argc==6 && std::string(argv[5])=="registered";
+  const bool trigger_suite=argc==6 && std::string(argv[5])=="registered-trigger";
+  const bool registered=trigger_suite || (argc==6 && std::string(argv[5])=="registered");
   if(argc==6 && !smg_suite && !registered)throw FormatError("Unknown dual fixture family");
   Cache cache(argv[1],argv[2],OriginalData::load_xbe(argv[3]));
   const auto authored=cache.load_content(0,true);const auto spawns=cache.spawns();
@@ -21,7 +22,7 @@ int main(int argc,char **argv)try {
     std::istringstream row(line);std::string name,pattern;unsigned representation;
     row>>name>>representation>>pattern;
     if(smg_suite && name!="smg")throw FormatError("SMG fixture contains another definition");
-    std::vector<std::uint32_t> expected(registered?48u:46u);
+    std::vector<std::uint32_t> expected(trigger_suite?54u:registered?48u:46u);
     for(auto &value:expected)if(!(row>>std::hex>>value))throw FormatError("Truncated original dual record");
     const auto key=name+"/"+std::to_string(representation)+"/"+pattern;
     if(key!=prior) {
@@ -141,7 +142,17 @@ int main(int argc,char **argv)try {
           <<" actual="<<unsigned(unit.source_weapon_hand_feedback[0])<<','<<unsigned(unit.source_weapon_hand_feedback[1])<<'\n';
       throw FormatError("Registered dual unit hand feedback differs from original");
     }
-    if(calls.size()!=expected[registered?47:45])throw FormatError("Dual effect count differs at "+key+" tick "+std::to_string(expected[0]));
+    if(trigger_suite)for(unsigned hand=0;hand<2;++hand) {
+      const auto &trigger=native_hand_weapon(unit,hand)->smg;
+      const std::array<std::uint32_t,3> actual{unsigned(trigger.trigger_state)|(unsigned(std::uint16_t(trigger.trigger_ticks))<<16),
+          trigger.trigger_flags,trigger.trigger_effect_handle};
+      for(unsigned word=0;word<3;++word)if(actual[word]!=expected[47+hand*3+word]) {
+        std::cerr<<key<<" tick="<<expected[0]<<" hand="<<hand<<" trigger word="<<word<<std::hex
+            <<" expected="<<expected[47+hand*3+word]<<" actual="<<actual[word]<<'\n';
+        throw FormatError("Complete native trigger record differs from original registered cycle");
+      }
+    }
+    if(calls.size()!=expected[trigger_suite?53:registered?47:45])throw FormatError("Dual effect count differs at "+key+" tick "+std::to_string(expected[0]));
     for(const auto &effect:calls) {
       std::uint32_t source,tag,a,b;
       if(!(row>>source>>tag>>a>>b))throw FormatError("Truncated dual effect request");

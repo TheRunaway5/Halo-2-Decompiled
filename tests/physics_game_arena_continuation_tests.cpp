@@ -135,6 +135,13 @@ int main(int argc,char **argv) try {
   }
   const auto saved=original->ownership_checkpoint(),old=resumed.ownership_checkpoint();
   const auto bank=source.checkpoint(),old_bank=target.checkpoint();
+  {
+    SourceRuntimeMemory empty;
+    SourcePhysicsGameArenaNative cold(empty,{target_files.path,0x60100000u,{0x27f,0x1f80},{}});
+    cold.stop();
+    rejects([&]{cold.prepare_ownership(saved,bank);}); // Imported bytes cannot fabricate a local startup thread.
+    check(empty.checkpoint().regions.empty(),"Rejected cold-owner import changed its bank");
+  }
   const auto old_native=target.native_address(retained,1);
   const auto fd_count=descriptors();const auto wait_count=target_schedule.idle;
   {

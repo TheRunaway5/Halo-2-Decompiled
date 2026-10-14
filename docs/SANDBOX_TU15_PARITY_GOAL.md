@@ -43,7 +43,7 @@ vehicle/turret, objective and unused authored variants.
 | Area | Required elements | Current starting point / outstanding work |
 | --- | --- | --- |
 | Weapon controls and ownership | All triggers/barrels; primary/offhand; charge/hold/release; reload/chamber/interrupt; inventory, pickup/switch/drop; world clocks; aim/error/recoil and random order | [Weapon goal](WEAPONS_TU15_PARITY_GOAL.md). Existing finite numeric adapters and source fragments do not complete original unit/action composition. |
-| Weapon special behavior | Plasma charge; rocket tracking; Needler acquisition/guidance/stick/fuse/supercombine; sword target selection/lunge/magnetism; AI and mounted weapon owners | [Weapon goal](WEAPONS_TU15_PARITY_GOAL.md), [live combat](TU15_LIVE_COMBAT_EFFECTS_20261013.md). Distant sword targeting fixture is currently red. |
+| Weapon special behavior | Plasma charge; rocket tracking; Needler acquisition/guidance/stick/fuse/supercombine; sword target selection/lunge/magnetism; AI and mounted weapon owners | [Weapon goal](WEAPONS_TU15_PARITY_GOAL.md), [live combat](TU15_LIVE_COMBAT_EFFECTS_20261013.md). One source-owned distant lunge/movement/contact/damage sequence now passes; full sword coverage remains open. |
 | Powerups and abilities | Authored equipment pickup/respawn; overshield activation/decay/damage; camouflage pickup/expiry/disruption; intrinsic suit control; trait and shadow/render consumers | [Camouflage integration](MP_CAMOUFLAGE_NATIVE_BINDING.md), [material integration](MP_CAMOUFLAGE_MATERIAL_NATIVE_BINDING.md). Explicit timer grants are not pickup acceptance. |
 | Vehicles | Every authored controller/motion class; wheels/suspension/hover/flight; all seats, boarding, entry/exit; mounted weapons; collisions/impulses/destruction and riders | [Physics goal](PHYSICS_PLAYERS_VEHICLES_OBJECTS_GOAL.md). Warthog/Ghost selected checks pass; Banshee exit and full flight coverage remain open. |
 | Projectiles and grenades | Actual weapon creation; trajectories, guidance, contacts/materials; bounce/penetration/attachment; fuse/arming; direct/radial/super/boarding damage; detonation/retirement | [Grenade integration](MP_GRENADE_LIVE_TU15_20261013.md), [projectile/melee effects](PROJECTILE_MELEE_EFFECTS_20261013.md). Live frag acceptance does not complete plasma sticking or every projectile family. |
@@ -63,52 +63,65 @@ vehicle/turret, objective and unused authored variants.
   ownership, including the deliberately failing distant-sword acceptance path.
   No target/confidence or source body state will be assigned to force success.
 
-### First implementation checkpoint
+### First accepted implementation checkpoint
 
-`source_sandbox_special_tu15` now contains 26 complete authenticated original
-bodies, including the reached lunge movement, contact/history, recording,
-Slayer notification and animation-event sound-status consumers. Its generator
-retains exact original instruction listings and verifies the actual direct
-call sites and literal Slayer callback slots. The original CPU operations and
-external owner failures remain visible; there are no supplied success returns.
+`source_sandbox_special_tu15` contains **37 complete authenticated original
+bodies**, including lunge movement, contact/history, recording, Slayer
+notifications, sound-status/metadata, bit-bank construction and physical
+action completion. Reached collision collector bodies also use the shared
+combat module. Generators retain exact original listings and authenticate
+direct call sites and literal callback slots. No supplied success return,
+forced target/confidence, source-body position write or replacement lunge
+motion is used.
 
 The unchanged-original movement oracle passes **336** finite raw-ABI cases.
-Native comparison checks the entire executed instruction sequence, GP/SSE
-registers, defined flags and retained memory, including indirect constant
-reads. These are component comparisons for the movement bodies and their
-actual callees, not a complete lunge, all 26 bodies' branch coverage, original
-world replay or Xbox visual proof.
+Native comparison checks complete executed instruction sequences, GP/SSE
+registers, defined flags and retained memory, including indirect constants.
+This is bounded evidence for four movement bodies and their actual callees,
+not all 37 bodies' branch coverage, a full original world replay or Xbox pixels.
 
-The current source lunge fixture reaches a genuinely distant target
-(`2.40331` units, original confidence `1`) using delivered movement. It selects
-original activities `0A0005BB` and `0B0005B2`, progresses to authored impact
-counter `3`, and advances through actual contact and game-engine notifications.
-**The complete live fixture remains RED.** Its latest `lunge-special-v9` run
-stops at original `2138C2`, reading NULL `52D664` plus `24`. `52D664` is the
-current sound-cache/ugh owner published by original map initializer `1281A0`;
-the source sound storage prefix alone does not create this owner. Do not assign
-a cache pointer, fake an idle sound result or skip the sound test. Complete
-source map/audio ownership and then rerun the same real lunge/damage check.
-See [the original sound-bank investigation](MP_SPARTAN_KILL_TRIGGER_SOUND_RESEARCH.md).
+`lunge-coherent-motion-v1` now **passes all 180 source-owned match ticks**.
+Actual delivered movement establishes target distance `2.40331`, with original
+targeting confidence `1`. Source activities `0A0005BB` and `0B0005B2` produce
+**1.90626 units of attacker movement**, versus zero measured idle movement,
+and close the target distance to `0.496893`. The source chooses impact counter
+`3`, publishes the authored shield-depleted request `E95507D0` and material-56
+contact at tick `89`, applies damage (minimum retained vitality `-0.777778`),
+and completes its action. The strengthened fixture requires real closing
+movement as well as special activity, changing poses, contact and damage.
 
-A new real-match primary-input regression independently goes RED: the actual
-source SMG remains at `60` rounds and records `0` primary-trigger frames over
-twelve delivered fire ticks. The native command bridge currently leaves
-command `+14/+18` at their neutral values. Original `153070` copies them into
-the control packet, and complete `C92C0` publishes them at unit `+1C0/+1C4`.
-Fixing this requires composed original weapon ownership/publication and
-retirement of parallel native firing, not merely adding trigger stores and
-creating duplicate shots. The failure is retained in `primary-baseline.log`.
+The original sound bit-bank constructor/reset now run with real host storage.
+The narrowly authenticated raw allocation keeps original arena/CRC/pointer
+stores; other XAPI callers retain their existing platform owner. A separately
+supplied native resident-cache binding selects the actual current-map `ugh!`
+using original `1281A0..1281DC` operands and validates its salt/group/payload.
+It is immutable resource delivery, not an invented voice status or execution
+claim for the rest of `1281A0`. The complete sound bit-bank consumer executes
+against original-produced state. Audio device/voice/DSP activation and full
+original map/audio scheduling remain open. Earlier NULL-ugh failures are
+retained as historical evidence, not the current lunge result.
+
+The coherent full native runtime and seven focused executables build in
+`build-sandbox-tu15-20261013-v1`, from the isolated
+`.local/sandbox-tu15-source-20261013-v1` source. Six focused CTests pass with
+no skips: special movement, source world/startup (including original sound
+storage), combat action, bitmap caller, particle colors and grenade gate.
+The same build passes ordinary close sword damage and frag detonation/count
+debit plus its real loopback UDP location/color/control round trip. These are
+headless Linux integration checks, not rendered split-screen/LAN lunge,
+audible hardware, matched Xbox framebuffer/PCM or full sword parity.
+
+The original-weapon primary-input regression remains **RED** in that coherent
+build: the actual source SMG stays at `60` rounds and records `0` trigger frames
+over twelve delivered fire ticks. Command `+14/+18` remain neutral; original
+`153070` and `C92C0` carry them to unit `+1C0/+1C4`. Next work must compose
+original weapon input, state/publication and event ownership while retiring
+parallel native firing. Merely adding trigger stores would create duplicate
+shots and does not satisfy this goal. See `primary-coherent-baseline.log`.
 
 Evidence: `analysis/sandbox-tu15-goal-20261013/`. `coverage.json` retains all
-63 weapon definitions plus 39 separate shared requirements, with six explicit
-acceptance gates per element. No whole element is certified complete.
-
-The first current-root diagnostic build succeeded. A subsequent full rebuild
-was interrupted after reconfiguration caused all objects to rebuild again;
-the changed special module and live-world dispatcher were compiled separately
-and linked against **43 hash-pinned baseline archives** for the diagnostic
-runs. Exact link arguments and archive hashes are retained. This is a bounded
-diagnostic overlay, **not a newly delivered complete production build**.
-Coherent full-build, split-screen/LAN, rendered/PCM and installed-launcher
-acceptance still belong to the goal.
+63 weapon definitions plus 39 shared requirements, with six gates per element.
+No whole element is certified complete. Early diagnostic overlays using old
+archives are retained separately; shared header drift made a coherent rebuild
+necessary, and accepted results above come from that fresh build. Installed
+launcher delivery and every broader acceptance gate remain required.

@@ -9,6 +9,11 @@ void source_native_cache_bitmap_view_tu15(SourcePhysicsContactMemory &,
     SourcePhysicsWorldRuntimeAbi &,SourcePhysicsFactoryFloatingPoint,
     const SourcePhysicsWorldRuntimeServices &,
     const SourcePhysicsContactRecordObserver & = {});
+// Native CPU vertex-buffer view at183E17. The real retained cache allocation,
+//resource header and physical backing supply the pointer/epoch. Xbox GPU cache
+//invalidation is outside this CPU boundary; no graphics device is fabricated.
+void source_native_cache_vertex_view_tu15(SourcePhysicsContactMemory &,
+    SourcePhysicsWorldRuntimeAbi &);
 // Complete original TU1.5 combat/action bodies over the live world's bank.
 // Missing downstream services preserve the actual caller ABI and fail.
 bool source_combat_action_tu15_owns_entry(std::uint32_t);

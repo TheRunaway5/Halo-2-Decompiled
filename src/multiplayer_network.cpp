@@ -1491,7 +1491,6 @@ struct LanClient::Impl {
   std::array<std::optional<SourcePlayerConfiguration>,4> profiles;
   std::uint32_t sequence{};
   std::array<PressSerials,4> presses{};
-  std::array<bool,4> grenade_switch_held{};
   std::array<std::array<bool,6>,4> held{};
   std::array<InteractionDurations,4> active_interactions{},completed_interactions{};
   std::uint32_t snapshot_sequence{};
@@ -1593,8 +1592,7 @@ void LanClient::send(std::span<const Controls> c) {
     if(c[view].grenade)++v.presses[view][3];
     if(c[view].switch_weapon)++v.presses[view][6];
     if(c[view].melee)++v.presses[view][8];
-    if(c[view].switch_grenade && !v.grenade_switch_held[view])++v.presses[view][9];
-    v.grenade_switch_held[view]=c[view].switch_grenade;
+    if(c[view].switch_grenade)++v.presses[view][9];
     v.held[view]=down;
     encode_control(p,c[view],v.presses[view],v.completed_interactions[view]);
   }

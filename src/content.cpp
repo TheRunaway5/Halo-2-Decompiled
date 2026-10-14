@@ -463,6 +463,14 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
           w.first_person_model = data.u32(fp.offset + 4);
           w.first_person_animation = data.u32(fp.offset + 12);
         }
+        const auto native_triggers = TagAddressSpace(data, metadata_magic_).block(p + 0x2c8, 0x40);
+        for(std::size_t index=0;index<native_triggers.count;++index) {
+          const auto t=native_triggers.offset+index*0x40;
+          w.triggers.push_back({data.u32(t),std::int16_t(i16(data,t+4)),std::int16_t(i16(data,t+6)),
+              std::int16_t(i16(data,t+8)),std::int16_t(i16(data,t+0xa)),real(data,t+0x10),real(data,t+0x14),
+              std::int16_t(i16(data,t+0x18)),std::int16_t(i16(data,t+0x1a)),real(data,t+0x1c),real(data,t+0x20),
+              std::int16_t(i16(data,t+0x24)),real(data,t+0x2c),data.u32(t+0x34),data.u32(t+0x3c)});
+        }
         const auto mags = TagAddressSpace(data, metadata_magic_).block(p + 0x2c0, 0x5c),
                    barrels = TagAddressSpace(data, metadata_magic_).block(p + 0x2d0, 0xec);
         if (!barrels.count) {
@@ -484,7 +492,6 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
           }
           out.weapons.emplace(w.datum,std::move(w));continue;
         }
-        const auto native_triggers = TagAddressSpace(data, metadata_magic_).block(p + 0x2c8, 0x40);
         //1021D0's ordinary input selects trigger+8, not necessarily barrel0.
         //The carbine's literal primary/secondary indices are both1.
         std::int16_t primary_barrel=0;

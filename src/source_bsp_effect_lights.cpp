@@ -1,4 +1,7 @@
 #include "halo2/source_bsp_effect_lights.hpp"
+#include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/source_model_effect_lights.hpp"
+#include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_effect_light_geometry_frame.hpp"
 #include "halo2/source_tag_metadata_store.hpp"
 #include "halo2/world_material.hpp"
@@ -31,6 +34,13 @@ struct SourceBspEffectLights::Impl {
         SourceOpaqueGeometryMetadata metadata;
     };
     std::map<SectionKey,Section> sections;
+    using ModelKey=std::pair<std::uint32_t,unsigned>;
+    struct ModelSection {
+        SourceBspRangeGeometry ranges;
+        SourceOpaqueGeometryMetadata metadata;
+        std::unique_ptr<SourceModelEffectLights> draw;
+    };
+    std::map<ModelKey,ModelSection> models;
     using MaterialKey=std::tuple<std::uint32_t,std::uint32_t,unsigned,unsigned>;
     struct Slot {unsigned material;Material authored;MenuWorldSourcePass pass;};
     std::map<MaterialKey,Slot> slots;
@@ -46,7 +56,7 @@ struct SourceBspEffectLights::Impl {
     static constexpr std::uint32_t main_arena_token=0x71000000,
         light_arena_token=0x71001000,instance_token=0x71002000;
 
-    Impl(const Cache& c,Mesh& mesh,std::size_t index,std::span<const std::uint32_t> ids)
+    Impl(const Cache& c,Mesh& mesh,std::size_t index,std::span<const std::uint32_t> ids,std::span<const std::uint32_t> model_ids)
       :cache(c),bsp_index(index),bsp(c.load_source_bsp_admission(index)),
        store(std::shared_ptr<const Cache>(&c,[](const Cache*){}),{"shad","stem","spas","vrtx"}),metadata(store.providers()),
        clusters(bsp.clusters.size()),definitions(bsp.definitions.size()),instances(bsp.instances.size()),
@@ -120,6 +130,35 @@ struct SourceBspEffectLights::Impl {
                 }catch(const FormatError& e){unavailable.push_back(std::to_string(id)+"/"+std::to_string(material.shader)+": "+e.what());}
             }
         }
+        for(auto model:model_ids) {
+            const auto tag=cache.load_source_tag_metadata(model);
+            const Bytes root(tag.bytes_at(tag.source_address(),0x68));
+            for(unsigned n=0;n<root.u32(0x60);++n) {
+                const auto id=Bytes(tag.bytes_at(root.u32(0x64)+n*32u,32)).u32(12);
+                if(id==0xffffffffu || shaders.contains(id))continue;
+                SourceBspCommandShader value;value.lod=cache.load_source_shader_lod_definition(id);
+                const auto& shad=metadata.definition(id);
+                const auto stem=Bytes(metadata.read(Bytes(metadata.read(shad.source_address(),0x28)).u32(0x24),4)).u32(0);
+                const auto& st=metadata.definition(stem);
+                const auto post=Bytes(metadata.read(Bytes(metadata.read(st.source_address(),0x60)).u32(0x5c),8));
+                for(unsigned lod=0;lod<post.u32(0);++lod)value.layers.push_back(Bytes(metadata.read(post.u32(4)+lod*10,10)).u32(2));
+                shaders.emplace(id,std::move(value));
+            }
+            for(unsigned section=0;section<root.u32(0x24);++section) {
+                const auto row=Bytes(tag.bytes_at(root.u32(0x28)+section*92u,92));
+                if(!row.u16(4) || models.contains({model,section}))continue;
+                ModelSection value;value.ranges=load_source_model_range_geometry(cache,model,section);
+                value.metadata=load_source_opaque_model_geometry_metadata(cache,model,section);
+                value.draw=std::make_unique<SourceModelEffectLights>(cache,mesh,model,section,ids);
+                for(const auto& gap:value.draw->unavailable())unavailable.push_back(gap);
+                models.emplace(ModelKey{model,section},std::move(value));
+            }
+        }
+    }
+    const ModelSection& model(const SourceCullDrawUnit& unit)const {
+        const auto at=models.find({unit.words[1],unit.words[3]>>9&511u});
+        if(at==models.end())throw FormatError("selected live light model section was not preloaded");
+        return at->second;
     }
     SectionKey key(const SourceCullDrawUnit& unit) const {
         if(unit.words[1]!=0xffffffffu)throw FormatError("BSP light bank consumes a dynamic model owner");
@@ -131,18 +170,32 @@ struct SourceBspEffectLights::Impl {
     }
 };
 SourceBspEffectLights::SourceBspEffectLights(const Cache& c,Mesh& mesh,std::size_t bsp,
-    std::span<const std::uint32_t> ids):impl_(std::make_unique<Impl>(c,mesh,bsp,ids)){}
+    std::span<const std::uint32_t> ids,std::span<const std::uint32_t> models)
+    :impl_(std::make_unique<Impl>(c,mesh,bsp,ids,models)){}
 SourceBspEffectLights::~SourceBspEffectLights()=default;
 const std::vector<std::string>& SourceBspEffectLights::unavailable() const{return impl_->unavailable;}
 std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLightView& lights,
     std::span<const WorldEffectLightReceiver> receivers,const SourceBspAdmission& main,
     const SourceViewProjectionBank& camera,const BspFogSample& fog,Vec3 eye,
-    std::array<std::int16_t,4> viewport,std::array<std::uint32_t,2> surface,unsigned players) {
+    std::array<std::int16_t,4> viewport,std::array<std::uint32_t,2> surface,unsigned players,
+    SourceEffectLightModelViewTu15* objects) {
     auto& i=*impl_;std::vector<EffectLightRawDraw> output;if(receivers.empty())return output;
     const auto coverage=source_shader_coverage_camera(camera);
     SourceBspDrawWorld draw_world{i.bsp,i.clusters,i.definitions,i.instances,i.lightmap_matches};
     auto admission=main;source_bsp_range_arena_begin(i.main_arena);i.units.arena=i.main_arena;
     source_bsp_collect_draw_units(i.units,admission,draw_world,{0,Impl::main_arena_token,0,fog,coverage});
+    const auto object_context=[&](const SourceBspDrawContext& c) {
+        auto out=objects->context;
+        out.entry.mode=out.draw.draw.mode=c.mode;
+        out.draw.draw.mask_arena_address=c.mask_arena_address;
+        out.entry.eye=out.draw.eye=eye;out.draw.viewport=viewport;out.draw.rendering=camera;
+        out.entry.coverage=coverage;out.local_players=players;
+        out.entry.flags={std::uint8_t(c.override_byte),std::int32_t(fog.classification),fog.planar_datum,
+            fog.eye_fraction,fog.planar_only,std::uint8_t(fog.planar_flags)};
+        return out;
+    };
+    if(objects)source_live_model_draws_tu15(objects->world,objects->main,i.units,
+        object_context({0,Impl::main_arena_token,0,fog,coverage}));
     i.main_arena=i.units.arena;
     SourceBspPartCommandWorld command_world{i.cluster_commands,i.definition_commands,i.instance_definitions,
         i.materials,i.visibility,std::int16_t(i.bsp_index),[&](auto datum)->const SourceBspCommandShader&{return i.shaders.at(datum);}};
@@ -159,19 +212,47 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             runtime.forward,runtime.up,light->fades,receiver.selected_fade,{});
         auto query=receiver.view.bsp;source_bsp_range_arena_begin(i.light_arena);i.units.arena=i.light_arena;
         SourceEffectLightGeometryFrameWorld world{draw_world,command_world,i.metadata};
-        // This bank owns BSP geometry only. Dynamic object illumination has
-        // its independent model collector; it is not represented by fake units.
-        world.dynamic=[](auto&,auto&,const auto&){};
-        world.object_commands=[](auto&,auto){};
+        // Both geometry families append to the same units, command banks and
+        // final sort. Optional model ownership is explicit for BSP-only callers.
+        SourceObjectAdmission object_receivers;
+        std::map<std::array<std::uint32_t,8>,SourceModelCommandGeometry> live_models;
+        const auto live_model=[&](const SourceCullDrawUnit& unit)->const SourceModelCommandGeometry& {
+            if(!objects)throw FormatError("model light unit has no live world owner");
+            auto at=live_models.find(unit.words);
+            if(at==live_models.end())at=live_models.emplace(unit.words,
+                source_live_model_command_geometry_tu15(objects->world,unit)).first;
+            return at->second;
+        };
+        world.commands.model=live_model;
+        world.dynamic=[&](auto& units,auto& query,const auto& draw_context) {
+            if(!objects)return;
+            SourceObjectAdmissionInput input;
+            input.flags=receiver.view.flags;input.context_2a78=receiver.view.pass_mode;input.mode=receiver.view.query_mode;
+            input.sphere_center=runtime.spatial_center;input.sphere_radius=runtime.spatial_radius;
+            input.containing_fog=objects->containing_fog;input.auxiliary=&objects->main;
+            object_receivers=objects->world.admit_render_objects(receiver.view.visibility,input,query.associations);
+            query.associations=object_receivers.associations;
+            source_live_model_draws_tu15(objects->world,object_receivers,units,object_context(draw_context));
+        };
+        world.object_commands=[&](auto& state,auto mode) {
+            if(objects)objects->world.append_render_attachments(state,object_receivers,mode);
+        };
         world.cull_bank=[&](auto,const auto& unit) {
+            if(unit.words[1]!=0xffffffffu) {
+                if(!objects)throw FormatError("light model cull lacks its live world");
+                return source_live_model_cull_geometry_tu15(objects->world,unit,i.model(unit).ranges);
+            }
             const auto& section=i.sections.at(i.key(unit));SourceCullDrawBanks result;
             result.geometry_resolved=true;result.geometry=source_bsp_sphere_cull_geometry(section.ranges);
             if(unit.words[0]&0x1000u)result.transform=i.transforms.at(unit.words[3]>>18&2047u);return result;
         };
-        world.opaque_geometry=[&](unsigned ordinal) {const auto& section=i.sections.at(i.key(i.units.units.at(ordinal)));
-            return SourceOpaqueGeometrySelection{section.metadata,section.ranges.parts};};
+        world.opaque_geometry=[&](unsigned ordinal) {
+            const auto& unit=i.units.units.at(ordinal);
+            if(unit.words[1]!=0xffffffffu){const auto& section=i.model(unit);return SourceOpaqueGeometrySelection{section.metadata,section.ranges.parts};}
+            const auto& section=i.sections.at(i.key(unit));return SourceOpaqueGeometrySelection{section.metadata,section.ranges.parts};
+        };
         SourceEffectLightGeometryFrameContext context;
-        context.draw={receiver.view.pass_mode,Impl::light_arena_token,0,fog,coverage};
+        context.draw={receiver.view.pass_mode,Impl::light_arena_token,std::int8_t(receiver.view.flags),fog,coverage};
         context.cull.query_mode=receiver.view.query_mode;context.cull.center=runtime.spatial_center;context.cull.radius=runtime.spatial_radius;
         context.commands.player_multiplier=source_shader_lod_player_multiplier(players);
         context.commands.lod_view=source_shader_lod_view(viewport[0],viewport[2],false,false);
@@ -183,9 +264,33 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         // continuation. A declaration/program/resource failure is not success.
         std::map<unsigned,MenuWorldSourceBinding> bindings;
         std::map<unsigned,Material> completed;
+        std::map<unsigned,EffectLightRawDraw> model_bindings;
         const auto ranges=source_effect_light_ordered_ranges(commands,i.units.units,selected,i.units.arena,
             Impl::light_arena_token,[&](unsigned command,unsigned unit,unsigned vertex_class) {
                 const auto& c=commands.storage.at(command).words;const auto& u=i.units.units.at(unit);
+                if(u.words[1]!=0xffffffffu) {
+                    if(!objects)throw FormatError("light model binding lacks its live world");
+                    const auto& section=i.model(u);
+                    const auto& geometry=live_model(u);
+                    const auto palette=source_live_model_palette_rows_tu15(objects->world,u,geometry);
+                    SourceModelEffectLightDrawInput input;
+                    input.object=Bytes(objects->world.memory().view(u.words[4],4)).u32(0);
+                    input.light=light->definition_identity;input.shader=c[2];input.shader_lod=c[5]>>8&255u;
+                    input.pass=c[5]&255u;input.part=c[3]&255u;input.vertex_class=vertex_class;
+                    input.topology=source_effect_light_part_ranges(u,section.ranges,input.part,i.units.arena,Impl::light_arena_token).topology;
+                    input.palette=palette;input.uniforms=uniforms;input.constants=constants;
+                    MenuWorldRasterContext raster;raster.viewport_reset(surface);raster.game_initialize_offset();
+                    raster.layer_begin(MenuWorldRasterLayer::sphere_diffuse_12);
+                    raster.entry_begin(menu_world_raster_entry_from_source_flags(u.words[0],false,false));
+                    input.raster=raster.snapshot({MenuWorldRasterPrimitive::ordinary_triangles,MenuWorldRasterPolygon::fill,
+                        std::array<std::int32_t,2>{1,1},true});raster.entry_end();
+                    input.raster.window_exclusive=false;for(auto& rect:input.raster.regions)rect={0,0,0,0};
+                    input.raster.regions[0]={viewport[1],viewport[0],viewport[3],viewport[2]};
+                    const auto depth=menu_world_depth_clip_planes({.015625f,1024.f,MenuWorldDepthBoundary::none,0,false});
+                    input.clip_range={0,16777215.f,depth.minimum_w,depth.maximum_w};input.fog_parameters={1,1};
+                    model_bindings.emplace(command,section.draw->draw(input));
+                    return SourceOpaqueRangeGeometry{&section.ranges,true};
+                }
                 const auto& section=i.sections.at(i.key(u));
                 const auto slot=i.slots.find({light->definition_identity,c[2],(c[5]>>8)&255u,c[5]&255u});
                 if(slot==i.slots.end())throw FormatError("Selected BSP light material was not admitted during preload");
@@ -204,6 +309,16 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         MenuWorldRasterContext raster;raster.viewport_reset(surface);raster.game_initialize_offset();raster.layer_begin(MenuWorldRasterLayer::sphere_diffuse_12);
         for(const auto& range:ranges) {
             const auto& c=commands.storage.at(range.command).words;const auto& u=i.units.units.at(range.unit);
+            if(u.words[1]!=0xffffffffu) {
+                const auto& bound=model_bindings.at(range.command);
+                for(const auto& indices:range.selected.ranges) {
+                    auto packet=bound;auto draw=bound.source.draw();draw.range=indices;
+                    packet.source=menu_world_source_binding_class(i.cache,bound.source.owner(),std::move(draw),
+                        bound.source.vertex_shader(),range.vertex_class,bound.source.constants());
+                    output.push_back(std::move(packet));
+                }
+                continue;
+            }
             const auto& slot=i.slots.at({light->definition_identity,c[2],(c[5]>>8)&255u,c[5]&255u});
             const auto& bound=bindings.at(range.command);const auto& completed_material=completed.at(range.command);
             raster.entry_begin(menu_world_raster_entry_from_source_flags(u.words[0],false,false));

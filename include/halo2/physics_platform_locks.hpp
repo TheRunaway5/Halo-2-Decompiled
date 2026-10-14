@@ -3,6 +3,10 @@
 #include <functional>
 #include <mutex>
 #include <stdexcept>
+#include <map>
+#include <set>
+#include <memory>
+#include "halo2/source_runtime_memory.hpp"
 
 namespace halo2 {
 // Native platform operations for the source-visible 28-byte critical section.
@@ -40,7 +44,42 @@ public:
         const PhysicsPlatformLockServices &, const PhysicsPlatformLockObserver & = {});
     void leave(SourcePhysicsContactMemory &, std::uint32_t,
         const PhysicsPlatformLockServices &, const PhysicsPlatformLockObserver & = {});
+    struct OwnershipCheckpoint {
+        std::uint32_t version=1;
+        std::vector<std::uint32_t> critical_sections;
+        bool operator==(const OwnershipCheckpoint &) const = default;
+    };
+    class PreparedOwnership {
+    public:
+        ~PreparedOwnership();
+        PreparedOwnership(PreparedOwnership &&) noexcept;
+        PreparedOwnership &operator=(PreparedOwnership &&) noexcept;
+        bool for_owner(const PhysicsPlatformLocks &,const SourceRuntimeMemory &) const noexcept;
+    private:
+        friend class PhysicsPlatformLocks;
+        PreparedOwnership();
+        struct Impl;
+        std::unique_ptr<Impl> impl_;
+    };
+    // Export only at the enclosing world's barrier. Consumed critical-section
+    // records must remain alive; held/contended records and active native calls
+    // reject. Equality tokens/record bytes remain in the owned source bank.
+    OwnershipCheckpoint ownership_checkpoint(const SourcePhysicsContactMemory &) const;
+    PreparedOwnership prepare_ownership(SourceRuntimeMemory &,const OwnershipCheckpoint &,
+                                        const SourceRuntimeMemory::Checkpoint &);
+    // Publish only after the admitted bank. Keep the local mutex/services;
+    // commit/cancel on the preparing barrier thread. Other banks stay local.
+    bool commit_ownership(PreparedOwnership &&) noexcept;
 private:
-    std::mutex mutex_;
+    struct ActiveCall {
+        PhysicsPlatformLocks &owner;
+        explicit ActiveCall(PhysicsPlatformLocks &);
+        ~ActiveCall();
+    };
+    mutable std::mutex mutex_;
+    mutable std::recursive_mutex call_gate_;
+    std::size_t active_calls_{};
+    bool staging_{};
+    std::map<const SourcePhysicsContactMemory *,std::set<std::uint32_t>> known_;
 };
 } // namespace halo2

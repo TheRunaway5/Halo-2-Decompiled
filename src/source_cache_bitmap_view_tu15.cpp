@@ -40,4 +40,27 @@ void source_native_cache_bitmap_view_tu15(SourcePhysicsContactMemory &m,
   a.gp[4]=arithmetic.plus(base,0x14u,4)+4u;
   a.eflags=(a.eflags&~0xcd5u)|arithmetic.bits();
 }
+void source_native_cache_vertex_view_tu15(SourcePhysicsContactMemory &m,SourcePhysicsWorldRuntimeAbi &a) {
+  const auto sp=a.gp[4],handle=a.gp[0];
+  if(read(m,sp)!=0x183e1cu || handle==0xffffffffu)
+    throw std::runtime_error("TU1.5 native vertex view differs from its actual decal caller");
+  const auto cache=read(m,0x515f28u),resource=read(m,0x515f24u);
+  const auto pool=read(m,cache+0x64u),index=handle&0xffffu;
+  if(read(m,pool+0x24u)!=0x18u || index>=read(m,pool+0x38u) ||
+      !(read(m,read(m,pool+0x48u)+(index>>5)*4u)&(1u<<(index&31u))))
+    throw std::runtime_error("TU1.5 vertex view lost its retained cache allocation");
+  const auto row=read(m,pool+0x44u)+index*0x18u,shift=read(m,cache+0x34u);
+  if(read(m,row,2)!=(handle>>16) || shift>=32u || !resource)
+    throw std::runtime_error("TU1.5 vertex view cache generation/shift/resource differs");
+  const auto offset=read(m,row+8u)<<(shift&31u);
+  const auto base=read(m,resource+4u)|0x80000000u;
+  physics_contact_runtime_detail::Flags arithmetic;arithmetic.load(a.eflags);
+  const auto address=arithmetic.plus(base,offset,4);
+  // The resource is already allocated by the original cache constructor.
+  // Require its real physical bank instead of allocating a parallel buffer.
+  std::array<std::byte,1> backing;m.read(address,backing);
+  write(m,row+0x14u,read(m,cache+0x38u));
+  a.gp[0]=address;a.gp[1]=shift;a.gp[2]=read(m,cache+0x38u);
+  a.gp[4]=sp+4u;a.eflags=(a.eflags&~0xcd5u)|arithmetic.bits();
+}
 } // namespace halo2

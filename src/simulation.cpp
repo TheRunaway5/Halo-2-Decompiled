@@ -1022,8 +1022,7 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     if(!source_physics_movement_) {
       const bool switching=source_control && source_control->switch_grenade;
       const auto control_grenade=grenade_ready_type(u.grenade_current,u.grenades,
-          switching && !u.grenade_switch_held?1:0);
-      u.grenade_switch_held=switching;
+          switching?1:0);
       if(control_grenade!=-1)u.grenade_requested=control_grenade;
       if(u.grenade_requested!=u.grenade_current) {
         const auto selected=grenade_ready_type(u.grenade_requested,u.grenades);
@@ -1210,6 +1209,8 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
   //1021D0 updates the barrel rate after107160 consumes its old value.
   //Keep that order even across this native adapter's early returns.
   const bool source_timing=multiplayer_weapon_steps_ && w.barrel_timing.has_value();
+  const bool source_trigger=source_timing && w.triggers.size()==1 && w.triggers[0].input==0 &&
+      (w.trigger_behavior==0 || w.trigger_behavior==1 || w.trigger_behavior==4);
   // The source reload consumer is composed for ordinary, single-magazine
   // definitions. Additional battery/parent/world admission owners remain separate.
   const bool source_magazine=source_timing && w.magazine &&
@@ -1298,7 +1299,8 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     weapon_magazine_step(magazine,definition,state.shader.item_flags,state.smg.input_flags,0,30,services);
     //1021D0's idle-barrel106580 asks the unit to reload even without a held
     // trigger. Preparation/dry-gate admission is resolved below first.
-    const bool requested=fire && (w.trigger_behavior==0 || state.trigger_armed);
+    const bool requested=fire && (w.trigger_behavior==0 ||
+        (source_trigger?(state.smg.trigger_flags&1u)!=0:state.trigger_armed));
     const bool held=requested && services.fire_admitted(unsigned(w.barrel_timing->index));
     if(held && w.weapon_type==1 && magazine.mode!=0) {
       //1066F0/107610 with argument3=false interrupts a shotgun magazine
@@ -1425,7 +1427,33 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
         (!source_magazine || state.magazine.mode==0 || w.weapon_type==1) &&
         !(source_magazine && w.weapon_type==1 && state.loaded<w.rounds_per_shot) &&
         !((state.loaded<w.rounds_per_shot || empty_battery) && (barrel.flags&0x40u));
-    if(w.trigger_behavior==0) {
+    if(source_trigger) {
+      //Actual102833/1031F0 phase. The existing single-barrel bridge supplies
+      //its recovered1066F0 admission; charge/lock and distinct active barrels
+      //retain their separate owners before they can enter this adapter.
+      if(state.smg.trigger_state)throw FormatError("Ordinary native trigger unexpectedly requires charge/lock owners");
+      const auto selected=unsigned(w.barrel_timing->index);
+      if(selected>=2)throw FormatError("Original native trigger has no fixed barrel storage");
+      std::array<SmgBarrelState,2> active;
+      active[selected]=barrel;active[selected?0:1]=state.alternate_barrel;
+      WeaponTriggerState trigger{state.smg.trigger_state,0,state.smg.trigger_ticks,
+          state.smg.trigger_flags,state.smg.trigger_effect_handle};
+      WeaponTriggerInputState analog;WeaponTriggerTarget target;
+      WeaponTriggerPhaseContext phase;phase.tick_rate=30;phase.held=fire;phase.pressed=rising;
+      phase.blocked=weapon_blocked || energy_blocked;phase.barrel_count=unsigned(w.barrel_ammunition.size());
+      phase.spent=state.shader.power_fraction;phase.has_unit=(state.shader.item_flags&1u) && u.source_datum!=null_datum;
+      phase.has_player=u.source_player!=null_datum;
+      WeaponTriggerPhaseServices services;
+      services.barrel_admitted=[&](std::int16_t requested) {
+        if(requested!=int(selected))throw FormatError("Native trigger requires another active barrel admission owner");
+        return eligible;
+      };
+      (void)weapon_trigger_step(trigger,w.triggers[0],active,analog,target,0,phase,services);
+      barrel=active[selected];state.alternate_barrel=active[selected?0:1];
+      state.smg.trigger_state=trigger.mode;state.smg.trigger_ticks=trigger.ticks;
+      state.smg.trigger_flags=trigger.flags;state.smg.trigger_effect_handle=trigger.effect;
+      if(w.trigger_behavior!=0)state.trigger_armed=(trigger.flags&1u)!=0;
+    } else if(w.trigger_behavior==0) {
       if(fire && eligible)barrel.flags|=1u;
       if((!fire || rising) && barrel.mode!=1)barrel.flags&=~0x40u;
     } else {

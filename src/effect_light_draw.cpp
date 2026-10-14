@@ -44,7 +44,7 @@ EffectLightRawDraw source_effect_light_raw_draw(unsigned slot,const Material &ma
     if(pass.choice().layer!=12 || pass.choice().implementation!=1 ||
        pass.shader()!=material.source_shader_datum || pass.choice().shader_lod!=material.selected_shader_lod ||
        pass.vertex_shader()!=source.vertex_shader() || source.draw().geometry->owner_datum()==0xffffffffu ||
-       !source.external_attribute_registers().empty() || source.declaration().class_index>1 ||
+       !source.external_attribute_registers().empty() || source.declaration().class_index>6 ||
        source.draw().geometry->parts().at(source.draw().part).shader!=pass.shader() ||
        material.passes.at(material.forward_pass_index).template_pass!=pass.template_pass() ||
        material.passes.at(material.forward_pass_index).implementation!=pass.choice().implementation ||

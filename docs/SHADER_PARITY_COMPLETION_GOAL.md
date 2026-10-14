@@ -6,14 +6,14 @@ Original emulator evidence and physical Xbox evidence must remain identified
 separately. No guessed values, synthetic replacement effects, relaxed pixel
 thresholds or invisible reference draws may close a gate.
 
-The thread already owns an unfinished world-impact/grenade goal. Complete that
-goal first; this matrix preserves the full additional shader scope requested on
-2026-10-13. A passing material admission or isolated shader fixture is not a
+The active goal covers the full shader, texture and lighting scope requested on
+2026-10-13, including unfinished world-impact/grenade work. This matrix tracks
+that scope. A passing material admission or isolated shader fixture is not a
 completed live rendering path.
 
 | Work area | Current implementation | Required completion evidence | State |
 | --- | --- | --- | --- |
-| Explosion illumination | Live BSP passes; explicit rigid/skinned model consumer, GPU-verified class2..6 inputs and shared original command/range tests | Live model receiver collection, genuine current palettes/resources, shared ordering, visible matched TU1.5 model contribution and strict pixel equality | In progress |
+| Explosion illumination | Live BSP passes; rigid/skinned class2..6 consumer; native live model builder matches four original CPU view cases; 337 original receiver queries and fresh native registration tests pass | Finish joining live model draw collection to shared commands/ranges; visible matched TU1.5 model contribution and strict pixel equality | In progress |
 | Scarab turret PRT | Ordinary vehicle materials admitted; `scarab_big_turrets` still rejected | Authored `prt_simple` data, draw ownership, all affected cache/LOD admission, matched rendered response | Open |
 | Dynamic shadows | Vulkan Generate/Filter/Apply stages and bounded draw plans | Live original caster/receiver collection, priority/history/fade inputs and matched gameplay shadows | Open |
 | Shields and camouflage | Base and selected overlay/binder paths exist | Live override/clone ownership, original shader functions and scene-copy/pass chronology, matched visible transitions | Open |

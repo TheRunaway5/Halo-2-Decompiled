@@ -16,4 +16,16 @@ std::vector<std::byte> normalize_mcc_physics_model(
     std::span<const std::byte> payload, std::uint32_t source_address,
     std::uint32_t target_address,
     const std::function<std::span<const std::byte>(std::uint32_t,std::size_t)>& resident_read={});
+// Collision geometry and MOPP bytes are copied without arithmetic changes.
+// Original TU1.5 21A580/24FF70 consume 0x70-byte BSP-physics records; the
+// generic plugin's 0x74 element size is not the compiled Xbox array stride.
+std::vector<std::byte> normalize_mcc_collision_model(
+    std::span<const std::byte> payload, std::uint32_t source_address,
+    std::uint32_t target_address,
+    const std::function<std::span<const std::byte>(std::uint32_t,std::size_t)>& resident_read={});
+// Preserve the BSP's allocation, geometry/resource addresses and render data.
+// Only the single instanced collision-physics record consumed by actual
+// TU1.5 171120/24FF70 is repacked in its existing reserved 0xA0-byte bank.
+std::vector<std::byte> normalize_mcc_structure_bsp_physics(
+    std::span<const std::byte> payload, std::uint32_t source_address);
 }

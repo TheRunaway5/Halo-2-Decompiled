@@ -78,15 +78,19 @@ matching rows `44B40C` and `44B454`. The actual reset marks the pool active and
 sets the cluster heads to NONE; those values are not host-supplied defaults.
 The real Zanzibar preparation regression checks this state before rendering.
 
-The current development module contains **98 complete bodies / 9,347 instructions**.
-The independent 976-case banks above cover their stated routines, not every
-body. New retained routines include the decal constructor/reset, projection,
+The current development module contains **100 complete bodies / 9,422 instructions**.
+The original banks now total **1,744 cases**: the 976 above, 512 complete
+`11E490`/`1DB800` comparisons, and 256 `10B730` NONE/inactive-effect reset
+comparisons. The reset bank does not establish active `16E8A0` retirement.
+These banks cover their stated routines, not every body. New retained routines include the decal constructor/reset, projection,
 lighting helpers, registered cache release/retention callbacks, authored
 object callbacks, and the cached render-state constructor/reset. The latter
 uses original rows `44B350`/`44B358` and actual pool `515F14`; it does not
-initialize an absent pool with host-supplied fields. The latest two additions
-retain the actual object callback `11E490` and its complete query callee
-`1DB800`, reached by Containment through the original callback table.
+initialize an absent pool with host-supplied fields. The latest additions retain the actual object callback `11E490` and its
+complete query callee `1DB800`, reached by Containment through the original
+callback table. Terminal also reaches allocator callback `2E1110` (literal
+slots `45F4C8`, `45F4F4`, `4638E0`, `463964`) and object-effect reset `10B730`
+(slot `4747DC`); both complete original bodies are now retained.
 
 [Native physical byte protection](SOURCE_PHYSICAL_BYTE_PROTECTION.md) now
 accepts the original sub-page metadata requests and enforces their subsequent
@@ -119,6 +123,15 @@ source owners. Lockout/Foundation ordinary one/four-view rendering and the
 packaging and its exact capture receipts are recorded separately in
 [normal launcher delivery](SOURCE_WORLD_LAUNCHER_DELIVERY.md). Historical
 gate/traversal receipts do not accept this automatic-original-world build.
+
+The coherent source build plus the 100-body module is recorded under
+`analysis/map-world-features/coherent-peer-20261014/`. Its current 21-map bank
+completes the first ordinary source tick on 13 maps, including Terminal, with
+no regressions against its coherent 98-body baseline. Eight maps still fail:
+seven at the missing decal command owner, and Gemini at a separate missing
+backing pointer. Terminal's longer 1,200-tick attempt also fails at missing
+physics callback `2FA6F0` at step198; short startup is not complete train acceptance.
+The current MCC-only launcher readiness gate is a separate unresolved path.
 
 The full goal remains open: 38 authored attachments are not prepared; named
 functions, swarm/wind controllers, shape9, external material bindings,
