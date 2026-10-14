@@ -8,11 +8,13 @@ live consumers and repeatable pixel comparisons too.
 [The authored attachment bridge](SOURCE_MAP_EFFECT_ATTACHMENTS.md) now uses
 actual scene lifetimes and WORLD nodes. Its 21-map bank prepares 58 of 96
 attachments; Foundation's lift particles have repeatable GPU evidence.
-Both normal launchers now select the tested continuation. Lockout and
-Foundation pass ordinary one/four-view rendering; snow and Foundation's
-diagnostic effect capture have byte-identical repeats. The 21-map first-tick
-comparison has six improvements and no regressions, while eleven maps still
-fail on missing graphics, physical memory or other original owners.
+The earlier normal-launcher continuation passed Lockout and Foundation
+one/four-view rendering, with byte-identical effect repeats. The later 21-map
+first-tick comparison has seven improvements and no regressions against its
+death/spectating baseline; ten maps still fail on missing original owners.
+The current launcher has since adopted an MCC-only readiness gate and reports
+MCC gameplay as unavailable. Its legacy captures are historical, and a new
+coherent combined build is being verified before delivery.
 [The original decal cache export](SOURCE_DECAL_VERTEX_CACHE_TU15.md) now
 retains actual clipped geometry, but its CPU capture does not close Zanzibar's
 native graphics binding. Remaining maps and interactions still need acceptance.

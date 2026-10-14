@@ -126,6 +126,7 @@ std::uint32_t source_model_acquire_cache(std::uint32_t owner,const SourceModelRe
     if(read<std::uint32_t>(w,pool+0x20)!=256 || read<std::uint32_t>(w,pool+0x24)!=256)
         throw FormatError("source model cache requires its original256-record pool and stride");
     SourceRenderCachePool p;
+    p.context_callback=w.context_callback;
     p.cursor=read<std::uint32_t>(w,pool+0x34);p.highwater=read<std::uint32_t>(w,pool+0x38);
     p.active_count=read<std::uint32_t>(w,pool+0x3c);p.next_generation=read<std::uint16_t>(w,pool+0x40);
     const auto bits=read<std::uint32_t>(w,pool+0x48);

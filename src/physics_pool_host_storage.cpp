@@ -8,6 +8,7 @@
 
 namespace halo2 {
 namespace {
+constexpr auto pool_owner="actual host physics-pool raw allocation";
 std::uint32_t read(const SourcePhysicsContactMemory &m, std::uint32_t p) {
   std::array<std::byte, 4> b;
   m.read(p,b);
@@ -50,7 +51,9 @@ SourcePhysicsPoolHostStorage::OwnershipCheckpoint SourcePhysicsPoolHostStorage::
 SourcePhysicsPoolHostStorage::PreparedOwnership SourcePhysicsPoolHostStorage::prepare_ownership(
     const OwnershipCheckpoint &saved,const SourceRuntimeMemory::Checkpoint &bank) const {
   SourceRuntimeMemory::validate_checkpoint(bank);
-  if(saved.version!=1)throw std::invalid_argument("Unsupported physics pool resource checkpoint");
+  if(saved.version!=1 || std::count_if(bank.regions.begin(),bank.regions.end(),
+      [](const auto &region){return region.owner==pool_owner;})!=std::ptrdiff_t(saved.allocations.size()))
+    throw std::invalid_argument("Physics pool resource registry differs from incoming bank");
 #if defined(__linux__)
   const auto page=::sysconf(_SC_PAGE_SIZE);
   if(page<=0)throw std::runtime_error("Host virtual-memory page size unavailable");
@@ -69,7 +72,7 @@ SourcePhysicsPoolHostStorage::PreparedOwnership SourcePhysicsPoolHostStorage::pr
     const auto region=std::lower_bound(bank.regions.begin(),bank.regions.end(),base,
         [](const auto &region,auto address){return region.address<address;});
     if(region==bank.regions.end() || region->address!=base || region->bytes.size()!=bytes ||
-        region->owner!="actual host raw virtual-memory allocation" ||
+        region->owner!=pool_owner ||
         region->access!=SourceRuntimeMemory::Access::ReadWrite || region->page_bytes || !region->committed.empty())
       throw std::invalid_argument("Physics pool resource differs from incoming source bank");
   }
@@ -99,7 +102,7 @@ bool SourcePhysicsPoolHostStorage::try_call(SourcePhysicsContactMemory &m,
     const auto bytes_cell=read(m,sp+12);
     const SourceVirtualAllocationRequest request{read(m,base_cell),read(m,sp+8),
         read(m,bytes_cell),read(m,sp+16),read(m,sp+20)};
-    const auto result=raw_.allocate(request);
+    const auto result=raw_.allocate(request,pool_owner);
     try { allocations_.emplace(result.base,result.bytes); }
     catch(...) {memory_.release(result.base);throw;}
     write(m,base_cell,result.base);write(m,bytes_cell,result.bytes);

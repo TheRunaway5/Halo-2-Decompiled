@@ -14,6 +14,7 @@ struct SourceModelResourceWorld {
     std::function<void(std::uint32_t,std::uint32_t)> cache_acquired;
     // Caller-owned16-byte temporary bank consumed by the first-person branch.
     std::uint32_t temporary_regions{};
+    std::uint32_t context_callback=0xbe8b0u;
 };
 // Whole3D4F0: resolve normal object model/nodes or a current cached first-person
 // entry (strideD0C). Outputs are bank addresses, preserving original write order

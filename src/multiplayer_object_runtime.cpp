@@ -14,6 +14,7 @@
 #include "halo2/source_shadow.hpp"
 #include "halo2/source_scene_physics.hpp"
 #include "halo2/source_object_render_entry.hpp"
+#include "halo2/source_object_admission_memory.hpp"
 #include "halo2/source_model_build.hpp"
 #include "halo2/source_render_cache.hpp"
 #include "halo2/source_geometry_lod.hpp"
@@ -467,6 +468,7 @@ struct MultiplayerObjectRuntime::Impl {
       bank.mount(collector.address,std::vector<std::byte>(0x1000),SourceRuntimeMemory::Access::ReadWrite,
                  "native per-view model collector caller storage");
       std::memcpy(collector.bytes.data(),&owner,sizeof(owner));
+      put(bank,collector.address,owner);
     }
     SourceModelBuildWorld w;auto &m=w.admission.memory;
     m.banks={word(bank,0x4eb114),word(bank,0x4e7918),word(bank,0x4e7914),object_pool(),
@@ -474,6 +476,7 @@ struct MultiplayerObjectRuntime::Impl {
       [this](auto flags,auto p){return (call(0x12f5e0,{},flags,p)&255u)!=0;}};
     m.write=[this](auto p,auto n){return bank.mutable_view(p,n);};
     m.view=std::int32_t(view);m.render_frame=word(bank,0x4c1554);m.render_cache_pool=word(bank,0x510c24);
+    m.context_callback=0xbf7a0u;
     w.admission.first_person_owner=word(bank,0x4c90f0);
     w.admission.ordinary_maximum=policy.ordinary_maximum;w.admission.view_modifier=modifier;
     w.admission.rasterizer=word(bank,0x48cfa0);
@@ -1173,12 +1176,17 @@ void MultiplayerObjectRuntime::preload_render_model(std::uint32_t model) {
   impl_->preload_render_model(model);
 }
 void MultiplayerObjectRuntime::begin_model_frame() {
-  if(tu15_)throw FormatError("TU1.5 native model-builder adapter is unresolved");
+  if(tu15_){tu15_->begin_model_frame();return;}
   impl_->begin_model_frame();
+}
+SourceObjectAdmission MultiplayerObjectRuntime::admit_render_objects(const SourcePortalVisibilitySet& visibility,
+    const SourceObjectAdmissionInput& input,std::span<const std::array<std::uint32_t,4>> prior)const {
+  if(tu15_)return tu15_->admit_render_objects(visibility,input,prior);
+  throw FormatError("Live object admission requires authenticated TU1.5 spatial owners");
 }
 SourceObjectDrawCollector MultiplayerObjectRuntime::build_world_model(std::uint32_t object,unsigned view,
     unsigned players,bool modifier,float metric,float lighting_metric) {
-  if(tu15_)throw FormatError("TU1.5 native model-builder adapter is unresolved");
+  if(tu15_)return tu15_->build_world_model(object,view,players,modifier,metric,lighting_metric);
   return impl_->build_world_model(object,view,players,modifier,metric,lighting_metric);
 }
 } // namespace halo2

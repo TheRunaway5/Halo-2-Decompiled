@@ -7,10 +7,10 @@ namespace halo2 {
 // inputs; this initializer does not select or throw a grenade.
 std::array<std::uint8_t, 2> starting_grenades(std::uint32_t equipment_flags,
     bool enabled, bool maximum_one, int weapon_set);
-// CD310 with direction0: preserve a usable requested type, otherwise scan the
-// other type. NONE begins at frag. Selection's animation admission is external.
+// Complete TU1.5 CE3A0 count scan. Direction0 preserves the selected type;
+// signed nonzero direction cycles. NONE begins at frag; counts are signed bytes.
 std::int8_t grenade_ready_type(std::int8_t requested,
-    const std::array<std::uint8_t, 2> &counts);
+    const std::array<std::uint8_t, 2> &counts,std::int16_t direction=0);
 struct NetgameWeaponState {
   std::uint32_t object = 0xffffffffu;
   std::int16_t timer = 1, empty_counter{};

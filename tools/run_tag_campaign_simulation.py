@@ -30,11 +30,14 @@ def main():
     parser.add_argument('--no-skip', action='store_true')
     parser.add_argument('--route', help='Comma-separated authored trigger volume names')
     parser.add_argument('--route-after', help='Wait for this authored device to open before following the route')
+    parser.add_argument('--command-route', help='Reach these authored SET/POINT references before the volume route')
     args = parser.parse_args()
     if not 1 <= args.ticks <= 100000 or not 10 <= args.timeout <= 600:
         parser.error('Use 1..100000 steps and a 10..600 second timeout')
     if args.route_after and not args.route:
         parser.error('--route-after requires --route')
+    if args.command_route and not args.route:
+        parser.error('--command-route requires --route')
     for path in (args.native, args.map, args.xbe):
         if not path.is_file():
             parser.error('Missing input file: ' + str(path))
@@ -50,7 +53,7 @@ def main():
     for option in ('require_completion', 'no_skip'):
         if getattr(args, option):
             command.append('--' + option.replace('_', '-'))
-    for option in ('route', 'route_after'):
+    for option in ('route', 'route_after', 'command_route'):
         if getattr(args, option):
             command.append('--' + option.replace('_', '-') + '=' + getattr(args, option))
     inputs = {name: digest(getattr(args, name)) for name in ('native', 'map', 'xbe')}

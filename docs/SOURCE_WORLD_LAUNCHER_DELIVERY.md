@@ -1,8 +1,28 @@
 # Normal launcher world-feature delivery
 
-Both root launchers now select `.local/map/halo2_native`, SHA-256
+## Current launcher boundary, October 13
+
+The root launchers currently select the direct-peer runtime at
+`.local/direct-peer-20261013/runtime/halo2_native`, SHA-256
+`efc4084714b0184d0f7952966629da01a7a800cd2388ef1f066c474d8d1afaae`.
+Their newer MCC-only import/readiness policy reports native MCC gameplay as
+unavailable and rejects the historical `--gameplay-xbe` launcher option.
+The legacy map captures below therefore describe historical receipts; they do
+not establish gameplay acceptance through the current launcher. The current
+MCC policy must be preserved when delivering map changes.
+
+An attempted link from copied online-peer build inputs was rejected before
+installation: both its baseline and its map candidate crash before world
+startup in `NativeMeleeAnimation`. The shared archives were rebuilt at different
+times. Its package `.local/map-peer-20261013/package.json` is marked unaccepted.
+A coherent build from one frozen source set is tracked separately under
+`analysis/map-world-features/coherent-peer-20261014/`.
+
+## Historical October 13 map attachment delivery
+
+At this historical receipt, both root launchers selected `.local/map/halo2_native`, SHA-256
 `14eadcc50f0522fd05c3d7f6644d715c8ca4ecb495ffa5879e5c710138e47efe`.
-Both `--launcher-info` outputs confirm that exact path. This is a **partial**
+Both recorded `--launcher-info` outputs confirmed that exact path. This is a **partial**
 [map attachment continuation](SOURCE_MAP_EFFECT_ATTACHMENTS.md), preserving the
 installed death/spectating libraries with the explicit source overlays. The
 original decal constructor/reset and 82 authenticated map-support bodies are
@@ -23,8 +43,8 @@ explicit `.rodata` change. No original executable or native instructions were
 patched. `.local/map/package.json` records the exact relocation and hashes.
 The previous launchers remain in `.local/map/prior-launchers/`.
 
-The 21-map first-source-tick comparison has no regressions against the prior
-installed runtime and six improvements. **Eleven maps still fail** that bounded
+The later 96-body first-source-tick comparison has no regressions against the prior
+installed death/spectating runtime and seven improvements. **Ten maps still fail** that bounded
 check, including Zanzibar's absent graphics binding. Earlier successful native
 gate/traversal/script receipts below do not establish acceptance of this newer
 automatic-original-world path. The full all-map goal remains active.

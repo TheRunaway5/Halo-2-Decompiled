@@ -684,7 +684,7 @@ int main(int argc, char **argv) {
           }, [&](std::size_t target) { return cache.load_bsp_content(target); },
           [&](const halo2::Simulation::Prediction &p) {
             if (p.kind == halo2::Simulation::Prediction::Barrier) residency.barrier();
-            else if (p.kind == halo2::Simulation::Prediction::Sound) residency.sound(p.datum);
+            else if (p.kind == halo2::Simulation::Prediction::Sound) residency.predict_sound(p.datum);
             else if (p.kind == halo2::Simulation::Prediction::Model) residency.model(p.datum,p.section);
             else if (p.kind == halo2::Simulation::Prediction::Object) residency.object(p.datum);
             else residency.structure(p.datum,p.section,p.instances);
@@ -1352,7 +1352,7 @@ int main(int argc, char **argv) {
             [&](std::size_t target){return cache.load_bsp_content(target);},
             [&](const halo2::Simulation::Prediction &p) {
               if(p.kind==halo2::Simulation::Prediction::Barrier)residency.barrier();
-              else if(p.kind==halo2::Simulation::Prediction::Sound)residency.sound(p.datum);
+              else if(p.kind==halo2::Simulation::Prediction::Sound)residency.predict_sound(p.datum);
               else if(p.kind==halo2::Simulation::Prediction::Model)residency.model(p.datum,p.section);
               else if(p.kind==halo2::Simulation::Prediction::Object)residency.object(p.datum);
               else residency.structure(p.datum,p.section,p.instances);

@@ -86,8 +86,8 @@ class Oracle:
 
     def read(self, cpu, access, address, size, value, user):
         state = self.state
-        if state["base"] <= address < state["base"] + state["mapped_size"]:
-            if address + size > state["base"] + state["size"]:
+        if state["mapped_base"] <= address < state["mapped_end"]:
+            if address < state["base"] or address + size > state["base"] + state["size"]:
                 raise ValueError("Original constructor read beyond the owned physics packet")
             if state["clear"] == 0:
                 for at in range(address, address + size):
@@ -104,8 +104,8 @@ class Oracle:
 
     def write(self, cpu, access, address, size, value, user):
         state = self.state
-        if state["base"] <= address < state["base"] + state["mapped_size"]:
-            if address + size > state["base"] + state["size"]:
+        if state["mapped_base"] <= address < state["mapped_end"]:
+            if address < state["base"] or address + size > state["base"] + state["size"]:
                 raise ValueError("Original constructor wrote beyond the owned physics packet")
             data = (value & ((1 << (8 * size)) - 1)).to_bytes(size, "little")
             state["stores"].append(dict(instruction=cpu.reg_read(R.UC_X86_REG_EIP), address=address,
@@ -116,7 +116,8 @@ class Oracle:
 
     def call(self, datum, base, size, clear, slots):
         cpu = self.cpu
-        state = dict(base=base, size=size, mapped_size=self.mapped[1], clear=clear,
+        state = dict(base=base, size=size, mapped_base=self.mapped[0],
+            mapped_end=sum(self.mapped), clear=clear,
             rebound={base + at + byte for at in slots for byte in range(4)},
             written=set(), program_reads={}, instructions=0, stores=[])
         self.state = state
@@ -150,8 +151,6 @@ class Oracle:
         page, prefix = base & ~0xfff, base & 0xfff
         self.mapped = page, (prefix + len(packet) + 0xfff) & ~0xfff
         self.cpu.mem_map(*self.mapped)
-        if prefix:
-            raise ValueError("Reference packets must begin on a page for the current oracle mapping")
         slots = rebound_slots(packet, base)
         self.cpu.mem_write(TABLE + (datum & 65535) * 16, struct.pack("<IIII", 0x70686d6f, datum, base, len(packet)))
         expected = []
@@ -177,7 +176,9 @@ class Oracle:
                         raise ValueError("Discarded MCC tool pointers change original constructor outputs")
                     if actual["returned_gp"] != wanted["returned_gp"]:
                         raise ValueError("Discarded MCC tool pointers change original constructor registers")
-        return dict(runtime_pointer_slots=len(slots), phases=expected)
+                    if actual["returned_eflags"] != wanted["returned_eflags"]:
+                        raise ValueError("Discarded MCC tool pointers change original constructor flags")
+        return dict(runtime_pointer_slots=len(slots), runtime_pointer_offsets=slots, phases=expected)
 
 
 def main():

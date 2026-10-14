@@ -2,8 +2,11 @@
 
 2026-10-13. The user selected player-hosted migration, with a migration pause,
 instead of dedicated authority. **Gameplay host migration is not complete or
-enabled in the installed ONLINE client.** The default remains
-`halo2-native-queue-v10`. This stage has not been deployed to the live service.
+enabled in the installed ONLINE client.** The current default direct peer
+transport is `halo2-native-queue-v12`; its installed/deployed evidence is in
+[direct-player-hosted-online.md](direct-player-hosted-online.md). The v11
+continuity coordinator below remains a gated fixture path. Neither that
+coordinator nor the new resource checkpoints enables gameplay migration.
 
 ## Implemented and exercised
 
@@ -40,7 +43,7 @@ legacy framing behavior remain covered. The new protocol is intentionally not
 advertised by the frontend until the complete game continuation is integrated.
 No UI assets or layout have been changed by this stage.
 
-Two actual native subowners now support continuation:
+The following actual native subowners now support continuation:
 
 1. `SourceRuntimeMemory::checkpoint/restore` retains bytes, region owners,
    permissions, reservation extents and commitment holes. Import validates the
@@ -54,8 +57,57 @@ Two actual native subowners now support continuation:
    and resumes the actual native motion owner. The test compares sixty future
    ticks, one-use controls and effects against the uninterrupted owner. A display
    replica cannot export itself through the authority-checkpoint API.
+3. `SourceRuntimeHostVirtualMemory` stages real reservations and committed
+   pages against an incoming whole-bank checkpoint, preserving the allocation
+   cursor, released-token gaps and commitment holes. Publication replaces its
+   resource registry without deleting imported logical regions.
+4. `SourceRuntimeHostPhysicalMemory` stages actual physical-page backing and
+   read-only page protections, retaining its write-guard identity. Invalid
+   imports and cancellation leave current resources untouched. The enclosing
+   transaction must quiesce users and publish the admitted bank before committing
+   prepared resources, on the same barrier thread.
+5. `SourcePhysicsPoolHostStorage` stages its live allocation registry and the
+   raw allocator cursor. Pool regions have a distinct native resource label so
+   missing/orphaned entries can be rejected without claiming another raw owner's
+   arena scratch. Observers remain local. Occupied original TU1.5 pools continue
+   in a different bank through 3,528 subsequent source calls with identical ABI,
+   ordered writes, allocation/release requests, registries and final bytes.
+6. `NativeSynchronization` stages actual unlocked recursive mutexes and bounded
+   semaphores with their aliases, permit counts, maxima and next-handle cursor.
+   Previously captured local services resolve imported objects after publication.
+   Active calls/waits and acquired mutexes reject export/import; thread IDs and
+   waiters cannot be serialized. A service gate is a safeguard, not a substitute
+   for joining/quiescing the enclosing world's workers.
 
-These are subowners. Neither API claims a complete physics world or match save.
+These are subowners. None claims a complete physics world or match save. The
+arena's file/worker ownership, physics lock sidecars and live-world callbacks,
+typed simulation/match state and transport promotion remain outstanding.
+
+## Resource continuation evidence
+
+The additional private capsule is `.local/player-host-continuity-20261013/resources/`.
+
+- `cmake-resource-build.log`, `cmake-focused-tests.log`: registered CMake
+  resource, synchronization, VM and native-thread targets built and five tests
+  passed. Existing retained-bank and physical byte-protection checks passed in
+  `memory-current.log` and `physical-current.log`.
+- `pool-original-continuation.log`: 3,552 original TU1.5 pool lifecycle calls,
+  122,451 ordered writes, 27 native allocation/release requests and 258,048 final
+  bytes matched the source corpus; 3,528 subsequent calls also matched after
+  importing occupied pools into a different native owner.
+- `arena-original-regression.log`: original game-arena startup and actual
+  native-worker/file/synchronization regression with the changed resource and
+  synchronization modules. This checks existing arena behavior, not arena import.
+- `resources-asan.log`, `synchronization-asan.log`: focused continuation tests
+  passed under AddressSanitizer and UndefinedBehaviorSanitizer.
+- `verification.json`: exact source, fixture, binary, dependency and log hashes,
+  reproduction commands and the bounds of this verification.
+
+The source-pool and arena regressions compile changed modules and tests against
+recorded existing generated runtime archives. The small registered continuation
+targets compile all their sources freshly. This resource stage has not received
+a full native application rebuild/install or a physical gameplay handoff, and
+does not replace the installed direct peer runtime.
 
 ## Evidence
 

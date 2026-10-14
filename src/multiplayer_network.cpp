@@ -195,7 +195,7 @@ std::optional<SourcePlayerConfiguration> decode_profile(Reader& reader) {
 // Native host-input delivery counters, not original game action state. Repeat
 // them in every newer packet so a real short press survives packet loss and
 // latest-continuous-input coalescing. Source action admission remains unchanged.
-using PressSerials=std::array<std::uint32_t,9>;
+using PressSerials=std::array<std::uint32_t,10>;
 using InteractionDurations=std::array<std::uint16_t,2>;
 struct WireControl {Controls control;PressSerials presses{};InteractionDurations completed{};};
 void encode_control(Packet &p, const Controls &c,const PressSerials &presses,
@@ -205,7 +205,7 @@ void encode_control(Packet &p, const Controls &c,const PressSerials &presses,
   put_float(p, c.yaw);
   put_float(p, c.pitch);
   put(p, c.jump | (c.crouch << 1) | (c.fire << 2) | (c.reload << 3) | (c.grenade << 4) | (c.pickup << 5) | (c.dual_wield << 6) |
-      (c.switch_weapon << 7) | (c.fire_secondary << 8) | (c.melee << 9), 2);
+      (c.switch_weapon << 7) | (c.fire_secondary << 8) | (c.melee << 9) | (c.switch_grenade << 10), 2);
   put(p,std::uint16_t(c.zoom),2);put(p,c.zoom_reset_serial,4);
   put(p,c.pickup_milliseconds,2);put(p,c.dual_wield_milliseconds,2);
   for(auto duration:completed)put(p,duration,2);
@@ -219,14 +219,14 @@ WireControl decode_control(Reader &r) {
   c.pitch = r.real();
   auto flags = r.get(2);
   if (std::abs(c.forward) > 1 || std::abs(c.right) > 1 ||
-      std::abs(c.yaw) > 10000 || std::abs(c.pitch) > 1.55f || flags > 1023)
+      std::abs(c.yaw) > 10000 || std::abs(c.pitch) > 1.55f || flags > 2047)
     throw FormatError("Invalid LAN input");
   c.jump = flags & 1;
   c.crouch = flags & 2;
   c.fire = flags & 4;
   c.reload = flags & 8;
   c.grenade = flags & 16;
-  c.pickup=flags&32;c.dual_wield=flags&64;c.switch_weapon=flags&128;c.fire_secondary=flags&256;c.melee=flags&512;
+  c.pickup=flags&32;c.dual_wield=flags&64;c.switch_weapon=flags&128;c.fire_secondary=flags&256;c.melee=flags&512;c.switch_grenade=flags&1024;
   c.zoom=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
   c.zoom_reset_serial=r.get(4);
   c.pickup_milliseconds=r.get(2);c.dual_wield_milliseconds=r.get(2);
@@ -1446,14 +1446,14 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
     for (unsigned j = 0; j < peer.ids.size(); ++j) {
       auto c = peer.controls[j];
       // Grenade is a consumed pulse, never a retained held input.
-      c.grenade = c.switch_weapon = c.melee = false;
+      c.grenade = c.switch_weapon = c.melee = c.switch_grenade = false;
       if (age > std::chrono::milliseconds(500)) {
         c.forward = c.right = 0;
         c.jump = c.fire = c.reload = c.fire_secondary = false;
         c.pickup=c.dual_wield=false;c.pickup_milliseconds=c.dual_wield_milliseconds=0;
         peer.delivered_presses[j]=peer.received_presses[j];
       } else {
-        std::array<bool *,9> actions{&c.jump,&c.fire,&c.reload,&c.grenade,&c.pickup,&c.dual_wield,&c.switch_weapon,&c.fire_secondary,&c.melee};
+        std::array<bool *,10> actions{&c.jump,&c.fire,&c.reload,&c.grenade,&c.pickup,&c.dual_wield,&c.switch_weapon,&c.fire_secondary,&c.melee,&c.switch_grenade};
         for(unsigned action=0;action<actions.size();++action)
           if(newer(peer.received_presses[j][action],peer.delivered_presses[j][action])) {
             *actions[action]=true;
@@ -1491,6 +1491,7 @@ struct LanClient::Impl {
   std::array<std::optional<SourcePlayerConfiguration>,4> profiles;
   std::uint32_t sequence{};
   std::array<PressSerials,4> presses{};
+  std::array<bool,4> grenade_switch_held{};
   std::array<std::array<bool,6>,4> held{};
   std::array<InteractionDurations,4> active_interactions{},completed_interactions{};
   std::uint32_t snapshot_sequence{};
@@ -1592,6 +1593,8 @@ void LanClient::send(std::span<const Controls> c) {
     if(c[view].grenade)++v.presses[view][3];
     if(c[view].switch_weapon)++v.presses[view][6];
     if(c[view].melee)++v.presses[view][8];
+    if(c[view].switch_grenade && !v.grenade_switch_held[view])++v.presses[view][9];
+    v.grenade_switch_held[view]=c[view].switch_grenade;
     v.held[view]=down;
     encode_control(p,c[view],v.presses[view],v.completed_interactions[view]);
   }

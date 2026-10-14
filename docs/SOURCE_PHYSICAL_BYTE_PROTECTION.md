@@ -30,7 +30,8 @@ The original red test and real map failures are retained in
 passes. The independent physical-stage bank still matches **48 lifecycle
 calls, 216 ordered writes, 38 actual allocation/protection requests and
 153,796,608 final retained bytes**. Beaver Creek completes its first source
-player tick; Relic advances to its next missing physics callback. Neither
+player tick; Relic advances past memory protection; subsequent original-owner failures
+remain separate. Neither
 observation establishes full gameplay or original physical-memory parity.
 
 The delivery freeze uses the older memory interface of the installed baseline;

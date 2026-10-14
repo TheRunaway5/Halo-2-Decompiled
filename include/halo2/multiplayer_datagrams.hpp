@@ -30,7 +30,8 @@ namespace halo2 {
 //67 retains completed original attached unit-effect lighting colors.
 //68 carries every prepared-shot effect, original colors/velocity and held WORLD poses.
 //69 carries completed scene-root velocity, runtime flags and frozen state.
-inline constexpr unsigned native_multiplayer_protocol = 69;
+//70 retains grenade-selector input edges across loss/reordering.
+inline constexpr unsigned native_multiplayer_protocol = 70;
 // Endpoint numbers are authenticated room slots for ONLINE, opaque UDP peers
 // for local transport. Packet contents retain the native host/client protocol.
 class MultiplayerDatagrams {

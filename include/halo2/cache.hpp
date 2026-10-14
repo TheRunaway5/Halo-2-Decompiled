@@ -424,6 +424,9 @@ public:
     std::vector<PredictedResource> structure_resources(std::size_t bsp,int section,
                                                        bool definition) const;
     EncodedSound load_sound(std::uint32_t datum, unsigned pitch = 0, unsigned permutation = 0) const;
+    // Retail125F10's first-pitch/first-permutation compressed chunk request.
+    // Xbox cache only; this performs no PCM decode or playback admission.
+    std::optional<std::vector<std::byte>> load_sound_prediction_chunk(std::uint32_t datum) const;
     unsigned sound_pitch_range_count(std::uint32_t datum) const;
     unsigned sound_permutation_count(std::uint32_t datum,unsigned pitch=0) const;
     SoundVariationDefinition load_sound_variation(std::uint32_t datum, unsigned pitch = 0) const;

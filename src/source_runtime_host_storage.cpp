@@ -38,6 +38,11 @@ bool SourceRuntimeHostStorage::commit_cursor(PreparedCursor &&prepared) noexcept
 
 SourceVirtualAllocationResult
 SourceRuntimeHostStorage::allocate(SourceVirtualAllocationRequest request) {
+  return allocate(request,"actual host raw virtual-memory allocation");
+}
+SourceVirtualAllocationResult
+SourceRuntimeHostStorage::allocate(SourceVirtualAllocationRequest request,std::string owner) {
+  if(owner.empty())throw std::invalid_argument("Raw host storage requires an explicit resource owner");
   if (request.base || request.zero_bits || request.allocation_type != 0x101000 ||
       request.protection != 4 || !request.bytes)
     throw std::runtime_error("Required original virtual-memory request adapter unavailable");
@@ -61,7 +66,7 @@ SourceRuntimeHostStorage::allocate(SourceVirtualAllocationRequest request) {
     memory_.mount(std::uint32_t(base),
                    {static_cast<const std::byte *>(raw), std::size_t(bytes)},
                    SourceRuntimeMemory::Access::ReadWrite,
-                   "actual host raw virtual-memory allocation");
+                   std::move(owner));
   } catch (...) {
     ::munmap(raw, bytes);
     throw;

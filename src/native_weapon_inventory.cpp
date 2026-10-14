@@ -1,10 +1,14 @@
 #include "halo2/native_weapon_inventory.hpp"
 #include <algorithm>
+#include <bit>
 namespace halo2 {
 int native_weapon_ammunition_available(const Unit &u,const WeaponState &weapon) {
-  int result=weapon.loaded;
-  for(int slot=0;slot<4;++slot)if(const auto *other=native_inventory_weapon(u,slot);
-      other && other->definition==weapon.definition)result+=other->reserve;
+  const auto word=[](int value){return int(std::bit_cast<std::int16_t>(std::uint16_t(value)));};
+  int result=word(weapon.loaded)+word(weapon.reserve);
+  if(u.source_datum!=null_datum)for(int slot=0;slot<4;++slot)
+    if(const auto *other=native_inventory_weapon(u,slot);other &&
+        other->source_datum!=weapon.source_datum && other->definition==weapon.definition)
+      result+=word(other->reserve);
   return result;
 }
 

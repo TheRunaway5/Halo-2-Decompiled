@@ -18,7 +18,7 @@ SourceObjectAdmission admit(const SourcePortalVisibilitySet &visible,
     if(collidable.size()!=noncollidable.size() || collidable.size()>512 ||
         visible.clusters.size()>128 || visible.groups.size()>6 || visible.frustums.size()>512 ||
         in.containing_fog.size()!=collidable.size() || in.capacity<1 || in.capacity>32768 ||
-        prior.size()>512 || (in.flags&~0x6d0u) || in.sky_cluster<-1 ||
+        prior.size()>512 || (in.flags&~0x6d1u) || in.mode>1 || in.sky_cluster<-1 ||
         (in.sky_cluster>=0 && std::size_t(in.sky_cluster)>=collidable.size()))
         throw FormatError("unsupported source object admission context");
     SourceObjectAdmission out;out.associations.assign(prior.begin(),prior.end());
@@ -45,13 +45,29 @@ SourceObjectAdmission admit(const SourcePortalVisibilitySet &visible,
             if(skip)record.flags|=0x200;
             return;
         }
-        const auto &object=objects[index];const auto &sphere=object.rendering_sphere;
-        auto result=skip?SourceClusterFrustumResult{true,false}:
+        const auto &object=objects[index];
+        if(in.context_2a78 && !object.lighting_sphere)
+            throw FormatError("source object light admission lacks its retained lighting sphere");
+        const auto &sphere=in.context_2a78?*object.lighting_sphere:object.rendering_sphere;
+        SourceClusterFrustumResult result;
+        if(in.mode==1) {
+            // TU1.5 135970: SSE overlap, then x87 PC53 containment.
+            const float z=sphere.center.z-in.sphere_center.z,
+                x=sphere.center.x-in.sphere_center.x,y=sphere.center.y-in.sphere_center.y,
+                r=sphere.radius+in.sphere_radius;
+            result.visible=!(r*r<(z*z+x*x)+y*y);
+            if(result.visible) {
+                const double dx=double(in.sphere_center.x)-sphere.center.x,
+                    dy=double(in.sphere_center.y)-sphere.center.y,
+                    dz=double(in.sphere_center.z)-sphere.center.z;
+                result.contained=!(double(in.sphere_radius)<std::sqrt((dz*dz+dy*dy)+dx*dx)+sphere.radius);
+            }
+        } else result=skip?SourceClusterFrustumResult{true,false}:
             source_cluster_frustum_visibility(spheres,ordinal,sphere.center,sphere.radius);
         if(!result.visible && !(in.flags&0x80))return;
         //132E60 only reaches the small-sphere shortcut after successful
         // frustum admission (or the explicit sky skip), before plane flags.
-        if(result.visible && !result.contained && sphere.radius<=2.5f)result.contained=true;
+        if(in.mode==0 && in.context_2a78==0 && result.visible && !result.contained && sphere.radius<=2.5f)result.contained=true;
         bool negative=true,positive=true;
         if(in.flags&0x200) {
             const auto &p=in.clipping_plane;
@@ -59,7 +75,11 @@ SourceObjectAdmission admit(const SourcePortalVisibilitySet &visible,
                 sphere.center.x*p[0]-p[3];
             if(sphere.radius<std::abs(distance)){negative=distance<0.f;positive=distance>0.f;}
         }
-        const auto flags=std::uint16_t(0x3000|(negative?0x8000:0)|(positive?0x4000:0)|
+        const bool main_owner=!result.visible || !in.auxiliary || !(in.flags&1) ||
+            in.auxiliary->object(id)!=nullptr;
+        const bool secondary=main_owner && (!in.context_2a78 || !(object.flags&0x10000u));
+        const auto flags=std::uint16_t((main_owner?0x1000:0)|(secondary?0x2000:0)|
+            (negative?0x8000:0)|(positive?0x4000:0)|
             (result.contained?0x800:0)|(fog?0x400:0)|(skip?0x200:0));
         std::uint16_t association=0xffff;
         if(!result.contained && (object.flags&0x80000000u)) {
@@ -95,7 +115,7 @@ SourceObjectAdmission admit(const SourcePortalVisibilitySet &visible,
                 throw FormatError("source constructed cluster outside object registration bank");
             visit(cluster,ordinal,in.containing_fog[cluster]!=0,false);
         }
-        if(in.sky_cluster!=-1 && !visible.clusters.empty())visit(in.sky_cluster,std::size_t(-1),false,true);
+        if(in.context_2a78==0 && in.sky_cluster!=-1 && !visible.clusters.empty())visit(in.sky_cluster,std::size_t(-1),false,true);
     }
     return out;
 }

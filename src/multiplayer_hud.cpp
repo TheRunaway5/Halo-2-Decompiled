@@ -13,6 +13,24 @@
 #include <limits>
 
 namespace halo2 {
+SourceWeaponHudState multiplayer_hud_weapon_state(const MultiplayerState::Player &p,const HudContent &content,unsigned hand) {
+  if(hand>1)throw FormatError("Invalid weapon HUD hand");
+  const auto &shader=hand?p.secondary_weapon.shader:p.weapon_shader;
+  const int loaded=hand?p.secondary_weapon.loaded:p.loaded;
+  const int reserve=hand?p.secondary_weapon.reserve:p.reserve;
+  const int available=hand?p.secondary_weapon.ammunition_available:p.ammunition_available;
+  const auto datum=hand?p.secondary_weapon.datum:p.source_weapon;
+  WeaponHudProjectionInput input;input.datum=datum;input.heat=shader.heat;input.age=shader.power_fraction;
+  input.weapon_flags=std::uint16_t(shader.weapon_flags);input.magazine_present=content.weapon_magazine_count!=0;
+  input.loaded=std::bit_cast<std::int16_t>(std::uint16_t(loaded));
+  input.capacity=std::int16_t(content.clip_capacity);input.maximum_reserve=std::int16_t(content.reserve_capacity);
+  //Real snapshots carry104CF0 (loaded plus shared reserve). Datum-less HUD
+  //scalar fixtures provide the already-produced reserve word directly.
+  input.shared_reserve=datum==null_datum?reserve:available-loaded;
+  //Charge/tracking/trigger/marker publication has separate gameplay owners;
+  //their previous unavailable fields remain outside this bridge's claim.
+  SourceWeaponHudState result;weapon_hud_project(result,input);return result;
+}
 namespace { std::vector<unsigned> codepoints(const std::string &); }
 SourceHudScoreDisplay multiplayer_hud_score_display(const MultiplayerState &s,
     unsigned id,int limit,unsigned time_ticks,const HudContent &content) {
@@ -50,7 +68,7 @@ SourceHudScoreDisplay multiplayer_hud_score_display(const MultiplayerState &s,
   return result;
 }
 namespace {
-std::array<std::uint16_t, 4> conditions(const HudWidget &w,
+std::array<std::uint16_t, 4> conditions(const HudWidget &w,const HudContent &content,
                                         const MultiplayerState &s, unsigned id,
                                         const SourceHudScoreDisplay &score,bool talking,unsigned hand) {
   const auto &p = s.players.at(id);
@@ -59,16 +77,9 @@ std::array<std::uint16_t, 4> conditions(const HudWidget &w,
   std::uint16_t unit = 1 | (p.secondary_weapon.datum==null_datum?0x10:0x20) | p.source_hud_zoom_mask | 0x800 | 0x1000;
   if (multiplayer_representation(p.source_configuration)==3) unit |= 0x2000;
   unit |= p.grenade_current == 0 ? 4 : p.grenade_current == 1 ? 8 : 2;
-  const int loaded=hand?p.secondary_weapon.loaded:p.loaded,reserve=hand?p.secondary_weapon.reserve:p.reserve;
-  std::uint16_t weapon = w.weapon_type == 1 ? (hand?2:1) : 0;
-  if (w.weapon_type == 1) {
-    if (loaded < int(w.cutoffs[1]))
-      weapon |= 0x10;
-    if (reserve < int(w.cutoffs[2]))
-      weapon |= 0x20;
-    if (loaded == 0 && reserve == 0)
-      weapon |= 0x80;
-  }
+  const auto projected=multiplayer_hud_weapon_state(p,content,hand);
+  const auto *item=w.weapon_type==1?&projected:nullptr;
+  const auto weapon=weapon_hud_cutoffs(item,w.cutoffs,weapon_hud_mask(item,w.weapon_type==1?(hand?2u:1u):w.weapon_type));
   return {unit, 0, weapon, std::uint16_t(source_hud_score_mask(score) | (talking?0x800:0))};
 }
 std::array<float, 4> widget_inputs(const HudWidget &w,
@@ -77,6 +88,7 @@ std::array<float, 4> widget_inputs(const HudWidget &w,
                                    const SourceHudScoreDisplay &score, float winning,unsigned hand) {
   std::array<float, 4> out{};
   const auto &p = s.players.at(id);
+  const auto projected=multiplayer_hud_weapon_state(p,content,hand);
   for (unsigned i = 0; i < 4; ++i)
     switch (w.inputs[i]) {
     case 1:
@@ -103,21 +115,8 @@ std::array<float, 4> widget_inputs(const HudWidget &w,
     case 22:
       out[i] = p.shield < .2f ? float(s.tick) * tick_seconds : 0;
       break;
-    case 48:
-      out[i] = float(hand?p.secondary_weapon.loaded:p.loaded);
-      break;
-    case 50:
-      out[i] = 100;
-      break;
-    case 51:
-      out[i] = float(hand?p.secondary_weapon.reserve:p.reserve);
-      break;
-    case 54:
-      out[i] =
-          content.clip_capacity ? float(hand?p.secondary_weapon.loaded:p.loaded) / content.clip_capacity : 0;
-      break;
-    case 56:
-      out[i] = 1;
+    case 48:case 49:case 50:case 51:case 52:case 53:case 54:case 55:case 56:case 57:
+      out[i]=weapon_hud_input(w.weapon_type==1?&projected:nullptr,w.inputs[i],float(s.tick)*tick_seconds);
       break;
     case 64:
       out[i] = score.score_fraction;
@@ -748,7 +747,7 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
   for (unsigned i = 0; i < content_.widgets.size(); ++i) {
     const auto &w = content_.widgets[i];
     if (materials_[view][i].empty() ||
-        !hud_widget_visible(w, conditions(w, s, id, score,!voice_text_.empty(),hand_)))
+        !hud_widget_visible(w, conditions(w, content_, s, id, score,!voice_text_.empty(),hand_)))
       continue;
     const unsigned mode =
         hud_screen_mode(logical_width, logical_height, w.anchor, widescreen);

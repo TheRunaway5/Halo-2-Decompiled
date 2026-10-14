@@ -10,12 +10,17 @@
 #include "halo2/source_effect_location.hpp"
 #include "halo2/unit_damage.hpp"
 #include "halo2/particle_collision.hpp"
+#include "halo2/source_weapon_shader_input.hpp"
 
 namespace halo2 {
 class Cache;
 struct WeaponEffectInput;
 struct SourceGameVariant;
 struct ScenarioObject;
+struct SourceObjectDrawCollector;
+struct SourcePortalVisibilitySet;
+struct SourceObjectAdmission;
+struct SourceObjectAdmissionInput;
 // Read-only publication of the actual101BC0 ->178E30 explosion request.
 // Locations are the completed source effect's retained3C records, including
 // their full34-byte world frames. No trajectory or effect frame is inferred.
@@ -29,6 +34,7 @@ struct SourceProjectileDetonationTu15 {
 };
 struct SourcePlayerEquipmentTu15 {
     std::array<std::uint32_t,4> weapons,definitions,ready_ticks;
+    std::array<SourceWeaponShaderState,4> shaders;
     std::array<std::int8_t,2> current,requested;
     std::array<std::uint8_t,2> grenades;
     std::uint16_t inventory_sequence,replicated_sequence;
@@ -72,6 +78,11 @@ public:
     // Original1717B0 requests authored sections;130980 owns allocation,
     // real cache-sector I/O and22A680 pointer publication on this same bank.
     void preload_render_model(std::uint32_t render_model);
+    void begin_model_frame();
+    SourceObjectAdmission admit_render_objects(const SourcePortalVisibilitySet&,
+        const SourceObjectAdmissionInput&,std::span<const std::array<std::uint32_t,4>> prior={})const;
+    SourceObjectDrawCollector build_world_model(std::uint32_t object,unsigned view,
+        unsigned local_players,bool view_modifier,float geometry_metric,float lighting_metric);
     // The native roster ordinal disambiguates offline identities on this
     // machine; it does not bind the original four local input/view records.
     void construct_player(std::uint32_t player,unsigned native_identity_ordinal,

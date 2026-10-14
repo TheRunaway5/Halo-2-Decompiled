@@ -132,6 +132,8 @@ public:
   // finish through the original queue/read/fixup graph before their first draw.
   void preload_render_model(std::uint32_t render_model);
   void begin_model_frame();
+  SourceObjectAdmission admit_render_objects(const SourcePortalVisibilitySet&,
+      const SourceObjectAdmissionInput&,std::span<const std::array<std::uint32_t,4>> prior={})const;
   SourceObjectDrawCollector build_world_model(std::uint32_t object,unsigned view,
       unsigned local_players,bool view_modifier,float geometry_metric,float lighting_metric);
   std::optional<DeathCameraTarget> camera_target(std::uint32_t object) const;

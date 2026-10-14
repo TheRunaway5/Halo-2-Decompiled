@@ -72,7 +72,7 @@ int main(int argc,char**argv) {
     const auto stack=fixture.at("stack").get<std::uint32_t>(),
         stack_bytes=fixture.at("stack_bytes").get<std::uint32_t>();
     const auto globals=fixture.at("globals").get<std::array<std::uint32_t,3>>();
-    std::size_t steps=0,stores_count=0,resources_count=0,retained=0;
+    std::size_t steps=0,stores_count=0,resources_count=0,retained=0,resumed_steps=0;
     for(const auto &sequence:fixture.at("sequences")) {
       auto m=load_source_runtime_image(argv[2],SourcePhysicsContactImage::TitleUpdate15);
       for(unsigned i=0;i<3;++i)same(m.view(globals[i],4),bytes(sequence.at("initial_globals")[i]),"Original initial pool globals");
@@ -99,6 +99,10 @@ int main(int argc,char**argv) {
       };
       {
         SourcePhysicsPoolHostStorage host(m,sequence.at("first_token"),observer);
+        std::unique_ptr<SourceRuntimeMemory> replica;
+        std::vector<SourcePhysicsPoolResourceEvent> replica_resources;
+        std::unique_ptr<SourcePhysicsPoolHostStorage> replica_host;
+        std::size_t sequence_step=0;
         for(const auto &row:sequence.at("steps")) {
           const auto label=sequence.at("name").get<std::string>()+" "+row.at("kind").get<std::string>()+" "+std::to_string(steps);
           auto a=abi(row.at("entry_abi"));put(m,a.gp[4],fixture.at("stop"));
@@ -120,8 +124,42 @@ int main(int argc,char**argv) {
           }
           for(unsigned i=0;i<3;++i)check(word(m,globals[i])==row.at("globals")[i],label+" publication order");
           check(resource_index==row.at("resource_end") && host.live_allocations()==row.at("live_allocations"),label+" actual resource lifetime");
+          if(replica) {
+            auto resumed=abi(row.at("entry_abi"));put(*replica,resumed.gp[4],fixture.at("stop"));
+            std::vector<SourcePhysicsContactRecordStore> resumed_stores;replica_resources.clear();
+            source_run_physics_pool_startup_with_native_storage(*replica,row.at("entry"),resumed,{0x27f,0x1f80},{},*replica_host,
+                [&](const auto &s){if(!(stack<=s.address && s.address<stack+stack_bytes))resumed_stores.push_back(s);});
+            same_abi(resumed,row.at("exit_abi"),label+" resumed");
+            check(resumed_stores.size()==stores.size(),label+" resumed store count");
+            for(std::size_t i=0;i<stores.size();++i)
+              check(resumed_stores[i].instruction==stores[i].instruction && resumed_stores[i].address==stores[i].address &&
+                  resumed_stores[i].before==stores[i].before && resumed_stores[i].written==stores[i].written,
+                  label+" resumed source write "+std::to_string(i));
+            const auto first=row.at("resource_begin").get<std::size_t>();
+            check(replica_resources.size()==row.at("resource_end").get<std::size_t>()-first,label+" resumed resources");
+            for(std::size_t i=0;i<replica_resources.size();++i) {
+              const auto &e=sequence.at("resources")[first+i];const auto &actual=replica_resources[i];
+              check(actual.allocation==e.at("allocation") && actual.request==e.at("request").get<decltype(actual.request)>() &&
+                  actual.result==e.at("result").get<decltype(actual.result)>(),label+" resumed native resource request");
+            }
+            check(replica_host->ownership_checkpoint()==host.ownership_checkpoint(),label+" resumed resource registry");
+            ++resumed_steps;
+          }
+          if(++sequence_step==8) {
+            // Continue an occupied original pool in another bank. Deliberately
+            // give the new host a different initial token; only the imported
+            // allocation cursor/registry may select future resource addresses.
+            replica=std::make_unique<SourceRuntimeMemory>();
+            replica_host=std::make_unique<SourcePhysicsPoolHostStorage>(*replica,0x70000000u,
+                [&](const auto &event){replica_resources.push_back(event);});
+            const auto saved=m.checkpoint();
+            auto prepared=replica_host->prepare_ownership(host.ownership_checkpoint(),saved);
+            replica->restore(saved);
+            check(replica_host->commit_ownership(std::move(prepared)),label+" admitted pool import");
+          }
           stores_count+=stores.size();++steps;
         }
+        check(replica && replica->checkpoint()==m.checkpoint(),"Complete resumed source pool bank differs");
         check(resource_index==sequence.at("resources").size(),"Complete native resource sequence");
         for(const auto &bank:sequence.at("final_storage")) {
           const auto b=file(directory/bank.at("storage").get<std::string>());
@@ -137,7 +175,9 @@ int main(int argc,char**argv) {
       resources_count+=resource_index;
     }
     check(steps==3552 && stores_count==122451,"Complete original physics pool lifecycle corpus");
+    check(resumed_steps==3528,"Complete resumed source pool lifecycle corpus");
     std::cout<<steps<<" fresh TU1.5 pool lifecycle calls, "<<stores_count<<" ordered writes, "
-        <<resources_count<<" actual host allocation/release requests and "<<retained<<" final retained bytes match\n";
+        <<resources_count<<" actual host allocation/release requests and "<<retained<<" final retained bytes match; "
+        <<resumed_steps<<" subsequent source calls also match after staged cross-owner import\n";
   } catch(const std::exception&e) {std::cerr<<e.what()<<'\n';return 1;}
 }

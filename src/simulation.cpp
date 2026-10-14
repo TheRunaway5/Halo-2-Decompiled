@@ -86,7 +86,7 @@ void Simulation::synchronize_props(bool force){
   if (props_changed || fixed_changed || !prop_collision_) {
     const auto layers = CollisionWorld::compose(world_->collision,
         {scenery_collision_.triangles(), devices_.triangles(), props_.triangles()},
-        {std::move(static_collision_), std::move(prop_collision_), fixed_changed, world_.use_count() == 1});
+        {std::move(static_collision_), std::move(prop_collision_), fixed_changed});
     world_ = std::make_shared<BspWorld>(world_->sectors, layers.bsp);
     static_collision_ = layers.fixed;
     prop_collision_ = layers.all;
@@ -1019,11 +1019,16 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
       return definition.smg?(weapon->smg.magazine_mode>=1 && weapon->smg.magazine_mode<=6):weapon->reload>0;
     };
     if(!busy(&u.weapon) && !busy(native_hand_weapon(u,1)))u.source_action_word&=~1u;
-    const auto control_grenade = grenade_ready_type(u.grenade_current, u.grenades);
-    if (control_grenade != -1) u.grenade_requested = control_grenade;
-    if (u.grenade_requested != u.grenade_current) {
-      const auto selected = grenade_ready_type(u.grenade_requested, u.grenades);
-      if (selected != -1) u.grenade_current = selected;
+    if(!source_physics_movement_) {
+      const bool switching=source_control && source_control->switch_grenade;
+      const auto control_grenade=grenade_ready_type(u.grenade_current,u.grenades,
+          switching && !u.grenade_switch_held?1:0);
+      u.grenade_switch_held=switching;
+      if(control_grenade!=-1)u.grenade_requested=control_grenade;
+      if(u.grenade_requested!=u.grenade_current) {
+        const auto selected=grenade_ready_type(u.grenade_requested,u.grenades);
+        if(selected!=-1)u.grenade_current=selected;
+      }
     }
     if(grenade_sandbox_ && !source_physics_movement_)grenade_sandbox_->update_unit(u,source_control&&source_control->grenade,
         owner,allocate_object_,[&](const Unit &unit,std::uint32_t action) {
@@ -2321,13 +2326,14 @@ ScriptValue Simulation::host(const std::string &name,
     scene_.create(std::int16_t(args[0].bits), name == "object_create_anew", ticks_);
     return {};
   }
-  if(name=="object_create_containing" || name=="object_destroy_containing") {
+  if(name=="object_create_containing" || name=="object_create_anew_containing" || name=="object_destroy_containing") {
     arity(1);if(args[0].type!=9)throw FormatError("Object name search requires a string");
     // Retail29FF60 visits every case-sensitive substring match in scenario
-    // name order;29FD40 delegates creation to the ordinary named factory.
+    // name order;29FD40/29FD80 delegate ordinary creation/replacement to the
+    // same named factory used by object_create/object_create_anew.
     for(unsigned i=0;i<content_.object_names.size();++i)if(content_.object_names[i].name.find(args[0].text)!=std::string::npos) {
-      if(name=="object_create_containing")scene_.create(i,false,ticks_);
-      else {const auto handle=scene_.resolve(i);if(handle!=null_datum)scene_.destroy(handle);}
+      if(name=="object_destroy_containing") {const auto handle=scene_.resolve(i);if(handle!=null_datum)scene_.destroy(handle);}
+      else scene_.create(i,name=="object_create_anew_containing",ticks_);
     }
     return {};
   }

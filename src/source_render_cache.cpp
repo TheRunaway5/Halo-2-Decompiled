@@ -75,7 +75,7 @@ std::uint32_t SourceRenderCachePool::acquire(std::uint32_t owner,std::uint32_t& 
     SourceRenderContext context;
     std::copy_n(record.words.begin()+0x44/4,30,context.words.begin());
     source_render_context_initialize(context);
-    context.words[0]=owner;context.words[1]=0xbe8b0;
+    context.words[0]=owner;context.words[1]=context_callback;
     std::copy(context.words.begin(),context.words.end(),record.words.begin()+0x44/4);
     record.words[0xbc/4]=0xffffffff;
     for(unsigned view=0;view<4;++view)

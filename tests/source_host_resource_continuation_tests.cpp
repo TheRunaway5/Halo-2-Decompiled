@@ -70,7 +70,7 @@ void pool_continuation() {
     (void)pool_allocate(target,resumed,0x1000);
     SourceRuntimeHostStorage scratch(source,0x60000000);
     scratch_base=scratch.allocate({0,0,0x1234,0x101000,4}).base;
-    marker(source,scratch_base,std::byte{0xc7}); // A different owner shares the raw label.
+    marker(source,scratch_base,std::byte{0xc7}); // A different raw resource owner.
     const auto saved=source.checkpoint(),old=target.checkpoint();
     const auto ownership=pool.ownership_checkpoint(),old_owner=resumed.ownership_checkpoint();
     {
@@ -83,6 +83,7 @@ void pool_continuation() {
     bad=ownership;bad.cursor.next=kept+0x1000;rejects([&]{resumed.prepare_ownership(bad,saved);});
     bad=ownership;bad.allocations.at(kept)=0x1000;rejects([&]{resumed.prepare_ownership(bad,saved);});
     bad=ownership;bad.allocations.emplace(kept+0x1000,0x1000);rejects([&]{resumed.prepare_ownership(bad,saved);});
+    bad=ownership;bad.allocations.clear();rejects([&]{resumed.prepare_ownership(bad,saved);});
     auto invalid=saved;region(invalid,kept).owner="different owner";
     rejects([&]{resumed.prepare_ownership(ownership,invalid);});
     check(target.checkpoint()==old && resumed.ownership_checkpoint()==old_owner,"Rejected pool import changed current owner");

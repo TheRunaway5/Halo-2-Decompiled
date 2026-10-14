@@ -14,15 +14,35 @@
 // services, inject world state, initialize a renderer or open audio devices.
 int main(int argc, char **argv) try {
     using namespace halo2;
-    if (argc < 6 || argc > 10) throw FormatError("Supply MAP SHARED XBE TICKS OUTPUT_DIRECTORY [--require-completion] [--no-skip] [--route=VOLUME,...] [--route-after=DEVICE]");
+    if (argc < 6 || argc > 11) throw FormatError("Supply MAP SHARED XBE TICKS OUTPUT_DIRECTORY [--require-completion] [--no-skip] [--route=VOLUME,...] [--route-after=DEVICE] [--command-route=SET/POINT,...]");
     bool require_completion{}, allow_skip=true;
     std::vector<std::string> route_names;
     std::string route_after;
+    std::vector<std::pair<unsigned,unsigned>> command_references;
     for(int i=6;i<argc;++i) {
         const std::string_view option=argv[i];
         if(option=="--require-completion")require_completion=true;
         else if(option=="--no-skip")allow_skip=false;
         else if(option.starts_with("--route-after="))route_after=option.substr(14);
+        else if(option.starts_with("--command-route=")) {
+            auto names=option.substr(16);
+            while(!names.empty()) {
+                const auto comma=names.find(',');
+                const auto token=names.substr(0,comma);
+                const auto slash=token.find('/');
+                if(slash==std::string_view::npos)throw FormatError("Command route needs SET/POINT references");
+                const auto index=[](std::string_view text) {
+                    std::size_t used{};const auto value=std::stoul(std::string(text),&used);
+                    if(used!=text.size() || value>65535)throw FormatError("Invalid command route index");
+                    return unsigned(value);
+                };
+                command_references.emplace_back(index(token.substr(0,slash)),index(token.substr(slash+1)));
+                if(command_references.size()>2048)throw FormatError("Command route exceeds its point budget");
+                if(comma==std::string_view::npos)break;
+                names.remove_prefix(comma+1);
+            }
+            if(command_references.empty())throw FormatError("Command route needs an authored point");
+        }
         else if(option.starts_with("--route=")) {
             auto names=option.substr(8);
             while(!names.empty()) {
@@ -41,6 +61,15 @@ int main(int argc, char **argv) try {
     std::filesystem::create_directories(output);
     Cache cache(argv[1], argv[2], OriginalData::load_xbe(argv[3]));
     auto content = cache.load_content(0);
+    std::vector<Vec3> command_route;
+    for(const auto &[set,index]:command_references) {
+        if(set>=content.command_points.size() || index>=content.command_points[set].size())
+            throw FormatError("Command route reference outside authored point sets");
+        const auto &point=content.command_points[set][index];
+        if(point.reference_frame!=-1)throw FormatError("Command route needs an actual posed reference-frame owner");
+        command_route.push_back(point.position);
+    }
+    std::size_t command_waypoint{};
     std::vector<unsigned> volume_route;
     for(const auto &name:route_names) {
         const auto at=std::find_if(content.trigger_volumes.begin(),content.trigger_volumes.end(),
@@ -67,7 +96,7 @@ int main(int argc, char **argv) try {
         [&](std::size_t bsp) { return cache.load_bsp_content(bsp); },
         [&](const Simulation::Prediction &request) {
             if (request.kind == Simulation::Prediction::Barrier) residency.barrier();
-            else if (request.kind == Simulation::Prediction::Sound) residency.sound(request.datum);
+            else if (request.kind == Simulation::Prediction::Sound) residency.predict_sound(request.datum);
             else if (request.kind == Simulation::Prediction::Model) residency.model(request.datum, request.section);
             else if (request.kind == Simulation::Prediction::Object) residency.object(request.datum);
             else residency.structure(request.datum, request.section, request.instances);
@@ -176,11 +205,39 @@ int main(int argc, char **argv) try {
                     if(volume.object_name!=-1)throw FormatError("Attached route volume needs its posed node owner");
                     const auto goal=volume.position+volume.forward*(volume.extents.x*.5f)+
                         cross(volume.up,volume.forward)*(volume.extents.y*.5f)+volume.up*(volume.extents.z*.5f);
-                    selected_goal=goal;
-                    const auto delta=goal-player.body.position;
+                    if(!command_route.empty()) {
+                        while(command_waypoint<command_route.size() &&
+                            std::hypot(command_route[command_waypoint].x-player.body.position.x,
+                                command_route[command_waypoint].y-player.body.position.y)<.4f)++command_waypoint;
+                        ally_route.clear();
+                    } else if(simulation.bsp()==0 && step%30==0)
+                        ally_route=navigation.route(player.body.position,goal);
+                    else if(simulation.bsp()!=0)ally_route.clear();
+                    while(!ally_route.empty() && std::hypot(ally_route.front().x-player.body.position.x,
+                        ally_route.front().y-player.body.position.y)<.4f)ally_route.erase(ally_route.begin());
+                    selected_goal=command_waypoint<command_route.size()?command_route[command_waypoint]:
+                        ally_route.empty()?goal:ally_route.front();
+                    const auto delta=selected_goal-player.body.position;
                     input.yaw=std::atan2(delta.y,delta.x);
                     input.forward=std::hypot(delta.x,delta.y)>.2f?.7f:0;
                     input.right=0;
+                    if(!command_route.empty() && command_waypoint==command_route.size() && target) {
+                        // Keep looking at the actual ally while walking to the
+                        // final volume, just as a player can walk and look
+                        // independently during the sergeant's explanation.
+                        const auto offset=target->definition.bounding_offset;
+                        const auto facing=direction(target->yaw);
+                        const auto point=target->body.position+facing*offset.x+
+                            Vec3{-facing.y,facing.x,0}*offset.y+Vec3{0,0,offset.z};
+                        const auto look=point-origin;
+                        input.yaw=std::atan2(look.y,look.x);
+                        input.pitch=std::clamp(std::atan2(look.z,std::hypot(look.x,look.y)),-1.5f,1.5f);
+                        const auto walk=normalized(Vec3{delta.x,delta.y,0});
+                        const auto forward=direction(input.yaw);
+                        const auto speed=std::hypot(delta.x,delta.y)>.2f?.7f:0;
+                        input.forward=speed*dot(walk,forward);
+                        input.right=-speed*dot(walk,Vec3{-forward.y,forward.x,0});
+                    }
                     const auto offset=player.definition.bounding_offset;
                     const auto center=player.body.position+direction(player.yaw)*offset.x+
                         Vec3{-std::sin(player.yaw),std::cos(player.yaw),0}*offset.y+Vec3{0,0,offset.z};
@@ -218,6 +275,7 @@ int main(int argc, char **argv) try {
     if(require_completion && !simulation.level_finished()) {
         const auto &player=simulation.player();
         std::cerr<<"Campaign route at limit: waypoint="<<volume_waypoint
+            <<" command_waypoint="<<command_waypoint
             <<" navigation_sector="<<navigation.locate(player.body.position).value_or(std::size_t(-1))<<'\n';
         const auto middle=player.body.position+Vec3{0,0,player.body.height*.5f};
         if(const auto wall=simulation.collision().raycast(middle,direction(player.yaw),1.f)) {

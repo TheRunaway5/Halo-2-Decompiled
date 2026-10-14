@@ -6,7 +6,26 @@ if(MSVC)
 else()
   set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
 endif()
+# Dedicated progress launchers retain the original Xbox gameplay HUD.
+foreach(weapon_launcher IN ITEMS halo2_weapons_launcher halo2_weapons_title_launcher)
+  add_executable(${weapon_launcher} src/weapon_launcher.cpp)
+  target_link_libraries(${weapon_launcher} PRIVATE SDL2::SDL2)
+  target_compile_definitions(${weapon_launcher} PRIVATE
+      HALO2_PYTHON_EXECUTABLE="${Python3_EXECUTABLE}"
+      HALO2_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
+      HALO2_RUNTIME_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+  add_dependencies(${weapon_launcher} halo2_native)
+endforeach()
+set_target_properties(halo2_weapons_launcher PROPERTIES OUTPUT_NAME "Halo2-Weapons-Launcher")
+set_target_properties(halo2_weapons_title_launcher PROPERTIES OUTPUT_NAME "Halo2-Weapons-Title-Launcher")
+target_compile_definitions(halo2_weapons_title_launcher PRIVATE HALO2_TITLE_FIRST=1)
 if(BUILD_TESTING)
+  add_executable(weapon_hud_gameplay_tests tests/weapon_hud_gameplay_tests.cpp)
+  target_link_libraries(weapon_hud_gameplay_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_hud_gameplay COMMAND weapon_hud_gameplay_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps
+      ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03)
   add_executable(weapon_hud_tests tests/weapon_hud_tests.cpp)
   target_link_libraries(weapon_hud_tests PRIVATE halo2_systems)
   add_test(NAME original_weapon_hud COMMAND weapon_hud_tests

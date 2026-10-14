@@ -1,10 +1,16 @@
 # Same retained bank and native resource owners for the TU1.5 live world.
 target_sources(halo2_systems PRIVATE src/physics_live_world_tu15.cpp src/source_runtime_cache_tags_tu15.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/physics_live_support_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_object_sound_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_combat_action_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_sandbox_special_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_cache_bitmap_view_tu15.cpp)
 if(BUILD_TESTING)
+    add_executable(grenade_selection_tu15_tests tests/grenade_selection_tu15_tests.cpp src/inventory.cpp)
+    target_include_directories(grenade_selection_tu15_tests PRIVATE include)
+    target_link_libraries(grenade_selection_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+    add_test(NAME original_tu15_grenade_selection COMMAND grenade_selection_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/grenade_selection_tu15_original.json")
     add_executable(sandbox_special_tu15_tests tests/sandbox_special_tu15_tests.cpp)
     target_link_libraries(sandbox_special_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_sandbox_special COMMAND sandbox_special_tu15_tests

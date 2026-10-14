@@ -666,6 +666,10 @@ void MultiplayerMatch::synchronize_source_equipment(Unit &unit,const SourcePlaye
     if(!states[slot])states[slot]=native_weapon_state(content_.weapons.at(source.definitions[slot]),handle);
     if(states[slot]->definition!=source.definitions[slot])
       throw FormatError("Source inventory changed the definition of a live weapon identity");
+    // Melee-only weapons already use the complete original update owner.
+    // Publish its actual ready/power fields for blade shaders and attachments.
+    if(content_.weapons.at(source.definitions[slot]).inventory_flags&(1u<<24))
+      states[slot]->shader=source.shaders[slot];
   }
   int primary=source.current[0];
   if(primary<0)primary=source.requested[0];
@@ -1548,7 +1552,12 @@ void MultiplayerMatch::step(
       // Pickup occupies one word; preserve the source initializer's NONE
       // selection at +1E rather than overwriting it with a DWORD action store.
       put(0x1c,buttons,2);
-      put(0x22,std::uint16_t(unit(i).grenade_requested),2);
+      auto &grenade_owner=unit_mutable(i);
+      const auto selected_grenade=grenade_ready_type(grenade_owner.grenade_current,grenade_owner.grenades,
+          input.switch_grenade && !grenade_owner.grenade_switch_held?1:0);
+      grenade_owner.grenade_switch_held=input.switch_grenade;
+      if(selected_grenade!=-1)grenade_owner.grenade_requested=selected_grenade;
+      put(0x22,std::uint16_t(grenade_owner.grenade_requested),2);
       const auto target=action_prompt(i).target;
       if(target.object!=null_datum) {
         put(0x28,std::uint16_t(target.action)|(std::uint32_t(std::uint16_t(target.index))<<16));

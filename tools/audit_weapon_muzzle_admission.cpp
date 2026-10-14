@@ -68,6 +68,14 @@ int main(int argc,char **argv)try {
       }
     }
   }
+  report["starting_choices"]=Json::array();
+  for(unsigned option=3;option<=20;++option) {
+    try {
+      const auto weapon=cache.slayer_starting_weapon(option);
+      const auto *tag=cache.query_tag({.handle=TagHandle{weapon}});
+      report["starting_choices"].push_back({{"option",option},{"weapon",weapon},{"name",tag->name}});
+    }catch(const FormatError &error) {report["starting_choices"].push_back({{"option",option},{"boundary",error.what()}});}
+  }
   std::ofstream output(argv[4]);if(!output)throw FormatError("Cannot create muzzle admission report");
   output<<report.dump(2)<<'\n';
   for(const auto &row:report["effects"])std::cout<<row["weapon"]<<" admitted="<<row["admitted"]

@@ -99,6 +99,32 @@ int main()try {
               "Normalized physics retained an unowned donor alias");
     }
     {
+        Buffer data(0x150);block(data,0xa8,0x110,0x31);
+        for(unsigned i=0;i<0x31;++i)data[0x110+i]=std::byte((i*19+0x43)&255);
+        const auto owned=halo2::normalize_mcc_physics_model(data,original,canonical);
+        equal_bytes(data,0x110,owned,row(owned,0xa8),0x31);
+        check(halo2::Bytes(owned).u32(0xa8)==0x31,"MOPP bytecode extent changed");
+        Buffer empty(0x110);
+        rejects([&]{(void)halo2::normalize_mcc_physics_model(empty,original,0xfffffff0u);});
+    }
+    {
+        Buffer lists(0x1c0);block(lists,0x90,0x110);block(lists,0x98,0x180,2);
+        word(lists,0x130,2);word(lists,0x134,0x80000010u);
+        // External lists bind the separately owned child bank. Stale inline
+        // storage is not a serialized pointer or an active authored child.
+        std::fill(lists.begin()+0x138,lists.begin()+0x178,std::byte{0xcc});
+        word(lists,0x180,0x12340002u);word(lists,0x188,0x55u);
+        word(lists,0x190,0x56780003u);word(lists,0x198,0x77u);
+        const auto owned=halo2::normalize_mcc_physics_model(lists,original,canonical);
+        const auto list=row(owned,0x90),children=row(owned,0x98);
+        check(halo2::Bytes(owned).u32(list+0x10)==2 && halo2::Bytes(owned).u32(list+0x14)==0x80000010u,
+              "External list count/capacity changed");
+        check(halo2::Bytes(owned).u32(children)==0x12340002u && halo2::Bytes(owned).u32(children+12)==0x77u,
+              "External list authored selector/filter changed");
+        check(std::ranges::all_of(halo2::Bytes(owned).slice(list+0x18,0x20),[](auto b){return b==std::byte{};}),
+              "External list's inactive inline storage was admitted");
+    }
+    {
         auto invalid=source;word(invalid,source_rows[0]+0x3c,1);
         rejects([&]{(void)halo2::normalize_mcc_physics_model(invalid,original,canonical);});
         invalid=source;word(invalid,source_rows[10]+0x3c,1);

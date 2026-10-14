@@ -227,6 +227,43 @@ int main(int argc,char **argv) {
     }
     check(activation_sounds==1 && activation_draws>0 && activation.particle_count()==0,
         "Sword activation lost sound, particles or retirement");
+    const auto *blade=cache.query_tag({.group=tag_groups::effect,
+        .name="effects\\objects\\weapons\\melee\\energy_blade\\blade_on"});
+    check(blade,"Original persistent blade attachment is absent");
+    const NativeMuzzleEffects::Markers blade_placement=[&](std::uint32_t name) {
+      const auto selected=pose_model_markers(source_model_markers(cache.load_source_tag_metadata(sword->second.first_person_model),name),sword_nodes);
+      check(!selected.empty(),"Blade location has no actual authored marker bank");
+      std::vector<Transform> result;for(const auto &marker:selected)result.push_back(marker.world);return result;
+    };
+    NativeMuzzleEffects attached(cache,0x12345678);std::uint32_t retained=null_datum;
+    unsigned blade_draws{};std::size_t blade_locations{};
+    for(unsigned t=0;t<600;++t) {
+      const auto handle=attached.attachment(blade->datum,0x60000,t,{1,1});
+      check(handle!=null_datum && (retained==null_datum || handle==retained),"Blade attachment lost its retained lifetime");
+      retained=handle;attached.pose(0x60000,blade_placement,view,t,tick_seconds);
+      attached.advance(t,tick_seconds);
+      const auto draws=attached.draw(0x60000,placement,view,t,0,tick_seconds);
+      blade_draws+=unsigned(draws.size());blade_locations=std::max(blade_locations,attached.location_count());
+      const auto second=attached.draw(0x60000,placement,view,t,0,tick_seconds);
+      check(second.size()==draws.size(),"Drawing another view changed the blade population");
+    }
+    check(blade_locations==17,"Blade attachment omitted authored glow/flare marker locations");
+    check(blade_draws>600 && attached.particle_count()>0,"Blade attachment stopped at its first event");
+    for(unsigned t=600;t<900;++t) {
+      attached.attachment(blade->datum,0x60000,t,{0,1},false);
+      attached.pose(0x60000,blade_placement,view,t,tick_seconds);attached.advance(t,tick_seconds);
+    }
+    check(!attached.particle_count(),"Disabled source blade function continued emission");
+    check(attached.attachment(blade->datum,0x60000,900,{1,1},true)==retained,
+        "Blade reactivation allocated a second attachment owner");
+    for(unsigned t=900;t<930;++t) {
+      attached.pose(0x60000,blade_placement,view,t,tick_seconds);attached.advance(t,tick_seconds);
+    }
+    check(attached.particle_count()>0,"Blade function did not restart the original event");
+    attached.retire_attachments_except({});
+    for(unsigned t=930;t<1230;++t)attached.advance(t,tick_seconds);
+    check(!attached.particle_count(),"Retired blade attachment retained expired particles");
+    std::cout<<"Persistent blade: "<<blade_draws<<" draws across 600 ticks, retained handle and complete retirement\n";
     std::cout<<"PASS 600 actual SMG births/expiry, original Sword countdown/event timeline, "
         <<activation_draws<<" Sword particle draws and one delayed ready sound\n";
   }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

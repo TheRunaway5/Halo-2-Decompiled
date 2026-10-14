@@ -1,6 +1,9 @@
 #pragma once
 #include "halo2/physics_game_arena_runtime.hpp"
 #include "halo2/source_runtime_memory.hpp"
+#include "halo2/source_runtime_host_physical_memory.hpp"
+#include "halo2/source_runtime_host_storage.hpp"
+#include "halo2/native_synchronization.hpp"
 #include <filesystem>
 #include <memory>
 #include <stop_token>
@@ -37,6 +40,48 @@ public:
   // Protect an existing retained physical allocation; source cache callbacks
   // own the requested address and extent after startup has joined its worker.
   void protect_pages(std::uint32_t address,std::uint32_t bytes,std::uint32_t protection);
+  struct FileCheckpoint {
+    std::uint32_t alias{},position{};
+    std::string name;
+    std::vector<std::byte> bytes;
+    bool operator==(const FileCheckpoint &) const = default;
+  };
+  struct OwnershipCheckpoint {
+    std::uint32_t version=1,worker{},worker_stack{},worker_semaphore{},next_file{};
+    SourceRuntimeHostStorage::CursorCheckpoint scratch;
+    SourceRuntimeHostPhysicalMemory::OwnershipCheckpoint physical;
+    NativeSynchronization::Checkpoint synchronization;
+    std::vector<FileCheckpoint> files;
+    bool operator==(const OwnershipCheckpoint &) const = default;
+  };
+  class PreparedOwnership {
+  public:
+    ~PreparedOwnership();
+    PreparedOwnership(PreparedOwnership &&) noexcept;
+    PreparedOwnership &operator=(PreparedOwnership &&) noexcept;
+    bool for_owner(const SourcePhysicsGameArenaNative &) const noexcept;
+  private:
+    friend class SourcePhysicsGameArenaNative;
+    PreparedOwnership();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // The current live game retires its startup worker before gameplay. Export
+  // requires actual join at the original idle wait, an empty source queue and
+  // released mutexes. It cannot checkpoint an executing source job/context.
+  OwnershipCheckpoint ownership_checkpoint() const;
+  // The replacement must have completed and retired its own matching startup
+  // worker. Keep that real local thread's terminal alias; never serialize a
+  // native thread ID/entry closure. Stage private real files, pages and sync
+  // objects without altering the current bank or the savegame-directory files.
+  // Both owners must be quiescent. Commit/cancel on the same barrier thread.
+  // The enclosing complete-world owner authenticates the immutable image/map
+  // and budgets incoming byte/file data before constructing this subowner.
+  PreparedOwnership prepare_ownership(const OwnershipCheckpoint &,
+                                      const SourceRuntimeMemory::Checkpoint &) const;
+  // After admitted whole-bank publication. Callback/schedule bindings remain
+  // local, and run() remains stopped; only existing resource operations resume.
+  bool commit_ownership(PreparedOwnership &&) noexcept;
 private:
   struct Impl;std::unique_ptr<Impl> impl_;
 };

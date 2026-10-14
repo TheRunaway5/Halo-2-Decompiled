@@ -2,6 +2,7 @@
 #include "halo2/frontend.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/hud_bitmap_geometry.hpp"
+#include "halo2/weapon_hud.hpp"
 #include "halo2/source_hud_score.hpp"
 #include "halo2/motion_sensor.hpp"
 namespace halo2 {
@@ -37,7 +38,8 @@ struct HudContent {
     std::map<std::uint32_t,UnitMessages> units;
   } action_messages;
   float multiplayer_scale = 1;
-  int clip_cutoff{}, ammo_cutoff{}, clip_capacity{};
+  int clip_cutoff{}, ammo_cutoff{}, clip_capacity{}, reserve_capacity{};
+  unsigned weapon_magazine_count{};
   bool score_scenario_present{};
   std::vector<SourceHudScoreColor> score_appearance_colors, score_team_colors;
   struct Sensor {
@@ -46,6 +48,8 @@ struct HudContent {
     MotionSensorArtwork artwork;
   } sensor;
 };
+SourceWeaponHudState multiplayer_hud_weapon_state(const MultiplayerState::Player &,const HudContent &,unsigned hand);
+
 // The current match snapshot carries individual/team signed-short scores and
 // source membership/flags. Round-win and saved appearance producers are open;
 // this adapter uses the original default appearance constructor.

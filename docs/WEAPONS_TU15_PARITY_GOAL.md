@@ -365,12 +365,60 @@ no unit hand feedback is produced. Both registered and absent-view cases pass
 with the corrected creation/view admission.
 
 This is native hand-timer/error ownership and bounded original execution, not
-complete firing feedback or visuals. D2310's separate unit aim-response fields,
-full unit/own-model/animation arbitration, natural world scheduling, remote
+complete firing feedback or visuals. D2310 is the existing camouflage
+disruption owner in `source_camouflage.cpp`, not an aim-response owner. Full
+unit/own-model/animation arbitration, natural world scheduling, remote
 Xbox prediction/wire/event ownership, camera/IK/HUD effects and matched Xbox
 TU1.5 framebuffers still require validation. Original fixtures retain declared
 raw storage, unavailable rendering/physics/effect owners and failed generic
 allocation. The source object/physics backend keeps ownership of its raw clocks.
+
+## Weapon HUD ammunition and battery inputs
+
+`weapon_hud.hpp/cpp` now follows the original56-byte per-weapon HUD status,
+all ten weapon selectors48..57, weapon condition flags and unsigned cutoff
+bytes. It preserves caller padding and signed16-bit loaded/shared-reserve
+stores. Battery percentage and remaining fraction consume actual age; heat
+and overheat flags consume the real published shader state. Zero-capacity
+battery weapons are not declared empty solely because both ammunition words
+are zero. The actual plasma rifles retain authored zero-capacity magazine
+records; the beam rifle has no magazine record.
+
+Seven complete static owners are mapped between TU1.1 and TU1.5, including
+1046D0/1055F0,104AA0/1059C0,104CF0/105C10 and the HUD projection/input/mask/
+visibility callers. The unchanged original images and native kernel agree on
+**4,032 cases across all63 distinct authored weapon paths**, comparing all56
+status bytes, ten scalar inputs, six weapon-type masks and nine visibility
+queries. Original inventory ownership, duplicate/full-datum slots, signed and
+overflowing reserve controls, charge bytes, trigger states and zero/negative
+clock controls remain explicit fixture inputs. Infinite-ammo, acquisition and
+appearance predicates remain supplied services; no positive world-target or
+marker owner is claimed. The full static and executed instruction inventories
+are in `hud-correspondence/report.json` and `hud-original.json`.
+
+The native finite104CF0 helper now always includes the queried weapon's own
+signed loaded/reserve stores, then adds matching different full weapon datums
+only when an owning unit exists. It agrees with **834 independently executed
+original inventory cases**. An older gameplay fixture omitted its declared
+unit owner; it now checks both ownerless and owned behavior explicitly. The
+failed original fixture log is retained in `hud-cpu-tests-v1.log`.
+
+The real HUD consumes the existing loaded-plus-shared-reserve snapshot for
+both hands, preserving individual gameplay reserve stores and the existing
+wire layout. `original_weapon_hud_gameplay` passes **1,728 production ticks**
+with both authored bipeds: actual dual SMG pickup, three/four consumed rounds,
+independent reload reserves117/116, shared available293 and equal HUD reserve
+counters changing240 to233. Actual source number-widget glyphs change for
+both hands. Six actual plasma/brute-plasma/beam pickup/fire cases additionally
+verify age/heat/percentage/availability publication. It also passes using the
+owned TU1.5 executable. The native framebuffer in `hud-smg-live-v1` visibly
+shows233 on both counters after that reload; this is native inspection rather
+than a matched Xbox framebuffer comparison.
+
+Charge/input/trigger/tracking/target-marker publication, complete scope/zoom
+and warning animation ownership, and original Xbox pixels remain open. The
+numeric kernel handles supplied charge/lock state; the production snapshot
+bridge currently supplies only fields owned by its existing published state.
 
 ## Visual owners identified next
 
@@ -385,6 +433,18 @@ classifications or cross-tag metadata ownership. Charged plasma and vehicle
 effects can legitimately have no FP systems or direct sound references.
 Admission failures are not bypassed to manufacture a passing muzzle.
 
+## Charge and lock trigger reference groundwork
+
+`research_weapon_trigger_tu15.py` maps nineteen complete original owner bodies
+between TU1.1 and TU1.5, including the whole1441-instruction weapon update
+1021D0/1030F0, input1045E0/105500, barrel admission and charge/lock transition
+helpers. All2,449 instruction rows and internal branches match after relocation;
+all retained absolute operand bytes also match. The original instruction
+listings, mapped calls and separately unverified external callees are retained
+in `trigger-correspondence/report.json`. This is static reference groundwork,
+not new native charge/lock execution or full-world validation. Actual charge,
+alternate-barrel, target and tracking owners remain required.
+
 ## Outstanding goal work
 
 All completion requirements above remain open unless the bounded evidence
@@ -395,15 +455,16 @@ Unit/inventory/pose/action/physics composition, nonlocal and coalesced effect
 histories, and matched rendered sequences across all weapons and owners.
 No weapon is marked fully feature-and-visually complete by this checkpoint.
 
-Next coverage must include shared HUD ammunition producers and complete
-unit/own-model/aim-response arbitration, extending the bounded inactive/world clock evidence above. Initial energy-weapon carry remains guarded in the
+Next coverage must include complete unit/own-model/aim-response arbitration
+and charge/tracking/target-marker publication, extending the bounded
+inactive/world clock and numeric HUD evidence above. Initial energy-weapon carry remains guarded in the
 native match; the current energy suites use actual pickups after an SMG start.
 
 The current full native build succeeds in `build-weapons-tu15-20261013`, with a coherent
 source snapshot at `.local/weapons-tu15-source-20261013`. Original resources
 remain local symlinks. Shared dirty edits are preserved. Live SDL/Vulkan
 verification passes all **twelve current cases with zero Vulkan validation
-errors** in `feedback-runtime-suite-v1`, including shotgun firing and Needler
+errors** in `hud-runtime-suite-v1`, including shotgun firing and Needler
 empty/reload after the ordering corrections. The probe uses a finite one-tick-per-frame
 clock, explicit mid-tick presentation fraction, private X11 display and confirmed
 SDL X11 driver. The first Needler shot is released to observe its full attack
@@ -414,27 +475,27 @@ observations with diagnostic placement and dummy audio, not Xbox framebuffer
 or audible-hardware parity. The weapon-specific launchers deliver this tested
 progress build; combined current-checkout validation remains pending.
 
-The separate finite SMG SDL probe in `feedback-smg-live-v1` also passes with
+The separate finite SMG SDL probe in `hud-smg-flow-v1` also passes with
 zero Vulkan validation errors: actual pickup/switch, independent triggers,
 dual reload, 308 posed draws across four clips, seven authored firing PCM
 submissions for seven consumed rounds, and grenade/offhand release after the
-reported reload action clears. The previous SMG checkpoint's dual-state framebuffer and lossless
-PNG preview are retained in `smg-dual-capture-v2`. This is a native visual inspection;
+reported reload action clears. The current retained dual-state framebuffer and lossless PNG preview
+are in `hud-smg-live-v1`; both reserve counters show233. This is a native visual inspection;
 matching Xbox camera/lighting/material/HUD evidence is still required.
 
-The forty-three current focused CTest checks are retained in
-`feedback-cpu-tests-v2.log`; the actual
+The forty-eight current focused CTest checks are retained in
+`hud-cpu-tests-v2.log`; the actual
 UDP presentation regression also passes with TU1.5 data, including independent
 clocks and reordered/duplicated/dropped/late packets. The earlier shared-reserve
 AddressSanitizer/UndefinedBehaviorSanitizer run passed its recorded source.
-The current isolated runtime and regression build log is `feedback-delivery-build-v3.log`;
+The current isolated runtime and regression build log is `hud-delivery-build-v2.log`;
 `smg-dual-complete-effects-build.log` records the complete-effect test update.
 `Halo2-Weapons-Launcher` and
 `Halo2-Weapons-Title-Launcher` now select `build-weapons-tu15-20261013`, verified
 with both `--launcher-info` outputs. Their previous binaries are preserved
 under `launcher-delivery`; source paths, launcher/runtime hashes and selection
 proof are recorded in its report. A fresh launcher-to-native eight-frame smoke
-passes with zero Vulkan validation errors in `launcher-delivery/feedback-smoke`.
+passes with zero Vulkan validation errors in `launcher-delivery/hud-xbox-smoke`.
 This is delivery of the bounded progress
 build, with full feature/visual parity still incomplete. The frozen source manifest and isolation hashes are refreshed
 at each completed checkpoint.
@@ -444,4 +505,9 @@ outside this task's changes, while concurrent shared-checkout work is
 preserved. `analysis/weapons-tu15-goal-20261013/source-isolation.json` records
 that boundary. Its native wire protocol is private `0x803C`, to distinguish the
 isolated payload from concurrent protocol work. Only weapon-specific launchers
-were updated by this goal.
+were updated by this goal. Their dedicated CMake targets now default to the
+original Xbox gameplay HUD and fonts; both `--launcher-info` outputs verify
+that choice. Menu/pause assets keep their existing independent selection.
+The earlier `hud-smoke` still selected imported gameplay artwork and is
+retained as a superseded delivery observation; `hud-xbox-smoke` verifies the
+corrected launchers. `hud-launchers-build.log` records their build.

@@ -122,7 +122,14 @@ def execute(fixture, paired, directory):
                 scale=operand.mem.scale,displacement=operand.mem.disp & 0xffffffff,
                 width=operand.size,fs=segment=='fs')
         for operand in i.operands:
-            if operand.type == 3 and operand.access & CS_AC_READ and i.mnemonic != 'lea':
+            # Address-only instructions and cache hints do not consume a
+            # retained data byte. In particular TU1.5 D3B4C prefetches the
+            # nullable resource pointer before checking/loading it. Keep the
+            # original instruction running on the CPU; only actual reads
+            # require an input bank (Capstone marks prefetch as CS_AC_READ).
+            address_only = i.mnemonic in ('lea', 'nop', 'prefetchnta',
+                                          'prefetcht0', 'prefetcht1', 'prefetcht2')
+            if operand.type == 3 and operand.access & CS_AC_READ and not address_only:
                 reads.append(memory_operand(operand))
         if i.mnemonic in ('pop','ret'):
             reads.append(dict(base=4,index=-1,scale=1,displacement=0,width=4,fs=False))

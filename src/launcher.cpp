@@ -29,6 +29,11 @@ constexpr bool title_first = true;
 #else
 constexpr bool title_first = false;
 #endif
+#ifdef HALO2_XBOX_GAMEPLAY_HUD
+constexpr bool original_weapon_hud = true;
+#else
+constexpr bool original_weapon_hud = false;
+#endif
 namespace fs = std::filesystem;
 constexpr std::array shader_names{"world.vert.spv",   "world.frag.spv",
                                   "world_emblem.geom.spv", "world_emblem.frag.spv",
@@ -305,10 +310,11 @@ int main(int argc, char **argv) {
     // Future decoded UI packs must be owned by this selected MCC import.
     // Do not read the historical per-platform source registries.
     const auto ui=sources.cache/"ui";
+    if(original_weapon_hud && !has("--hud-ui-assets"))arguments.insert(arguments.end(),{"--hud-ui-assets",""});
     for(const auto &[option,manifest]:std::array{
         std::pair{"--menu-ui-assets","pack.tsv"},std::pair{"--hud-ui-assets","hud.tsv"},
         std::pair{"--pause-ui-assets","pause.tsv"}})
-      if(!has(option) && !fs::is_symlink(ui) && fs::is_regular_file(ui/manifest) &&
+      if(!(original_weapon_hud && std::string(option)=="--hud-ui-assets") && !has(option) && !fs::is_symlink(ui) && fs::is_regular_file(ui/manifest) &&
           !fs::is_symlink(ui/manifest) &&
           !fs::canonical(ui/manifest).lexically_relative(sources.cache).string().starts_with(".."))
         arguments.insert(arguments.end(),{option,ui.string()});

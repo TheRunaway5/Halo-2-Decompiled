@@ -194,6 +194,10 @@ void ammunition_inventory_sum() {
   u.weapon.definition=3;u.weapon.source_datum=10;u.weapon.loaded=7;u.weapon.reserve=12;
   for(unsigned n=1;n<4;++n){WeaponState w;w.definition=n==3?4:3;w.source_datum=10+n;
     w.loaded=99;w.reserve=int(n)*3;i.inactive_weapons[n]=w;}
+  //The original queries another inventory only with a real owning unit.
+  check(native_weapon_ammunition_available(u,u.weapon)==19,"Ownerless104CF0 must retain only its own stores");
+  check(native_weapon_ammunition_available(u,*native_hand_weapon(u,1))==102,"Ownerless secondary query must retain its own stores");
+  u.source_datum=0x10000;
   check(native_weapon_ammunition_available(u,u.weapon)==28,"104CF0 must include inactive matching reserve and exclude other loaded rounds");
   check(native_weapon_ammunition_available(u,*native_hand_weapon(u,1))==120,"104CF0 secondary total must use its own loaded rounds");
 }

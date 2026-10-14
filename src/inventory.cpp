@@ -46,12 +46,18 @@ std::array<std::uint8_t, 2> starting_grenades(std::uint32_t flags,
           std::uint8_t(std::min(plasma, maximum))};
 }
 std::int8_t grenade_ready_type(std::int8_t requested,
-    const std::array<std::uint8_t, 2> &counts) {
-  const int first = requested == -1 ? 0 : requested;
-  if (first < 0 || first > 1) return -1;
-  if (counts[first]) return std::int8_t(first);
-  const int other = first == 0 ? 1 : 0;
-  return counts[other] ? std::int8_t(other) : std::int8_t(-1);
+    const std::array<std::uint8_t, 2> &counts,std::int16_t direction) {
+  const int first=requested==-1?0:requested;
+  if(first<0 || first>1)return -1;
+  std::int8_t result=-1;int current=first;
+  do {
+    if(std::bit_cast<std::int8_t>(counts[unsigned(current)])>0) {
+      result=std::int8_t(current);
+      if(current!=first || !direction)return result;
+    }
+    current=direction<0?(current?current-1:1):(current==1?0:current+1);
+  }while(current!=first);
+  return result;
 }
 }
 extern "C" void halo2_starting_grenades(std::uint32_t flags, int enabled,

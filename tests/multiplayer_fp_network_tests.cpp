@@ -66,6 +66,14 @@ int main(int argc,char **argv) {
     rules.weapon=cache.slayer_starting_weapon(5);rules.score_limit=rules.time_ticks=0;
     const auto definition=cache.load_first_person_binding(rules.weapon,2);
     MultiplayerMatch server(content,0,cache.spawns(),rules),observed(content,0,cache.spawns(),rules);
+    // Explicit transport fixture values, supplied at the real prepared-shot
+    //presentation boundary; this is no claim of original color/allocation.
+    server.configure_weapon_effect_owner([&](const Unit &unit,const WeaponEffectInput &input) {
+      if(unit.source_player==null_datum || input.effect==null_datum)return null_datum;
+      const SourceWeaponEffectPresentation presentation{0x12340001u,{0xff123456u,0xffabcdefu},true};
+      server.weapon_effect_presentation(unit.source_datum,input.weapon,presentation,{.125f,-.25f,.5f});
+      return presentation.instance;
+    });
     server.configure_replicated_first_person(definition);
     LanHost host(server,0,0x168866);Proxy proxy(host.port());
     LanClient client("127.0.0.1:"+std::to_string(proxy.port()),0x168866,4);
@@ -123,6 +131,17 @@ int main(int argc,char **argv) {
       proxy.deliver(packets,tick%2,tick%3==0);client.receive();
       check(client.state().tick==server.state().tick,"Complete clock snapshot did not recover after UDP loss/reorder");
       if(tick==61) {proxy.deliver(stale,true,true);client.receive();check(client.state().tick==server.state().tick,"Late clock snapshot rolled back rendered state");}
+      const auto expected_effects=server.state().weapon_effects;
+      const auto &received_effects=client.state().weapon_effects;
+      check(expected_effects.size()==received_effects.size(),"Fragmented snapshot lost prepared weapon effects");
+      for(unsigned n=0;n<expected_effects.size();++n) {
+        const auto &a=expected_effects[n],&b=received_effects[n];
+        check(a.serial==b.serial && a.tick==b.tick && a.unit==b.unit && a.weapon==b.weapon && a.effect==b.effect &&
+            a.a_bits==b.a_bits && a.b_bits==b.b_bits && a.source_instance==b.source_instance &&
+            a.source_presentation==b.source_presentation && a.colors.a==b.colors.a && a.colors.b==b.colors.b &&
+            a.velocity.x==b.velocity.x && a.velocity.y==b.velocity.y && a.velocity.z==b.velocity.z,
+            "Prepared effect journal changed under UDP loss/reorder/duplicates");
+      }
       for(unsigned id=0;id<16;++id) {
         const auto &received=client.state().players[id].damage_feedback;
         const auto &actual=server.unit(id).damage_feedback;

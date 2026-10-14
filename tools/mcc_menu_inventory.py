@@ -13,7 +13,7 @@ from audit_rendering import FormatError, file_sha
 from export_vista_menu_ui import dds_image
 from mcc_content import MccCache, texture_resource
 
-INVENTORY = Path(__file__).resolve().parent / "reference/mcc-vista-menu-inventory.tsv"
+INVENTORY = Path(__file__).resolve().parent / "data/mcc-menu-inventory.tsv"
 PRIMARY_FONTS = ("conduit-12", "conduit-13", "conduit-9", "fixedsys-9",
                  "handel_gothic-11", "handel_gothic-13", "handel_gothic-24", "MSLCD-14",
                  "font_table.txt")

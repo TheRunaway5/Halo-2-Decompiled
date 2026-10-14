@@ -1,6 +1,7 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/math.hpp"
+#include <algorithm>
 #include <bit>
 #include <cmath>
 #include <iostream>
@@ -92,6 +93,8 @@ int main(int argc,char **argv)try {
   float victim_vitality=2.f;
   unsigned shield_effects{};std::uint64_t effect_serial{};
   bool special_activity{};float attack_distance{};
+  Vec3 attack_origin{},idle_previous{};
+  float idle_motion{},lunge_motion{},closest_distance=1e9f;
   std::array<Controls,16> input{};input[0].yaw=spawn.facing;
   for(unsigned tick=0;tick<180;++tick) {
     if(target && tick>1) {
@@ -106,6 +109,10 @@ int main(int argc,char **argv)try {
     input[0].fire|=firing && tick>=80 && tick<92;
     input[0].grenade=tick==80 && grenade;input[0].pitch=plasma?-1.2f:grenade?.3f:0.f;match.step(input);
     const auto state=match.state();const auto &unit=match.unit(0);
+    if(lunge && tick>=65 && tick<=79) {
+      if(tick>65)idle_motion=std::max(idle_motion,length(unit.body.position-idle_previous));
+      idle_previous=unit.body.position;
+    }
     if(tick==1) {
       initial_grenades=unit.grenades;
       if(plasma)check(initial_grenades[1]>0,"Original Sword starting equipment did not supply plasma grenades");
@@ -116,11 +123,16 @@ int main(int argc,char **argv)try {
     }
     if(target && tick==79) {
       attack_distance=length(match.unit(1).body.position-unit.body.position);
+      attack_origin=unit.body.position;
       std::cout<<"Source preattack target distance="<<attack_distance<<'\n';
       const auto body=world.source_objects->object_body(unit.source_datum);
       const Bytes targeting(world.source_objects->memory().view(body+0x1c8u,0x24));
       std::cout<<"Source aim target="<<std::hex<<targeting.u32(0)<<std::dec
         <<" confidence="<<targeting.f32(0x1c)<<'\n';
+    }
+    if(lunge && tick>80) {
+      lunge_motion=std::max(lunge_motion,length(unit.body.position-attack_origin));
+      closest_distance=std::min(closest_distance,length(match.unit(1).body.position-unit.body.position));
     }
     for(const auto &event:state.unit_damage_effects)if(event.serial>effect_serial) {
       effect_serial=event.serial;
@@ -186,12 +198,35 @@ int main(int argc,char **argv)try {
       for(unsigned k=0;k<3;++k)check(x.frame.basis[k].x==y.frame.basis[k].x && x.frame.basis[k].y==y.frame.basis[k].y &&
           x.frame.basis[k].z==y.frame.basis[k].z,"Source explosion LAN basis differs");
     }
+    const auto expected_state=match.state();
+    for(const auto &player:expected_state.players)if(player.connected && player.source_weapon!=null_datum) {
+      const auto pose=std::find_if(expected_state.source_body_poses.begin(),expected_state.source_body_poses.end(),
+          [&](const auto &p){return p.object==player.source_weapon;});
+      check(pose!=expected_state.source_body_poses.end(),"Source snapshot omitted the actual held weapon WORLD bank");
+      const auto received=std::find_if(peer.state().source_body_poses.begin(),peer.state().source_body_poses.end(),
+          [&](const auto &p){return p.object==player.source_weapon;});
+      check(received!=peer.state().source_body_poses.end() && received->nodes.size()==pose->nodes.size(),
+          "Source held weapon WORLD bank was lost across LAN");
+      for(unsigned n=0;n<pose->nodes.size();++n) {
+        const auto &x=pose->nodes[n],&y=received->nodes[n];
+        check(x.scale==y.scale && x.position.x==y.position.x && x.position.y==y.position.y && x.position.z==y.position.z,
+            "Source held weapon WORLD position changed across LAN");
+        for(unsigned k=0;k<3;++k)check(x.basis[k].x==y.basis[k].x && x.basis[k].y==y.basis[k].y && x.basis[k].z==y.basis[k].z,
+            "Source held weapon WORLD orientation changed across LAN");
+      }
+    }
     std::cout<<"PASS actual TU1.5 grenade detonation and source count debit\n";return 0;
   }
   if(target) {
     check(admitted>2 && poses.size()>2 && victim_vitality<2.f,"Live TU1.5 unit melee damage/pose acceptance incomplete");
     if(sword)check(shield_effects>0,"Live TU1.5 sword lost its source shield effect request");
-    if(lunge)check(attack_distance>1.5f && special_activity,"Live TU1.5 target admission did not select the original lunge activity");
+    if(lunge) {
+      std::cout<<"Source lunge movement="<<lunge_motion<<" idle_step="<<idle_motion
+        <<" closest_target_distance="<<closest_distance<<'\n';
+      check(attack_distance>1.5f && special_activity,"Live TU1.5 target admission did not select the original lunge activity");
+      check(lunge_motion>idle_motion && closest_distance<attack_distance,
+          "Source lunge activity did not produce real closing movement");
+    }
     std::cout<<"PASS actual TU1.5 unit melee: target minimum vitality="<<victim_vitality<<'\n';return 0;
   }
   check(admitted>2 && poses.size()>2 && contacts==1,"Live TU1.5 melee action/pose/contact acceptance incomplete");

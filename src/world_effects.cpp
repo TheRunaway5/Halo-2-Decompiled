@@ -190,7 +190,7 @@ struct NativeWorldEffects::Impl {
   };
   struct System {
     const SystemDefinition *definition{};
-    std::uint64_t identity{};
+    std::uint64_t identity{},location_identity{};
     float random_a{}, random_b{}, fraction{};
     std::uint8_t random_location{};
     ParticleRenderValueCache values;
@@ -396,7 +396,7 @@ struct NativeWorldEffects::Impl {
             part.location=marker(std::int16_t(parts.u16(a+4)));
             event.parts.push_back(std::move(part));
             unavailable.insert("Dynamic object light receiver/model submission and lens-flare owner remain unavailable");
-          } catch(const FormatError &e) { unavailable.insert(e.what()); }
+          } catch(const FormatError &e) { d.complete=false;unavailable.insert(e.what()); }
         }
         if (parts.u32(a + 8) != 0x64656361u || parts.u32(a + 0x10) == none ||
             parts.u16(a) == 2 || (parts.u16(a + 6) & 8))
@@ -677,12 +677,14 @@ struct NativeWorldEffects::Impl {
       event.begun = true;
       for (const auto &d : event.definition->systems) {
         const auto markers=frames(e,d.location);
+        const auto system_identity=++identity;
+        const float random_a=fraction(),random_b=fraction();
         for(unsigned marker_index=0;marker_index<markers.size();++marker_index) {
         System s;
         s.definition = &d;
-        s.identity = ++identity;
-        s.random_a = fraction();
-        s.random_b = fraction();
+        s.identity = system_identity;s.location_identity=++identity;
+        s.random_a = random_a;
+        s.random_b = random_b;
         s.random_location = std::uint8_t(((random() >> 16) * 255u) >> 16);
         s.emitters.resize(d.render.emitters.size());
         s.marker_index=marker_index;s.frame=markers[marker_index];
@@ -1211,7 +1213,7 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
         const float sort_depth = 0.f - ((view.forward.z*delta.z + view.forward.y*delta.y) + view.forward.x*delta.x);
         ParticleRenderState state;
         state.system_identity = s.identity;
-        state.location_identity = s.identity;
+        state.location_identity = s.location_identity;
         state.sources = i.sources(s, i.tick, seconds, e.frame);
         state.sources.camera_position = view.position;
         state.sources.camera_forward = view.forward;

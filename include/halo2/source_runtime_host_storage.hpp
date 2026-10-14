@@ -12,6 +12,7 @@ public:
   explicit SourceRuntimeHostStorage(SourceRuntimeMemory &,
                                     std::uint32_t first_token = 0x10000000);
   SourceVirtualAllocationResult allocate(SourceVirtualAllocationRequest);
+  SourceVirtualAllocationResult allocate(SourceVirtualAllocationRequest,std::string owner);
   struct CursorCheckpoint {
     std::uint32_t version=1,next{};
     bool operator==(const CursorCheckpoint &) const = default;

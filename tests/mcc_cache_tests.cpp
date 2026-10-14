@@ -123,6 +123,35 @@ int main(){
         }
         rejects([&]{(void)cache.load_bitmap(0xe2000002u,0);});
         {
+            auto physics_local=local,physics_shared=shared;
+            for(auto* owner:{&physics_local,&physics_shared}) {
+                word(*owner,1056,0x70686d6f);word(*owner,1112,0x70686d6f);
+            }
+            word(physics_shared,1124,0x200);
+            std::fill(physics_shared.begin()+4096,physics_shared.begin()+4608,std::byte{});
+            constexpr unsigned root_offset=4096,sphere=root_offset+0x110;
+            word(physics_shared,root_offset+0x48,1);word(physics_shared,root_offset+0x4c,0x100110);
+            word(physics_shared,sphere+0x20,0x12345678u);word(physics_shared,sphere+0x24,0xabcdef01u);
+            word(physics_shared,sphere+0x28,0x80000000u);word(physics_shared,sphere+0x30,0x33333333u);
+            word(physics_shared,sphere+0x34,0x99999999u);word(physics_shared,sphere+0x38,0x3f000000u);
+            word(physics_shared,sphere+0x60,0x3fa00000u);
+            word(physics_shared,root_offset+0xa8,6);word(physics_shared,root_offset+0xac,0x1001c0);
+            for(unsigned i=0;i<6;++i)physics_shared[root_offset+0x1c0+i]=std::byte(i*13+7);
+            save(root/"physics.map",physics_local);save(root/"shared.map",physics_shared);
+            TagSystem tags(std::make_shared<const Cache>(root/"physics.map"));
+            const auto model=tags.get({0xe1000002u},TagGroup{0x70686d6fu});
+            check(model.info().name=="textures\\original" && model.info().datum==0xe1000002u &&
+                  model.source_address()!=0x100000,"Canonical physics changed authored tag identity or retained donor addresses");
+            const auto shape=model.block(0x48,0x80).element(0);
+            check(shape.address().value>0xffffffffull && shape.u32(0x20)==0 && shape.u32(0x28)==0 &&
+                  shape.u32(0x2c)==0x3f000000u && shape.u32(0x40)==0x3fa00000u,
+                  "Native physics did not own the converted shape or changed authored values");
+            const auto code=model.block(0xa8,1);
+            check(code.size()==6 && code.element(5).bytes()[0]==std::byte{72},"Canonical physics changed MOPP bytecode");
+            rejects([&]{(void)tags.read_source(0x100000,1);});
+            save(root/"shared.map",shared);
+        }
+        {
             auto animation_local=local,animation_shared=shared;
             for(auto* owner:{&animation_local,&animation_shared}) {
                 word(*owner,1056,0x6a6d6164);word(*owner,1112,0x6a6d6164);

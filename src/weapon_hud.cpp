@@ -41,7 +41,9 @@ std::uint16_t weapon_hud_mask(const SourceWeaponHudState *item,unsigned type) {
   if(!item)return result;
   if(item->overheated)result|=0x40;
   if((item->capacity && !item->loaded && item->maximum_reserve && !item->reserve) || item->age>=1.f)result|=0x80;
-  if(item->target)result|=0x100;if(item->locking)result|=0x200;if(item->locked)result|=0x400;
+  if(item->target)result|=0x100;
+  if(item->locking)result|=0x200;
+  if(item->locked)result|=0x400;
   return result;
 }
 std::uint16_t weapon_hud_cutoffs(const SourceWeaponHudState *item,

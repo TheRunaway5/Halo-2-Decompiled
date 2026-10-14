@@ -106,6 +106,8 @@ std::vector<std::byte> normalize_mcc_physics_model(std::span<const std::byte> pa
     const Bytes source(payload);source.require(0,header_size);
     if(payload.size()>maximum || std::uint64_t(source_address)+payload.size()>0x100000000ull)
         throw FormatError("Excessive MCC physics source allocation");
+    if(std::uint64_t(target_address)+header_size>0x100000000ull)
+        throw FormatError("Canonical physics header exceeds its serialized address space");
     if(source.u32(0xd0) || source.u32(0xd8))
         throw FormatError("MCC physics import/error blocks lack a verified compiled consumer layout");
     const auto read=[&](std::uint32_t address,std::size_t size) {

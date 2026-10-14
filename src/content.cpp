@@ -135,11 +135,19 @@ BspContent Cache::load_bsp_content(std::size_t index) const {
       const auto p = links.offset + i * 16;
       const auto left = i16(meta, p + 12), right = i16(meta, p + 14);
       const auto flags = meta.u16(p + 4);
-      if (left < 0 || right < 0 || !(flags & 32))
+      if (left < 0 || right < 0)
         continue;
       if (std::size_t(left) >= sectors.count ||
           std::size_t(right) >= sectors.count)
         throw FormatError("navigation portal sector outside block");
+      // Retail26C380 admits ordinary walkable neighbors independently of
+      // link bit5. Serialized Armory floor links commonly leave it clear.
+      // Other sector kinds retain their existing flagged-link admission;
+      // mobile and breakable sector owners are separate from this backend.
+      const bool ordinary_neighbors = (meta.u16(sectors.offset + std::size_t(left) * 8) & 7) == 1 &&
+                                      (meta.u16(sectors.offset + std::size_t(right) * 8) & 7) == 1;
+      if (!(flags & 32) && !ordinary_neighbors)
+        continue;
       const auto a = i16(meta, p), b = i16(meta, p + 2);
       if (a < 0 || b < 0 || std::size_t(a) >= vertices.count ||
           std::size_t(b) >= vertices.count)
@@ -1270,6 +1278,29 @@ unsigned Cache::sound_permutation_count(std::uint32_t datum,unsigned pitch) cons
   const auto index=std::size_t(data.u16(so+8))+pitch;
   if(index>=ranges.count)throw FormatError("Sound pitch escapes resident gestalt");
   return data.u16(ranges.offset+index*12+10);
+}
+std::optional<std::vector<std::byte>> Cache::load_sound_prediction_chunk(std::uint32_t datum) const {
+  if (datum == null_datum) return {};
+  if (vista_ || mcc_) throw FormatError("Original sound prediction chunk requires an Xbox cache");
+  const auto *sound = query_tag({.handle=TagHandle{datum}, .group=tag_groups::sound, .require_address=true});
+  const auto *gestalt = query_tag({.group=tag_groups::sound_cache_file_gestalt, .require_address=true});
+  if (!sound || !gestalt) throw FormatError("Missing prediction sound/gestalt tag");
+  const Bytes data(cache_bytes());
+  const auto s = metadata_offset(sound->address,20), g = metadata_offset(gestalt->address,72);
+  if (!byte(data,s+10)) return {};
+  const auto ranges = TagAddressSpace(data,metadata_magic_).block(g+32,12);
+  const auto range = data.u16(s+8);
+  if (range >= ranges.count) throw FormatError("Prediction sound pitch outside gestalt");
+  const auto r = ranges.offset + std::size_t(range)*12;
+  if (!data.u16(r+10)) return {};
+  const auto permutations = TagAddressSpace(data,metadata_magic_).block(g+40,16);
+  const auto permutation = data.u16(r+8);
+  if (permutation >= permutations.count) throw FormatError("Prediction sound permutation outside gestalt");
+  const auto chunks = TagAddressSpace(data,metadata_magic_).block(g+64,12);
+  const auto chunk = data.u16(permutations.offset+std::size_t(permutation)*16+12);
+  if (chunk >= chunks.count) throw FormatError("Prediction sound chunk outside gestalt");
+  const auto c = chunks.offset + std::size_t(chunk)*12;
+  return raw_data(data.u32(c),data.u32(c+4)&0x3fffffffu);
 }
 EncodedSound Cache::load_sound(std::uint32_t datum, unsigned pitch,
                                unsigned permutation) const {

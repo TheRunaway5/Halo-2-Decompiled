@@ -7,10 +7,17 @@
 #include <bit>
 #include <cerrno>
 #include <cstdio>
+#include <cstdlib>
 #include <future>
 #include <mutex>
 #include <sstream>
 #include <thread>
+#include <algorithm>
+#include <limits>
+#include <system_error>
+#include <utility>
+#include <set>
+#include <optional>
 #if defined(__linux__)
 #include <fcntl.h>
 #include <sys/resource.h>
@@ -46,6 +53,63 @@ std::string string(const SourcePhysicsContactMemory &m, std::uint32_t p) {
 void require(bool ok, const char *why) {
   if (!ok) throw std::invalid_argument(why);
 }
+constexpr auto worker_stack_owner="actual host arena worker stack";
+constexpr std::uint32_t first_file=0xf4000001u;
+std::span<const std::byte> saved_bytes(const SourceRuntimeMemory::Checkpoint &bank,
+                                     std::uint32_t address,std::size_t bytes) {
+  const auto at=std::upper_bound(bank.regions.begin(),bank.regions.end(),address,
+      [](auto p,const auto &region){return p<region.address;});
+  require(at!=bank.regions.begin(),"Arena checkpoint lacks required source backing");
+  const auto &region=*std::prev(at);const auto offset=std::uint64_t(address)-region.address;
+  require(offset<=region.bytes.size() && bytes<=region.bytes.size()-offset,
+          "Arena checkpoint source extent differs");
+  if(region.page_bytes && bytes)
+    for(auto page=offset/region.page_bytes;page<=(offset+bytes-1)/region.page_bytes;++page)
+      require(region.committed[page]!=0,"Arena checkpoint source extent is uncommitted");
+  return std::span(region.bytes).subspan(offset,bytes);
+}
+std::uint32_t saved_word(const SourceRuntimeMemory::Checkpoint &bank,std::uint32_t address) {
+  const auto bytes=saved_bytes(bank,address,4);std::uint32_t value=0;
+  for(unsigned i=0;i<4;++i)value|=std::to_integer<std::uint32_t>(bytes[i])<<(8*i);
+  return value;
+}
+void validate_arena_ownership(const SourcePhysicsGameArenaNative::OwnershipCheckpoint &saved,
+                              const SourceRuntimeMemory::Checkpoint &bank) {
+  SourceRuntimeMemory::validate_checkpoint(bank);
+  require(saved.version==1 && saved.worker && saved.worker_stack && saved.worker_semaphore,
+          "Unsupported or unfinished arena checkpoint");
+  require(saved_word(bank,0x4ecc24u)==saved.worker && saved_word(bank,0x4ecc30u)==saved.worker_semaphore &&
+          saved_word(bank,0x4ef1bcu)==0,"Arena checkpoint worker/queue binding differs");
+  require(std::count_if(bank.regions.begin(),bank.regions.end(),
+      [](const auto &region){return region.owner==worker_stack_owner;})==1,"Arena checkpoint worker-stack owner differs");
+  const auto stack=std::lower_bound(bank.regions.begin(),bank.regions.end(),saved.worker_stack,
+      [](const auto &region,auto address){return region.address<address;});
+  require(stack!=bank.regions.end() && stack->address==saved.worker_stack && stack->owner==worker_stack_owner &&
+          stack->bytes.size()==0x10000u && stack->access==SourceRuntimeMemory::Access::ReadWrite &&
+          !stack->page_bytes && stack->committed.empty() &&
+          std::uint64_t(saved.worker_stack)+stack->bytes.size()==saved.scratch.next,
+          "Arena checkpoint scratch extent/cursor differs");
+  require(saved.synchronization.objects.size()==3,"Arena checkpoint synchronization topology differs");
+  std::set<std::uint32_t> handles;
+  for(const auto address:{0x4ecc28u,0x4ecc2cu,0x4ecc30u}) {
+    const auto handle=saved_word(bank,address);
+    require(handles.insert(handle).second,"Arena checkpoint duplicates a synchronization binding");
+    const auto object=std::ranges::find(saved.synchronization.objects,handle,&NativeSynchronization::ObjectCheckpoint::handle);
+    require(object!=saved.synchronization.objects.end(),"Arena checkpoint lacks a bound synchronization object");
+    if(address==0x4ecc30u)
+      require(object->kind==NativeSynchronization::ObjectKind::Semaphore && !object->count && object->limit==150,
+              "Arena checkpoint has pending worker permits");
+    else require(object->kind==NativeSynchronization::ObjectKind::Mutex,"Arena checkpoint mutex binding differs");
+  }
+  require(saved.files.size()==2 && saved.next_file==std::uint64_t(first_file)+saved.files.size(),
+          "Arena checkpoint file namespace differs");
+  std::set<std::string> names;auto expected=first_file;
+  for(const auto &file:saved.files) {
+    require(file.alias==expected++ && (file.name=="savegame0.bin" || file.name=="savegame1.bin") &&
+            names.insert(file.name).second && file.bytes.size()<=UINT32_MAX,
+            "Arena checkpoint file identity or extent differs");
+  }
+}
 }
 struct SourcePhysicsGameArenaNative::Impl {
   struct SharedMemory final : SourcePhysicsContactMemory {
@@ -66,10 +130,45 @@ struct SourcePhysicsGameArenaNative::Impl {
   SourceRuntimeHostStorage scratch;
   NativeSynchronization synchronization{{0xf3000001u,0xf3000100ull}};
   NativeSynchronizationServices sync = synchronization.services();
-  std::map<std::uint32_t,int> files;
-  std::uint32_t next_file = 0xf4000001u, worker = 0;
+  mutable std::recursive_mutex operation_gate;
+  std::size_t active_calls{};
+  bool staging{};
+  struct RestoreBarrier {
+    Impl &owner;
+    explicit RestoreBarrier(Impl &owner):owner(owner) {
+      require(!owner.active_calls && !owner.staging,"Arena already has an active call or staged restore");
+      owner.staging=true;
+    }
+    ~RestoreBarrier(){owner.staging=false;}
+  };
+  // Lower source callbacks can reenter protect_pages during run(). Retain a
+  // recursive call gate and an explicit depth; reentrant checkpoints must
+  // still reject instead of mistaking same-thread lock ownership for a barrier.
+  struct ActiveCall {
+    Impl &owner;
+    explicit ActiveCall(Impl &owner):owner(owner) {
+      std::lock_guard gate(owner.operation_gate);
+      require(!owner.staging,"Arena resources have a staged restore");++owner.active_calls;
+    }
+    ~ActiveCall(){std::lock_guard gate(owner.operation_gate);--owner.active_calls;}
+  };
+  struct NativeFile {
+    int fd;
+    std::string name;
+    NativeFile(int fd,std::string name) noexcept:fd(fd),name(std::move(name)) {}
+    NativeFile(NativeFile &&other) noexcept:fd(std::exchange(other.fd,-1)),name(std::move(other.name)) {}
+    ~NativeFile() {
+#if defined(__linux__)
+      if(fd>=0)::close(fd);
+#endif
+    }
+  };
+  std::map<std::uint32_t,NativeFile> files;
+  std::uint32_t next_file = first_file, worker = 0,worker_semaphore=0;
   std::uint32_t worker_stack = 0;
   std::atomic<bool> stopped = false;
+  std::atomic<bool> worker_joined=false;
+  std::atomic<bool> stopped_at_idle=false;
   std::int64_t native_worker_id = 0;
   // Declared last: stop/join actual workers before captured resources retire.
   NativeThreads threads{{0xf5000001u,0xf5000100ull}};
@@ -87,9 +186,6 @@ struct SourcePhysicsGameArenaNative::Impl {
   }
   ~Impl() {
     try { stop(); } catch (...) {}
-#if defined(__linux__)
-    for (auto [alias,fd]:files) ::close(fd);
-#endif
     if (worker_stack) {
       try { shared.bank.release(worker_stack); } catch (...) {}
     }
@@ -112,6 +208,12 @@ struct SourcePhysicsGameArenaNative::Impl {
     if (auto e=workers.request_stop(worker)) throw std::system_error(e);
     if (auto e=workers.join(worker)) throw std::system_error(e);
     check_worker(true);
+    worker_joined=true;
+  }
+  void require_retired_worker() const {
+    require(stopped,"Arena continuation requires stopped execution");
+    require(worker && worker_joined && stopped_at_idle && workers.outcome(worker).state==NativeThreadState::Stopped,
+            "Arena continuation requires joined source-idle worker");
   }
   SourcePhysicsWorldRuntimeServices services(std::stop_token stop = {}) {
     auto joined = lower;
@@ -159,14 +261,14 @@ struct SourcePhysicsGameArenaNative::Impl {
       require(arg(0)==0 && arg(1)==0 && arg(2)==150 && arg(3)==0,"Original async semaphore request differs");
       const auto result=sync.create_semaphore(0,150);
       if(result.error)throw std::system_error(result.error);
-      finish(16,result.handle);return true;
+      worker_semaphore=result.handle;finish(16,result.handle);return true;
     }
     case 0x2dc0b6: {
       require(!worker && arg(0)==0 && arg(1)==0x4000 && arg(2)==0x1235f0 &&
               arg(3)==0 && arg(4)==0 && arg(5)==0,"Original async thread request differs");
       {
         std::lock_guard lock(shared.mutex);
-        worker_stack=scratch.allocate({0,0,0x10000,0x101000,4}).base;
+        worker_stack=scratch.allocate({0,0,0x10000,0x101000,4},worker_stack_owner).base;
       }
       std::promise<std::int64_t> id;
       auto ready=id.get_future();
@@ -206,9 +308,14 @@ struct SourcePhysicsGameArenaNative::Impl {
     case 0x2e0478: {
       const auto h=arg(0),ms=arg(1);
       require(ms==0xffffffffu,"Original async wait request differs");
-      if(stop.stop_possible() && config.schedule.before_worker_wait)
-        config.schedule.before_worker_wait(h,stop);
-      acquire_native_synchronization(sync,h,ms,stop,5);
+      try {
+        if(stop.stop_possible() && config.schedule.before_worker_wait)
+          config.schedule.before_worker_wait(h,stop);
+        acquire_native_synchronization(sync,h,ms,stop,5);
+      } catch(const NativeWorkerStopped &) {
+        if(stop.stop_possible())stopped_at_idle=(call.instruction==0x12236au && h==worker_semaphore);
+        throw;
+      }
       finish(8,0);return true;
     }
     case 0x2e0342:
@@ -251,10 +358,11 @@ struct SourcePhysicsGameArenaNative::Impl {
               "Reached source file namespace owner unavailable");
 #if defined(__linux__)
       const auto path=config.savegame_directory/name.substr(3);
+      auto retained_name=name.substr(3);
       const auto fd=::open(path.c_str(),O_RDWR|O_CREAT|O_CLOEXEC,0600);
       if(fd<0){finish(28,0xffffffffu);return true;}
-      const auto alias=next_file++;
-      try { files.emplace(alias,fd); } catch (...) { ::close(fd);throw; }
+      const auto alias=next_file;NativeFile opened(fd,std::move(retained_name));
+      files.emplace(alias,std::move(opened));++next_file;
       finish(28,alias);return true;
 #else
       throw std::runtime_error("Native source file opening unavailable");
@@ -265,7 +373,7 @@ struct SourcePhysicsGameArenaNative::Impl {
       require(found!=files.end() && arg(2) && word(shared,arg(2))==0 && arg(3)==0,
               "Reached startup seek owner unavailable");
 #if defined(__linux__)
-      const auto offset=::lseek(found->second,arg(1),SEEK_SET);
+      const auto offset=::lseek(found->second.fd,arg(1),SEEK_SET);
       require(offset<=UINT32_MAX,"Native source file position exceeds reached ABI");
       finish(16,offset<0?0xffffffffu:std::uint32_t(offset));return true;
 #else
@@ -275,8 +383,8 @@ struct SourcePhysicsGameArenaNative::Impl {
     case 0x2dc2f4: {
       const auto found=files.find(arg(0));require(found!=files.end(),"Reached startup file extent owner unavailable");
 #if defined(__linux__)
-      const auto position=::lseek(found->second,0,SEEK_CUR);
-      const auto ok=position>=0 && ::ftruncate(found->second,position)==0;
+      const auto position=::lseek(found->second.fd,0,SEEK_CUR);
+      const auto ok=position>=0 && ::ftruncate(found->second.fd,position)==0;
       finish(4,std::uint32_t(ok));return true;
 #else
       throw std::runtime_error("Native source file extent operation unavailable");
@@ -293,6 +401,7 @@ SourcePhysicsGameArenaNative::SourcePhysicsGameArenaNative(SourceRuntimeMemory &
 SourcePhysicsGameArenaNative::~SourcePhysicsGameArenaNative()=default;
 SourcePhysicsContactMemory &SourcePhysicsGameArenaNative::memory(){return impl_->shared;}
 void SourcePhysicsGameArenaNative::run(std::uint32_t entry,SourcePhysicsWorldRuntimeAbi &abi){
+  Impl::ActiveCall operation(*impl_);
   impl_->check_worker();
   if(entry==0x12cb70u) {
     std::lock_guard lock(impl_->shared.mutex);
@@ -303,9 +412,121 @@ void SourcePhysicsGameArenaNative::run(std::uint32_t entry,SourcePhysicsWorldRun
   source_run_physics_game_arena_runtime(impl_->shared,entry,abi,SourcePhysicsContactImage::TitleUpdate15,
       impl_->config.floating_point,impl_->services(),impl_->observe);
 }
-void SourcePhysicsGameArenaNative::stop(){impl_->stop();}
+void SourcePhysicsGameArenaNative::stop(){
+  std::unique_lock operation(impl_->operation_gate);
+  require(!impl_->active_calls && !impl_->staging,"Arena cannot stop inside an active source call or restore");
+  // Refuse new source execution before joining, but let the real worker finish
+  // any local resource callbacks; never hold the call gate while joining it.
+  impl_->stopped=true;operation.unlock();impl_->stop();
+}
 void SourcePhysicsGameArenaNative::protect_pages(std::uint32_t p,std::uint32_t n,std::uint32_t protection){
+  Impl::ActiveCall operation(*impl_);
   std::lock_guard lock(impl_->shared.mutex);
   impl_->physical.protect(p,n,protection);
+}
+SourcePhysicsGameArenaNative::OwnershipCheckpoint SourcePhysicsGameArenaNative::ownership_checkpoint() const {
+  std::unique_lock operation(impl_->operation_gate,std::try_to_lock);
+  require(operation.owns_lock() && !impl_->active_calls && !impl_->staging,"Arena checkpoint has active native callers or restore");
+  std::lock_guard lock(impl_->shared.mutex);impl_->require_retired_worker();
+  OwnershipCheckpoint saved{1,impl_->worker,impl_->worker_stack,impl_->worker_semaphore,impl_->next_file,
+      impl_->scratch.cursor_checkpoint(),impl_->physical.ownership_checkpoint(),impl_->synchronization.checkpoint(),{}};
+  for(const auto &[alias,file]:impl_->files) {
+#if defined(__linux__)
+    struct stat before{},after{};
+    if(::fstat(file.fd,&before))throw std::system_error(errno,std::generic_category(),"Capture arena file extent");
+    const auto position=::lseek(file.fd,0,SEEK_CUR);
+    require(S_ISREG(before.st_mode) && before.st_size>=0 && std::uint64_t(before.st_size)<=UINT32_MAX &&
+            position>=0 && std::uint64_t(position)<=UINT32_MAX,"Arena file exceeds retained source ABI");
+    FileCheckpoint copy{alias,std::uint32_t(position),file.name,std::vector<std::byte>(std::size_t(before.st_size))};
+    for(std::size_t done=0;done<copy.bytes.size();) {
+      const auto count=::pread(file.fd,copy.bytes.data()+done,copy.bytes.size()-done,off_t(done));
+      if(count<0 && errno==EINTR)continue;
+      if(count<=0)throw std::system_error(count<0?errno:EIO,std::generic_category(),"Capture arena file bytes");
+      done+=std::size_t(count);
+    }
+    if(::fstat(file.fd,&after))throw std::system_error(errno,std::generic_category(),"Recheck arena file extent");
+    require(before.st_size==after.st_size && before.st_mtim.tv_sec==after.st_mtim.tv_sec &&
+        before.st_mtim.tv_nsec==after.st_mtim.tv_nsec && ::lseek(file.fd,0,SEEK_CUR)==position,
+        "Arena file changed during checkpoint");
+    saved.files.push_back(std::move(copy));
+#else
+    throw std::runtime_error("Native arena file checkpoint platform unavailable");
+#endif
+  }
+  validate_arena_ownership(saved,impl_->shared.bank.checkpoint());
+  return saved;
+}
+struct SourcePhysicsGameArenaNative::PreparedOwnership::Impl {
+  SourcePhysicsGameArenaNative::Impl *owner;
+  std::unique_lock<std::recursive_mutex> operation;
+  std::unique_lock<std::recursive_mutex> bank_lock;
+  std::optional<SourcePhysicsGameArenaNative::Impl::RestoreBarrier> barrier;
+  std::optional<SourceRuntimeHostStorage::PreparedCursor> scratch;
+  std::optional<SourceRuntimeHostPhysicalMemory::PreparedOwnership> physical;
+  std::optional<NativeSynchronization::PreparedRestore> synchronization;
+  std::map<std::uint32_t,SourcePhysicsGameArenaNative::Impl::NativeFile> files;
+  std::uint32_t next_file;
+  Impl(SourcePhysicsGameArenaNative::Impl &target,const OwnershipCheckpoint &saved,
+       const SourceRuntimeMemory::Checkpoint &bank)
+      :owner(&target),operation(target.operation_gate,std::try_to_lock),
+       bank_lock(target.shared.mutex,std::defer_lock),next_file(saved.next_file) {
+    require(operation.owns_lock() && !target.active_calls && !target.staging,"Arena import has active native callers or restore");
+    bank_lock.lock();target.require_retired_worker();
+    require(saved.worker==target.worker && saved.worker_stack==target.worker_stack &&
+            saved.worker_semaphore==target.worker_semaphore,"Arena import cannot rebind a different native worker namespace");
+    barrier.emplace(target);
+    scratch.emplace(target.scratch.prepare_cursor(saved.scratch));
+    physical.emplace(target.physical.prepare_ownership(saved.physical,bank));
+    synchronization.emplace(target.synchronization.prepare_restore(saved.synchronization));
+    for(const auto &saved_file:saved.files) {
+#if defined(__linux__)
+      auto name=saved_file.name;
+      const auto pattern=(target.config.savegame_directory/".halo2-arena-XXXXXX").string();
+      std::vector<char> path(pattern.begin(),pattern.end());path.push_back('\0');
+      const auto fd=::mkstemp(path.data());
+      if(fd<0)throw std::system_error(errno,std::generic_category(),"Stage private arena file");
+      SourcePhysicsGameArenaNative::Impl::NativeFile file(fd,std::move(name));
+      if(::unlink(path.data()))throw std::system_error(errno,std::generic_category(),"Unlink private arena staging file");
+      if(::fcntl(fd,F_SETFD,FD_CLOEXEC)<0 || ::ftruncate(fd,off_t(saved_file.bytes.size())))
+        throw std::system_error(errno,std::generic_category(),"Stage arena file extent/ownership");
+      for(std::size_t done=0;done<saved_file.bytes.size();) {
+        const auto count=::pwrite(fd,saved_file.bytes.data()+done,saved_file.bytes.size()-done,off_t(done));
+        if(count<0 && errno==EINTR)continue;
+        if(count<=0)throw std::system_error(count<0?errno:EIO,std::generic_category(),"Stage arena file bytes");
+        done+=std::size_t(count);
+      }
+      if(::lseek(fd,saved_file.position,SEEK_SET)<0)
+        throw std::system_error(errno,std::generic_category(),"Stage arena file position");
+      files.emplace(saved_file.alias,std::move(file));
+#else
+      throw std::runtime_error("Native arena file import platform unavailable");
+#endif
+    }
+  }
+};
+SourcePhysicsGameArenaNative::PreparedOwnership::PreparedOwnership()=default;
+SourcePhysicsGameArenaNative::PreparedOwnership::~PreparedOwnership()=default;
+SourcePhysicsGameArenaNative::PreparedOwnership::PreparedOwnership(PreparedOwnership &&) noexcept=default;
+SourcePhysicsGameArenaNative::PreparedOwnership &SourcePhysicsGameArenaNative::PreparedOwnership::operator=(PreparedOwnership &&) noexcept=default;
+bool SourcePhysicsGameArenaNative::PreparedOwnership::for_owner(const SourcePhysicsGameArenaNative &owner) const noexcept {
+  return impl_ && impl_->owner==owner.impl_.get();
+}
+SourcePhysicsGameArenaNative::PreparedOwnership SourcePhysicsGameArenaNative::prepare_ownership(
+    const OwnershipCheckpoint &saved,const SourceRuntimeMemory::Checkpoint &bank) const {
+  validate_arena_ownership(saved,bank);
+  PreparedOwnership prepared;prepared.impl_=std::make_unique<PreparedOwnership::Impl>(*impl_,saved,bank);
+  return prepared;
+}
+bool SourcePhysicsGameArenaNative::commit_ownership(PreparedOwnership &&prepared) noexcept {
+  if(!prepared.for_owner(*this) || !prepared.impl_->scratch->for_owner(impl_->scratch) ||
+      !prepared.impl_->physical->for_owner(impl_->physical) ||
+      !prepared.impl_->synchronization->for_owner(impl_->synchronization))return false;
+  // All resources/locks were staged before bank publication. The retired local
+  // native worker and callback closures remain; no remote thread is fabricated.
+  impl_->scratch.commit_cursor(std::move(*prepared.impl_->scratch));
+  impl_->physical.commit_ownership(std::move(*prepared.impl_->physical));
+  impl_->synchronization.commit_restore(std::move(*prepared.impl_->synchronization));
+  impl_->files.swap(prepared.impl_->files);impl_->next_file=prepared.impl_->next_file;
+  prepared.impl_.reset();return true;
 }
 } // namespace halo2

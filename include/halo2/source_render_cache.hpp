@@ -27,6 +27,9 @@ struct SourceRenderCachePool {
     std::uint32_t cursor{}, highwater{}, active_count{};
     std::uint16_t next_generation=0xe163;
     bool active{};
+    // Original image's object render-context callback: retailBE8B0,
+    // TU1.1 BF7A0 or TU1.5 C08E0. Retain its actual source identity.
+    std::uint32_t context_callback=0xbe8b0u;
     // 2B540 -> 16B7A0. Reset clears salts and occupancy; other record bytes
     // survive unless the caller supplies original pool debug-fill flag3.
     void activate(bool debug_fill=false);

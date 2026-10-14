@@ -245,6 +245,7 @@ void campaign_create_containing() {
   p.script("destroy_first",p.call("object_destroy",{p.node({0,56,50,9,null_datum,0,0})}));
   p.script("destroy_second",p.call("object_destroy",{p.node({0,56,50,9,null_datum,0,1})}));
   p.script("create",p.call("object_create_containing",{p.text("e1_")}));
+  p.script("replace",p.call("object_create_anew_containing",{p.text("e1_")}));
   p.script("all",p.call("object_create_containing",{p.text("")}));
   c.scripts=p.data;Simulation sim(c,0,{{0,0,0},0,0});
   const auto other_handle=sim.scene().resolve(1);
@@ -257,6 +258,11 @@ void campaign_create_containing() {
         "Containing creation preserves case-sensitive selection and unbound names");
   sim.run_script("create");sim.step({});
   check(sim.scene().resolve(0)==handle,"Containing creation retains existing generations");
+  sim.run_script("replace");sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.scene().resolve(0)!=handle &&
+            sim.scene().resolve(0)!=null_datum && sim.scene().resolve(1)==other_handle &&
+            sim.scene().resolve(2)==null_datum,
+        "Containing replacement recreates matching generations in the ordinary named factory");
   sim.run_script("destroy_second");sim.step({});sim.run_script("all");sim.step({});
   check(sim.scripts().diagnostics().empty() && sim.scene().resolve(1)!=null_datum,
         "Empty containing search creates every bound scenario name");

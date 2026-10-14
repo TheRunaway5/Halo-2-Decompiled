@@ -1,5 +1,12 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
+#include "halo2/source_object_sound_tu15.hpp"
+#include "halo2/source_model_render_tu15.hpp"
+#include "halo2/source_object_render_entry.hpp"
+#include "halo2/source_object_admission_memory.hpp"
+#include "halo2/source_model_build.hpp"
+#include "halo2/source_render_cache.hpp"
+#include "halo2/source_geometry_lod.hpp"
 #include "halo2/source_scene_device_constructor_tu15.hpp"
 #include "halo2/source_map_world_support_tu15.hpp"
 #include "halo2/physics_phantom_world_tu15.hpp"
@@ -28,6 +35,7 @@
 #include <bit>
 #include <chrono>
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <mutex>
 #include <sstream>
@@ -76,6 +84,10 @@ struct PhysicsLiveWorldTu15::Impl {
     std::map<std::uint32_t,std::uint32_t> bipeds;
     bool session_configured{};
     std::uint32_t delivered_players{};
+    std::map<std::pair<unsigned,std::uint32_t>,SourceObjectDrawCollector> model_collectors;
+    std::uint32_t next_model_collector=0x62000000u;
+    static constexpr std::uint32_t model_scratch=0x60400000u;
+    bool model_scratch_mounted{};
     std::vector<SourceProjectileDetonationTu15> projectile_detonations;
     std::function<void(const SourceBodyImpulseTu15 &)> body_impulse_observer;
     std::vector<UnitDamageEffectEvent> unit_damage_effects;
@@ -600,6 +612,12 @@ struct PhysicsLiveWorldTu15::Impl {
         if(source_scene_device_constructor_tu15_owns_entry(c.target)) {
             source_run_scene_device_constructor_tu15(m,c.target,a,fp,services(),o);return;
         }
+        if(source_model_render_tu15_owns_entry(c.target)) {
+            source_run_model_render_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_object_sound_tu15_owns_entry(c.target)) {
+            source_run_object_sound_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(source_physics_live_support_tu15_owns_entry(c.target)) {
             source_run_physics_live_support_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -648,17 +666,19 @@ struct PhysicsLiveWorldTu15::Impl {
         // unchanged TU1.5 support bodies. This is the explicit native resource
         // ABI: source owns all free lists, headers, splitting and publication.
         if(c.instruction==0x33b3bfu && c.target==0x800000b8u) {
-            // Actual2131F9 ->33B3AC ->NtAllocateVirtualMemory. Supply real
-            // host pages only; the original constructor owns every pointer,
-            // arena/CRC and bit-bank store. Host virtual address selection is
-            // explicit and does not assert Xbox MEM_TOP_DOWN address parity.
+            // Whole33B3AC is the shared XAPI raw allocation wrapper. Its
+            // original callers include the sound bit bank and four-byte
+            // decal storage. Preserve the actual requested size; only host
+            // page/address selection belongs to this native resource boundary.
             const auto bp=word(m,sp+4u),np=word(m,sp+12u),frame_=a.gp[5];
             if(c.tail || word(m,sp)!=0x33b3c5u || bp!=frame_+8u || np!=frame_+0xcu ||
-                word(m,frame_+4u)!=0x2131feu || word(m,bp)!=0 || word(m,np)!=0x1880u ||
-                word(m,sp+8u)!=0 || word(m,sp+16u)!=0x101000u || word(m,sp+20u)!=4u)
-                throw FormatError("TU1.5 sound bit-bank raw memory request differs from its original caller");
-            const auto reservation=virtual_memory.allocate({0,0,0x2000u,0x2000u,4u});
-            const auto result=virtual_memory.allocate({reservation.base,0,0x2000u,0x1000u,4u});
+                word(m,bp)!=0 || !word(m,np) || word(m,sp+8u)!=0 ||
+                word(m,sp+16u)!=0x101000u || word(m,sp+20u)!=4u)
+                throw FormatError("TU1.5 raw virtual-memory request differs from its original XAPI wrapper");
+            const auto requested=word(m,np);
+            const auto reservation=virtual_memory.allocate({0,0,requested,0x2000u,4u});
+            if(reservation.status) {a.gp[0]=reservation.status;a.gp[4]+=24u;return;}
+            const auto result=virtual_memory.allocate({reservation.base,0,reservation.bytes,0x1000u,4u});
             put(m,bp,result.base);put(m,np,result.bytes);a.gp[0]=result.status;a.gp[4]+=24u;return;
         }
         struct VmFrame {std::uint32_t site,ret;int base,size;std::uint32_t type;};
@@ -836,6 +856,12 @@ struct PhysicsLiveWorldTu15::Impl {
             equipment.ready_ticks[i]=word(bank,body+0x228u+i*4u);
             equipment.definitions[i]=equipment.weapons[i]==0xffffffffu?0xffffffffu:
                 word(bank,object_body(equipment.weapons[i]));
+            if(equipment.weapons[i]!=0xffffffffu) {
+                const auto weapon=object_body(equipment.weapons[i]);
+                // Complete1046C0 consumes these unchanged runtime fields.
+                equipment.shaders[i]={word(bank,weapon+0x12cu),word(bank,weapon+0x16cu),
+                    std::bit_cast<float>(word(bank,weapon+0x184u)),std::bit_cast<float>(word(bank,weapon+0x180u))};
+            }
         }
         return equipment;
     }
@@ -1088,6 +1114,60 @@ struct PhysicsLiveWorldTu15::Impl {
         if(record(word(bank,0x4ecbd0u),object))
             throw FormatError("TU1.5 complete deletion did not retire its full source identity");
     }
+    void begin_model_frame() {
+        auto frame=word(bank,0x4c6854u),cursor=word(bank,0x494338u);
+        source_render_frame_begin(frame,cursor);
+        put(bank,0x4c6854u,frame);put(bank,0x494338u,cursor);
+    }
+    SourceObjectDrawCollector build_world_model(std::uint32_t owner,unsigned view,
+        unsigned players,bool modifier,float metric,float lighting_metric) {
+        if(!session_configured || view>=4)
+            throw FormatError("TU1.5 model builder requires a current session and valid view");
+        (void)object_body(owner); // Validate this world's full salted owner first.
+        const auto policy=source_geometry_lod_policy(players);
+        put(bank,0x4c6870u,view);put(bank,0x4c683cu,std::uint32_t(policy.ordinary_maximum));
+        bank.mutable_view(0x4c6839u,1)[0]=std::byte(modifier);
+        if(!model_scratch_mounted) {
+            bank.mount(model_scratch,std::vector<std::byte>(0x4000),SourceRuntimeMemory::Access::ReadWrite,
+                "native TU1.5 model-builder caller scratch");model_scratch_mounted=true;
+        }
+        auto [at,inserted]=model_collectors.try_emplace({view,owner});auto& collector=at->second;
+        if(inserted) {
+            collector.address=next_model_collector;next_model_collector+=0x1000u;
+            bank.mount(collector.address,std::vector<std::byte>(0x1000),SourceRuntimeMemory::Access::ReadWrite,
+                "native TU1.5 per-view model collector caller storage");
+            std::memcpy(collector.bytes.data(),&owner,sizeof(owner));
+            put(bank,collector.address,owner);
+        }
+        SourceModelBuildWorld w;auto& m=w.admission.memory;
+        m.banks={word(bank,0x4f0414u),word(bank,0x4ecc18u),word(bank,0x4ecc14u),word(bank,0x4ecbd0u),
+            [this](auto p,auto n){return bank.view(p,n);},[this](auto flags,auto p){
+                auto a=frame({});a.gp[0]=flags;a.gp[1]=p;run_actual(0x130980u,a);return (a.gp[0]&255u)!=0;}};
+        m.write=[this](auto p,auto n){return bank.mutable_view(p,n);};
+        m.view=std::int32_t(view);m.render_frame=word(bank,0x4c6854u);m.render_cache_pool=word(bank,0x515f14u);
+        m.context_callback=0xc08e0u;
+        w.admission.first_person_owner=word(bank,0x4ce3f0u);
+        w.admission.first_person_models=std::bit_cast<std::int16_t>(Bytes(bank.view(0x4ce3f4u,2)).u16(0));
+        w.admission.ordinary_maximum=policy.ordinary_maximum;w.admission.view_modifier=modifier;
+        w.admission.rasterizer=word(bank,0x4922a0u);
+        w.admission.scalar=[this](auto object,auto function){
+            const auto output=model_scratch+0x3f00u;const std::array args{object,function,output};
+            const auto result=call_actual(0xbcb70u,args);
+            return std::pair{(result&255u)!=0,std::bit_cast<float>(word(bank,output))};};
+        w.nodes.resource_cache_present=word(bank,0x4f2d64u)!=0;
+        w.nodes.deferred_nodes=[this](auto object,auto selected,auto nodes){
+            const std::array args{object,selected,nodes};return call_actual(0xbf640u,args);};
+        w.cached_models=0x4ce3f8u;w.arena_cursor=0x494338u;w.arena=0x49433cu;w.scratch=model_scratch;
+        w.lighting=[this](auto object,float distance){
+            const std::array args{std::bit_cast<std::uint32_t>(distance)};auto a=frame(args);a.gp[0]=object;
+            run_actual(0x3daf0u,a);std::array<std::uint32_t,21> result;
+            const auto bytes=bank.view(a.gp[0],sizeof(result));std::memcpy(result.data(),bytes.data(),sizeof(result));return result;};
+        // This API explicitly requests a world model. Main/secondary queue
+        // entry flags and first-person production are separate callers.
+        source_object_build_collector(collector,{owner,std::bit_cast<std::uint32_t>(metric),
+            std::bit_cast<std::uint32_t>(lighting_metric),0u,0u,{},1u},w);
+        return collector;
+    }
     void preload_render_model(std::uint32_t model) {
         if(!session_configured)
             throw FormatError("TU1.5 model loading requires delivered session options");
@@ -1156,6 +1236,19 @@ void PhysicsLiveWorldTu15::run_actual(std::uint32_t p,SourcePhysicsWorldRuntimeA
 std::uint32_t PhysicsLiveWorldTu15::call(std::uint32_t p,std::span<const std::uint32_t>a){return impl_->call(p,a);}
 std::uint32_t PhysicsLiveWorldTu15::call_actual(std::uint32_t p,std::span<const std::uint32_t>a){return impl_->call_actual(p,a);}
 void PhysicsLiveWorldTu15::preload_render_model(std::uint32_t model){impl_->preload_render_model(model);}
+void PhysicsLiveWorldTu15::begin_model_frame(){impl_->begin_model_frame();}
+SourceObjectAdmission PhysicsLiveWorldTu15::admit_render_objects(const SourcePortalVisibilitySet& visibility,
+    const SourceObjectAdmissionInput& input,std::span<const std::array<std::uint32_t,4>> prior)const {
+    const auto& b=impl_->bank;
+    if(!impl_->session_configured)throw FormatError("TU1.5 object admission requires the current session");
+    return source_object_admission_memory(visibility,{word(b,0x4ecbd0u),word(b,0x4eabb0u),
+        word(b,0x4eabb4u),word(b,0x4eaba4u),word(b,0x4eaba8u),
+        [&](auto address,auto size){return b.view(address,size);}},input,prior);
+}
+SourceObjectDrawCollector PhysicsLiveWorldTu15::build_world_model(std::uint32_t object,unsigned view,
+    unsigned players,bool modifier,float metric,float lighting_metric){
+    return impl_->build_world_model(object,view,players,modifier,metric,lighting_metric);
+}
 SourceWeaponEffectPresentation PhysicsLiveWorldTu15::request_weapon_effect(const WeaponEffectInput&i){return impl_->request_weapon_effect(i);}
 void PhysicsLiveWorldTu15::populate_weapon_targeting(std::uint32_t p,std::uint32_t o,std::span<std::byte,0x5c> c){impl_->populate_weapon_targeting(p,o,c);}
 std::optional<ParticleCollisionHit> PhysicsLiveWorldTu15::particle_collision(std::uint32_t f,Vec3 p,Vec3 d){return impl_->particle_collision(f,p,d);}

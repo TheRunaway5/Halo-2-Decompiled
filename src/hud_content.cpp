@@ -35,7 +35,11 @@ HudContent Cache::load_hud(std::uint32_t biped, std::uint32_t weapon) const {
     const auto wp = root(weapon, "weap", 0x2c8);
     interfaces.emplace_back(data.u32(wp + 0x2b4), 1);
     const auto magazines = metadata_block_offsets(wp + 0x2c0, 0x5c, 16);
-    if (!magazines.empty())out.clip_capacity = data.u16(magazines[0] + 0xa);
+    out.weapon_magazine_count=unsigned(magazines.size());
+    if (!magazines.empty()) {
+      out.clip_capacity=std::bit_cast<std::int16_t>(data.u16(magazines[0]+0xa));
+      out.reserve_capacity=std::bit_cast<std::int16_t>(data.u16(magazines[0]+0xc));
+    }
   }
   const auto globals =
       query_tag({.group=tag_groups::globals});

@@ -31,7 +31,14 @@ ENTRIES = (0x1f39d0, 0x1f3b80, 0x10f080, 0x30bd0,
            0x213890, 0x21fe40, 0x140ea0,
            # Literal startup/map callback record44B524 owns the sound bit
            # bank. The XAPI wrapper retains its real native memory boundary.
-           0x2131b0, 0x213260, 0x33b3ac)
+           0x2131b0, 0x213260, 0x33b3ac,
+           # Original116DDF (legacy observer115EBF) resolves the animation
+           # event's authored sound metadata through the real ugh owner.
+           0x116cd0, 0x213690, 0x21f670, 0x21f6b0,
+           # The real contact collector at2F8B27 invokes literal41CA30+4.
+           0x30b980,
+           # ActualE4DAB finishes the source action's physical transition.
+           0xe31c0, 0x1dd3d0, 0x1cc310)
 
 
 def main():
@@ -64,6 +71,12 @@ def main():
     assert code.at(0x116bdf).operands[0].imm == 0x213890
     assert image.read(0x44b524, 12).hex() == 'b03121002032210060322100'
     assert int.from_bytes(image.read(0x41b6d4, 4), 'little') == 0x800000b8
+    assert code.at(0x116ddf).mnemonic == 'call'
+    assert code.at(0x116ddf).operands[0].imm == 0x116cd0
+    assert code.at(0x2f8b27).bytes.hex() == 'ff5004'
+    assert int.from_bytes(image.read(0x41ca34, 4), 'little') == 0x30b980
+    assert code.at(0xe4dab).mnemonic == 'call'
+    assert code.at(0xe4dab).operands[0].imm == 0xe31c0
     sites, instructions, addresses, routines = {}, {}, {}, []
     args.directory.mkdir(parents=True, exist_ok=True)
     for entry in ENTRIES:

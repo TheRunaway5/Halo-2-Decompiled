@@ -137,7 +137,10 @@ CollisionWorld::Composition CollisionWorld::compose(
   previous.fixed.reset();
   if (all_count == base_count) return {bsp, bsp, bsp};
   std::shared_ptr<std::vector<CollisionTriangle>> geometry;
-  if (previous.exclusive_bsp && bsp.use_count() == 1 && bsp->geometry_.use_count() == 1)
+  // Multiple owners of this same BSP view protect only the immutable BSP
+  // prefix. Its suffix may be rebuilt even when a checkpoint retains the view.
+  // A distinct collision view/value protects the backing and forces a copy.
+  if (bsp->geometry_.use_count() == 1)
     geometry = bsp->geometry_;
   else {
     geometry = std::make_shared<std::vector<CollisionTriangle>>();

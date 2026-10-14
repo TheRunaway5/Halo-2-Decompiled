@@ -51,8 +51,8 @@ public:
   OwnershipCheckpoint ownership_checkpoint() const;
   // Quiescent subowner import. Validate each retained raw allocation against
   // the complete incoming bank and stage metadata before bank publication.
-  // Other raw owners (arena scratch/static storage) must be checked by their
-  // enclosing world transaction; the bank's raw-storage label is shared.
+  // The pool's resource label is distinct from arena scratch/static storage;
+  // every incoming pool region must have exactly one registry entry.
   PreparedOwnership prepare_ownership(const OwnershipCheckpoint &,
                                       const SourceRuntimeMemory::Checkpoint &) const;
   // After whole-bank import, swap registries without releasing imported bytes.

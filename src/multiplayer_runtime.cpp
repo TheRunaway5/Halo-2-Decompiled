@@ -753,13 +753,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       if(v.muzzle_markers.empty())throw FormatError("Authored first-person muzzle marker is missing");
     }
   }
-  std::set<std::uint32_t> firing_effects;
-  std::set<std::uint32_t> firing_sound_effects;
-  for(const auto &[datum,d]:content.weapons)if(d.firing_presentation)
-  for(const auto &entry:d.firing_effects)for(const auto effect:entry.effects) {
-    if(effect==null_datum || !cache.query_tag({.handle=TagHandle{effect},.group=tag_groups::effect,.require_address=true}))continue;
-    firing_sound_effects.insert(effect);
-    try {
+  const auto preload_weapon_world_effect=[&](std::uint32_t datum,std::uint32_t effect) {
       world_effects.preload_attached(effect);world_firing_effects.insert(effect);
       if(!firing_world_markers.contains(datum)) {
         const auto model=cache.load_initial_model_definition(datum).render_model;
@@ -773,12 +767,23 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           }
         }
       }
+  };
+  std::set<std::uint32_t> firing_effects;
+  std::set<std::uint32_t> firing_sound_effects;
+  for(const auto &[datum,d]:content.weapons)if(d.firing_presentation)
+  for(const auto &entry:d.firing_effects)for(const auto effect:entry.effects) {
+    if(effect==null_datum || !cache.query_tag({.handle=TagHandle{effect},.group=tag_groups::effect,.require_address=true}))continue;
+    firing_sound_effects.insert(effect);
+    try {
+      preload_weapon_world_effect(datum,effect);
     }catch(const FormatError &e){std::cerr<<"World firing effect "<<std::hex<<effect<<std::dec<<": "<<e.what()<<'\n';}
     try {
+    if(cache.load_muzzle_effect(effect).light_parts && !world_firing_effects.contains(effect))
+      throw FormatError("Firing light parts have no completed live world owner");
     const auto names=muzzle_effects.marker_names(effect);
     for(auto &[key,v]:species)if(key.second==datum)for(auto name:names) {
       auto markers=source_model_markers(cache.load_source_tag_metadata(v.fp_definition->weapon_model),name);
-      if(markers.size()!=1)throw FormatError("Authored ordinary firing effect requires its singleton FP marker");
+      if(markers.empty())throw FormatError("Authored ordinary firing effect marker is missing");
       v.effect_markers.emplace(name,std::move(markers));
     }
     firing_effects.insert(effect);
@@ -786,6 +791,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   }
   std::set<std::uint32_t> ready_effects;
   for(const auto &[datum,d]:content.weapons)if(d.ready_effect!=null_datum)try {
+    if(cache.load_muzzle_effect(d.ready_effect).light_parts)
+      preload_weapon_world_effect(datum,d.ready_effect);
     const auto names=muzzle_effects.marker_names(d.ready_effect);
     for(auto &[key,v]:species)if(key.second==datum)for(auto name:names) {
       auto markers=source_model_markers(cache.load_source_tag_metadata(v.fp_definition->weapon_model),name);
@@ -832,6 +839,30 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         effect_sounds.spawn(input.effect,input.weapon,unit.body.position,std::bit_cast<float>(input.a_bits),std::bit_cast<float>(input.b_bits));
       const auto handle=source?source->instance:null_datum;binding={input.weapon,handle,handle};return handle;
     });
+  struct FpWeaponAttachment {std::uint32_t effect{},scale_a{},scale_b{};};
+  std::map<std::uint32_t,std::vector<FpWeaponAttachment>> fp_weapon_attachments;
+  for(const auto &[datum,weapon]:content.weapons)if(weapon.inventory_flags&(1u<<24)) {
+    const auto metadata=cache.load_source_tag_metadata(datum);
+    const Bytes root(metadata.bytes_at(metadata.source_address(),0x9c));
+    const auto count=root.u32(0x94);
+    const Bytes attachments(count?metadata.bytes_at(root.u32(0x98),std::size_t(count)*0x18):std::span<const std::byte>{});
+    for(unsigned n=0;n<count;++n) {
+      const auto at=n*0x18;
+      if(attachments.u32(at)!=0x65666665u || attachments.u32(at+4)==null_datum)continue;
+      const auto effect=attachments.u32(at+4),a=attachments.u32(at+0x10),b=attachments.u32(at+0x14);
+      try {
+        if(attachments.u32(at+0xc) || (a && !source_weapon_shader_input(a,{})) ||
+            (b && !source_weapon_shader_input(b,{})))
+          throw FormatError("Blade attachment requires its actual object-function/color owner");
+        const auto markers=muzzle_effects.marker_names(effect);
+        for(auto &[key,visual]:species)if(key.second==datum)
+          for(const auto name:markers)
+            visual.effect_markers.try_emplace(name,source_model_markers(
+                cache.load_source_tag_metadata(visual.fp_definition->weapon_model),name));
+        fp_weapon_attachments[datum].push_back({effect,a,b});
+      }catch(const FormatError &error) {std::cerr<<"Authored blade attachment: "<<error.what()<<'\n';}
+    }
+  }
   SourceSceneryInitialState scenery_initial_state;
   struct SceneryQueryLifetime {
     std::size_t placement{};
@@ -1588,13 +1619,23 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       }
     }
   };
+  std::optional<std::uint32_t> muzzle_pose_tick;
+  std::vector<std::array<std::uint32_t,3>> muzzle_pose_owners;
   const auto update_muzzle_effects=[&] {
+    std::vector<std::array<std::uint32_t,3>> owners;
+    for(unsigned view=0;view<ids.size();++view) {
+      const auto &binding=client?client_fp_views[view]:match.first_person_view(view);
+      owners.push_back({binding.unit,binding.hands[0].weapon,binding.hands[1].weapon});
+    }
+    if(muzzle_pose_tick==current.tick && owners==muzzle_pose_owners)return;
+    muzzle_pose_tick=current.tick;muzzle_pose_owners=std::move(owners);
+    std::vector<std::uint32_t> attached_weapons;
     for(unsigned view=0;view<ids.size();++view) {
       const auto &primary=current.players[ids[view]];
       if(!primary.connected || primary.source_unit==null_datum)continue;
       const auto &registered=client?client_fp_views[view]:match.first_person_view(view);
       const auto &biped=biped_for(primary);
-      const auto camera=player_camera(primary,biped,biped.camera_field_of_view);
+      const auto camera=options.capture_camera.value_or(player_camera(primary,biped,biped.camera_field_of_view,content.player_screen_offset));
       const auto transform=camera_transform(camera.position,camera.forward,camera.up);
       MuzzleEffectView effects_view{};
       effects_view.position=camera.position;effects_view.forward=camera.forward;effects_view.up=camera.up;
@@ -1611,6 +1652,16 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           player.reload_tick=secondary.reload_tick;
         }
         const auto &visual=species_for(player);const auto &weapon=content.weapons.at(player.weapon);
+        if(!primary.dead)if(const auto attached=fp_weapon_attachments.find(player.weapon);attached!=fp_weapon_attachments.end()) {
+          const auto &shader=hand_index?primary.secondary_weapon.shader:primary.weapon_shader;
+          for(const auto &attachment:attached->second) {
+            const float a=attachment.scale_a?*source_weapon_shader_input(attachment.scale_a,shader):0.f;
+            const float b=attachment.scale_b?*source_weapon_shader_input(attachment.scale_b,shader):1.f;
+            muzzle_effects.attachment(attachment.effect,hand.weapon,current.tick,{a,b},
+                attachment.scale_a!=0x09000568u || source_weapon_turned_on(shader).enabled);
+          }
+          attached_weapons.push_back(hand.weapon);
+        }
         if(!visual.fp_definition || visual.effect_markers.empty())continue;
         const auto clip=visual.fp_clips.find(hand.animation_identifier>>16);
         if(clip==visual.fp_clips.end())throw FormatError("FP emission clock has no decoded original clip");
@@ -1634,11 +1685,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           const auto authored=visual.effect_markers.find(name);
           if(authored==visual.effect_markers.end())throw FormatError("FP emission has no authored marker");
           const auto markers=pose_model_markers(authored->second,pose.weapon_nodes);
-          if(markers.size()!=1)throw FormatError("FP emission requires the actual singleton marker");
-          return compose_transform(inverse_transform(transform),markers.front().world);
+          std::vector<Transform> frames;frames.reserve(markers.size());
+          for(const auto &marker:markers)frames.push_back(compose_transform(inverse_transform(transform),marker.world));
+          return frames;
         },effects_view,current.tick,tick_seconds);
       }
     }
+    muzzle_effects.retire_attachments_except(attached_weapons);
     muzzle_effects.advance(current.tick,tick_seconds);
   };
   std::array<bool,multiplayer_capacity> object_light_alive{},object_light_reported{};
@@ -3517,13 +3570,6 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
               animation_blend,source_frame?*source_frame:time*30.f,true,frame_interpolated,pose.weapon,
               ammunition?ammunition->source_index:null_datum,ammunition_frame,pose.weapon_nodes});
         if(!v.effect_markers.empty()) {
-          const auto marker=[&](std::uint32_t name) {
-            const auto found=v.effect_markers.find(name);
-            if(found==v.effect_markers.end())throw FormatError("First-person effect has no authored marker binding");
-            const auto markers=pose_model_markers(found->second,pose.weapon_nodes);
-            if(markers.size()!=1)throw FormatError("First-person effect requires its actual singleton marker");
-            return compose_transform(inverse_transform(transform),markers.front().world);
-          };
           const auto depth=menu_world_depth_clip_planes({.015625f,1024.f,MenuWorldDepthBoundary::none,0,true});
           MuzzleEffectView effects_view;
           effects_view.camera=source_view_shader_bank(render_camera,1024.f,camera.position,
@@ -3535,7 +3581,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
           effects_view.position=camera.position;effects_view.forward=f;effects_view.up=u;
           effects_view.clip_range={0,16777215.f,depth.minimum_w,depth.maximum_w};
           effects_view.width=drawable_w;effects_view.height=drawable_h;
-          auto particles=muzzle_effects.draw(p.source_weapon,marker,effects_view,current.tick,animation_blend,tick_seconds);
+          auto particles=muzzle_effects.draw(p.source_weapon,effects_view,current.tick,animation_blend,tick_seconds);
           foreground_particles[i].insert(foreground_particles[i].end(),particles.begin(),particles.end());
           if(options.effect_observer)options.effect_observer(i,current.tick,foreground_particles[i]);
         }

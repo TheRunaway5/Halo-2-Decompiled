@@ -33,8 +33,6 @@ public:
   struct PreviousLayers {
     std::shared_ptr<const CollisionWorld> fixed, all;
     bool fixed_changed = true;
-    // The enclosing BSP owner must also be exclusive (no checkpoint aliases).
-    bool exclusive_bsp = false;
   };
   struct Composition;
   explicit CollisionWorld(std::vector<CollisionTriangle> triangles);

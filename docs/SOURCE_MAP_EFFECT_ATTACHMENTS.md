@@ -78,13 +78,15 @@ matching rows `44B40C` and `44B454`. The actual reset marks the pool active and
 sets the cluster heads to NONE; those values are not host-supplied defaults.
 The real Zanzibar preparation regression checks this state before rendering.
 
-The current development module contains **96 complete bodies / 9,283 instructions**.
+The current development module contains **98 complete bodies / 9,347 instructions**.
 The independent 976-case banks above cover their stated routines, not every
 body. New retained routines include the decal constructor/reset, projection,
 lighting helpers, registered cache release/retention callbacks, authored
 object callbacks, and the cached render-state constructor/reset. The latter
 uses original rows `44B350`/`44B358` and actual pool `515F14`; it does not
-initialize an absent pool with host-supplied fields.
+initialize an absent pool with host-supplied fields. The latest two additions
+retain the actual object callback `11E490` and its complete query callee
+`1DB800`, reached by Containment through the original callback table.
 
 [Native physical byte protection](SOURCE_PHYSICAL_BYTE_PROTECTION.md) now
 accepts the original sub-page metadata requests and enforces their subsequent

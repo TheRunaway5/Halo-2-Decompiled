@@ -37,7 +37,7 @@ int main(int argc,char **argv) try {
         [&](auto bsp){return cache.load_bsp_content(bsp);},
         [&](const Simulation::Prediction&p){
             if(p.kind==Simulation::Prediction::Barrier)residency.barrier();
-            else if(p.kind==Simulation::Prediction::Sound)residency.sound(p.datum);
+            else if(p.kind==Simulation::Prediction::Sound)residency.predict_sound(p.datum);
             else if(p.kind==Simulation::Prediction::Model)residency.model(p.datum,p.section);
             else if(p.kind==Simulation::Prediction::Object)residency.object(p.datum);
             else residency.structure(p.datum,p.section,p.instances);

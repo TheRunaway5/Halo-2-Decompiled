@@ -55,7 +55,7 @@ int main() {
     fixed.insert(fixed.end(),devices.begin(),devices.end());
     auto all=fixed;all.insert(all.end(),props.begin(),props.end());
     std::shared_ptr<const CollisionWorld> base=std::make_shared<const CollisionWorld>(bsp);
-    auto views=CollisionWorld::compose(base,{scenery,devices,props},{.exclusive_bsp=true});
+    auto views=CollisionWorld::compose(base,{scenery,devices,props},{});
     check(views.bsp->triangles().data()==views.fixed->triangles().data()&&
           views.fixed->triangles().data()==views.all->triangles().data(),"Collision layers duplicated their BSP prefix");
     check(views.bsp->size()==bsp.size()&&views.fixed->size()==fixed.size()&&views.all->size()==all.size(),
@@ -65,7 +65,7 @@ int main() {
     base.reset();
     const auto storage=views.bsp->triangles().data();
     auto next=CollisionWorld::compose(views.bsp,{scenery,devices,props},
-        {std::move(views.fixed),std::move(views.all),false,true});
+        {std::move(views.fixed),std::move(views.all),false});
     check(next.bsp->triangles().data()==storage,"Exclusive collision composition copied its warm BSP bank");
     views.bsp.reset();
     // Both enclosing-owner aliases and independently copied CollisionWorld
@@ -74,18 +74,19 @@ int main() {
     const CollisionWorld copied=*next.all;
     auto moved_props=props;for(auto& t:moved_props){t.a.z+=1;t.b.z+=1;t.c.z+=1;}
     auto changed=CollisionWorld::compose(next.bsp,{scenery,devices,moved_props},
-        {std::move(next.fixed),std::move(next.all),false,true});
+        {std::move(next.fixed),std::move(next.all),false});
     check(changed.all->triangles().data()!=snapshot->triangles().data(),"Retained collision snapshot was overwritten");
     exercise(*snapshot,CollisionWorld(all));exercise(copied,CollisionWorld(all));
     auto changed_all=fixed;changed_all.insert(changed_all.end(),moved_props.begin(),moved_props.end());
     exercise(*changed.all,CollisionWorld(changed_all));
     auto checkpoint_base=changed.bsp;
     auto restored=CollisionWorld::compose(changed.bsp,{scenery,devices,props},
-        {std::move(changed.fixed),std::move(changed.all),true,false});
-    check(restored.bsp->triangles().data()!=checkpoint_base->triangles().data(),
-          "Enclosing checkpoint alias did not force copy-on-write");
+        {std::move(changed.fixed),std::move(changed.all),true});
+    check(restored.bsp->triangles().data()==checkpoint_base->triangles().data(),
+          "Immutable BSP checkpoint prefix forced a redundant copy");
+    exercise(*checkpoint_base,CollisionWorld(bsp));
     exercise(*restored.all,CollisionWorld(all));
-    const auto empty=CollisionWorld::compose(restored.bsp,{},{.exclusive_bsp=false});
+    const auto empty=CollisionWorld::compose(restored.bsp,{},{});
     check(empty.bsp==empty.fixed&&empty.fixed==empty.all,"Empty layers retained redundant owners");
     exercise(*empty.all,CollisionWorld(bsp));
     std::cout<<"Collision layer storage, exact ray ties, contacts, movement and snapshot ownership passed\n";

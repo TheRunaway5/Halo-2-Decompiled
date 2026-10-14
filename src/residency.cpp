@@ -1,12 +1,21 @@
 #include "halo2/residency.hpp"
 #include "halo2/model_selection.hpp"
 namespace halo2 {
+void NativeResidency::predict_sound(std::uint32_t datum) {
+  if (datum == null_datum || sounds_.contains(datum) || sound_predictions_.contains(datum)) return;
+  // Retain the existing owner for other cache formats. Retail2A9D70→125F10
+  // requests only the first compressed chunk; it never starts a PCM voice.
+  if (cache_.is_vista() || cache_.is_mcc()) { (void)sound(datum); return; }
+  if (auto chunk=cache_.load_sound_prediction_chunk(datum))
+    sound_predictions_.emplace(datum,std::move(*chunk));
+}
 std::shared_ptr<const PcmSound> NativeResidency::sound(std::uint32_t datum) {
   if (datum == null_datum)
     return {};
   if (!sounds_.contains(datum))
     sounds_.emplace(datum, std::make_shared<PcmSound>(
                                decode_sound(cache_.load_sound(datum))));
+  sound_predictions_.erase(datum);
   return sounds_.at(datum);
 }
 void NativeResidency::geometry(std::uint32_t datum) {

@@ -136,6 +136,7 @@ struct Unit {
   std::uint32_t zoom_reset_serial{}; // Native delivery of C9A40 view resets.
   std::array<std::uint8_t, 2> grenades{};
   std::int8_t grenade_current = -1, grenade_requested = -1;
+  bool grenade_switch_held{}; // Native input edge; never an original unit field.
   NativeGrenadeAction grenade_action;
   NativeMeleeAction melee_action;
   float yaw{}, crouch{}, awareness{};
