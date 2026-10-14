@@ -55,6 +55,7 @@ struct SlayerRules {
   unsigned betrayal_ticks = 10 * 30;
   unsigned maximum_players = 16;
   unsigned starting_weapon{};
+  unsigned weapon_set{}; // Source parameter83, variant+D4/options+210.
   unsigned secondary_starting_weapon=1;
   CustomSlayer custom=CustomSlayer::none;
   std::array<std::uint32_t,18> weapon_choices{};

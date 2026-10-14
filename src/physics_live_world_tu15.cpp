@@ -163,7 +163,6 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x18b5c0u); // Actual startup row44B548 object-looping-sound pool.
         initialize_object_looping_sound_storage();
         initialize_sound_storage();
-        call_actual(0x2131b0u); // Literal44B524 sound bit-bank constructor.
         call_actual(0x2131b0u); // Actual44B524 sound-availability bitmap storage.
         // Actual44B350 owns cached object render states and the color/cache
         // records consumed by projectile attachment creation at17E4AA.
@@ -583,7 +582,10 @@ struct PhysicsLiveWorldTu15::Impl {
             const std::array done{std::byte{1}};bank.write(tracking+4u,done);
             a.gp[0]=job;a.gp[4]+=28;return;
         }
-        if(source_sandbox_special_tu15_owns_entry(c.target)) {
+        // Keep the existing external XAPI wrapper's platform/correspondence
+        // owner. The special module calls its own complete wrapper internally
+        // only from the authenticated2131F9 sound-bank constructor.
+        if(c.target!=0x33b3acu && source_sandbox_special_tu15_owns_entry(c.target)) {
             source_run_sandbox_special_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_combat_action_tu15_owns_entry(c.target)) {
@@ -983,9 +985,6 @@ struct PhysicsLiveWorldTu15::Impl {
         call(0x1c5ff0u);
         if(!word(bank,0x52be48u))throw FormatError("TU1.5 new-map world was not published");
         call_actual(0xb8be0u);
-        // Selected complete callback45 reset. The preceding callback44 audio
-        // map/device activation remains a separate incomplete owner.
-        call_actual(0x213260u);
     }
     std::uint32_t create_biped(std::uint32_t definition,const Vec3&position,const Vec3&forward) {
         if(!session_configured)throw FormatError("TU1.5 object birth requires its actual native session options");
@@ -1089,6 +1088,34 @@ struct PhysicsLiveWorldTu15::Impl {
         if(record(word(bank,0x4ecbd0u),object))
             throw FormatError("TU1.5 complete deletion did not retire its full source identity");
     }
+    void preload_render_model(std::uint32_t model) {
+        if(!session_configured)
+            throw FormatError("TU1.5 model loading requires delivered session options");
+        const auto table=word(bank,0x4f0414u),index=word(bank,0x556d90u);
+        if(model==0xffffffffu || (model&65535u)>=word(bank,index+24u))
+            throw FormatError("TU1.5 model loading datum escapes the current cache");
+        const auto row=table+(model&65535u)*16u;
+        if(word(bank,row)!=0x6d6f6465u || word(bank,row+4u)!=model || word(bank,row+12u)<0x7cu)
+            throw FormatError("TU1.5 model loading salt/group/payload differs");
+        const auto mode=word(bank,row+8u);
+        const std::array args{0u};auto request=frame(args);request.gp[0]=model;
+        run_actual(0x1717b0u,request);
+        const auto count=word(bank,mode+0x24u),sections=word(bank,mode+0x28u);
+        for(unsigned i=0;i<count;++i) {
+            const auto header=sections+i*0x5cu+0x38u;
+            if(std::bit_cast<std::int32_t>(word(bank,header+8u))<=0)continue;
+            auto load=frame({});load.gp[0]=2u;load.gp[1]=header;
+            run_actual(0x130980u,load);
+            // Native resource I/O completes synchronously. The original
+            // admission/fixup owner must itself publish success; a header or
+            // an uploaded preview mesh is not a successful source request.
+            if(!(load.gp[0]&255u)) {
+                load=frame({});load.gp[1]=header;run_actual(0x130980u,load);
+            }
+            if(!(load.gp[0]&255u))
+                throw FormatError("TU1.5 original model-resource publication did not finish");
+        }
+    }
     void configure_session(const SourceGameVariant&variant,std::uint16_t mode,
         std::int16_t rate,std::uint32_t seed) {
         if(session_configured || rate<=0 || !source_game_variant_valid(variant))
@@ -1128,6 +1155,7 @@ void PhysicsLiveWorldTu15::run_actual(std::uint32_t p,SourcePhysicsWorldRuntimeA
     const SourcePhysicsContactRecordObserver&o){impl_->run_actual(p,a,o);}
 std::uint32_t PhysicsLiveWorldTu15::call(std::uint32_t p,std::span<const std::uint32_t>a){return impl_->call(p,a);}
 std::uint32_t PhysicsLiveWorldTu15::call_actual(std::uint32_t p,std::span<const std::uint32_t>a){return impl_->call_actual(p,a);}
+void PhysicsLiveWorldTu15::preload_render_model(std::uint32_t model){impl_->preload_render_model(model);}
 SourceWeaponEffectPresentation PhysicsLiveWorldTu15::request_weapon_effect(const WeaponEffectInput&i){return impl_->request_weapon_effect(i);}
 void PhysicsLiveWorldTu15::populate_weapon_targeting(std::uint32_t p,std::uint32_t o,std::span<std::byte,0x5c> c){impl_->populate_weapon_targeting(p,o,c);}
 std::optional<ParticleCollisionHit> PhysicsLiveWorldTu15::particle_collision(std::uint32_t f,Vec3 p,Vec3 d){return impl_->particle_collision(f,p,d);}

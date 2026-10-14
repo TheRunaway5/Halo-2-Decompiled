@@ -117,7 +117,7 @@ SlayerRules native_engine_rules(const UiVariant &variant, bool team_session) {
   // initialization/death/respawn/end/scoreboard owners consume the field.
   // Round selector0 remains the default: original15DDC0 finishes index0
   // directly, so this admission does not require the later-round reset owner.
-  for(const unsigned id : {1u,2u,3u,4u,5u,6u,7u,8u,9u,10u,16u,17u,18u,15u,90u,89u,88u,76u,78u,24u,104u,105u}) permit(id);
+  for(const unsigned id : {1u,2u,3u,4u,5u,6u,7u,8u,9u,10u,16u,17u,18u,15u,90u,89u,88u,76u,78u,83u,24u,104u,105u}) permit(id);
   if(custom!=CustomSlayer::none)permit(94);
   if(!king)for(const unsigned id : {29u,30u})permit(id);
   if(king)for(const unsigned id : {38u,39u,40u,41u,42u})permit(id);
@@ -159,6 +159,9 @@ SlayerRules native_engine_rules(const UiVariant &variant, bool team_session) {
     throw FormatError("Slayer maximum players must be 1..16");
   rules.maximum_players = unsigned(maximum);
   rules.starting_weapon = unsigned(starting_weapon);
+  rules.weapon_set=unsigned(setting(83));
+  if(rules.weapon_set!=0 && rules.weapon_set!=15 && rules.weapon_set!=16 && rules.weapon_set!=17)
+    throw FormatError("This weapon set requires its original equipment owner");
   const auto vehicle=setting(76);
   // Literal primary-light choices in the original sily:4 is absent.
   if(vehicle<0 || vehicle>7 || vehicle==4)
@@ -253,6 +256,8 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
   simulation_.source_physics_movement_=source_object_world_ && source_object_world_->owns_physics();
   if(simulation_.source_physics_movement_)simulation_.source_vehicle_seat_query_=
       [this](auto unit,auto vehicle){return source_object_world_->vehicle_seat_target(unit,vehicle);};
+  if(rules_.weapon_set && !simulation_.source_physics_movement_)
+    throw FormatError("Weapon-set variants require the original source equipment owner");
   if(rules_.primary_heavy_vehicle && !simulation_.source_physics_movement_)
     throw FormatError("Primary Heavy Vehicle overrides require the retained original source world");
   if(simulation_.source_physics_movement_) {
@@ -1169,7 +1174,7 @@ bool MultiplayerMatch::spawn(unsigned id, bool initial) {
     // TU15A460 owns the sticky engine flag at lifecycle initialization; it is
     // not a count recomputed from the current roster at every spawn.
     u.grenades = starting_grenades(*equipment_flags,
-        rules_.starting_grenades, rules_.maximum_one_grenade, int(rules_.starting_weapon));
+        rules_.starting_grenades, rules_.maximum_one_grenade, int(rules_.weapon_set));
   }
   if(secondary!=null_datum && !source_equipment) {
     const auto handle=allocate_object(2);

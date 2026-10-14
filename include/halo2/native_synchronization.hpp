@@ -75,7 +75,8 @@ public:
   // Stages real unlocked mutexes/semaphores and holds the local service gate
   // until publication/cancellation. All captured services keep their identity
   // and resolve imported handles afterward. Do not call services/object_count
-  // from the staging thread while PreparedRestore owns that gate.
+  // from the staging thread while PreparedRestore owns that gate. Prepared
+  // restoration must commit or be destroyed on that same barrier thread.
   PreparedRestore prepare_restore(const Checkpoint &) const;
   bool commit_restore(PreparedRestore &&) noexcept;
 private:

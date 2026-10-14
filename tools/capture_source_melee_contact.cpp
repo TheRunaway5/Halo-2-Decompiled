@@ -12,7 +12,7 @@ namespace {void check(bool ok,const char *why){if(!ok)throw FormatError(why);}}
 // No fabricated geometry, source state, hit result or lower return is supplied.
 int main(int argc,char **argv)try {
   std::cout<<std::unitbuf;
-  check(argc==5 || argc==6,"Supply MAP SHARED TU15 OUTPUT_DIRECTORY [sword|primary|grenade|target|sword-target|primary-target|lunge]");
+  check(argc==5 || argc==6,"Supply MAP SHARED TU15 OUTPUT_DIRECTORY [sword|primary|grenade|plasma|target|sword-target|primary-target|lunge|fire-N]");
   const auto mode=argc==6?std::string_view(argv[5]):std::string_view("melee");
   const bool firing=mode.starts_with("fire-");
   const bool lunge=mode=="lunge";
@@ -66,6 +66,7 @@ int main(int argc,char **argv)try {
     victim.position=floor->position+Vec3{0,0,.002f};victim.facing+=3.14159265358979323846f;
     options.native_spawn_inputs.push_back(victim);options.local_players=2;
   }
+  if(plasma)options.variant.values.set(83,17); // Authored Sword weapon-set rule owns plasma conversion.
   options.session_random_seed=0x12345678;
   std::vector<std::uint32_t> players;
   options.player_birth_owner=[&](MultiplayerPlayer &p,unsigned){players.push_back(p.source_datum);p.source_flags=8;};

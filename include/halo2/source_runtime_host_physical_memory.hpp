@@ -45,7 +45,8 @@ public:
   };
   OwnershipCheckpoint ownership_checkpoint() const;
   // Stage actual pages/protections and retain the protection lock until commit
-  // or cancellation. The complete world owner must first quiesce all users.
+  // or cancellation on the same barrier thread. The complete world owner
+  // must first quiesce all users, and must outlive PreparedOwnership.
   PreparedOwnership prepare_ownership(const OwnershipCheckpoint &,
                                       const SourceRuntimeMemory::Checkpoint &) const;
   // After admitted bank publication. Releases only old host mappings; the

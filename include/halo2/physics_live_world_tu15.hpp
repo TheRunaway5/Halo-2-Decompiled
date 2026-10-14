@@ -69,6 +69,9 @@ public:
     std::uint32_t source_object_pool() const;
     std::uint32_t source_player_pool() const;
     std::uint32_t source_object_body(std::uint32_t full_datum) const;
+    // Original1717B0 requests authored sections;130980 owns allocation,
+    // real cache-sector I/O and22A680 pointer publication on this same bank.
+    void preload_render_model(std::uint32_t render_model);
     // The native roster ordinal disambiguates offline identities on this
     // machine; it does not bind the original four local input/view records.
     void construct_player(std::uint32_t player,unsigned native_identity_ordinal,

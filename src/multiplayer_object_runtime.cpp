@@ -1169,7 +1169,7 @@ std::uint32_t MultiplayerObjectRuntime::call(std::uint32_t entry,std::span<const
   throw FormatError("Multiplayer TU1.5 correspondence entry is unavailable");
 }
 void MultiplayerObjectRuntime::preload_render_model(std::uint32_t model) {
-  if(tu15_)throw FormatError("TU1.5 native model-resource adapter is unresolved");
+  if(tu15_){tu15_->preload_render_model(model);return;}
   impl_->preload_render_model(model);
 }
 void MultiplayerObjectRuntime::begin_model_frame() {
