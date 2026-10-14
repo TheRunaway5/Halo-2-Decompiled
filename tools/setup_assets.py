@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare user-owned MCC, Vista UI/audio and Xbox assets without running the games."""
+"""MCC-only onboarding, with retained helpers for explicit reference research."""
 from __future__ import annotations
 
 import argparse
@@ -441,7 +441,7 @@ def inventory(root):
         for p in sorted(root.rglob("*")) if p.is_file()}
 
 
-def setup(root, vista_source, xbox_source, progress=print):
+def setup_reference(root, vista_source, xbox_source, progress=print):
     root = root.resolve()
     imports = root / "assets/imported"
     imports.mkdir(parents=True, exist_ok=True)
@@ -576,67 +576,30 @@ def repair_loading(root, progress=print):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
-    parser.add_argument("--vista", type=Path, help="Vista installer ZIP/data archive, setup EXE with data, or extracted folder")
-    parser.add_argument("--xbox", type=Path, help="Original Halo 2 Xbox ISO or complete extracted game folder")
     parser.add_argument("--interactive", action="store_true")
-    parser.add_argument("--repair-loading", action="store_true", help="repair a saved import's missing loading resources from its recorded installer")
-    parser.add_argument("--import-mcc-hud", action="store_true", help="Import and select the installed MCC Halo 2 Classic HUD/fonts")
-    parser.add_argument("--mcc-root", type=Path,
-        help="MCC installation for --prepare-mcc-gameplay; otherwise implies --import-mcc-hud")
+    parser.add_argument("--mcc-root", type=Path, help="MCC installation or halo2 folder; otherwise scan installed game libraries")
+    parser.add_argument("--use-cache", type=Path, help="verify and select an existing private MCC import")
     parser.add_argument("--prepare-mcc-gameplay", action="store_true",
-        help="scan installed MCC, copy its data and prepare verified TU1.5 fixes; native playback is not yet supported")
-    parser.add_argument("--prepare-vista-gameplay", action="store_true",
-        help="prepare Vista maps/tags with verified TU1.5 corrections; does not activate unsupported native playback")
+        help="prepare and select the private MCC cache; does not declare incomplete conversion playable")
     args = parser.parse_args()
-    if args.prepare_mcc_gameplay:
-        if args.vista or args.xbox or args.interactive or args.repair_loading or args.import_mcc_hud or args.prepare_vista_gameplay:
-            parser.error("MCC gameplay preparation uses only --mcc-root (or automatic installation discovery)")
-        from prepare_mcc_gameplay import prepare
-        try:
-            prepare(args.root, args.mcc_root)
-            return 0
-        except (OSError, ValueError) as error:
-            print(f"MCC preparation failed: {error}", file=sys.stderr)
-            return 1
-    if args.repair_loading:
-        try:
-            repair_loading(args.root)
-            return 0
-        except (OSError, ValueError, KeyError, subprocess.SubprocessError, zipfile.BadZipFile) as error:
-            print(f"Loading resource repair needs source selection: {error}", file=sys.stderr)
-            return 2
-    if args.import_mcc_hud or args.mcc_root:
-        if args.interactive or args.prepare_vista_gameplay:
-            parser.error("MCC HUD import requires the normal game sources to be set up first")
-        if args.vista or args.xbox:
-            if not args.vista or not args.xbox:
-                parser.error("provide both --vista and --xbox when preparing game sources")
-            setup(args.root, args.vista, args.xbox)
-        command = [sys.executable, str(Path(__file__).with_name("import_mcc_hud.py")),
-            "--root", str(args.root), "--activate"]
-        if args.mcc_root:
-            command += ["--mcc-root", str(args.mcc_root)]
-        return subprocess.call(command)
+    if args.use_cache and (args.interactive or args.mcc_root):
+        parser.error("--use-cache takes a completed private MCC import by itself")
     if args.interactive:
-        if args.prepare_vista_gameplay:
-            parser.error("Vista gameplay preparation currently requires explicit --vista and --xbox sources")
         try:
             from setup_assets_ui import run
-            return run(args.root, args.vista, args.xbox)
+            return run(args.root, args.mcc_root)
         except (ImportError, RuntimeError) as error:
-            print(f"Cannot open source selection: {error}")
+            print(f"Cannot open MCC setup: {error}", file=sys.stderr)
             return 1
-    if not args.vista or not args.xbox:
-        parser.error("both --vista and --xbox sources are required")
     try:
-        if args.prepare_vista_gameplay:
-            from prepare_vista_gameplay import prepare
-            prepare(args.root, args.vista, args.xbox)
+        import mcc_onboarding
+        if args.use_cache:
+            mcc_onboarding.select(args.root, args.use_cache)
         else:
-            setup(args.root, args.vista, args.xbox)
+            mcc_onboarding.setup(args.root, args.mcc_root)
         return 0
-    except (OSError, ValueError, subprocess.SubprocessError, zipfile.BadZipFile) as error:
-        print(f"Asset import failed: {error}")
+    except (OSError, ValueError, KeyError) as error:
+        print(f"MCC import failed: {error}", file=sys.stderr)
         return 1
 
 

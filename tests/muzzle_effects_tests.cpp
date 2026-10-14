@@ -128,11 +128,13 @@ int main(int argc,char **argv) {
       check(emitted_sounds.size()==1 && emitted_sounds[0].owner==0x10000u+shot &&
           emitted_sounds[0].cue.sound==weapon.sound && emitted_sounds[0].cue.gain==1,
           "SMG normal effect lost its one authored sound part");
+      owner.pose(0x10000u+shot,[&](auto){return markers[0].world;},view,tick,tick_seconds);
       const auto draws=owner.draw(0x10000u+shot,markers[0].world,view,tick,0,tick_seconds);
       check(!draws.empty() && owner.particle_count()>0,"Actual muzzle event failed to birth particles");
       if(shot==0) {
         shared_owner.advance(tick,tick_seconds);
         shared_owner.request({effect,0x10000u+shot,previous,0x3f800000,0x3f800000},tick);
+        shared_owner.pose(0x10000u+shot,[&](auto){return markers[0].world;},view,tick,tick_seconds);
         const auto borrowed=shared_owner.draw(0x10000u+shot,markers[0].world,view,tick,0,tick_seconds);
         check(borrowed.size()==draws.size() && auxiliary!=0x12345678 && primary==0x78a8,
             "Muzzle birth did not retain its shared auxiliary stream");
@@ -147,6 +149,17 @@ int main(int argc,char **argv) {
       do {owner.advance(++tick,tick_seconds);++elapsed;}while(owner.particle_count() && elapsed<300);
       check(!owner.particle_count(),"Actual muzzle particles did not expire");
       previous=handle; // Exercises validation of a now stale full handle.
+    }
+    // Drawing is optional: a switched weapon or occluded view must still
+    // emit and release every native owner on the simulation clock.
+    NativeMuzzleEffects unseen(cache,0x12345678);
+    unsigned unseen_tick{};
+    for(unsigned shot=0;shot<600;++shot) {
+      const auto handle=unseen.request({effect,0x50000u+shot,0xffffffffu,0x3f800000,0x3f800000},unseen_tick);
+      check(handle!=0xffffffffu,"Undrawn effects leaked their original effect pool");
+      unseen.pose(0x50000u+shot,[&](auto){return markers[0].world;},view,unseen_tick,tick_seconds);
+      for(unsigned n=0;n<90;++n)unseen.advance(++unseen_tick,tick_seconds);
+      check(!unseen.particle_count(),"Undrawn effects retained expired particles");
     }
     check(needler_effect.events.size()==2 && needler_effect.systems.size()==5,
         "Needler omitted its original shared-camera muzzle or FP smoke system");
@@ -170,6 +183,7 @@ int main(int argc,char **argv) {
       const auto owner=0x40000u+(shot<30?0:shot);
       const unsigned wait=shot<29?4:80;
       for(unsigned n=0;n<wait;++n) {
+        firing.pose(owner,needler_marker,view,firing_tick,tick_seconds);
         firing.advance(firing_tick,tick_seconds);
         for(const auto &sound:firing.take_sounds()) {
           check(sound.owner==owner && sound.cue.sound==needler->second.sound && sound.cue.gain==1,
@@ -200,6 +214,7 @@ int main(int argc,char **argv) {
     activation.advance(0,tick_seconds);activation.request({sword->second.ready_effect,0x30000,0xffffffffu,0,0},0);
     unsigned activation_sounds{},activation_draws{};
     for(unsigned t=0;t<120;++t) {
+      activation.pose(0x30000,placement,view,t,tick_seconds);
       activation.advance(t,tick_seconds);
       for(const auto &sound:activation.take_sounds()) {
         check(t==15 && sound.owner==0x30000 && sound.cue.sound==0xe2fc0187u && sound.cue.gain==1,

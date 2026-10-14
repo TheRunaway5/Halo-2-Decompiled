@@ -38,7 +38,7 @@ bool map_attribute(const BspSurfaceLighting& bank,const SourceVectorContactPacke
         if(definitions[record]>1)throw FormatError("source instance attribution residency scheduling unresolved");
         if(!definitions[record])return false;
     }else throw FormatError("source14AC60 unsupported contact type");
-    const CollisionSurfaceIdentity identity{bank.bsp,record,std::int32_t(p[20]),instance,std::int32_t(p[21])};
+    const CollisionSurfaceIdentity identity{bank.bsp,record,std::int32_t(p[20]),instance,std::uint16_t(p[21])};
     const auto hit=bank.attribute(identity,{scalar(p[2]),scalar(p[3]),scalar(p[4])},p[19]);
     if(!hit)return false;
     out[0]=std::uint32_t(hit->cluster);out[1]=std::uint32_t(instance);out[6]=0;

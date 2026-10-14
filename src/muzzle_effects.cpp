@@ -45,8 +45,11 @@ AuthoredMuzzleEffect Cache::load_muzzle_effect(std::uint32_t datum) const {
       d.clocks.push_back({b.f32(e+4),b.f32(e+8),b.f32(e+12),b.f32(e+16),b.f32(e+20)});
       const auto parts=b.u32(e+0x18);
       const auto part=parts?offset(b.u32(e+0x1c),std::size_t(parts)*0x38):0;
-      for(unsigned n=0;n<parts;++n)if(b.u32(part+n*0x38+0x10)!=0xffffffffu && b.u32(part+n*0x38+8)!=0x736e6421u)
-        throw FormatError("muzzle part requires its original non-sound owner");
+      for(unsigned n=0;n<parts;++n)if(b.u32(part+n*0x38+0x10)!=0xffffffffu) {
+        const auto group=b.u32(part+n*0x38+8);
+        if(group==0x6c696768u)d.light_parts=true;
+        else if(group!=0x736e6421u)throw FormatError("muzzle part requires its original non-sound owner");
+      }
       const auto count=b.u32(e+0x30);
       const auto first=count?offset(b.u32(e+0x34),std::size_t(count)*0x38):0;
       for(unsigned n=0;n<count;++n) {
@@ -127,6 +130,8 @@ struct NativeMuzzleEffects::Impl {
     Vec3 velocity;
     struct Slice {unsigned event{};float before{},seconds{},duration{};};
     std::vector<Slice> slices;
+    struct Pose {std::map<std::uint32_t,Transform> markers;MuzzleEffectView view;};
+    std::optional<Pose> pose;
   };
   std::map<std::uint32_t,Definition> definitions;
   std::map<std::uint32_t,Effect> effects;
@@ -231,7 +236,11 @@ std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::u
   return request(input,tick,colors,{});
 }
 std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::uint32_t tick,SourceEffectColors colors,Vec3 velocity) {
+  return request(input,tick,colors,velocity,false);
+}
+std::uint32_t NativeMuzzleEffects::request(const WeaponEffectInput &input,std::uint32_t tick,SourceEffectColors colors,Vec3 velocity,bool light_parts_owned) {
   auto &i=*impl_;const auto &d=i.definition(input.effect);
+  if(d.light_parts && !light_parts_owned)throw FormatError("Muzzle light parts require their live world owner");
   if(auto found=i.effects.find(input.previous_handle);found!=i.effects.end() && found->second.definition==input.effect) {
     auto &e=found->second;e.pending=true;e.retiring=false;e.tick=tick;
     //17DFF0 ->17A1A0 reselects0 without rewriting A/B/colors or running
@@ -256,6 +265,18 @@ std::vector<std::uint32_t> NativeMuzzleEffects::marker_names(std::uint32_t effec
 }
 std::vector<NativeMuzzleEffects::Sound> NativeMuzzleEffects::take_sounds(){return std::exchange(impl_->sounds,{});}
 void NativeMuzzleEffects::collision_query(ParticleCollisionQuery query){impl_->collision=std::move(query);}
+void NativeMuzzleEffects::pose(std::uint32_t weapon,const Marker &marker,const MuzzleEffectView &view,
+    std::uint32_t tick,float seconds) {
+  auto &i=*impl_;
+  for(auto &[handle,e]:i.effects)if(e.weapon==weapon) {
+    e.pose.emplace();e.pose->view=view;
+    for(const auto &system:i.definition(e.definition).systems)
+      e.pose->markers.try_emplace(system.marker,marker(system.marker));
+    const auto retained=[&](std::uint32_t name){return e.pose->markers.at(name);};
+    for(const auto &slice:e.slices)i.birth(e,retained,view,tick,seconds,slice);
+    e.slices.clear();
+  }
+}
 void NativeMuzzleEffects::advance(std::uint32_t tick,float seconds) {
   auto &i=*impl_;if(!i.advanced){i.advanced=tick;return;}
   if(tick<*i.advanced)throw FormatError("muzzle clock reversed");
@@ -267,7 +288,7 @@ void NativeMuzzleEffects::advance(std::uint32_t tick,float seconds) {
     while(*link!=DatumPool::none) {
       auto p=i.particles.find(*link);if(p==i.particles.end())throw FormatError("muzzle particle chain lost allocation");
       auto &v=p->second;v.age=v.inverse_lifetime*seconds+v.age;
-      if(v.age>1.f) {
+      if(v.age>1.f || (v.flags&1u)) {
         const auto dead=p->first;*link=v.next_particle;--emitter.state.particle_count;
         i.particle_pool.release_unchecked(dead);i.particles.erase(p);
       }else {
@@ -300,6 +321,11 @@ void NativeMuzzleEffects::advance(std::uint32_t tick,float seconds) {
     }
    }
    for(auto &[handle,e]:i.effects)if(t+1>e.tick && !e.retiring)i.event_step(e,seconds);
+   for(auto &[handle,e]:i.effects)if(e.pose) {
+     const auto marker=[&](std::uint32_t name){return e.pose->markers.at(name);};
+     for(const auto &slice:e.slices)i.birth(e,marker,e.pose->view,t+1,seconds,slice);
+     e.slices.clear();
+   }
    for(auto effect=i.effects.begin();effect!=i.effects.end();) {
     auto &e=effect->second;
     // 1764B0/176E20 retains a retired system while any emitter owns live
@@ -331,8 +357,6 @@ std::vector<ParticleDraw> NativeMuzzleEffects::draw(std::uint32_t weapon,const M
     const MuzzleEffectView &view,std::uint32_t tick,float fraction,float seconds) {
   auto &i=*impl_;std::vector<ParticleDraw> result;
   for(auto &[handle,e]:i.effects)if(e.weapon==weapon) {
-    for(const auto &slice:e.slices)i.birth(e,marker,view,tick,seconds,slice);
-    e.slices.clear();
     const auto &d=i.definition(e.definition);
     for(unsigned n=0;n<e.systems.size();++n) {
       auto &s=e.systems[n];const auto &a=d.systems[s.definition_index];

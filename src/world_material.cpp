@@ -39,6 +39,13 @@ bool lighting_vertex(const MaterialPass &p, bool per_vertex) {
   return leaf.starts_with(per_vertex ? "lightmap_pervertex" : "lightmap_perpixel");
 }
 
+bool environment_vertex(const MaterialPass& p) {
+  // Both authored families execute their own original compiled program.
+  // Cairo's fast/masked pass selects stencil_env, not the bumped variant.
+  return p.vertex_shader.ends_with("\\stencil_env_bumped_tangentspace") ||
+      p.vertex_shader.ends_with("\\stencil_env");
+}
+
 bool volume_addressing_supported(const PixelProgram &program,unsigned stage) {
   const auto mode=(program.words[54]>>(stage*5))&31;
   // The production texture interpreter preserves literal PROJECT2D (R=0)
@@ -586,7 +593,7 @@ static bool prepare_world_lighting(const Cache &cache, Material &material, unsig
   }
   // Retail 2BCD0 submits environment layer 8 before self-illumination 7.
   for(const auto index:layer_passes(material,8,0)) {
-    if(material.passes[index].vertex_shader.ends_with("\\stencil_env_bumped_tangentspace")) {
+    if(environment_vertex(material.passes[index])) {
       if(auto environment=bind_pass(cache,material,index,4,false))
         result->world_overlays_after.push_back(std::move(environment));
       else result->rendering_gaps.push_back("world environment requires unresolved externs: "+material.passes[index].name);

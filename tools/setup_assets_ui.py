@@ -159,138 +159,121 @@ class LauncherCanvas:
 
 
 class SourceSelector(LauncherCanvas):
-    """Own the window so previews can exercise the actual controls safely."""
+    """Detect MCC in the background and import into an owned local cache."""
 
-    def __init__(self, window, root, vista=None, xbox=None, setup_function=None):
-        super().__init__(window, root, "Halo 2 — Game file setup")
-        tk = self.tk
-        if setup_function is None:
-            from setup_assets import setup
-            setup_function = setup
-        self.setup = setup_function
+    def __init__(self, window, root, mcc=None, setup_function=None,
+                 discover_function=None, auto_detect=True):
+        from mcc_onboarding import setup
+        from mcc_content import discover
+
+        super().__init__(window, root, "Halo 2 — MCC setup")
+        self.setup = setup_function or setup
+        self.discover = discover_function or discover
         self.events = queue.Queue()
-        self.result = 1
-        self.working = False
-        self.closed = False
-        self.error = False
-        self.controls = []
-        self.entries = []
-        self.source_indicators = []
+        self.result, self.working, self.scanning, self.closed, self.error = 1, False, False, False, False
+        self.modal = False
         self.text(51, 158, "G A M E   F I L E   S E T U P", 12, CYAN)
         self.line(50, 193, 318, 193, fill=EDGE)
-        self.text(49, 225, "Welcome back.", 29, INK)
-        self.text(51, 274, "Bring your copy.\nWe’ll prepare the rest.", 17, MUTED, width=280)
+        self.text(49, 225, "Bring your copy.", 29, INK)
+        self.text(51, 274, "Install Halo MCC.\nWe’ll prepare the cache.", 17, MUTED, width=280)
         self.text(51, 354, "G E T   S T A R T E D", 11, MUTED)
         self.steps = []
-        for i, (title, detail) in enumerate((("Select your sources", "Xbox disc + Vista installer"),
-                                           ("Build the game cache", "Prepared automatically"),
-                                           ("Ready to play", "Launch into Halo 2"))):
+        for i, (title, detail) in enumerate((("Find MCC", "Search installed game libraries"),
+                                           ("Prepare the cache", "Copy and convert game content"),
+                                           ("Cache prepared", "MCC content copied locally"))):
             y = 397 + i * 66
-            number = self.text(52, y, f"0{i + 1}", 14, MUTED, mono=True)
-            heading = self.text(88, y - 2, title, 16, MUTED)
-            caption = self.text(88, y + 23, detail, 12, MUTED)
-            self.steps.append((number, heading, caption))
+            self.steps.append((self.text(52, y, f"0{i + 1}", 14, MUTED, mono=True),
+                               self.text(88, y - 2, title, 16, MUTED),
+                               self.text(88, y + 23, detail, 12, MUTED)))
         self.step_marker = self.canvas.create_rectangle(37, 395, 40, 436, fill=CYAN, outline="", tags="art")
         self._set_step(0)
         self.line(365, 223, 365, 660, fill="#29475b")
-        self.text(400, 119, "Prepare your game", 30, INK)
-        self.text(402, 163, "Choose both sources to build your cache.", 15, MUTED)
-        # Keep the importer's Vista/Xbox argument order, while presenting the
-        # original game disc first in the visual reading and keyboard order.
-        self.values = [tk.StringVar(window, value=str(vista or "")),
-                       tk.StringVar(window, value=str(xbox or ""))]
-        self._source(1, 209, "01", "Xbox game disc", "Original gameplay, models and world textures", "Browse ISO…")
-        self._source(0, 383, "02", "Vista installer", "Menus, HUD, fonts and match announcer audio", "Browse file…")
-        self.status_label = tk.Label(window, text="Select your Xbox disc image and Halo 2 Vista installer.",
-                                     background="#0d263b", foreground=MUTED, font=self.font(13),
-                                     anchor="nw", justify="left", wraplength=self.px(563), borderwidth=0)
-        self.place(self.status_label, 402, 562, 585, 44)
+        self.text(400, 119, "Prepare from MCC", 30, INK)
+        self.text(402, 163, "Halo MCC is the only installation you need.", 15, MUTED)
+        self.canvas.create_polygon(400, 209, 977, 209, 988, 220, 988, 370,
+                                   400, 370, fill=PANEL, outline=EDGE, tags="art")
+        self.line(400, 209, 477, 209, fill=CYAN, width=2)
+        self.text(423, 226, "01  /  HALO MCC", 10, CYAN, mono=True)
+        self.text(422, 247, "Master Chief Collection", 21)
+        self.text(423, 283, "MCC installation or halo2 folder. Leave blank to detect it.", 13, MUTED, width=535)
+        self.value = self.tk.StringVar(window, value=str(mcc or ""))
+        self.entry = self.tk.Entry(window, textvariable=self.value, font=self.font(13),
+                                  background=FIELD, foreground=INK, insertbackground=CYAN,
+                                  disabledbackground="#101f2b", disabledforeground="#637f90",
+                                  selectbackground="#34677d", selectforeground="#ffffff",
+                                  relief="flat", borderwidth=0, highlightthickness=1,
+                                  highlightbackground=EDGE, highlightcolor=CYAN)
+        self.place(self.entry, 423, 323, 426, 32)
+        self.browse_button = self.button("Browse…", self.browse, 861, 323, 104, 32)
+        self.scan_button = self.button("Scan installed games", self.scan, 400, 397, 220, 36)
+        self.controls = [self.entry, self.browse_button, self.scan_button]
+        self.status_label = self.tk.Label(window, text="Scan installed games or browse to the MCC folder.",
+                                         background=PANEL, foreground=MUTED, font=self.font(14),
+                                         anchor="nw", justify="left", wraplength=self.px(555),
+                                         padx=self.px(12), pady=self.px(12), borderwidth=0)
+        self.place(self.status_label, 400, 451, 588, 138)
         self.bar = self.progressbar()
-        self.place(self.bar, 401, 614, 587, 3)
+        self.place(self.bar, 400, 614, 588, 3)
         self.cancel = self.button("Cancel", self.close, 400, 641, 124, 43)
-        self.prepare = self.button("Prepare game files  ›", self.start, 696, 641, 292, 43, primary=True)
+        self.prepare = self.button("Prepare MCC cache  ›", self.start, 696, 641, 292, 43, primary=True)
         self.text(52, 651, "YOUR ORIGINAL FILES STAY INTACT", 10, MUTED, mono=True)
-        self.text(52, 672, "Select once. Play from your local cache.", 12, MUTED)
+        self.text(52, 672, "MCC content stays in your local cache.", 12, MUTED)
         self.line(26, 701, 1014, 701, fill=EDGE)
-        # Scale geometry once; text uses pixel fonts and widgets have scaled
-        # placement so Tk's platform-specific DPI setting cannot cause overlaps.
         self.canvas.scale("art", 0, 0, self.scale, self.scale)
-        for value in self.values:
-            value.trace_add("write", self._selection_changed)
+        self.value.trace_add("write", self._selection_changed)
         self._selection_changed()
         window.protocol("WM_DELETE_WINDOW", self.close)
         window.bind("<Escape>", lambda event: self.close())
-        self.poll_id = window.after(100, self.poll)
-        self.entries[0].focus_set()
-
-    def _source(self, index, y, number, title, hint, browse_label):
-        c = self.canvas
-        border = c.create_polygon(400, y, 977, y, 988, y + 11, 988, y + 150,
-                                  400, y + 150, fill=PANEL, outline=EDGE, tags="art")
-        self.line(400, y, 477, y, fill=CYAN, width=2)
-        self.text(423, y + 17, number + "  /  " + ("ORIGINAL XBOX" if index else "HALO 2 VISTA"), 10, CYAN, mono=True)
-        self.text(422, y + 38, title, 21)
-        indicator = self.text(970, y + 19, "REQUIRED", 10, MUTED, mono=True)
-        c.itemconfigure(indicator, anchor="ne")
-        self.source_indicators.append((index, indicator))
-        self.text(423, y + 71, hint, 13, MUTED)
-        entry = self.tk.Entry(self.window, textvariable=self.values[index], font=self.font(13),
-                              background=FIELD, foreground=INK, insertbackground=CYAN,
-                              disabledbackground="#101f2b", disabledforeground="#637f90",
-                              selectbackground="#34677d", selectforeground="#ffffff",
-                              relief="flat", borderwidth=0, highlightthickness=1,
-                              highlightbackground=EDGE, highlightcolor=CYAN)
-        self.place(entry, 423, y + 104, 311, 32)
-        self.entries.append(entry)
-        file_button = self.button(browse_label, lambda: self.browse(index), 746, y + 104, 111, 32)
-        folder_button = self.button("Folder…", lambda: self.browse(index, folder=True), 869, y + 104, 96, 32)
-        entry.bind("<FocusIn>", lambda event: c.itemconfigure(border, outline="#6caabc"))
-        entry.bind("<FocusOut>", lambda event: c.itemconfigure(border, outline=EDGE))
-        self.controls.extend((entry, file_button, folder_button))
+        self.poll_id = window.after(50, self.poll)
+        self.entry.focus_set()
+        if auto_detect and not mcc:
+            window.after(1, self.scan)
 
     def _set_step(self, active):
         for i, (number, heading, caption) in enumerate(self.steps):
             self.canvas.itemconfigure(number, fill=CYAN if i == active else "#67879b")
             self.canvas.itemconfigure(heading, fill=INK if i == active else MUTED)
             self.canvas.itemconfigure(caption, fill=MUTED if i == active else "#7292a5")
-        # Called before the one-time geometry scale during construction.
         if hasattr(self, "step_marker"):
             scale = self.scale if hasattr(self, "prepare") else 1
             y = 395 + active * 66
             self.canvas.coords(self.step_marker, 37 * scale, y * scale, 40 * scale, (y + 41) * scale)
 
     def _selection_changed(self, *args):
-        for index, indicator in self.source_indicators:
-            selected = bool(self.values[index].get().strip())
-            self.canvas.itemconfigure(indicator, text="SELECTED" if selected else "REQUIRED",
-                                      fill=CYAN if selected else MUTED)
-        if self.working:
+        if self.working or self.scanning:
             return
         self.error = False
-        if all(v.get().strip() for v in self.values):
-            self.status_label.configure(text="Both sources selected. Ready to prepare your game files.", foreground=CYAN)
-        else:
-            self.status_label.configure(text="Select your Xbox disc image and Halo 2 Vista installer.", foreground=MUTED)
+        self.status_label.configure(text="MCC folder selected. Prepare to copy its content into your local cache."
+                                    if self.value.get().strip() else
+                                    "Scan installed games or browse to the MCC folder.", foreground=MUTED)
 
-    def browse(self, index, folder=False):
-        if self.working:
+    def browse(self):
+        if self.working or self.scanning or self.modal:
             return
-        if folder:
-            path = self.filedialog.askdirectory(parent=self.window, title="Select Halo 2 source folder")
-        else:
-            types = [("Halo 2 Vista installer", "*.zip *.bin *.exe *.7z"), ("All files", "*")] if index == 0 else [
-                ("Xbox disc image", "*.iso"), ("All files", "*")]
-            path = self.filedialog.askopenfilename(parent=self.window,
-                    title="Select " + ("Vista installer" if index == 0 else "Xbox disc image"), filetypes=types)
+        path = self.filedialog.askdirectory(parent=self.window, title="Select the Halo MCC installation or halo2 folder")
         if path:
-            self.error = False
-            self.values[index].set(path)
+            self.value.set(path)
+
+    def scan(self):
+        if self.closed or self.working or self.scanning or self.modal:
+            return
+        self.scanning = True
+        for widget in self.controls + [self.prepare]:
+            widget.configure(state="disabled")
+        self.status_label.configure(text="Searching installed MCC game libraries…", foreground=CYAN)
+        self.bar.start(14)
+        def work():
+            try:
+                self.events.put(("detected", str(self.discover())))
+            except Exception as error:
+                self.events.put(("not-found", str(error)))
+        threading.Thread(target=work, daemon=True).start()
 
     def _busy(self, busy):
         self.working = busy
         for widget in self.controls + [self.prepare, self.cancel]:
             widget.configure(state="disabled" if busy else "normal")
-        self.prepare.configure(text="Preparing game files…" if busy else "Prepare game files  ›",
+        self.prepare.configure(text="Preparing MCC cache…" if busy else "Prepare MCC cache  ›",
                                background="#173448" if busy else "#a6e4ef")
         self._set_step(1 if busy else 0)
         if busy:
@@ -299,22 +282,16 @@ class SourceSelector(LauncherCanvas):
             self.bar.stop()
 
     def start(self):
-        if self.working:
+        if self.working or self.scanning or self.closed or self.modal:
             return
-        missing = next((i for i in (1, 0) if not self.values[i].get().strip()), None)
-        if missing is not None:
-            self.error = True
-            self.status_label.configure(text="Select both sources: your Xbox disc image and Vista installer.", foreground="#ffd29b")
-            self.controls[0 if missing == 1 else 3].focus_set()
-            return
-        selected = [Path(v.get().strip()).expanduser() for v in self.values]
+        value = self.value.get().strip()
+        selected = Path(value).expanduser() if value else None
         self.error = False
         self._busy(True)
-        self.status_label.configure(text="Preparing your local cache. This may take a few minutes.", foreground=CYAN)
-
+        self.status_label.configure(text="Preparing your private MCC cache. This may take a few minutes.", foreground=CYAN)
         def work():
             try:
-                self.setup(self.root, *selected, progress=lambda message: self.events.put(("status", message)))
+                self.setup(self.root, selected, progress=lambda message: self.events.put(("status", message)))
                 self.events.put(("done", None))
             except Exception as error:
                 self.events.put(("error", str(error)))
@@ -330,7 +307,7 @@ class SourceSelector(LauncherCanvas):
         dialog.resizable(False, False)
         tk.Label(dialog, text="Import incomplete", background=PANEL, foreground=INK,
                  font=self.font(22), anchor="w").pack(fill="x", pady=(0, self.px(12)))
-        # Long archive errors remain readable without growing past the screen.
+        # Long import errors remain readable without growing past the screen.
         detail_frame = tk.Frame(dialog, background=PANEL)
         detail_frame.pack(fill="both", expand=True)
         scrollbar = tk.Scrollbar(detail_frame, background=EDGE, troughcolor=FIELD,
@@ -345,7 +322,7 @@ class SourceSelector(LauncherCanvas):
         text.configure(state="disabled")
         text.pack(side="left", fill="both", expand=True)
         scrollbar.configure(command=text.yview)
-        tk.Label(dialog, text="Check your sources, then try again.", background=PANEL,
+        tk.Label(dialog, text="Check the MCC folder, then try again.", background=PANEL,
                  foreground=INK, font=self.font(13)).pack(anchor="w", pady=self.px(16))
         button = tk.Button(dialog, text="Back to setup", command=dialog.destroy, background="#a6e4ef",
                            foreground="#092335", activebackground="#cef5fc", relief="flat",
@@ -364,13 +341,21 @@ class SourceSelector(LauncherCanvas):
 
     def poll(self):
         try:
-            while True:
+            for _ in range(500):
                 kind, value = self.events.get_nowait()
                 if kind == "status":
-                    # Stage paths can be very long. Keep status inside its
-                    # region; full errors remain in the scrollable dialog.
                     text = str(value).replace("\n", " ")
-                    self.status_label.configure(text=text if len(text) <= 150 else text[:147] + "…")
+                    self.status_label.configure(text=text if len(text) <= 250 else text[:247] + "…")
+                elif kind in ("detected", "not-found"):
+                    self.scanning = False
+                    self.bar.stop()
+                    for widget in self.controls + [self.prepare]:
+                        widget.configure(state="normal")
+                    if kind == "detected":
+                        self.value.set(value)
+                        self.status_label.configure(text="Found MCC Halo 2. Prepare to copy its content into your local cache.", foreground=CYAN)
+                    else:
+                        self.status_label.configure(text="MCC Halo 2 was not found. Install its Classic content, or browse to your MCC folder.", foreground="#ffd29b")
                 elif kind == "done":
                     self.result = 0
                     self._set_step(2)
@@ -381,50 +366,49 @@ class SourceSelector(LauncherCanvas):
                 else:
                     self._busy(False)
                     self.error = True
-                    self.status_label.configure(text="Import did not complete. Check your sources and try again.", foreground="#ffd29b")
-                    self._show_error(value)
+                    self.status_label.configure(text="Import did not complete. Check the MCC folder and try again.", foreground="#ffd29b")
+                    self.modal = True
+                    try:
+                        self._show_error(value)
+                    finally:
+                        self.modal = False
         except queue.Empty:
             pass
         if not self.closed:
-            self.poll_id = self.window.after(100, self.poll)
+            self.poll_id = self.window.after(50, self.poll)
 
     def close(self):
-        if not self.working and not self.closed:
+        if not self.working and not self.closed and not self.modal:
             self.closed = True
             self.window.after_cancel(self.poll_id)
+            self.bar.stop()
             self.window.destroy()
 
 
-def run(root, vista=None, xbox=None):
-    terminal_setup = (
-        'Terminal setup requires both paths: ./Halo2-Launcher '
-        '--vista-source "/path/to/Vista installer.zip" --xbox-source "/path/to/Halo 2.iso"'
-    )
+def run(root, mcc=None):
+    terminal_setup = ('Terminal setup: ./Halo2-Launcher --setup '
+                      '--mcc-source "/path/to/Halo The Master Chief Collection" --setup-only')
     try:
         import tkinter as tk
     except ImportError as error:
-        raise RuntimeError(
-            f"The source selector requires Python Tk, which could not load in {sys.executable}: {error}\n"
-            f"Install Tk for this Python interpreter and retry.\n{terminal_setup}"
-        ) from error
+        raise RuntimeError(f"MCC setup requires Python Tk, which could not load in {sys.executable}: {error}\n"
+                           f"Install Tk for this Python interpreter and retry.\n{terminal_setup}") from error
     try:
         window = tk.Tk()
     except tk.TclError as error:
-        raise RuntimeError(f"Cannot open the source selector: {error}\n{terminal_setup}") from error
-    selector = SourceSelector(window, root, vista, xbox)
+        raise RuntimeError(f"Cannot open MCC setup: {error}\n{terminal_setup}") from error
+    selector = SourceSelector(window, root, mcc)
     window.mainloop()
     return selector.result
 
 
 if __name__ == "__main__":
-    # Open the actual selector without an asset import for design inspection.
     import argparse
     import tkinter as tk
-
-    parser = argparse.ArgumentParser(description="Preview the hand-drawn Halo 2 setup window (no imports).")
+    parser = argparse.ArgumentParser(description="Preview MCC setup without importing assets.")
     parser.parse_args()
     window = tk.Tk()
     def preview_only(*args, **kwargs):
-        raise RuntimeError("This is a visual preview. Reopen setup through Halo2-Launcher --setup to prepare game files.")
+        raise RuntimeError("This is a visual preview. Reopen Halo2-Launcher --setup to prepare the MCC cache.")
     SourceSelector(window, Path(__file__).resolve().parents[1], setup_function=preview_only)
     window.mainloop()

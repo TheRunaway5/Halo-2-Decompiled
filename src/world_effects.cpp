@@ -157,6 +157,7 @@ struct NativeWorldEffects::Impl {
     std::vector<ParticleMovementDefinition> movement;
     std::string location;
     std::uint32_t collision_sound = none;
+    std::uint32_t collision_foot = none;
     std::uint32_t death_sound = none;
     std::uint32_t death_effect = none;
     std::int16_t sort_bias{};
@@ -217,6 +218,9 @@ struct NativeWorldEffects::Impl {
     std::optional<std::string> attachment_marker;
     std::optional<NativeWorldEffects::ObjectMarkers> source_locations;
     SourceEffectColors colors;
+    Vec3 velocity;
+    std::uint32_t source_instance=none;
+    bool sounds=true,refresh_step{};
   };
   std::deque<Effect> effects;
   std::vector<WorldEffectFrame> frames(const Effect &e,const std::string &name) const {
@@ -378,6 +382,7 @@ struct NativeWorldEffects::Impl {
           Part part;
           part.decal = none;
           part.sound = parts.u32(a + 0x10);
+          part.light_scale_a=parts.u32(a+0x30);part.light_scale_b=parts.u32(a+0x34);
           part.location = marker(std::int16_t(parts.u16(a + 4)));
           event.parts.push_back(std::move(part));
         }
@@ -459,10 +464,15 @@ struct NativeWorldEffects::Impl {
                 // 2BF380 dispatches an independent sound leaf2490D0 after
                 // bounce arithmetic, then sets the same first-contact bit.
                 // Missing audio must not discard the particle's visual owner.
-                if (particle.root.u32(0x6c) != 0x736e6421u)
+                if(particle.root.u32(0x6c)==0x666f6f74u) {
+                  out.collision_foot=particle.root.u32(0x70);
+                  Packet foot(cache,out.collision_foot);
+                  if(foot.root.u32(0)>10 && foot.block(foot.root,0,0x18).u32(10u*0x18u+0x10))
+                    throw FormatError("Particle casing material requires authored visual children");
+                }else if (particle.root.u32(0x6c) != 0x736e6421u)
                   throw FormatError("Particle collider requires its authored "
                                     "child-effect dispatcher");
-                out.collision_sound = particle.root.u32(0x70);
+                else out.collision_sound = particle.root.u32(0x70);
               }
             }
             const auto shape = out.render.emitters[k].birth.shape;
@@ -650,8 +660,9 @@ struct NativeWorldEffects::Impl {
           if(id!=none)light_world->deliveries[id&0xffffu]={e.owner,t};
           continue;
         }
-        if (part.sound != none) {
-          sounds.push_back({part.sound, e.owner, t, marker.position, 1});
+        if (part.sound != none && e.sounds) {
+          sounds.push_back({part.sound, e.owner, t, marker.position,
+              source_effect_part_control(part.light_scale_a,part.light_scale_b,e.frame.scale_a,e.frame.scale_b)});
           continue;
         }
         std::set<std::uint32_t> chain;
@@ -703,7 +714,7 @@ struct NativeWorldEffects::Impl {
               auto &p = emitter.particles[datum];
               create_emitter_particle(
                   d.render, j, state, p,
-                  {datum, identity, s.fraction, request, {}}, s.values, owners,
+                  {datum, identity, s.fraction, request, e.velocity}, s.values, owners,
                   random_streams.auxiliary, *cache.original_data(),
                   *cache.shader_function_tables());
             });
@@ -753,13 +764,30 @@ void NativeWorldEffects::remove_object(std::uint32_t handle) {
   std::erase_if(impl_->effects,[&](const auto &e){return e.target==handle;});
 }
 void NativeWorldEffects::spawn_attached(std::uint32_t datum,std::uint32_t target,
-    std::uint32_t owner,std::uint64_t tick,SourceEffectColors colors) {
+    std::uint32_t owner,std::uint64_t tick,SourceEffectColors colors,SourceEffectControls controls) {
   if(datum==none || !impl_->object_markers.contains(target))return;
   preload_attached(datum);
   spawn(datum,owner,tick,{});
-  auto &e=impl_->effects.back();e.target=target;e.frame.scale_a=e.frame.scale_b=0;
+  auto &e=impl_->effects.back();e.target=target;e.frame.scale_a=controls.a;e.frame.scale_b=controls.b;
   e.colors=colors;
   e.initial_attached_step=true;
+}
+void NativeWorldEffects::request_weapon(std::uint32_t datum,std::uint32_t weapon,std::uint64_t tick,
+    SourceEffectColors colors,Vec3 velocity,float a,float b,std::uint32_t source_instance,bool sounds) {
+  if(datum==none || !impl_->object_markers.contains(weapon))return;
+  preload_attached(datum);
+  if(source_instance!=none)for(auto &e:impl_->effects)
+    if(e.source_instance==source_instance && e.target==weapon && e.definition->datum==datum) {
+      // Complete17DFF0 refresh: retain controls/colors/linked systems and
+      // reselect0. Creation's one-second initial update is not repeated.
+      e.finished=false;e.clock.flags&=~0x44u;e.tick=tick;
+      source_effect_event_select(e.clock,e.definition->clocks,0,
+          impl_->random_streams.event(e.definition->flags),{[] {}});
+      e.initial_attached_step=true;e.refresh_step=true;e.sounds=sounds;return;
+    }
+  spawn_attached(datum,weapon,weapon,tick,colors);
+  auto &e=impl_->effects.back();e.frame.scale_a=a;e.frame.scale_b=b;
+  e.velocity=velocity;e.source_instance=source_instance;e.sounds=sounds;
 }
 void NativeWorldEffects::spawn_looping_attached(std::uint32_t datum,std::uint32_t target,
     std::uint64_t tick,std::string marker,float scale_a,float scale_b) {
@@ -818,7 +846,7 @@ void NativeWorldEffects::spawn(std::uint32_t datum, std::uint32_t owner,
   i.effects.push_back(std::move(e));
 }
 void NativeWorldEffects::spawn_source(std::uint32_t effect,std::uint32_t owner,
-    std::uint64_t tick,std::span<const SourceEffectLocation> locations,SourceEffectColors colors) {
+    std::uint64_t tick,std::span<const SourceEffectLocation> locations,SourceEffectColors colors,SourceEffectControls controls) {
   if(effect==none)return;
   if(locations.empty() || locations.size()>32)
     throw FormatError("Source effect presentation requires its retained location bank");
@@ -833,6 +861,7 @@ void NativeWorldEffects::spawn_source(std::uint32_t effect,std::uint32_t owner,
   spawn(effect,owner,tick,frames.begin()->second.front());
   impl_->effects.back().source_locations=std::move(frames);
   impl_->effects.back().colors=colors;
+  impl_->effects.back().frame.scale_a=controls.a;impl_->effects.back().frame.scale_b=controls.b;
 }
 void NativeWorldEffects::impact(const BulletImpact &hit) {
   auto &i = *impl_;
@@ -943,7 +972,7 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
                 auto &v = p->second;
                 v.age = v.inverse_lifetime * seconds + v.age;
                 if (v.age > 1 || (v.flags & 1)) {
-                  if(s.definition->death_sound!=none) {
+                  if(s.definition->death_sound!=none && e.sounds) {
                     // Retail248340 ->246E60 ->247000 dispatches snd! before
                     // unlink.247000 copies particle+1C and uses246EB0's
                     // velocity gain (the same TU1.1 248F80 numeric owner).
@@ -1004,14 +1033,19 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
                                                     hit->position, hit->normal,
                                                     true,std::int16_t(hit->material)};
                       },
-                      [&](const auto &particle, const auto &) {
-                        if (s.definition->collision_sound != none)
+                      [&](const auto &particle, const auto &hit) {
+                        if (s.definition->collision_sound != none && e.sounds)
                           i.sounds.push_back(
                               {s.definition->collision_sound, e.owner, t,
                                particle.position,
                                source_particle_collision_child_gain(
                                    particle.velocity),
                                WorldEffectSoundKind::Collision});
+                        if(s.definition->collision_foot!=none && e.sounds)
+                          for(const auto sound:source_material_sound_effects(i.cache,s.definition->collision_foot,
+                              -1,hit.material,10,(s.definition->sprite.flags&0x4000u)?0:-1))
+                            if(sound!=none)i.sounds.push_back({sound,e.owner,t,particle.position,
+                                source_particle_collision_child_gain(particle.velocity),WorldEffectSoundKind::Collision});
                       });
               }
             }
@@ -1041,8 +1075,8 @@ void NativeWorldEffects::advance(std::uint64_t tick, float seconds) {
             }};
           //175FA0/179850: attached damage effects with definition bit1
           //start with a one-second event update; recharge starts at zero.
-          const float interval=e.initial_attached_step?((!e.attached && (e.definition->flags&2u))?1.f:0.f):seconds;
-          e.initial_attached_step=false;
+          const float interval=e.initial_attached_step?((!e.refresh_step && !e.attached && (e.definition->flags&2u))?1.f:0.f):seconds;
+          e.initial_attached_step=false;e.refresh_step=false;
           source_effect_event_advance(e.clock,e.definition->clocks,e.definition->loop_start,
               interval,i.random_streams.event(e.definition->flags),services);
         }

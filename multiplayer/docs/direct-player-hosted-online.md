@@ -86,3 +86,27 @@ setup and final counts. `tools/run_online_peer_wan_probe.py BUILD/online_peer_wa
 reproduces it after installing the documented isolated endpoint. This is a
 one-consumer-network/public-server path check, not a two-consumer-NAT gameplay
 or headset test.
+
+## Delivered verification
+
+The source and native delivery are recorded in
+[the private verification capsule](/home/eric/Developer/Halo-2-Decompiled/.local/direct-peer-20261013/verification.json).
+Both installed launchers select its frozen runtime. The deployed backend passed
+205 regressions and isolated retained-state restore initialization; all36 old
+retained tables and the master key were unchanged, with one new empty migration
+receipt table.
+
+Two actual native processes exercised direct gameplay, real Opus capture/decode,
+muting, passive postgame voice, source PCR agreement, Vista Done and requeue.
+During a forced2.5-second master outage, simulation advanced89 ticks and
+playback delivered86/88 audible frames before reconnection and successful
+report publication. Rendered native clients also completed the game/PCR/requeue
+flow and used the real Vista pause confirmation to leave. Eight-player couch
+checks, including Tombstone Fiesta with the authored animation bank, retained
+local guest PCR rows while omitting guest personal history.
+
+The native-to-isolated-Vultr probe sent50 real encrypted1400-byte datagrams,
+received48 echoes, and observed41ms SCTP RTT; the remote received49 packets.
+This establishes one consumer/public-server UDP path, not two-home NAT coverage
+or headset/gameplay-WAN acceptance. Party/clan menu media and complete gameplay
+migration remain outstanding.

@@ -4,15 +4,15 @@ MCC installation discovery, private asset copying, a native v13 reader,
 geometry/model/bitmap/animation/audio adapters, compiled immutable TU1.5 engine
 operands, preserved native shader libraries and the two recovered TU1.5
 multiplayer postprocessors are implemented. **Full
-MCC-to-Xbox gameplay conversion and native MCC playback are unfinished.** This
-command prepares an inactive cache; it does not remove the current game's Xbox
-asset dependency or claim that MCC tags are interchangeable with Xbox tags.
+MCC-to-Xbox gameplay conversion and native MCC playback are unfinished.** Both launchers now select only the private MCC cache.
+Native gameplay remains disabled until the unfinished conversion/startup work
+is complete; the launcher never falls back to Xbox/Vista sources.
 
 ```sh
 ./Halo2-Launcher --prepare-mcc-gameplay
 # Nonstandard installation, or the halo2 / h2_maps_win64_dx11 directory:
 ./Halo2-Launcher --prepare-mcc-gameplay --mcc-source '/path/to/MCC'
-# Works without a built runtime or first-run Vista/Xbox setup:
+# Works without a built runtime:
 python3 tools/setup_assets.py --prepare-mcc-gameplay
 ```
 
@@ -35,8 +35,10 @@ native 64-bit representation can differ from the packed Xbox binary layout;
 that does not authorize changing gameplay precision, timing or visuals.
 
 The current raw v13 reader is a conversion/inspection foundation. It is not a
-claim that raw MCC structures are ready for vanilla admission. Preparation
-still preserves the working launch selection until that conversion is complete.
+claim that raw MCC structures are ready for vanilla admission. Normal onboarding selects the prepared private cache through
+`assets/mcc-source.tsv`. Selection does not promote incomplete data to playable
+vanilla definitions; provenance still records `runtime_active=false` and
+`full_tu15_parity=false`. Historical Xbox/Vista selections are ignored.
 
 ## Native 64-bit addresses
 

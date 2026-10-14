@@ -1,4 +1,5 @@
 #include <SDL.h>
+#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <array>
 #include <cerrno>
@@ -110,122 +111,51 @@ Installation locate() {
       "Setup tools were not found. Keep the launcher with the project folder, "
       "including tools/setup_assets.py and tools/setup_assets_ui.py.");
 }
+constexpr auto not_playable = "MCC content is cached. Native gameplay loading and complete Xbox TU1.5 conversion are still being completed.";
 struct AssetSources {
-  fs::path xbox, vista, loading;
-  bool base_ready() const {
-    return !xbox.empty() && !vista.empty() &&
-        fs::is_regular_file(xbox/"default.xbe") &&
-        fs::is_regular_file(xbox/"maps/mainmenu.map") &&
-        fs::is_regular_file(xbox/"maps/shared.map") &&
-        fs::is_regular_file(xbox/"maps/lockout.map") &&
-        fs::is_regular_file(xbox/"maps/fonts/font_table.txt") &&
-        fs::is_regular_file(vista/"pack.tsv") && fs::is_regular_file(vista/"hud.tsv") &&
-        fs::is_regular_file(vista/"maps/mainmenu.map") &&
-        fs::is_regular_file(vista/"maps/shared.map") &&
-        fs::is_regular_file(vista/"maps/lockout.map") && fs::is_directory(vista/"fonts");
-  }
-  static bool loading_ready(const fs::path &directory) {
-    std::error_code error;
-    if(!fs::is_regular_file(directory/"loading-tone.xbox-adpcm",error) ||
-        fs::file_size(directory/"loading-tone.xbox-adpcm",error)!=18396 || error)return false;
-    std::ifstream manifest(directory/"loading-textures.tsv");
-    std::string line;
-    if(!std::getline(manifest,line) || line!="H2V_LOADING_TEXTURES_V1")return false;
-    unsigned rows{};
-    while(std::getline(manifest,line))++rows;
-    if(rows!=12)return false;
-    for(unsigned index=0;index<12;++index) {
-      const auto name="loading-"+std::string(index<10?"0":"")+std::to_string(index)+".dds";
-      if(!fs::is_regular_file(directory/name,error) ||
-          fs::file_size(directory/name,error)<132 || error)return false;
-    }
-    return true;
-  }
-  bool ready() const {return base_ready() && loading_ready(loading);}
+  fs::path cache;
+  bool playable = false;
+  std::string problem;
+  bool ready() const { return !cache.empty(); }
+  fs::path maps() const { return cache/"halo2/h2_maps_win64_dx11"; }
 };
 AssetSources read_sources(const fs::path &root) {
-  std::ifstream file(root/"assets/asset-sources.tsv");
-  std::string line;
-  if(!std::getline(file,line) || line!="H2_ASSET_SOURCES_V1")return {};
-  AssetSources result;
-  while(std::getline(file,line)) {
-    const auto tab=line.find('\t');
-    if(tab==std::string::npos || line.find('\t',tab+1)!=std::string::npos ||
-        line.find_first_of("\r\n\0",0,3)!=std::string::npos)return {};
-    const auto name=line.substr(0,tab);
-    fs::path value=line.substr(tab+1);
-    if(value.empty())return {};
-    if(value.is_relative())value=root/value;
-    if(name=="xbox" && result.xbox.empty())result.xbox=value;
-    else if(name=="vista" && result.vista.empty())result.vista=value;
-    else return {};
-  }
-  result.loading=result.vista/"loading";
-  // Previously prepared developer checkouts used the separate legacy export.
-  // Fresh and repaired imports own their complete bank beside the Vista UI.
-  const auto legacy=root/"assets/menu-ui/vista/loading";
-  if(!AssetSources::loading_ready(result.loading) && AssetSources::loading_ready(legacy))
-    result.loading=legacy;
-  const auto loading_registry=root/"assets/loading-source.tsv";
-  if(fs::exists(loading_registry)) {
-    std::ifstream selected(loading_registry);
-    std::string header,row,extra;
-    if(!std::getline(selected,header) || header!="H2_LOADING_SOURCE_V1" ||
-        !std::getline(selected,row) || !row.starts_with("vista\t") || row.size()==6 ||
-        row.find_first_of("\t\r\n\0",6,4)!=row.npos || std::getline(selected,extra))
-      throw std::runtime_error("Invalid selected match-loading source: "+loading_registry.string());
-    fs::path path=row.substr(6);
-    if(path.is_relative())path=root/path;
-    if(!AssetSources::loading_ready(path))
-      throw std::runtime_error("Selected Vista match-loading bank is incomplete: "+path.string());
-    result.loading=fs::canonical(path);
-  }
-  return result;
-}
-fs::path read_hud_source(const fs::path &root,const AssetSources &sources) {
-  const auto registry=root/"assets/hud-source.tsv";
-  if(!fs::exists(registry))return sources.vista;
-  std::ifstream file(registry);std::string header,line,extra;
-  if(!std::getline(file,header) || header!="H2_HUD_SOURCE_V1" ||
-      !std::getline(file,line) || !line.starts_with("mcc\t") || line.size()==4 ||
-      line.find_first_of("\t\r\n\0",4,4)!=line.npos || std::getline(file,extra))
-    throw std::runtime_error("Invalid selected HUD source: "+registry.string());
-  fs::path path=line.substr(4);if(path.is_relative())path=root/path;
-  for(const auto *name:{"hud.tsv","hud-source.tsv","scoreboard.tsv","fonts/font_table.txt"})
-    if(!fs::is_regular_file(path/name))
-      throw std::runtime_error("Selected MCC Classic HUD import is incomplete: "+path.string());
-  return fs::canonical(path);
-}
-fs::path read_menu_source(const fs::path &root,const AssetSources &sources) {
-  const auto registry=root/"assets/menu-source.tsv";
-  if(!fs::exists(registry))return sources.vista;
-  std::ifstream file(registry);std::string header,line,extra;
-  if(!std::getline(file,header) || header!="H2_MENU_SOURCE_V1" ||
-      !std::getline(file,line) || !line.starts_with("mcc\t") || line.size()==4 ||
-      line.find_first_of("\t\r\n\0",4,4)!=line.npos || std::getline(file,extra))
-    throw std::runtime_error("Invalid selected menu source: "+registry.string());
-  fs::path path=line.substr(4);if(path.is_relative())path=root/path;
-  for(const auto *name:{"pack.tsv","vista.tsv","pause.tsv","menu-source.tsv","menu-ui-source.tsv","fonts/font_table.txt"})
-    if(!fs::is_regular_file(path/name))
-      throw std::runtime_error("Selected MCC Classic menu import is incomplete: "+path.string());
-  return fs::canonical(path);
-}
-fs::path read_gameplay_source(const fs::path &root) {
-  const auto registry=root/"assets/gameplay-source.tsv";
+  const auto registry=root/"assets/mcc-source.tsv";
   if(!fs::exists(registry))return {};
-  std::ifstream file(registry);
-  std::string header,line,extra;
-  if(!std::getline(file,header) || header!="H2_GAMEPLAY_SOURCE_V1" ||
-      !std::getline(file,line) || !line.starts_with("xbe\t") ||
-      line.size()==4 || line.find_first_of("\t\r\n\0",4,4)!=std::string::npos ||
-      std::getline(file,extra))
-    throw std::runtime_error("Invalid gameplay source selection: "+registry.string());
-  fs::path selected=line.substr(4);
-  if(selected.is_relative())selected=root/selected;
-  if(!fs::is_regular_file(selected))
-    throw std::runtime_error("Selected gameplay executable is missing: "+selected.string()+
-        ". Select it again with tools/select_gameplay_source.py.");
-  return fs::canonical(selected);
+  try {
+    std::ifstream file(registry);
+    std::string header,row,extra;
+    if(!std::getline(file,header) || header!="H2_MCC_ASSET_SOURCE_V1" ||
+        !std::getline(file,row) || !row.starts_with("cache\t") || row.size()==6 ||
+        row.find_first_of("\t\r\n\0",6,4)!=row.npos || std::getline(file,extra))
+      throw std::runtime_error("Invalid MCC cache selection. Run --setup to scan MCC again.");
+    fs::path selected=row.substr(6);
+    if(selected.is_relative())selected=root/selected;
+    if(fs::is_symlink(selected))throw std::runtime_error("The MCC cache must be an owned directory.");
+    selected=fs::canonical(selected);
+    if(selected.parent_path()!=root/"assets/imported" || selected.filename().string().starts_with("."))
+      throw std::runtime_error("Select a completed private MCC import under assets/imported.");
+    for(const auto *name:{"halo2/h2_maps_win64_dx11/mainmenu.map", "halo2/h2_maps_win64_dx11/shared.map",
+        "halo2/h2_maps_win64_dx11/single_player_shared.map", "halo2/h2_maps_win64_dx11/lockout.map",
+        "halo2/h2_maps_win64_dx11/textures.dat", "halo2/h2_fonts/font_table.txt",
+        "bitmap-resources.json", "tag-conversion.json", "loading/mcc-loading-assets.json", "provenance.json"}) {
+      const auto path=selected/name;
+      if(!fs::is_regular_file(path) || fs::is_symlink(path) ||
+          fs::canonical(path).lexically_relative(selected).string().starts_with(".."))
+        throw std::runtime_error("MCC cache is incomplete: "+std::string(name));
+    }
+    std::ifstream provenance(selected/"provenance.json");
+    const auto report=nlohmann::json::parse(provenance);
+    if(report.value("schema",std::string{})!="H2_MCC_TU15_PREPARATION_V1" ||
+        report.value("external_installation_requirement",std::string{})!="Halo MCC only")
+      throw std::runtime_error("Selected cache is not an MCC-only preparation.");
+    const auto enabled=[&](const char *name) {
+      return report.contains(name) && report[name].is_boolean() && report[name].get<bool>();
+    };
+    return {selected,enabled("runtime_active") && enabled("full_tu15_parity"),{}};
+  } catch(const std::exception &error) {
+    return {{},false,error.what()};
+  }
 }
 int run_tool(std::vector<std::string> arguments) {
   std::vector<char*> pointers;
@@ -248,25 +178,11 @@ int run_tool(std::vector<std::string> arguments) {
 #endif
   throw std::runtime_error("Could not start "+arguments.front());
 }
-int prepare_sources(const Installation &installation,const std::string &vista,
-                    const std::string &xbox) {
+int prepare_sources(const Installation &installation,const std::string &mcc,bool interactive) {
   std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
       (installation.root/"tools/setup_assets.py").string(),"--root",installation.root.string()};
-  if(!vista.empty())arguments.insert(arguments.end(),{"--vista",vista});
-  if(!xbox.empty())arguments.insert(arguments.end(),{"--xbox",xbox});
-  if(vista.empty() || xbox.empty())arguments.push_back("--interactive");
-  return run_tool(std::move(arguments));
-}
-int prepare_mcc_hud(const Installation &installation,const std::string &source) {
-  std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
-      (installation.root/"tools/import_mcc_hud.py").string(),"--root",installation.root.string(),"--activate"};
-  if(!source.empty())arguments.insert(arguments.end(),{"--mcc-root",source});
-  return run_tool(std::move(arguments));
-}
-int prepare_mcc_menus(const Installation &installation,const std::string &source) {
-  std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
-      (installation.root/"tools/import_mcc_menus.py").string(),"--root",installation.root.string(),"--activate"};
-  if(!source.empty())arguments.insert(arguments.end(),{"--mcc-root",source});
+  if(mcc.empty() && interactive)arguments.push_back("--interactive");
+  if(!mcc.empty())arguments.insert(arguments.end(),{"--mcc-root",mcc});
   return run_tool(std::move(arguments));
 }
 } // namespace
@@ -275,109 +191,84 @@ int main(int argc, char **argv) {
   try {
     auto installation = locate();
     std::vector<std::string> supplied;
-    std::string vista_source,xbox_source,mcc_source;
-    bool setup=false,setup_only=false,import_mcc=false,import_menus=false,prepared_sources=false;
-    bool update=false,launch_game=false,prepare_mcc_gameplay=false;
+    std::string mcc_source;
+    bool setup=false,setup_only=false,update=false,launch_game=false,prepare=false;
     for(int i=1;i<argc;++i) {
       const std::string argument=argv[i];
       if(argument=="--setup" || argument=="--setup-only") {
         setup=true;setup_only|=argument=="--setup-only";
-      } else if(argument=="--vista-source" || argument=="--xbox-source" || argument=="--mcc-source") {
+      } else if(argument=="--mcc-source") {
         if(++i>=argc || !*argv[i] || std::string(argv[i]).starts_with("--"))
-          throw std::runtime_error("missing value for "+argument+" (expected a file or folder path)");
-        if(argument=="--mcc-source")mcc_source=argv[i];
-        else {
-          (argument=="--vista-source"?vista_source:xbox_source)=argv[i];
-          setup=true;
-        }
+          throw std::runtime_error("missing value for --mcc-source (expected the MCC installation or halo2 folder)");
+        mcc_source=argv[i];setup=true;
+      } else if(argument=="--vista-source" || argument=="--xbox-source" ||
+          argument=="--gameplay-xbe" || argument=="--menu-vista-settings" ||
+          argument=="--import-mcc-hud" || argument=="--import-mcc-menus") {
+        throw std::runtime_error(argument+" is no longer a launcher option. Use --setup [--mcc-source PATH] to import MCC content.");
       } else if(argument=="--update")update=true;
       else if(argument=="--launch-game")launch_game=true;
-      else if(argument=="--import-mcc-hud")import_mcc=true;
-      else if(argument=="--import-mcc-menus")import_menus=true;
-      else if(argument=="--prepare-mcc-gameplay")prepare_mcc_gameplay=true;
+      else if(argument=="--prepare-mcc-gameplay") {prepare=true;setup=true;setup_only=true;}
       else supplied.push_back(argument);
     }
-    if(!mcc_source.empty() && !import_mcc && !import_menus && !prepare_mcc_gameplay)import_mcc=true;
     auto has = [&](const char *option) {
-      return std::find(supplied.begin(), supplied.end(), option) !=
-             supplied.end();
+      return std::find(supplied.begin(), supplied.end(), option) != supplied.end();
     };
+    if(prepare && (update || launch_game || !supplied.empty()))
+      throw std::runtime_error("Use --prepare-mcc-gameplay [--mcc-source PATH] [--setup-only] by itself");
     auto sources=read_sources(installation.root);
     const bool help=has("--help") || has("-h");
-    if(!help && prepare_mcc_gameplay) {
-      if(update || launch_game || import_mcc || import_menus || !vista_source.empty() ||
-          !xbox_source.empty() || !supplied.empty())
-        throw std::runtime_error("Use --prepare-mcc-gameplay [--mcc-source PATH] [--setup-only] by itself");
-      // Preparation works before first-run Xbox/Vista setup. Until every MCC
-      // consumer is implemented it must never select a v13 map for the game.
-      std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
-          (installation.root/"tools/setup_assets.py").string(),"--root",installation.root.string(),
-          "--prepare-mcc-gameplay"};
-      if(!mcc_source.empty())arguments.insert(arguments.end(),{"--mcc-root",mcc_source});
-      return run_tool(std::move(arguments));
-    }
-    auto gameplay=(!help && !has("--gameplay-xbe"))?
-        read_gameplay_source(installation.root):fs::path{};
-    if (has("--launcher-info")) {
+    if(has("--launcher-info")) {
       std::cout << "Project: " << installation.root.string() << '\n'
-                << "Runtime: " << (installation.runtime.empty() ? "not built" : installation.runtime.string()) << '\n'
-                << (title_first ? "Default: original title screen (skip boot intro) and menus\n"
-                                : "Default: startup intro, original title screen and menus\n")
-                << "Game files ready: " << (sources.ready()?"yes":"no — select both sources on launch") << '\n'
-                << "Xbox game files: " << sources.xbox.string() << '\n'
-                << "Vista HUD/GUI: " << sources.vista.string() << '\n'
-                << "Selected HUD/fonts: " << read_hud_source(installation.root,sources).string() << '\n'
-                << "Selected menus/fonts: " << read_menu_source(installation.root,sources).string() << '\n'
-                << "ONLINE/clan UI/fonts: " << sources.vista.string() << '\n'
-                << "Default pause UI/fonts: " << sources.vista.string() << '\n'
-                << "Vista loading assets: " << sources.loading.string() << '\n'
-                << "Default gameplay XBE: " << (gameplay.empty()?
-                    "disc default.xbe (or explicit --gameplay-xbe override)":gameplay.string()) << '\n'
-                << "Shaders: native Vulkan GLSL; Xbox material behavior reference\n";
+                << "Runtime: " << (installation.runtime.empty()?"not built":installation.runtime.string()) << '\n'
+                << (title_first?"Default: title screen (skip boot intro) and menus\n":"Default: startup intro, title screen and menus\n")
+                << "Asset source: Halo MCC only\n"
+                << "MCC cache prepared: " << (sources.ready()?"yes":"no — scan MCC with --setup") << '\n'
+                << "MCC cache: " << sources.cache.string() << '\n'
+                << "MCC maps: " << (sources.ready()?sources.maps().string():"") << '\n'
+                << "Native MCC gameplay ready: " << (sources.playable?"yes":"no") << '\n'
+                << "Status: " << (!sources.problem.empty()?sources.problem:
+                    !sources.ready()?"MCC has not been imported yet. Run --setup.":
+                    !sources.playable?not_playable:"MCC detection and private-cache import selected") << '\n'
+                << "Shaders: existing native Vulkan shaders\n";
       return 0;
     }
-    if(help)std::cout<<"Launcher setup: --setup [--vista-source PATH --xbox-source PATH] [--setup-only]\n";
-    if(help)std::cout<<"Normal launch opens Play/Update when installed. First setup prepares files, builds and starts the game. --setup-only prepares files and exits.\n";
-    if(help)std::cout<<"Launcher: --update downloads changes and rebuilds, then exits; --launch-game skips the launcher home.\n";
-    if(help)std::cout<<"MCC Classic HUD: --import-mcc-hud [--mcc-source PATH] [--setup-only]\n";
-    if(help)std::cout<<"MCC Classic menus: --import-mcc-menus [--mcc-source PATH] [--setup-only]\n";
-    if(help)std::cout<<"MCC gameplay preparation: --prepare-mcc-gameplay [--mcc-source PATH] (copies data and verified TU1.5 fixes; native playback pending)\n";
-    if(help && installation.runtime.empty())return 0;
-    if(update && !help) {
-      if(setup || import_mcc || import_menus || launch_game || !supplied.empty())
+    if(help) {
+      std::cout << "MCC setup: --setup [--mcc-source PATH] [--setup-only]\n"
+          "First launch scans installed MCC libraries. Browse to the MCC or halo2 folder if needed.\n"
+          "Content is copied into the private PC-port cache; existing shaders are preserved.\n"
+          "--prepare-mcc-gameplay [--mcc-source PATH] prepares and selects that cache, then exits.\n"
+          "--launcher-info reports cache and native-gameplay readiness.\n"
+          "--update downloads changes and rebuilds; --launch-game skips the launcher home.\n";
+      return 0;
+    }
+    if(update) {
+      if(setup || launch_game || !supplied.empty())
         throw std::runtime_error("Use --update by itself to download changes and rebuild the game");
       return run_tool({HALO2_PYTHON_EXECUTABLE,
           (installation.root/"tools/update_runtime.py").string(),"--root",
           installation.root.string(),"--build-dir",installation.build.string()});
     }
-    if(!help && !setup && sources.base_ready() && !sources.ready()) {
-      // Older imports discarded loading.bin/halo2.exe. Reopen only those
-      // recorded installer members; keep the prepared maps and Xbox disc.
-      const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,
-          (installation.root/"tools/setup_assets.py").string(),"--root",
-          installation.root.string(),"--repair-loading"});
-      if(status==0)sources=read_sources(installation.root);
-      if(!sources.ready() && xbox_source.empty())xbox_source=sources.xbox.string();
-    }
-    if(!help && ((setup && !import_mcc && !import_menus) || !sources.ready() || !vista_source.empty() || !xbox_source.empty())) {
-      const auto status=prepare_sources(installation,vista_source,xbox_source);
+    if(setup || !sources.ready()) {
+      const auto status=prepare_sources(installation,mcc_source,!prepare);
       if(status)return status;
       sources=read_sources(installation.root);
-      if(!sources.ready())throw std::runtime_error("Setup did not provide complete Vista UI/loading and Xbox game files");
-      prepared_sources=true;
-    }
-    if(!help && import_mcc) {
-      const auto status=prepare_mcc_hud(installation,mcc_source);
-      if(status)return status;
-    }
-    if(!help && import_menus) {
-      const auto status=prepare_mcc_menus(installation,mcc_source);
-      if(status)return status;
+      if(!sources.ready())throw std::runtime_error("MCC setup did not publish a complete private cache. "+sources.problem);
     }
     if(setup_only)return 0;
     const auto update_pending=installation.root/"launcher-update.pending";
-    if(!help && (prepared_sources || installation.runtime.empty() ||
-        ((launch_game || !supplied.empty()) && fs::exists(update_pending)))) {
+    if(!launch_game && supplied.empty()) {
+      std::vector<std::string> arguments{HALO2_PYTHON_EXECUTABLE,
+          (installation.root/"tools/launcher_ui.py").string(),"--root",
+          installation.root.string(),"--build-dir",installation.build.string()};
+      if(!sources.playable)arguments.insert(arguments.end(),{"--runtime-unavailable",not_playable});
+      const auto status=run_tool(std::move(arguments));
+      if(status==20)return 0;
+      if(status)return status;
+      installation=locate();sources=read_sources(installation.root);
+    }
+    if(!sources.ready())throw std::runtime_error("The MCC cache needs preparation. Run --setup. "+sources.problem);
+    if(!sources.playable)throw std::runtime_error(not_playable);
+    if(installation.runtime.empty() || fs::exists(update_pending)) {
       const auto tool=installation.root/"tools/build_runtime.py";
       if(!fs::is_regular_file(tool))throw std::runtime_error("Automatic build tool is missing: "+tool.string());
       const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,tool.string(),"--root",
@@ -386,22 +277,10 @@ int main(int argc, char **argv) {
       installation=locate();
       if(!installation.runtime.empty())fs::remove(update_pending);
     }
-    if(!help && !launch_game && supplied.empty() && !setup && !prepared_sources && !import_mcc && !import_menus) {
-      const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,
-          (installation.root/"tools/launcher_ui.py").string(),"--root",
-          installation.root.string(),"--build-dir",installation.build.string()});
-      if(status==20)return 0; // Closing the launcher does not start the game.
-      if(status)return status;
-      installation=locate();
-      sources=read_sources(installation.root);
-      gameplay=read_gameplay_source(installation.root);
-      if(!sources.ready())throw std::runtime_error("The selected game files are incomplete. Run --setup to prepare them again.");
-    }
     if(installation.runtime.empty())throw std::runtime_error(
         "The automatic build finished, but the runtime or required shaders are missing. See "+
         (installation.build/"launcher-build.log").string());
     std::vector<std::string> arguments{installation.runtime.string()};
-    if(!gameplay.empty())arguments.insert(arguments.end(),{"--gameplay-xbe",gameplay.string()});
     const bool custom =
         has("--menu") || has("--menu-screen") || has("--menu-audit") ||
         has("--menu-sweep") || has("--menu-maps") || has("--menu-movie") || has("--play") ||
@@ -419,44 +298,27 @@ int main(int argc, char **argv) {
     const bool menu_route = !custom || has("--menu") || has("--menu-screen") ||
                             has("--menu-sweep") || has("--menu-audit") ||
                             has("--menu-maps") || has("--menu-movie");
-    if (menu_route && !has("--menu-maps")) {
-      arguments.push_back("--menu-maps");
-      arguments.push_back((sources.xbox/"maps").string());
-    }
-    if (menu_route && !has("--menu-ui-assets")) {
-      arguments.push_back("--menu-ui-assets");
-      arguments.push_back(read_menu_source(installation.root,sources).string());
-    }
-    if(menu_route && !has("--menu-loading-assets")) {
-      arguments.push_back("--menu-loading-assets");
-      arguments.push_back(sources.loading.string());
-    }
-    const auto vista_settings=sources.vista/"maps/mainmenu.map";
-    if(menu_route && fs::is_regular_file(vista_settings) && !has("--menu-vista-settings")) {
-      arguments.push_back("--menu-vista-settings");
-      arguments.push_back(vista_settings.string());
-    }
-    if(!help && !has("--hud-ui-assets")) {
-      arguments.push_back("--hud-ui-assets");
-      arguments.push_back(read_hud_source(installation.root,sources).string());
-    }
-    if(!help && !has("--pause-ui-assets")) {
-      arguments.push_back("--pause-ui-assets");
-      arguments.push_back(sources.vista.string());
-    }
-    if(!help && !menu_route && !has("--map") &&
-        (has("--multiplayer") || has("--custom-slayer") || has("--host") || has("--join") || has("--local-players") ||
-         has("--dedicated") || has("--play") || has("--campaign") || has("--simulate"))) {
-      arguments.push_back("--map");
-      arguments.push_back((sources.xbox/"maps/lockout.map").string());
-    }
+    if(menu_route && !has("--menu-maps"))
+      arguments.insert(arguments.end(),{"--menu-maps",sources.maps().string()});
+    if(!has("--map"))arguments.insert(arguments.end(),{"--map",(sources.maps()/"lockout.map").string()});
+    if(!has("--shared-maps"))arguments.insert(arguments.end(),{"--shared-maps",sources.maps().string()});
+    // Future decoded UI packs must be owned by this selected MCC import.
+    // Do not read the historical per-platform source registries.
+    const auto ui=sources.cache/"ui";
+    for(const auto &[option,manifest]:std::array{
+        std::pair{"--menu-ui-assets","pack.tsv"},std::pair{"--hud-ui-assets","hud.tsv"},
+        std::pair{"--pause-ui-assets","pause.tsv"}})
+      if(!has(option) && !fs::is_symlink(ui) && fs::is_regular_file(ui/manifest) &&
+          !fs::is_symlink(ui/manifest) &&
+          !fs::canonical(ui/manifest).lexically_relative(sources.cache).string().starts_with(".."))
+        arguments.insert(arguments.end(),{option,ui.string()});
     arguments.insert(arguments.end(), supplied.begin(), supplied.end());
     // The native runtime's map/shared-resource paths are relative to the
     // project. Process arguments go directly to the runtime; no shell is
     // involved.
     fs::current_path(installation.root);
-    // Discord must relaunch through this launcher so that the selected Vista
-    // assets and gameplay executable are resolved again. No OAuth token or
+    // Discord must relaunch through this launcher so the selected MCC cache
+    // and runtime readiness are resolved again. No OAuth token or
     // party join secret is placed in the launch command or process arguments.
 #ifdef _WIN32
     std::vector<wchar_t> launcher_name(32768);

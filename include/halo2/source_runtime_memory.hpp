@@ -71,6 +71,9 @@ public:
     bool operator==(const Checkpoint &) const = default;
   };
   Checkpoint checkpoint() const;
+  // Allocation-free structural admission, also used by staged native resource
+  // owners before the enclosing quiescent world transaction publishes bytes.
+  static void validate_checkpoint(const Checkpoint &);
   void restore(const Checkpoint &);
 
 private:

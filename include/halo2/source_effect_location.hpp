@@ -6,6 +6,8 @@ namespace halo2 {
 struct SourceEffectColors {
   std::uint32_t a=0xff808080u,b=0xff808080u;
 };
+// Original effect+6C/+70, independently of packed lighting colors.
+struct SourceEffectControls {float a{},b{};};
 // Completed original effect allocation. NONE is an allocation/visibility
 // result, not permission for presentation to manufacture a replacement.
 struct SourceWeaponEffectPresentation {

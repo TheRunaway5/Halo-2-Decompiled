@@ -41,7 +41,7 @@ below; historical component seals remain unchanged.
 | Warthog | Normal entry, forward driving, steering and exit pass locally and over UDP. The actual245EA0 authored camera reaches rendering; UDP camera position/basis is checked against authority output. Other vehicle/controller classes, seats and quantitative retail contact/force behavior remain open. |
 | Grenades | Actual source prepare/create/release/flight/detonation/retirement passes locally and over UDP. Native presentation consumes the source body and original completed explosion locations. A close-range authored power-module blast reaches further damage/lighting owners and is still RED; no prop impulse/destruction pass is claimed. |
 | Scene replicas | Complete authored source scene roots and WORLD banks are admitted and adopted by the client, then checked before interpolation. Missing roots retire their native presentation. Recreation/late-join generation changes and spawned debris remain open. |
-| Delivery | The current world constructor automatically selects TU1.5 physics for ordinary authoritative Slayer; the installed launcher still needs fresh runtime delivery and verification. |
+| Delivery | The world constructor automatically selects TU1.5 physics for ordinary authoritative Slayer. The latest installed direct-peer runtime includes the original camera/seat bindings and passes normal180-frame two-view Lockout/Coagulation launch/render checks through both launchers. The close-range prop continuation still needs production integration and delivery. |
 
 Current-root `v164` also passes the Ghost with an actual seated camera and
 exact UDP FOV submission checks. Original CB3D0/CB090 seat selection is wired

@@ -228,7 +228,7 @@ void NativeGrenadeSandbox::adopt_source_detonations(std::uint64_t tick,
       throw FormatError("Completed TU1.5 explosion effect has no retained presentation location");
     const auto &frame=event.effect_locations.front().frame;
     detonations_.push_back({++detonation_serial_,tick,event.projectile,event.definition,
-        event.effect,event.player,event.unit,frame.position,frame.basis[0],frame.basis[2],event.effect_locations,event.colors});
+        event.effect,event.player,event.unit,frame.position,frame.basis[0],frame.basis[2],event.effect_locations,event.colors,event.controls});
     if(detonations_.size()>64)detonations_.erase(detonations_.begin());
   }
 }

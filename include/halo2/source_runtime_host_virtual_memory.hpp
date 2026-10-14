@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/source_runtime_memory.hpp"
 #include "halo2/source_static_allocation.hpp"
+#include <memory>
 
 namespace halo2 {
 // Native Linux resource owner for the reached process-heap reserve, commit
@@ -19,6 +20,39 @@ public:
   // The reached game cleanup ignores all kernel outputs. Do not invent a
   // failure NTSTATUS or post-call address/extent cell for that boundary.
   void release(std::uint32_t base, std::uint32_t bytes, std::uint32_t free_type);
+
+  struct ReservationCheckpoint {
+    std::uint32_t base{},bytes{};
+    std::vector<std::uint8_t> committed;
+    bool operator==(const ReservationCheckpoint &) const = default;
+  };
+  struct OwnershipCheckpoint {
+    std::uint32_t version=1,next{};
+    std::vector<ReservationCheckpoint> reservations;
+    bool operator==(const OwnershipCheckpoint &) const = default;
+  };
+  class PreparedOwnership {
+  public:
+    ~PreparedOwnership();
+    PreparedOwnership(PreparedOwnership &&) noexcept;
+    PreparedOwnership &operator=(PreparedOwnership &&) noexcept;
+    bool for_owner(const SourceRuntimeHostVirtualMemory &) const noexcept;
+  private:
+    friend class SourceRuntimeHostVirtualMemory;
+    PreparedOwnership();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  OwnershipCheckpoint ownership_checkpoint() const;
+  // Stage real host reservations against the complete incoming byte bank.
+  // Both the current bank and ownership remain untouched if staging fails.
+  // The owner must outlive PreparedOwnership. Execution must be quiescent.
+  PreparedOwnership prepare_ownership(const OwnershipCheckpoint &,
+                                      const SourceRuntimeMemory::Checkpoint &) const;
+  // Enclosing world transaction first publishes its admitted byte bank, then
+  // commits all prepared resource owners and rebinds borrowed native views.
+  // No memory-bank regions are removed here; old host mappings alone retire.
+  bool commit_ownership(PreparedOwnership &&) noexcept;
 
 private:
   struct Reservation {

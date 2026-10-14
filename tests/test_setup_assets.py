@@ -50,7 +50,7 @@ def archive_bytes(rows):
 
 
 class SourceSelectorStartupTests(unittest.TestCase):
-    def test_missing_tk_names_the_interpreter_and_both_source_paths(self):
+    def test_missing_tk_names_the_interpreter_and_mcc_path(self):
         from setup_assets_ui import run
         with patch.dict(sys.modules, {"tkinter": None}):
             with self.assertRaises(RuntimeError) as failure:
@@ -58,8 +58,9 @@ class SourceSelectorStartupTests(unittest.TestCase):
         message = str(failure.exception)
         self.assertIn(sys.executable, message)
         self.assertIn(str(failure.exception.__cause__), message)
-        self.assertIn('--vista-source "/path/to/Vista installer.zip"', message)
-        self.assertIn('--xbox-source "/path/to/Halo 2.iso"', message)
+        self.assertIn('--mcc-source "/path/to/Halo The Master Chief Collection"', message)
+        self.assertNotIn("--xbox-source", message)
+        self.assertNotIn("--vista-source", message)
 
 
 class SetupTests(unittest.TestCase):
@@ -191,7 +192,7 @@ class SetupTests(unittest.TestCase):
                      patch.object(assets, "VistaUiCache"), \
                      patch.object(assets, "prepare_loading", side_effect=loading), \
                      patch.object(assets, "export_pack", return_value={"banks": 0}):
-                    report = assets.setup(root, source, xbox, lambda _: None)
+                    report = assets.setup_reference(root, source, xbox, lambda _: None)
                 registry = dict(line.split("\t") for line in
                     (root / "assets/asset-sources.tsv").read_text().splitlines()[1:])
                 installed = Path(registry["vista"])
@@ -322,7 +323,7 @@ class SetupTests(unittest.TestCase):
             source = root / "invalid.zip"
             source.write_bytes(archive_bytes([("maps/mainmenu.map", b"incomplete")]))
             with self.assertRaises(assets.FormatError):
-                assets.setup(root, source, root / "missing-xbox", lambda _: None)
+                assets.setup_reference(root, source, root / "missing-xbox", lambda _: None)
             self.assertEqual(registry.read_text(), "previous working sources\n")
             self.assertEqual(list((root / "assets/imported").iterdir()), [])
 
@@ -337,7 +338,7 @@ class SetupTests(unittest.TestCase):
                 ("maps/mainmenu.map", b"menu"), ("maps/shared.map", b"shared"),
                 ("maps/fonts/conduit-13", b"font")]))
             with self.assertRaisesRegex(assets.FormatError, "lockout.map"):
-                assets.setup(root, source, root / "unused-xbox", lambda _: None)
+                assets.setup_reference(root, source, root / "unused-xbox", lambda _: None)
             self.assertEqual(registry.read_text(), "previous complete sources\n")
             self.assertEqual(list((root / "assets/imported").iterdir()), [])
 

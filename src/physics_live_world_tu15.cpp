@@ -20,6 +20,7 @@
 #include "halo2/source_damage_delivery_runtime.hpp"
 #include "halo2/death_cycle_runtime_tu15.hpp"
 #include "halo2/source_combat_action_tu15.hpp"
+#include "halo2/source_sandbox_special_tu15.hpp"
 #include "halo2/weapon_effect.hpp"
 #include "halo2/math.hpp"
 #include "physics_live_entries_tu15.hpp"
@@ -76,6 +77,7 @@ struct PhysicsLiveWorldTu15::Impl {
     bool session_configured{};
     std::uint32_t delivered_players{};
     std::vector<SourceProjectileDetonationTu15> projectile_detonations;
+    std::function<void(const SourceBodyImpulseTu15 &)> body_impulse_observer;
     std::vector<UnitDamageEffectEvent> unit_damage_effects;
     std::vector<MeleeImpact> melee_impacts;
     struct NativeExitRegistrations {
@@ -161,6 +163,8 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x18b5c0u); // Actual startup row44B548 object-looping-sound pool.
         initialize_object_looping_sound_storage();
         initialize_sound_storage();
+        call_actual(0x2131b0u); // Literal44B524 sound bit-bank constructor.
+        call_actual(0x2131b0u); // Actual44B524 sound-availability bitmap storage.
         // Actual44B350 owns cached object render states and the color/cache
         // records consumed by projectile attachment creation at17E4AA.
         call_actual(0x2b480u);
@@ -172,6 +176,7 @@ struct PhysicsLiveWorldTu15::Impl {
         const auto tags=cache.load_source_runtime_cache_tag_image();
         reserve_map_pages(tags);
         source_bind_runtime_cache_tags_tu15(bank,tags);
+        source_bind_runtime_cache_sound_gestalt_tu15(bank);
         // Original1918D9 prepares every resident collision, biped, creature,
         // physical model and vehicle definition. In particular11F02A passes
         // zero to1F2C70, resolving serialized shape references before birth.
@@ -185,6 +190,7 @@ struct PhysicsLiveWorldTu15::Impl {
         // Their serialized vtables are not covered by the resident tag pass.
         a=frame({});a.gp[0]=bsp.bsp;run_actual(0x171120u,a);
         source_bind_runtime_cache_bsp_tu15(bank,bsp);
+        call_actual(0x213260u); // Actual44B52C new-map availability reset.
         call_actual(0x10e410u);
         call_actual(0x178ab0u);
         call_actual(0x1cb200u);
@@ -375,6 +381,30 @@ struct PhysicsLiveWorldTu15::Impl {
     void required(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
         SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
         if(&m!=&bank)throw std::runtime_error("TU1.5 live world bank owner differs");
+        if(c.instruction==0x1d94ceu && c.target==0x324f80u && !c.tail && body_impulse_observer) {
+            const auto sp=a.gp[4],list=a.gp[6],index=a.gp[7],motion=a.gp[1];
+            if(word(m,sp)!=0x1d94d1u || index>=0x800u ||
+                word(m,word(m,list+index*0x60u+0x40u)+0x3cu)!=motion)
+                throw FormatError("TU1.5 point impulse differs from its original rigid-body caller");
+            const auto pool=word(m,0x52be5cu),rows=word(m,pool+0x44u),stride=word(m,pool+0x24u);
+            if(stride!=0xa0u)throw FormatError("TU1.5 point impulse physical-component stride differs");
+            std::uint32_t object=0xffffffffu;
+            for(unsigned i=0;i<word(m,pool+0x38u);++i) {
+                if(!(word(m,word(m,pool+0x48u)+(i>>5)*4u)&(1u<<(i&31u))))continue;
+                const auto component=rows+i*stride;
+                if(word(m,component+0x70u)==list && index<word(m,component+0x74u)) {
+                    if(object!=0xffffffffu)throw FormatError("TU1.5 point impulse has ambiguous component ownership");
+                    object=word(m,component+8u);
+                }
+            }
+            if(object==0xffffffffu)throw FormatError("TU1.5 point impulse lacks its actual object component");
+            (void)object_body(object);
+            SourceBodyImpulseTu15 event{object,word(m,word(m,0x51df54u)+8u),index,{},{},{},{}};
+            m.read(motion,event.before);m.read(word(m,sp+4u),event.impulse);m.read(word(m,sp+8u),event.point);
+            required(m,{c.target,c.target,false},a,o);
+            m.read(motion,event.after);body_impulse_observer(event);return;
+        }
+
         if(c.instruction==0x1d2eau && c.target==0x407c00u && !c.tail) {
             source_native_cache_bitmap_view_tu15(m,a,fp,services(),o);return;
         }
@@ -397,6 +427,7 @@ struct PhysicsLiveWorldTu15::Impl {
                 if(!effect || word(m,effect+4u)!=event.effect.datum)
                     throw FormatError("TU1.5 shield effect lost its completed allocation");
                 event.colors={word(m,effect+0x104u),word(m,effect+0x108u)};
+                event.controls={std::bit_cast<float>(word(m,effect+0x6cu)),std::bit_cast<float>(word(m,effect+0x70u))};
             }
             unit_damage_effects.push_back(event);return;
         }
@@ -454,6 +485,7 @@ struct PhysicsLiveWorldTu15::Impl {
                 if(!effect || word(m,effect+4u)!=event.effect)
                     throw FormatError("TU1.5 completed explosion lost its actual effect identity");
                 event.colors={word(m,effect+0x104u),word(m,effect+0x108u)};
+                event.controls={std::bit_cast<float>(word(m,effect+0x6cu)),std::bit_cast<float>(word(m,effect+0x70u))};
                 const auto tag_rows=word(m,0x4f0414u);
                 const auto definition=word(m,tag_rows+(event.effect&65535u)*16u+8u);
                 const auto locations=word(m,definition+0xcu);
@@ -551,6 +583,9 @@ struct PhysicsLiveWorldTu15::Impl {
             const std::array done{std::byte{1}};bank.write(tracking+4u,done);
             a.gp[0]=job;a.gp[4]+=28;return;
         }
+        if(source_sandbox_special_tu15_owns_entry(c.target)) {
+            source_run_sandbox_special_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(source_combat_action_tu15_owns_entry(c.target)) {
             source_run_combat_action_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -610,6 +645,20 @@ struct PhysicsLiveWorldTu15::Impl {
         // Actual fresh-segment and retained-segment commitment frames in the
         // unchanged TU1.5 support bodies. This is the explicit native resource
         // ABI: source owns all free lists, headers, splitting and publication.
+        if(c.instruction==0x33b3bfu && c.target==0x800000b8u) {
+            // Actual2131F9 ->33B3AC ->NtAllocateVirtualMemory. Supply real
+            // host pages only; the original constructor owns every pointer,
+            // arena/CRC and bit-bank store. Host virtual address selection is
+            // explicit and does not assert Xbox MEM_TOP_DOWN address parity.
+            const auto bp=word(m,sp+4u),np=word(m,sp+12u),frame_=a.gp[5];
+            if(c.tail || word(m,sp)!=0x33b3c5u || bp!=frame_+8u || np!=frame_+0xcu ||
+                word(m,frame_+4u)!=0x2131feu || word(m,bp)!=0 || word(m,np)!=0x1880u ||
+                word(m,sp+8u)!=0 || word(m,sp+16u)!=0x101000u || word(m,sp+20u)!=4u)
+                throw FormatError("TU1.5 sound bit-bank raw memory request differs from its original caller");
+            const auto reservation=virtual_memory.allocate({0,0,0x2000u,0x2000u,4u});
+            const auto result=virtual_memory.allocate({reservation.base,0,0x2000u,0x1000u,4u});
+            put(m,bp,result.base);put(m,np,result.bytes);a.gp[0]=result.status;a.gp[4]+=24u;return;
+        }
         struct VmFrame {std::uint32_t site,ret;int base,size;std::uint32_t type;};
         constexpr std::array vm_frames{
             VmFrame{0x2dd3d8u,0x2dd3deu,0xc,0,0x1000u},
@@ -934,6 +983,9 @@ struct PhysicsLiveWorldTu15::Impl {
         call(0x1c5ff0u);
         if(!word(bank,0x52be48u))throw FormatError("TU1.5 new-map world was not published");
         call_actual(0xb8be0u);
+        // Selected complete callback45 reset. The preceding callback44 audio
+        // map/device activation remains a separate incomplete owner.
+        call_actual(0x213260u);
     }
     std::uint32_t create_biped(std::uint32_t definition,const Vec3&position,const Vec3&forward) {
         if(!session_configured)throw FormatError("TU1.5 object birth requires its actual native session options");
@@ -1099,6 +1151,9 @@ void PhysicsLiveWorldTu15::deliver_command(std::uint32_t p,std::uint32_t o,
 void PhysicsLiveWorldTu15::step_objects(){impl_->step_objects();}
 std::vector<SourceProjectileDetonationTu15> PhysicsLiveWorldTu15::take_projectile_detonations() {
     auto result=std::move(impl_->projectile_detonations);impl_->projectile_detonations.clear();return result;
+}
+void PhysicsLiveWorldTu15::observe_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)> observer) {
+    impl_->body_impulse_observer=std::move(observer);
 }
 std::vector<MeleeImpact> PhysicsLiveWorldTu15::take_melee_impacts() {
     auto result=std::move(impl_->melee_impacts);impl_->melee_impacts.clear();return result;

@@ -11,6 +11,9 @@ struct SourceSceneRoot {
     std::uint32_t object{0xffffffffu},definition{0xffffffffu},placement{};
     Transform transform;
     bool visible{},has_world_nodes{};
+    Vec3 velocity;
+    std::uint32_t runtime_flags{};
+    bool frozen{};
 };
 struct SourceWorldPose {
     std::uint32_t object{0xffffffffu};

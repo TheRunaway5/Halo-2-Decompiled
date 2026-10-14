@@ -21,6 +21,7 @@ struct AuthoredMuzzleEffect {
   std::vector<FixedEffectEventDefinition> events;
   std::vector<SourceEffectEventDefinition> clocks;
   std::vector<EffectSoundCue> sounds;
+  bool light_parts{};
   struct System {
     std::uint32_t marker{};
     unsigned event{},source_index{};
@@ -53,13 +54,16 @@ public:
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick);
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors);
   std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity);
+  std::uint32_t request(const WeaponEffectInput &,std::uint32_t tick,SourceEffectColors,Vec3 inherited_velocity,bool light_parts_owned);
+  using Marker=std::function<Transform(std::uint32_t)>;
+  // Completed FP marker bank at a simulation tick. Birth never depends on a draw.
+  void pose(std::uint32_t weapon,const Marker &,const MuzzleEffectView &,std::uint32_t tick,float tick_seconds);
   void advance(std::uint32_t tick,float tick_seconds);
   void collision_query(ParticleCollisionQuery);
   std::uint32_t marker_name(std::uint32_t effect) const;
   std::vector<std::uint32_t> marker_names(std::uint32_t effect) const;
   struct Sound {EffectSoundCue cue;std::uint32_t owner{};std::optional<Vec3> position;};
   std::vector<Sound> take_sounds();
-  using Marker=std::function<Transform(std::uint32_t)>;
   std::vector<ParticleDraw> draw(std::uint32_t weapon,const Marker &,
       const MuzzleEffectView &,std::uint32_t tick,float fraction,float tick_seconds);
   std::vector<ParticleDraw> draw(std::uint32_t weapon,const Transform &camera_local_marker,

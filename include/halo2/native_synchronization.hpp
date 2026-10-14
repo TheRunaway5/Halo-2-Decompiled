@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <system_error>
+#include <vector>
 
 namespace halo2 {
 struct NativeSynchronizationConfiguration {
@@ -43,6 +44,40 @@ public:
   explicit NativeSynchronization(const NativeSynchronizationConfiguration &);
   NativeSynchronizationServices services() const;
   std::size_t object_count() const;
+  enum class ObjectKind { Mutex,Semaphore };
+  struct ObjectCheckpoint {
+    std::uint32_t handle{};
+    ObjectKind kind{};
+    std::int32_t count{},limit{};
+    bool operator==(const ObjectCheckpoint &) const = default;
+  };
+  struct Checkpoint {
+    std::uint32_t version=1,first{};
+    std::uint64_t next{},limit{};
+    std::vector<ObjectCheckpoint> objects;
+    bool operator==(const Checkpoint &) const = default;
+  };
+  class PreparedRestore {
+  public:
+    ~PreparedRestore();
+    PreparedRestore(PreparedRestore &&) noexcept;
+    PreparedRestore &operator=(PreparedRestore &&) noexcept;
+    bool for_owner(const NativeSynchronization &) const noexcept;
+  private:
+    friend class NativeSynchronization;
+    PreparedRestore();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  // Call only at a world barrier: pending waits/calls and any acquired mutex
+  // reject export/import. Thread ownership and waiters cannot be transferred.
+  Checkpoint checkpoint() const;
+  // Stages real unlocked mutexes/semaphores and holds the local service gate
+  // until publication/cancellation. All captured services keep their identity
+  // and resolve imported handles afterward. Do not call services/object_count
+  // from the staging thread while PreparedRestore owns that gate.
+  PreparedRestore prepare_restore(const Checkpoint &) const;
+  bool commit_restore(PreparedRestore &&) noexcept;
 private:
   struct State;
   std::shared_ptr<State> state_;

@@ -436,7 +436,7 @@ BitmapResource Cache::load_mcc_bitmap_resource(std::uint32_t datum,unsigned inde
     const auto at=records.offset+std::size_t(index)*168;
     const Bytes data(cache_bytes());
     // MCC splits the old depth word into depth8 and creation/sampling flags8.
-    BitmapResource out{data.u16(at+4),data.u16(at+6),std::to_integer<unsigned>(data.slice(at+8,1)[0]),data.u16(at+10),data.u16(at+12),{}};
+    BitmapResource out{data.u16(at+4),data.u16(at+6),std::to_integer<std::uint16_t>(data.slice(at+8,1)[0]),data.u16(at+10),data.u16(at+12),{}};
     for(unsigned i=0;i<3;++i) {
         const auto size=data.u32(at+80+i*4);
         if(size)out.levels[i]=read_mcc_texture_partition(shared_directory_/"textures.dat",data.u32(at+56+i*4),size);

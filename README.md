@@ -45,51 +45,30 @@ BSP residency and cache resources. Its public interface is `halo2/tags.hpp`.
 
 ## Build and run
 
-The latest [MCC gameplay import](docs/MCC_GAMEPLAY_CONVERSION.md) scans installed
-game libraries and prepares a verified private copy of MCC data, all bitmap
-partitions and the recovered TU1.5 multiplayer corrections. Use
-`./Halo2-Launcher --prepare-mcc-gameplay`. Native MCC playback and complete
-TU1.5 tag/graphics conversion remain unfinished; this preparation does not
-change the working launch selection.
+The launchers now use **MCC-only detection and private-cache import**. Run
+`./Halo2-Launcher` to scan installed game libraries and prepare MCC Halo 2
+Classic content. Browse to its installation if automatic detection misses it.
+For terminal preparation, run `./Halo2-Launcher --prepare-mcc-gameplay`, or
+`./Halo2-Launcher --setup --mcc-source '/path/to/MCC' --setup-only`.
 
-The earlier [Vista gameplay import](docs/VISTA_GAMEPLAY_CONVERSION.md) has
-a checked preparation step for Vista maps/tags and recovered Xbox TU1.5
-postprocessing, with Xbox texture donors and Vista HUD/menu artwork. The native
-adapter reads Vista tags, geometry and supported animations and binds original
-Xbox bitmap resources. Vulkan material passes, remaining runtime consumers and
-the full parity audit remain unfinished; the active launcher still uses the
-Xbox gameplay source described below.
+Setup copies game content, including textures, bump maps, audio, fonts and
+menu resources, with MCC directory names and case preserved. Existing port
+shaders remain selected. Normal launch no longer reads Xbox/Vista source
+selections or supplies an Xbox executable. The original Xbox ISO and TU1.5
+patch are development references only.
 
-The repository includes an x86-64 Linux `Halo2-Launcher` executable in the
-project root for first-run game-file setup. Rebuilding creates
-`build/Halo2-Launcher` (or uses your chosen build directory).
-Installing the rebuilt launcher also creates `Halo2-Launcher` in the project root and
-the **Halo 2 Native** desktop/app-menu shortcut. First launch requires a
-Halo 2 Vista installer for HUD/menu artwork and an original Halo 2 Xbox ISO
-or extracted disc folder for gameplay, models and in-game textures. Select
-both once; setup prepares the needed files automatically. It keeps the current
-layouts and samples compatible Vista artwork/fonts. See
-[game-file setup and source policy](docs/ASSET_SETUP.md).
-Optional MCC Classic HUD/menu artwork, fonts, Vista SVG button redraws and
-bitmap atlases can be prepared locally under the ignored `resources/ui`.
-They are not included in a Git checkout. Normal game-file setup selects a
-local bundle when present and no existing UI selection is saved; otherwise
-it uses the supplied Xbox/Vista sources. See [local UI assets](docs/UI_ASSET_BUNDLE.md)
-for verification, activation and regeneration.
-After setup it plays the startup intro before the title screen and
-menu frontend. This launches the current native workbench; full campaign gameplay is
-still unfinished. Keep the executable with this project and its `assets` and
-`build` folders.
+**Native MCC gameplay and complete Xbox TU1.5 conversion remain unfinished.**
+The prepared cache is selected, but Play stays disabled until those runtime
+requirements are completed. There is no legacy source fallback. See
+[game-file setup](docs/ASSET_SETUP.md) and
+[MCC conversion status](docs/MCC_GAMEPLAY_CONVERSION.md).
 
-The refreshed `Halo2-Title-Launcher` and **Halo 2 Native (Title)** shortcut start
-at the title screen. The launchers use the runtime from the build directory
-selected when they are rebuilt and installed, including the F1 CRT filter and
-the current multiplayer HUD with compatible Vista artwork. Vulkan shaders are
-independent GLSL implementations using Xbox material behavior as their reference.
-Vista keyboard/mouse controls are available from **Player Profile**, and
-**Settings > Video** opens the Vista video menu using the supplied reference
-cache. See [Vista settings support and source evidence](docs/FRONTEND_VISTA_SETTINGS.md)
-for working options and remaining engine effects.
+The project-root Linux x86-64 `Halo2-Launcher` and `Halo2-Title-Launcher` use the
+runtime directory configured when installed. `--launcher-info` reports that
+runtime, the MCC cache and gameplay readiness. Once gameplay is ready, the
+title launcher skips the boot intro. Keep both executables beside the project
+and its setup tools. The frontend/networking descriptions below document
+existing subsystem work; they do not establish MCC gameplay readiness.
 
 **ONLINE** requires Discord sign-in using application `1558522073272426519`.
 The ONLINE sign-in asks only for basic identity; the Discord user ID stays internal.
@@ -159,15 +138,9 @@ and `--movie-frame N` preview movies (bundled intro/credits take precedence);
 flythrough tick for screenshots. The separate `Halo2-Title-Launcher` also starts
 at the prompt and uses its own desktop shortcut.
 
-Select a user-owned supported Xbox update once with
-`python3 tools/select_gameplay_source.py /path/to/update/default.xbe`.
-The tool checks its SHA-256 and records an external path in the ignored
-`assets/gameplay-source.tsv`. Both launchers then carry that executable through
-the title/menu route into multiplayer. `--launcher-info` shows the selection;
-`--gameplay-xbe PATH` explicitly overrides it. A missing selected update stops
-launch instead of silently reverting to base-disc gameplay data. Without a
-selection, the original disc executable remains the default. Selecting an
-update does not establish complete native gameplay parity.
+Original executable selection tools remain reference-only developer entry
+points. Normal launch ignores `assets/gameplay-source.tsv` and rejects
+`--gameplay-xbe`; MCC setup is the only launcher asset selection path.
 
 Required: CMake 3.24+, a C++20 compiler, SDL2 and zlib development files, Vulkan headers
 and loader, GLM, `glslangValidator`, Python 3.11+ with Tk, 7-Zip, pkg-config, FFmpeg development
@@ -183,24 +156,13 @@ For a fresh checkout, run the included launcher from the project root:
 ./Halo2-Launcher
 ```
 
-The first launch opens the game-file setup window. Select your Xbox ISO or
-extracted disc folder and Vista installer, then choose **Prepare game files**.
-The launcher saves that selection, configures CMake, builds the runtime, and
-starts the game automatically. A build window shows progress and compiler
-output; the full log is saved as `build/launcher-build.log`. Later launches
-open the launcher home in place of the setup form, with **Play** and **Update**
-buttons. **Play** uses the prepared files and built runtime. **Update** pulls
-the current branch's upstream changes with Git, then configures and rebuilds
-the runtime, even if the changes were already pulled manually. Progress stays
-in the launcher; select **Play** after the update completes. Imported game
-files and settings are kept. Local source changes or diverged branches stop
-the update without discarding anything. Update output is saved as
-`launcher-update.log`, with compiler output in `build/launcher-build.log`.
-If a build fails or is interrupted, the launcher keeps Play disabled until a
-successful rebuild. Select **Update** to retry.
-Selecting new sources reconfigures and rebuilds the runtime so menu and particle
-shaders use the selected Xbox
-source, including sources imported outside `assets/disc`.
+First launch opens MCC setup, detects the installation and copies content
+into a private cache. Later launches show the home window with cache and
+runtime status. Play remains disabled while native MCC startup and complete
+TU1.5 conversion are unfinished. Update downloads and builds the current
+branch without discarding imported content or local changes; completing an
+update does not bypass MCC readiness checks. Logs remain in
+`launcher-update.log` and the selected build's `launcher-build.log`.
 
 If a checkout was moved or copied, an incompatible CMake build directory is
 preserved as `build.previous` (with a numeric suffix when needed), and the
@@ -210,11 +172,10 @@ development dependencies listed above must be installed for the first build.
 The bundled executable uses `python3` from your PATH and requires SDL2 and Tk.
 If the setup window cannot open, run `python3 -m tkinter` to check Tk in that
 interpreter. A missing Tk module requires your distribution's Python Tk package.
-Terminal setup works without Tk when both source flags have a file or folder
-path after them (quote paths containing spaces):
+Terminal setup works without Tk (quote paths containing spaces):
 
 ```bash
-./Halo2-Launcher --vista-source "/path/to/Vista installer.zip" --xbox-source "/path/to/Halo 2.iso"
+./Halo2-Launcher --prepare-mcc-gameplay --mcc-source "/path/to/Halo The Master Chief Collection"
 ```
 
 Use `--setup-only` when you want to prepare files and exit.

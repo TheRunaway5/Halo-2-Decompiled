@@ -126,6 +126,16 @@ int main(int argc,char **argv)try {
     const Cache cache(maps/(map+".map"),maps,OriginalData::load_xbe(argv[7]));const auto content=cache.load_content(0,true);
     auto rules=slayer_rules(launch.variant,true);rules.weapon=cache.slayer_starting_weapon(custom?5:rules.starting_weapon);if(custom)rules.weapon_choices=cache.multiplayer_weapon_choices();
     MultiplayerMatch match(content,0,cache.spawns(),rules);
+    // Match the native prepared world's actual representation/weapon bank.
+    // Fiesta can select any authored weapon, so a bare SMG-only fixture does
+    // not satisfy the original animation timing owner's binding contract.
+    for(unsigned representation:{2u,3u})
+      if(representation<content.player_representations.size() &&
+          content.player_representations[representation].biped.datum!=null_datum)
+        for(const auto &[datum,weapon]:content.weapons)
+          if(!weapon.first_person_models.empty() && weapon.first_person_models.front().model!=null_datum &&
+              weapon.first_person_models.front().animation!=null_datum)
+            match.configure_replicated_first_person(cache.load_first_person_binding(datum,representation));
     const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(maps/(map+".map"),maps,0,rules.weapon),launch.variant);
     session->loaded(fingerprint,launch.variant);stage="loading";wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;});
     const auto slots=session->local_slots();const bool hosting=session->self()==session->host();

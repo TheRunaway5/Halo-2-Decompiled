@@ -62,3 +62,53 @@ vehicle/turret, objective and unused authored variants.
 - First investigation: original weapon targeting and delivered command
   ownership, including the deliberately failing distant-sword acceptance path.
   No target/confidence or source body state will be assigned to force success.
+
+### First implementation checkpoint
+
+`source_sandbox_special_tu15` now contains 26 complete authenticated original
+bodies, including the reached lunge movement, contact/history, recording,
+Slayer notification and animation-event sound-status consumers. Its generator
+retains exact original instruction listings and verifies the actual direct
+call sites and literal Slayer callback slots. The original CPU operations and
+external owner failures remain visible; there are no supplied success returns.
+
+The unchanged-original movement oracle passes **336** finite raw-ABI cases.
+Native comparison checks the entire executed instruction sequence, GP/SSE
+registers, defined flags and retained memory, including indirect constant
+reads. These are component comparisons for the movement bodies and their
+actual callees, not a complete lunge, all 26 bodies' branch coverage, original
+world replay or Xbox visual proof.
+
+The current source lunge fixture reaches a genuinely distant target
+(`2.40331` units, original confidence `1`) using delivered movement. It selects
+original activities `0A0005BB` and `0B0005B2`, progresses to authored impact
+counter `3`, and advances through actual contact and game-engine notifications.
+**The complete live fixture remains RED.** Its latest `lunge-special-v9` run
+stops at original `2138C2`, reading NULL `52D664` plus `24`. `52D664` is the
+current sound-cache/ugh owner published by original map initializer `1281A0`;
+the source sound storage prefix alone does not create this owner. Do not assign
+a cache pointer, fake an idle sound result or skip the sound test. Complete
+source map/audio ownership and then rerun the same real lunge/damage check.
+See [the original sound-bank investigation](MP_SPARTAN_KILL_TRIGGER_SOUND_RESEARCH.md).
+
+A new real-match primary-input regression independently goes RED: the actual
+source SMG remains at `60` rounds and records `0` primary-trigger frames over
+twelve delivered fire ticks. The native command bridge currently leaves
+command `+14/+18` at their neutral values. Original `153070` copies them into
+the control packet, and complete `C92C0` publishes them at unit `+1C0/+1C4`.
+Fixing this requires composed original weapon ownership/publication and
+retirement of parallel native firing, not merely adding trigger stores and
+creating duplicate shots. The failure is retained in `primary-baseline.log`.
+
+Evidence: `analysis/sandbox-tu15-goal-20261013/`. `coverage.json` retains all
+63 weapon definitions plus 39 separate shared requirements, with six explicit
+acceptance gates per element. No whole element is certified complete.
+
+The first current-root diagnostic build succeeded. A subsequent full rebuild
+was interrupted after reconfiguration caused all objects to rebuild again;
+the changed special module and live-world dispatcher were compiled separately
+and linked against **43 hash-pinned baseline archives** for the diagnostic
+runs. Exact link arguments and archive hashes are retained. This is a bounded
+diagnostic overlay, **not a newly delivered complete production build**.
+Coherent full-build, split-screen/LAN, rendered/PCM and installed-launcher
+acceptance still belong to the goal.

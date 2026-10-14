@@ -65,7 +65,7 @@ public:
   // Completed source location frames override every authored marker by its
   // actual string ID. Native presentation supplies no replacement direction.
   void spawn_source(std::uint32_t effect,std::uint32_t owner,std::uint64_t tick,
-      std::span<const SourceEffectLocation>,SourceEffectColors={});
+      std::span<const SourceEffectLocation>,SourceEffectColors={},SourceEffectControls={1,1});
   // Preload attached graphs before renderer construction; reject incomplete
   // graphs rather than silently omitting a shield system.
   void preload_attached(std::uint32_t effect);
@@ -73,7 +73,10 @@ public:
   void object_markers(std::uint32_t full_handle,ObjectMarkers);
   void remove_object(std::uint32_t full_handle);
   void spawn_attached(std::uint32_t effect,std::uint32_t full_handle,
-      std::uint32_t owner,std::uint64_t tick,SourceEffectColors={});
+      std::uint32_t owner,std::uint64_t tick,SourceEffectColors={},SourceEffectControls={});
+  void request_weapon(std::uint32_t effect,std::uint32_t weapon,std::uint64_t tick,
+      SourceEffectColors,Vec3 velocity,float scale_a,float scale_b,std::uint32_t source_instance,
+      bool sounds);
   //1766B0/175FA0 object attachment branch. The caller supplies current posed
   //markers and original function values; marker aliases are per attachment.
   void spawn_looping_attached(std::uint32_t effect,std::uint32_t full_handle,

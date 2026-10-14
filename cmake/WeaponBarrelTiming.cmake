@@ -1,12 +1,18 @@
-target_sources(halo2_systems PRIVATE src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp)
+target_sources(halo2_systems PRIVATE src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp)
 add_executable(audit_weapon_muzzle_admission tools/audit_weapon_muzzle_admission.cpp)
 target_link_libraries(audit_weapon_muzzle_admission PRIVATE halo2_systems)
 if(MSVC)
-  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
+  set_source_files_properties(src/weapon_barrel_timing.cpp src/weapon_energy.cpp src/weapon_magazine.cpp src/passive_weapon.cpp src/weapon_hand_feedback.cpp src/weapon_hud.cpp src/shader_animation.cpp PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
 endif()
 if(BUILD_TESTING)
+  add_executable(weapon_hud_tests tests/weapon_hud_tests.cpp)
+  target_link_libraries(weapon_hud_tests PRIVATE halo2_systems)
+  add_test(NAME original_weapon_hud COMMAND weapon_hud_tests
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_hud_original.tsv
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_reserve_original.tsv)
+  set_tests_properties(original_weapon_hud PROPERTIES SKIP_RETURN_CODE 77)
   add_executable(weapon_hand_feedback_tests tests/weapon_hand_feedback_tests.cpp)
   target_link_libraries(weapon_hand_feedback_tests PRIVATE halo2_systems)
   add_test(NAME original_weapon_hand_feedback COMMAND weapon_hand_feedback_tests

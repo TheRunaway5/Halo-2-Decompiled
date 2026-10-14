@@ -12,7 +12,26 @@ from generate_physics_live_support_tu15 import generate, sha
 # Actual1ED997 reaches1F39D0 during the source-selected distant sword action.
 # Its complete movement consumer calls1F3B80. Existing world owners retain
 # their own direct callees; no target, physics result or service is supplied.
-ENTRIES = (0x1f39d0, 0x1f3b80)
+ENTRIES = (0x1f39d0, 0x1f3b80, 0x10f080, 0x30bd0,
+           # Actual1F2553 records the source lunge contact. Preserve its
+           # real recording gates, event identity, clock and ring consumers.
+           0x19bb60, 0x19b8f0, 0x19de80, 0x19bb20,
+           # Actual1F2565 continues the same lunge contact through retained
+           # contact identity/history and its complete source consumers.
+           0x1f2890, 0x1f1fc0, 0x1f20d0, 0x19b860, 0x19b2b0,
+           # Actual1F2740 completes source lunge damage notifications through
+           # the original game-engine/recording/attribution owner.
+           0x15f8b0, 0x25bc90,
+           # Literal Slayer slot78 reached by1600E4 after actual lunge damage.
+           0x2c5dd0, 0x15e1e0, 0x161530, 0x248550, 0x19b7d0,
+           # Actual1F2879 completes the original contact notification tail.
+           0x1f2a50, 0x22c280, 0x165670,
+           # Original TU1.5 animation event116BDF (legacy observer115CBF)
+           # reaches the sound bit-bank consumer and its direct callees.
+           0x213890, 0x21fe40, 0x140ea0,
+           # Literal startup/map callback record44B524 owns the sound bit
+           # bank. The XAPI wrapper retains its real native memory boundary.
+           0x2131b0, 0x213260, 0x33b3ac)
 
 
 def main():
@@ -27,6 +46,24 @@ def main():
     code = _Code(image, '.text')
     assert code.at(0x1ed997).mnemonic == 'call'
     assert code.at(0x1ed997).operands[0].imm == 0x1f39d0
+    assert code.at(0x1f2553).mnemonic == 'call'
+    assert code.at(0x1f2553).operands[0].imm == 0x19bb60
+    assert code.at(0x1f2565).mnemonic == 'call'
+    assert code.at(0x1f2565).operands[0].imm == 0x1f2890
+    assert code.at(0x1f2740).mnemonic == 'call'
+    assert code.at(0x1f2740).operands[0].imm == 0x15f8b0
+    # Original15FD63 calls the selected engine's literal slot7C. This is
+    # the actual original two-instruction body, not a supplied host return.
+    assert int.from_bytes(image.read(0x468be8+0x7c, 4), 'little') == 0x25bc90
+    assert int.from_bytes(image.read(0x468be8+0x78, 4), 'little') == 0x2c5dd0
+    assert code.at(0x1f2766).mnemonic == 'call'
+    assert code.at(0x1f2766).operands[0].imm == 0x19b7d0
+    assert code.at(0x1f2879).mnemonic == 'call'
+    assert code.at(0x1f2879).operands[0].imm == 0x1f2a50
+    assert code.at(0x116bdf).mnemonic == 'call'
+    assert code.at(0x116bdf).operands[0].imm == 0x213890
+    assert image.read(0x44b524, 12).hex() == 'b03121002032210060322100'
+    assert int.from_bytes(image.read(0x41b6d4, 4), 'little') == 0x800000b8
     sites, instructions, addresses, routines = {}, {}, {}, []
     args.directory.mkdir(parents=True, exist_ok=True)
     for entry in ENTRIES:

@@ -101,57 +101,113 @@ std::pair<Vec3, Vec3> capsule_distance(Vec3 a, Vec3 b,
 }
 } // namespace
 CollisionWorld::CollisionWorld(std::vector<CollisionTriangle> triangles)
-    : triangles_(std::move(triangles)), order_(triangles_.size()) {
-  std::iota(order_.begin(), order_.end(), 0);
-  if (!order_.empty())
-    build(0, order_.size());
+    : geometry_(std::make_shared<std::vector<CollisionTriangle>>(std::move(triangles))),
+      count_(geometry_->size()), acceleration_(accelerate(this->triangles())) {}
+CollisionWorld::CollisionWorld(std::shared_ptr<std::vector<CollisionTriangle>> geometry,
+    std::size_t count, std::shared_ptr<const Acceleration> acceleration)
+    : geometry_(std::move(geometry)), count_(count),
+      acceleration_(acceleration ? std::move(acceleration) : accelerate(triangles())) {}
+std::shared_ptr<const CollisionWorld::Acceleration> CollisionWorld::accelerate(
+    std::span<const CollisionTriangle> triangles) {
+  auto acceleration = std::make_shared<Acceleration>();
+  acceleration->order.resize(triangles.size());
+  std::iota(acceleration->order.begin(), acceleration->order.end(), 0);
+  if (!triangles.empty()) build(triangles, *acceleration, 0, triangles.size());
+  return acceleration;
 }
-int CollisionWorld::build(std::size_t begin, std::size_t end) {
+CollisionWorld::Composition CollisionWorld::compose(
+    const std::shared_ptr<const CollisionWorld> &bsp, Layers layers, PreviousLayers previous) {
+  if (!bsp) throw FormatError("Collision composition requires its BSP owner");
+  const auto base_count = bsp->size();
+  auto fixed_count = base_count;
+  for (const auto layer : {layers.scenery, layers.devices}) {
+    if (layer.size() > bsp->geometry_->max_size() - fixed_count)
+      throw FormatError("Collision layer bank exceeds its capacity");
+    fixed_count += layer.size();
+  }
+  if (layers.props.size() > bsp->geometry_->max_size() - fixed_count)
+    throw FormatError("Collision layer bank exceeds its capacity");
+  const auto all_count = fixed_count + layers.props.size();
+  std::shared_ptr<const Acceleration> fixed_acceleration;
+  if (!previous.fixed_changed && previous.fixed && previous.fixed->size() == fixed_count)
+    fixed_acceleration = previous.fixed->acceleration_;
+  // Release superseded views before testing exclusive ownership. A checkpoint
+  // or a copied collision view still retains its own geometry and BVH.
+  previous.all.reset();
+  previous.fixed.reset();
+  if (all_count == base_count) return {bsp, bsp, bsp};
+  std::shared_ptr<std::vector<CollisionTriangle>> geometry;
+  if (previous.exclusive_bsp && bsp.use_count() == 1 && bsp->geometry_.use_count() == 1)
+    geometry = bsp->geometry_;
+  else {
+    geometry = std::make_shared<std::vector<CollisionTriangle>>();
+    geometry->reserve(all_count);
+    const auto base = bsp->triangles();
+    geometry->insert(geometry->end(), base.begin(), base.end());
+  }
+  geometry->reserve(all_count);
+  geometry->resize(base_count);
+  for (const auto layer : {layers.scenery, layers.devices, layers.props})
+    geometry->insert(geometry->end(), layer.begin(), layer.end());
+  const auto view = [&](std::size_t count, std::shared_ptr<const Acceleration> acceleration = {}) {
+    return std::shared_ptr<const CollisionWorld>(
+        new CollisionWorld(geometry, count, std::move(acceleration)));
+  };
+  Composition result;
+  result.bsp = geometry == bsp->geometry_ ? bsp : view(base_count, bsp->acceleration_);
+  result.fixed = fixed_count == base_count ? result.bsp : view(fixed_count, std::move(fixed_acceleration));
+  result.all = all_count == fixed_count ? result.fixed : view(all_count);
+  return result;
+}
+int CollisionWorld::build(std::span<const CollisionTriangle> triangles, Acceleration &acceleration,
+                          std::size_t begin, std::size_t end) {
+  auto &order = acceleration.order;
+  auto &nodes = acceleration.nodes;
   Node n;
   n.begin = begin;
   n.end = end;
   n.low = {INFINITY, INFINITY, INFINITY};
   n.high = {-INFINITY, -INFINITY, -INFINITY};
   for (auto i = begin; i < end; ++i) {
-    const auto &t = triangles_[order_[i]];
+    const auto &t = triangles[order[i]];
     n.low = minimum(n.low, minimum(t.a, minimum(t.b, t.c)));
     n.high = maximum(n.high, maximum(t.a, maximum(t.b, t.c)));
   }
-  const int index = int(nodes_.size());
-  nodes_.push_back(n);
+  const int index = int(nodes.size());
+  nodes.push_back(n);
   if (end - begin > 8) {
     const auto extent = n.high - n.low;
     const int axis = extent.x > extent.y && extent.x > extent.z ? 0
                      : extent.y > extent.z                      ? 1
                                                                 : 2;
     const auto mid = (begin + end) / 2;
-    std::nth_element(order_.begin() + begin, order_.begin() + mid,
-                     order_.begin() + end, [&](auto a, auto b) {
-                       const auto &x = triangles_[a];
-                       const auto &y = triangles_[b];
+    std::nth_element(order.begin() + begin, order.begin() + mid,
+                     order.begin() + end, [&](auto a, auto b) {
+                       const auto &x = triangles[a];
+                       const auto &y = triangles[b];
                        return component(x.a + x.b + x.c, axis) <
                               component(y.a + y.b + y.c, axis);
                      });
-    const int left = build(begin, mid), right = build(mid, end);
-    nodes_[index].left = left;
-    nodes_[index].right = right;
+    const int left = build(triangles, acceleration, begin, mid), right = build(triangles, acceleration, mid, end);
+    nodes[index].left = left;
+    nodes[index].right = right;
   }
   return index;
 }
 std::vector<std::size_t> CollisionWorld::query(Vec3 low, Vec3 high) const {
   std::vector<std::size_t> result;
-  if (nodes_.empty())
+  if (acceleration_->nodes.empty())
     return result;
   std::vector<int> stack{0};
   while (!stack.empty()) {
-    const auto n = nodes_[stack.back()];
+    const auto n = acceleration_->nodes[stack.back()];
     stack.pop_back();
     if (n.high.x < low.x || n.low.x > high.x || n.high.y < low.y ||
         n.low.y > high.y || n.high.z < low.z || n.low.z > high.z)
       continue;
     if (n.left < 0)
-      result.insert(result.end(), order_.begin() + n.begin,
-                    order_.begin() + n.end);
+      result.insert(result.end(), acceleration_->order.begin() + n.begin,
+                    acceleration_->order.begin() + n.end);
     else {
       stack.push_back(n.left);
       stack.push_back(n.right);
@@ -167,7 +223,7 @@ std::optional<RayHit> CollisionWorld::raycast(Vec3 origin, Vec3 dir,
   const auto end = origin + dir * distance;
   std::optional<RayHit> best;
   for (const auto i : query(minimum(origin, end), maximum(origin, end))) {
-    const auto &t = triangles_[i];
+    const auto &t = (*geometry_)[i];
     if (auto hit = intersection(origin, dir, t, distance)) {
       auto n = normalized(cross(t.b - t.a, t.c - t.a));
       if (dot(n, dir) > 0)
@@ -189,7 +245,7 @@ bool CollisionWorld::resolve(Body &b) const {
         Vec3{b.radius + 0.001f, b.radius + 0.001f, b.radius + 0.001f};
     bool changed = false;
     for (auto i : query(minimum(a, c) - margin, maximum(a, c) + margin)) {
-      const auto &t = triangles_[i];
+      const auto &t = (*geometry_)[i];
       const auto current_a = b.position + Vec3{0, 0, b.radius};
       const auto current_c = b.position +
           Vec3{0, 0, std::max(b.radius, b.height - b.radius)};
@@ -258,7 +314,7 @@ bool CollisionWorld::overlaps(Vec3 feet, float height, float radius) const {
              b = feet + Vec3{0, 0, height - radius},
              r = Vec3{radius, radius, radius};
   for (auto i : query(minimum(a, b) - r, maximum(a, b) + r)) {
-    const auto p = capsule_distance(a, b, triangles_[i]);
+    const auto p = capsule_distance(a, b, (*geometry_)[i]);
     if (length(p.first - p.second) < radius - 0.0001f)
       return true;
   }

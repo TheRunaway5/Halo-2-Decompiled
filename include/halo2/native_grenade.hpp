@@ -55,6 +55,7 @@ struct NativeGrenadeDetonation {
   Vec3 position,forward,up;
   std::vector<SourceEffectLocation> source_locations;
   SourceEffectColors colors;
+  SourceEffectControls controls{1,1};
 };
 // FCF90 entry through FD0F8, before any world query. Source constructor
 // supplies timer_step/arming_step; contact flags are actual backend inputs.

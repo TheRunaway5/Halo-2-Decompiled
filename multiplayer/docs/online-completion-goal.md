@@ -36,9 +36,9 @@ close requirements that still need integration or physical validation.
 | Social | Complete Discord friends/presence, native invitations, accepted parties and correct launch/return behavior | Existing SDK/native flows require regression and remaining live checks |
 | Clans | Complete create/join/invite/manage/leave flows, matchmaking and original supported clan-rank presentation | Existing clan flows; remaining competitive/presentation coverage stays open |
 | Couch players | Up to four local players per PC can queue/play together against others; verified secondary accounts retain their own stats; guests retain local PCR rows but publish no personal stats | Eight-player/two-PC native fixture exercised; physical controllers and independent voice devices are separate gates |
-| Gameplay transport | Default ONLINE gameplay travels directly between players, with one player authoritative; no master media relay | v12 source/build qualification in progress; installed launcher has not yet switched |
-| Match voice | Direct peer proximity, team/FFA radio, dead-player audiences, muting and postgame voice; complete source-supported lobby/loading, LAN and device coverage | Existing audience rules and new direct path; LAN voice, all-participant loading voice, independent couch headsets/mics, masking and original radio audio remain open |
-| Master outage | Peer simulation and voice continue through temporary signaling loss; reports retry safely afterward | Separate peer/control workers implemented; outage acceptance in progress; master-process-restart admission persistence remains open |
+| Gameplay transport | Default ONLINE gameplay travels directly between players, with one player authoritative; no master media relay | v12 installed in both launchers and deployed; local native/rendered flows and one consumer-to-Vultr UDP probe passed; two consumer NATs remain unverified |
+| Match voice | Direct peer proximity, team/FFA radio, dead-player audiences, muting and postgame voice; complete source-supported lobby/loading, LAN and device coverage | Match/postgame voice now uses direct UDP; party/clan menu voice still uses its relay and remains to convert; LAN voice, all-participant loading voice, independent couch headsets/mics, masking and original radio audio remain open |
+| Master outage | Peer simulation and voice continue through temporary signaling loss; reports retry safely afterward | Temporary master-socket outage acceptance passed:89 simulation ticks and86/88 audible frames continued, then reports uploaded; master-process-restart admission persistence remains open |
 | Disconnect survival | A nonhost departure does not end the room; a graceful or abrupt host loss preserves and resumes the actual world | Complete runtime departure/retained-result and authoritative continuation integration remain open |
 | Migration | Preserve complete player/unit/weapon/inventory, allocation identities, RNG, timers, projectiles/grenades, props, devices, physics, recording/results, local profiles and voice; promote/rebind a validated survivor | Coordinator and subowner work exists; complete world ownership and physical gameplay handoff are not complete |
 | Historical playlists | Final-2010 target with the fullest evidence-supported rotations/game coverage; casual/ranked matching follows recovered/public Halo 2 logic, including Max Hoberman's explanations | Final downloaded catalog not recovered; full objective engines/rotations remain open |
@@ -96,3 +96,13 @@ Related evidence:
 [completion audit](online-completion-audit.md),
 [historical target](online-default-target.json),
 [couch players](online-couch-players.md).
+
+## Direct peer delivery milestone
+
+Both launchers now select `.local/direct-peer-20261013/runtime/halo2_native`.
+The backend release is `/opt/halo2/releases/20261014T021753Z`; all36 preexisting
+retained tables and the master key matched the isolated backup/restore check.
+The new `match_result_consensus` table was empty. The delivery evidence is
+[verification.json](/home/eric/Developer/Halo-2-Decompiled/.local/direct-peer-20261013/verification.json).
+This closes the bounded direct-transport delivery stage, not the full goal or
+gameplay host migration.

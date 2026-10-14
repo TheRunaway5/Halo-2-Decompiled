@@ -79,6 +79,7 @@ public:
   // globals grenade block. No parallel projectile header or motion is made.
   std::vector<NativeGrenadeProjectile> grenade_projectiles() const;
   std::vector<SourceProjectileDetonationTu15> take_projectile_detonations();
+  void observe_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)>);
   MultiplayerSourceVitality object_vitality(std::uint32_t object) const;
   // Deliver the completed native D5DE0/D9110/BCC20 owner state before the
   // retained source body's fatal/physical consumer. Maxima and flags remain

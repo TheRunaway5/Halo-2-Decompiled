@@ -25,12 +25,19 @@ struct SourceProjectileDetonationTu15 {
     std::array<std::byte,4*0x1c> request_locations;
     std::vector<SourceEffectLocation> effect_locations;
     SourceEffectColors colors;
+    SourceEffectControls controls;
 };
 struct SourcePlayerEquipmentTu15 {
     std::array<std::uint32_t,4> weapons,definitions,ready_ticks;
     std::array<std::int8_t,2> current,requested;
     std::array<std::uint8_t,2> grenades;
     std::uint16_t inventory_sequence,replicated_sequence;
+};
+// Read-only bytes around the actual1D94CE point-impulse dispatch.
+struct SourceBodyImpulseTu15 {
+    std::uint32_t object,tick,body_index;
+    std::array<std::byte,0x100> before,after;
+    std::array<std::byte,16> impulse,point;
 };
 // One fresh TU1.5 bank and its native process/arena/pool resources. Source
 // constructors own all allocator, renderer, world and body state. The host
@@ -82,6 +89,7 @@ public:
     // systems, including the preceding audio phase, are separate owners.
     void step_objects();
     std::vector<SourceProjectileDetonationTu15> take_projectile_detonations();
+    void observe_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)>);
     std::vector<MeleeImpact> take_melee_impacts();
     std::vector<UnitDamageEffectEvent> take_unit_damage_effects();
     SourceWeaponEffectPresentation request_weapon_effect(const WeaponEffectInput &);

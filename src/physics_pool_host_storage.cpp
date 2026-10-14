@@ -1,5 +1,10 @@
 #include "halo2/physics_pool_host_storage.hpp"
+#include <algorithm>
+#include <memory>
 #include <stdexcept>
+#if defined(__linux__)
+#include <unistd.h>
+#endif
 
 namespace halo2 {
 namespace {
@@ -25,10 +30,64 @@ SourcePhysicsPoolHostStorage::~SourcePhysicsPoolHostStorage() {
     try { memory_.release(base); } catch(...) {}
   }
 }
+struct SourcePhysicsPoolHostStorage::PreparedOwnership::Impl {
+  const SourcePhysicsPoolHostStorage *owner;
+  SourceRuntimeHostStorage::PreparedCursor cursor;
+  std::map<std::uint32_t,std::uint32_t> allocations;
+  Impl(const SourcePhysicsPoolHostStorage *owner,SourceRuntimeHostStorage::PreparedCursor cursor)
+      :owner(owner),cursor(std::move(cursor)) {}
+};
+SourcePhysicsPoolHostStorage::PreparedOwnership::PreparedOwnership()=default;
+SourcePhysicsPoolHostStorage::PreparedOwnership::~PreparedOwnership()=default;
+SourcePhysicsPoolHostStorage::PreparedOwnership::PreparedOwnership(PreparedOwnership &&) noexcept=default;
+SourcePhysicsPoolHostStorage::PreparedOwnership &SourcePhysicsPoolHostStorage::PreparedOwnership::operator=(PreparedOwnership &&) noexcept=default;
+bool SourcePhysicsPoolHostStorage::PreparedOwnership::for_owner(const SourcePhysicsPoolHostStorage &owner) const noexcept {
+  return impl_ && impl_->owner==&owner;
+}
+SourcePhysicsPoolHostStorage::OwnershipCheckpoint SourcePhysicsPoolHostStorage::ownership_checkpoint() const {
+  return {1,raw_.cursor_checkpoint(),allocations_};
+}
+SourcePhysicsPoolHostStorage::PreparedOwnership SourcePhysicsPoolHostStorage::prepare_ownership(
+    const OwnershipCheckpoint &saved,const SourceRuntimeMemory::Checkpoint &bank) const {
+  SourceRuntimeMemory::validate_checkpoint(bank);
+  if(saved.version!=1)throw std::invalid_argument("Unsupported physics pool resource checkpoint");
+#if defined(__linux__)
+  const auto page=::sysconf(_SC_PAGE_SIZE);
+  if(page<=0)throw std::runtime_error("Host virtual-memory page size unavailable");
+#else
+  throw std::runtime_error("Required physics pool resource import platform unavailable");
+  constexpr auto page=0x1000;
+#endif
+  PreparedOwnership prepared;
+  prepared.impl_=std::make_unique<PreparedOwnership::Impl>(this,raw_.prepare_cursor(saved.cursor));
+  std::uint64_t previous_end{};
+  for(const auto &[base,bytes]:saved.allocations) {
+    const auto limit=std::uint64_t(base)+bytes;
+    if(!bytes || base%page || bytes%page || base<previous_end || limit>saved.cursor.next)
+      throw std::invalid_argument("Invalid physics pool resource extent or allocation cursor");
+    previous_end=limit;
+    const auto region=std::lower_bound(bank.regions.begin(),bank.regions.end(),base,
+        [](const auto &region,auto address){return region.address<address;});
+    if(region==bank.regions.end() || region->address!=base || region->bytes.size()!=bytes ||
+        region->owner!="actual host raw virtual-memory allocation" ||
+        region->access!=SourceRuntimeMemory::Access::ReadWrite || region->page_bytes || !region->committed.empty())
+      throw std::invalid_argument("Physics pool resource differs from incoming source bank");
+  }
+  prepared.impl_->allocations=saved.allocations;
+  return prepared;
+}
+bool SourcePhysicsPoolHostStorage::commit_ownership(PreparedOwnership &&prepared) noexcept {
+  if(!prepared.for_owner(*this))return false;
+  if(!raw_.commit_cursor(std::move(prepared.impl_->cursor)))return false;
+  allocations_.swap(prepared.impl_->allocations);prepared.impl_.reset();return true;
+}
 bool SourcePhysicsPoolHostStorage::try_call(SourcePhysicsContactMemory &m,
     const SourcePhysicsContactRuntimeCall &call,SourcePhysicsWorldRuntimeAbi &abi) {
-  const bool allocate=call.instruction==0x33786fu && call.target==0x800000b8u;
-  const bool release=call.instruction==0x3378abu && call.target==0x800000c7u;
+  // Lowered TU1.5 owners can reach the actual XAPI sites directly; the pool
+  // module retains the corresponding canonical IDs. Both require the same
+  // authenticated TU1.5 return frame below and this owner's real resources.
+  const bool allocate=(call.instruction==0x33786fu || call.instruction==0x33b3bfu) && call.target==0x800000b8u;
+  const bool release=(call.instruction==0x3378abu || call.instruction==0x33b3fbu) && call.target==0x800000c7u;
   if(!allocate && !release) return false;
   if(&m!=&memory_ || call.tail)
     throw std::runtime_error("Original physics pool storage/call owner mismatch");
@@ -60,20 +119,5 @@ bool SourcePhysicsPoolHostStorage::try_call(SourcePhysicsContactMemory &m,
     abi.gp[0]=0;abi.gp[4]+=16u;
   }
   return true;
-}
-void source_run_physics_pool_startup_with_native_storage(SourceRuntimeMemory &m,
-    std::uint32_t entry,SourcePhysicsWorldRuntimeAbi &abi,
-    SourcePhysicsFactoryFloatingPoint fp,const SourcePhysicsWorldRuntimeServices &services,
-    SourcePhysicsPoolHostStorage &host,const SourcePhysicsContactRecordObserver &observe) {
-  if(!host.backs(m)) throw std::runtime_error("Original physics pool backing identity mismatch");
-  auto joined=services;
-  joined.required_owner=[&](auto &bank,const auto &call,auto &state,const auto &original_observer) {
-    if(host.try_call(bank,call,state)) return;
-    if(!services.required_owner)
-      throw std::runtime_error("Required original physics pool callee unavailable after native storage join");
-    services.required_owner(bank,call,state,original_observer);
-  };
-  source_run_physics_pool_startup_runtime(m,entry,abi,SourcePhysicsContactImage::TitleUpdate15,
-      fp,joined,observe);
 }
 } // namespace halo2

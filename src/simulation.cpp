@@ -28,14 +28,18 @@ float direct_damage_amount(const WeaponDefinition &weapon) {
 }
 }
 struct Simulation::BspWorld {
-  std::vector<NavigationSector> sectors;
-  CollisionWorld collision;
+  std::shared_ptr<const std::vector<NavigationSector>> sectors;
+  std::shared_ptr<const CollisionWorld> collision;
   NavigationWorld navigation;
   explicit BspWorld(BspContent value)
-      : sectors(std::move(value.navigation)), collision(std::move(value.collision)),
-        navigation(sectors) {}
+      : sectors(std::make_shared<const std::vector<NavigationSector>>(std::move(value.navigation))),
+        collision(std::make_shared<const CollisionWorld>(std::move(value.collision))),
+        navigation(*sectors) {}
+  BspWorld(std::shared_ptr<const std::vector<NavigationSector>> sectors,
+           std::shared_ptr<const CollisionWorld> collision)
+      : sectors(std::move(sectors)), collision(std::move(collision)), navigation(*this->sectors) {}
 };
-const CollisionWorld &Simulation::collision() const { return prop_collision_?*prop_collision_:world_->collision; }
+const CollisionWorld &Simulation::collision() const { return prop_collision_?*prop_collision_:*world_->collision; }
 void Simulation::replicate_source_scene(std::span<const SourceSceneRoot> roots,
     std::span<const SourceWorldPose> poses) {
   if(source_physics_movement_)throw FormatError("Source authority cannot consume replica scene poses");
@@ -78,38 +82,14 @@ void Simulation::synchronize_props(bool force){
   const bool devices_changed=devices_.synchronize_collision();
   const bool props_changed=props_.synchronize(scene_);
   const bool scenery_changed=scenery_collision_.synchronize(scene_);
-  if(scenery_changed || devices_changed || force || !static_collision_){
-    // These derived worlds are rebuilt below and are not checkpoint owners.
-    // Release both old banks before allocating another full BSP prefix.
-    prop_collision_.reset();
-    static_collision_.reset();
-    const auto scenery=scenery_collision_.triangles();
-    const auto devices=devices_.triangles();
-    if(scenery.empty() && devices.empty()) {
-      // The BSP owner outlives this alias, including checkpoint restores.
-      static_collision_={world_,&world_->collision};
-    } else {
-      const auto base=world_->collision.triangles();
-      std::vector<CollisionTriangle> triangles;
-      triangles.reserve(base.size()+scenery.size()+devices.size());
-      triangles.insert(triangles.end(),base.begin(),base.end());
-      triangles.insert(triangles.end(),scenery.begin(),scenery.end());
-      triangles.insert(triangles.end(),devices.begin(),devices.end());
-      static_collision_=std::make_shared<CollisionWorld>(std::move(triangles));
-    }
-  }
-  if(props_changed || scenery_changed || devices_changed || force || !prop_collision_){
-    prop_collision_.reset();
-    auto placed=props_.triangles();
-    if(placed.empty()) prop_collision_=static_collision_;
-    else {
-      const auto fixed=static_collision_->triangles();
-      std::vector<CollisionTriangle> triangles;
-      triangles.reserve(fixed.size()+placed.size());
-      triangles.insert(triangles.end(),fixed.begin(),fixed.end());
-      triangles.insert(triangles.end(),placed.begin(),placed.end());
-      prop_collision_=std::make_shared<CollisionWorld>(std::move(triangles));
-    }
+  const bool fixed_changed = scenery_changed || devices_changed || force || !static_collision_;
+  if (props_changed || fixed_changed || !prop_collision_) {
+    const auto layers = CollisionWorld::compose(world_->collision,
+        {scenery_collision_.triangles(), devices_.triangles(), props_.triangles()},
+        {std::move(static_collision_), std::move(prop_collision_), fixed_changed, world_.use_count() == 1});
+    world_ = std::make_shared<BspWorld>(world_->sectors, layers.bsp);
+    static_collision_ = layers.fixed;
+    prop_collision_ = layers.all;
   }
 }
 void Simulation::replicate_prop_removals(std::span<const PropRemoval> rows){
@@ -485,7 +465,7 @@ void Simulation::respawn(Spawn spawn) {
       spawn.position,         {},    content_.player.height,
       content_.player.radius, false, content_.player.maximum_slope_cosine};
   const auto ground =
-      world_->collision.raycast(spawn.position + Vec3{0, 0, .1f}, {0, 0, -1}, 3);
+      world_->collision->raycast(spawn.position + Vec3{0, 0, .1f}, {0, 0, -1}, 3);
   if (ground && ground->normal.z >= player_.body.maximum_slope_cosine)
     player_.body.position.z = ground->position.z + .002f;
   if (equipped != null_datum && content_.weapons.contains(equipped))
@@ -520,7 +500,7 @@ std::size_t Simulation::place_squad(const std::string &name) {
     if (c == content_.characters.end() || c->second.biped.radius <= 0)
       continue;
     const auto ground =
-        world_->collision.raycast(start.position + Vec3{0, 0, .1f}, {0, 0, -1}, 3);
+        world_->collision->raycast(start.position + Vec3{0, 0, .1f}, {0, 0, -1}, 3);
     if (!ground || ground->normal.z < c->second.biped.maximum_slope_cosine)
       continue; // no guessed BSP assignment or airborne spawn
     if (actors_.size() >= 256)
@@ -1748,7 +1728,7 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
       if (range >= distance || dot(direction(a.yaw), normalized(d)) <
                                    std::cos(character.vision_angle))
         return;
-      const auto occluder = world_->collision.raycast(eye(a), d, range);
+      const auto occluder = world_->collision->raycast(eye(a), d, range);
       if (occluder && occluder->distance < range - .001f)
         return;
       target = id;

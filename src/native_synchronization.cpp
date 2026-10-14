@@ -5,6 +5,7 @@
 #include <mutex>
 #include <new>
 #include <stdexcept>
+#include <shared_mutex>
 #include <thread>
 
 namespace halo2 {
@@ -38,11 +39,13 @@ constexpr std::uint32_t infinite=0xffffffffu;
 }
 struct NativeSynchronization::State {
   explicit State(const NativeSynchronizationConfiguration &configuration)
-      :next(configuration.first_handle_alias),limit(configuration.handle_alias_limit) {
+      :first(configuration.first_handle_alias),next(first),limit(configuration.handle_alias_limit) {
     if(!next||next>=limit||limit>(std::uint64_t{1}<<32))
       throw std::invalid_argument("Native synchronization alias namespace unavailable");
   }
   mutable std::mutex objects_mutex;
+  mutable std::shared_mutex operation_gate;
+  const std::uint32_t first;
   std::uint64_t next;
   const std::uint64_t limit;
   std::map<std::uint32_t,std::shared_ptr<Object>> objects;
@@ -54,6 +57,7 @@ struct NativeSynchronization::State {
     return {handle,{}};
   }
   NativeSynchronizationCreation create_mutex(bool initially_owned) {
+    std::shared_lock operation(operation_gate);
     try {
       auto object=std::make_shared<Mutex>();
       std::unique_lock initial(object->native,std::defer_lock);
@@ -70,6 +74,7 @@ struct NativeSynchronization::State {
      catch(const std::bad_alloc &){return {0,error(std::errc::not_enough_memory)};}
   }
   NativeSynchronizationCreation create_semaphore(std::int32_t initial,std::int32_t maximum) {
+    std::shared_lock operation(operation_gate);
     if(initial<0||maximum<=0||initial>maximum)return {0,error(std::errc::invalid_argument)};
     try {return retain(std::make_shared<Semaphore>(initial,maximum));}
     catch(const std::system_error &exception){return {0,exception.code()};}
@@ -80,6 +85,7 @@ struct NativeSynchronization::State {
     return found==objects.end()?nullptr:found->second;
   }
   NativeSynchronizationWait wait(std::uint32_t handle,std::uint32_t milliseconds) {
+    std::shared_lock operation(operation_gate);
     const auto object=find(handle);
     if(!object)return failed(std::errc::bad_file_descriptor);
     try {
@@ -105,6 +111,7 @@ struct NativeSynchronization::State {
     }catch(const std::system_error &exception){return {NativeSynchronizationWaitState::Failed,exception.code()};}
   }
   std::error_code release_mutex(std::uint32_t handle) {
+    std::shared_lock operation(operation_gate);
     const auto object=find(handle);
     if(!object)return error(std::errc::bad_file_descriptor);
     if(object->kind!=Kind::Mutex)return error(std::errc::invalid_argument);
@@ -116,6 +123,7 @@ struct NativeSynchronization::State {
     mutex->native.unlock();return {};
   }
   NativeSemaphoreRelease release_semaphore(std::uint32_t handle,std::int32_t count) {
+    std::shared_lock operation(operation_gate);
     const auto object=find(handle);
     if(!object)return {{},error(std::errc::bad_file_descriptor)};
     if(object->kind!=Kind::Semaphore)return {{},error(std::errc::invalid_argument)};
@@ -126,6 +134,13 @@ struct NativeSynchronization::State {
       return {{},error(std::errc::value_too_large)};
     const auto previous=semaphore->count;semaphore->count+=count;
     lock.unlock();semaphore->available.notify_all();return {previous,{}};
+  }
+  // Both the exclusive operation gate and objects_mutex must be held.
+  void require_unowned_mutexes() const {
+    for(const auto &[handle,object]:objects) {
+      if(object->kind==Kind::Mutex && std::static_pointer_cast<Mutex>(object)->depth)
+        throw std::runtime_error("Native synchronization continuation requires released mutexes");
+    }
   }
 };
 NativeSynchronization::NativeSynchronization(const NativeSynchronizationConfiguration &configuration)
@@ -142,5 +157,65 @@ NativeSynchronizationServices NativeSynchronization::services() const {
 }
 std::size_t NativeSynchronization::object_count() const {
   std::lock_guard lock(state_->objects_mutex);return state_->objects.size();
+}
+struct NativeSynchronization::PreparedRestore::Impl {
+  std::shared_ptr<State> state;
+  std::unique_lock<std::shared_mutex> operation;
+  std::unique_lock<std::mutex> registry;
+  std::uint64_t next{};
+  std::map<std::uint32_t,std::shared_ptr<Object>> objects;
+  explicit Impl(std::shared_ptr<State> state)
+      :state(std::move(state)),operation(this->state->operation_gate,std::try_to_lock),
+       registry(this->state->objects_mutex,std::defer_lock) {
+    if(!operation.owns_lock())throw std::runtime_error("Native synchronization continuation has active calls or waits");
+    registry.lock();this->state->require_unowned_mutexes();
+  }
+};
+NativeSynchronization::PreparedRestore::PreparedRestore()=default;
+NativeSynchronization::PreparedRestore::~PreparedRestore()=default;
+NativeSynchronization::PreparedRestore::PreparedRestore(PreparedRestore &&) noexcept=default;
+NativeSynchronization::PreparedRestore &NativeSynchronization::PreparedRestore::operator=(PreparedRestore &&) noexcept=default;
+bool NativeSynchronization::PreparedRestore::for_owner(const NativeSynchronization &owner) const noexcept {
+  return impl_ && impl_->state==owner.state_;
+}
+NativeSynchronization::Checkpoint NativeSynchronization::checkpoint() const {
+  std::unique_lock operation(state_->operation_gate,std::try_to_lock);
+  if(!operation.owns_lock())throw std::runtime_error("Native synchronization checkpoint has active calls or waits");
+  std::lock_guard registry(state_->objects_mutex);state_->require_unowned_mutexes();
+  Checkpoint saved{1,state_->first,state_->next,state_->limit,{}};
+  saved.objects.reserve(state_->objects.size());
+  for(const auto &[handle,object]:state_->objects) {
+    if(object->kind==Kind::Mutex)saved.objects.push_back({handle,ObjectKind::Mutex,0,0});
+    else {
+      const auto semaphore=std::static_pointer_cast<Semaphore>(object);
+      saved.objects.push_back({handle,ObjectKind::Semaphore,semaphore->count,semaphore->limit});
+    }
+  }
+  return saved;
+}
+NativeSynchronization::PreparedRestore NativeSynchronization::prepare_restore(const Checkpoint &saved) const {
+  if(saved.version!=1 || saved.first!=state_->first || saved.limit!=state_->limit ||
+      saved.next<saved.first || saved.next>saved.limit || saved.objects.size()!=saved.next-saved.first)
+    throw std::invalid_argument("Invalid native synchronization checkpoint namespace");
+  PreparedRestore prepared;prepared.impl_=std::make_unique<PreparedRestore::Impl>(state_);
+  prepared.impl_->next=saved.next;
+  auto expected=std::uint64_t(saved.first);
+  for(const auto &object:saved.objects) {
+    if(object.handle!=expected++)throw std::invalid_argument("Invalid native synchronization checkpoint alias");
+    if(object.kind==ObjectKind::Mutex) {
+      if(object.count || object.limit)throw std::invalid_argument("Mutex checkpoint cannot carry semaphore counts");
+      prepared.impl_->objects.emplace(object.handle,std::make_shared<Mutex>());
+    } else if(object.kind==ObjectKind::Semaphore) {
+      if(object.count<0 || object.limit<=0 || object.count>object.limit)
+        throw std::invalid_argument("Invalid native semaphore checkpoint count");
+      prepared.impl_->objects.emplace(object.handle,std::make_shared<Semaphore>(object.count,object.limit));
+    } else throw std::invalid_argument("Invalid native synchronization checkpoint kind");
+  }
+  return prepared;
+}
+bool NativeSynchronization::commit_restore(PreparedRestore &&prepared) noexcept {
+  if(!prepared.for_owner(*this))return false;
+  state_->objects.swap(prepared.impl_->objects);state_->next=prepared.impl_->next;
+  prepared.impl_.reset();return true;
 }
 } // namespace halo2

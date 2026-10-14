@@ -33,7 +33,7 @@ class LauncherHomeTests(unittest.TestCase):
                 raise RuntimeError("The compiler failed")
             (root / "updated-runtime").touch()
 
-        self.home = LauncherHome(self.window, self.root, self.root / "build", update)
+        self.home = LauncherHome(self.window, self.root, self.root / "build", update, availability_function=lambda: None)
         self.window.update()
 
     def destroy(self):
@@ -83,6 +83,17 @@ class LauncherHomeTests(unittest.TestCase):
         self.wait_until(lambda: not self.home.working)
         self.assertEqual(str(self.home.play_button.cget("state")), "normal")
         self.assertIn("Update complete", self.home.status.cget("text"))
+
+    def test_incomplete_mcc_conversion_stays_disabled_after_a_successful_update(self):
+        self.home.availability = lambda: "MCC native gameplay conversion is incomplete."
+        self.home.unavailable = self.home.availability()
+        self.release.set()
+        self.home.update_button.invoke()
+        self.wait_until(lambda: not self.home.working)
+        self.assertEqual(str(self.home.play_button.cget("state")), "disabled")
+        self.assertIn("conversion is incomplete", self.home.status.cget("text"))
+        self.home.play_button.invoke()
+        self.assertFalse(self.home.closed)
 
     def test_exit_does_not_play_or_update(self):
         self.home.exit_button.invoke()

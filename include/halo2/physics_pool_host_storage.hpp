@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/physics_pool_startup_runtime.hpp"
 #include "halo2/source_runtime_host_storage.hpp"
+#include <memory>
 
 namespace halo2 {
 struct SourcePhysicsPoolResourceEvent {
@@ -29,6 +30,34 @@ public:
       const SourcePhysicsContactRuntimeCall &, SourcePhysicsWorldRuntimeAbi &);
   bool backs(const SourceRuntimeMemory &memory) const { return &memory == &memory_; }
   std::size_t live_allocations() const { return allocations_.size(); }
+  struct OwnershipCheckpoint {
+    std::uint32_t version=1;
+    SourceRuntimeHostStorage::CursorCheckpoint cursor;
+    std::map<std::uint32_t,std::uint32_t> allocations;
+    bool operator==(const OwnershipCheckpoint &) const = default;
+  };
+  class PreparedOwnership {
+  public:
+    ~PreparedOwnership();
+    PreparedOwnership(PreparedOwnership &&) noexcept;
+    PreparedOwnership &operator=(PreparedOwnership &&) noexcept;
+    bool for_owner(const SourcePhysicsPoolHostStorage &) const noexcept;
+  private:
+    friend class SourcePhysicsPoolHostStorage;
+    PreparedOwnership();
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+  };
+  OwnershipCheckpoint ownership_checkpoint() const;
+  // Quiescent subowner import. Validate each retained raw allocation against
+  // the complete incoming bank and stage metadata before bank publication.
+  // Other raw owners (arena scratch/static storage) must be checked by their
+  // enclosing world transaction; the bank's raw-storage label is shared.
+  PreparedOwnership prepare_ownership(const OwnershipCheckpoint &,
+                                      const SourceRuntimeMemory::Checkpoint &) const;
+  // After whole-bank import, swap registries without releasing imported bytes.
+  // Native observers stay bound to this local process and are not serialized.
+  bool commit_ownership(PreparedOwnership &&) noexcept;
 private:
   SourceRuntimeMemory &memory_;
   SourceRuntimeHostStorage raw_;

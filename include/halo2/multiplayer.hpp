@@ -107,6 +107,10 @@ struct MultiplayerPlayer {
 };
 struct NativeWeaponEffectEvent {
   std::uint32_t serial{},tick{},unit=null_datum,weapon=null_datum,effect=null_datum,a_bits{},b_bits{};
+  SourceEffectColors colors;
+  Vec3 velocity;
+  std::uint32_t source_instance=null_datum;
+  bool source_presentation{};
 };
 struct WorldWeaponPresentation {
   std::uint32_t handle=null_datum,definition=null_datum;
@@ -240,6 +244,7 @@ struct MultiplayerState {
   std::vector<BulletImpact> bullet_impacts;
   std::vector<MeleeImpact> melee_impacts;
   std::vector<UnitDamageEffectEvent> unit_damage_effects;
+  std::vector<NativeWeaponEffectEvent> weapon_effects;
   std::vector<UnitDamageVoiceEvent> unit_damage_voices;
   std::vector<WorldWeaponPresentation> world_weapons;
   std::vector<WorldVehiclePresentation> world_vehicles;
@@ -338,6 +343,8 @@ public:
   // actual attachment/PVS/event/particle state; a shot counter is insufficient.
   void configure_weapon_effect_owner(
       std::function<std::uint32_t(const Unit &,const WeaponEffectInput &)>);
+  void weapon_effect_presentation(std::uint32_t unit,std::uint32_t weapon,
+      const SourceWeaponEffectPresentation &,Vec3 velocity);
   void configure_world_weapon_effect_owner(
       std::function<std::uint32_t(const WeaponEffectInput &)>);
   void configure_grenades(std::shared_ptr<const Cache>,NativeGrenadeConstants);
@@ -435,6 +442,7 @@ private:
   std::map<std::pair<unsigned,std::uint32_t>,FirstPersonBindingDefinition> replicated_fp_definitions_;
   std::array<FirstPersonViewBinding,multiplayer_capacity> replicated_fp_views_,replicated_fp_origins_;
   std::array<NativeWeaponEffectEvent,multiplayer_capacity> weapon_effect_events_;
+  std::vector<NativeWeaponEffectEvent> weapon_effect_journal_;
   std::uint32_t weapon_effect_serial_{};
   std::function<std::uint32_t(const Unit&,const WeaponEffectInput&)> weapon_effect_owner_;
   std::uint16_t infection_zombies_{};

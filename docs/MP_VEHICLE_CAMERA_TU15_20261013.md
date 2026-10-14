@@ -123,6 +123,23 @@ remains unchanged through the test. Test inputs align ordinary look with the
 completed vehicle forward vector, depart horizontally, then look up and turn;
 no body motion, attachment or camera result is supplied by the fixture.
 
+## Installed launcher verification
+
+The shared checkout's latest installed launchers select
+`.local/direct-peer-20261013/runtime/halo2_native`, retaining the actual vehicle
+camera and original seat-selector bindings. Both launcher-info receipts are
+checked at execution, rather than assuming an earlier installed path remains
+current. `camera-delivery-v193/installed-current-lockout` and
+`installed-current-coagulation` pass180-frame normal two-view startup/render
+checks through the root and title launchers, respectively, with no explicit
+source-world override. Both retain stable launcher/runtime hashes, screenshots,
+unaltered recordings and zero reported Vulkan validation errors using the
+bundled validation layer. The packaged runtime hash is
+`efc4084714b0184d0f7952966629da01a7a800cd2388ef1f066c474d8d1afaae`.
+These packaged checks establish normal startup/rendering. The driver input,
+flight, camera and UDP comparisons above use the current-root acceptance
+binary; the packaged checks do not themselves repeat boarding and flight.
+
 ## Remaining scope
 
 This proves a real authored seated camera in the exercised Warthog, Ghost and

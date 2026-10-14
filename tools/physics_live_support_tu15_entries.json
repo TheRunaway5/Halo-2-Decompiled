@@ -12710,6 +12710,1242 @@
       "source_instruction_hex": "e86f18fbff",
       "source_instruction": "call 0x11e600",
       "provenance": "Literal TU1.5 seat-selection graph from actual153F20; static registration does not assert executed coverage."
+    },
+    {
+      "target": "002eb0c0",
+      "reached_site": "001dc9af",
+      "return_address": "001dc9b2",
+      "source_instruction_hex": "ff5220",
+      "source_instruction": "call dword ptr [edx + 0x20]",
+      "reported_correspondence_site": "001dc9af"
+    },
+    {
+      "target": "002ea050",
+      "source_site": "002eb0d2",
+      "source_instruction_hex": "e979efffff",
+      "source_instruction": "jmp 0x2ea050",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00179960",
+      "reached_site": "000dc3a2",
+      "return_address": "000dc3a7",
+      "source_instruction_hex": "e8b9d50900",
+      "source_instruction": "call 0x179960",
+      "reported_correspondence_site": "000db452"
+    },
+    {
+      "target": "001798e0",
+      "source_site": "0017997b",
+      "source_instruction_hex": "e860ffffff",
+      "source_instruction": "call 0x1798e0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001790a0",
+      "source_site": "00178e47",
+      "source_instruction_hex": "e854020000",
+      "source_instruction": "call 0x1790a0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00169151",
+      "source_site": "00178f30",
+      "source_instruction_hex": "e81c02ffff",
+      "source_instruction": "call 0x169151",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017b0d0",
+      "source_site": "00178f9f",
+      "source_instruction_hex": "e82c210000",
+      "source_instruction": "call 0x17b0d0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00178de0",
+      "source_site": "00178fb6",
+      "source_instruction_hex": "e825feffff",
+      "source_instruction": "call 0x178de0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017e460",
+      "source_site": "00179012",
+      "source_instruction_hex": "e849540000",
+      "source_instruction": "call 0x17e460",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017aef0",
+      "source_site": "0017b018",
+      "source_instruction_hex": "e8d3feffff",
+      "source_instruction": "call 0x17aef0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0016918f",
+      "source_site": "0017b38f",
+      "source_instruction_hex": "e8fbddfeff",
+      "source_instruction": "call 0x16918f",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017b580",
+      "source_site": "0017b3d7",
+      "source_instruction_hex": "e8a4010000",
+      "source_instruction": "call 0x17b580",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000d50f0",
+      "source_site": "0017e53f",
+      "source_instruction_hex": "e8ac6bf5ff",
+      "source_instruction": "call 0xd50f0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017ba50",
+      "source_site": "0017e562",
+      "source_instruction_hex": "e8e9d4ffff",
+      "source_instruction": "call 0x17ba50",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00130d20",
+      "reached_site": "0013ffa7",
+      "return_address": "0013ffa9",
+      "source_instruction_hex": "ffd0",
+      "source_instruction": "call eax",
+      "reported_correspondence_site": "0013ffa7"
+    },
+    {
+      "target": "0022a790",
+      "source_site": "00130d92",
+      "source_instruction_hex": "e8f9990f00",
+      "source_instruction": "call 0x22a790",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000dc3c0",
+      "reached_site": "000dc874",
+      "return_address": "000dc879",
+      "source_instruction_hex": "e847fbffff",
+      "source_instruction": "call 0xdc3c0",
+      "reported_correspondence_site": "000db924"
+    },
+    {
+      "target": "001ce080",
+      "source_site": "00187171",
+      "source_instruction_hex": "e80a6f0400",
+      "source_instruction": "call 0x1ce080",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001ce0b0",
+      "source_site": "001871ac",
+      "source_instruction_hex": "e8ff6e0400",
+      "source_instruction": "call 0x1ce0b0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0015f8b0",
+      "reached_site": "001f2740",
+      "return_address": "001f2745",
+      "source_instruction_hex": "e86bd1f6ff",
+      "source_instruction": "call 0x15f8b0",
+      "reported_correspondence_site": "001f2740"
+    },
+    {
+      "target": "00160100",
+      "source_site": "0015fb8c",
+      "source_instruction_hex": "e86f050000",
+      "source_instruction": "call 0x160100",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001a8820",
+      "source_site": "001600a6",
+      "source_instruction_hex": "e875870400",
+      "source_instruction": "call 0x1a8820",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00213890",
+      "reached_site": "00116bdf",
+      "return_address": "00116be4",
+      "source_instruction_hex": "e8accc0f00",
+      "source_instruction": "call 0x213890",
+      "reported_correspondence_site": "00115cbf"
+    },
+    {
+      "target": "0021fe40",
+      "source_site": "002138cb",
+      "source_instruction_hex": "e870c50000",
+      "source_instruction": "call 0x21fe40",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00140ea0",
+      "source_site": "002138dd",
+      "source_instruction_hex": "e8bed5f2ff",
+      "source_instruction": "call 0x140ea0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001d1f30",
+      "reached_site": "000c8c9f",
+      "return_address": "000c8ca4",
+      "source_instruction_hex": "e88c921000",
+      "source_instruction": "call 0x1d1f30",
+      "reported_correspondence_site": "000c8c9f"
+    },
+    {
+      "target": "001d1830",
+      "source_site": "001d1f65",
+      "source_instruction_hex": "e8c6f8ffff",
+      "source_instruction": "call 0x1d1830",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00267480",
+      "source_site": "001d1fba",
+      "source_instruction_hex": "e8c1540900",
+      "source_instruction": "call 0x267480",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00267450",
+      "source_site": "001d1fdb",
+      "source_instruction_hex": "e870540900",
+      "source_instruction": "call 0x267450",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001ea820",
+      "source_site": "001d2099",
+      "source_instruction_hex": "e882870100",
+      "source_instruction": "call 0x1ea820",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001e7c00",
+      "source_site": "001d20b0",
+      "source_instruction_hex": "e84b5b0100",
+      "source_instruction": "call 0x1e7c00",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001eb730",
+      "source_site": "0026748c",
+      "source_instruction_hex": "e89f42f8ff",
+      "source_instruction": "call 0x1eb730",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00267520",
+      "source_site": "001ea83b",
+      "source_instruction_hex": "e8e0cc0700",
+      "source_instruction": "call 0x267520",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002660b0",
+      "source_site": "001ea883",
+      "source_instruction_hex": "e828b80700",
+      "source_instruction": "call 0x2660b0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0026df20",
+      "source_site": "001ea888",
+      "source_instruction_hex": "e893360800",
+      "source_instruction": "call 0x26df20",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001d0400",
+      "source_site": "001ea97e",
+      "source_instruction_hex": "e87d5afeff",
+      "source_instruction": "call 0x1d0400",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00265700",
+      "source_site": "001ea9d1",
+      "source_instruction_hex": "e82aad0700",
+      "source_instruction": "call 0x265700",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001110d0",
+      "source_site": "001eaa8c",
+      "source_instruction_hex": "e83f66f2ff",
+      "source_instruction": "call 0x1110d0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001b0e10",
+      "source_site": "001eab51",
+      "source_instruction_hex": "e8ba62fcff",
+      "source_instruction": "call 0x1b0e10",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002749f0",
+      "source_site": "002675fa",
+      "source_instruction_hex": "e8f1d30000",
+      "source_instruction": "call 0x2749f0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00265f40",
+      "source_site": "002660d0",
+      "source_instruction_hex": "e86bfeffff",
+      "source_instruction": "call 0x265f40",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00266280",
+      "source_site": "002660db",
+      "source_instruction_hex": "e8a0010000",
+      "source_instruction": "call 0x266280",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002673a0",
+      "source_site": "0026df38",
+      "source_instruction_hex": "e86394ffff",
+      "source_instruction": "call 0x2673a0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0026ded0",
+      "source_site": "0026df47",
+      "source_instruction_hex": "e884ffffff",
+      "source_instruction": "call 0x26ded0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0026e040",
+      "source_site": "0026df5b",
+      "source_instruction_hex": "e8e0000000",
+      "source_instruction": "call 0x26e040",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002649f0",
+      "source_site": "00265808",
+      "source_instruction_hex": "e8e3f1ffff",
+      "source_instruction": "call 0x2649f0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0025bc90",
+      "reached_site": "0015fd63",
+      "return_address": "0015fd66",
+      "source_instruction_hex": "ff527c",
+      "source_instruction": "call dword ptr [edx + 0x7c]",
+      "reported_correspondence_site": "0015fd63"
+    },
+    {
+      "target": "002c5dd0",
+      "reached_site": "001600e4",
+      "return_address": "001600e7",
+      "source_instruction_hex": "ff5078",
+      "source_instruction": "call dword ptr [eax + 0x78]",
+      "reported_correspondence_site": "001600e4"
+    },
+    {
+      "target": "0015e1e0",
+      "source_site": "002c5e2d",
+      "source_instruction_hex": "e8ae83e9ff",
+      "source_instruction": "call 0x15e1e0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00161530",
+      "source_site": "002c5e85",
+      "source_instruction_hex": "e8a6b6e9ff",
+      "source_instruction": "call 0x161530",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00248550",
+      "source_site": "002c5eb5",
+      "source_instruction_hex": "e89626f8ff",
+      "source_instruction": "call 0x248550",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0015e070",
+      "source_site": "0015e2ea",
+      "source_instruction_hex": "e881fdffff",
+      "source_instruction": "call 0x15e070",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0015ddc0",
+      "source_site": "0015e326",
+      "source_instruction_hex": "e895faffff",
+      "source_instruction": "call 0x15ddc0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00248e40",
+      "source_site": "0024862d",
+      "source_instruction_hex": "e80e080000",
+      "source_instruction": "call 0x248e40",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001f20d0",
+      "source_site": "0015e163",
+      "source_instruction_hex": "e8683f0900",
+      "source_instruction": "call 0x1f20d0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0019b1d0",
+      "source_site": "0015e1a7",
+      "source_instruction_hex": "e824d00300",
+      "source_instruction": "call 0x19b1d0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001f1fc0",
+      "source_site": "0015df76",
+      "source_instruction_hex": "e845400900",
+      "source_instruction": "call 0x1f1fc0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0013b4a0",
+      "source_site": "0015e037",
+      "source_instruction_hex": "e864d4fdff",
+      "source_instruction": "call 0x13b4a0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0015e3a0",
+      "source_site": "0015e050",
+      "source_instruction_hex": "e84b030000",
+      "source_instruction": "call 0x15e3a0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00248a70",
+      "source_site": "00248e5e",
+      "source_instruction_hex": "e80dfcffff",
+      "source_instruction": "call 0x248a70",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0019b7d0",
+      "reached_site": "001f2766",
+      "return_address": "001f276b",
+      "source_instruction_hex": "e86590faff",
+      "source_instruction": "call 0x19b7d0",
+      "reported_correspondence_site": "001f2766"
+    },
+    {
+      "target": "001f2a50",
+      "reached_site": "001f2879",
+      "return_address": "001f287e",
+      "source_instruction_hex": "e8d2010000",
+      "source_instruction": "call 0x1f2a50",
+      "reported_correspondence_site": "001f2879"
+    },
+    {
+      "target": "0022c280",
+      "source_site": "001f2aef",
+      "source_instruction_hex": "e88c970300",
+      "source_instruction": "call 0x22c280",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00165670",
+      "source_site": "001f2b26",
+      "source_instruction_hex": "e8452bf7ff",
+      "source_instruction": "call 0x165670",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0019b2b0",
+      "source_site": "001f2043",
+      "source_instruction_hex": "e86892faff",
+      "source_instruction": "call 0x19b2b0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00192cb7",
+      "source_site": "0022c2f1",
+      "source_instruction_hex": "e8c169f6ff",
+      "source_instruction": "call 0x192cb7",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00054f30",
+      "source_site": "00192ce6",
+      "source_instruction_hex": "e84522ecff",
+      "source_instruction": "call 0x54f30",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000658c0",
+      "source_site": "00192cf9",
+      "source_instruction_hex": "e8c22bedff",
+      "source_instruction": "call 0x658c0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001ce670",
+      "reached_site": "0011275b",
+      "return_address": "00112760",
+      "source_instruction_hex": "e810bf0b00",
+      "source_instruction": "call 0x1ce670",
+      "reported_correspondence_site": "0011183b"
+    },
+    {
+      "target": "001d3f60",
+      "reached_site": "00112893",
+      "return_address": "00112898",
+      "source_instruction_hex": "e8c8160c00",
+      "source_instruction": "call 0x1d3f60",
+      "reported_correspondence_site": "00111973"
+    },
+    {
+      "target": "00111ed0",
+      "reached_site": "000cc040",
+      "return_address": "000cc045",
+      "source_instruction_hex": "e88b5e0400",
+      "source_instruction": "call 0x111ed0",
+      "reported_correspondence_site": "000caec0"
+    },
+    {
+      "target": "002131b0",
+      "source_table": "0044b524",
+      "source_pointer_hex": "b0312100",
+      "provenance": "Actual44B524 sound-availability storage callback and44B52C new-map reset; registration is not execution evidence."
+    },
+    {
+      "target": "00213260",
+      "source_table": "0044b52c",
+      "source_pointer_hex": "60322100",
+      "provenance": "Actual44B524 sound-availability storage callback and44B52C new-map reset; registration is not execution evidence."
+    },
+    {
+      "target": "00116cd0",
+      "reached_site": "00116ddf",
+      "return_address": "00116de4",
+      "source_instruction_hex": "e8ecfeffff",
+      "source_instruction": "call 0x116cd0",
+      "reported_correspondence_site": "00115ebf"
+    },
+    {
+      "target": "00213690",
+      "reached_site": "00116cd6",
+      "return_address": "00116cdb",
+      "source_instruction_hex": "e8b5c90f00",
+      "source_instruction": "call 0x213690",
+      "reported_correspondence_site": "00116cd6"
+    },
+    {
+      "target": "0021f670",
+      "source_site": "002136de",
+      "source_instruction_hex": "e88dbf0000",
+      "source_instruction": "call 0x21f670",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0021f6b0",
+      "source_site": "002136f8",
+      "source_instruction_hex": "e8b3bf0000",
+      "source_instruction": "call 0x21f6b0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0021f590",
+      "source_site": "0021f6f3",
+      "source_instruction_hex": "e898feffff",
+      "source_instruction": "call 0x21f590",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000d90b0",
+      "reached_site": "000d91b5",
+      "return_address": "000d91ba",
+      "source_instruction_hex": "e8f6feffff",
+      "source_instruction": "call 0xd90b0",
+      "reported_correspondence_site": "000d91b5"
+    },
+    {
+      "target": "0010e080",
+      "source_site": "000d90ee",
+      "source_instruction_hex": "e88d4f0300",
+      "source_instruction": "call 0x10e080",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00213410",
+      "reached_site": "00117407",
+      "return_address": "0011740c",
+      "source_instruction_hex": "e804c00f00",
+      "source_instruction": "call 0x213410",
+      "reported_correspondence_site": "00117407"
+    },
+    {
+      "target": "0021fb20",
+      "source_site": "0021357d",
+      "source_instruction_hex": "e89ec50000",
+      "source_instruction": "call 0x21fb20",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002133d0",
+      "source_site": "0021365b",
+      "source_instruction_hex": "e870fdffff",
+      "source_instruction": "call 0x2133d0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0018bfc0",
+      "reached_site": "00117436",
+      "return_address": "0011743b",
+      "source_instruction_hex": "e8854b0700",
+      "source_instruction": "call 0x18bfc0",
+      "reported_correspondence_site": "00117436"
+    },
+    {
+      "target": "0018beb0",
+      "source_site": "0018bfea",
+      "source_instruction_hex": "e8c1feffff",
+      "source_instruction": "call 0x18beb0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000bcfe0",
+      "source_site": "0019035e",
+      "source_instruction_hex": "e87dccf2ff",
+      "source_instruction": "call 0xbcfe0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002154f0",
+      "reached_site": "0011744e",
+      "return_address": "00117453",
+      "source_instruction_hex": "e89de00f00",
+      "source_instruction": "call 0x2154f0",
+      "reported_correspondence_site": "0011744e"
+    },
+    {
+      "target": "001fb8d0",
+      "source_site": "002156ae",
+      "source_instruction_hex": "e81d62feff",
+      "source_instruction": "call 0x1fb8d0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001fdab0",
+      "source_site": "002157c7",
+      "source_instruction_hex": "e8e482feff",
+      "source_instruction": "call 0x1fdab0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00215b40",
+      "source_site": "00215813",
+      "source_instruction_hex": "e828030000",
+      "source_instruction": "call 0x215b40",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00215840",
+      "reached_site": "001174c3",
+      "return_address": "001174c8",
+      "source_instruction_hex": "e878e30f00",
+      "source_instruction": "call 0x215840",
+      "reported_correspondence_site": "001174c3"
+    },
+    {
+      "target": "00215090",
+      "source_site": "002158fe",
+      "source_instruction_hex": "e88df7ffff",
+      "source_instruction": "call 0x215090",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00214710",
+      "source_site": "00215228",
+      "source_instruction_hex": "e8e3f4ffff",
+      "source_instruction": "call 0x214710",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00203c00",
+      "source_site": "00203e9a",
+      "source_instruction_hex": "e861fdffff",
+      "source_instruction": "call 0x203c00",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00203cd0",
+      "source_site": "00203f1b",
+      "source_instruction_hex": "e8b0fdffff",
+      "source_instruction": "call 0x203cd0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002042b0",
+      "source_site": "00203f33",
+      "source_instruction_hex": "e878030000",
+      "source_instruction": "call 0x2042b0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0029f030",
+      "source_site": "00203f59",
+      "source_instruction_hex": "e8d2b00900",
+      "source_instruction": "call 0x29f030",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002040c0",
+      "source_site": "00203f89",
+      "source_instruction_hex": "e832010000",
+      "source_instruction": "call 0x2040c0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00213e80",
+      "source_site": "00214871",
+      "source_instruction_hex": "e80af6ffff",
+      "source_instruction": "call 0x213e80",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002145c0",
+      "source_site": "002148ae",
+      "source_instruction_hex": "e80dfdffff",
+      "source_instruction": "call 0x2145c0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00215b90",
+      "source_site": "00214b92",
+      "source_instruction_hex": "e8f90f0000",
+      "source_instruction": "call 0x215b90",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00216460",
+      "source_site": "00214bb0",
+      "source_instruction_hex": "e8ab180000",
+      "source_instruction": "call 0x216460",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002169f0",
+      "source_site": "00214c3d",
+      "source_instruction_hex": "e8ae1d0000",
+      "source_instruction": "call 0x2169f0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00216d30",
+      "source_site": "00214ce1",
+      "source_instruction_hex": "e84a200000",
+      "source_instruction": "call 0x216d30",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00216730",
+      "source_site": "00214d3d",
+      "source_instruction_hex": "e8ee190000",
+      "source_instruction": "call 0x216730",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00216f50",
+      "source_site": "00214da1",
+      "source_instruction_hex": "e8aa210000",
+      "source_instruction": "call 0x216f50",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00217180",
+      "source_site": "00214dcb",
+      "source_instruction_hex": "e8b0230000",
+      "source_instruction": "call 0x217180",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001e78f0",
+      "source_site": "00214fae",
+      "source_instruction_hex": "e83d29fdff",
+      "source_instruction": "call 0x1e78f0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00217310",
+      "source_site": "002153c9",
+      "source_instruction_hex": "e8421f0000",
+      "source_instruction": "call 0x217310",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00117240",
+      "source_site": "0021545a",
+      "source_instruction_hex": "e8e11df0ff",
+      "source_instruction": "call 0x117240",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002175a0",
+      "source_site": "002154c5",
+      "source_instruction_hex": "e8d6200000",
+      "source_instruction": "call 0x2175a0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00252f30",
+      "source_site": "00203c66",
+      "source_instruction_hex": "e8c5f20400",
+      "source_instruction": "call 0x252f30",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00253070",
+      "source_site": "00203c75",
+      "source_instruction_hex": "e8f6f30400",
+      "source_instruction": "call 0x253070",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0026dbe0",
+      "source_site": "00203d5f",
+      "source_instruction_hex": "e87c9e0600",
+      "source_instruction": "call 0x26dbe0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00204420",
+      "source_site": "0020435a",
+      "source_instruction_hex": "e8c1000000",
+      "source_instruction": "call 0x204420",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00265a00",
+      "source_site": "002043d4",
+      "source_instruction_hex": "e827160600",
+      "source_instruction": "call 0x265a00",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002659c0",
+      "source_site": "002043e5",
+      "source_instruction_hex": "e8d6150600",
+      "source_instruction": "call 0x2659c0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00265930",
+      "source_site": "002043f7",
+      "source_instruction_hex": "e834150600",
+      "source_instruction": "call 0x265930",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0029f1a0",
+      "source_site": "0029f12d",
+      "source_instruction_hex": "e86e000000",
+      "source_instruction": "call 0x29f1a0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001e7ad0",
+      "source_site": "0020411d",
+      "source_instruction_hex": "e8ae39feff",
+      "source_instruction": "call 0x1e7ad0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00274f40",
+      "source_site": "00204168",
+      "source_instruction_hex": "e8d30d0700",
+      "source_instruction": "call 0x274f40",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0013e6e0",
+      "reached_site": "000c2c03",
+      "return_address": "000c2c08",
+      "source_instruction_hex": "e8d8ba0700",
+      "source_instruction": "call 0x13e6e0",
+      "reported_correspondence_site": "000c2c03"
+    },
+    {
+      "target": "0030dc10",
+      "reached_site": "0030e230",
+      "return_address": "0030e235",
+      "source_instruction_hex": "e8dbf9ffff",
+      "source_instruction": "call 0x30dc10",
+      "reported_correspondence_site": "0030a740"
+    },
+    {
+      "target": "001e10f0",
+      "reached_site": "002e4c87",
+      "return_address": "002e4c8c",
+      "source_instruction_hex": "e864c4efff",
+      "source_instruction": "call 0x1e10f0",
+      "reported_correspondence_site": "002e1197"
+    },
+    {
+      "target": "000e5e60",
+      "reached_site": "000e6383",
+      "return_address": "000e6388",
+      "source_instruction_hex": "e8d8faffff",
+      "source_instruction": "call 0xe5e60",
+      "reported_correspondence_site": "000e6383"
+    },
+    {
+      "target": "0013ba80",
+      "reached_site": "000e361e",
+      "return_address": "000e3623",
+      "source_instruction_hex": "e85d840500",
+      "source_instruction": "call 0x13ba80",
+      "reported_correspondence_site": "000e361e"
+    },
+    {
+      "target": "000e3c00",
+      "reached_site": "000e3696",
+      "return_address": "000e369b",
+      "source_instruction_hex": "e865050000",
+      "source_instruction": "call 0xe3c00",
+      "reported_correspondence_site": "000e3696"
+    },
+    {
+      "target": "000e40b0",
+      "source_site": "000e3d64",
+      "source_instruction_hex": "e847030000",
+      "source_instruction": "call 0xe40b0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000e3350",
+      "source_site": "000e3ddc",
+      "source_instruction_hex": "e86ff5ffff",
+      "source_instruction": "call 0xe3350",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000e4190",
+      "source_site": "000e414c",
+      "source_instruction_hex": "e83f000000",
+      "source_instruction": "call 0xe4190",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000e4930",
+      "source_site": "000e417f",
+      "source_instruction_hex": "e8ac070000",
+      "source_instruction": "call 0xe4930",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0031e430",
+      "source_site": "001d9990",
+      "source_instruction_hex": "e89b4a1400",
+      "source_instruction": "call 0x31e430",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0031e560",
+      "source_site": "001d999c",
+      "source_instruction_hex": "e8bf4b1400",
+      "source_instruction": "call 0x31e560",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0031e590",
+      "source_site": "001d99f0",
+      "source_instruction_hex": "e89b4b1400",
+      "source_instruction": "call 0x31e590",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001f48d0",
+      "source_site": "000e33ea",
+      "source_instruction_hex": "e8e1141100",
+      "source_instruction": "call 0x1f48d0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001db880",
+      "source_site": "000e3425",
+      "source_instruction_hex": "e856840f00",
+      "source_instruction": "call 0x1db880",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001def50",
+      "source_site": "001d7433",
+      "source_instruction_hex": "e8187b0000",
+      "source_instruction": "call 0x1def50",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001d8230",
+      "source_site": "000e4291",
+      "source_instruction_hex": "e89a3f0f00",
+      "source_instruction": "call 0x1d8230",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001cdd60",
+      "source_site": "001cc595",
+      "source_instruction_hex": "e8c6170000",
+      "source_instruction": "call 0x1cdd60",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00325d70",
+      "source_site": "0031e433",
+      "source_instruction_hex": "e838790000",
+      "source_instruction": "call 0x325d70",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0031cc40",
+      "source_site": "001dba7f",
+      "source_instruction_hex": "e8bc111400",
+      "source_instruction": "call 0x31cc40",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00181cb0",
+      "reached_site": "001816aa",
+      "return_address": "001816af",
+      "source_instruction_hex": "e801060000",
+      "source_instruction": "call 0x181cb0",
+      "reported_correspondence_site": "001816aa"
+    },
+    {
+      "target": "00181da0",
+      "source_site": "00181d30",
+      "source_instruction_hex": "e86b000000",
+      "source_instruction": "call 0x181da0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00182bb0",
+      "source_site": "00181d57",
+      "source_instruction_hex": "e8540e0000",
+      "source_instruction": "call 0x182bb0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00183c10",
+      "source_site": "00181d74",
+      "source_instruction_hex": "e8971e0000",
+      "source_instruction": "call 0x183c10",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00144e90",
+      "source_site": "0018222c",
+      "source_instruction_hex": "e85f2cfcff",
+      "source_instruction": "call 0x144e90",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017f990",
+      "source_site": "001829dd",
+      "source_instruction_hex": "e8aecfffff",
+      "source_instruction": "call 0x17f990",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00180830",
+      "source_site": "00182b49",
+      "source_instruction_hex": "e8e2dcffff",
+      "source_instruction": "call 0x180830",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00180c10",
+      "source_site": "00182c4f",
+      "source_instruction_hex": "e8bcdfffff",
+      "source_instruction": "call 0x180c10",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00180790",
+      "source_site": "00182f03",
+      "source_instruction_hex": "e888d8ffff",
+      "source_instruction": "call 0x180790",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017fe30",
+      "source_site": "00183de7",
+      "source_instruction_hex": "e844c0ffff",
+      "source_instruction": "call 0x17fe30",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000439c0",
+      "source_site": "00183e17",
+      "source_instruction_hex": "e8a4fbebff",
+      "source_instruction": "call 0x439c0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000d6d10",
+      "source_site": "00183e5a",
+      "source_instruction_hex": "e8b12ef5ff",
+      "source_instruction": "call 0xd6d10",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00183af0",
+      "source_site": "00183fd8",
+      "source_instruction_hex": "e813fbffff",
+      "source_instruction": "call 0x183af0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001839f0",
+      "source_site": "00184649",
+      "source_instruction_hex": "e8a2f3ffff",
+      "source_instruction": "call 0x1839f0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00140310",
+      "source_site": "00184667",
+      "source_instruction_hex": "e8a4bcfbff",
+      "source_instruction": "call 0x140310",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "002439e0",
+      "source_site": "00180e78",
+      "source_instruction_hex": "e8632b0c00",
+      "source_instruction": "call 0x2439e0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "00123150",
+      "source_site": "001810e3",
+      "source_instruction_hex": "e86820faff",
+      "source_instruction": "call 0x123150",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0013fe00",
+      "source_site": "001400e6",
+      "source_instruction_hex": "e815fdffff",
+      "source_instruction": "call 0x13fe00",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017fcf0",
+      "source_site": "0017ff25",
+      "source_instruction_hex": "e8c6fdffff",
+      "source_instruction": "call 0x17fcf0",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017fc90",
+      "source_site": "0017ff49",
+      "source_instruction_hex": "e842fdffff",
+      "source_instruction": "call 0x17fc90",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "000d3c10",
+      "source_site": "000d6d56",
+      "source_instruction_hex": "e8b5ceffff",
+      "source_instruction": "call 0xd3c10",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "0017ff90",
+      "source_site": "00183aad",
+      "source_instruction_hex": "e8dec4ffff",
+      "source_instruction": "call 0x17ff90",
+      "provenance": "Literal static direct callee of an original reached TU1.5 owner; execution is not asserted."
+    },
+    {
+      "target": "001800b0",
+      "source_table": "0044b404",
+      "source_pointer_hex": "b0001800",
+      "provenance": "Literal original decal storage/map callbacks; execution is separately tested."
+    },
+    {
+      "target": "00180170",
+      "source_table": "0044b40c",
+      "source_pointer_hex": "70011800",
+      "provenance": "Literal original decal storage/map callbacks; execution is separately tested."
+    },
+    {
+      "target": "0016e450",
+      "source_site": "001800de",
+      "source_instruction_hex": "e86de3feff",
+      "source_instruction": "call 0x16e450",
+      "provenance": "Literal static direct callee of an authenticated startup owner; registration does not assert execution."
+    },
+    {
+      "target": "00043880",
+      "source_site": "00180127",
+      "source_instruction_hex": "e85437ecff",
+      "source_instruction": "call 0x43880",
+      "provenance": "Literal static direct callee of an authenticated startup owner; registration does not assert execution."
+    },
+    {
+      "target": "0016e600",
+      "source_site": "001801ad",
+      "source_instruction_hex": "e84ee4feff",
+      "source_instruction": "call 0x16e600",
+      "provenance": "Literal static direct callee of an authenticated startup owner; registration does not assert execution."
+    },
+    {
+      "target": "0016e4b0",
+      "source_site": "0016e47b",
+      "source_instruction_hex": "e830000000",
+      "source_instruction": "call 0x16e4b0",
+      "provenance": "Literal static direct callee of an authenticated startup owner; registration does not assert execution."
+    },
+    {
+      "target": "0033b3ac",
+      "source_site": "0004388f",
+      "source_instruction_hex": "e8187b2f00",
+      "source_instruction": "call 0x33b3ac",
+      "provenance": "Literal static direct callee of an authenticated startup owner; registration does not assert execution."
+    },
+    {
+      "target": "0013fc50",
+      "source_site": "00043936",
+      "source_instruction_hex": "e815c30f00",
+      "source_instruction": "call 0x13fc50",
+      "provenance": "Literal static direct callee of an authenticated startup owner; registration does not assert execution."
+    },
+    {
+      "target": "0032a4e0",
+      "source_site": "0016e61d",
+      "source_instruction_hex": "e8bebe1b00",
+      "source_instruction": "call 0x32a4e0",
+      "provenance": "Literal static direct callee of an authenticated startup owner; registration does not assert execution."
+    },
+    {
+      "target": "00181320",
+      "reached_site": "00181823",
+      "return_address": "00181828",
+      "source_instruction_hex": "e8f8faffff",
+      "source_instruction": "call 0x181320",
+      "reported_correspondence_site": "00181823"
     }
   ]
 }

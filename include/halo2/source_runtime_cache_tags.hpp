@@ -40,6 +40,9 @@ void source_bind_runtime_cache_bsp_1_1(SourceRuntimeMemory &,
 // and11EA1D..11EA69. Complete1255C0 retains BSP tag-table publication.
 void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &,
                                         const SourceRuntimeCacheTagImage &);
+// Native resident sound metadata selected by1281A0..1281DC. Audio-device
+// activation and availability remain with their separate source owners.
+void source_bind_runtime_cache_sound_gestalt_tu15(SourceRuntimeMemory &);
 void source_deliver_runtime_cache_bsp_tu15(SourceRuntimeMemory &,
                                          const SourceRuntimeCacheBspImage &);
 void source_bind_runtime_cache_bsp_tu15(SourceRuntimeMemory &,

@@ -32,6 +32,16 @@ using Json=nlohmann::json;
 namespace {
 void check(bool yes,const char *why){if(!yes)throw FormatError(why);}
 Json xyz(Vec3 v){return Json::array({v.x,v.y,v.z});}
+std::string hex_bytes(std::span<const std::byte> bytes) {
+  constexpr char digits[]="0123456789abcdef";std::string result;result.reserve(bytes.size()*2);
+  for(const auto byte:bytes){const auto value=std::to_integer<unsigned>(byte);result+=digits[value>>4];result+=digits[value&15];}
+  return result;
+}
+Json impulse_json(const SourceBodyImpulseTu15 &event) {
+  return {{"object",event.object},{"tick",event.tick},{"body_index",event.body_index},
+      {"motion_before",hex_bytes(event.before)},{"motion_after",hex_bytes(event.after)},
+      {"impulse",hex_bytes(event.impulse)},{"point",hex_bytes(event.point)}};
+}
 void focus(SDL_Window *window);
 void key(Uint32 window,SDL_Scancode scan,bool down) {
   if(down) {
@@ -195,6 +205,7 @@ Json inventory(const MultiplayerPreparedWorld &world) {
 struct Host {
   unsigned port{},host_slot{};
   Json initial_inventory;
+  Json impulses=Json::array();
   std::shared_ptr<const LevelContent> content;
   std::mutex mutex;std::vector<MultiplayerState> history;std::exception_ptr error;std::jthread worker;
   Host(MultiplayerOptions options) {
@@ -203,6 +214,16 @@ struct Host {
       bool started=false;try {
       // Construction, all source calls and retirement share one executor.
       MultiplayerPreparedWorld world(options);
+      std::ofstream impulse_trace;
+      if(world.source_objects && std::getenv("HALO2_TU15_PROP_GRENADE")) {
+        impulse_trace.open(options.source_object_savegame_directory.parent_path()/"authority-point-impulses.jsonl");
+        check(bool(impulse_trace),"Could not retain actual authority point impulses");
+        world.source_objects->observe_body_impulses([this,&impulse_trace](const auto &event){
+          auto row=impulse_json(event);impulse_trace<<row.dump()<<'\n';impulse_trace.flush();
+          check(bool(impulse_trace),"Could not retain completed authority point impulse");
+          impulses.push_back(std::move(row));
+        });
+      }
       LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),0,world.rules.weapon,options.gameplay_xbe));
       world.match.configure_replicated_first_person(world.cache->load_first_person_binding(world.rules.weapon,2));
       initial_inventory=inventory(world);content=std::make_shared<LevelContent>(world.content);
@@ -246,6 +267,30 @@ int main(int argc,char **argv) try {
   o.variant.values.set(2,0);o.variant.values.set(10,0); // Finite test lifecycle owns exit, not game-over.
   Json report{{"scenario",scenario},{"reference","English TU1.5 only"},{"visible",true},
       {"live_physics_parity",false},{"stimulus","SDL keyboard events; no supplied physics results"}};
+  const bool prop_test=objects && std::getenv("HALO2_TU15_PROP_GRENADE");
+  std::optional<std::uint32_t> prop_placement;
+  if(prop_test) {
+    const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true);
+    for(unsigned i=0;i<content.objects.size();++i) {
+      const auto &object=content.objects[i];const auto tag=cache.query_tag({.handle=TagHandle{object.definition}});
+      if(!tag || tag->group!="bloc" || tag->name.find("power_module")==std::string::npos)continue;
+      prop_placement=i;
+      const CollisionWorld terrain(content.collision);
+      for(const float side:{0.f,.75f,-.75f}) {
+        Spawn spawn;spawn.position=object.position+Vec3{side,1.25f,0};
+        const auto floor=terrain.raycast(spawn.position+Vec3{0,0,2*content.player.height},
+            {0,0,-1},4*content.player.height);
+        check(floor.has_value(),"Declared prop fixture has no cached BSP floor");
+        spawn.position.z=floor->position.z+content.player.radius;
+        const auto delta=object.position-spawn.position;spawn.facing=std::atan2(delta.y,delta.x);
+        o.native_spawn_inputs.push_back(spawn);
+      }
+      report["prop_placement"]=i;report["prop_definition"]=object.definition;
+      report["prop_fixture_authority"]="Declared approach positions relative to authored Lockout power module and cached BSP floor, before tick zero";
+      break;
+    }
+    check(prop_placement.has_value(),"Authored prop fixture has no power module");
+  }
   std::unique_ptr<Host> host;
   std::optional<VehicleEntrance> vehicle_start;
   if(lift || vehicle) {
@@ -290,12 +335,23 @@ int main(int argc,char **argv) try {
     report["observer_input"]="Actual SDL virtual gamepad sampled by local view1; movement and look only";
   }
   Json samples=Json::array(),frames=Json::array();
+  Json impulses=Json::array();
+  std::ofstream impulse_trace;
+  if(prop_placement && !lan) {
+    impulse_trace.open(output/"point-impulses.jsonl");check(bool(impulse_trace),"Could not retain actual local point impulses");
+    o.prepared_world->source_objects->observe_body_impulses([&](const auto &event){
+      auto row=impulse_json(event);impulse_trace<<row.dump()<<'\n';impulse_trace.flush();
+      check(bool(impulse_trace),"Could not retain completed local point impulse");
+      impulses.push_back(std::move(row));
+    });
+  }
   std::ofstream trace(output/"ticks.jsonl");check(bool(trace),"Could not create live tick trace");
   const auto window_id=SDL_GetWindowID(window);unsigned local_slot=~0u;bool started=false;
   std::uint32_t start_step{};float initial_z{},peak_z{},fastest{},largest_crouch{},distance{};
   Vec3 initial{};unsigned jump_commands{},forward_commands{},matched_snapshots{};
   unsigned grenade_commands{};bool attached_grenade{},released_grenade{},falling_grenade{},detonated{};
   bool grenade_pressed{},grenade_released{};
+  std::optional<Vec3> prop_before;float prop_displacement{};bool prop_retired{};
   struct AuthoritySample {
     unsigned slot;std::uint32_t tick,player,unit,parent;std::int16_t seat;
     Vec3 position,velocity;float crouch;
@@ -357,6 +413,16 @@ int main(int argc,char **argv) try {
     submitted_horizontal_fov[view]=horizontal_fov;
   };
   o.view_state_observer=[&](unsigned view,const MultiplayerState &state,const Camera &camera) {
+    if(objects && started && view<2) {
+      const auto slot=view?observer_slot:local_slot;
+      if(slot<state.players.size()) {
+        const auto &player=state.players[slot];
+        camera_frames.push_back({{"view",view},{"tick",state.tick},{"slot",slot},
+            {"unit",player.source_unit},{"dead",player.dead},{"player_position",xyz(player.position)},
+            {"position",xyz(camera.position)},{"forward",xyz(camera.forward)},
+            {"up",xyz(camera.up)},{"field_of_view",camera.field_of_view},{"horizontal_field_of_view",camera.horizontal_field_of_view}});
+      }
+    }
     if(objects && started && view<2) {
       const auto slot=view?observer_slot:local_slot;
       if(slot<state.players.size()) {
@@ -621,6 +687,15 @@ int main(int argc,char **argv) try {
       falling_grenade|=g.parent==null_datum && g.velocity.z<0;
       row["grenade_projectiles"].push_back({{"datum",g.datum},{"parent",g.parent},{"position",xyz(g.position)},{"velocity",xyz(g.velocity)}});
     }
+    if(prop_test) {
+      const auto root=std::find_if(s.source_scene_roots.begin(),s.source_scene_roots.end(),
+          [&](const auto &root){return root.placement==*prop_placement;});
+      if(root!=s.source_scene_roots.end()) {
+        row["prop_root"]=xyz(root->transform.position);row["prop_object"]=root->object;
+        if(s.grenade_detonations.empty())prop_before=root->transform.position;
+        else if(prop_before)prop_displacement=std::max(prop_displacement,length(root->transform.position-*prop_before));
+      } else if(prop_before)prop_retired=true;
+    }
     detonated|=!s.grenade_detonations.empty();
     for(const auto &event:s.grenade_detonations) {
       detonated_projectiles.insert(event.projectile);
@@ -642,7 +717,7 @@ int main(int argc,char **argv) try {
       const auto &settings=o.desktop->keyboard_settings;
       const float gain=.0025f*float(settings.sensitivity)/3.f;check(gain>0,"Invalid actual mouse gain");
       SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
-      look.motion.yrel=int(std::lround(.8f/gain))*(settings.invert?-1:1);
+      look.motion.yrel=int(std::lround((prop_test?1.5f:.8f)/gain))*(settings.invert?-1:1);
       check(SDL_PushEvent(&look)==1,"SDL rejected downward object-test look");
     }
     if(objects) {
@@ -682,6 +757,8 @@ int main(int argc,char **argv) try {
             const auto &x=h.source_scene_roots[n],&y=p.scene_roots[n];
             if(x.object!=y.object || x.definition!=y.definition || x.placement!=y.placement ||
                 x.visible!=y.visible || x.has_world_nodes!=y.has_world_nodes ||
+                x.runtime_flags!=y.runtime_flags || x.frozen!=y.frozen ||
+                std::memcmp(&x.velocity,&y.velocity,sizeof(Vec3)) ||
                 std::memcmp(&x.transform,&y.transform,sizeof(Transform)))return false;
           }
           for(unsigned i=0;i<p.poses.size();++i) {
@@ -772,10 +849,21 @@ int main(int argc,char **argv) try {
     report["detonated"]=detonated;report["grenade_draws_by_view"]=grenade_draws;
     report["explosion_particle_draws_by_view"]=explosion_particle_draws;
     report["dynamic_prop_impulses_verified"]=false;
+    if(prop_test) {
+      report["source_prop_displacement_after_explosion"]=prop_displacement;
+      report["source_prop_retired"]=prop_retired;
+      passed&=prop_displacement>.01f || prop_retired;
+    }
     passed&=grenade_commands==1 && attached_grenade && released_grenade && falling_grenade && detonated;
     for(unsigned view=0;view<o.local_players;++view)passed&=grenade_draws[view]>0 && explosion_particle_draws[view]>0;
   } else passed&=distance>0 && fastest>0 && largest_crouch>0 && jump_commands==1 && forward_commands>0 && (!lan||matched_snapshots>0);
   if(!lan)report["final_inventory"]=inventory(*o.prepared_world);
+  if(prop_placement) {
+    if(lan)impulses=host->impulses;
+    std::ofstream file(output/"point-impulses.json");file<<impulses.dump(2)<<'\n';
+    check(bool(file),"Could not write actual source point impulses");
+    report["observed_source_point_impulses"]=impulses.size();
+  }
   report["acceptance_passed"]=passed;
   report["limit"]="Live native behavior only. Full retail contact/solver, driving, dynamic-object impulses and complete TU1.5 parity remain required.";
   {std::ofstream file(output/"report.json");file<<report.dump(2)<<'\n';check(bool(file),"Could not write acceptance report");}

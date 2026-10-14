@@ -1023,6 +1023,10 @@ std::vector<SourceProjectileDetonationTu15> MultiplayerObjectRuntime::take_proje
   if(!tu15_)throw FormatError("Source explosion readback requires the TU1.5 world");
   return tu15_->take_projectile_detonations();
 }
+void MultiplayerObjectRuntime::observe_body_impulses(std::function<void(const SourceBodyImpulseTu15 &)> observer) {
+  if(!tu15_)throw FormatError("Point-impulse observation requires the TU1.5 world");
+  tu15_->observe_body_impulses(std::move(observer));
+}
 std::vector<NativeGrenadeProjectile> MultiplayerObjectRuntime::grenade_projectiles()const {
   if(!tu15_)throw FormatError("Grenade body readback requires the TU1.5 world");
   const auto &bank=tu15_->memory();const auto pool=tu15_->source_object_pool();

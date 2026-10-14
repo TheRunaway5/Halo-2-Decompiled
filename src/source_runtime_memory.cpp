@@ -104,9 +104,8 @@ SourceRuntimeMemory::Checkpoint SourceRuntimeMemory::checkpoint() const {
   }
   return result;
 }
-void SourceRuntimeMemory::restore(const Checkpoint &saved) {
+void SourceRuntimeMemory::validate_checkpoint(const Checkpoint &saved) {
   if(saved.version!=1)throw std::invalid_argument("Unsupported source memory checkpoint version");
-  SourceRuntimeMemory replacement;
   std::uint64_t previous_end{};
   for(const auto &region:saved.regions) {
     if(region.bytes.empty() || region.owner.empty() || region.address<previous_end ||
@@ -116,12 +115,22 @@ void SourceRuntimeMemory::restore(const Checkpoint &saved) {
     if(!region.page_bytes) {
       if(!region.committed.empty())
         throw std::invalid_argument("Mounted checkpoint region has reservation pages");
-      replacement.mount(region.address,region.bytes,region.access,region.owner);
     } else {
-      if(region.access!=Access::ReadWrite ||
+      if(region.access!=Access::ReadWrite || region.address%region.page_bytes ||
+          region.bytes.size()%region.page_bytes ||
           region.committed.size()!=region.bytes.size()/region.page_bytes ||
           std::any_of(region.committed.begin(),region.committed.end(),[](auto page){return page>1;}))
         throw std::invalid_argument("Invalid source memory checkpoint commitment map");
+    }
+  }
+}
+void SourceRuntimeMemory::restore(const Checkpoint &saved) {
+  validate_checkpoint(saved);
+  SourceRuntimeMemory replacement;
+  for(const auto &region:saved.regions) {
+    if(!region.page_bytes) {
+      replacement.mount(region.address,region.bytes,region.access,region.owner);
+    } else {
       replacement.reserve(region.address,region.bytes.size(),region.page_bytes,region.owner);
       auto &backing=replacement.regions_.at(region.address);
       backing.bytes=region.bytes;

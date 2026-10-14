@@ -415,6 +415,8 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
         throw FormatError("Weapon effect lost its current full player owner");
       weapon_effect_events_[id]={++weapon_effect_serial_,std::uint32_t(simulation_.ticks()+1),
           unit.source_datum,input.weapon,input.effect,input.a_bits,input.b_bits};
+      weapon_effect_journal_.push_back(weapon_effect_events_[id]);
+      if(weapon_effect_journal_.size()>64)weapon_effect_journal_.erase(weapon_effect_journal_.begin());
     }
     return weapon_effect_owner_?weapon_effect_owner_(unit,input):null_datum;
   };
@@ -434,6 +436,15 @@ void MultiplayerMatch::release_presentation_owners() noexcept {
 void MultiplayerMatch::configure_weapon_effect_owner(
     std::function<std::uint32_t(const Unit &,const WeaponEffectInput &)> owner) {
   weapon_effect_owner_=std::move(owner);
+}
+void MultiplayerMatch::weapon_effect_presentation(std::uint32_t unit,std::uint32_t weapon,
+    const SourceWeaponEffectPresentation &source,Vec3 velocity) {
+  if(weapon_effect_journal_.empty() || weapon_effect_journal_.back().unit!=unit ||
+      weapon_effect_journal_.back().weapon!=weapon || !source.colors_observed)
+    throw FormatError("Weapon presentation differs from its completed prepared-shot request");
+  auto &event=weapon_effect_journal_.back();event.colors=source.colors;event.velocity=velocity;
+  event.source_instance=source.instance;event.source_presentation=true;
+  for(auto &latest:weapon_effect_events_)if(latest.serial==event.serial)latest=event;
 }
 void MultiplayerMatch::configure_melee_animation(std::shared_ptr<const Cache> cache,NativeMeleeConstants constants) {
   if(simulation_.melee_animation_)throw FormatError("Melee animation owner already configured");
@@ -1957,10 +1968,15 @@ MultiplayerState MultiplayerMatch::state() const {
     }
     result.corpses.push_back(std::move(corpse));
   }
+  result.weapon_effects=weapon_effect_journal_;
   if(source_object_world_) {
     for(const auto &player:result.players)if(player.connected && !player.dead && player.source_unit!=null_datum)
       result.source_body_poses.push_back({player.source_unit,source_object_world_->world_nodes(player.source_unit),
           source_object_world_->object_sphere(player.source_unit)});
+    for(const auto &player:result.players)if(player.connected && !player.dead)
+      for(const auto weapon:{player.source_weapon,player.secondary_weapon.datum})if(weapon!=null_datum)
+        result.source_body_poses.push_back({weapon,source_object_world_->world_nodes(weapon),
+            source_object_world_->object_sphere(weapon)});
     for(const auto &corpse:result.corpses)
       result.source_body_poses.push_back({corpse.object,source_object_world_->world_nodes(corpse.object),
           source_object_world_->object_sphere(corpse.object)});
@@ -1974,8 +1990,14 @@ MultiplayerState MultiplayerMatch::state() const {
         content_.objects.at(object.placement).type!=1) {
       if(!object.solved_transform || !object.solved_nodes)
         throw FormatError("Source scene snapshot lacks its completed root or WORLD bank");
-      result.source_scene_roots.push_back({object.handle,content_.objects[object.placement].definition,
-          std::uint32_t(object.placement),*object.solved_transform,object.visible,!object.solved_nodes->empty()});
+      SourceSceneRoot root{object.handle,content_.objects[object.placement].definition,
+          std::uint32_t(object.placement),*object.solved_transform,object.visible,!object.solved_nodes->empty()};
+      const auto body=source_object_world_->source_object_body(object.handle);
+      auto &bank=source_object_world_->memory();
+      root.velocity=source_object_world_->object_linear_velocity(object.handle);
+      bank.read(body+4u,std::as_writable_bytes(std::span(&root.runtime_flags,1)));
+      root.frozen=(std::to_integer<unsigned>(bank.view(body+0xc1u,1)[0])&1u)!=0;
+      result.source_scene_roots.push_back(root);
       if(!object.solved_nodes->empty())result.source_body_poses.push_back({object.handle,*object.solved_nodes,
           source_object_world_->object_sphere(object.handle)});
     }

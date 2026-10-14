@@ -17,8 +17,9 @@ int main(int argc,char **argv)try {
   const bool firing=mode.starts_with("fire-");
   const bool lunge=mode=="lunge";
   const bool target=mode=="target" || mode=="sword-target" || mode=="primary-target" || lunge;
-  const bool grenade=mode=="grenade",special=mode=="primary" || mode=="special" || mode=="primary-target" || lunge;
-  const bool sword=mode=="sword" || mode=="sword-target" || special;
+  const bool plasma=mode=="plasma";
+  const bool grenade=mode=="grenade" || plasma,special=mode=="primary" || mode=="special" || mode=="primary-target" || lunge;
+  const bool sword=mode=="sword" || mode=="sword-target" || special || plasma;
   check(grenade || sword || target || mode=="melee" || firing,"Invalid source combat acceptance mode");
   MultiplayerOptions options;options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
   options.source_object_savegame_directory=std::filesystem::absolute(argv[4])/"source-savegames";
@@ -102,9 +103,12 @@ int main(int argc,char **argv)try {
     input[1].forward=lunge && tick>=25 && tick<65?-1.f:0.f;
     input[0].melee=tick==80 && !special && !grenade && !firing;input[0].fire=tick==80 && special;
     input[0].fire|=firing && tick>=80 && tick<92;
-    input[0].grenade=tick==80 && grenade;input[0].pitch=grenade?.3f:0.f;match.step(input);
+    input[0].grenade=tick==80 && grenade;input[0].pitch=plasma?-1.2f:grenade?.3f:0.f;match.step(input);
     const auto state=match.state();const auto &unit=match.unit(0);
-    if(tick==1)initial_grenades=unit.grenades;
+    if(tick==1) {
+      initial_grenades=unit.grenades;
+      if(plasma)check(initial_grenades[1]>0,"Original Sword starting equipment did not supply plasma grenades");
+    }
     if(lunge && tick%20==0) {
       const auto p=match.unit(1).body.position;
       std::cout<<"Source moving target tick="<<tick<<" position="<<p.x<<','<<p.y<<','<<p.z<<'\n';
@@ -153,6 +157,7 @@ int main(int argc,char **argv)try {
       detonation_serial=event.serial;++detonations;
       check(!event.source_locations.empty(),"Source explosion lost its completed named locations");
       std::cout<<"Source detonation tick="<<event.tick<<" locations="<<event.source_locations.size()<<'\n';
+      std::cout<<"Source explosion controls="<<event.controls.a<<','<<event.controls.b<<'\n';
     }
   }
   if(firing) {
@@ -171,7 +176,7 @@ int main(int argc,char **argv)try {
     const auto &actual=peer.state().grenade_detonations;const auto expected=match.state().grenade_detonations;
     check(actual.size()==expected.size() && !actual.empty(),"Source explosion LAN journal differs");
     const auto &a=actual.back(),&e=expected.back();
-    check(a.colors.a==e.colors.a && a.colors.b==e.colors.b && a.source_locations.size()==e.source_locations.size(),
+    check(a.colors.a==e.colors.a && a.colors.b==e.colors.b && a.controls.a==e.controls.a && a.controls.b==e.controls.b && a.source_locations.size()==e.source_locations.size(),
         "Source explosion LAN lost colors/locations");
     for(unsigned n=0;n<a.source_locations.size();++n) {
       const auto &x=a.source_locations[n],&y=e.source_locations[n];

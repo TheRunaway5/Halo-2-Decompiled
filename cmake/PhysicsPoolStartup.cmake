@@ -1,6 +1,6 @@
 # Fresh original physics pools, separate from captured world/contact state.
 target_sources(halo2_physics_world_runtime PRIVATE src/physics_pool_startup_runtime_generated.cpp)
-target_sources(halo2_systems PRIVATE src/physics_pool_host_storage.cpp)
+target_sources(halo2_systems PRIVATE src/physics_pool_host_storage.cpp src/physics_pool_startup_host.cpp)
 if(BUILD_TESTING)
     add_executable(physics_pool_startup_tests tests/physics_pool_startup_tests.cpp)
     target_link_libraries(physics_pool_startup_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)

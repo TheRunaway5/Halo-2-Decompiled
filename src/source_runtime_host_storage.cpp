@@ -3,6 +3,7 @@
 #include <limits>
 #include <stdexcept>
 #include <system_error>
+#include <utility>
 #if defined(__linux__)
 #include <sys/mman.h>
 #include <unistd.h>
@@ -12,6 +13,28 @@ namespace halo2 {
 SourceRuntimeHostStorage::SourceRuntimeHostStorage(SourceRuntimeMemory &memory,
                                                    std::uint32_t first)
     : memory_(memory), next_(first) {}
+
+SourceRuntimeHostStorage::PreparedCursor::PreparedCursor(const SourceRuntimeHostStorage *owner,std::uint32_t next)
+    :owner_(owner),next_(next) {}
+SourceRuntimeHostStorage::PreparedCursor::PreparedCursor(PreparedCursor &&other) noexcept
+    :owner_(std::exchange(other.owner_,nullptr)),next_(other.next_) {}
+SourceRuntimeHostStorage::PreparedCursor &SourceRuntimeHostStorage::PreparedCursor::operator=(PreparedCursor &&other) noexcept {
+  if(this!=&other){owner_=std::exchange(other.owner_,nullptr);next_=other.next_;}return *this;
+}
+bool SourceRuntimeHostStorage::PreparedCursor::for_owner(const SourceRuntimeHostStorage &owner) const noexcept {
+  return owner_==&owner;
+}
+SourceRuntimeHostStorage::CursorCheckpoint SourceRuntimeHostStorage::cursor_checkpoint() const noexcept {
+  return {1,next_};
+}
+SourceRuntimeHostStorage::PreparedCursor SourceRuntimeHostStorage::prepare_cursor(const CursorCheckpoint &saved) const {
+  if(saved.version!=1)throw std::invalid_argument("Unsupported raw host allocation cursor checkpoint");
+  return {this,saved.next};
+}
+bool SourceRuntimeHostStorage::commit_cursor(PreparedCursor &&prepared) noexcept {
+  if(!prepared.for_owner(*this))return false;
+  next_=prepared.next_;prepared.owner_=nullptr;return true;
+}
 
 SourceVirtualAllocationResult
 SourceRuntimeHostStorage::allocate(SourceVirtualAllocationRequest request) {

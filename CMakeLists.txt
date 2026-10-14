@@ -1704,6 +1704,13 @@ if(BUILD_TESTING)
         src/source_runtime_host_virtual_memory.cpp src/source_runtime_memory.cpp)
     target_include_directories(source_runtime_host_virtual_memory_tests PRIVATE include)
     add_test(NAME source_runtime_host_virtual_memory COMMAND source_runtime_host_virtual_memory_tests)
+    add_executable(source_host_resource_continuation_tests tests/source_host_resource_continuation_tests.cpp
+        src/source_runtime_memory.cpp src/source_runtime_host_virtual_memory.cpp
+        src/source_runtime_host_physical_memory.cpp src/object_body_heap.cpp
+        src/source_runtime_host_storage.cpp src/physics_pool_host_storage.cpp)
+    target_include_directories(source_host_resource_continuation_tests PRIVATE include)
+    add_test(NAME source_host_resource_continuation COMMAND source_host_resource_continuation_tests)
+    set_tests_properties(source_host_resource_continuation PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_runtime_image_tests tests/source_runtime_image_tests.cpp)
     target_link_libraries(source_runtime_image_tests PRIVATE halo2_systems)
     add_test(NAME original_runtime_image COMMAND source_runtime_image_tests
@@ -1808,6 +1815,11 @@ endif()
 target_sources(halo2_systems PRIVATE src/projectile_material_response.cpp)
 target_sources(halo2_systems PRIVATE src/source_model_effect_lights.cpp)
 if(BUILD_TESTING)
+    add_executable(campaign_environment_material_tests tests/campaign_environment_material_tests.cpp)
+    target_link_libraries(campaign_environment_material_tests PRIVATE halo2_cache)
+    add_test(NAME original_campaign_environment_materials COMMAND campaign_environment_material_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/01b_spacestation.map)
+    set_tests_properties(original_campaign_environment_materials PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(source_skinned_geometry_tests tests/source_skinned_geometry_tests.cpp)
     target_link_libraries(source_skinned_geometry_tests PRIVATE halo2_cache)
     add_test(NAME original_tu15_skinned_geometry COMMAND source_skinned_geometry_tests
@@ -2028,7 +2040,7 @@ target_link_libraries(export_frontend_ui_inventory PRIVATE halo2_cache)
 add_executable(export_frontend_ui_pages tools/export_frontend_ui_pages.cpp)
 target_link_libraries(export_frontend_ui_pages PRIVATE halo2_cache)
 set_target_properties(halo2_launcher PROPERTIES OUTPUT_NAME "Halo2-Launcher")
-target_link_libraries(halo2_launcher PRIVATE SDL2::SDL2)
+target_link_libraries(halo2_launcher PRIVATE SDL2::SDL2 nlohmann_json::nlohmann_json)
 target_compile_definitions(halo2_launcher PRIVATE
     HALO2_PYTHON_EXECUTABLE="${Python3_EXECUTABLE}"
     HALO2_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
@@ -2036,7 +2048,7 @@ target_compile_definitions(halo2_launcher PRIVATE
 add_dependencies(halo2_launcher halo2_native)
 add_executable(halo2_title_launcher src/launcher.cpp)
 set_target_properties(halo2_title_launcher PROPERTIES OUTPUT_NAME "Halo2-Title-Launcher")
-target_link_libraries(halo2_title_launcher PRIVATE SDL2::SDL2)
+target_link_libraries(halo2_title_launcher PRIVATE SDL2::SDL2 nlohmann_json::nlohmann_json)
 target_compile_definitions(halo2_title_launcher PRIVATE HALO2_TITLE_FIRST=1
     HALO2_PYTHON_EXECUTABLE="${Python3_EXECUTABLE}"
     HALO2_PROJECT_DIR="${CMAKE_CURRENT_SOURCE_DIR}"
@@ -2047,7 +2059,7 @@ add_dependencies(halo2_title_launcher halo2_native)
 add_executable(halo2_onboarding src/launcher.cpp)
 set_target_properties(halo2_onboarding PROPERTIES OUTPUT_NAME "Halo2-Launcher"
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/onboarding")
-target_link_libraries(halo2_onboarding PRIVATE SDL2::SDL2)
+target_link_libraries(halo2_onboarding PRIVATE SDL2::SDL2 nlohmann_json::nlohmann_json)
 target_compile_definitions(halo2_onboarding PRIVATE HALO2_PYTHON_EXECUTABLE="python3"
     HALO2_PROJECT_DIR="." HALO2_RUNTIME_DIR="build")
 if(NOT MSVC)
@@ -2072,6 +2084,10 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/launcher_first_run_test.py $<TARGET_FILE:halo2_launcher>)
     add_test(NAME bundled_launcher_first_run COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/launcher_first_run_test.py $<TARGET_FILE:halo2_onboarding>)
+    add_test(NAME title_launcher_first_run COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/launcher_first_run_test.py $<TARGET_FILE:halo2_title_launcher>)
+    add_test(NAME mcc_onboarding COMMAND ${Python3_EXECUTABLE} -m unittest discover
+        -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p test_mcc_onboarding.py)
     add_test(NAME launcher_automatic_build COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_build_runtime.py)
     add_test(NAME launcher_update COMMAND ${Python3_EXECUTABLE}
@@ -2080,6 +2096,8 @@ if(BUILD_TESTING)
     if(HALO2_LAUNCHER_XVFB)
         add_test(NAME launcher_home_ui COMMAND ${HALO2_LAUNCHER_XVFB} -a ${Python3_EXECUTABLE}
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_launcher_ui.py)
+        add_test(NAME mcc_setup_ui COMMAND ${HALO2_LAUNCHER_XVFB} -a ${Python3_EXECUTABLE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mcc_setup_ui.py)
     endif()
     add_executable(pause_gameplay_completion_tests tests/pause_gameplay_completion_tests.cpp)
     target_link_libraries(pause_gameplay_completion_tests PRIVATE halo2_renderer)
@@ -7894,6 +7912,12 @@ add_executable(object_light_direction_tu15_tests tests/object_light_direction_tu
 target_link_libraries(object_light_direction_tu15_tests PRIVATE halo2_cache)
 add_test(NAME original_tu15_object_light_direction COMMAND object_light_direction_tu15_tests
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_object_light_direction.original.json)
+
+if(BUILD_TESTING)
+    add_executable(collision_layers_tests tests/collision_layers_tests.cpp src/collision.cpp)
+    target_include_directories(collision_layers_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    add_test(NAME native_collision_layers COMMAND collision_layers_tests)
+endif()
 
 add_executable(texture_filtering_tu15_tests tests/texture_filtering_tu15_tests.cpp)
 target_link_libraries(texture_filtering_tu15_tests PRIVATE halo2_cache)

@@ -730,11 +730,15 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   std::set<std::string> reported_world_effect_gaps;
   NativeEffectSounds effect_sounds(cache);
   std::vector<std::pair<std::uint32_t,std::uint32_t>> weapon_effect_sounds;
-  std::array<std::uint32_t,4> client_effect_serial{},client_effect_weapon{},client_effect_handle{};
+  std::uint32_t client_effect_serial{};
+  bool client_effect_baseline{};
   // Native effect slots are bounded; retain the full salt alongside the
   // source instance so retired/reused slots cannot inherit an old refresh.
-  std::map<std::uint16_t,std::pair<std::uint32_t,std::uint32_t>> source_firing_instances;
-  client_effect_weapon.fill(null_datum);client_effect_handle.fill(null_datum);
+  struct FiringOwner {std::uint32_t weapon=null_datum,presentation=null_datum,source=null_datum;};
+  std::map<std::uint16_t,FiringOwner> source_firing_instances;
+  std::set<std::uint32_t> world_firing_effects;
+  std::map<std::uint32_t,std::map<std::string,std::vector<ObjectAttachmentMarker>>> firing_world_markers;
+  std::uint32_t world_weapon_effect_serial{};
   bool client_prop_effect_baseline{};
   NativeDeviceEventCursor device_event_cursor(!client);
   std::set<std::uint32_t> heard_prop_effects;
@@ -755,6 +759,21 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   for(const auto &entry:d.firing_effects)for(const auto effect:entry.effects) {
     if(effect==null_datum || !cache.query_tag({.handle=TagHandle{effect},.group=tag_groups::effect,.require_address=true}))continue;
     firing_sound_effects.insert(effect);
+    try {
+      world_effects.preload_attached(effect);world_firing_effects.insert(effect);
+      if(!firing_world_markers.contains(datum)) {
+        const auto model=cache.load_initial_model_definition(datum).render_model;
+        if(model!=null_datum) {
+          const auto metadata=cache.load_source_tag_metadata(model);
+          const Bytes root(metadata.bytes_at(metadata.source_address(),0x60));
+          const Bytes groups(metadata.bytes_at(root.u32(0x5c),std::size_t(root.u32(0x58))*12));
+          auto &bank=firing_world_markers[datum];
+          for(unsigned n=0;n<root.u32(0x58);++n) {
+            const auto name=groups.u32(n*12);bank.emplace(cache.string_id(name),source_model_markers(metadata,name));
+          }
+        }
+      }
+    }catch(const FormatError &e){std::cerr<<"World firing effect "<<std::hex<<effect<<std::dec<<": "<<e.what()<<'\n';}
     try {
     const auto names=muzzle_effects.marker_names(effect);
     for(auto &[key,v]:species)if(key.second==datum)for(auto name:names) {
@@ -782,42 +801,36 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     ~PresentationOwnerLifetime(){if(match)match->release_presentation_owners();}
   } presentation_owner_lifetime{client?nullptr:&match};
   if(!client)match.configure_weapon_effect_owner([&](const Unit &unit,const WeaponEffectInput &input) {
-      if(input.effect==null_datum)return null_datum; // Original107B50/108A70 early exit.
-      if(input.effect!=muzzle_effect && !firing_effects.contains(input.effect) && !ready_effects.contains(input.effect)) {
-        const auto tag=cache.query_tag({.handle=TagHandle{input.effect}});
-        if(tag && tag->group=="snd!")weapon_effect_sounds.emplace_back(input.effect,input.weapon);
-        else if(firing_sound_effects.contains(input.effect)) {
-          try{effect_sounds.spawn(input.effect,input.weapon,unit.body.position,
-              std::bit_cast<float>(input.a_bits),std::bit_cast<float>(input.b_bits));}
-          catch(const FormatError &e){std::cerr<<"Firing sound effect "<<std::hex<<input.effect<<std::dec<<": "<<e.what()<<'\n';}
-        }
-        else std::cerr<<"Weapon effect requires an additional original effect owner: "<<std::hex<<input.effect<<std::dec<<'\n';
-        return null_datum;
+      if(input.effect==null_datum)return null_datum;
+      const auto tag=cache.query_tag({.handle=TagHandle{input.effect}});
+      if(tag && tag->group=="snd!") {
+        weapon_effect_sounds.emplace_back(input.effect,input.weapon);return null_datum;
       }
-      if(std::none_of(ids.begin(),ids.end(),[&](unsigned id){return match.player(id).source_datum==unit.source_player;})) {
-        //The separate world particle owner remains unfinished. Preserve the
-        //actual authored firing sound for nonlocal weapons without allocating
-        //an FP effect whose posed marker can never be consumed.
-        if(input.effect==muzzle_effect || firing_effects.contains(input.effect))effect_sounds.spawn(input.effect,input.weapon,unit.body.position,
-            std::bit_cast<float>(input.a_bits),std::bit_cast<float>(input.b_bits));
-        return null_datum;
+      std::optional<SourceWeaponEffectPresentation> source;
+      Vec3 velocity=unit.body.velocity;
+      auto &binding=source_firing_instances[std::uint16_t(input.weapon)];
+      const auto source_previous=binding.weapon==input.weapon && binding.presentation==input.previous_handle
+          ?binding.source:null_datum;
+      if(tag && tag->group=="effe" && world->source_objects && world->source_objects->owns_physics()) {
+        auto original=input;original.previous_handle=source_previous;
+        source=world->source_objects->request_weapon_effect(original);
+        velocity=world->source_objects->object_linear_velocity(input.weapon);
+        if(!source->colors_observed)throw FormatError("Prepared shot has no completed original effect-color owner");
+        match.weapon_effect_presentation(unit.source_datum,input.weapon,*source,velocity);
       }
-      if(world->source_objects && world->source_objects->owns_physics()) {
-        auto source_input=input;
-        const auto previous=source_firing_instances.find(std::uint16_t(input.previous_handle));
-        source_input.previous_handle=previous!=source_firing_instances.end() && previous->second.first==input.previous_handle
-            ?previous->second.second:null_datum;
-        const auto source=world->source_objects->request_weapon_effect(source_input);
-        if(!source.colors_observed)
-          throw FormatError("Firing presentation has no completed original effect-color owner");
-        auto presentation_input=input;
-        if(source.instance==null_datum || source.instance!=source_input.previous_handle)
-          presentation_input.previous_handle=null_datum;
-        const auto handle=muzzle_effects.request(presentation_input,std::uint32_t(match.simulation().ticks()+1),source.colors,
-            world->source_objects->object_linear_velocity(input.weapon));
-        if(handle!=null_datum)source_firing_instances[std::uint16_t(handle)]={handle,source.instance};return handle;
+      const bool local=std::any_of(ids.begin(),ids.end(),[&](unsigned id){return match.player(id).source_datum==unit.source_player;});
+      const bool fp=input.effect==muzzle_effect || firing_effects.contains(input.effect) || ready_effects.contains(input.effect);
+      if(local && fp) {
+        auto presentation=input;
+        if(source && (source->instance==null_datum || source->instance!=source_previous))presentation.previous_handle=null_datum;
+        const auto handle=source?muzzle_effects.request(presentation,std::uint32_t(match.simulation().ticks()+1),
+            source->colors,velocity,world_firing_effects.contains(input.effect)):
+            muzzle_effects.request(presentation,std::uint32_t(match.simulation().ticks()+1));
+        binding={input.weapon,handle,source?source->instance:null_datum};return handle;
       }
-      return muzzle_effects.request(input,std::uint32_t(match.simulation().ticks()+1));
+      if(!world_firing_effects.contains(input.effect) && firing_sound_effects.contains(input.effect))
+        effect_sounds.spawn(input.effect,input.weapon,unit.body.position,std::bit_cast<float>(input.a_bits),std::bit_cast<float>(input.b_bits));
+      const auto handle=source?source->instance:null_datum;binding={input.weapon,handle,handle};return handle;
     });
   SourceSceneryInitialState scenery_initial_state;
   struct SceneryQueryLifetime {
@@ -961,6 +974,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
            <<" door/platform placements; authoritative simulation/replica device state\n";
   SourcePropInitialState prop_initial_state;
   const auto geometry_scenario_type=cache.load_source_geometry_scenario_type();
+  std::function<std::optional<SourcePropQueryState>(std::uint32_t)> live_prop_query;
   std::set<std::uint32_t> prop_query_handles;
   SourcePropScene props(cache,content.objects,options.bsp,mesh,object_light_collision);
   props.region_state([&](std::uint32_t handle){return match.simulation().props().region_selection(handle);});
@@ -986,6 +1000,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   props.synchronize(match.simulation().scene());
   props.lighting_query_state([&](std::size_t source_object,std::uint32_t handle,
                                  const Transform& node0,float scale) {
+    if(live_prop_query)if(const auto live=live_prop_query(handle))return *live;
     const auto &authored=content.objects.at(source_object);
     if(!prop_initial_state.contains(handle)) {
       const auto &live=match.simulation().scene().get(handle);
@@ -1148,6 +1163,17 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   std::unique_ptr<NativeUnitDamageAudio> damage_audio;
   if(audio)damage_audio=std::make_unique<NativeUnitDamageAudio>(cache,*audio,auxiliary_random);
   MultiplayerState current = client && client->ready() ? client->state() : match.state(), previous = current;
+  live_prop_query=[&](std::uint32_t handle)->std::optional<SourcePropQueryState> {
+    if(!current.source_scene_roots_authoritative)return {};
+    const auto root=std::find_if(current.source_scene_roots.begin(),current.source_scene_roots.end(),
+        [&](const auto &root){return root.object==handle;});
+    const auto pose=std::find_if(current.source_body_poses.begin(),current.source_body_poses.end(),
+        [&](const auto &pose){return pose.object==handle;});
+    if(root==current.source_scene_roots.end() || pose==current.source_body_poses.end())
+      throw FormatError("Live prop lighting lost its completed source bounds owner");
+    return SourcePropQueryState{{pose->sphere.center,pose->sphere.radius},root->velocity,
+        root->runtime_flags,root->frozen};
+  };
   const auto update_audio_listeners=[&]{
     if(!audio)return;
     std::vector<Vec3> positions;
@@ -1159,30 +1185,31 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
   };
   update_audio_listeners();
   const auto consume_client_weapon_effects=[&]{
-    if(muzzle_effect==null_datum && firing_sound_effects.empty() && ready_effects.empty())return;
-    for(unsigned view=0;view<ids.size();++view){
-      const auto &p=current.players[ids[view]];const auto &effect=p.weapon_effect;
-      if(client_effect_weapon[view]!=p.source_weapon){
-        const bool baseline=client_effect_weapon[view]==null_datum;
-        client_effect_weapon[view]=p.source_weapon;client_effect_handle[view]=null_datum;
-        if(baseline || !ready_effects.contains(effect.effect)) {
-          client_effect_serial[view]=effect.serial;continue;
-        }
-      }
-      if(!effect.serial || effect.serial==client_effect_serial[view])continue;
-      client_effect_serial[view]=effect.serial;
-      if(effect.unit!=p.source_unit || effect.weapon!=p.source_weapon)continue;
-      if(effect.effect==muzzle_effect || firing_effects.contains(effect.effect) || ready_effects.contains(effect.effect))
-        client_effect_handle[view]=muzzle_effects.request({effect.effect,effect.weapon,client_effect_handle[view],
-            effect.a_bits,effect.b_bits},effect.tick);
-      else {
+    if(!client_effect_baseline) {
+      if(!current.weapon_effects.empty())client_effect_serial=current.weapon_effects.back().serial;
+      client_effect_baseline=true;return;
+    }
+    for(const auto &effect:current.weapon_effects)if(effect.serial>client_effect_serial) {
+      client_effect_serial=effect.serial;
+      const auto local=std::find_if(ids.begin(),ids.end(),[&](auto id) {
+        const auto &p=current.players[id];return p.connected && p.source_unit==effect.unit &&
+            (p.source_weapon==effect.weapon || p.secondary_weapon.datum==effect.weapon);
+      });
+      if(local==ids.end())continue;
+      const auto &p=current.players[*local];
+      if(effect.effect==muzzle_effect || firing_effects.contains(effect.effect) || ready_effects.contains(effect.effect)) {
+        auto &binding=source_firing_instances[std::uint16_t(effect.weapon)];
+        const auto previous=binding.weapon==effect.weapon && effect.source_instance!=null_datum && binding.source==effect.source_instance
+            ?binding.presentation:null_datum;
+        const WeaponEffectInput input{effect.effect,effect.weapon,previous,effect.a_bits,effect.b_bits};
+        const auto handle=effect.source_presentation?muzzle_effects.request(input,effect.tick,effect.colors,
+            effect.velocity,world_firing_effects.contains(effect.effect)):muzzle_effects.request(input,effect.tick);
+        binding={effect.weapon,handle,effect.source_instance};
+      }else {
         const auto tag=cache.query_tag({.handle=TagHandle{effect.effect}});
         if(tag && tag->group=="snd!")weapon_effect_sounds.emplace_back(effect.effect,effect.weapon);
-        else if(firing_sound_effects.contains(effect.effect)) {
-          try{effect_sounds.spawn(effect.effect,effect.weapon,p.position,
-              std::bit_cast<float>(effect.a_bits),std::bit_cast<float>(effect.b_bits));}
-          catch(const FormatError &e){std::cerr<<"Firing sound effect "<<std::hex<<effect.effect<<std::dec<<": "<<e.what()<<'\n';}
-        }
+        else if(!world_firing_effects.contains(effect.effect) && firing_sound_effects.contains(effect.effect))
+          effect_sounds.spawn(effect.effect,effect.weapon,p.position,std::bit_cast<float>(effect.a_bits),std::bit_cast<float>(effect.b_bits));
       }
     }
   };
@@ -1413,6 +1440,23 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       if(nodes.empty())continue;
       publish_markers(handle,v,nodes);
     }
+    for(const auto &player:current.players)if(player.connected && !player.dead)
+      for(const auto &[weapon,definition]:std::array<std::pair<std::uint32_t,std::uint32_t>,2>{{
+          {player.source_weapon,player.weapon},{player.secondary_weapon.datum,player.secondary_weapon.definition}}}) {
+        const auto authored=firing_world_markers.find(definition);
+        if(weapon==null_datum || authored==firing_world_markers.end())continue;
+        const auto pose=std::find_if(current.source_body_poses.begin(),current.source_body_poses.end(),
+            [&](const auto &p){return p.object==weapon;});
+        if(pose==current.source_body_poses.end() || pose->nodes.empty())continue;
+        NativeWorldEffects::ObjectMarkers markers;
+        for(const auto &[name,bank]:authored->second)for(const auto &marker:pose_model_markers(bank,pose->nodes)) {
+          const auto &t=marker.world;markers[name].push_back({t.position,t.basis[2],t.basis[0],t.basis[0],t.basis[2],false,0,0});
+        }
+        if(!markers.contains("root")) {
+          const auto &t=pose->nodes.front();markers["root"].push_back({t.position,t.basis[2],t.basis[0],t.basis[0],t.basis[2],false,0,0});
+        }
+        world_effects.object_markers(weapon,std::move(markers));present.insert(weapon);
+      }
     if(current.source_body_poses_authoritative)for(const auto &corpse:current.corpses) {
       if(present.contains(corpse.object))continue;
       const auto pose=std::find_if(current.source_body_poses.begin(),current.source_body_poses.end(),
@@ -1428,7 +1472,19 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
       if(!current.melee_impacts.empty())world_melee_serial=current.melee_impacts.back().serial;
       if(!current.grenade_detonations.empty())world_detonation_serial=current.grenade_detonations.back().serial;
       if(!current.unit_damage_effects.empty())world_unit_effect_serial=current.unit_damage_effects.back().serial;
+      if(!current.weapon_effects.empty())world_weapon_effect_serial=current.weapon_effects.back().serial;
       world_effect_baseline=true;
+    }
+    for(const auto &effect:current.weapon_effects)if(effect.serial>world_weapon_effect_serial) {
+      world_weapon_effect_serial=effect.serial;
+      if(!world_firing_effects.contains(effect.effect))continue;
+      const bool local=std::any_of(ids.begin(),ids.end(),[&](auto id) {
+        const auto &player=current.players[id];return player.connected && player.source_unit==effect.unit &&
+            (player.source_weapon==effect.weapon || player.secondary_weapon.datum==effect.weapon);
+      });
+      const bool fp=effect.effect==muzzle_effect || firing_effects.contains(effect.effect) || ready_effects.contains(effect.effect);
+      world_effects.request_weapon(effect.effect,effect.weapon,effect.tick,effect.colors,effect.velocity,
+          std::bit_cast<float>(effect.a_bits),std::bit_cast<float>(effect.b_bits),effect.source_instance,!local || !fp);
     }
     // Both journals share the collision owner's serial. Preserve contact
     // creation order when a render frame receives several simulation ticks.
@@ -1449,7 +1505,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     for(const auto&event:current.grenade_detonations)if(event.serial>world_detonation_serial){
       world_detonation_serial=event.serial;
       try{
-        if(!event.source_locations.empty())world_effects.spawn_source(event.effect,event.projectile,event.tick,event.source_locations,event.colors);
+        if(!event.source_locations.empty())world_effects.spawn_source(event.effect,event.projectile,event.tick,event.source_locations,event.colors,event.controls);
         else world_effects.spawn(event.effect,event.projectile,event.tick,
           {event.position,event.up,event.forward,event.forward,event.up,false});
       }catch(const FormatError&error){
@@ -1458,7 +1514,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     }
     for(const auto &event:current.unit_damage_effects)if(event.serial>world_unit_effect_serial) {
       world_unit_effect_serial=event.serial;
-      world_effects.spawn_attached(event.effect.datum,event.target,event.owner.unit,event.tick,event.colors);
+      world_effects.spawn_attached(event.effect.datum,event.target,event.owner.unit,event.tick,event.colors,event.controls);
     }
     if(damage_audio) {
       damage_audio->advance(current.tick);
@@ -1531,6 +1587,59 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             body_eligible,constants.one_bits,clock);
       }
     }
+  };
+  const auto update_muzzle_effects=[&] {
+    for(unsigned view=0;view<ids.size();++view) {
+      const auto &primary=current.players[ids[view]];
+      if(!primary.connected || primary.source_unit==null_datum)continue;
+      const auto &registered=client?client_fp_views[view]:match.first_person_view(view);
+      const auto &biped=biped_for(primary);
+      const auto camera=player_camera(primary,biped,biped.camera_field_of_view);
+      const auto transform=camera_transform(camera.position,camera.forward,camera.up);
+      MuzzleEffectView effects_view{};
+      effects_view.position=camera.position;effects_view.forward=camera.forward;effects_view.up=camera.up;
+      Transform primary_adjustment;
+      for(unsigned hand_index=0;hand_index<2;++hand_index) {
+        const auto &hand=registered.hands[hand_index];
+        if(hand.weapon==null_datum)continue;
+        auto player=primary;
+        if(hand_index) {
+          const auto &secondary=primary.secondary_weapon;
+          if(secondary.datum!=hand.weapon)throw FormatError("FP emission hand differs from its authoritative weapon");
+          player.weapon=secondary.definition;player.source_weapon=secondary.datum;
+          player.loaded=secondary.loaded;player.ammunition_available=secondary.ammunition_available;
+          player.reload_tick=secondary.reload_tick;
+        }
+        const auto &visual=species_for(player);const auto &weapon=content.weapons.at(player.weapon);
+        if(!visual.fp_definition || visual.effect_markers.empty())continue;
+        const auto clip=visual.fp_clips.find(hand.animation_identifier>>16);
+        if(clip==visual.fp_clips.end())throw FormatError("FP emission clock has no decoded original clip");
+        auto binding=registered;binding.hands[0]=hand;
+        auto origin=binding;
+        const auto frame=first_person_render_frame(origin,binding,*visual.fp_definition,1,false).frame;
+        const AnimationClip *ammunition=nullptr;float ammunition_frame{};
+        if(visual.fp_definition->ammunition[hand.dual_wield?1:0]) {
+          ammunition=&*visual.fp_definition->ammunition[hand.dual_wield?1:0];
+          ammunition_frame=first_person_ammunition_frame(std::int16_t(player.loaded),
+              std::bit_cast<std::int16_t>(std::uint16_t(player.ammunition_available)),std::int16_t(weapon.capacity),
+              std::bit_cast<std::int16_t>(std::uint16_t(current.tick-player.reload_tick)),weapon.weapon_type,
+              hand.activity,ammunition->frame_count);
+        }
+        const float aiming=primary.secondary_weapon.datum==null_datum?source_aim_blend_weight(aim_blends[ids[view]]):0.f;
+        const auto pose=pose_first_person_models_world_frame(visual.guns[view*2+hand_index].model,visual.hands.model,
+            clip->second,frame,weapon.first_person_offset,transform,visual.fp_ik,aiming,hand_index!=0,
+            hand_index?&primary_adjustment:nullptr,ammunition,ammunition_frame);
+        if(!hand_index)primary_adjustment=pose.camera_adjustment;
+        muzzle_effects.pose(hand.weapon,[&](std::uint32_t name) {
+          const auto authored=visual.effect_markers.find(name);
+          if(authored==visual.effect_markers.end())throw FormatError("FP emission has no authored marker");
+          const auto markers=pose_model_markers(authored->second,pose.weapon_nodes);
+          if(markers.size()!=1)throw FormatError("FP emission requires the actual singleton marker");
+          return compose_transform(inverse_transform(transform),markers.front().world);
+        },effects_view,current.tick,tick_seconds);
+      }
+    }
+    muzzle_effects.advance(current.tick,tick_seconds);
   };
   std::array<bool,multiplayer_capacity> object_light_alive{},object_light_reported{};
   std::array<float, 4> yaw{}, pitch{};
@@ -2033,8 +2142,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             if(player.connected && player.shot_tick && player.shot_tick!=heard_shots[id]) {
               heard_shots[id]=player.shot_tick;
               const auto &fired_weapon=content.weapons.at(player.weapon);
-              const bool local_effect=(fired_weapon.smg || fired_weapon.firing_presentation) &&
-                  std::find(ids.begin(),ids.end(),id)!=ids.end();
+              const bool local_effect=std::any_of(fired_weapon.firing_effects.begin(),fired_weapon.firing_effects.end(),
+                  [&](const auto &row){return world_firing_effects.contains(row.effects[0]);}) ||
+                  ((fired_weapon.smg || fired_weapon.firing_presentation) && std::find(ids.begin(),ids.end(),id)!=ids.end());
               if(fired_weapon.sound!=null_datum && !local_effect)
                 events.push_back({fired_weapon.sound,player.position});
             }
@@ -2196,6 +2306,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
         update_world_effects();
         synchronize_zoom();
         update_aim(current,1);
+        update_muzzle_effects();
         if (host)
           host->broadcast();
       }
@@ -2300,7 +2411,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
     for(const auto&gap:world_effects.diagnostics().unavailable)
       if(reported_world_effect_gaps.insert(gap).second)std::cerr<<"World effect boundary: "<<gap<<'\n';
     std::vector<std::vector<ParticleDraw>> foreground_particles(options.local_players),world_particles(options.local_players);
-    muzzle_effects.advance(current.tick,tick_seconds);
+    update_muzzle_effects();
     for(const auto &sound:muzzle_effects.take_sounds())if(audio)try {
       if(sound.position)audio->impulse_at(sound.cue.sound,*sound.position,sound.cue.gain,MultiplayerAudioKind::Impulse,sound.owner);
       else audio->impulse(sound.cue.sound,sound.cue.gain,MultiplayerAudioKind::Impulse,sound.owner);
@@ -3240,6 +3351,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             // D0870/B8EE0 aligns the unnamed child to the actual posed hand
             // marker; B93B0 stores parent-local fields, then BD090 composes it.
             if(!a.dead) {
+            const bool source_weapon_pose=current.source_body_poses_authoritative &&
+                std::any_of(current.source_body_poses.begin(),current.source_body_poses.end(),
+                    [&](const auto &pose){return pose.object==a.source_weapon;});
+            if(source_weapon_pose)held_nodes=source_body_interpolation.sample(a.source_weapon,blend);
+            else {
             const auto parent_node=body_nodes.at(body_attachment.parent.node);
             const auto marker=compose_transform(parent_node,body_attachment.parent.local);
             auto child_marker=body_attachment.child.local;
@@ -3252,6 +3368,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &options,
             const auto gun_frame=source_object_transform(local.position,local.forward,local.up,1,false,&parent_node);
             held_nodes=pose_model_nodes_world(body_gun.model,gun_frame,
                 body_gun.idle?&*body_gun.idle:nullptr,body_time);
+            }
             //113BA0/113980's world callback aligns the support hand to the
             // actual carried weapon markers. FP arms use a separate model.
             if(!current.source_body_poses_authoritative && a.secondary_weapon.datum==null_datum)

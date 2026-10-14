@@ -1,394 +1,259 @@
-"""Exercise a relocated launcher with setup tools and no built runtime."""
+"""Exercise MCC-only routing in a relocated launcher with isolated recorders.
+
+Synthetic playable metadata tests arguments only, never actual gameplay parity.
+"""
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 
-
+REPO = Path(__file__).resolve().parents[1]
 LAUNCHER = Path(sys.argv.pop(1)).resolve()
+REQUIRED = (
+    'halo2/h2_maps_win64_dx11/mainmenu.map', 'halo2/h2_maps_win64_dx11/shared.map',
+    'halo2/h2_maps_win64_dx11/single_player_shared.map', 'halo2/h2_maps_win64_dx11/lockout.map',
+    'halo2/h2_maps_win64_dx11/textures.dat', 'halo2/h2_fonts/font_table.txt',
+    'bitmap-resources.json', 'tag-conversion.json', 'loading/mcc-loading-assets.json',
+)
 
 
 class LauncherFirstRunTests(unittest.TestCase):
     def setUp(self):
-        self.temporary = tempfile.TemporaryDirectory(prefix="halo2-first-run-")
+        self.temporary = tempfile.TemporaryDirectory(prefix='halo2-mcc-first-run-')
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name) / "fresh checkout"
-        (self.root / "tools").mkdir(parents=True)
+        self.root = Path(self.temporary.name) / 'fresh checkout'
+        (self.root / 'tools').mkdir(parents=True)
         self.launcher = self.root / LAUNCHER.name
         shutil.copy2(LAUNCHER, self.launcher)
-        (self.root / "tools/setup_assets.py").write_text(
-            "import json, pathlib, sys\n"
-            "pathlib.Path(__file__).with_name('setup-call.json').write_text(json.dumps(sys.argv[1:]))\n"
-            "raise SystemExit(23)\n"
-        )
-        (self.root / "tools/launcher_ui.py").write_text(
-            "import json, pathlib, sys\n"
-            "pathlib.Path(__file__).with_name('home-call.json').write_text(json.dumps(sys.argv[1:]))\n"
-        )
+        self.cache = self.root / 'assets/imported/mcc-test'
+        self.maps = self.cache / 'halo2/h2_maps_win64_dx11'
+        (self.root / 'tools/setup_assets.py').write_text('''import json, os, pathlib, sys
+root=pathlib.Path(sys.argv[sys.argv.index('--root')+1])
+(root/'setup-call.json').write_text(json.dumps(sys.argv[1:]))
+status=int(os.environ.get('H2_TEST_SETUP_STATUS','23'))
+if status: raise SystemExit(status)
+(root/'assets/mcc-source.tsv').write_text('H2_MCC_ASSET_SOURCE_V1\\ncache\\tassets/imported/mcc-test\\n')
+''')
+        (self.root / 'tools/launcher_ui.py').write_text('''import json, os, pathlib, sys
+root=pathlib.Path(sys.argv[sys.argv.index('--root')+1])
+(root/'home-call.json').write_text(json.dumps(sys.argv[1:]))
+raise SystemExit(int(os.environ.get('H2_TEST_HOME_STATUS','20')))
+''')
+        (self.root / 'tools/build_runtime.py').write_text("raise RuntimeError('unexpected build')\n")
+        self.environment = {**os.environ, 'SDL_VIDEODRIVER': 'dummy', 'SDL_AUDIODRIVER': 'dummy'}
+        self.environment.pop('DISPLAY', None)
+        self.environment.pop('WAYLAND_DISPLAY', None)
 
     def run_launcher(self, *arguments):
-        environment = {**os.environ, "SDL_VIDEODRIVER": "dummy"}
-        environment.pop("DISPLAY", None)
-        environment.pop("WAYLAND_DISPLAY", None)
-        return subprocess.run(
-            [str(self.launcher), *arguments], cwd=self.temporary.name,
-            env=environment,
-            capture_output=True, text=True, timeout=10,
-        )
+        return subprocess.run([str(self.launcher), *arguments], cwd=self.temporary.name,
+                              env=self.environment, capture_output=True, text=True, timeout=10)
 
-    def test_info_uses_relocated_project_without_another_checkouts_runtime(self):
-        result = self.run_launcher("--launcher-info")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("Project: " + str(self.root), result.stdout)
-        self.assertIn("Runtime: not built", result.stdout)
+    def call(self, name):
+        return json.loads((self.root / (name + '-call.json')).read_text())
 
-    def test_first_launch_opens_setup_before_runtime_exists(self):
-        for supplied in ((), ("--setup-only",)):
-            with self.subTest(arguments=supplied):
-                result = self.run_launcher(*supplied)
-                self.assertEqual(result.returncode, 23, result.stderr)
-                arguments = json.loads((self.root / "tools/setup-call.json").read_text())
-                self.assertEqual(arguments, ["--root", str(self.root), "--interactive"])
-
-    def test_source_flags_require_paths_before_running_setup(self):
-        for flag in ("--vista-source", "--xbox-source", "--mcc-source"):
-            for value in ((), ("",), ("--setup-only",), ("--xbox-source",)):
-                with self.subTest(flag=flag, value=value):
-                    result = self.run_launcher("--setup-only", flag, *value)
-                    self.assertEqual(result.returncode, 1, result.stderr)
-                    self.assertIn("missing value for " + flag, result.stderr)
-                    self.assertIn("file or folder path", result.stderr)
-                    self.assertFalse((self.root / "tools/setup-call.json").exists())
-
-    def test_explicit_source_paths_skip_the_gui(self):
-        vista = str(Path(self.temporary.name) / "Vista installer.zip")
-        xbox = str(Path(self.temporary.name) / "Halo 2.iso")
-        result = self.run_launcher(
-            "--setup-only", "--vista-source", vista, "--xbox-source", xbox,
-        )
-        self.assertEqual(result.returncode, 23, result.stderr)
-        arguments = json.loads((self.root / "tools/setup-call.json").read_text())
-        self.assertEqual(arguments, ["--root", str(self.root), "--vista", vista, "--xbox", xbox])
-
-    def test_mcc_preparation_works_before_normal_first_run_without_an_iso(self):
-        for supplied in ((), ("--mcc-source", str(Path(self.temporary.name) / "MCC"))):
-            with self.subTest(arguments=supplied):
-                result = self.run_launcher("--prepare-mcc-gameplay", "--setup-only", *supplied)
-                self.assertEqual(result.returncode, 23, result.stderr)
-                arguments = json.loads((self.root / "tools/setup-call.json").read_text())
-                expected = ["--root", str(self.root), "--prepare-mcc-gameplay"]
-                if supplied:
-                    expected += ["--mcc-root", supplied[1]]
-                self.assertEqual(arguments, expected)
-
-    def test_mcc_preparation_does_not_accept_runtime_or_other_source_options(self):
-        for supplied in (("--launch-game",), ("--import-mcc-hud",), ("--xbox-source", "donor"), ("--menu",)):
-            with self.subTest(arguments=supplied):
-                result = self.run_launcher("--prepare-mcc-gameplay", *supplied)
-                self.assertEqual(result.returncode, 1, result.stderr)
-                self.assertIn("by itself", result.stderr)
-                self.assertFalse((self.root / "tools/setup-call.json").exists())
-
-    def ready_assets(self):
-        for name in ("xbox/default.xbe", "xbox/maps/mainmenu.map", "xbox/maps/shared.map",
-                     "xbox/maps/lockout.map", "xbox/maps/fonts/font_table.txt",
-                     "vista/pack.tsv", "vista/hud.tsv", "vista/maps/mainmenu.map",
-                     "vista/maps/shared.map", "vista/maps/lockout.map"):
-            path = self.root / "assets" / name
+    def ready_assets(self, playable=False):
+        for name in REQUIRED:
+            path = self.cache / name
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.touch()
-        (self.root / "assets/vista/fonts").mkdir(exist_ok=True)
-        (self.root / "assets/asset-sources.tsv").write_text(
-            "H2_ASSET_SOURCES_V1\nxbox\tassets/xbox\nvista\tassets/vista\n"
-        )
-        self.loading_assets(self.root / "assets/vista/loading")
+            path.write_text('fixture')
+        self.provenance(playable)
+        (self.root / 'assets/mcc-source.tsv').write_text(
+            'H2_MCC_ASSET_SOURCE_V1\ncache\tassets/imported/mcc-test\n')
 
-    def loading_assets(self, directory):
-        directory.mkdir(parents=True, exist_ok=True)
-        (directory / "loading-textures.tsv").write_text("H2V_LOADING_TEXTURES_V1\n" + "row\n" * 12)
-        (directory / "loading-tone.xbox-adpcm").write_bytes(bytes(18396))
-        for index in range(12):
-            (directory / f"loading-{index:02d}.dds").write_bytes(bytes(132))
+    def provenance(self, playable):
+        (self.cache / 'provenance.json').write_text(json.dumps(dict(
+            schema='H2_MCC_TU15_PREPARATION_V1', external_installation_requirement='Halo MCC only',
+            runtime_active=playable, full_tu15_parity=playable)))
 
-    def test_selected_vista_match_loading_survives_gameplay_source_changes(self):
-        self.ready_assets()
-        loading=self.root/"assets/imported/mcc-owned/loading"
-        self.loading_assets(loading)
-        registry=self.root/"assets/loading-source.tsv"
-        registry.write_text("H2_LOADING_SOURCE_V1\nvista\t"+str(loading)+"\n")
-        result=self.run_launcher("--launcher-info")
-        self.assertEqual(result.returncode,0,result.stderr)
-        self.assertIn("Vista loading assets: "+str(loading),result.stdout)
-        (loading/"loading-00.dds").unlink()
-        result=self.run_launcher("--launcher-info")
-        self.assertEqual(result.returncode,1,result.stderr)
-        self.assertIn("match-loading bank is incomplete",result.stderr)
+    def runtime(self):
+        build = self.root / 'build'
+        (build / 'shaders').mkdir(parents=True)
+        source = (REPO / 'src/launcher.cpp').read_text()
+        block = re.search(r'shader_names\{(.*?)\};', source, re.S).group(1)
+        for name in re.findall(r'"([^"\n]+\.spv)"', block):
+            (build / 'shaders' / name).touch()
+        binary = build / 'halo2_native'
+        binary.write_text('#!' + sys.executable + '\n' + '''import json, os, pathlib, sys
+pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], cwd=os.getcwd(), discord=os.environ.get('H2_DISCORD_LAUNCHER'))))
+''')
+        binary.chmod(0o755)
+        return binary
 
-    def test_missing_loading_resources_do_not_launch_an_existing_runtime(self):
-        self.ready_assets()
-        script = self.root / "tools/create_runtime.py"
-        script.write_text(self.runtime_fixture())
-        subprocess.run([sys.executable, str(script)], check=True)
-        (self.root / "assets/vista/loading/loading-11.dds").unlink()
+    def legacy_registries(self):
+        (self.root / 'assets').mkdir(exist_ok=True)
+        for name in ('asset-sources', 'gameplay-source', 'hud-source', 'menu-source', 'loading-source'):
+            (self.root / ('assets/' + name + '.tsv')).write_text('MALFORMED OLD SOURCE\n')
+
+    def test_info_works_before_setup_without_a_runtime(self):
+        result = self.run_launcher('--launcher-info')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Runtime: not built', result.stdout)
+        self.assertIn('Asset source: Halo MCC only', result.stdout)
+        self.assertIn('MCC cache prepared: no', result.stdout)
+        self.assertFalse((self.root / 'setup-call.json').exists())
+
+    def test_first_launch_opens_mcc_detection_setup(self):
         result = self.run_launcher()
         self.assertEqual(result.returncode, 23, result.stderr)
-        self.assertFalse((self.root / "runtime-call.json").exists())
-        call = json.loads((self.root / "tools/setup-call.json").read_text())
-        self.assertIn("--interactive", call)
-        self.assertIn(str(self.root / "assets/xbox"), call)
+        self.assertEqual(self.call('setup'), ['--root', str(self.root), '--interactive'])
 
-    def test_old_import_repairs_loading_before_launch_without_rebuilding(self):
-        self.ready_assets()
-        script = self.root / "tools/create_runtime.py"
-        script.write_text(self.runtime_fixture())
-        subprocess.run([sys.executable, str(script)], check=True)
-        target = self.root / "assets/vista/loading/loading-11.dds"
-        target.unlink()
-        (self.root / "build-call.json").unlink()
-        (self.root / "tools/setup_assets.py").write_text(
-            "import pathlib,sys\nassert sys.argv[1:] == "
-            f"{['--root', str(self.root), '--repair-loading']!r}\n"
-            f"pathlib.Path({str(target)!r}).write_bytes(bytes(132))\n")
-        result = self.run_launcher("--skip-intro")
+    def test_explicit_mcc_path_uses_terminal_import(self):
+        result = self.run_launcher('--mcc-source', 'MCC with spaces', '--setup-only')
+        self.assertEqual(result.returncode, 23, result.stderr)
+        self.assertEqual(self.call('setup'), ['--root', str(self.root), '--mcc-root', 'MCC with spaces'])
+
+    def test_missing_mcc_argument_fails_before_setup(self):
+        for args in (('--mcc-source',), ('--mcc-source', '--setup-only')):
+            with self.subTest(args=args):
+                result = self.run_launcher(*args)
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('missing value for --mcc-source', result.stderr)
+        self.assertFalse((self.root / 'setup-call.json').exists())
+
+    def test_legacy_options_are_rejected_without_reading_sources(self):
+        self.legacy_registries()
+        for option in ('--vista-source', '--xbox-source', '--gameplay-xbe', '--menu-vista-settings',
+                       '--import-mcc-hud', '--import-mcc-menus'):
+            with self.subTest(option=option):
+                result = self.run_launcher(option, 'old source')
+                self.assertEqual(result.returncode, 1)
+                self.assertIn('no longer a launcher option', result.stderr)
+        self.assertFalse((self.root / 'setup-call.json').exists())
+
+    def test_help_needs_no_assets_and_only_describes_mcc_setup(self):
+        self.legacy_registries()
+        result = self.run_launcher('--help')
         self.assertEqual(result.returncode, 0, result.stderr)
-        args = json.loads((self.root / "runtime-call.json").read_text())
-        self.assertEqual(args[args.index("--menu-loading-assets") + 1], str(target.parent))
-        self.assertFalse((self.root / "build-call.json").exists())
+        self.assertIn('--mcc-source PATH', result.stdout)
+        self.assertNotIn('--vista-source', result.stdout)
+        self.assertNotIn('--xbox-source', result.stdout)
+        self.assertFalse((self.root / 'setup-call.json').exists())
 
-    def test_complete_legacy_loading_export_remains_usable(self):
+    def test_prepare_alias_selects_cache_and_exits_without_building(self):
         self.ready_assets()
-        shutil.rmtree(self.root / "assets/vista/loading")
-        legacy = self.root / "assets/menu-ui/vista/loading"
-        self.loading_assets(legacy)
-        script = self.root / "tools/create_runtime.py"
-        script.write_text(self.runtime_fixture())
-        subprocess.run([sys.executable, str(script)], check=True)
+        self.environment['H2_TEST_SETUP_STATUS'] = '0'
+        result = self.run_launcher('--prepare-mcc-gameplay', '--mcc-source', 'MCC path')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.call('setup'), ['--root', str(self.root), '--mcc-root', 'MCC path'])
+        self.assertFalse((self.root / 'home-call.json').exists())
+        self.assertFalse((self.root / 'runtime-call.json').exists())
+
+    def test_prepare_alias_rejects_mixed_gameplay_arguments(self):
+        for arg in ('--play', '--update', '--launch-game'):
+            result = self.run_launcher('--prepare-mcc-gameplay', arg)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('by itself', result.stderr)
+        self.assertFalse((self.root / 'setup-call.json').exists())
+
+    def test_prepare_alias_uses_automatic_detection_without_a_window(self):
+        result = self.run_launcher('--prepare-mcc-gameplay')
+        self.assertEqual(result.returncode, 23)
+        self.assertEqual(self.call('setup'), ['--root', str(self.root)])
+
+    def test_inactive_mcc_blocks_runtime_and_shows_honest_home(self):
+        self.ready_assets()
+        self.runtime()
+        self.legacy_registries()
+        result = self.run_launcher('--launch-game', '--multiplayer')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('conversion are still being completed', result.stderr)
+        self.assertFalse((self.root / 'runtime-call.json').exists())
         result = self.run_launcher()
         self.assertEqual(result.returncode, 0, result.stderr)
-        args = json.loads((self.root / "runtime-call.json").read_text())
-        self.assertEqual(args[args.index("--menu-loading-assets") + 1], str(legacy))
+        self.assertIn('--runtime-unavailable', self.call('home'))
+        self.assertFalse((self.root / 'setup-call.json').exists())
+        result = self.run_launcher('--launcher-info')
+        self.assertIn('MCC cache prepared: yes', result.stdout)
+        self.assertIn('Native MCC gameplay ready: no', result.stdout)
+        self.assertNotIn('Default gameplay XBE:', result.stdout)
 
-    def successful_setup(self):
+    def test_both_readiness_flags_are_required(self):
         self.ready_assets()
-        registry = self.root / "assets/asset-sources.tsv"
-        saved = registry.read_text()
-        registry.unlink()
-        (self.root / "tools/setup_assets.py").write_text(
-            "from pathlib import Path\n"
-            f"Path({str(registry)!r}).write_text({saved!r})\n"
-            f"Path({str(self.root / 'setup-finished')!r}).touch()\n"
-        )
+        self.runtime()
+        for active, parity in ((True, False), (False, True), ('true', True)):
+            report = json.loads((self.cache / 'provenance.json').read_text())
+            report.update(runtime_active=active, full_tu15_parity=parity)
+            (self.cache / 'provenance.json').write_text(json.dumps(report))
+            self.assertEqual(self.run_launcher('--launch-game').returncode, 1)
+        self.assertFalse((self.root / 'runtime-call.json').exists())
 
-    def runtime_fixture(self):
-        script = (
-            "#!/usr/bin/env python3\n"
-            "import json, pathlib, sys\n"
-            "pathlib.Path('runtime-call.json').write_text(json.dumps(sys.argv[1:]))\n"
-        )
-        names = ["world.vert", "world.frag", "world_emblem.geom", "world_emblem.frag",
-                 "fog.vert", "fog.frag", "water_copy.frag", "bsp_patchy_noise.frag",
-                 "bsp_patchy_composite.frag", "patchy_noise.frag", "patchy_composite.frag",
-                 "bloom.vert", "bloom.frag", "crt_oled.frag", "display.frag", "overlay.vert",
-                 "overlay.frag", "ui.vert", "ui.frag", "hud.frag"]
-        return (
-            "import json, pathlib, sys\n"
-            f"root = pathlib.Path({str(self.root)!r})\n"
-            "(root / 'build-call.json').write_text(json.dumps(sys.argv[1:]))\n"
-            "build = root / 'build'\n"
-            "(build / 'shaders').mkdir(parents=True, exist_ok=True)\n"
-            f"for name in {names!r}: (build / 'shaders' / (name + '.spv')).touch()\n"
-            "runtime = build / 'halo2_native'\n"
-            f"runtime.write_text({script!r})\n"
-            "runtime.chmod(0o755)\n"
-        )
+    def test_incomplete_selected_cache_reopens_mcc_setup(self):
+        self.ready_assets()
+        (self.maps / 'shared.map').unlink()
+        result = self.run_launcher()
+        self.assertEqual(result.returncode, 23)
+        self.assertIn('--interactive', self.call('setup'))
 
-    def test_successful_setup_builds_and_launches_automatically(self):
-        self.successful_setup()
-        (self.root / "tools/build_runtime.py").write_text(
-            f"from pathlib import Path\nassert Path({str(self.root / 'setup-finished')!r}).exists()\n"
-            + self.runtime_fixture()
-        )
+    def test_cache_outside_owned_import_directory_is_rejected(self):
+        self.ready_assets()
+        (self.root / 'assets/mcc-source.tsv').write_text('H2_MCC_ASSET_SOURCE_V1\ncache\t' + str(self.root) + '\n')
+        result = self.run_launcher('--launcher-info')
+        self.assertIn('MCC cache prepared: no', result.stdout)
+        self.assertIn('private MCC import', result.stdout)
+
+    def test_cache_symlink_is_rejected(self):
+        self.ready_assets()
+        link = self.cache.parent / 'mcc-link'
+        link.symlink_to(self.cache, target_is_directory=True)
+        (self.root / 'assets/mcc-source.tsv').write_text('H2_MCC_ASSET_SOURCE_V1\ncache\tassets/imported/mcc-link\n')
+        self.assertIn('MCC cache prepared: no', self.run_launcher('--launcher-info').stdout)
+
+    def test_default_route_uses_only_private_mcc_map_paths(self):
+        self.ready_assets(True)
+        binary = self.runtime()
+        self.legacy_registries()
+        self.environment['H2_TEST_HOME_STATUS'] = '0'
         result = self.run_launcher()
         self.assertEqual(result.returncode, 0, result.stderr)
-        build_arguments = json.loads((self.root / "build-call.json").read_text())
-        self.assertEqual(build_arguments, ["--root", str(self.root), "--build-dir", str(self.root / "build")])
-        runtime_arguments = json.loads((self.root / "runtime-call.json").read_text())
-        self.assertIn("--menu-screen", runtime_arguments)
-        self.assertEqual(runtime_arguments[runtime_arguments.index("--menu-loading-assets") + 1],
-                         str(self.root / "assets/vista/loading"))
+        record = self.call('runtime')
+        args = record['argv']
+        self.assertEqual(record['cwd'], str(self.root))
+        self.assertEqual(record['discord'], str(self.launcher))
+        self.assertEqual(args[:2], ['--menu-screen', '9'])
+        self.assertEqual('--skip-intro' in args, 'Title' in LAUNCHER.name)
+        for option, value in (('--menu-maps', self.maps), ('--map', self.maps / 'lockout.map'), ('--shared-maps', self.maps)):
+            self.assertEqual(args[args.index(option) + 1], str(value))
+        for option in ('--gameplay-xbe', '--menu-vista-settings', '--menu-loading-assets',
+                       '--menu-ui-assets', '--hud-ui-assets', '--pause-ui-assets'):
+            self.assertNotIn(option, args)
+        self.assertNotIn('--runtime-unavailable', self.call('home'))
+        self.assertIn(str(binary), self.run_launcher('--launcher-info').stdout)
 
-    def test_prepared_checkout_builds_and_forwards_runtime_arguments(self):
-        self.ready_assets()
-        (self.root / "tools/build_runtime.py").write_text(self.runtime_fixture())
-        result = self.run_launcher("--inspect")
+    def test_explicit_mod_map_and_shared_directory_are_retained(self):
+        self.ready_assets(True)
+        self.runtime()
+        result = self.run_launcher('--launch-game', '--multiplayer', '--map', 'mods/map name.map', '--shared-maps', 'mods/shared')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("--inspect", json.loads((self.root / "runtime-call.json").read_text()))
+        self.assertEqual(self.call('runtime')['argv'], ['--multiplayer', '--map', 'mods/map name.map', '--shared-maps', 'mods/shared'])
 
-    def test_build_failure_stops_launch_and_preserves_exit_status(self):
-        self.ready_assets()
-        (self.root / "tools/build_runtime.py").write_text("raise SystemExit(17)\n")
-        result = self.run_launcher()
-        self.assertEqual(result.returncode, 17, result.stderr)
-        self.assertFalse((self.root / "runtime-call.json").exists())
-
-    def test_setup_only_prepares_without_building_or_launching(self):
-        self.successful_setup()
-        result = self.run_launcher("--setup-only")
+    def test_derived_ui_packs_must_come_from_selected_cache(self):
+        self.ready_assets(True)
+        self.runtime()
+        self.legacy_registries()
+        for name in ('pack.tsv', 'hud.tsv', 'pause.tsv'):
+            path = self.cache / 'ui' / name
+            path.parent.mkdir(exist_ok=True)
+            path.touch()
+        result = self.run_launcher('--launch-game', '--multiplayer')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue((self.root / "setup-finished").exists())
-        self.assertFalse((self.root / "build-call.json").exists())
-        self.assertFalse((self.root / "runtime-call.json").exists())
+        args = self.call('runtime')['argv']
+        for option in ('--menu-ui-assets', '--hud-ui-assets', '--pause-ui-assets'):
+            self.assertEqual(args[args.index(option) + 1], str(self.cache / 'ui'))
 
-    def test_existing_runtime_launches_without_requiring_build_tools(self):
-        self.ready_assets()
-        script = self.root / "tools/create_runtime.py"
-        script.write_text(self.runtime_fixture())
-        subprocess.run([sys.executable, str(script)], check=True)
-        (self.root / "build-call.json").unlink()
-        result = self.run_launcher("--inspect")
+    def test_update_does_not_require_or_import_game_sources(self):
+        (self.root / 'tools/update_runtime.py').write_text('''import pathlib, sys
+pathlib.Path(sys.argv[sys.argv.index('--root')+1], 'updated').touch()
+''')
+        result = self.run_launcher('--update')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertFalse((self.root / "build-call.json").exists())
-        self.assertTrue((self.root / "runtime-call.json").exists())
-
-    def existing_runtime(self):
-        self.ready_assets()
-        script = self.root / "tools/create_runtime.py"
-        script.write_text(self.runtime_fixture())
-        subprocess.run([sys.executable, str(script)], check=True)
-        (self.root / "build-call.json").unlink()
-
-    def test_installed_launcher_opens_home_before_play(self):
-        self.existing_runtime()
-        result = self.run_launcher()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        arguments = json.loads((self.root / "tools/home-call.json").read_text())
-        self.assertEqual(arguments, ["--root", str(self.root), "--build-dir", str(self.root / "build")])
-        self.assertTrue((self.root / "runtime-call.json").exists())
-        self.assertFalse((self.root / "build-call.json").exists())
-
-    def test_closing_home_does_not_launch_the_runtime(self):
-        self.existing_runtime()
-        (self.root / "tools/launcher_ui.py").write_text("raise SystemExit(20)\n")
-        result = self.run_launcher()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertFalse((self.root / "runtime-call.json").exists())
-
-    def test_home_failure_does_not_launch_the_runtime(self):
-        self.existing_runtime()
-        (self.root / "tools/launcher_ui.py").write_text("raise SystemExit(19)\n")
-        result = self.run_launcher()
-        self.assertEqual(result.returncode, 19, result.stderr)
-        self.assertFalse((self.root / "runtime-call.json").exists())
-
-    def test_explicit_launch_skips_home_and_does_not_forward_launcher_flag(self):
-        self.existing_runtime()
-        result = self.run_launcher("--launch-game")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertFalse((self.root / "tools/home-call.json").exists())
-        self.assertNotIn("--launch-game", json.loads((self.root / "runtime-call.json").read_text()))
-
-    def test_update_works_before_setup_and_does_not_launch(self):
-        (self.root / "tools/update_runtime.py").write_text(
-            "import json, pathlib, sys\n"
-            "pathlib.Path(__file__).with_name('update-call.json').write_text(json.dumps(sys.argv[1:]))\n"
-        )
-        result = self.run_launcher("--update")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads((self.root / "tools/update-call.json").read_text()),
-                         ["--root", str(self.root), "--build-dir", str(self.root / "build")])
-        self.assertFalse((self.root / "tools/setup-call.json").exists())
-        self.assertFalse((self.root / "runtime-call.json").exists())
-
-    def test_update_failure_is_returned_without_launching(self):
-        self.existing_runtime()
-        (self.root / "tools/update_runtime.py").write_text("raise SystemExit(18)\n")
-        result = self.run_launcher("--update")
-        self.assertEqual(result.returncode, 18, result.stderr)
-        self.assertFalse((self.root / "tools/home-call.json").exists())
-        self.assertFalse((self.root / "runtime-call.json").exists())
-
-    def test_pending_update_is_rebuilt_before_a_direct_launch(self):
-        self.existing_runtime()
-        (self.root / "launcher-update.pending").touch()
-        (self.root / "tools/build_runtime.py").write_text(self.runtime_fixture())
-        result = self.run_launcher("--launch-game")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue((self.root / "build-call.json").exists())
-        self.assertFalse((self.root / "launcher-update.pending").exists())
-        self.assertTrue((self.root / "runtime-call.json").exists())
-
-    def test_pending_build_failure_stops_a_direct_launch(self):
-        self.existing_runtime()
-        (self.root / "launcher-update.pending").touch()
-        (self.root / "tools/build_runtime.py").write_text("raise SystemExit(17)\n")
-        result = self.run_launcher("--launch-game")
-        self.assertEqual(result.returncode, 17, result.stderr)
-        self.assertTrue((self.root / "launcher-update.pending").exists())
-        self.assertFalse((self.root / "runtime-call.json").exists())
-
-    def test_play_reloads_sources_changed_while_the_home_was_open(self):
-        self.existing_runtime()
-        selected = self.root / "assets/selected-update.xbe"
-        registry = self.root / "assets/gameplay-source.tsv"
-        (self.root / "tools/launcher_ui.py").write_text(
-            "from pathlib import Path\n"
-            f"Path({str(selected)!r}).touch()\n"
-            f"Path({str(registry)!r}).write_text('H2_GAMEPLAY_SOURCE_V1\\nxbe\\tassets/selected-update.xbe\\n')\n")
-        result = self.run_launcher()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        arguments = json.loads((self.root / "runtime-call.json").read_text())
-        self.assertEqual(arguments[arguments.index("--gameplay-xbe") + 1], str(selected))
-
-    def test_selecting_sources_rebuilds_an_existing_runtime(self):
-        self.ready_assets()
-        script = self.root / "tools/build_runtime.py"
-        script.write_text(self.runtime_fixture())
-        subprocess.run([sys.executable, str(script)], check=True)
-        (self.root / "build-call.json").unlink()
-        self.successful_setup()
-        result = self.run_launcher("--setup")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertTrue((self.root / "build-call.json").exists())
-        self.assertTrue((self.root / "runtime-call.json").exists())
-
-    @unittest.skipUnless(shutil.which("cmake") and shutil.which("ninja"), "CMake and Ninja required")
-    def test_real_cmake_build_is_followed_by_runtime_launch(self):
-        self.ready_assets()
-        source = Path(__file__).resolve().parents[1] / "tools/build_runtime.py"
-        shutil.copy2(source, self.root / "tools/build_runtime.py")
-        (self.root / "tools/create_runtime.py").write_text(self.runtime_fixture())
-        (self.root / "CMakeLists.txt").write_text(
-            "cmake_minimum_required(VERSION 3.24)\nproject(LauncherFixture LANGUAGES NONE)\n"
-            "find_package(Python3 REQUIRED COMPONENTS Interpreter)\n"
-            'add_custom_target(halo2_launcher COMMAND "${Python3_EXECUTABLE}" '
-            '"${CMAKE_SOURCE_DIR}/tools/create_runtime.py" VERBATIM)\n'
-            "add_custom_target(halo2_title_launcher)\n"
-        )
-        result = self.run_launcher("--inspect")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertTrue((self.root / "build/CMakeCache.txt").is_file())
-        self.assertTrue((self.root / "build/launcher-build.log").is_file())
-        self.assertIn("--inspect", json.loads((self.root / "runtime-call.json").read_text()))
-
-    def test_moved_build_is_rebuilt_instead_of_launching_the_old_runtime(self):
-        self.ready_assets()
-        script = self.root / "tools/build_runtime.py"
-        script.write_text(self.runtime_fixture())
-        subprocess.run([sys.executable, str(script)], check=True)
-        (self.root / "build/CMakeCache.txt").write_text(
-            "CMAKE_HOME_DIRECTORY:INTERNAL=/old/project\n"
-            "CMAKE_CACHEFILE_DIR:INTERNAL=/old/project/build\n"
-        )
-        (self.root / "build-call.json").unlink()
-        script.write_text("raise SystemExit(17)\n")
-        result = self.run_launcher()
-        self.assertEqual(result.returncode, 17, result.stderr)
-        self.assertFalse((self.root / "runtime-call.json").exists())
+        self.assertTrue((self.root / 'updated').exists())
+        self.assertFalse((self.root / 'setup-call.json').exists())
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     unittest.main()

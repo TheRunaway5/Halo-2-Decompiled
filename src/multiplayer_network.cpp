@@ -290,6 +290,8 @@ SourceDeviceWorldSnapshot decode_devices(Reader&r,std::uint32_t tick){
 std::vector<SourceWorldPoseOwner> body_pose_owners(const MultiplayerState &s) {
   std::vector<SourceWorldPoseOwner> owners;
   for(const auto &p:s.players)if(p.connected)owners.push_back({p.dead?p.source_previous_unit:p.source_unit,!p.dead});
+  for(const auto &p:s.players)if(p.connected && !p.dead)
+    for(const auto weapon:{p.source_weapon,p.secondary_weapon.datum})if(weapon!=null_datum)owners.push_back({weapon,false});
   for(const auto &corpse:s.corpses)owners.push_back({corpse.object,true});
   for(const auto &vehicle:s.world_vehicles)owners.push_back({vehicle.handle,true});
   for(const auto &root:s.source_scene_roots)owners.push_back({root.object,root.has_world_nodes});
@@ -556,6 +558,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     for(float f:{e.position.x,e.position.y,e.position.z,e.forward.x,e.forward.y,e.forward.z,e.up.x,e.up.y,e.up.z})put_float(p,f);
     if(e.source_locations.size()>32)throw FormatError("Source explosion location bank exceeds original capacity");
     put(p,e.colors.a,4);put(p,e.colors.b,4);
+    put_float(p,e.controls.a);put_float(p,e.controls.b);
     put(p,e.source_locations.size(),1);
     for(const auto &location:e.source_locations) {
       put(p,location.name,4);const auto &t=location.frame;put_float(p,t.scale);
@@ -589,8 +592,17 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,unsigned(e.effect.kind),1);put(p,e.effect.datum,4);
     put(p,e.owner.player,4);put(p,e.owner.unit,4);put(p,std::uint16_t(e.owner.designator),2);
     put(p,e.colors.a,4);put(p,e.colors.b,4);
+    put_float(p,e.controls.a);put_float(p,e.controls.b);
   }
   validate_unit_damage_voice_events(s.unit_damage_voices,s.tick);
+  if(s.weapon_effects.size()>64)throw FormatError("Weapon effect journal exceeds retention");
+  put(p,s.weapon_effects.size(),1);
+  for(const auto &effect:s.weapon_effects) {
+    for(auto word:{effect.serial,effect.tick,effect.unit,effect.weapon,effect.effect,effect.a_bits,effect.b_bits,
+        effect.colors.a,effect.colors.b,effect.source_instance})put(p,word,4);
+    put(p,effect.source_presentation,1);
+    for(float f:{effect.velocity.x,effect.velocity.y,effect.velocity.z})put_float(p,f);
+  }
   put(p,s.unit_damage_voices.size(),1);
   for(const auto &e:s.unit_damage_voices) {
     put(p,e.serial,8);put(p,e.tick,8);put(p,e.target,4);put(p,e.definition,4);put(p,e.report_flags,4);
@@ -611,11 +623,15 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     throw FormatError("Invalid source scene authority or root count");
   put(p,s.source_scene_roots_authoritative,1);put(p,s.source_scene_roots.size(),2);
   for(const auto &root:s.source_scene_roots) {
+    if(!std::isfinite(root.velocity.x) || !std::isfinite(root.velocity.y) || !std::isfinite(root.velocity.z))
+      throw FormatError("Non-finite source scene velocity");
     put(p,root.object,4);put(p,root.definition,4);put(p,root.placement,4);
-    put(p,unsigned(root.visible)|(unsigned(root.has_world_nodes)<<1),1);
+    put(p,unsigned(root.visible)|(unsigned(root.has_world_nodes)<<1)|(unsigned(root.frozen)<<2),1);
     put_float(p,root.transform.scale);
     for(const auto &axis:root.transform.basis)for(float value:{axis.x,axis.y,axis.z})put_float(p,value);
     for(float value:{root.transform.position.x,root.transform.position.y,root.transform.position.z})put_float(p,value);
+    put(p,root.runtime_flags,4);
+    for(float value:{root.velocity.x,root.velocity.y,root.velocity.z})put_float(p,value);
   }
   const auto poses=encode_source_world_poses(s.source_body_poses_authoritative,s.source_body_poses,body_pose_owners(s));
   p.insert(p.end(),poses.begin(),poses.end());
@@ -951,6 +967,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     e.projectile=r.get(4);e.definition=r.get(4);e.effect=r.get(4);e.player=r.get(4);e.unit=r.get(4);
     e.position={r.real(),r.real(),r.real()};e.forward={r.real(),r.real(),r.real()};e.up={r.real(),r.real(),r.real()};
     e.colors={std::uint32_t(r.get(4)),std::uint32_t(r.get(4))};
+    e.controls={r.real(),r.real()};
     const auto locations=r.get(1);
     if(locations>32)throw FormatError("Source explosion location bank exceeds original capacity");
     for(unsigned n=0;n<locations;++n) {
@@ -1013,9 +1030,25 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     e.effect.kind=UnitDamageEffectKind(r.get(1));e.effect.datum=r.get(4);
     e.owner.player=r.get(4);e.owner.unit=r.get(4);e.owner.designator=std::int16_t(r.get(2));
     e.colors={std::uint32_t(r.get(4)),std::uint32_t(r.get(4))};
+    e.controls={r.real(),r.real()};
     s.unit_damage_effects.push_back(e);
   }
   validate_unit_damage_effect_events(s.unit_damage_effects,s.tick);
+  const auto weapon_effect_count=r.get(1);
+  if(weapon_effect_count>64)throw FormatError("Weapon effect journal exceeds retention");
+  std::uint32_t previous_effect{};
+  for(unsigned i=0;i<weapon_effect_count;++i) {
+    NativeWeaponEffectEvent e;e.serial=r.get(4);e.tick=r.get(4);e.unit=r.get(4);e.weapon=r.get(4);
+    e.effect=r.get(4);e.a_bits=r.get(4);e.b_bits=r.get(4);e.colors.a=r.get(4);e.colors.b=r.get(4);
+    e.source_instance=r.get(4);const auto observed=r.get(1);e.source_presentation=observed;
+    e.velocity={r.real(),r.real(),r.real()};
+    if(!e.serial || (previous_effect && !newer(e.serial,previous_effect)) || newer(e.tick,s.tick) || observed>1 ||
+        e.unit==null_datum || e.weapon==null_datum || e.effect==null_datum ||
+        !std::isfinite(e.velocity.x) || !std::isfinite(e.velocity.y) || !std::isfinite(e.velocity.z))
+      throw FormatError("Invalid retained weapon effect request");
+    previous_effect=e.serial;s.weapon_effects.push_back(e);
+    for(auto &player:s.players)if(player.weapon_effect.serial==e.serial)player.weapon_effect=e;
+  }
   const auto voice_count=r.get(1);
   if(voice_count>64)throw FormatError("Unit damage voice journal exceeds retention");
   for(unsigned n=0;n<voice_count;++n) {
@@ -1045,11 +1078,13 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
   std::set<std::uint32_t> scene_objects,scene_placements;
   for(unsigned n=0;n<scene_count;++n) {
     SourceSceneRoot root;root.object=r.get(4);root.definition=r.get(4);root.placement=r.get(4);
-    const auto flags=r.get(1);root.visible=flags&1u;root.has_world_nodes=flags&2u;
+    const auto flags=r.get(1);root.visible=flags&1u;root.has_world_nodes=flags&2u;root.frozen=flags&4u;
     root.transform.scale=r.real();for(auto &axis:root.transform.basis)axis={r.real(),r.real(),r.real()};
     root.transform.position={r.real(),r.real(),r.real()};
+    root.runtime_flags=r.get(4);root.velocity={r.real(),r.real(),r.real()};
     if(root.object==null_datum || !(root.object>>16) || (root.object&65535u)>=2048 ||
-        root.definition==null_datum || root.placement>=65536 || flags>3 || !(root.transform.scale>0) ||
+        root.definition==null_datum || root.placement>=65536 || flags>7 || !(root.transform.scale>0) ||
+        !std::isfinite(root.velocity.x) || !std::isfinite(root.velocity.y) || !std::isfinite(root.velocity.z) ||
         !scene_objects.insert(root.object).second || !scene_placements.insert(root.placement).second)
       throw FormatError("Invalid source scene root identity or frame");
     s.source_scene_roots.push_back(root);

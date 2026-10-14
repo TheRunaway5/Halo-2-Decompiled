@@ -21,6 +21,7 @@ struct UnitDamageEffectEvent {
   UnitDamageEffect effect;
   DamageOwner owner;
   SourceEffectColors colors;
+  SourceEffectControls controls;
 };
 // CA0B0 ->1147E0 consumes the completed normalized damage report, including
 // recent damage after D9640. Retain it independently of threshold effects.

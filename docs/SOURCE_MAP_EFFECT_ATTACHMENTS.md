@@ -78,10 +78,21 @@ matching rows `44B40C` and `44B454`. The actual reset marks the pool active and
 sets the cluster heads to NONE; those values are not host-supplied defaults.
 The real Zanzibar preparation regression checks this state before rendering.
 
-The current module contains **82 complete bodies / 8,338 instructions**.
+The current development module contains **96 complete bodies / 9,283 instructions**.
 The independent 976-case banks above cover their stated routines, not every
 body. New retained routines include the decal constructor/reset, projection,
-lighting helpers, and registered cache release/retention callbacks.
+lighting helpers, registered cache release/retention callbacks, authored
+object callbacks, and the cached render-state constructor/reset. The latter
+uses original rows `44B350`/`44B358` and actual pool `515F14`; it does not
+initialize an absent pool with host-supplied fields.
+
+[Native physical byte protection](SOURCE_PHYSICAL_BYTE_PROTECTION.md) now
+accepts the original sub-page metadata requests and enforces their subsequent
+read-only state through retained source writes/views. It advances Beaver Creek
+through its first player tick and removes Relic's memory-protection stop.
+Its separate physical-stage regression preserves 48 original lifecycle calls,
+216 writes and 38 resource requests. Original render-state frame scheduling,
+clock advancement, consumption and final pixels remain separate work.
 
 Zanzibar's original decal update reaches
 an absent original D3D driver command owner. `439C0` reads the driver pointer
@@ -98,9 +109,9 @@ cache identities and oversized ranges. This does not close the graphics owner.
 See [the cache implementation and render boundary](SOURCE_DECAL_VERTEX_CACHE_TU15.md).
 
 The 21-map first-tick comparison against the installed death/spectating
-baseline has no regressions and six improvements: Ascension, Colossus,
-Foundation, Waterworks, Containment and Backwash. Ten maps complete that bounded
-CPU check; eleven still fail on missing graphics, physical memory or other
+baseline has no regressions and seven improvements: Ascension, Beaver Creek,
+Colossus, Foundation, Waterworks, Containment and Backwash. Eleven maps complete
+that bounded CPU check; ten still fail on missing graphics or other
 source owners. Lockout/Foundation ordinary one/four-view rendering and the
 976 original comparisons pass on the clean continuation runtime. Launcher
 packaging and its exact capture receipts are recorded separately in

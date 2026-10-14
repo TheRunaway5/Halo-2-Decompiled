@@ -12,7 +12,7 @@
       "couch_guests_allowed": true,
       "publish_guest_personal_results": false,
       "implementation": "custom-slayer-v1",
-      "status": "active-native-v10",
+      "status": "active-native-v10-and-direct-v12",
       "variants": [
         "Fiesta Slayer",
         "Infection Slayer"
@@ -21,7 +21,7 @@
     }
   ],
   "historical_catalog_evidence": "historical-catalog-evidence-20261013.json",
-  "activation_requirement": "Custom Action Sack is active for native v10. Historical final-2010 restoration remains separate from these newly authored Slayer variants.",
+  "activation_requirement": "Custom Action Sack is active for native v10 and direct-peer v12. Historical final-2010 restoration remains separate from these newly authored Slayer variants.",
   "map_additions": [
     {
       "name": "Tombstone",

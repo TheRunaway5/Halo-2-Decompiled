@@ -57,6 +57,21 @@ void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRunt
   put(m,0x556d90,image.index);put(m,0x4f0414,image.table);put(m,0x474c20,image.scenario);
   put(m,0x4ecc20,scenario);put(m,0x4ecc1c,globals);
 }
+void source_bind_runtime_cache_sound_gestalt_tu15(SourceRuntimeMemory &m) {
+  const auto get=[&](std::uint32_t p){return word(m.view(p,4),0);};
+  const auto globals=get(0x4ecc1cu),table=get(0x4f0414u),index=get(0x556d90u);
+  if(!globals || !table || !index || !get(globals+0xc0u))
+    throw FormatError("TU1.5 sound metadata requires resident authored globals");
+  const auto sound_globals=get(globals+0xc4u),datum=get(sound_globals+0x20u);
+  const auto rank=datum&65535u;
+  if(datum==0xffffffffu || rank>=get(index+24u))
+    throw FormatError("TU1.5 sound gestalt datum escapes the resident cache");
+  const auto row=table+rank*16u;
+  if(get(row)!=0x75676821u || get(row+4u)!=datum || !get(row+12u))
+    throw FormatError("TU1.5 sound gestalt salt/group/payload differs");
+  const auto address=get(row+8u);m.view(address,get(row+12u));
+  m.mutable_view(0x52d664u,4);put(m,0x52d664u,address);
+}
 void source_deliver_runtime_cache_bsp_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheBspImage &image) {
   const auto &r=image.region;const auto raw=std::span(r.bytes);
   const auto scenario=word(m.view(0x4ecc20,4),0);

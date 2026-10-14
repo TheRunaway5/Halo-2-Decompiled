@@ -49,6 +49,13 @@ int main(int argc,char**argv) {
                     throw std::runtime_error("Source sound storage lacks a complete original active datum pool");
             }
             std::cout<<"Fresh TU1.5 same-bank renderer, arena and early initializer returned\n";
+            const auto sound_bits=startup_word(0x52be90u),sound_arena_bits=startup_word(0x52be94u);
+            if(!sound_bits || sound_bits!=startup_word(0x52be98u) || !sound_arena_bits ||
+                sound_bits==sound_arena_bits || sound_arena_bits<startup_word(0x4f2950u) ||
+                sound_arena_bits+0x1880u>startup_word(0x4f2950u)+startup_word(0x4f2954u))
+                throw std::runtime_error("Source sound bit bank lost its original arena or allocated backing");
+            for(const auto value:world.memory().view(sound_bits,0x1880u))
+                if(value!=std::byte{0})throw std::runtime_error("Source sound bit bank lacks zero-filled native pages");
             for(auto entry:{0x37f110u,0x37f130u,0x37f150u,0x37f1e0u,0x37f240u,
                     0x37fc70u,0x37fc90u,0x37fcb0u})world.call(entry);
             world.call_actual(0xb8a00u);
