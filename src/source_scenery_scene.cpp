@@ -22,7 +22,7 @@ struct SourceSceneryScene::Impl {
     struct Lod {
         struct ShaderPart {unsigned section{},part{},material{};float scale=1;std::uint32_t shader{};};
         RenderModel model;
-        std::vector<unsigned> sections,materials;
+        std::vector<unsigned> sections,active_sections,materials;
         std::vector<Vertex> vertices;
         std::vector<ShaderPart> shader_parts;
     };
@@ -34,6 +34,8 @@ struct SourceSceneryScene::Impl {
         ScenarioObject authored;
         SceneryDefinition definition;
         SourceInitialModelSelection selection;
+        SourceInitialModelDefinition initial;
+        bool region_union{};
         SourceGeometryLodDefinition lod_definition;
         std::array<Lod,6> lods;
         std::array<std::int8_t,4> previous_lod{-1,-1,-1,-1};
@@ -70,7 +72,7 @@ struct SourceSceneryScene::Impl {
     std::uint64_t tick{};
 
     Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,
-         const CollisionWorld &cw,const InitialSelection &selected,const OmitUnresolvedSelection &omit)
+         const CollisionWorld &cw,const InitialSelection &selected,const OmitUnresolvedSelection &omit,bool region_union)
         :cache(c),collision(cw),lighting(c.load_bsp_lighting(bsp)),
          surface(c.load_bsp_surface_lighting(bsp)),conversion(c.load_object_lighting_definition()),
          probes(c.load_scenery_lightprobes(bsp)) {
@@ -86,11 +88,12 @@ struct SourceSceneryScene::Impl {
             if(!definition)throw FormatError("SCEN source definition missing");
             s.definition=*definition;
             const auto initial=cache.load_initial_model_definition(object.definition);
+            s.initial=initial;s.region_union=region_union;
             if(initial.render_model==0xffffffffu){nonrendered_placements.insert(index);continue;}
             const auto deterministic=cache.load_initial_model_selection(object.definition,object.variant);
             s.selection_requires_history=!deterministic.resolved();
             s.selection=selected?selected(index,object,initial):deterministic;
-            if(!s.selection.resolved()) {
+            if(!s.selection.resolved() && !region_union) {
                 if(!omit || !omit(index,object))throw FormatError("SCEN initial region bytes require actual RNG history");
                 unresolved_owners.push_back(index);++counts.unresolved_selections;source_placements.erase(index);continue;
             }
@@ -102,8 +105,18 @@ struct SourceSceneryScene::Impl {
             // table is shared across levels; section-local incident/RGB is not.
             for(unsigned lod:{5u,0u,1u,2u,3u,4u}) {
                 auto &g=s.lods[lod];
-                g.model=cache.load_model(object.definition,lod==5,object.variant,s.selection,lod);
-                g.sections=source_initial_model_sections(initial,s.selection,lod);
+                if(s.selection.resolved())g.active_sections=source_initial_model_sections(initial,s.selection,lod);
+                g.sections=g.active_sections;
+                if(region_union) {
+                    g.sections.clear();
+                    for(const auto &region:initial.render_sections)for(const auto &permutation:region) {
+                        const auto section=permutation[lod];
+                        if(section>=255)throw FormatError("SCEN source resource section exceeds runtime byte representation");
+                        if(section>=0 && std::find(g.sections.begin(),g.sections.end(),unsigned(section))==g.sections.end())
+                            g.sections.push_back(unsigned(section));
+                    }
+                    g.model=cache.load_model_sections(object.definition,lod==5,object.variant,lod,g.sections);
+                } else g.model=cache.load_model(object.definition,lod==5,object.variant,s.selection,lod);
                 if(g.model.vertex_origins.size()!=g.model.mesh.vertices.size())
                     throw FormatError("SCEN collector lost its source vertex identities");
                 for(const auto &origin:g.model.vertex_origins)
@@ -202,7 +215,11 @@ struct SourceSceneryScene::Impl {
             if(s.solved_nodes->empty())throw FormatError("SCEN source owner has no current WORLD node0");
             s.world_nodes=*s.solved_nodes;
             s.node0=s.solved_nodes->front();
-            for(auto &g:s.lods)g.vertices=skin_model_world_nodes(g.model,*s.solved_nodes);
+            for(auto &g:s.lods) {
+                g.vertices=skin_model_world_nodes(g.model,*s.solved_nodes);
+                if(g.vertices.size()!=g.materials.size())throw FormatError("SCEN WORLD pose changed source vertex order");
+                for(unsigned i=0;i<g.vertices.size();++i)g.vertices[i].material=g.materials[i];
+            }
             return;
         }
         const auto clip=s.idle?&*s.idle:nullptr;
@@ -243,10 +260,24 @@ struct SourceSceneryScene::Impl {
             if(found==live.end()){s.active=false;s.visible=false;continue;}
             const auto &object=*found->second;
             const bool born=s.handle!=object.handle;
+            if(s.region_union) {
+                if(!selected)throw FormatError("SCEN source union requires actual current region bytes");
+                auto actual=selected(s.source_object,object.handle,object.created_tick);
+                if(!actual.resolved() || actual.variant_index!=source_initial_model_variant(s.initial,s.authored.variant?s.authored.variant:s.initial.default_variant))
+                    throw FormatError("SCEN source variant requires its actual named color context");
+                std::array<std::vector<unsigned>,6> sections;
+                for(unsigned lod=0;lod<6;++lod) {
+                    sections[lod]=source_initial_model_sections(s.initial,actual,lod);
+                    for(auto section:sections[lod])if(std::find(s.lods[lod].sections.begin(),s.lods[lod].sections.end(),section)==s.lods[lod].sections.end())
+                        throw FormatError("SCEN actual region selected an unprepared collector");
+                }
+                s.selection=std::move(actual);
+                for(unsigned lod=0;lod<6;++lod)s.lods[lod].active_sections=std::move(sections[lod]);
+            }
             if(born) {
-                if(s.selection_requires_history && !selected)
+                if(!s.region_union && s.selection_requires_history && !selected)
                     throw FormatError("SCEN birth requires its actual historical region selection");
-                if(selected && !same_selection(s.selection,selected(s.source_object,object.handle,object.created_tick)))
+                if(!s.region_union && selected && !same_selection(s.selection,selected(s.source_object,object.handle,object.created_tick)))
                     throw FormatError("SCEN lifetime selection differs from resident prepared geometry");
                 s.handle=object.handle;s.created_tick=object.created_tick;s.light={};
                 s.previous_lod.fill(-1);s.query_state_valid=false;
@@ -314,12 +345,21 @@ struct SourceSceneryScene::Impl {
         if(input.control_flags&4u)metric*=1.7f;
         const auto choice=source_geometry_lod_choice(s.lod_definition,metric,s.previous_lod[view.view_index]);
         const auto lod=unsigned(source_geometry_lod_cap(choice,view.detail_policy.value_or(source_geometry_lod_policy(view.local_players)),input.object_flags,false));
-        const auto size=s.lods[lod].vertices.size();
+        const auto &geometry=s.lods[lod];std::size_t size=0;
+        if(s.region_union)for(auto section:geometry.active_sections)
+            size+=std::count_if(geometry.vertices.begin(),geometry.vertices.end(),[&](const auto &v){return v.source_section==section;});
+        else size=geometry.vertices.size();
         if(size)s.previous_lod[view.view_index]=std::int8_t(lod);
         return {s.source_object,lod,choice.transition,size,input.draw_metric};
     }
     std::vector<Vertex> shader_vertices(const Scenery &s,const Lod &g,const SourceObjectViewLod &view)const {
-        auto vertices=g.vertices;
+        std::vector<Vertex> vertices;
+        if(s.region_union) {
+            // Retain source region order and repeated collectors; the resource
+            // union itself never chooses a live draw or consumes RNG.
+            for(auto section:g.active_sections)for(const auto &vertex:g.vertices)
+                if(vertex.source_section==section)vertices.push_back(vertex);
+        } else vertices=g.vertices;
         const auto require_bound=[&](unsigned slot) {
             if(const auto at=unresolved_materials.find(slot);at!=unresolved_materials.end())
                 throw FormatError("Admitted SCEN draw requires its live source shader inputs: "+at->second);
@@ -349,8 +389,8 @@ struct SourceSceneryScene::Impl {
     }
 };
 SourceSceneryScene::SourceSceneryScene(const Cache &c,std::span<const ScenarioObject>objects,std::size_t bsp,
-    Mesh &mesh,const CollisionWorld &cw,InitialSelection selected,OmitUnresolvedSelection omit)
-    :impl_(std::make_unique<Impl>(c,objects,bsp,mesh,cw,selected,omit)){}
+    Mesh &mesh,const CollisionWorld &cw,InitialSelection selected,OmitUnresolvedSelection omit,bool region_union)
+    :impl_(std::make_unique<Impl>(c,objects,bsp,mesh,cw,selected,omit,region_union)){}
 SourceSceneryScene::~SourceSceneryScene()=default;
 SourceSceneryScene::SourceSceneryScene(SourceSceneryScene&&)noexcept=default;
 SourceSceneryScene&SourceSceneryScene::operator=(SourceSceneryScene&&)noexcept=default;

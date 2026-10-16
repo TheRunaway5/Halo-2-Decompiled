@@ -1,6 +1,6 @@
 # Optional May 2003 renderer work stays separate from Original's TU1.5 owners.
 add_library(halo2_pstencil STATIC src/pstencil/shadow.cpp)
-target_sources(halo2_cache PRIVATE src/pstencil/material.cpp src/pstencil/environment.cpp)
+target_sources(halo2_cache PRIVATE src/pstencil/material.cpp src/pstencil/environment.cpp src/pstencil/detail.cpp src/pstencil/specular_mask.cpp)
 target_sources(halo2_systems PRIVATE src/pstencil/point_lights.cpp src/pstencil/player_detail.cpp src/pstencil/point_caster.cpp)
 target_include_directories(halo2_pstencil PUBLIC ${PROJECT_SOURCE_DIR}/include)
 set_target_properties(halo2_pstencil PROPERTIES POSITION_INDEPENDENT_CODE ON)
@@ -33,16 +33,29 @@ if(BUILD_TESTING)
         COMMAND ${GLSLANG_VALIDATOR} -V -I${PROJECT_SOURCE_DIR}/shaders
             ${PROJECT_SOURCE_DIR}/tests/pstencil/environment.comp
             -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/environment.comp.spv
-        DEPENDS tests/pstencil/environment.comp shaders/combiner.glsl VERBATIM)
+        DEPENDS tests/pstencil/environment.comp shaders/combiner.glsl shaders/pstencil/specular_mask.glsl VERBATIM)
     add_custom_target(pstencil_environment_test_shader DEPENDS
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/environment.comp.spv)
     add_executable(pstencil_environment_tests tests/pstencil/environment_tests.cpp)
     target_link_libraries(pstencil_environment_tests PRIVATE halo2_cache Vulkan::Vulkan)
     add_dependencies(pstencil_environment_tests pstencil_environment_test_shader)
+    add_executable(pstencil_adaptation_tests tests/pstencil/adaptation_tests.cpp)
+    target_link_libraries(pstencil_adaptation_tests PRIVATE halo2_systems Vulkan::Vulkan)
+    add_dependencies(pstencil_adaptation_tests pstencil_environment_test_shader)
+    add_test(NAME pstencil_armor_adaptation COMMAND pstencil_adaptation_tests
+        ${PROJECT_SOURCE_DIR}/assets/disc/maps/01b_spacestation.map
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/environment.comp.spv)
+    add_executable(pstencil_detail_tests tests/pstencil/detail_tests.cpp)
+    target_link_libraries(pstencil_detail_tests PRIVATE halo2_cache Vulkan::Vulkan)
+    add_dependencies(pstencil_detail_tests pstencil_environment_test_shader)
+    add_test(NAME pstencil_elite_detail COMMAND pstencil_detail_tests
+        ${PROJECT_SOURCE_DIR}/assets/disc/maps/01b_spacestation.map
+        ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/environment.comp.spv)
     add_test(NAME pstencil_environment_response COMMAND pstencil_environment_tests
         ${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-presentation/fallback-environment.json
         ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/environment.comp.spv
-        ${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-presentation/default_environment_map-resident-0.bin)
+        ${PROJECT_SOURCE_DIR}/analysis/pstencil/2003-presentation/default_environment_map-resident-0.bin
+        ${PROJECT_SOURCE_DIR}/analysis/pstencil/reference-environment-parameters/evidence.json)
     add_executable(pstencil_audit_caster_resources tools/pstencil/audit_caster_resources.cpp)
     target_link_libraries(pstencil_audit_caster_resources PRIVATE halo2_pstencil_render)
     add_executable(pstencil_caster_tests tests/pstencil/caster_tests.cpp)

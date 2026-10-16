@@ -212,7 +212,7 @@ struct Material {
     bool light_volume_pass{}; // Procedural 4FE20 glow; no material-template pass/remaps.
     std::uint32_t forward_pass_index = 0xffffffffu;
     unsigned forward_vertex{}; // 1: transparent; 2: emissive; 3: texture; 4: environment; 5: planar fog; 6: world lighting; 7/8: water; 9: PRT; 10: shadow; 11: projected decal; 12: immediate world RGBA11.
-    unsigned forward_blend{}; // 1: alpha; 2: premultiplied; 3: additive; 5: planar constant color; 10: sphere RGB additive/alpha replace; 12: component max.
+    unsigned forward_blend{}; // 1: alpha; 2: premultiplied; 3: additive; 5: constant white RGB/zero alpha; 10: sphere RGB additive/alpha replace; 12: component max.
     std::uint32_t forward_blend_color{}; // Original dynamic state75, ARGB bytes.
     ForwardRasterState forward_raster;
     PixelProgram forward_program;
@@ -324,6 +324,7 @@ struct Mesh {
 };
 
 struct SourceRuntimeCacheTagImage;
+struct SourceRuntimeCacheTagView;
 struct SourceRuntimeCacheBspImage;
 struct SourceRuntimeCacheAnimationImage;
 class Cache {
@@ -540,6 +541,10 @@ public:
     // mappings and mutable runtime state are not supplied through this API.
     SourceTagMetadata load_source_tag_metadata(std::uint32_t datum) const;
     SourceRuntimeCacheTagImage load_source_runtime_cache_tag_image() const;
+    // Native I/O boundary only: borrows literal private cache bytes for the
+    // synchronous copy into original physical backing. No view may outlive
+    // this immutable Cache; ordinary engine tag access remains TagSystem's.
+    SourceRuntimeCacheTagView view_source_runtime_cache_tags() const;
     SourceRuntimeCacheBspImage load_source_runtime_cache_bsp_image(std::size_t) const;
     // Actual jmad+AC descriptor and raw local/shared resource bytes. This
     // performs file I/O only; resource pools and residency are separate owners.

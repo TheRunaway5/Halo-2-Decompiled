@@ -36,4 +36,7 @@ std::array<ShaderVector,4> water_copy_taps(float normalized_source_width,
                                         float normalized_source_height);
 // Highest authored LOD only. Infinite records use layer 3; pools use 15.
 bool prepare_water_material(const Cache &, Material &, bool infinite = false);
+// TU1.5 4D630/4D6EE: ordinary pool draws use BSP water record zero.
+// Bind after all object/scenery material roots have been registered.
+void bind_water_pool_materials(const BspWater &, std::span<Material>);
 }

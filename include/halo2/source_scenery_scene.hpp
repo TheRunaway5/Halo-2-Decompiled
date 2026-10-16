@@ -53,7 +53,8 @@ public:
     using BirthQueryCapture=std::function<void(std::size_t,std::uint32_t full_handle,
         std::uint64_t created_tick,std::uint32_t definition,const Transform &initial_world_node0,float scale)>;
     SourceSceneryScene(const Cache &,std::span<const ScenarioObject>,std::size_t bsp,
-                      Mesh &,const CollisionWorld &,InitialSelection = {},OmitUnresolvedSelection = {});
+                      Mesh &,const CollisionWorld &,InitialSelection = {},OmitUnresolvedSelection = {},
+                      bool source_region_union = false);
     ~SourceSceneryScene();
     SourceSceneryScene(SourceSceneryScene &&) noexcept;
     SourceSceneryScene &operator=(SourceSceneryScene &&) noexcept;

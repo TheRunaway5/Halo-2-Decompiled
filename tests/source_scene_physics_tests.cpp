@@ -161,7 +161,7 @@ void checks(){
     for(unsigned i=0;i<2;++i){auto &o=content.objects[i];o.type=11;o.placement=i;o.definition=0x10000+i;o.name=-1;o.source=-1;o.rotation={.7f,.3f,.4f};o.bounding_offset={1,0,0};}
     NativeObjectLifetimes lifetimes(batch.memory,pool);
     SceneObjects scene(content,0,{}, {}, &lifetimes,{
-        [](const ScenarioObject &o){return o.placement?parent_id:child_id;},[](auto){}});
+        [](const ScenarioObject &o,SourceScenarioBirth){return o.placement?parent_id:child_id;},[](auto){}});
     publish_source_scene_physics(scene,batch.memory,pool);
     check(scene.get(child_id).position.x==1 && scene.get(child_id).rotation.x==.7f,"Publication lost source position or changed placement metadata");
     const auto center=scene.center(child_id);check(center.x==1 && center.y==4 && center.z==3,"Scene bounds use stale Euler orientation");

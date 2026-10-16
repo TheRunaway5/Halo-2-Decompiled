@@ -1,0 +1,282 @@
+"""Steam OpenID identity, with a private proof-bound native handoff.
+
+Steam passwords and the Web API key never reach the game. Account identifiers
+stay in private authentication storage; public rosters use chosen Halo names.
+"""
+import base64
+import hashlib
+import hmac
+import re
+import secrets
+import time
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from urllib.parse import urlencode
+
+from aiohttp import web
+from .protocol import fields, require, text
+from .player_identity import VerifiedOwner
+
+OP = "https://steamcommunity.com/openid/login"
+NS = "http://specs.openid.net/auth/2.0"
+SELECT = NS + "/identifier_select"
+
+
+@dataclass
+class Pending:
+    challenge: str
+    expires: float
+    status: str = "pending"
+    identity: object = None
+
+
+class SteamLogin:
+    def __init__(self, directory, clock=time.time):
+        self.directory, self.clock = directory, clock
+        self.pending = {}
+        self.db = directory.store.db
+        self.db.executescript("""
+        CREATE TABLE IF NOT EXISTS steam_login_sessions(
+          token_hash TEXT PRIMARY KEY, subject TEXT NOT NULL, name TEXT NOT NULL,
+          expires INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS steam_login_nonces(
+          nonce TEXT PRIMARY KEY, expires INTEGER NOT NULL);
+        """)
+
+    def cleanup(self):
+        now = self.clock()
+        self.pending = {k: v for k, v in self.pending.items() if v.expires > now}
+        with self.db:
+            self.db.execute("DELETE FROM steam_login_sessions WHERE expires<=?", (now,))
+            self.db.execute("DELETE FROM steam_login_nonces WHERE expires<=?", (now,))
+
+    def enabled(self):
+        require(self.directory.settings.steam_enabled, "Steam sign-in is not configured", 503)
+
+    def callback_url(self, state):
+        return self.directory.settings.public_url + "/v1/auth/steam/callback/" + state
+
+    async def start(self, request):
+        self.enabled()
+        self.directory.rate("steam-start:" + self.directory.source(request), 20)
+        body = await self.directory.body(request)
+        fields(body, ("challenge",))
+        challenge = text(body["challenge"], maximum=43)
+        require(bool(re.fullmatch(r"[A-Za-z0-9_-]{43}", challenge)), "Invalid Steam login proof")
+        self.cleanup()
+        require(len(self.pending) < 1000, "Steam sign-in capacity reached", 503)
+        state = secrets.token_urlsafe(32)
+        self.pending[state] = Pending(challenge, self.clock() + 300)
+        url = OP + "?" + urlencode({
+            "openid.ns": NS, "openid.mode": "checkid_setup",
+            "openid.realm": self.directory.settings.public_url + "/",
+            "openid.return_to": self.callback_url(state),
+            "openid.identity": SELECT, "openid.claimed_id": SELECT})
+        return web.json_response({"device": state, "url": url, "expires_in": 300, "interval": 1},
+                                 status=201, headers={"Cache-Control": "no-store"})
+
+    async def profile(self, subject):
+        key = self.directory.settings.steam_key
+        if not key:
+            return "Steam Player"
+        from .service import bounded_json
+        async with self.directory.session.get(
+                "https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/",
+                params={"key": key, "steamids": subject}, allow_redirects=False) as response:
+            require(response.status == 200, "Steam profile service unavailable", 502)
+            body = await bounded_json(response)
+        rows = body.get("response", {}).get("players", [])
+        require(type(rows) is list and len(rows) == 1 and rows[0].get("steamid") == subject,
+                "Steam returned a different profile", 502)
+        return text(rows[0].get("personaname"), maximum=128)
+
+    async def callback(self, request):
+        self.enabled()
+        self.directory.rate("steam-callback:" + self.directory.source(request), 40)
+        state = request.match_info["state"]
+        pending = self.pending.get(state)
+        require(pending and pending.expires > self.clock() and pending.status == "pending",
+                "Steam sign-in expired or already completed", 400)
+        require(len(request.query) <= 16 and all(len(request.query.getall(k)) == 1 for k in request.query),
+                "Invalid Steam response")
+        values = dict(request.query)
+        if values.get("openid.mode") == "cancel":
+            pending.status = "declined"
+            return self.finish_redirect()
+        needed = {"openid.ns", "openid.mode", "openid.op_endpoint", "openid.claimed_id",
+                  "openid.identity", "openid.return_to", "openid.response_nonce",
+                  "openid.assoc_handle", "openid.signed", "openid.sig"}
+        require(needed <= values.keys() and all(k.startswith("openid.") for k in values) and
+                all(len(k) <= 64 and len(v) <= 1024 for k, v in values.items()), "Invalid Steam response")
+        require(values["openid.ns"] == NS and values["openid.mode"] == "id_res" and
+                values["openid.op_endpoint"] == OP and values["openid.return_to"] == self.callback_url(state) and
+                values["openid.identity"] == values["openid.claimed_id"], "Steam response has a different destination")
+        signed = values["openid.signed"].split(",")
+        require(len(signed) == len(set(signed)) and
+                {"op_endpoint", "claimed_id", "identity", "return_to", "response_nonce", "assoc_handle"} <= set(signed),
+                "Steam response omitted a signed identity field")
+        identity = re.fullmatch(r"https?://steamcommunity\.com/openid/id/([0-9]{17})", values["openid.claimed_id"])
+        require(identity is not None, "Invalid Steam identity")
+        nonce = values["openid.response_nonce"]
+        try:
+            issued = datetime.strptime(nonce[:20], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc).timestamp()
+        except ValueError:
+            require(False, "Invalid Steam response nonce")
+        require(20 < len(nonce) <= 256 and abs(self.clock() - issued) <= 300 and
+                not self.db.execute("SELECT 1 FROM steam_login_nonces WHERE nonce=?", (nonce,)).fetchone(),
+                "Steam response expired or replayed")
+        pending.status = "verifying"
+        try:
+            check = values | {"openid.mode": "check_authentication"}
+            async with self.directory.session.post(OP, data=check, allow_redirects=False) as response:
+                require(response.status == 200 and not response.headers.get("Content-Encoding"),
+                        "Steam verification unavailable", 502)
+                raw = await response.content.read(4097)
+                require(len(raw) <= 4096, "Steam verification response too large", 502)
+            lines = raw.decode("utf-8").splitlines()
+            pairs = [line.split(":", 1) for line in lines]
+            require(all(len(pair) == 2 for pair in pairs) and len({pair[0] for pair in pairs}) == len(pairs),
+                    "Invalid Steam verification response", 502)
+            verified = dict(pairs)
+            require(verified.get("ns") == NS and verified.get("is_valid") == "true",
+                    "Steam signature rejected", 401)
+            subject = identity.group(1)
+            name = await self.profile(subject)
+            require(pending.expires > self.clock(), "Steam sign-in expired")
+            with self.db:
+                require(not self.db.execute("SELECT 1 FROM steam_login_nonces WHERE nonce=?", (nonce,)).fetchone(),
+                        "Steam response replayed")
+                self.db.execute("INSERT INTO steam_login_nonces VALUES(?,?)", (nonce, int(self.clock()) + 600))
+            pending.identity = VerifiedOwner("steam", subject, name)
+            pending.status = "complete"
+        except BaseException:
+            pending.status = "failed"
+            raise
+        return self.finish_redirect()
+
+    @staticmethod
+    def finish_redirect():
+        # The signed assertion and private account ID need not remain in the
+        # visible confirmation URL. This page never carries an auth credential.
+        return web.Response(status=303, headers={"Location": "/v1/auth/steam/complete",
+            "Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})
+
+    async def complete_page(self, request):
+        return self.finish_page("Steam sign-in response received. Return to Halo 2 to check your sign-in status.")
+
+    @staticmethod
+    def finish_page(message):
+        return web.Response(text=message, content_type="text/plain", headers={
+            "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff",
+            "Content-Security-Policy": "default-src 'none'", "Referrer-Policy": "no-referrer"})
+
+    async def poll(self, request):
+        self.enabled()
+        body = await self.directory.body(request)
+        fields(body, ("device", "verifier"))
+        state = text(body["device"], maximum=43)
+        verifier = text(body["verifier"], maximum=128)
+        require(bool(re.fullmatch(r"[A-Za-z0-9_-]{43}", state)) and
+                bool(re.fullmatch(r"[A-Za-z0-9_-]{43,128}", verifier)), "Invalid Steam login proof")
+        self.directory.rate("steam-poll:" + self.directory.source(request), 600)
+        self.directory.rate("steam-device:" + state, 120)
+        pending = self.pending.get(state)
+        challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode("ascii")).digest()).rstrip(b"=").decode("ascii")
+        require(pending and pending.expires > self.clock() and hmac.compare_digest(pending.challenge, challenge),
+                "Steam sign-in expired or proof rejected", 401)
+        headers = {"Cache-Control": "no-store"}
+        if pending.status != "complete":
+            return web.json_response({"state": pending.status}, headers=headers)
+        owner = pending.identity
+        self.cleanup()
+        require(self.db.execute("SELECT count(*) FROM steam_login_sessions").fetchone()[0] < 1000,
+                "Steam identity capacity reached", 503)
+        token = "h2s_" + secrets.token_urlsafe(32)
+        with self.db:
+            self.db.execute("INSERT INTO steam_login_sessions VALUES(?,?,?,?)",
+                            (hashlib.sha256(token.encode()).hexdigest(), owner.subject, owner.username, int(self.clock()) + 28800))
+        del self.pending[state]
+        return web.json_response({"state": "signed_in", "token": token, "expires_in": 28800,
+                                  "identity": {"id": owner.subject, "username": owner.username, "display_name": owner.username}}, headers=headers)
+
+    async def owner(self, token):
+        require(bool(re.fullmatch(r"h2s_[A-Za-z0-9_-]{43}", token)), "Steam identity rejected", 401)
+        row = self.db.execute("SELECT subject,name,expires FROM steam_login_sessions WHERE token_hash=?",
+                              (hashlib.sha256(token.encode()).hexdigest(),)).fetchone()
+        require(row and row[2] > self.clock(), "Steam sign-in expired", 401)
+        return VerifiedOwner("steam", row[0], row[1])
+
+    async def link_discord(self, request):
+        """Both live credentials are required; names never establish a link.
+
+        A new Steam profile may adopt an existing Discord player. An already
+        played Steam account requires a separate reviewed data migration.
+        """
+        self.enabled()
+        import uuid
+        from .player_identity import VERIFIED_ACCOUNT_NAME
+        body = await self.directory.body(request)
+        fields(body, ("discord_token",))
+        primary = await self.directory.owner(request)
+        require(primary[0] == "steam", "Sign in with Steam before linking Discord", 403)
+        token = text(body["discord_token"], maximum=2048)
+        social = await self.directory.verify_owner(self.directory.session, token, self.directory.settings.discord_client_id)
+        require(isinstance(social, VerifiedOwner) and social.provider == "discord",
+                "Verified Discord identity required", 401)
+        steam = self.db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", primary).fetchone()
+        discord = self.db.execute("SELECT player FROM player_identities WHERE provider='discord' AND subject=?", (social.subject,)).fetchone()
+        if steam and discord and steam[0] == discord[0]:
+            return web.json_response({"state": "linked"}, headers={"Cache-Control": "no-store"})
+        if discord:
+            require(not self.db.execute("SELECT 1 FROM player_identities WHERE player=? AND provider='steam'", discord).fetchone(),
+                    "This Discord account is already linked to another Steam account", 409)
+        old = steam[0] if steam else None
+        require(not old or not self.db.execute("SELECT 1 FROM player_identities WHERE player=? AND provider='discord'", (old,)).fetchone(),
+                "This Steam account is already linked to another Discord account", 409)
+        require(bool(re.fullmatch(r"[a-z0-9_.]{2,32}", social.username)), "Invalid verified Discord username", 403)
+        if old and discord:
+            require(not any(any(p.player == old for p in s.seats()) for s in self.directory.matchmaking.sessions.values()),
+                    "Leave matchmaking before linking accounts", 409)
+            # Check every declared persistent reference, including stats/ranks.
+            # Do not delete or silently combine two independently played users.
+            for (table,) in self.db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall():
+                if table in ("player_profiles", "player_identities"):
+                    continue
+                quoted = '"' + table.replace('"', '""') + '"'
+                for fk in self.db.execute("PRAGMA foreign_key_list(" + quoted + ")").fetchall():
+                    if fk[2] == "players":
+                        column = '"' + fk[3].replace('"', '""') + '"'
+                        require(not self.db.execute("SELECT 1 FROM " + quoted + " WHERE " + column + "=? LIMIT 1", (old,)).fetchone(),
+                                "Steam account already has ONLINE data; a data migration is required", 409)
+        # No await from the final checks through commit and session revocation.
+        with self.db:
+            if discord:
+                target = discord[0]
+                if old:
+                    self.db.execute("DELETE FROM player_identities WHERE player=?", (old,))
+                    self.db.execute("DELETE FROM player_profiles WHERE player=?", (old,))
+                    self.db.execute("DELETE FROM players WHERE id=?", (old,))
+                self.db.execute("INSERT INTO player_identities VALUES(?,?,?)", (*primary, target))
+                self.db.execute("UPDATE player_profiles SET steam_name=? WHERE player=?",
+                                (request.get(VERIFIED_ACCOUNT_NAME, ""), target))
+            else:
+                target = old or str(uuid.uuid4())
+                if not old:
+                    self.db.execute("INSERT INTO players VALUES(?,?,?)", (target, *primary))
+                    self.db.execute("INSERT INTO player_identities VALUES(?,?,?)", (*primary, target))
+                    self.db.execute("INSERT INTO player_profiles(player,screen_name,steam_name) VALUES(?,?,?)",
+                                    (target, social.username, request.get(VERIFIED_ACCOUNT_NAME, "")))
+                self.db.execute("UPDATE player_profiles SET discord_username='' WHERE discord_username=? AND player!=?", (social.username,target))
+                self.db.execute("UPDATE player_profiles SET discord_username=? WHERE player=?", (social.username,target))
+                self.db.execute("INSERT INTO player_identities VALUES('discord',?,?)", (social.subject,target))
+        if old and discord:
+            self.directory.clans.sessions = {k: s for k, s in self.directory.clans.sessions.items() if s.player != old}
+        self.directory.voice_blocks.subjects.clear()
+        return web.json_response({"state": "linked"}, headers={"Cache-Control": "no-store"})
+
+    def routes(self):
+        return [web.post("/v1/auth/steam/start", self.start),
+                web.get("/v1/auth/steam/complete", self.complete_page),
+                web.get("/v1/auth/steam/callback/{state}", self.callback),
+                web.post("/v1/auth/steam/poll", self.poll),
+                web.post("/v1/account/link-discord", self.link_discord)]

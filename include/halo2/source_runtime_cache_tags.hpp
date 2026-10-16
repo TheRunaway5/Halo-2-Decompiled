@@ -11,6 +11,14 @@ struct SourceRuntimeCacheTagImage {
   std::vector<Region> regions;
   std::uint32_t index{},table{},count{},scenario{},globals{};
 };
+// Synchronous native I/O view of the Cache owner's immutable bytes. The
+// Cache must outlive this view and remain immutable during delivery. This is
+// not writable runtime backing: the physical source bank keeps its own bytes.
+struct SourceRuntimeCacheTagView {
+  struct Region {std::uint32_t address;std::span<const std::byte> bytes;};
+  std::array<Region,2> regions;
+  std::uint32_t index{},table{},count{},scenario{},globals{};
+};
 struct SourceRuntimeCacheBspImage {
   SourceRuntimeCacheTagImage::Region region;
   std::uint32_t mapping{},index{},file_offset{},bsp{},lightmap{};
@@ -40,6 +48,10 @@ void source_bind_runtime_cache_bsp_1_1(SourceRuntimeMemory &,
 // and11EA1D..11EA69. Complete1255C0 retains BSP tag-table publication.
 void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &,
                                         const SourceRuntimeCacheTagImage &);
+// Same admission, two whole-region copies, and five publication stores.
+// Borrowed source bytes must be independent of every destination/output span.
+void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &,
+                                        const SourceRuntimeCacheTagView &);
 // Native resident sound metadata selected by1281A0..1281DC. Audio-device
 // activation and availability remain with their separate source owners.
 void source_bind_runtime_cache_sound_gestalt_tu15(SourceRuntimeMemory &);

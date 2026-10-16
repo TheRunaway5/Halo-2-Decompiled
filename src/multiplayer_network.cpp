@@ -819,6 +819,20 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,root.runtime_flags,4);
     for(float value:{root.velocity.x,root.velocity.y,root.velocity.z})put_float(p,value);
     put(p,root.created_tick,8);
+    put(p,root.model_regions.has_value(),1);
+    if(root.model_regions) {
+      const auto &bank=*root.model_regions;const auto &selection=bank.selection;
+      const auto count=selection.permutations.size();
+      if(count>16 || selection.states.size()!=count || bank.looping_effects.size()!=count ||
+          !selection.resolved() || selection.variant_index < -1 || selection.variant_index>127)
+        throw FormatError("Invalid source scene model region bank");
+      put(p,std::uint32_t(selection.variant_index),4);put(p,count,1);
+      for(unsigned i=0;i<count;++i) {
+        const auto &state=selection.states[i];
+        put(p,selection.permutations[i],1);put(p,std::uint8_t(state.variant_permutation),1);
+        put(p,state.damage,1);put(p,state.properties,1);put(p,bank.looping_effects[i],4);
+      }
+    }
     validate_source_attached_effects(root.attached_effects);
     put(p,root.attached_effects.size(),2);
     for(const auto &effect:root.attached_effects) {
@@ -1353,6 +1367,20 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     root.transform.position={r.real(),r.real(),r.real()};
     root.runtime_flags=r.get(4);root.velocity={r.real(),r.real(),r.real()};
     root.created_tick=r.get(8);
+    const auto has_regions=r.get(1);
+    if(has_regions>1)throw FormatError("Invalid source scene model region presence");
+    if(has_regions) {
+      auto &bank=root.model_regions.emplace();auto &selection=bank.selection;
+      selection.variant_index=r.integer();const auto count=r.get(1);
+      if(count>16 || selection.variant_index < -1 || selection.variant_index>127)
+        throw FormatError("Invalid source scene model region bank");
+      for(unsigned i=0;i<count;++i) {
+        selection.permutations.push_back(r.get(1));SourceInitialModelRegionState state;
+        state.variant_permutation=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));
+        state.damage=r.get(1);state.properties=r.get(1);
+        selection.states.push_back(state);bank.looping_effects.push_back(r.get(4));
+      }
+    }
     const auto effect_count=r.get(2);
     if(effect_count>4095)throw FormatError("Source effect attachment bank exceeds signed body extent");
     for(unsigned i=0;i<effect_count;++i) {

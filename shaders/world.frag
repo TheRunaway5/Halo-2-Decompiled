@@ -42,6 +42,7 @@ layout(set=0,binding=4,std140) uniform Material {
 layout(location=0) out vec4 pixel;
 #include "world_combiner_specialization.glsl"
 #include "combiner.glsl"
+#include "pstencil/specular_mask.glsl"
 #include "source_alpha_test.glsl"
 #include "source_stipple.glsl"
 #include "world_depth_fragment.glsl"
@@ -169,6 +170,8 @@ void main() {
         vec3 baked=lightmapped!=0u?texture(lightmap,lightmapUV).rgb:vec3(1);
         pixel=vec4(texture(diffuse,uv).rgb*tint*baked,1);
     }
+    if((material.textureEffects[0].y&32u)!=0u)
+        pixel=pstencilSpecularMask(pixel,texture(diffuse,gl_FragCoord.xy/vec2(textureSize(diffuse,0))).a);
     if(material.alphaTest.x!=0u) {
         if(!sourceAlphaTestPass(pixel.a,material.alphaTest.y,material.alphaTest.z&255u))discard;
     }

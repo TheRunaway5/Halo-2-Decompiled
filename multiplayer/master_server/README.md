@@ -4,19 +4,23 @@ An independent, self-hostable directory for the port's future online servers.
 It advertises simulator metadata today. Its separate
 [matchmaking coordinator core](../docs/matchmaking.md) supports trusted-input
 party queues and match proposals. Native Quickmatch/Optimatch/Playlists now use
-its Discord-authenticated solo/accepted-party queue API with the launcher-selected Vista HD UI.
+its verified-identity solo/accepted-party queue API with the selected Vista HD UI.
+Steam OpenID is the primary native login; optional Discord consent links friends
+and invitations to the same private player record. See the
+[Steam migration and acceptance record](../docs/steam-identity-migration-20261016.md).
 Configure the queue origin and catalog as described in the matchmaking document.
 Persistent [clans and account sessions](../docs/clans.md) support creation,
 invitations, original role permissions, leaving, and clan text broadcasts.
-Authenticated native Slayer admission, gameplay/voice relay and unanimously
-confirmed player/team result ledgers are implemented. An explicit versioned
+Native v12 uses authenticated Slayer admission and direct player-hosted
+gameplay/voice, with confirmed player/team results uploaded afterward. Legacy
+relay protocols remain in regression fixtures. An explicit versioned
 [retail launch XP policy](../docs/ranked-progression.md) updates private playlist
 skill in the result transaction and displays levels only on ranked playlists.
 Accepted parties support invitations, leader authority and per-member playlist
 consent. Clan matchmaking/ranking, later historical skill policies and complete
 historical playlists remain unfinished.
 
-The default public service is `https://master.halotoforever.com`, deployed on
+The default public service is `https://master.halo2forever.net`, deployed on
 Vultr with HTTPS and explicitly custom Lab queues. See
 [deployment validation and remaining limits](../docs/validation.md).
 
@@ -62,7 +66,9 @@ Caddy for HTTPS. Neither requires retail assets or a multiplayer executable.
 - [JSON Schema](protocol.schema.json)
 - [Observed milestone validation](../docs/validation.md)
 
-The existing C++ Discord PKCE sign-in supplies an in-memory authorization handoff
-for account and matchmaking sessions. The backend independently verifies the application, scope and
-subject. No new account or login flow is introduced. Native owner provisioning
+The C++ Steam browser sign-in supplies an in-memory, proof-bound authorization
+handoff for account and matchmaking sessions. The backend verifies the Steam
+OpenID assertion directly with Valve. Its optional Web API key supplies verified
+profile names and stays in a mounted server secret file. Discord PKCE remains
+available for explicit social consent and dual-proof account linking. Native owner provisioning
 for signed server instances remains the separate seam in the architecture doc.

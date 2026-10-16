@@ -3,11 +3,60 @@
 #include "halo2/cache_file_snapshot.hpp"
 #include <openssl/evp.h>
 #include <fstream>
+#include <algorithm>
+#include <cerrno>
+#include <cstdint>
+#if defined(__linux__)
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
 namespace halo2 {
 namespace {
+std::size_t native_page_size() noexcept {
+#if defined(__linux__) && defined(MADV_PAGEOUT)
+    const auto saved_errno=errno;
+    const auto size=::sysconf(_SC_PAGESIZE);
+    errno=saved_errno;
+    return size>0?std::size_t(size):0;
+#else
+    return 0;
+#endif
+}
+void release_hashed_pages(std::span<const std::byte> bytes,std::size_t page_size) noexcept {
+#if defined(__linux__) && defined(MADV_PAGEOUT)
+    if(!page_size || bytes.empty())return;
+    const auto address=reinterpret_cast<std::uintptr_t>(bytes.data());
+    const auto skip=(page_size-address%page_size)%page_size;
+    if(skip>=bytes.size())return;
+    const auto size=(bytes.size()-skip)/page_size*page_size;
+    if(!size)return;
+    // Reclaim only complete pages already consumed by the digest. PAGEOUT
+    // preserves private COW edits and is optional when backing cannot reclaim.
+    const auto saved_errno=errno;
+    (void)::madvise(const_cast<std::byte*>(bytes.data()+skip),size,MADV_PAGEOUT);
+    errno=saved_errno;
+#else
+    (void)bytes;(void)page_size;
+#endif
+}
 SourceRuntimeResources::Digest digest(std::span<const std::byte> bytes) {
+    std::unique_ptr<EVP_MD_CTX,decltype(&EVP_MD_CTX_free)> context(EVP_MD_CTX_new(),EVP_MD_CTX_free);
+    if(!context || EVP_DigestInit_ex(context.get(),EVP_sha256(),nullptr)!=1)
+        throw FormatError("Cannot authenticate source resource binding");
+    const auto page_size=native_page_size();
+    if(bytes.empty() && EVP_DigestUpdate(context.get(),bytes.data(),0)!=1)
+        throw FormatError("Cannot authenticate source resource binding");
+    // Authenticate every admitted byte in order without retaining file-sized
+    // resident working sets. The cache and shared snapshots retain ownership.
+    while(!bytes.empty()) {
+        const auto window=bytes.first(std::min<std::size_t>(bytes.size(),65536));
+        if(EVP_DigestUpdate(context.get(),window.data(),window.size())!=1)
+            throw FormatError("Cannot authenticate source resource binding");
+        release_hashed_pages(window,page_size);
+        bytes=bytes.subspan(window.size());
+    }
     SourceRuntimeResources::Digest result;unsigned count{};
-    if(EVP_Digest(bytes.data(),bytes.size(),reinterpret_cast<unsigned char*>(result.data()),&count,EVP_sha256(),nullptr)!=1 || count!=result.size())
+    if(EVP_DigestFinal_ex(context.get(),reinterpret_cast<unsigned char*>(result.data()),&count)!=1 || count!=result.size())
         throw FormatError("Cannot authenticate source resource binding");
     return result;
 }

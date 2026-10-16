@@ -1,6 +1,8 @@
 #pragma once
 #include "halo2/source_shadow.hpp"
 #include "halo2/source_attached_effect.hpp"
+#include "halo2/source_model_regions.hpp"
+#include <optional>
 #include <vector>
 
 namespace halo2 {
@@ -18,6 +20,8 @@ struct SourceSceneRoot {
     // Authority's actual scene constructor tick, retained across late join.
     std::uint64_t created_tick{};
     std::vector<SourceAttachedEffect> attached_effects;
+    // Completed source constructor/current choices, never a replica RNG roll.
+    std::optional<SourceModelRegionBank> model_regions;
 };
 struct SourceWorldPose {
     std::uint32_t object{0xffffffffu};

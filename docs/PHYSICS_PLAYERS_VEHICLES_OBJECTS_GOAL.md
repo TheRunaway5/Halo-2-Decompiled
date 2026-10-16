@@ -14,19 +14,25 @@ The owned English TU1.5 executable is pinned to
 Legacy correspondence IDs remain internal references in retained source modules.
 All new parity execution and acceptance validation target TU1.5.
 
-October16 continuation: the shared kind1 Enforcer world now passes real UDP
-and two rendered multiplayer views (156 frames,434 exact snapshots), with
-30 matching neutral ticks followed by a causal original-controller response.
-Three captured whole original calls match210,078 instructions. All four
-Sentinel Walls BSP fog paths match672,318 binary32 fields across16,398 queries.
-Fresh Warthog driving uses505 actual original vehicle-camera frames and passes
-902 exact UDP states; ordinary120-frame/340-tick startup delivers the tested
-v517 launcher. Other campaign-only definitions and placements, remaining lift
-and train contexts, full collision/lifetime/controller coverage and quantitative
-Xbox TU1.5 reference validation remain open. See
+October16 continuation: actual Enforcer, Phantom, Gravity Throne and no-flare
+Throne worlds have bounded source-controller/UDP/rendering evidence. The final
+regular Throne test passes1278 frames per view and1243 exact snapshots; four
+actual whole calls match2,529,863 original instructions. The no-flare Throne
+passes382 frames per view and242 exact states with authored NONE equipment,
+source-owned unarmed bodies and no fallback weapon HUD. Its fullB9090 body call
+matches94,449 unchanged original instructions. Actual cinematic RGBA blending,
+late pool state and source/replica equipment ownership are wired. The delivered
+v566 runtime passes ordinary120-frame/322-tick startup and fresh Warthog
+enter/drive/steer/exit:902 exact states,480 original seated-camera frames,
+0.6000000238-radian look turn and447 on-foot camera frames after exit. Pelican
+world/UDP adoption passes; visible preparation still requires actual SCEN RNG
+region history. All47 class3 placements,remaining lifts/train riders,broader
+contact,controller,lifetime,cloth,corpse/ragdoll and campaign AI/HS contexts,
+canonical launcher integration and quantitative Xbox TU1.5 reference validation
+remain open. See
 [shared campaign integration](MP_CAMPAIGN_SHARED_PHYSICS_TU15_20261015.md).
 
-Current continuation: all five campaign-only class3 definitions now respond to declared controller input in the same immutable source runtime. Fifteen complete admission/controller/object/world calls match 405,409 unchanged TU1.5 instructions. The reached helpers and original static contact-agent initializer are wired into both live source trees. The new v448 production launcher passes normal rendered startup; stock Ghost/lift/object multiplayer passes 665 exact UDP observations with actual original vehicle cameras. Visible class3 multiplayer, the inactive intro Pelican cinematic/script context, and the full wider parity gates remain open. See [class3 integration evidence](MP_CLASS3_PHYSICS_INTEGRATION_TU15_20261015.md).
+Earlier v448 checkpoint: all five campaign-only class3 definitions now respond to declared controller input in the same immutable source runtime. Fifteen complete admission/controller/object/world calls match 405,409 unchanged TU1.5 instructions. The reached helpers and original static contact-agent initializer are wired into both live source trees. The new v448 production launcher passes normal rendered startup; stock Ghost/lift/object multiplayer passes 665 exact UDP observations with actual original vehicle cameras. Visible class3 multiplayer, the inactive intro Pelican cinematic/script context, and the full wider parity gates remain open. See [class3 integration evidence](MP_CLASS3_PHYSICS_INTEGRATION_TU15_20261015.md).
 
 Authority continuation now preserves the original static contact-agent initializer across world restoration. The final v453 visible occupied-Ghost restore passes491 exact UDP states,8.740213 units of travel, original vehicle-camera turn and exit; both complete post-restore original calls match120,561 instructions. The production launcher selects normally tested v451. Visible class3 multiplayer and the full wider physics scope remain open.
 

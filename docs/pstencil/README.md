@@ -28,9 +28,9 @@ in the existing `menu.cfg`; Reset restores Original. F1 changes session state.
 ```
 
 The launch route verifies the tested runtime, TU1.5 gameplay XBE and all 64
-shader files against `analysis/pstencil/live-v4/runtime.json`. It preserves the
+shader files against `analysis/pstencil/live-v10/runtime.json`. It preserves the
 other launchers and their separately retained runtimes. The new route retains
-its executable and shaders in `analysis/pstencil/live-v4/build/`; keep that
+its executable and shaders in `analysis/pstencil/live-v10/build/`; keep that
 folder. It reads current maps directly from `assets/disc/maps/`.
 
 ## Rendering and organization
@@ -44,7 +44,8 @@ folder. It reads current maps directly from `assets/disc/maps/`.
 | `tests/pstencil/` | Original-code, posed-position, GPU, renderer and live-UI checks |
 | `cmake/PStencil.cmake` | Separate libraries, shaders and tests |
 | `analysis/pstencil/2003/` | Local disassembly, pseudocode, shaders and provenance |
-| `analysis/pstencil/live-v4/` | Current tested frozen runtime, independent caster collection, armor controls and real-match captures |
+| `analysis/pstencil/live-v5/` | Current tested frozen runtime with the default 2003 resident environment response and fresh armor/game controls |
+| `analysis/pstencil/live-v4/` | Retained independent caster/opacity delivery and comparison baseline |
 | `analysis/pstencil/live-v3/` | Retained high-detail/darkening delivery and comparison history |
 | `analysis/pstencil/live-v2/` | Retained direct specular and plasma-light delivery |
 | `analysis/pstencil/live-v1/` | Retained first-delivery source/build and comparison history |
@@ -67,6 +68,138 @@ receiving surface and types 0/4/5 do not cast. Expanded CPU fallback geometry
 preserves the raw type/flags; only generated geometry without that provenance
 uses the earlier shader-layer fallback. This is an explicit cross-version
 adaptation, not proof of complete 2003 ISQ/manifold/object admission parity.
+
+## Default 2003 environment response (live-v5)
+
+The [presentation reference](PRESENTATION_PIPELINE_REFERENCE.md) traces the
+actual default layered renderer and extracts its resident six-combiner shader.
+The matching current independent tangent-space environment family now uses
+those exact control words: quartic Fresnel, separate facing/glancing RGB and
+brightness, midrange tint, and environment powers through eight. Completed
+current material constants, maps, poses and destination-alpha ownership remain
+its input adapter. Combined visor/lightmap families retain their current path;
+this does not establish the full original accumulation pipeline or asset values.
+
+The 4,096 default-response scalar/GPU cases pass against the resident program
+and source formula. A separate older callback program remains reference-only;
+4,105 original CPU construction fixtures and 4,096 GPU/math cases pass for it.
+All seven focused tests and nine native captures pass. Original's real-match
+image and all five armor photos are byte-identical to v4; every photo restores
+Original exactly after pStencil. Shadow-isolation controls only darken output.
+The new environment response changes 104,053 pixels in the declared group
+photo. Launcher verification and a three-frame native launch pass. See
+`analysis/pstencil/live-v5/validation.json` and `verification.json`.
+
+All-map metadata declares this pass on 62 unique materials linked to 129 object
+definitions, including Spectre, Banshee, Wraith and Covenant weapon/prop
+families. These are [candidates](../../analysis/pstencil/environment-response-test/material-candidates.json),
+not 129 rendered certifications: the live implementation must also match the
+supported pass/control shape and destination-alpha blend. Current values are
+retained for later equipment; no faction preset is substituted.
+
+## Current delivery: regular Elite material response (live-v10)
+
+Eight native Elite variants were compared in the same Cairo scene. The shared
+standard body shaders use a dark charred detail texture in current assets,
+while the five exact 2003 shaders bind a neutral detail map. pStencil now uses
+the proven original RGBA(128,128,128,255) response at the isolated current
+detail multiply. Current base/bump/change-color images and rank colors remain
+resident; Original is unchanged. Ranger and special rank helmet materials keep
+their separate authored responses. See [Elite evidence and scope](ELITE_VARIANT_PRESENTATION.md).
+
+Nine focused checks pass, including 5,120 exact CPU/GPU detail cases over ten
+shader LOD passes. All eight rank controls restore Original exactly. Canonical
+photo controls use identical corrected shader-LOD/object-function staging with
+only the neutral adapter bypassed. All four ordinary gameplay frames remain
+byte-identical to live-v9. The tested launch route selects this frozen runtime.
+
+![Eight actual Elite variants under the same declared point light](../../analysis/pstencil/live-v10/all-ranks.png)
+
+![Chief, Arbiter and Elite together in Cairo Station](../../analysis/pstencil/live-v10/armor-group-front/closeup.png)
+
+The broader 2003 utility/MRT, combined response and manifold work remains open.
+Vehicle diagnostics now also use native shader coverage, owner colors and
+independent native point casters. Five vehicle fixtures pass; Banshee's direct
+specular alpha is being investigated separately from this installed delivery.
+
+## Retained stronger Arbiter metal delivery (live-v9)
+
+Arbiter's armor and helmet now have four contributions from their authored
+sphere specular shader under the same stencil test, with doubled combined
+reflection strengths (.8 facing / 1 glancing after clamping). The original
+25% treatment was too subtle in the reviewed screenshots. Engraving, surface
+masks, normal input and highlight shape remain authored; cloth, skin and
+ordinary Elite materials receive no extra polish. See the
+[metal adaptation](ARBITER_METAL_ADAPTATION.md).
+
+Eight focused tests pass, including 5,632 armor/combined-consumer GPU cases.
+All nine canonical native captures and two additional light-angle captures pass.
+The canonical photos use the same camera/light as v7: Original is byte-identical
+and restores exactly after switching. All four ordinary gameplay captures also
+match v7 exactly. Point-shadow controls only darken output, and the isolated
+armor polish only brightens it. The additional front angle changes the declared
+point-light position and has its own controls and exact Original restoration.
+
+Current captures retain 2560x1920 output and 5120x3840 internal
+stencil/color/depth. These are staged actual Cairo Station assets and native
+actors. [Validation](../../analysis/pstencil/live-v9/validation.json),
+[canonical controls](../../analysis/pstencil/live-v9/verification.json),
+[additional angle](../../analysis/pstencil/live-v9/front-verification.json).
+
+![All three characters together, additional front light angle](../../analysis/pstencil/live-v9/armor-group-front/closeup.png)
+
+![Arbiter metal close-up, additional front light angle](../../analysis/pstencil/live-v9/armor-arbiter-front/closeup.png)
+
+Full 2003 accumulation, utility, combined response and original ISQ/manifold/
+object admission remain unfinished. Unmodified original-build framebuffer
+capture remains blocked by the local boot configuration; see the
+[reference capture status](REFERENCE_CAPTURE_STATUS.md).
+
+## Original values and initial Arbiter metal (live-v7)
+
+The supported independent environment family now uses exact static original
+values on literal shader-path matches. The [reference bank](REFERENCE_MATERIAL_VALUES.md)
+contains 159 unanimous paths; 12 intersect this current family. Later assets
+retain their authored inputs under the same recovered response.
+
+Arbiter armor and helmet have a separate [metal adaptation](ARBITER_METAL_ADAPTATION.md):
+a quarter-strength authored specular companion under the same stencil test,
+plus a 25% reflection-strength increase on the recognized combined family.
+Cloth, flesh and ordinary Elite materials keep their own response. The current
+combined Chief visor receives the original .4/.2 facing/glancing strengths;
+its full response/tint math remains with the current combined shader.
+
+Eight focused tests pass, including 5,632 new armor/combined-consumer GPU cases
+and the existing 8,192 environment cases. All nine native captures pass.
+Original matches v6 exactly in the real match and all five photos, and every
+photo restores it exactly after switching. The gameplay shadow control changes
+11,794 pixels only toward darker output, with identical simulation/RNG inputs.
+Removing only Arbiter's extra specular changes 5,891 group pixels / 15,572
+Arbiter-view pixels only toward brighter output. Source controls and texture
+masks remain intact; this is an explicit later-asset art treatment.
+
+Additional native root-vehicle diagnostics pass on Warthog, Banshee and Spectre.
+Their independent caster controls only darken dynamic receivers, specular
+controls only brighten them, and Original restores exactly. These selected
+body/LOD checks use actual netgame constructors and palettes, with declared
+camera/light inputs; child turret owners and original-frame parity are outside
+this diagnostic. Spectre uses the source vehicle reference at index 5 via
+variant choices 76/77=5. See `asset-final-controls/verification.json`.
+
+The fresh screenshots are staged native Cairo Station captures, with current
+actors and a declared shared point light: 2560x1920 output, 5120x3840 internal
+stencil/color/depth targets. They are not matched original 2003 frames.
+See `analysis/pstencil/live-v7/{verification,validation}.json`, per-view controls,
+and `focused-tests.log`. The group and visor crops are below.
+
+![Current characters under one point light](../../analysis/pstencil/live-v7/armor-group/closeup.png)
+
+![Current visor close-up](../../analysis/pstencil/live-v7/armor-visor/closeup.png)
+
+Full 2003 bump/texture/utility accumulation, complete combined response math,
+scenario/function lights and original ISQ/manifold/object admission are still
+open. [Original capture status](REFERENCE_CAPTURE_STATUS.md) records the local
+original-build boot blocker. This delivery does not establish full 1:1 parity.
 
 ## Independent caster coverage and opacity (live-v4)
 

@@ -643,14 +643,14 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     state.adopt_pc_settings(desktop->keyboard_settings,desktop->display_settings,
         {unsigned(width),unsigned(height),unsigned(bool(SDL_GetWindowFlags(window)&SDL_WINDOW_FULLSCREEN))});
   }
-  // OAuth runs outside the render loop; only browser launch uses the UI thread.
-  if(!session->discord_login)session->discord_login=std::make_shared<DiscordLogin>([](const std::string &url) {
+  // Identity verification and private handoff run outside the render loop.
+  if(!session->discord_login)session->discord_login=DiscordLogin::steam([](const std::string &url) {
     return SDL_OpenURL(url.c_str()) == 0;
   });
   auto discord_login=session->discord_login;
   state.set_discord_login(discord_login);
   state.set_local_discord_login_factory([] {
-    return std::make_shared<DiscordLogin>([](const std::string &url){return SDL_OpenURL(url.c_str())==0;});
+    return DiscordLogin::steam([](const std::string &url){return SDL_OpenURL(url.c_str())==0;});
   });
   if(!session->discord_social)session->discord_social=std::make_shared<DiscordSocial>(discord_login,[](const std::string &url) {
     return SDL_OpenURL(url.c_str())==0;

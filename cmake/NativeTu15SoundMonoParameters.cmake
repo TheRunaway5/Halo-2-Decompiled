@@ -13,7 +13,8 @@ target_include_directories(halo2_mcc_mono_distortion_definition PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_mcc_mono_distortion_definition PUBLIC cxx_std_20)
 target_link_libraries(halo2_mcc_mono_distortion_definition PUBLIC
-    halo2_native_tu15_sound_mono_parameters halo2_cache)
+    halo2_native_tu15_sound_mono_parameters halo2_cache
+    halo2_mcc_effect_parameter_function)
 target_link_libraries(halo2_systems PUBLIC halo2_mcc_mono_distortion_definition)
 if(BUILD_TESTING)
     add_executable(native_tu15_sound_mono_parameters_probe
@@ -43,6 +44,20 @@ if(BUILD_TESTING)
         --report ${CMAKE_CURRENT_BINARY_DIR}/mcc-mono-distortion-definitions-report.json)
     add_test(NAME native_tu15_sound_mono_parameter_FP_contract
         COMMAND native_tu15_sound_mono_parameters_fp_tests)
+    add_executable(native_tu15_sound_mono_parameters_condition_tests
+        tests/native_tu15_sound_mono_parameters_condition_tests.cpp)
+    target_link_libraries(native_tu15_sound_mono_parameters_condition_tests PRIVATE
+        halo2_native_tu15_sound_mono_parameters)
+    add_executable(native_tu15_sound_mono_parameters_state_tests
+        tests/native_tu15_sound_mono_parameters_state_tests.cpp)
+    target_link_libraries(native_tu15_sound_mono_parameters_state_tests PRIVATE
+        halo2_native_tu15_sound_mono_parameters)
+    add_test(NAME native_tu15_sound_mono_parameter_condition_preservation
+        COMMAND native_tu15_sound_mono_parameters_condition_tests)
+    add_test(NAME native_tu15_sound_mono_parameter_complete_FP_state
+        COMMAND native_tu15_sound_mono_parameters_state_tests)
+    set_tests_properties(native_tu15_sound_mono_parameter_condition_preservation
+        native_tu15_sound_mono_parameter_complete_FP_state PROPERTIES TIMEOUT 180)
     set_tests_properties(native_tu15_sound_mono_parameter_reference_values
         mcc_mono_distortion_retained_definitions native_tu15_sound_mono_parameter_FP_contract
         PROPERTIES TIMEOUT 180)

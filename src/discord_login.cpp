@@ -1,4 +1,5 @@
 #include "halo2/discord_login.hpp"
+#include "halo2/steam_login.hpp"
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
@@ -162,6 +163,7 @@ void reply(Socket fd, bool accepted) {
 }
 } // namespace
 struct DiscordLogin::Impl {
+  std::unique_ptr<SteamLogin> steam;
   OpenBrowser browser;
   DiscordLoginOptions options;
   Http http;
@@ -261,11 +263,22 @@ DiscordLogin::DiscordLogin(OpenBrowser browser, DiscordLoginOptions options, Htt
   impl_->browser = std::move(browser); impl_->options = std::move(options); impl_->http = http ? std::move(http) : https;
 }
 DiscordLogin::~DiscordLogin() { cancel(); }
+std::shared_ptr<DiscordLogin> DiscordLogin::steam(OpenBrowser browser, Http http) {
+  auto login=std::make_shared<DiscordLogin>(OpenBrowser{});
+  login->impl_->steam=std::make_unique<SteamLogin>(std::move(browser),steam_login_environment(),std::move(http));
+  return login;
+}
+bool DiscordLogin::uses_steam()const{return bool(impl_->steam);}
+bool DiscordLogin::link_discord(std::string token){return impl_->steam&&impl_->steam->link_discord(std::move(token));}
+DiscordLinkSnapshot DiscordLogin::discord_link()const{return impl_->steam?impl_->steam->discord_link():DiscordLinkSnapshot{};}
+void DiscordLogin::cancel_discord_link(){if(impl_->steam)impl_->steam->cancel_discord_link();}
 void DiscordLogin::cancel() {
+  if(impl_->steam){impl_->steam->cancel();return;}
   if (impl_->worker.joinable()) { impl_->worker.request_stop(); impl_->worker.join(); }
   impl_->publish({});
 }
 void DiscordLogin::start() {
+  if(impl_->steam){impl_->steam->start();return;}
   cancel();
   try {
     if (!snowflake(impl_->options.client_id) || !impl_->options.callback_port || impl_->options.callback_port > 65535 || impl_->options.timeout.count() <= 0)
@@ -301,21 +314,25 @@ void DiscordLogin::start() {
   } catch (const std::exception &e) { impl_->publish({DiscordLoginStatus::Failed, {}, e.what()}); }
 }
 DiscordLoginSnapshot DiscordLogin::snapshot() const {
+  if(impl_->steam)return impl_->steam->snapshot();
   std::lock_guard lock(impl_->mutex);
   if (impl_->state.status == DiscordLoginStatus::SignedIn && Clock::now() >= impl_->expires)
     return {DiscordLoginStatus::SignedOut, {}, "Your Discord sign-in expired. Please sign in again."};
   return impl_->state;
 }
 std::optional<std::string> DiscordLogin::authorization() const {
+  if(impl_->steam)return impl_->steam->authorization();
   std::lock_guard lock(impl_->mutex);
   if (impl_->state.status != DiscordLoginStatus::SignedIn || Clock::now() >= impl_->expires)
     return std::nullopt;
   return impl_->authorization;
 }
 std::optional<std::string> DiscordLogin::social_authorization() const {
+  if(impl_->steam)return {};
   return impl_->options.social_presence || impl_->options.social_communication?authorization():std::nullopt;
 }
 std::optional<DiscordLogin::ServiceIdentity> DiscordLogin::service_identity() const {
+  if(impl_->steam){const auto c=impl_->steam->credential();return c?std::optional(ServiceIdentity{c->bearer,c->subject}):std::nullopt;}
   std::lock_guard lock(impl_->mutex);
   if(impl_->state.status!=DiscordLoginStatus::SignedIn || !impl_->state.identity || Clock::now()>=impl_->expires)
     return {};

@@ -69,6 +69,7 @@ public:
     // Current source WORLD hierarchy. Empty is an actual empty source bank;
     // absent belongs to the existing native placement/animation owner.
     std::optional<std::vector<Transform>> solved_nodes;
+    std::optional<SourceModelRegionBank> source_model_regions;
     std::uint32_t attachment_parent=null_datum;
   };
   SceneObjects(const LevelContent &, std::size_t bsp,

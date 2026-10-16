@@ -8,9 +8,13 @@
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/pstencil/geometry.hpp"
 #include "halo2/pstencil/environment.hpp"
+#include "halo2/pstencil/adaptation.hpp"
+#include "native_variant_photo.hpp"
+#include "native_photo_inputs.hpp"
 #include "halo2/source_bsp_shader_scene.hpp"
 #include "halo2/source_bsp_resident_plan.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/source_dynamic_model_shaders.hpp"
 #include "halo2/source_object_draw_collector.hpp"
 #include "halo2/source_geometry_lod.hpp"
 #include "halo2/source_camera.hpp"
@@ -30,6 +34,7 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <nlohmann/json.hpp>
 using namespace halo2;
 namespace {
 void require(bool value,const char* why){if(!value)throw FormatError(why);}
@@ -41,13 +46,24 @@ struct Actor {
     std::vector<SourcePrtMaterialBank> prt;
     unsigned first{},count{};
     std::optional<Vec3> incident;
+    std::uint32_t variant{};
+    ShaderInput shader_input;
 };
 }
 int run(int argc,char**argv) {
-    require(argc==5 || argc==6,"Supply XBE MAP NEW_OUTPUT group|chief|elite|arbiter|visor [spawn index]");
+    require(argc>=5 && argc<=9,"Supply XBE MAP NEW_OUTPUT group|chief|elite|arbiter|visor [spawn index] [front-light|side-light] [elite-variant:NAME] [elite-definition:PATH]");
     const std::filesystem::path output=argv[3];require(!std::filesystem::exists(output),"output exists");
     std::filesystem::create_directories(output);
-    Cache cache(argv[2]);const unsigned spawn=argc==6?std::stoul(argv[5]):0;
+    Cache cache(argv[2]);const unsigned spawn=argc>=6?std::stoul(argv[5]):0;
+    const bool front_light=argc>=7 && std::string_view(argv[6])=="front-light";
+    require(argc<7 || front_light || std::string_view(argv[6])=="side-light","unknown photo light setup");
+    std::string elite_variant,elite_definition;
+    for(int n=7;n<argc;++n) {
+        const std::string value=argv[n];
+        if(value.starts_with("elite-variant:"))elite_variant=value.substr(14);
+        else if(value.starts_with("elite-definition:"))elite_definition=value.substr(17);
+        else throw FormatError("unknown photo actor input: "+value);
+    }
     const auto origin=cache.spawns().at(spawn).position;
     CollisionWorld collision(cache.load_bsp_content(0).collision);
     std::optional<Vec3> floor_center;float best=1.e20f;
@@ -94,7 +110,8 @@ int run(int argc,char**argv) {
         {"arbiter","objects\\characters\\dervish\\dervish"},
         {"elite","objects\\characters\\elite\\elite"}}};
     for(unsigned i=0;i<names.size();++i) {
-        const auto tag=std::ranges::find_if(cache.tags(),[&](const auto&t){return t.group=="bipd" && t.name==names[i].second;});
+        const auto requested=i==2 && !elite_definition.empty()?elite_definition:std::string(names[i].second);
+        const auto tag=std::ranges::find_if(cache.tags(),[&](const auto&t){return t.group=="bipd" && t.name==requested;});
         require(tag!=cache.tags().end(),"level does not contain all three authored characters");
         const auto model=cache.load_initial_model_definition(tag->datum).render_model;
         world.preload_render_model(model);render_models.push_back(model);
@@ -102,8 +119,19 @@ int run(int argc,char**argv) {
     }
     world.initialize_map();
     for(auto& a:actors) {
-        a.object=world.create_biped(a.definition,a.position,{1,0,0});
+        const auto definition=cache.load_initial_model_definition(a.definition);a.variant=definition.default_variant;
+        if(a.name=="elite" && !elite_variant.empty()) {
+            const auto selected=std::ranges::find_if(definition.variants,[&](const auto& v){return cache.string_id(v.name)==elite_variant;});
+            require(selected!=definition.variants.end(),"requested Elite model variant is absent from the actual definition");
+            a.variant=selected->name;
+            a.object=pstencil::create_variant_photo_biped(world,a.definition,a.position,{1,0,0},a.variant);
+            require(a.object!=null_datum,"native variant biped birth failed");
+            const auto actual=std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(world.memory().view(world.source_object_body(a.object)+0xb1u,1)[0]));
+            require(actual==source_initial_model_variant(definition,a.variant),"native biped selected another model variant");
+            std::cout<<"Actual Elite variant: "<<elite_variant<<" string_id="<<a.variant<<" body_index="<<int(actual)<<'\n';
+        } else a.object=world.create_biped(a.definition,a.position,{1,0,0});
         require(a.object!=null_datum,"native biped birth failed");
+        a.shader_input=pstencil::native_photo_inputs(cache,world,a.object,a.definition);
         // Declared offline photo-quality input. Native4BCC0 itself selects
         // authored LOD5 for bit19; no mesh is invented or changed on disk.
         const auto body=world.source_object_body(a.object);
@@ -156,7 +184,8 @@ int run(int argc,char**argv) {
     // Side lighting exposes the cast silhouettes beside the actors instead
     // of hiding them behind the bodies from the declared group camera.
     constexpr float light_size=1.4f,light_radius=2.f*light_size;
-    light.runtime.position=light.runtime.spatial_center=center+Vec3{.6f,-.6f,1.4f};
+    light.runtime.position=light.runtime.spatial_center=center+
+        (front_light?Vec3{.95f,.1f,.95f}:Vec3{.6f,-.6f,1.4f});
     light.runtime.spatial_radius=light_radius;light.runtime.forward={1,0,0};light.runtime.up={0,0,1};
     light.runtime.state={light_size,1,{2.f,2.f,2.f},{1.f,1.f,1.f},1};light.fades={1,1,1,1,1};light_view.records.push_back(light);
     const auto shape=source_effect_light_sphere(definition,light.runtime.position,{1,0,0},{0,0,1},light_size);
@@ -210,7 +239,7 @@ int run(int argc,char**argv) {
         // Close-up views may legitimately cull the other two actors.
         if(draws.empty()){std::cout<<"Actor outside camera: "<<a.name<<'\n';continue;}
         const auto model=cache.load_initial_model_definition(a.definition);SourceInitialModelSelection selection;
-        selection.variant_index=source_initial_model_variant(model,model.default_variant);
+        selection.variant_index=source_initial_model_variant(model,a.variant);
         selection.permutations.resize(model.regions.size());selection.states.resize(model.regions.size());
         const auto record=draws.front().unit.words[4]-0x44u;
         const Bytes source_light(world.memory().view(record,0x30));
@@ -233,25 +262,37 @@ int run(int argc,char**argv) {
         std::vector<Transform> nodes(body.u16(0x114)/52u);
         std::memcpy(nodes.data(),world.memory().view(world.source_object_body(a.object)+body.u16(0x116),nodes.size()*52u).data(),nodes.size()*52u);
         a.lighting=draws.front().lighting;
-        a.colors=source_live_model_base_colors_tu15(draws.front(),cache.load_object_colors(a.definition,model.default_variant));
+        a.colors=source_live_model_base_colors_tu15(draws.front(),cache.load_object_colors(a.definition,a.variant));
         a.first=unsigned(mesh.materials.size());
         const auto lod=draws.front().lod;
         if(cache.load_source_prt_definition(a.model)) {
-            SourceObjectGeometry base;ScenarioObject placement;placement.definition=a.definition;
+            SourceObjectGeometry base;ScenarioObject placement;placement.definition=a.definition;placement.variant=a.variant;
             base.load(cache,placement,model,selection,a.model);
             base.pose_world([&](const auto&m){return skin_model_world_nodes(m,nodes);});
             const auto prt_lighting=cache.load_source_prt_lighting(0);
-            base.prepare(cache,cache.load_object_colors(a.definition,model.default_variant),nodes,prt_lighting,mesh);
+            base.prepare(cache,cache.load_object_colors(a.definition,a.variant),nodes,prt_lighting,mesh);
             a.vertices=base.at(lod).vertices;a.prt=base.owner_banks(cache,nodes,prt_lighting,lod);
             a.origins=base.at(lod).model.vertex_origins;
             for(auto& bank:a.prt)bank.bank=prt_banks.at({a.object,bank.section});
         } else {
-            auto base=cache.load_model(a.definition,true,0,selection,lod);
-            for(auto material:base.mesh.materials) {
+            auto base=cache.load_model(a.definition,true,a.variant,selection,lod);
+            for(auto& material:base.mesh.materials) {
                 if(!material.lods.empty())require(prepare_dynamic_material(cache,material,{},true,0),"missing native dynamic base material");
-                mesh.materials.push_back(std::move(material));
             }
-            a.vertices=skin_model_world_nodes(base,nodes);for(auto& v:a.vertices)v.material+=a.first;
+            SourceDynamicModelShaders shaders(cache,base,a.model,2,0.f);
+            a.vertices=skin_model_world_nodes(base,nodes);
+            SourceModelShaderView shader_view;
+            shader_view.camera=source_shader_coverage_camera(camera);
+            shader_view.shader=source_shader_lod_view(viewport[0],viewport[2],false,false);
+            shader_view.object_coverage_multiplier=source_geometry_lod_policy(1).coverage_multiplier;
+            shader_view.part_shader_multiplier=source_shader_lod_player_multiplier(1);
+            shader_view.view_modifier=context.view_modifier;
+            for(const auto& draw:draws)require(draw.coverage==draws.front().coverage,"photo actor sections changed native owner coverage");
+            const auto vertex_count=a.vertices.size();
+            shaders.select(a.vertices,{0,draws.front().coverage},shader_view);
+            require(a.vertices.size()==vertex_count,"native photo shader selection declined a visible base part");
+            for(auto& material:base.mesh.materials)mesh.materials.push_back(std::move(material));
+            for(auto& v:a.vertices)v.material+=a.first;
             a.origins=base.vertex_origins;
         }
         a.count=unsigned(mesh.materials.size())-a.first;
@@ -284,12 +325,33 @@ int run(int argc,char**argv) {
             <<" high="<<high.x<<','<<high.y<<','<<high.z<<'\n';
         if(a.incident)std::cout<<"Native lightmap incident: "<<a.name<<' '<<a.incident->x<<' '<<a.incident->y<<' '<<a.incident->z<<'\n';
     }
+    nlohmann::json actor_bindings=nlohmann::json::array();
+    for(const auto& a:actors) {
+        std::map<std::string,unsigned> materials,shader_lods;
+        for(const auto& v:a.vertices)++materials[mesh.materials.at(v.material).name];
+        for(const auto& v:a.vertices)++shader_lods[mesh.materials.at(v.material).name+" / lod "+std::to_string(mesh.materials.at(v.material).selected_shader_lod)];
+        nlohmann::json colors=nlohmann::json::array();for(const auto& c:a.colors)colors.push_back({c.x,c.y,c.z});
+        nlohmann::json inputs=nlohmann::json::object();
+        for(unsigned m=a.first;m<a.first+a.count;++m)for(const auto& overlay:mesh.materials[m].animation.overlays)
+            if(overlay.input)inputs[cache.string_id(overlay.input)]=a.shader_input(overlay.input);
+        actor_bindings.push_back({{"actor",a.name},{"definition",cache.query_tag({.handle=TagHandle{a.definition}})->name},
+            {"model_variant",cache.string_id(a.variant)},{"variant_string_id",a.variant},{"current_colors",colors},
+            {"object_function_inputs",inputs},
+            {"selected_shader_lod_vertex_counts",shader_lods},
+            {"visible_material_vertex_counts",materials},{"posed_vertices",a.vertices.size()}});
+    }
+    std::ofstream(output/"variant-bindings.json")<<actor_bindings.dump(2)<<'\n';
     if(SDL_Init(SDL_INIT_VIDEO)!=0)throw FormatError(std::string("SDL video initialization: ")+SDL_GetError());struct Sdl{~Sdl(){SDL_Quit();}} sdl;
     auto window=std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)>(SDL_CreateWindow("pStencil armor in level",0,0,width,height,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN),SDL_DestroyWindow);
     unsigned environment_responses{};
     std::function<void(const Material&)> inspect_environment=[&](const Material& m) {
+        if(pstencil::supports_combined_environment_strength(m))
+            std::cout<<"Combined reflection strength: "<<m.name
+                <<" original_static_values="<<bool(pstencil::reference_environment_parameters(m.name))
+                <<" polished_armor="<<pstencil::arbiter_metal(m.name)<<'\n';
         if(pstencil::supports_environment_response(m)) {
-            ++environment_responses;std::cout<<"2003 resident environment response: "<<m.name<<'\n';
+            ++environment_responses;std::cout<<"2003 resident environment response: "<<m.name
+                <<" original_static_values="<<bool(pstencil::reference_environment_parameters(m.name))<<'\n';
         }
         if(m.environment_pass)inspect_environment(*m.environment_pass);
         for(const auto& child:m.world_overlays_before)inspect_environment(*child);
@@ -307,7 +369,7 @@ int run(int argc,char**argv) {
     const auto camera_projection=source_camera_projection(pi.projection_angle,{0,0,width,height},{0,0,width,height},false);
     view.camera.projection_clip_scale=camera_projection.clip_scale;view.camera.projection_clip_offset=camera_projection.clip_offset;
     std::vector<ObjectLightingBinding> bindings;std::vector<ModelObjectDraw> bodies;
-    for(const auto& a:actors)if(!a.vertices.empty()){bindings.push_back({a.first,a.count,a.lighting});bodies.push_back({a.vertices,a.lighting,a.colors,{},a.prt});}
+    for(const auto& a:actors)if(!a.vertices.empty()){bindings.push_back({a.first,a.count,a.lighting});bodies.push_back({a.vertices,a.lighting,a.colors,a.shader_input,a.prt});}
     view.object_lighting=bindings;view.objects=bodies;view.raw_effect_lights=packets;
     std::vector<pstencil::LightmapCaster> lightmap_casters;
     for(const auto& a:actors)if(a.incident && !a.vertices.empty())lightmap_casters.push_back({a.vertices,*a.incident});
@@ -320,6 +382,20 @@ int run(int argc,char**argv) {
     view.raw_effect_lights={};capture("base-no-point-light.ppm");view.raw_effect_lights=packets;
     settings.graphics_mode=pstencil::GraphicsMode::Original;renderer.debug_panel().display_settings(settings);capture("Original.ppm");
     settings.graphics_mode=pstencil::GraphicsMode::pStencil;renderer.debug_panel().display_settings(settings);capture("pStencil.ppm");
+    auto ordinary_armor_specular=packets;unsigned polish_controls{};
+    for(auto& packet:ordinary_armor_specular)if(packet.pstencil_specular &&
+        pstencil::arbiter_metal(mesh.materials.at(packet.material_slot).name)) {
+        const auto& original=*packet.pstencil_specular;
+        const auto stride=1u+pstencil::arbiter_specular_copies;
+        require(original.size()%stride==0,"polished armor lost its authored specular groups");
+        auto filtered=std::make_shared<std::vector<EffectLightDraw>>();
+        for(unsigned n=0;n<original.size();n+=stride)filtered->push_back(original[n]);
+        polish_controls+=unsigned(original.size()/stride)*pstencil::arbiter_specular_copies;packet.pstencil_specular=std::move(filtered);
+    }
+    require(polish_controls>0 || framing=="visor" || framing=="chief" || framing=="elite",
+        "staged Arbiter armor has no polished specular companion");
+    view.raw_effect_lights=ordinary_armor_specular;capture("pStencil-armor-original-specular.ppm");view.raw_effect_lights=packets;
+    std::cout<<"Polished armor companion controls="<<polish_controls<<'\n';
     view.pstencil_point_casters={};capture("pStencil-no-point-shadows.ppm");view.pstencil_point_casters=point_casters;
     view.pstencil_point_casters={};view.pstencil_native_point_casters=false;capture("pStencil-CPU-caster-control.ppm");
     view.pstencil_point_casters=point_casters;view.pstencil_native_point_casters=true;

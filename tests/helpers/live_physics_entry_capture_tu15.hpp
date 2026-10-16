@@ -3,6 +3,7 @@
 #include "halo2/source_runtime_memory.hpp"
 #include <nlohmann/json.hpp>
 #include <cstring>
+#include <algorithm>
 #include <fstream>
 #include <limits>
 
@@ -51,11 +52,19 @@ public:
     }else if(active_ && entry==entry_){
       record_["after"]=abi(state);
       for(auto &region:record_["regions"]){
-        const auto size=region.at("size").get<std::size_t>();std::vector<std::byte> prior(size);
+        const auto size=region.at("size").get<std::size_t>();
+        // Compare large cache mappings in bounded chunks. Allocating another
+        // complete mapping here can exhaust the native source-match budget.
+        std::vector<std::byte> prior(std::min<std::size_t>(size,64u*1024u));
         std::ifstream in(directory_/region.at("before_file").get<std::string>(),std::ios::binary);
-        in.read(reinterpret_cast<char *>(prior.data()),size);require(bool(in),"Cannot read actual physics entry input bank");
         const auto address=region.at("address").get<std::uint32_t>();const auto current=memory.view(address,size);
-        if(std::memcmp(prior.data(),current.data(),size)){
+        bool changed=false;
+        for(std::size_t offset=0;offset<size;offset+=prior.size()) {
+          const auto count=std::min(prior.size(),size-offset);
+          in.read(reinterpret_cast<char *>(prior.data()),count);require(bool(in),"Cannot read actual physics entry input bank");
+          if(std::memcmp(prior.data(),current.data()+offset,count)){changed=true;break;}
+        }
+        if(changed){
           const auto file="after-"+std::to_string(address)+".bin";write(directory_/file,current);region["after_file"]=file;
         }
       }

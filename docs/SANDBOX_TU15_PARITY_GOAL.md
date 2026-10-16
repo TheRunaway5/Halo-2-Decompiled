@@ -3358,3 +3358,207 @@ Preserve broader tactical/perception/navigation/species/weapon/vehicle/difficult
 encounter/death/recreation, render/audio/LAN and every102-element gate. The known
 14 mission-entry failures and MCPX8049/laterAGP40/SDK hardware gaps remain open.
 No whole element or full-game completion is inferred. Classification:PROGRESS.
+
+
+## v390 — original HS scheduler and map-admission diagnosis (PROGRESS)
+
+Previous v359 was PROGRESS. At turn entry all138 source/42 executable/installed
+fingerprints were revalidated. Goal remains ACTIVE,0/102 whole elements. The
+private snapshot now adds35 complete original routines and1,414 static source
+instructions beyond v359, including actual2115D0 scheduling,1E7180 cleanup,
+dynamic Cairo builtin/interpreter callbacks, and original HUD/cinematic storage.
+Ten generators replay byte-identically. The source cohort still contributes
+identities only; every native instruction is redecoded from the pinned TU1.5 XBE.
+
+The scheduler runs in source AI ->HS ->PVS order. Actual Cairo startup threads
+exposed missing begin/if/equality, player/input/camera, fade, cinematic and sleep
+callbacks. Literal original function-table pointers/direct calls authenticate
+each whole recovered owner. Callback212330 is the real original XOR/RET4 cast;
+no callee completion or script result is supplied. Original13BC10/13BC32 and
+13E9E0/13EA40 construct/reset the actual HUD/cinematic state before these actions.
+The earlier progress description of HUD fade state as game speed was corrected
+against Cairo's authored hud_cinematic_fade opcode and original instructions.
+
+Renderer storage12842..12879 is explicitly an11-instruction bounded allocation,
+CRC and publication span, not a complete original graphics constructor. Generated
+code preserves guest ESP at this source boundary; it cannot satisfy an original
+callee dispatch. Its real constructor capture matches unchanged original Unicorn
+and host i386 execution:67 events,8 original stores, CPU/defined flags/exact trace,
+and every60,084,310 committed bytes. No instruction patch, native expected output,
+CPU estimate or gameplay return is supplied. Full preceding GPU startup stays open.
+
+With the actual callbacks present, the Cairo interpreter loops instead of yielding.
+The failed native v386 test was terminated; its unbounded trace was not accepted.
+Attaching GDB was denied by host ptrace policy, so a separately owned GDB child
+confirmed the native211B10 loop and was killed/closed. Unchanged original replay
+from that exact captured entry state also executes200,000 instructions without
+return: game+1120 is0, clock tick0, active thread sleep1. Source211BBA..211BCB only
+honors future sleep times when the original map-ready byte is set. This is an
+unadmitted world-state boundary; no native interpreter escape or readiness1 is
+invented. The native campaign frame API now rejects that incomplete state before
+executing a partial tick, preventing the known loop and trace growth.
+
+The authenticated original readiness1 publication is191E2E, after191DF0 calls13A780 new-map,
+D7AA0 placement, C29F0/13A920 player startup and successful11E8E0 BSP activation.
+Current initialize_map composes only a subset. Historical v359 AI/object three-tick
+comparisons remain bounded subsystem evidence; they did not execute HS or prove
+this map admission. Do not restore green tests by setting game+1120 or bypassing HS.
+The next13A820 BSP activation audit authenticates21 table callbacks (including
+shared roots);67 previously missing complete routines/6,784 instructions form
+their static closure. That audit is retained, not yet implemented or accepted.
+
+Coherent42-target build passes. Selected CTests are47/50 in42.30seconds: the three
+Cairo placement cases still create actual actors, validate command/thread links
+and restore the complete authority bank, then explicitly fail at map admission.
+The new empty-map scheduler case passes three ordinary native ticks; all three
+whole2115D0 phases match unchanged original host execution:168 events,33 original
+stores, full CPU/trace and every60,092,502 retained bytes per case. Empty/no-authored-
+thread scheduling is not accepted Cairo/startup behavior.
+Current 142 source/42 executable fingerprints and all retained evidence are in
+work/sandbox-primary-v15/campaign-hs-native-progress-v390.json. No fresh candidate
+is accepted or installed. ./Halo2-Sandbox-Test --launcher-info still selects the
+verified r6 SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+
+Next work is complete source map/BSP activation and native subsystem ownership,
+then actual due-thread HS comparisons and campaign frontend/Simulation/player/
+object integration. Broader tactical/species/weapon/vehicle/difficulty/encounter/
+death, asynchronous resources, rendering/audio, local/split/LAN, menus/maps/full
+game and every102-element gate retain full scope. MCPX8049/laterAGP40/SDK GPU
+composition remains unresolved. No whole element or full-game completion is inferred.
+
+
+## v404 — whole source map admission and real audio prerequisite (PROGRESS)
+
+Previous v390 was PROGRESS. All142 source/42 executable/13 installed fingerprints
+were revalidated. Full goal stays ACTIVE,0/102 whole elements. The private snapshot
+adds whole191DF0 admission and the authentic new-map/new-BSP/before-BSP callbacks
+at44AED0, stride24hex,68 rows. Exact source operands/count/stride/direct callers
+authenticate selection. Source191E2E alone publishes ready after real11E8E0
+success. No ready1, callee return, initialized device, controller or actor output
+is supplied. The module adds466 complete decoded routines/25,892 static source
+instructions, sharing prior owners. These are compiled bodies, not all-branch or
+whole-game acceptance. FLDLG2 uses the actual native x87 instruction under the
+retained source FP controls; that additional operation is not separately accepted.
+
+The campaign initialize_map path invokes the complete original admission with
+its admitted options and actual selected BSP input at options+120. New-map
+execution exposed missing original level-handle pools and their qsort comparator,
+then row29/36 storage. Authenticated cold rows13,29,36,43,44,51,55,64,66 are now
+owned; straight storage/recorded-animation constructors are wired. Whole1410A7
+replaces the earlier168BA3-only first-person cold setup and13BC10 child call,
+constructing real1976CF/25A71C/25B5CA/1AB975/232A33 state without double allocation.
+The original12879 ->20E90 continuation now constructs its0x24-byte renderer state.
+The preceding full GPU cold constructor remains an explicit incomplete boundary.
+
+Read-only observations surround whole callbacks at13A7BA/13A86A/11E94B, retaining
+their actual source stack, ABI, full bank and instructions. Eight completed native
+callbacks were captured before the next missing subsystem. Six match unchanged
+original Unicorn and host i386 execution:21,095 reported events,2,791 original
+stores, full defined CPU ABI/control/trace and all60,100,694 retained bytes per
+case. No code patch, CPU estimate, native expected result or gameplay return is
+supplied.126730 and692D0 remain unaccepted: uninterrupted original execution
+reaches unmapped imports800000B6 and80000080. Both failures are retained; the six
+independent passes do not imply full map/whole-original-kernel acceptance.
+
+The real native map path reached sound map callback1281A0 ->2260E0 with no
+52D674 device state. Instead of allocating a fake device bank, a constructor
+accepting actual immutable SourceTu15UserSettings now invokes complete127EE0
+sound cold startup, including224EC0. Native backing, locks and recovered pool
+capacity remain owned by the existing resource adapter. Missing SDK/device/DSP
+owners propagate. This full path replaces manual sound prefixes when explicit
+settings are supplied; the previously bounded unactivated path remains labeled.
+
+The actual256-byte owned EEPROM (SHAb002f5a9556b930f6076820616c0e98735f3e78653a58709cbef06984e42889a)
+has valid UserSettings checksum. Only its immutable96-byte non-key section is
+retained. With this real query input, all three campaign CTests reach127EE0 ->
+224EC0 ->37DA9A ->33C29D and fail at the original unbound data import41B784,
+ordinal356, HalBootSMCVideoMode. This is not XboxHardwareInfo (ordinal322).
+The complete getter stays present; a named resource guard reports the missing
+producer instead of dereferencing encoded80000164. Neither observed mode1 nor
+observed initial7 is supplied. Existing source_boot_smc_video_mode_after_read
+only owns80054F49..80054F58 publication after an actual read; it is not a current
+SMBus/AV producer. SourceSmcBoot owns authentication/version protocol, with other
+registers still required. Reuse those owners and prove actual command4/AV input
+and the whole producer rather than repeating the existing publication fixtures.
+
+Coherent42-target build passes. Selected CTests are47/50 in42.65seconds, without
+skips: three campaign cases explicitly fail at that real mandatory data owner.
+They no longer certify the earlier partial cold/map actor path. All eleven
+module generators replay byte-identically. Current 159 source/42 executable
+and13 installed fingerprints, source callback comparisons and retained failures
+are recorded in work/sandbox-primary-v15/map-admission-native-progress-v404.json.
+The validated r6 runtime remains SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884
+and is still selected by ./Halo2-Sandbox-Test --launcher-info. No new candidate
+was accepted or installed. Unrelated concurrent builds/dirty root work are preserved.
+
+Next is the actual native boot-SMC mode producer/import and audio SDK/device/DSP
+ownership, then complete map activation, due-thread HS/source frame phases and
+the campaign frontend/Simulation/player/object bridge. Later cold50/profile and
+broader BSP/frame owners still require full original composition. Preserve all
+weapon/ability/vehicle/projectile/damage/world/objective/animation/render/audio,
+local/split/LAN, all maps/menus/missions and every102-element requirement. Native
+asynchronous resource/worker and MCPX8049/laterAGP40/SDK GPU gaps remain open.
+No whole element, full campaign or full-game completion is inferred.
+
+
+## v406 — native AV transaction and boot-mode export (PROGRESS)
+
+Full goal remains ACTIVE,0/102 accepted whole elements. All159 prior source,
+42 prior executable and13 installed fingerprints were revalidated at turn start.
+The private snapshot adds an explicitly configured native MODE1/2/3 pin resource;
+there is no default AV profile or copied original kernel initialization state.
+Raw electrical levels are grounded in the original Xbox Hardware Design
+Specification1.02 sections2.7.6/2.13.3 and retail PIC register4 documentation.
+The constructor does not name uncertain pre-release pack interpretations.
+Register4 alone is owned. Other registers, AV-change interrupts, physical PIC
+electrical/timing behavior and whole kernel boot remain unproved.
+
+The actual native SMBus controller performs a byte transaction with this device.
+The complete authenticated owned2BL00400418 reader drives its original ports,
+including real collision retry. The independently checked source publication
+rule then creates a named immutable ordinal356 export. A failed/missing device
+cannot publish an initial7 or recorded1. This is an explicit native synchronous
+transport policy, not a claim that the interrupt-driven kernel HalReadSMBusValue
+or complete80054F2D boot parent has executed. Unsupported/foreign/destroyed
+device callbacks and protocol/timeout/abort failures remain mandatory stops.
+
+The image loader can retain both the actual monotonic tick-count import and
+the boot-mode resource. A new world constructor takes that named resource with
+actual UserSettings. The three full campaign fixtures explicitly configure raw
+pins100; the launcher receives no implicit new AV setting. All eight pin inputs
+pass through the actual bus and original byte reader to the read-only import,
+whole original33C29D getter and37DA9A audio helper. Their special mode3/mode6
+source branches execute. The prior592 helper/6240 publication fixtures pass
+again. No new independent original CPU comparison or physical parity is inferred.
+
+Campaign startup now passes its prior unbound356 failure and reaches actual
+38EC8F ->38EC0E from the source SDK/APU initializer. Owned TU1.5 disassembly
+authenticates that31-instruction routine, its five calls, tail and eleven direct
+FE8xxxxx MMIO stores. This is a required native audio-device/DSP/platform owner,
+not evidence of an allocation failure or a successful driver. No zero MMIO bank,
+successful device/callee output, ready flag or captured initialized state is
+supplied. Complete audio SDK/APU/DSP lifetimes/PCM and full map activation remain
+required. The original full kernel/SMC interrupt parent is also not accepted.
+
+Coherent49-target build passes. Main resource/world regression checks are48/51
+in43.81seconds; the three campaign failures are exactly the new38EC8F boundary.
+Six additional historical audio checks were attempted: audio-mode passes, four
+stop before verification because original SDK/device/environment capture inputs
+are absent, and pool-capacity skips for the same missing SDK call capture.
+Those five checks are explicitly unverified, never counted as acceptance. Total
+distinct checks:49 pass,3 native campaign failures,4 missing-fixture failures,
+1 missing-fixture skip. Missing inputs are listed in the progress report.
+
+Current160 source/49 executable/13 installed fingerprints, new AV cases,
+source APU dependency disassembly and both regression logs are retained in
+work/sandbox-primary-v15/smc-av-native-progress-v406.json. The launcher still
+selects r6 SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No candidate was accepted or installed. Root/concurrent work is preserved.
+
+Continue the actual audio SDK/APU/DSP owner, then complete map/new-BSP admission,
+script/full game-frame phases and campaign frontend/Simulation/player/object
+integration. Preserve all menus/maps/missions and the entire102-element
+weapon/ability/vehicle/projectile/damage/world/objective/animation/render/audio,
+local/split/LAN, independent original evidence and launcher delivery scope.
+Historical missing capture inputs are a validation limitation, not permission
+to recreate original state. No whole-element or full-game acceptance is claimed.

@@ -4,6 +4,7 @@
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/source_havok_static_lifetime_tu15.hpp"
 #include "halo2/source_shadow_frame_tu15.hpp"
+#include "halo2/source_cinematic_shadow_control_tu15.hpp"
 #include "halo2/source_effect_light_view_tu15.hpp"
 #include "halo2/source_renderer_request_tu15.hpp"
 #include "halo2/source_renderer_tail_storage_tu15.hpp"
@@ -92,6 +93,10 @@
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <cerrno>
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
 #include <mutex>
 #include <sstream>
 #include <thread>
@@ -105,6 +110,15 @@
 
 namespace halo2 {
 namespace {
+// Image and DSP input buffers have released their allocations. Return only
+// unused native heap pages before constructing the original source arenas.
+void release_unused_loader_memory() noexcept {
+#if defined(__GLIBC__)
+    const auto saved_errno=errno;
+    (void)::malloc_trim(0);
+    errno=saved_errno;
+#endif
+}
 constexpr auto image=SourcePhysicsContactImage::TitleUpdate15;
 constexpr SourcePhysicsFactoryFloatingPoint fp{0x27f,0x1f80};
 constexpr std::uint32_t stack=0x600f0000u,tls=0x60200000u,
@@ -342,6 +356,7 @@ struct PhysicsLiveWorldTu15::Impl {
          pool_storage(bank,0x10000000u),bsp(cache.load_source_runtime_cache_bsp_image(selected)) {
         if(!this->clocks)throw FormatError("TU1.5 world requires local native clock inputs");
         dsp_section=std::make_unique<SourceRuntimeDspSection>(bank,xbe);
+        release_unused_loader_memory();
         bank.mount(0x60000000u,std::vector<std::byte>(0x100000),
             SourceRuntimeMemory::Access::ReadWrite,"native TU1.5 multiplayer main call stack");
         bank.mount(tls,std::vector<std::byte>(0x2000),SourceRuntimeMemory::Access::ReadWrite,
@@ -474,10 +489,10 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x2035b0u); // Literal44B68C row55 constructs recorded animations.
         call_actual(0x1cfa40u); // Actual44B6F8 complete AI storage initializer.
         {
-            const auto tags=cache.load_source_runtime_cache_tag_image();
+            const auto tags=cache.view_source_runtime_cache_tags();
             reserve_map_pages(tags);
             source_bind_runtime_cache_tags_tu15(bank,tags);
-        } // The source bank owns the copied bytes before definition fixups.
+        } // The independent source bank owns its bytes before definition fixups.
         source_bind_runtime_cache_sound_gestalt_tu15(bank);
         // Original1918D9 prepares every resident collision, biped, creature,
         // physical model and vehicle definition. In particular11F02A passes
@@ -573,7 +588,7 @@ struct PhysicsLiveWorldTu15::Impl {
         a=frame({});a.gp[0]=0x455b20u;run_actual(0x2247b0u,a);
         if(!(a.gp[0]&255u))throw FormatError("TU1.5 sound voice storage construction failed");
     }
-    void reserve_map_pages(const SourceRuntimeCacheTagImage &tags) {
+    void reserve_map_pages(const SourceRuntimeCacheTagView &tags) {
         // Native map I/O supplies the literal header. Original125354..1253A2
         // reserves header+1C from the selected physical lower bound before
         // tag publication. Omitting this reservation lets12ECF0 give the map
@@ -1120,6 +1135,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_crt_float_tu15_owns_entry(c.target)) {
             source_run_crt_float_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_cinematic_shadow_control_tu15_owns_entry(c.target)) {
+            source_run_cinematic_shadow_control_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_shadow_frame_tu15_owns_entry(c.target)) {
             source_run_shadow_frame_tu15(m,c.target,a,fp,services(),o);return;

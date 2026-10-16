@@ -214,6 +214,11 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     if(blend_operation!=0x8006)return {};
     if (source == 1 && destination == 1) pass->forward_blend = 3;
     else if (source == 1 && destination == 0x303) pass->forward_blend = 2;
+    // Authored cinematic alpha_detail_masked: constant00FFFFFF multiplies
+    // source RGB by one and source alpha by zero. Mode5 retains that RGBA
+    // contract; ordinary ONE/INV_SRC_ALPHA would add source alpha instead.
+    else if(source==0x8001 && destination==0x303 && blend_color==0x00ffffff && p.state_externs.empty())
+      pass->forward_blend=5;
     else if (source == 0x302 && destination == 0x303) pass->forward_blend = 1;
     else if (source == 0x306 && destination == 0x300) pass->forward_blend = 6;
     else if (source == 0x305 && destination == 0x304) pass->forward_blend = 7;
@@ -481,7 +486,8 @@ bool prepare_dynamic_material(const Cache &cache,Material &material,
   // Chief FP arms' separate captured895/903 draws use this exact pass.
   for(const auto index:layer_passes(material,8,0)) {
     const auto &vertex=material.passes[index].vertex_shader;
-    if(!vertex.ends_with("\\stencil_env_bumped_tangentspace") &&
+    if(!vertex.ends_with("\\stencil_env") &&
+       !vertex.ends_with("\\stencil_env_bumped_tangentspace") &&
        !vertex.ends_with("\\stencil_env_super_fast"))return false;
     auto environment=bind_pass(cache,material,index,4,false,&lighting,volume_textures);
     if(!environment)return false;

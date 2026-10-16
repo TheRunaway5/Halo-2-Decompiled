@@ -66,6 +66,50 @@ int main(int argc,char **argv) {
         // This is a declared finite physics stimulus. Campaign AI/story startup
         // is a separate integration gate; no guessed script result is supplied.
         MultiplayerPreparedWorld world(options,ScriptProgram{});
+        report["starting_weapon_definition"]=world.rules.weapon;
+        const auto starting=world.content.weapons.find(world.rules.weapon);
+        if(world.rules.weapon==null_datum) {
+            if(world.content.starting_weapon!=null_datum)throw FormatError("Source NONE starting equipment was substituted");
+            bool rejected=false;
+            try {MultiplayerMatch native(world.content,bsp,cache.spawns(),world.rules);}
+            catch(const FormatError &e) {
+                if(std::string(e.what())!="Missing multiplayer starting weapon")throw;
+                rejected=true;
+            }
+            if(!rejected)throw FormatError("Native-only authority admitted an unsupported NONE starting weapon");
+            report["native_weapon_admission_preserved"]=true;
+            for(auto slot:world.local_slots) {
+                const auto state=world.match.state();
+                if(state.players[slot].weapon!=null_datum)throw FormatError("Unarmed source birth invented a weapon");
+            }
+        } else if(starting!=world.content.weapons.end() && starting->second.capacity<=0 &&
+            !(starting->second.inventory_flags&(1u<<24)) &&
+            !(starting->second.energy && starting->second.barrel_timing && starting->second.firing_presentation)) {
+            bool rejected=false;
+            try {MultiplayerMatch native(world.content,bsp,cache.spawns(),world.rules);}
+            catch(const FormatError &e) {
+                if(std::string(e.what())!="Starting weapon requires its original trigger/energy owner")throw;
+                rejected=true;
+            }
+            if(!rejected)throw FormatError("Native authority admitted a starting weapon without its trigger/energy owner");
+            report["native_weapon_admission_preserved"]=true;
+        }
+        report["actual_rng_scenery_choices"]=Json::array();
+        for(const auto &live:world.match.simulation().scene().objects()) {
+            if(live.handle==null_datum)continue;
+            const auto &authored=world.content.objects.at(live.placement);
+            if(authored.type!=6)continue;
+            const auto initial=cache.load_initial_model_definition(authored.definition);
+            if(initial.render_model==null_datum || cache.load_initial_model_selection(authored.definition,authored.variant).resolved())continue;
+            const auto actual=world.source_objects->object_model_regions(live.handle);
+            if(!actual.selection.resolved())throw FormatError("Actual source SCEN region bank remained unresolved");
+            const auto tag=cache.query_tag({.handle=TagHandle{authored.definition}});
+            if(!tag)throw FormatError("Actual RNG-selected SCEN lost its authored definition");
+            report["actual_rng_scenery_choices"].push_back({{"source_object",live.placement},
+                {"authored_placement",authored.placement},{"object",live.handle},{"definition",authored.definition},
+                {"name",tag->name},{"variant_index",actual.selection.variant_index},
+                {"permutations",actual.selection.permutations},{"region_state_count",actual.selection.states.size()}});
+        }
         auto &bank=world.source_objects->memory();
         const auto game=Bytes(bank.view(0x4f3218u,4)).u32(0);
         if(Bytes(bank.view(game+8u,4)).u32(0)!=1 || Bytes(bank.view(game+0x132u,2)).u16(0)!=1)
@@ -170,6 +214,20 @@ int main(int argc,char **argv) {
         if(received.source_game_type!=1 || received.source_scene_roots.size()!=expected.source_scene_roots.size() ||
             received.source_body_poses.size()!=expected.source_body_poses.size() || received.world_vehicles.size()!=expected.world_vehicles.size())
             throw FormatError("Campaign UDP admission omitted an original scene/body/vehicle bank");
+        unsigned region_banks{};
+        for(unsigned n=0;n<expected.source_scene_roots.size();++n) {
+            const auto &a=expected.source_scene_roots[n],&b=received.source_scene_roots[n];
+            if(a.object!=b.object || a.model_regions.has_value()!=b.model_regions.has_value())
+                throw FormatError("Campaign UDP lost a source region owner");
+            if(a.model_regions) {
+                const auto &x=*a.model_regions,&y=*b.model_regions;
+                if(x.selection.variant_index!=y.selection.variant_index || x.selection.permutations!=y.selection.permutations ||
+                    x.selection.states!=y.selection.states || x.looping_effects!=y.looping_effects)
+                    throw FormatError("Campaign UDP changed actual source region bytes");
+                ++region_banks;
+            }
+        }
+        report["udp_actual_scene_region_banks"]=region_banks;
         unsigned connected{};
         for(unsigned slot=0;slot<multiplayer_capacity;++slot)if(expected.players[slot].connected) {
             ++connected;const auto &actual=received.players[slot];const auto &wanted=expected.players[slot];
@@ -191,10 +249,25 @@ int main(int argc,char **argv) {
         client.match.replicate_source_scene(received.source_scene_roots,received.source_body_poses);
         client.match.replicate_prop_removals(received.prop_removals);
         client.match.replicate_prop_regions(received.prop_regions);
-        for(const auto &owner:received.source_scene_roots)
-            if(client.match.simulation().scene().get(owner.object).placement!=owner.placement)
-                throw FormatError("Campaign client adopted an authority handle into a different authored placement");
+        for(const auto &owner:received.source_scene_roots) {
+            const auto &adopted=client.match.simulation().scene().get(owner.object);
+            if(adopted.placement!=owner.placement || adopted.source_model_regions.has_value()!=owner.model_regions.has_value())
+                throw FormatError("Campaign client changed an authority placement/region owner");
+            if(owner.model_regions && (adopted.source_model_regions->selection.permutations!=owner.model_regions->selection.permutations ||
+                adopted.source_model_regions->selection.states!=owner.model_regions->selection.states ||
+                adopted.source_model_regions->looping_effects!=owner.model_regions->looping_effects))
+                throw FormatError("Campaign client changed adopted source region bytes");
+        }
         report["client_source_scene_roots_adopted"]=received.source_scene_roots.size();
+        const auto replica_tick=client.match.simulation().ticks();bool replica_rejected=false;
+        try {client.match.step(controls);}
+        catch(const FormatError &e) {
+            if(std::string(e.what())!="Source replica cannot advance a locally invented physical world")throw;
+            replica_rejected=true;
+        }
+        if(!replica_rejected || client.match.simulation().ticks()!=replica_tick)
+            throw FormatError("Joined source replica advanced its own physical world");
+        report["replica_native_step_rejected_without_tick"]=true;
         report["stage"]="shared source player roster and vehicle admitted";report["passed"]=true;
         report["boundary"]="Actual shared prepared-world, original campaign context, two source player records and authored class3 runtime birth. No supplied physical output. Presentation, networking and continued controller frames remain separate gates.";
     } catch(const std::exception &e) {report["error"]=e.what();std::cerr<<e.what()<<'\n';}

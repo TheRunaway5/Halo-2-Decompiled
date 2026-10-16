@@ -324,7 +324,8 @@ public:
                    std::function<std::uint32_t()> result_wall_clock = {},
                    MultiplayerObjectRuntime *source_object_world = nullptr,
                    std::optional<SourceSceneGameContext> game_context = {},
-                   std::function<std::optional<Spawn>(unsigned,bool)> source_spawn_input = {});
+                   std::function<std::optional<Spawn>(unsigned,bool)> source_spawn_input = {},
+                   bool source_replica = false);
   MultiplayerMatch(const MultiplayerMatch &) = delete;
   ~MultiplayerMatch();
   MultiplayerMatch &operator=(const MultiplayerMatch &) = delete;
@@ -514,6 +515,7 @@ private:
   std::uint64_t rumble_serial_{};
   const LevelContent &content_;
   MultiplayerObjectRuntime *source_object_world_{};
+  bool source_replica_{};
   SourceSceneGameContext source_game_context_;
   Simulation simulation_;
   std::vector<Spawn> spawns_;

@@ -21,6 +21,8 @@ struct DiscordSocial::Impl {
   DiscordVoiceBlocks voice_blocks;
   DiscordSocialSnapshot state;
   std::string subject;
+  std::string primary_subject;
+  bool linking{};
   std::string activity_name;
   bool activity_playing{};
   bool using_identity{};
@@ -68,6 +70,8 @@ struct DiscordSocial::Impl {
   }
   void changed() { ++state.revision; }
   void stop() {
+    if(identity && identity->uses_steam())identity->cancel_discord_link();
+    primary_subject.clear();linking=false;
     voice_blocks.reset();
     *alive=false;alive=std::make_shared<bool>(true);++generation;next_handle=0;
     if(party_activity)party_activity->reset();
@@ -290,19 +294,21 @@ void DiscordSocial::enable() {
   if(!p.state.available){p.state.message="Discord Social SDK is unavailable in this build.";p.changed();return;}
   const auto identity=p.identity?p.identity->snapshot().identity:std::nullopt;
   if(!identity){p.state.message="Sign into ONLINE before enabling Discord friends.";p.changed();return;}
-  p.subject=identity->id;p.state.enabled=p.state.connecting=true;
+  p.primary_subject=identity->id;
+  p.subject=p.identity->uses_steam()?std::string{}:identity->id;p.state.enabled=p.state.connecting=true;
 #ifdef HALO2_DISCORD_SOCIAL_SDK
   if(const auto token=p.identity->social_authorization()) {
     p.using_identity=true;p.state.message="Connecting Discord friends...";p.changed();p.connect(*token);return;
   }
 #endif
-  p.state.message="Approve Discord friends access in your browser.";p.changed();p.consent.start();
+  p.state.message=p.identity->uses_steam()?"Approve Discord friends access to link this Discord account to Steam.":"Approve Discord friends access in your browser.";
+  p.changed();p.consent.start();
 }
 void DiscordSocial::pump() {
   auto &p=*impl_;
   if(!p.state.enabled)return;
   const auto identity=p.identity?p.identity->snapshot().identity:std::nullopt;
-  if(!identity || identity->id!=p.subject){p.stop();return;}
+  if(!identity || identity->id!=p.primary_subject){p.stop();return;}
 #ifdef HALO2_DISCORD_SOCIAL_SDK
   if(p.using_identity) {discordpp::RunCallbacks();p.refresh();p.pump_activity();return;}
 #endif
@@ -311,6 +317,17 @@ void DiscordSocial::pump() {
     const auto message=consent.message.empty()?"Discord friends authorization expired. Reconnect to try again.":consent.message;
     p.stop();p.state.message=message;p.changed();
     return;
+  }
+  if(consent.identity && p.identity->uses_steam()) {
+    if(!p.linking) {
+      const auto token=p.consent.authorization();
+      if(!token || !p.identity->link_discord(*token))return;
+      p.linking=true;p.state.message="Linking Discord to your Steam account...";p.changed();return;
+    }
+    const auto link=p.identity->discord_link();
+    if(link.pending)return;
+    if(!link.linked){const auto message=link.message;p.stop();p.state.message=message;p.changed();return;}
+    p.subject=consent.identity->id;
   }
   if(consent.identity && consent.identity->id!=p.subject) {
     p.stop();p.state.message="Use the same Discord account as your ONLINE identity.";p.changed();return;

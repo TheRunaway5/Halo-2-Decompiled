@@ -24,6 +24,9 @@ void run() {
     const auto local=client.scene().resolve(0);
     SourceSceneRoot root{0xe410002au,c.objects[0].definition,0,Transform{},true,true};
     root.created_tick=37;
+    SourceInitialModelSelection region;region.variant_index=1;
+    region.permutations={1};region.states={{0,2,3}};
+    root.model_regions=source_model_region_bank(region);
     root.transform.position={10,20,30};
     SourceWorldPose pose{root.object,{root.transform},{{10,20,30},1}};
     // A late joiner does not allocate the authority's generations locally.
@@ -34,6 +37,8 @@ void run() {
     check(client.scene().resolve(1)==null_datum,"Complete snapshot omission retained a local placement");
     const auto &adopted=client.scene().get(root.object);
     check(adopted.created_tick==37,"Late join replaced the authority's creation tick");
+    check(adopted.source_model_regions && adopted.source_model_regions->selection.permutations==region.permutations,
+        "Late join lost actual source region choices");
     check(adopted.solved_transform && adopted.solved_nodes &&
         !std::memcmp(&*adopted.solved_transform,&root.transform,sizeof(Transform)) &&
         !std::memcmp(adopted.solved_nodes->data(),pose.nodes.data(),sizeof(Transform)),
@@ -41,12 +46,24 @@ void run() {
     SceneInterpolation history;history.reset(100,client.scene().objects());
     const auto old=root.object;root.object+=0x10000u;pose.object=root.object;
     root.created_tick=101;
+    root.model_regions->selection.permutations[0]=0;
     root.transform.position.x=100;pose.nodes[0]=root.transform;
     client.replicate_source_scene(std::span(&root,1),std::span(&pose,1));
     history.capture(101,client.scene().objects());
     rejects([&]{client.scene().get(old);},"Recreation retained its old full generation");
     check(history.sample(client.scene().get(root.object),0).position.x==100,
         "Replica interpolated a recreated object from its retired generation");
+    check(client.scene().get(root.object).source_model_regions->selection.permutations[0]==0,
+        "Recreated source owner inherited retired region choices");
+    auto malformed=root;malformed.model_regions->selection.states.clear();
+    rejects([&]{client.replicate_source_scene(std::span(&malformed,1),std::span(&pose,1));},
+        "Replica accepted incomplete source regions");
+    check(client.scene().get(root.object).source_model_regions->selection.permutations[0]==0,
+        "Rejected regions partially replaced a live owner");
+    auto absent=root;absent.model_regions.reset();
+    client.replicate_source_scene(std::span(&absent,1),std::span(&pose,1));
+    check(!client.scene().get(root.object).source_model_regions,"Absent regions retained stale choices");
+    client.replicate_source_scene(std::span(&root,1),std::span(&pose,1));
     auto invalid=root;invalid.definition^=1;
     rejects([&]{client.replicate_source_scene(std::span(&invalid,1),std::span(&pose,1));},
         "Replica accepted the wrong authored definition");

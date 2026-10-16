@@ -35,7 +35,7 @@ close requirements that still need integration or physical validation.
 
 | Area | Required final behavior | Current acceptance boundary |
 |---|---|---|
-| Identity | Discord login required for persistent ONLINE identity; hide account IDs; preserve chosen Halo screen names | Existing implementation; retain in every new transport, invite and result path |
+| Identity | Steam primary login; private account IDs and chosen Halo screen names; preserve existing Discord accounts/history through verified linking | Migration requested on 2026-10-16; Steam browser proof and native/backend integration require acceptance |
 | Native navigation | Quickmatch, Optimatch and Playlists launch real admitted online games; server browser joins community servers | Match launch exists; community server joining remains outstanding |
 | UI | ONLINE capitalization; high-resolution Vista assets/fonts throughout ONLINE and clans; readable screens without the obstructing Halo 2 logo; correct real clan-screen dimensions and widescreen bounds | Existing UI work must be retained and checked in delivered builds |
 | Social | Complete Discord friends/presence, native invitations, accepted parties and correct launch/return behavior | Existing SDK/native flows require regression and remaining live checks |
@@ -112,3 +112,18 @@ The new `match_result_consensus` table was empty. The delivery evidence is
 [verification.json](/home/eric/Developer/Halo-2-Decompiled/.local/direct-peer-20261013/verification.json).
 This closes the bounded direct-transport delivery stage, not the full goal or
 gameplay host migration.
+
+## Current identity and hostname directive, 2026-10-16
+
+The user now requests Steam as the primary ONLINE login, using the existing
+`STEAM_KEY` repository secret in `TheRunaway5/Halo-2-PC-Website`, and the game
+service at `https://master.halo2forever.net`. This supersedes the earlier
+required-Discord-login decision. Steam IDs remain private; chosen Halo screen
+names and four local seats remain supported. Existing Discord accounts, clans
+and history must be preserved, with explicit dual-identity proof for linking;
+matching display names must never merge accounts. Discord social consent may
+remain optional for its friends/invites. Guests without their own verified
+identity continue to be excluded from persistent personal PCR publication.
+The website apex remains on GitHub Pages. All other requirements and gates in
+this goal remain in force. The migration is not accepted until the native
+login/queue/social/result paths and deployed backend are verified.

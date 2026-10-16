@@ -30,8 +30,9 @@ void MenuState::populate_online_couch(MenuFrame &f) const {
   const auto login=local_discord_logins_[controller];
   const auto status=login?login->snapshot().status:DiscordLoginStatus::SignedOut;
   const bool busy=status==DiscordLoginStatus::Waiting || status==DiscordLoginStatus::Verifying;
-  f.entries={{busy?"Cancel Discord Sign-In":"Play as Guest",-80,0}};
-  if(!busy)f.entries.push_back({login && login->authorization()?"Continue with Discord":"Sign in with Discord",-80,1});
+  const std::string provider=discord_login_ && discord_login_->uses_steam()?"Steam":"Discord";
+  f.entries={{busy?"Cancel "+provider+" Sign-In":"Play as Guest",-80,0}};
+  if(!busy)f.entries.push_back({login && login->authorization()?"Continue with "+provider:"Sign in with "+provider,-80,1});
   f.entries.push_back({"Remove Local Player",-80,2});
 }
 std::string MenuState::online_couch_text(const MenuFrame &,unsigned i) const {
@@ -42,8 +43,8 @@ std::string MenuState::online_couch_text(const MenuFrame &,unsigned i) const {
   if(login) {
     const auto status=login->snapshot();
     if(status.status==DiscordLoginStatus::Waiting || status.status==DiscordLoginStatus::Verifying)
-      return "Finish Discord in your browser.";
-    if(login->authorization())return "Discord linked; stats saved.";
+      return login->uses_steam()?"Finish Steam in your browser.":"Finish Discord in your browser.";
+    if(login->authorization())return login->uses_steam()?"Steam linked; stats saved.":"Discord linked; stats saved.";
     if(status.status==DiscordLoginStatus::Failed)return "Sign-in failed. Try again.";
   }
   return "Casual only; stats not saved.";
@@ -68,14 +69,14 @@ bool MenuState::accept_online_couch() {
   }
   if(action==2) {back();leave_local_controller(controller);return true;}
   if(login && login->authorization()){back();return true;}
-  if(!local_discord_factory_) {unavailable("Discord sign-in is unavailable for this local player.");return true;}
+  if(!local_discord_factory_) {unavailable("Account sign-in is unavailable for this local player.");return true;}
   const auto pending=[](const auto &login) {
     if(!login)return false;
     const auto s=login->snapshot().status;
     return s==DiscordLoginStatus::Waiting || s==DiscordLoginStatus::Verifying;
   };
   if(pending(discord_login_) || std::any_of(local_discord_logins_.begin(),local_discord_logins_.end(),pending)) {
-    unavailable("Finish the current Discord sign-in first.");return true;
+    unavailable("Finish the current account sign-in first.");return true;
   }
   if(!login)login=local_discord_factory_();
   login->start();++revision;return true;

@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-BUNDLE = ROOT / 'analysis/pstencil/live-v4'
+BUNDLE = ROOT / 'analysis/pstencil/live-v10'
 
 
 def verify(path, expected):

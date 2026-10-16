@@ -52,6 +52,27 @@ def main():
         entries.add(0x1c9c90)
         descriptor_entries.append(dict(table=0x47b478,index=130,descriptor=0x48b770,
             callback_offset=0x10,indirect_call=0x1b0195,entry=0x1c9c90))
+    # Kind0 selector row48 is reached by actual1B0128. Its+10 member
+    # receives both original arguments; neighboring bytes are not callbacks.
+    if 0x1b0020 in entries:
+        assert image.read(0x47b478+48*4,4)==struct.pack('<I',0x48af80)
+        assert image.read(0x47b478+87*4,4)==struct.pack('<I',0x48af94)
+        assert image.read(0x48af80,0x14).hex()=='3000000000000000feffffff0000000000fe1b00'
+        assert image.read(0x1b011b,5).hex()=='66837f0200'
+        assert image.read(0x1b0126,5).hex()=='5153ff5710'
+        entries.add(0x1bfe00)
+        descriptor_entries.append(dict(table=0x47b478,index=48,descriptor=0x48af80,
+            descriptor_kind=0,callback_offset=0x10,indirect_call=0x1b0128,entry=0x1bfe00))
+    # The actual 1B0128 selector call reaches row51's +10 member.
+    # Keep its RET8 ABI and complete conditional paths inside this module.
+    if 0x1b0020 in entries:
+        assert image.read(0x47b478+51*4,4)==struct.pack('<I',0x48af58)
+        assert image.read(0x48af58,0x14).hex()=='33000000ff070000feffffff00000000e0fc1b00'
+        assert image.read(0x1b011b,5).hex()=='66837f0200'
+        assert image.read(0x1b0126,5).hex()=='5153ff5710'
+        entries.add(0x1bfce0)
+        descriptor_entries.append(dict(table=0x47b478,index=51,descriptor=0x48af58,
+            descriptor_kind=0,callback_offset=0x10,indirect_call=0x1b0128,entry=0x1bfce0))
     # A tail jump does not enter a CALL hook and the older function inventory
     # omits some real entries. Recover only actual reached tail owners, while
     # retaining every complete routine's untaken branches as required calls.

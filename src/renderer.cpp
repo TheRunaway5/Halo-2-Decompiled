@@ -36,6 +36,10 @@
 #include "halo2/source_shadow_render.hpp"
 #include "halo2/pstencil/frame.hpp"
 #include "halo2/pstencil/environment.hpp"
+#include "halo2/pstencil/adaptation.hpp"
+#include "halo2/pstencil/detail.hpp"
+#include "halo2/pstencil/lighting.hpp"
+#include "halo2/pstencil/specular_mask.hpp"
 #include "halo2/source_shadow_draw_storage.hpp"
 #include "resident_draw_storage.hpp"
 #include "halo2/mainmenu_world_source.hpp"
@@ -589,6 +593,9 @@ struct Renderer::Impl {
     using MaterialUniform=WorldMaterialUniform;
     std::vector<MaterialUniform> material_uniforms;
     std::vector<bool> pstencil_environment_materials;
+    std::vector<std::optional<unsigned>> pstencil_neutral_detail_stages;
+    std::vector<bool> pstencil_combined_environment_strengths,pstencil_polished_armor;
+    std::vector<const pstencil::EnvironmentParameters*> pstencil_environment_parameters;
     std::vector<std::uint32_t> material_blend_colors;
     // Pixel remaps address fragments before the assembled combiner stages.
     // These CPU offsets are part of the active program, beyond its GPU words.
@@ -1804,6 +1811,9 @@ struct Renderer::Impl {
         vertex_bank_stride=(sizeof(VertexBankUniform)+alignment-1)/alignment*alignment;
         material_uniforms.resize(count);
         pstencil_environment_materials.resize(count);
+        pstencil_neutral_detail_stages.resize(count);
+        pstencil_combined_environment_strengths.resize(count);pstencil_polished_armor.resize(count);
+        pstencil_environment_parameters.resize(count);
         material_blend_colors.resize(count);
         vertex_bank_uniforms.resize(count);
         material_pending.resize(count);vertex_bank_pending.resize(count);
@@ -1828,6 +1838,11 @@ struct Renderer::Impl {
         for(std::size_t i=0;i<count;++i) {
             const auto& material=*materials[i];
             pstencil_environment_materials[i]=pstencil::supports_environment_response(material);
+            pstencil_neutral_detail_stages[i]=pstencil::reference_neutral_detail_stage(material);
+            pstencil_combined_environment_strengths[i]=pstencil::supports_combined_environment_strength(material);
+            pstencil_polished_armor[i]=pstencil::arbiter_metal(material.name);
+            if(pstencil_environment_materials[i] || pstencil_combined_environment_strengths[i])
+                pstencil_environment_parameters[i]=pstencil::reference_environment_parameters(material.name);
             material_blend_colors[i]=material.forward_blend_color;
             material_forward_states[i]=material.forward_raster;
             accumulation_materials[i]=material.accumulation_texture;
@@ -1869,6 +1884,7 @@ struct Renderer::Impl {
                 // which channels have been signed before texture filtering.
                 uniform.texture_effects[stage]={state.alpha_kill,
                     (stage==0 && material.accumulation_texture?1u:0u)|((state.color_sign>>28)<<1),stage_textures[stage]->depth?1u:0u,state.key_color};
+                if(stage==0 && pstencil::texture_masked_specular_material(material))uniform.texture_effects[stage][1]|=32u;
             }
             const auto &pixel_program=material.forward_pass?material.forward_program:material.lightmap_program;
             material_fragment_offsets[i]=pixel_program.fragment_offsets;
@@ -4806,8 +4822,21 @@ struct Renderer::Impl {
                 std::copy(water.constants.begin(),water.constants.end(),uniform.vertex_constants.begin()+3);
                 uniform.bump_matrices=water.bump_matrices;
             }
-            if(display.graphics_mode==pstencil::GraphicsMode::pStencil && pstencil_environment_materials[m])
-                uniform.program=pstencil::adapt_environment_response({uniform.program,material_fragment_offsets[m]}).words;
+            if(display.graphics_mode==pstencil::GraphicsMode::pStencil && pstencil_neutral_detail_stages[m])
+                uniform.program=pstencil::neutral_detail_response(
+                    {uniform.program,material_fragment_offsets[m]},*pstencil_neutral_detail_stages[m]).words;
+            if(display.graphics_mode==pstencil::GraphicsMode::pStencil && pstencil_environment_materials[m]) {
+                auto response=pstencil::adapt_environment_response({uniform.program,material_fragment_offsets[m]});
+                if(const auto *reference=pstencil_environment_parameters[m]) {
+                    pstencil::apply_reference_environment(*reference,response,uniform.vertex_attributes);
+                    uniform.diffuse=reference->facing;uniform.specular=reference->glancing;
+                }
+                uniform.program=response.words;
+            } else if(display.graphics_mode==pstencil::GraphicsMode::pStencil && pstencil_combined_environment_strengths[m]) {
+                PixelProgram response{uniform.program,material_fragment_offsets[m]};
+                pstencil::adapt_combined_environment_strength(response,pstencil_environment_parameters[m],pstencil_polished_armor[m]);
+                uniform.program=response.words;
+            }
             admit_combiner(m,uniform);
             return uniform;
         };
@@ -5230,6 +5259,7 @@ struct Renderer::Impl {
                     light_uniforms[upload]};
                 input.fragment_offsets=draw.program.fragment_offsets;
                 input.forward=material_forward_states.at(slot);input.forward_blend=10;
+                if(pstencil_enabled)input.forward=pstencil::light_accumulation_state(input.forward);
                 input.texture_states=stage_sampler_states.at(slot);
                 input.sampler_limits={enabled.maximum_lod_bias,enabled.maximum_anisotropy,
                     enabled.anisotropy_enabled,enabled.custom_border_colors_enabled};

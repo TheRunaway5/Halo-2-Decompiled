@@ -21,7 +21,8 @@ class VoiceBlocks:
 
     def subject(self, who):
         if who not in self.subjects:
-            row = self.db.execute("SELECT subject FROM players WHERE id=? AND provider='discord'", (who,)).fetchone()
+            row = self.db.execute("SELECT subject FROM players WHERE id=? AND provider='discord' UNION ALL "
+                                  "SELECT subject FROM player_identities WHERE player=? AND provider='discord' LIMIT 1", (who, who)).fetchone()
             if row is not None:
                 self.subjects[who] = row[0]
             return row[0] if row else None
@@ -29,8 +30,8 @@ class VoiceBlocks:
 
     def allowed(self, a, b):
         sa, sb = self.subject(a), self.subject(b)
-        return (sa is not None and sb is not None
-                and sb not in self.blocks.get(a, ()) and sa not in self.blocks.get(b, ()))
+        known = all(self.db.execute("SELECT 1 FROM players WHERE id=?", (who,)).fetchone() for who in (a, b))
+        return (known and sb not in self.blocks.get(a, ()) and sa not in self.blocks.get(b, ()))
 
     async def update(self, request):
         body = await self.directory.body(request, limit=48 * 1024)
@@ -41,12 +42,15 @@ class VoiceBlocks:
                 "Invalid voice block list")
         require(len(set(rows)) == len(rows), "Invalid voice block list")
         provider, subject = await self.directory.owner(request)
-        require(provider == "discord", "Discord identity required", 403)
-        row = self.db.execute("SELECT id FROM players WHERE provider=? AND subject=?", (provider, subject)).fetchone()
+        require(provider in ("discord", "steam"), "Account identity required", 403)
+        row = self.db.execute("SELECT id FROM players WHERE provider=? AND subject=? UNION ALL "
+                              "SELECT player FROM player_identities WHERE provider=? AND subject=? LIMIT 1",
+                              (provider, subject, provider, subject)).fetchone()
         require(row is not None, "Connect to ONLINE before syncing voice preferences", 409)
         who = row[0]
         # No await between the authenticated replacement and relay notification.
-        values = set(rows) - {subject}
+        discord_subject = subject if provider == "discord" else self.subject(who)
+        values = set(rows) - {discord_subject}
         total = self.db.execute("SELECT count(*) FROM voice_blocks").fetchone()[0]
         require(total - len(self.blocks.get(who, ())) + len(values) <= 100000,
                 "Voice preference capacity reached", 503)
@@ -54,6 +58,7 @@ class VoiceBlocks:
             self.db.execute("DELETE FROM voice_blocks WHERE player=?", (who,))
             self.db.executemany("INSERT INTO voice_blocks VALUES(?,?)", ((who, s) for s in values))
         self.blocks[who] = values
-        self.subjects[who] = subject
+        if discord_subject is not None:
+            self.subjects[who] = discord_subject
         # Constant response: unknown targets must not become an account lookup.
         return web.json_response({"state": "updated"})

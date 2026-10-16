@@ -24,3 +24,15 @@ target_link_libraries(campaign_multiplayer_acceptance_tu15 PRIVATE
 target_compile_definitions(campaign_multiplayer_acceptance_tu15 PRIVATE
     HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
 add_dependencies(campaign_multiplayer_acceptance_tu15 halo2_shaders)
+
+add_executable(campaign_cinematic_material_tu15_tests EXCLUDE_FROM_ALL
+    tests/campaign_cinematic_material_tu15_tests.cpp)
+target_link_libraries(campaign_cinematic_material_tu15_tests PRIVATE halo2_cache)
+
+add_executable(campaign_water_material_tu15_tests EXCLUDE_FROM_ALL
+    tests/campaign_water_material_tu15_tests.cpp)
+target_link_libraries(campaign_water_material_tu15_tests PRIVATE halo2_cache)
+
+add_executable(campaign_scenery_regions_tu15_tests EXCLUDE_FROM_ALL
+    tests/campaign_scenery_regions_tu15_tests.cpp)
+target_link_libraries(campaign_scenery_regions_tu15_tests PRIVATE halo2_renderer)

@@ -261,7 +261,15 @@ void SceneObjects::destroy(std::uint32_t handle) {
     // Snapshot omission/removal retires presentation only.
   }else if(source_owner_.destroy) {
     source_owner_.destroy(handle);
-    lifetime_owner().observe_source_retirement(handle);
+    // Actual BA490 also retires attached children. Publish every retired
+    // scene identity before the next command in this same script phase can
+    // resolve a child's name. The source pool owns all deletion decisions.
+    if(!lifetime_owner().header(handle).empty())
+      throw FormatError("Source scene deletion retained its requested identity");
+    for(const auto &object:objects_)
+      if(object.handle!=null_datum && lifetime_owner().header(object.handle).empty())
+        observe_source_retirement(object.handle);
+    return;
   }else lifetime_owner().release(handle);
   slots_.erase(handle);
   const auto name = content_.objects[o.placement].name;

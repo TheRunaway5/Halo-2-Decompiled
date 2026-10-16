@@ -120,10 +120,10 @@ void native(const char *xbe,const char *map) {
     a.configure_session(variant,1,30,0x12345678);b.configure_session(variant,1,30,0x12345678);
     NativeObjectLifetimes al(a.memory(),a.object_pool()),bl(b.memory(),b.object_pool());
     SceneObjects *ap=nullptr,*bp=nullptr;unsigned abirth=0,bbirth=0,adeath=0,bdeath=0;bool fail_birth=false;
-    SceneObjects source(first,0,SourceSceneGameContext{2,variant_type}, {},&al,{[&](const auto &p){++abirth;rejects([&]{ap->authority_checkpoint();});
+    SceneObjects source(first,0,SourceSceneGameContext{2,variant_type}, {},&al,{[&](const auto &p,SourceScenarioBirth){++abirth;rejects([&]{ap->authority_checkpoint();});
         const auto result=a.create_biped(p.definition,p.position,{1,0,0});if(fail_birth)throw FormatError("Declared outer callback interruption");return result;},
         [&](auto h){++adeath;rejects([&]{ap->authority_checkpoint();});a.destroy_object(h);}});
-    SceneObjects target(second,0,SourceSceneGameContext{2,variant_type}, {},&bl,{[&](const auto &p){++bbirth;rejects([&]{bp->authority_checkpoint();});return b.create_biped(p.definition,p.position,{1,0,0});},
+    SceneObjects target(second,0,SourceSceneGameContext{2,variant_type}, {},&bl,{[&](const auto &p,SourceScenarioBirth){++bbirth;rejects([&]{bp->authority_checkpoint();});return b.create_biped(p.definition,p.position,{1,0,0});},
         [&](auto h){++bdeath;rejects([&]{bp->authority_checkpoint();});b.destroy_object(h);}});ap=&source;bp=&target;
     auto &am=a.memory(),&bm=b.memory();
     auto handle=source.create_placement(0,19);check(handle!=null_datum,"Actual source biped birth failed");

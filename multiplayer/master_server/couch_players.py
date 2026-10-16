@@ -46,22 +46,26 @@ async def verify_local_players(directory, body, primary):
     require(type(rows) is list and len(rows) <= 3, "ONLINE supports at most four local players")
     require(not rows or body["compatibility"] in NATIVE_COUCH,
             "Update Halo 2 for ONLINE split-screen", 409)
-    owners, result = {primary}, []
+    def canonical(owner):
+        row = directory.store.db.execute("SELECT player FROM player_identities WHERE provider=? AND subject=?", owner).fetchone()
+        return ("player", row[0]) if row else owner
+    owners, result = {canonical(primary)}, []
     for row in rows:
-        fields(row, ("screen_name",), ("discord_token",))
+        fields(row, ("screen_name",), ("discord_token", "identity_token"))
         name = screen_name(row["screen_name"])
         owner, username = None, ""
-        if "discord_token" in row:
-            token = text(row["discord_token"], maximum=2048)
-            verified = await directory.verify_owner(directory.session, token, directory.settings.discord_client_id)
+        require(not ("discord_token" in row and "identity_token" in row), "Supply one identity proof per couch player")
+        if "discord_token" in row or "identity_token" in row:
+            token = text(row.get("identity_token", row.get("discord_token")), maximum=2048)
+            verified = await directory.verify_identity(token)
             if isinstance(verified, VerifiedOwner):
                 owner, username = (verified.provider, verified.subject), verified.username
             else:
                 owner = tuple(verified)
-            require(len(owner) == 2 and owner[0] == "discord", "Discord identity required", 401)
-            require(owner not in owners, "Each signed-in couch player needs a different Discord account")
+            require(len(owner) == 2 and owner[0] in ("discord", "steam"), "Verified account identity required", 401)
+            require(canonical(owner) not in owners, "Each signed-in couch player needs a different account")
             directory.rate("owner-id:" + ":".join(owner), 20)
-            owners.add(owner)
+            owners.add(canonical(owner))
         result.append((name, owner, username))
     return result
 

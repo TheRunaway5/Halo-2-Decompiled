@@ -27,6 +27,7 @@ bool MenuState::online_friends_screen(const MenuFrame &f) const {
 void MenuState::populate_online_friends(MenuFrame &f) const {
   f.title=f.screen==26?"ONLINE":f.screen==31?"FRIEND OPTIONS":"FRIENDS OPTIONS";
   f.description=friends_.message;
+  const std::string enable=discord_login_ && discord_login_->uses_steam()?"Link Discord Friends":"Enable Discord Friends";
   if(f.screen==31 && f.context==activity_context) {
     f.title="GAME INVITATION";
     const auto it=std::find_if(friends_.invitations.begin(),friends_.invitations.end(),[&](const auto &i){return i.handle==activity_target_;});
@@ -39,7 +40,7 @@ void MenuState::populate_online_friends(MenuFrame &f) const {
   }
   if(f.screen==26) {
     if(!friends_.available)f.entries={{"Discord Friends unavailable",-35,0}};
-    else if(!friends_.enabled)f.entries={{"Enable Discord Friends",-35,1}};
+    else if(!friends_.enabled)f.entries={{enable,-35,1}};
     else if(!friends_.ready)f.entries={{friends_.connecting?"Connecting Discord Friends...":"Reconnect Discord Friends",-35,friends_.connecting?0:1}};
     else {
       for(unsigned i=0;i<friends_.invitations.size();++i)
@@ -55,7 +56,7 @@ void MenuState::populate_online_friends(MenuFrame &f) const {
       if(f.entries.empty())f.entries={{"No Discord friends",-35,0}};
     }
   } else if(f.screen==216) {
-    if(friends_.available)f.entries.push_back({friends_.enabled?"Reconnect Discord Friends":"Enable Discord Friends",-35,1});
+    if(friends_.available)f.entries.push_back({friends_.enabled?"Reconnect Discord Friends":enable,-35,1});
     if(friends_.enabled)f.entries.push_back({"Disconnect Discord Friends",-35,2});
     f.entries.push_back({"Party Members",26,2});
     f.entries.push_back({"Back",-5,0});

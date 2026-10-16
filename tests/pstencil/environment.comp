@@ -7,7 +7,11 @@ layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
 layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 pixels[];};
 Material material;
 #include "combiner.glsl"
+#include "pstencil/specular_mask.glsl"
 void main() {
     uint n=gl_GlobalInvocationID.x;material=fixtures[n].material;
     pixels[n]=runCombiners(fixtures[n].samples,fixtures[n].facing,fixtures[n].glancing);
+    // This fixture-only tag selects the separate post-combiner mask adapter.
+    if((material.program[14].w&0x80000000u)!=0u)
+        pixels[n]=pstencilSpecularMask(pixels[n],fixtures[n].samples[0].a);
 }

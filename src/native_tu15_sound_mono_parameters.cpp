@@ -14,17 +14,20 @@ constexpr double db_exponent=std::bit_cast<double>(UINT64_C(0x3f9999999999999a))
 void control(std::uint16_t value){asm volatile("fldcw %0"::"m"(value):"memory");}
 std::uint16_t control(){std::uint16_t value;asm volatile("fnstcw %0":"=m"(value));return value;}
 struct Environment {
-    std::fenv_t saved;
+    // REX.W keeps the native64 x87 instruction/data pointers intact.
+    alignas(16) std::array<unsigned char,512> saved{};
     explicit Environment(FpMode mode){
         if(mode!=FpMode::source_pretable_53&&mode!=FpMode::double_53&&mode!=FpMode::extended_64)throw std::invalid_argument("Unproved parameter-conversion FP mode");
-        alignas(16) std::array<unsigned char,32> x87_environment{};
-        asm volatile("fnstenv %0; fldenv %0":"=m"(x87_environment)::"memory");
-        std::uint16_t tags;std::memcpy(&tags,x87_environment.data()+8,sizeof(tags));
-        if(tags!=0xffff)throw std::invalid_argument("Parameter conversion requires an empty incoming x87 stack");
-        if(std::fegetenv(&saved)!=0)throw std::runtime_error("Cannot retain native FP environment");
+        asm volatile("fxsave64 %0":"=m"(saved)::"memory");
+        if(saved[4]!=0)throw std::invalid_argument("Parameter conversion requires an empty incoming x87 stack");
         asm volatile("fnclex");control(static_cast<std::uint16_t>(mode));_mm_setcsr(0x1f80);
     }
-    ~Environment(){std::fesetenv(&saved);}
+    ~Environment(){
+        asm volatile("fxrstor64 %0"::"m"(saved):"memory",
+            "st","st(1)","st(2)","st(3)","st(4)","st(5)","st(6)","st(7)",
+            "xmm0","xmm1","xmm2","xmm3","xmm4","xmm5","xmm6","xmm7",
+            "xmm8","xmm9","xmm10","xmm11","xmm12","xmm13","xmm14","xmm15");
+    }
 };
 long double round_integer(long double x){long double y;asm volatile("fldt %1; frndint; fstpt %0":"=m"(y):"m"(x):"st");return y;}
 long double add(long double x,long double y){long double z;asm volatile("fldt %2; fldt %1; fadd %%st(1),%%st; fstpt %0; fstp %%st(0)":"=m"(z):"m"(x),"m"(y):"st","st(1)");return z;}

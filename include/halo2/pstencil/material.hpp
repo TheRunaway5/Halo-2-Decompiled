@@ -7,7 +7,8 @@
 namespace halo2::pstencil {
 // The 2003 dependent-light stage includes specular, and its environment
 // stage retains separate facing/grazing reflection inputs. Current assets
-// supply their authored shader-template bindings; no shininess is invented.
+// supply their authored shader-template bindings. Later-asset art adaptations
+// are explicitly scoped in adaptation.hpp.
 std::optional<Material> bind_light_pass(const Cache&,const Material&,unsigned,
     const EffectLightUniforms&);
 class MaterialBank {

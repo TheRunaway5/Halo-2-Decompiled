@@ -2,5 +2,5 @@
 
 namespace halo2 {
 // Used only when the operator has not supplied an environment override.
-inline constexpr char default_online_origin[] = "https://master.halotoforever.com";
+inline constexpr char default_online_origin[] = "https://master.halo2forever.net";
 } // namespace halo2

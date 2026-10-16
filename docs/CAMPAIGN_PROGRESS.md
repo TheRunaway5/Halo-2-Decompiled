@@ -34,9 +34,17 @@ unchanged original x86 execution on hardware matches the port in the first two
 cases. All 444 original-hardware cases now qualify the complete non-FP ABI and
 final banks, with measured FP status replacing only the emulator's status
 fields in a fresh golden. That controller passes independent aggregate RSS
-accounting at 40,640 KiB with zero swap. Full native comparison remains pending.
-The next 47-instruction selector generates without changing prior routines but
-is not activated. Full campaign integration remains open.
+accounting at 40,640 KiB with zero swap. The complete native comparison now
+passes all 444 cases at 49,217,536 bytes conservative aggregate RSS with zero
+swap. Its full raw ledger separately authenticates 9,420 store-observer
+snapshots while retaining all 30,444 original CPU reads and every original
+assertion. The qualified selector is applied to the root generator/module,
+preserving all 679 prior C++ definitions and their order. The next 47-instruction
+selector also passes all 702 original/hardware/native cases against the complete
+coherent engine, retaining all 21,978 original CPU reads, 5,766 stores and complete
+final banks. It is applied to the root generator/module without changing the
+680 preceding bodies; root now has 681 C++ definitions. Full campaign integration
+remains open.
 The 432-case 1C9C90 regression is registered in CTest with an exact compressed
 original fixture and passes against the coherent private engine under the same
 serial memory guard. The root test target has not yet been configured or built.
@@ -45,14 +53,57 @@ make total process residency exceed the earlier cgroup measurements. The owned
 cold-query experiment was stopped; total-residency compliance is unproven for
 that engine fixture. Subsequent original/hardware reference recovery passes
 both cgroup and independent aggregate RSS checks, restoring six exact missing
-historical banks. A private headless dependency reduction is being prepared.
-The
+historical banks. A private headless dependency reduction and independently
+calibrated phase-aware RSS observer still find a real 69,300,224-byte query
+footprint during construction. The borrowed tag-image change now passes 32
+serial before/after checks across all 15 maps, including exact bytes/publication,
+17 admission cases and five alias rejections. Cairo's measured duplicate heap
+allocation decreases by 8,138,848 bytes. Five narrow root changes and current-root
+loader/binder/world syntax checks pass. The coherent private engine now rebuilds
+all 584 affected header consumers, four targets and three sealed fixtures,
+retaining all 636 original AI definitions and source/dependency proofs. The
+serialization translation unit exceeds its 1 GiB build group; its unchanged
+recipe passes in the existing isolated 2 GiB build allowance, with zero swap.
+The remaining build and fresh headless query link pass under 1 GiB. The actual
+query rerun still fails the independent RAM gate during world construction:
+75,702,272 bytes conservative aggregate RSS, before the intended gameplay
+assertions. Constructor phase diagnostics locate that first failure in resource
+authentication, before executable-image loading. Bounded SHA256 updates and
+content-preserving page reclamation now pass complete Cairo/shared-file hashes,
+dirty private-page, anonymous/owned-buffer and boundary checks under strict RAM
+accounting; the one-file loader change is applied to root. The actual query now
+passes resource, executable-image, BSP and DSP loading, then reaches a later
+constructor memory failure at 68,194,304 aggregate RSS bytes. Ownership-group
+diagnostics identify tag delivery as a later peak: 79,659,008 aggregate RSS bytes
+as source pages and the independent destination become resident. A private
+probe returns unused allocator pages after executable/DSP loading and now
+passes the complete query's RAM check at 59,883,520 bytes with zero swap. World
+and Simulation construction, NONE getters and all five noncreating placements
+pass; counted placement reaches the next missing original AI owner,
+1B0128 -> 1B7240, before actor-birth/getter completion. The clean build without
+constructor markers also passes RAM at 59,621,376 aggregate RSS bytes in 106.147
+seconds, with zero swap and the same original owner gap. The heap hint is now
+applied to root through three narrow changes, preserving the current source
+and passing root-world syntax checks. The generic
+memory-copy optimization remains unadopted. The focused
+tag-view jobs pass independent 64 MiB RSS and zero-swap checks; they do not prove
+full-world residency. A low-host-memory build attempt stopped before compiling;
+other running applications remain untouched. The
 current 256-case overload differential and default campaign regression suite
 also pass. Heavy paging slowed the latest integration jobs; an unsuccessful
 private paging hint remains disabled. Full AI-dispatch integration and campaign
 completion remain open. The
 [continuation evidence](../analysis/tags/campaign-memory-20261015/RESULTS.md)
 distinguishes the completed asset checks from those remaining requirements.
+
+The pending callback now has eight complete statically audited original bodies
+(968 instructions total). Two deeper dependencies, FF170 and 1213F0, remain
+outside the AI inventory; shared ownership is being checked. Real Support
+virtual callbacks and conditional arena routes still require qualification. Existing Damage and Support owners
+will be reused through their real routes. The current hit-region implementation
+and ordinary navigation-adjacency fix are present; stale host-only fixtures do
+not establish a new source-runtime regression. Fresh source-backed campaign
+navigation/hit checks remain pending after AI placement/getter integration.
 
 ## Opening cinematic audit — 2026-10-15
 
@@ -128,8 +179,18 @@ That observation reaches scene09/tick3760 and exits after308.902s at missing
 original resource-pressure owner125FB0; peak host charge is3,082,862,592 bytes,
 zero swap and no cap/OOM events. The three whole pressure/eviction owners are
 now restored (108 instructions), and the ordinary control/vertex regression
-passes under the unchanged guard. The new full playback retry must exercise
-that pressure path before it can be accepted. The shadow thread still faults,
+passes under the unchanged guard. Playback now exercises pressure/eviction and
+returns valid salted allocations. Including the existing whole cloth constructor
+module passes the later guard-birth failure. Two actual guard births and two
+unchanged original constructor replays pass under the same guard (2.260s);
+both declared variants take the original no-marker/free branch. The latest
+graphics probe identified stale `throne_regret` after original parent deletion.
+The shared scene now observes all actual retired identities immediately; the
+two-generation Regret/throne check passes (1.858s). Playback passes that cleanup
+and enters `c01_intro_scene_01`, scene12. It exits on ship-panel shader admission.
+Both affected materials use the existing original `stencil_env` program; four
+material/LOD binding checks pass after correcting the dynamic environment guard.
+The full retry remains pending. The shadow thread still faults,
 and full effects, DOF, original pixels, audio timing and all13-scene/handoff
 acceptance remain open.
 Headless startup reaches authored predictions, then exceeds
@@ -142,6 +203,7 @@ scene helpers pass 1,200 ticks; this does not establish full cinematic playback,
 audio, transitions, handoff or TU1.5 visual parity. MCC imports followed by TU1.5
 conversion remain the intended pipeline. See
 [the scene matrix and evidence](OPENING_CINEMATIC_STATUS.md).
+Delivery includes a video of the completed opening with audio, after these gates pass.
 
 ## Implementation handoff — 2026-10-15
 

@@ -260,7 +260,7 @@ struct OnlineAccount::Impl {
       options.endpoint = origin(options.endpoint, options.allow_loopback_http);
       require(login && options.poll_interval >= std::chrono::milliseconds(10));
     } catch (...) { state.message = "ONLINE account service configuration is invalid."; return; }
-    configured = true; state.message = "Sign in with Discord.";
+    configured = true; state.message = "Sign in with "+std::string(login->uses_steam()?"Steam":"Discord")+".";
     worker = std::jthread([this](std::stop_token stop) { run(stop); });
   }
   ~Impl() { worker.request_stop(); { std::lock_guard lock(mutex); cancellation.request_stop(); } wake.notify_all(); if (worker.joinable()) worker.join(); }
@@ -291,7 +291,7 @@ struct OnlineAccount::Impl {
     if (version != generation) return;
     const auto identity=login->service_identity();
     if(next.authenticated && (!identity || identity->subject!=subject)) {
-      next={};next.message="Discord identity changed. Reconnecting ONLINE...";
+      next={};next.message="Account identity changed. Reconnecting ONLINE...";
       if(activity) {activity->successful=false;activity->link.reset();}
     }
     voice_bearer = next.authenticated ? bearer : ""; voice_expires = expires;
@@ -339,9 +339,9 @@ struct OnlineAccount::Impl {
           return json;
         };
         const auto authorization = login->service_identity();
-        if (!authorization) { cleanup(); next = {}; next.message = "Sign in with Discord."; publish(std::move(next),version,{}, {},activity); continue; }
+        if (!authorization) { cleanup(); next = {}; next.message = "Sign in with "+std::string(login->uses_steam()?"Steam":"Discord")+"."; publish(std::move(next),version,{}, {},activity); continue; }
         if(cmd && authorization->subject!=requested_subject) {
-          cleanup();next={};throw HttpError("Discord identity changed. Refresh ONLINE before trying again.");
+          cleanup();next={};throw HttpError("Account identity changed. Refresh ONLINE before trying again.");
         }
         if(link_subject!=authorization->subject)link.reset();
         if(!activity && previous_activity.serial && previous_activity_subject!=authorization->subject) {
@@ -357,7 +357,7 @@ struct OnlineAccount::Impl {
         if (cmd) {
           const auto current=login->service_identity();
           if(!current || current->subject!=requested_subject) {
-            cleanup();next={};throw HttpError("Discord identity changed. Refresh ONLINE before trying again.");
+            cleanup();next={};throw HttpError("Account identity changed. Refresh ONLINE before trying again.");
           }
           // The same command ID survives an uncertain network result. A second
           // submission is a replay on the server, never another mutation.

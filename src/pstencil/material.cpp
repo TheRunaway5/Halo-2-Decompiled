@@ -1,4 +1,6 @@
 #include "halo2/pstencil/material.hpp"
+#include "halo2/pstencil/adaptation.hpp"
+#include "halo2/pstencil/specular_mask.hpp"
 #include "halo2/render_program.hpp"
 #include <algorithm>
 
@@ -37,6 +39,8 @@ void MaterialBank::preload(const Material& authored,std::uint32_t,const EffectLi
         auto material=prepare(cache_,authored,i,uniforms);
         if(!material)throw FormatError("pStencil specular material has unresolved authored bindings: "+authored.name);
         if(material->forward_blend!=8)throw FormatError("pStencil specular pass changed its destination-alpha blend");
+        material->forward_program=texture_masked_specular(material->forward_program);
+        material->forward_blend=3;material->accumulation_texture=true;
         const auto resident=std::find_if(mesh_.materials.begin(),mesh_.materials.end(),[&](const auto& prior) {
             return prior.source_shader_datum==authored.source_shader_datum &&
                 prior.selected_shader_lod==authored.selected_shader_lod &&
@@ -56,8 +60,20 @@ std::shared_ptr<const std::vector<EffectLightDraw>> MaterialBank::complete(
     for(const auto& pass:at->second) {
         auto material=prepare(cache_,pass.authored,pass.index,uniforms);
         if(!material || !material->vertex_bank)throw FormatError("pStencil specular bank failed to complete");
-        out->push_back({pass.slot,{},material->forward_program,material->program_constants,
+        out->push_back({pass.slot,{},texture_masked_specular(material->forward_program),material->program_constants,
             pack_vertex_program_bank(*material->vertex_bank)});
+        if(arbiter_metal(pass.authored.name)) {
+            // Full-strength companions preserve the authored normal,
+            // masks, lobe and destination-alpha blend even when the original
+            // specular light is already white. It uses the same stencil test.
+            auto polish=uniforms;
+            for(unsigned c=0;c<3;++c)polish.constants[7][c]*=arbiter_specular_companion;
+            auto extra=prepare(cache_,pass.authored,pass.index,polish);
+            if(!extra || !extra->vertex_bank)throw FormatError("Arbiter armor polish has unresolved source bindings");
+            for(unsigned n=0;n<arbiter_specular_copies;++n)
+                out->push_back({pass.slot,{},texture_masked_specular(extra->forward_program),extra->program_constants,
+                    pack_vertex_program_bank(*extra->vertex_bank)});
+        }
     }
     return out;
 }

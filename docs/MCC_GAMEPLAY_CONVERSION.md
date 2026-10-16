@@ -2861,3 +2861,119 @@ Both phases retain earlier checked products by exact identity and do not repeat
 the earlier cold runs. These components are compiled and tested, but the complete
 cold initializer45 does not execute them yet. Source execution still uses the
 32-bit ABI with64-bit native owners; cold remains44/68 and Play remains gated.
+
+The mono value helper's FP restoration is corrected in a separate verified V2
+phase. Its earlier libc-fesetenv owner lost condition/status bits;36 of48 new
+condition cases reproduced the problem. FXSAVE64/FXRSTOR64 now retains the native
+image with explicit compiler register clobbers. Five fresh main checks pass the
+unchanged1779 original proposals,840 quantizations, actual MCC ownership checks,
+48 condition cases and286440 complete observed-state calls. The broader matrix
+genuinely observes3240 nonzero wide diagnostic-pointer cases and reproduces
+truncation in the rejected FNSTENV-only prototype. The first all-masked pointer
+test observed zeros and supplied no width proof; its premature draft claim is
+preserved as rejected evidence with a reporting erratum. Reviewer-authored
+controls were completed locally after the subagent account limit; no separate
+agent review release is claimed. Only declared affected mono products were
+rebuilt; all retained unaffected products remain byte-identical. See
+`native-mcc-mono-parameter-FP-production-v2/main-integration`. This correction
+does not establish the full live FP producer, Xbox hardware transcendental
+parity, complete audio installation or initializer45. Cold remains44/68.
+
+The selected type7 effect-function evaluator now builds as a public systems
+dependency. Three fresh main checks pass3498 unchanged-original controls,
+3468 exact finite fraction/scalar pairs, all256 flag-byte values,42 actual MCC
+guards,141 retained MCC/FP controls and286440 complete observed-state calls.
+Inputs, time, speaker geometry and FP context are mandatory supplied values;
+the evaluator retains the exact resolving Cache and creates no clock or install
+receipt. Thirty pre-bound nonfinite outputs remain an explicit temporary limit
+of the standalone value API; genuine later bounds and the mono override bridge
+are still required. Changed MCC curves are preserved and remain distinct from
+Xbox vanilla values. The first main attempt caught concurrent changes to two
+unrelated material sources and remains recorded as failed; the fresh consistent
+attempt passed and is frozen at
+`native-mcc-effect-function-production-v2/main-integration-v2`. All earlier
+retained checked products remain byte-identical. The material sources changed
+again after validation completed; the seal preserves the exact tested snapshot
+and records that later drift. It is not whole-current-checkout validation.
+Cold remains44/68.
+
+Selected MCC mono override functions now feed the native bounded conversion
+through an explicit caller context. The unchanged original builder and converter
+match 3480 combined cases, including12 infinite scalar outputs clamped by the
+source bounds, plus465 compact-selector/boundary cases and42 constant-infinity
+clamps. The raw function API retains all3498 original IEEE results; the finite
+standalone API still rejects its30 nonfinite outputs. Eighteen NaN converter
+paths remain unresolved and rejected. No MCC curve or constant is silently
+replaced or relabelled as Xbox vanilla. Release and ASan/UBSan checks retain
+actual MCC definitions and Cache lifetimes. Eleven fresh main regressions pass
+at `native-mcc-mono-function-production-v1/main-integration`;487 frozen inputs
+were consistent through compilation, with no post-validation drift at sealing.
+Six affected earlier products were superseded;65 unaffected checked products
+remain byte-identical. This supplies value proposals, not the complete graph,
+clock, install acknowledgement or initializer45. Cold remains44/68, source
+execution retains its32-bit ABI, native resource owners are64-bit, and Play
+remains gated.
+
+The native EP stereo numeric module and source-format packing now build as a
+public systems dependency. Three fresh main checks pass512 original numeric
+cases/269312 exact words,144 original loader/module returns and FIFO-byte
+comparisons,1322 numeric admission guards and512 packing guards. The original
+loader takes both ring halves through actual commands10/6/7/8/15/11, including
+the second command8 guard and all four diagnostics. The bounded reference uses
+explicit entry fixtures and inherited xemu DMA/busy semantics; it proves no
+physical boot, scheduling or endpoint completion. Native code owns typed values
+and1024 packed bytes, with no source program bank or runtime XBE dependency.
+The initial short-immediate and sticky-S admission defects were reproduced and
+corrected before public application. Release and ASan/UBSan native comparisons
+pass. The focused main snapshot is frozen at
+`native-sound-ep-stereo-numeric-production-v1/main-integration`. Previously
+checked products remain byte-identical and were not unnecessarily rerun. The
+other requested EP providers, full outgoing status, actual graph/input/phase
+ownership, loader installation and physical endpoint lifecycle still remain.
+This compiled module is not yet executed by a completed initializer45. Cold
+remains44/68 and Play remains gated.
+
+The native EP mono module4 and format1 packing now build as a public systems
+dependency. Its literal five coefficients and one final MACR are retained; the
+rounded A is transferred to both outputs, then both diagnostic branches execute
+independently. Three focused main checks pass512 original numeric controls/
+266752 exact words,144 original loader/module returns and complete1024-byte
+FIFO comparisons,1322 numeric admission guards and512 packing guards. Independent
+review adds256 nonzero CCR and32 gain-enable cases for800 original calls/416800
+words,4000 coefficient-rounding controls and786432 packing samples per build.
+Release and ASan/UBSan checks pass. The first public test adapter retained the
+stereo token count and failed; only that adapter count was corrected, with the
+failed attempt preserved. The fresh consistent main snapshot is frozen at
+`native-sound-ep-mono-numeric-production-v1/main-integration-v2`; previous checked
+products remain byte-identical. Both mono and stereo remain numeric/packing
+components, with source program acquisition restricted to offline tests. The
+other four requested EP providers, full processor status, graph/phase/clock
+ownership and completed native installation remain required. Cold remains44/68
+and Play remains gated.
+
+The fixed EP module0 arithmetic, thirteen filter sections and all78 persistent
+history words now build as a public systems dependency. The source gain pass,
+left/center/right/surround matrix, full56 residual lifetime, both diagnostics
+and1024-byte interleaved packing are retained. Four focused main checks pass
+1096 original calls,651024 exact output/diagnostic/history words,1122304 packed
+bytes,1401 admission guards and512 packing guards. The retained sequences
+include sixteen-frame tails and a genuine warm-to-cold reset. Independent
+review adds798 original calls with each history field seeded, arbitrary complete
+histories, every gain level and high-bit clamp edges;474012 words and817152
+packed bytes match. Release and ASan/UBSan pass without implementation fixes.
+The actual gain31 scalar607000 and explicit78-word source reset are preserved.
+The tested main snapshot is frozen at
+`native-sound-ep-module0-numeric-production-v1/main-integration`, with all prior
+checked products byte-identical. This supplies arithmetic and typed history;
+full outgoing status, actual input/phase/clock ownership, EP1..3 and completed
+native installation remain required. Source execution still uses the32-bit ABI
+and native resource owners are64-bit. Cold remains44/68 and Play remains gated.
+
+The separate source-only EP high-Y recovery authenticates4541 listing rows and
+the actual original CPU upload. Supervisor EP=BE0/SZ20/OMR.SEN20 configure stack
+extension; its inherited X/Y selector is unresolved. The ordinary24 route
+equation is6*config5+channel, correcting the preserved older contract's3*
+shorthand. Default first count/route reads are YFC9/YFBC. Identified per-module
+cold/warm allocation paths do not supply these tables. No high-Y values, memory
+extent or initialization lifetime has been invented, and no reference array
+was enlarged. Exact table producers/mapping remain a required EP1..3 dependency.

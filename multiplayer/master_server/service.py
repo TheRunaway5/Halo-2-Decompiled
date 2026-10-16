@@ -51,12 +51,15 @@ class Settings:
     peers: list = field(default_factory=list)
     matchmaking_catalog: str = ""
     peer_stun_urls: tuple = ()
+    steam_enabled: bool = False
+    steam_key: str = field(default="", repr=False)
 
     @classmethod
     def environment(cls):
         state = Path(os.environ.get("H2_MASTER_STATE", ".local/master"))
         token_path = os.environ.get("H2_MASTER_ADMIN_TOKEN_FILE", "")
         peers_path = Path(os.environ.get("H2_MASTER_PEERS_FILE", str(state / "peers.json")))
+        steam_key_file = os.environ.get("H2_STEAM_KEY_FILE", "")
         return cls(state=state, bind=os.environ.get("H2_MASTER_BIND", "127.0.0.1"),
                    port=int(os.environ.get("H2_MASTER_PORT", "8080")),
                    public_url=os.environ.get("H2_MASTER_PUBLIC_URL", "https://localhost:8080"),
@@ -70,7 +73,10 @@ class Settings:
                    discord_client_id=os.environ.get("H2_DISCORD_CLIENT_ID", "1558522073272426519"),
                    peers=parse(peers_path.read_bytes()) if peers_path.exists() else [],
                    matchmaking_catalog=os.environ.get("H2_MATCHMAKING_CATALOG", ""),
-                   peer_stun_urls=tuple(filter(None, os.environ.get("H2_PEER_STUN_URLS", "").split(","))))
+                   peer_stun_urls=tuple(filter(None, os.environ.get("H2_PEER_STUN_URLS", "").split(","))),
+                   steam_enabled=os.environ.get("H2_STEAM_ENABLED") == "1",
+                   steam_key=Path(steam_key_file).read_text().strip() if steam_key_file else
+                             os.environ.get("H2_STEAM_KEY", os.environ.get("STEAM_KEY", "")).strip())
 
     def validate(self):
         endpoint(self.public_url, self.allow_http)
@@ -78,6 +84,7 @@ class Settings:
         integer(self.rate_per_minute, 1, 100000)
         require(0.1 <= self.sync_interval <= 3600, "Invalid sync interval")
         require(bool(re.fullmatch(r"[0-9]{17,20}", self.discord_client_id)), "Invalid Discord application ID")
+        require(not self.steam_key or bool(re.fullmatch(r"[0-9A-Fa-f]{32}", self.steam_key)), "Invalid Steam Web API key configuration")
         require(self.allow_http or self.behind_tls_proxy or (self.cert and self.tls_key),
                 "Configure direct TLS or an isolated TLS reverse proxy; HTTP is development-only")
         require(not self.admin_token or len(self.admin_token) >= 32, "Admin token must contain at least 32 characters")
@@ -158,6 +165,14 @@ class Directory:
         self.history = HistoryApi(self)
         from .clan_voice import PartyVoice
         self.party_voice = PartyVoice(self.clans, self.parties)
+        from .steam_login import SteamLogin
+        self.steam = SteamLogin(self)
+
+    async def verify_identity(self, token):
+        if token.startswith("h2s_"):
+            require(self.settings.steam_enabled, "Steam sign-in is not configured", 503)
+            return await self.steam.owner(token)
+        return await self.verify_owner(self.session, token, self.settings.discord_client_id)
 
     def rate(self, key, limit=None):
         now = time.monotonic()
@@ -190,7 +205,7 @@ class Directory:
             require(self.settings.admin_token and hmac.compare_digest(token, self.settings.admin_token), "Operator authorization rejected", 403)
             return None
         self.rate("owner:" + self.source(request), 20)
-        owner = await self.verify_owner(self.session, token, self.settings.discord_client_id)
+        owner = await self.verify_identity(token)
         if isinstance(owner, VerifiedOwner):
             request[VERIFIED_DISCORD_USERNAME] = owner.username
             owner = (owner.provider, owner.subject)
@@ -318,6 +333,7 @@ class Directory:
                 await self.match_transport.cleanup()
             self.clans.cleanup()
             self.parties.cleanup()
+            self.steam.cleanup()
             await asyncio.gather(*(self.pull(peer) for peer in self.settings.peers))
             await asyncio.sleep(self.settings.sync_interval)
 
@@ -346,7 +362,8 @@ def create_app(settings, owner_verifier=None, clock=time.time):
         started = time.monotonic()
         status = 500
         try:
-            require(len(request.raw_path) <= 1024, "Request path too long", 414)
+            path_limit = 4096 if request.path.startswith("/v1/auth/steam/callback/") else 1024
+            require(len(request.raw_path) <= path_limit, "Request path too long", 414)
             require(not request.headers.get("Content-Encoding"), "Compressed bodies are not accepted", 415)
             require(settings.allow_http or settings.behind_tls_proxy or request.secure, "HTTPS required", 403)
             directory.rate("ip:" + directory.source(request))
@@ -377,7 +394,7 @@ def create_app(settings, owner_verifier=None, clock=time.time):
                                  "duration_ms": round((time.monotonic() - started) * 1000, 2)}))
 
     app = web.Application(middlewares=[boundary], client_max_size=MAX_BODY,
-                          handler_args={"auto_decompress": False, "max_field_size": 4096, "max_line_size": 2048})
+                          handler_args={"auto_decompress": False, "max_field_size": 4096, "max_line_size": 8192})
     app[web.AppKey("directory", Directory)] = directory
     app.cleanup_ctx.append(directory.lifetime)
     app.add_routes([
@@ -394,6 +411,7 @@ def create_app(settings, owner_verifier=None, clock=time.time):
         web.post("/v1/federation/sync", directory.sync),
     ])
     app.add_routes(directory.matchmaking.routes())
+    app.add_routes(directory.steam.routes())
     app.add_routes(directory.history.routes())
     from .search_qos import SearchQos
     directory.search_qos = SearchQos(directory.matchmaking)

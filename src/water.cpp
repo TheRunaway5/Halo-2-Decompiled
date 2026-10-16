@@ -33,6 +33,19 @@ std::array<ShaderVector,4> water_copy_taps(float width,float height) {
       ((i&2)? .25f:-.25f)*height/256.f,0,1};
   return out;
 }
+void bind_water_pool_materials(const BspWater &water,std::span<Material> materials) {
+  if(water.definitions.empty())return;
+  const auto bind=[](const auto &self,Material &material)->void {
+    if(material.water_pass && material.forward_vertex==7)material.water_definition=0;
+    if(material.environment_pass)self(self,*material.environment_pass);
+    if(material.planar_fog_pass)self(self,*material.planar_fog_pass);
+    for(auto &pass:material.world_overlays_before)if(pass)self(self,*pass);
+    for(auto &pass:material.world_overlays_after)if(pass)self(self,*pass);
+    for(auto &pass:material.world_bloom_passes)if(pass)self(self,*pass);
+    for(auto &pass:material.world_planar_passes)if(pass)self(self,*pass);
+  };
+  for(auto &material:materials)bind(bind,material);
+}
 WaterFrame water_frame(const WaterDefinition &definition,Vec3 eye,Vec3 forward,
                        float vertical_fov,float viewport_aspect,bool anamorphic) {
   const auto &s=definition.parameters;WaterFrame out;

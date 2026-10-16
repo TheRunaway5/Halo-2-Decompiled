@@ -13,7 +13,7 @@ void put(SourceRuntimeMemory &m,std::uint32_t p,std::uint32_t v) {
   std::array<std::byte,4> b;for(unsigned i=0;i<4;++i)b[i]=std::byte(v>>(8*i));m.write(p,b);
 }
 }
-SourceRuntimeCacheTagImage Cache::load_source_runtime_cache_tag_image() const {
+SourceRuntimeCacheTagView Cache::view_source_runtime_cache_tags() const {
   if(mcc_)throw FormatError("MCC gameplay tags require verified Xbox TU1.5 layout/semantic conversion before original-ABI delivery");
   if(vista_)throw FormatError("Original Xbox runtime tag delivery requires the Xbox cache owner");
   const Bytes bytes(cache_bytes());const auto index=bytes.u32(16),index_bytes=bytes.u32(20),metadata_bytes=bytes.u32(24);
@@ -25,14 +25,21 @@ SourceRuntimeCacheTagImage Cache::load_source_runtime_cache_tag_image() const {
   if(index_address<=0 || metadata_address<=0 || index_address+index_bytes>0x100000000ll ||
       metadata_address+metadata_bytes>0x100000000ll)
     throw FormatError("Original cache runtime regions wrap source addresses");
-  SourceRuntimeCacheTagImage out;
+  SourceRuntimeCacheTagView out;
   out.index=std::uint32_t(index_address);out.table=bytes.u32(index+8);out.count=bytes.u32(index+24);
   out.scenario=bytes.u32(index+12);out.globals=bytes.u32(index+16);
-  const auto copy=[&](std::uint32_t address,std::size_t start,std::size_t size) {
-    out.regions.push_back({address,{cache_bytes().begin()+start,cache_bytes().begin()+start+size}});
-  };
-  copy(out.index,index,index_bytes);
-  copy(std::uint32_t(metadata_address),std::size_t(index)+index_bytes,metadata_bytes);
+  out.regions={SourceRuntimeCacheTagView::Region{out.index,bytes.slice(index,index_bytes)},
+               SourceRuntimeCacheTagView::Region{std::uint32_t(metadata_address),
+                 bytes.slice(std::size_t(index)+index_bytes,metadata_bytes)}};
+  return out;
+}
+SourceRuntimeCacheTagImage Cache::load_source_runtime_cache_tag_image() const {
+  const auto view=view_source_runtime_cache_tags();
+  SourceRuntimeCacheTagImage out;
+  out.index=view.index;out.table=view.table;out.count=view.count;
+  out.scenario=view.scenario;out.globals=view.globals;
+  for(const auto &region:view.regions)
+    out.regions.push_back({region.address,{region.bytes.begin(),region.bytes.end()}});
   return out;
 }
 SourceRuntimeCacheBspImage Cache::load_source_runtime_cache_bsp_image(std::size_t selected) const {

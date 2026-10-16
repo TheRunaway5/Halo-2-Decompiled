@@ -40,6 +40,11 @@ bool same(const MultiplayerState &a,const MultiplayerState &b) {
  if(a.source_scene_roots.size()!=b.source_scene_roots.size())return false;
  for(unsigned n=0;n<a.source_scene_roots.size();++n) {
   const auto &x=a.source_scene_roots[n],&y=b.source_scene_roots[n];
+  if(x.model_regions.has_value()!=y.model_regions.has_value())return false;
+  if(x.model_regions && (x.model_regions->selection.variant_index!=y.model_regions->selection.variant_index ||
+      x.model_regions->selection.permutations!=y.model_regions->selection.permutations ||
+      x.model_regions->selection.states!=y.model_regions->selection.states ||
+      x.model_regions->looping_effects!=y.model_regions->looping_effects))return false;
   if(x.object!=y.object || x.definition!=y.definition || x.placement!=y.placement || std::memcmp(&x.transform,&y.transform,sizeof(Transform)) || std::memcmp(&x.velocity,&y.velocity,sizeof(Vec3)))return false;
  }
  for(unsigned n=0;n<a.world_vehicles.size();++n) {
@@ -66,25 +71,31 @@ struct Authority {
     require(world.source_objects && world.match.source_game_type()==1,"Campaign authority lost its original source world");
     const auto object=world.match.create_world_object(placement);vehicle.store(object);
     require(object!=null_datum,"Authored class3 source birth returned NONE");
+    require(world.source_objects->object_definition(object)==world.content.objects.at(placement).definition,"Actual source vehicle birth changed its authored definition");
     world.source_objects->set_unit_controller_active(object,true);
     auto neutral_options=options;neutral_options.source_object_savegame_directory=output/"neutral-source-storage";
     MultiplayerPreparedWorld neutral(neutral_options,ScriptProgram{});
     const auto neutral_object=neutral.match.create_world_object(placement);
     require(neutral_object!=null_datum,"Independent neutral source vehicle birth failed");
     neutral.source_objects->set_unit_controller_active(neutral_object,true);
-    for(auto representation:source_session_player_representations(world.content,1)) {
-      const auto definition=world.cache->load_first_person_binding(world.rules.weapon,int(representation));
-      world.match.configure_replicated_first_person(definition);
-      neutral.match.configure_replicated_first_person(definition);
-    }
+    for(const auto &[datum,weapon]:world.content.weapons)if(!weapon.first_person_models.empty())
+      for(auto representation:source_session_player_representations(world.content,1)) {
+        const auto definition=world.cache->load_first_person_binding(datum,int(representation));
+        if(!definition.record_present || definition.weapon_model==null_datum || definition.graph==null_datum)continue;
+        world.match.configure_replicated_first_person(definition);
+        neutral.match.configure_replicated_first_person(definition);
+      }
     LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.rules.weapon,options.gameplay_xbe),options.variant);
     port=transport.port();
-    test::LivePhysicsEntryCaptureTu15 controller(output/"original-live-unit-input-capture"),object_frame(output/"original-live-object-capture"),solve(output/"original-live-world-capture");
+    test::LivePhysicsEntryCaptureTu15 controller(output/"original-live-unit-input-capture"),object_frame(output/"original-live-object-capture"),solve(output/"original-live-world-capture"),look_animation(output/"original-live-look-animation-capture"),look_rotation(output/"original-live-look-rotation-capture"),body_phase(output/"original-live-body-capture");
     SourcePhysicsEntryObserverBinding observation(world.source_objects->memory(),[&](bool entering,std::uint32_t entry,const auto &abi) {
+      if(entry==0x290030u) {look_animation.observe(entering,abi,world.source_objects->memory(),entry);return;}
+      if(entry==0x28c2c0u) {look_rotation.observe(entering,abi,world.source_objects->memory(),entry);return;}
       if(world.match.simulation().ticks()<35)return;
       if(entry==0xc92c0u)controller.observe(entering,abi,world.source_objects->memory(),entry);
       else if(entry==0xb8f40u)object_frame.observe(entering,abi,world.source_objects->memory(),entry);
       else if(entry==0x1cc8d0u)solve.observe(entering,abi,world.source_objects->memory(),entry);
+      else if(entry==0xb9090u)body_phase.observe(entering,abi,world.source_objects->memory(),entry);
     });
     std::ofstream trace(output/"authority.jsonl");
     started=true;startup.set_value();
@@ -145,6 +156,11 @@ int main(int argc,char **argv) {
   const auto placement=std::find_if(content.objects.begin(),content.objects.end(),[&](const auto &p){return p.type==1 && p.placement==selected && !p.model_attachment;});
   require(placement!=content.objects.end(),"Authored campaign vehicle placement absent");
   const auto index=std::size_t(placement-content.objects.begin());
+  const auto target_tag=cache.query_tag({.handle=TagHandle{placement->definition}});
+  require(target_tag!=nullptr,"Authored class3 definition is missing from the original cache");
+  report["map"]=std::filesystem::path(argv[1]).filename().string();report["bsp"]=bsp;
+  report["authored_vehicle_placement"]=selected;report["content_placement_index"]=index;
+  report["selected_vehicle_definition"]=placement->definition;report["selected_vehicle_name"]=target_tag->name;
   const auto starts=test::campaign_vehicle_observer_starts<3>(cache,content,bsp,*placement);
   MultiplayerOptions host_options;host_options.map=argv[1];host_options.shared_maps=argv[2];host_options.gameplay_xbe=argv[3];host_options.bsp=bsp;
   host_options.campaign_difficulty=1;host_options.local_players=1;host_options.source_object_world=true;
@@ -185,8 +201,9 @@ int main(int argc,char **argv) {
     require(pose!=state.source_body_poses.end() && !pose->nodes.empty(),"Vehicle snapshot lost its completed source WORLD hierarchy");
     rendered_vehicle_regions=vehicle->regions;++scene_frames;
   };
-  client.vehicle_draw_observer=[&](unsigned view,std::uint32_t object,std::uint32_t,const ObjectLightingState&,bool,unsigned lod,std::span<const Vertex> vertices) {
+  client.vehicle_draw_observer=[&](unsigned view,std::uint32_t object,std::uint32_t definition,const ObjectLightingState&,bool,unsigned lod,std::span<const Vertex> vertices) {
     if(object!=authority.vehicle.load() || vertices.empty())return;
+    require(definition==placement->definition,"Actual GPU vehicle draw changed its authored definition");
     require(view<2 && rendered_vehicle_regions.has_value(),"Visible vehicle draw has no received original region choices");
     const auto sections=source_initial_model_sections(vehicle_initial,rendered_vehicle_regions->selection,lod);
     for(const auto &vertex:vertices)require(std::find(sections.begin(),sections.end(),vertex.source_section)!=sections.end(),"Vehicle draw changed an original selected model section");

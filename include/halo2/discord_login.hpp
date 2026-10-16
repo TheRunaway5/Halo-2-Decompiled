@@ -31,6 +31,7 @@ struct DiscordHttpResponse {
   long status{};
   std::string body;
 };
+struct DiscordLinkSnapshot { bool pending{}, linked{}; std::string message; };
 class DiscordLogin {
 public:
   using OpenBrowser = std::function<bool(const std::string &)>;
@@ -38,6 +39,13 @@ public:
   // certificate verification and fixed Discord endpoints, without redirects.
   using Http = std::function<DiscordHttpResponse(const DiscordHttpRequest &, std::stop_token)>;
   explicit DiscordLogin(OpenBrowser, DiscordLoginOptions = {}, Http = {});
+  // Primary ONLINE identity. The legacy type remains the common credential
+  // interface; Discord OAuth is retained for optional social consent/linking.
+  static std::shared_ptr<DiscordLogin> steam(OpenBrowser, Http = {});
+  bool uses_steam() const;
+  bool link_discord(std::string private_discord_token);
+  DiscordLinkSnapshot discord_link() const;
+  void cancel_discord_link();
   ~DiscordLogin();
   DiscordLogin(const DiscordLogin &) = delete;
   DiscordLogin &operator=(const DiscordLogin &) = delete;

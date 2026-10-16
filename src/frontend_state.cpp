@@ -208,7 +208,7 @@ void MenuState::update_online_login() {
     while (stack_.size() > 1 && frame().screen != 6) stack_.pop_back();
     open(20);
   }
-  // The account remains Discord-verified while its local screen name changes.
+  // The account remains service-verified while its local screen name changes.
   // Refresh retained panels too, so Back never reveals the previous name.
   for (auto &retained : stack_) {
     if (retained.screen != 20 && retained.screen != 186) continue;
@@ -591,20 +591,22 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   case 30:
     f.entries = {{profile_name(), 14, 0}, {by_index(s, 0x28a), 10, 1}};
     break;
-  case 20:
+  case 20: {
+    const std::string provider=discord_login_ && discord_login_->uses_steam()?"Steam":"Discord";
     f.title = "ONLINE";
     if (const auto identity = online_identity()) {
       f.entries = {{profile_name().empty() ? "Continue" : "Continue as " + profile_name(), 186, 0},
-                   {"Change screen name", 167, 1}, {"Sign out of Discord", -12, 0}};
-      f.description = "Screen name: " + profile_name() + "\nDiscord: " + identity->username;
+                   {"Change screen name", 167, 1}, {"Sign out of "+provider, -12, 0}};
+      f.description = "Screen name: " + profile_name() + "\n"+provider+": " + (discord_login_->uses_steam()?identity->display_name:identity->username);
     } else {
       const auto status = discord_login_ ? discord_login_->snapshot() : DiscordLoginSnapshot{};
       const bool busy = status.status == DiscordLoginStatus::Waiting || status.status == DiscordLoginStatus::Verifying;
-      f.entries = {{busy ? "Waiting for Discord..." : "Sign in with Discord", -12, 0}};
-      f.description = status.identity && online_account_ ? account_.message : status.message.empty() ? "Sign in with Discord to access ONLINE." : status.message;
+      f.entries = {{busy ? "Waiting for "+provider+"..." : "Sign in with "+provider, -12, 0}};
+      f.description = status.identity && online_account_ ? account_.message : status.message.empty() ? "Sign in with "+provider+" to access ONLINE." : status.message;
       if (status.identity && online_account_) f.entries.front().label = account_.busy ? "Verifying ONLINE identity..." : "Retry ONLINE connection";
     }
     break;
+  }
   case 21:
     f.entries = {{"Continue", -4, 0}};
     break;
@@ -615,7 +617,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     f.entries.back().label = "Optimatch";
     add(0x421, 14);
     add(0x445, -4);
-    f.entries.back().label = "Discord Account";
+    f.entries.back().label = discord_login_ && discord_login_->uses_steam()?"Steam Account":"Discord Account";
     f.entries.push_back({"Server Browser", 219, int(online_server_browser_context)});
     if (online_identity()) f.description = profile_name()+" | "+std::to_string(local_players().size())+" / 4 local | A: join | X: options";
     break;
@@ -1189,7 +1191,7 @@ void MenuState::accept() {
         awaiting_discord_login_ = true;
         update_online_login();
       }
-    } else unavailable("Discord sign-in is unavailable in this preview. Start the game normally to sign in.");
+    } else unavailable("Account sign-in is unavailable in this preview. Start the game normally to sign in.");
     return;
   }
   if (f.screen == 186 && f.selected == 3) { open(20); return; }

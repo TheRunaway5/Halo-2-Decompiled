@@ -257,8 +257,9 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
                                    std::function<std::uint32_t()> result_wall_clock,
                                    MultiplayerObjectRuntime *source_object_world,
                                     std::optional<SourceSceneGameContext> game_context,
-                                    std::function<std::optional<Spawn>(unsigned,bool)> source_spawn_input)
-    : content_(content),source_object_world_(source_object_world),
+                                    std::function<std::optional<Spawn>(unsigned,bool)> source_spawn_input,
+                                    bool source_replica)
+    : content_(content),source_object_world_(source_object_world),source_replica_(source_replica),
       source_game_context_(game_context.value_or(SourceSceneGameContext{2,rules.source_engine})),
       // Original multiplayer game type2; registered engine type is separate.
       simulation_(content, bsp, spawns.empty() ? Spawn{} : spawns.front(),
@@ -350,17 +351,25 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
       rules_.respawn_modifier < 0 || rules_.respawn_modifier > 2 ||
       (rules_.respawn_modifier == 1 && !rules_.respawn_ticks)))
     throw FormatError("Invalid source Team Slayer session settings");
-  if (!content.weapons.contains(rules.weapon))
+  const bool source_unarmed_campaign=rules.weapon==null_datum &&
+      source_game_context_.game_type==1 && (simulation_.source_physics_movement_ || source_replica_) &&
+      content.original_data && content.original_data->image==OriginalData::Image::TitleUpdate15;
+  if (!content.weapons.contains(rules.weapon) && !source_unarmed_campaign)
     throw FormatError("Missing multiplayer starting weapon");
   if (content.player.datum == null_datum)
     throw FormatError("Missing multiplayer player representation");
-  const auto &starting=content.weapons.at(rules.weapon);
-  const bool energy_ready=starting.energy && starting.barrel_timing && starting.firing_presentation;
-  if(starting.capacity<=0 && !(starting.inventory_flags&(1u<<24)) && !energy_ready)
-    throw FormatError("Starting weapon requires its original trigger/energy owner");
-  if (starting.capacity>0 && starting.initial_rounds < 0 &&
-      !(starting.inventory_flags&(1u<<24)))
-    throw FormatError("Missing authored initial magazine ammunition");
+  if(source_replica_ && (!content.original_data || content.original_data->image!=OriginalData::Image::TitleUpdate15))
+    throw FormatError("Source replica requires authenticated TU1.5 gameplay");
+  // These descriptors admit the native weapon update. Actual source authorities
+  // run the original weapon owners; replicas consume their completed state.
+  if(!simulation_.source_physics_movement_ && !source_replica_) {
+    const auto &starting=content.weapons.at(rules.weapon);
+    const bool energy_ready=starting.energy && starting.barrel_timing && starting.firing_presentation;
+    if(starting.capacity<=0 && !(starting.inventory_flags&(1u<<24)) && !energy_ready)
+      throw FormatError("Starting weapon requires its original trigger/energy owner");
+    if(starting.capacity>0 && starting.initial_rounds<0 && !(starting.inventory_flags&(1u<<24)))
+      throw FormatError("Missing authored initial magazine ammunition");
+  }
   simulation_.actors_.clear(); // No AI squads in a player-controlled match.
   simulation_.actors_.resize(multiplayer_capacity - 1);
   for (auto &unit : simulation_.actors_) {
@@ -1352,37 +1361,40 @@ bool MultiplayerMatch::spawn(unsigned id, bool initial) {
     if(starting_definition==null_datum || !content_.weapons.contains(starting_definition) || (secondary!=null_datum && !content_.weapons.contains(secondary)))
       throw FormatError("Custom Slayer starting_definition an unavailable authored weapon definition");
   }
-  const auto &weapon = content_.weapons.at(starting_definition);
-  // Original FDAD0: the initial total is divided between loaded and reserve
-  // rounds. Inventory maximum is a cap, not additional starting ammunition.
-  const int loaded = std::min(weapon.initial_rounds, weapon.capacity);
-  const int reserve =
-      std::min(weapon.initial_rounds - loaded, std::max(0, weapon.reserve));
-  u.weapon = {starting_definition, loaded, reserve, 0, 0, 0};
-  u.weapon.source_datum = weapon_datum;
-  u.weapon.smg.loaded = loaded;
-  u.weapon.smg.reserve = reserve;
-  if (weapon.smg) smg_initial_equip(u.weapon.smg, *weapon.smg);
-  if(rules_.custom!=CustomSlayer::none)u.weapon=native_weapon_state(weapon,weapon_datum);
+  // Actual source equipment owns every weapon and inventory field, including NONE.
   if(!source_equipment) {
-    // Initial CE510 carry reaches the same FB120/FB360 attachment stores as
-    // pickup: attached/retained and actual player-owned ammunition bits.
-    u.weapon.shader.item_flags=5u|(u.source_player!=null_datum?8u:0u);
+    const auto &weapon = content_.weapons.at(starting_definition);
+    // Original FDAD0: the initial total is divided between loaded and reserve
+    // rounds. Inventory maximum is a cap, not additional starting ammunition.
+    const int loaded = std::min(weapon.initial_rounds, weapon.capacity);
+    const int reserve =
+        std::min(weapon.initial_rounds - loaded, std::max(0, weapon.reserve));
+    u.weapon = {starting_definition, loaded, reserve, 0, 0, 0};
+    u.weapon.source_datum = weapon_datum;
+    u.weapon.smg.loaded = loaded;
+    u.weapon.smg.reserve = reserve;
+    if (weapon.smg) smg_initial_equip(u.weapon.smg, *weapon.smg);
+    if(rules_.custom!=CustomSlayer::none)u.weapon=native_weapon_state(weapon,weapon_datum);
+    if(!source_equipment) {
+      // Initial CE510 carry reaches the same FB120/FB360 attachment stores as
+      // pickup: attached/retained and actual player-owned ammunition bits.
+      u.weapon.shader.item_flags=5u|(u.source_player!=null_datum?8u:0u);
+    }
+    // Registration is produced by an actual configured local observer after
+    // the world phases. Dedicated authority has no local first-person view.
+    u.weapon.smg.hand_timer_registered = false;
+    // Bounded original initial carry, not a general pickup/drop implementation:
+    // CFED0 stores the allocated item at+218 and clears its timestamp; CFE60
+    // advances the constructor's zero sequences to1 in measured FFA mode1.
+    // CE510 requests slot0, then E9D50 stores current0 and the source clock+8
+    // at+228 (E9EC1/E9ECB). Keep ammo and its clocks solely in Unit.weapon.
+    u.source_inventory.slots[0] = weapon_datum;
+    u.source_inventory.inventory_sequence = 1;
+    u.source_inventory.replicated_sequence = 1;
+    u.source_inventory.requested[0] = 0;
+    u.source_inventory.current[0] = 0;
+    u.source_inventory.ready_ticks[0] = std::uint32_t(simulation_.ticks());
   }
-  // Registration is produced by an actual configured local observer after
-  // the world phases. Dedicated authority has no local first-person view.
-  u.weapon.smg.hand_timer_registered = false;
-  // Bounded original initial carry, not a general pickup/drop implementation:
-  // CFED0 stores the allocated item at+218 and clears its timestamp; CFE60
-  // advances the constructor's zero sequences to1 in measured FFA mode1.
-  // CE510 requests slot0, then E9D50 stores current0 and the source clock+8
-  // at+228 (E9EC1/E9ECB). Keep ammo and its clocks solely in Unit.weapon.
-  u.source_inventory.slots[0] = weapon_datum;
-  u.source_inventory.inventory_sequence = 1;
-  u.source_inventory.replicated_sequence = 1;
-  u.source_inventory.requested[0] = 0;
-  u.source_inventory.current[0] = 0;
-  u.source_inventory.ready_ticks[0] = std::uint32_t(simulation_.ticks());
   auto equipment_flags=rules_.source_engine==2 ? content_.multiplayer_starting_equipment_flags : std::nullopt;
   for(const auto& row:content_.multiplayer_starting_equipment) {
     NetgameEquipment selection;selection.modes=row.modes;
@@ -1683,6 +1695,8 @@ void MultiplayerMatch::update_infection() {
 }
 void MultiplayerMatch::step(
     const std::array<Controls, multiplayer_capacity> &controls) {
+  if(source_replica_ && !simulation_.source_physics_movement_)
+    throw FormatError("Source replica cannot advance a locally invented physical world");
   SourceExecutionCallScope journal(source_object_world_?&source_object_world_->memory():nullptr,
       SourceExecutionCallKind::MatchStep,[&]{return source_execution_arguments(controls);});
   NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
@@ -2449,6 +2463,8 @@ MultiplayerState MultiplayerMatch::state() const {
       root.frozen=(std::to_integer<unsigned>(bank.view(body+0xc1u,1)[0])&1u)!=0;
       root.created_tick=object.created_tick;
       root.attached_effects=source_object_world_->attached_effects(object.handle);
+      if(content_.objects.at(object.placement).type==6)
+        root.model_regions=source_object_world_->object_model_regions(object.handle);
       result.source_scene_roots.push_back(root);
       if(!object.solved_nodes->empty())result.source_body_poses.push_back({object.handle,*object.solved_nodes,
           source_object_world_->object_sphere(object.handle)});

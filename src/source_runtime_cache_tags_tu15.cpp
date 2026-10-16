@@ -2,6 +2,7 @@
 #include "halo2/cache.hpp"
 #include <array>
 #include <algorithm>
+#include <limits>
 
 namespace halo2 {
 namespace {
@@ -13,7 +14,9 @@ void put(SourceRuntimeMemory &m,std::uint32_t p,std::uint32_t v) {
   std::array<std::byte,4> b;for(unsigned i=0;i<4;++i)b[i]=std::byte(v>>(8*i));m.write(p,b);
 }
 }
-void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheTagImage &image) {
+namespace {
+template<class Image>
+void bind_cache_tags_tu15(SourceRuntimeMemory &m,const Image &image,bool independent_source) {
   if(image.regions.size()!=2 || !image.count || image.count>65536 || image.scenario==0xffffffffu || image.globals==0xffffffffu)
     throw FormatError("Native source cache tag delivery shape is unavailable");
   const auto read=[&](std::uint32_t p,std::size_t bytes)->std::span<const std::byte> {
@@ -38,11 +41,12 @@ void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRunt
   // cannot overwrite the source-created game arena or mount a parallel bank.
   const auto arena=word(m.view(0x4f2950,4),0);
   if(!arena)throw FormatError("Native cache delivery precedes original physical/arena startup");
+  std::array<std::span<std::byte>,2> destinations{};
   for(std::size_t i=0;i<image.regions.size();++i) {
     const auto&r=image.regions[i];const auto end=std::uint64_t(r.address)+r.bytes.size();
     if(r.bytes.empty() || r.address<0x80061000u || end>arena)
       throw FormatError("Native cache delivery overlaps the source-created game arena");
-    m.mutable_view(r.address,r.bytes.size());
+    destinations[i]=m.mutable_view(r.address,r.bytes.size());
     for(std::size_t j=0;j<i;++j) {
       const auto&other=image.regions[j];
       if(r.address<std::uint64_t(other.address)+other.bytes.size() && other.address<end)
@@ -50,12 +54,41 @@ void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRunt
     }
   }
   constexpr std::array outputs{0x556d90u,0x4f0414u,0x474c20u,0x4ecc20u,0x4ecc1cu};
-  for(auto p:outputs)m.mutable_view(p,4);
+  std::array<std::span<std::byte>,outputs.size()> output_destinations{};
+  std::size_t output_index{};
+  for(auto p:outputs)output_destinations[output_index++]=m.mutable_view(p,4);
+  if(independent_source) {
+    const auto overlaps=[](std::span<const std::byte> source,std::span<const std::byte> destination) {
+      const auto s=reinterpret_cast<std::uintptr_t>(source.data());
+      const auto d=reinterpret_cast<std::uintptr_t>(destination.data());
+      if(source.size()>std::numeric_limits<std::uintptr_t>::max()-s ||
+          destination.size()>std::numeric_limits<std::uintptr_t>::max()-d)
+        throw FormatError("Native cache delivery host span wraps");
+      return s<d+destination.size() && d<s+source.size();
+    };
+    // After exactly the old admission/observer sequence and before any copy,
+    // reject writable aliases of the immutable Cache owner. Never mount it as
+    // the bank, split a source write, or replace physical allocation ownership.
+    for(const auto &source:image.regions) {
+      for(const auto destination:destinations)
+        if(overlaps(source.bytes,destination))
+          throw FormatError("Native cache source aliases its physical destination");
+      for(const auto destination:output_destinations)if(overlaps(source.bytes,destination))
+        throw FormatError("Native cache source aliases its publication outputs");
+    }
+  }
   for(const auto&r:image.regions)m.write(r.address,r.bytes);
   // Native cache bindings: actual TU1.5 operands125437..125474.
   // These stores are native inputs, not execution attributed to source PCs.
   put(m,0x556d90,image.index);put(m,0x4f0414,image.table);put(m,0x474c20,image.scenario);
   put(m,0x4ecc20,scenario);put(m,0x4ecc1c,globals);
+}
+} // namespace
+void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheTagImage &image) {
+  bind_cache_tags_tu15(m,image,false);
+}
+void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheTagView &image) {
+  bind_cache_tags_tu15(m,image,true);
 }
 void source_bind_runtime_cache_sound_gestalt_tu15(SourceRuntimeMemory &m) {
   const auto get=[&](std::uint32_t p){return word(m.view(p,4),0);};

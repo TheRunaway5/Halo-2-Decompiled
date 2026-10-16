@@ -348,7 +348,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   }
   std::cout << "Native Slayer: " << options.map.filename().string()
             << " local_players=" << options.local_players
-            << " primary=" << content.weapons.at(rules.weapon).name << '\n';
+            << " primary=" << (rules.weapon==null_datum?"NONE":content.weapons.at(rules.weapon).name) << '\n';
   if (!options.gameplay_xbe.empty())
     std::cout << "Original multiplayer balance: " << cache.original_data()->source.string()
               << " stores=" << cache.multiplayer_balance_writes()
@@ -573,8 +573,6 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     const auto tag=cache.query_tag({.handle=TagHandle{definition.shader}});
     if(tag)for(auto &material:mesh.materials)
       if(material.water_pass && material.name==tag->name)material.water_definition=int(d);
-    if(!water.definitions.empty())for(auto &material:mesh.materials)
-      if(material.water_pass && material.forward_vertex==7)material.water_definition=0;
     water_material_bases.push_back(unsigned(mesh.materials.size()));
     for(auto material:definition.geometry.materials) {
       material.water_definition=int(d);mesh.materials.push_back(std::move(material));
@@ -747,9 +745,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     mesh.materials.insert(mesh.materials.end(),std::make_move_iterator(bindings.mesh.materials.begin()),std::make_move_iterator(bindings.mesh.materials.end()));
     vehicle_visuals.emplace(key,std::move(vehicle));
   }
-  const auto &weapon = content.weapons.at(rules.weapon);
   if(reference_player && (reference_player->unit_definition!=content.player.datum ||
-                         reference_player->weapon_definition!=weapon.datum))
+                         reference_player->weapon_definition!=rules.weapon))
     throw FormatError("Original player fixture has different unit or weapon definitions");
   struct WeaponWorldVisual {
     Visual gun;
@@ -814,17 +811,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   const auto representations=source_session_player_representations(content,source_game_type);
   std::map<std::pair<unsigned,std::uint32_t>,SpeciesVisual> species;
   std::vector<FirstPersonBindingDefinition> local_definitions;
-  for(const auto &[weapon_datum,weapon]:content.weapons) {
-  if(weapon.first_person_models.empty())continue;
-  const auto weapon_animation=cache.load_weapon_animation_identifiers(weapon.datum);
-  for(unsigned representation:representations) {
-    if(representation>=content.player_representations.size() ||
-        content.player_representations[representation].biped.datum==null_datum)continue;
-    const auto preferred_record=representation==1 || representation==3 ? 1u:0u;
-    const auto &selected_fp=weapon.first_person_models.at(weapon.first_person_models.size()>preferred_record?preferred_record:0u);
-    if(selected_fp.model==null_datum || selected_fp.animation==null_datum)continue;
+  const auto prepare_player_body=[&](unsigned representation,std::uint32_t weapon_datum,SpeciesVisual &v) {
     const auto &authored=content.player_representations[representation];
-    auto &v=species[{representation,weapon_datum}];
     {
       //168EB0..168EBB reads the separate representation+0C body model.
       const auto globals=cache.query_tag({.group=tag_groups::globals,.require_address=true});
@@ -866,6 +854,36 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       }
     }
     v.player_bounds=cache.load_object_shadow_definition(authored.biped.datum);
+    const auto biped=tags.get({authored.biped.datum},tag_groups::biped);
+    v.foot_effects=biped.u32(0x58);
+    v.foot_variant=std::int8_t(std::to_integer<unsigned>(biped.read(0x1a,1)[0]));
+    const auto model=tags.get({biped.u32(0x38)},tag_groups::model);
+    const auto render=tags.get({model.u32(4)},tag_groups::render_model);
+    const auto& info=render.info();
+    const auto render_model=cache.load_source_tag_metadata(info.datum);
+    const auto names=biped.block(0x2f8,4);
+    for(std::size_t n=0;n<names.size();++n)
+      v.foot_markers.push_back(source_model_markers(render_model,names.element(n).u32(0)));
+  };
+  // NONE has its own unit/body owner, without a weapon, hand graph or guessed idle.
+  for(unsigned representation:representations) {
+    if(representation>=content.player_representations.size() ||
+        content.player_representations[representation].biped.datum==null_datum)continue;
+    auto &body=species[{representation,null_datum}];
+    prepare_player_body(representation,null_datum,body);
+  }
+  for(const auto &[weapon_datum,weapon]:content.weapons) {
+  if(weapon.first_person_models.empty())continue;
+  const auto weapon_animation=cache.load_weapon_animation_identifiers(weapon.datum);
+  for(unsigned representation:representations) {
+    if(representation>=content.player_representations.size() ||
+        content.player_representations[representation].biped.datum==null_datum)continue;
+    const auto preferred_record=representation==1 || representation==3 ? 1u:0u;
+    const auto &selected_fp=weapon.first_person_models.at(weapon.first_person_models.size()>preferred_record?preferred_record:0u);
+    if(selected_fp.model==null_datum || selected_fp.animation==null_datum)continue;
+    const auto &authored=content.player_representations[representation];
+    auto &v=species[{representation,weapon_datum}];
+    prepare_player_body(representation,weapon_datum,v);
     const auto parent_selection=cache.load_initial_model_selection(authored.biped.datum,0);
     const auto child_selection=cache.load_initial_model_selection(weapon.datum,0);
     if(!parent_selection.resolved() || !child_selection.resolved())
@@ -913,16 +931,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       case 0x0d000021:v.fp_throw=clip;break;
       }
     }
-    const auto biped=tags.get({authored.biped.datum},tag_groups::biped);
-    v.foot_effects=biped.u32(0x58);
-    v.foot_variant=std::int8_t(std::to_integer<unsigned>(biped.read(0x1a,1)[0]));
-    const auto model=tags.get({biped.u32(0x38)},tag_groups::model);
-    const auto render=tags.get({model.u32(4)},tag_groups::render_model);
-    const auto& info=render.info();
-    const auto render_model=cache.load_source_tag_metadata(info.datum);
-    const auto names=biped.block(0x2f8,4);
-    for(std::size_t n=0;n<names.size();++n)
-      v.foot_markers.push_back(source_model_markers(render_model,names.element(n).u32(0)));
+
   }
   }
   const auto make_shields=[&](const RenderModel &model,std::uint32_t mode,
@@ -964,7 +973,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     }
   }
   const auto species_for=[&](const MultiplayerState::Player &p)->SpeciesVisual& {
-    return species.at({source_session_player_representation(p.source_configuration,source_game_type),p.weapon==null_datum?rules.weapon:p.weapon});
+    return species.at({source_session_player_representation(p.source_configuration,source_game_type),p.weapon});
   };
   const auto biped_for=[&](const MultiplayerState::Player &p)->const BipedDefinition& {
     return multiplayer_biped(content,source_session_player_representation(p.source_configuration,source_game_type));
@@ -1043,7 +1052,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       [](const auto &entry){return entry.second.smg.has_value();});
   if(stock_smg!=content.weapons.end() && !stock_smg->second.firing_effects.empty()) {
     muzzle_effect=stock_smg->second.firing_effects[0].effects[0];
-    for(auto &[key,v]:species)if(content.weapons.at(key.second).smg) {
+    for(auto &[key,v]:species)if(key.second!=null_datum && content.weapons.at(key.second).smg) {
       v.muzzle_markers=source_model_markers(cache.load_source_tag_metadata(v.fp_definition->weapon_model),
           muzzle_effects.marker_name(muzzle_effect));
       if(v.muzzle_markers.empty())throw FormatError("Authored first-person muzzle marker is missing");
@@ -1203,6 +1212,18 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     bool idle_paired{};
   };
   std::map<std::uint32_t,SceneryQueryLifetime> scenery_query_lifetimes;
+  const bool source_scenery_regions=cache.original_data() && cache.original_data()->image==OriginalData::Image::TitleUpdate15 &&
+      ((world->source_objects && world->source_objects->owns_physics()) || (client && rules.custom==CustomSlayer::none));
+  const SourceSceneryScene::LifetimeSelection scenery_regions=source_scenery_regions?
+      SourceSceneryScene::LifetimeSelection{[&](std::size_t index,std::uint32_t handle,std::uint64_t born) {
+        const auto &live=match.simulation().scene().get(handle);
+        if(live.placement!=index || live.created_tick!=born)
+          throw FormatError("SCEN actual regions lost their full source lifetime");
+        if(world->source_objects && world->source_objects->owns_physics())
+          return world->source_objects->object_model_regions(handle).selection;
+        if(live.source_model_regions)return live.source_model_regions->selection;
+        throw FormatError("SCEN replica has no completed source model regions");
+      }}:SourceSceneryScene::LifetimeSelection{};
   SourceSceneryScene source_scenery(cache,content.objects,options.bsp,mesh,object_light_collision,{},
       [&](std::size_t,const ScenarioObject &object) {
         // Only the four already identified Zanzibar RNG-dependent pillars
@@ -1211,7 +1232,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         return tag &&
             tag->name=="scenarios\\objects\\multi\\zanzibar\\pillar\\pillar" &&
             object.placement>=19 && object.placement<=22;
-      });
+      },source_scenery_regions);
   source_scenery.birth_query_capture([&](std::size_t source_object,std::uint32_t handle,
       std::uint64_t created_tick,std::uint32_t definition,const Transform &node0,float scale) {
     const auto &live=match.simulation().scene().get(handle);
@@ -1272,7 +1293,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     return SourceSceneryQueryState{state.sphere.center,state.sphere.radius,state.velocity,
         state.query_runtime_flags,state.frozen};
   });
-  if(!client)source_scenery.synchronize(match.simulation().scene());
+  if(!client)source_scenery.synchronize(match.simulation().scene(),scenery_regions);
   const auto &scenery_counts=source_scenery.stats();
   std::cout<<"Source scenery: "<<scenery_counts.render_models<<" resolved models, "
       <<scenery_counts.baked_models<<" baked and "<<scenery_counts.dynamic_models
@@ -1408,6 +1429,19 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   std::map<unsigned,std::unique_ptr<MultiplayerHud>> unit_huds;
   std::map<std::pair<unsigned,std::uint32_t>,std::unique_ptr<MultiplayerHud>> parent_huds;
   const auto voice_range=cache.load_hud(content.player.datum,rules.weapon).sensor.range;
+  for(unsigned representation:representations) {
+    auto unit=cache.load_hud(multiplayer_biped(content,representation).datum,null_datum);
+    auto empty_weapon=unit;
+    std::erase_if(unit.widgets,[](const auto &widget){return widget.weapon_type==1;});
+    unit_huds.emplace(representation,std::make_unique<MultiplayerHud>(std::move(unit),
+        cache.shared_directory()/"fonts",mesh,options.local_players,options.variant.name,
+        cache.original_data()->hud_bitmap_geometry_constants,options.ui_assets));
+    std::erase_if(empty_weapon.widgets,[](const auto &widget){return widget.weapon_type!=1;});
+    empty_weapon.action_messages.enabled=false;
+    huds.emplace(std::pair{representation,null_datum},std::make_unique<MultiplayerHud>(std::move(empty_weapon),
+        cache.shared_directory()/"fonts",mesh,options.local_players,options.variant.name,
+        cache.original_data()->hud_bitmap_geometry_constants,options.ui_assets));
+  }
   for(unsigned representation:representations)for(const auto &binding:handheld_weapon_hud_bindings(cache,representation)) {
     const auto key=std::pair{representation,binding.definition};
     auto authored_hud=cache.load_hud(multiplayer_biped(content,key.first).datum,key.second);
@@ -1507,6 +1541,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(!source_model_world)throw FormatError("Live shadow GPU reference lacks its actual native model world");
     source_shadow_scene=std::make_unique<SourceShadowScene>(cache,mesh,options.bsp,source_resident_models);
   }
+  bind_water_pool_materials(water,mesh.materials);
   const auto renderer_owner=platform.desktop->make_renderer(mesh,options.validation,{},bsp_shaders?&*bsp_shaders:nullptr,
       options.capture_shader_directory,source_shadow_scene?source_shadow_scene->resident():std::span<const SourceShadowRawPlanMaterial>{});
   auto& renderer=*renderer_owner;
@@ -1889,7 +1924,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     //emission. The later render interpolation is a separate read-only sample.
     machines.synchronize(match.simulation().scene(),&match.simulation().devices());
     props.synchronize(match.simulation().scene());
-    source_scenery.synchronize(match.simulation().scene());
+    source_scenery.synchronize(match.simulation().scene(),scenery_regions);
     const auto render_fraction=scenery_render_fraction;scenery_render_fraction=1;
     machines.update_pose(current.devices.tick,std::int32_t(current.tick),mesh);
     props.update_pose(std::int32_t(current.tick),mesh);
@@ -3215,7 +3250,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(!client || joined)machines.synchronize(match.simulation().scene(),&match.simulation().devices());
     if(current.devices.tick>previous.devices.tick)machines.interpolate(previous.devices,blend);
     if(!client) {
-      source_scenery.synchronize(match.simulation().scene());
+      source_scenery.synchronize(match.simulation().scene(),scenery_regions);
       source_scenery.interpolate(match.simulation().scene(),scene_interpolation,blend);
       std::set<std::uint32_t> current_scenery_handles;
       for(const auto &object:match.simulation().scene().objects())
@@ -3365,7 +3400,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       for(unsigned i=0;i<ids.size();++i)if(ids[i]==j)
         for(const auto &[representation,body]:species)
           for(unsigned hand=0;hand<2;++hand) {
-            const auto &gun=body.guns[i*2+hand];
+            if(body.guns.empty())continue;
+            const auto &gun=body.guns.at(i*2+hand);
             const auto &view=client?client_fp_views[i]:match.first_person_view(i);
             camouflage_range(gun.material,unsigned(gun.model.mesh.materials.size()),
                 source_object_camouflage(view.hands[hand].weapon,context));
@@ -3465,10 +3501,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       auto p = shown.players[id];
       const auto &v=species_for(p);
       const auto &biped=biped_for(p);
-      const auto &weapon=content.weapons.at(p.weapon==null_datum?rules.weapon:p.weapon);
-      const auto &gun=v.guns[i*2];
+      const auto selected_weapon=content.weapons.find(p.weapon);
+      const auto *weapon=selected_weapon==content.weapons.end()?nullptr:&selected_weapon->second;
+      const auto *gun=p.weapon==null_datum?nullptr:&v.guns.at(i*2);
       const auto &hands=v.hands;
-      auto &hud=*huds.at({source_session_player_representation(p.source_configuration,source_game_type),p.weapon==null_datum?rules.weapon:p.weapon});
+      auto &hud=*huds.at({source_session_player_representation(p.source_configuration,source_game_type),p.weapon});
       auto &unit_hud=*unit_huds.at(source_session_player_representation(p.source_configuration,source_game_type));
       // TU1.5 consumes deltas between raw PC samples. A new source unit owns
       // its look initialization; rebasing raw input to that processed angle
@@ -4257,7 +4294,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       }
       const auto first_person_lighting=reference_player?reference_player->first_person_lighting:object_light_cache[id].lighting;
       bindings.push_back({hands.material,unsigned(hands.model.mesh.materials.size()),first_person_lighting});
-      bindings.push_back({gun.material,unsigned(gun.model.mesh.materials.size()),first_person_lighting});
+      if(gun)bindings.push_back({gun->material,unsigned(gun->model.mesh.materials.size()),first_person_lighting});
       for(const auto &s:scenery)if(s.dynamic_lighting)
         bindings.push_back({s.visual.material,unsigned(s.visual.model.mesh.materials.size()),
             s.probe?s.probe->lighting:s.light.lighting});
@@ -4749,7 +4786,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
 #endif
           auto selected_body=selected_world_vertices(player,body_handle(a),i,body_nodes);
           auto selected_weapon=a.dead?std::optional<std::vector<Vertex>>{}:
-              selected_world_vertices(body_gun,a.source_weapon,i,held_nodes);
+              selected_world_vertices(*body_gun,a.source_weapon,i,held_nodes);
           const auto &posed_body=selected_body?*selected_body:direct_pose && cached?cached->body:body_vertices;
           const auto &posed_gun=selected_weapon?*selected_weapon:direct_pose && cached?cached->weapon:gun_vertices;
           append_shields(world,posed_body,body.body_shields,i,j,false,collector,*object_view.shader);
@@ -5147,8 +5184,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         view.source_bsp_resident_plan=&*bsp_shaders;
         view.source_bsp_bindings=bsp_vertex_plans[i].bindings;
       }
-      if(!p.dead && weapon.first_person_scope_size.x>0 && weapon.first_person_scope_size.y>0)
-        view.scope=scope_copy_frame(scope_source_rectangle(physical(rect),weapon.first_person_scope_size,
+      if(!p.dead && weapon && weapon->first_person_scope_size.x>0 && weapon->first_person_scope_size.y>0)
+        view.scope=scope_copy_frame(scope_source_rectangle(physical(rect),weapon->first_person_scope_size,
             aim_anchor,{float(drawable_w),float(drawable_h)}));
       view.water_reflection_background=reflection_backgrounds[i];
       view.water_reflection_camera=camera;
@@ -5337,7 +5374,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       for(const auto &[representation,v]:species)
         for(unsigned i=0;i<ids.size();++i)
           for(unsigned hand=0;hand<2;++hand) {
-            const auto &gun=v.guns[i*2+hand];
+            if(v.guns.empty())continue;
+            const auto &gun=v.guns.at(i*2+hand);
             if(m>=gun.material && m<gun.material+gun.model.mesh.materials.size()) {
               const auto &player=current.players[ids[i]];
               if((hand?player.secondary_weapon.definition:player.weapon)!=representation.second)continue;
@@ -5498,7 +5536,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         std::cout << " slot=" << id << " loaded=" << p.loaded << " reserve=" << p.reserve
                   << " reload_empty=" << p.reload_empty << " reload_seconds=" << p.reload_seconds
                   << " player_position="<<p.position.x<<','<<p.position.y<<','<<p.position.z;
-        if(!client && weapon.smg) {
+        if(!client && p.weapon!=null_datum && content.weapons.at(p.weapon).smg) {
           const auto &hand=match.first_person_view(view).hands[0];
           std::cout << " fp_clip=" << (hand.animation_identifier>>16) << " fp_frame=" << hand.frame
                     << " fp_fire_ticks=" << hand.fire_ticks;

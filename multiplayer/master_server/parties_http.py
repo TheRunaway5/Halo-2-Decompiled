@@ -271,7 +271,8 @@ class PartyApi:
                     # not a claim of server-side Discord friendship proof.
                     subject = text(body["discord_id"],20)
                     require(re.fullmatch(r"[1-9][0-9]{16,19}",subject), "Invalid Discord invitation target")
-                    target = db.execute("SELECT id FROM players WHERE provider='discord' AND subject=?", (subject,)).fetchone()
+                    target = db.execute("SELECT id FROM players WHERE provider='discord' AND subject=? UNION ALL "
+                                        "SELECT player FROM player_identities WHERE provider='discord' AND subject=? LIMIT 1", (subject,subject)).fetchone()
                     require(target is not None, "Player must sign into ONLINE first", 404)
                     self.invite(pid,who,target[0])
                 elif action == "invite_clan":

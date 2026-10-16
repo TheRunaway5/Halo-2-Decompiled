@@ -67,6 +67,13 @@ inline void verify_multiplayer_snapshot(const MultiplayerState &expected, const 
         require_snapshot(a.object==b.object && a.definition==b.definition && a.placement==b.placement &&
             a.created_tick==b.created_tick && a.attached_effects.size()==b.attached_effects.size(),
             "UDP attachment owner/generation differs");
+        require_snapshot(a.model_regions.has_value()==b.model_regions.has_value(),"UDP source scene region presence differs");
+        if(a.model_regions) {
+            const auto &x=*a.model_regions,&y=*b.model_regions;
+            require_snapshot(x.selection.variant_index==y.selection.variant_index &&
+                x.selection.permutations==y.selection.permutations && x.selection.states==y.selection.states &&
+                x.looping_effects==y.looping_effects,"UDP actual source scene regions differ");
+        }
         for(unsigned i=0;i<a.attached_effects.size();++i) {
             const auto &x=a.attached_effects[i],&y=b.attached_effects[i];
             require_snapshot(x.slot==y.slot && x.instance==y.instance && x.definition==y.definition &&

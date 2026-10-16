@@ -37,6 +37,13 @@ void SceneObjects::adopt_source_replicas(std::span<const SourceSceneRoot> roots,
             pose->second->sphere.radius<0 ||
             !std::all_of(pose->second->nodes.begin(),pose->second->nodes.end(),finite_transform)))
             throw FormatError("Source replica scene has an invalid WORLD hierarchy or sphere");
+        if(root.model_regions) {
+            const auto &bank=*root.model_regions;const auto &selection=bank.selection;
+            const auto count=selection.permutations.size();
+            if(count>16 || selection.states.size()!=count || bank.looping_effects.size()!=count ||
+                !selection.resolved() || selection.variant_index < -1 || selection.variant_index>127)
+                throw FormatError("Source replica scene has an invalid model region bank");
+        }
         Object object;
         if(const auto existing=slots_.find(root.object);source_replica_ && existing!=slots_.end()) {
             const auto &prior=objects_[existing->second];
@@ -49,6 +56,7 @@ void SceneObjects::adopt_source_replicas(std::span<const SourceSceneRoot> roots,
         object.handle=root.object;object.placement=root.placement;object.created_tick=root.created_tick;
         object.solved_transform=root.transform;object.position=root.transform.position;object.scale=root.transform.scale;
         object.visible=root.visible;
+        object.source_model_regions=root.model_regions;
         object.solved_nodes=pose==world.end()?std::vector<Transform>{}:pose->second->nodes;
         if(authored.name>=0) {
             if(std::size_t(authored.name)>=names.size() || names[authored.name]!=null_datum)

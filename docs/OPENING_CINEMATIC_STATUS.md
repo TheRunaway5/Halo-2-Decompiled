@@ -2,9 +2,22 @@
 
 **The goal is active and the opening is not fixed yet.** The live source model
 candidate passes the former scene08 variant failure and reaches scene09/tick3760.
-It then stops on missing original resource-pressure owner125FB0. That owner and
-its two eviction callbacks are now restored whole; the new playback retry is
-recorded separately. The model handoff consumes original selected sections and
+Whole original resource-pressure owner125FB0 and its two eviction callbacks now
+execute in playback and return four valid salted allocations. The latest run
+then passed Brute guard flag creation (`D6F1D ->119060`) after the existing cloth
+module was linked. Two actual guard births and unchanged original constructor
+replays pass; their declared variants take the original no-marker/free branch.
+The stale handle was `throne_regret`: original parent deletion had already
+retired it before the containing-name cleanup. Shared scene retirement now
+observes all actual removed identities immediately. The two-generation original
+Regret/throne regression passes, and playback passes all three throne names.
+The latest graphics probe enters `c01_intro_scene_01` (scene12), then exits on
+the ship-panel cinematic material admission. Both affected materials use the
+existing original `stencil_env` program; its dynamic guard now admits that
+independent environment pass. Four actual material/LOD binding checks pass,
+retaining original programs, declarations and sampler states. The next complete
+playback retry is still required; no full opening acceptance is inferred.
+The model handoff consumes original selected sections and
 deferred poses, and passes four actual-world geometry and emotional-vertex checks.
 The graphics observation uses a separately declared3GiB cap after2GiB host-pressure
 failures. Complete playback
@@ -25,6 +38,10 @@ The intended pipeline imports MCC data/tags and converts them to TU1.5
 equivalents later. TU1.5 remains the behavior and visual authority. Current
 Xbox-disc runs are reference diagnostics, not acceptance of converted MCC data.
 This work does not replace or bypass that conversion pipeline.
+
+Delivery also requires a video of the finished, uninterrupted opening with
+audio. A muted diagnostic run or partial scene capture does not satisfy that
+request. The recording remains pending until the full playback gates pass.
 
 ## Implemented and checked
 

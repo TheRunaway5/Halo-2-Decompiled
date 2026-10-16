@@ -326,7 +326,7 @@ struct OnlineMatchmaking::Impl {
               Json row={{"screen_name",player.name}};
               if(player.login) {
                 const auto grant=player.login->authorization();require(grant.has_value());
-                row["discord_token"]=*grant;
+                row[player.login->uses_steam()?"identity_token":"discord_token"]=*grant;
               }
               session_body["local_players"].push_back(std::move(row));
             }

@@ -69,6 +69,14 @@ trace. The 11 matching vehicle definitions include Warthog, Ghost, Banshee,
 Wraith, Scorpion, Pelican, Phantom, Creep, both turret families and gravity
 throne. Later equipment keeps its own authored material roles.
 
+Live-v7 additionally renders selected root bodies for current Warthog, Banshee
+and later Spectre, using actual native netgame factories, collectors and palettes.
+Independent point-caster controls only darken their dynamic receivers (7,652 /
+2,121 / 3,150 pixels respectively); authored specular controls only brighten
+output, and all three restore exact Original pixels. These declared camera/light
+fixtures do not cover every LOD, damage state, child turret owner, or historical
+frame. [Controls](../../analysis/pstencil/live-v7/asset-final-controls/verification.json).
+
 Use the [visual-identity audit](VISUAL_IDENTITY_AUDIT.md) for grounded vehicle, weapon, armor and prop examples, and the [caster/face audit](CASTER_FACE_PARITY.md) for exact predicates and unresolved cross-version gates. Full 2003 response/accumulation/environment execution remains an implementation and rendered-reference task.
 
 Reproduce without changing any reference or game asset:

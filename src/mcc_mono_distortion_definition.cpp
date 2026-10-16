@@ -47,7 +47,15 @@ std::shared_ptr<const CompiledMonoDefinition> CompiledMonoDefinition::compile(
 }
 ConvertedMonoParameters CompiledMonoDefinition::defaults(FpMode mode)const{return convert(nullptr,mode);}
 ConvertedMonoParameters CompiledMonoDefinition::instance(const Definitions::Instance& value,
-    std::optional<std::size_t> override_index,FpMode mode)const{
+    std::optional<std::size_t> override_index,FpMode mode)const{return convert(select_override(value,override_index),mode);}
+ConvertedMonoParameters CompiledMonoDefinition::instance_with_functions(const Definitions::Instance& value,
+    std::optional<std::size_t> override_index,FpMode mode,const FunctionContext& context)const{
+    if(context.fp.loaded_x87_control!=static_cast<std::uint16_t>(mode)||context.fp.mxcsr!=0x1f80)
+        throw FormatError("Function and mono conversion require the same explicit proved FP context");
+    return convert(select_override(value,override_index),mode,&context);
+}
+const Definitions::ComponentOverride* CompiledMonoDefinition::select_override(const Definitions::Instance& value,
+    std::optional<std::size_t> override_index)const{
     bool owned=false;
     for(const auto& collection:definitions_->collections())for(const auto& effect:collection.effects)
         for(const auto& candidate:effect.instances)if(&candidate==&value)owned=true;
@@ -62,9 +70,9 @@ ConvertedMonoParameters CompiledMonoDefinition::instance(const Definitions::Inst
             selected=&root.components[0];
         }
     }
-    return convert(selected,mode);
+    return selected;
 }
-ConvertedMonoParameters CompiledMonoDefinition::convert(const Definitions::ComponentOverride* override,FpMode mode)const{
+ConvertedMonoParameters CompiledMonoDefinition::convert(const Definitions::ComponentOverride* override,FpMode mode,const FunctionContext* context)const{
     std::array<std::uint32_t,7> values{};std::size_t source_index=0;
     for(std::size_t i=0;i<7;++i){
         const auto& p=template_->components[i];auto bits=p.default_bits;
@@ -74,13 +82,22 @@ ConvertedMonoParameters CompiledMonoDefinition::convert(const Definitions::Compo
             // Original MOVSX/SAR consumes a signed byte index. Negative
             // source indices have no proved native metadata owner.
             if(source&0x80)throw FormatError("Negative MCC mono parameter source is unresolved");
-            if(source&1)throw FormatError("Selected MCC mono parameter function is unresolved");
             const auto index=std::size_t(source>>1);
-            if(index>=override->constants.size())throw FormatError("Selected MCC mono constant is absent");
-            bits=override->constants[index].bits;
+            if(source&1){
+                if(!context)throw FormatError("Selected MCC mono parameter function needs explicit source inputs");
+                if(index>=override->functions.size())throw FormatError("Selected MCC mono function is absent");
+                const auto function=tu15_effect_function::CompiledParameterFunction::compile(definitions_,override->functions[index]);
+                bits=function->evaluate_unbounded(context->inputs,context->speaker,context->geometry?&*context->geometry:nullptr,context->fp).values.value_bits;
+            }else{
+                if(index>=override->constants.size())throw FormatError("Selected MCC mono constant is absent");
+                bits=override->constants[index].bits;
+            }
         }
-        if(!finite(bits))throw FormatError("Nonfinite MCC mono input is unresolved");
-        //228F01..228F1B compares lower first, then upper; all admitted inputs
+        // Source COMISS/JBE bounds clamp signed infinities; unordered NaNs
+        // remain unresolved converter inputs after those original comparisons.
+        if(!finite(bits)&&(bits&0x7fffffff)!=0x7f800000)
+            throw FormatError("NaN MCC mono input is unresolved");
+        //228F01..228F1B compares lower first, then upper. The selected bounds
         // are finite. Preserve the chosen float word, including signed zero.
         const auto value=ordered(bits),low=ordered(p.minimum_bits),high=ordered(p.maximum_bits);
         if(value<low)bits=p.minimum_bits;else if(value>high)bits=p.maximum_bits;

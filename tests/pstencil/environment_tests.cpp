@@ -17,7 +17,7 @@ struct Fixture {
 static_assert(sizeof(Fixture)==336);
 }
 int main(int argc,char** argv){try {
-    require(argc==4,"supply original construction JSON, GPU compute shader and resident default program");
+    require(argc==5,"supply original construction JSON, GPU compute shader, resident default program and parameter evidence");
     nlohmann::json original;std::ifstream(argv[1])>>original;
     unsigned source_cases{};
     for(const auto& fixture:original.at("fixtures")) {
@@ -113,7 +113,28 @@ int main(int argc,char** argv){try {
         require(std::isfinite(resident_actual[n][c]) && error<2e-5f,
             "GPU default resident response differs from primary words/source formula");
     }
-    std::cout<<source_cases<<" unchanged-original construction fixtures and "<<fixtures.size()
+    nlohmann::json references;std::ifstream(argv[4])>>references;unsigned reference_count{};
+    for(const auto& entry:references.at("static_consensus")) {
+        const auto* parameters=pstencil::reference_environment_parameters(entry.at("shader").get<std::string>());
+        require(parameters,"verified original shader has no exact reference lookup");
+        const auto& primary=entry.at("parameters");
+        require(parameters->facing==primary.at("facing").get<ShaderVector>() &&
+            parameters->glancing==primary.at("glancing").get<ShaderVector>() &&
+            parameters->midrange_factor_argb==primary.at("midrange_factor_argb").get<std::uint32_t>() &&
+            parameters->midrange_color_argb==primary.at("midrange_color_argb").get<std::uint32_t>(),
+            "native reference parameters differ from original resident data");
+        auto program=pstencil::adapt_environment_response(pass.forward_program);
+        auto before=program;std::array<ShaderVector,16> attributes{};
+        pstencil::apply_reference_environment(*parameters,program,attributes);
+        for(unsigned n=0;n<60;++n)if(n!=13 && n!=14)
+            require(program.words[n]==before.words[n],"reference values changed shader control or camera direction");
+        require(attributes[10]==parameters->facing && attributes[11]==parameters->glancing,
+            "reference values lost direct diffuse attribute mapping");
+        ++reference_count;
+    }
+    require(!pstencil::reference_environment_parameters("objects\\vehicles\\spectre\\shaders\\spectre"),
+        "later equipment received an invented historical material alias");
+    std::cout<<reference_count<<" exact static reference material records, "<<source_cases<<" unchanged-original construction fixtures and "<<fixtures.size()
         <<" scalar/GPU fixtures for each of fallback/default resident responses passed; maximum GPU error "<<maximum<<'\n';
     return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}}

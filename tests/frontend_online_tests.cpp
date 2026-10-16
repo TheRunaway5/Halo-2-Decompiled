@@ -1,5 +1,6 @@
 #include "halo2/frontend.hpp"
 #include "halo2/frontend_online.hpp"
+#include "halo2/online_service.hpp"
 #include "halo2/frontend_ui_assets.hpp"
 #include "halo2/frontend_font_sampling.hpp"
 #include "halo2/frontend_vista.hpp"
@@ -1077,6 +1078,37 @@ int main(int argc, char **argv) {
     MenuState password(content); password.open(21);
     check(password.frame().screen == 20 && password.frame().entries[0].label == "Sign in with Discord", "Legacy password screen survived the service replacement");
     check(sampled.empty() || (sampled_online_font && sampled_online_bitmap), "ONLINE did not draw higher-resolution imported fonts and UI bitmaps");
+    // The primary login changes provider without changing chosen Halo names,
+    // private-ID treatment, Vista artwork, or widescreen menu bounds.
+    const std::string device(43,'d');
+    auto escape=[](const std::string &value) {auto *p=curl_easy_escape(nullptr,value.c_str(),int(value.size()));
+      std::string out(p);curl_free(p);return out;};
+    const std::string ns="http://specs.openid.net/auth/2.0";
+    const auto steam_url="https://steamcommunity.com/openid/login?openid.ns="+escape(ns)+
+      "&openid.mode=checkid_setup&openid.realm="+escape(std::string(default_online_origin)+"/")+
+      "&openid.return_to="+escape(std::string(default_online_origin)+"/v1/auth/steam/callback/"+device)+
+      "&openid.identity="+escape(ns+"/identifier_select")+"&openid.claimed_id="+escape(ns+"/identifier_select");
+    auto steam=DiscordLogin::steam([&](const auto &url){return url==steam_url;},
+      [&](const DiscordHttpRequest &r,std::stop_token) {
+        using Json=nlohmann::json;
+        if(r.url.ends_with("/start"))return DiscordHttpResponse{201,Json{{"device",device},{"url",steam_url},{"expires_in",300},{"interval",1}}.dump()};
+        return DiscordHttpResponse{200,Json{{"state","signed_in"},{"token","h2s_"+std::string(43,'t')},{"expires_in",28800},
+          {"identity",{{"id","76561197960287930"},{"username","Steam Persona"},{"display_name","Steam Persona"}}}}.dump()};
+      });
+    menu.set_online_account({});menu.set_discord_login(steam);menu.open(20);
+    check(menu.frame().entries[0].label=="Sign in with Steam","Native ONLINE does not offer Steam sign-in");
+    menu.accept();
+    const auto steam_deadline=std::chrono::steady_clock::now()+std::chrono::seconds(5);
+    while(!menu.online_identity()&&std::chrono::steady_clock::now()<steam_deadline){menu.update_online_login();std::this_thread::sleep_for(std::chrono::milliseconds(5));}
+    menu.update_online_login();
+    check(menu.frame().screen==186,"Steam sign-in did not enter native ONLINE");
+    menu.open(20);
+    check(menu.online_identity()&&menu.profile_name()=="Custom Pilot"&&menu.frame().description=="Screen name: Custom Pilot\nSteam: Steam Persona",
+          "Steam login lost chosen name or retained Discord account presentation");
+    check(menu.frame().entries.back().label=="Sign out of Steam"&&!has_logo(menu),"Steam account action or panel overlap regressed");
+    private_identity(menu);capture("steam-account");
+    for(const auto &[width,height]:viewports)audit_vista(menu,painter.draw(menu,5,-1,10000,{width,height}),{width,height});
+    menu.select(2);menu.accept();check(!menu.online_identity(),"Native Steam sign-out retained ONLINE identity");
     if (!sampled.empty()) std::cout << "Vista texture/font byte comparison passed on " << audited_panels.size() << " ONLINE panel/context pairs.\n";
     if (!sampled.empty()) std::cout << bounded_glyphs << " bounded HD text vertices; " << pointer_projections
         << " mouse target projections across " << std::size(viewports) << " aspect ratios.\n";

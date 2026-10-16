@@ -36,7 +36,10 @@ SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options,con
     throw FormatError("Team selections must provide one source team 0..7 per local player");
   rules.weapon=options.campaign_difficulty ? content.starting_weapon :
        cache.slayer_starting_weapon(rules.custom==CustomSlayer::none?rules.starting_weapon:5,rules.source_engine);
-   if(rules.weapon==null_datum)throw FormatError("Selected session has no authored starting weapon");
+  const bool source_campaign=options.campaign_difficulty && cache.original_data() &&
+      cache.original_data()->image==OriginalData::Image::TitleUpdate15;
+  if(rules.weapon==null_datum && !source_campaign)
+    throw FormatError("Selected session has no authored starting weapon");
   if(rules.custom!=CustomSlayer::none) {
     rules.weapon_choices=cache.multiplayer_weapon_choices();
     if(rules.custom==CustomSlayer::infection && options.local_players<2 && !options.host_port && options.join.empty() && !options.online_match && !options.dedicated)throw FormatError("Infection requires at least two players");
@@ -101,6 +104,11 @@ std::unique_ptr<MultiplayerObjectRuntime> object_world(
   if(options.source_world_observer)options.source_world_observer(world->memory());
   return world;
 }
+bool source_replica_world(const Cache &cache,const MultiplayerOptions &options,
+    const MultiplayerObjectRuntime *world) {
+  return !world && cache.original_data() && cache.original_data()->image==OriginalData::Image::TitleUpdate15 &&
+      (!options.join.empty() || (options.online_match && options.online_match->host()!=options.online_match->self()));
+}
 std::function<std::uint32_t()> result_clock_source(const std::shared_ptr<PhysicsLiveClockSource> &clock) {
   if(!clock)return {};
   // The native provider's FILETIME domain is100ns since1601, as in
@@ -152,7 +160,7 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
    source_objects(object_world(*cache,options,rules,source_savegames,clock?clock:(shadow?shadow->clock:nullptr))),
    match(content,options.bsp,options.native_spawn_inputs.empty()?cache->spawns():
        std::span<const Spawn>(options.native_spawn_inputs),rules,{},result_clock_source(clock),source_objects.get(),options.campaign_difficulty ?
-        std::optional(SourceSceneGameContext{1,rules.source_engine}):std::nullopt,options.campaign_spawn_input),map_(options.map),shared_(options.shared_maps),
+        std::optional(SourceSceneGameContext{1,rules.source_engine}):std::nullopt,options.campaign_spawn_input,source_replica_world(*cache,options,source_objects.get())),map_(options.map),shared_(options.shared_maps),
    xbe_(options.gameplay_xbe),bsp_(options.bsp),players_(options.local_players),
    starting_weapon_(options.starting_weapon),variant_(source_game_variant(options.variant)),
    teams_(options.selected_teams),profiles_(options.selected_profiles),seed_(options.session_random_seed),

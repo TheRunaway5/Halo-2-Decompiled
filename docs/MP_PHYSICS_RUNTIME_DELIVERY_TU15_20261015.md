@@ -2,18 +2,25 @@
 
 ## October16 current delivery
 
-`Halo2-Physics-TU15` now pins `tested-runtime-v517/halo2_native`, SHA256
-`85f9767e2a0f35116df02f83f3d6a236ecb0f55350a6cc091f729d87ebc39142`.
-`normal-runtime-delivery-v518/execution.json` passes ordinary authored-spawn
-startup with two players,120 rendered frames and340 source ticks, with no
-physics fixture or spawn override. The visible window was continuously mirrored
-to the desktop. Fresh Warthog drive/steer/enter/exit camera and actual shared
-campaign Enforcer UDP/render/controller checks are recorded in
+`Halo2-Physics-TU15` now pins `tested-runtime-v566/halo2_native`, SHA256
+`a36dc424f5a464508dd0088e393e19f54ced99b033ba22d7ef99f70dc842dbf0`.
+`normal-runtime-delivery-v570/execution.json` passes ordinary authored-spawn
+startup with two players,120 rendered frames and322 source ticks,without
+physics fixture/spawn overrides. `vehicle-camera-unarmed-regression-v569`
+passes actual Warthog entry,drive,steering,look and exit with902 exact UDP states,
+480 original seated-camera frames,0.6000000238-radian look turn and447 frames
+after exit. The seated8s/exited25s frames were inspected; actual game window and
+continuous desktop mirror are verified. Root/frozen launcher receipts are
+`launcher-v566-verified-*.json`. Source-owned NONE equipment and unarmed body/
+unit-HUD presentation,original cinematic RGBA blending and late water binding
+are included. No-flare Thronev565 visibly passes382 frames in each view and242
+exact UDP states without a replacement weapon. See
 [shared campaign integration](MP_CAMPAIGN_SHARED_PHYSICS_TU15_20261015.md).
-Full physics parity remains incomplete; older checkpoints below retain their
-original bounded scope.
+Full all-player,vehicle and object physics parity remains incomplete. Pelican
+SCEN RNG-choice wiring,remaining placements/lifts and all wider gates stay open;
+older checkpoints retain their original bounded scope.
 
-Current delivery: `Halo2-Physics-TU15` selects immutable production v451,
+Earlier v451 delivery: `Halo2-Physics-TU15` selected immutable production v451,
 SHA-256 `c3d25c01fad7dbf63d34076168bac78c5bae27bc4714de8b275d3d2de23e5a6f`.
 It retains the class3 helpers, actual controller admission and original static
 contact-agent startup, and validates the original agent/destructor binding

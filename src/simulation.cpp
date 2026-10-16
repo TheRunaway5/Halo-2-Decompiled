@@ -13,6 +13,7 @@
 #include "halo2/source_campaign_cinematic_tu15.hpp"
 #include "halo2/source_campaign_camera_tu15.hpp"
 #include "halo2/source_campaign_screen_tu15.hpp"
+#include "halo2/source_cinematic_shadow_control_tu15.hpp"
 #include "halo2/source_object_functions_tu15.hpp"
 #include "halo2/source_unit_cinematic_tu15.hpp"
 #include "halo2/source_script_effect_tu15.hpp"
@@ -2106,6 +2107,13 @@ ScriptValue Simulation::host(const std::string &name,
   if(name=="cinematic_lighting_set_ambient_light") {
     arity(3);frontend_cinematic_ambient(mutable_cinematic_state().lighting,
         {float(args[0].number()),float(args[1].number()),float(args[2].number())});return {};
+  }
+  if(name=="render_lights_enable_cinematic_shadow") {
+    arity(4);
+    if(!source_campaign_)throw FormatError("Cinematic shadow control requires its retained TU1.5 world");
+    source_cinematic_shadow_control_tu15(source_campaign_->objects().tu15_world(),
+        args[0].truth(),args[1].bits,args[2].bits,float(args[3].number()));
+    return {};
   }
   if(name=="object_uses_cinematic_lighting") {
     arity(2);if(args[0].bits==null_datum)return {};
