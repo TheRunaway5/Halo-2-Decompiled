@@ -18,18 +18,24 @@ ENTRIES=(0x3eb10,0x3f3e0,0x30bd0,0x11f9c0,0x13a6b0,0x145560,0x1458a0,0x1459b0,0x
     # Literal44B56C/44B574 initialize/reset the per-frame audio state read
     # by13A9B0's complete18EE50 prelude. Keep the actual arena/checksum owner.
     0x22c440,0x22c480,
-    0x250450,0x250ac0,0x251650,0x2516c0,0x2519f0,0x251a60,0x251f70,0x252060,0x2c2ad0,0x2c40d0)
+    0x250450,0x250ac0,0x251650,0x2516c0,0x2519f0,0x251a60,0x251f70,0x252060,0x2c2ad0,0x2c40d0,
+    # Actual2C2B01 collision owner and its literal helper closure. Metadata
+    # vtable slots0/4/38/3C are authenticated below, never supplied returns.
+    0x2c2d90,0x176a40,0x24ffe0,0x2c4110,0x250310,0x250380,0x2502b0,
+    0x252100,0x18bbc0,0x2501c0,0x250220,0x178e30,0x4efa0,0x16e940,
+    0x22b6e0,0x22b6f0,0x22b750,0x22b760)
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('src/source_effect_particle_frame_tu15_generated.cpp'));ap.add_argument('--directory',type=Path,required=True);a=ap.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
     assert code.at(0x13aa28).operands[0].imm==0x179df0
     assert code.at(0x179ec8).operands[0].imm==0x177830
+    assert code.at(0x2c2b01).mnemonic=='call' and code.at(0x2c2b01).operands[0].imm==0x2c2d90
     assert struct.unpack('<4I',image.read(0x44b56c,16))==(0x22c440,0x31d400,0x22c480,0x31d400)
     tables={}
     for pointer in (0x486048,0x48603c):
         table=struct.unpack('<I',image.read(pointer,4))[0]
-        targets={offset:struct.unpack('<I',image.read(table+offset,4))[0] for offset in (0x8,0xc,0x20,0x24,0x44,0x48,0x4c,0x50)}
+        targets={offset:struct.unpack('<I',image.read(table+offset,4))[0] for offset in (0,4,0x8,0xc,0x20,0x24,0x38,0x3c,0x44,0x48,0x4c,0x50)}
         assert set(targets.values())<=set(ENTRIES);tables[f'{pointer:08x}']=dict(table=table,targets=targets)
     sites,instructions,addresses,routines={},{},{},[]
     for entry in sorted(ENTRIES):

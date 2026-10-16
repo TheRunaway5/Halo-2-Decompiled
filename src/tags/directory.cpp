@@ -1,8 +1,52 @@
 #include "halo2/cache.hpp"
 #include "directory.hpp"
 #include <algorithm>
+#include <iterator>
 
 namespace halo2 {
+std::vector<bool> merge_shared_tag_directory(std::vector<Tag>& local,
+    std::span<const Tag> shared, SharedTagLoadPolicy policy) {
+    if(local.size()<shared.size())local.resize(shared.size(),Tag{"","",0xffffffffu,0,0});
+    std::vector<bool> imported(local.size());
+    for(std::size_t i=0;i<shared.size();++i) {
+        const auto& source=shared[i];auto& target=local[i];
+        if(source.handle().is_null() || !source.address)continue;
+        if(!target.handle().is_null() && (target.datum!=source.datum ||
+            target.group!=source.group || target.name!=source.name))
+            throw FormatError("Shared tag datum/group/path collision");
+        if(target.handle().is_null() || !target.address ||
+            (policy==SharedTagLoadPolicy::unloaded_or_empty && !target.size)) {
+            target=source;imported[i]=true;
+        }
+    }
+    return imported;
+}
+
+std::vector<std::pair<std::uint32_t,std::uint32_t>> tag_metadata_regions(
+    std::span<const Tag> tags,
+    std::span<const std::pair<std::uint32_t,std::uint32_t>> retained) {
+    std::vector<std::pair<std::uint32_t,std::uint32_t>> regions(retained.begin(),retained.end());
+    for(const auto& tag:tags)if(!tag.handle().is_null() && tag.address && tag.size)
+        regions.emplace_back(tag.address,tag.size);
+    std::sort(regions.begin(),regions.end());
+    std::uint64_t end=0;
+    for(const auto& [address,size]:regions) {
+        if(address<end || std::uint64_t(address)+size>0x100000000ull)
+            throw FormatError("Resident tag allocations overlap or wrap");
+        end=std::uint64_t(address)+size;
+    }
+    for(const auto& tag:tags)if(!tag.handle().is_null() && tag.address && !tag.size) {
+        auto next=std::upper_bound(regions.begin(),regions.end(),tag.address,
+            [](auto address,const auto& region){return address<region.first;});
+        if(next!=regions.begin()) {
+            const auto& previous=*std::prev(next);
+            if(std::uint64_t(tag.address)-previous.first<=previous.second)continue;
+        }
+        regions.insert(next,{tag.address,0});
+    }
+    return regions;
+}
+
 namespace {
 bool equal_name(std::string_view a, std::string_view b, TagNameMatch match) {
     if (match == TagNameMatch::exact) return a == b;

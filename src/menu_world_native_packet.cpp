@@ -6,7 +6,7 @@ namespace halo2 {
 MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInput &input) {
   if(!input.material_set)
     throw FormatError("raw world packet has no actual material descriptor");
-  if(input.forward_blend!=0 && input.forward_blend!=5 && input.forward_blend!=10)
+  if(input.forward_blend!=0 && input.forward_blend!=5 && input.forward_blend!=9 && input.forward_blend!=10)
     throw FormatError("raw world packet has an unsupported source blend mapping");
   if(input.source.draw().topology!=MenuWorldSourceTopology::triangle_list &&
      input.source.draw().topology!=MenuWorldSourceTopology::triangle_strip)
@@ -49,6 +49,7 @@ MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInp
   validation.sampler_limits=&input.sampler_limits;
   validation.uniforms=&fragment;
   validation.depth=MenuWorldFragmentDepth::clipped_w_d24;
+  validation.w_clip_mode=input.w_clip_mode;
   validation.window=input.raster.window_exclusive?
       MenuWorldFragmentWindow::exclusive:MenuWorldFragmentWindow::inclusive;
   validation.colors=MenuWorldFragmentColors::front;
@@ -70,6 +71,6 @@ MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInp
   }
   validate_menu_world_fragment(validation);
   return {input.source,&vertex_shader,vertex,fragment,input.raster,input.forward,
-      input.forward_blend,input.material_set,input.material_offset};
+      input.forward_blend,input.material_set,input.material_offset,input.w_clip_mode};
 }
 } // namespace halo2

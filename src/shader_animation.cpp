@@ -283,6 +283,8 @@ std::shared_ptr<const ShaderFunctionTables>
 Cache::shader_function_tables() const {
   if (function_tables_)
     return function_tables_;
+  if(mcc_)
+    throw FormatError("Native MCC material library is missing; update the port and repair its cache");
   auto tables = std::make_shared<ShaderFunctionTables>();
   std::array<std::byte, 28 * 1024> bytes{};
   std::ifstream stream((vista_ && !xbox_donor_root_.empty()?xbox_donor_root_:shared_directory_.parent_path()) / "default.xbe",

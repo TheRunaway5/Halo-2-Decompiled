@@ -5,6 +5,8 @@
 #include <algorithm>
 namespace halo2 {
 void Simulation::equip_inventory(Unit &unit,std::uint32_t definition) {
+  if(content_.weapons.at(definition).source_runtime_only)
+    throw FormatError("Selected authored item requires its original source gameplay owner");
   // Native campaign and match now retain the same single authoritative ammo
   // owner. This does not manufacture a source player or raw actor component.
   for(const auto handle:unit.source_inventory.slots)if(handle!=null_datum) {
@@ -27,6 +29,7 @@ void Simulation::equip_inventory(Unit &unit,std::uint32_t definition) {
   native_select_weapon(unit,0,std::uint32_t(ticks_));
 }
 void Simulation::synchronize_weapon_pickups() {
+  if(source_campaign_)return; // The retained source item/attachment owner publishes these views.
   if(content_.multiplayer_spawn)return;
   // A script-created item is born once per full salted generation. Carrying
   // it removes the world owner without destroying its script/object identity.
@@ -37,6 +40,7 @@ void Simulation::synchronize_weapon_pickups() {
     const auto definition=content_.weapons.find(placement.definition);
     if(definition==content_.weapons.end())continue;
     const auto &w=definition->second;
+    if(w.source_runtime_only)continue;
     if(w.first_person_model==null_datum || w.first_person_animation==null_datum)continue;
     auto item=std::find_if(campaign_weapon_pickups_.begin(),campaign_weapon_pickups_.end(),[&](const auto &p){return p.handle==object.handle;});
     if(item==campaign_weapon_pickups_.end()) {

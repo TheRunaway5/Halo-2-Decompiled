@@ -241,6 +241,14 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 'if(count){const auto x='+value+';s.flags.cf='+carry+';if(count==1)s.flags.of='+overflow+';'
                 's.flags.af=false;s.flags.result(x,4);'+put(i,op[0],'x')+'}}')
         if mn in ('shr','sar'):return put(i,op[0],f's.flags.right({get(i,op[0])},{get(i,op[1])},{op[0].size},{str(mn=="sar").lower()})')
+        if mn=='rol':
+            # The original CRT classifier uses ROL CH,1. This retained
+            # count-one form changes only CF/OF; SZP and AF stay unchanged.
+            assert op[1].type==2 and op[1].imm==1 and op[0].size in (1,2,4)
+            width=op[0].size*8
+            return ('{const auto x='+get(i,op[0])+f';const auto result=((x<<1u)|(x>>{width-1}u))&0x{(1<<width)-1:x}u;'
+                f's.flags.cf=(x>>{width-1}u)&1u;s.flags.of=((result>>{width-1}u)&1u)!=s.flags.cf;'
+                +put(i,op[0],'result')+'}')
         if mn=='rcr':
             width=op[0].size*8
             return ('{auto x='+get(i,op[0])+f';auto count=({get(i,op[1])}&31u)%{width+1}u;'
@@ -282,6 +290,7 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             return f'while(s.gp[1]){{s.flags.minus(r(s.memory,s.gp[6],{width}),r(s.memory,s.gp[7],{width}),{width});const auto delta=(s.other_flags&1024u)?{0x100000000-width}u:{width}u;s.gp[6]+=delta;s.gp[7]+=delta;--s.gp[1];if(!s.flags.zf)break;if(s.services.instruction)s.services.instruction(0x{p:x}u);}}'
         if mn in ('comiss','ucomiss'):return f's.flags.scalar_compare({get(i,op[0])},{xv(i,op[1])},{str(mn=="ucomiss").lower()});'
         if mn=='lahf':return 's.set(0,s.flags.bits()|2u,1,8);'
+        if mn=='xlatb':return 's.set(0,r(s.memory,s.gp[3]+s.reg(0,1),1),1);'
         if mn.startswith('set'):
             condition={'e':'s.flags.zf','ne':'!s.flags.zf',
                 'g':'!s.flags.zf&&(s.flags.sf==s.flags.of)',
@@ -318,12 +327,12 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 assert i.bytes.hex()=='ff5060'
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return '{const auto target='+target+f';s.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,target,false);'+'}'
-            if p in (0xd1fbf,0x101db8,0x183e17,0x18cefc,0x10517f,0x107c40):
+            if p in (0xd1fbf,0x101db8,0x183e17,0x18cefc,0x10517f,0x107c40,0x17db3b,0x17db6d):
                 # Preserve native publication even when the complete callee
                 # becomes internal to this composition. The required owner
                 # observes the real ABI and runs the original callee itself.
                 expected={0xd1fbf:0xd13d0,0x101db8:0x178e30,0x183e17:0x439c0,0x18cefc:0x223b20,
-                          0x10517f:0x108a70,0x107c40:0x108a70}[p]
+                          0x10517f:0x108a70,0x107c40:0x108a70,0x17db3b:0xc2380,0x17db6d:0xc2380}[p]
                 assert op[0].type==2 and op[0].imm==expected
                 target=get(i,op[0]);externals[f'{p:08x}']=dict(target=i.op_str,full_guest_abi=True)
                 return f's.push(0x{p:x}u,{imm(next)});s.required(0x{p:x}u,{target},false);'
@@ -364,15 +373,15 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn=='fild':
             if op[0].size==8:
                 assert op[0].type==3
-                return f's.fp.push(static_cast<long double>(std::bit_cast<std::int64_t>(native_read64(s.memory,{addr(i,op[0])}))));'
-            return f's.fp.push(static_cast<long double>(si({get(i,op[0])})));'
+                return f's.fp.push(static_cast<long double>(std::bit_cast<std::int64_t>(native_read64(s.memory,{addr(i,op[0])}))));s.fp.status&=~0x200u;'
+            return f's.fp.push(static_cast<long double>(si({get(i,op[0])})));s.fp.status&=~0x200u;'
         if mn=='fimul':
             assert len(op)==1 and op[0].type==3 and op[0].size==4
             return ('{std::uint16_t status;s.fp.st(0)=native_integer_multiply(s.fp.st(0),'
                 f'si({get(i,op[0])}),status);s.fp.status=(s.fp.status&~0x200u)|(status&0x23fu);}}')
-        if mn=='fchs':return 's.fp.st(0)=-s.fp.st(0);'
-        if mn in ('fldz','fld1'):return f's.fp.push({"0.L" if mn=="fldz" else "1.L"});'
-        if mn=='fld':return f's.fp.push({xf(i,op[0])});'
+        if mn=='fchs':return 's.fp.st(0)=-s.fp.st(0);s.fp.status&=~0x200u;'
+        if mn in ('fldz','fld1'):return f's.fp.push({"0.L" if mn=="fldz" else "1.L"});s.fp.status&=~0x200u;'
+        if mn=='fld':return f's.fp.push({xf(i,op[0])});s.fp.status&=~0x200u;'
         if mn in ('fst','fstp'):
             value='s.fp.st(0)'
             if op[0].type==3 and op[0].size==8:
@@ -380,20 +389,28 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
             if op[0].type==3:
                 assert op[0].size==4
                 value=f'native_single_spill({value},s.fp.status)'
-            return put(i,op[0],value)+('s.fp.pop();' if mn=='fstp' else '')
+            # Register stores do not round and clear C1. Memory stores above
+            # retain their actual rounding result instead.
+            return put(i,op[0],value)+('s.fp.status&=~0x200u;' if op[0].type==1 else '')+('s.fp.pop();' if mn=='fstp' else '')
         if mn=='fxch':
             # Capstone includes implicit ST(0) before the encoded ST(i).
             assert len(op)==2 and name(i,op[0])=='st(0)'
-            return f'std::swap(s.fp.st(0),{get(i,op[1])});'
+            return f'std::swap(s.fp.st(0),{get(i,op[1])});s.fp.status&=~0x200u;'
         if mn=='fcompi':return f's.compare_and_pop({get(i,op[0])});'
         if mn=='fucompi':return f's.unordered_compare_and_pop({get(i,op[0])});'
         if mn=='fldpi':return 's.fp.push(native_fldpi());s.fp.status&=~0x200u;'
         if mn=='fldl2e':return 's.fp.push(native_fldl2e());s.fp.status&=~0x200u;'
+        if mn=='fldlg2':return 's.fp.push(native_fldlg2());s.fp.status&=~0x200u;'
         if mn=='fnstsw':return put(i,op[0],'s.fp.word()')
+        if mn=='fxam':
+            # FXAM also reads the sign of an empty physical register. That
+            # dead register value is outside the retained logical ABI.
+            return ('if(!s.fp.count)throw std::runtime_error("Required original TU1.5 FXAM empty physical register owner unavailable");'
+                's.fp.status=(s.fp.status&~0x4700u)|native_fxam(s.fp.st(0));')
         if mn in ('fcom','fcomp','fcompp','fucompp'):
             value='s.fp.st(1)' if mn in ('fcompp','fucompp') else xf(i,op[0])
             return f's.fp.comparison({value},{ {"fcom":0,"fcomp":1,"fcompp":2,"fucompp":2}[mn]});'
-        if mn=='fabs':return 's.fp.st(0)=std::fabs(s.fp.st(0));'
+        if mn=='fabs':return 's.fp.st(0)=std::fabs(s.fp.st(0));s.fp.status&=~0x200u;'
         if mn=='fsqrt':return 's.fp.st(0)=root(s.fp.st(0));'
         if mn=='fpatan':return 's.fp.st(1)=native_fpatan(s.fp.st(1),s.fp.st(0));s.fp.pop();'
         if mn=='fptan':
@@ -477,7 +494,7 @@ struct LiveState : physics_world_runtime_detail::WorldState {
         asm volatile("fldt %4\\n\\tfldt %3\\n\\tfucomip %%st(1),%%st\\n\\tsetb %0\\n\\tsete %1\\n\\tsetp %2\\n\\tfstp %%st(0)"
             :"=qm"(carry),"=qm"(zero),"=qm"(parity):"m"(value),"m"(other):"cc","st");
         flags.cf=carry;flags.zf=zero;flags.pf=parity;flags.af=flags.sf=flags.of=false;
-        fp.status&=~0x200u;fp.pop();
+        fp.pop();
 #else
         throw std::runtime_error("Original world unordered comparison backend unavailable");
 #endif
@@ -541,6 +558,13 @@ long double native_fldl2e() {
     long double value;asm volatile("fldl2e":"=t"(value));return value;
 #else
     throw std::runtime_error("Required original x87 FLDL2E native implementation unavailable");
+#endif
+}
+long double native_fldlg2() {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    long double value;asm volatile("fldlg2":"=t"(value));return value;
+#else
+    throw std::runtime_error("Required original x87 FLDLG2 native implementation unavailable");
 #endif
 }
 long double native_extended_load(M &memory,std::uint32_t address) {
@@ -678,6 +702,18 @@ void native_store_half(WorldState &s,std::uint32_t instruction,std::uint32_t add
     std::uint64_t bits;
     std::memcpy(&bits,reinterpret_cast<const std::byte*>(&value)+offset,8);
     w(s.memory,s.observe,instruction,address,8,bits);
+}
+std::uint16_t native_fxam(const long double &value) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    std::uint16_t status;
+    // Use the actual 80-bit operand, including unsupported encodings. Intel
+    // SDM Vol.2A FXAM owns only C0/C1/C2/C3 and raises no FP exceptions.
+    asm volatile("fldt %1\\n\\tfxam\\n\\tfnstsw %0\\n\\tfstp %%st(0)"
+        :"=m"(status):"m"(value):"st");
+    return status&0x4700u;
+#else
+    throw std::runtime_error("Required TU1.5 FXAM backend unavailable");
+#endif
 }
 long double native_fpatan(long double y,long double x) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
@@ -818,6 +854,18 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
         'bool source_physics_live_support_tu15_owns_entry(std::uint32_t p) {switch(p){'+
         ''.join(f'case 0x{p:x}u:' for p in ENTRIES)+'return true;default:return false;}}\n} // namespace halo2')
     a.output.parent.mkdir(parents=True,exist_ok=True)
+    if 0xec780 in ENTRIES:
+        # Observe the original successful player/driver branch before its
+        # Xbox-local-view gate. Native users retain separate input records.
+        assert code.at(0xecb98).bytes.hex()=='8b0df4544f00'
+        assert code.at(0xecbc6).operands[0].imm==0x18a2a0
+        preamble=preamble.replace('#include "physics_world_runtime_internal.hpp"',
+            '#include "physics_world_runtime_internal.hpp"\n#include "halo2/source_vehicle_input_tu15.hpp"')
+        needle='if(s.services.instruction){s.services.instruction(0xecb98u);}'
+        assert sum(body.count(needle) for body in bodies)==1
+        bodies=[body.replace(needle,
+            'source_vehicle_input_reset_tu15(s.memory,s.gp[6],s.gp[3],r(s.memory,s.gp[4]+0x24u,4)+0x150u);\n'+needle)
+            for body in bodies]
     temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
     try:
         temporary.write_text(preamble+'\n\n'.join(bodies)+ending)

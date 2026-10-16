@@ -2,6 +2,10 @@
 target_sources(halo2_physics_world_runtime PRIVATE src/physics_physical_storage_runtime_generated.cpp)
 target_sources(halo2_systems PRIVATE src/physics_physical_storage_host.cpp)
 if(BUILD_TESTING)
+    add_executable(source_physical_allocation_requests_tests tests/source_physical_allocation_requests_tests.cpp)
+    target_link_libraries(source_physical_allocation_requests_tests PRIVATE halo2_systems)
+    add_test(NAME native_source_physical_allocation_requests COMMAND source_physical_allocation_requests_tests)
+    set_tests_properties(native_source_physical_allocation_requests PROPERTIES RUN_SERIAL TRUE TIMEOUT 30)
     add_executable(physics_physical_storage_tests tests/physics_physical_storage_tests.cpp)
     target_link_libraries(physics_physical_storage_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_physics_physical_storage_tu15 COMMAND physics_physical_storage_tests

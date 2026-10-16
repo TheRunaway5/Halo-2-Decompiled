@@ -23,7 +23,7 @@ def sha(p):
     return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 
 
-def execute(fixture, paired, directory, *, code_override=None, additional_original_code=()):
+def execute(fixture, paired, directory, *, code_override=None, additional_original_code=(), include_reciprocal_estimates=False):
     latest = fixture['image'] == '1.5'
     path = NEW_DEFAULT if latest else ROOT/'assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03'
     assert sha(path) == (NEW_PIN if latest else PIN)
@@ -145,12 +145,15 @@ def execute(fixture, paired, directory, *, code_override=None, additional_origin
             writes.append(dict(base=4,index=-1,scale=1,displacement=0xfffffffc,width=4,fs=False))
         else:
             for n, operand in enumerate(i.operands):
-                store = i.mnemonic in ('fst','fstp','fistp','fnstcw','fnstsw','stmxcsr') or (n==0 and i.mnemonic in ('mov','movss','movaps','movq','rep movsd','rep movsb','rep stosd','rep stosb'))
+                # Capstone marks memory-destination MOVLPS/MOVHPS as reads.
+                # Decode their actual store form by operand position, while
+                # leaving the original instruction running on the CPU.
+                store = i.mnemonic in ('fst','fstp','fistp','fnstcw','fnstsw','stmxcsr') or (n==0 and i.mnemonic in ('mov','movss','movaps','movq','movlps','movhps','rep movsd','rep movsb','rep stosd','rep stosb'))
                 if operand.type != 3 or not (operand.access & CS_AC_WRITE or store):
                     continue
                 writes.append(memory_operand(operand))
         estimate = None
-        if i.mnemonic in ('rsqrtss','rsqrtps'):
+        if i.mnemonic in ('rsqrtss','rsqrtps') or (include_reciprocal_estimates and i.mnemonic=='rcpss'):
             destination, source = i.operands
             assert destination.type == 1 and i.reg_name(destination.reg).startswith('xmm')
             estimate = dict(destination=int(i.reg_name(destination.reg)[3:]),lanes=4 if i.mnemonic=='rsqrtps' else 1)

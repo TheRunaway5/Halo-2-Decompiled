@@ -1113,3 +1113,249 @@ that choice. Menu/pause assets keep their existing independent selection.
 The earlier `hud-smoke` still selected imported gameplay artwork and is
 retained as a superseded delivery observation; `glow-xbox-smoke-v1` verifies the
 current corrected launchers/runtime. `hud-launchers-build.log` records their build.
+
+## Hunter target admission and tracking progress (October15)
+
+The ten-metre forward fixture completes90 AI/object/particle ticks. All90
+captured AI calls independently match unchanged TU1.5 instructions, host
+hardware CPU exit, ordered stores and58,970,198 retained non-stack bytes per
+call (`hunter-forward-90-ai-ticks-original-v1/report.json`):3,233,512 instructions
+and32,658 writes. Weapon input stays neutral, as it does in the original
+consumer over these captured inputs. This does not verify the interleaved
+object ticks, original boot or rendered weapons.
+
+A separately declared five-metre position, checked against actual BSP membership
+before birth, reaches original target admission at frame19/tick78. Original
+code allocates one tracking record and admits its prop reference. The native
+module now retains277 whole original bodies/32,289 instructions. Three
+independent original/hardware comparisons pass, including this admission, the
+previous forward visibility path and the original neutral baseline
+(`hunter-ai-close-admission-evidence-v1.json`). Existing shared helper exports
+are preserved. The next actual frame reaches267410; its recovery remains in
+progress. No firing or visual-parity gate is complete from this evidence.
+
+`hunter-ai-archives-v2.json` verifies the retained source/evidence archives.
+`checkpoint-hunter-close-admission.json` records this checkpoint. Launchers
+continue delivering the previous tested weapon build. All63 weapon rows and
+630 completion gates remain in scope; full weapon parity remains incomplete.
+
+## Original AI behavior-mask startup correction (October15)
+
+The authentic `_cinit` owner2DBBAD walks the C++ initializer table in ascending
+order. Its71 callbacks at table46DAD8..46DBF0 populate AI handler behavior
+masks. All71 destinations remained zero in the diagnostic source world,
+excluding combat behavior even after the Hunter admitted the player.
+
+The root actor module now retains104 complete bodies/2,771 instructions,
+including these71 original three-instruction callbacks. Root world startup
+executes their actual published entries before AI storage construction.
+`ai-behavior-mask-constructors-complete-v1/report.json` verifies all71 against
+unchanged original code, independent host hardware and Release native code:
+213 instructions,71 writes, exact CPU exit except IF and58,970,198 retained
+non-stack bytes per callback. Authored source masks and every prior zero
+destination are retained. The post-initialization actor birth remains exact
+(2,930 instructions/887 retained writes) in
+`hunter-behavior-initialized-birth-evidence-v1.json`. The actual root actor
+and world components compile together in `ai-actor-root-components-v4`.
+The first snapshot's missing included `.def` file is retained as a failed check.
+
+The five-metre fixture before this correction completes90 exact AI calls in
+`hunter-close-90-ai-ticks-original-v1/report.json` (3,206,763 instructions and
+40,363 writes), but its weapon input stays neutral. Root frame code now has
+285 complete bodies/32,716 instructions. With the corrected startup, the
+fixture reaches additional behavior callbacks and the actual weapon input
+consumer. Their recovery and independent replay are ongoing. No actual NPC
+firing, renderer sequence, full CRT, installed-runtime or complete weapon
+parity claim follows. `checkpoint-ai-behavior-masks.json` pins this boundary.
+
+A static inventory of all417 published C++ initializer callbacks is retained in
+`crt-constructor-table-audit-v1.json`. Seven entries lie outside the two
+initially inspected executable sections; they remain unresolved. This
+inventory identifies further startup evidence work and does not prove full
+CRT execution. All63 weapon rows and630 completion gates remain in scope.
+
+## Genuine Hunter charge and C1 correction (October15)
+
+With the original behavior masks initialized, the five-metre Hunter fixture
+begins an actual AI-controlled cannon charge at tick147. The trigger counter
+advances from30 to1 and enters phase2 at tick177. The native object bank
+contains its first `particle_cannon_component` projectile at tick178, datum
+E2720003; subsequent source ticks create additional components. These are
+native observations. Whole weapon discharge, projectile/impact comparison
+against original code and the rendered sequence remain unverified.
+
+Strict comparison initially rejected53 of90 AI calls for a lingering x87 C1
+bit despite matching paths and retained writes. Controlled hardware probes
+(`probe-x87-register-c1-v4.jsonl`) identify the reset at successful loads,
+register stores, FXCH, FABS and FCHS. FCOMIP/FUCOMIP preserve the controlled
+C1 bit for these finite inputs. The comparison-based first hypothesis was
+rejected and reverted; its artifacts remain in
+`rejected-x87-c1-candidates-v1.json`. Memory spills retain their actual
+rounding C1 result.
+
+The corrected native API and Release replay now match all90 original/hardware
+AI calls, including complete CPU exits except IF and58,970,198 retained
+non-stack bytes each:3,505,728 instructions and41,354 writes
+(`hunter-ai-charge-c1-fixed-90-v1/report.json`). This verifies the first90
+calls of a declared180-tick fixture; later discharge work remains open.
+The376-body/40,832-instruction candidate retains the complete original
+functions and exposes the aiming/definition helpers reached by the weapon
+consumer. `checkpoint-hunter-ai-charge-c1.json` records the current boundary.
+The installed runtime and the63-weapon completion scope remain unchanged.
+
+## Exact Hunter discharge consumers and coherent runtime build (October15)
+
+The fixture completes180 actual AI/object/particle ticks through source tick240.
+Every AI call independently matches original code and hardware CPU exit,
+trace, ordered writes and58,970,198 retained non-stack bytes:7,332,857
+instructions and85,351 writes (`hunter-ai-discharge-180-original-v1`).
+The root now contains105 actor/definition bodies (2,797 instructions) and
+378 AI frame bodies (40,924 instructions), including the actual aiming and
+definition owners reached by cannon discharge.
+
+Seven complete1030F0 weapon updates at source ticks145,146,176,177,178,196
+and210 also match unchanged original code, hardware and their actual native
+API outputs:54,753 instructions and1,090 retained writes
+(`hunter-weapon-update-original-v1/report.json`). These include charge
+creation, the next trigger phase and component projectile creation. Their
+actual indirect caller is10DD5B, with stack600EFF9C and an empty x87 stack.
+The replay retains the captured caller status20, control27F and MXCSR1FA0;
+only its return word is redirected to the diagnostic stop thunk.
+
+The NPC discharge aim path also reaches11E660, which reads its actual BSP
+cluster background-sound flag. The captured location selects cluster19,
+palette5 and the original `old_mombasa_quiet` looping-sound definition. Its
+whole26-instruction query passes original/hardware/native comparison. All71
+behavior constructors and the corrected actor birth regressions pass with the
+new actor module. No material or fog behavior is inferred from this query.
+
+A fresh coherent13,340-file source snapshot is retained at
+`.local/weapons-tu15-ai-source-20261015-v3`. Its combined Release build and
+focused regressions are in progress in `build-weapons-tu15-ai-20261015-v3`.
+The initial stale test-target selection is retained; the retry uses targets
+verified from the configured Ninja graph. The installed runtime is unchanged.
+Whole object physics, impact, audible playback, particle/render sequence and
+physical Xbox framebuffer parity remain open. `checkpoint-hunter-discharge.json`
+records this boundary. All63 weapon rows and630 gates remain in scope.
+
+## Public campaign placement and scripted Hunter consumers (October15)
+
+The coherent private runtimev3 built successfully and passed all eight focused AI/weapon regressions. Cairo public counted, authored and starting-location placement each retained actual actor/command/HS-thread bindings through checkpoint restoration and three ordinary AI/object ticks. Old Mombasa public counted placement now creates the authored Hunter and its cannon without the earlier manual lower-level actor-birth call.
+
+Its first actual scripted AI consumer matches unchanged TU1.5 code, independent hardware and Release native execution:66,734 instructions,3,457 ordered writes and58,978,390 retained non-stack bytes, with full hardware CPU exit except Linux IF. The self-contained frame module includes the CRT classifier and its genuine indirect tail destination. Hardware checks covered16 FXAM encodings and16,384 count-one ROL value/flag cases; the empty physical-register FXAM path remains explicitly unavailable. All180 prior genuine Hunter discharge AI consumers still pass with this expanded module.
+
+Root now contains460 complete AI-frame bodies/48,929 instructions and108 actor/shared-unit bodies/2,902 instructions. The actual object callerC7ED1 reached1164D0; its retained unit-extension query passed nine explicit component inputs. AdjacentC7EE1 reached116440/1E14F0;14 original/hardware/native comparisons covered its real0.5f input, NONE, duration boundaries, clamping, direction changes and retained timer states. The actor module also passed all81 prior constructor, background-sound and unit-query consumers. The public Hunter sequence completes one whole AI/object/particle tick and currently reaches missing AI callback1BB9A0 on its second tick. Full original B9180 discovery stops at the genuine NtWaitForSingleObjectEx kernel boundary, ordinal234; no successful wait was invented.
+
+Verified lossless archives retain13,357 source files and47,420 evidence files, including rejected candidates. After independently hashing task-owned redundant banks against their archived manifest,250,696,262,478 bytes were freed; an archived168-byte caller bank was restored and its SHA-256 checked. The restore helper and exact historical validator sources are retained.
+
+The updated matrix still contains all63 weapon paths,1,110 map occurrences and630 gates. Hunter owning rules, trigger resources, projectile creation and effect creation have bounded partial evidence; zero complete weapons are certified. Impact, full authored campaign behavior, audible playback, rendered sequences and physical Xbox comparison remain open. Current launchers independently select build-multiplayer/halo2_native; this goal has not redirected them to the private tested build. See analysis/weapons-tu15-goal-20261013/checkpoint-public-hunter.json and weapon-completion-matrix-v2.json.
+
+## Original hardware SSE estimate boundary (October15)
+
+Root now contains503 whole AI-frame bodies/51,336 instructions after187 strict regressions:180 prior discharge inputs and seven actual public-campaign inputs. The coherent private campaign sequence advances105 complete AI/object/particle ticks. Both it and the separately labeled lower-birth firing diagnostic next reach original116400 atC7EC8, which is being verified without substituting its return.
+
+Actual campaign AI input105 exposed a Unicorn/host-SSE boundary. The original program was independently single-stepped on the host CPU:70,188 instruction events,2,793 retained store events, full CPU exit and58,978,390 non-stack bytes reproduce the ordinary unchanged-original hardware run. Instruction paths and store layouts match Unicorn, while numerical pose values differ. All53 observed RCPSS/RSQRTPS estimates differ from Unicorn; live host SSE primitives match every observed hardware estimate. Original Unicorn outputs remain retained and are not relabeled as hardware results. The native599-body candidate passes the observed hardware trace, ordered values, full exit except IF and retained bank using actual live CPU operators. The Xbox Pentium III estimate lookup remains unverified; this is host-CPU evidence.
+
+The diagnostic also found that Capstone marks memory-destination MOVLPS/MOVHPS operands as reads. The test-only original-hardware observer now recognizes those actual store forms; seven sites/201 events were missing from its earlier store log. Earlier full CPU/bank observations remain valid. No original instruction bytes, game-function returns or game-service results were patched or substituted. The updated source and evidence archives verified3,125 source files and8,967 evidence files. Full all63-weapon feature, audio and visual parity remains incomplete. See checkpoint-public-hunter-estimates.json and hardware-store-observer-coverage-fix-v1.json.
+
+## Public Hunter sequence and native particle captures (October15)
+
+The public counted-placement fixture now completes180 actual AI/object/particle ticks. All180 AI calls match unchanged original code, independent host hardware and actual native CPU, ordered stores and retained memory:6,559,600 instructions and111,037 writes. Its source-API instruction trace is unavailable; a separate strict standalone replay verifies each original instruction path. Only input105 needs the independently observed host-hardware estimate reference. No Xbox Pentium III estimate lookup has been certified. This fixture submits14 sound requests and produces no firing events in its declared setup.
+
+Root now contains631 whole AI-frame bodies/65,448 instructions after360 strict consumers:180 prior firing-diagnostic calls and180 public-campaign calls. The actor/shared-unit module contains156 bodies/9,263 instructions. Its111 strict consumers and actual nested114232→11DDF0 unit action pass; the latter compares37,407 original instructions,320 writes, full hardware CPU except IF and58,978,390 retained bytes. One attempted added standalone regression incorrectly selected1E8410, which belongs to live-support; the expected entry rejection and corrected module-owned regression list remain retained.
+
+The separately labeled lower-birth firing diagnostic completes180 ticks and observes20 component projectile births and20 Hunter beam-hit/contact-effect events. Actual101DB8→178E30 hit-effect creation matches5,278 instructions,456 ordered writes, full hardware CPU except IF and its retained bank. These events do not establish full flight, contact selection or damage. With an explicit native camera and original observer/visibility consumers, the firing diagnostic produces2,436 particle draws across68 frames, with104 peak draws. Three authored charge/beam/hit effect resources are admitted; the declared view submits charge and beam particles. Four actual179DF0 particle calls at ticks140,171,190 and201 match original code/hardware/native trace, stores, full CPU except IF and59,174,998 retained non-stack bytes each:54,444 instructions and2,326 writes. The additional transparent storage explains the larger bank; an earlier verifier's hardcoded AI-bank size was corrected without weakening whole-bank comparison.
+
+Nine native Vulkan capture triplets retain an authored static Old Mombasa BSP, its real water/view state and actual particle submissions. Eight samples change pixels when particles are submitted; all nine repeated particle captures match exactly, and the requested validation layer reports no errors. The layer is retained locally; no system package was changed. These frames omit the Hunter model, the complete native campaign render scheduler, audible playback and an OG Xbox framebuffer reference. They do not certify full visual parity.
+
+A fresh13,515-file coherent root snapshot is building as runtimev4. The interrupted initial build log is retained; a supervised retry uses the same immutable snapshot. This goal has not changed the launchers. Their latest readback independently selects build-weapon-zoom-hud-20261014/halo2_native. All63 weapon paths,1,110 occurrences and630 gates remain in scope; zero complete weapons are certified. See weapon-completion-matrix-v3.json and checkpoint-public-hunter-rendering.json.
+
+The coherent runtimev4 now builds and passes all eight focused AI/weapon checks. Its Cairo counted, authored and starting-location placement regressions each pass through three ticks/checkpoint restoration. A fresh180-tick public Hunter capture against these current coherent libraries also passes every unchanged-original/hardware/API/strict-native comparison. The original frozen snapshot contained one extra closing parenthesis in native_grenade.cpp; the shared root already held its correction. A declared CMake source overlay compiles that exact one-character fix while preserving the archived frozen source and every ABI header. This goal did not edit the shared grenade file or redirect either launcher.
+
+A separate native Hunter model diagnostic completes180 ticks with28 effective rendered bones. Its real admission/collection path produces360 ordinary base draw units, selected LOD3, original lighting class2, and16/19 palette rows for the two selected regions. The authored cannon weapon's object-to-model reference is NONE; its visible geometry belongs to the Hunter body. Whole original model-builder and body GPU/reference comparisons remain open. The previously verified GPU samples contain particles and static BSP geometry only.
+
+The second public retention pass verified15,657 source members and26,730 evidence members, including the complete immutable runtimev4 source and rejected discovery. After independently rehashing the archive and redundant native output banks,28,660,828,526 bytes were freed. Original input banks and hardware goldens remain in place; one native output bank was restored and its SHA-256 checked. Fresh runtimev4 evidence created afterward is tracked separately. See checkpoint-coherent-runtime-v4-verified.json and hunter-model-builder-evidence-v1.json.
+
+## Storage cleanup at the user's request (October15)
+
+Completed test runs no longer retain expanded full memory dumps, rebuildable fixture objects/executables, duplicate source staging trees, or disposable original-reference VM disks. The original reference session was stopped before its private disks were removed. Root source changes and the coherent builds outside the analysis folder remain intact.
+
+Superseded full scratch archives are retired after their selected original captures are consolidated and every retained member is read back and checked against its previous SHA-256 receipt. The latest runtimev4 evidence archive, coherent v3/v4 source archives, reports, fixture sources, and current body/particle GPU captures remain. Historical manifests describe past runs; omitted full snapshots are deliberately discarded and must be recaptured if needed. Use analysis/weapons-tu15-goal-20261013/restore-retained-weapon-evidence-20261015.py for retained members. The older restore entry points forward to that helper after retirement.
+
+The cleanup receipts are cleanup-retired-tests-20261015.json and cleanup-retired-archives-20261015.json in the goal analysis folder. Future runs should remove per-frame full banks after validation, retain selected inputs and proof receipts, and avoid accumulating complete historical scratch archives or duplicate source staging trees. Storage cleanup does not change any weapon completion gate.
+
+## All scoped map combat postprocessors (October15)
+
+The unchanged original TU1.5 routine165B30 and native combat-tag postprocessor now agree on ordered writes and complete cache output bytes for all38 scoped maps, covering all63 weapon paths and1,110 authored occurrences. The15 campaign maps correctly produce no multiplayer balance writes. All23 multiplayer maps reproduce41 writes each,943 in total, and pass actual native Cache weapon/damage imports and UDP rejection/admission for mismatched/matching data identities. The fixture supplies raw cache/global ABI inputs; preceding map activation is outside this comparison.
+
+Two fixture corrections remain explicit. Campaign maps use a separate gameplay import owner and cannot be passed to the multiplayer content/LAN consumer. DLC maps use the owned disc shared-cache directory; their own directories do not contain mainmenu/shared caches. The balance test now accepts an explicit test resource path while preserving its old default. Both original TU1.1 and TU1.5 Lockout regressions also pass with that default. No production weapon behavior was changed by these test setup corrections.
+
+Every map's full temporary cache copies are removed after comparison. Reports, ordered stores, and changed tag bytes are retained; the completed probe's rebuildable executable/object were removed. weapon-completion-matrix-v5.json preserves all630 gates, records bounded authored-contract evidence for every weapon, and also links the nine-sample native Hunter body/particle GPU diagnostic. No full gate or complete weapon is certified. Full campaign import/activation, weapon-specific histories, rendered/audio sequences and final Xbox reference comparison remain open. See all-map-balance-v3/report.json and checkpoint-all-map-balance.json in the goal analysis folder.
+
+## Extended public Hunter owner sequence (October15)
+
+The actual public placement has the authored Hunter position/facing, Covenant team3, and player team1. Both authored entry command scripts contain an initial220-tick sleep; their runtime progress has not been certified. The previous180-tick fixture did not cover a complete entry sequence. Extending the declared run to480ticks exposed the missing original1B35D0 method on public AI input186, source tick245.
+
+Root now includes that complete nine-instruction method. It writes the current source tick to actor+1F4 through the actual object/state owner. All prior complete CFGs and every prior generated native function body remain byte-for-byte unchanged. The resulting module has632 complete routines/65,457 lowered instructions, plus the separately retained internal CRT entry37CE0C. The same actual API input passes unchanged-original/host-hardware/strict-native instruction and ordered-write checks:28,370 instructions,432 writes, full CPU except IF and58,978,390 non-stack bytes. Actual API stores/CPU/bank pass separately; its instruction trace is unavailable. An earlier comparison against a different captured input failed and remains labeled failed; the accepted comparison replays the exact current API input.
+
+The public sequence now completes199ticks and next reaches originalD1878->18B4C0 in the object update. A private read-only observer captures the actual unresolved callee ABI, stack and full FP state immediately before the existing exception. Ordinary world source was not changed for that observer. The complete original56-instruction callee, including its actual BCDF0 call, executes70 instructions on this input and returns without non-stack stores. Host hardware reproduces the full exit/FP and58,978,390 retained non-stack bytes. Its native implementation is still pending.
+
+A broader original object-update probe stops at an unsupplied NtWaitForSingleObjectEx import before reaching the contact callee and is explicitly incomplete. No kernel return was invented. Selected inputs/goldens and small proof receipts remain; redundant failed dumps were removed and identical private input copies were deduplicated. The full480-tick sequence, cannon firing, complete damage/contact scheduling, audio and Xbox framebuffer comparison remain open. See public-hunter-frame632-promotion-v1.json, hunter-public-186-api-evidence-v2.json, hunter-public-contact-original-v1 and checkpoint-public-hunter-extended.json in the goal analysis folder.
+
+## Object hit-material query (October16)
+
+The previously missingD1878->18B4C0 call resolves the target's global material index. The complete original query selects living/dead unit materials and falls back to the model's first damage-info indirect material. A dedicated source_object_material_tu15 owner now contains both complete routines,91 instructions, and the production world dispatch routes the actual call through it. The existing large physics-support module is unchanged.
+
+The actual caller supplies a stack-local SHORT output. Non-stack comparisons alone would miss that observable result, so the strict replay now checks the caller's output word explicitly. The actual call returns material56 and matches unchanged original code, host hardware and native execution:70 instructions, full CPU/FP,58,978,390 non-stack bytes and the stack result. The sole declared input adaptation is the return-address sentinel used to stop the isolated original call; the actual incoming CPU/FP and other memory remain identical. Actual source API trace is unavailable and a separate same-input standalone consumer checks every instruction.
+
+Six original/hardware/native cases pass: the actual living target and five explicitly declared disposable controls for dead-unit selection, model fallback, empty damage data, no model and a non-unit weapon. These controls are not additional actual gameplay histories. Every case compares the exact instruction path, full CPU/FP, non-stack bank and observable stack result. Their full temporary banks were deleted; the retained suite occupies about252KiB.
+
+The public Hunter sequence now completes208ticks and next reaches204553->266D30 during the later object/AI notification phase. The complete480-tick sequence and the all-weapon feature/audio/visual gates remain open. Selected inputs/goldens remain and redundant full outputs were removed. See object-material-promotion-v1.json, hunter-object-material-api-evidence-v1.json and object-material-controls-v1/report.json in the goal analysis folder.
+
+## Post-object AI notifications (October16)
+
+The actual204553->266D30 callback now executes its complete264-instruction body in the existing AI owner. The captured path executes425 instructions and one retained-memory write. Unchanged original code, independent host hardware, same-input strict native replay and the actual source API agree on full CPU/FP and58,978,390 non-stack bytes. The only prior generated body change binds original26F859 directly to the recovered callee; every previous complete CFG is unchanged, and none of360 prior verified reference paths executes that callsite.
+
+The following204589->2658B0 callback is also recovered. Its complete23-instruction body updates four actor fields using the original clock and incoming object identity. Original/hardware/native execution and the actual API agree on all four writes, full CPU/FP and the complete retained non-stack bank. Every prior generated native function body remains byte-for-byte unchanged for this addition. Root now contains634 complete AI routines/65,744 instructions, plus its separately retained internal CRT entry37CE0C.
+
+The reusable private observer preserves original callsite and ABI information around nested AI calls and unresolved exceptions; it supplies no game-function return. The public sequence advances farther within source tick268 and next reachesE558D->2039B0 during the object postphase. Its completed-tick count remains208 and the requested480-tick sequence is unfinished. Both accepted API comparisons have separate same-input standalone instruction traces because actual API instruction traces are unavailable. Redundant failed whole-run dumps and duplicate outputs were removed; selected actual inputs/outputs and hardware goldens remain. All63 weapons and630 gates remain in scope, with zero complete weapons certified. See public-hunter-frame633-promotion-v1.json, public-hunter-frame634-promotion-v1.json and checkpoint-public-hunter-notifications.json in the goal analysis folder.
+
+## Recorded-animation storage and public damage notification (October16)
+
+The original startup row55 at44B68C identifies the pool queried by2039B0 as "recorded animations." The native world omitted both its constructor2035B0 and its map reset2035F0, leaving5021FC NULL. The earlier unresolved query capture is retained as defect evidence and is not an initialized campaign reference. The world now runs both original callbacks in their registered order after row54. A small generated module retains11 complete routines/377 instructions, including the constructor, map reset, deactivation and object query; it supplies no allocation result or query return.
+
+Actual constructor, reset and nestedE558D query inputs independently match unchanged TU1.5, host x86, strict native replay and the actual source API. They execute293/84/15 instructions and44/9/0 retained writes respectively, with exact full CPU/FP except IF and complete non-stack banks. Four explicit disposable populated-record controls match the original query's identity, bitmap and excluded flag behavior; these are branch controls, not additional gameplay histories. Their large temporary banks were removed after verification.
+
+The public counted Hunter sequence now completes218ticks. It next reaches actualCC9CD->1D1880 at source tick278. The older paired damage owner reports canonicalCB84D for this call; the actual selected return address isCC9D2. The new original callback replay completes12,500instructions and81 retained writes without patched instructions or supplied game services. Native recovery and the requested480-tick sequence remain in progress. All63 weapons/630 gates remain in scope and zero complete weapons are certified. See recorded-animation-promotion-v2.json, recorded-query-controls-v1/report.json and hunter-public-damage-notification-original-v1/report.json.
+
+The native damage notification is now accepted. Ten added complete routines bring the AI owner to644 complete bodies/66,584 instructions, plus the separate internal CRT entry37CE0C. All prior complete CFGs are unchanged. Nine prior call sites now statically bind recovered original callees; none appears in the360 previously certified instruction traces. The accepted actual API input has its own unchanged-original, host-x86 and strict-native replay:12,500 instructions,81 ordered writes, full CPU/FP except IF and58,978,390 non-stack bytes match. A first cross-run comparison correctly rejected differing process-state input banks; it was replaced by the same-input accepted comparison and was not counted as a pass.
+
+The completed object tick clears the source player's+2C unit binding toNONE and the former unit's+13C player field toNONE. The fixture previously kept delivering a command to its initial unit, stopping at219completed ticks. Its next version reads the actual full player identity and current unit binding for each input tick and delivers no unit command while unbound; it supplies no respawn, rebinding or health result. See public-hunter-frame644-promotion-v1.json, hunter-damage-notification-api-evidence-v2.json, hunter-player-binding-after-damage-v1.json and capture-public-hunter-sequence-v2.json. The refreshed weapon-completion-matrix-v9.json retains63 paths/1,110 occurrences/630 gates and zero complete weapons certified.
+
+The updated input fixture reaches the next AI frame with one unbound-input tick, passing the previous stale-unit guard. It stops at actual26E5E4->26F260 at source tick279; the complete callback has87 instructions and two direct callees. The completed-tick count is219. Its selected incoming input is retained for unchanged-original replay. See checkpoint-public-hunter-damage-notification.json and hunter-public-post-damage-callback-input-v1.
+
+The untouched26F260 callback executes51instructions with zero retained writes. Unicorn and ordinary host execution disagree only on SF, aside from platform IF: Unicorn exitsEFLAGS=C2; host exits242. Independent ptrace execution confirms the same51-instruction path, exact full hardware CPU/FP and58,978,390 non-stack bytes. The last flag-setting instruction is original26F2C3 FCOMIP. The existing native comparison backend already clears SF/OF/AF, consistent with the [Intel instruction specification](https://cdrdv2-public.intel.com/868137/325462-089-sdm-vol-1-2abcd-3abcd-4.pdf). No original instruction or Unicorn output was patched. This separately retained observed hardware reference is accepted for this explicit comparison boundary; physical Xbox execution remains unverified. The candidate now contains646 complete AI routines/66,691 instructions, adding only complete26F260 and1ECCC0; native replay and live API checks are compiling. See checkpoint-public-hunter-post-damage-comparison.json and hunter-post-damage-comparison-hardware-v1/report.json.
+
+The51-instruction26F260 path now passes both strict native replay and the actual internal native call against the unchanged host instruction trace, full hardware CPU/FP and retained bank. A private observer reads original ABI snapshots around internal native bodies and skips an entry already observed by its public caller. Its647 guards add no source instruction, source memory mutation or supplied return. The native comparison backend required no behavior change. Root now contains646 complete AI routines/66,691 instructions, plus internal CRT entry37CE0C. The public sequence reaches223completed ticks before actual26D049->266490. See public-hunter-frame646-promotion-v1.json and hunter-post-damage-callback-api-evidence-v2.json.
+
+The entire next actual AI input224 has also completed in unchanged TU1.5 code:192,111instructions and9,675 retained writes. Ordinary host execution matches its GP/XMM/flags/depth and complete58,978,390-byte non-stack bank. Its raw x87/MXCSR sticky flags differ from Unicorn; those outputs remain separate and the original hardware state remains the native golden. This larger input recovers23 additional whole routines, including target and animation paths, bringing the candidate to669 complete routines/68,311 instructions. All prior complete CFGs are unchanged;32 prior call sites bind recovered original callees, and none is reached by the360 earlier certified traces. Native whole-frame and public continuation builds remain in progress. No full weapon gate is certified by these component results.
+
+The complete actual AI224 call now passes unchanged original code, independent host execution, strict native instruction/store replay and actual API CPU/FP/bank comparison. Root contains669 complete routines/68,311 instructions. Its public sequence completes225ticks and next reaches actual275307->275370 at source tick285. The whole AI226 input has independently completed24,177instructions and353 writes; the672-routine candidate adds complete26C2A0,26C350 and275370. Its three prior call-binding changes are absent from the360 earlier certified traces. Native builds are in progress; these later routines are not yet promoted.
+
+## Compact completed-capture retention (October16)
+
+To prevent full memory dumps from growing back after the requested cleanup,42 completed captures now share source-address-aligned64KiB compressed chunks. Their2,523,907,596 raw bytes occupy about17MiB including manifests. Every full file is reconstructed and hashed before its raw copy is retired. The existing restore-retained-weapon-evidence-20261015.py helper restores each member with its original byte digest. Two material-query banks were restored through that helper and the strict native/hardware comparison was rerun, including the observable stack result; it passed. The restored banks and successful test's temporary output were then retired again. Active newer AI inputs and hardware flag-boundary references remain raw. See bank-chunk-retention-summary-v1.json, bank-chunk-restoration-native-check-v1.json and retained-bank-chunks-v1/README.md in the goal analysis folder.
+
+## Animation and object-phase continuation (October16)
+
+The accepted AI226 delta was merged into the independently advanced root, preserving helper1C9C90 and its surrounding work. The merged source passed both complete AI224 andAI226 replays. The next actual1D5897->1D63C0 animation callback passes165 original instructions, three ordered writes, full host CPU/FP except IF and58,978,390 non-stack bytes against both strict native replay and the actual live call. Its reference also recovers1C9C90 independently, matching the preserved implementation. Root now contains675 complete routines/68,496 instructions, plus internal CRT entry37CE0C. The existing object postphase production owner remains in place. See public-hunter-frame672-merged-promotion-v1.json and public-hunter-frame675-promotion-v1.json.
+
+The complete actual object postphase at source tick301 now matches51,317 original instructions,3,110 writes, full hardware CPU/FP and retained non-stack memory. A private166-routine/14,516-instruction probe supplies the separate exact instruction trace; the actual source API supplies its CPU/store/bank comparison. Original Unicorn and host numerical outputs differ at observed CPU estimate boundaries; both remain retained. Independent hardware stepping confirms the original instruction path and supplies the hardware golden. This private code probe is not a replacement production owner. See hunter-postphase242-api-evidence-v1.json.
+
+Observed public continuations have reached359ticks and, with bounded failure capture,361ticks. Repeat runs reach the next11750D->218020 callback at different ticks; fixed-ordinal discovery is not assumed reproducible. Fixturev3 retains one incoming selected root bank/CPU/partial-store snapshot in host memory, discards each successful snapshot and writes only the actual first failing input. It changes no game inputs or tick scheduling. Its captured object-update input362 completes8,909 original instructions and132 writes; the selected unit callback independently completes153instructions and eight writes. The678-routine candidate is compiling. The full480-tick sequence and all63-weapon feature/audio/visual gates remain open. See capture-public-hunter-sequence-v3.json and hunter-public-failing-objects-input-v1.
+
+## Completed bounded480-tick public sequence (October16)
+
+The actual11750D->218020 callback now passes153 original instructions and eight writes against both hardware/native replay and the live call. Its complete containing object update also passes8,909 instructions,132 ordered writes, full hardware CPU/FP except IF and58,978,390 non-stack bytes. Fixturev4 captures one complete object-update before/after pair when that real nested callback executes, retaining only one pending snapshot in memory. Its source input/tick loop is byte-for-byte identical to fixturev2; no state, target or return is forced. The separate private object-update probe preserves the production owner and its callbacks.
+
+The public counted-placement sequence now completes all480 requested AI/object/particle ticks, with25 sound submissions. The source player becomes unbound after219ticks and remains unbound for261ticks. This nearby-player setup produces no weapon-effect events, effect-damage calls or projectile detonations; it does not certify public cannon firing. Root contains678 complete AI/shared routines/68,574 instructions, plus internal CRT entry37CE0C. Full weapon gates remain open, with zero complete weapons certified. The next work is a source-evidenced ranged setup and complete firing/visual/audio evidence. See public-hunter-frame678-promotion-v1.json, hunter-triggered-objects-api-evidence-v1.json and weapon-completion-matrix-v13.json.

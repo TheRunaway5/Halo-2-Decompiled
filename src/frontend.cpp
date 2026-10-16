@@ -636,6 +636,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       throw FormatError("Native mainmenu return did not request a new screen factory");
   }
   FrontendRuntimeAdapterScope runtime_adapters(state);
+  if(initial_entry && options.initial_graphics_mode)state.adopt_graphics_mode(*options.initial_graphics_mode);
   if(!initial_entry) {
     int width{},height{};SDL_GetWindowSize(window,&width,&height);
     state.adopt_controller_settings(desktop->controller_settings);

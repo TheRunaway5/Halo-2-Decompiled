@@ -1,13 +1,14 @@
 # Video field of view
 
 Video Settings now includes **Field of View** and **Vehicle Field of View**.
-Both accept 70 through 120 degrees, default to 78, persist independently in
+Both accept 70 through 120 degrees. On foot defaults to 78; vehicles default
+to the original TU1.5 setting of 70. They persist independently in
 `menu.cfg` (`pc_fov`), and reset with the other video defaults. The imported
 numeric choice pane supplies keyboard, controller, wheel, and mouse navigation.
 The pause Video Settings menu exposes the same controls.
 
-The presentation conversion follows the installed MCC Halo 2 binary's modern
-camera branch, rather than changing the retail Xbox camera routines globally:
+The on-foot presentation conversion follows the installed MCC Halo 2 binary's
+modern camera branch:
 
 - `halo2.dll` SHA-256: `de65b4f4fdbf3f0a5eab7431fe530da17dd815599182dfd6ae9b7e21cf171946`.
 - RVAs `3C230` / `3C360`: independent ordinary/vehicle angles, clamped to 70–120,
@@ -31,7 +32,11 @@ camera branch, rather than changing the retail Xbox camera routines globally:
 Original observer and replicated vehicle packets remain in source units. The
 presentation rebases source zoom through its tangent ratio, preserving scope
 magnification and the existing zoom transition owner. The vehicle preference
-applies only to an actual seated camera. Death and scripted cinematic cameras,
+applies only to an actual seated camera. At 70 it preserves the complete
+TU1.5 observer lens and original projection/split-grid factors. Higher settings
+scale that lens in tangent space and still use the original vehicle projection;
+they are explicit PC customization. Existing saved values are preserved.
+Death and scripted cinematic cameras,
 and explicit reference capture projections, keep their source lenses. The
 ordinary campaign player camera also consumes the on-foot preference; campaign
 vehicle interaction remains subject to that runtime's existing support.

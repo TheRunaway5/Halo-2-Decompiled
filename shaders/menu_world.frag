@@ -21,6 +21,9 @@ layout(location=0) out vec4 pixel;
 // An untouched texture W remains the original initialized constant1. Explicit
 // W writes keep their ordinary interpolated value, including projected effects.
 layout(constant_id=0) const uint defaultTextureWMask=0u;
+// Literal admitted source ZMIN_MAX_CONTROL values: ordinary cull0, shadow
+// clamp16. The caller owns the mode; target size does not select it.
+layout(constant_id=1) const uint sourceWClipMode=0u;
 layout(set=0,binding=0) uniform sampler2D diffuse;
 layout(set=0,binding=1) uniform sampler2D detail;
 layout(set=0,binding=2) uniform sampler2D bump;
@@ -87,6 +90,7 @@ vec4 fetchStage3D(uint stage,vec3 p) {
 }
 #define MENU_WORLD_PROGRAM_WORD(i) material.program[(i)/4u][(i)%4u]
 #define MENU_WORLD_CLIP_RANGE() menuWorldDepth.clipRange
+#define MENU_WORLD_W_CLIP_MODE() sourceWClipMode
 #define MENU_WORLD_CLIP_REGION(i) menuWorldDepth.clipRegion[i]
 #define MENU_WORLD_DEPTH_FACTOR() menuWorldDepth.depthFactor
 #define MENU_WORLD_DEPTH_OFFSET() menuWorldDepth.depthOffset

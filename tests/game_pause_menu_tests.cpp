@@ -71,7 +71,7 @@ int main(int argc,char **argv) try {
   menu.set_pc_display_adapter([](const DisplaySettings &){return std::string{};});
   menu.open_game_pause(false);choose(menu,1);choose(menu,3);choose(menu,8);choose(menu,50);
   check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().field_of_view==120 &&
-      menu.pc_display_settings().vehicle_field_of_view==78,"pause on-foot FOV did not apply independently");
+      menu.pc_display_settings().vehicle_field_of_view==70,"pause on-foot FOV did not apply independently");
   choose(menu,9);choose(menu,20);
   check(menu.frame().screen==vista_menu(261) && menu.pc_display_settings().vehicle_field_of_view==90,
       "pause vehicle FOV did not return to the video menu");

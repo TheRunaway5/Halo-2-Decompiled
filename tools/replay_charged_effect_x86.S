@@ -11,6 +11,10 @@ guest_run:
  fxsave guest_host_fp
  fninit
  fldcw guest_cw
+ fnstenv guest_environment
+ movw guest_status,%ax
+ movw %ax,guest_environment+4
+ fldenv guest_environment
  ldmxcsr guest_mxcsr
  movdqu guest_input+32,%xmm0
  movdqu guest_input+48,%xmm1

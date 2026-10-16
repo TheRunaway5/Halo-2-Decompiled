@@ -1,6 +1,14 @@
 # Tag migration gameplay validation
 
-**Current priority, 2026-10-13:** Work on Halo 2 multiplayer first, as explicitly
+**Current scope, 2026-10-15:** The user requested tag loading and runtime-access
+logic first and will perform proper gameplay testing later. The focused shared
+alias fixes, loading checks and source audit are recorded in
+[the loading audit](../analysis/tags/missing-audit-20261015/RESULTS.md). Full
+campaign and match parity remain unverified. The user requested pausing the
+campaign goal after the current implementation checks.
+The results below retain their original dates and validation scope.
+
+**Earlier priority, 2026-10-13:** Work on Halo 2 multiplayer first, as explicitly
 requested by the user. Validate the migrated tag system in complete local and
 networked matches, fix regressions against original evidence, preserve authored
 map and variant behavior, and deliver the tested runtime with reproducible
@@ -9,8 +17,8 @@ HUD/results and normal match completion. Campaign work is deferred until the
 multiplayer work is finished. The work remains incomplete. `priority.json`
 retains the working order and `completion-audit.json` records the remaining
 requirements. Work continues under the user's explicit resume instruction;
-the goal widget still reports `blocked`, and the available goal tools cannot
-set an existing goal back to active.
+at that checkpoint the goal widget reported `blocked`. The user's subsequent
+resume restored the campaign goal to active.
 
 The 2026-10-13 continuation fixes a concrete multiplayer import failure:
 Headlong's seven unused vehicle placements have palette index NONE, but the

@@ -1,19 +1,30 @@
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
+#include "halo2/source_live_shadow_main_draws_tu15.hpp"
+#include "halo2/source_live_shadow_selection_tu15.hpp"
+#include "halo2/source_live_shadow_main_inputs_tu15.hpp"
+#include "halo2/source_live_shadow_storage_tu15.hpp"
+#include "halo2/source_live_effect_light_commands_tu15.hpp"
 #include "halo2/source_model_effect_lights.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_effect_light_geometry_frame.hpp"
 #include "halo2/source_tag_metadata_store.hpp"
 #include "halo2/world_material.hpp"
+#include "halo2/pstencil/material.hpp"
+#include "halo2/pstencil/caster.hpp"
 #include "halo2/menu_world_depth.hpp"
 #include <algorithm>
 #include <cstring>
 #include <map>
+#include <set>
+#include <bit>
 #include <tuple>
+#include <optional>
 
 namespace halo2 {
 struct SourceBspEffectLights::Impl {
     const Cache& cache;
+    pstencil::MaterialBank pstencil_materials;
     std::size_t bsp_index;
     SourceBspAdmissionBsp bsp;
     SourceTagMetadataStore store;
@@ -41,10 +52,12 @@ struct SourceBspEffectLights::Impl {
         std::unique_ptr<SourceModelEffectLights> draw;
     };
     std::map<ModelKey,ModelSection> models;
+    std::unique_ptr<pstencil::PointCasterBank> pstencil_casters;
     using MaterialKey=std::tuple<std::uint32_t,std::uint32_t,unsigned,unsigned>;
     struct Slot {unsigned material;Material authored;MenuWorldSourcePass pass;};
     std::map<MaterialKey,Slot> slots;
     std::map<std::uint32_t,EffectLightDefinition> lights;
+    std::optional<SourceLiveShadowStorageTu15> shadow_storage;
     SourceDrawUnitState units;
     SourceBspRangeArena main_arena,light_arena;
     SourceBspPartCommandState commands;
@@ -57,7 +70,7 @@ struct SourceBspEffectLights::Impl {
         light_arena_token=0x71001000,instance_token=0x71002000;
 
     Impl(const Cache& c,Mesh& mesh,std::size_t index,std::span<const std::uint32_t> ids,std::span<const std::uint32_t> model_ids)
-      :cache(c),bsp_index(index),bsp(c.load_source_bsp_admission(index)),
+      :cache(c),pstencil_materials(c,mesh),bsp_index(index),bsp(c.load_source_bsp_admission(index)),
        store(std::shared_ptr<const Cache>(&c,[](const Cache*){}),{"shad","stem","spas","vrtx"}),metadata(store.providers()),
        clusters(bsp.clusters.size()),definitions(bsp.definitions.size()),instances(bsp.instances.size()),
        transforms(bsp.instances.size()),palettes(bsp.instances.size()),
@@ -128,6 +141,8 @@ struct SourceBspEffectLights::Impl {
                         slots.emplace(MaterialKey{id,material.shader,lod,pass},Slot{slot,authored,load_menu_world_source_pass(cache,material.shader,{lod,12,pass,1})});
                     }
                 }catch(const FormatError& e){unavailable.push_back(std::to_string(id)+"/"+std::to_string(material.shader)+": "+e.what());}
+                for(const auto& [id,definition]:lights)try {pstencil_materials.preload(authored,id,definition);}
+                catch(const FormatError& e){unavailable.push_back("pStencil "+std::to_string(id)+"/"+authored.name+": "+e.what());}
             }
         }
         for(auto model:model_ids) {
@@ -160,6 +175,39 @@ struct SourceBspEffectLights::Impl {
         if(at==models.end())throw FormatError("selected live light model section was not preloaded");
         return at->second;
     }
+    void preload_native_bsp_resources(PhysicsLiveWorldTu15& world,const SourceBspAdmission& main) {
+        auto& memory=world.memory();
+        const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};
+        const auto root=word(0x4ecc18u);
+        if(!root)throw FormatError("TU1.5 BSP render publication lacks the actual current structure");
+        const auto cluster_count=word(root+0x9cu),cluster_base=word(root+0xa0u);
+        const auto definition_count=word(root+0x138u),definition_base=word(root+0x13cu);
+        const auto instance_count=word(root+0x140u),instance_base=word(root+0x144u);
+        std::set<std::uint32_t> sections;
+        for(const auto& row:main.clusters) {
+            if(row.id>=cluster_count)throw FormatError("TU1.5 BSP render cluster escapes the current source bank");
+            sections.insert(cluster_base+row.id*0xb0u);
+        }
+        for(const auto& row:main.instances) {
+            if(row.id>=instance_count)throw FormatError("TU1.5 BSP render instance escapes the current source bank");
+            const auto definition=std::bit_cast<std::int16_t>(Bytes(memory.view(instance_base+row.id*0x58u+0x34u,2)).u16(0));
+            if(definition<0 || std::uint32_t(definition)>=definition_count)
+                throw FormatError("TU1.5 BSP render instance lacks its actual authored definition");
+            sections.insert(definition_base+std::uint32_t(definition)*0xc8u);
+        }
+        for(const auto section:sections) {
+            //449D0 selects the literal BSP+28 resource header and returns
+            // its completed+50 geometry pointer. Use the same whole130980
+            // request/fixup owner as native model publication; never set it.
+            if(!Bytes(memory.view(section+0x24u,2)).u16(0))continue;
+            const auto header=section+0x28u;
+            auto ready=world.request_render_geometry(2u,header);
+            if(!ready)ready=world.request_render_geometry(0u,header);
+            if(!ready || !word(section+0x50u))
+                throw FormatError("TU1.5 original BSP resource publication did not finish: section="+
+                    std::to_string(section)+" resource="+std::to_string(word(header)));
+        }
+    }
     SectionKey key(const SourceCullDrawUnit& unit) const {
         if(unit.words[1]!=0xffffffffu)throw FormatError("BSP light bank consumes a dynamic model owner");
         if(unit.words[0]&0x1000u) {
@@ -168,6 +216,7 @@ struct SourceBspEffectLights::Impl {
         }
         return {false,unit.words[3]>>9&511u};
     }
+
 };
 SourceBspEffectLights::SourceBspEffectLights(const Cache& c,Mesh& mesh,std::size_t bsp,
     std::span<const std::uint32_t> ids,std::span<const std::uint32_t> models)
@@ -178,8 +227,10 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
     std::span<const WorldEffectLightReceiver> receivers,const SourceBspAdmission& main,
     const SourceViewProjectionBank& camera,const BspFogSample& fog,Vec3 eye,
     std::array<std::int16_t,4> viewport,std::array<std::uint32_t,2> surface,unsigned players,
-    SourceEffectLightModelViewTu15* objects) {
+    SourceEffectLightModelViewTu15* objects,std::vector<pstencil::PointCaster>* point_casters,
+    std::uint32_t light_domain) {
     auto& i=*impl_;std::vector<EffectLightRawDraw> output;
+    if(objects)i.preload_native_bsp_resources(objects->world,main);
     if(receivers.empty() && (!objects || !objects->main_draws))return output;
     const auto coverage=source_shader_coverage_camera(camera);
     SourceBspDrawWorld draw_world{i.bsp,i.clusters,i.definitions,i.instances,i.lightmap_matches};
@@ -196,9 +247,35 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             fog.eye_fraction,fog.planar_only,std::uint8_t(fog.planar_flags)};
         return out;
     };
-    if(objects)source_live_model_draws_tu15(objects->world,objects->main,i.units,
-        object_context({0,Impl::main_arena_token,0,fog,coverage}));
-    if(objects && objects->main_draws)objects->main_draws(i.units);
+    if(objects) {
+        // Renderer BSP activation is separate from each view's collection.
+        // Preserve the original source-populated plane hash across frames.
+        if(!i.shadow_storage)i.shadow_storage=source_live_shadow_storage_activate_tu15(objects->world);
+        else i.shadow_storage=source_live_shadow_storage_rebind_tu15(objects->world,*i.shadow_storage);
+        const auto context=object_context({0,Impl::main_arena_token,0,fog,coverage});
+        //134C42 selects556E18 for the ordinary main context. Publish the
+        // same current owner before the native original model builder runs.
+        const std::uint32_t main_context=0x556e18u;
+        objects->world.write_source_call_input(0x4cd3a0u,std::as_bytes(std::span(&main_context,1)));
+        source_live_shadow_main_inputs_tu15(objects->world,context);
+        // Actual2BAC6 completes native per-view light fades before main
+        // collection. It consumes the current eye, light pool/authored tables;
+        //2C470/1BE90 above own main policy/LOD, not complete3D2B0 FP setup.
+        auto light_view=objects->world.prepare_source_call();
+        if(objects->view_calls)objects->view_calls(true,0xc35d0u,light_view,objects->world.memory());
+        objects->world.run_actual(0xc35d0u,light_view);
+        if(objects->view_calls)objects->view_calls(false,0xc35d0u,light_view,objects->world.memory());
+        source_live_model_draws_tu15(objects->world,objects->main,i.units,context);
+        if(objects->main_draws)objects->main_draws(i.units);
+        const auto main_handoff=source_live_shadow_main_draws_tu15(objects->world.memory(),i.units,admission,
+            objects->main.associations,Impl::main_arena_token,Impl::instance_token,i.transforms,
+            [&](auto address,auto bytes){objects->world.write_source_call_input(address,bytes);});
+        (void)main_handoff; // Pre-cull state; native44710 integration follows.
+
+        // Original335D0 follows ordinary draw preparation and precedes
+        //31C80's secondary light queries. Retain the same completed queues.
+        if(objects->main_collected)objects->main_collected(admission,objects->main,context);
+    }
     i.main_arena=i.units.arena;
     SourceBspPartCommandWorld command_world{i.cluster_commands,i.definition_commands,i.instance_definitions,
         i.materials,i.visibility,std::int16_t(i.bsp_index),[&](auto datum)->const SourceBspCommandShader&{return i.shaders.at(datum);}};
@@ -213,11 +290,30 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         const auto& runtime=light->runtime;
         const auto uniforms=source_effect_light_view_uniforms(*light->definition,runtime.state,runtime.position,
             runtime.forward,runtime.up,light->fades,receiver.selected_fade,{});
-        auto query=receiver.view.bsp;source_bsp_range_arena_begin(i.light_arena);i.units.arena=i.light_arena;
+        auto query=receiver.view.bsp;
+        SourceObjectAdmission object_receivers;
+        SourceEffectLightGeometryFrameContext context;
+        context.draw={receiver.view.pass_mode,Impl::light_arena_token,std::int8_t(receiver.view.flags),fog,coverage};
+        context.cull.query_mode=receiver.view.query_mode;context.cull.center=runtime.spatial_center;context.cull.radius=runtime.spatial_radius;
+        context.commands.player_multiplier=source_shader_lod_player_multiplier(players);
+        context.commands.view_modifier=objects && objects->context.view_modifier;
+        context.commands.lod_view=source_shader_lod_view(viewport[0],viewport[2],false,false);
+        const auto observe=[&](SourceEffectLightCommandPhaseTu15 phase,const SourceDrawUnitState& state,const SourceBspAdmission& bsp) {
+            if(objects && objects->light_command_observer)objects->light_command_observer({phase,objects->world,
+                receiver.identity,state,bsp,object_receivers,context,Impl::main_arena_token,Impl::light_arena_token,
+                Impl::instance_token,i.transforms,objects->diagnostic_native_light_seed,true});
+        };
+        observe(SourceEffectLightCommandPhaseTu15::before_seed,i.units,query);
+        std::optional<SourceLiveEffectLightStateTu15> retained_light;
+        if(objects) {
+            retained_light=source_live_effect_light_state_tu15(objects->world.memory());
+            i.units=retained_light->state;i.light_arena=retained_light->state.arena;
+        }
+        source_bsp_range_arena_begin(i.light_arena);i.units.arena=i.light_arena;
+        observe(SourceEffectLightCommandPhaseTu15::before_collection,i.units,query);
         SourceEffectLightGeometryFrameWorld world{draw_world,command_world,i.metadata};
         // Both geometry families append to the same units, command banks and
         // final sort. Optional model ownership is explicit for BSP-only callers.
-        SourceObjectAdmission object_receivers;
         std::map<std::array<std::uint32_t,8>,SourceModelCommandGeometry> live_models;
         const auto live_model=[&](const SourceCullDrawUnit& unit)->const SourceModelCommandGeometry& {
             if(!objects)throw FormatError("model light unit has no live world owner");
@@ -228,7 +324,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
         };
         world.commands.model=live_model;
         world.dynamic=[&](auto& units,auto& query,const auto& draw_context) {
-            if(!objects)return;
+            if(objects) {
             SourceObjectAdmissionInput input;
             input.flags=receiver.view.flags;input.context_2a78=receiver.view.pass_mode;input.mode=receiver.view.query_mode;
             input.sphere_center=runtime.spatial_center;input.sphere_radius=runtime.spatial_radius;
@@ -236,15 +332,35 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             object_receivers=objects->world.admit_render_objects(receiver.view.visibility,input,query.associations);
             query.associations=object_receivers.associations;
             source_live_model_draws_tu15(objects->world,object_receivers,units,object_context(draw_context));
+            }
+            // Copy caster inputs before the receiver availability gate and
+            // sphere/subpart color culling. Off-camera and shadow-only parts
+            // belong to this light query even without a main color draw.
+            if(point_casters) {
+                if(!i.pstencil_casters)i.pstencil_casters=std::make_unique<pstencil::PointCasterBank>(i.cache,i.bsp_index);
+                i.pstencil_casters->collect(units,objects?&objects->world:nullptr,runtime,constants,
+                    light_domain,objects?objects->model_available:std::function<bool(const SourceCullDrawUnit&)>{},*point_casters);
+            }
+            if(!objects)return;
             if(objects->model_available)for(unsigned n=units.main_prefix;n<units.draw_count;++n) {
                 auto& unit=units.units[n];
                 if(unit.words[1]!=0xffffffffu && !objects->model_available(unit))
                     unit.words[0]&=~0x1fffffu;
             }
         };
-        world.object_commands=[&](auto& state,auto mode) {
-            if(objects)objects->world.append_render_attachments(state,object_receivers,mode);
+        if(objects)world.complete_commands=[&](auto& commands,const auto& state,const auto& bsp,
+            const auto& command_context,auto selector) {
+            if(!retained_light || command_context.mode!=1 || selector)
+                throw FormatError("Live light commands lack the actual31172 secondary caller");
+            const SourceLiveEffectLightBindingsTu15 bindings{Impl::light_arena_token,
+                Impl::instance_token,i.transforms,std::uint32_t(context.cull.query_mode)};
+            auto completed=source_live_effect_light_commands_tu15(objects->world,*retained_light,
+                state,bsp,object_receivers,bindings,[&](bool before,const auto& abi,const auto& memory) {
+                    if(objects->light_commands)objects->light_commands(before,receiver.identity,abi,memory);
+                });
+            commands=std::move(completed.legacy);
         };
+        else world.object_commands=[](auto&,auto){};
         world.cull_bank=[&](auto,const auto& unit) {
             if(unit.words[1]!=0xffffffffu) {
                 if(!objects)throw FormatError("light model cull lacks its live world");
@@ -260,13 +376,11 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             if(unit.words[1]!=0xffffffffu){const auto& section=i.model(unit);return SourceOpaqueGeometrySelection{section.metadata,section.ranges.parts};}
             const auto& section=i.sections.at(i.key(unit));return SourceOpaqueGeometrySelection{section.metadata,section.ranges.parts};
         };
-        SourceEffectLightGeometryFrameContext context;
-        context.draw={receiver.view.pass_mode,Impl::light_arena_token,std::int8_t(receiver.view.flags),fog,coverage};
-        context.cull.query_mode=receiver.view.query_mode;context.cull.center=runtime.spatial_center;context.cull.radius=runtime.spatial_radius;
-        context.commands.player_multiplier=source_shader_lod_player_multiplier(players);
-        context.commands.view_modifier=objects && objects->context.view_modifier;
-        context.commands.lod_view=source_shader_lod_view(viewport[0],viewport[2],false,false);
-        const auto result=source_effect_light_geometry_frame(i.units,query,i.commands,i.opaque,world,context);
+        const auto result=source_effect_light_geometry_frame(i.units,query,i.commands,i.opaque,world,context,
+            [&](auto phase,const auto& state,const auto& bsp) {
+                observe(phase==SourceEffectLightGeometryFramePhase::collected?SourceEffectLightCommandPhaseTu15::collected:
+                    SourceEffectLightCommandPhaseTu15::culled,state,bsp);
+            });
         i.light_arena=i.units.arena;
         const auto& commands=i.commands.banks[1];
         const auto selected=std::span(i.opaque).first(result.opaque_count);
@@ -323,6 +437,7 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
                 const auto& bound=model_bindings.at(range.command);
                 for(const auto& indices:range.selected.ranges) {
                     auto packet=bound;packet.light_identity=runtime.identity;packet.light_definition=light->definition_identity;
+                    packet.point_light_position=runtime.position;
                     auto draw=bound.source.draw();draw.range=indices;
                     packet.source=menu_world_source_binding_class(i.cache,bound.source.owner(),std::move(draw),
                         bound.source.vertex_shader(),range.vertex_class,bound.source.constants());
@@ -345,6 +460,11 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
                 auto completed_draw=source_effect_light_raw_draw(slot.material,completed_material,slot.pass,std::move(binding),packet,
                     {0,16777215.f,depth.minimum_w,depth.maximum_w},{1,1});
                 completed_draw.light_identity=runtime.identity;completed_draw.light_definition=light->definition_identity;
+                completed_draw.point_light_position=runtime.position;
+                completed_draw.pstencil_casts_shadow=pstencil::shadow_casting_part(
+                    completed_draw.source.draw().geometry->parts().at(completed_draw.source.draw().part).type);
+                completed_draw.pstencil_specular=i.pstencil_materials.complete(c[2],(c[5]>>8)&255u,
+                    light->definition_identity,uniforms);
                 output.push_back(std::move(completed_draw));
             }
         }

@@ -206,9 +206,44 @@ BspFogSample BspAtmosphere::sample(Vec3 eye,Vec3 forward,std::optional<int> sele
     Bank primary,secondary,sky_bank;
     std::array<float,10> patch_sum{};float patch_weight{},patch_choice{};
     float bloom_weight{},bloom_remaining=1;std::array<float,4> bloom_sum{};
+    std::array<float,6> planar_sum{};float planar_weight{};unsigned immersion_flags{};
     for(std::size_t i=0;i<order.size();++i) {
         const auto &cluster=clusters[order[i]];
-        if(cluster.atmospheric!=-1)throw FormatError("scenario fog palette requires authored mixer aggregation");
+        if(cluster.atmospheric!=-1) {
+            const float fallback=std::max(0.f,1.f-distance[i]);
+            if(cluster.atmospheric<0 || std::size_t(cluster.atmospheric)>=atmospheric_palette.size()) {
+                primary.weight+=fallback;secondary.weight+=fallback;sky_bank.weight+=fallback;
+                planar_weight+=fallback;patch_weight+=fallback;patch_weight+=fallback;
+                continue;
+            }
+            const auto &definition=atmospheric_palette[cluster.atmospheric];
+            if(definition.mixer_count)throw FormatError("atmospheric fog mixer requires original live interpolation inputs");
+            if(order[i]==unsigned(out.cluster))immersion_flags=definition.immersion_flags;
+            const float spread=definition.spread>0?std::min(spread_limit,definition.spread):1.f;
+            const float w=saturated(1.f-distance[i]/spread);
+            if(w<=0) {patch_weight+=fallback;continue;}
+            primary.add(definition.primary,w);secondary.add(definition.secondary,w);
+            for(unsigned component=0;component<6;++component)
+                planar_sum[component]+=definition.planar_override[component]*w;
+            planar_weight+=w;
+            if(definition.patchy) {
+                if(definition.patchy_secondary.x!=0 || definition.patchy_secondary.y!=0 || definition.patchy_secondary.z!=0)
+                    throw FormatError("patchy fog secondary color requires its original rendering owner");
+                const auto values=patch_values(*definition.patchy);
+                for(unsigned component=0;component<10;++component)patch_sum[component]+=values[component]*w;
+                patch_weight+=w;
+                if(order[i]==unsigned(out.cluster) || w>patch_choice) {
+                    out.patchy=definition.patchy;out.patchy_datum=definition.patchy_datum;patch_choice=w;
+                }
+            } else patch_weight+=fallback;
+            if(definition.bloom[0]>0) {
+                const float gamma=definition.bloom[3]==0?1:definition.bloom[3];
+                bloom_sum[0]+=definition.bloom[0]*w;bloom_sum[1]+=definition.bloom[1]*w;
+                bloom_sum[2]+=definition.bloom[2]*w;bloom_sum[3]+=gamma*w;
+                bloom_weight+=w;bloom_remaining*=1.f-w;
+            }
+            continue;
+        }
         const auto sky_index=[&](int index){return index>=0 && std::size_t(index)<skies.size();};
         int sky=-1;
         // 130F60 returns a valid explicit slot's datum even when it is NONE.
@@ -224,7 +259,7 @@ BspFogSample BspAtmosphere::sample(Vec3 eye,Vec3 forward,std::optional<int> sele
         // denominator, and at 12FA87/12F57C twice to the patchy denominator.
         if(sky<0 || !skies[sky].present) {
             primary.weight+=fallback;secondary.weight+=fallback;sky_bank.weight+=fallback;
-            patch_weight+=fallback;patch_weight+=fallback;
+            planar_weight+=fallback;patch_weight+=fallback;patch_weight+=fallback;
             continue;
         }
         const auto &definition=skies[sky];
@@ -232,6 +267,8 @@ BspFogSample BspAtmosphere::sample(Vec3 eye,Vec3 forward,std::optional<int> sele
         const float w=saturated(1.f-distance[i]/spread);
         if(w<=0) {patch_weight+=fallback;continue;}
         primary.add(definition.primary,w);secondary.add(definition.secondary,w);sky_bank.add(definition.sky_fog,w);
+        // TU1.5 132465..132472: sky contributes zero override with its fog weight.
+        planar_weight+=w;
         if(definition.patchy) {
             const auto values=patch_values(*definition.patchy);
             for(unsigned component=0;component<10;++component)patch_sum[component]+=values[component]*w;
@@ -246,6 +283,13 @@ BspFogSample BspAtmosphere::sample(Vec3 eye,Vec3 forward,std::optional<int> sele
         }
     }
     out.primary=primary.result();out.secondary=secondary.result();out.sky_fog=sky_bank.result();
+    if(immersion_flags&1)out.primary={};
+    if(immersion_flags&2)out.secondary={};
+    std::array<float,6> planar_override{};
+    if(planar_weight>0 && planar_sum[3]>0) {
+        const float inverse=1.f/planar_weight;
+        for(unsigned component=0;component<6;++component)planar_override[component]=planar_sum[component]*inverse;
+    }
     if(out.patchy && patch_weight>0 && patch_sum[7]>0) {
         const float inverse=1.f/patch_weight;
         for(float &v:patch_sum)v*=inverse;
@@ -256,58 +300,77 @@ BspFogSample BspAtmosphere::sample(Vec3 eye,Vec3 forward,std::optional<int> sele
         out.bloom={saturated((1.f-bloom_remaining)*bloom_sum[0]*inverse),
             saturated(bloom_sum[1]*inverse),saturated(bloom_sum[2]*inverse),bloom_sum[3]*inverse};
     }
-    // 12FEA0 resolves the visible plane first, then the containing palette.
+    // TU1.5 1329B0: visible plane first, then the containing palette.
     const FogPalette *palette=nullptr;
+    bool plane_set=false,direct_planar=false;
     out.planar.plane={forward.x,forward.y,forward.z,dot(forward,eye)};
     if(containing.visible_plane>=0) {
         if(std::size_t(containing.visible_plane)>=fog_planes.size())throw FormatError("visible fog plane outside BSP");
         const auto &plane=fog_planes[containing.visible_plane];
         if(plane.palette>=0 && std::size_t(plane.palette)<fog_palette.size()) {
-            palette=&fog_palette[plane.palette];out.planar.plane=plane.plane;
+            palette=&fog_palette[plane.palette];out.planar.plane=plane.plane;plane_set=true;
         }
     } else if(containing.planar_designator>=0 && std::size_t(containing.planar_designator)<fog_palette.size()) {
-        palette=&fog_palette[containing.planar_designator];
-        out.planar.plane={forward.x,forward.y,forward.z,std::max(palette->fog.opaque_distance,palette->fog.opaque_depth)};
-    } else out.planar.plane={forward.x,forward.y,forward.z,dot(forward,eye)};
-    const auto &plane=out.planar.plane;
-    const float raw_height=((plane[2]*eye.z+plane[1]*eye.y)+plane[0]*eye.x)-plane[3];
-    const bool below=raw_height<0 || (containing.visible_plane<0 && palette);
+        palette=&fog_palette[containing.planar_designator];direct_planar=true;
+    }
+    const auto plane_height=[&] {
+        const auto &plane=out.planar.plane;
+        return ((plane[2]*eye.z+plane[1]*eye.y)+plane[0]*eye.x)-plane[3];
+    };
+    const bool below=(plane_set && plane_height()<0) || direct_planar;
+    bool palette_admitted=false;
     if(palette && palette->datum!=0xffffffffu && !(palette->flags&16) && (!(palette->flags&32) || below)) {
         const auto retained_plane=out.planar.plane;out.planar=palette->fog;out.planar.plane=retained_plane;
-        out.planar_datum=palette->datum;out.planar_flags=palette->flags;
-        out.planar.eye_offset=std::clamp(out.planar.eye_offset,-1.f,1.f);
-        out.planar.maximum_density=out.planar.maximum_density<=epsilon?0:out.planar.maximum_density>upper?1:out.planar.maximum_density;
-        out.planar.color={saturated(out.planar.color.x),saturated(out.planar.color.y),saturated(out.planar.color.z)};
-        if(out.planar.maximum_density>0) {
-            out.planar.opaque_distance=std::max(epsilon,out.planar.opaque_distance);
-            out.planar.opaque_depth=std::max(epsilon,out.planar.opaque_depth);
-            out.eye_height=raw_height;
-            out.eye_fraction=snapped(saturated(-raw_height/out.planar.opaque_depth));
-            // 1306AC..1306C7: divide, multiply, then SUBSS from +0.
-            // Unary negation before the multiply produces the wrong zero
-            // sign, which 130DE0 also copies into the submerged start field.
-            const float nonnegative_height=raw_height>=0.f?raw_height:0.f;
-            out.eye_offset=0.f-(out.planar.eye_offset/out.planar.opaque_distance)*nonnegative_height;
-            const bool admitted=contains_planar(out.cluster,palette->datum);
-            if(raw_height<0 && !admitted)out.eye_height=out.eye_fraction=out.eye_offset=0;
-            if(palette->patchy) {
-                const float minimum=std::clamp(palette->patchy_minimum_depth,0.f,upper);
-                const float amount=saturated((out.eye_fraction-minimum)/(1.f-minimum));
-                if(amount>0) {
-                    const auto a=out.patchy?patch_values(*out.patchy):std::array<float,10>{};
-                    const auto b=patch_values(*palette->patchy);std::array<float,10> values{};
-                    for(unsigned component=0;component<10;++component)values[component]=(b[component]-a[component])*amount+a[component];
-                    if(!out.patchy) {out.patchy=palette->patchy;out.patchy_datum=palette->patchy_datum;}
-                    patch_values(*out.patchy,values);
-                }
-            }
-            float lo=palette->transition[0],hi=palette->transition[1];
-            if(!(lo<hi)) {lo=1023;hi=1024;}
-            lo=std::max(0.f,lo);hi=std::max(lo+epsilon,hi);
-            out.transition=out.primary.maximum_density>0 || out.secondary.maximum_density>0?
-                snapped(saturated((out.eye_height-lo)/(hi-lo))):0.f;
+        out.planar_datum=palette->datum;out.planar_flags=palette->flags;palette_admitted=true;
+        if(!plane_set) {
+            out.planar.plane={forward.x,forward.y,forward.z,std::max(out.planar.opaque_distance,out.planar.opaque_depth)};
+            plane_set=true;
         }
     }
+    // Overrides also create a planar layer when no planar fog tag was selected.
+    if(planar_override[5]>0) {
+        const float amount=planar_override[5];
+        out.planar.color.x+=(planar_override[0]-out.planar.color.x)*amount;
+        out.planar.color.y+=(planar_override[1]-out.planar.color.y)*amount;
+        out.planar.color.z+=(planar_override[2]-out.planar.color.z)*amount;
+        out.planar.maximum_density+=(planar_override[3]-out.planar.maximum_density)*amount;
+        plane_set=true;
+    }
+    if(immersion_flags&4)out.planar.maximum_density=0;
+    out.planar.maximum_density=out.planar.maximum_density<=epsilon?0:out.planar.maximum_density>upper?1:out.planar.maximum_density;
+    if(out.planar.maximum_density>0) {
+        out.planar.color={saturated(out.planar.color.x),saturated(out.planar.color.y),saturated(out.planar.color.z)};
+        out.planar.eye_offset=std::clamp(out.planar.eye_offset,-1.f,1.f);
+        out.planar.opaque_distance=std::max(epsilon,out.planar.opaque_distance);
+        out.planar.opaque_depth=std::max(epsilon,out.planar.opaque_depth);
+        const float raw_height=plane_height();
+        if(direct_planar) {out.eye_height=0.f-out.planar.opaque_depth;out.eye_fraction=1.f;}
+        else {
+            out.eye_height=raw_height;
+            out.eye_fraction=snapped(saturated(0.f-raw_height/out.planar.opaque_depth));
+            const float nonnegative_height=raw_height>=0.f?raw_height:0.f;
+            out.eye_offset=0.f-(out.planar.eye_offset/out.planar.opaque_distance)*nonnegative_height;
+            if(raw_height<0 && !contains_planar(out.cluster,out.planar_datum))
+                out.eye_height=out.eye_fraction=out.eye_offset=0;
+        }
+        if(palette_admitted && palette->patchy) {
+            const float minimum=std::clamp(palette->patchy_minimum_depth,0.f,upper);
+            const float amount=saturated((out.eye_fraction-minimum)/(1.f-minimum));
+            if(amount>0) {
+                const auto a=out.patchy?patch_values(*out.patchy):std::array<float,10>{};
+                const auto b=patch_values(*palette->patchy);std::array<float,10> values{};
+                for(unsigned component=0;component<10;++component)values[component]=(b[component]-a[component])*amount+a[component];
+                if(!out.patchy) {out.patchy=palette->patchy;out.patchy_datum=palette->patchy_datum;}
+                patch_values(*out.patchy,values);
+            }
+        }
+        out.eye_offset+=planar_override[5]*planar_override[4];
+        float lo=palette_admitted?palette->transition[0]:0.f,hi=palette_admitted?palette->transition[1]:0.f;
+        if(palette_admitted && !(lo<hi)) {lo=1023;hi=1024;}
+        lo=std::max(0.f,lo);hi=std::max(lo+epsilon,hi);
+        out.transition=out.primary.maximum_density>0 || out.secondary.maximum_density>0?
+            snapped(saturated((out.eye_height-lo)/(hi-lo))):0.f;
+    } else {out.planar.color={};out.planar.opaque_distance=out.planar.opaque_depth=0;}
     clamp_patch(out.patchy);
     const float sky_opacity=saturated(out.eye_fraction*out.planar.maximum_density);
     const float background=saturated(1.f-sky_opacity)*saturated(out.sky_fog.maximum_density);
@@ -394,6 +457,21 @@ BspAtmosphere Cache::load_bsp_atmosphere(std::size_t index) const {
         }
         for(unsigned j=0;j<4;++j)out.bloom[j]=data.f32(s+0x68+j*4);
         result.skies.push_back(std::move(out));
+    }
+    const auto [atmospheric_count,atmospheric]=TagAddressSpace(data, metadata_magic_).block(scnr+0x340, 244);
+    for(std::size_t i=0;i<atmospheric_count;++i) {
+        const auto p=atmospheric+i*244;BspAtmosphere::AtmosphericPalette out;
+        out.spread=data.f32(p+0x10);
+        out.primary={vector(data,p+4),data.f32(p+0x18),data.f32(p+0x1c),data.f32(p+0x20)};
+        out.secondary={vector(data,p+0x24),data.f32(p+0x34),data.f32(p+0x38),data.f32(p+0x3c)};
+        out.planar_override={data.f32(p+0x44),data.f32(p+0x48),data.f32(p+0x4c),
+            data.f32(p+0x50),data.f32(p+0x58),data.f32(p+0x54)};
+        out.patchy_secondary=vector(data,p+0x94);out.patchy_datum=data.u32(p+0xd4);
+        if(data.f32(p+0xa4)>0 && out.patchy_datum!=0xffffffffu && data.f32(p+0xac)>0)
+            out.patchy=patch(p+0x88,out.patchy_datum);
+        out.mixer_count=data.u32(p+0xd8);out.immersion_flags=data.u16(p+0xf0);
+        for(unsigned j=0;j<4;++j)out.bloom[j]=data.f32(p+0xe0+j*4);
+        result.atmospheric_palette.push_back(std::move(out));
     }
     const auto [bsp_count,bsp_refs]=TagAddressSpace(data, metadata_magic_).block(scnr+0x210, 68);
     if(index<bsp_count && (data.u16(bsp_refs+index*68+60)&1))result.default_sky=std::int16_t(data.u16(bsp_refs+index*68+64));

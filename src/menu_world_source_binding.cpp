@@ -1,5 +1,6 @@
 #include "halo2/menu_world_source_binding.hpp"
 #include "halo2/source_tag_metadata.hpp"
+#include "halo2/render_view.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -209,5 +210,19 @@ MenuWorldSourceBinding menu_world_source_binding_class(const Cache &cache,MenuWo
 std::span<const std::byte> MenuWorldSourceBinding::resource_bytes(unsigned input) const {
   if(input>=inputs_.size())throw FormatError("source raw input outside binding");
   return draw_.geometry->resources().at(inputs_[input].stream.resource).bytes;
+}
+MenuWorldSourceBinding menu_world_source_scaled_viewport(const MenuWorldSourceBinding& source,unsigned scale) {
+  if(scale!=1 && scale!=2 && scale!=4)throw FormatError("raw world SSAA viewport scale is unsupported");
+  if(scale==1)return source;
+  const auto& c=source.constants();
+  RenderViewport viewport{c[11][0]-c[8][0]-.5f,c[11][1]+c[9][1]-.5f,c[8][0]*2.f,-c[9][1]*2.f};
+  if(!(viewport.width>0 && viewport.height>0))throw FormatError("raw world SSAA viewport has no positive extent");
+  const auto previous=viewport_constants(viewport);
+  if(std::memcmp(previous.data(),c.data()+8,sizeof(previous)))
+    throw FormatError("raw world SSAA requires the actual ordinary12FA0 viewport bank");
+  viewport.left*=scale;viewport.top*=scale;viewport.width*=scale;viewport.height*=scale;
+  const auto target=viewport_constants(viewport);auto result=source;
+  std::copy(target.begin(),target.end(),result.constants_.begin()+8);
+  return result;
 }
 } // namespace halo2

@@ -69,6 +69,18 @@ struct BspAtmosphere {
         // Independent14B360 AL control, separate from flag32's RGB override.
         bool model_present{};
     };
+    // Authored scnr+340 rows, not sky tags. TU1.5 131AC0 selects this
+    // branch before sky aggregation; 131610 owns live mixer preprocessing.
+    struct AtmosphericPalette {
+        float spread{};
+        AtmosphericFog primary{}, secondary{};
+        std::array<float,6> planar_override{}; // RGB, density, bias, amount.
+        std::optional<PatchyFog> patchy;
+        Vec3 patchy_secondary{};
+        std::uint32_t patchy_datum=0xffffffffu;
+        std::array<float,4> bloom{};
+        unsigned mixer_count{}, immersion_flags{};
+    };
     struct FogPlane { int palette = -1; ShaderVector plane{}; };
     struct FogPalette {
         std::uint32_t datum = 0xffffffffu;
@@ -91,6 +103,7 @@ struct BspAtmosphere {
     std::vector<std::vector<unsigned>> instance_membership;
     std::vector<Portal> portals;
     std::vector<Sky> skies;
+    std::vector<AtmosphericPalette> atmospheric_palette;
     std::vector<FogPlane> fog_planes;
     std::vector<FogPalette> fog_palette;
     std::vector<BspPatchyDefinition> patchy_definitions;

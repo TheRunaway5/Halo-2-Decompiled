@@ -27,7 +27,7 @@ struct SourceMachineScene::Impl {
         std::optional<ReferenceDeviceState> reference;
         std::uint32_t handle=0xffffffffu;
         std::uint64_t advanced_tick{},created_tick{};
-        bool active=true,visible=true,simulation_owned{};
+        bool active=false,visible=false,simulation_owned{};
         SourceMachineDefinition definition;
         SourceMachinePlacement placement;
         SourcePortalOwnerIdentity portal_identity;
@@ -65,10 +65,11 @@ struct SourceMachineScene::Impl {
         for(std::size_t source_object=0;source_object<objects.size();++source_object){
             const auto&object=objects[source_object];
             if(object.type==7)machine_placements.insert(source_object);
-            //D5560/D59F0 initial admission and D5060 NeverPlaced gate. The
-            //SCEN game mask branch is type6-only inside this existing helper.
-            if(object.type!=7 || !scenery_automatic_creation_allowed(object,2) ||
-                (object.origin_bsp>=0 && object.origin_bsp!=int(bsp)))continue;
+            // Resource preparation does not perform source birth admission.
+            // Named/persistent owners can be born globally outside their origin
+            // BSP, and an initially absent machine can be created later. Only
+            // synchronize's actual lifetimes/visibility select submitted models.
+            if(object.type!=7 || object.definition==null_datum)continue;
             ++counts.placements;
             Machine m;m.source_object=source_object;m.definition_datum=object.definition;
             m.authored_placement=unsigned(object.placement);m.definition=cache.load_source_machine_definition(object.definition);

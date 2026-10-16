@@ -256,6 +256,7 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     f.entries.push_back({"Vehicle Field of View",int(vista_menu(272)),int(video_vehicle_fov_context)});
     f.entries.push_back({"CRT Filter",-2,0});
     f.entries.push_back({"2-Player Split Screen",-2,1});
+    f.entries.push_back({"Graphics Mode",-2,2});
     add(0x89f, vista_menu(276));
     break;
   case 269:
@@ -281,7 +282,7 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     if(context==video_fov_context || context==video_vehicle_fov_context) {
       const bool vehicle=context==video_vehicle_fov_context;
       f.title=vehicle?"VEHICLE FIELD OF VIEW":"FIELD OF VIEW";
-      f.description=vehicle?"Widen the view while seated in a vehicle.":"Widen the view while on foot.";
+      f.description=vehicle?"70 degrees preserves the Xbox TU1.5 vehicle camera. Higher values widen its view.":"Widen the view while on foot.";
       for(unsigned degrees=minimum_field_of_view;degrees<=maximum_field_of_view;++degrees)
         f.entries.push_back({std::to_string(degrees)+" degrees",-2,int(degrees)});
       f.selected=(vehicle?pc_display_.vehicle_field_of_view:pc_display_.field_of_view)-minimum_field_of_view;
@@ -381,6 +382,7 @@ std::string MenuState::pc_value_label(const MenuFrame &f, unsigned index,
     if(index==9)return std::to_string(pc_display_.vehicle_field_of_view);
     if(index==10)return pc_display_.crt_filter?"On":"Off";
     if(index==11)return pc_display_.two_player_split==TwoPlayerSplit::Horizontal?"Horizontal":"Vertical";
+    if(index==12)return pstencil::graphics_mode_name(pc_display_.graphics_mode);
   }
   if(is_vista_settings(f.screen, 257)) {
     if(index==0)return pc_display_.volume ? std::to_string(pc_display_.volume) : low_string(content_.screen(f.screen),0x957);
@@ -462,6 +464,8 @@ void MenuState::accept_pc() {
     if(e.value==0)value.crt_filter=!value.crt_filter;
     else if(e.value==1)value.two_player_split=value.two_player_split==TwoPlayerSplit::Horizontal?
         TwoPlayerSplit::Vertical:TwoPlayerSplit::Horizontal;
+    else if(e.value==2)value.graphics_mode=value.graphics_mode==pstencil::GraphicsMode::Original?
+        pstencil::GraphicsMode::pStencil:pstencil::GraphicsMode::Original;
     if(!pc_display_adapter_) { unavailable("A live native renderer is required to apply this setting."); return; }
     if(const auto error=pc_display_adapter_(value);!error.empty()){unavailable(error);return;}
     pc_display_=value;save();++revision;return;
@@ -482,7 +486,7 @@ void MenuState::accept_pc() {
     if(id==263)v.volume=e.value;
     if(id==242)v.subtitles=e.value;
     if(id==267)v.speakers=e.value;
-    if(id==276){const DisplaySettings defaults;v.internal_width=v.internal_height=0;v.anti_aliasing=0;v.brightness=defaults.brightness;v.gamma=defaults.gamma;v.detail=0;v.safe_area=false;v.field_of_view=defaults.field_of_view;v.vehicle_field_of_view=defaults.vehicle_field_of_view;v.crt_filter=defaults.crt_filter;v.two_player_split=defaults.two_player_split;}
+    if(id==276){const DisplaySettings defaults;v.internal_width=v.internal_height=0;v.anti_aliasing=0;v.brightness=defaults.brightness;v.gamma=defaults.gamma;v.detail=0;v.safe_area=false;v.field_of_view=defaults.field_of_view;v.vehicle_field_of_view=defaults.vehicle_field_of_view;v.crt_filter=defaults.crt_filter;v.two_player_split=defaults.two_player_split;v.graphics_mode=defaults.graphics_mode;}
     if(id==268){v.volume=10;v.subtitles=0;v.speakers=4;}
     if(id==269) {
       const auto m=e.value<0?std::pair<unsigned,unsigned>{0,0}:pc_video_modes_.at(e.value);

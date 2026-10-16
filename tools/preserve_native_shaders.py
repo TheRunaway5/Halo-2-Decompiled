@@ -24,11 +24,13 @@ def copy_selected(root, output):
     """Carry an already owned shader library into an offline MCC import."""
     registry = Path(root) / "assets/native-shaders-source.tsv"
     if not registry.is_file():
-        return dict(complete=False, blocker="Existing native shader library has not been preserved")
+        from native_shader_bundle import copy_bundled
+        return copy_bundled(root, output)
     rows = registry.read_text().splitlines()
     if len(rows) != 2 or rows[0] != "H2_NATIVE_SHADER_SOURCE_V1" or not rows[1].startswith("native\t"):
         raise FormatError("Invalid selected native shader library")
-    source = Path(rows[1].split("\t", 1)[1]).resolve()
+    source = Path(rows[1].split("\t", 1)[1])
+    source = (Path(root) / source if not source.is_absolute() else source).resolve()
     catalog = json.loads((source / "catalog.json").read_text())
     if catalog.get("schema") != "H2_PRESERVED_NATIVE_SHADER_CATALOG_V1":
         raise FormatError("Invalid selected native shader catalog")
@@ -61,6 +63,7 @@ def copy_selected(root, output):
         tables = (library / "function-tables.bin").read_bytes()
         if len(tables)!=28*1024 or fnv(tables)!="22708b4cc478ddb7":
             raise FormatError("Selected native shader function tables differ")
+        (destination / "function-tables.bin").write_bytes(tables)
         shutil.copytree(library, destination / name)
         for path in library.rglob("*"):
             if path.is_file() and file_sha(path) != file_sha(destination / name / path.relative_to(library)):

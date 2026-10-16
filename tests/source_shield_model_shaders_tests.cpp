@@ -1,4 +1,5 @@
 #include "halo2/source_shield_model_shaders.hpp"
+#include "halo2/model_selection.hpp"
 #include "halo2/source_transparent_parts.hpp"
 #include "halo2/content.hpp"
 #include "halo2/source_tag_metadata.hpp"
@@ -35,12 +36,28 @@ void original(const std::filesystem::path &path) {
     std::cout<<count<<" unchanged-original override part admission cases\n";
 }
 void models(const Cache &cache) {
-    const auto content=cache.load_content(0,true);unsigned models=0,parts=0,vertices=0,views=0;
+    const auto content=cache.load_content(0,true);unsigned models=0,parts=0,vertices=0,views=0,geometry_banks=0;
     for(unsigned representation:{2u,3u})for(bool first_person:{false,true}) {
         const auto &r=content.player_representations.at(representation);
         const auto header=cache.load_source_tag_metadata(r.biped.model);
         const auto mode=first_person?r.hands:Bytes(header.bytes_at(header.source_address(),8)).u32(4);
         auto model=cache.load_model(mode,false);const auto original_materials=model.mesh.materials.size();
+        std::vector<Vertex> posed;
+        if(first_person) {posed=pose_model(model);++geometry_banks;}
+        else {
+            const auto definition=cache.load_initial_model_definition(r.biped.datum);
+            model.mesh.vertices.clear();model.vertex_origins.clear();
+            for(unsigned lod=0;lod<6;++lod) {
+                std::vector<unsigned> sections;
+                for(const auto& region:definition.render_sections)for(const auto& permutation:region)
+                    if(permutation[lod]>=0 && std::find(sections.begin(),sections.end(),unsigned(permutation[lod]))==sections.end())
+                        sections.push_back(unsigned(permutation[lod]));
+                const auto bank=cache.load_model_sections(r.biped.datum,false,0,lod,sections);
+                model.mesh.vertices.insert(model.mesh.vertices.end(),bank.mesh.vertices.begin(),bank.mesh.vertices.end());
+                model.vertex_origins.insert(model.vertex_origins.end(),bank.vertex_origins.begin(),bank.vertex_origins.end());
+                const auto actual=pose_model(bank);posed.insert(posed.end(),actual.begin(),actual.end());++geometry_banks;
+            }
+        }
         const auto initial=model.mesh.vertices;
         const auto shader=first_person?r.biped.vitality.shield_damaged_first_person_shader:r.biped.vitality.shield_damaged_shader;
         SourceShieldModelShaders resident(cache,model,mode,shader);
@@ -51,7 +68,6 @@ void models(const Cache &cache) {
         for(const auto &origin:model.vertex_origins)
             if(std::find(sections.begin(),sections.end(),origin.section)==sections.end())sections.push_back(origin.section);
         const auto authored=cache.load_source_transparent_model_parts(mode,sections);
-        const auto posed=pose_model(model);
         for(unsigned players:{1u,2u,4u})for(unsigned byte:{0u,1u,127u,255u}) {
             SourceModelShaderView view;view.shader=source_shader_lod_view(0,480,false,false);
             view.part_shader_multiplier=source_shader_lod_player_multiplier(players);
@@ -88,8 +104,8 @@ void models(const Cache &cache) {
         }
         ++models;
     }
-    check(models==4&&vertices>1000&&parts>0,"Incomplete actual shield resident coverage");
-    std::cout<<models<<" actual body/arms models, "<<views<<" independent view selections, "<<parts<<" part checks and "<<vertices<<" unchanged posed vertices\n";
+    check(models==4&&geometry_banks==14&&vertices>1000&&parts>0,"Incomplete actual shield resident coverage");
+    std::cout<<models<<" actual body/arms models across "<<geometry_banks<<" authored geometry banks, "<<views<<" independent view selections, "<<parts<<" part checks and "<<vertices<<" unchanged posed vertices\n";
 }
 }
 int main(int argc,char **argv) {

@@ -15,6 +15,24 @@ void check_draw(const SourceShadowDraw &draw,bool receiver) {
     validate_source_shadow_plan_material(*draw.authored,
         receiver?SourceShadowPhase::Apply:SourceShadowPhase::Generate);
 }
+void check_raw_draws(std::span<const SourceShadowRawCallback> draws,
+    SourceShadowPhase phase,const SourceShadowRawSubmission &root) {
+    const SourceShadowRawCommandTu15 *previous{};
+    for(const auto &draw:draws) {
+        if(!draw.source || !draw.bind_and_draw)
+            throw FormatError("raw shadow draw has no admitted source binding or commands");
+        validate_source_shadow_raw_draw(*draw.source,phase,root.uniforms);
+        const auto &command=draw.source->command;
+        if(command.root_owner!=root.root_owner)
+            throw FormatError("raw shadow draw belongs to another admitted root");
+        if(previous && (command.sorted_ordinal<previous->sorted_ordinal ||
+           (command.sorted_ordinal==previous->sorted_ordinal &&
+            (command.descriptor!=previous->descriptor || command.command!=previous->command ||
+             command.unit!=previous->unit || command.geometry_owner!=previous->geometry_owner))))
+            throw FormatError("raw shadow descriptor/range order changed");
+        previous=&command;
+    }
+}
 }
 struct SourceShadowRender::Impl {
     SourceShadowRenderContext context;
@@ -185,8 +203,9 @@ struct SourceShadowRender::Impl {
         if(memory)vkFreeMemory(context.device,memory,nullptr);
     }
     ~Impl(){release();}
+    template<class Submission,class Validate,class Admitted>
     void record(VkCommandBuffer cmd,const SourceShadowContinuation &continuation,
-                std::span<const SourceShadowSubmission> roots) {
+                std::span<const Submission> roots,Validate validate,Admitted admitted,const SourceShadowTargetObserver& observer) {
         if(!cmd || !continuation.framebuffer)throw FormatError("shadow recording needs actual command buffer and continuation");
         if(!continuation.scissor.extent.width || !continuation.scissor.extent.height ||
            continuation.scissor.offset.x<0 || continuation.scissor.offset.y<0 ||
@@ -194,19 +213,22 @@ struct SourceShadowRender::Impl {
            std::uint64_t(continuation.scissor.offset.y)+continuation.scissor.extent.height>context.scene_extent.height)
             throw FormatError("shadow receiver scissor outside scene");
         for(const auto &root:roots) {
-            if(root.casters.empty() || root.receivers.empty())continue;
+            if(!admitted(root))continue;
             if(root.uniforms.texture_width!=target_width || root.uniforms.texture_height!=target_height)
                 throw FormatError("shadow uniforms differ from fixed target10 extent");
-            for(const auto &draw:root.casters)check_draw(draw,false);
-            for(const auto &draw:root.receivers)check_draw(draw,true);
+            validate(root);
         }
+        std::size_t transitions{};
+        const auto observed_begin=[&](SourceShadowTargetPhase phase,const VkRenderPassBeginInfo& begin) {
+            ++transitions;if(observer)observer({phase,&begin,transitions});
+        };
         for(const auto &root:roots) {
-            if(root.casters.empty() || root.receivers.empty())continue;
+            if(!admitted(root))continue;
             vkCmdEndRenderPass(cmd);
             VkClearValue white{};white.color={{1,1,1,0}};
             VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};begin.renderPass=pass;begin.framebuffer=framebuffer;
             begin.renderArea={{0,0},{target_width,target_height}};begin.clearValueCount=1;begin.pClearValues=&white;
-            vkCmdBeginRenderPass(cmd,&begin,VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(cmd,&begin,VK_SUBPASS_CONTENTS_INLINE);observed_begin(SourceShadowTargetPhase::Generate,begin);
             const VkViewport viewport{0,0,float(target_width),float(target_height),0,1};
             const VkRect2D scissor{{0,0},{target_width,target_height}};
             vkCmdSetViewport(cmd,0,1,&viewport);vkCmdSetScissor(cmd,0,1,&scissor);
@@ -215,7 +237,7 @@ struct SourceShadowRender::Impl {
             if(root.filter)for(unsigned stage=0;stage<2;++stage) {
                 begin.renderPass=filter_pass;begin.framebuffer=stage?framebuffer:scratch_framebuffer;
                 begin.clearValueCount=0;begin.pClearValues=nullptr;
-                vkCmdBeginRenderPass(cmd,&begin,VK_SUBPASS_CONTENTS_INLINE);
+                vkCmdBeginRenderPass(cmd,&begin,VK_SUBPASS_CONTENTS_INLINE);observed_begin(stage?SourceShadowTargetPhase::FilterTo10:SourceShadowTargetPhase::FilterTo11,begin);
                 vkCmdSetViewport(cmd,0,1,&viewport);vkCmdSetScissor(cmd,0,1,&scissor);
                 vkCmdBindPipeline(cmd,VK_PIPELINE_BIND_POINT_GRAPHICS,filter_pipeline);
                 vkCmdBindDescriptorSets(cmd,VK_PIPELINE_BIND_POINT_GRAPHICS,filter_layout,0,1,&filter_sets[stage],0,nullptr);
@@ -223,10 +245,11 @@ struct SourceShadowRender::Impl {
             }
             begin.renderPass=context.continuation_pass;begin.framebuffer=continuation.framebuffer;
             begin.renderArea={{0,0},context.scene_extent};begin.clearValueCount=0;begin.pClearValues=nullptr;
-            vkCmdBeginRenderPass(cmd,&begin,VK_SUBPASS_CONTENTS_INLINE);
+            vkCmdBeginRenderPass(cmd,&begin,VK_SUBPASS_CONTENTS_INLINE);observed_begin(SourceShadowTargetPhase::Apply,begin);
             vkCmdSetViewport(cmd,0,1,&continuation.viewport);vkCmdSetScissor(cmd,0,1,&continuation.scissor);
             for(const auto &draw:root.receivers)draw.bind_and_draw(cmd,root.uniforms);
         }
+        if(observer)observer({SourceShadowTargetPhase::Complete,nullptr,transitions});
     }
 };
 SourceShadowRender::SourceShadowRender(SourceShadowRenderContext c):impl_(std::make_unique<Impl>(c)){}
@@ -235,5 +258,22 @@ VkImageView SourceShadowRender::target_view()const{return impl_->view;}
 VkImage SourceShadowRender::target_image()const{return impl_->image;}
 VkRenderPass SourceShadowRender::generation_pass()const{return impl_->pass;}
 void SourceShadowRender::record(VkCommandBuffer cmd,const SourceShadowContinuation &continuation,
-                              std::span<const SourceShadowSubmission> roots){impl_->record(cmd,continuation,roots);}
+    std::span<const SourceShadowSubmission> roots,const SourceShadowTargetObserver& observer) {
+    impl_->record(cmd,continuation,roots,[](const SourceShadowSubmission &root) {
+        for(const auto &draw:root.casters)check_draw(draw,false);
+        for(const auto &draw:root.receivers)check_draw(draw,true);
+    },[](const SourceShadowSubmission &root) {
+        return !root.casters.empty() && !root.receivers.empty();
+    },observer);
+}
+void SourceShadowRender::record(VkCommandBuffer cmd,const SourceShadowContinuation &continuation,
+    std::span<const SourceShadowRawSubmission> roots,const SourceShadowTargetObserver& observer) {
+    impl_->record(cmd,continuation,roots,[](const SourceShadowRawSubmission &root) {
+        if(root.root_owner==0xffffffffu)throw FormatError("raw shadow submission has no admitted root owner");
+        check_raw_draws(root.casters,SourceShadowPhase::Generate,root);
+        check_raw_draws(root.receivers,SourceShadowPhase::Apply,root);
+    },[](const SourceShadowRawSubmission &root) {
+        return (root.command_masks[0]&(1u<<10)) && (root.command_masks[1]&(1u<<11));
+    },observer);
+}
 }

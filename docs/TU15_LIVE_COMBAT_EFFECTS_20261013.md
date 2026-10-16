@@ -450,13 +450,10 @@ special campaign paths omitted from the fifteen starting choices. A model
 reference alone does not prove player pickup/holding admission. No candidate
 is silently excluded and zero matched pixel pairs are accepted so far.
 
-Normal live dual pickup now reaches complete original B8180, but its original
-simulation-world binding at 4DC04C is still uninitialized in this isolated
-native gameplay composition. The failing diagnostic retains the exact call
-and NULL backing failure. No fabricated simulation state bypasses it. Full
-dual pickup, dedicated/client render-pose production, the complete original
-pose gallery, the walking triangle-flash reproduction, and pixel equality
-remain unfinished.
+The October15 continuation below resolves the earlier normal dual-pickup
+NULL binding at4DC04C. Dedicated/client render-pose production, the complete
+original pose gallery, the walking triangle-flash reproduction, and pixel
+equality remain unfinished.
 
 
 ## Original third-person geometry and matched input capture, October 14
@@ -556,3 +553,190 @@ index outputs match for all842 vertices. Isolated post-vertex readbacks and
 post-geometry readbacks give different residuals; the isolated readback alone
 is therefore insufficient to certify the actual draw. The original reference
 remains emulator output, with no physical Xbox framebuffer comparison.
+
+## Retained-input validation correction, October 15
+
+The later live unit base/light join can submit its own completed simulated
+pose and LOD after the retained-input animation observer. This invalidated
+the newer diagnostic scene comparisons: metadata still described6,498 body
+vertices, while actual GPU body draws used a different geometry bank. The
+new GPU WORLD-word check rejects the capture with zero matching body/weapon
+draws. The1,347-pixel NVIDIA and1,345-pixel software residuals from those
+captures are not qualified retained-pose shading measurements.
+
+A single-shader isolated A/B confirmed that projection ordering changed only
+one masked pixel by one level in that invalid scene. It did not cause the
+larger geometry/pose discrepancy. Original texture normalization before
+projection remains in the ordinary shader; no tolerance or color correction
+was introduced.
+
+The compile-time retained-input diagnostic now keeps its captured bodies and
+weapons on the existing explicitly supplied node/section path. Ordinary
+gameplay continues through the live unit base/light owner. The observer also
+checks every retained body position and its exact extent. GPU verification
+remains separate and mandatory.
+
+`compare_held_pose_pixels.py` now requires a same-capture actual GPU geometry
+receipt linked by hash to its coverage comparison. It rejects incomplete GPU
+geometry, another capture's screenshot, another coverage receipt, or another
+declared viewport. A regression test supplies identical RGB images with stale
+geometry and requires rejection. Earlier receipts retain their historical
+scope; the complete all-weapon pixel acceptance count remains zero.
+
+The corrected current-main captures pass actual GPU geometry validation for15
+draws on both backends. Their fresh coverage comparisons have1,364 original
+and native pixels with zero differences. The same-capture RGB comparisons
+still fail26 software pixels (max2) and528 NVIDIA pixels (max10). The separate
+current locomotion matrix passes30/30 Spartan/Elite weapon cases through180
+ticks of standing, crouching, forward/reverse walking, yaw/pitch, jump and
+landing. Eight focused runtime checks and three comparator tests pass.
+
+The user selected a physical original Xbox TU1.5 framebuffer as the final
+pixel authority and confirmed no physical Xbox is available. The retained
+original-executable emulator captures remain diagnostic references. Neither
+the passing source/geometry checks nor any future emulator-only zero
+difference can be labeled physical Xbox pixel parity without that reference.
+
+All30 current Spartan/Elite rendered-palette cases also pass across the15
+resident weapons, including completed deferred finger nodes and frame cleanup.
+The gravity-lift animation question now has a dedicated Lockout ride check.
+The authenticated complete TU1.5 airborne producer atE6620 contains133
+instructions and requests `airborne` (0800001E) atE682B. The new
+`capture_source_lift_animation_tu15` fixture supplies an authored approach
+position and ordinary forward/look controls, with no jump input. Original
+field membership, physics, animation selection and render construction execute
+in the actual source world. It records the original manager's graph, packed
+clip, frame, mode, weapon class and weapon type on every tick.
+
+Both registered Spartan/Elite SMG checks pass. The broader matrix passes all30
+species/weapon cases across the15 resident starting weapons, including the
+energy sword:9,000ticks,18,000 body/held-weapon model checks and404,700 uploaded
+palette matrices. Each case rises5.090715885 units, reaches41 distinct ascending
+airborne frame values, and selects soft landing (0900001F) after actual support
+returns. Completed render nodes match the original builder's matrices bit for
+bit, and published physical WORLD nodes match the current source owner.
+The transition follows the original scheduler; the fixture does not force
+airborne on the first unsupported tick or invent a separate gravity-lift clip.
+The recorded original SMG selections are `combat/rifle/smg` for Spartans and
+`combat/pistol/smg` for Elites. Plasma rifles also retain the original
+species-dependent class. The complete30-row selection inventory is retained in
+`weapon-pose-selection.json`; these selector names establish source binding,
+not final visual agreement with an Xbox framebuffer.
+
+Evidence is retained under
+`analysis/weapon-effects-20261013/live-tu15/render-pose-fix/gravity-lift-animation-20261015/`:
+`main-build-verified-receipt.json`, `verified-focused-tests.log`, and
+`weapon-matrix-v1/receipt.json` with per-tick frame and lift-member traces.
+The preliminary captures and failed build logs remain labeled separately.
+One redundant HUD `representations` declaration was removed to restore the
+current main build; both users retain the same authored table.
+
+These are finite source-world and render-palette checks for Lockout, not GPU
+framebuffer comparisons, other lift placements, dual-wielded lift poses or
+physical Xbox evidence. No production animation-selection override was needed.
+Full weapon-pose pixel acceptance remains zero.
+
+
+## Normal dual pickup and original firing particles, October15
+
+The main checkout now executes startup row23, complete original69220, and
+69FF0 with the authenticated692D0 caller's actual world/watcher/registry
+inputs after159FF0 resets the engine. The local game-options mode constructs
+world type1 itself. No world type or pickup result is supplied. Complete
+6A8E0/88470/158240 and their reached world continuations register real players;
+complete25AAC2 supplies the pickup feedback wrapper. This bounded join does
+not include692D0's separate lobby/watcher callbacks or establish original
+network simulation modes3..5.
+
+`tools/capture_source_dual_animation_tu15.cpp` picks up a matching authored
+map weapon using normal source controller input, then exercises right, left
+and simultaneous fire, reload, aim, crouch walk and jump. Its pinned matrix
+passes72 histories: six dual-compatible weapons squared, for Spartan and
+Elite. Brute plasma-rifle placements use the original Turf cache. The real
+salted offhand, both FP registrations, completed body/weapon WORLD nodes and
+original uploaded render palettes are checked. It observes1,244 completed
+firing requests and checks920,400 palette matrices. The original focused
+Spartan and Elite CTests also pass.
+
+The historical source particle diagnostic completed72 pair histories with
+34,214 FP submissions, but advanced particles before the game tick. That
+ordering differs from original12E142/12E151 and is not accepted as the final
+particle continuity check. The corrected `source-particle-matrix-v5` passes
+all72 pairs with29,345 FP draws,39,893 observing-view WORLD draws and zero
+draws beyond the expiry deadline. It checks920,400 palette matrices and
+1,244 completed firing requests. Births, random streams, movement and retirement come from the
+original particle pools and179DF0 phase;1770C0 selects the view/pass. Admitted
+local source firing graphs replace the legacy reconstructed muzzle particle
+history. The resource loop now includes authored firing
+banks even when the specialized stock SMG does not use the generic barrel
+presenter. A GPU regression that requires original salted particle identities
+first failed on the legacy fallback and now passes with one and two local
+views, including expiry. Concrete impact debris is checked separately from
+SMG muzzle materials; its authored class8 is valid.
+
+WORLD emission was suppressed because the native observer published position
+without its lens:251C80 multiplies distance by observer+50, then stores the
+resulting LOD factor in location+1C. The zero scale produced zero emission.
+The native graphics boundary supplies its actual observer packet in retained
+caller-stack scratch and executes complete174BF0, including the original174C01
+FOV/baseline division. Only its completed+50 scale is published to the real
+observer, preserving its controller/aim/displacement history.
+The generated draw module contains1,887 authenticated instructions across19
+complete bodies. Source SMG WORLD location factors change from0 to1 and the
+original emitters create live particles. The split render camera's separate
+lighting scale is not substituted for the observer's unscaled FOV ratio.
+
+The corrected diagnostic follows actual location+10 emitter positions;
+newly allocated location+20 bounding spheres are not yet computed. Its expiry
+deadline also allows Magnum's authored3..5-second casing lifespan, measured
+from the final completed firing request. Both fixes correct diagnostic inputs
+or assertions, without supplying particle births or visibility results.
+The retained Backwash test separately passes240 game-then-particle frames,
+14 final swarm draws, repeated-view particle/RNG invariance and bounded queue
+reuse and unchanged observer history. Seven focused original/native
+registration, dual-effects and swarm tests pass.
+
+The current native render collector also reached an unbound4B96E ->13A2E0
+palette path. Complete13A2E0 and its13A1A0 inverse-node helper are now lowered
+from the authenticated executable, adding347 original instructions. The
+model-render module contains15,269 instructions. Its BF640 overlay call,
+compound weights,255 sentinels and section/resource requests remain original.
+
+Evidence is under
+`analysis/weapon-effects-20261013/live-tu15/effects-dual-20261015-v1`, including
+pinned binaries, original instruction listings, matrix receipts and GPU logs.
+The expanded WORLD firing-particle route and its second-view culling fixture
+pass the bounded72-pair source sweep. The final graphics regression uses a
+declared original30Hz source cadence with actual SDL input and a500-frame
+budget. Primary-only, offhand-only and simultaneous firing have separate
+particle-owner assertions, alongside animation, split-view and expiry checks.
+Free-running host-frame checks are separate: under heavy load, brief100ms
+muzzle effects can reach their transparent endpoint before submission. The
+controlled-cadence checks do not certify real-time frame pacing.
+All three final GPU cases pass (`gpu-v11-receipt.json`) with geometry and
+borrowed-vertex upload validation. The dual run observes58 primary-only,
+36 offhand-only and26/28 simultaneous source hand-particle submissions.
+
+| Weapon | Source dual graph/model checks, both roles and species | Source FP/WORLD firing particles | Controlled30Hz SDL GPU |
+| --- | --- | --- | --- |
+| Magnum | Pass with all six partners | Pass | Not separately exercised |
+| SMG | Pass with all six partners | Pass | Pass: single, split and dual |
+| Plasma pistol | Pass with all six partners | Pass | Not separately exercised |
+| Plasma rifle | Pass with all six partners | Pass | Not separately exercised |
+| Needler | Pass with all six partners | Pass | Not separately exercised |
+| Brute plasma rifle | Pass with all six partners | Pass | Not separately exercised |
+
+Concurrent edits to shared weapon/camera headers produced mixed-layout
+validation executables. Those failed runs are retained as diagnostics and
+are not accepted. Final validation uses a frozen copy of the main checkout
+inside `.local/effects-validation-source-20261015` and
+`.local/effects-frozen-build-20261015`; the implemented source changes remain
+in the main `src`, `include`, `tools`, `tests` and `cmake` directories. The
+frozen manifest records the tested source hashes, and the effects/dual/palette
+implementation files match the main checkout. The frozen native runtime and
+all four validation targets build successfully.
+
+The complete original particle draw consumer,
+client effect ownership, all impact/explosion graphs and exact framebuffer
+comparisons remain open. These finite local/source/GPU checks establish no
+physical Xbox pixel acceptance.

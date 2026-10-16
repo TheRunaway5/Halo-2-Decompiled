@@ -1,6 +1,10 @@
 """The strict comparator must reject even one changed channel or shifted pixel."""
 import importlib.util
+import json
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 
 import numpy as np
@@ -34,6 +38,22 @@ class HeldPosePixels(unittest.TestCase):
             module.compare(pixels, pixels[:2], np.ones((3, 4), dtype=bool))
         with self.assertRaises(ValueError):
             module.compare(pixels, pixels, np.ones((3, 4), dtype=np.uint8))
+
+    def test_identical_images_cannot_reuse_other_geometry(self):
+        # The live owner formerly bypassed retained geometry after the pose
+        # observer. Even identical RGB inputs must not qualify that capture.
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);coverage=root/'coverage';coverage.mkdir()
+            (coverage/'receipt.json').write_text(json.dumps({'coverage_passed':True,'differing_pixels':0}))
+            actual=root/'actual-geometry.json'
+            actual.write_text(json.dumps({'complete':False,'rows':[]}))
+            identical=root/'same.png';module.Image.fromarray(np.zeros((2,2,3),dtype=np.uint8)).save(identical)
+            result=subprocess.run([sys.executable,str(path),'--original',str(identical),
+                '--native',str(identical),'--coverage',str(coverage),'--native-geometry',str(actual),
+                '--rectangle','0','0','2','2','--output',str(root/'result')],capture_output=True,text=True)
+            self.assertNotEqual(result.returncode,0)
+            self.assertIn('Actual GPU geometry is incomplete',result.stderr)
+            self.assertFalse((root/'result').exists())
 
 
 if __name__ == '__main__':

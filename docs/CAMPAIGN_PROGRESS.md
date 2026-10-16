@@ -1,6 +1,166 @@
 # Campaign implementation status
 
-## Current simulation continuation — 2026-10-14
+## Memory continuation — 2026-10-15
+
+The user resumed the campaign goal. The interaction asset loader now shares
+immutable clips within one load, preserving graph/index/name identity and each
+unit's independent pose and clock. Weak references preserve the original release
+points for discarded clips. All 15 original campaign maps retain byte-identical
+decoded clip fields and sampled poses in serial, zero-swap checks under the
+64 MiB ceiling. Cairo retains 59 clip allocations for its 119 references and
+uses 5,295,152 fewer heap bytes in the controlled minimal-content probe.
+
+The source-world constructor also releases its copied tag snapshot immediately
+after publication into source memory, removing 8,138,768 bytes in the measured
+Cairo startup phase. The bounded probe now completes source-world and Simulation
+construction, including actual player and biped birth. Five noncreating
+`ai_place` overload cases and counted actor creation now pass actual source
+ticks in the coherent engine build, including equipment adoption. Authored
+packed starting-location placement reached E558D -> 2039B0. That original leaf
+is now recovered, with 108 original/native ABI, instruction and memory comparisons
+passing under the serial memory guard. Its coherent engine rebuild passes. A
+subsequent query fixture passes NONE getters and five noncreating placements,
+then reaches missing original callback 1B0195 -> 1C9C90 before its non-NONE getter
+checks. The authenticated callback is now in the canonical module, preserving all
+previous bodies. Its 432 original/native full ABI, instruction and memory cases
+pass under the serial memory guard. The next integration proceeds beyond it
+and reaches original selector 1B0128 -> 1BFE00 before counted-birth completion
+or non-NONE getter assertions. The complete 98-instruction selector is now in
+the coherent private engine, preserving all previous routines. Its integration
+gets beyond that selector and reaches missing 1BFCE0 in descriptor row51.
+All 444 emulated original component cases cover the selector's instruction and
+branch sites. Native comparison found an x87 precision-flag discrepancy;
+unchanged original x86 execution on hardware matches the port in the first two
+cases. All 444 original-hardware cases now qualify the complete non-FP ABI and
+final banks, with measured FP status replacing only the emulator's status
+fields in a fresh golden. That controller passes independent aggregate RSS
+accounting at 40,640 KiB with zero swap. Full native comparison remains pending.
+The next 47-instruction selector generates without changing prior routines but
+is not activated. Full campaign integration remains open.
+The 432-case 1C9C90 regression is registered in CTest with an exact compressed
+original fixture and passes against the coherent private engine under the same
+serial memory guard. The root test target has not yet been configured or built.
+The later memory audit found that externally charged shared-library pages can
+make total process residency exceed the earlier cgroup measurements. The owned
+cold-query experiment was stopped; total-residency compliance is unproven for
+that engine fixture. Subsequent original/hardware reference recovery passes
+both cgroup and independent aggregate RSS checks, restoring six exact missing
+historical banks. A private headless dependency reduction is being prepared.
+The
+current 256-case overload differential and default campaign regression suite
+also pass. Heavy paging slowed the latest integration jobs; an unsuccessful
+private paging hint remains disabled. Full AI-dispatch integration and campaign
+completion remain open. The
+[continuation evidence](../analysis/tags/campaign-memory-20261015/RESULTS.md)
+distinguishes the completed asset checks from those remaining requirements.
+
+## Opening cinematic audit — 2026-10-15
+
+The opening goal is active. Separate candidates repair relative animation,
+cinematic lighting/bloom, shader controls, HUD preload, cinematic frame accounting,
+startup coverage, fade/letterbox ordering and captured-frame crossfades. Initial throne attachment,
+authored cleanup, the prophets'89-frame ordinary idle loop and checkpoint
+restoration pass. Original numeric fixtures and the default checkpoint suite
+pass. Source model-order sampling repairs the Pillar of Autumn binding and
+matches156 original WORLD matrix words. Normal native playback now reaches
+scene07/tick3462; missing marker effects stop the main script and Halo explosion.
+Cinematic shadows and emotional-state calls also retain faults.
+Shared marker-effect request construction now matches192 unchanged TU1.5
+cases. The actual two scene07 graphs require one direct lens plus three light
+lenses; strict complete-graph checks retain these missing consumers instead of
+counting particle-only preparation as complete playback. The existing
+Elongation component regression still passes. The retained campaign host now
+calls the complete original marker wrapper and cinematic start/stop/LOD owners.
+Actual opening scenery retains both source allocations; deferred particle
+retirement,480 source game/particle phases and source checkpoint restoration
+pass. Renderer CPU storage matches six complete original arena/query/CRC
+fixtures without setting the graphics-initialized flag. Per-view particle,
+light-lens query/draw remain open; this is
+not a new full-movie run. The latest full candidate still has the faults above.
+The subsequent retained-world controller bridge passes actual relative unit
+and scenery starts, source WORLD movement and Regret/throne parenting through
+updates and recursive deletion. The unit advances60 frames over60 phases;
+the Pillar initially advances only three. The subsequent original scripted-camera
+bridge repairs that observed activation failure: actual scene03 camera/PVS
+admission advances both Pillar and camera time60 ticks over60 source phases.
+Real camera/WORLD motion, FOV storage, checkpoint repeat and stop pass;192
+original camera-time values and192 bounded director tick banks match. Native
+Presentation still supplies rendered camera pixels. The subsequent source timed
+screen bridge passes864 complete original bank comparisons and actual-world
+lifecycle/checkpoint repeat. It executes original update/stop/acknowledgement
+over the actual arena bank. A complete additive-animation owner then repairs
+the source scene01b failure;120 phases with both prophets/thrones and all ten
+authored unit tracks pass, with all ten WORLD hierarchies moving. The traced
+source-integrated GPU run records a crossfade copy acknowledgement and enters
+scene02. The subsequent source shader bridge retains original construction,
+interpolation, clear and32-slot replacement, with borrowed renderer samples.
+381 complete original bank/body/query comparisons and the actual Banshee
+clock/flag/renderer/checkpoint checks pass. Recorded-animation storage/map reset
+and query are coherently included in that candidate. Its virtual X11/RTX5080
+run passes the earlier shader/recorded-query failures and reaches scene04;
+cinematic shadow, graph-switch and source emotional-state handling remain open
+in that older run. The subsequent unit-control cohort restores whole graph
+reset/emotional owners and the registered facial-weight normalization initializer.
+192 complete original wrapper/body/clock cases pass. Actual authored prophet
+starts, six graph resets, facial binding/target/progress,30 real source phases,
+custom clocks and checkpoint replay pass; the original model builder produces
+different emotional versus neutral rendered WORLD bones. That check also exposed
+and repaired the missing whole weighted animation composition owner. All eight
+serial regressions pass under the unchanged guard, and seven current translation
+units compile from a stable1102-file capture. The main campaign renderer still
+needs to consume that deferred facial pose. The subsequent longer RTX5080 run
+passes the former graph-switch/emotional command faults and enters scene08,
+then exits on cinematic model variant admission that lacks the live source
+selection. The scene02 cinematic-shadow fault remains. The same binary/data
+observation exits after256.833s under2GiB/zero swap, with muted audio and no final
+numeric tick/frame summary or screenshot. Script progression through the scene07
+Halo-explosion request does not establish visible effect acceptance. No complete
+playback or facial pixels are inferred. The subsequent live model resource
+handoff removes random-preview selection and consumes the original builder's
+selected LOD/regions and deferred WORLD pose. Four guarded actual-world checks
+pass, including Tartarus's unresolved-preview/live-selection case and Regret's
+emotional vertex differential. Exact LOD-bank sharing and selected-section
+skinning retain all authored resources. The2GiB graphics probes stop in scene02
+on host pressure; telemetry shows substantial free GPU memory. A separate3GiB
+graphics observation is retained in the source-model-render-integration-v11
+cohort, while the60MiB hard/64MiB measured source-match guard remains unchanged.
+That observation reaches scene09/tick3760 and exits after308.902s at missing
+original resource-pressure owner125FB0; peak host charge is3,082,862,592 bytes,
+zero swap and no cap/OOM events. The three whole pressure/eviction owners are
+now restored (108 instructions), and the ordinary control/vertex regression
+passes under the unchanged guard. The new full playback retry must exercise
+that pressure path before it can be accepted. The shadow thread still faults,
+and full effects, DOF, original pixels, audio timing and all13-scene/handoff
+acceptance remain open.
+Headless startup reaches authored predictions, then exceeds
+the unchanged cap while retaining geometry/bitmap resources. Full playback is
+not accepted. Original unit-time value projection matches192 cases.
+The production crossfade consumer passes3,477,548 exact GPU pixels, including
+resize history and point-sampling checks. Full authored playback remains open, and
+GPU captures still show incorrect visibility/transparency. Four independent
+scene helpers pass 1,200 ticks; this does not establish full cinematic playback,
+audio, transitions, handoff or TU1.5 visual parity. MCC imports followed by TU1.5
+conversion remain the intended pipeline. See
+[the scene matrix and evidence](OPENING_CINEMATIC_STATUS.md).
+
+## Implementation handoff — 2026-10-15
+
+The user will perform proper gameplay testing later and requested pausing the
+campaign goal after the current implementation checks. The source `ai_place`
+bridge now admits both original signatures and forwards packed references,
+NONE and signed-short counts unchanged. The original 256-case wrapper evidence
+was regenerated byte for byte, and the captured bridge compiles. An interaction
+asset loader also releases 3,801,088 bytes of measured empty render-vector
+capacity in Cairo without removing live hierarchy or animation values.
+
+The combined native Cairo/Simulation check still exceeds the memory cap during
+setup, so no new mission completion, bridge integration pass, or gameplay parity
+is claimed. The final attempted build guard stopped at the 4 GiB host reserve;
+the unverified additional optimization was removed. Source changes, explicit
+limits and reproducible evidence are in the
+[handoff](../analysis/tags/campaign-ai-bridge-20261015/RESULTS.md).
+
+## Prior simulation continuation — 2026-10-14
 
 The Armory now reaches its authored completion through ordinary player Controls
 in 4,150 game ticks, without cinematic skip or script faults. A second run

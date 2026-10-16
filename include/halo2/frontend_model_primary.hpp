@@ -24,4 +24,9 @@ struct FrontendModelPrimary {
 std::vector<BonePose> sample_frontend_model_primary(const RenderModel&,
     const FrontendModelPrimary&,float retained_frame,
     std::span<const std::uint32_t> destination_mask={},bool interpolate=false);
+// BF0C0 supplies model-order locals to the same codecs. Graph/model StringIDs
+// need not match; the primary graph must cover the actual destination bank.
+std::vector<BonePose> sample_world_object_primary(const RenderModel&,
+    const FrontendModelPrimary&,float retained_frame,
+    std::span<const std::uint32_t> destination_mask={},bool interpolate=false);
 }

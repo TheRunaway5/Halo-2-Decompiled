@@ -42,6 +42,9 @@ async def main():
         fixture = catalog()
         for row in fixture["playlists"]:
             row["rank_configuration"] = "retail-launch-2004"
+        if mode == "source-render":
+            for row in fixture["playlists"]:
+                row.update(minimum_players=8,maximum_players=8,maximum_party=4)
         owners = ("one", "two", "three", "four") if mode == "party" else ("one", "two")
         if clan:
             owners = ("one","two","three","four","five","six")
@@ -154,6 +157,11 @@ async def main():
                 assert all(process.returncode in (0, 77) for process in processes), "Native match process failed"
                 if any(p.returncode == 77 for p in processes):
                     return 77
+                if mode == "source-render":
+                    assert all(b"PASS actual rendered TU1.5 ONLINE source capture workload" in out for out, err in results)
+                    assert all(room.direct_udp for room in next(iter(app.values())).match_transport.rooms.values())
+                    print("PASS actual rendered eight-seat native source workload; replication qualification requires its separate evidence")
+                    return 0
                 assert set(verified) == set(owners)
                 directory = next(iter(app.values()))
                 assert not directory.matchmaking.sessions and not directory.matchmaking.core.tickets

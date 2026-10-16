@@ -20,8 +20,11 @@ int main(){try{
     {
         SourceWeatherDepthAlias alias({g.physical,g.device,g.family,HALO2_WEATHER_DEPTH_ALIAS_SHADER_DIR});alias.prepare(extent);
         const auto target=alias.prepared_binding();
+        const auto alternate_target=alias.prepared_binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);
+        require(target.image==alternate_target.image&&target.view!=alternate_target.view,"source alias views did not share the prepared image");
         const auto reject=[](auto &&action){bool failed=false;try{action();}catch(const FormatError&){failed=true;}require(failed,"invalid alias frame operation admitted");};
         reject([&]{alias.binding();});
+        reject([&]{alias.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);});
         SourceWeatherDepthAliasRecord record{};record.source={g.device,depth.handle,VK_FORMAT_D24_UNORM_S8_UINT,extent,
             VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT,
             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,VK_SAMPLE_COUNT_1_BIT,1,1,g.family,VK_SHARING_MODE_EXCLUSIVE};
@@ -33,8 +36,9 @@ int main(){try{
             if(pass)check(vkResetFences(g.device,1,&fence));
             g.begin();alias.record(record);reject([&]{alias.discard_unsubmitted({});});
             check(vkResetCommandBuffer(g.command,0));alias.discard_unsubmitted(g.command);
-            if(!pass)reject([&]{alias.binding();});else require(alias.binding().view==target.view,"discard lost prior completed target");
-            g.begin();alias.record(record);const auto binding=alias.binding();require(binding.view==target.view,"prepared target changed during production");
+            if(!pass){reject([&]{alias.binding();});reject([&]{alias.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);});}
+            else require(alias.binding().view==target.view&&alias.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8).view==alternate_target.view,"discard lost prior completed targets");
+            g.begin();alias.record(record);const auto binding=alias.binding();require(binding.view==target.view&&alias.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8).view==alternate_target.view,"prepared targets changed during production");
             auto out=g.buffer(extent.width*extent.height*4,VK_BUFFER_USAGE_TRANSFER_DST_BIT);
             VkImageMemoryBarrier read{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER};read.image=binding.image;
             read.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};read.srcQueueFamilyIndex=read.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;
@@ -52,7 +56,11 @@ int main(){try{
             for(unsigned i=0;i<extent.width*extent.height;++i)require(bytes[i*4]==255&&bytes[i*4+1]==255&&bytes[i*4+2]==0x5a&&bytes[i*4+3]==255,"alias lost exact current depth/stencil bytes");
             reject([&]{alias.discard_unsubmitted(g.command);});
         }
+        alias.prepare({19,11});
+        reject([&]{alias.binding();});reject([&]{alias.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);});
+        const auto resized=alias.prepared_binding(),alternate_resized=alias.prepared_binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);
+        require(resized.image==alternate_resized.image&&resized.view!=alternate_resized.view&&resized.extent.width==19&&alternate_resized.extent.height==11,"source alias resize did not prepare both new views");
     }
     vkDestroyFence(g.device,fence,nullptr);require(validation_errors==0,"weather alias frame Vulkan errors");
-    std::cout<<"Prepared descriptors, never-submitted discard/retry, previous layout history and exact odd-extent D24/stencil bytes passed\n";return 0;
+    std::cout<<"Both prepared views, never-submitted discard/retry, previous layout history, resize readiness and exact odd-extent D24/stencil bytes passed\n";return 0;
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}}

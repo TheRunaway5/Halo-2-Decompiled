@@ -695,3 +695,127 @@ completed model-owner wiring; exposing cached ordinary actor lighting alone
 would not implement grenade illumination. Multiplayer actor/held-weapon, PRT,
 override, client and the remaining full-goal gates remain open. No installed
 launcher was repointed during this checkpoint.
+
+### Ordinary multiplayer unit base/light join, 2026-10-15
+
+The current multiplayer source joins ordinary biped, retained corpse and held
+weapon bases to the original secondary model-light consumer. It retains every
+authored world LOD bank, copies the completed main-view sections and coverage,
+and uses the effective render WORLD hierarchy produced by the original model
+builder. The secondary admission still requires the full salted owner and
+bitwise matching current palette. Unsupported lighting classes and overrides
+reject the complete owner. Every admitted owner must submit its matching base
+exactly once in that view. Existing per-player material, color, function and
+ordinary-lighting ownership remains in place; this does not establish their
+full visual parity.
+
+`live-unit-source-tests-refreshed-v2.log` passes both original live-resource and
+model-builder tests. The builder check uses two genuinely created biped owners,
+their selected LOD/coverage/render poses, and atomic unsupported-override and
+stale-definition rejection. These source checks do not prove final pixels.
+
+`tools/capture_unit_model_light.cpp` constructs a real offline native match and
+observes the visible second player's body and held weapon. Its declared spawn
+pool uses original Lockout BSP floors and a clear sightline. A declared session
+seed is selected through the existing source chooser; the actual constructor
+positions must agree. No spawn choice, body pose, light or effect result is
+supplied. The live capture must identify model packets belonging to an actual
+grenade detonation and retain the final submitted vertices. The paired verifier
+pins the binary and all64 shader modules, then disables only joined unit light
+draws. Source inputs, events, geometry, ordinary lighting and camera must match,
+with a nonzero visible RGB contribution and no Vulkan validation errors.
+
+The initial capture `live-unit-lockout-paired-v1` is rejected: the native chooser
+selected the same pool entry for both players. The revised
+`live-unit-lockout-paired-v2` verifies separated actual constructors and submits
+two owners/five main units, but fails at frame60 on the missing original
+particle-contact entry2C2D90 reached from179DF0. It produces no accepted image.
+
+The complete2C2D90 helper closure had already been recovered in the separate
+sandbox backend. The canonical particle-frame generator now includes those
+whole original bodies and authenticates the literal call and metadata vtables
+against TU1.5. `unit-particle-contact-generation-v1` records71 roots and3,874
+instructions, regenerated using the current native generator rather than
+copying private runtime headers or substituting a collision return. The fresh
+root CPU replay passes exact instruction order, ordered writes, exit state
+(apart from the host interrupt flag) and217,088 retained fixture bytes. This
+is the captured touched-range regression, not a repeat of the separate full
+60,084,310-byte sandbox comparison. The original live-resource/model-builder
+checks also pass2/2 after this integration.
+
+`live-unit-lockout-paired-v3` gets beyond the missing contact entry but is
+rejected because the verifier encountered an unrelated occupied light. The
+verifier now selects only packets with an actual grenade event's full delivery
+identity. Its removal control uses those exact light identities, preserving
+other unit lighting. `live-unit-lockout-paired-v4` then reaches the real
+detonation/model-light phase but fails on an unprepared shield geometry part.
+It has no accepted image.
+
+The shield preparation now uses the same complete six-LOD world geometry
+catalog as ordinary body materials. Its regression covers all six authored
+world banks for Spartan/Elite and both first-person arms models. Prepared
+offline worlds also allocate material slots for every actual connected roster
+participant, including nonlocal ones. The fresh shield regression passes:
+1,533 unchanged-original override cases, four models across fourteen authored
+banks (six world LODs for both species and both first-person arms), 48 selections,
+1,116 part checks and 988,020 unchanged posed vertices. This checks the authored
+bank coverage; it does not prove complete shield pass scheduling or pixels.
+
+Concurrent root header changes repeatedly invalidated the shared build. The
+superseded build jobs were stopped, and
+`.local/shader-parity-source-20261015-v2` now holds a stable current source
+cohort. `source-overlay-20261015-v2.json` records all11,544 copied file hashes
+and the explicitly shared original asset/reference directories. The isolated
+Ninja build is `build-shader-parity-20261015-v2`; it preserves the root worktree
+and uses the same optimized native arithmetic with debug-symbol generation
+disabled. Its build and three source regressions pass. Fresh startup exposed
+the original static-shape destructor registration/cleanup closure. The existing
+verified registration fix is retained, and the complete eight-body, 190-instruction
+cleanup module now runs through the required native owner router. This is source
+authentication and functional startup/cleanup evidence, not a separate numeric
+original-CPU comparison of that destructor closure.
+
+### Live body grenade lighting during shield override, 2026-10-15
+
+`live-unit-lockout-paired-v5` completes its original any-receiver predicate,
+but only the held SMG receives a grenade packet and contributes nine RGB pixels.
+Its `receiver-coverage.json` preserves this narrower acceptance and explicitly
+leaves the requested body receiver unverified. It is not a body-lighting pass.
+
+The read-only `live-unit-lockout-admission-v6` audit identifies the exact failure:
+the target remains connected/alive at tick61, with unchanged full body/weapon
+identities. The original main collector contains four normal body units and
+four damaged-plasma override units, all class2/LOD2/sections8-11. The native
+whole-owner override guard rejected the normal body along with the separate
+shield pass.
+
+The native join now retains all completed normal units while leaving only
+actually selected, prepared damaged-plasma overrides to the existing separate
+shield presenter. Unknown overrides and unsupported classes still reject the
+ordinary owner; props, vehicles and held weapons retain their atomic guard.
+No normal section, completed render palette, light or shader value is invented.
+The existing shield presenter still has its separately documented original
+clone/cache/pass-chronology limits.
+
+`live-unit-lockout-paired-v7` requires actual grenade delivery packets on both
+the target body and held weapon before choosing a frame. Its pinned runtime
+SHA-256 is `624bcb3741df968c8bd5acec8a9117ddb501cce4b9b8a540d7a4e62585c9ec3e`;
+all64 shader modules are pinned. Four sequential runs use identical actual
+constructors, source inputs/events, full identities, ordinary lighting, poses,
+final base vertices and camera. Controls remove only the observed grenade
+light identity, either from both joined receivers or from each independently.
+Unrelated occupied unit lights and BSP illumination remain present.
+
+At actual grenade tick61, six packets reach the two receivers. The body retains
+2,214 vertices at LOD2 and the held SMG258 vertices at LOD0. Independent body
+removal changes5,399 RGB pixels/11,344 channels (maximum238); weapon removal
+changes9 pixels/27 channels (maximum73). Combined removal changes5,399 pixels/
+11,362 channels. All four runs exit successfully with zero Vulkan validation
+errors. The fresh shield, live-resource and model-builder regressions pass3/3
+in `unit-body-override-source-tests-v7.log`.
+
+The genuine positive image and phone-sized removal comparison are retained
+alongside the reports and vertex binaries. This verifies a native contribution
+in this declared Lockout setup, not an OG Xbox framebuffer match. Campaign
+event/light ownership, remaining overrides/PRT, client ownership, first-person
+illumination, matched original frames and the full completion matrix stay open.

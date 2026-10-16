@@ -32,6 +32,9 @@ struct ExtendedStack : physics_solver_detail::ExtendedStack {
     unsigned top{};
     void push(long double x) {
         physics_solver_detail::ExtendedStack::push(x);top=(top+7u)&7u;
+        // A successful original x87 load clears C1. Retain that change in
+        // the logical status, independently of host/compiler spills.
+        status&=~0x200u;
     }
     void pop() {
         physics_solver_detail::ExtendedStack::pop();top=(top+1u)&7u;

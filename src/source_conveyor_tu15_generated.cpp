@@ -324,11 +324,24 @@ std::uint32_t sign_extend(std::uint32_t x,unsigned n) {
     if(n==2)return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(x))));
     throw std::runtime_error("Unverified contact sign-extension width");
 }
-std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x0u:return 0x0u;case 0x1u:return 0x1u;case 0x2u:return 0x2u;case 0x3u:return 0x3u;case 0x4u:return 0x4u;case 0x5u:return 0x5u;case 0x8u:return 0x8u;case 0x9u:return 0x9u;case 0xcu:return 0xcu;case 0x10u:return 0x10u;case 0x14u:return 0x14u;case 0x18u:return 0x18u;case 0x20u:return 0x20u;case 0x24u:return 0x24u;case 0x28u:return 0x28u;case 0x3cu:return 0x3cu;case 0x40u:return 0x40u;case 0x44u:return 0x44u;case 0x48u:return 0x48u;case 0x50u:return 0x50u;case 0x60u:return 0x60u;case 0xf0u:return 0xf0u;case 0x1ffu:return 0x1ffu;case 0xffffu:return 0xffffu;case 0x355d0u:return 0x355d0u;case 0x35691u:return 0x35691u;case 0x356e2u:return 0x356e2u;case 0x13de70u:return 0x13de70u;case 0x1e1170u:return 0x1e1170u;case 0x1e117du:return 0x1e117du;case 0x1e1190u:return 0x1e1190u;case 0x1e11a2u:return 0x1e11a2u;case 0x315c90u:return 0x315c90u;case 0x315cb0u:return 0x315cb0u;case 0x46a0d0u:return 0x46a0d0u;case 0x4f0414u:return 0x4f0414u;case 0x3f800000u:return 0x3f800000u;case 0xffffffffu:return 0xffffffffu;default:throw std::runtime_error("Unbound original contact executable address");}}
+std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x0u:return 0x0u;case 0x1u:return 0x1u;case 0x2u:return 0x2u;case 0x3u:return 0x3u;case 0x4u:return 0x4u;case 0x5u:return 0x5u;case 0x8u:return 0x8u;case 0x9u:return 0x9u;case 0xcu:return 0xcu;case 0x10u:return 0x10u;case 0x12u:return 0x12u;case 0x14u:return 0x14u;case 0x18u:return 0x18u;case 0x1cu:return 0x1cu;case 0x20u:return 0x20u;case 0x24u:return 0x24u;case 0x28u:return 0x28u;case 0x2cu:return 0x2cu;case 0x34u:return 0x34u;case 0x3cu:return 0x3cu;case 0x40u:return 0x40u;case 0x44u:return 0x44u;case 0x48u:return 0x48u;case 0x50u:return 0x50u;case 0x60u:return 0x60u;case 0x80u:return 0x80u;case 0x88u:return 0x88u;case 0x90u:return 0x90u;case 0x94u:return 0x94u;case 0x98u:return 0x98u;case 0xf0u:return 0xf0u;case 0x1ffu:return 0x1ffu;case 0xffffu:return 0xffffu;case 0x355d0u:return 0x355d0u;case 0x35691u:return 0x35691u;case 0x356e2u:return 0x356e2u;case 0x13de70u:return 0x13de70u;case 0x1e1170u:return 0x1e1170u;case 0x1e117du:return 0x1e117du;case 0x1e1190u:return 0x1e1190u;case 0x1e11a2u:return 0x1e11a2u;case 0x315c90u:return 0x315c90u;case 0x315cb0u:return 0x315cb0u;case 0x31f660u:return 0x31f660u;case 0x31f6adu:return 0x31f6adu;case 0x31f6d3u:return 0x31f6d3u;case 0x31f6f6u:return 0x31f6f6u;case 0x31f705u:return 0x31f705u;case 0x31f720u:return 0x31f720u;case 0x31f728u:return 0x31f728u;case 0x31f740u:return 0x31f740u;case 0x31f74bu:return 0x31f74bu;case 0x31f810u:return 0x31f810u;case 0x31f820u:return 0x31f820u;case 0x31f828u:return 0x31f828u;case 0x31f840u:return 0x31f840u;case 0x31f84bu:return 0x31f84bu;case 0x325af0u:return 0x325af0u;case 0x325e90u:return 0x325e90u;case 0x326100u:return 0x326100u;case 0x32b0b4u:return 0x32b0b4u;case 0x37fcdeu:return 0x37fcdeu;case 0x383420u:return 0x383420u;case 0x38342au:return 0x38342au;case 0x383434u:return 0x383434u;case 0x383440u:return 0x383440u;case 0x38344au:return 0x38344au;case 0x383454u:return 0x383454u;case 0x383460u:return 0x383460u;case 0x38346au:return 0x38346au;case 0x383474u:return 0x383474u;case 0x383bf0u:return 0x383bf0u;case 0x383c00u:return 0x383c00u;case 0x383c10u:return 0x383c10u;case 0x41ed80u:return 0x41ed80u;case 0x41ed90u:return 0x41ed90u;case 0x41edbcu:return 0x41edbcu;case 0x46a0d0u:return 0x46a0d0u;case 0x48c938u:return 0x48c938u;case 0x48cf90u:return 0x48cf90u;case 0x48d0a0u:return 0x48d0a0u;case 0x48d1b0u:return 0x48d1b0u;case 0x4f0414u:return 0x4f0414u;case 0x3f800000u:return 0x3f800000u;case 0x7fffffffu:return 0x7fffffffu;case 0xffffffffu:return 0xffffffffu;default:throw std::runtime_error("Unbound original contact executable address");}}
 std::uint32_t canonical_branch(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){default:throw std::runtime_error("Unbound TU1.5 contact dispatch target");}}
 static void run_355d0(WorldState &);
 static void run_1e1170(WorldState &);
-static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){if(target==selected(0x355d0u,s.image)){run_355d0(s);return;}if(target==selected(0x1e1170u,s.image)){run_1e1170(s);return;}s.required(site,target,tail);}
+static void run_31f660(WorldState &);
+static void run_31f720(WorldState &);
+static void run_31f740(WorldState &);
+static void run_31f810(WorldState &);
+static void run_31f820(WorldState &);
+static void run_31f840(WorldState &);
+static void run_325e90(WorldState &);
+static void run_383420(WorldState &);
+static void run_383440(WorldState &);
+static void run_383460(WorldState &);
+static void run_383bf0(WorldState &);
+static void run_383c00(WorldState &);
+static void run_383c10(WorldState &);
+static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){if(target==selected(0x355d0u,s.image)){run_355d0(s);return;}if(target==selected(0x1e1170u,s.image)){run_1e1170(s);return;}if(target==selected(0x31f660u,s.image)){run_31f660(s);return;}if(target==selected(0x31f720u,s.image)){run_31f720(s);return;}if(target==selected(0x31f740u,s.image)){run_31f740(s);return;}if(target==selected(0x31f810u,s.image)){run_31f810(s);return;}if(target==selected(0x31f820u,s.image)){run_31f820(s);return;}if(target==selected(0x31f840u,s.image)){run_31f840(s);return;}if(target==selected(0x325e90u,s.image)){run_325e90(s);return;}if(target==selected(0x383420u,s.image)){run_383420(s);return;}if(target==selected(0x383440u,s.image)){run_383440(s);return;}if(target==selected(0x383460u,s.image)){run_383460(s);return;}if(target==selected(0x383bf0u,s.image)){run_383bf0(s);return;}if(target==selected(0x383c00u,s.image)){run_383c00(s);return;}if(target==selected(0x383c10u,s.image)){run_383c10(s);return;}s.required(site,target,tail);}
 static void run_355d0(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0x355d0u);} s.set(4,s.flags.minus(s.reg(4,4,0),selected(0xcu,s.image),4),4,0);
 if(s.services.instruction){s.services.instruction(0x355d3u);} s.set(1,r(s.memory,(selected(0x4f0414u,s.image)),4),4,0);
@@ -482,6 +495,201 @@ if(s.services.instruction){s.services.instruction(0x1e11a2u);} s.set(1,s.pop(),4
 if(s.services.instruction){s.services.instruction(0x1e11a3u);} s.pop();s.gp[4]+=8u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
+
+static void run_31f660(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x31f660u);} s.push(0x31f660u,selected(0xffffffffu,s.image));
+if(s.services.instruction){s.services.instruction(0x31f662u);} s.push(0x31f662u,selected(0x37fcdeu,s.image));
+if(s.services.instruction){s.services.instruction(0x31f667u);} s.set(0,r(s.memory,(selected(0x0u,s.image)+s.fs_base),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f66du);} s.push(0x31f66du,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x31f66eu);} w(s.memory,s.observe,0x31f66eu,(selected(0x0u,s.image)+s.fs_base),4,s.reg(4,4,0));
+if(s.services.instruction){s.services.instruction(0x31f675u);} s.push(0x31f675u,s.reg(1,4,0));
+if(s.services.instruction){s.services.instruction(0x31f676u);} s.push(0x31f676u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x31f677u);} s.set(6,s.reg(1,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x31f679u);} s.push(0x31f679u,s.reg(7,4,0));
+if(s.services.instruction){s.services.instruction(0x31f67au);} w(s.memory,s.observe,0x31f67au,(selected(0x8u,s.image)+s.gp[4]),4,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x31f67eu);} s.set(0,r(s.memory,(selected(0x98u,s.image)+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f684u);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x31f686u);} w(s.memory,s.observe,0x31f686u,(selected(0x14u,s.image)+s.gp[4]),4,selected(0x2u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f68eu);} if(s.flags.sf)goto L31f6ad;
+if(s.services.instruction){s.services.instruction(0x31f690u);} s.set(2,r(s.memory,(selected(0x90u,s.image)+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f696u);} s.set(1,r(s.memory,(selected(0x48c938u,s.image)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f69cu);} s.set(7,r(s.memory,(selected(0x0u,s.image)+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f69eu);} s.set(0,s.flags.logic((s.reg(0,4,0))&(selected(0x7fffffffu,s.image)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6a3u);} s.set(0,s.flags.product(s.reg(0,4,0),selected(0x1cu,s.image)),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6a6u);} s.push(0x31f6a6u,selected(0x12u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f6a8u);} s.push(0x31f6a8u,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x31f6a9u);} s.push(0x31f6a9u,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x31f6aau);} {const auto target=r(s.memory,(selected(0x14u,s.image)+s.gp[7]),4);s.push(0x31f6aau,selected(0x31f6adu,s.image));dispatch(s,target,0x31f6aau,false);}
+L31f6ad: if(s.services.instruction){s.services.instruction(0x31f6adu);} s.set(0,r(s.memory,(selected(0x3cu,s.image)+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6b0u);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x31f6b2u);} w(s.memory,s.observe,0x31f6b2u,(selected(0x14u,s.image)+s.gp[4]),1,selected(0x1u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f6b7u);} if(s.flags.sf)goto L31f6d3;
+if(s.services.instruction){s.services.instruction(0x31f6b9u);} s.set(2,r(s.memory,(selected(0x34u,s.image)+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6bcu);} s.set(1,r(s.memory,(selected(0x48c938u,s.image)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6c2u);} s.set(7,r(s.memory,(selected(0x0u,s.image)+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6c4u);} s.set(0,s.flags.logic((s.reg(0,4,0))&(selected(0x7fffffffu,s.image)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6c9u);} s.push(0x31f6c9u,selected(0x12u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f6cbu);} s.set(0,s.flags.shift(s.reg(0,4,0),selected(0x5u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6ceu);} s.push(0x31f6ceu,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x31f6cfu);} s.push(0x31f6cfu,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x31f6d0u);} {const auto target=r(s.memory,(selected(0x14u,s.image)+s.gp[7]),4);s.push(0x31f6d0u,selected(0x31f6d3u,s.image));dispatch(s,target,0x31f6d0u,false);}
+L31f6d3: if(s.services.instruction){s.services.instruction(0x31f6d3u);} s.set(0,r(s.memory,(selected(0x28u,s.image)+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6d6u);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x31f6d8u);} w(s.memory,s.observe,0x31f6d8u,(selected(0x14u,s.image)+s.gp[4]),1,selected(0x0u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f6ddu);} if(s.flags.sf)goto L31f6f6;
+if(s.services.instruction){s.services.instruction(0x31f6dfu);} s.set(2,r(s.memory,(selected(0x20u,s.image)+s.gp[6]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6e2u);} s.set(1,r(s.memory,(selected(0x48c938u,s.image)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6e8u);} s.set(7,r(s.memory,(selected(0x0u,s.image)+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6eau);} s.push(0x31f6eau,selected(0x12u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f6ecu);} s.set(0,s.flags.logic((s.reg(0,4,0))&(selected(0x7fffffffu,s.image)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6f1u);} s.push(0x31f6f1u,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0x31f6f2u);} s.push(0x31f6f2u,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x31f6f3u);} {const auto target=r(s.memory,(selected(0x14u,s.image)+s.gp[7]),4);s.push(0x31f6f3u,selected(0x31f6f6u,s.image));dispatch(s,target,0x31f6f3u,false);}
+L31f6f6: if(s.services.instruction){s.services.instruction(0x31f6f6u);} s.set(1,s.reg(6,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x31f6f8u);} w(s.memory,s.observe,0x31f6f8u,(selected(0x14u,s.image)+s.gp[4]),4,selected(0xffffffffu,s.image));
+if(s.services.instruction){s.services.instruction(0x31f700u);} {const auto target=selected(0x325af0u,s.image);s.push(0x31f700u,selected(0x31f705u,s.image));dispatch(s,target,0x31f700u,false);}
+if(s.services.instruction){s.services.instruction(0x31f705u);} s.set(1,r(s.memory,(selected(0xcu,s.image)+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f709u);} s.set(7,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x31f70au);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x31f70bu);} w(s.memory,s.observe,0x31f70bu,(selected(0x0u,s.image)+s.fs_base),4,s.reg(1,4,0));
+if(s.services.instruction){s.services.instruction(0x31f712u);} s.set(4,s.flags.plus(s.reg(4,4,0),selected(0x10u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f715u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_31f720(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x31f720u);} s.push(0x31f720u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x31f721u);} s.set(6,s.reg(1,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x31f723u);} {const auto target=selected(0x326100u,s.image);s.push(0x31f723u,selected(0x31f728u,s.image));dispatch(s,target,0x31f723u,false);}
+if(s.services.instruction){s.services.instruction(0x31f728u);} w(s.memory,s.observe,0x31f728u,(selected(0x0u,s.image)+s.gp[6]),4,selected(0x41ed90u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f72eu);} w(s.memory,s.observe,0x31f72eu,(selected(0x8u,s.image)+s.gp[6]),4,selected(0x41ed80u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f735u);} s.set(0,s.reg(6,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x31f737u);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x31f738u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_31f740(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x31f740u);} s.push(0x31f740u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x31f741u);} s.set(6,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f745u);} s.push(0x31f745u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x31f746u);} s.push(0x31f746u,selected(0x31f74bu,s.image));run_325e90(s);
+if(s.services.instruction){s.services.instruction(0x31f74bu);} w(s.memory,s.observe,0x31f74bu,(selected(0x8u,s.image)+s.gp[6]),4,s.flags.plus(r(s.memory,(selected(0x8u,s.image)+s.gp[6]),4),selected(0x28u,s.image),4));
+if(s.services.instruction){s.services.instruction(0x31f74fu);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x31f750u);} s.pop();s.gp[4]+=4u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_31f810(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x31f810u);} run_31f660(s);return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_31f820(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x31f820u);} s.push(0x31f820u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x31f821u);} s.set(6,s.reg(1,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x31f823u);} {const auto target=selected(0x326100u,s.image);s.push(0x31f823u,selected(0x31f828u,s.image));dispatch(s,target,0x31f823u,false);}
+if(s.services.instruction){s.services.instruction(0x31f828u);} w(s.memory,s.observe,0x31f828u,(selected(0x0u,s.image)+s.gp[6]),4,selected(0x41edbcu,s.image));
+if(s.services.instruction){s.services.instruction(0x31f82eu);} w(s.memory,s.observe,0x31f82eu,(selected(0x8u,s.image)+s.gp[6]),4,selected(0x41ed80u,s.image));
+if(s.services.instruction){s.services.instruction(0x31f835u);} s.set(0,s.reg(6,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0x31f837u);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x31f838u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_31f840(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x31f840u);} s.push(0x31f840u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x31f841u);} s.set(6,r(s.memory,(selected(0x8u,s.image)+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x31f845u);} s.push(0x31f845u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x31f846u);} s.push(0x31f846u,selected(0x31f84bu,s.image));run_325e90(s);
+if(s.services.instruction){s.services.instruction(0x31f84bu);} w(s.memory,s.observe,0x31f84bu,(selected(0x8u,s.image)+s.gp[6]),4,s.flags.plus(r(s.memory,(selected(0x8u,s.image)+s.gp[6]),4),selected(0x88u,s.image),4));
+if(s.services.instruction){s.services.instruction(0x31f852u);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x31f853u);} s.pop();s.gp[4]+=4u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_325e90(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x325e90u);} s.set(0,r(s.memory,(selected(0x4u,s.image)+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x325e94u);} s.set(2,s.flags.logic((s.reg(2,4,0))^(s.reg(2,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x325e96u);} w(s.memory,s.observe,0x325e96u,(selected(0x0u,s.image)+s.gp[0]),4,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x325e98u);} w(s.memory,s.observe,0x325e98u,(selected(0x4u,s.image)+s.gp[0]),4,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x325e9bu);} w(s.memory,s.observe,0x325e9bu,(selected(0xcu,s.image)+s.gp[0]),4,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x325e9eu);} w(s.memory,s.observe,0x325e9eu,(selected(0x8u,s.image)+s.gp[0]),4,selected(0x18u,s.image));
+if(s.services.instruction){s.services.instruction(0x325ea5u);} s.set(1,r(s.memory,(selected(0x94u,s.image)+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x325eabu);} s.set(2,(selected(0x0u,s.image)+s.gp[1]+s.gp[1]*2u),4,0);
+if(s.services.instruction){s.services.instruction(0x325eaeu);} s.set(2,s.flags.shift(s.reg(2,4,0),selected(0x4u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x325eb1u);} s.set(2,s.flags.plus(s.reg(2,4,0),selected(0x80u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x325eb7u);} s.push(0x325eb7u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x325eb8u);} w(s.memory,s.observe,0x325eb8u,(selected(0x0u,s.image)+s.gp[0]),4,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x325ebau);} s.set(2,(selected(0x2u,s.image)+s.gp[1]),4,0);
+if(s.services.instruction){s.services.instruction(0x325ebdu);} s.set(6,(selected(0x0u,s.image)+s.gp[2]+s.gp[2]*2u),4,0);
+if(s.services.instruction){s.services.instruction(0x325ec0u);} s.push(0x325ec0u,s.reg(7,4,0));
+if(s.services.instruction){s.services.instruction(0x325ec1u);} s.set(6,s.flags.shift(s.reg(6,4,0),selected(0x4u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x325ec4u);} s.flags.minus(s.reg(1,4,0),selected(0x2u,s.image),4);
+if(s.services.instruction){s.services.instruction(0x325ec7u);} s.set(7,(selected(0x2cu,s.image)+s.gp[1]*4u),4,0);
+if(s.services.instruction){s.services.instruction(0x325eceu);} w(s.memory,s.observe,0x325eceu,(selected(0x4u,s.image)+s.gp[0]),4,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x325ed1u);} w(s.memory,s.observe,0x325ed1u,(selected(0x8u,s.image)+s.gp[0]),4,s.reg(7,4,0));
+if(s.services.instruction){s.services.instruction(0x325ed4u);} w(s.memory,s.observe,0x325ed4u,(selected(0xcu,s.image)+s.gp[0]),4,s.reg(2,4,0));
+if(s.services.instruction){s.services.instruction(0x325ed7u);} if(s.flags.sf!=s.flags.of)goto L325ee9;
+if(s.services.instruction){s.services.instruction(0x325ed9u);} s.set(6,s.flags.plus(s.reg(6,4,0),selected(0x20u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x325edcu);} s.set(7,s.flags.plus(s.reg(7,4,0),selected(0x4u,s.image),4),4,0);
+if(s.services.instruction){s.services.instruction(0x325edfu);} s.set(2,s.flags.increment(s.reg(2,4,0),4,false),4,0);
+if(s.services.instruction){s.services.instruction(0x325ee0u);} w(s.memory,s.observe,0x325ee0u,(selected(0x4u,s.image)+s.gp[0]),4,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x325ee3u);} w(s.memory,s.observe,0x325ee3u,(selected(0x8u,s.image)+s.gp[0]),4,s.reg(7,4,0));
+if(s.services.instruction){s.services.instruction(0x325ee6u);} w(s.memory,s.observe,0x325ee6u,(selected(0xcu,s.image)+s.gp[0]),4,s.reg(2,4,0));
+L325ee9: if(s.services.instruction){s.services.instruction(0x325ee9u);} s.set(7,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x325eeau);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x325eebu);} s.pop();s.gp[4]+=4u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_383420(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x383420u);} s.set(1,selected(0x48cf90u,s.image),4,0);
+if(s.services.instruction){s.services.instruction(0x383425u);} s.push(0x383425u,selected(0x38342au,s.image));run_31f820(s);
+if(s.services.instruction){s.services.instruction(0x38342au);} s.push(0x38342au,selected(0x383c10u,s.image));
+if(s.services.instruction){s.services.instruction(0x38342fu);} {const auto target=selected(0x32b0b4u,s.image);s.push(0x38342fu,selected(0x383434u,s.image));dispatch(s,target,0x38342fu,false);}
+if(s.services.instruction){s.services.instruction(0x383434u);} s.set(1,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x383435u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_383440(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x383440u);} s.set(1,selected(0x48d0a0u,s.image),4,0);
+if(s.services.instruction){s.services.instruction(0x383445u);} s.push(0x383445u,selected(0x38344au,s.image));run_31f720(s);
+if(s.services.instruction){s.services.instruction(0x38344au);} s.push(0x38344au,selected(0x383c00u,s.image));
+if(s.services.instruction){s.services.instruction(0x38344fu);} {const auto target=selected(0x32b0b4u,s.image);s.push(0x38344fu,selected(0x383454u,s.image));dispatch(s,target,0x38344fu,false);}
+if(s.services.instruction){s.services.instruction(0x383454u);} s.set(1,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x383455u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_383460(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x383460u);} s.set(1,selected(0x48d1b0u,s.image),4,0);
+if(s.services.instruction){s.services.instruction(0x383465u);} {const auto target=selected(0x326100u,s.image);s.push(0x383465u,selected(0x38346au,s.image));dispatch(s,target,0x383465u,false);}
+if(s.services.instruction){s.services.instruction(0x38346au);} s.push(0x38346au,selected(0x383bf0u,s.image));
+if(s.services.instruction){s.services.instruction(0x38346fu);} {const auto target=selected(0x32b0b4u,s.image);s.push(0x38346fu,selected(0x383474u,s.image));dispatch(s,target,0x38346fu,false);}
+if(s.services.instruction){s.services.instruction(0x383474u);} s.set(1,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x383475u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_383bf0(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x383bf0u);} s.set(1,selected(0x48d1b0u,s.image),4,0);
+if(s.services.instruction){s.services.instruction(0x383bf5u);} run_31f660(s);return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_383c00(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x383c00u);} s.set(1,selected(0x48d0a0u,s.image),4,0);
+if(s.services.instruction){s.services.instruction(0x383c05u);} run_31f810(s);return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_383c10(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x383c10u);} s.set(1,selected(0x48cf90u,s.image),4,0);
+if(s.services.instruction){s.services.instruction(0x383c15u);} run_31f810(s);return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
 } // namespace
 void source_run_conveyor_tu15(M &m,std::uint32_t entry,
     SourcePhysicsContactRuntimeAbi &abi,FP fp,
@@ -493,11 +701,24 @@ void source_run_conveyor_tu15(M &m,std::uint32_t entry,
         switch(entry) {
 case 0x355d0u:run_355d0(s);break;
 case 0x1e1170u:run_1e1170(s);break;
+case 0x31f660u:run_31f660(s);break;
+case 0x31f720u:run_31f720(s);break;
+case 0x31f740u:run_31f740(s);break;
+case 0x31f810u:run_31f810(s);break;
+case 0x31f820u:run_31f820(s);break;
+case 0x31f840u:run_31f840(s);break;
+case 0x325e90u:run_325e90(s);break;
+case 0x383420u:run_383420(s);break;
+case 0x383440u:run_383440(s);break;
+case 0x383460u:run_383460(s);break;
+case 0x383bf0u:run_383bf0(s);break;
+case 0x383c00u:run_383c00(s);break;
+case 0x383c10u:run_383c10(s);break;
 
         default:throw std::runtime_error("Required original contact entry unavailable");
         }
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_conveyor_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x355d0u:case 0x1e1170u:return true;default:return false;}}
+bool source_conveyor_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x355d0u:case 0x1e1170u:case 0x31f660u:case 0x31f720u:case 0x31f740u:case 0x31f810u:case 0x31f820u:case 0x31f840u:case 0x325e90u:case 0x383420u:case 0x383440u:case 0x383460u:case 0x383bf0u:case 0x383c00u:case 0x383c10u:return true;default:return false;}}
 } // namespace halo2

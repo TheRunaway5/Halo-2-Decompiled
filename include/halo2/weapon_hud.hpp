@@ -1,11 +1,21 @@
 #pragma once
 #include "halo2/cache.hpp"
+#include "halo2/physics_contact_runtime.hpp"
 #include <optional>
 namespace halo2 {
 struct WeaponHudTarget {
   bool acquired{};
   std::optional<Vec3> position;
 };
+struct WeaponHudOwnership {
+  bool seated{},handheld_visible=true;
+  std::uint32_t vehicle_weapon=0xffffffffu;
+  std::uint32_t parent_hud=0xffffffffu;
+};
+// Original13B275..13B3F9 (TU1.5 13C5E5..13C769). Reads the retained
+// seat, inventory and child hierarchy; it does not create a weapon owner.
+WeaponHudOwnership weapon_hud_ownership(const SourcePhysicsContactMemory &,
+    std::uint32_t unit,SourcePhysicsContactImage);
 // Original per-weapon HUD status at13C719/13DA89. Padding is caller-owned.
 struct SourceWeaponHudState {
   std::uint32_t datum=0xffffffffu;
@@ -18,6 +28,11 @@ struct SourceWeaponHudState {
   Vec3 target_position;
 };
 static_assert(sizeof(SourceWeaponHudState)==0x38);
+struct VehicleWeaponHudStatus {
+  WeaponHudOwnership ownership;
+  std::uint32_t definition=0xffffffffu;
+  SourceWeaponHudState weapon;
+};
 struct WeaponHudProjectionInput {
   std::uint32_t datum=0xffffffffu;
   float heat{},age{};

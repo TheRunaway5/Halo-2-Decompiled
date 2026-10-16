@@ -88,7 +88,7 @@ std::optional<NativeDeathCameraView> NativeDeathCamera::update(unsigned index,
   source_observer_motion(view.observer,dt,c);
   source_observer_world(view.observer,frame,runtime_.observer_world_services(),c,d,w);
   view.presented=NativeDeathCameraView{vector(view.observer,0xb8),
-      vector(view.observer,0xd8),vector(view.observer,0xe4),scalar(view.observer,0xf0)};
+      vector(view.observer,0xd8),vector(view.observer,0xe4),scalar(view.observer,0xf0),scalar(view.observer,0x100)};
   return view.presented;
 }
 } // namespace halo2

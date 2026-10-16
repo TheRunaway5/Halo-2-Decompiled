@@ -9,6 +9,7 @@
 #include "halo2/fp_replication.hpp"
 #include "halo2/renderer_timing.hpp"
 #include "halo2/source_netgame_weapon.hpp"
+#include "halo2/source_contrail_snapshot.hpp"
 #include "halo2/source_game_end.hpp"
 #include "halo2/source_game_over.hpp"
 #include "halo2/source_result_statistics.hpp"
@@ -20,9 +21,17 @@
 #include "halo2/source_world_pose.hpp"
 #include "halo2/native_death_camera.hpp"
 #include "halo2/native_vehicle_camera.hpp"
+#include "halo2/weapon_hud.hpp"
 namespace halo2 {
 class SourceDynamicObjectScene;
+struct SourceLiveShadowRootTu15;
+struct SourceShadowRawPlanStats;
+struct RendererCompletedMaterialUpload;
+struct RendererObservedBspDraw;
+struct SourceEffectLightCommandObservationTu15;
+class PhysicsLiveWorldTu15;
 struct SourceLightVolumeDraw;
+struct SourceContrailDraw;
 struct FullScoreboardLayout;
 struct FullScoreboardPaintResult;
 struct AnimationRenderObservation;
@@ -36,6 +45,7 @@ struct EffectLightRawDraw;
 struct WorldEffectLight;
 struct SourceBspShaderView;
 struct SourceBspShaderPart;
+struct SourceBspResidentViewPlan;
 struct SourcePortalMaskState;
 struct ShadowCasterSphere;
 struct ObjectLightingState;
@@ -93,6 +103,8 @@ int slayer_parameter_default(unsigned);
 bool slayer_spawn(const Spawn &, std::size_t bsp, bool initial);
 // Retail14F040: appearance0/1 selects multiplayer representation2/3.
 unsigned multiplayer_representation(const std::optional<SourcePlayerConfiguration> &);
+unsigned source_session_player_representation(const std::optional<SourcePlayerConfiguration> &,int game_type);
+std::vector<unsigned> source_session_player_representations(const LevelContent &,int game_type);
 const BipedDefinition &multiplayer_biped(const LevelContent &,unsigned representation);
 struct MultiplayerPlayer {
   std::uint32_t source_datum = null_datum;
@@ -155,6 +167,8 @@ struct WorldVehiclePresentation {
   // Own object+4 / object+10A; model geometry LOD never inherits root flags.
   std::uint32_t geometry_flags{};
   std::uint16_t geometry_control_flags{};
+  // Actual original body region choices, including random construction and later damage.
+  std::optional<SourceModelRegionBank> regions;
 };
 struct MultiplayerState {
   struct Corpse {
@@ -209,8 +223,9 @@ struct MultiplayerState {
     std::uint8_t source_unit_10a{};
     std::uint32_t zoom_reset_serial{};
     std::uint16_t source_hud_zoom_mask = 0x40;
-    std::uint32_t source_hud_target_flags{}; //13C8D4; consumed by13B7C0's aim mask.
+    std::uint32_t source_hud_target_flags{}; //13C8D4/TU1.5 13DC44; original aim mask.
     bool source_hud_autoaimed{}; //13C4B8 selector18: unit+1E4 confidence >=1.
+    VehicleWeaponHudStatus source_vehicle_hud;
     // Unit+14A bits0/5 are primary/secondary trigger holds (C6C50), read by
     // 1A20E6. Grenade visibility uses the retained component+0C throw phase.
     std::uint8_t motion_sensor_control{};
@@ -229,6 +244,7 @@ struct MultiplayerState {
       SourceWeaponShaderState shader;
       NativeWeaponTriggerPublication trigger;
       int ammunition_available{}; // Authoritative104CF0 inventory read for FP reload pose.
+      std::int16_t magazine_mode{};
     } secondary_weapon;
     DamageFeedbackState damage_feedback;
     bool shield_recharging{};
@@ -237,6 +253,7 @@ struct MultiplayerState {
     int ammunition_available{};
   };
   std::uint32_t tick{};
+  std::int32_t source_game_type=2;
   std::int32_t source_engine=2;
   struct KingObjective {
     std::int32_t hill=-1;
@@ -281,6 +298,7 @@ struct MultiplayerState {
   std::vector<SourceSceneRoot> source_scene_roots;
   std::vector<SourceDynamicObject> source_dynamic_objects;
   std::vector<NativeWeaponProjectile> weapon_projectiles;
+  SourceContrailSnapshot source_contrails;
   bool source_body_poses_authoritative{};
   std::vector<SourceWorldPose> source_body_poses;
   // Detached bodies retain appearance and lifetime independently of a later
@@ -304,8 +322,11 @@ public:
   MultiplayerMatch(const LevelContent &, std::size_t, std::span<const Spawn>,
                    SlayerRules,MultiplayerKingServices = {},
                    std::function<std::uint32_t()> result_wall_clock = {},
-                   MultiplayerObjectRuntime *source_object_world = nullptr);
+                   MultiplayerObjectRuntime *source_object_world = nullptr,
+                   std::optional<SourceSceneGameContext> game_context = {},
+                   std::function<std::optional<Spawn>(unsigned,bool)> source_spawn_input = {});
   MultiplayerMatch(const MultiplayerMatch &) = delete;
+  ~MultiplayerMatch();
   MultiplayerMatch &operator=(const MultiplayerMatch &) = delete;
   MultiplayerMatch(MultiplayerMatch &&) = delete;
   MultiplayerMatch &operator=(MultiplayerMatch &&) = delete;
@@ -340,6 +361,7 @@ public:
   void validate_player_configuration(const SourcePlayerConfiguration&,std::int8_t selected_team)const;
   bool team_mode() const { return rules_.team_mode; }
   std::int32_t source_engine() const { return rules_.source_engine; }
+  std::int32_t source_game_type() const { return source_game_context_.game_type; }
   const SourceKingState* source_king_state()const {
     return rules_.source_engine==4 ? &king_state_ : nullptr;
   }
@@ -416,7 +438,7 @@ public:
   std::span<const NativeGrenadeProjectile> grenade_projectiles()const {
     return simulation_.grenade_sandbox_?simulation_.grenade_sandbox_->projectiles():std::span<const NativeGrenadeProjectile>{};
   }
-  std::vector<NativeGrenadeEvent> take_grenade_events(){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.grenade_sandbox_?simulation_.grenade_sandbox_->take_events():std::vector<NativeGrenadeEvent>{};}
+  std::vector<NativeGrenadeEvent> take_grenade_events();
   const AnimationClip* grenade_clip(std::uint32_t graph,std::uint32_t clip)const{return simulation_.grenade_sandbox_?simulation_.grenade_sandbox_->action_clip(graph,clip):nullptr;}
   // Actual native salted object allocation, with explicit source-admitted
   // stock levitated rows. Ground/controller/widget services are separate.
@@ -460,10 +482,7 @@ public:
     NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     return {simulation_.source_primary_random(),auxiliary};
   }
-  void advance_weather_view(double realtime,std::int16_t view_slot) {
-    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
-    simulation_.advance_weather_view(realtime,view_slot);
-  }
+  void advance_weather_view(double realtime,std::int16_t view_slot);
   void debug_settings(DebugGameSettings settings) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.debug_settings(std::move(settings)); }
   void debug_request(const DebugGameRequest& request,const Spawn* spawn=nullptr) {
     NativeAuthorityBoundary::Call active(authority_calls_);
@@ -474,9 +493,9 @@ public:
     else if(request.kind==DebugGameRequest::Teleport && spawn)simulation_.debug_teleport(request.player,*spawn);
     else throw FormatError("this debug request needs a campaign state owner");
   }
-  void advance_audio(float seconds){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.advance_audio(seconds);}
-  std::vector<SoundEvent> take_sounds() {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.take_sounds(); }
-  std::vector<PropSandboxEvent> take_prop_events() {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.take_prop_events(); }
+  void advance_audio(float seconds);
+  std::vector<SoundEvent> take_sounds();
+  std::vector<PropSandboxEvent> take_prop_events();
   void replicate_prop_removals(std::span<const PropRemoval> rows) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_prop_removals(rows); }
   void replicate_prop_regions(std::span<const PropRegionSnapshot> rows) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_prop_regions(rows); }
   void replicate_source_scene(std::span<const SourceSceneRoot> roots,std::span<const SourceWorldPose> poses) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_source_scene(roots,poses); }
@@ -484,6 +503,7 @@ public:
   SourceControlActivation activate_admitted_control(std::uint32_t h){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.activate_admitted_control(h);}
 
 private:
+  std::array<const std::uint64_t *,2> execution_call_counters()const;
   friend class SourceMatchAuthority;
   mutable NativeAuthorityBoundary authority_calls_;
   AuthorityDigest authority_configuration()const;
@@ -494,8 +514,10 @@ private:
   std::uint64_t rumble_serial_{};
   const LevelContent &content_;
   MultiplayerObjectRuntime *source_object_world_{};
+  SourceSceneGameContext source_game_context_;
   Simulation simulation_;
   std::vector<Spawn> spawns_;
+  std::function<std::optional<Spawn>(unsigned,bool)> source_spawn_input_;
   SlayerRules rules_;
   std::vector<SourceKingMarker> king_markers_;
   SourceKingState king_state_;
@@ -543,6 +565,9 @@ private:
   SourceResultEventState result_events_;
   bool result_events_started_{};
   std::function<std::uint32_t()> result_wall_clock_;
+  std::uint32_t result_wall_adjustment_{};
+  std::uint32_t result_wall_time() const;
+  bool prepare_result_clock(PreparedAuthority &) const noexcept;
   void record_result_event(std::uint32_t player,std::uint32_t first,std::uint32_t second);
   SourceRoundLifecycle round_lifecycle_;
   std::function<void(const MultiplayerMatch&)> game_engine_presentation_owner_;
@@ -604,6 +629,15 @@ struct MultiplayerOptions {
   // This flag also requests the older source integration explicitly; an empty
   // directory selects session-private scratch storage.
   bool source_object_world{};
+  // Original kind1 world and authored campaign content, shared by physical
+  // player rosters. Empty retains ordinary kind2 multiplayer admission.
+  std::optional<std::int16_t> campaign_difficulty;
+  // Campaign activation supplies its actual initial spawn input. A missing
+  // owner is an error; multiplayer scoring is not a campaign spawn algorithm.
+  std::function<std::optional<Spawn>(unsigned,bool)> campaign_spawn_input;
+  // Read-only diagnostics after original map/session binding, before automatic
+  // object construction. No source data or physical result can be supplied.
+  std::function<void(const SourceRuntimeMemory &)> source_world_observer;
   std::filesystem::path source_object_savegame_directory;
   // Explicit native placement inputs before object birth, for offline live
   // acceptance. Empty selects the map's authored spawn bank as usual.
@@ -632,6 +666,17 @@ struct MultiplayerOptions {
   std::filesystem::path bsp_reference_screenshot;
   std::function<void(std::uint32_t,unsigned,const SourceBspShaderView &,
       std::span<const SourceBspShaderPart>)> bsp_selection_observer;
+  // Actual selected BSP parts and final material bank at GPU submission.
+  // Read-only: the observer never supplies a material, visibility or LOD.
+  std::function<void(unsigned,std::uint32_t,const SourceBspResidentViewPlan&,
+      std::span<const Material>)> bsp_submission_observer;
+  // Capture-only final per-view material upload. Zero/empty leaves ordinary
+  // sessions unobserved; the observer cannot supply completed material data.
+  unsigned completed_material_upload_tick{};
+  std::function<void(unsigned,std::uint32_t,const RendererCompletedMaterialUpload&)>
+      completed_material_upload_observer;
+  unsigned completed_bsp_draw_tick{};
+  std::function<void(unsigned,std::uint32_t,const RendererObservedBspDraw&)> completed_bsp_draw_observer;
   // Diagnostic observation after real input delivery. It never supplies or
   // changes controls; normal interactive sessions leave it unset.
   std::function<void(std::uint32_t, std::span<const Controls>,
@@ -677,10 +722,25 @@ struct MultiplayerOptions {
   // The observer borrows this view's actual final vertices only during the call.
   std::function<void(unsigned,std::uint32_t,std::uint32_t,const ObjectLightingState&,
       bool,unsigned,std::span<const Vertex>)> unit_source_draw_observer;
+  // Read-only actual TU1.5 shadow candidate/history entry/return boundary.
+  std::function<void(bool,unsigned,std::uint32_t,const SourcePhysicsWorldRuntimeAbi&,
+      const SourceRuntimeMemory&)> shadow_selection_observer;
+  // Synchronous completed-root handoff while actual palettes/contexts are
+  // current. The later frame observer cannot safely borrow those live banks.
+  std::function<void(unsigned,std::uint32_t,PhysicsLiveWorldTu15&,
+      const SourceLiveShadowRootTu15&)> shadow_root_completed;
+  std::function<void(unsigned,std::uint32_t,std::span<const SourceLiveShadowRootTu15>)> shadow_root_frame_observer;
+  std::function<void(bool,unsigned,std::uint32_t,std::uint32_t,std::uint32_t,
+      const SourcePhysicsWorldRuntimeAbi&,const SourceRuntimeMemory&)> shadow_admission_observer;
+  std::function<void(unsigned,std::uint32_t,const PhysicsLiveWorldTu15&)> shadow_synchronization_observer;
+  // Capture label; actual model-light native seed/40E80 ownership is unconditional.
+  bool diagnostic_native_light_seed=false;
+  std::function<void(unsigned,std::uint32_t,const SourceEffectLightCommandObservationTu15&)> effect_light_command_observer;
   std::function<void(unsigned,std::uint32_t,std::uint32_t,std::uint32_t,
                      std::span<const Vertex>)> weapon_projectile_draw_observer;
   // Actual recorded MGS2 GPU commands and their per-view projected inputs.
   std::function<void(unsigned,std::uint32_t,const SourceLightVolumeDraw &)> weapon_light_volume_observer;
+  std::function<void(unsigned,std::uint32_t,const SourceContrailDraw &)> weapon_contrail_observer;
   // Application session owner runs after an authoritative world update and
   // returns true only when its real lifecycle has requested world teardown.
   // This is a control boundary, not an observer or a game-over shortcut.
@@ -719,6 +779,11 @@ struct MultiplayerOptions {
   std::function<void(const MultiplayerState &,const SourceDynamicObjectScene &)> source_dynamic_observer;
   std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)> dynamic_draw_observer;
   unsigned capture_tick{}; // Exact local gameplay capture; no wall-clock substitution.
+  // Explicit bounded reference submission only. Zero leaves live shadowGPU
+  // disabled. The only admitted case is capture tick61,640x480,singleview.
+  unsigned reference_live_shadow_gpu_tick{};
+  std::function<void(unsigned,std::uint32_t,bool,const SourceShadowRawPlanStats&)>
+      reference_live_shadow_gpu_observer;
   std::optional<Camera> capture_camera;
   // Finite pose-review capture only: show the current local source body and
   // held weapon from capture_camera, suppressing its first-person models/HUD.

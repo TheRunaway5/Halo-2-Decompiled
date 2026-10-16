@@ -64,25 +64,7 @@ void source_convert_offline_local_profile(const SourceOfflineLocalProfile& local
 }
 void source_sanitize_player_configuration(SourcePlayerConfiguration& profile,
     const SourcePlayerConfigurationContext& context) {
-  if(context.game_type==1) {
-    std::int16_t selected=0;
-    for(const auto value:context.scenario_representations)
-      if(value!=-1){selected=value;break;}
-    profile[0x7c]=1;profile[0x44]=std::uint8_t(selected);
-  } else if(context.game_type==2 &&
-      context.representation_policy==SourceProfileRepresentationPolicy::MultiplayerMapping) {
-    const auto representation=byte(profile,0x44);
-    profile[0x44]=(representation==1||representation==3) ? 3 : 2;
-  }
-  if(auto representation=byte(profile,0x44);representation!=-1) {
-    if(representation<0)representation=0;
-    else {
-      const auto maximum=std::bit_cast<std::int32_t>(
-          std::uint32_t(context.representation_count)-1);
-      if(maximum<representation)representation=std::bit_cast<std::int8_t>(std::uint8_t(maximum));
-    }
-    profile[0x44]=std::uint8_t(representation);
-  }
+  source_sanitize_player_representation(profile,context);
   for(const auto at:{0x7e,0x7f})
     if(byte(profile,at)!=-1 && byte(profile,at)<0)profile[at]=0;
   const auto selector=read<std::int32_t>(profile,0x84);

@@ -7,7 +7,7 @@ from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 
-ENTRIES=(0x2f7480,0x2f6ca0,0x2e44d0,0x3040d0,0x303da0,0x303e20,0x303f80,0x304ac0,0x325d80,0x303ea0,0x303930,0x3039b0,0x303a30,0x2f4880,0x2f4580,0x2f3260,0x2f4690,0x2f3de0,0x2f3190,0x2f70d0)
+ENTRIES=(0x2f9d70,0x2f7480,0x2f6ca0,0x2e44d0,0x3040d0,0x303da0,0x303e20,0x303f80,0x304ac0,0x325d80,0x303ea0,0x303930,0x3039b0,0x303a30,0x2f4880,0x2f4580,0x2f3260,0x2f4690,0x2f3de0,0x2f3190,0x2f70d0,0x2ee660,0x2ebbe0,0x2ebc70,0x1ce2c0,0x2f1930,0x2f1590,0x2fc5d0,0x2fc3e0,0x2e46e0)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -29,6 +29,17 @@ def main():
     assert code.at(0x2f7114).bytes.hex()=='e8a7feffff'
     assert image.read(0x41ca40,8).hex()=='500a2f0060b93000'
 
+    # Actual1CE210 invokes the broadphase's +3C query from ordinary grenade
+    # collision. Retain its complete quantized query and scoped scratch owners.
+    assert code.at(0x1ce2b4).bytes.hex()=='ff523c'
+    assert int.from_bytes(image.read(0x41c6fc,4),'little')==0x2ee660
+    assert int.from_bytes(image.read(0x461610,4),'little')==0x1ce2c0
+    assert code.at(0x2eea39).bytes.hex()=='ff5204'
+    assert code.at(0x186965).bytes.hex()=='ff94828c210000'
+    assert code.at(0x2f197a).operands[0].imm==0x2f1590
+    assert code.at(0x2f7038).bytes.hex()=='ff94b18c110000'
+    assert code.at(0x2fc614).operands[0].imm==0x2fc3e0
+    assert code.at(0x2fc436).operands[0].imm==0x2e46e0
     sites,instructions,addresses,routines={},{},{},[]
     for entry in ENTRIES:
         body=_trace(code,entry,set(ENTRIES));assert body.code
@@ -52,6 +63,8 @@ def main():
     source=source.replace('halo2/physics_live_support_tu15.hpp','halo2/source_collision_query_tu15.hpp')
     source=source.replace('source_run_physics_live_support_tu15','source_run_collision_query_tu15')
     source=source.replace('source_physics_live_support_tu15_owns_entry','source_collision_query_tu15_owns_entry')
+    source=source.replace('#include "halo2/source_collision_query_tu15.hpp"','#include "halo2/source_collision_query_tu15.hpp"\n#include "halo2/source_physics_entry_observation.hpp"')
+    source=source.replace('LiveState s{m,observe,services,image};s.load(abi);','LiveState s{m,observe,services,image};s.load(abi);\n    SourcePhysicsEntryObservation diagnostic(m,entry,[&]{return s.save();});')
     temporary=a.output.with_name(a.output.name+'.tmp');temporary.write_text(source);os.replace(temporary,a.output)
     report=json.loads((a.directory/'generation.json').read_text());report['generated_cpp_sha256']=sha(a.output)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')

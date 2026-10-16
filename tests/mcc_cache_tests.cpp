@@ -51,6 +51,18 @@ Buffer fixture(bool shared){
     }
     return b;
 }
+Buffer alias_fixture(bool shared){
+    auto b=fixture(shared);word(b,32,8);word(b,1048,8);word(b,40,512);word(b,44,3072);
+    word(b,3076,0);word(b,3080,64);
+    const std::array addresses{0x100000u,0xffff0u,0x100004u,0x100100u,0u};
+    for(unsigned i=0;i<addresses.size();++i){
+        const auto slot=i+3,at=1080+slot*16;
+        word(b,at,tag_groups::bitmap.value);word(b,at+4,0xe2000003u+i*0x1000001u);
+        word(b,at+8,shared?addresses[i]:0u);word(b,at+12,0);
+        word(b,3072+slot*4,128+i*64);text(b,2048+128+i*64,"textures\\alias"+std::to_string(i));
+    }
+    return b;
+}
 Buffer compressed(const Buffer& input,bool raw){
     Buffer out(input.begin(),input.begin()+896);word(out,28,1);word(out,776,8192);word(out,780,904);word(out,784,896);word(out,788,1);
     Buffer block;
@@ -106,7 +118,34 @@ int main(){
         for(unsigned i=0;i<4;++i){texture[8+i*4]=std::byte{1};texture[9+i*4]=std::byte{2};texture[10+i*4]=std::byte{3};texture[11+i*4]=std::byte{255};}
         save(root/"textures.dat",texture);
         const Cache cache(root/"fixture.map");
+        {
+            const auto aliases=alias_fixture(false),donor=alias_fixture(true);
+            save(root/"aliases.map",compressed(aliases,false));save(root/"shared.map",compressed(donor,true));
+            auto owner=std::make_shared<const Cache>(root/"aliases.map");TagSystem tags(owner);
+            const auto alias=tags.get({0xe2000003u},tag_groups::bitmap);
+            check(alias.source_address()==0x100000 && alias.bytes().empty(),
+                  "MCC shared alias lost its address or serialized empty extent");
+            check(std::ranges::equal(owner->tag_payload({0xe2000003u}),std::span(donor).subspan(4096,256)),
+                  "MCC alias did not retain its exact same-group payload");
+            check(tags.resolve({tag_groups::bitmap,{0xe2000003u}})->info().datum==0xe2000003u,
+                  "MCC alias reference changed salted identity");
+            check(tags.get({0xe3000004u}).bytes().empty() && tags.get({0xe5000006u}).bytes().empty(),
+                  "MCC empty alias locations were discarded");
+            check(tags.read_source(0x100008,8).size()==8,"MCC interior alias shadowed its containing allocation");
+            rejects([&]{(void)tags.read_source(0xffff0,1);});rejects([&]{(void)tags.read_source(0x100100,1);});
+            check(!tags.try_get({0xe6000007u}),"MCC alias without an address became resident");
+            auto malformed=donor;word(malformed,1080+3*16+4,0xe9000003u);
+            save(root/"shared.map",compressed(malformed,true));rejects([&]{Cache invalid(root/"aliases.map");});
+            save(root/"shared.map",compressed(shared,true));
+        }
         check(cache.is_mcc() && !cache.is_vista(),"MCC cache identity changed");
+        try {
+            (void)cache.shader_function_tables();
+            throw std::runtime_error("MCC cache admitted missing native material functions");
+        } catch(const FormatError& error) {
+            check(std::string(error.what()).find("Native MCC material library is missing")!=std::string::npos,
+                  "MCC functions fell back to an Xbox executable dependency");
+        }
         check(cache.original_data()==OriginalData::native_tu15() &&
               cache.original_data()->image==OriginalData::Image::TitleUpdate15,
               "MCC cache did not select its compiled native TU1.5 engine operands");

@@ -1,4 +1,5 @@
 #include "source_match_rebind_fixture.hpp"
+#include <thread>
 namespace {
 void run(const char *xbe,const char *map){
     const std::array<unsigned,4> al{0,1,2,3},bl{4,5,6,7};Owner a(xbe,map,al,1000),b(xbe,map,bl,900000),workspace(xbe,map,al,500000);
@@ -16,6 +17,19 @@ void run(const char *xbe,const char *map){
     auto prototype_stage=b.authority->prepare(prototype,binding);
     check(b.authority->commit(std::move(prototype_stage)),"Declared alternate prototype identity was rejected");
     const auto saved=a.authority->checkpoint(binding),before=b.authority->checkpoint(binding);
+    const std::array<unsigned,8> all_slots{0,1,2,3,4,5,6,7};
+    const auto roster=a.authority->player_admissions(all_slots);
+    const auto workspace_before=workspace.authority->checkpoint(binding);
+    std::atomic<bool> wrong_thread_rejected=false;
+    {std::jthread wrong([&]{try{b.authority->prepare_with_local_views(saved,binding,ba,*workspace.authority,roster,al);}
+        catch(const FormatError &){wrong_thread_rejected=true;}});}
+    check(wrong_thread_rejected,"Reusable workspace changed view metadata from another executor");
+    const auto workspace_after=workspace.authority->checkpoint(binding);
+    check(workspace_before.match.configuration_binding==workspace_after.match.configuration_binding&&
+        workspace_before.world.world.bank==workspace_after.world.world.bank,"Wrong-thread workspace attempt changed native state");
+    rejects([&]{b.authority->prepare_with_local_views(saved,binding,ba,*b.authority,roster,al);});
+    const std::array<unsigned,2> duplicate{0,0};
+    rejects([&]{b.authority->prepare_with_local_views(saved,binding,ba,*workspace.authority,roster,duplicate);});
     rejects([&]{b.authority->prepare(saved,binding);});
     rejects([&]{b.authority->prepare_with_local_views(saved,binding,ba,*b.authority);});
     auto bad=saved;bad.match.players[bl.front()].source_datum^=0x10000u;
@@ -37,6 +51,15 @@ void run(const char *xbe,const char *map){
     auto staged=b.authority->prepare_with_local_views(saved,binding,ba,*workspace.authority);
     check(!a.authority->commit(std::move(staged))&&b.authority->commit(std::move(staged)),"Foreign guard or new-local-view publication failed");
     local_views(a,al);local_views(b,bl);same_gameplay(a,b);
+    auto invalid_version=saved;invalid_version.version=1;
+    rejects([&]{b.authority->prepare_with_local_views(invalid_version,binding,ba,*workspace.authority,roster,al);});
+    rejects([&]{workspace.authority->checkpoint(binding);});
+    same_gameplay(a,b);
+    for(unsigned repeat=0;repeat<2;++repeat){
+        staged=b.authority->prepare_with_local_views(saved,binding,ba,*workspace.authority,roster,al);
+        check(b.authority->commit(std::move(staged)),"Reused producer-view workspace could not publish a repeated cut");
+        same_gameplay(a,b);local_views(b,bl);
+    }
     for(unsigned tick=0;tick<40;++tick){std::array<Controls,16> input{};for(unsigned id=0;id<player_count;++id){input[id].yaw=a.match->unit(id).yaw;input[id].forward=id&1?0:.1f;}
         a.step(input);b.step(input);same_gameplay(a,b);local_views(b,bl);}
     staged=a.authority->prepare_with_local_views(b.authority->checkpoint(binding),binding,aa,*workspace.authority);
@@ -44,8 +67,10 @@ void run(const char *xbe,const char *map){
     check(a.match->depart(0),"Actual local player departure failed");
     const auto pending=a.authority->checkpoint(binding);
     rejects([&]{a.authority->prepare_with_local_views(pending,binding,aa,*workspace.authority);});
-    staged=b.authority->prepare_with_local_views(pending,binding,ba,*workspace.authority);
+    staged=b.authority->prepare_with_local_views(pending,binding,ba,*workspace.authority,roster,al);
     check(b.authority->commit(std::move(staged)),"Pending departure did not rebind to surviving local players");
+    staged=b.authority->prepare_with_local_views(pending,binding,ba,*workspace.authority,roster,al);
+    check(b.authority->commit(std::move(staged)),"Reused pending-departure workspace did not retain surviving players");
     same_gameplay(a,b);local_views(a,al);local_views(b,bl);
     for(unsigned tick=0;tick<5;++tick){std::array<Controls,16> input{};for(unsigned id=0;id<player_count;++id)input[id].yaw=a.match->unit(id).yaw;
         a.step(input);b.step(input);same_gameplay(a,b);}

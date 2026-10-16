@@ -11,6 +11,7 @@ class SceneObjects;
 class SourceDeviceWorld;
 struct ObjectLightingBinding;
 struct ReferenceDeviceState;
+// Prepared-resource census; synchronize separately owns live draw admission.
 struct SourceMachineSceneStats {
     unsigned placements{},render_models{},position_overlays{};
     unsigned dynamic_materials{},prt_materials{},initial_state_only{};
@@ -26,7 +27,7 @@ struct SourceMachinePortalState {
     SourcePortalDoorInput door;
     bool initialized_group_state_only{};
 };
-// Initial type7 map objects, with the recovered device controller/PRT path.
+// Authored type7 resources, with the recovered live device controller/PRT path.
 // The cache and collision service must outlive this scene. Construction
 // allocates all material slots before Renderer creates its resident resources.
 class SourceMachineScene {
@@ -44,6 +45,7 @@ public:
     // Pass the simulation owner for current groups, transforms and lifetimes.
     // A replicated owner is authoritative even when the client scene's local
     // allocator has different handles. No replica clock runs in this renderer.
+    // Prepared resources remain inactive until actual source lifetimes bind.
     void synchronize(const SceneObjects &,const SourceDeviceWorld * = nullptr);
     // Finite diagnostic image inputs only. Bind once before advancing the
     // scene. Full definition/placement/render-model identity must match an

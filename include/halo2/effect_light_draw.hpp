@@ -33,6 +33,14 @@ struct EffectLightRawDraw {
     // Actual occupied source light record and authored definition. Diagnostic
     // provenance only; these fields do not enter the GPU constant banks.
     std::uint32_t light_identity=0xffffffffu,light_definition=0xffffffffu;
+    // Actual current source light origin, retained for the optional capped
+    // volume backend. It must not be inferred from inverse shader constants.
+    std::optional<Vec3> point_light_position;
+    // Authored sphere specular companion passes. Original ignores this bank;
+    // pStencil submits it inside the same per-light stencil test as diffuse.
+    std::shared_ptr<const std::vector<EffectLightDraw>> pstencil_specular;
+    std::uint32_t pstencil_light_domain{}; // Separate optional direct-light allocator.
+    bool pstencil_casts_shadow=true;
 };
 // The original material upload covers c18..33 and3A550 covers c31..39.
 // Other owner/view constants survive, including compression/palette inputs

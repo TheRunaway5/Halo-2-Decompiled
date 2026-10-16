@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/cache.hpp"
 #include "halo2/source_contrail_state.hpp"
+#include "halo2/source_contrail_snapshot.hpp"
 #include "halo2/source_transparent_sort.hpp"
 #include <memory>
 namespace halo2 {
@@ -23,7 +24,10 @@ class SourceContrailScene {
 public:
     explicit SourceContrailScene(const Cache &);
     ~SourceContrailScene();
-    std::vector<SourceContrailDraw> draw(const SourceRuntimeMemory &,
+    std::vector<SourceContrailDraw> draw(const SourcePhysicsContactMemory &,
+        Vec3 eye,Vec3 forward,const std::array<ShaderVector,192> &,
+        ShaderVector viewport,ShaderVector clip_range)const;
+    std::vector<SourceContrailDraw> draw(const SourceContrailSnapshot &,
         Vec3 eye,Vec3 forward,const std::array<ShaderVector,192> &,
         ShaderVector viewport,ShaderVector clip_range)const;
 private:struct Impl;std::unique_ptr<Impl> impl_;

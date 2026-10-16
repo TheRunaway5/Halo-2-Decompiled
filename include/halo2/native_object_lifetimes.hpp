@@ -36,6 +36,9 @@ public:
     // Complete source deletion has already removed the body and retired the
     // header. Observe that retirement without freeing its slot a second time.
     void observe_source_retirement(std::uint32_t full_handle);
+    // Observe source-owned recursive deletion of previously observed children
+    // and inventory. This never frees a header or invokes another destructor.
+    void observe_source_retirements();
     std::uint32_t reserve(std::uint8_t type);
     // BD170 reserves a zeroed header before B8B0B supplies its type. FF is
     // an explicitly unresolved native sidecar value, never a header byte.

@@ -251,6 +251,12 @@ void SceneObjects::destroy(std::uint32_t handle) {
     return;
   auto &o = get(handle);
   ++authority_calls_.mutations;
+  if(!source_replica_ && !source_owner_.destroy) {
+    // TU1.5 BA490 visits the original first-child/sibling chain and deletes
+    // each child before releasing its parent. Source owners do this themselves.
+    for(const auto &child:objects_)
+      if(child.handle!=null_datum && child.attachment_parent==handle)destroy(child.handle);
+  }
   if(source_replica_) {
     // Snapshot omission/removal retires presentation only.
   }else if(source_owner_.destroy) {
@@ -298,7 +304,23 @@ void SceneObjects::set_function_variable(std::uint32_t object,std::uint32_t name
   if(!std::isfinite(value) || !std::isfinite(frames) || frames>INT32_MAX)
     throw FormatError("invalid object shader function interpolation");
   const float initial=function_variable(object,name,tick).value_or(value);
-  ++authority_calls_.mutations;functions_[{object,name}]={initial,value,tick,int(std::nearbyint(std::max(frames,0.f)))};
+  // TU1.5 10FC30 converts the script's 30Hz frames to seconds, then
+  // multiplies by the signed game frequency before x87 nearest-even FISTP.
+  const float seconds=frames*(1.f/30.f);
+  const float duration=std::max(seconds,0.f)*30.f;
+  ++authority_calls_.mutations;functions_[{object,name}]={initial,value,tick,int(std::nearbyint(duration))};
+}
+void SceneObjects::clear_function_variable(std::uint32_t object,std::uint32_t name) {
+  AuthorityCalls::Scope call(authority_calls_);
+  if(object==null_datum || !name || name==null_datum)return;
+  ++authority_calls_.mutations;functions_.erase({object,name});
+}
+void SceneObjects::publish_source_function_samples(const std::map<std::pair<std::uint32_t,std::uint32_t>,float> &samples) {
+  AuthorityCalls::Scope call(authority_calls_);
+  if(!source_owner_.create)throw FormatError("Borrowed shader-function samples require a retained source scene");
+  std::map<std::pair<std::uint32_t,std::uint32_t>,FunctionVariable> next;
+  for(const auto &[key,value]:samples)next.emplace(key,FunctionVariable{value,value,0,0});
+  ++authority_calls_.mutations;functions_.swap(next);
 }
 Vec3 SceneObjects::center(std::uint32_t handle) const {
   const auto &o = get(handle);

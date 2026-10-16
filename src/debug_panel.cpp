@@ -12,6 +12,7 @@ struct DebugPanel::Impl {
     DebugGameSettings settings;
     DisplaySettings display;
     DisplaySettings* shared_display=&display;
+    bool pstencil_available{};
     DebugGameObservation observation;
     std::deque<DebugGameRequest> requests;
     std::string status;
@@ -94,6 +95,7 @@ void DebugPanel::game_settings(DebugGameSettings value){impl_->settings=std::mov
 const DisplaySettings& DebugPanel::display_settings() const{return *impl_->shared_display;}
 void DebugPanel::display_settings(DisplaySettings value){*impl_->shared_display=value;}
 void DebugPanel::share_display_settings(DisplaySettings& value){impl_->shared_display=&value;}
+void DebugPanel::pstencil_available(bool value){impl_->pstencil_available=value;}
 void DebugPanel::observe(DebugGameObservation value){impl_->observation=std::move(value);}
 void DebugPanel::status(std::string value){impl_->status=std::move(value);}
 std::optional<DebugGameRequest> DebugPanel::take_request() {
@@ -111,6 +113,21 @@ ImDrawData* DebugPanel::build_frame() {
     bool open=p.visible;
     if(ImGui::Begin("Halo 2 Settings (F1)",&open)) {
         if(ImGui::BeginTabBar("settings")) {
+            if(ImGui::BeginTabItem("Graphics")) {
+                auto& display=*p.shared_display;
+                const auto current=pstencil::graphics_mode_name(display.graphics_mode);
+                if(ImGui::BeginCombo("Graphics Mode",current)) {
+                    if(ImGui::Selectable("Original",display.graphics_mode==pstencil::GraphicsMode::Original))
+                        display.graphics_mode=pstencil::GraphicsMode::Original;
+                    ImGui::BeginDisabled(!p.pstencil_available);
+                    if(ImGui::Selectable("pStencil",display.graphics_mode==pstencil::GraphicsMode::pStencil))
+                        display.graphics_mode=pstencil::GraphicsMode::pStencil;
+                    ImGui::EndDisabled();ImGui::EndCombo();
+                }
+                if(!p.pstencil_available)ImGui::TextWrapped("pStencil is unavailable on this graphics device.");
+                ImGui::TextWrapped("Changes apply immediately. Video Settings saves your preferred graphics mode.");
+                ImGui::EndTabItem();
+            }
             if(ImGui::BeginTabItem("Debug")) {
                 ImGui::Text("%s | Tick %llu",o.mode.c_str(),static_cast<unsigned long long>(o.tick));
                 ImGui::TextWrapped("Optional native workbench controls. Changes last for this session.");

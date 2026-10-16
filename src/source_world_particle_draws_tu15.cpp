@@ -15,7 +15,7 @@ namespace halo2 {
 namespace {
 constexpr std::uint32_t none=0xffffffffu;
 std::uint32_t word(const SourceRuntimeMemory &m,std::uint32_t p) {return Bytes(m.view(p,4)).u32(0);}
-void put(SourceRuntimeMemory &m,std::uint32_t p,std::uint32_t value) {m.write(p,std::as_bytes(std::span(&value,1)));}
+void put(PhysicsLiveWorldTu15 &world,std::uint32_t p,std::uint32_t value) {world.write_source_call_input(p,std::as_bytes(std::span(&value,1)));}
 Bytes block(const Cache &cache,const Bytes &root,unsigned offset,unsigned stride) {
     const auto d=read_tag_block_descriptor(root,offset);const auto bytes=d.extent(stride,65536);
     if(!d.count)return Bytes(std::span<const std::byte>{});
@@ -39,10 +39,53 @@ struct SourceWorldParticleDrawsTu15::Impl {
         SourceParticleSpriteContext context;
         std::shared_ptr<const ParticleMaterial> material;
     };
+    bool lens_requests{};
     const Cache &cache;
     std::set<std::uint32_t> effects;
+    std::set<std::uint32_t> preloaded_world_effects;
     std::set<std::tuple<std::uint32_t,std::uint32_t,std::uint16_t>> systems;
+    std::set<std::uint32_t> first_person_effects;
+    std::set<std::tuple<std::uint32_t,std::uint32_t,std::uint16_t>> first_person_systems;
     std::map<std::uint32_t,Resource> resources;
+    bool preload(std::uint32_t effect,bool first_person) {
+        auto &admitted_effects=first_person?first_person_effects:effects;
+        auto &admitted_systems=first_person?first_person_systems:systems;
+        if((first_person?first_person_effects:preloaded_world_effects).contains(effect))return true;
+        const auto tag=cache.query_tag({.handle=TagHandle{effect},.group=tag_groups::effect,.require_address=true});
+        if(!tag)return false;
+        const auto packet=cache.load_source_tag_metadata(effect);
+        const Bytes definition(packet.bytes_at(packet.source_address(),0x1c));
+        const auto events=block(cache,definition,0x14,0x38);bool admitted=false;
+        for(unsigned event=0;event<definition.u32(0x14);++event) {
+            const auto rows=block(cache,events,event*0x38+0x30,0x38);
+            for(unsigned system=0;system<events.u32(event*0x38+0x30);++system) {
+                // World-only camera2 cannot submit in the FP pass, nor
+                // FP-only camera1 in WORLD. Original
+                // creation/render owners still decide actual environment and
+                // view eligibility; resource admission supplies no particles.
+                const auto camera=rows.u16(system*0x38+0x12);
+                if(camera==(first_person?2:1))continue;
+                const auto render=cache.load_particle_system_render_definition(effect,event,system);
+                if(!resources.contains(render.particle_datum)) {
+                    Resource resource;resource.sprite=cache.load_particle_sprite(render.particle_datum);
+                    const auto context=source_particle_sprite_context(cache,render.particle_datum,resource.sprite);
+                    if(!context)throw FormatError("Source particle has no admitted bitmap data");
+                    resource.context=*context;
+                    if(!context->has_bitmap)resource.sprite.bitmap_type=-1;
+                    resource.material=std::make_shared<const ParticleMaterial>(cache.load_particle_material(render.particle_datum,15,0,0));
+                    if(resource.material->vertex.classification!=7 && resource.material->vertex.classification!=8 && resource.material->vertex.classification!=9)
+                        throw FormatError("Source particle requires its original vertex owner");
+                    resources.emplace(render.particle_datum,std::move(resource));
+                }
+                admitted_systems.emplace(effect,event,std::uint16_t(system));admitted=true;
+            }
+        }
+        if(admitted) {
+            admitted_effects.insert(effect);
+            if(!first_person)preloaded_world_effects.insert(effect);
+        }
+        return admitted;
+    }
     explicit Impl(const Cache &c,std::span<const ScenarioObject> objects):cache(c) {
         std::set<std::uint32_t> inspected;
         for(const auto &object:objects) {
@@ -59,6 +102,10 @@ struct SourceWorldParticleDrawsTu15::Impl {
                 const Bytes definition(packet.bytes_at(packet.source_address(),0x1c));
                 const auto events=block(c,definition,0x14,0x38);
                 for(unsigned event=0;event<definition.u32(0x14);++event) {
+                    const auto parts=block(c,events,event*0x38+0x18,0x38);
+                    for(unsigned part=0;part<events.u32(event*0x38+0x18);++part)
+                        if(parts.u32(part*0x38+8)==0x6c656e73u && parts.u32(part*0x38+0x10)!=none)
+                            lens_requests=true;
                     const auto systems=block(c,events,event*0x38+0x30,0x38);
                     for(unsigned system=0;system<events.u32(event*0x38+0x30);++system) {
                         const auto at=system*0x38;const auto emitters=block(c,systems,at+0x30,0xb8);bool swarm{};
@@ -92,36 +139,105 @@ struct SourceWorldParticleDrawsTu15::Impl {
 SourceWorldParticleDrawsTu15::SourceWorldParticleDrawsTu15(const Cache &c,std::span<const ScenarioObject> objects)
     :impl_(std::make_unique<Impl>(c,objects)){}
 SourceWorldParticleDrawsTu15::~SourceWorldParticleDrawsTu15()=default;
-bool SourceWorldParticleDrawsTu15::active()const{return !impl_->effects.empty();}
-void SourceWorldParticleDrawsTu15::advance(PhysicsLiveWorldTu15 &world,float seconds) {
+bool SourceWorldParticleDrawsTu15::active()const{return impl_->lens_requests || !impl_->effects.empty() || !impl_->first_person_effects.empty();}
+bool SourceWorldParticleDrawsTu15::preload_first_person(std::uint32_t effect){return impl_->preload(effect,true);}
+bool SourceWorldParticleDrawsTu15::first_person_effect(std::uint32_t effect)const{return impl_->first_person_effects.contains(effect);}
+bool SourceWorldParticleDrawsTu15::preload_world(std::uint32_t effect){return impl_->preload(effect,false);}
+bool SourceWorldParticleDrawsTu15::world_effect(std::uint32_t effect)const{return impl_->preloaded_world_effects.contains(effect);}
+void SourceWorldParticleDrawsTu15::publish_observer(PhysicsLiveWorldTu15 &world,
+    unsigned local_view,Vec3 position,Vec3 forward,Vec3 up,float horizontal_angle) {
+    if(!(std::isfinite(horizontal_angle) && horizontal_angle>0 && horizontal_angle<3.141592654f))
+        throw FormatError("Source particle observer requires the actual horizontal lens");
+    world.publish_native_observer_position(local_view,position);
+    auto owner=world.prepare_source_call();owner.gp[1]=local_view;
+    world.run_actual(0x172200u,owner);
+    if(!owner.gp[0])throw FormatError("Source particle observer has no retained camera record");
+    const auto record=owner.gp[0];
+    // Native supplies its completed aiming frame in retained caller-stack
+    // scratch. Only the completed lens scale belongs to this boundary;
+    // preserve the real observer's controller/aim/displacement history.
+    const auto scratch=owner.gp[4]+0x100u;
+    const std::array<std::byte,0x54> packet{};
+    world.write_source_call_input(scratch,packet);
+    const std::array<float,10> input{forward.x,forward.y,forward.z,up.x,up.y,up.z,
+        horizontal_angle,1.3333333730697632f,0.f,0.f};
+    world.write_source_call_input(scratch+0x20,std::as_bytes(std::span(input)));
+    owner=world.prepare_source_call();owner.gp[6]=scratch;
+    world.run_actual(0x174bf0u,owner);
+    const auto scale=word(world.memory(),scratch+0x50);
+    world.write_source_call_input(record+0x50,std::as_bytes(std::span(&scale,1)));
+}
+void SourceWorldParticleDrawsTu15::prepare_storage(PhysicsLiveWorldTu15 &world) {
     if(!active())return;
     auto &m=world.memory();
     if(!word(m,0x4c2aa8u) && !(world.call_actual(0x1e0f0u)&255u))
         throw FormatError("Original transparent particle storage could not construct");
-    world.advance_effect_particles(seconds);
+}
+void SourceWorldParticleDrawsTu15::advance(PhysicsLiveWorldTu15 &world,float seconds) {
+    if(!active())return;
+    prepare_storage(world);world.advance_effect_particles(seconds);
 }
 std::vector<ParticleDraw> SourceWorldParticleDrawsTu15::draw(PhysicsLiveWorldTu15 &world,
     const SourcePortalVisibilitySet &visibility,const MuzzleEffectView &view,
+    unsigned local_view,float angle,float lighting_scale,bool lens_gates_prepared,bool main_commands_prepared) {
+    return draw_pass(world,visibility,view,local_view,angle,lighting_scale,false,
+        lens_gates_prepared,main_commands_prepared);
+}
+std::vector<ParticleDraw> SourceWorldParticleDrawsTu15::draw_first_person(PhysicsLiveWorldTu15 &world,
+    const SourcePortalVisibilitySet &visibility,const MuzzleEffectView &view,
     unsigned local_view,float angle,float lighting_scale) {
+    return draw_pass(world,visibility,view,local_view,angle,lighting_scale,true,false,false);
+}
+void SourceWorldParticleDrawsTu15::prepare_view(PhysicsLiveWorldTu15 &world,
+    const SourcePortalVisibilitySet &visibility,const MuzzleEffectView &view,
+    unsigned local_view,float angle,float lighting_scale) {
+    if(local_view>=4)throw FormatError("Original particle view exceeds its four-view bank");
+    for(const auto p:{0x4c65c0u,0x491e38u}) {
+        for(const auto &[offset,v]:std::array<std::pair<unsigned,Vec3>,3>{{{0,view.position},{12,view.forward},{24,view.up}}}) {
+            put(world,p+offset,std::bit_cast<std::uint32_t>(v.x));put(world,p+offset+4,std::bit_cast<std::uint32_t>(v.y));put(world,p+offset+8,std::bit_cast<std::uint32_t>(v.z));
+        }
+        put(world,p+0x28,std::bit_cast<std::uint32_t>(angle));put(world,p+0x2c,std::bit_cast<std::uint32_t>(lighting_scale));
+    }
+    put(world,0x4c66f8u,local_view);world.publish_render_visibility(visibility);
+    SourcePhysicsWorldRuntimeAbi reset{};reset.gp[4]=0x600f0000u;reset.gp[2]=0x556e18u;
+    reset.fs_base=0x60200000u;reset.eflags=2;reset.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
+    put(world,reset.gp[4],0x60300000u);world.run_actual(0x1373f0u,reset);
+    world.call_actual(0x136ea0u,std::array{0x556e18u});
+}
+std::vector<ParticleDraw> SourceWorldParticleDrawsTu15::draw_pass(PhysicsLiveWorldTu15 &world,
+    const SourcePortalVisibilitySet &visibility,const MuzzleEffectView &view,
+    unsigned local_view,float angle,float lighting_scale,bool first_person,
+    bool lens_gates_prepared,bool main_commands_prepared) {
     std::vector<ParticleDraw> out;if(!active())return out;
     auto &m=world.memory();
     if(local_view>=4 || !word(m,0x4c2aa8u))
         throw FormatError("Original particle queue requires its constructed native world-pass owner");
-    // This native world pass supplies layer0 below. Literal40EC2/40EC8
-    // reset the queue's two counts in that pass; model command banks have their own
-    // existing native graphics owner. No source particle state is cleared.
-    put(m,0x4c2aa0u,0);put(m,0x4c2aa4u,0);
-    for(const auto p:{0x4c65c0u,0x491e38u}) {
-        for(const auto &[offset,v]:std::array<std::pair<unsigned,Vec3>,3>{{{0,view.position},{12,view.forward},{24,view.up}}}) {
-            put(m,p+offset,std::bit_cast<std::uint32_t>(v.x));put(m,p+offset+4,std::bit_cast<std::uint32_t>(v.y));put(m,p+offset+8,std::bit_cast<std::uint32_t>(v.z));
+    if(main_commands_prepared && (first_person || !lens_gates_prepared))
+        throw FormatError("Collected world particles lack their actual main-view admission");
+    if(!main_commands_prepared) {
+      // Standalone/FP callers retain their original queue producer. Ordinary
+      // main40E80 already reset and filled this bank; never repeat its phase.
+      put(world,0x4c2aa0u,0);put(world,0x4c2aa4u,0);
+      prepare_view(world,visibility,view,local_view,angle,lighting_scale);
+      if(first_person)world.call_actual(0x1770c0u,std::array{1u});
+      else {
+        // Original12B4E and2B68C: run the actual pool gates with retained source
+        // state. The native query owner supplies this once before real views;
+        // standalone particle consumers retain the existing frame-zero gate.
+        if(!lens_gates_prepared) {
+            if(local_view==0)world.call_actual(0x20680u);
+            auto request_view=world.prepare_source_call();request_view.gp[0]=local_view;
+            world.run_actual(0x20700u,request_view);
         }
-        put(m,p+0x28,std::bit_cast<std::uint32_t>(angle));put(m,p+0x2c,std::bit_cast<std::uint32_t>(lighting_scale));
+        put(world,0x4c66f4u,local_view); // Literal2BA24, actual submitting view.
+        // Original main layer40F14/40F31 requests completed effect parts before
+        // the ordinary40F1A particle queue producer. Use the retained mode owner.
+        const auto mode_owner=word(m,0x4f3218u);
+        if(!mode_owner)throw FormatError("Original lens request phase lacks its retained40F08 mode owner");
+        if(word(m,mode_owner+8)==3)world.call_actual(0x179b40u);
+        else {world.call_actual(0x179a40u);world.call_actual(0x1770c0u,std::array{0u});}
+      }
     }
-    put(m,0x4c66f8u,local_view);world.publish_render_visibility(visibility);
-    SourcePhysicsWorldRuntimeAbi reset{};reset.gp[4]=0x600f0000u;reset.gp[2]=0x556e18u;
-    reset.fs_base=0x60200000u;reset.eflags=2;reset.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};
-    put(m,reset.gp[4],0x60300000u);world.run_actual(0x1373f0u,reset);
-    world.call_actual(0x136ea0u,std::array{0x556e18u});world.call_actual(0x1770c0u,std::array{0u});
     const auto count=word(m,0x4c2aa0u),commands=word(m,0x4c2aa8u);
     if(count>1024)throw FormatError("Original particle queue exceeds its constructed capacity");
     const auto hide=std::getenv("HALO2_REFERENCE_SOURCE_ATTACHMENTS_HIDE");
@@ -129,8 +245,10 @@ std::vector<ParticleDraw> SourceWorldParticleDrawsTu15::draw(PhysicsLiveWorldTu1
         const auto p=commands+n*112;
         if(word(m,p)!=3 || word(m,p+0x20)!=0x176b30u)continue;
         const auto s=word(m,p+0x24),l=word(m,p+0x28),effect=word(m,s+0x10);
-        if(!impl_->effects.contains(effect))continue;
-        if(!impl_->systems.contains({effect,word(m,s+0x14),Bytes(m.view(s+0xe,2)).u16(0)}))continue;
+        const auto &effects=first_person?impl_->first_person_effects:impl_->effects;
+        const auto &systems=first_person?impl_->first_person_systems:impl_->systems;
+        if(!effects.contains(effect))continue;
+        if(!systems.contains({effect,word(m,s+0x14),Bytes(m.view(s+0xe,2)).u16(0)}))continue;
         const auto state=source_particle_render_state_tu15(impl_->cache,m,
             identity(m,0x51df74u,s,84),identity(m,0x52d71cu,l,52),{view.position,view.forward,view.up,{}});
         const auto &resource=impl_->resources.at(state.definition.particle_datum);

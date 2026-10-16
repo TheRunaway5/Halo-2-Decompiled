@@ -7,6 +7,8 @@ struct OriginalData;
 struct NativeDeathCameraView {
   Vec3 position{},forward{},up{};
   float horizontal_fov{};
+  float aim_displacement{}; // Completed observer+100 HUD aim input.
+  std::uint8_t camera_mode=3; // Original158290:0 first person,1 seated,3 transition/death.
 };
 // Native local-view binding for the original death packet and
 // complete observer adoption, motion and world owners. Player and corpse

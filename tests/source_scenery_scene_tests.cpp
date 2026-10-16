@@ -22,7 +22,9 @@ bool same(Vec3 a,Vec3 b){return std::bit_cast<std::uint32_t>(a.x)==std::bit_cast
     std::bit_cast<std::uint32_t>(a.z)==std::bit_cast<std::uint32_t>(b.z);}
 struct Counts {unsigned models{},baked{},dynamic{},unresolved{},streams{},baked_vertices{},empty{},idle{};};
 Counts verify(const std::filesystem::path &path) {
-    Cache cache(path);const auto content=cache.load_content(0,true);
+    Cache cache(path);auto content=cache.load_content(0,true);
+    // Retain the original automatic initial MP2/current-BSP fixture corpus.
+    for(auto &o:content.objects)if(o.type==6 && (!scenery_automatic_creation_allowed(o,2) || o.origin_bsp>0))o.definition=null_datum;
     const auto lighting=cache.load_bsp_lighting(0);CollisionWorld collision(content.collision);Counts counts;
     std::map<std::size_t,SourceInitialModelSelection> selections;
     for(std::size_t index=0;index<content.objects.size();++index) {
@@ -39,7 +41,7 @@ Counts verify(const std::filesystem::path &path) {
         [&](std::size_t index,const ScenarioObject &object) {
             require(content.objects.at(index).definition==object.definition && !selections.contains(index),
                 "resolved SCEN escaped through unresolved-only omission");return true;
-        });SceneObjects objects(content,0);
+        });SceneObjects objects(content,0,SourceSceneGameContext{2,2});
     require(scene.stats().unresolved_selections==counts.unresolved &&
         scene.unresolved_selection_owners().size()==counts.unresolved,"SCEN unresolved owner boundary lost content identity");
     scene.synchronize(objects);
@@ -130,6 +132,30 @@ Counts verify(const std::filesystem::path &path) {
         <<" dynamic, "<<counts.unresolved<<" unresolved selections excluded explicitly, "<<counts.baked_vertices
         <<" exact source incident/RGB vertices, "<<counts.idle<<" admitted initial idle controllers\n";
     return counts;
+}
+void prepared_scenery_birth() {
+    Cache cache("assets/disc/maps/ascension.map");auto content=cache.load_content(0,true);
+    const auto at=std::find_if(content.objects.begin(),content.objects.end(),[&](const auto&o){
+        return o.type==6 && scenery_automatic_creation_allowed(o,2) && cache.load_initial_model_selection(o.definition,o.variant).resolved();});
+    require(at!=content.objects.end(),"Deferred SCEN fixture has no authored resource");
+    const auto placement=std::size_t(at-content.objects.begin());
+    for(std::size_t i=0;i<content.objects.size();++i)if(i!=placement)content.objects[i].definition=null_datum;
+    content.objects[placement].flags|=1u;
+    CollisionWorld collision(content.collision);Mesh mesh;SourceSceneryScene scene(cache,content.objects,0,mesh,collision);
+    SceneObjects objects(content,0,SourceSceneGameContext{2,2});
+    unsigned queries{};scene.lighting_query_state([&](std::size_t index,std::uint32_t handle,const Transform&node,float scale){
+        require(index==placement && objects.get(handle).placement==placement,"Deferred SCEN query lost actual lifetime");++queries;
+        const auto sphere=source_shadow_sphere(cache.load_object_shadow_definition(content.objects[index].definition),node,scale);
+        return SourceSceneryQueryState{sphere.center,sphere.radius,{},0,true};});
+    scene.animation_frame([](auto,auto,auto,auto,const auto&){return 0.f;});
+    const auto submit=[&]{std::vector<Vertex> v;std::vector<ObjectLightingBinding>b;std::vector<SourceObjectViewSelection>d;
+        scene.append_view(v,b,SourceObjectViewLod{0,1,false,[](auto,auto,auto,auto){return SourceObjectLodInput{0,0x80000,0};}},&d);return d;};
+    require(scene.stats().render_models==1 && submit().empty() && queries==0,"Prepared SCEN submitted before actual birth");
+    scene.synchronize(objects);require(submit().empty() && queries==0,"Absent SCEN acquired a draw owner");
+    const auto born=objects.create_placement(placement,7);scene.synchronize(objects);scene.update_pose(7,1,mesh);
+    require(born!=null_datum && submit().size()==1 && queries==1,"Actual deferred SCEN birth did not activate prepared geometry");
+    objects.destroy(born);scene.synchronize(objects);require(submit().empty() && queries==1,"Retired SCEN kept submitting");
+    std::cout<<"Prepared SCEN: no prebirth draw/query, actual deferred birth and retirement\n";
 }
 void lifetime_inputs() {
     Cache cache("assets/map-pack/maps/elongation.map");const auto content=cache.load_content(0,true);
@@ -261,7 +287,7 @@ int main(int argc,char **argv) {
         const auto add=[&](const auto &path){const auto c=verify(path);total.models+=c.models;total.baked+=c.baked;
             total.dynamic+=c.dynamic;total.unresolved+=c.unresolved;total.streams+=c.streams;total.baked_vertices+=c.baked_vertices;total.idle+=c.idle;};
         if(argc==2)add(std::filesystem::path(argv[1]));else {
-            lifetime_inputs();animation_input();
+            prepared_scenery_birth();lifetime_inputs();animation_input();
             for(const auto *map:{"ascension","beavercreek","burial_mounds","coagulation","colossus","cyclotron",
                 "foundation","headlong","lockout","midship","waterworks","zanzibar"})
                 add(std::filesystem::path("assets/disc/maps")/(std::string(map)+".map"));

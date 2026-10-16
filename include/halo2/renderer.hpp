@@ -1,14 +1,24 @@
 #pragma once
+#include "halo2/pstencil/lightmap.hpp"
+#include "halo2/pstencil/point_caster.hpp"
 #include "halo2/renderer_device_lease.hpp"
 #include "halo2/renderer_palette.hpp"
 #include "halo2/renderer_constant_mode.hpp"
 #include "halo2/renderer_depth_mode.hpp"
+#include "halo2/renderer_particle_program.hpp"
 #include "halo2/renderer_output_state.hpp"
 #include "halo2/renderer_texture_coordinates.hpp"
+#include "halo2/renderer_targets.hpp"
+#include "halo2/renderer_texture_pairs.hpp"
+#include "halo2/renderer_aux_textures.hpp"
+#include "halo2/renderer_debug_texture.hpp"
+#include "halo2/source_lens_query_gpu.hpp"
+#include "halo2/source_lens_draw_gpu.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/appearance.hpp"
 #include "halo2/display_settings.hpp"
 #include "halo2/scene.hpp"
+#include "halo2/cinematic_crossfade.hpp"
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/water.hpp"
 #include "halo2/object_lighting.hpp"
@@ -20,6 +30,7 @@
 #include "halo2/source_prt.hpp"
 #include "halo2/popup_blur.hpp"
 #include "halo2/source_shadow_plan.hpp"
+#include "halo2/source_shadow_raw_plan.hpp"
 #include "halo2/renderer_timing.hpp"
 #include "halo2/source_view_clear.hpp"
 #include "halo2/effect_light_draw.hpp"
@@ -76,6 +87,101 @@ struct ModelObjectDraw {
     ShaderInput shader_input; // Evaluated into this owner's independent constant bank.
     std::span<const SourcePrtMaterialBank> prt_banks;
 };
+// Read-only CPU metadata for the material image cache at uniform upload.
+// A draw may instead bind a baked lightmap, accumulation/scope/water target,
+// or owner alias; this observation is not a per-draw descriptor/pipeline.
+struct RendererObservedMaterialPage {
+    std::uint32_t width{},height{},depth{},layers{},mip_count{},format{};
+    // Some source cohorts retain these bytes; absence remains unobserved.
+    std::optional<std::uint64_t> source_pixel_fingerprint; // Retained FNV1a identity.
+    bool source_image{};
+    std::optional<bool> source_mutated;
+    std::uint64_t image_identity{},view_identity{},cube_view_identity{},sampler_identity{};
+    std::span<const TextureMip> source_mips;
+};
+struct RendererCompletedMaterialUpload {
+    std::size_t root_material_count{},expanded_material_count{},root_slot{},material_slot{};
+    std::uint32_t source_shader{},selected_shader_lod{};
+    std::uint64_t target_generation{};
+    std::optional<std::uint64_t> source_frames_submitted;
+    std::array<std::uint32_t,4> wanted_frames{},bound_frames{};
+    std::array<ShaderTextureState,4> texture_states{};
+    std::array<RendererObservedMaterialPage,4> cached_material_pages{};
+    bool baked_lightmap{},accumulation{},scope{};
+    std::array<bool,2> water_targets{};
+    // Borrowed only during the synchronous callback, after actual per-view
+    // completion and before upload. The observer must copy any retained bytes.
+    std::span<const std::byte> material_uniform,vertex_bank_uniform;
+};
+// Capture-only facts copied from actual Vulkan creation/write/bind/draw calls.
+// These record command inputs, not surviving samples or original-frame parity.
+struct RendererObservedImageBinding {
+    std::uint64_t sampler{},view{},image{};
+    std::uint32_t layout{},width{},height{},depth{},layers{},mip_count{},format{};
+    bool present{},image_owner_known{};
+};
+struct RendererObservedDescriptor {
+    std::uint64_t handle{};
+    // Actual descriptor bindings0..3,5[0..3],6[0..3]. No active-table guess.
+    std::array<std::array<RendererObservedImageBinding,4>,3> images{};
+    std::array<std::array<std::uint64_t,3>,2> buffers{}; // bindings4/7: buffer/offset/range.
+};
+struct RendererObservedPipelineShader {
+    std::uint32_t stage{};
+    std::uint64_t module{};
+    std::vector<std::uint32_t> words;
+    std::vector<std::array<std::uint32_t,3>> specialization_entries;
+    std::vector<std::byte> specialization_bytes;
+};
+struct RendererObservedPipeline {
+    std::uint64_t handle{},layout{},render_pass{};
+    std::array<std::uint32_t,6> raster{};
+    std::array<float,4> raster_floats{};
+    std::array<std::uint32_t,5> depth{};
+    std::array<float,2> depth_bounds{};
+    std::vector<std::uint32_t> sample_mask,dynamic_states;
+    std::array<std::array<std::uint32_t,7>,2> stencil{};
+    std::array<std::uint32_t,8> blend{};
+    std::array<std::uint32_t,4> samples{};
+    float minimum_sample_shading{};
+    std::array<std::uint32_t,2> assembly{};
+    std::vector<std::array<std::uint32_t,3>> vertex_bindings;
+    std::vector<std::array<std::uint32_t,4>> vertex_attributes;
+    std::vector<RendererObservedPipelineShader> shaders;
+};
+struct RendererObservedTargetTransition {
+    unsigned phase{};std::size_t transitions{};bool complete{};
+    std::uint64_t render_pass{},framebuffer{};
+    std::array<std::int64_t,4> render_area{};
+    std::vector<std::array<std::uint32_t,4>> clear_values;
+};
+enum class RendererBspDrawPhase { scene_base,accumulation_base,environment,overlay_before,overlay_after,texture_mapping,decal,planar_fog };
+struct SourceBspResidentPart;
+struct SourceBspDrawToken;
+struct SourceBspPartBinding;
+struct RendererObservedBspDraw {
+    std::uint64_t serial{},target_generation{},render_pass{},framebuffer{};
+    RendererBspDrawPhase phase{};
+    unsigned root_slot{},material_slot{},parent_material{},pipeline_index{};
+    std::array<std::uint32_t,2> source_material{};
+    std::span<const RendererObservedTargetTransition> target_transitions;
+    std::span<const std::byte> camera_push; // Exactly the currently commanded112 bytes.
+    std::array<float,6> viewport{};
+    std::array<std::int64_t,4> scissor{};
+    const RendererObservedPipeline* pipeline{};
+    const RendererObservedDescriptor* descriptor{};
+    std::uint32_t dynamic_offset{},lightmap{};
+    std::array<float,4> blend_constants{};
+    std::uint64_t vertex_buffer{},vertex_offset{};
+    std::uint32_t vertex_stride{},first{},count{},instances{},first_instance{};
+    int geometry{};
+    std::uint32_t section{},part{};
+    bool source_resident{};
+    const SourceBspDrawToken* source_token{};
+    const SourceBspPartBinding* source_binding{};
+    const SourceBspResidentPart* resident_part{};
+    std::span<const Vertex> source_vertices; // Proven source-resident uploaded atlas range.
+};
 // A clipped model viewport, ordered amongst the UI's textured triangles.
 struct ModelView {
     Camera camera;
@@ -92,6 +198,7 @@ struct ModelView {
     // their retained42850 records and use this view's clip on GPU submission.
     std::span<const SourceLightVolumeDraw> light_volumes;
     std::span<const SourceContrailDraw> contrails;
+    std::function<void(const SourceContrailDraw &)> contrail_observer;
     std::function<void(const SourceLightVolumeDraw &)> light_volume_observer;
     std::span<const SourceWeatherPointDraw> weather_points;
     std::span<const SourceWeatherLineDraw> weather_lines;
@@ -124,6 +231,13 @@ struct ModelView {
     // Nonempty roots require world W-depth and source_view_shader_constants
     // whose c0..6 exactly match the plan's camera bank.
     std::optional<SourceShadowPlan> source_shadows;
+    // Original indexed class0..6 geometry and current palettes. Supplying
+    // both shadow representations in one view is rejected before recording.
+    std::optional<SourceShadowRawPlan> raw_source_shadows;
+    // Optional live reference owner. Checked AFTER swapchain recreation and
+    // before raw planning/recording; a stale native lease cannot bind this
+    // plan to replacement attachments. Caller retains it through draw().
+    const RendererTargets::Use* raw_source_shadow_targets{};
     // Completed source layer12 submissions, ordered after335E0 shadows by
     //2BCD0/31C80. Each light/view owns independent pixel and c31..39 banks.
     std::span<const EffectLightDraw> effect_lights;
@@ -145,6 +259,16 @@ struct ModelView {
     // An independent first-person lens keeps hands, weapon geometry and
     // deferred foreground draws in the same projection as their shader bank.
     std::optional<float> foreground_projection_vertical_angle;
+    // Original query quads, submitted against world depth before foreground.
+    std::span<const SourceLensQueryDraw> lens_queries;
+    std::span<const SourceLensDraw> lens_draws;
+    // Capture-only observer of slots already collected for this view. It
+    // neither supplies a uniform nor adds a draw, visibility or binding.
+    std::function<void(const RendererCompletedMaterialUpload&)> completed_material_upload_observer;
+    std::function<void(const RendererObservedBspDraw&)> completed_bsp_draw_observer;
+    std::span<const pstencil::LightmapCaster> pstencil_lightmap_casters;
+    std::span<const pstencil::PointCaster> pstencil_point_casters;
+    bool pstencil_native_point_casters=false;
 };
 // SDL owns the platform window/input; only this module knows Vulkan handles.
 class Renderer {
@@ -158,7 +282,8 @@ public:
              const SourceBspResidentPlan *bsp_resident_plan = nullptr,
              const std::function<void()> &before_presentation = {},
              const Renderer *presentation_owner = nullptr,
-             const std::filesystem::path &shader_directory = {});
+             const std::filesystem::path &shader_directory = {},
+             std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials = {});
     ~Renderer();
     Renderer(const Renderer&) = delete;
     Renderer& operator=(const Renderer&) = delete;
@@ -202,8 +327,20 @@ public:
     RendererPaletteFactory palette_factory();
     RendererConstantMode constant_mode_control();
     RendererDepthMode depth_mode_control();
+    RendererParticleProgram particle_program_control();
     RendererOutputState output_state_control();
     RendererTextureCoordinates texture_coordinate_control();
+    RendererTargets target_resources();
+    RendererTexturePairFactory texture_pair_factory();
+    RendererAuxTextureFactory aux_texture_factory();
+    RendererDebugTextureFactory debug_texture_factory();
+    std::vector<SourceLensQueryResult> take_lens_query_results();
+    // Scene/query-owner retirement waits for actual GPU work before releasing
+    // identities. Completed results from the retiring scene are discarded.
+    void retire_lens_queries();
+    // Admission succeeds only for the requested actual uploaded Mesh bitmap.
+    // The caller must retain device_lease() through its source ABI publication.
+    void require_lens_bitmap(unsigned material,const Texture &) const;
     // Queue constants and resident bitmap frames after the previous draw's fence.
     void update_material_constants(std::span<const Material>);
     void update_material_constants(std::span<const Material>, std::span<const unsigned> active_roots);
@@ -214,6 +351,9 @@ public:
     std::optional<BspPostprocessState> bsp_postprocess_state() const;
     void restore_bsp_postprocess_state(const BspPostprocessState &);
     void scene_bloom_threshold(float);
+    void campaign_cinematic_bloom(bool,const CinematicBloomOverride &);
+    void campaign_cinematic_crossfade(const CinematicCrossfadeFrame &);
+    bool cinematic_crossfade_captured()const;
     void scene_color_filter(std::optional<PixelProgram>);
     void scene_light_volumes(std::vector<LightVolumeInstance>,
                              std::shared_ptr<const ShaderFunctionTables>);

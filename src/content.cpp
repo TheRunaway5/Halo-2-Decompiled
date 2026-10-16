@@ -1,3 +1,4 @@
+#include "halo2/source_player_profile.hpp"
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/source_ai_squad_team.hpp"
 #include "halo2/content.hpp"
@@ -347,6 +348,7 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     throw FormatError("content BSP index outside scenario");
   LevelContent out;
   out.original_data = original_data();
+  for(const auto &start:spawns_)out.player_start_representations.push_back(std::int16_t(start.player_type));
   const Bytes data(cache_bytes());
   auto find = [&](std::uint32_t id,
                   const char *group = nullptr) -> const Tag * {
@@ -427,6 +429,28 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     }
     return d;
   };
+  unsigned first_person_record{};
+  if(const auto globals=query_tag({.group=tag_groups::globals, .require_address=true})) {
+    const auto representations=TagAddressSpace(data,metadata_magic_).block(root(*globals,0x140)+0x138,0xbc);
+      SourcePlayerConfiguration campaign_profile{};
+      SourcePlayerConfigurationContext campaign_context;
+      campaign_context.game_type=1;
+      campaign_context.representation_count=std::int32_t(representations.count);
+      campaign_context.scenario_representations=out.player_start_representations;
+      source_sanitize_player_representation(campaign_profile,campaign_context);
+      const auto campaign_representation=std::bit_cast<std::int8_t>(campaign_profile[0x44]);
+    for(std::size_t i=0;i<representations.count;++i) {
+      if(multiplayer ? i!=2 : int(i)!=campaign_representation)continue;
+      auto candidate=biped(data.u32(representations.offset+i*0xbc+0xb4));
+      if(candidate.datum==null_datum)continue;
+      out.player=candidate;
+      out.first_person_hands=data.u32(representations.offset+i*0xbc+4);
+      // Original FP registration selects row1 for representations1/3,
+      // row0 otherwise, falling back to row0 only when row1 is absent.
+      first_person_record=i==1 || i==3 ? 1u : 0u;
+      break;
+    }
+  }
   std::function<std::uint32_t(std::uint32_t, unsigned)> effect_sound =
       [&](std::uint32_t id, unsigned depth) -> std::uint32_t {
     const auto *t = find(id);
@@ -472,8 +496,9 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
         for(std::size_t i=0;i<fp.count;++i)
           w.first_person_models.push_back({data.u32(fp.offset+i*16+4),data.u32(fp.offset+i*16+12)});
         if (fp.count) {
-          w.first_person_model = data.u32(fp.offset + 4);
-          w.first_person_animation = data.u32(fp.offset + 12);
+          const auto record=fp.offset+(fp.count>first_person_record?first_person_record:0u)*16;
+          w.first_person_model = data.u32(record + 4);
+          w.first_person_animation = data.u32(record + 12);
         }
         const auto native_triggers = TagAddressSpace(data, metadata_magic_).block(p + 0x2c8, 0x40);
         for(std::size_t index=0;index<native_triggers.count;++index) {
@@ -486,9 +511,13 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
         const auto mags = TagAddressSpace(data, metadata_magic_).block(p + 0x2c0, 0x5c),
                    barrels = TagAddressSpace(data, metadata_magic_).block(p + 0x2d0, 0xec);
         if (!barrels.count) {
+          if(!(w.inventory_flags&(1u<<24)) || w.first_person_animation==null_datum) {
+            w.source_runtime_only=true;
+            out.weapons.emplace(w.datum,std::move(w));
+            continue;
+          }
           // Authored melee-only weapons have no projectile barrel. Keep their
           // real FP graph and melee damage instead of dropping their definition.
-          if(!(data.u32(p+0x12c)&(1u<<24)) || w.first_person_animation==null_datum)continue;
           w.damage=data.u32(p+0x190);
           if(w.damage==null_datum)w.damage=data.u32(p+0x1c0);
           w.range=real(data,p+0x1b8);w.instantaneous=true;w.burst=w.projectiles_per_shot=1;
@@ -891,9 +920,9 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
                  representations =
                      TagAddressSpace(data, metadata_magic_).block(p + 0x138, 0xbc);
       out.player_representation_count=representations.count;
-      if(multiplayer) {
+      {
         out.player_representations.resize(representations.count);
-        for(std::size_t i=2;i<representations.count && i<4;++i) {
+        for(std::size_t i=multiplayer?2:0;i<representations.count && (!multiplayer || i<4);++i) {
           auto &representation=out.player_representations[i];
           representation.biped=biped(data.u32(representations.offset+i*0xbc+0xb4));
           representation.hands=data.u32(representations.offset+i*0xbc+4);
@@ -914,17 +943,6 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
             real(data, q + 0x38), real(data, q + 0x3c), real(data, q + 0x40),
             real(data, q + 0x44), real(data, q + 0x48), real(data, q + 0x4c)};
         out.movement.limited_speed = real(data, q + 0x24);
-      }
-      for (std::size_t i = 0; i < representations.count; ++i) {
-        if (multiplayer && i != 2) continue; // Retail 14F040: profile Spartan 0 -> representation 2.
-        auto candidate =
-            biped(data.u32(representations.offset + i * 0xbc + 0xb4));
-        if (candidate.datum != null_datum) {
-          out.player = candidate;
-          out.first_person_hands =
-              data.u32(representations.offset + i * 0xbc + 4);
-          break;
-        }
       }
       break;
     }
@@ -1314,6 +1332,10 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
   // Templates remain cold until the phased netgame row actually allocates them.
   const auto heavy=source_game_variant_get(variant,78);
   if(multiplayer)out.light_vehicle_options={source_game_variant_get(variant,76),source_game_variant_get(variant,77)};
+  if(multiplayer)out.turret_vehicle_options={source_game_variant_get(variant,81),source_game_variant_get(variant,82)};
+  const auto &turrets=out.turret_vehicle_options;
+  for(const auto choice:turrets)if(choice<0 || choice>6 || choice==5)
+    throw FormatError("Random or invalid Turret choice needs its original per-birth RNG/template owner");
   const auto &light=out.light_vehicle_options;
   for(const auto &row:out.netgame_equipment)if(row.classification==1 || row.classification==2) {
     const auto choice=light[row.classification-1];
@@ -1322,7 +1344,8 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
   }
   std::array<std::uint32_t,2> heavy_choices{null_datum,null_datum};
   std::array<std::uint32_t,7> vehicle_choices{};vehicle_choices.fill(null_datum);
-  if(multiplayer && (heavy || light[0] || light[1])) {
+  std::array<std::uint32_t,4> turret_choices{};turret_choices.fill(null_datum);
+  if(multiplayer && (heavy || light[0] || light[1] || turrets[0] || turrets[1])) {
     if(heavy && heavy!=1 && heavy!=2 && heavy!=4)
       throw FormatError("Random Primary Heavy Vehicle needs its original per-birth RNG/template owner");
     // Literal TU1.5 15CC70 uses matg+16C -> mulg+C -> runtime+74.
@@ -1340,6 +1363,14 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     if(light[0] || light[1]) {
       if(choices.count<vehicle_choices.size())throw FormatError("Missing original light-vehicle choices");
       for(unsigned i=0;i<vehicle_choices.size();++i)vehicle_choices[i]=data.u32(choices.offset+i*8+4);
+    }
+    if(turrets[0] || turrets[1]) {
+      // Untouched English TU1.5 15CDF0 choices1..4 load these exact
+      // mulg runtime vehicle references, then write variant0. Absent
+      // authored references remain NONE, just as the original selector.
+      if(choices.count<11)throw FormatError("Missing original turret choices");
+      constexpr std::array<unsigned,4> indices{7u,9u,8u,10u};
+      for(unsigned n=0;n<indices.size();++n)turret_choices[n]=data.u32(choices.offset+indices[n]*8u+4u);
     }
   }
   for(unsigned row_index=0;row_index<out.netgame_equipment.size();++row_index){const auto &row=out.netgame_equipment[row_index];
@@ -1364,6 +1395,11 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
         case 7:definition=null_datum;break;
         default:throw FormatError("Unresolved original light-vehicle choice");
       }
+    }
+    if(multiplayer && (row.classification==6 || row.classification==7)) {
+      const auto choice=turrets[row.classification-6];
+      if(choice>=1 && choice<=4) {definition=turret_choices[unsigned(choice-1)];selected_variant=0;}
+      else if(choice==6)definition=null_datum;
     }
     if(definition==null_datum)continue;
     ScenarioObject vehicle;

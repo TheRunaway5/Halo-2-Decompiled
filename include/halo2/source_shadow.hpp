@@ -140,6 +140,10 @@ float source_shadow_coverage(Vec3 center,float current_radius,
 // hierarchy in original traversal order, with current transformed centers and
 // radii. Opacity/fade are source runtime values, including camouflage/death/LOD.
 // Eligibility/PVS and source selection inputs remain the caller's responsibility.
+// Same projection tail after actual31F50/31F40 has produced the ordered
+// hierarchy extents. The fixed cone angle is a retained definition input.
+std::optional<SourceShadowFrame> source_shadow_frame_from_extents(ShadowCasterSphere root,
+    Vec2 extents,Vec3 shadow_direction,float cached_opacity,float runtime_fade,float cone_angle);
 std::optional<SourceShadowFrame> source_shadow_frame(ShadowCasterSphere root,
     std::span<const ShadowCasterSphere> hierarchy,Vec3 shadow_direction,
     float cached_opacity,float runtime_fade);

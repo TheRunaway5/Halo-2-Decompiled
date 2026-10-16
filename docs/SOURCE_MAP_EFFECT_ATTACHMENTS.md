@@ -25,12 +25,15 @@ an attachment is admitted, including cyclic graphs. Missing child systems do
 not silently turn a partial graph into a prepared attachment.
 
 The Xbox 21-map cache bank contains 96 relevant authored attachments. The
-current resource test prepares **91** graphs: 83 native visual graphs and eight
-pure damage graphs owned by the original simulation. It starts 66 initial
-unnamed visual attachments. It checks
+current resource test prepares **93** complete graphs: 85 native visual graphs
+and eight pure damage graphs owned by the original simulation. It starts 69
+initial native attachments, including the supported components of Elongation's
+explicitly incomplete spark/lens graph. It checks
 180 simulation ticks, duplicate synchronization, repeated views, immediate
 retirement and salted recreation, using declared bind WORLD inputs. The summed
-particle peaks are 2,716. Warlock's 12 attachments and Deltatap's nine now
+particle peaks are 2,908. [The original marker-alias fix](SOURCE_MAP_EFFECT_MARKERS_TU15.md)
+restores Elongation's spark, steam and fire emission without counting its lens
+graph as complete. Warlock's 12 attachments and Deltatap's nine now
 all prepare and start, with particle peaks of 492 and 203. Foundation's four actual HVAC attachments produce a
 197-particle peak. This test does not establish current original animation,
 spatial/PVS eligibility, factory scheduling or network history. The named
@@ -270,6 +273,9 @@ train allocations. The separate live test establishes the original owner.
 The evidence is in `analysis/map-world-features/nonvisual-continuation-20261014/`.
 Declared target placement proves the actual damage call, not player-driven
 traversal, full train motion/riding/crushing, network/reset or Xbox acceptance.
-Elongation's rejected part is `lens`, not a gameplay damage part. `17D730`
-returns for that group; whether a separate original render owner consumes it
-remains unproven. Its admission stays guarded rather than inventing a flare.
+Elongation's incomplete part is `lens`, not a gameplay damage part. `17D730`
+returns for that group; the separate original `17C710` lens request branch consumes
+it through `3E9B0/2DB80`. [The marker continuation](SOURCE_MAP_EFFECT_MARKERS_TU15.md)
+starts the graph's supported authored components and records the recovered
+render-side calls. Complete native lens queue and graphics ownership remain
+unimplemented, and the graph remains outside the fully prepared count.

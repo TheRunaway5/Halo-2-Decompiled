@@ -251,7 +251,7 @@ def main():
     parser.add_argument("--xbe", type=Path, required=True)
     parser.add_argument("--ui", type=Path, required=True)
     parser.add_argument("--map", type=Path, help="Explicit original map for authored placement cases")
-    parser.add_argument("--scenario", action="append", choices=["movement", "objects", "lift", "vehicle", "lan-movement", "lan-lift", "lan-vehicle", "lan-objects"])
+    parser.add_argument("--scenario", action="append", choices=["movement", "objects", "lift", "vehicle", "lan-movement", "lan-lift", "lan-vehicle", "lan-objects", "lan-campaign"])
     parser.add_argument("--record", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--visible-mirror-display", help="Desktop displaying an unaltered live mirror when input is isolated")
     parser.add_argument("--mirror-process-info", type=Path, help="Owned live capture/player process metadata")

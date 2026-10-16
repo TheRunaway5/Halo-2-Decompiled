@@ -144,6 +144,33 @@ unsigned controls() {
     }
   }
   {
+    // TU1.5 44360/495D0 ->49690 ->329A4/496E0 ->329B7/15350.
+    // Apply must retain the completed generation teardown's zero offset and
+    // disabled stencil, including marked/special receiver entries. Each
+    // SetViewport consumes its own actual source surface and scale inputs.
+    auto shadow=prepared();shadow.viewport_reset({128,128});shadow.shadow_begin();
+    rejects([&]{shadow.layer_begin(MenuWorldRasterLayer::shadow_apply_11);},count);
+    shadow.layer_begin(MenuWorldRasterLayer::shadow_10);shadow.entry_begin(ordinary);
+    auto generate=input();generate.depth_stencil_surface_bound=false;
+    generate.surface_scale=std::array<std::int32_t,2>{2,1};
+    const auto caster=shadow.snapshot(generate);
+    require(offset(caster)==std::array<std::uint32_t,2>{0x40000000,0x44098000} &&
+        !caster.stencil.enabled && caster.source_stencil_mode==0 &&
+        caster.regions[0]==std::array<std::int32_t,4>{0,0,258,129},
+        "source shadow generation lost its actual offset/surface/scale");
+    shadow.entry_end();shadow.shadow_end();shadow.viewport_reset({960,540});
+    shadow.layer_begin(MenuWorldRasterLayer::shadow_apply_11);
+    for(const auto entry:std::array<MenuWorldRasterEntryInput,3>{ordinary,
+        MenuWorldRasterEntryInput{true,false,false},MenuWorldRasterEntryInput{false,true,true}}) {
+      shadow.entry_begin(entry);const auto receiver=shadow.snapshot(input());
+      require(offset(receiver)==std::array<std::uint32_t,2>{0,0} &&
+          !receiver.stencil.enabled && receiver.source_stencil_mode==0 &&
+          receiver.regions[0]==std::array<std::int32_t,4>{0,0,961,541},
+          "source shadow Apply changed teardown/disabled-stencil/window state");
+      shadow.entry_end();
+    }
+  }
+  {
     MenuWorldRasterContext disabled;disabled.viewport_reset({640,480});disabled.game_initialize_offset();
     disabled.layer_begin(MenuWorldRasterLayer::planar_fog_16);disabled.entry_begin(ordinary);
     const auto packet=disabled.snapshot(input());

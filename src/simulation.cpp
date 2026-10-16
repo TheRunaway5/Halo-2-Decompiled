@@ -1,4 +1,5 @@
 #include "halo2/simulation.hpp"
+#include "halo2/frontend_model_lighting.hpp"
 #include "halo2/render_interpolation.hpp"
 #include "halo2/inventory.hpp"
 #include "halo2/unit_damage.hpp"
@@ -8,6 +9,13 @@
 #include "halo2/native_weapon_inventory.hpp"
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/weapon_hand_feedback.hpp"
+#include "halo2/campaign_source_runtime.hpp"
+#include "halo2/source_campaign_cinematic_tu15.hpp"
+#include "halo2/source_campaign_camera_tu15.hpp"
+#include "halo2/source_campaign_screen_tu15.hpp"
+#include "halo2/source_object_functions_tu15.hpp"
+#include "halo2/source_unit_cinematic_tu15.hpp"
+#include "halo2/source_script_effect_tu15.hpp"
 #include "simulation_world.hpp"
 #include "native_heap_reclaim.hpp"
 #include <iomanip>
@@ -35,8 +43,14 @@ void Simulation::replicate_source_scene(std::span<const SourceSceneRoot> roots,
     std::span<const SourceWorldPose> poses) {
   NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   if(source_physics_movement_)throw FormatError("Source authority cannot consume replica scene poses");
+  const bool first=!scene_.source_replica();
   scene_.adopt_source_replicas(roots,poses);
-  synchronize_props();
+  if(first) {
+    // Startup handles belonged to a different allocator. Rebuild derived
+    // collision/region owners from the accepted authoritative identities.
+    props_=PropSandbox(content_);scenery_collision_=StaticSceneryCollision(content_);
+  }
+  synchronize_props(first);
 }
 void Simulation::replicate_devices(const SourceDeviceWorldSnapshot &snapshot){
   NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
@@ -106,6 +120,7 @@ void Simulation::commit_bsp() {
     throw FormatError("campaign BSP loader unavailable");
   const auto target = *pending_bsp_;
   auto next = std::make_shared<BspWorld>(bsp_loader_(target));
+  if(source_campaign_)source_campaign_->switch_bsp(target);
   for (auto &actor : actors_) {
     actor.bsp_hidden = !scene_.retains(actor.bsp,int(target),center(actor));
     if (!actor.bsp_hidden) actor.bsp = int(target);
@@ -122,6 +137,7 @@ void Simulation::commit_bsp() {
   // The interpreter, globals and game clock remain live across a BSP change.
   world_ = std::move(next);
   bsp_ = target;
+  if(source_campaign_)source_campaign_->publish(*this);
   synchronize_props(true);
   player_.bsp = int(target);
   pending_bsp_.reset();
@@ -134,7 +150,7 @@ void Simulation::commit_bsp() {
 struct Simulation::SavedState {
   std::shared_ptr<const BspWorld> world;
   std::size_t bsp;
-  NativeObjectLifetimes object_lifetimes;
+  std::optional<NativeObjectLifetimes> object_lifetimes;
   SourceObjectBodyStorage object_bodies;
   SceneObjects scene;
   SourceDeviceWorld devices;
@@ -172,12 +188,52 @@ struct Simulation::SavedState {
   std::uint32_t next_script_list;
   std::optional<SourceHsListBank> multiplayer_script_lists;
   std::map<std::uint32_t,ObjectAnimation> object_animations;
+  std::optional<CampaignSourceRuntime::Checkpoint> source_campaign;
+  std::optional<CampaignCinematicState> cinematic_state;
 };
 void Simulation::request_checkpoint() {
   NativeAuthorityBoundary::Call active(authority_calls_);
   if (revert_pending_)
     throw FormatError("checkpoint requested during revert");
   ++authority_calls_.mutations;save_pending_ = true;
+}
+CampaignFrameTime Simulation::advance_frame_time(float seconds,bool paused) {
+  NativeAuthorityBoundary::Call active(authority_calls_);
+  auto &state=mutable_cinematic_state();
+  CampaignFrameClock clock(state.frame_fraction);
+  const auto result=clock.advance(seconds,presentation_.cinematic,paused);
+  ++authority_calls_.mutations;state.frame_fraction=result.fraction;return result;
+}
+float Simulation::frame_fraction()const {
+  const auto *state=cinematic_state();return state?state->frame_fraction:0.f;
+}
+void Simulation::cinematic_screen_consumer(bool ready) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  mutable_cinematic_state().screen_consumer=ready;
+}
+void Simulation::advance_cinematic_render_time(float seconds,int requested,int completed) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  auto &state=mutable_cinematic_state();
+  state.render_clock+=double(accepted_campaign_frame_elapsed(seconds,requested,completed));
+  if(source_campaign_) {
+    auto &world=source_campaign_->objects().tu15_world();
+    source_campaign_screen_clock_tu15(world.memory(),state.render_clock);
+    source_campaign_screen_update_tu15(world);
+    scene_.publish_source_function_samples(source_object_function_samples_tu15(world));
+    state.crossfade=source_campaign_crossfade_state_tu15(world.memory());
+  } else state.crossfade.update(state.render_clock);
+}
+CinematicCrossfadeFrame Simulation::cinematic_crossfade_frame()const {
+  if(source_campaign_)return source_campaign_crossfade_frame_tu15(source_campaign_->objects().memory());
+  const auto *state=cinematic_state();return state?state->crossfade.frame():CinematicCrossfadeFrame{};
+}
+void Simulation::cinematic_crossfade_capture_complete() {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  if(source_campaign_) {
+    auto &world=source_campaign_->objects().tu15_world();
+    source_campaign_screen_capture_complete_tu15(world);
+    mutable_cinematic_state().crossfade=source_campaign_crossfade_state_tu15(world.memory());
+  } else mutable_cinematic_state().crossfade.capture_complete();
 }
 void Simulation::request_revert() {
   NativeAuthorityBoundary::Call active(authority_calls_);
@@ -188,12 +244,14 @@ void Simulation::request_revert() {
 }
 void Simulation::capture_checkpoint() {
   checkpoint_ = std::make_shared<SavedState>(SavedState{
-      world_, bsp_, object_lifetimes_, object_bodies_, scene_, devices_, campaign_weapon_pickups_, vehicle_flips_, vehicle_rows_, props_, prop_removals_, presentation_, peace_, player_, actors_,
+      world_, bsp_, source_campaign_?std::optional<NativeObjectLifetimes>{}:std::optional(object_lifetimes_), object_bodies_, scene_, devices_, campaign_weapon_pickups_, vehicle_flips_, vehicle_rows_, props_, prop_removals_, presentation_, peace_, player_, actors_,
       scripts_->snapshot(), projectiles_, ticks_, shots_, hits_, player_pitch_,
       player_input_enabled_, cinematic_skip_enabled_, player_movement_disabled_,
       active_loops_, mission_segment_, random_state_, sound_classes_, objectives_,
       flashlights_allowed_, ambience_details_enabled_, suppress_ambience_rebuild_,
-      flashlights_changed_tick_,suppress_automatic_objects_,weather_record_,training_,subtitle_,titles_,ai_dialogue_enabled_,level_finished_,reset_requested_,impulse_clocks_,script_lists_,next_script_list_,multiplayer_script_lists_,object_animations_});
+      flashlights_changed_tick_,suppress_automatic_objects_,weather_record_,training_,subtitle_,titles_,ai_dialogue_enabled_,level_finished_,reset_requested_,impulse_clocks_,script_lists_,next_script_list_,multiplayer_script_lists_,object_animations_,
+      source_campaign_?std::optional(source_campaign_->checkpoint(object_lifetimes_)):std::nullopt,
+      cinematic_state()?std::optional(*cinematic_state()):std::nullopt});
   save_pending_ = false;
 }
 void Simulation::restore_checkpoint() {
@@ -206,7 +264,13 @@ void Simulation::restore_checkpoint() {
   }
   world_ = saved.world;
   pending_bsp_.reset();
-  object_lifetimes_=saved.object_lifetimes;
+  if(source_campaign_) {
+    if(!saved.source_campaign || saved.object_lifetimes)throw FormatError("Campaign checkpoint lost its source world ownership");
+    source_campaign_->restore(*saved.source_campaign,object_lifetimes_);
+  } else {
+    if(!saved.object_lifetimes || saved.source_campaign)throw FormatError("Campaign checkpoint changed its object authority");
+    object_lifetimes_=*saved.object_lifetimes;
+  }
   object_bodies_=saved.object_bodies;
   scene_.restore(saved.scene);
   devices_=saved.devices;
@@ -247,6 +311,16 @@ void Simulation::restore_checkpoint() {
   weather_record_ = saved.weather_record;
   training_=saved.training;
   object_animations_=saved.object_animations;
+  // Copy the value: the callable's shared service context is not a snapshot.
+  const auto *current_cinematic=cinematic_state();
+  const double render_clock=current_cinematic?current_cinematic->render_clock:0.;
+  const bool screen_consumer=current_cinematic && current_cinematic->screen_consumer;
+  if(saved.cinematic_state)mutable_cinematic_state()=*saved.cinematic_state;
+  else if(auto *adapter=animation_loader_.target<CinematicAnimationLoader>())adapter->state.reset();
+  if(saved.cinematic_state || screen_consumer || render_clock!=0) {
+    auto &state=mutable_cinematic_state();state.render_clock=render_clock;state.screen_consumer=screen_consumer;
+    if(source_campaign_)source_campaign_screen_clock_tu15(source_campaign_->objects().memory(),render_clock);
+  }
   subtitle_=saved.subtitle;titles_=saved.titles;ai_dialogue_enabled_=saved.ai_dialogue_enabled;level_finished_=saved.level_finished;reset_requested_=saved.reset_requested;
   impulse_clocks_=saved.impulse_clocks;
   script_lists_=saved.script_lists;next_script_list_=saved.next_script_list;
@@ -363,28 +437,36 @@ Simulation::Simulation(const LevelContent &content, std::size_t bsp,
                        BspLoader bsp_loader, Predictor predictor,
                        std::optional<SourceSceneGameContext> scene_game_context,
                        std::optional<NativeObjectLifetimes> object_lifetimes,
-                       SourceSceneObjectOwner source_scene_owner)
+                       SourceSceneObjectOwner source_scene_owner,std::shared_ptr<CampaignSourceRuntime> source_campaign)
     : Simulation(content,BspContent{content.collision,content.navigation},bsp,spawn,
         std::move(loader),std::move(bsp_loader),std::move(predictor),scene_game_context,
-        std::move(object_lifetimes),std::move(source_scene_owner)) {}
+        std::move(object_lifetimes),std::move(source_scene_owner),std::move(source_campaign)) {}
 Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
                        std::size_t bsp, Spawn spawn, Presentation::AnimationLoader loader,
                        BspLoader bsp_loader, Predictor predictor,
                        std::optional<SourceSceneGameContext> scene_game_context,
                        std::optional<NativeObjectLifetimes> object_lifetimes,
-                       SourceSceneObjectOwner source_scene_owner)
+                       SourceSceneObjectOwner source_scene_owner,std::shared_ptr<CampaignSourceRuntime> source_campaign)
     : content_(content), bsp_(bsp),
       world_(std::make_shared<BspWorld>(std::move(initial_geometry))),
       bsp_loader_(std::move(bsp_loader)), predictor_(std::move(predictor)),
-      object_lifetimes_(object_lifetimes ? std::move(*object_lifetimes) : NativeObjectLifetimes{}),
-      scene_(content,bsp,scene_game_context,{},&object_lifetimes_,std::move(source_scene_owner)),devices_(content),props_(content),scenery_collision_(content),
+      source_campaign_(std::move(source_campaign)),
+      object_lifetimes_(source_campaign_?source_campaign_->lifetimes():
+          object_lifetimes ? std::move(*object_lifetimes) : NativeObjectLifetimes{}),
+      scene_(content,bsp,source_campaign_?std::optional(SourceSceneGameContext{1,0}):scene_game_context,{},&object_lifetimes_,
+          source_campaign_?source_campaign_->scene_owner(content):std::move(source_scene_owner)),devices_(content),props_(content),scenery_collision_(content),
       presentation_(content, loader),animation_loader_(std::move(loader)) {
   allocate_object_=[this](std::uint8_t type){return object_lifetimes_.reserve(type);};
   publish_object_=[this](std::uint32_t handle,std::uint32_t definition){object_lifetimes_.publish_native(handle,definition);};
   release_object_=[this](std::uint32_t handle){object_lifetimes_.release(handle);};
+  if(source_campaign_) {
+    source_physics_movement_=multiplayer_weapon_steps_=true;
+    source_vehicle_seat_query_=[this](auto unit,auto vehicle){return source_campaign_->objects().vehicle_seat_target(unit,vehicle);};
+    source_device_script_=[this](const auto &name,const auto &arguments){return source_campaign_->objects().script_device(name,arguments);};
+  }
   for (int i = 0; i < 16; ++i)
     peace_[i][i] = true;
-  peace_[1][2] = peace_[2][1] = true;
+  if(!source_campaign_)peace_[1][2] = peace_[2][1] = true;
   if (content.player.datum == null_datum || content.player.radius <= 0 ||
       content.player.height < 2 * content.player.radius)
     throw FormatError("selected map has no supported player biped");
@@ -422,6 +504,7 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
         [this]{if(multiplayer_script_lists_){auto roots=scripts_->object_list_roots();std::erase(roots,0x80000000u);multiplayer_script_lists_->roots(roots);return multiplayer_script_lists_->allocate();}if(script_lists_.size()>=65536 || next_script_list_==null_datum)throw FormatError("Native script list bank exhausted");const auto id=next_script_list_++;script_lists_.emplace(id,std::vector<std::uint32_t>{});return id;},
         [this](std::uint32_t list,std::uint32_t object){if(multiplayer_script_lists_)multiplayer_script_lists_->append(list,object);else{(void)object_center(object);script_lists_.at(list).push_back(object);}}});
   scripts_->set_random_choice([this](unsigned count,std::uint32_t visited) {
+    if(source_campaign_)return source_campaign_->random_choice(count,visited);
     return source_hs_begin_random(random_state_,count,visited);
   });
   scripts_->command_ready([this](std::uint32_t actor){return !script_unit(actor).command.goal.has_value();});
@@ -431,6 +514,7 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
 }
 void Simulation::respawn(Spawn spawn) {
   NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  if(source_campaign_){source_campaign_->respawn(*this,spawn);return;}
   const auto equipped = player_.weapon.definition;
   if(!content_.multiplayer_spawn)
     for(const auto handle:player_.source_inventory.slots)if(handle!=null_datum) {
@@ -458,10 +542,23 @@ void Simulation::respawn(Spawn spawn) {
            content_.weapons.contains(content_.starting_weapon))
     equip(content_.starting_weapon);
 }
+void Simulation::set_team_allegiance(int a,int b,bool allied) {
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  if(a<0 || b<0 || a>=16 || b>=16)throw FormatError("team outside allegiance table");
+  if(source_campaign_)source_campaign_->set_team_allegiance(std::int16_t(a),std::int16_t(b),allied);
+  peace_[a][b]=peace_[b][a]=allied;
+}
+void Simulation::set_difficulty(unsigned value) {
+  if(value>3)throw FormatError("invalid campaign difficulty");
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  if(source_campaign_)source_campaign_->set_difficulty(value);
+  difficulty_=value;
+}
 void Simulation::equip(std::uint32_t id) {
   NativeAuthorityBoundary::Call active(authority_calls_);
   const auto &weapon = content_.weapons.at(id);
   ++authority_calls_.mutations;
+  if(source_campaign_){source_campaign_->equip(*this,id);return;}
   if(!content_.multiplayer_spawn)equip_inventory(player_,id);
   else player_.weapon = {id, weapon.capacity, std::max(0, weapon.reserve), 0, 0, 0};
 }
@@ -473,6 +570,7 @@ std::size_t Simulation::place_squad(const std::string &name) {
   if (found == content_.squads.end())
     throw FormatError("squad not found: " + name);
   const auto index = std::size_t(found - content_.squads.begin());
+  if(source_campaign_)return source_campaign_->place_squad(*this,index);
   if (found->bsp >= 0 && std::size_t(found->bsp) != bsp_)
     return 0;
   if (std::any_of(actors_.begin(), actors_.end(), [&](const auto &a) {
@@ -533,6 +631,15 @@ Vec3 Simulation::object_center(std::uint32_t handle)const {
   };
   if(handle==0)return unit_center(player_);
   for(const auto &actor:actors_)if(actor.exists && actor.source_datum==handle)return unit_center(actor);
+  const auto *animation=object_animation(handle);
+  const auto *cinematic=cinematic_state();
+  if((animation && animation->channel) || (cinematic && cinematic->attachments.contains(handle))) {
+    const auto &object=scene_.get(handle);
+    if(object.solved_nodes && !object.solved_nodes->empty()) {
+      const auto &node=object.solved_nodes->front();const auto offset=content_.objects.at(object.placement).bounding_offset;
+      return node.position+(node.basis[0]*offset.x+node.basis[1]*offset.y+node.basis[2]*offset.z)*node.scale;
+    }
+  }
   return scene_.center(handle);
 }
 std::vector<std::uint32_t> Simulation::script_objects(std::uint32_t list)const {
@@ -1021,6 +1128,8 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
   if (it == content_.weapons.end())
     return;
   const auto &w = it->second;
+  if(w.source_runtime_only)
+    throw FormatError("Authored item gameplay requires the retained source runtime");
   if(state.ready_clock)source_weapon_ready_tick(state.shader,state.ready_countdown);
   else if(multiplayer_weapon_steps_ && (w.smg || w.barrel_timing))
     state.shader.weapon_flags|=0x20u; // Recovered constructor's zero19E arms on first update.
@@ -1628,6 +1737,7 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
     return;
   }
   devices_.synchronize(scene_);
+  step_cinematic_object_animations();
   step_devices();
   for(auto event:devices_.take_events()){
     event.serial=++device_event_serial_;event.tick=ticks_+1;
@@ -1717,7 +1827,8 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
     input.yaw = player_.yaw;
     input.pitch = player_pitch_;
   }
-  step_unit_interactions(input);
+  if(source_campaign_)source_campaign_->step(*this,input);
+  else step_unit_interactions(input);
   if (player_.exists && !player_.vitality.dead) {
     if(player_.source_parent!=null_datum) {}
     else if (debug_settings_.players[0].noclip || !(player_.definition.physics_flags & 8)) {
@@ -1735,12 +1846,13 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
                 input.jump, input.crouch);
     }
     update_weapon(player_, input.fire, input.reload, -1, input.pitch,&input);
-    if(participants.empty())step_campaign_pickups(input);
+    if(participants.empty() && !source_campaign_)step_campaign_pickups(input);
 
     if(native_hand_weapon(player_,1))
       update_weapon(player_,input.fire_secondary,input.reload,-1,input.pitch,&input,1);
   }
   for (std::size_t i = 0; i < actors_.size(); ++i) {
+    if(source_campaign_)break; // The retained original actor/object phase already ran.
     auto &a = actors_[i];
     if(a.source_parent!=null_datum) {
       // A controlled passenger/driver still supplies camera look input.
@@ -1844,12 +1956,13 @@ void Simulation::step_impl(const Controls &controls,std::span<const Controls> pa
     };
     passive(player_);for(auto &unit:actors_)passive(unit);
   }
-  if (multiplayer_weapon_steps_) {
+  // The original source object phase owns pending weapon dispatch too.
+  if (multiplayer_weapon_steps_ && !source_physics_movement_ && !source_campaign_) {
     auto dispatch = [&](Unit &u, int owner, float pitch) {
       if (!u.exists || u.vitality.dead) return;
       for(unsigned hand=0;hand<2;++hand) {
         auto *state=hand?native_hand_weapon(u,hand):&u.weapon;
-        if(!state)continue;
+        if(!state || state->definition==null_datum)continue;
         const auto &weapon=content_.weapons.at(state->definition);
         if(!weapon.smg) {
           if(weapon.charged_cycle) {
@@ -1982,6 +2095,91 @@ ScriptValue Simulation::host(const std::string &name,
     if (args.size() != count)
       throw FormatError("invalid " + name + " arity");
   };
+  if(name=="cinematic_lighting_set_primary_light" || name=="cinematic_lighting_set_secondary_light") {
+    arity(5);const Vec3 color{float(args[2].number()),float(args[3].number()),float(args[4].number())};
+    auto &lighting=mutable_cinematic_state().lighting;
+    if(name=="cinematic_lighting_set_primary_light")
+      frontend_cinematic_primary(lighting,float(args[0].number()),float(args[1].number()),color);
+    else frontend_cinematic_secondary(lighting,float(args[0].number()),float(args[1].number()),color);
+    return {};
+  }
+  if(name=="cinematic_lighting_set_ambient_light") {
+    arity(3);frontend_cinematic_ambient(mutable_cinematic_state().lighting,
+        {float(args[0].number()),float(args[1].number()),float(args[2].number())});return {};
+  }
+  if(name=="object_uses_cinematic_lighting") {
+    arity(2);if(args[0].bits==null_datum)return {};
+    // The source selector changes bit24 on an actual live object. Validate
+    // the full handle before retaining the equivalent per-object admission.
+    (void)object_center(args[0].bits);
+    auto &objects=mutable_cinematic_state().lit_objects;
+    if(args[1].truth())objects.insert(args[0].bits);else objects.erase(args[0].bits);
+    return {};
+  }
+  if(name=="object_set_function_variable" || name=="object_clear_function_variable") {
+    arity(name=="object_set_function_variable"?4:2);
+    if(source_campaign_) {
+      auto &world=source_campaign_->objects().tu15_world();
+      const auto object=args[0].bits==0?player_.source_datum:args[0].bits;
+      if(name=="object_set_function_variable")source_object_function_set_tu15(world,object,args[1].bits,
+          float(args[2].number()),float(args[3].number()));
+      else source_object_function_clear_tu15(world,object,args[1].bits);
+      scene_.publish_source_function_samples(source_object_function_samples_tu15(world));return {};
+    }
+    if(name=="object_set_function_variable")scene_.set_function_variable(args[0].bits,args[1].bits,
+        float(args[2].number()),float(args[3].number()),int(ticks_));
+    else scene_.clear_function_variable(args[0].bits,args[1].bits);
+    return {};
+  }
+  if(name=="rasterizer_bloom_override" || name=="rasterizer_bloom_override_threshold" ||
+      name=="rasterizer_bloom_override_brightness") {
+    arity(1);auto &bloom=mutable_cinematic_state().bloom;
+    if(name=="rasterizer_bloom_override")bloom.enabled=args[0].truth();
+    else if(name=="rasterizer_bloom_override_threshold")bloom.threshold=float(args[0].number());
+    else bloom.brightness=float(args[0].number());
+    return {};
+  }
+  if(name=="cinematic_screen_effect_start") {
+    arity(1);auto &state=mutable_cinematic_state();
+    // The output bank is already zero until an implemented screen command
+    // creates an effect. Original start preserves the timed control bank.
+    if(source_campaign_) {
+      auto &memory=source_campaign_->objects().memory();source_campaign_screen_start_tu15(memory,args[0].truth());
+      state.crossfade=source_campaign_crossfade_state_tu15(memory);
+    } else state.crossfade.screen_start(args[0].truth());
+    state.screen_initialized=true;state.screen_active=true;return {};
+  }
+  if(name=="cinematic_screen_effect_set_crossfade" || name=="cinematic_screen_effect_set_crossfade2") {
+    arity(name=="cinematic_screen_effect_set_crossfade"?1:2);auto &state=mutable_cinematic_state();
+    if(!state.screen_consumer)throw FormatError("Cinematic crossfade requires its captured-frame GPU consumer");
+    const auto strength=args.size()==2?float(args[1].number()):1.f;
+    if(source_campaign_) {
+      auto &memory=source_campaign_->objects().memory();
+      source_campaign_crossfade_set_tu15(memory,float(args[0].number()),strength);
+      state.crossfade=source_campaign_crossfade_state_tu15(memory);
+    } else {state.crossfade.set(float(args[0].number()),state.render_clock);state.crossfade.strength=strength;}
+    return {};
+  }
+  if(name=="objects_attach") {
+    arity(4);attach_cinematic_objects(args[0].bits,args[1].bits,args[2].bits,args[3].bits);return {};
+  }
+  if(name=="effect_new_on_object_marker") {
+    arity(3);
+    if(args[0].bits==null_datum || args[1].bits==null_datum)return {};
+    if(!source_campaign_)
+      throw FormatError("Script marker effect requires its retained TU1.5 allocation and frame consumers");
+    source_script_marker_effect_tu15(source_campaign_->objects().tu15_world(),
+        args[0].bits,args[1].bits,args[2].bits);
+    return {};
+  }
+  if(name=="cinematic_screen_effect_stop") {
+    arity(0);auto &state=mutable_cinematic_state();
+    if(source_campaign_) {
+      auto &world=source_campaign_->objects().tu15_world();source_campaign_screen_stop_tu15(world);
+      state.crossfade=source_campaign_crossfade_state_tu15(world.memory());
+    } else state.crossfade.screen_stop();
+    state.screen_active=false;state.screen_initialized=false;return {};
+  }
   const auto ai_units=[&](const ScriptValue &value) {
     if(value.type!=19 || (value.bits!=null_datum && value.bits>>30))throw FormatError("Unsupported AI actor reference");
     std::vector<Unit *> units;
@@ -2087,11 +2285,39 @@ ScriptValue Simulation::host(const std::string &name,
     return {};
   }
   if(name=="unit_set_emotional_state") {
-    arity(4);if(args[0].bits==null_datum)return {};auto &unit=script_unit(args[0].bits);
+    arity(4);if(args[0].bits==null_datum)return {};
+    if(source_campaign_) {
+      source_unit_cinematic_emotion_tu15(source_campaign_->objects().tu15_world(),
+          args[0].bits==0?player_.source_datum:args[0].bits,args[1].bits,
+          float(args[2].number()),std::int16_t(args[3].bits));return {};
+    }
+    auto &unit=script_unit(args[0].bits);
     unit.emotional_state=args[1].bits;unit.emotional_weight=float(args[2].number());unit.emotional_transition=std::int16_t(args[3].bits);return {};
+  }
+  if(name=="scenery_animation_start" || name=="scenery_animation_start_loop" ||
+      name=="scenery_animation_start_relative" || name=="scenery_animation_start_relative_loop") {
+    const bool relative=name=="scenery_animation_start_relative" || name=="scenery_animation_start_relative_loop";
+    arity(relative?4:3);
+    start_cinematic_object_animation(args[0].bits,args[1].bits,args[2].bits,
+        relative?args[3].bits:null_datum,false,name.ends_with("_loop"),false);
+    return {};
+  }
+  if(name=="custom_animation_relative" || name=="custom_animation_relative_loop") {
+    arity(5);return ScriptValue::numeric(start_cinematic_object_animation(args[0].bits,args[1].bits,
+        args[2].bits,args[4].bits,true,name.ends_with("_loop"),args[3].truth()),5);
+  }
+  if(name=="scenery_get_animation_time" || name=="unit_get_custom_animation_time") {
+    arity(1);
+    if(source_campaign_)return ScriptValue::numeric(source_campaign_cinematic_animation_time_tu15(
+        source_campaign_->objects().tu15_world(),args[0].bits==0?player_.source_datum:args[0].bits,
+        name=="unit_get_custom_animation_time"),7);
+    const auto *animation=object_animation(args[0].bits);
+    return ScriptValue::numeric(animation && animation->channel?cinematic_animation_time(*animation->channel):0,7);
   }
   if(name=="custom_animation" || name=="custom_animation_loop") {
     arity(4);if(args[0].bits==null_datum)return ScriptValue::numeric(false,5);
+    if(source_campaign_)return ScriptValue::numeric(start_cinematic_object_animation(
+        args[0].bits,args[1].bits,args[2].bits,null_datum,true,name=="custom_animation_loop",args[3].truth()),5);
     if(!animation_loader_)throw FormatError("Actor custom animation has no source loader");
     auto clip=std::make_shared<const AnimationClip>(animation_loader_(args[1].bits,args[2].bits));
     if(!clip->frame_count)throw FormatError("Custom animation has no authored frames");
@@ -2197,6 +2423,8 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if (name == "object_cinematic_lod") {
     arity(2);
+    if(source_campaign_)source_campaign_cinematic_lod_tu15(
+        source_campaign_->objects().tu15_world(),args[0].bits,args[1].truth());
     if (args[0].bits != null_datum && args[0].bits != 0)
       scene_.get(args[0].bits).cinematic_lod=args[1].truth();
     // Current native admission uses highest LOD without distance fades.
@@ -2292,6 +2520,7 @@ ScriptValue Simulation::host(const std::string &name,
       name == "cinematic_skip_stop_internal") {
     arity(0);
     cinematic_skip_enabled_ = name == "cinematic_skip_start_internal";
+    if(!cinematic_skip_enabled_ && cinematic_state())mutable_cinematic_state().awaiting_camera=false;
     return {};
   }
   if(name=="game_safe_to_save") {
@@ -2309,6 +2538,7 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if (name == "game_save_cinematic_skip") {
     arity(0);
+    if(!presentation_.cinematic && !presentation_.scripted)mutable_cinematic_state().awaiting_camera=true;
     request_checkpoint();
     return {};
   }
@@ -2331,6 +2561,12 @@ ScriptValue Simulation::host(const std::string &name,
     // native residency changes or stand in for unimplemented prediction.
     return {};
   }
+  if (name == "time_code_reset") {
+    // Retail 2AB130 / TU1.5 2AC980 only complete the HS call with void.
+    // The release evaluator has no timer, game-clock or camera side effect.
+    arity(0);
+    return {};
+  }
   if (name == "data_mine_set_mission_segment") {
     arity(1);
     if (args[0].type != 9)
@@ -2345,13 +2581,21 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if (name == "camera_control") {
     arity(1);
+    if(source_campaign_)source_campaign_camera_control_tu15(
+        source_campaign_->objects().tu15_world(),args[0].truth());
     presentation_.control(args[0].truth(), {eye(player_), player_.yaw, 0});
+    if(args[0].truth() && cinematic_state())mutable_cinematic_state().awaiting_camera=false;
     return {};
   }
   if (name == "cinematic_start" || name == "cinematic_stop") {
     arity(0);
+    if(source_campaign_)source_campaign_cinematic_control_tu15(
+        source_campaign_->objects().tu15_world(),name=="cinematic_start");
     presentation_.cinematic_control(name == "cinematic_start");
-    if (name == "cinematic_start") ambience_details_enabled_=true;
+    if (name == "cinematic_start") {
+      ambience_details_enabled_=true;
+      if(cinematic_state())mutable_cinematic_state().awaiting_camera=false;
+    }
     return {};
   }
   if(name=="cinematic_outro_start") {
@@ -2379,6 +2623,8 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if (name == "camera_set_field_of_view") {
     arity(2);
+    if(source_campaign_)source_campaign_camera_field_of_view_tu15(
+        source_campaign_->objects().tu15_world(),float(args[0].number()),std::int16_t(args[1].bits));
     presentation_.field_of_view(float(args[0].number()), int(args[1].number()));
     return {};
   }
@@ -2393,6 +2639,9 @@ ScriptValue Simulation::host(const std::string &name,
     arity(name == "camera_set_animation_relative" ? 4 : 2);
     if (args.size() == 4 && args[2].bits != null_datum)
       throw FormatError("object-relative animated camera unsupported");
+    if(source_campaign_)source_campaign_camera_animation_tu15(
+        source_campaign_->objects().tu15_world(),args[0].bits,args[1].bits,
+        args.size()==4?args[2].bits:null_datum,args.size()==4?std::int16_t(args[3].bits):-1);
     presentation_.camera_animation(args[0].bits, args[1].bits,
                                    args.size() == 4 ? std::int16_t(args[3].bits)
                                                     : -1);
@@ -2400,6 +2649,8 @@ ScriptValue Simulation::host(const std::string &name,
   }
   if (name == "camera_time") {
     arity(0);
+    if(source_campaign_)return ScriptValue::numeric(source_campaign_camera_time_tu15(
+        source_campaign_->objects().tu15_world()),7);
     return ScriptValue::numeric(presentation_.camera_time(), 7);
   }
   if (name == "object_create" || name == "object_create_anew") {
@@ -2460,6 +2711,8 @@ ScriptValue Simulation::host(const std::string &name,
     if (flag < 0 || std::size_t(flag) >= content_.cutscene_flags.size())
       throw FormatError("invalid teleport flag");
     const auto &f = content_.cutscene_flags[flag];
+    if(source_campaign_ && args[0].bits!=null_datum)
+      source_campaign_->objects().tu15_world().set_object_position(args[0].bits==0?player_.source_datum:args[0].bits,f.position);
     if (args[0].bits == 0) {
       player_.body.position = f.position;
       player_.body.velocity = {};
@@ -2498,6 +2751,13 @@ ScriptValue Simulation::host(const std::string &name,
         return objects;
       },[&](auto object){return scene_.contains(v,object_center(object));}});
     return {31,list,{}};
+  }
+  if(source_campaign_ && (name=="kill_volume_enable" || name=="kill_volume_disable")) {
+    arity(1);
+    if(args[0].type!=13)throw FormatError("Invalid kill-volume trigger reference");
+    const auto trigger=std::bit_cast<std::int16_t>(std::uint16_t(args[0].bits));
+    source_campaign_->set_kill_volume_enabled(trigger,name=="kill_volume_enable");
+    return {};
   }
   if (name == "volume_test_object" || name == "volume_test_objects" ||
       name == "volume_test_objects_all") {
@@ -2560,7 +2820,18 @@ ScriptValue Simulation::host(const std::string &name,
     const int a = int(args[0].number()), b = int(args[1].number());
     if (a < 0 || b < 0 || a >= 16 || b >= 16)
       throw FormatError("team outside allegiance table");
-    peace_[a][b] = peace_[b][a] = name == "ai_allegiance";
+    set_team_allegiance(a,b,name == "ai_allegiance");
+    return {};
+  }
+  if (name == "ai_place" && source_campaign_) {
+    // TU1.5 definitions 290/291: void(AI) and void(AI, SHORT). Preserve
+    // NONE, packed references and nonpositive counts for the original owner.
+    if((args.size()!=1 && args.size()!=2) || args[0].type!=19 ||
+        (args.size()==2 && args[1].type!=7))
+      throw FormatError("invalid source ai_place overload");
+    std::optional<std::int16_t> count;
+    if(args.size()==2)count=std::bit_cast<std::int16_t>(std::uint16_t(args[1].bits));
+    source_campaign_->place_ai(*this,args[0].bits,count);
     return {};
   }
   if (name == "ai_place" || name == "ai_erase") {
@@ -2745,6 +3016,11 @@ std::string Simulation::status() const {
       << " script_faults=" << scripts_->diagnostics().size();
   out << " checkpoint=" << bool(checkpoint_)
       << " reverts=" << checkpoint_restores_;
+  if(const auto *state=cinematic_state();state && state->screen_active)
+    out << " cinematic_clock=" << state->render_clock
+        << " crossfade_pending=" << state->crossfade.pending
+        << " crossfade_capture=" << state->crossfade.capture
+        << " crossfade_alpha=" << state->crossfade.alpha;
   return out.str();
 }
 } // namespace halo2

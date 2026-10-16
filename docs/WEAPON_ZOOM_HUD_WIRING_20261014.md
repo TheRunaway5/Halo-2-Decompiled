@@ -1,5 +1,7 @@
 # Weapon zoom HUD and crosshair wiring
 
+Current wiring and final verification: [the completed October15 report](WEAPON_HUD_WIRING_COMPLETE_20261015.md). The results below retain the earlier delivery evidence.
+
 The rebuilt runtime connects authored weapon optics and binocular selectors to
 the unit, per-view camera, HUD conditions and imported artwork. The ordinary
 gameplay presentation previously restricted zoom to the SMG. The TU1.5 command
@@ -59,6 +61,10 @@ The original one/two-level power endpoints are implemented; unsupported authored
 counts above two still retain an explicit unavailable general-power boundary.
 
 ## Scope and delivery
+
+Vehicle weapon/seat ownership and later launcher delivery are continued in
+[the October15 report](WEAPON_VEHICLE_HUD_WIRING_20261015.md). The results below
+describe the original October14 verification run.
 
 The tested executable is `build-weapon-zoom-hud-20261014/halo2_native`. The normal
 launchers currently select the separate MCC-native package, whose own launcher

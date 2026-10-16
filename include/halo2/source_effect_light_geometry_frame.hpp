@@ -21,6 +21,11 @@ struct SourceEffectLightGeometryFrameWorld {
     std::function<SourceCullDrawBanks(unsigned,const SourceCullDrawUnit&)> cull_bank;
     std::function<void(SourceBspPartCommandState&,std::uint32_t)> object_commands;
     SourceOpaqueGeometryService opaque_geometry;
+    // Complete secondary40E80 owner, after cull. When present it replaces the
+    // typed command reset/attachment/geometry producer as one operation.
+    std::function<void(SourceBspPartCommandState&,const SourceDrawUnitState&,
+        const SourceBspAdmission&,const SourceBspPartCommandContext&,
+        std::uint32_t)> complete_commands;
 };
 enum class SourceEffectLightGeometryFramePhase {collected,culled};
 using SourceEffectLightGeometryFrameObserver=std::function<void(

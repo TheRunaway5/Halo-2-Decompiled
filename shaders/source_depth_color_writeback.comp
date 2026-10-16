@@ -1,0 +1,22 @@
+#version 450
+layout(local_size_x=64) in;
+layout(set=0,binding=0,std430) writeonly buffer Depth { uint words[]; } depth;
+layout(set=0,binding=1,std430) writeonly buffer Stencil { uint words[]; } stencil;
+layout(set=0,binding=2,rgba8ui) readonly uniform uimage2D alias_image;
+layout(push_constant) uniform Extent { uint width; uint height; } extent;
+void main() {
+    uint count=extent.width*extent.height;
+    uint word_index=gl_GlobalInvocationID.x;
+    if(word_index>=count/4u+uint(count%4u!=0u)) return;
+    // One invocation owns a complete stencil word, including any tail. No
+    // atomics or competing read/modify/write operations between pixels.
+    uint packed=0u;
+    for(uint lane=0u;lane<4u;++lane) {
+        uint i=word_index*4u+lane;
+        if(i>=count) break;
+        uvec4 bytes=imageLoad(alias_image,ivec2(i%extent.width,i/extent.width));
+        depth.words[i]=(bytes.a<<16u)|(bytes.r<<8u)|bytes.g;
+        packed|=bytes.b<<(lane*8u);
+    }
+    stencil.words[word_index]=packed;
+}

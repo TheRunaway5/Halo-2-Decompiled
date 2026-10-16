@@ -34,12 +34,23 @@ struct ValidatedAuthorityCut {
     AuthorityTransferContext context;
     AuthorityCutSeal seal;
 };
+inline constexpr std::uint32_t authority_feature_source_replay=1u;
+// Journal revision with actual native MatchState query/output validation.
+inline constexpr std::uint32_t authority_feature_source_state=2u;
+inline constexpr std::uint32_t authority_feature_source_camera=4u;
+inline constexpr std::uint32_t authority_feature_source_lens_query=8u;
+inline constexpr std::uint32_t authority_feature_source_lens_draw=16u;
+inline constexpr std::uint32_t authority_feature_source_particle_collision=32u;
+inline constexpr std::uint32_t authority_feature_source_projectile_contacts=64u;
 struct AuthorityTransferLimits {
     std::uint64_t maximum_bytes=64ull*1024*1024;
     std::uint64_t bytes_per_second=512ull*1024;
     std::uint64_t burst_bytes=16*1024;
     std::uint64_t retry_ms=250,offer_ms=500,idle_ms=15'000,lifetime_ms=300'000;
     unsigned window_chunks=64;
+    // Wire decoder capability only; never native-world readiness. Legacy
+    // maximum-only hellos advertise no replay support.
+    std::uint32_t features{};
 };
 // Reliable bounded application fragments over the room's existing authenticated
 // DTLS datagrams. receive() must get the transport-verified physical endpoint;
@@ -54,6 +65,7 @@ public:
     AuthorityTransferContext context()const;
     bool replace_context(const AuthorityTransferContext &expected,AuthorityTransferContext next);
     bool supported(unsigned peer)const;
+    bool feature_supported(unsigned peer,std::uint32_t feature)const;
     AuthorityCutSeal publish(const AuthorityTransferContext &expected,std::uint64_t tick,
         std::vector<std::byte> archive,std::span<const unsigned> targets,std::uint64_t now_ms);
     std::vector<AuthorityTransferPacket> poll(std::uint64_t now_ms,unsigned packet_budget=4);

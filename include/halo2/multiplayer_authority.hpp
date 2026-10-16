@@ -8,7 +8,7 @@ namespace halo2 {
 // Local presentation roster/definitions must match before preparing; moving
 // authority to a PC with different local views still needs a session rebind.
 struct MultiplayerMatch::AuthorityCheckpoint {
-  std::uint32_t version=1,service_roles{};
+  std::uint32_t version=2,service_roles{},logical_result_seconds{};
   AuthorityDigest admitted_binding{},configuration_binding{};
   bool source_backed{};
   std::optional<DatumPool> owned_players;

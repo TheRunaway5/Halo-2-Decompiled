@@ -138,7 +138,9 @@ CameraFixture camera(Vec3 eye,unsigned players,unsigned index){
 struct Submission {std::vector<Vertex> vertices;std::vector<ObjectLightingBinding> bindings;std::vector<SourceObjectViewSelection> draws;};
 struct Stats {unsigned owners{},baked{},dynamic{},views{},parts{},lower{},high{},empty_geometry{},suppressed_parts{},banks{},different_views{},baked_vertices{};};
 Stats verify(const std::filesystem::path&path,const Literal&literal){
-    Cache cache(path);const auto name=cache.name();const auto content=cache.load_content(0,true);
+    Cache cache(path);const auto name=cache.name();auto content=cache.load_content(0,true);
+    // The untouched 274-owner corpus describes automatic initial MP2 owners.
+    for(auto &o:content.objects)if(o.type==6 && (!scenery_automatic_creation_allowed(o,2) || o.origin_bsp>0))o.definition=null_datum;
     const auto lighting=cache.load_bsp_lighting(0);CollisionWorld collision(content.collision);
     std::map<std::size_t,const RawOwner*> owners;std::map<std::size_t,const Cold*> cold;
     std::map<std::size_t,SourceInitialModelSelection> selections;std::map<std::size_t,ObjectColors> colors;
@@ -173,7 +175,7 @@ Stats verify(const std::filesystem::path&path,const Literal&literal){
     Mesh mesh;SourceSceneryScene scene(cache,content.objects,0,mesh,collision,{},
         [&](std::size_t i,const ScenarioObject&o){require(!owners.contains(i)&&name=="zanzibar"&&o.placement>=19&&o.placement<=22,
             "resolved owner escaped through omission service");return true;});
-    SceneObjects objects(content,0);scene.synchronize(objects);std::map<std::size_t,unsigned> reads;
+    SceneObjects objects(content,0,SourceSceneGameContext{2,2});scene.synchronize(objects);std::map<std::size_t,unsigned> reads;
     scene.animation_frame([&](std::size_t i,std::uint32_t handle,std::uint64_t born,std::uint64_t tick,const AnimationClip&clip){
         require(objects.get(handle).placement==i&&born==0&&tick==0&&clip.frame_count>1,"SCEN explicit cold controller frame lost source owner");return 0.f;});
     scene.lighting_query_state([&](std::size_t i,std::uint32_t handle,const Transform&node,float scale){

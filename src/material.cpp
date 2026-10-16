@@ -172,7 +172,7 @@ Material Cache::load_material(std::uint32_t datum, bool hud) const {
   auto tag = [&](std::uint32_t id, const char *group) -> const Tag & {
     const auto* it = find_tag({id});
     if (!it || it->group != group || !it->address)
-      throw FormatError(std::string("missing ") + group + " tag");
+      throw FormatError(std::string("missing ") + group + " tag: datum="+std::to_string(id)+" shader="+std::to_string(datum)+" hud="+std::to_string(hud));
     return *it;
   };
   const auto &shad = tag(datum, "shad");

@@ -133,6 +133,9 @@ struct Vertex {
     // Immediate source attribute11 alpha, used only by the explicit simple
     // world color adapter. Existing model/BSP programs retain uniform v11.
     float source_color_alpha=1;
+    // Literal raw72-byte part+0/+2, retained only as CPU provenance. Posing
+    // and material selection must preserve these independently of shader LOD.
+    std::uint16_t source_part_type=0xffffu,source_part_flags{};
 };
 struct TextureMip { std::uint32_t width{}, height{}; std::size_t offset{}, size{}; std::uint32_t depth=1; };
 struct Texture {
@@ -444,6 +447,9 @@ public:
     LoopingSound load_looping_sound(std::uint32_t datum) const;
     MultiplayerAudioBsp load_multiplayer_audio_bsp(std::size_t bsp) const;
     RenderModel load_model(std::uint32_t datum, bool textures = true, std::uint32_t variant = 0) const;
+    // Actual model-order bind hierarchy, without geometry/material resources.
+    // Cinematic anchors and posed marker/query owners consume this same bank.
+    RenderModel load_model_hierarchy(std::uint32_t datum) const;
     RenderModel load_model(std::uint32_t datum, bool textures, std::uint32_t variant,
                            const SourceInitialModelSelection& selected) const;
     // Resident source4C2B0 sections at the explicit authored LOD0..5. Region
@@ -555,6 +561,7 @@ public:
     std::optional<FrontendModelGrip> load_frontend_model_grip(std::uint32_t unit) const;
     std::array<std::uint32_t,8> load_frontend_model_deferred_mask(std::uint32_t unit) const;
     AnimationClip load_named_animation(std::uint32_t datum, std::uint32_t name) const;
+    std::optional<unsigned> find_local_animation_index(std::uint32_t graph,std::uint32_t name) const;
     // 1CB0D0's initialized default action, followed by the type6 SCEN
     // 10A3F0 named-idle override. Missing idle/NONE graph or incompatible
     // node count returns null; bad metadata
@@ -588,9 +595,12 @@ public:
     std::string string_id(std::uint32_t id) const;
     FrontendContent load_frontend() const;
     HudContent load_hud(std::uint32_t biped, std::uint32_t weapon) const;
+    HudContent load_hud_definition(std::uint32_t biped,std::uint32_t hud_definition) const;
+    std::vector<std::uint32_t> load_unit_seat_huds(std::uint32_t unit) const;
     FullScoreboardAssets load_full_scoreboard_assets() const;
     std::string describe() const;
 private:
+    HudContent load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_t hud_definition) const;
     RenderModel load_model_with_initial_selection(std::uint32_t datum, bool textures,
         std::uint32_t variant, const SourceInitialModelSelection* selected,
         std::optional<unsigned> geometry_lod = {},

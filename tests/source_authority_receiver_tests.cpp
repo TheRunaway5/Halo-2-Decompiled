@@ -94,7 +94,10 @@ void run(int argc,char **argv){
     wait([&]{pump();return session->authority_supported(other);},"Receiver direct authority capability timeout");
     if(hosting){std::vector<unsigned> slots;for(const auto &p:session->roster())slots.push_back(p.slot);
         check(session->publish_source_players(*session->authority_context(),authority->player_admissions(slots)),"Host source admission export failed");
-        wait([&]{pump();return session->source_players_confirmed(other)&&std::filesystem::exists(files/"shadow-warmed");},"Receiver cold world did not warm");
+        // This is a quiescent native preparation interval, not a simulation
+        // input timeout. The production peer transport keeps DTLS alive while
+        // the other source executor constructs its private worlds.
+        wait([&]{return session->source_players_confirmed(other)&&std::filesystem::exists(files/"receiver-ready");},"Receiver publication gate was not ready");
         for(unsigned tick=0;tick<20;++tick){pump();for(unsigned i=0;i<8;++i)controls[i].yaw=host_world->match.unit(i).yaw;controls[locals[0]].fire=tick<10;host_world->match.step(controls);}
         // A well-formed/checksummed complete cut with a forged NONLOCAL native
         // identity must not enter the candidate or produce a world receipt.
@@ -125,21 +128,36 @@ void run(int argc,char **argv){
         // sender. Receiver must keep the actual prepared world across failure.
     }else {
         wait([&]{pump();return session->source_players().has_value();},"Receiver independent source roster timeout");
-        check(receiver->warm()&&receiver->world()&&receiver->world()->source_objects&&receiver->world()->source_objects->owns_physics(),"Production source-shadow initializer failed");
-        check(!receiver->world()->matches(gameplay),"Shadow prototype was admitted as the visible runtime world");
-        check(receiver->world()->local_slots==locals&&receiver->world()->source_savegames,"Shadow lost its accepted local views/private native files");
-        auto &prototype=receiver->world()->source_objects->memory();for(auto slot:locals){const auto row=source_raw_datum_lookup(receiver->world()->source_objects->source_player_pool(),receiver->world()->match.player(slot).source_datum,storage(prototype));
-            auto original=prototype.view(row+4,12);std::vector<std::byte> identity(original.begin(),original.end());identity[0]^=std::byte{0x80};prototype.write(row+4,identity);}
-        marker(files/"shadow-warmed");bool rejected=false;unsigned prepared=0;
+        receiver->update();check(!receiver->world()&&!receiver->state().warmed&&!receiver->state().workspace_warmed,
+            "Source metadata alone started cold world construction during ordinary gameplay");
+        const bool cold_from_cut=std::getenv("HALO2_RECEIVER_COLD_FROM_CUT")!=nullptr;
+        const auto change_prototype=[&]{
+            check(receiver->world()&&receiver->world()->source_objects&&receiver->world()->source_objects->owns_physics(),"Production source-shadow initializer failed");
+            check(!receiver->world()->matches(gameplay),"Shadow prototype was admitted as the visible runtime world");
+            check(receiver->world()->local_slots==locals&&receiver->world()->source_savegames,"Shadow lost its accepted local views/private native files");
+            auto &prototype=receiver->world()->source_objects->memory();for(auto slot:locals){const auto row=source_raw_datum_lookup(receiver->world()->source_objects->source_player_pool(),receiver->world()->match.player(slot).source_datum,storage(prototype));
+                auto original=prototype.view(row+4,12);std::vector<std::byte> identity(original.begin(),original.end());identity[0]^=std::byte{0x80};prototype.write(row+4,identity);}
+        };
+        if(!cold_from_cut){
+            check(receiver->warm(),"Explicit source-shadow warm failed");
+            check(!receiver->state().workspace_warmed&&receiver->state().workspace_constructions==0,"One warm call constructed two native executors");
+            pump();check(receiver->warm()&&receiver->state().workspace_warmed&&receiver->state().workspace_constructions==1,"Separate workspace warm failed");
+            change_prototype();
+        }
+        // Publication permission is not a prepared-world receipt. The cold
+        // variant intentionally has no executor when the first cut is sent.
+        marker(files/"receiver-ready");bool rejected=false;unsigned prepared=0;
         wait([&]{pump();receiver->update();const auto state=receiver->state();
             if(!rejected&&state.received==1&&!state.decoding&&!state.error.empty()){
                 check(state.error.find("full source player identity")!=std::string::npos,"Malformed cut failed before the independent full-roster identity gate");
                 check(state.prepared==0&&!state.ready&&receiver->world()->match.simulation().ticks()==0,"Rejected remote identity changed or acknowledged the live candidate");
+                if(cold_from_cut)change_prototype();
                 rejected=true;marker(files/"bad-rejected");std::cout<<"PASS forged nonlocal source identity rejected before candidate mutation or world acknowledgement\n";}
             if(state.prepared>prepared){check(rejected&&state.ready&&receiver->world(),"Receiver prepared before rejecting the forged identity");
+                check(state.workspace_constructions==1,"Receiver rebuilt its private workspace between cuts");
                 const auto &seal=state.ready->seal;const auto expected=files/("bodies-"+std::to_string(seal.tick));
                 check(std::filesystem::exists(expected)&&std::ranges::equal(bodies(*receiver->world()),read(expected)),"Receiver changed complete object/player bytes from the producer cut");
-                ++prepared;std::cout<<"PASS production receiver cut "<<prepared<<" tick="<<seal.tick<<" decode="<<state.decode_microseconds<<"us warm="<<state.warm_microseconds<<"us prepare="<<state.prepare_microseconds<<"us delta="<<state.delta<<"; four rebound views and all admitted source identities\n";
+                ++prepared;std::cout<<"PASS production receiver cut "<<prepared<<" tick="<<seal.tick<<" decode="<<state.decode_microseconds<<"us warm="<<state.warm_microseconds<<"us workspace="<<state.workspace_microseconds<<"us constructions="<<state.workspace_constructions<<" prepare="<<state.prepare_microseconds<<"us delta="<<state.delta<<"; four rebound views and all admitted source identities\n";
             }
             return prepared==2;
         },"Production source receiver did not prepare two cuts");
@@ -148,12 +166,14 @@ void run(int argc,char **argv){
             wait([&]{pump();cancelled.update();const auto state=cancelled.state();return state.received==1&&state.decoding;},"Cancellation did not reach an in-flight owning decoder job");
             cancelled.cancel();wait([&]{pump();cancelled.update();return !cancelled.state().decoding;},"Cancelled owning decoder did not finish");
             check(cancelled.state().prepared==0&&!cancelled.state().ready&&!cancelled.world()&&!cancelled.warm(),"Cancelled decoder revived a world, cache or readiness");
+            check(!cancelled.state().warmed&&!cancelled.state().workspace_warmed,"Cancellation retained a warmed source executor");
             marker(files/"cancel-checked");std::cout<<"PASS in-flight owning decoder cancellation discards stale completion and never acknowledges a world\n";}
         marker(files/"ready-before-host-loss");
         wait([&]{receiver->update();return session->phase()==OnlineMatchSession::Phase::Failed;},"Real host disconnect did not terminate the original transport role");
         check(receiver->state().ready&&receiver->world()&&receiver->state().ready->seal==ready.seal,"Host loss destroyed the validated candidate world");
         auto wrong=ready;++wrong.seal.tick;check(!receiver->take_world(wrong),"A different cut took the prepared world");
         auto world=receiver->take_world(ready);check(world&&world->source_objects&&!receiver->world()&&!receiver->state().ready,"Exact prepared source world could not transfer ownership");
+        check(!receiver->state().workspace_warmed,"Ownership transfer retained a stale reusable workspace");
         for(auto slot:host_locals){const auto player=world->match.player(slot).source_datum;const auto deaths=world->match.player(slot).deaths;
             world->match.depart(slot);check(world->match.player(slot).source_datum==player&&world->match.player(slot).deaths==deaths,"Departing host group released a retained player or added a numeric death");}
         const auto tick=world->match.simulation().ticks();for(unsigned i=0;i<10;++i){std::array<Controls,16> input{};for(unsigned slot=0;slot<8;++slot)input[slot].yaw=world->match.unit(slot).yaw;target_clock->time+=33;world->match.step(input);}

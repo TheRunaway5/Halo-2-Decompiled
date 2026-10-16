@@ -58,7 +58,9 @@ int main(){try {
     rejects([&]{auto bad=resident;bad[1].material_slot=8;validate_source_shadow_plan(plan,bad);});
     rejects([&]{caster.raster.reset();try{validate_source_shadow_plan(plan,resident);}catch(...){caster.raster=SourceShadowRasterInput{0,true};throw;}});
     rejects([&]{caster.raster->cull=123;try{validate_source_shadow_plan(plan,resident);}catch(...){caster.raster->cull=0;throw;}});
-    rejects([&]{const auto saved=caster.program.words[54];caster.program.words[54]=2;try{validate_source_shadow_plan(plan,resident);}catch(...){caster.program.words[54]=saved;throw;}});
+    // PROJECT3D(mode2) is supported by the texture interpreter. Use an
+    // unadmitted five-bit operation for this unsupported-program control.
+    rejects([&]{const auto saved=caster.program.words[54];caster.program.words[54]=31;try{validate_source_shadow_plan(plan,resident);}catch(...){caster.program.words[54]=saved;throw;}});
     rejects([&]{generation[1].material=7;try{validate_source_shadow_plan(plan,resident);}catch(...){generation[1].material=6;throw;}});
     rejects([&]{owner.uniforms.texture_width=256;try{validate_source_shadow_plan(plan,resident);}catch(...){owner.uniforms.texture_width=128;throw;}});
     rejects([&]{auto bad=receivers[0];bad.external_targets={0,10,0,0};validate_source_shadow_plan_material(bad,SourceShadowPhase::Apply);});

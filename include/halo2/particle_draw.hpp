@@ -3,8 +3,9 @@
 #include "halo2/particle_model.hpp"
 
 namespace halo2 {
-// Completed original draw state. Emission/simulation and 23E460 camera/fog
-// setup must supply these values; the graphics path invents no particle state.
+// Completed draw inputs. Emission/simulation and the caller's camera/fog
+// owner supply these values; the graphics path invents no particle state.
+// The full TU1.5 renderer-context integration remains a separate boundary.
 struct ParticleVertexState {
   std::array<ShaderVector,16> attributes{};
   std::array<ShaderVector,192> constants{};

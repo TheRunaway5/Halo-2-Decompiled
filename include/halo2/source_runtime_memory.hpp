@@ -38,13 +38,13 @@ public:
   SourceRuntimeMemory() = default;
   SourceRuntimeMemory(const SourceRuntimeMemory &) = delete;
   SourceRuntimeMemory &operator=(const SourceRuntimeMemory &) = delete;
-  SourceRuntimeMemory(SourceRuntimeMemory &&) = default;
-  SourceRuntimeMemory &operator=(SourceRuntimeMemory &&) = default;
+  SourceRuntimeMemory(SourceRuntimeMemory &&);
+  SourceRuntimeMemory &operator=(SourceRuntimeMemory &&);
   // Publish prevalidated backing without moving this owner's identity or its
   // registered resource guards. Both banks/users must be quiescent; the world
   // transaction commits staged resource owners immediately afterward. Every
   // borrowed view/native address must then be rebound.
-  void swap_backing(SourceRuntimeMemory &) noexcept;
+  void swap_backing(SourceRuntimeMemory &);
 
   // Own a copy of the actual initial backing. Overlap/wrap/empty regions are
   // rejected. Regions stay at their chosen address until explicitly released.
@@ -83,6 +83,7 @@ public:
   std::span<std::byte> mutable_view(std::uint32_t, std::size_t);
   // Admit a future mutable borrower without handing out a writable span.
   // Includes region/commit/access and platform-resource write guards.
+  // Does not hand out a span or notify actual-write observers.
   void validate_mutable_view(std::uint32_t, std::size_t) const;
   // Live engine access uses native addresses. Original tokens are resolved
   // only at this owner boundary; host pointers are never truncated or saved.
@@ -153,6 +154,7 @@ private:
   Position locate(std::uint32_t) const;
   void check_extent(std::uint32_t, std::size_t) const;
   void validate(std::uint32_t, std::size_t, bool writable) const;
+  void validate(std::uint32_t, std::size_t, bool writable,bool observe) const;
   void index_native_region(std::uint32_t);
   void index_native_span(std::uint32_t,std::span<const std::byte>);
   void rebuild_native_index();

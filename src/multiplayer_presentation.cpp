@@ -14,7 +14,8 @@ void capture_multiplayer_body_poses(SourceWorldInterpolation &history,
     for(unsigned i=0;i<current.players.size();++i) {
         const auto &a=previous.players[i],&b=current.players[i];
         if(a.connected==b.connected && a.dead==b.dead && a.source_player==b.source_player &&
-            a.source_unit==b.source_unit && a.source_parent==b.source_parent && a.source_seat==b.source_seat)continue;
+            a.source_unit==b.source_unit && a.source_parent==b.source_parent && a.source_seat==b.source_seat &&
+            length(a.position-b.position)<5)continue;
         // The native root already treats attachment/death as discrete. Apply
         // that same boundary to the actual skin and both carried weapons.
         for(auto object:{a.source_unit,b.source_unit,a.source_weapon,b.source_weapon,

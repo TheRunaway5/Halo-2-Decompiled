@@ -24,6 +24,7 @@ public:
     void display_settings(DisplaySettings);
     // The desktop session outlives every renderer using its preferences.
     void share_display_settings(DisplaySettings&);
+    void pstencil_available(bool);
     void observe(DebugGameObservation);
     void status(std::string);
     std::optional<DebugGameRequest> take_request();

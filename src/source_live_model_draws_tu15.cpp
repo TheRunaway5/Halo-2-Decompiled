@@ -2,6 +2,8 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/source_draw_resources.hpp"
 #include "halo2/source_object_render_queue.hpp"
+#include "halo2/source_execution_calls.hpp"
+#include "halo2/source_execution_model_inputs.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -13,6 +15,7 @@ void source_live_model_draws_tu15(PhysicsLiveWorldTu15& world,SourceObjectAdmiss
     if(context.entry.mode!=context.draw.draw.mode || context.view>=4)
         throw FormatError("TU1.5 live model collector has inconsistent view/mode");
     auto& memory=world.memory();
+    SourceExecutionCallScope journal(&memory,SourceExecutionCallKind::LiveModelDraws,[&]{return source_execution_arguments(admission,state,source_execution_model_input(context));});
     const auto read=[&](std::uint32_t p,std::size_t n){return Bytes(memory.view(p,n));};
     const auto word=[&](std::uint32_t p){return read(p,4).u32(0);};
     const auto body_address=[&](std::uint32_t owner) {
@@ -69,7 +72,7 @@ void source_live_model_draws_tu15(PhysicsLiveWorldTu15& world,SourceObjectAdmiss
     presentation.copy_identity=allocate;
     presentation.build=[&](auto& collector,const auto& request){
         world.build_render_model(collector,request,context.view,context.local_players,context.view_modifier);
-        if(context.built)context.built(collector);
+        if(context.built){SourceExecutionObserverScope observer(memory);context.built(collector);}
     };
     auto draw=context.draw;draw.temporary_address=allocate();
     presentation.collect=[&](const auto& collector,auto filter){
@@ -126,5 +129,6 @@ void source_live_model_draws_tu15(PhysicsLiveWorldTu15& world,SourceObjectAdmiss
         if(first_person && context.entry.mode==1)
             source_object_render_entry(row,collector,{1,counter_token,0xffffffffu,context.children},context.entry,entry);
     }
+    journal.complete([&]{return source_execution_model_result(admission,state);});
 }
 }

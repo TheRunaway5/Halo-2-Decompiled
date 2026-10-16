@@ -24,6 +24,18 @@ inline float gameplay_observer_field_of_view(float current,float authored,unsign
     return float(2*std::atan(std::tan(double(current)*.5)*
         std::tan(double(selected)*.5)/std::tan(double(authored)*.5)));
 }
+// TU1.5 381710 initializes 55D6E4 from 46AB88 (70 degrees). Preserve the
+// completed 245EA0/observer lens exactly at the retail setting. An explicit
+// PC override scales that lens without discarding its authored transitions.
+inline float vehicle_observer_field_of_view(float current,float baseline,unsigned degrees) {
+    if(degrees==default_vehicle_field_of_view)return current;
+    return gameplay_observer_field_of_view(current,baseline,degrees);
+}
+inline SourceCameraAngles vehicle_camera_angles(float current,float baseline,unsigned degrees,
+    std::array<std::int16_t,2> grid={1,1},std::array<std::int16_t,2> span={1,1}) {
+    return source_camera_angles(vehicle_observer_field_of_view(current,baseline,degrees),
+        1.3333333730697632f,grid,span,baseline);
+}
 // MCC halo2.dll 6F4490 and 7DFF10 (aspect-aware branch): the slider is the
 // observer's horizontal angle, converted using at most a 16:9 reference aspect.
 // The physical viewport then reveals additional horizontal view on ultrawide.

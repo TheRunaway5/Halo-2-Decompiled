@@ -7,6 +7,7 @@ memory ownership, a C++ label/branch, or a statically bound native callee.
 Unknown operations fail generation; required external owners remain explicit.
 """
 import argparse, hashlib, json, struct
+from fix_map_quaternion_spills_tu15 import HELPER as QUATERNION_SPILL_HELPER
 from pathlib import Path
 from oracle_smg_firing_1_1 import ROOT, Xbe, _Code, _trace, PIN
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
@@ -191,7 +192,7 @@ def main():
         if mn=='fld':return f's.fp.push({xf(i,op[0])});'
         if mn in ('fst','fstp'):
             value='s.fp.st(0)'
-            if op[0].type==3:value=f'u(spill({value}))'
+            if op[0].type==3:value=f'native_single_spill({value},s.fp.status)' if 0x378ab0<=p<0x378b90 else f'u(spill({value}))'
             return put(i,op[0],value)+('s.fp.pop();' if mn=='fstp' else '')
         if mn=='fxch':
             # Capstone includes implicit ST(0) before the encoded ST(i).
@@ -304,6 +305,7 @@ std::uint32_t sign_extend(std::uint32_t x,unsigned n) {
     throw std::runtime_error("Unverified contact sign-extension width");
 }
 '''
+    preamble+=QUATERNION_SPILL_HELPER
     preamble+='std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){'+''.join(f'case 0x{p:x}u:return 0x{addresses[p]:x}u;' for p in sorted(used_addresses))+'default:throw std::runtime_error("Unbound original contact executable address");}}\n'
     preamble+='std::uint32_t canonical_branch(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){'+''.join(f'case 0x{q:x}u:return 0x{p:x}u;' for p,q in sorted(branches.items()))+'default:throw std::runtime_error("Unbound TU1.5 contact dispatch target");}}\n'
     preamble+='\n'.join(f'static void run_{p:x}(WorldState &);' for p in ENTRIES)+'\n'

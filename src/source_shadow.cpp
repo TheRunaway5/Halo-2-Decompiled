@@ -436,6 +436,14 @@ std::optional<SourceShadowFrame> source_shadow_frame(ShadowCasterSphere root,
         transverse=std::max(transverse,sphere.radius+magnitude(subtract(delta,projected)));
         axial=std::max(axial,sphere.radius+magnitude(projected));
     }
+    return source_shadow_frame_from_extents(root,{transverse,axial},shadow_direction,
+        cached_opacity,runtime_fade,0.0055555556900799274f);
+}
+std::optional<SourceShadowFrame> source_shadow_frame_from_extents(ShadowCasterSphere root,
+    Vec2 extents,Vec3 shadow_direction,float cached_opacity,float runtime_fade,float cone_angle) {
+    const auto opacity=cached_opacity*runtime_fade;
+    if(cached_opacity<=0 || opacity<=0.09f)return {};
+    const auto transverse=extents.x,axial=extents.y;
     SourceShadowFrame result;result.center=root.center;result.direction=normalized(shadow_direction);
     const auto horizontal=std::max(std::abs(result.direction.x),std::abs(result.direction.y));
     const auto end=axial*2+horizontal;
@@ -443,7 +451,7 @@ std::optional<SourceShadowFrame> source_shadow_frame(ShadowCasterSphere root,
     result.transverse_radius=transverse;result.axial_radius=axial;result.width=transverse*2;
     const Vec3 axis=std::abs(result.direction.y)>=0.9f?Vec3{-1,0,0}:Vec3{0,1,0};
     result.up=normalized(cross(result.direction,axis));result.left=cross(result.up,result.direction);
-    result.cone_angle=0.0055555556900799274f; // Authored fixed definition 47FDA0 +0x28.
+    result.cone_angle=cone_angle;
     const auto half_tangent=float(std::tan(double(result.cone_angle)*0.5));
     result.virtual_distance=(result.width/half_tangent)*0.5f;
     result.virtual_eye=add(scale(result.direction,-result.virtual_distance),result.center);

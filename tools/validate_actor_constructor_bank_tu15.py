@@ -12,7 +12,16 @@ def validate(case,metadata,rows):
     build=json.loads((case/'build.json').read_text())
     # A retained failed native birth is a valid input for discovering the
     # original continuation. It is never accepted as a passing native proof.
-    assert build['returncode']==0 or (birth and build['returncode']==1 and (case/'actor-failure.txt').is_file())
+    following_ai=False
+    if birth and (case/'ai-frame1/native.json').is_file():
+        following=json.loads((case/'ai-frame1/native.json').read_text())
+        assert following['entry']==0x1d0670 and following['ordinal']==1 and following['tick']==60
+        assert all(following[k]==metadata[k] for k in ('actor','unit','weapon','character'))
+        assert build['scope']['ai_frame_enabled_after_actor_birth']
+        assert not (case/'actor-failure.txt').exists()
+        following_ai=True # The retained next call is reached only after birth returns.
+    assert build['returncode']==0 or (birth and build['returncode']==1 and
+        ((case/'actor-failure.txt').is_file() or following_ai))
     for name in ['before.bin','after.bin','native-input.bin','native-exit.bin','native-stores.bin','native-trace.bin','native.json']:
         assert file_sha(case/name)==build['files_sha256'][name]
     path=Path(build['command'][2]);scope=json.loads(SCOPE.read_text())
@@ -70,5 +79,5 @@ def validate(case,metadata,rows):
             if u(at+0x34):
                 general=u(at+0x38);assert read(general,12)==bytes(cache.data[general-cache.magic:general-cache.magic+12]);break
             current=u(at+8);assert current!=0xffffffff
-        return dict(map=str(path),map_sha256=expected,character=tag['name'],character_datum=character,inheritance=inherited,general_flags=u(general),actor_type=u(general+4,2),actor_pool=pool,actual_ai_storage_initialized=True,actual_ai_new_map_initialized=True,actor_bound_before=False,entry=entry,authored_squad=squad,native_completed=build['returncode']==0,complete_campaign_boot_verified=False,validation_tool_sha256=file_sha(Path(__file__)))
+        return dict(map=str(path),map_sha256=expected,character=tag['name'],character_datum=character,inheritance=inherited,general_flags=u(general),actor_type=u(general+4,2),actor_pool=pool,actual_ai_storage_initialized=True,actual_ai_new_map_initialized=True,actor_bound_before=False,entry=entry,authored_squad=squad,native_completed=build['returncode']==0 or following_ai,whole_case_completed=build['returncode']==0,following_ai_call_captured=following_ai,complete_campaign_boot_verified=False,validation_tool_sha256=file_sha(Path(__file__)))
     finally:cache.close()

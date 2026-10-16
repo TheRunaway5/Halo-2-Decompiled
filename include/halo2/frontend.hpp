@@ -528,6 +528,7 @@ public:
   ControllerSettings controller_settings() const;
   void adopt_controller_settings(const ControllerSettings &);
   const DisplaySettings &pc_display_settings() const { return pc_display_; }
+  void adopt_graphics_mode(pstencil::GraphicsMode mode){pc_display_.graphics_mode=mode;}
   void adopt_pc_settings(const PcKeyboardSettings &,const DisplaySettings &,
                          std::array<unsigned,3> video);
   void set_pc_display_adapter(std::function<std::string(const DisplaySettings &)> adapter);
@@ -711,6 +712,7 @@ struct FrontendOptions {
   bool skip_intro{};
   bool hidden{}, validation{}, mute{}, resize_test{}, audit{}, freeze_scene{};
   bool debug_panel{}; // Optional F1 window initially open; ordinary startup remains clean.
+  std::optional<pstencil::GraphicsMode> initial_graphics_mode;
 };
 class FrontendPainter {
 public:

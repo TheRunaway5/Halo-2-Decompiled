@@ -4,6 +4,8 @@
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/desktop_session.hpp"
 #include "halo2/native_player_profile.hpp"
+#include "halo2/multiplayer_world.hpp"
+#include "halo2/model_node_interpolation.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -13,6 +15,7 @@
 #include <set>
 #include <thread>
 #include <mutex>
+#include <cstring>
 
 using namespace halo2;
 namespace {
@@ -80,21 +83,175 @@ struct NativeLanHost {
     std::lock_guard lock(error_mutex);if(error)std::rethrow_exception(error);
   }
 };
+int completed_pose_runtime(MultiplayerOptions options) {
+  options.frames=145;options.reference_tick_cadence=true;options.hidden=false;
+  options.reference_render_fraction=std::getenv("HALO2_COMPLETED_POSE_ENDPOINT")?1.f:.5f;
+  options.defer_initial_player_spawn=true;options.session_random_seed=0x12345678;
+  options.source_object_savegame_directory=std::filesystem::current_path()/"analysis/animation-interpolation-20261015/source-savegames";
+  {
+    Cache cache(options.map,options.shared_maps,selected_image(options));
+    const auto content=cache.load_content(0,true);CollisionWorld geometry(content.collision);
+    for(const auto &authored:cache.spawns()) {
+      const auto a=geometry.raycast(authored.position+Vec3{0,0,.5f},{0,0,-1},2.f);
+      const auto b=geometry.raycast(authored.position+Vec3{1.5f,.8f,.5f},{0,0,-1},2.f);
+      if(!a || !b || a->normal.z<.9f || b->normal.z<.9f ||
+         geometry.raycast(a->position+Vec3{0,0,content.player.camera_height},{1,0,0},1.5f))continue;
+      auto first=authored,second=authored;first.position=a->position+Vec3{0,0,.002f};first.facing=0;
+      second.position=b->position+Vec3{0,0,.002f};second.facing=0;
+      options.native_spawn_inputs={first,second};break;
+    }
+    check(options.native_spawn_inputs.size()==2,"Completed-pose test has no clear authored floor/view pair");
+  }
+  std::vector<std::uint32_t> players;
+  options.player_birth_owner=[&](auto &p,unsigned){players.push_back(p.source_datum);p.source_flags=8;};
+  options.pre_player_update_owner=[&](auto &match) {
+    for(auto h:players)if(const auto *p=match.player_from_datum(h);p && !(p->source_flags&1u))
+      match.apply_source_player_activation(h,p->source_flags,p->source_flags|1u);
+  };
+  options.prepared_world=std::make_shared<MultiplayerPreparedWorld>(options);
+  auto &world=*options.prepared_world;
+  options.desktop=std::make_shared<DesktopSession>();
+  auto *window=options.desktop->window(options.width,options.height,false);
+  const auto window_id=SDL_GetWindowID(window);SDL_RaiseWindow(window);SDL_SetWindowInputFocus(window);
+  SDL_FlushEvents(SDL_FIRSTEVENT,SDL_LASTEVENT);
+  SDL_Event focus{};focus.type=SDL_WINDOWEVENT;focus.window.windowID=window_id;
+  focus.window.event=SDL_WINDOWEVENT_FOCUS_GAINED;push(focus);
+  check(SDL_SetRelativeMouseMode(SDL_TRUE)==0,"Completed-pose test did not capture the actual mouse");
+  unsigned fp_samples{},world_samples{},fp_changed{},world_changed{},endpoint_checks{};
+  bool fired{},reloaded{},crouched{},melee{};int previous_loaded=-1;
+  std::uint32_t observed_weapon=null_datum;
+  options.input_observer=[&](unsigned step,auto,const auto &state) {
+    const auto &p=state.players[0];
+    // Source-owned shots consume their actual magazine; they do not populate
+    // the separate native fallback's last_shot stamp.
+    if(step>=8 && step<=25 && p.source_weapon!=null_datum && p.source_weapon==observed_weapon &&
+       previous_loaded>=0 && p.loaded<previous_loaded)fired=true;
+    observed_weapon=p.source_weapon;previous_loaded=p.loaded;
+    reloaded|=fired && p.source_zoom_magazine_mode==1;
+    crouched|=p.native_crouching;melee|=p.melee_action.active();
+    if(step==8)button(window_id,true);
+    if(step==23)button(window_id,false);
+    if(step==28)reload(window_id);
+    if(step==100)key(window_id,SDL_SCANCODE_F,true);
+    if(step==101)key(window_id,SDL_SCANCODE_F,false);
+    if(step==115)key(window_id,SDL_SCANCODE_LSHIFT,true);
+    if(step==135)key(window_id,SDL_SCANCODE_LSHIFT,false);
+  };
+  const auto same=[](std::span<const Transform> a,std::span<const Transform> b) {
+    return a.size()==b.size() && !std::memcmp(a.data(),b.data(),a.size_bytes());
+  };
+  options.animation_observer=[&](unsigned view,unsigned player,const AnimationRenderObservation &sample) {
+    if(sample.tick<5)return;
+    std::vector<Transform> current;
+    if(sample.first_person) {
+      check(!sample.completed_weapon_nodes.empty(),"Source FP comparison lost the actual weapon draw");
+      current.assign(sample.completed_weapon_nodes.begin(),sample.completed_weapon_nodes.end());++fp_samples;
+      fp_changed+=!same(sample.weapon_nodes,current);
+      if(*options.reference_render_fraction==1)check(same(sample.weapon_nodes,current),"FP endpoint differs from original completed nodes");
+    } else if(const auto raw=world.source_objects->rendered_world_nodes(sample.unit)) {
+      current=*raw;++world_samples;world_changed+=!same(sample.body_nodes,current);
+      if(*options.reference_render_fraction==1)check(same(sample.body_nodes,current),"WORLD endpoint differs from original completed nodes");
+      if(*options.reference_render_fraction==1)if(const auto held=world.source_objects->rendered_world_nodes(sample.weapon))
+        check(same(sample.weapon_nodes,*held),"Held WORLD weapon endpoint differs from original completed nodes");
+    } else return;
+    ++endpoint_checks;
+  };
+  const auto result=run_multiplayer(options);
+  std::cout<<"Completed pose input checks fire="<<fired<<" reload="<<reloaded<<" crouch="<<crouched<<" melee="<<melee
+      <<" FP="<<fp_samples<<" WORLD="<<world_samples<<'\n';
+  check(result==0 && fired && reloaded && crouched && melee,"Completed-pose validation missed actual action/stance inputs");
+  check(fp_samples>50 && world_samples>50,"Completed-pose validation did not draw both FP and third-person owners");
+  if(*options.reference_render_fraction<1) {
+    check(fp_changed>20,"Source FP arms/weapon still snapped to completed 30 Hz nodes");
+    check(world_changed>20,"Deferred third-person grip/weapon path still snapped to completed 30 Hz nodes");
+  }
+  std::cout<<"PASS completed TU1.5 poses fraction="<<*options.reference_render_fraction
+      <<" FP="<<fp_samples<<" changed="<<fp_changed<<" WORLD="<<world_samples<<" changed="<<world_changed
+      <<" checked="<<endpoint_checks<<", actual idle/fire/reload/melee/crouch inputs\n";
+  return 0;
+}
+int idle_animation_audit(const MultiplayerOptions &options) {
+  Cache cache(options.map,options.shared_maps,selected_image(options));
+  const auto content=cache.load_content(0,true);
+  unsigned bindings{},variants{},samples{};
+  std::set<std::pair<std::uint32_t,unsigned>> decoded;
+  const auto audit=[&](const AnimationClip &root,const RenderModel &model) {
+    const auto tag=cache.load_source_tag_metadata(root.source_graph);
+    const Bytes graph(tag.bytes_at(tag.source_address(),0x34));
+    const auto count=graph.u32(0x2c),records=graph.u32(0x30);
+    const auto row=[&](unsigned index) {
+      check(index<count,"Idle variant escapes its authored graph");
+      return Bytes(tag.bytes_at(records+index*0x6c,0x6c));
+    };
+    auto index=root.source_index;
+    const auto head=row(index).u16(0x30);if(head!=0xffff)index=head;
+    std::set<unsigned> visited;
+    for(;;) {
+      check(visited.insert(index).second,"Authored idle variant chain cycles");
+      const auto clip=cache.load_animation(root.source_graph,index);
+      check(clip.frame_count && clip.loop_frame<clip.frame_count,"Authored idle has an invalid frame window");
+      decoded.emplace(root.source_graph,index);++variants;
+      const auto first=pose_model_nodes_frame(model,&clip,0);
+      const auto last=pose_model_nodes_frame(model,&clip,float(clip.frame_count-1));
+      ModelNodeInterpolation history;history.capture(0,last);history.capture(1,first);
+      for(float f:{0.f,.125f,.25f,.5f,.75f,.875f,1.f}) {
+        const auto nodes=history.sample(model,f);check(nodes.size()==model.bones.size(),"Idle lost its model node bank");
+        for(const auto &node:nodes)for(float x:{node.position.x,node.position.y,node.position.z,node.scale})
+          check(std::isfinite(x),"Idle interpolation emitted a nonfinite node");
+        ++samples;
+      }
+      const auto next=row(index).u16(0x32);if(next==0xffff)break;index=next;
+    }
+    ++bindings;
+  };
+  unsigned weapons{};
+  for(const auto &[datum,weapon]:content.weapons) {
+    if(weapon.first_person_models.empty() || weapon.first_person_models.front().model==null_datum ||
+       weapon.first_person_models.front().animation==null_datum)continue;
+    ++weapons;
+    const auto ids=cache.load_weapon_animation_identifiers(datum);
+    for(unsigned representation:{2u,3u}) {
+      const auto body=cache.load_model(content.player_representations.at(representation).biped.datum,false);
+      const auto fp=cache.load_first_person_binding(datum,representation);
+      const auto gun=cache.load_model(fp.weapon_model,false);
+      const auto arms=cache.load_model(fp.arms_model,false);
+      unsigned rows{};
+      for(bool dual:{false,true}) {
+        if(dual && !weapon.dual_wieldable)continue;
+        for(auto mode:{0x06000086u,0x06000087u}) {
+          audit(cache.load_unit_weapon_action(body.animation,mode,dual?0x0400054bu:ids[0],ids[1],0x0400000cu),body);++rows;
+        }
+        const auto &clocks=dual?fp.dual_clock_clips:fp.clock_clips;
+        const auto idle=std::find_if(clocks.begin(),clocks.end(),[](const auto &c){return c.activity==0x0400000cu;});
+        check(idle!=clocks.end(),"Weapon stance has no authored FP idle");
+        const auto clip=cache.load_animation(fp.graph,idle->index);audit(clip,gun);audit(clip,arms);rows+=2;
+      }
+      std::cout<<"Idle coverage representation="<<representation<<" weapon="<<weapon.name<<" bindings="<<rows<<'\n';
+    }
+  }
+  check(weapons>=15 && bindings>=120,"Idle audit omitted retail weapon/player bindings");
+  std::cout<<"PASS authored idle coverage weapons="<<weapons<<" bindings="<<bindings
+      <<" variant_bindings="<<variants<<" unique_clips="<<decoded.size()<<" fractional_samples="<<samples
+      <<"; asset/sampling coverage, not proof every variant was naturally selected\n";
+  return 0;
+}
 }
 int main(int argc,char **argv) {
   try {
     if(argc<4 || argc>8)throw FormatError("Supply MAP SHARED_MAPS GAMEPLAY_XBE [--split2|--split4] [--lan] [--elite] [--disc-default]");
-    if(!std::getenv("DISPLAY") || !std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[3]))return 77;
+    if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[3]))return 77;
     SDL_SetMainReady();MultiplayerOptions options;
     options.map=argv[1];options.shared_maps=argv[2];options.gameplay_xbe=argv[3];
     options.width=640;options.height=480;options.local_players=1;options.starting_weapon=5;
     options.mute=!std::getenv("HALO2_ANIMATION_AUDIO");
-    bool lan{},elite{};
+    bool lan{},elite{},completed_poses{},idle_audit{};
     for(int at=4;at<argc;++at) {
       if(std::string(argv[at])=="--split2")options.local_players=2;
       else if(std::string(argv[at])=="--split4")options.local_players=4;
       else if(std::string(argv[at])=="--lan")lan=true;
       else if(std::string(argv[at])=="--elite")elite=true;
+      else if(std::string(argv[at])=="--completed-poses")completed_poses=true;
+      else if(std::string(argv[at])=="--idle-audit")idle_audit=true;
       else if(std::string(argv[at])=="--disc-default") {
         check(std::filesystem::equivalent(argv[3],options.shared_maps.parent_path()/"default.xbe"),
             "Default-disc probe requires the actual adjacent disc executable");
@@ -106,6 +263,12 @@ int main(int argc,char **argv) {
     for(unsigned i=0;i<options.local_players;++i) {
       const std::array<std::uint8_t,9> appearance{10,0,0,10,std::uint8_t(i?i%2:elite),0,0,0,0};
       options.selected_profiles.push_back(native_selected_player_configuration("Animation "+std::to_string(i),appearance,-1));
+    }
+    if(idle_audit)return idle_animation_audit(options);
+    if(!std::getenv("DISPLAY"))return 77;
+    if(completed_poses) {
+      check(options.local_players==2 && !lan,"Completed-pose test requires --split2 without LAN");
+      return completed_pose_runtime(options);
     }
     const Cache pose_cache(options.map,options.shared_maps,selected_image(options));
     const auto pose_content=pose_cache.load_content(0,true);

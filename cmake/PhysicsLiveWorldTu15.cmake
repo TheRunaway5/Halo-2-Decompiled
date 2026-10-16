@@ -1,5 +1,20 @@
 # Same retained bank and native resource owners for the TU1.5 live world.
 target_sources(halo2_systems PRIVATE src/physics_live_world_tu15.cpp src/source_runtime_cache_tags_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_contrail_snapshot.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_shadow_selection_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_shadow_roots_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_shadow_main_draws_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_shadow_main_inputs_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_shadow_phase_inputs_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_shadow_storage_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_effect_light_commands_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_live_shadow_ordered_draws_tu15.cpp)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set_source_files_properties(src/source_live_shadow_roots_tu15.cpp
+        src/source_live_shadow_phase_inputs_tu15.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
+target_sources(halo2_systems PRIVATE src/source_execution_inputs.cpp)
 target_sources(halo2_systems PRIVATE src/source_runtime_resources.cpp)
 target_sources(halo2_systems PRIVATE src/multiplayer_source_devices_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_boot_smc_video_mode.cpp)
@@ -7,13 +22,26 @@ target_sources(halo2_systems PRIVATE src/source_object_velocity_read_only_tu15.c
 target_sources(halo2_systems PRIVATE src/source_runtime_dsp_section.cpp src/source_runtime_sound_output.cpp src/source_runtime_sound_sdk_resources.cpp src/source_sound_sdk_pool.cpp)
 target_link_libraries(halo2_systems PRIVATE OpenSSL::Crypto)
 target_sources(halo2_physics_world_runtime PRIVATE src/physics_live_support_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_object_material_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_recorded_animation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_havok_static_lifetime_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_shadow_frame_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_light_view_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_object_sound_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_weapon_hud_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_crt_float_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_player_departure_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_physics_deactivation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_vehicle_auxiliary_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_cloth_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_constraint_instance_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_collision_instance_storage_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_collision_query_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_conveyor_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_vehicle_occupancy_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_vehicle_look_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_vehicle_director_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_dialogue_admission_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_combat_action_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_particle_frame_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_particle_draw_tu15_generated.cpp)
@@ -21,10 +49,97 @@ target_sources(halo2_physics_world_runtime PRIVATE src/source_ai_actor_tu15_gene
 target_sources(halo2_physics_world_runtime PRIVATE src/source_ai_frame_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_runtime_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_contrail_geometry_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_lens_flare_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_script_effect_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_cinematic_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_camera_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_screen_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_animation_composition_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_object_functions_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_unit_cinematic_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_resource_cache_pressure_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_sandbox_special_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_sound_startup_tu15_generated.cpp src/source_sound_sdk_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_cache_bitmap_view_tu15.cpp)
 if(BUILD_TESTING)
+    # Explicit actual bank/lease probe. Captures are supplied on the command
+    # line; no declared camera fixture substitutes for an absent actual bank.
+    add_executable(source_live_shadow_phase_inputs_tu15_tests
+        tests/source_live_shadow_phase_inputs_tu15_tests.cpp)
+    target_link_libraries(source_live_shadow_phase_inputs_tu15_tests PRIVATE
+        halo2_renderer nlohmann_json::nlohmann_json)
+    add_executable(native_vehicle_camera_tu15_tests tests/native_vehicle_camera_tu15_tests.cpp)
+    target_link_libraries(native_vehicle_camera_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_vehicle_camera_tu15 COMMAND native_vehicle_camera_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
+    set_tests_properties(native_vehicle_camera_tu15 PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+    foreach(input_context local remote)
+      add_test(NAME native_vehicle_camera_${input_context}_driver_reset_tu15 COMMAND native_vehicle_camera_tu15_tests
+          "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
+          "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+          "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
+      set_tests_properties(native_vehicle_camera_${input_context}_driver_reset_tu15 PROPERTIES
+          TIMEOUT 180 SKIP_RETURN_CODE 77
+          ENVIRONMENT "HALO2_VEHICLE_CAMERA_CASE=ghost-driver;HALO2_TU15_TEST_LOOK_RESET=1")
+      if(input_context STREQUAL "remote")
+        set_property(TEST native_vehicle_camera_${input_context}_driver_reset_tu15 APPEND PROPERTY
+            ENVIRONMENT "HALO2_TU15_TEST_REMOTE_LOOK_RESET=1")
+      endif()
+    endforeach()
+    foreach(camera_case ghost-driver warthog-passenger warthog-turret scorpion-driver)
+      add_test(NAME native_vehicle_camera_death_${camera_case}_tu15 COMMAND native_vehicle_camera_tu15_tests
+          "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
+          "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+          "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
+      set_tests_properties(native_vehicle_camera_death_${camera_case}_tu15 PROPERTIES
+          TIMEOUT 180 SKIP_RETURN_CODE 77
+          ENVIRONMENT "HALO2_VEHICLE_CAMERA_CASE=${camera_case};HALO2_TU15_TEST_SEATED_DEATH=1")
+    endforeach()
+    add_executable(compare_xbox_tu15_vehicle_camera tools/compare_xbox_tu15_vehicle_camera.cpp)
+    target_link_libraries(compare_xbox_tu15_vehicle_camera PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_executable(native_campaign_vehicle_camera_tu15_tests tests/native_campaign_vehicle_camera_tu15_tests.cpp)
+    target_link_libraries(native_campaign_vehicle_camera_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    target_include_directories(native_campaign_vehicle_camera_tu15_tests PRIVATE tests)
+    add_test(NAME native_campaign_ghost_camera_tu15 COMMAND native_campaign_vehicle_camera_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/05a_deltaapproach.map"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        "${CMAKE_CURRENT_BINARY_DIR}/campaign-ghost-camera-tu15")
+    set_tests_properties(native_campaign_ghost_camera_tu15 PROPERTIES TIMEOUT 180 SKIP_RETURN_CODE 77)
+    add_executable(shadow_commands_replay_tu15 tools/replay_live_shadow_commands_tu15.cpp
+        src/source_renderer_transparent_storage_tu15_generated.cpp)
+    target_include_directories(shadow_commands_replay_tu15 PRIVATE src)
+    target_link_libraries(shadow_commands_replay_tu15 PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    target_compile_options(shadow_commands_replay_tu15 PRIVATE
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-fno-fast-math;-ffp-contract=off;-frounding-math>)
+    add_executable(shadow_entry_tu15_tests tests/shadow_entry_tu15_tests.cpp)
+    target_link_libraries(shadow_entry_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME original_tu15_shadow_entry COMMAND shadow_entry_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/shadow_entry_tu15_original.json")
+    set_tests_properties(original_tu15_shadow_entry PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+    add_executable(source_execution_inputs_tests tests/source_execution_inputs_tests.cpp)
+    target_link_libraries(source_execution_inputs_tests PRIVATE halo2_systems)
+    add_test(NAME source_execution_inputs COMMAND source_execution_inputs_tests)
+    add_executable(source_execution_inputs_native_tests tests/source_execution_inputs_native_tests.cpp)
+    target_link_libraries(source_execution_inputs_native_tests PRIVATE halo2_systems)
+    add_test(NAME source_execution_inputs_native_tu15 COMMAND source_execution_inputs_native_tests
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+    set_tests_properties(source_execution_inputs_native_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(lens_request_tu15_tests tests/lens_request_tu15_tests.cpp)
+    target_link_libraries(lens_request_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME original_tu15_lens_requests COMMAND lens_request_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/lens_request_tu15_original.json")
+    add_test(NAME original_tu15_lens_frame COMMAND lens_request_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/lens_frame_tu15_original.json")
+    set_tests_properties(original_tu15_lens_requests original_tu15_lens_frame PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+    add_executable(source_map_quaternion_tu15_tests tests/source_map_quaternion_tu15_tests.cpp)
+    target_link_libraries(source_map_quaternion_tu15_tests PRIVATE halo2_physics_phantom_world_tu15 nlohmann_json::nlohmann_json)
+    add_test(NAME original_tu15_map_quaternion COMMAND source_map_quaternion_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/map_quaternion_tu15_original.json")
+    set_tests_properties(original_tu15_map_quaternion PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
     set(HALO2_TU15_AI_FRAME_CAPTURE_DIRECTORY "" CACHE PATH "Owned original TU1.5 AI frame and hardware replay")
     add_executable(ai_frame_tu15_tests tools/replay_native_ai_frame_tu15.cpp)
     target_link_libraries(ai_frame_tu15_tests PRIVATE halo2_systems)
@@ -165,6 +280,10 @@ if(BUILD_TESTING)
     set_tests_properties(original_tu15_particle_effect_color PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(capture_source_melee_contact tools/capture_source_melee_contact.cpp)
     add_executable(capture_source_locomotion_tu15 tools/capture_source_locomotion_tu15.cpp)
+    add_executable(capture_source_dual_animation_tu15 tools/capture_source_dual_animation_tu15.cpp)
+    target_link_libraries(capture_source_dual_animation_tu15 PRIVATE halo2_systems)
+    add_executable(capture_source_lift_animation_tu15 tools/capture_source_lift_animation_tu15.cpp)
+    target_link_libraries(capture_source_lift_animation_tu15 PRIVATE halo2_systems)
     add_executable(capture_source_render_pose_tu15 tools/capture_source_render_pose_tu15.cpp)
     target_link_libraries(capture_source_render_pose_tu15 PRIVATE halo2_systems)
     add_executable(capture_source_weapon_effect_events_tu15 tools/capture_source_weapon_effect_events_tu15.cpp)
@@ -195,6 +314,19 @@ if(BUILD_TESTING)
         "${CMAKE_CURRENT_BINARY_DIR}/source-elite-magnum-render-pose" elite 4)
     set_tests_properties(native_tu15_elite_magnum_render_pose PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     foreach(species human elite)
+        add_test(NAME native_tu15_${species}_dual_animation_effects COMMAND capture_source_dual_animation_tu15
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+            "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+            "${CMAKE_CURRENT_BINARY_DIR}/source-${species}-dual-animation-effects" ${species} 5 5)
+        set_tests_properties(native_tu15_${species}_dual_animation_effects PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 120 ENVIRONMENT "HALO2_SOURCE_FP_PARTICLE_PROBE=1")
+        add_test(NAME native_tu15_${species}_lift_animation COMMAND capture_source_lift_animation_tu15
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+            "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+            "${CMAKE_CURRENT_BINARY_DIR}/source-${species}-lift-animation" ${species})
+        set_tests_properties(native_tu15_${species}_lift_animation PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
         add_test(NAME native_tu15_${species}_render_pose COMMAND capture_source_render_pose_tu15
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
@@ -310,7 +442,7 @@ if(BUILD_TESTING)
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/map-pack/maps/elongation.map" --script-props)
     set_tests_properties(native_source_elongation_prop_physics_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180
-        ENVIRONMENT "HALO2_TU15_SCRIPT_PROP_NAME=crate_tech_giant")
+        ENVIRONMENT "HALO2_TU15_SCRIPT_PROP_NAME=crate_tech_giant;HALO2_TU15_REQUIRE_CONVEYOR_TRANSPORT=1")
     add_executable(physics_live_world_tu15_tests tests/physics_live_world_tu15_tests.cpp)
     target_link_libraries(physics_live_world_tu15_tests PRIVATE halo2_systems)
     add_test(NAME native_physics_live_world_tu15 COMMAND physics_live_world_tu15_tests
@@ -324,3 +456,28 @@ target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_world_locat
 target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_raw_datum_pool_identity)
 target_sources(halo2_systems PRIVATE src/source_projectile_presentation.cpp)
 target_sources(halo2_systems PRIVATE src/source_combat_attachments.cpp)
+
+if(BUILD_TESTING)
+    add_executable(replay_contrail_snapshot_tu15 tools/replay_contrail_snapshot_tu15.cpp)
+    target_link_libraries(replay_contrail_snapshot_tu15 PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(source_contrail_snapshot_tests tests/source_contrail_snapshot_tests.cpp)
+    target_link_libraries(source_contrail_snapshot_tests PRIVATE halo2_systems)
+    set(HALO2_TU15_CONTRAIL_XBE "" CACHE FILEPATH "Owned English TU1.5 XBE for contrail sparse-input tests")
+    add_test(NAME original_tu15_contrail_snapshot_inputs COMMAND source_contrail_snapshot_tests "${HALO2_TU15_CONTRAIL_XBE}")
+    set_tests_properties(original_tu15_contrail_snapshot_inputs PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(campaign_vehicle_physics_tu15_tests tests/campaign_vehicle_physics_tu15_tests.cpp)
+    target_link_libraries(campaign_vehicle_physics_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+endif()
+
+target_sources(halo2_systems PRIVATE src/source_effect_light_birth_tu15.cpp)
+
+if(BUILD_TESTING)
+    add_executable(campaign_multiplayer_world_tu15_tests EXCLUDE_FROM_ALL tests/campaign_multiplayer_world_tu15_tests.cpp)
+    target_link_libraries(campaign_multiplayer_world_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+endif()

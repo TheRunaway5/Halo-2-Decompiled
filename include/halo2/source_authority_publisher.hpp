@@ -3,6 +3,7 @@
 #include "halo2/source_authority_delta.hpp"
 #include "halo2/source_authority_binding.hpp"
 #include "halo2/online_match_session.hpp"
+#include "halo2/source_replay_batch.hpp"
 #include <chrono>
 #include <optional>
 #include <string>
@@ -15,6 +16,8 @@ struct SourceAuthorityPublisherState {
     bool delta{};
     std::optional<ValidatedAuthorityCut> ready;
     std::string error;
+    std::uint64_t recorded_phases{},replay_batches{},acknowledged_phases{},queued_phases{},queued_bytes{};
+    bool tracking_replay{};
 };
 // One selected physical shadow recipient. The agreed QoS/shadow policy supplies
 // that endpoint; this owner does not elect a host or change session membership.
@@ -25,6 +28,8 @@ class SourceAuthorityPublisher {
 public:
     SourceAuthorityPublisher(SourceMatchAuthority &,std::shared_ptr<OnlineMatchSession>,unsigned physical_target,
         std::chrono::milliseconds validation_timeout=std::chrono::minutes(5));
+    SourceAuthorityPublisher(SourceMatchAuthority &,std::shared_ptr<OnlineMatchSession>,unsigned physical_target,
+        SourceAuthorityStreamMode,std::chrono::milliseconds validation_timeout=std::chrono::minutes(5));
     ~SourceAuthorityPublisher();
     SourceAuthorityPublisher(const SourceAuthorityPublisher &)=delete;
     SourceAuthorityPublisher &operator=(const SourceAuthorityPublisher &)=delete;
@@ -32,6 +37,29 @@ public:
     // native boundary. Refuses overlap; unsupported capture is a diagnostic,
     // not a prepared shadow or permission to advance its delta base.
     bool capture();
+    // Execute real host work once. Replay mode records every complete phase
+    // after capture, including while the initial cut is encoding/in flight.
+    // Recording failure drops this stream, never real host work. Exceptions
+    // from the supplied native work itself propagate to its original caller.
+    bool execute(const std::function<void()> &);
+    class Frame {
+    public:
+        ~Frame();
+        // Idempotent explicit end; destructor also ends a normal frame.
+        // Exceptions from real host work still propagate to their caller.
+        bool finish()noexcept;
+        Frame(const Frame &)=delete;
+        Frame &operator=(const Frame &)=delete;
+    private:
+        friend class SourceAuthorityPublisher;
+        struct Impl;std::unique_ptr<Impl> impl_;
+        explicit Frame(SourceAuthorityPublisher &);
+    };
+    // Optional executor-local recording. Failure rejects this stream and
+    // returns null without preventing the actual frame from running once.
+    // This publisher must outlive the frame; do not call its other methods
+    // until finish/destruction. Early continue/break closes a normal frame.
+    std::unique_ptr<Frame> record_frame();
     // Publish completed worker output and consume matching executor receipts.
     void update();
     // Discard queued/stale encoding, pending validation tracking and ready/base

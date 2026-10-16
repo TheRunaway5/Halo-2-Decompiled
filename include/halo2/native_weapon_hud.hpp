@@ -1,6 +1,9 @@
 #pragma once
 #include "halo2/hud.hpp"
 namespace halo2 {
+struct HandheldWeaponHudBinding {std::uint32_t definition;bool dual_wieldable;};
+// Authored FP records, independent of native projectile/barrel support.
+std::vector<HandheldWeaponHudBinding> handheld_weapon_hud_bindings(const Cache &,unsigned representation);
 MultiplayerState::Player native_weapon_hud_player(const Unit &,const LevelContent &);
 // Campaign weapon and binocular widgets, prepared before the mesh is uploaded.
 // Reconstruct with the destination mesh after a BSP replacement.
@@ -10,9 +13,13 @@ public:
       const std::filesystem::path &fonts,const std::filesystem::path &assets);
   std::vector<Vertex> frame(const Unit &,std::uint32_t tick,unsigned width,unsigned height,
       std::optional<Vec2> aim_anchor={},std::optional<SourceHudAimCamera> target_camera={});
+  std::vector<Vertex> frame(const MultiplayerState::Player &,std::uint32_t tick,
+      unsigned width,unsigned height,std::optional<Vec2> aim_anchor={},
+      std::optional<SourceHudAimCamera> target_camera={});
 private:
   const LevelContent &content_;
   std::unique_ptr<MultiplayerHud> binocular_;
   std::map<std::uint32_t,std::unique_ptr<MultiplayerHud>> primary_,secondary_;
+  std::map<std::uint32_t,std::unique_ptr<MultiplayerHud>> vehicle_,parent_;
 };
 }

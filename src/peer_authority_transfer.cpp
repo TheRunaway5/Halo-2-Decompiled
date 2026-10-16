@@ -42,6 +42,7 @@ struct PeerAuthorityTransfer::Impl {
     unsigned self;AuthorityTransferContext binding;const AuthorityTransferLimits limits;
     mutable std::mutex mutex;
     std::array<std::uint64_t,16> capabilities{},hello_at{};
+    std::array<std::uint32_t,16> features{};
     std::array<bool,16> hello_sent{},hello_reply{};
     std::uint64_t next_id=1,last_tick{};
     struct Sender {
@@ -72,7 +73,7 @@ struct PeerAuthorityTransfer::Impl {
             l.retry_ms>=10&&l.offer_ms>=l.retry_ms&&l.idle_ms>=l.offer_ms&&l.lifetime_ms>=l.idle_ms&&
             l.window_chunks&&l.window_chunks<=256);
     }
-    void reset(AuthorityTransferContext c){binding=c;capabilities.fill(0);hello_sent.fill(false);hello_reply.fill(false);
+    void reset(AuthorityTransferContext c){binding=c;capabilities.fill(0);features.fill(0);hello_sent.fill(false);hello_reply.fill(false);
         for(auto &s:senders)s.reset();incoming.reset();completed.reset();delivered.reset();validated.reset();rejected.reset();receipts.clear();
         next_id=1;last_tick=highest_id=highest_tick=0;accepted_offer=ready_sent=credit_started=false;credit=double(limits.burst_bytes);}
     void expire(std::uint64_t now){
@@ -93,6 +94,10 @@ bool PeerAuthorityTransfer::replace_context(const AuthorityTransferContext &expe
     impl_->reset(next);return true;
 }
 bool PeerAuthorityTransfer::supported(unsigned peer)const{std::lock_guard lock(impl_->mutex);return peer<16&&impl_->capabilities[peer]!=0;}
+bool PeerAuthorityTransfer::feature_supported(unsigned peer,std::uint32_t feature)const{
+    std::lock_guard lock(impl_->mutex);return peer<16&&feature&&impl_->capabilities[peer]&&
+        (impl_->features[peer]&feature)==feature;
+}
 AuthorityCutSeal PeerAuthorityTransfer::publish(const AuthorityTransferContext &expected,std::uint64_t tick,
     Bytes archive,std::span<const unsigned> targets,std::uint64_t now){
     need(!archive.empty()&&archive.size()<=impl_->limits.maximum_bytes&&!targets.empty()&&targets.size()<=15);
@@ -119,9 +124,9 @@ std::vector<AuthorityTransferPacket> PeerAuthorityTransfer::poll(std::uint64_t n
     while(result.size()<budget){bool progress=false;
         for(unsigned attempt=0;attempt<16&&result.size()<budget;++attempt){const unsigned peer=s.cursor++%16;
             if(peer==s.self||!member(s.binding,peer))continue;
-            if(s.hello_reply[peer]){auto p=header(s.binding,peer,HelloAck,0);put(p,s.limits.maximum_bytes,8);emit(peer,std::move(p));s.hello_reply[peer]=false;progress=true;continue;}
+            if(s.hello_reply[peer]){auto p=header(s.binding,peer,HelloAck,0);put(p,s.limits.maximum_bytes,8);if(s.limits.features)put(p,s.limits.features,4);emit(peer,std::move(p));s.hello_reply[peer]=false;progress=true;continue;}
             if(!s.capabilities[peer]&&(!s.hello_sent[peer]||elapsed(now,s.hello_at[peer])>=1000)){
-                auto p=header(s.binding,peer,Hello,0);put(p,s.limits.maximum_bytes,8);emit(peer,std::move(p));s.hello_sent[peer]=true;s.hello_at[peer]=now;progress=true;continue;}
+                auto p=header(s.binding,peer,Hello,0);put(p,s.limits.maximum_bytes,8);if(s.limits.features)put(p,s.limits.features,4);emit(peer,std::move(p));s.hello_sent[peer]=true;s.hello_at[peer]=now;progress=true;continue;}
             if(peer==s.binding.host&&s.self!=peer){
                 if(s.rejected){auto p=header(s.binding,peer,Reject,*s.rejected);emit(peer,std::move(p));s.rejected.reset();progress=true;continue;}
                 if(s.incoming&&s.incoming->ack_all){auto p=header(s.binding,peer,Ack,s.incoming->seal.id);put(p,UINT32_MAX,4);put(p,0,8);
@@ -164,8 +169,10 @@ bool PeerAuthorityTransfer::receive(unsigned peer,std::span<const std::byte> byt
         {
             std::lock_guard lock(impl_->mutex);auto &s=*impl_;
             need(context==s.binding&&target==s.self&&peer!=s.self&&member(context,peer));s.expire(now);
-            if(type==Hello||type==HelloAck){const auto maximum=r.get(8);need(!id&&r.done()&&maximum&&maximum<=512ull*1024*1024);
-                s.capabilities[peer]=std::min(maximum,s.limits.maximum_bytes);if(type==Hello)s.hello_reply[peer]=true;return true;}
+            if(type==Hello||type==HelloAck){const auto maximum=r.get(8);const auto features=r.done()?0u:std::uint32_t(r.get(4));
+                need(!id&&r.done()&&maximum&&maximum<=512ull*1024*1024);
+                s.capabilities[peer]=std::min(maximum,s.limits.maximum_bytes);s.features[peer]=features;
+                if(type==Hello)s.hello_reply[peer]=true;return true;}
             need(id&&s.capabilities[peer]);
             if(type==Offer){
                 need(peer==context.host&&s.self!=context.host);const auto seal=get_seal(r,id);const auto count=r.get(4);

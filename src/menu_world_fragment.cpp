@@ -88,6 +88,8 @@ void validate_menu_world_fragment(const MenuWorldFragmentInput &input) {
     throw FormatError("raw menu fragment sampler capabilities are invalid");
   if(input.depth!=MenuWorldFragmentDepth::clipped_w_d24)
     throw FormatError("raw menu fragment requires the explicit clipped W/D24 policy");
+  if(input.w_clip_mode!=MenuWorldWClipMode::cull && input.w_clip_mode!=MenuWorldWClipMode::clamp)
+    throw FormatError("raw menu fragment requires an admitted source W clip mode");
   if(input.window!=MenuWorldFragmentWindow::inclusive)
     throw FormatError("raw menu fragment requires an explicit inclusive window policy");
   if(input.colors!=MenuWorldFragmentColors::front)
@@ -99,6 +101,8 @@ void validate_menu_world_fragment(const MenuWorldFragmentInput &input) {
   const auto &packet=*input.uniforms;
   for(const auto value:packet.clip_range)if(!std::isfinite(value))
     throw FormatError("raw menu fragment clip packet is nonfinite");
+  if(input.w_clip_mode==MenuWorldWClipMode::clamp && packet.clip_range[2]>packet.clip_range[3])
+    throw FormatError("raw menu fragment clamp interval is inverted");
   for(const auto value:packet.depth_factor_offset)if(!std::isfinite(value))
     throw FormatError("raw menu fragment polygon offset packet is nonfinite");
   if(packet.surface_scale[0]<=0 || packet.surface_scale[1]<=0)

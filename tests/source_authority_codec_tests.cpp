@@ -35,15 +35,16 @@ struct Clock final:PhysicsLiveClockSource {
 constexpr SourceMatchAuthority::AuthorityDigest binding{std::byte{0x15},std::byte{0x43}};
 struct Owner {
     Cache cache;LevelContent content;Directory files;std::shared_ptr<Clock> clock=std::make_shared<Clock>();
+    std::uint32_t result_seconds{};
     std::unique_ptr<MultiplayerObjectRuntime> world;std::unique_ptr<MultiplayerMatch> match;
     std::unique_ptr<SourceMatchAuthority> authority;
     Owner(const char *xbe,const char *map,std::uint32_t time):cache(map,{},OriginalData::load_xbe(xbe)),content(cache.load_content(0,true)){
-        clock->time=time;world=std::make_unique<MultiplayerObjectRuntime>(xbe,cache,0,files.path,clock);
+        clock->time=time;result_seconds=100000u+time/1000u;world=std::make_unique<MultiplayerObjectRuntime>(xbe,cache,0,files.path,clock);
         UiVariant variant{"Slayer",0,{{0x59,5}}};auto rules=slayer_rules(variant);
         rules.weapon=cache.slayer_starting_weapon(5);rules.score_limit=rules.time_ticks=0;
         world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
         match=std::make_unique<MultiplayerMatch>(content,0,cache.spawns(),rules,MultiplayerKingServices{},
-            [this]{return 100000u+(match?unsigned(match->simulation().ticks()/30):0);},world.get());
+            [this]{return result_seconds;},world.get());
         match->configure_weapon_pickups();const auto borrowed=std::shared_ptr<const Cache>(&cache,[](const Cache*){});
         match->configure_grenades(borrowed,*cache.original_data()->grenade_constants);
         match->configure_melee_animation(borrowed,*cache.original_data()->melee_constants);
@@ -54,7 +55,7 @@ struct Owner {
         match->configure_replicated_first_person(fp);match->configure_local_views(locals,fp);
         authority=std::make_unique<SourceMatchAuthority>(*match,*world);
     }
-    void step(const std::array<Controls,16> &input){clock->time+=33;match->step(input);}
+    void step(const std::array<Controls,16> &input){clock->time+=33;++result_seconds;match->step(input);}
 };
 std::vector<std::byte> invalid_state_enum(const std::vector<std::byte> &frame){
     const auto get=[&](std::size_t at){std::uint64_t n{};for(unsigned i=0;i<8;++i)n|=std::to_integer<std::uint64_t>(frame[at+i])<<(8*i);return n;};

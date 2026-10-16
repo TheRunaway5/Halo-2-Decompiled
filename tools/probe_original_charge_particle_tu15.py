@@ -6,7 +6,7 @@ supplies only a declared caller ABI and frame delta, and supplies no function
 returns or game/platform service policies. This is original consumer evidence,
 not a native implementation, a boot or a complete rendered weapon sequence.
 """
-import argparse,hashlib,json,shutil,struct
+import argparse,csv,hashlib,json,shutil,struct
 from collections import Counter
 from pathlib import Path
 from unicorn import Uc,UcError,UC_ARCH_X86,UC_MODE_32,UC_HOOK_CODE,UC_HOOK_MEM_WRITE,UC_HOOK_MEM_INVALID
@@ -25,18 +25,98 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--case',type=Path,required=True)
     ap.add_argument('--output',type=Path,required=True)
-    ap.add_argument('--entry',type=lambda x:int(x,0),choices=(0x179df0,0x13a9b0,0x179cd0,0x22c440,0x22c480,0x17ead0,0x180520,0xd72f0,0x18ee50,0x219b90,0x1378e0,0x3f3e0,0x1770c0,0x1772c0,0x1e0f0,0x1373f0,0x136ea0,0x176b30,0x219080,0x2190c0,0x175f90,0x380fa0,0x108db0,0x1030f0,0x1e7e40,0x1e9000,0x1e8410,0x1d0670,0x1d03a0),default=0x179df0)
+    ap.add_argument('--entry',type=lambda x:int(x,0),choices=(0x218020,0x1d63c0,0x26f260,0x1d1880,0x2035b0,0x2035f0,0x2039b0,0x2658b0,0x266d30,0x18b4c0,0xb9090,0xb8f40,0x11ddf0,0x178e30,0x116400,0x116440,0x1164d0,0xb9180,0x179df0,0x13a9b0,0x179cd0,0x22c440,0x22c480,0x17ead0,0x180520,0xd72f0,0x18ee50,0x219b90,0x1378e0,0x3f3e0,0x1770c0,0x1772c0,0x1e0f0,0x1373f0,0x136ea0,0x176b30,0x219080,0x2190c0,0x175f90,0x380fa0,0x108db0,0x1030f0,0x1e7e40,0x1e9000,0x1e8410,0x1d0670,0x1d03a0,0x11e660,*range(0x381a60,0x381ed0,0x10)),default=0x179df0)
     ap.add_argument('--phase',choices=('before','after'),default='after')
     ap.add_argument('--previous',type=Path,help='Continue from an authenticated original hardware result')
     ap.add_argument('--lifetime-frame',type=int,choices=range(1,129),metavar='1..128',help='Replay a captured source-world particle API frame')
     ap.add_argument('--native-call',choices=['visibility-consumer','transparent-init','view-reset','view-admission','world-draw',*(f'active-frame{n}' for n in range(1,17))],help='Replay an authenticated native visibility or active-particle input bank')
     ap.add_argument('--queued-callback',type=int,help='Invoke this actual transparent-command callback from a preceding authenticated hardware bank')
+    ap.add_argument('--captured-weapon-tick',action='store_true',help='Use the retained actual nested weapon caller, including its empty-stack FP state')
+    ap.add_argument('--captured-contact',action='store_true',help='Use the actual unresolved public D1878 contact caller and its complete FP input')
+    ap.add_argument('--captured-unit-notification',action='store_true',help='Use the actual public11750D unit callback with its register operands and retained FP input')
+    ap.add_argument('--captured-animation',action='store_true',help='Use the actual public1D5897 animation caller and complete retained FP input')
+    ap.add_argument('--captured-damage-notification',action='store_true',help='Use the actual public CC9CD damage notification caller and complete FP input')
+    ap.add_argument('--captured-recorded-animation',action='store_true',help='Use an authenticated actual row55 callback or public Hunter query input')
+    ap.add_argument('--captured-notification',action='store_true',help='Use the actual public204553 notification caller, six stack operands and complete FP input')
+    ap.add_argument('--material-control',choices=('alive','dead','model-fallback','empty-model-damage','no-model','non-unit-weapon'),help='Declared disposable material-query operand control over the authenticated captured caller')
+    ap.add_argument('--recorded-query-control',choices=('active-match','active-mismatch','flag-excluded','inactive-bitmap'),help='Declared disposable recorded-animation query operands over the authenticated initialized caller')
+    ap.add_argument('--captured-projectile-effect',action='store_true',help='Use the actual nested projectile hit-effect creator caller and retained FP state')
+    ap.add_argument('--captured-unit-action',action='store_true',help='Use the actual nested public Hunter unit-action caller and FP state')
+    ap.add_argument('--captured-hunter-particle-frame',action='store_true',help='Use the actual Hunter particle API caller and retained FP state')
     a=ap.parse_args();case=a.case.resolve();out=a.output.resolve();assert not out.exists();out.mkdir(parents=True)
     metadata=json.loads((case/'native.json').read_text())
-    actor_constructor=a.entry in (0x1e7e40,0x1e9000,0x1e8410,0x1d0670,0x1d03a0)
-    if actor_constructor:
+    behavior_initializer=a.entry in range(0x381a60,0x381ed0,0x10)
+    actor_constructor=a.entry in (0x1e7e40,0x1e9000,0x1e8410,0x1d0670,0x1d03a0) or behavior_initializer
+    captured_public_frame_fp=(a.entry in (0x1d0670,0xb8f40,0xb9090,0xb9180) and metadata['entry']==a.entry and
+        metadata.get('public_campaign_placement',False) and not a.previous)
+    if a.captured_unit_notification:
+        from validate_captured_hunter_unit_notification_tu15 import validate as validate_unit_notification
+        assert a.entry==0x218020 and a.phase=='before' and not any((a.previous,a.native_call,a.lifetime_frame,a.captured_unit_action,a.captured_projectile_effect,a.captured_weapon_tick,a.captured_hunter_particle_frame,a.captured_contact,a.captured_notification,a.captured_recorded_animation,a.captured_damage_notification,a.captured_animation))
+        context=validate_unit_notification(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_animation:
+        from validate_captured_hunter_animation_tu15 import validate as validate_animation
+        assert a.entry==0x1d63c0 and a.phase=='before' and not any((a.previous,a.native_call,a.lifetime_frame,a.captured_unit_action,a.captured_projectile_effect,a.captured_weapon_tick,a.captured_hunter_particle_frame,a.captured_contact,a.captured_notification,a.captured_recorded_animation,a.captured_damage_notification))
+        context=validate_animation(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_damage_notification:
+        from validate_captured_hunter_damage_notification_tu15 import validate as validate_damage_notification
+        assert a.entry in (0x1d1880,0x26f260) and a.phase=='before' and not any((a.previous,a.native_call,a.lifetime_frame,a.captured_unit_action,a.captured_projectile_effect,a.captured_weapon_tick,a.captured_hunter_particle_frame,a.captured_contact,a.captured_notification,a.captured_recorded_animation))
+        context=validate_damage_notification(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_recorded_animation:
+        from validate_captured_recorded_animation_tu15 import validate as validate_recorded_animation
+        assert a.entry in (0x2035b0,0x2035f0,0x2039b0) and a.phase=='before' and not any((a.previous,a.native_call,a.lifetime_frame,a.captured_unit_action,a.captured_projectile_effect,a.captured_weapon_tick,a.captured_hunter_particle_frame,a.captured_contact,a.captured_notification))
+        context=validate_recorded_animation(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_notification:
+        from validate_captured_hunter_notification_tu15 import validate as validate_notification
+        assert a.entry in (0x266d30,0x2658b0) and a.phase=='before' and not any((a.previous,a.native_call,a.lifetime_frame,a.captured_unit_action,a.captured_projectile_effect,a.captured_weapon_tick,a.captured_hunter_particle_frame,a.captured_contact))
+        context=validate_notification(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_contact:
+        from validate_captured_hunter_contact_tu15 import validate as validate_contact
+        assert a.entry==0x18b4c0 and a.phase=='before' and not any((a.previous,a.native_call,a.lifetime_frame,a.captured_unit_action,a.captured_projectile_effect,a.captured_weapon_tick,a.captured_hunter_particle_frame))
+        context=validate_contact(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_hunter_particle_frame:
+        from validate_captured_hunter_particle_frame_tu15 import validate as validate_hunter_particle
+        assert a.entry==0x179df0 and a.phase=='before' and not any((a.previous,a.native_call,a.lifetime_frame,a.captured_unit_action,a.captured_projectile_effect,a.captured_weapon_tick))
+        context=validate_hunter_particle(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_unit_action:
+        from validate_captured_hunter_unit_action_tu15 import validate as validate_unit_action
+        assert a.entry==0x11ddf0 and a.phase=='before' and not a.previous and not a.native_call and not a.lifetime_frame and not a.captured_weapon_tick and not a.captured_projectile_effect
+        context=validate_unit_action(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_projectile_effect:
+        from validate_captured_hunter_impact_tu15 import validate as validate_impact
+        assert a.entry==0x178e30 and a.phase=='before' and not a.previous and not a.native_call and not a.lifetime_frame and not a.captured_weapon_tick
+        context=validate_impact(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.captured_weapon_tick:
+        from validate_captured_hunter_weapon_tick_tu15 import validate as validate_weapon
+        assert a.entry==0x1030f0 and a.phase=='before' and not a.previous and not a.native_call and not a.lifetime_frame
+        context=validate_weapon(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.entry in (0xb8f40,0xb9090,0xb9180):
+        from validate_hunter_ai_frame_bank_tu15 import validate as validate_public_entry
+        assert metadata['public_campaign_placement'] and a.phase=='before' and not a.previous and not a.native_call and not a.lifetime_frame
+        context=validate_public_entry(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.entry in (0x1164d0,0x116440,0x116400):
+        from validate_hunter_unit_query_bank_tu15 import validate as validate_unit_query
+        assert a.phase=='before' and not a.previous and not a.native_call and not a.lifetime_frame
+        context=validate_unit_query(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif a.entry==0x11e660:
+        from validate_ai_cluster_query_bank_tu15 import validate as validate_cluster
+        assert a.phase=='before' and not a.previous and not a.native_call and not a.lifetime_frame
+        context=validate_cluster(case,metadata,list(regions(case/'before.bin')))
+        origin_hardware_sha256=None
+    elif actor_constructor:
         assert not a.native_call and not a.lifetime_frame
-        if a.entry==0x1d0670 and metadata['entry']==0x1d0670:
+        if (a.entry==0x1d0670 or behavior_initializer) and metadata['entry']==0x1d0670:
             from validate_hunter_ai_frame_bank_tu15 import validate as validate_actor
             assert a.phase=='before' and not a.previous
         else:
@@ -92,13 +172,83 @@ def main():
     g.reg_write(R.UC_X86_REG_GDTR,(0,0x70000000,0xfff,0))
     for reg,value in ((R.UC_X86_REG_CS,8),(R.UC_X86_REG_DS,16),(R.UC_X86_REG_ES,16),(R.UC_X86_REG_SS,16),(R.UC_X86_REG_FS,24)):g.reg_write(reg,value)
     def u(p,n=4):return int.from_bytes(g.mem_read(p,n),'little')
-    clock=u(0x51df54);delta_bits=u(clock+4);assert struct.unpack('<f',struct.pack('<I',delta_bits))[0]>0
+    clock=u(0x51df54);delta_bits=u(clock+4)
+    if not (a.captured_recorded_animation and a.entry in (0x2035b0,0x2035f0)):
+        assert struct.unpack('<f',struct.pack('<I',delta_bits))[0]>0
     gp=[0,0,0,0,0x600f0000,0,0,0]
     raw_input=struct.pack('<8I',*gp)+bytes(128)+struct.pack('<II',2,0x60200000)
     for reg,value in zip(REGISTERS,gp):g.reg_write(reg,value)
     for i in range(8):g.reg_write(getattr(R,f'UC_X86_REG_XMM{i}'),0)
     for reg,value in ((R.UC_X86_REG_EFLAGS,2),(R.UC_X86_REG_FPCW,0x27f),(R.UC_X86_REG_FPSW,0),(R.UC_X86_REG_FPTAG,0xffff),(R.UC_X86_REG_MXCSR,0x1f80)):g.reg_write(reg,value)
+    captured_fp=None
+    if a.captured_weapon_tick or a.captured_projectile_effect or a.captured_unit_action or a.captured_hunter_particle_frame or a.captured_contact or a.captured_notification or a.captured_recorded_animation or a.captured_damage_notification or captured_public_frame_fp or a.captured_animation or a.captured_unit_notification:
+        raw_input=(case/'native-input.bin').read_bytes();gp=list(struct.unpack_from('<8I',raw_input))
+        for reg,value in zip(REGISTERS,gp):g.reg_write(reg,value)
+        for i in range(8):g.reg_write(getattr(R,f'UC_X86_REG_XMM{i}'),int.from_bytes(raw_input[32+i*16:48+i*16],'little'))
+        depth,status,cw,mxcsr=struct.unpack('<IHHI',(case/'native-fp-input.bin').read_bytes());assert depth==0
+        for reg,value in ((R.UC_X86_REG_EFLAGS,struct.unpack_from('<I',raw_input,160)[0]),(R.UC_X86_REG_FPCW,cw),(R.UC_X86_REG_FPSW,status),(R.UC_X86_REG_MXCSR,mxcsr)):g.reg_write(reg,value)
+        captured_fp=dict(depth=depth,status=status,control=cw,mxcsr=mxcsr)
+        shutil.copy2(case/'native-fp-input.bin',out/'native-fp-input.bin')
     arguments=[delta_bits] if a.entry in (0x179df0,0x13a9b0,0x17ead0,0xd72f0,0x18ee50,0x1378e0) else []
+    if a.captured_projectile_effect or a.captured_unit_action:arguments=[metadata['request']]
+    if a.captured_hunter_particle_frame:arguments=[metadata['delta_bits']]
+    if a.captured_contact:arguments=context.get('callee_stack_arguments',context['actual_arguments'])
+    if a.captured_notification or a.captured_recorded_animation or a.captured_damage_notification or a.captured_animation or a.captured_unit_notification:arguments=context['callee_stack_arguments']
+    recorded_query_control=None
+    if a.recorded_query_control:
+        assert a.captured_recorded_animation and a.entry==0x2039b0
+        pool=u(0x5021fc);assert pool and u(pool+0x20)==1 and u(pool+0x24)==0xa0
+        record,bitmap=u(pool+0x44),u(pool+0x48)
+        assert record and bitmap and u(pool+0x38)==0
+        declared=[]
+        def query_operand(address,size,value):
+            before=bytes(g.mem_read(address,size));after=value.to_bytes(size,'little')
+            g.mem_write(address,after)
+            declared.append(dict(address=address,size=size,before_hex=before.hex(),after_hex=after.hex()))
+        query_operand(pool+0x34,4,1)
+        query_operand(pool+0x38,4,1)
+        query_operand(bitmap,4,0 if a.recorded_query_control=='inactive-bitmap' else 1)
+        query_operand(record,2,u(pool+0x40,2))
+        query_operand(record+4,4,metadata['unit'] if a.recorded_query_control!='active-mismatch' else metadata['player_unit'])
+        query_operand(record+0xa,1,1 if a.recorded_query_control=='flag-excluded' else 0)
+        recorded_query_control=dict(case=a.recorded_query_control,explicit_memory_operands=declared,
+            scope='Declared disposable query branch controls; not additional actual native gameplay histories')
+    material_control=None
+    if a.material_control:
+        assert a.captured_contact and a.entry==0x18b4c0
+        declared=[]
+        def operand(address,size,value):
+            before=bytes(g.mem_read(address,size));after=value.to_bytes(size,'little')
+            g.mem_write(address,after)
+            declared.append(dict(address=address,size=size,before_hex=before.hex(),after_hex=after.hex()))
+        headers=u(u(0x4ecbd0)+0x44)
+        target=u(headers+(gp[0]&65535)*12+8)
+        tag=u(u(0x4f0414)+(u(target)&65535)*16+8)
+        model=u(tag+0x38);assert model!=0xffffffff
+        model_root=u(u(0x4f0414)+(model&65535)*16+8)
+        if a.material_control=='dead':operand(target+0x10a,1,u(target+0x10a,1)|4)
+        if a.material_control in ('model-fallback','empty-model-damage','no-model'):
+            operand(tag+0x280,2,0xffff);operand(tag+0x282,2,0xffff)
+        if a.material_control=='empty-model-damage':operand(model_root+0x60,4,0)
+        if a.material_control=='no-model':operand(tag+0x38,4,0xffffffff)
+        register_controls=[]
+        if a.material_control=='non-unit-weapon':
+            register_controls.append(dict(register='EAX',before=gp[0],after=metadata['weapon']))
+            gp[0]=metadata['weapon'];g.reg_write(REGISTERS[0],gp[0])
+            raw_input=struct.pack('<8I',*gp)+raw_input[32:]
+        material_control=dict(case=a.material_control,explicit_memory_operands=declared,
+            explicit_register_operands=register_controls,actual_native_caller_unchanged=a.material_control=='alive',
+            scope='Declared disposable branch controls; not additional actual native gameplay histories')
+    if a.entry==0x11e660:
+        gp[0]=metadata['location'];g.reg_write(REGISTERS[0],gp[0])
+        raw_input=struct.pack('<8I',*gp)+bytes(128)+struct.pack('<II',2,0x60200000)
+    if a.entry in (0x1164d0,0x116440,0x116400):
+        gp[0]=metadata.get('caller_unit',metadata['unit']);g.reg_write(REGISTERS[0],gp[0])
+        if a.entry in (0x116440,0x116400):arguments=[metadata['duration_bits']]
+        raw_input=struct.pack('<8I',*gp)+bytes(128)+struct.pack('<II',2,0x60200000)
+    if behavior_initializer:
+        slot=0x46dad8+(a.entry-0x381a60)//4
+        assert u(slot)==a.entry and image.read(slot,4)==struct.pack('<I',a.entry)
     if a.entry==0x1373f0:gp[2]=0x556e18;g.reg_write(REGISTERS[2],gp[2]);raw_input=struct.pack('<8I',*gp)+bytes(128)+struct.pack('<II',2,0x60200000)
     if a.entry==0x108db0:
         assert a.phase=='before' and not a.previous and metadata['entry']==0x108db0
@@ -158,7 +308,12 @@ def main():
             for p,b in data:f.write(struct.pack('<II',p,len(b)));f.write(bytes(g.mem_read(p,len(b))))
     dump('before.bin')
     inventory=ROOT/'analysis/multiplayer/title-update-1.5/functions.json'
-    starts={int(row['ea'],16) for row in json.loads(inventory.read_text())};visited=Counter();reached={};count=0;pc=0;writes=0;callers=[]
+    if inventory.exists():
+        starts={int(row['ea'],16) for row in json.loads(inventory.read_text())}
+    else:
+        inventory=ROOT/'analysis/multiplayer/title-update-1.5/decompiled/functions.tsv'
+        with inventory.open() as stream:starts={int(row['address'],16) for row in csv.DictReader(stream,delimiter='\t')}
+    visited=Counter();reached={};count=0;pc=0;writes=0;callers=[]
     stores=(out/'original-stores.bin').open('wb');trace=(out/'original-trace.bin').open('wb')
     def hook(uc,p,n,user):
         nonlocal count,pc
@@ -197,13 +352,22 @@ def main():
     exit_+=struct.pack('<IIIHHI',g.reg_read(R.UC_X86_REG_EFLAGS),g.reg_read(R.UC_X86_REG_FS_BASE),depth,g.reg_read(R.UC_X86_REG_FPSW),g.reg_read(R.UC_X86_REG_FPCW),g.reg_read(R.UC_X86_REG_MXCSR))
     (out/'original-exit.bin').write_bytes(exit_)
     report=dict(scope=__doc__,tool_sha256=sha(__file__),original_xbe_sha256=NEW_PIN,source_context=context,
+        function_inventory=str(inventory),function_inventory_sha256=sha(inventory),
+        material_control=material_control,recorded_query_control=recorded_query_control,
         origin_case=str(case),origin_phase=a.phase,origin_bank_sha256=sha(origin),origin_hardware_report_sha256=origin_hardware_sha256,previous_evidence=previous_evidence,native_api_frame=api_frame,
-        entry=a.entry,queued_callback=queued_callback,portal_caller=portal_caller,source_memory_faults=source_faults,frame_delta_bits=delta_bits,caller_argument_words=arguments,caller_frame_address=gp[4],caller_before_hex=old_caller.hex(),caller_after_hex=caller.hex(),
+        entry=a.entry,captured_weapon_tick=a.captured_weapon_tick,captured_projectile_effect=a.captured_projectile_effect,captured_unit_action=a.captured_unit_action,captured_hunter_particle_frame=a.captured_hunter_particle_frame,captured_caller_fp=captured_fp,queued_callback=queued_callback,portal_caller=portal_caller,source_memory_faults=source_faults,frame_delta_bits=delta_bits,caller_argument_words=arguments,caller_frame_address=gp[4],caller_before_hex=old_caller.hex(),caller_after_hex=caller.hex(),
         supplied_game_services=[],instruction_patches=[],completed=completed,error=error,unowned_boundary=boundary,original_instructions=count,retained_stores=writes,exit_pc=g.reg_read(R.UC_X86_REG_EIP),
         original_functions={f'{p:08x}':n for p,n in sorted(visited.items())},original_function_entries=callers,
         executed_instruction_bytes={f'{p:08x}':v for p,v in sorted(reached.items())},
         files_sha256={p.name:sha(p) for p in out.iterdir() if p.is_file()},native_implementation_verified=False,physical_xbox_verified=False,full_weapon_parity=False)
     (out/'report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+    if context.get('validation_tool_sha256'):
+        validators=['validate_captured_hunter_unit_notification_tu15.py','validate_captured_hunter_animation_tu15.py','validate_captured_hunter_damage_notification_tu15.py','validate_captured_recorded_animation_tu15.py','validate_captured_hunter_notification_tu15.py','validate_captured_hunter_contact_tu15.py','validate_actor_constructor_bank_tu15.py','validate_hunter_ai_frame_bank_tu15.py',
+            'validate_hunter_unit_query_bank_tu15.py','validate_ai_cluster_query_bank_tu15.py',
+            'validate_captured_hunter_weapon_tick_tu15.py','validate_captured_hunter_particle_frame_tu15.py','validate_captured_hunter_unit_action_tu15.py','validate_captured_hunter_impact_tu15.py','validate_charge_effect_bank_tu15.py']
+        matching=[ROOT/'tools'/p for p in validators if sha(ROOT/'tools'/p)==context['validation_tool_sha256']]
+        assert len(matching)==1,'Retain the exact admitted bank validator'
+        shutil.copy2(matching[0],out/'bank-validator-source.py')
     shutil.copyfile(__file__,out/'probe-source.py')
     print(json.dumps({k:report[k] for k in ('completed','error','original_instructions','retained_stores','exit_pc','original_functions')}));return 0 if completed else 1
 if __name__=='__main__':raise SystemExit(main())

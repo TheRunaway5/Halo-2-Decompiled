@@ -59,7 +59,7 @@ int main(int argc,char **argv) {
     if(!banks.contains(name)) {
       auto path=std::filesystem::path(argv[1])/name;
       if(!std::filesystem::exists(path) && argc>3)path=std::filesystem::path(argv[3])/name;
-      banks.emplace(name,Cache(path).load_bsp_atmosphere(0));
+      banks.emplace(name,Cache(path).load_bsp_atmosphere(argc>4?std::stoul(argv[4]):0));
     }
     const auto &bank=banks.at(name);const Vec3 eye{x,y,z};const auto f=bank.sample(eye,{1,0,0},cluster);
     std::cout<<name<<' '<<cluster<<' '<<bank.cluster_at(eye)<<' '<<f.classification;

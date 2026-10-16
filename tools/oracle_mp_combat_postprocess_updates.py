@@ -43,7 +43,7 @@ def schema_fields(c,tag):
     walk(ET.parse(p).getroot(),tag['offset'])
     return rows
 
-def run_one(c,config,out):
+def run_one(c,config,out,require_changes=True):
     label,path,pin,entry,caller,globals_,inventory=config
     assert sha(path)==pin
     x=Xbe(path);code=_Code(x,'.text')
@@ -98,7 +98,7 @@ def run_one(c,config,out):
             (d/(stem+'-raw.bin')).write_bytes(before);(d/(stem+'-processed.bin')).write_bytes(after)
             changed.append({'tag':t,'original_va':h(a+c.magic),'raw_hex':before.hex(),'processed_hex':after.hex(),
                             'raw_sha256':digest(before),'processed_sha256':digest(after),'writes':[r for r in authored_stores if r['tag']['datum']==t['datum']]})
-    assert len(changed)>0
+    if require_changes:assert len(changed)>0
     return {'image_label':label,'xbe_sha256':pin,'entry':h(entry),'owning_caller':h(caller),'caller_direct_calls':direct,
             'whole_original_instruction_count':len(ins),'executed_instruction_addresses':[h(p)for p in executed],
             'declared_cache_global_bindings':[{'global_slot':h(p),'value':h(v)}for p,v in bindings],

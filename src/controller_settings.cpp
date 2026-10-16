@@ -99,13 +99,13 @@ ControllerInput controller_input(const ControllerSample &s,
 }
 void controller_look(const ControllerInput &input,
                      const ControllerSettings &settings, float seconds,
-                     float &yaw, float &pitch) {
+                     float &yaw, float &pitch,bool constrain_pitch) {
   // 6080DC ->461D0B: literal sensitivity tables in degrees, then7B9F60 radians.
   const auto n = std::clamp(settings.sensitivity, 1u, 10u) - 1;
   constexpr float radians = .01745329238474369f;
   yaw -= input.look_yaw * float(80 + 20 * n) * radians * seconds;
-  pitch = std::clamp(pitch + input.look_pitch * (settings.invert ? -1.f : 1.f) *
-                                 float(40 + 10 * n) * radians * seconds,
-                     -1.4922565f, 1.4922565f);
+  pitch += input.look_pitch * (settings.invert ? -1.f : 1.f) *
+      float(40 + 10 * n) * radians * seconds;
+  if(constrain_pitch)pitch=std::clamp(pitch,-1.4922565f,1.4922565f);
 }
 } // namespace halo2

@@ -7,7 +7,8 @@ namespace halo2 {
 // These are actual caller layers, not a pass-selection policy. Other layer
 // families have not been admitted by this ordinary-world context.
 enum class MenuWorldRasterLayer : std::uint32_t {
-  base_1=1,base_3=3,emissive_7=7,shadow_10=10,sphere_diffuse_12=12,planar_fog_16=16
+  base_1=1,base_3=3,emissive_7=7,shadow_10=10,shadow_apply_11=11,
+  sphere_diffuse_12=12,planar_fog_16=16
 };
 enum class MenuWorldRasterPrimitive { unspecified,ordinary_triangles,other };
 enum class MenuWorldRasterPolygon { unspecified,point,line,fill };

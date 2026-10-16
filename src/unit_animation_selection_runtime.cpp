@@ -334,14 +334,14 @@ if(s.services.instruction){s.services.instruction(0x30be3u);} s.fp.push(s.fp.st(
 if(s.services.instruction){s.services.instruction(0x30be5u);} s.fp.st(0)=mul(s.fp.st(0),s.fp.st(4));
 if(s.services.instruction){s.services.instruction(0x30be7u);} s.fp.st(1)=add(s.fp.st(1),s.fp.st(0));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30be9u);} s.fp.st(0)=root(s.fp.st(0));
-if(s.services.instruction){s.services.instruction(0x30bebu);} s.fp.st(3)=s.fp.st(0);s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x30bedu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x30befu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bebu);} s.fp.st(3)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bedu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30befu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30bf1u);} w(s.memory,s.observe,0x30bf1u,(0x0u+s.gp[4]),4,u(spill(s.fp.st(0))));
 if(s.services.instruction){s.services.instruction(0x30bf4u);} s.fp.st(0)=std::fabs(s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x30bf6u);} s.fp.push(ext(f(r(s.memory,(0x46504cu),4))));
 if(s.services.instruction){s.services.instruction(0x30bfcu);} s.flags.extended_compare(s.fp.st(0),s.fp.st(1));s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x30bfeu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bfeu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30c00u);} if(!s.flags.cf&&!s.flags.zf)goto L30c38;
 if(s.services.instruction){s.services.instruction(0x30c02u);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(0x465030u),4)));
 if(s.services.instruction){s.services.instruction(0x30c0au);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(0x0u+s.gp[4]),4)));

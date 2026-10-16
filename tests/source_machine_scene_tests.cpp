@@ -5,6 +5,7 @@
 #include "halo2/scene.hpp"
 #include "halo2/reference_player.hpp"
 #include "halo2/source_device_world.hpp"
+#include "halo2/scenery.hpp"
 #include <fstream>
 #include <sstream>
 #include <cmath>
@@ -24,6 +25,24 @@ void same_pose(const std::vector<Vertex>&a,const std::vector<Vertex>&b){
   a[i].position.z!=b[i].position.z || a[i].normal.x!=b[i].normal.x || a[i].normal.y!=b[i].normal.y ||
   a[i].normal.z!=b[i].normal.z || a[i].prt_cluster!=b[i].prt_cluster || a[i].prt_weights!=b[i].prt_weights)
   throw FormatError("machine lifetime retained previous pose or advanced from render time");
+}
+void prepared_machine_birth(){
+ Cache cache("assets/map-pack/maps/triplicate.map");auto content=cache.load_content(0,true);
+ const auto at=std::find_if(content.objects.begin(),content.objects.end(),[](const auto&o){return o.type==7 && scenery_automatic_creation_allowed(o,2);});
+ if(at==content.objects.end())throw FormatError("prepared machine fixture missing authored resource");
+ const auto placement=std::size_t(at-content.objects.begin());
+ for(std::size_t i=0;i<content.objects.size();++i)if(i!=placement)content.objects[i].definition=null_datum;
+ content.objects[placement].flags|=1u; // Declared automatic-birth suppression input.
+ CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene scene(cache,content.objects,0,mesh,collision);
+ if(scene.stats().render_models!=1)throw FormatError("Deferred machine resource was not prepared");
+ const auto absent=[&]{std::vector<Vertex> v;std::vector<ObjectLightingBinding> b;scene.append(v,b);
+  if(!v.empty() || !b.empty())throw FormatError("Prepared machine geometry submitted before actual birth");};
+ absent();SceneObjects objects(content,0,SourceSceneGameContext{2,2});scene.synchronize(objects);absent();
+ const auto born=objects.create_placement(placement,7);scene.synchronize(objects);scene.update_pose(7,0,mesh);
+ std::vector<Vertex> v;std::vector<ObjectLightingBinding>b;scene.append(v,b);
+ if(born==null_datum || v.empty() || b.size()!=1)throw FormatError("Actual deferred machine birth did not activate its prepared resource");
+ objects.destroy(born);scene.synchronize(objects);absent();
+ std::cout<<"Prepared machine: no prebirth submission, actual deferred birth and retirement\n";
 }
 void triplicate_lifetimes(){
  Cache cache("assets/map-pack/maps/triplicate.map");const auto content=cache.load_content(0,true);
@@ -70,6 +89,7 @@ void reference_devices(){
  bad=reference.devices;bad[1]=bad[0];reject(bad);
  bad=reference.devices;bad[0].render_model=0xffffffffu;reject(bad);
  scene.set_reference_devices(reference.devices,mesh);
+ SceneObjects objects(content,0,SourceSceneGameContext{2,2});scene.synchronize(objects);
  // Both literal authored material identities belong to the source paired
  // geometry. The expected bank is captured GPU memory, not native output.
  std::ifstream fixture(directory/"retail_zanzibar_device_banks.tsv");std::string line;unsigned checked=0;
@@ -97,7 +117,7 @@ void reference_devices(){
  const auto selected=[&](const std::vector<Vertex>&world){std::vector<Vertex>out;for(const auto&v:world)
   if(mesh.materials[v.material].name==names[0] || mesh.materials[v.material].name==names[1])out.push_back(v);return out;};
  std::vector<Vertex>world;std::vector<ObjectLightingBinding>bindings;scene.append(world,bindings);const auto first=selected(world);
- SceneObjects objects(content,0);scene.synchronize(objects);scene.update(30,30,reference.camera_position,1,mesh);
+ scene.synchronize(objects);scene.update(30,30,reference.camera_position,1,mesh);
  world.clear();bindings.clear();scene.append(world,bindings);same_pose(first,selected(world));
  for(unsigned i=0;i<2;++i){const auto material=std::find_if(mesh.materials.begin(),mesh.materials.end(),[&](const auto&m){return m.name==names[i];});
   if(material->environment_pass->vertex_bank->constants!=initial[i])throw FormatError("diagnostic device advanced its frozen source image phase");}
@@ -197,12 +217,15 @@ void presentation_devices(){
 }
 }
 int main(){try{
- reference_devices();triplicate_lifetimes();simulation_devices();presentation_devices();SourceMachineSceneStats totals;unsigned vertices=0,bindings=0,prt_banks=0;
+ prepared_machine_birth();reference_devices();triplicate_lifetimes();simulation_devices();presentation_devices();SourceMachineSceneStats totals;unsigned vertices=0,bindings=0,prt_banks=0;
  const std::string maps=" ascension beavercreek burial_mounds coagulation colossus cyclotron foundation headlong lockout midship waterworks zanzibar containment warlock deltatap turf backwash dune elongation gemini triplicate ";
  for(const auto&directory:{"assets/disc/maps","assets/map-pack/maps"})for(const auto&entry:std::filesystem::directory_iterator(directory)){
   if(entry.path().extension()!=".map" || maps.find(" "+entry.path().stem().string()+" ")==std::string::npos)continue;
-  Cache cache(entry.path());const auto content=cache.load_content(0,true);CollisionWorld collision(content.collision);Mesh mesh;
-  SourceMachineScene scene(cache,content.objects,0,mesh,collision);const auto&s=scene.stats();
+  Cache cache(entry.path());auto content=cache.load_content(0,true);CollisionWorld collision(content.collision);Mesh mesh;
+  // This original census covers the automatic initial MP2/current-BSP corpus.
+  for(auto &o:content.objects)if(o.type==7 && (!scenery_automatic_creation_allowed(o,2) || o.origin_bsp>0))o.definition=null_datum;
+  SourceMachineScene scene(cache,content.objects,0,mesh,collision);
+  SceneObjects objects(content,0,SourceSceneGameContext{2,2});scene.synchronize(objects);const auto&s=scene.stats();
   totals.placements+=s.placements;totals.render_models+=s.render_models;totals.position_overlays+=s.position_overlays;
   totals.dynamic_materials+=s.dynamic_materials;totals.prt_materials+=s.prt_materials;totals.initial_state_only+=s.initial_state_only;
   totals.union_dynamic_materials+=s.union_dynamic_materials;totals.union_prt_materials+=s.union_prt_materials;

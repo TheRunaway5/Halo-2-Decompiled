@@ -3,10 +3,12 @@
 #include "halo2/residency.hpp"
 #include "halo2/static_scenery_collision.hpp"
 #include "halo2/native_unit_interaction.hpp"
+#include "halo2/campaign_text.hpp"
 #include <iostream>
 #include <algorithm>
 #include <bit>
 #include <sstream>
+#include <string_view>
 using namespace halo2;
 namespace {
 void check(bool result, const char *message) {
@@ -66,6 +68,24 @@ struct Program {
     return root;
   }
 };
+LevelContent arena();
+void opening_release_timing() {
+  Program p;
+  p.script("opening_release_timing", p.call("begin", {
+      p.call("time_code_reset"), p.call("sleep", {p.scalar(2,7)}),
+      p.call("time_code_reset"), p.call("game_won")}));
+  auto c=arena();c.scripts=p.data;
+  Simulation sim(c,{},0,Spawn{});
+  sim.start_level();
+  sim.step({});
+  check(sim.scripts().diagnostics().empty() && !sim.level_finished() && sim.ticks()==1,
+        "Opening release time-code reset faults or changes the game clock");
+  sim.step({});
+  check(!sim.level_finished(),"Release time-code reset changes authored sleep timing");
+  sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.level_finished() && sim.ticks()==3,
+        "Opening release time-code reset interrupts the authored continuation");
+}
 void vm_checkpoint() {
   Program p;
   p.data.globals.push_back({"counter", 8, p.scalar(0)});
@@ -203,6 +223,175 @@ LevelContent arena() {
   prop.type = 6; prop.definition = 42; prop.name = 0;
   c.objects.push_back(prop);
   return c;
+}
+void campaign_frame_clock_schedule() {
+  Program p;p.data.globals.push_back({"beat",5,p.scalar(0,5)});
+  p.script("start_clock",p.call("cinematic_start"));
+  p.script("cue",p.call("begin",{p.call("sleep",{p.scalar(15,7)}),
+      p.call("set",{p.global(0,5),p.scalar(1,5)},5)}));
+  p.script("snapshot_frame",p.call("game_save"));
+  for(unsigned fps:{120u,60u,30u,20u,10u}) {
+    auto c=arena();c.scripts=p.data;Simulation sim(c,0,{{0,0,0},0,0});
+    sim.run_script("start_clock");sim.step({});sim.run_script("cue");
+    unsigned ticks=0;
+    for(unsigned frame=0;frame<fps;++frame) {
+      const auto plan=sim.advance_frame_time(1.f/float(fps),false);
+      for(int tick=0;tick<plan.ticks;++tick) {
+        sim.step({});++ticks;
+        check(sim.scripts().globals()[0].truth()==(sim.ticks()>=17),
+            "Cinematic frame cadence changed the authored sleep deadline");
+      }
+    }
+    check(ticks==30 && sim.ticks()==31 && sim.scripts().diagnostics().empty(),
+        "Slow rendering dropped cinematic game time");
+    check(sim.advance_frame_time(1.f/60.f,false).ticks==0 && sim.frame_fraction()==.5f,
+        "Source fractional tick was not retained by the campaign owner");
+    sim.run_script("snapshot_frame");
+    auto plan=sim.advance_frame_time(1.f/30.f,false);
+    check(plan.ticks==1,"Checkpoint fixture lost its source tick budget");sim.step({});
+    check(sim.advance_frame_time(1.f/120.f,false).ticks==0 && sim.frame_fraction()==.75f,
+        "Frame fraction did not advance after checkpoint capture");
+    sim.request_revert();plan=sim.advance_frame_time(1.f/30.f,false);
+    check(plan.ticks==1,"Restore fixture lost its source tick budget");sim.step({});
+    check(sim.frame_fraction()==.5f,"Campaign restore shared or dropped its frame fraction");
+    const auto before=sim.ticks();plan=sim.advance_frame_time(1.f,true);
+    check(plan.ticks==0 && sim.ticks()==before && sim.frame_fraction()==0.f,
+        "Paused frame accounting did not preserve game time and reset source leftover");
+  }
+}
+void cinematic_bootstrap_presentation() {
+  auto c=arena();Program p;
+  p.script("bootstrap",p.call("begin",{p.call("game_save_cinematic_skip"),
+      p.call("sleep",{p.scalar(2,7)}),p.call("camera_control",{p.scalar(1,5)}),
+      p.call("cinematic_start")}));
+  p.script("cancel_bootstrap",p.call("cinematic_skip_stop_internal"),1);
+  c.scripts=p.data;Simulation sim(c,0,{{0,0,0},0,0});sim.start_level();sim.step({});
+  check(sim.cinematic_state() && sim.cinematic_state()->awaiting_camera,
+      "Skip/save bootstrap exposed an uninitialized campaign camera");
+  sim.step({});check(sim.cinematic_state()->awaiting_camera,"Bootstrap coverage ended before the authored camera");
+  sim.step({});check(!sim.cinematic_state()->awaiting_camera && sim.presentation().cinematic,
+      "Authored camera/cinematic admission did not release bootstrap coverage");
+  sim.request_revert();sim.step({});
+  check(sim.cinematic_state()->awaiting_camera,"Restore lost bootstrap presentation ownership");
+  sim.run_script("cancel_bootstrap");sim.step({});
+  check(sim.scripts().diagnostics().empty() && !sim.cinematic_state()->awaiting_camera,
+      "Skipped bootstrap retained a stale loading cover");
+}
+void cinematic_crossfade_checkpoint() {
+  auto c=arena();Program p;
+  p.script("begin_fade",p.call("begin",{p.call("cinematic_screen_effect_start",{p.scalar(0,5)}),
+      p.call("cinematic_screen_effect_set_crossfade",{p.real(1)}),p.call("game_save")}));
+  p.script("stop_fade",p.call("cinematic_screen_effect_stop"));c.scripts=p.data;
+  Simulation unavailable(c,0,{{0,0,0},0,0});unavailable.run_script("begin_fade");unavailable.step({});
+  check(unavailable.scripts().diagnostics().size()==1 &&
+      unavailable.scripts().diagnostics().front().find("captured-frame GPU consumer")!=std::string::npos,
+      "Headless cinematic crossfade silently dropped its required renderer");
+  Simulation sim(c,0,{{0,0,0},0,0});sim.cinematic_screen_consumer(true);
+  sim.run_script("begin_fade");sim.step({});
+  sim.advance_cinematic_render_time(.25f,0,0);auto frame=sim.cinematic_crossfade_frame();
+  check(frame.capture && frame.composite && frame.composite->words[43]==0xbf000000u,
+      "Crossfade timer did not publish its actual capture and quantized program");
+  sim.cinematic_crossfade_capture_complete();sim.advance_cinematic_render_time(.25f,0,0);
+  check(!sim.cinematic_crossfade_frame().capture && sim.cinematic_state()->render_clock==.5,
+      "Captured scene was requested again or the render clock did not advance");
+  sim.request_revert();sim.step({});
+  check(sim.cinematic_state()->render_clock==.5 && sim.cinematic_state()->screen_consumer,
+      "Restore rewound the external render clock or lost its current GPU binding");
+  sim.advance_cinematic_render_time(0,0,0);frame=sim.cinematic_crossfade_frame();
+  check(frame.capture && frame.composite && frame.composite->words[43]==0x80000000u,
+      "Restored timed controls did not use the retained external render clock");
+  sim.cinematic_crossfade_capture_complete();sim.run_script("stop_fade");sim.step({});
+  check(!sim.cinematic_crossfade_frame().capture && !sim.cinematic_crossfade_frame().composite &&
+      sim.cinematic_state()->render_clock==.5,"Screen stop retained a crossfade or reset the external clock");
+}
+void cinematic_attachment_retirement() {
+  auto c=arena();
+  for(unsigned i=1;i<4;++i) {
+    c.object_names.push_back({"attachment_"+std::to_string(i),6,int(i)});
+    auto object=c.objects.front();object.name=int(i);object.placement=i;
+    c.objects.push_back(object);
+  }
+  SceneObjects scene(c,0);
+  const auto parent=scene.resolve(0),child=scene.resolve(1),grandchild=scene.resolve(2),other=scene.resolve(3);
+  scene.get(child).attachment_parent=parent;scene.get(grandchild).attachment_parent=child;
+  const auto saved=scene;
+  scene.destroy(parent);
+  for(auto handle:{parent,child,grandchild})
+    rejects([&]{(void)scene.get(handle);},"Attached generation survived parent retirement");
+  check(scene.get(other).handle==other && scene.resolve(1)==null_datum && scene.resolve(2)==null_datum,
+      "Parent retirement lost unrelated storage or retained stale child names");
+  scene.restore(saved);
+  check(scene.get(child).attachment_parent==parent && scene.get(grandchild).attachment_parent==child,
+      "Checkpoint restore lost the retained object hierarchy");
+  scene.destroy(child);
+  check(scene.get(parent).handle==parent && scene.get(other).handle==other,
+      "Child retirement destroyed its surviving parent");
+  rejects([&]{(void)scene.get(grandchild);},"Attached grandchild survived child retirement");
+}
+void opening_attachment_checkpoint(const std::filesystem::path &map,const std::filesystem::path &xbe) {
+  Cache cache(map,map.parent_path(),OriginalData::load_xbe(xbe));
+  auto content=cache.load_content(0);const auto text=load_campaign_text(cache,map);
+  Simulation sim(content,0,cache.spawns().front(),[&](auto graph,auto name) {
+    return cache.load_named_animation(graph,name);
+  });
+  sim.cinematic_animation_assets(std::make_shared<CinematicAnimationAssets>(cache));
+  sim.cinematic_text_services([&](auto id){return text.subtitles.contains(id);},[&](auto id) {
+    const auto sound=cache.load_sound(id);return float(sound.samples)/sound.sample_rate;
+  });
+  sim.run_script("x01_scene_01b");
+  // Capture the fresh constructor and retain its ordinary channel through an
+  // original89-frame loop before authored cleanup and checkpoint restoration.
+  sim.request_checkpoint();sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.cinematic_state() &&
+      sim.cinematic_state()->attachments.size()==2,"Authored Mercy/Regret attachment setup failed");
+  const auto saved=sim.cinematic_state()->attachments;
+  const auto check_poses=[&] {
+    for(const auto &[handle,attachment]:sim.cinematic_state()->attachments) {
+      const auto &object=sim.scene().get(handle),&parent=sim.scene().get(attachment.parent);
+      check(object.attachment_parent==attachment.parent && object.solved_transform && parent.solved_nodes,
+          "Authored attachment lost its live pose owner");
+      const auto root=source_object_transform(attachment.local.position,attachment.local.forward,attachment.local.up,
+          object.scale,false,&parent.solved_nodes->at(attachment.node),false);
+      check(std::bit_cast<std::array<std::uint32_t,13>>(root)==
+          std::bit_cast<std::array<std::uint32_t,13>>(*object.solved_transform),
+          "Attached throne did not consume its current parent node and retained local frame");
+    }
+  };
+  check_poses();
+  for(const auto &[handle,attachment]:saved) {
+    (void)handle;const auto *animation=sim.object_animation(attachment.parent);
+    check(animation && animation->channel && !custom_cinematic_animation(*animation->channel) &&
+        cinematic_animation_frame(*animation->channel)==1.f,"Fresh prophet did not retain its initialized ordinary channel");
+  }
+  for(unsigned i=0;i<88;++i) {sim.step({});check_poses();}
+  check(sim.scripts().diagnostics().empty(),"Ordinary attached prophet playback faulted");
+  for(const auto &[handle,attachment]:saved) {
+    (void)handle;const auto *animation=sim.object_animation(attachment.parent);
+    check(animation && animation->channel &&
+        std::bit_cast<std::uint32_t>(cinematic_animation_frame(*animation->channel))==0x38d00000u,
+        "Prophet idle missed the original89-frame rounded loop boundary");
+  }
+  sim.run_script("x01_10_cleanup");sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.cinematic_state()->attachments.empty(),
+      "Authored cleanup retained attached throne generations");
+  sim.run_script("x01_scene_06");sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.cinematic_state()->attachments.size()==1,
+      "Authored Truth attachment did not enter the retained scene");
+  check_poses();sim.request_revert();sim.step({});
+  check(sim.cinematic_state()->attachments.size()==2,"Restore shared the later mutable attachment map");
+  for(const auto &[handle,attachment]:saved) {
+    (void)handle;const auto *animation=sim.object_animation(attachment.parent);
+    check(animation && animation->channel && cinematic_animation_frame(*animation->channel)==1.f,
+        "Restore retained the later mutable ordinary animation clock");
+  }
+  for(const auto &[handle,attachment]:saved) {
+    const auto &restored=sim.cinematic_state()->attachments.at(handle);
+    check(restored.parent==attachment.parent && restored.node==attachment.node &&
+        std::bit_cast<std::array<std::uint32_t,9>>(restored.local)==
+        std::bit_cast<std::array<std::uint32_t,9>>(attachment.local),
+        "Restore lost the retained attachment frame or full generation");
+  }
+  check_poses();
 }
 void tutorial_controls_and_checkpoint() {
   auto c=arena();Program p;
@@ -483,6 +672,59 @@ void cinematic_object_cleanup() {
   sim.request_revert(); sim.step({});
   check(sim.actors()[0].exists && sim.scene().resolve(0)==handle,
         "checkpoint restores deleted cinematic objects and actor identities");
+}
+void cinematic_lighting_checkpoint() {
+  auto c=arena();Program p;
+  const auto named_object=[&] {
+    const auto id=p.scalar(0,56);p.data.nodes[id&65535].type=50;return id;
+  };
+  p.script("lighting",p.call("begin",{
+      p.call("cinematic_lighting_set_primary_light",{p.real(45),p.real(240),p.real(.45f),p.real(.1f),p.real(.8f)}),
+      p.call("cinematic_lighting_set_secondary_light",{p.real(-45),p.real(30),p.real(.1f),p.real(.2f),p.real(.3f)}),
+      p.call("cinematic_lighting_set_ambient_light",{p.real(.4f),p.real(.5f),p.real(.6f)}),
+      p.call("object_uses_cinematic_lighting",{named_object(),p.scalar(1,5)}),
+      p.call("rasterizer_bloom_override",{p.scalar(1,5)}),
+      p.call("rasterizer_bloom_override_threshold",{p.real(.3f)}),
+      p.call("rasterizer_bloom_override_brightness",{p.real(.5f)}),
+      p.call("cinematic_screen_effect_start",{p.scalar(1,5)})}));
+  p.script("change",p.call("begin",{
+      p.call("cinematic_lighting_set_ambient_light",{p.real(1),p.real(0),p.real(0)}),
+      p.call("object_uses_cinematic_lighting",{named_object(),p.scalar(0,5)}),
+      p.call("rasterizer_bloom_override",{p.scalar(0,5)}),
+      p.call("rasterizer_bloom_override_threshold",{p.real(.8f)}),
+      p.call("cinematic_screen_effect_stop")}));
+  p.script("retire_lit_object",p.call("object_destroy",{named_object()}));
+  p.script("replace_lit_object",p.call("object_create",{p.scalar(0,56)}));
+  c.scripts=p.data;
+  check(cinematic_lighting_definitions(c)==std::set<std::uint32_t>{42},"Literal lighting residency lost its model definition");
+  Simulation sim(c,0,{{0,0,0},0,0});
+  sim.request_checkpoint();sim.step({});
+  sim.run_script("lighting");sim.step({});
+  check(sim.scripts().diagnostics().empty() && sim.cinematic_state(),"Cinematic lighting/bloom dispatch failed");
+  const auto expected=*sim.cinematic_state();const auto handle=sim.scene().resolve(0);
+  check(expected.lit_objects.contains(handle) && expected.lighting.primary_color.x==.45f &&
+      expected.lighting.secondary_color.y==.2f && expected.lighting.ambient.z==.6f &&
+      expected.bloom.enabled && expected.bloom.threshold==.3f && expected.bloom.brightness==.5f,
+      "Cinematic script values did not reach the retained rendering owner");
+  sim.request_revert();sim.step({});
+  check(!sim.cinematic_state(),"Restore leaked a cinematic service created after the checkpoint");
+  sim.run_script("lighting");sim.step({});sim.request_checkpoint();sim.step({});
+  sim.run_script("change");sim.step({});
+  check(!sim.cinematic_state()->bloom.enabled && sim.cinematic_state()->lit_objects.empty() &&
+      !sim.cinematic_state()->screen_active,"Live cinematic state was not mutable");
+  sim.request_revert();sim.step({});
+  const auto &restored=*sim.cinematic_state();
+  check(restored.lighting.source_values()==expected.lighting.source_values() &&
+      restored.lit_objects==expected.lit_objects && restored.bloom.enabled &&
+      restored.bloom.threshold==expected.bloom.threshold && restored.bloom.brightness==expected.bloom.brightness &&
+      restored.screen_active && restored.screen_initialized,
+      "Cinematic checkpoint shared live lighting/bloom instead of retaining its value");
+  sim.run_script("retire_lit_object");sim.step({});
+  check(sim.cinematic_state()->lit_objects.empty(),"Retired object retained its cinematic lighting flag");
+  sim.run_script("replace_lit_object");sim.step({});
+  check(sim.scripts().diagnostics().empty(),"Replacement object script faulted");
+  check(sim.scene().resolve(0)!=handle,"Replacement object reused a retired generation");
+  check(sim.cinematic_state()->lit_objects.empty(),"Replacement generation inherited cinematic lighting");
 }
 void add_enemy(LevelContent &c) {
   WeaponDefinition w;
@@ -975,6 +1217,18 @@ void retail_audio_residency(const std::filesystem::path &directory) {
 }
 int main(int argc, char **argv) {
   try {
+    if(argc==4 && std::string_view(argv[1])=="--opening-attachments") {
+      opening_attachment_checkpoint(argv[2],argv[3]);
+      std::cout<<"Three authored initial throne attachments, cleanup and coupled checkpoint passed\n";
+      return 0;
+    }
+    if(argc==2 && std::string_view(argv[1])=="--opening-release-timing") {
+      opening_release_timing();
+      std::cout << "Opening release time-code continuation passed\n";
+      return 0;
+    }
+    opening_release_timing();
+    campaign_frame_clock_schedule();cinematic_bootstrap_presentation();cinematic_crossfade_checkpoint();cinematic_attachment_retirement();
     vm_checkpoint(); dispatch_boundary(); poll_boundaries(); scene_checkpoint();campaign_create_containing();
     protection_flags(); actor_reference_frames(); posed_unit_volume_center(); tutorial_actor_commands_and_text(); checkpoint_audio_and_faults();
     campaign_fixed_upper_damage();
@@ -988,6 +1242,7 @@ int main(int argc, char **argv) {
     campaign_residency_requests();
     campaign_look_cone();
     cinematic_object_cleanup();
+    cinematic_lighting_checkpoint();
     cinematic_checkpoint(false); cinematic_checkpoint(true);
     if (argc > 1) {
       retail_skip_controller(argv[1],false);

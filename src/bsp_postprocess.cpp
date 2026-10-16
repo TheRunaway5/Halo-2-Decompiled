@@ -20,6 +20,8 @@ static_assert(sizeof(PatchyUniform)==400 && sizeof(BloomUniform)==272);
 struct BspPostprocess::Impl {
     BspPostprocessContext context;
     const BspAtmosphere &bank;
+    bool cinematic{};
+    CinematicBloomOverride cinematic_override;
     VkRenderPass target_pass{};
     VkDescriptorSetLayout patchy_set_layout{},bloom_set_layout{};
     VkPipelineLayout patchy_layout{},bloom_layout{};
@@ -279,6 +281,10 @@ struct BspPostprocess::Impl {
             }
             view.bloom=bsp_bloom_frame(sample,.5f,.5f,source_bloom_screen_threshold_factor(
                 view.input.bloom_screen_context?&*view.input.bloom_screen_context:nullptr));
+            const auto parameters=cinematic_bloom_parameters(view.bloom.threshold,view.bloom.strength,
+                cinematic,cinematic_override);
+            view.bloom.threshold=parameters.threshold;view.bloom.strength=parameters.strength;
+            view.bloom.programs=menu_bloom(parameters.threshold,parameters.strength);
             for(unsigned pass=0;pass<6;++pass) {
                 const BloomUniform uniform{(pass==0?view.bloom.programs.threshold:pass==5?view.bloom.programs.composite:view.bloom.programs.blur).words,
                     {pass<5?view.bloom.programs.radii[pass]:0,float(pass==5?view.size.width:view.quarter.width),float(pass==5?view.size.height:view.quarter.height),0},{0,0,1,1}};
@@ -348,6 +354,9 @@ BspPostprocess::BspPostprocess(BspPostprocessContext context,const BspAtmosphere
     const std::function<VkImageView(const Texture &)> &upload):impl_(std::make_unique<Impl>(std::move(context),bank,upload)) {}
 BspPostprocess::~BspPostprocess()=default;
 void BspPostprocess::prepare(std::span<const BspPostprocessView> views,float time) {impl_->prepare(views,time);}
+void BspPostprocess::cinematic_bloom(bool cinematic,const CinematicBloomOverride &override) {
+    impl_->cinematic=cinematic;impl_->cinematic_override=override;
+}
 BspPostprocessState BspPostprocess::persistent_state() const {
     BspPostprocessState state;state.random=impl_->random;
     for(unsigned i=0;i<state.motion.size();++i)state.motion[i]=impl_->views[i].state;

@@ -436,7 +436,7 @@ class Coordinator:
         best = min(difference for difference, _ in partitions)
         return self.rng.choice([teams for difference, teams in partitions if difference == best])
 
-    def _host(self, policy, group, preferred=None, *, required=None):
+    def _host(self, policy, group, preferred=None, *, required=None, host_quality=None):
         now = self.now()
         if any(ticket.expires_at <= now for ticket in group):
             return None
@@ -446,12 +446,19 @@ class Coordinator:
         for host in players:
             if required is not None and host != required:
                 continue
+            if host_quality is not None and host not in host_quality:
+                continue
             scores = [self.connections.get((host, p)) for p in players if p != host]
             if all(value is not None and value[1] > now and value[0] >= minimum[p]
                    for p, value in zip((p for p in players if p != host), scores)):
                 hosts.append((min(value[0] for value in scores), host))
         if not hosts:
             return None
+        if host_quality is not None:
+            # Native measured delivery policy, not a recovered Xbox formula.
+            # The transport supplies only physical connection owners with
+            # reciprocal measured paths; playlist thresholds still apply.
+            return min((host for _, host in hosts), key=host_quality.__getitem__)
         # Maximise the worst measured link; tie-break randomly. This host
         # ranking is an explicitly documented approximation, not retail code.
         best = max(score for score, _ in hosts)
@@ -512,23 +519,24 @@ class Coordinator:
                 break
         return None
 
-    def refresh_connections(self, proposal_id, *, optimize_host=False):
+    def refresh_connections(self, proposal_id, *, optimize_host=False, host_quality=None):
         self.cleanup()
         require(proposal_id in self.proposals, "Proposal not found", 404)
         proposal = self.proposals[proposal_id]
         group = tuple(self.tickets[key] for key in proposal.tickets)
         host = self._host(self.playlists[proposal.playlist], group, proposal.host,
-                          required=None if optimize_host else proposal.gathering_host)
+                          required=None if optimize_host else proposal.gathering_host,
+                          host_quality=host_quality)
         if host != proposal.host:
             from dataclasses import replace
             self.proposals[proposal_id] = replace(proposal, host=host)
             self.ready[proposal_id].clear()
         return self.proposals[proposal_id]
 
-    def acknowledge(self, proposal_id, player_id, *, optimize_host=False):
+    def acknowledge(self, proposal_id, player_id, *, optimize_host=False, host_quality=None):
         self.cleanup()
         require(proposal_id in self.proposals, "Proposal not found", 404)
-        proposal = self.refresh_connections(proposal_id, optimize_host=optimize_host)
+        proposal = self.refresh_connections(proposal_id, optimize_host=optimize_host, host_quality=host_quality)
         require(proposal.host is not None, "Connectivity has not been verified", 409)
         members = {p.id for key in proposal.tickets for p in self.tickets[key].players}
         require(player_id in members, "Player is not in this proposal", 403)

@@ -1,5 +1,53 @@
 # Multiplayer world effects and interactions
 
+October15 continuation: [direct-object lens admission and queue retention](SOURCE_MAP_LENS_DIRECT_TU15.md)
+now pass actual Backwash monitor allocation, unchanged complete original CPU
+execution, and visible ordinary Headlong beacon checks with one/four views.
+The combined candidate passes42 captures across21 Xbox maps. Both launchers
+selected delivered `7501144f`; all six normal-path post-install comparisons pass
+under `analysis/map-world-features/lens-direct-20261015/`. The concurrent
+weapon/HUD package `21efc54f` and prior `84f600c9` runtime remain preserved.
+The earlier delivery descriptions below retain their original checkpoint scope.
+
+The [queued-particle parent continuation](SOURCE_PARTICLE_DRAW_PARENT_TU15.md)
+now adds authenticated original draw/context kernels and native CPU constant
+storage. Eight setter comparisons and the466-instruction actual-input parent
+prefix match unchanged host-i386 execution. Complete shader/device/GPU ownership
+is still required before that parent replaces the existing consumer. Newer
+shared normal-runtime deliveries are preserved; this source continuation has
+not installed another binary or added visible-effect acceptance.
+
+The subsequent [real-renderer particle binding](SOURCE_PARTICLE_GRAPHICS_BINDING_TU15.md)
+now validates the actual GPU/thread/attachment lifetime and extends the original
+callback prefix to519 instructions. Seven unchanged source packets have a
+positive12-pixel constant-upload check on cleared depth, with exact direct and
+repeat images. Depth/shader ownership and the full original callback remain
+unfinished; this is component evidence rather than ordinary-map acceptance.
+
+The [depth binding and original layout continuation](SOURCE_PARTICLE_DEPTH_BINDING_TU15.md)
+now binds actual D24S8 presence, format and original pitch/layout metadata.
+The41-owner module preserves all prior bodies;34 metadata cases match unchanged
+original CPU execution and the live renderer contract passes without Vulkan
+validation errors. The per-view13430 initializer must run before main effect
+collection, because it clears particle queues. Complete parent/GPU and normal
+launcher integration remain open; these component checks add no ordinary-map
+visibility acceptance.
+
+The [per-view initializer continuation](SOURCE_PARTICLE_VIEW_INITIALIZER_TU15.md)
+now owns whole13430 and its viewport/depth arithmetic. Eight original CPU
+comparisons pass. A fresh actual world plus real renderer executes38 verified
+instructions before the still-unowned SDK depth-bounds flags; incomplete
+initialization preserves its queues. Actual viewport/shader state and complete
+live parent/consumer integration remain required before another launcher
+world-effect delivery.
+
+The [viewport/scissor/bounds continuation](SOURCE_PARTICLE_VIEW_STATE_TU15.md)
+now provides50 complete original bodies. Twenty-four ordered viewport/reset/
+restore CPU calls match unchanged original execution, and the240-frame
+Backwash regression retains its14 final draws and repeated-view RNG invariance.
+Actual graphics-state ownership and the complete live original consumer still
+remain required; this stage adds no map visibility or launcher delivery claim.
+
 The requested live completeness has **not been achieved**. [Lockout's snow now
 renders in live matches](SOURCE_WEATHER_LIVE_SNOW.md), including normal,
 split-screen and LAN checks. [Rain](SOURCE_WEATHER_LIVE_RAIN.md) and
@@ -20,8 +68,8 @@ This does not establish original particle history or independent client PVS.
 [Shape 9 and explicit constructor seed locations](SOURCE_MAP_PARTICLE_SHAPE9_TU15.md)
 now let all Warlock and Deltatap attachments start and emit particles;
 Foundation's lift particles have repeatable GPU evidence.
-Both normal launchers now select the coherent 188-map-routine plus five-swarm-routine build in
-[the current delivery receipt](SOURCE_WORLD_LAUNCHER_DELIVERY.md). All 21 Xbox
+Normal launcher validation for the tested world-effect builds is retained in
+[the delivery receipt](SOURCE_WORLD_LAUNCHER_DELIVERY.md). All 21 Xbox
 maps pass ordinary source startup, and the short-render bank passes with its
 per-build hashes retained. Their MCC-only readiness gate still reports native
 MCC gameplay unavailable; direct owned-XBE evidence does not close that gate.
@@ -34,7 +82,30 @@ match the authored atlas/aspect contexts and14 original Backwash render inputs.
 The [source frame/queue/graphics consumer](SOURCE_WORLD_SWARM_RENDER_TU15.md)
 now runs in the normal runtime and shows source-created Backwash particles in a
 one-view diagnostic capture. Its tested four-view sightline remains zero-pixel;
-visible split-screen glowbugs and Elongation lens rendering remain open.
+visible split-screen glowbugs remain open.
+[The original marker selection fix](SOURCE_MAP_EFFECT_MARKERS_TU15.md) restores
+Elongation's authored spark, steam and fire emitters. The separate lens part
+remains explicitly incomplete; its supported components now start without
+inflating the 93/96 complete-graph count. One/four-player spark visibility has
+separate staged and normal-runtime capture receipts.
+[The lens request continuation](SOURCE_MAP_LENS_REQUESTS_TU15.md) now supplies
+14 compiled original bodies and passes 114 original request/frame/view cases.
+The restored effect phase can now create an actual Elongation lens request;
+[the query continuation](SOURCE_MAP_LENS_QUERIES_TU15.md) adds 20 original bodies
+and 235 original/hardware comparison cases. Ordinary one/four-view Elongation
+now issues real GPU occlusion queries and consumes their results through the
+original smoothing kernel. Direct-object lens callbacks and complete
+presentation/network histories remain open.
+[The final-flare kernels and GPU consumer](SOURCE_MAP_LENS_DRAWS_TU15.md)
+now pass 278 original/native ABI cases and visible bitmap, depth/alpha and
+repeatability checks. The GPU matrix consumes 25 quads from 45 complete
+callbacks with actual authored images. The ordinary bitmap/view owner now
+produces visible Elongation flares with one and four players: final-draw
+isolation changes 397/87 pixels, with exact repeats and unchanged query/RNG
+histories. The tested full build is now installed at the normal runtime path;
+both launchers select it, all 21 Xbox startups pass, and four normal-path
+Elongation/Lockout captures match the candidate exactly. Secondary draws,
+direct-object requests and the all-map goal remain open.
 Complete train behavior, all authored effects/interactions, the two Vista maps,
 network and full Xbox visual acceptance remain open.
 [The original decal cache export](SOURCE_DECAL_VERTEX_CACHE_TU15.md) retains
@@ -519,3 +590,33 @@ state and ordered render-surface consumption are connected. The resource bank
 remains91/96; this does not close the full map-effects/interactions goal.
 See [SOURCE_MAP_DISTORTION_TU15.md](SOURCE_MAP_DISTORTION_TU15.md) for source
 identities, complete-call evidence and the remaining native handoff.
+
+## Original particle program continuation, October16
+
+The [original program-loading continuation](SOURCE_PARTICLE_PROGRAM_LOAD_TU15.md)
+adds whole vertex-tag lookup, cached selection and chunked program upload to the
+particle module. Its55 whole bodies preserve all prior owners. Four original CPU
+calls and actual seven-draw program/constant GPU consumption pass, with exact
+images/repeats and no validation errors. Current normal CMake renderer/kernel
+objects compile. The complete draw parent, viewport/declaration ownership and
+combined launcher delivery remain open; this has not replaced the current normal
+runtime or added ordinary world-depth/all-map framebuffer acceptance.
+
+## Original particle declaration continuation, October16
+
+The [declaration/header stage](SOURCE_PARTICLE_DECLARATION_TU15.md) brings the
+module to63 whole original bodies. Actual map shader metadata now supplies the
+original input declaration and same-kind header/start packet. Forty-one unchanged
+CPU comparisons and seven actual source GPU draws pass, including exact prior
+images. Normal-build objects compile; full viewport/stream/parent integration and
+combined launcher delivery remain open. The newer shared normal runtime92e519d1
+is preserved, and native MCC gameplay remains unavailable in its launcher receipt.
+
+## Original projection and viewport correction, October16
+
+The [projection continuation](SOURCE_PARTICLE_PROJECTION_TU15.md) adds whole
+`4020D0` and corrects the viewport fixture to use the actual `CA0` input and
+`980` output. Thirty-two ordered calls match unchanged TU1.5, and the existing
+seven-draw GPU images remain exact. The module has64 whole bodies. Live view
+initialization, complete queued drawing and combined launcher delivery remain
+open; this is no new all-map or Xbox framebuffer acceptance.

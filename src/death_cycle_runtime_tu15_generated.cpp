@@ -681,14 +681,14 @@ if(s.services.instruction){s.services.instruction(0x30be3u);} s.fp.push(s.fp.st(
 if(s.services.instruction){s.services.instruction(0x30be5u);} s.fp.st(0)=mul(s.fp.st(0),s.fp.st(4));
 if(s.services.instruction){s.services.instruction(0x30be7u);} s.fp.st(1)=add(s.fp.st(1),s.fp.st(0));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30be9u);} s.fp.st(0)=root(s.fp.st(0));
-if(s.services.instruction){s.services.instruction(0x30bebu);} s.fp.st(3)=s.fp.st(0);s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x30bedu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x30befu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bebu);} s.fp.st(3)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bedu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30befu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30bf1u);} w(s.memory,s.observe,0x30bf1u,(selected(0x0u,s.image)+s.gp[4]),4,native_single_spill(s.fp.st(0),s.fp.status));
 if(s.services.instruction){s.services.instruction(0x30bf4u);} s.fp.st(0)=std::fabs(s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x30bf6u);} s.fp.push(ext(f(r(s.memory,(selected(0x46a0ecu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x30bfcu);} s.compare_and_pop(s.fp.st(1));
-if(s.services.instruction){s.services.instruction(0x30bfeu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bfeu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30c00u);} if(!s.flags.cf&&!s.flags.zf)goto L30c38;
 if(s.services.instruction){s.services.instruction(0x30c02u);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(selected(0x46a0d0u,s.image)),4)));
 if(s.services.instruction){s.services.instruction(0x30c0au);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4)));
@@ -15463,7 +15463,7 @@ if(s.services.instruction){s.services.instruction(0x17db33u);} s.push(0x17db33u,
 if(s.services.instruction){s.services.instruction(0x17db34u);} s.set(7,(selected(0xcu,s.image)+s.gp[1]),4,0);
 if(s.services.instruction){s.services.instruction(0x17db37u);} s.set(3,(selected(0x30u,s.image)+s.gp[1]),4,0);
 if(s.services.instruction){s.services.instruction(0x17db3au);} s.push(0x17db3au,s.reg(0,4,0));
-if(s.services.instruction){s.services.instruction(0x17db3bu);} s.push(0x17db3bu,selected(0x17db40u,s.image));run_c2380(s);
+if(s.services.instruction){s.services.instruction(0x17db3bu);} s.push(0x17db3bu,selected(0x17db40u,s.image));s.required(0x17db3bu,selected(0xc2380u,s.image),false);
 if(s.services.instruction){s.services.instruction(0x17db40u);} s.set(7,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x17db41u);} s.set(6,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x17db42u);} s.set(5,s.pop(),4,0);
@@ -15478,7 +15478,7 @@ if(s.services.instruction){s.services.instruction(0x17db61u);} s.set(7,r(s.memor
 if(s.services.instruction){s.services.instruction(0x17db68u);} s.push(0x17db68u,selected(0xffffffffu,s.image));
 if(s.services.instruction){s.services.instruction(0x17db6au);} s.push(0x17db6au,selected(0xffffffffu,s.image));
 if(s.services.instruction){s.services.instruction(0x17db6cu);} s.push(0x17db6cu,s.reg(1,4,0));
-if(s.services.instruction){s.services.instruction(0x17db6du);} s.push(0x17db6du,selected(0x17db72u,s.image));run_c2380(s);
+if(s.services.instruction){s.services.instruction(0x17db6du);} s.push(0x17db6du,selected(0x17db72u,s.image));s.required(0x17db6du,selected(0xc2380u,s.image),false);
 if(s.services.instruction){s.services.instruction(0x17db72u);} s.set(7,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x17db73u);} s.set(6,s.pop(),4,0);
 if(s.services.instruction){s.services.instruction(0x17db74u);} s.set(5,s.pop(),4,0);

@@ -1520,3 +1520,1242 @@ native-owned custom modes, input/call catch-up, certified authority/membership
 changes, actual gameplay/voice/profile rebinding, independent NATs/controllers/
 headsets and delivery remain open. No runtime/launcher was installed and no backend
 release was deployed. Xbox TU1.5 and the full ONLINE goal remain the target.
+
+
+### TU1.5 melee-resource lifetime and preparation profile (2026-10-15)
+
+The private `binding-performance/verification.json` capsule under the
+2026-10-14 continuity directory records a reproducible failing resource-owner
+regression, its passing fix, frozen source/native archives, exact compiler
+commands and the subsequent native checks. No original game data was packaged.
+The root core remains C++20 and Xbox TU1.5 remains the sole parity target.
+
+Repeated melee bindings reconstructed and copied the same original shared-file
+snapshots on every capture/preparation. NativeMeleeAnimation now retains its
+immutable SourceRuntimeResources owner. Replacement melee owners share those
+exact bytes; first-person and body action decoding also read through that owner.
+The canonical binding field order is unchanged. Actual cache regression checks
+compare the digest to the independent fresh-resource binding, retain authored
+strike events/timing/RNG after fixture file replacement/unlink, reject changed
+movement/digests, and ensure a new resource admission sees different bytes.
+Animation graph selection uses the existing object+38 -> hlmt+14 operand,
+compared against full model import; it no longer loads unrelated mesh streams.
+Existing cache entry points retain their ordinary resource-reading overloads.
+
+The eight-player focused handoff fixture falls from1.71--2.03s to0.375--0.421s
+preparation, preserving complete object/player bodies. Loading the complete
+local/replicated weapon definition bank in the same fixture gives0.573s; this
+still exceeds the100ms diagnostic budget and those profiling runs return2.
+The actual production receiver test passes full/delta reception, full-roster
+forgery rejection, decoder cancellation, real host transport loss, exact-cut
+ownership transfer, the original four-player departure and ten surviving source
+ticks. It still takes2.365/2.671s to prepare, including disposable workspace
+construction. The native local-rebind, first-person-registration and actual
+melee/sword gameplay checks also pass. These are bounded CPU/localhost checks.
+
+The expanded selected sanitizer run retains the aligned protocol80 native
+archives and instruments the six changed gameplay/cache components in addition
+to the previous thirteen receiver components. It prepares one real cut but
+still takes6.514s and exceeds native peer liveness. It does not qualify a clean
+ASan/UBSan/leak run. Production timeouts and original validation guards were
+not weakened. Profiling is retained privately; no debug logs remain in product
+source. No runtime/launcher was installed or backend deployed. Per-cut workspace
+construction, scheduling, catch-up, certified promotion and all earlier hardware,
+rendered/voice/WAN and delivery gates remain open; the full goal remains active.
+
+
+### Reusable TU1.5 source workspace and cold-load boundaries (2026-10-15)
+
+The private `.local/player-host-continuity-20261015/workspace-reuse` capsule
+records the native regression that failed because the receiver rebuilt its
+private executor between a rejected cut and the following valid cut. The
+receiver now retains one workspace per authority context. The reusable
+SourceMatchAuthority overload selects the producer's independently admitted
+local views before the ordinary full-world preparation. It does not run source
+calls against the previous recipient-mapped bank or remove any identity, schema,
+configuration, world, lifetime or view check. Changed workspace metadata stays
+unqualified for export until a complete import commits. A quiescent executor
+guard checks thread affinity before changing that selector.
+
+The native local-rebind check covers wrong-thread rejection without bank or
+configuration changes, alias/duplicate-view rejection, an invalid-version import
+that cannot be exported, subsequent full repair, repeated cuts through the same
+workspace, forty equal future source ticks and repeated pending host-player
+departure. Complete bodies/player bytes and the original local-index exception
+remain the existing comparison oracle.
+
+Warm construction creates at most one executor per public call. The two calls
+have a native input/network pump between them. Ordinary identity metadata does
+not construct either executor; automatic construction starts only after a
+successfully decoded cut. A second regression first failed on metadata-only cold
+construction and now passes. Cold initialization remains1.3--4.2s under this
+machine's varying load, so this is not a few-frame/live-scheduling qualification.
+
+The native protocol82 final run passes `source_match_local_rebind_tu15`,
+`source_authority_receiver_http` and `source_authority_receiver_cold_http`.
+The two receiver paths each use one workspace for a forged nonlocal-identity
+cut and the following full/delta cuts. Full admitted identities, real native
+four-seat profile admission, complete body comparisons, owning decoder
+cancellation, actual host DTLS/session loss, exact-cut owner transfer, original
+four-player departure and ten surviving source ticks remain covered. Latest
+warm preparation is461,572/466,053us; cold-from-cut preparation is509,030/636,605us.
+These are separate preparation times, not cold-load or rendered frame times.
+
+The selected sanitizer capsules retain the matched protocol80 layouts and
+native archives, with exact patches/compiler/link commands. Receiver/rebind,
+codec/delta, native-session/admission and changed cache/melee components are
+instrumented; the large native object wrapper, physics/RTC and other retained
+libraries remain at their stated native tier. ASan/UBSan with leak checking now
+complete both explicitly warmed and initially cold paths without a diagnostic.
+Latest instrumented warm preparation is1.116/1.091s; cold preparation is1.847/2.178s.
+This closes the selected receiver timeout repro, not the full transport/native
+sanitizer audit or its earlier ThreadSanitizer findings.
+
+The current `halo2_native` target builds. A missing concrete unit-interaction
+header in the concurrent runtime preload code was added; no guard or gameplay
+operand was changed for that compile fix. No runtime/launcher was installed,
+backend deployed or UI art changed. The earlier rendered source-shield guard
+remains open. The runtime still needs automatic authoritative publication,
+complete source input/call catch-up, agreed cut/epoch certification, role/media/
+hardware rebinding and retention before disconnect teardown. These CPU/localhost
+checks do not prove multi-survivor election, WAN/headset/controller behavior or
+live gameplay migration. Xbox TU1.5 and the full ONLINE goal remain active.
+
+
+### Catch-up seam audit after workspace qualification (2026-10-15)
+
+The next stage cannot infer live continuation from replaying Controls alone.
+`physics_live_world_tu15.cpp` consumes frame milliseconds, timestamp-counter and
+reciprocal-square-root inputs in its services, plus native UTC at its admitted
+system-time import. Its FPU factory configuration is constant, not an omitted
+mutable between-call register bank. `MultiplayerMatch::result_wall_clock_` is a
+separate result/event input, defaulting to std::time. The authoritative runtime
+also advances effect particles, observer positions, visibility, weather and
+source model builders outside Match::step. The existing entry diagnostic wraps
+run_actual, while run dispatches directly, so it is not a complete call journal.
+These source operands/order and typed event boundaries must be covered by actual
+replay evidence before an old cut is promoted as a caught-up world.
+
+Moving an existing private world to a worker is also not a pointer-only change:
+the wrapper and TU1.5 world retain construction-thread owners, the native sound
+SDK separately requires its owned passive thread, and phantom diagnostics have
+thread-local registrations. Those owners need an explicit quiescent transfer
+proof or a different fully qualified scheduling boundary; guards remain intact.
+The older OnlineMatchSession migration acceptance/rebind methods queue master
+world controls. They do not implement decentralized certification or prove a
+runtime endpoint/voice switch. The private continuation-input-audit capsule pins
+the eleven source files behind these findings. No input-only replay, worker
+handoff or host promotion was implemented or inferred by this audit.
+
+
+### Ordered external inputs for TU1.5 source replay (2026-10-15)
+
+The private `.local/player-host-continuity-20261015/execution-inputs` capsule
+retains an actual eight-player failing baseline: Controls-only continuation
+sampled the replacement PC's result wall clock and produced result start 1 versus
+906. This is an external execution input, not a missing native memory region.
+The source audit separately identifies milliseconds, effective timestamp
+counter, UTC FILETIME and CPU reciprocal-square-root estimates. Original
+source function returns and the native Newton steps remain untouched.
+
+`SourceExecutionInputs` now captures those five kinds in exact consumption
+order. Estimate operands bind their raw input float bits. The replay supplies
+the host's recorded external values without sampling the replacement PC's
+providers. A tape belongs to one executor and one exact native memory owner;
+its owning replay copy validates kinds, operands, widths and entry bounds.
+Reordered, missing, differently bound or leftover reads reject the phase.
+The closed values are not yet a peer wire format, a complete frame journal or
+a promotion certificate.
+
+Capture overflow/allocation failure invalidates publication while continuing
+to return the host's actual external inputs. A separate failing exception repro
+showed that an original clock-provider error could leave a publishable tape;
+that error now invalidates the tape and propagates unchanged. The ordinary
+unbound provider path remains the original source/CPU/clock policy. No mutable
+FPU register state, CPU estimate parity with physical Xbox, or replacement
+source gameplay return is inferred by this work.
+
+The native fixture imports an actual complete TU1.5 Lockout cut, then executes
+eight control/effect phases on the same admitted producer views with deliberately
+different PC clocks and result clocks. Its 10,053 ordered inputs preserve every
+native bank region/topology and the existing body/player/inventory/statistics
+oracle, plus complete result-event start/last/index/events. It also exercises
+actual host continuation after capture overflow, a mismatched native read that
+faults the world, export rejection, and repair through a complete import.
+The focused checks cover all five value types, provider exceptions, ownership,
+width/order/operand rejection and complete consumption.
+
+A frozen selected ASan/UBSan run with leak checking passes the focused and
+actual native fixtures after the provider-exception repair. The tape, native
+world wrapper, Match and both fixtures are instrumented; physics/generated
+source, transport and other retained libraries are not fully instrumented.
+The capsule retains exact sources/headers, archives, commands, diagnostics and
+the earlier missing-def build failure. This is selected sanitizer evidence,
+not closure of the full native/RTC sanitizer audit.
+
+Clock anchors at the end of a replayed frame still require explicit validation:
+checkpoint logical time and later untaped result time must continue in the
+producer's domain. Render/observer/visibility/weather/model-builder source calls
+also need complete typed order and operands. The test retains producer views;
+it does not prove replay on already recipient-rebound views. No automatic
+publisher, catch-up delivery, certified host promotion, endpoint/media switch,
+worker transfer, runtime retention before disconnect teardown, hardware/WAN
+acceptance, installed runtime/launcher or backend deployment is claimed. Xbox
+TU1.5 and high-resolution Vista ONLINE/clan UI requirements remain unchanged;
+the full ONLINE goal stays active.
+
+The final native build passes. All five selected CTests pass: execution-input
+validation, native divergent-clock replay, native local-view rebinding, explicitly
+warmed reception and cold-from-cut reception. Warm preparation is 400,938/403,825us;
+cold-from-cut preparation is 446,854/483,901us. These retain the existing actual
+host-transport-loss/source-departure continuation check; they do not perform
+certified runtime promotion. The private diagnostic serializes each captured
+entry to 13 bytes without C++ padding: 130,689 bytes over eight phases compress
+to 4,994 bytes with independent zlib6 frames. This is a compressibility observation,
+not an implemented/authenticated peer codec, a rendered workload, or a measured
+network/frame-time budget. Instrumented actual capture/replay phases still cost
+about 0.23--0.49s, so scheduling/performance acceptance remains open.
+
+The next seam has a retained actual failing native repro, not only an audit:
+after the eight exactly replayed banks, the exported host logical clock is 1,264ms
+while the replacement exports 49,264ms. `anchor-repro-result.json` records its
+expected failure. This must be repaired with explicit producer frame-end clock
+anchors before untaped continuation or certified promotion; bank equality alone
+does not satisfy it. The repro retains the complete same-producer-view context
+and selected instrumentation described above. No host promotion is enabled by
+these results.
+
+
+### Explicit replay clock domains and active-session departure owner (2026-10-15)
+
+The `.local/player-host-continuity-20261015/execution-clock-anchors` capsule
+retains the failing actual native loop: the producer exported 1,264ms after the
+eight replayed phases, while the replacement exported 49,264ms despite equal
+native banks. `SourceMatchAuthority` now captures an owning execution phase
+with its ordered external reads and explicit end-of-phase milliseconds, cycles,
+UTC FILETIME and result seconds. Replay consumes every read before anchoring
+those external domains. It does not infer an anchor from the last read, which
+may be absent for a particular kind. Subsequent unrecorded calls use local
+providers with the anchored offsets. Native clock/RNG bytes and source gameplay
+returns are unchanged.
+
+The coupled owner, Match and physics checkpoint components are now version 2;
+new checkpoints include result-time and UTC anchors. The native peer protocol
+is 83 so an older participant does not silently exchange this schema. These
+are native transport/checkpoint versions, not Xbox title-update versions;
+Xbox TU1.5 remains the only gameplay/network reference. The archive envelope
+format remains its existing named-record container; component/schema admission
+rejects the old values. A fresh schema 2 cross-compiler exchange remains a
+separate delivery gate from the earlier schema 1 evidence.
+
+Capture/replay requires the actual quiescent executor, complete source and
+bridge owners, and no outstanding sound/DSP borrower. An active phase cannot
+capture or prepare a coupled checkpoint. Capture overflow/allocation failure
+rejects the recording without poisoning the actual host; failed binding
+allocation executes its real phase once without a recording. A bad, missing or
+leftover replay read, failed native call or unavailable end-clock leaves the
+candidate non-exportable until a complete import repairs it. Malformed tape
+structure is rejected before changing that candidate. The original result-clock
+provider is sampled before either bank publishes during a coupled restoration;
+a provider failure retains the live bank. The commit checks executor identity
+before invoking that provider and keeps the existing staged/public-call guards.
+
+The native fixture retains eight admitted players and the producer's four local
+views. It executes eight control/effect phases with 10,053 ordered inputs, different
+physical millisecond/cycle/UTC/result clocks, then forty ordinary untaped future
+ticks. It compares complete native bank/topology, body/player/inventory/statistics
+state, full result-event headers/ring and all four exported clock domains. It
+also covers wraparound, recording overflow survival, wrong-thread rejection,
+active-phase export/import rejection, native mismatch/leftover qualification,
+provider failure before publication and complete repair. The independent scripted
+wall-clock fixtures replace callbacks derived from restored simulation state;
+restoring a Match must not move an external provider. Future provider deltas are
+controlled test inputs, not a physical-clock rate/calibration qualification.
+A read-sensitive fake counter also requires symmetric observations when a
+transaction deliberately fails without rebasing either live world.
+
+The wider departure checks exposed the actual 1559F8 call to 6A9A0 when the
+original active-session branch is taken. The retained earlier local-rebind
+binary still passes; its bounded evidence did not qualify this missing owner in
+the current runtime. The authenticated TU1.5 executable establishes the complete
+50-instruction session-player row cleanup and 29-instruction 6A890 iterator.
+Both are now lowered through the existing original-instruction generator. No
+session flag, original identity check or missing-owner guard was disabled, and
+no service return is substituted.
+
+A new oracle executes those untouched routines in Unicorn with declared session,
+typed-row and caller-stack inputs. Four cases cover player slots 0/4/15, an empty
+row table, admitted/excluded types, disconnected/inactive rows, and set/clear
+membership bits. Generated C++ matches the exact instruction traces, register
+outputs, defined flags and complete retained session/row/stack memory. The fixture
+first fails against the retained unowned library, then passes with the original
+owner. The two routines and fixture also pass selected ASan/UBSan/leak checking.
+The clock phase/World/Match/coupled owner and native fixture have a separate frozen
+selected sanitizer pass; other physics/generated/RTC/native libraries retain
+their stated uninstrumented tier. This does not close the full transport/TSan audit.
+
+This phase API still receives its call order and operands from the caller. A
+complete typed rendered/source call journal, authenticated catch-up delivery,
+post-replay agreed world/cut certification, automatic runtime publication,
+retention before disconnect teardown, role/endpoint/hardware/profile/voice
+rebinding, scheduling/performance, actual multi-survivor promotion and physical/
+WAN acceptance remain open. No runtime/launcher installation, UI-art change or
+backend deployment is claimed. High-resolution Vista ONLINE/clan UI and the full
+ONLINE completion goal remain active.
+
+The final native build and all twelve selected CTests pass, including the active
+original departure branch, local-view restoration, full/delta codec, explicitly
+warmed/cold reception, actual host transport loss and ten surviving source ticks.
+Latest warm preparation is 445,647/407,299us; cold-from-cut preparation
+is 422,059/420,900us. These remain CPU preparation times, not cold construction,
+rendered frame times or certified migration latency. The repaired eight-phase
+loop exports 1,264ms on both owners and passes the selected sanitizers; its retained
+pre-fix loop exports 1,264/49,264ms and fails. Initial mixed-build linker failures,
+read-sensitive counter and state-derived fixture failures, the four unowned
+session-departure failures, and the final passes remain in the capsule. No guard
+or timeout was weakened to obtain these results.
+
+
+### Owning native root-call journal and closure-free replay (2026-10-15)
+
+The `.local/player-host-continuity-20261015/execution-call-journal` capsule
+retains a failing actual native replay: the replacement omitted the producer's
+observer-position publication, but the external-input tape still consumed every
+read and accepted the phase. The observer's native bank writes were not described
+by Controls or the clock/CPU transcript. This was a real qualification gap, not
+an inferred complete-frame proof.
+
+Execution phases now own a bounded ordered root-call journal. Fourteen operations
+cover Match stepping, effect particles, model frame/view starts, observer position,
+complete visibility banks, weather, world/first-person models, audio advancement,
+sound/prop/grenade event drains and actual original player departure. Canonical
+arguments preserve float bits, optional input targets and explicit native padding
+fields, without host pointers or callbacks. Portal sequence limits match the
+existing native owner. Decoding rejects malformed/trailing data and oversized
+sequences before executing an owning journal. Each root also binds the exact
+begin/end of its external input consumption, preventing reads from sliding into
+the next operation. Nested source calls execute under their actual root, rather
+than being executed twice.
+
+The new replay overload dispatches the owning journal through the actual native
+APIs without importing a caller closure or replacing an original function return.
+The retained closure overload now verifies the same kind/order/arguments and
+input-consumption boundaries. Omitted, changed, reordered or incomplete calls
+leave a replay candidate unqualified until a complete import repairs it. Static
+malformed arguments are rejected before mutating that candidate. Frame-end clock
+anchoring remains after complete call and operand consumption.
+
+Registered write/topology observers detect native work outside a supported root.
+Topology observation is separate from platform access/write policies; no existing
+resource guard is replaced. Unknown native public mutations/entries and unaccounted
+Match/Simulation mutations reject publication. Capture failure still lets the
+real host finish; replay guards reject before native writes where the boundary
+permits, and failed phases cannot export. The existing no-throw backing swap
+retains its publication ABI while latching an invalid journal. These guards cover
+normal native API, memory and mutation-counter paths, not arbitrary uninstrumented
+C++ writes through references retained in violation of the quiescent-owner contract.
+
+The new native test starts from a complete eight-player TU1.5 cut on the producer's
+four admitted views. It rejects the actual omitted-observer repro, changed position,
+and reordered view work, then replays two native four-view model/first-person,
+visibility, weather, effects, audio and event-drain phases from their owning calls.
+Complete canonical coupled archives agree afterward. It covers unsupported direct
+source work and C++ mutations, complete repair, malformed journal rejection and
+original departure followed by a source tick. Focused tests cover bit-preserving
+arguments, nested-root suppression, raw writes/topology rejection, foreign-executor
+writes, allocator failure isolation and external-input call boundaries.
+
+The final native build and nine selected CTests pass, retaining local-view rebind,
+original session departure, full/delta codec and warm/cold receiver/host-loss
+continuation. Eleven frozen translation units are instrumented for selected
+ASan/UBSan/leak checking; the focused, native clock and native multiview journal
+fixtures all pass. Other retained bridge/physics/RTC libraries remain at their
+stated native tier; this does not close the full transport/TSan audit. Exact
+sources, headers, compiler/link commands, archives, original failing loop and
+native binaries are retained privately. No product debug logs were added.
+
+This is not yet complete rendered-frame capture. Current live shadow selection
+and root construction use prepare_source_call/run_actual with raw caller scratch
+and full ABI inputs; those boundaries still invalidate a recording. Their source
+files and runtime callers are pinned in the capsule for the next stage. Other
+uncovered mutations must gain actual owning operations rather than bypassing the
+coverage guards. Automatic full-frame recording/publication in the real runtime,
+authenticated journal transport, producer-view catch-up in the receiver, agreed
+post-replay world/cut certification, role/endpoint/hardware/profile/voice switching,
+scheduling/performance and physical/WAN validation remain open. No installation,
+backend deployment or UI-art change is claimed. The full ONLINE goal, sole Xbox
+TU1.5 gameplay/network target and Vista ONLINE/clan UI requirements remain active.
+
+## Explicit native caller input and ABI/result replay (2026-10-15)
+
+Capsule: `.local/player-host-continuity-20261015/execution-abi-inputs/`.
+This supersedes the preceding caller-scratch/full-ABI limitation, while retaining
+the open complete-rendered-frame and live migration acceptance requirements.
+
+The retained original failing loop executes a real `prepare_source_call` and
+TU1.5 `335B0` entry. The previous journal rejects capture as unrecorded work.
+The same source loop now passes under selected ASan/UBSan/leak checks.
+
+Six additional owning operations bring the native root journal to twenty:
+explicit caller input writes, native argument-frame preparation, canonical and
+actual TU1.5 full-ABI runs, and canonical/actual argument calls. Correspondence
+IDs still select the authenticated TU1.5 executor; no alternate title version
+is introduced. The shadow-selection and shadow-root callers now publish their
+existing inputs through the explicit write operation, including camera/queue
+inputs and stack scratch. Original caller addresses, ordering and uncleared
+scratch bytes remain intact. Arbitrary writes/topology changes still invalidate
+a recording; existing resource access guards are retained.
+
+Full ABI arguments/results retain GP registers, XMM bit patterns, flags, source
+FS token, live x87 depth/status/80-bit lanes, optional FP controls, and known
+physical MMX aliases. Dead lanes, unknown MMX bytes and host long-double padding
+are omitted. Unsupported live extended representations, invalid x87/MMX states,
+unmasked FP controls and reserved MXCSR high bits reject before replay reaches
+the native executor. Original argument frames retain their 4096-word bound.
+The existing four-MiB phase budget now includes argument and result bytes.
+
+A result-bearing root must complete its actual native work and seal its return.
+Replay compares that real ABI/value with the journal, never imports a stored
+function return. Missing, changed or incomplete returns invalidate qualification.
+Malformed results/arguments are validated before faulting/mutating a candidate.
+Recording/allocation failure still permits the real host to finish; a failed
+replay remains unexportable until repaired by a complete coupled import.
+
+The native ABI fixture records two actual source-tick/four-view phases with
+real argument/scratch inputs, native original entries, live high-precision x87,
+negative zero, XMM NaN/subnormal bits and active known MMX aliases. It exercises
+the shadow-selection caller with declared empty main queues and the eligibility
+caller on all four actual player units, following the original four-local-player
+disabled-shadow route. It replays from owning values with no caller closure and
+compares complete canonical coupled archives. Changed ABI and caller bytes are
+rejected; the changed caller bytes never reach the bank. A corrupted expected
+return still executes the original entry and exposes its actual return before
+rejection. Unrecorded writes continue on the real host, fail qualification, and
+repair through a complete cut before a subsequent recorded source tick.
+
+The final native runtime build passes. Ten selected native/original CTests pass,
+including original session departure, local-view rebind, ordinary departure,
+warm/cold receiver continuation after actual transport loss, codec, clock,
+multiview-call and new ABI cases. Selected instrumentation covers ten production
+translation units and four test translation units; focused, native clock,
+multiview and ABI fixtures plus the original failing loop all pass with
+ASan/UBSan/leak checks. Other retained native/physics/RTC libraries remain
+uninstrumented at this tier. Full transport TSan, hardware and WAN acceptance
+are not implied. Compiler commands, source/header cuts, archives, native
+binaries, red/green loops and results are retained; no product debug logs added.
+A shared renderer compile error occurred during final qualification and was
+already corrected in the shared checkout before the successful rebuild; this
+milestone did not edit that renderer file.
+
+Complete rendered-frame recording still needs the actual live model caller's
+transient collector allocations, build/presentation/resource operations and any
+other uncovered mutation owners. Automatic real-runtime recording/publication,
+authenticated bounded journal transport, replay on producer views before local
+recipient rebinding, agreed post-replay cut/epoch certification, endpoint/role
+promotion, hardware/profile/voice switching, scheduling/performance and physical
+WAN/gameplay verification remain open. Journals are not yet transmitted, so
+native protocol83 and checkpoint component schema2 are unchanged here. No
+installation, backend deployment, UI-art change or seamless live migration is
+claimed. The full ONLINE goal and Vista ONLINE/clan UI requirements remain active.
+
+## Owning live model collector and observer isolation (2026-10-15)
+
+Capsule: `.local/player-host-continuity-20261015/execution-live-model-calls/`.
+This supersedes the preceding transient live-model collector limitation. The
+full ONLINE objective and complete rendered-frame/live migration gates remain.
+
+The retained red loop calls the actual live-model collector on the real TU1.5
+world. The earlier journal rejects its original temporary 1 MiB mount/release at
+64000000 as unrecorded native topology. That exact loop now passes with selected
+ASan/UBSan/leak checks; no original call/return or allocation is substituted.
+
+A twenty-first owning operation executes `source_live_model_draws_tu15` from
+recorded admission, complete retained draw banks and actual view inputs. The
+native caller still owns its temporary collector memory, queue ordering, model
+builder, presentation/child recursion, resource requests and context writes.
+Nested native work stays within that actual root and is not executed twice.
+The callback-free input type explicitly contains the seven original caller
+value fields; a field-count check requires a new Context field to receive
+serialization review. Arrays retain tail/unused words, float bits and source
+address tokens; no C++ callbacks, borrowed spans, host pointers or padding travel.
+Native object/admission, association, draw, override, section and arena extents
+are bounded before dispatch. Structurally invalid/trailing payloads reject before mutating
+or faulting a candidate. The existing phase/call byte bounds remain enforced.
+
+Actual post-call admission/draw-bank values are canonically serialized and
+sealed with SHA-256, including retained unused bank words. Replay recomputes
+that 32-byte result after the original collector completes and compares it with
+the producer; it does not restore a recorded callee output. Result digests avoid
+sending a second complete copy of the derived draw banks per root. Input banks
+still retain complete owning values: compression, scheduling, bandwidth and
+realtime full-frame performance are not qualified by this component test.
+
+The `built` callback stays local to presentation. A scoped observer guard allows
+reads/copies, but invalidates capture on source writes/topology, new native calls,
+external operands, or Match/Simulation mutation-counter changes. Replay rejects
+source mutation before the offending API/write where its boundary permits;
+unknown C++ counter work invalidates at observer completion. A capture failure
+continues the actual host collection and cannot publish that transcript. Existing
+memory policies and executor guards remain. This covers declared APIs/guards,
+not unsignalled C++ writes through references retained against the owner contract.
+Other callback ownership and remaining frame paths still need their own evidence.
+
+The new native test uses real eight-player source objects and native admission
+with declared all-cluster cameras. Two source-tick/four-local-view frames each
+run actual main and secondary collection, preserving the main prefix and
+retained banks. Sixteen roots produce 262 collectors and 434 draw units; fixed
+journal replay without the producer callback preserves complete canonical
+coupled archives. Read-only observer access works. Changed output digest,
+malformed payload and a mutating observer are rejected; a failed candidate
+repairs from a complete cut. A mutating capture observer still finishes the
+real host's collection, rejects publication, and permits a later recorded
+source tick after complete import. These declared camera/CPU cases do not
+prove original portal traversal, GPU pixels, native Windows or physical couches.
+
+The native runtime build and eleven selected CTests pass, including clock,
+multiview, full-ABI, original session departure, local rebind, ordinary departure,
+warm/cold receiver/transport-loss continuation and codec coverage. Selected
+instrumentation covers eleven production and five test translation units;
+focused, native clock/multiview/ABI/live-model and red-to-green cases all pass
+ASan/UBSan/leak checking. Other retained native/physics/RTC code remains at the
+uninstrumented tier; full transport TSan is open. Exact source/header cuts,
+commands, archives, native binaries, failing loop and results are retained
+privately. No product debug logs, installation, deployment or UI-art changes.
+
+Remaining frame work includes attachment command generation and render resource
+requests outside this root, particle callers' raw scratch publication, and other
+uncovered native mutations. Automatic real-runtime recording/publication,
+authenticated bounded/compressed catch-up transport, producer-view replay before
+recipient rebinding, agreed post-replay certification, endpoint/role promotion,
+profile/hardware/voice handoff and physical/WAN validation remain open. Internal
+journal operations are not yet transmitted; native protocol83 and checkpoint
+component schema2 are unchanged by this milestone. Seamless live migration and
+the full ONLINE goal are not complete; the sole Xbox TU1.5 reference and Vista
+ONLINE/clan UI requirements remain in force.
+
+## Native command/resource and real-world particle replay (2026-10-15)
+
+Capsule: `.local/player-host-continuity-20261015/execution-render-commands/`.
+The full ONLINE goal remains active; these are native replay-owner boundaries,
+not endpoint promotion, complete renderer acceptance or a deployed feature.
+
+The retained red loop imports the actual native command capacities/storage and
+calls original attachment traversal. Its temporary 64100000 caller mount fails
+qualification under the preceding journal. The exact loop is now green. Two
+additional roots bring the journal to 23 operations: attachment commands and
+render-geometry requests. Typed attachment input owns all three command banks,
+retained command bytes/header words, special units/count, main counts, diagnostic
+entry trace, admission and mode. Its trace has a separate 65536-entry bound from
+the portal collector's 128-element index vector. Storage/capacity/count/admission
+and mode bounds are checked before dispatch; actual native capacity/identity
+checks remain in the original owner. Full caller storage, including the last
+two source-retained command bytes, is preserved. SHA-256 seals the actual
+post-call values. Geometry calls retain the actual flags/header and verify the
+original boolean return, never replace a source result.
+
+The original particle caller now sends its existing count/camera/view/reset
+scratch values through `write_source_call_input`. Existing addresses, ordering,
+ABI controls, native queue producers and simulation remain unchanged. Material
+preload/presentation resources and GPU output are not imported as host pointers.
+A source clock may now be explicitly supplied to ordinary prepared-world
+construction, using the existing native clock owner. In this new constructor
+path its FILETIME UTC also supplies Match's separate 32-bit Unix/PCR input.
+Default ordinary and existing shadow construction retain their platform result
+clock behavior. Clock anchoring remains explicit at each owning replay phase.
+
+A real prepared-world replay initially failed before any particle work. Named
+archive comparison found one differing field: `match.logical_result_seconds`,
+advanced by two real seconds during import; all native bank regions agreed.
+The new injected constructor had pinned native clocks but left the result
+provider on real wall time. Completing its UTC-to-Unix input ownership fixes the
+actual boundary without normalizing comparison fields or weakening the complete
+archive check. The fixture advances injected UTC and asserts the final result
+time comes from that source. Private red captures and diagnostic comparison
+remain in the capsule; no product debug logs were added.
+
+The native command test uses eight actual players/four local views over two
+source frames. Sixteen original light/shadow attachment traversals and eight
+resident geometry requests preserve retained command bytes and complete
+canonical coupled worlds; changed return digest/boolean and malformed payloads
+reject qualification and repair through a complete cut. The particle test uses
+the actual normal prepared-world constructor on owned Backwash data, original
+portal traversal and two distinct scripted native clocks. Across 240 real
+match/render frames in ten replay phases it records 11,041 calls and emits 14 peak
+and final particles. Original observer, visibility, queue, RNG, timer and PCR
+state replay into equal complete canonical coupled archives. These are CPU/
+native cases, not GPU/pixel, native Windows, WAN or physical headset/controller
+acceptance.
+
+The final native runtime rebuild passes. Native qualification covers thirteen selected CTest cases plus the original
+standalone 240-frame swarm/repeated-view/RNG test. The CTest wrapper for that
+legacy case skipped because its configured XBE variable was unavailable; direct
+execution with the owned explicit XBE/map/shared-map paths passes. The initial
+ABI case failed after concurrent shadow work added a main-viewport owner; it
+now executes the actual main-input 2C470/1BE90 caller before selection and passes,
+retaining those guards. A missing header include was corrected in the shared
+BSP effect-light caller; reconfiguration admitted a concurrently added ordered
+shadow source before the repaired ABI link. The combined qualification target
+builds runtime/tests together, avoiding per-target recursive dependency churn.
+
+Selected ASan/UBSan/leak qualification covers thirteen production and seven
+test translation units, including the new prepared-world/particle paths. Eight
+selected fixture/red-to-green runs pass, and the final explicit UTC-result-time
+assertion also passes. That frozen ASan cut precedes the concurrent main-shadow
+caller requirement; the updated caller fixture has separate current native
+qualification. Other native/physics/RTC code remains uninstrumented at this
+tier; transport TSan is open. Exact cuts, commands, dependency archives, native
+binaries, failing loops and results are retained privately. No installation,
+backend deployment, UI-art or live migration claim is made.
+
+Remaining work includes complete frame coverage of new shared shadow storage,
+ordered-draw/main-context and any other raw caller mutations; automatic actual
+runtime recording/publication; bounded/compressed authenticated catch-up;
+producer-view replay before recipient rebinding; agreed post-replay world/epoch
+certification; endpoint/role promotion; hardware/profile/voice handoff;
+scheduling/bandwidth and physical/WAN checks. Complete typed command input can
+be sizable; the existing four-MiB phase bound and realtime bandwidth/performance
+remain acceptance constraints, not proof of full-frame coverage. Internal root
+operations are not yet peer-transmitted; protocol 83 and component schema 2 remain
+unchanged. Sole Xbox TU1.5 authority and Vista ONLINE/clan UI selection persist.
+
+
+## Write admission and compressed native phase format (2026-10-15)
+
+Capsule: `.local/player-host-continuity-20261015/execution-write-validation/`.
+The retained red case rejects a validation-only native writable-storage query
+as untracked mutation. Resource access policies and mutation auditing now have
+separate registrations under the existing shared lock. `validate_mutable_view`
+still checks regions, commitment, access and platform/backing write policies,
+but returns no mutable span and does not report a write. Actual writes and
+mutable borrows still notify the recorder and world mutation observer; topology
+changes retain their existing guards. The physical resource permission owner
+remains a write guard. Unknown replay mutations still reject before publication.
+
+The real eight-player/four-local-view native fixture captures original shadow
+storage construction, BSP-plane insertion, warm reset and reinsertion. Replaying
+owning calls reproduces the complete coupled canonical archive. Rebinding keeps
+the original source allocation identities while using independent native64
+backing. Permission-only frame admission produces no calls or external inputs;
+its full before/after archive is compared using an explicitly frozen injected
+profiling clock. The ordinary test clock advances whenever it is sampled,
+including checkpointing, so that assertion requires a fixed clock rather than
+normalizing archive fields. Mutable borrow/raw-write rejection and complete-cut
+repair remain covered.
+
+`source_execution_codec` adds a versioned little-endian owning phase format:
+ordered input kind/operand/value, root call kind/arguments/input ranges/actual
+result seals, independent millisecond/cycle/UTC clocks and Unix/PCR seconds.
+Zlib compression and SHA-256 detect corruption; they do not authenticate a
+sender. Fixed phase bounds remain 262144 inputs, 65536 calls and 4 MiB of total
+call arguments/results. Decode admits envelope/decompression extents, minimum
+wire counts and destination allocations before growing their containers, and
+runs the same native input and typed call validators before returning a phase.
+Truncation, unknown headers/kinds, impossible counts, changed consumption ranges,
+wrong scalar widths, oversized payloads, trailing compressed/raw state and
+configured byte/allocation budgets are covered, along with maximum admitted
+input, call and payload sizes. Native model, ABI, command/resource and real-world
+particle fixtures now cross compressed encode/decode before actual replay;
+complete archive equality is retained.
+
+This format is not yet accepted by `SourceAuthorityReceiver` or sent by the
+runtime. Before replay, the session still needs to authenticate the physical
+host and bind an ordered stream to its authority generation, membership and
+validated base cut. Automatic whole-frame capture/publication, producer-view
+catch-up before recipient rebinding, certification, gameplay endpoint/role and
+voice promotion, custom native-owned mode coverage, performance and physical/WAN
+verification remain open. Native protocol 83 and checkpoint component schema 2
+remain unchanged. No launcher installation, backend deployment or UI-art change
+is part of this milestone. The full ONLINE goal remains active.
+
+
+Verification for this milestone: the final full native aggregate build passes,
+and 17 selected native checks pass without skips, including warm and cold actual
+peer reception, source clock/call/model/ABI/command/particle replay, original
+session departure, local-view rebind, network departure, complete archive codec
+and retained/shared memory. All tested native binary hashes remain unchanged
+through the run. Nine selected ASan/UBSan/leak fixtures pass with 16 production
+translation units instrumented. Existing native/physics/RTC archives and the
+paired original shadow dispatcher remain uninstrumented; the optional attempt
+to expand generated-dispatcher sanitizer coverage was stopped. This does not
+close full transport TSan or platform/WAN acceptance. Initial shared-checkout
+link drift was repaired by reconfiguration; no stub or resource-guard bypass
+was introduced. Exact source/header cuts, commands, logs, assets hashes and
+native binaries are retained with `verification.json` and `SHA256SUMS`.
+
+The current native cut includes a concurrent unit-camera mode API extension
+absent from the selected sanitizer cut. The write-observer edits match across
+both cuts. That unrelated camera extension is not newly sanitizer-qualified;
+the retained source comparison makes this boundary explicit.
+
+
+## Ordered direct-peer native replay and delayed local handoff (2026-10-15)
+
+Capsule: `.local/player-host-continuity-20261015/ordered-peer-replay/`.
+The full ONLINE goal remains active. This connects the phase format to the
+actual source publisher/receiver over authenticated peer bulk transfer; it
+does not elect a new host or switch the visible game's transport/voice role.
+
+An explicit replay mode retains the producer's view mapping. Each batch binds
+its session, authority epoch, physical membership revision/mask and host to the
+exact validated base cut, previous validated transfer seal and next phase
+sequence. Each phase has a contiguous before/after simulation-tick interval.
+The receiver checks the expected binding before allocating or decompressing
+phases, then validates phase payloads under aggregate budgets. Defaults permit
+32 phases, 32 MiB encoded/decoded and 64 MiB destination values per batch.
+The publisher queues at most 1024 phases/64 MiB of owning values, selects at most
+32 phases/~16 MiB of values for one worker job and awaits an exact executor
+receipt before advancing the previous seal/sequence. Queue/encoding/recording
+gaps invalidate this stream; they never replace missing source work with a
+control-only approximation or stop/repeat successful real host work. Actual
+exceptions from the host callback still propagate.
+
+Snapshot and batch encoding/decoding run on workers over owning values only.
+Native construction, transaction preparation and actual replay remain on the
+retained source executor. Replay advances at most one phase per update, leaving
+network/input pump boundaries between phases. Readiness is cleared before a
+batch starts; a receipt is sent only after every phase succeeds. Cheap live
+coupled checks retain the original variant, source/Match ticks, player pool and
+active census, current-unit, local-index and first-person bindings. Every full
+import and completed replay batch also checks all actual allocated player salts
+and original identity bytes against the independent accepted source roster.
+An execution-boundary stamp combines Match/Simulation mutations with actual
+native writes/topology and mutating bridge calls, rejecting work omitted
+between captures. Permission-only checks do not advance that stamp.
+
+Legacy snapshot-mode constructors remain available. Replay candidates keep the
+host's views until a separately chosen exact validated cut is handed off.
+`take_world_for_local_views` stages the existing original local-view/input/
+first-person transaction on private executors; active/identity checks remain
+strict. Neither taking the producer world nor rebinding it certifies an epoch,
+changes network endpoints, installs hardware listeners or promotes voice.
+Explicitly supplied shadow clocks now also own their Unix/PCR provider through
+UTC conversion, matching explicit ordinary-world injection. Default platform
+clock behavior is unchanged; native milliseconds/cycles/UTC and Unix/PCR
+anchoring remain independent phase values.
+
+The native peer fixture uses two real native processes, the production queue,
+measured host choice, actual grouped profiles, independent source admission and
+DTLS/UDP transfer. Discord is a fixture. Forty-two accepted phases include
+Match, particles, four ordinary views, visibility, weather, first-person models,
+audio and event drains. Four complete producer-view canonical archives agree.
+Filesystem files supply expected archives and coordination only; they do not
+feed replay inputs to the recipient. A wrong sequence leaves the old qualified
+world intact without acknowledging the bad transfer. A validly encoded actual
+caller write that changes a source player's identity is executed, then rejected
+before acknowledgement; its candidate is discarded and a new complete cut
+repairs it. Inter-phase writes and unsupported in-phase work drop the sender
+stream while its real host continues once. Worker cancellation cannot revive
+readiness. Actual host transport shutdown retains the last validated world;
+recipient couch views rebind, original host-group departure preserves retained
+rows without numeric deaths, and ten subsequent native ticks survive.
+
+Two test-boundary failures were reproduced and retained privately. A newer
+attachment adapter preserves live ordinary bank0 instead of projecting a typed
+callback replacement. The command fixture now seeds its retained bytes through
+an explicit recorded input and tests that a conflicting typed replacement does
+not overwrite them; banks1/2 retain their secondary-input checks. A sanitizer
+handoff failure contained genuinely departed recipient rows: during slow
+private-world loading, the fixture polled LanHost's five-second gameplay-input
+timeout without advancing the game. That preparation interval is now quiescent
+while the independent DTLS worker stays live. The departed-player handoff guard
+was not weakened. No product diagnostic logging or source-owner stub was added.
+
+Automatic full-runtime capture, remaining frame/camera caller coverage,
+measured shadow-target policy, authenticated agreed cut/epoch certification,
+retention before runtime teardown, actual gameplay role/endpoint promotion,
+profile/hardware/voice handoff, custom native-mode coverage, realtime budgets
+and physical/WAN checks remain open. The replay mode is currently explicit;
+`multiplayer_runtime` does not yet instantiate its publisher or promote its
+receiver. Protocol 83/checkpoint component 2 are unchanged at this opt-in stage;
+production enablement still needs capability/version admission. No launcher
+installation, backend deployment or UI-art change is part of this milestone.
+The Xbox TU1.5 reference and Vista ONLINE/clan asset requirements remain in force.
+
+
+Verification: the complete native runtime aggregate builds successfully. Twenty
+initial native checks pass; the corrected command fixture and both warm/cold
+replay and legacy-receiver fixtures pass on the retained matching native graph,
+for 21 unique passing native checks without skips. Eight selected ASan/UBSan/leak
+checks pass with 20 production translation units instrumented, including actual
+warm/cold native peer replay, legacy receiver/publisher, mutation/input/batch
+admission, shadow storage and corrected command traversal. Existing native
+original/generated and RTC libraries remain uninstrumented; full transport TSan
+and platform/hardware/WAN acceptance are not implied. Five later cinematic/
+effect-light/options header edits in the shared checkout are outside this
+retained cut; current native archives and matching frozen headers were kept
+instead of mixing ABI variants or reverting concurrent work. Exact source,
+headers, archives, native binaries, diagnostics and commands are retained with
+`verification.json` and `SHA256SUMS`.
+
+## Direct peer quality and measured physical host setup, 2026-10-15
+
+The previous ordered-replay turn made concrete progress. This continuation
+connects a new C++20 `PeerMeshQuality` owner to the production native session
+worker and initial coordinator host choice. It does not promote a world or
+close the full ONLINE goal. The retained evidence is
+`.local/player-host-continuity-20261015/peer-quality/verification.json`, with
+1,236 frozen source/header/backend/RTC inputs, matching network binaries,
+commands in the tool history, build/test logs, `input-manifest.json` and
+`SHA256SUMS`. The current selected source files match that frozen cut.
+
+Every physical connection owner exchanges application echo probes, 64 bounded
+1,200-byte upload chunks per directed path and complete 16-column quality rows
+over its existing authenticated direct DTLS/UDP connections. The coordinator
+receives initial setup summaries only. Gameplay and microphone queues drain
+before measurement work; probe/reply/report queues and per-poll output remain
+bounded. Mutable measurement state uses one short mutex; copies and ordering
+are safe beside poll/receive updates. No Discord identifier is carried in the
+measurement protocol or candidate presentation.
+
+Probes bind the exact room digest, pre-host or accepted host context, epoch,
+membership value and physical peer mask. The transport supplies authenticated
+sender identity. Reports have strictly advancing sequence numbers; duplicate
+or reordered reports cannot refresh their five-second freshness window.
+Unknown/truncated/oversized/invalid context or column values never qualify a
+peer. Upload receipts bind the actual outstanding round and chunk. Duplicate
+receipts cannot extend duration or increase the acknowledged chunk count.
+
+The first deterministic test exposed acknowledgement-queue congestion biasing
+the sender's wall-clock estimate. Upload measurement now uses the receiver's
+elapsed arrival span over distinct acknowledged chunks, without synchronizing
+PC clocks. This is observed application delivery under a bounded offered
+load; it is not an ISP line-speed estimate, an independently attested bandwidth
+claim or a recovered Xbox coefficient. Receipt loss makes the estimate
+conservative. NAT type stays unknown. No endpoint timeout changes membership
+or supplies a cheating ban.
+
+The native worker runs measurement before `peer_ready`, then resets telemetry
+to the accepted host context and continues direct row exchange. Host eligibility
+requires fresh measured reciprocal paths to every physical participant.
+Ordering uses worst reciprocal loss, minimum outgoing observed delivery,
+mean worst-direction RTT and stable room peer slot. The coordinator applies
+the same setup policy only to physical owners, preserving playlist connection
+thresholds. All-legacy rooms retain their existing RTT policy. Once upload
+columns are present, missing reciprocal measurements cannot silently downgrade
+the room to unmeasured selection. This policy is explicitly native, not an
+assertion that the retail Microsoft formula has been recovered.
+
+`OnlineMatchSession::host_candidates()` exposes fresh measurement candidates.
+It neither creates a source publisher nor produces a prepared-world receipt.
+Independent original allocation admission and complete replay validation remain
+mandatory. The normal runtime still lacks automatic complete-frame recording,
+agreed shadow retention and cut/epoch certification, actual host/endpoint role
+promotion and profile/hardware/voice handoff. Local candidate snapshots are not
+an agreed decentralized election. Survivor membership, asymmetric-loss policy,
+500 ms suspicion/quorum, NAT qualification and the final asynchronous shadow
+queue remain open. The new setup fields also need coordinated client/backend
+capability admission and delivery before enabling the tested source in releases.
+
+Verification at this cut:
+
+- Five deterministic cases cover all directed four-PC probes, measured ordering,
+  exact 12.5% directional loss, duplicate receipts, stale/disconnected paths,
+  every context field, malformed/duplicate reports and concurrent readers.
+- Four real socket peers complete 768 upload probes while 1,152 ordinary payload
+  frames pass alongside telemetry. This exercises the actual ICE/DTLS/SCTP UDP
+  stack. It is not a new audible Opus/device validation.
+- Two separate native session processes use the actual authenticated queue,
+  admitted four-seat groups, direct measurement workers and coordinator.
+  No RTT, loss, upload score or host choice is injected. The final run chooses
+  physical slot 4 from the initial measured summaries, receives 198 direct
+  game datagrams on each PC and retains two fresh candidates. QoS alone leaves
+  source admission and prepared-world receipts empty. Discord authorization
+  remains a fixture; these are session/transport payloads, not a new complete
+  source-world gameplay or migration acceptance run.
+- 44 backend tests pass across direct admission/selection, gathering sessions,
+  couch/guest policy and explicit continuity controls. The original direct
+  transport test still passes its packet bounds and TCP/TURN denial.
+- ASan/UBSan/leak and ThreadSanitizer each pass all five cases for the new
+  production measurement owner. This is not full RTC/transport TSan proof.
+
+The isolated aggregate compiles eight fresh production network/session/variant/
+voice translation units against matching frozen headers and retained pinned
+RTC libraries. Its session cut uses native protocol 86 because concurrent
+gameplay work advanced that header after the previous protocol 83 replay cut.
+No unrelated native archive was mixed into this build. The complete current
+native renderer/runtime was not rebuilt or installed here, and no backend
+deployment or Vista UI-art change was made. Original TU1.5 gameplay fidelity,
+all remaining ONLINE requirements and physical/WAN gates stay active.
+
+## Scoped host frames and automatic publication wiring, 2026-10-15
+
+The preceding peer-quality turn was concrete progress. This continuation adds
+an executor-local `SourceMatchAuthority::ExecutionRecording` scope and
+`SourceAuthorityPublisher::Frame`. The scope owns the existing input/call tape,
+write/topology observers and active native boundary over the real frame.
+Finishing seals actual calls, returns, external inputs and independent end
+clocks. Cancelling releases guards without repeating or stopping completed
+real host work. Active checkpoint/nested scope attempts and wrong-thread or
+duplicate finish attempts reject. An input-limit failure still runs the actual
+source tick once and leaves the host available for a complete resynchronization.
+
+The publisher's optional frame scope closes on normal destruction, including
+an early game-loop continue/break. Unwinding cancels the stream and preserves
+the original native exception. Transcript, allocation or queue failure rejects
+the backup qualification; it does not substitute for or repeat the frame.
+Its callback `execute` API now uses the same scoped owner. Publisher calls
+that need a quiescent boundary reject while a frame is active. The authority
+and publisher must outlive their respective executor-local scopes.
+
+The normal game-loop source now selects a measured eligible physical backup,
+requires independent source-admission confirmation and explicit replay wire
+support, captures a complete base and records the whole headless/rendered host
+iteration. This includes native work after Match.step, camera/effect/render
+callers and the renderer tail; early exits release the scope. An eligible warm
+backup is retained until it or the accepted context becomes unavailable.
+This is backup retention, not an election of a replacement gameplay host.
+The client receiver now requests replay mode. Unknown frame callers or raw
+mutations still invalidate the transcript; the capture boundary does not
+magically implement an uncovered original caller.
+
+Authority hello/ack packets can advertise an optional replay feature separately
+from their maximum byte size. Maximum-only legacy hellos advertise no replay
+support. Context replacement clears the capability. `authority_replay_supported`
+requires an admitted direct endpoint and that feature; neither a hello nor QoS
+metadata certifies a native world. Actual full-cut/replay validation and receipts
+remain mandatory. Existing legacy snapshot constructors remain available.
+
+Evidence is retained in
+`.local/player-host-continuity-20261015/frame-recording/verification.json`,
+`input-manifest.json`, commands, logs, binaries and `SHA256SUMS`:
+
+- The current `multiplayer_runtime.cpp` passes a syntax check against its frozen
+  current headers, including both automatic frame scopes and publisher wiring.
+- Actual TU1.5 owner checks preserve complete canonical worlds through a scoped
+  tick and later observer/model work. Active/nested/wrong-thread/duplicate use,
+  cancellation and exhausted transcript cases pass.
+- Warm and cold two-process native peer fixtures each replay 42 accepted phases
+  and compare four complete worlds. Their actual frames use the scoped API;
+  alternate frames close by early return. Wrong chains and changed identities
+  remain unacknowledged, full cuts repair the stream, and retained source worlds
+  still rebind after actual host transport loss and continue ten surviving ticks.
+- Selected ASan/UBSan/leak runs pass the scope owner and warm native peer fixture.
+  Twenty-three production translation units are instrumented, with matching
+  retained original/generated/RTC libraries uninstrumented. Pure transfer-owner
+  ThreadSanitizer passes capability, concurrent pumping/publication/acknowledgement
+  and context-replacement checks; this does not close full RTC transport TSan.
+
+The native tests retain the previously completed native layout/archive graph,
+with updated public methods and freshly compiled phase/publisher/session/transfer/
+quality owners. Their native layout headers and archives are frozen;
+new concurrent gameplay layouts are not mixed into them. Both frozen cuts
+actually contain protocol 86, confirmed from their headers and the native
+fixture's check of emitted gameplay packets. Earlier protocol 83 notes do not
+describe this retained cut. There are 2,322 frozen inputs. A complete
+current renderer/runtime build and actual rendered publication/qualification
+have not been established by these checks.
+
+Complete frame/camera/hardware-input ownership, actual game-loop qualification,
+base-capture latency, bounded replay catch-up at real frame rates, retention
+before runtime teardown and agreed cut/membership/epoch certification remain
+open. The runtime still exits on host connection failure; it does not promote
+the prepared world, rebind gameplay endpoints, profiles, controllers or voice.
+Custom native modes, survivor election, the modern quorum/asymmetry/shadow queue,
+full current runtime delivery, deployment and physical/WAN acceptance stay open.
+No launcher installation, backend deployment or Vista asset change was made.
+The full ONLINE goal and sole Xbox TU1.5 gameplay reference remain active.
+
+## Full native/rendered cohort and state-query ownership, 2026-10-15
+
+The scoped-recorder turn was progress. This continuation freezes 17,014 code
+and pinned RTC inputs in `.local/player-host-continuity-20261015/rendered-auto`,
+builds the full native executable and actual rendered ONLINE fixture, and
+exercises two real game processes on the RTX 5080 with four local views each.
+The fixture pins the verified English Xbox TU1.5 executable, uses the selected
+Vista UI bank, admits eight actors through the production queue and direct
+peer transport, and runs the real input/simulation/render loop. Discord remains
+a fixture. This is local GPU evidence, not physical controllers or WAN proof.
+
+The initial workload exposed a test error: its legacy `replay` control option
+disabled automatic native-world construction. The corrected workload explicitly
+sets `source_object_world` and witnesses construction on the authoritative PC.
+The fallback pass is retained as a diagnostic and does not count as source
+replication evidence. Source-owner runs advance all eight players and submit
+hundreds of real four-view frames. The earlier shield-part error did not occur
+in this particular frozen TU1.5 workload; this is not a general visual-parity
+claim.
+
+Automatic recording starts, but its transcript rejects unrecorded native work.
+A private first-failure stack trace identifies `LanHost::receive` calling
+`MultiplayerMatch::state`, whose native HUD queries execute mutating source
+operations despite the public snapshot method being const. Those calls must
+remain in their actual order; simply classifying them as read-only would hide
+real scratch/native mutations.
+
+The new 24th owning operation, `MatchState`, executes the actual state method
+and validates a SHA-256 digest of its complete returned value. Its canonical
+encoding retains exact scalar/float bits, bounded strings and explicit grenade
+action fields, without C++ padding or normalized fields. The result is compared
+with the real return; it is never supplied as a replacement. Empty arguments
+and exact digest size are preflighted. The native regression rejects a changed
+digest, repairs through a complete cut and then reproduces equal full canonical
+worlds. ASan/UBSan/leak checks pass with the changed Match/input/call owners
+instrumented against the matching frozen native graph.
+
+Replay now requires both the original replay capability and the state-journal
+capability. An older replay decoder cannot qualify by advertising the original
+bit alone. Pure transfer-owner tests retain concurrent pumping, validation,
+context-reset and legacy capability checks. A real two-process peer fixture
+includes state queries before and after every frame: all 42 accepted phases
+and four complete worlds still agree, including wrong-chain/identity rejection,
+full repair, delayed view rebinding and ten surviving ticks after transport loss.
+
+The rendered trace then advances to a different missing caller:
+`PhysicsLiveWorldTu15::player_camera_packet`, reached through
+`NativeVehicleCamera::update_player` during host broadcast. That camera caller,
+its observer/controller continuation state and subsequent frame work remain
+to own. Rendered replication does not qualify yet. Native capture, mutation,
+identity and replay guards were not weakened to obtain the workload pass.
+The private stack instrumentation is removed from the final clean full build;
+the exact diagnostic binary hash and symbolized stacks are retained separately.
+
+`verification.json`, manifests, clean/diagnostic build logs, native/peer/sanitizer
+results and `SHA256SUMS` record the tier boundaries. Assets and original analysis
+references remain external read-only inputs. Later concurrent campaign changes
+to `multiplayer.cpp` remain untouched in the workspace; only this task's two
+state-journal insertions were composed into the frozen matching native layout.
+This avoids linking newly changed class layouts with older native objects.
+
+Full rendered qualification, camera and remaining caller ownership, real-time
+capture/catch-up budgets, retention before teardown, agreed generation/cut
+certification and actual gameplay/profile/hardware/voice promotion remain open.
+No launcher was installed, backend deployed or Vista art modified. All other
+ONLINE acceptance requirements and the full active goal remain in force.
+
+
+## Camera and lens-query caller ownership, 2026-10-16
+
+The previous full-build/state-query milestone was progress. This continuation
+keeps the full ONLINE completion goal active and preserves the sole Xbox TU1.5
+gameplay reference. Evidence is retained in
+`.local/player-host-continuity-20261015/camera-caller` and its `lens-query`
+successor; neither cut is a launcher installation or backend deployment.
+
+`PlayerCamera` is the 25th owning root operation. It retains the real player
+identity, seconds, all 80 controller words, 214 observer words, random state,
+cycle input and optional mode-output presence. Replay executes the actual
+private-view scheduler and checks a canonical digest of the resulting packet,
+controller, observer, random and mode values. Native observer locate/collision/
+visibility callbacks now use the existing explicit source-argument-frame,
+caller-write and actual-entry boundaries. No native query was relabeled as
+read-only and no original camera result is substituted.
+
+The camera native fixture updates four actual private views, rejects a changed
+camera return, repairs through a full cut and compares complete coupled worlds.
+The peer fixture also runs the four actual cameras. A private trace of the
+rendered eight-seat workload then moved the first unrecorded write to
+`SourceLensQueryFrameTu15::Impl::run`, through the original `20B90` query body.
+
+`LensQuery` and `LensQueryFinish` bring the root-operation count to 27. The query
+bridge records ordered, address/width-bound reads of the renderer's private
+camera/projection/device/query-metadata storage in the existing bounded input
+tape. Replay executes the actual TU1.5 query bodies with those owning external
+operands. It checks the actual full ABI plus the ordered private-device write
+digest; reads of bytes written earlier in the same kernel must agree with those
+actual writes. The bridge preserves the original adapter's distinct read/write
+overlays. It records operands rather than copying the entire GPU FIFO into
+each phase. Unbound calls continue directly through the actual device adapter.
+Recorder allocation/hashing failure revokes capture and lets the real host
+continue; replay fails immediately. Final digest construction is inside the
+existing failure-isolated journal completion boundary.
+
+Actual query-ring rollback and the original 64-bit presentation-count
+publication now execute through an owning operation. View retirement uses the
+existing explicit constant caller-write operation. The real renderer continues
+to supply hardware query results and actual submission/decline events. Vulkan
+leases, pending/staged query identities, fences and private camera continuation
+are not transferred by this tape and still require a certified hardware/view
+handoff; recorded device inputs do not qualify that handoff.
+
+The native extension fixture executes original `402650` allocation and `402710`
+pending polling using declared device inputs, plus both retirement paths. It
+compares complete native/Match checkpoints, rejects a changed device-write
+seal and repairs. The independent-process peer fixture now carries the same
+query operands alongside four camera views in 42 phases and four complete
+world comparisons. Its device inputs are declared fixtures, not a physical GPU
+sample test. The rendered workload uses the actual RTX 5080 query owner.
+
+Native replay capability now requires mask 15 (replay, native-state, camera and
+lens-query revisions); older decoders remain ineligible as source replay
+recipients. Narrow-width/wrapped-address operands, instrumentation failure
+isolation and older capability handling have focused coverage. Selected native
+ASan/UBSan/leak checks retain their explicitly uninstrumented original/generated
+and transport dependencies; they do not establish full transport sanitizer or
+physical WAN acceptance. Final statuses and hashes belong to each evidence
+cut's `verification.json`, rather than this narrative.
+
+The native build overlays retain the full prior frozen graph and its exact
+class-layout headers. Only the two camera wrapper/callback blocks were composed
+into frozen physics/object-runtime sources; concurrent campaign class layouts
+were preserved in the working tree. Current source syntax is checked separately
+and is not a current-layout executable claim. The final lens serializer uses
+the frozen vendored PFR headers. Original assets/reference analysis remain
+external read-only inputs.
+
+The next rendered first unrecorded writer is now the final flare drawing
+adapter: `SourceLensDrawFrameTu15::Impl::initialize -> execute ->` actual
+`1301E0`. Its private residency/device input, complete original parent/world-pass
+handoff and draw emission still need an owning boundary. Full rendered frame
+qualification/catch-up, source-world retention before runtime teardown, agreed
+cut/membership/epoch election, actual role/gameplay/profile/controller/hardware/
+voice promotion and physical/WAN acceptance remain open. The runtime still
+exits on host failure. The modern quorum/asymmetry/shadow queue and every other
+unfinished requirement of the full ONLINE goal remain active; neither an
+endpoint switch nor these native replay fixtures are seamless host migration.
+
+
+## Rendered replay, drawing/collision boundaries and shared contact journal, 2026-10-16
+
+The camera/query turn was progress. This continuation retains the full ONLINE
+goal, the sole Xbox TU1.5 gameplay reference and the existing Vista UI selection.
+Evidence cuts are `.local/player-host-continuity-20261015/lens-draw`,
+`particle-query` and `projectile-journal`. No launcher installation, backend
+deployment or UI-art replacement is included in this milestone.
+
+`LensDraw` is the 28th owning operation. The actual drawing adapter now supplies
+its private device-region descriptors and uses the existing ordered, address/
+width-bound device-read tape. Actual private writes and the complete returned
+ABI are checked. The original draw/query/live-support/math bodies still execute.
+The original13660 parent stops at its actual2BCB0 world-pass call; all six real
+arguments and the partial ABI/write result are sealed. Replay checks that real
+handoff rather than inventing a return from the child. Native fixture inputs
+include an actual owned-cache 2D bitmap metadata row. Header construction and
+its resident alias, parent handoff, changed result/argument rejection and
+complete coupled-world equality pass. Private region descriptors reject empty,
+unsorted, overlapping and wrapped extents.
+
+The next actual rendered trace found the native particle collision callback.
+`ParticleCollision` is the 29th root operation: it owns the exact flags, origin
+and displacement and checks every actual optional hit field, with no host
+padding or normalized floats. The real16C620 owner executes. Native eight-actor
+rays exercise actual hits and misses, altered results reject and full repair
+preserves the complete world. Peer fixtures now carry private-camera, query,
+header/world-pass and particle-query work in42 phases/four complete worlds.
+
+With those native callers covered, the strict C++ counters found exactly one
+extra Match mutation and one Simulation mutation per rendered network frame.
+Both came from the repeated default workbench-settings setter. Network settings
+now reset once during session setup, before any source cut; network debug
+requests remain rejected. The mutation guard still rejects actual unrecorded
+changes. The frame budget was not the problem: the diagnosed frame contained
+1,124 calls,288,397 call bytes and5,188 external reads.
+
+The actual backup next rejected service roles97 versus65 with equal admission
+and configuration bindings. The only extra host bit was the renderer-local
+software weapon-effect callback. Original source movement/weapon stepping
+bypasses that software path and publishes completed effects through its native
+observer/journal. ONLINE source worlds now retain that path and do not install
+the unused fallback. Other local/LAN paths retain their registration. A native
+30-tick firing probe installs a fallback that throws if invoked; real ammunition
+is consumed, original scheduled effects appear and full replay equality holds.
+No compatibility bit was cleared to bypass the rejection.
+
+The next first actual replay mismatch was MatchState. Private canonical field
+comparison found identical initial states and then one differing top-level
+field: `grenade_detonations` had1,388 bytes on the host and an empty4-byte vector
+on the backup. The live runtime had registered the real projectile-contact
+observer outside the prepared world. That binding now belongs to every source
+Match through the object runtime's private continuation, with the same actual
+projectile/effect listener and `publish_source_projectile_contact` callback.
+Match destruction retires it before the journal target; transient projectile
+update scopes remain quiescent at completed authority boundaries. Binding
+metadata stays readable while a native import is staged; this getter performs
+no original execution or bank access. The Match service contract requires the
+real binding, and mismatched roles reject before native storage staging.
+
+The capture tool consumes the common Match journal rather than installing a
+second observer. Native tests cover the real binding, a forged missing role,
+callback retirement and re-registration after Match destruction. The isolated
+metadata-rejection fixture freezes its declared probe-on-read cycle clock;
+an extra checkpoint must not itself advance the fixture's comparison clock.
+New Core replay requires capability mask127. Public class data layouts are
+retained; only method declarations and a private continuation owner were added.
+Frozen Match/physics/object-runtime bodies receive only the relevant insertions,
+without importing concurrent campaign layouts. World, receiver, runtime and
+owning fixtures are rebuilt against the explicit Match destructor.
+
+The rendered test now demonstrates an actual validated batch and peer receipt:
+the backup completed32 phases through tick95, and the live host acknowledged
+that batch. It subsequently reached48 applied phases. This runs two real
+four-view game processes/eight source actors on the RTX5080. The desktop's
+Xwayland display became0x0, so the later workload uses an isolated Xvfb X11
+surface with the actual NVIDIA Vulkan device; this is not physical-monitor,
+headset, widescreen-pixel or WAN acceptance. Private runtime/state probes are
+kept only in diagnostic executables; production guards and actual return
+validation remain intact.
+
+Sustained catch-up is not qualified: the host still had58 queued phases at the
+recorded acknowledgement/shutdown. The native core remains slower than the
+render-only client in this workload. Full current-layout delivery, broad native
+mode/weapon coverage, private camera/GPU continuation, exact-cut/membership/
+epoch certification, world retention before normal runtime failure teardown,
+actual gameplay/voice role promotion and physical/WAN acceptance remain open.
+The normal runtime still exits on host failure. The modern quorum/asymmetry/
+shadow queue and all other unfinished full-goal requirements remain active.
+Each evidence cut's `verification.json` owns final statuses/hashes; selected
+sanitizers retain their stated uninstrumented dependencies.
+
+## Background native replay executor and measured frame backlog, 2026-10-16
+
+The first private timing run uses the matched final contact-journal cut. Its
+8,207,203-byte base captures in 496,316us and encodes in 934,047us; the existing
+512 KiB/s application transfer budget takes approximately 18 seconds on the
+localhost peer path. Candidate/workspace construction takes 2.82/3.20 seconds,
+preparation 184,872us. The first 32 replay phases take 9.25 seconds including the
+client's intervening frames; actual phase CPU median is 204,574us and p95
+280,198us. This is a measured replay/input-thread scheduling and initial-transfer
+cost, not evidence of a new original gameplay or network timeout policy.
+Detailed events are retained in `.local/player-host-continuity-20261015/replay-profile/`.
+
+`SourceAuthorityReplayWorker` now constructs, warms, replays and destroys its
+private native worlds on one background executor. Existing source thread,
+callback, borrow, identity, service-role, input/result and receipt guards remain
+in force. Status is an owning value copied under a short mutex. At most one
+checkpoint export may be outstanding; the executor checks the exact validated
+peer/context/seal and fulfills a future with an owning coupled checkpoint.
+Cancellation immediately revokes exported readiness, wakes the worker and
+rejects further requests. Destruction joins after the current native call and
+destroys the world on its constructing thread. No native world/view/hardware
+pointer crosses to the game thread. Initial warm overlaps transport only after
+independent source-player admission; a failed replay still needs a valid full
+cut for repair. The normal runtime reads status without executing backup phases
+on its render/input thread. It still exits on host failure: this worker does not
+elect, certify or promote a replacement host.
+
+The background eight-actor/two-process peer fixture passes 42 accepted phases,
+four complete canonical comparisons, forged full/replayed identities, wrong
+sequence, full repair, stale export and cancellation rejection. After the host
+transport fails, it exports the retained exact cut, retires the worker, imports
+into a separate executor with the independent full roster, runs original local
+view rebinding, departs the original host's four seats without fabricating
+deaths and advances ten more source ticks. No filesystem fixture supplies
+replay input to the backup. `HALO2_RECEIVER_ASYNC=1` selects this additional
+CTest case; the existing direct-executor and cold cases retain their checks.
+
+A matching 45-second rendered workload passes with eight actors/four views per
+PC on the actual RTX5080 through Xvfb. The host acknowledges 64 phases through
+tick 191; the backup applies 96 phases. The last sampled queue is 59 phases.
+The first 32-phase replay batch takes 6.42 seconds; sampled game-thread status
+reads take 14–28 us during active replay, rather than executing the roughly
+0.2-second native phase there. The rendered client submits 878 frames versus 492
+in the preceding observed run; these sequential observations are not a physical
+display, frame-rate guarantee or a controlled hardware benchmark. No rate/window
+budget, original simulation call, input/result check or compatibility gate was
+weakened. Sustained catch-up, hardware/camera handoff and automatic certified
+host/gameplay/voice takeover remain outstanding. The later 90-second workload
+and selected sanitizer lifecycle results are recorded separately when terminal.
+
+The 90-second rendered workload also passes. The last host sample records 302
+phases, acknowledges 224 through tick 671 and retains 46 queued phases plus a
+32-phase batch in flight; the receiver validates 224 phases. The host finishes
+at tick 923. This still leaves a substantial world lag, so sustained catch-up
+and a usable takeover cut are not qualified. No automatic host-failure recovery
+is claimed. Selected ASan/UBSan/leak instrumentation of the new receiver/worker,
+peer fixture and retained Match/world/contact/execution owners passes the same
+complete peer flow in 119.90 seconds; retained original/generated/RTC code is
+uninstrumented, and this is not a whole-program race proof. The three touched
+C++ units also pass current-checkout syntax checks without observed source drift.
+`.local/player-host-continuity-20261015/background-replay/verification.json`
+records the matched sparse-overlay source/link hashes, sanitizer tier and both
+rendered timings. No launcher installation, backend deployment or UI art change
+occurred in this cut. Every remaining full ONLINE goal gate remains active.

@@ -11,12 +11,12 @@ def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,default=Path('src/source_conveyor_tu15_generated.cpp'));p.add_argument('--directory',required=True,type=Path);a=p.parse_args()
     assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
     caller=code.at(0x184c9e);assert caller.mnemonic=='call' and caller.operands[0].imm==0x355d0
-    entries=(0x355d0,0x1e1170)
+    entries=(0x355d0,0x1e1170,0x383420,0x383440,0x383460,0x31f720,0x31f820,0x383bf0,0x383c00,0x383c10,0x31f810,0x31f660,0x31f840,0x325e90,0x31f740)
     instructions={};addresses={};sites={};calls=set();routines=[]
     for entry in entries:
         body=complete_body(code,entry);assert body.code and not body.tables
         if entry==0x355d0:assert all(0x355d0<=q<0x3577d for q in body.code)
-        else:assert all(0x1e1170<=q<0x1e11a6 for q in body.code)
+        elif entry==0x1e1170:assert all(0x1e1170<=q<0x1e11a6 for q in body.code)
         sites[f'{entry:08x}']=sorted(body.code);routines.append(dict(entry=entry,tables=[],byte_tables=[]))
         for q in sorted(body.code):
             i=code.at(q);assert image.read(q,i.size)==bytes(i.bytes);instructions[f'{q:08x}']=q;addresses[q]=q;addresses[q+i.size]=q+i.size
@@ -24,8 +24,12 @@ def main():
             for op in i.operands:
                 if op.type==2:addresses[op.imm&0xffffffff]=op.imm&0xffffffff
                 elif op.type==3:addresses[op.mem.disp&0xffffffff]=op.mem.disp&0xffffffff
-    assert calls=={0x13de70,0x315c90,0x315cb0}
+    assert calls=={0x13de70,0x315c90,0x315cb0,0x326100,0x32b0b4,0x31f720,0x31f820,0x325af0,0x325e90}
+    for row,entry in ((0x46d7a0,0x383420),(0x46d7a4,0x383440),(0x46d7a8,0x383460)):
+        assert int.from_bytes(image.read(row,4),'little')==entry
     assert code.at(0x1e119f).bytes.hex()=='ff5260'
+    assert int.from_bytes(image.read(0x41edb8,4),'little')==0x31f740
+    assert int.from_bytes(image.read(0x41ede4,4),'little')==0x31f840
     paired=dict(image='English TU1.5',original_sha256=NEW_PIN,entries={f'{q:08x}':q for q in entries},body_sites=sites,instruction_map=instructions,address_map={f'{q:08x}':v for q,v in addresses.items()},routines=routines)
     a.directory.mkdir(parents=True,exist_ok=True);correspondence=a.directory/'bodies.json';correspondence.write_text(json.dumps(paired,indent=2,sort_keys=True)+'\n')
     generate(SimpleNamespace(output=a.output,manifest=a.directory/'generation.json',correspondence=correspondence,additional_entries=Path(__file__)),paired)

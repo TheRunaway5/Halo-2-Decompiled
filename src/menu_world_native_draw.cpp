@@ -119,6 +119,14 @@ FixedState fixed_state(const MenuWorldNativeDrawInput &input) {
     result.blend.srcColorBlendFactor=result.blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_CONSTANT_COLOR;
     result.blend.dstColorBlendFactor=result.blend.dstAlphaBlendFactor=VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     result.blend_constants={1,1,1,0};
+  } else if(input.forward_blend==9) {
+    // Authored shadow Apply: source0x306 (DST_COLOR), destination0,
+    // operation0x8006 (ADD). D3D's color factor uses destination alpha for
+    // alpha; the actual shadow pass independently masks alpha writes off.
+    result.blend.blendEnable=VK_TRUE;
+    result.blend.srcColorBlendFactor=VK_BLEND_FACTOR_DST_COLOR;
+    result.blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_DST_ALPHA;
+    result.blend.dstColorBlendFactor=result.blend.dstAlphaBlendFactor=VK_BLEND_FACTOR_ZERO;
   } else if(input.forward_blend==10) {
     // Sphere diffuse: ONE + CONSTANT_COLOR, literal00FFFFFF. The alpha
     // destination factor is the same constant's zero alpha component.
@@ -261,6 +269,10 @@ struct MenuWorldNativeDraw::Impl {
     check(vkFlushMappedMemoryRanges(context.device,1,&range),"flush raw world uniforms");
   }
   void validate(const MenuWorldNativeDrawInput &input) const {
+    if(input.w_clip_mode!=MenuWorldWClipMode::cull && input.w_clip_mode!=MenuWorldWClipMode::clamp)
+      throw FormatError("raw world draw has an unadmitted source W clip mode");
+    if(input.w_clip_mode==MenuWorldWClipMode::clamp && input.fragment.clip_range[2]>input.fragment.clip_range[3])
+      throw FormatError("raw world draw clamp interval is inverted");
     if(!input.vertex_shader || !input.material_set ||
         input.material_offset%properties.limits.minUniformBufferOffsetAlignment)
       throw FormatError("raw world draw has no catalog/material or an unaligned material offset");
@@ -330,6 +342,7 @@ struct MenuWorldNativeDraw::Impl {
         decode_vertex_program(input.source.program_bytes()));
     const auto state=fixed_state(input);auto identity=key(draw,*input.vertex_shader,state);
     identity.push_back(default_texture_w);
+    identity.push_back(std::uint32_t(input.w_clip_mode));
     if(const auto found=pipelines.find(identity);found!=pipelines.end())return found->second;
     std::vector<std::uint32_t> words(input.vertex_shader->spirv.begin(),input.vertex_shader->spirv.end());
     auto found=vertex_modules.find(words);
@@ -338,8 +351,10 @@ struct MenuWorldNativeDraw::Impl {
       try {found=vertex_modules.emplace(std::move(words),handle).first;}
       catch(...) {vkDestroyShaderModule(context.device,handle,nullptr);throw;}
     }
-    const VkSpecializationMapEntry projection_entry{0,0,sizeof(default_texture_w)};
-    const VkSpecializationInfo projection{1,&projection_entry,sizeof(default_texture_w),&default_texture_w};
+    const std::array<std::uint32_t,2> specialization_values{default_texture_w,std::uint32_t(input.w_clip_mode)};
+    const VkSpecializationMapEntry specialization_entries[]{{0,0,sizeof(std::uint32_t)},
+        {1,sizeof(std::uint32_t),sizeof(std::uint32_t)}};
+    const VkSpecializationInfo projection{2,specialization_entries,sizeof(specialization_values),specialization_values.data()};
     const VkPipelineShaderStageCreateInfo stages[]{
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,found->second,"main",nullptr},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,geometry_shader,"main",nullptr},

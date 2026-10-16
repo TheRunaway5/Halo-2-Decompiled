@@ -1,7 +1,8 @@
-"""Authenticated native match relay; not the retail Xbox wire protocol.
+"""Authenticated native match setup and legacy relay, not Xbox wire protocol.
 
-The service observes challenge round trips itself. Clients cannot supply QoS,
-rank, a host, or another player's identity. Gameplay remains host authoritative.
+Direct rooms exchange gameplay/media only between players. The coordinator
+receives admitted peer measurement summaries for setup, never probe payloads.
+These authenticated reports are client claims, not anti-cheat attestations.
 """
 import asyncio
 import contextlib
@@ -249,6 +250,35 @@ class Room:
         await asyncio.gather(*(p.socket.close(code=1000, message=reason.encode()[:120])
                                for p in tuple(self.peers.values())), return_exceptions=True)
 
+    def measured_hosts(self):
+        """Rank physical owners using reciprocal measured direct paths.
+
+        All-legacy rooms retain their RTT policy until delivered clients are
+        upgraded. Once a room supplies upload measurements, missing columns
+        cannot silently downgrade selection to an unmeasured host.
+        """
+        if not any("upload_bytes_per_second" in row
+                   for rows in self.direct_ready.values() for row in rows.values()):
+            return None
+        ranked = {}
+        for owner in self.tokens:
+            paths = []
+            for other in self.tokens:
+                if other == owner:
+                    continue
+                a = self.direct_ready[owner][self.index(other)]
+                b = self.direct_ready[other][self.index(owner)]
+                if any(row.get("rtt_ms") is None or row.get("upload_bytes_per_second") is None
+                       or row.get("loss_per_mille") is None for row in (a, b)):
+                    break
+                paths.append((max(a["rtt_ms"], b["rtt_ms"]), a["upload_bytes_per_second"],
+                              max(a["loss_per_mille"], b["loss_per_mille"])))
+            else:
+                ranked[owner] = (max((p[2] for p in paths), default=0),
+                                 -min((p[1] for p in paths), default=64 * 1024 * 1024),
+                                 sum(p[0] for p in paths) // max(1, len(paths)), self.index(owner))
+        return ranked
+
     async def advance(self):
         if self.closed:
             return
@@ -261,11 +291,11 @@ class Room:
                         if self.owners[a] == self.owners[b]:
                             ms = 0
                         elif self.direct_udp:
-                            # DTLS-connected endpoints report their SCTP RTT.
+                            # DTLS-connected endpoints report direct RTT.
                             # This is native peer QoS, not server-observed Xbox
                             # XNet QoS or anti-cheat proof. Use the worse end.
-                            pair = (self.direct_ready[self.owners[a]][self.index(self.owners[b])],
-                                    self.direct_ready[self.owners[b]][self.index(self.owners[a])])
+                            pair = (self.direct_ready[self.owners[a]][self.index(self.owners[b])]["rtt_ms"],
+                                    self.direct_ready[self.owners[b]][self.index(self.owners[a])]["rtt_ms"])
                             if None in pair:
                                 self.api.core.connections.pop((a, b), None)
                                 self.api.core.connections.pop((b, a), None)
@@ -276,13 +306,14 @@ class Room:
                         score = max(0, 100 - int(ms / 5))
                         self.api.core.connection(a, b, score)
                         self.api.core.connection(b, a, score)
-            proposal = self.api.core.refresh_connections(self.id, optimize_host=self.direct_udp)
+            host_quality = self.measured_hosts() if self.direct_udp else None
+            proposal = self.api.core.refresh_connections(self.id, optimize_host=self.direct_udp, host_quality=host_quality)
             if proposal.host is None:
                 await self.close("Connection quality is insufficient for this playlist.")
                 return
             self.host = self.index(self.owners[proposal.host])
             for player, _, _ in self.players:
-                self.api.core.acknowledge(self.id, player, optimize_host=self.direct_udp)
+                self.api.core.acknowledge(self.id, player, optimize_host=self.direct_udp, host_quality=host_quality)
             self.phase, self.deadline = "loading", time.monotonic() + 180
             for peer in self.peers.values():
                 peer.queue.put_nowait(self.control())
@@ -506,10 +537,16 @@ class MatchTransport:
                         require(isinstance(rows, list) and len(rows) == len(expected), "Missing direct peer connections")
                         quality = {}
                         for row in rows:
-                            require(isinstance(row, dict) and set(row) == {"peer", "rtt_ms"} and type(row["peer"]) is int
+                            require(isinstance(row, dict) and set(row) in ({"peer", "rtt_ms"},
+                                    {"peer", "rtt_ms", "upload_bytes_per_second", "loss_per_mille"}) and type(row["peer"]) is int
                                     and row["peer"] in expected and row["peer"] not in quality and
                                     (row["rtt_ms"] is None or (type(row["rtt_ms"]) is int and 0 <= row["rtt_ms"] <= 60000)), "Invalid direct peer quality")
-                            quality[row["peer"]] = row["rtt_ms"]
+                            if "upload_bytes_per_second" in row:
+                                upload, loss = row["upload_bytes_per_second"], row["loss_per_mille"]
+                                require((row["rtt_ms"] is None and upload is None and loss is None) or
+                                        (row["rtt_ms"] is not None and type(upload) is int and 0 < upload <= 64 * 1024 * 1024
+                                         and type(loss) is int and 0 <= loss <= 1000), "Invalid direct upload measurement")
+                            quality[row["peer"]] = dict(row)
                         room.direct_ready[player] = quality
                     elif set(data) == {"loaded"}:
                         require(room.phase == "loading" and isinstance(data["loaded"], str)

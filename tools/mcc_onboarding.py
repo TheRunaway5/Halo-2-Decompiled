@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import uuid
+import shutil
 
 from audit_rendering import FormatError, file_sha
 from mcc_content import directory, discover
@@ -155,6 +156,48 @@ def preview_maps(root):
     return result
 
 
+def repair_cache_shaders(root, cache, report, *, progress=print):
+    """Add the port's retained materials to an older import, atomically.
+
+    The MCC tree and gameplay admission flags are never changed by this repair.
+    An existing owned library remains selected; custom shader banks are not
+    silently replaced by a bundled catalog.
+    """
+    destination = cache / 'native-shaders'
+    if destination.is_symlink():
+        raise FormatError('The native shader library must be an owned directory')
+    if destination.exists():
+        catalog = json.loads((destination / 'catalog.json').read_bytes())
+        if catalog.get('schema') != 'H2_PRESERVED_NATIVE_SHADER_CATALOG_V1':
+            raise FormatError('Invalid cached native shader catalog')
+        return cache, report
+    from preserve_native_shaders import copy_selected
+    temporary = cache / ('.native-shaders-' + uuid.uuid4().hex)
+    pending = cache / ('.shader-provenance-' + uuid.uuid4().hex)
+    temporary.mkdir()
+    try:
+        progress('Preparing the retained native material library for this MCC cache…')
+        shaders = copy_selected(root, temporary)
+        if not shaders.get('maps'):
+            raise FormatError(shaders.get('blocker', 'Native material library is unavailable'))
+        updated = {**report, 'native_shader_library': shaders}
+        pending.write_text(json.dumps(updated, indent=2) + '\n')
+        (temporary / 'native-shaders').rename(destination)
+        os.replace(pending, cache / 'provenance.json')
+        progress('Retained native materials are ready. The MCC data import was reused.')
+        return cache, updated
+    finally:
+        shutil.rmtree(temporary)
+        pending.unlink(missing_ok=True)
+
+
+def repair_shaders(root, *, progress=print):
+    value = selected(root)
+    if value is None:
+        raise FormatError('Import MCC before preparing native materials')
+    return repair_cache_shaders(Path(root), *value, progress=progress)
+
+
 def setup(root, mcc_source=None, *, progress=print):
     root = Path(root).resolve()
     source = directory(mcc_source) if mcc_source is not None else discover()
@@ -173,6 +216,11 @@ def setup(root, mcc_source=None, *, progress=print):
         except (OSError, ValueError, KeyError) as error:
             progress("Existing MCC cache needs a fresh import: " + str(error))
             continue
+        # Older imports did not have a portable material library. Repair those
+        # when this installation includes one; no MCC bytes need re-copying.
+        from native_shader_bundle import BUNDLE
+        if (root / BUNDLE).is_file() or (root / 'assets/native-shaders-source.tsv').is_file():
+            cache, report = repair_cache_shaders(root, cache, report, progress=progress)
         return select(root, cache, verify=False, progress=progress)
     cache, report = prepare(root, source, progress=progress)
     return select(root, cache, verify=False, progress=progress)

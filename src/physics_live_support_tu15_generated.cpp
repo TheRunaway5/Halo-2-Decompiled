@@ -3,6 +3,7 @@
 #include "physics_world_runtime_internal.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
+#include "halo2/source_vehicle_input_tu15.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -3215,14 +3216,14 @@ if(s.services.instruction){s.services.instruction(0x30be3u);} s.fp.push(s.fp.st(
 if(s.services.instruction){s.services.instruction(0x30be5u);} s.fp.st(0)=mul(s.fp.st(0),s.fp.st(4));
 if(s.services.instruction){s.services.instruction(0x30be7u);} s.fp.st(1)=add(s.fp.st(1),s.fp.st(0));s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30be9u);} s.fp.st(0)=root(s.fp.st(0));
-if(s.services.instruction){s.services.instruction(0x30bebu);} s.fp.st(3)=s.fp.st(0);s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x30bedu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
-if(s.services.instruction){s.services.instruction(0x30befu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bebu);} s.fp.st(3)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bedu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30befu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30bf1u);} w(s.memory,s.observe,0x30bf1u,(selected(0x0u,s.image)+s.gp[4]),4,u(spill(s.fp.st(0))));
 if(s.services.instruction){s.services.instruction(0x30bf4u);} s.fp.st(0)=std::fabs(s.fp.st(0));
 if(s.services.instruction){s.services.instruction(0x30bf6u);} s.fp.push(ext(f(r(s.memory,(selected(0x46a0ecu,s.image)),4))));
 if(s.services.instruction){s.services.instruction(0x30bfcu);} s.compare_and_pop(s.fp.st(1));
-if(s.services.instruction){s.services.instruction(0x30bfeu);} s.fp.st(0)=s.fp.st(0);s.fp.pop();
+if(s.services.instruction){s.services.instruction(0x30bfeu);} s.fp.st(0)=s.fp.st(0);s.fp.status&=~0x200u;s.fp.pop();
 if(s.services.instruction){s.services.instruction(0x30c00u);} if(!s.flags.cf&&!s.flags.zf)goto L30c38;
 if(s.services.instruction){s.services.instruction(0x30c02u);} s.xmm[1]=_mm_set_ss(f(r(s.memory,(selected(0x46a0d0u,s.image)),4)));
 if(s.services.instruction){s.services.instruction(0x30c0au);} s.xmm[0]=_mm_set_ss(f(r(s.memory,(selected(0x0u,s.image)+s.gp[4]),4)));
@@ -44968,6 +44969,7 @@ if(s.services.instruction){s.services.instruction(0xecb8fu);} s.set(0,r(s.memory
 if(s.services.instruction){s.services.instruction(0xecb91u);} s.set(0,s.flags.right(s.reg(0,4,0),selected(0x2u,s.image),4,false),4,0);
 if(s.services.instruction){s.services.instruction(0xecb94u);} s.flags.logic((s.reg(0,1,0))&(selected(0x1u,s.image)),1);
 if(s.services.instruction){s.services.instruction(0xecb96u);} if(s.flags.zf)goto Lecbcb;
+source_vehicle_input_reset_tu15(s.memory,s.gp[6],s.gp[3],r(s.memory,s.gp[4]+0x24u,4)+0x150u);
 if(s.services.instruction){s.services.instruction(0xecb98u);} s.set(1,r(s.memory,(selected(0x4f54f4u,s.image)),4),4,0);
 if(s.services.instruction){s.services.instruction(0xecb9eu);} s.set(2,r(s.memory,(selected(0x44u,s.image)+s.gp[1]),4),4,0);
 if(s.services.instruction){s.services.instruction(0xecba1u);} s.set(3,s.flags.logic((s.reg(3,4,0))&(selected(0xffffu,s.image)),4),4,0);

@@ -68,9 +68,19 @@ public:
   // actual string ID. Native presentation supplies no replacement direction.
   void spawn_source(std::uint32_t effect,std::uint32_t owner,std::uint64_t tick,
       std::span<const SourceEffectLocation>,SourceEffectColors={},SourceEffectControls={1,1});
-  // Preload attached graphs before renderer construction; reject incomplete
-  // graphs rather than silently omitting a shield system.
+  // Preload native particle/light/sound/decal components before renderer
+  // construction. Other part owners are reported separately; this alone is
+  // not proof that every authored part can play.
   void preload_attached(std::uint32_t effect);
+  // Strict graph admission for callers requiring every authored part.
+  // Retained source lens/damage/object owners cannot be omitted by this
+  // presentation-only runtime. Existing partial map-component delivery uses
+  // preload_attached and reports its independent source owners explicitly.
+  // Passing does not establish GPU/audio resources or consumption.
+  void preload_complete(std::uint32_t effect);
+  // Completed source instances render their particles through1770C0.
+  // Keep this graph's separate light/sound owners without duplicate sprites.
+  void source_particle_effect(std::uint32_t effect);
   using ObjectMarkers=std::map<std::string,std::vector<WorldEffectFrame>>;
   void object_markers(std::uint32_t full_handle,ObjectMarkers);
   void remove_object(std::uint32_t full_handle);

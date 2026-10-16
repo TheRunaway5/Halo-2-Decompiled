@@ -19,6 +19,9 @@ struct AnimationRenderObservation {
   std::span<const Transform> body_nodes; // Actual third-person skinning bank, read-only.
   float body_facing{};
   std::uint32_t body_activity=0xffffffffu;
+  // Unmodified completed FP output before render interpolation. Diagnostics
+  // can compare endpoints without re-entering original pose owners.
+  std::span<const Transform> completed_weapon_nodes;
 };
 // Native high-refresh presentation policy. Endpoints are the actual clock input
 // after action selection and completed output, never predicted gameplay states.

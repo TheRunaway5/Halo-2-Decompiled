@@ -8,8 +8,9 @@ from oracle_smg_firing_1_1 import Xbe, _Code
 from generate_physics_live_support_tu15 import complete_body
 from research_mp_sandbox_update_functions import NEW_DEFAULT, NEW_PIN
 
-ENTRIES = (0x158340, 0x158450, 0x158900, 0x1888a0, 0x18a0c0,
+ENTRIES = (0x11f7e0, 0x158290, 0x157fe0, 0x158340, 0x158450, 0x158790, 0x158900, 0x1888a0, 0x18a0c0, 0x18a300,
            0x189fd0, 0x245ea0, 0x245c70, 0x2455f0, 0x175380,
+           0x245400, 0x245060, 0x189f20, 0xcad60, 0x106160, 0x37cde8, 0x171ff0,
            0x381710, 0x381730, 0x381750, 0x381770,
            0x153f20, 0xcb3d0, 0xcb090, 0xcb520, 0xcb7a0)
 
@@ -24,6 +25,8 @@ def main():
     selection = code.at(0x15850d)
     assert selection.bytes.hex() == "baa05e2400"
     assert code.at(0x153fad).bytes.hex() == "e81e74f7ff"
+    assert code.at(0x189bee).operands[0].imm == 0x18a300
+    assert code.at(0x15812c).bytes.hex() == "ff53b6"
     args.output.mkdir(parents=True, exist_ok=True)
     rows = []
     for entry in ENTRIES:
@@ -39,7 +42,9 @@ def main():
               "camera_selection_site": "0015850d", "camera_selection_hex": selection.bytes.hex(),
               "seat_selection_site": "00153fad", "seat_selection_wrapper": "000cb3d0",
               "routines": rows,
-              "scope": "Static original bodies and camera selection. Live rendering and UDP evidence are separate. Native local input delivery and surrounding camera mode transition ownership must be assessed independently."}
+              "look_update_site": "00189bee", "look_owner": "0018a300",
+              "scheduler": "00157fe0", "indirect_producer_call": "0015812c",
+              "scope": "Complete static original bodies for look, normal/seated scheduling, transitions and registration. Live rendering and UDP evidence are separate; see docs/VEHICLE_CAMERA_TU15_20261015.md."}
     (args.output / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps({"routines": len(rows), "output": str(args.output)}))
 

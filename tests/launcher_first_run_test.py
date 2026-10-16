@@ -45,6 +45,11 @@ root=pathlib.Path(sys.argv[sys.argv.index('--root')+1])
 raise SystemExit(int(os.environ.get('H2_TEST_HOME_STATUS','20')))
 ''')
         (self.root / 'tools/build_runtime.py').write_text("raise RuntimeError('unexpected build')\n")
+        (self.root / 'tools/repair_mcc_shaders.py').write_text('''import json, os, pathlib, sys
+root=pathlib.Path(sys.argv[sys.argv.index('--root')+1])
+(root/'shader-repair-call.json').write_text(json.dumps(sys.argv[1:]))
+raise SystemExit(int(os.environ.get('H2_TEST_SHADER_REPAIR_STATUS','0')))
+''')
         self.environment = {**os.environ, 'SDL_VIDEODRIVER': 'dummy', 'SDL_AUDIODRIVER': 'dummy'}
         self.environment.pop('DISPLAY', None)
         self.environment.pop('WAYLAND_DISPLAY', None)
@@ -235,7 +240,16 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertNotIn('--menu-screen', args)
         self.assertEqual(args[args.index('--map')+1], str(self.maps/'lockout.map'))
         self.assertEqual(args[args.index('--shared-maps')+1], str(self.maps))
+        self.assertEqual(self.call('shader-repair'), ['--root', str(self.root)])
         self.assertEqual(self.run_launcher('--launch-game', '--multiplayer').returncode, 1)
+
+    def test_preview_stops_if_native_material_repair_fails(self):
+        self.ready_assets()
+        self.runtime()
+        self.environment['H2_TEST_SHADER_REPAIR_STATUS'] = '17'
+        result = self.run_launcher('--preview-mcc', '--hidden', '--frames', '1')
+        self.assertEqual(result.returncode, 17, result.stderr)
+        self.assertFalse((self.root / 'runtime-call.json').exists())
 
     def test_preview_rebuilds_a_runtime_that_rejects_the_preview_option(self):
         self.ready_assets()

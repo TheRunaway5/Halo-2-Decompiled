@@ -105,6 +105,7 @@ struct NativeWorldEffects::Impl {
   std::map<std::uint32_t, std::uint32_t> projectiles;
   std::map<std::uint32_t,NativeWorldEffects::ObjectMarkers> object_markers;
   std::set<std::string> unavailable;
+  std::set<std::uint32_t> source_particle_effects;
   std::vector<WorldEffectSound> sounds;
   std::map<std::uint32_t,EffectLightDefinition> light_definitions;
   struct LightWorld {
@@ -185,6 +186,7 @@ struct NativeWorldEffects::Impl {
     std::vector<EventDefinition> events;
     std::vector<SourceEffectEventDefinition> clocks;
     bool complete=true;
+    std::vector<std::string> missing_components;
   };
   std::map<std::uint32_t, Definition> definitions;
   struct Emitter {
@@ -395,6 +397,23 @@ struct NativeWorldEffects::Impl {
       const auto parts = p.block(events, q + 0x18, 0x38);
       for (unsigned j = 0; j < events.u32(q + 0x18); ++j) {
         const auto a = j * 0x38;
+        const auto group=parts.u32(a+8),reference=parts.u32(a+0x10);
+        const auto missing=[&](const std::string &reason) {
+          const auto message=p.tag.name+" event"+std::to_string(n)+" part"+
+              std::to_string(j)+": "+reason;
+          d.missing_components.push_back(message);unavailable.insert(message);
+        };
+        if(reference!=none) {
+          if(group!=0x736e6421u && group!=0x6c696768u && group!=0x64656361u)
+            missing(group==0x6c656e73u?"Lens part requires its original request/query/draw owner":
+                "Effect part requires its original nonvisual dispatcher");
+          else if(parts.u16(a)==2 || (parts.u16(a+6)&8))
+            missing("Effect part requires its environment/flag admission owner");
+          else if(group==0x64656361u && (parts.u32(a+0x30) || parts.u32(a+0x34)))
+            missing("Decal radius requires its authored effect A/B scaling owner");
+          else if(group==0x64656361u && !decal_definitions.contains(reference))
+            missing("Decal part requires its complete resident definition/material");
+        }
         if (parts.u32(a + 8) == 0x736e6421u && parts.u32(a + 0x10) != none &&
             parts.u16(a) != 2 && !(parts.u16(a + 6) & 8)) {
           Part part;
@@ -409,6 +428,8 @@ struct NativeWorldEffects::Impl {
           try {
             const auto tag=parts.u32(a+0x10);
             light_definitions.try_emplace(tag,load_effect_light(cache,tag));
+            if(light_definitions.at(tag).lens!=none)
+              missing("Light lens requires its original request/query/draw owner");
             Part part;part.decal=none;part.light=tag;
             part.light_scale_a=parts.u32(a+0x30);part.light_scale_b=parts.u32(a+0x34);
             part.location=marker(std::int16_t(parts.u16(a+4)));
@@ -432,8 +453,12 @@ struct NativeWorldEffects::Impl {
         try {
           const auto a = j * 0x38;
           if (systems.u16(a + 0xe) == 2 || systems.u16(a + 0x12) == 1 ||
-              (systems.u16(a + 0x16) & 0x28))
+              (systems.u16(a + 0x16) & 0x28)) {
+            const auto message=p.tag.name+" event"+std::to_string(n)+" system"+
+                std::to_string(j)+": Particle system requires its environment/camera/flag admission owner";
+            d.missing_components.push_back(message);unavailable.insert(message);
             continue;
+          }
           SystemDefinition out;
           out.render =
               cache.load_particle_system_render_definition(datum, n, j);
@@ -778,6 +803,36 @@ void NativeWorldEffects::preload_attached(std::uint32_t datum) {
     for(const auto &gap:impl_->unavailable)reason+="; "+gap;
     throw FormatError("Attached effect graph could not preload every authored particle system: "+std::to_string(datum)+reason);
   }
+}
+void NativeWorldEffects::preload_complete(std::uint32_t datum) {
+  preload_attached(datum);
+  if(datum==none)return;
+  std::set<std::uint32_t> visited;
+  const auto complete=[&](auto &&self,std::uint32_t id)->void {
+    if(!visited.insert(id).second)return;
+    const auto &definition=impl_->definition(id);
+    if(!definition.missing_components.empty()) {
+      std::string reason;
+      for(const auto &part:definition.missing_components)reason+="; "+part;
+      throw FormatError("Complete effect graph requires every authored part"+reason);
+    }
+    for(const auto &event:definition.events) {
+      for(const auto &part:event.parts)if(part.decal!=none) {
+        std::set<std::uint32_t> chain;
+        for(auto decal=part.decal;decal!=none;) {
+          if(!chain.insert(decal).second)
+            throw FormatError("Complete effect graph has a cyclic authored decal chain");
+          const auto found=impl_->decal_definitions.find(decal);
+          if(found==impl_->decal_definitions.end())
+            throw FormatError("Complete effect graph requires every linked decal definition/material");
+          decal=found->second.next;
+        }
+      }
+      for(const auto &system:event.systems)
+        if(system.death_effect!=none)self(self,system.death_effect);
+    }
+  };
+  complete(complete,datum);
 }
 void NativeWorldEffects::object_markers(std::uint32_t handle,ObjectMarkers markers) {
   if(handle==none)throw FormatError("Attached effect requires a full object handle");
@@ -1255,6 +1310,9 @@ std::vector<WorldEffectSound> NativeWorldEffects::take_sounds() {
       [](const auto &a, const auto &b) { return a.tick < b.tick; });
   return std::exchange(sounds, {});
 }
+void NativeWorldEffects::source_particle_effect(std::uint32_t effect) {
+  impl_->source_particle_effects.insert(effect);
+}
 std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
                                                    float fraction,
                                                    float seconds) const {
@@ -1266,6 +1324,7 @@ std::vector<ParticleDraw> NativeWorldEffects::draw(const MuzzleEffectView &view,
   const auto hide_source_value=std::getenv("HALO2_REFERENCE_SOURCE_ATTACHMENTS_HIDE");
   const bool hide_source=hide_source_value && *hide_source_value;
   for (const auto &e : i.effects)
+    if(e.source_instance==none || !i.source_particle_effects.contains(e.definition->datum))
     if(!(hide_map && *hide_map && e.attached && e.target!=none))
     for (const auto &event : e.events)
       for (const auto &s : event.systems) {

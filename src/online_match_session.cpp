@@ -57,6 +57,7 @@ struct OnlineMatchSession::Impl {
   AuthorityTransferDigest authority_session{};
   std::shared_ptr<PeerAuthorityTransfer> authority;
   std::shared_ptr<PeerSourceAdmissions> source_admissions;
+  std::shared_ptr<PeerMeshQuality> mesh_quality;
   std::deque<MatchVoicePacket> voices;
   std::shared_ptr<GameVoice> audio;
   std::array<bool,16> voice_enabled{};
@@ -87,6 +88,11 @@ struct OnlineMatchSession::Impl {
     continuity_state.members=voice_members;
     require(room.size() == 36 && room.find_first_not_of("0123456789abcdef-") == std::string::npos);
     require(SHA256(reinterpret_cast<const unsigned char *>(room.data()),room.size(),reinterpret_cast<unsigned char *>(authority_session.data())));
+    if(transport_options.direct_udp){
+      std::uint16_t physical=0;for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical|=std::uint16_t(1u<<player.slot);
+      if(std::popcount(physical)>1)mesh_quality=std::make_shared<PeerMeshQuality>(self,
+          AuthorityTransferContext{authority_session,0,0,physical,16});
+    }
     require(bearer.size() >= 32 && bearer.size() <= 128 && bearer.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_") == std::string::npos);
     require(origin.starts_with("https://") || (local && origin.starts_with("http://127.0.0.1:")));
     require(origin.find_first_of("@?#\\\r\n\t ") == std::string::npos);
@@ -148,8 +154,15 @@ struct OnlineMatchSession::Impl {
     if(transport_options.direct_udp&&!authority&&(phase==Phase::Loading||phase==Phase::Running)&&host<16){
       std::uint16_t physical=0;for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical|=std::uint16_t(1u<<player.slot);
       const AuthorityTransferContext context{authority_session,continuity_state.epoch,0,physical,host};
-      authority=std::make_shared<PeerAuthorityTransfer>(self,context);
+      AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts;
+      authority=std::make_shared<PeerAuthorityTransfer>(self,context,limits);
       source_admissions=std::make_shared<PeerSourceAdmissions>(self,context,roster);
+    }
+    if(transport_options.direct_udp&&host<16&&phase!=Phase::Connecting){
+      std::uint16_t physical=0;for(const auto &player:roster)
+        if(online_admission_peer(player)==player.slot&&(continuity_state.members&(1u<<player.slot)))physical|=std::uint16_t(1u<<player.slot);
+      const AuthorityTransferContext context{authority_session,continuity_state.epoch,continuity_state.members,physical,host};
+      if(std::popcount(physical)>1&&(!mesh_quality||mesh_quality->context()!=context))mesh_quality=std::make_shared<PeerMeshQuality>(self,context);
     }
   }
   void queue_world(const char *action,const OnlineWorldSeal &seal) {
@@ -157,6 +170,12 @@ struct OnlineMatchSession::Impl {
     continuation_outgoing.push_back(Json{{action,{{"epoch",seal.epoch},{"tick",seal.tick},{"digest",seal.digest}}}}.dump());
   }
   void datagram(unsigned source,std::span<const std::byte> packet,std::uint32_t epoch) {
+    if(PeerMeshQuality::is_packet(packet)){
+      std::shared_ptr<PeerMeshQuality> quality;
+      {std::lock_guard lock(mutex);if(transport_options.direct_udp)quality=mesh_quality;}
+      if(quality&&(!supports_continuity||epoch==quality->context().epoch))quality->receive(source,packet,transfer_time());
+      return;
+    }
     if(PeerSourceAdmissions::is_packet(packet)){
       std::shared_ptr<PeerSourceAdmissions> admissions;
       {std::lock_guard lock(mutex);if(transport_options.direct_udp&&(phase==Phase::Loading||phase==Phase::Running||phase==Phase::Migrating||phase==Phase::Rebinding))admissions=source_admissions;}
@@ -223,10 +242,19 @@ struct OnlineMatchSession::Impl {
           const auto value=Json{{"peer_signal",{{"peer",signal.peer},{"type",signal.type},{"payload",signal.payload},{"mid",signal.mid}}}}.dump();
           std::lock_guard lock(mutex);require(continuation_outgoing.size()<1024);continuation_outgoing.push_back(value);
         }
-        if(!announced && (Clock::now()-started>=std::chrono::seconds(10) ||
-            std::all_of(physical.begin(),physical.end(),[&](auto peer){return peer==self || direct->ready(peer);}))) {
+        std::shared_ptr<PeerMeshQuality> quality;Phase current_phase;
+        {std::lock_guard lock(mutex);quality=mesh_quality;current_phase=phase;}
+        const auto measured=quality?quality->local(transfer_time()):std::nullopt;
+        const auto complete_measurement=std::all_of(physical.begin(),physical.end(),[&](auto peer){
+          return peer==self||(measured&&measured->links[peer].measured);});
+        if(!announced && (Clock::now()-started>=std::chrono::seconds(10) ||complete_measurement)) {
           Json ready=Json::array();
-          for(auto peer:physical)if(peer!=self)ready.push_back({{"peer",peer},{"rtt_ms",direct->ready(peer)?Json(direct->round_trip_ms(peer)):Json(nullptr)}});
+          for(auto peer:physical)if(peer!=self){
+            const auto q=measured?measured->links[peer]:PeerLinkQuality{};
+            ready.push_back({{"peer",peer},{"rtt_ms",q.measured?Json(q.rtt_ms):Json(nullptr)},
+              {"upload_bytes_per_second",q.measured?Json(q.upload_bytes_per_second):Json(nullptr)},
+              {"loss_per_mille",q.measured?Json(q.loss_per_mille):Json(nullptr)}});
+          }
           std::lock_guard lock(mutex);continuation_outgoing.push_back(Json{{"peer_ready",ready}}.dump());announced=true;
         }
         std::vector<std::byte> packet;unsigned peer{};
@@ -261,6 +289,15 @@ struct OnlineMatchSession::Impl {
         {std::lock_guard lock(mutex);if(phase==Phase::Loading||phase==Phase::Running||phase==Phase::Migrating||phase==Phase::Rebinding)admissions=source_admissions;}
         if(admissions){const auto epoch=admissions->context().epoch;
           for(auto packet:admissions->poll(transfer_time(),2)){
+            if(supports_continuity){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
+            direct->send(packet.bytes,packet.peer);
+          }
+        }
+        if(quality){const auto epoch=quality->context().epoch;
+          // Only setup/measurement summaries use the coordinator. All probes,
+          // replies and full mesh rows use the authenticated direct links.
+          for(auto packet:quality->poll(ready_mask,transfer_time(),
+              current_phase==Phase::Connecting||current_phase==Phase::Loading?16:4)){
             if(supports_continuity){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
             direct->send(packet.bytes,packet.peer);
           }
@@ -485,6 +522,17 @@ std::optional<AuthorityTransferContext> OnlineMatchSession::authority_context() 
 bool OnlineMatchSession::authority_supported(unsigned peer) const {
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
   return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&transfer->supported(peer);
+}
+bool OnlineMatchSession::authority_replay_supported(unsigned peer) const {
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
+      transfer->feature_supported(peer,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts);
+}
+std::vector<PeerHostQuality> OnlineMatchSession::host_candidates()const {
+  std::shared_ptr<PeerMeshQuality> quality;unsigned host;Phase phase;
+  {std::lock_guard lock(impl_->mutex);quality=impl_->mesh_quality;host=impl_->host;phase=impl_->phase;}
+  if(!quality||phase==Phase::Connecting||phase==Phase::Failed||quality->context().host!=host)return {};
+  return quality->candidates(transfer_time());
 }
 bool OnlineMatchSession::publish_source_players(const AuthorityTransferContext &context,std::span<const SourcePlayerAdmission> players) {
   std::shared_ptr<PeerSourceAdmissions> admissions;

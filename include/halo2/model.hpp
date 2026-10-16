@@ -125,6 +125,11 @@ std::vector<Vertex> pose_model_world_frame(const RenderModel &,const Transform &
 std::vector<Transform> pose_model_nodes_world_frame(const RenderModel &,const Transform &root,
                                                    const AnimationClip *,float frame,
                                                    const RenderModel *companion = nullptr);
+// BF0C0 world-object controller delivery uses model-order bind/sample/matrix
+// banks. The primary graph must cover that model bank; names are not remapped.
+// Deferred masks, layers and physical callbacks remain the caller's owners.
+std::vector<Transform> pose_world_object_nodes_frame(const RenderModel &,const Transform &root,
+                                                   const FrontendModelPrimary &,float frame);
 // Skin an already posed model-order WORLD bank after the unit's world
 // callback (e.g. held-weapon IK). Uses the existing1376C0 palette arithmetic.
 std::vector<Vertex> skin_model_world_nodes(const RenderModel &,

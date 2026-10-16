@@ -1,4 +1,5 @@
 #include "halo2/cache.hpp"
+#include "tags/directory.hpp"
 #include <algorithm>
 #include <fstream>
 #include <map>
@@ -25,6 +26,15 @@ std::uint64_t fnv(std::span<const std::byte> bytes) {
     std::uint64_t result=14695981039346656037ull;
     for(auto b:bytes)result=(result^std::to_integer<unsigned>(b))*1099511628211ull;
     return result;
+}
+std::shared_ptr<const ShaderFunctionTables> function_tables(const std::filesystem::path& path) {
+    const auto tables=read(path,28*1024);
+    if(tables.size()!=28*1024 || fnv(tables)!=0x22708b4cc478ddb7ull)
+        throw FormatError("Unsupported preserved shader function tables");
+    auto functions=std::make_shared<ShaderFunctionTables>();
+    for(unsigned i=0;i<28;++i)for(unsigned j=0;j<1024;++j)
+        (i<12?functions->periodic[i][j]:functions->transition[i-12][j])=std::to_integer<std::uint8_t>(tables[i*1024+j]);
+    return functions;
 }
 struct CloneNode {unsigned first,count;};
 struct CloneField {unsigned offset,stride,child;bool data;};
@@ -74,7 +84,13 @@ std::vector<std::byte> clone_globals(std::span<const std::byte> original,std::ui
 }
 
 void Cache::initialize_mcc_native_shaders() {
-    const auto directory=shared_directory_.parent_path().parent_path()/"native-shaders"/name_;
+    const auto root=shared_directory_.parent_path().parent_path()/"native-shaders";
+    // Scalar function evaluation is also needed by PC-exclusive/mod maps which
+    // have no retained Xbox material counterpart. This never admits MCC D3D
+    // material programs as native passes; those gaps remain explicit.
+    if(std::filesystem::exists(root/"function-tables.bin"))
+        function_tables_=function_tables(root/"function-tables.bin");
+    const auto directory=root/name_;
     const auto manifest=directory/"library.json";
     if(!std::filesystem::exists(manifest))return;
     const auto raw=read(manifest,16u*1024u*1024u);
@@ -200,16 +216,9 @@ void Cache::initialize_mcc_native_shaders() {
     for(std::size_t i=0;i<offsets.size();++i)word(storage_,table+i*4,offsets[i]);
     word(storage_,48,std::uint32_t(offsets.size()));word(storage_,52,std::uint32_t(text));
     word(storage_,56,std::uint32_t(strings.size()));word(storage_,60,std::uint32_t(table));
-    vista_metadata_regions_.clear();
-    for(const auto& t:tags_)if(t.address && t.size)vista_metadata_regions_.emplace_back(t.address,t.size);
-    vista_metadata_regions_.push_back(old_globals);std::ranges::sort(vista_metadata_regions_);
+    vista_metadata_regions_=tag_metadata_regions(tags_,std::span(&old_globals,1));
     mcc_native_shaders_.resize(tags_.size());
     for(auto handle:restored)mcc_native_shaders_[handle&0xffffu]=true;
-    const auto tables=read(directory/"function-tables.bin",28*1024);
-    if(tables.size()!=28*1024 || fnv(tables)!=0x22708b4cc478ddb7ull)throw FormatError("Unsupported preserved shader function tables");
-    auto functions=std::make_shared<ShaderFunctionTables>();
-    for(unsigned i=0;i<28;++i)for(unsigned j=0;j<1024;++j)
-        (i<12?functions->periodic[i][j]:functions->transition[i-12][j])=std::to_integer<std::uint8_t>(tables[i*1024+j]);
-    function_tables_=functions;
+    function_tables_=function_tables(directory/"function-tables.bin");
 }
 }

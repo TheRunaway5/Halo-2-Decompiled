@@ -42,6 +42,7 @@ struct HudContent {
   int clip_cutoff{}, ammo_cutoff{}, clip_capacity{}, reserve_capacity{};
   unsigned weapon_magazine_count{},weapon_trigger_count{};
   std::int16_t weapon_trigger_behavior{},weapon_charging_type{};
+  std::optional<unsigned> unit_representation; // Actual matg representation for this biped.
   bool score_scenario_present{};
   std::vector<SourceHudScoreColor> score_appearance_colors, score_team_colors;
   struct Sensor {

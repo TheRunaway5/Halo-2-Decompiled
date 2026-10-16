@@ -49,6 +49,11 @@ int main(int argc, char **argv) {
   y = p = 0;
   controller_look(a, c, .1f, y, p);
   check(p < 0);
+  c.invert=false;y=p=0;
+  controller_look(a,c,5.f,y,p,false);
+  check(p>3.f); // Source command owner constrains this accumulated native input.
+  y=p=0;controller_look(a,c,5.f,y,p);
+  check(p<=1.4922565f);
   AutoCenterState center;
   p = .6f;
   for (unsigned i = 0; i < 3; ++i)

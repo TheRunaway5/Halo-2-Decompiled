@@ -1,13 +1,17 @@
 #pragma once
+#include "halo2/source_execution_inputs.hpp"
+#include "halo2/source_main_camera_receipt_tu15.hpp"
 #include "halo2/source_scenario_birth.hpp"
 #include "halo2/weapon_hud.hpp"
 #include "halo2/physics_world_runtime.hpp"
+#include "halo2/source_effect_light_birth_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
 #include <filesystem>
 #include <memory>
 #include "halo2/transform.hpp"
 #include "halo2/source_player_profile.hpp"
 #include "halo2/death_camera.hpp"
+#include "halo2/source_vehicle_director_tu15.hpp"
 #include "halo2/melee_impact.hpp"
 #include "halo2/source_effect_location.hpp"
 #include "halo2/unit_damage.hpp"
@@ -126,6 +130,14 @@ public:
     PhysicsLiveWorldTu15(const PhysicsLiveWorldTu15 &)=delete;
     PhysicsLiveWorldTu15 &operator=(const PhysicsLiveWorldTu15 &)=delete;
     SourceRuntimeMemory &memory();
+    // Explicit caller input, including retained native stack scratch. The
+    // journal owns a copy; arbitrary memory writes remain unrecorded work.
+    void write_source_call_input(std::uint32_t,std::span<const std::byte>);
+    void completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);
+    void inspect_render_memory(const SourceRenderMemoryInspectorTu15&) const;
+    // Native original-ABI caller frame using this world's actual retained
+    // stack/TLS/floating-point owner. Does not execute or admit a source entry.
+    SourcePhysicsWorldRuntimeAbi prepare_source_call(std::span<const std::uint32_t> arguments={});
     // Complete source entries over this same bank, with a retained full ABI.
     // Correspondence IDs select authenticated TU1.5 code only.
     void run(std::uint32_t canonical_entry,SourcePhysicsWorldRuntimeAbi &,
@@ -138,6 +150,8 @@ public:
                              std::span<const std::uint32_t> arguments={});
     NativeRuntimeAddress world() const;
     void initialize_map();
+    // Native campaign BSP delivery over the same source object/actor bank.
+    void switch_campaign_bsp(std::size_t);
     NativeRuntimeAddress object_pool() const;
     NativeRuntimeAddress player_pool() const;
     // Explicit original-ABI boundary for authenticated source routines/probes.
@@ -196,6 +210,7 @@ public:
         Vec3 position,Vec3 forward,Vec3 up,const SourceFirstPersonPhaseObserverTu15 & = {});
     void observe_first_person_phase(SourceFirstPersonPhaseObserverTu15);
     void observe_sound_submissions(SourceSoundSubmitObserverTu15);
+    void observe_effect_light_births(SourceEffectLightBirthObserverTu15);
     // Bind an actual owned EEPROM resource before source audio construction.
     // This retains only its immutable non-key UserSettings section; absence
     // never becomes a speaker/configuration or initialized-device default.
@@ -205,6 +220,9 @@ public:
     SourcePlayerEquipmentTu15 initialize_player_equipment(std::uint32_t player,
                                                           std::uint32_t object);
     SourcePlayerEquipmentTu15 player_equipment(std::uint32_t object) const;
+    // Explicit native/debug equipment input through the same complete
+    // CF4D0/B9960/B9B70/CF5A0 owners used by original1A8B50.
+    std::uint32_t equip_weapon(std::uint32_t unit,std::uint32_t definition);
     // Native controls queue the original command record in14FEC0's frame.
     // The complete player scheduler applies actions and153070/C92C0 once,
     // before PVS and the same source world's object/physics update.
@@ -213,6 +231,12 @@ public:
     // Actual13AAC0's player scheduler and five object/world phases, followed
     // by its13AB49 effect update and13ABD8 clock increment. Other game-frame
     // systems, including the preceding audio phase, are separate owners.
+    // Complete TU1.5 CE440 admits an external unit controller request.
+    // Actor/player ownership and the original control exclusion still apply.
+    void set_unit_controller_active(std::uint32_t unit,bool requested);
+    // Original C93D0 constructs the 7C command; C92C0 delivers declared
+    // throttle/facing inputs synchronously. The actual controller solves motion.
+    void deliver_unit_input(std::uint32_t unit,Vec3 throttle,Vec3 facing);
     void step_objects();
     // Original13AA28's complete179DF0 particle phase. The caller delivers its
     // actual frame delta once per frame. Other13A9B0 owners remain separate.
@@ -233,15 +257,25 @@ public:
     // retained world. Only their actual command fields are published.
     void populate_weapon_targeting(std::uint32_t player,std::uint32_t object,
         std::span<std::byte,0x5c> command);
-    //13C8D4 target flags from the actual unit targeting record and model regions.
+    // Convert native accumulated look into per-tick deltas, then run original
+    //18A300 before aiming and command delivery. State belongs to the player.
+    void prepare_player_look(std::uint32_t player,std::uint32_t object,
+        std::span<std::byte,0x5c> command);
+    std::optional<Vec2> player_look(std::uint32_t player,std::uint32_t unit) const;
+    void populate_weapon_selection(std::uint32_t unit,std::span<std::byte,0x5c> command,bool switch_weapon);
+    // Complete original TU1.5 13DC44 target-mask owner over the actual unit.
     std::uint32_t weapon_hud_target_flags(std::uint32_t unit);
     WeaponHudTarget weapon_hud_target(std::uint32_t weapon);
+    SourceWeaponHudState weapon_hud_state(std::uint32_t weapon);
+    VehicleWeaponHudStatus vehicle_weapon_hud(std::uint32_t unit);
     std::optional<ParticleCollisionHit> particle_collision(std::uint32_t flags,Vec3 origin,Vec3 displacement);
-    // Native local-view input delivery; the original158340 gate and245EA0
-    // packet producer consume the retained source body, seat and authored
-    // camera track. The native caller retains the producer's28-byte state.
-    std::optional<DeathCameraPacket> vehicle_camera_packet(unsigned view,
-        std::uint32_t unit,float yaw,float pitch,std::array<std::uint32_t,7> &);
+    // Complete original scheduler over a private native view context. Retains
+    // authored entry/exit timers, producer state and observer registration.
+    DeathCameraPacket player_camera_packet(std::uint32_t player,float seconds,
+      SourceCameraControllerState &,SourceObserverState &,std::uint32_t &camera_random,
+      bool cycle_pressed=false,std::uint8_t *camera_mode=nullptr);
+    DeathCameraPacket unit_camera_packet(std::uint32_t unit,float seconds,
+        SourceCameraControllerState &,SourceObserverState &,std::uint8_t *camera_mode=nullptr);
     NativeRuntimeAddress object_body(std::uint32_t full_datum) const;
     void configure_session(const SourceGameVariant &,std::uint16_t simulation_mode,
                            std::int16_t tick_rate,std::uint32_t random_seed);
@@ -287,10 +321,11 @@ public:
     struct AuthorityCheckpoint {
         struct Allocation {std::uint32_t payload,bytes,flags;};
         struct ResourceRead {std::uint32_t descriptor,destination,bytes;};
-        std::uint32_t version=1,bsp{},main_thread_token{},last_instruction{},delivered_players{};
+        std::uint32_t version=2,bsp{},main_thread_token{},last_instruction{},delivered_players{};
         std::uint64_t next_thread_token{};
         std::uint32_t logical_milliseconds{};
         std::uint64_t logical_cycles{};
+        std::uint64_t logical_utc_filetime{};
         SourceRuntimeResources::Identity resources;
         SourceRuntimeMemory::Checkpoint bank;
         SourceRuntimeHostVirtualMemory::OwnershipCheckpoint virtual_memory;
@@ -329,6 +364,11 @@ public:
     // match must also quiesce raw memory borrowers and presentation consumers.
     // This captures the source physics owner, not the outer match/simulation.
     AuthorityCheckpoint authority_checkpoint() const;
+    // Completed, externally quiescent executor boundary, outside any tape.
+    // These adjust external domains only; native clock/RNG bytes stay intact.
+    SourceExecutionClocks execution_clocks() const;
+    void anchor_execution_clocks(const SourceExecutionClocks &);
+    void require_execution_boundary() const;
     PreparedAuthority prepare_authority(const AuthorityCheckpoint &);
     // No-throw publication of all staged backing/resources/sidecars. Callers
     // must rebind every borrowed view/native address afterward. Services and

@@ -75,6 +75,9 @@ Vec3 transformed(const Transform&t,Vec3 p,bool point){
 void source_observer_register_adopt(SourceObserverState&s,DeathCameraPacket&p,const SourceObserverConstants&c){
   byte(s,0xb4,0);
   if(!byte(s,0xb5)){byte(s,0xb5,1);pf(p,0x88,0);p[0]|=8u;for(unsigned i=0;i<6;++i)pf(p,0x94+i*4,0);}
+  source_observer_adopt(s,p,c);
+}
+void source_observer_adopt(SourceObserverState&s,DeathCameraPacket&p,const SourceObserverConstants&c){
   if(!(p[0]&1u))return;
   for(unsigned group=0;group<6;++group){const auto remaining=f(s,0x9c+group*4);const auto flags=pb(p,0x8c+group);
     if(!(flags&1u)){if(!(pf(p,0x88)<remaining)||p[0]&8u)pf(p,0x94+group*4,pf(p,0x88));

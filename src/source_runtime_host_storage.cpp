@@ -43,7 +43,12 @@ SourceRuntimeHostStorage::allocate(SourceVirtualAllocationRequest request) {
 SourceVirtualAllocationResult
 SourceRuntimeHostStorage::allocate(SourceVirtualAllocationRequest request,std::string owner) {
   if(owner.empty())throw std::invalid_argument("Raw host storage requires an explicit resource owner");
-  if (request.base || request.zero_bits || request.allocation_type != 0x101000 ||
+  // Authenticated main12008 reserves its sound arena with a null-base
+  // MEM_COMMIT request(1000); the other retained source constructors request
+  // 101000. Both bind fresh committed native pages here. Existing-address
+  // commits still belong to SourceRuntimeHostVirtualMemory, not this owner.
+  if (request.base || request.zero_bits ||
+      (request.allocation_type != 0x101000 && request.allocation_type != 0x1000) ||
       request.protection != 4 || !request.bytes)
     throw std::runtime_error("Required original virtual-memory request adapter unavailable");
 #if defined(__linux__)

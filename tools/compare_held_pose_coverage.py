@@ -21,6 +21,8 @@ def main():
     parser.add_argument('--native', type=Path, required=True)
     parser.add_argument('--rectangle', type=int, nargs=4, required=True,
                         metavar=('TOP', 'LEFT', 'BOTTOM', 'RIGHT'))
+    parser.add_argument('--native-rectangle',type=int,nargs=4,
+                        metavar=('TOP','LEFT','BOTTOM','RIGHT'))
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     assert not args.output.exists()
@@ -50,6 +52,10 @@ def main():
     assert 0 <= left < right <= reference.shape[1]
     reference = reference[top:bottom, left:right]
     observed = coverage(args.native, native['rows'])
+    if args.native_rectangle:
+        ntop,nleft,nbottom,nright=args.native_rectangle
+        assert 0<=ntop<nbottom<=observed.shape[0] and 0<=nleft<nright<=observed.shape[1]
+        observed=observed[ntop:nbottom,nleft:nright]
     assert observed.shape == reference.shape, 'No resizing or alignment is allowed'
     original_only = reference & ~observed
     native_only = observed & ~reference
@@ -67,6 +73,8 @@ def main():
                   native_pixels=int(observed.sum()), differing_pixels=mismatch,
                   original_only_pixels=int(original_only.sum()), native_only_pixels=int(native_only.sum()),
                   source_rectangle=args.rectangle, original_gl_flip_y=True,
+                  native_rectangle=args.native_rectangle,
+                  native_geometry_receipt_sha256=hashlib.sha256((args.native/'receipt.json').read_bytes()).hexdigest(),
                   resizing=False, alignment=False, rgb_checked=False,
                   independent_animation_checked=False, pixel_acceptance=False,
                   input_sha256=hashes)

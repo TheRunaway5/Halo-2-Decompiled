@@ -8,6 +8,7 @@
 #include "halo2/object_lighting.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/effect_light.hpp"
+#include "halo2/pstencil/material.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -275,6 +276,12 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
 }
 }
 
+std::optional<Material> pstencil::bind_light_pass(const Cache& cache,const Material& authored,
+    unsigned index,const EffectLightUniforms& uniforms) {
+  auto result=bind_pass(cache,authored,index,6,false,nullptr,true,nullptr,nullptr,&uniforms);
+  if(!result)return {};return std::move(*result);
+}
+
 void bind_object_camouflage(Material &material,float camouflage,std::uint16_t control) {
   if(!std::isfinite(camouflage) || camouflage<0 || camouflage>1)
     throw FormatError("Camouflage material context outside finite unit range");
@@ -412,9 +419,16 @@ bool prepare_shield_overlay_material(const Cache &cache,Material &material) {
   const auto selected=layer_passes(material,15,0);
   if(selected.size()!=1)return false;
   const auto &pass=material.passes[selected.front()];
-  if(pass.name!="shaders\\shader_passes\\plasma\\plasma_shield" ||
-     !pass.vertex_shader.ends_with("\\transparent_generic_offset") ||
-     !pass.vertex_externs.empty() || !pass.pixel_externs.empty())return false;
+  const bool plain=pass.name=="shaders\\shader_passes\\plasma\\plasma_shield" && pass.pixel_externs.empty();
+  // Authored TU1.5 Elite/Arbiter pass: two ObjectChangePrimary RGB
+  // remaps. bind_pass and apply_object_render_colors retain the original
+  // compiled pixel program and19CA0 remapping; no color result is substituted.
+  const bool change_color=pass.name=="shaders\\shader_passes\\plasma\\plasma_shield_change_color" &&
+      pass.pixel_externs.size()==2 &&
+      pass.pixel_externs[0].source==3 && pass.pixel_externs[0].component==4 && pass.pixel_externs[0].destination==0x00c0 &&
+      pass.pixel_externs[1].source==3 && pass.pixel_externs[1].component==4 && pass.pixel_externs[1].destination==0x04c0;
+  if((!plain && !change_color) || !pass.vertex_shader.ends_with("\\transparent_generic_offset") ||
+     !pass.vertex_externs.empty())return false;
   auto bound=bind_pass(cache,material,selected.front(),1,false,nullptr,true);
   if(!bound)return false;
   material=std::move(*bound);return true;

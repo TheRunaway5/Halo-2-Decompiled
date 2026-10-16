@@ -30,7 +30,7 @@ struct SourceSceneryScene::Impl {
         std::size_t source_object{};
         std::uint32_t handle=0xffffffffu;
         std::uint64_t created_tick{};
-        bool active=true,visible=true,dynamic{},selection_requires_history{};
+        bool active=false,visible=false,dynamic{},selection_requires_history{};
         ScenarioObject authored;
         SceneryDefinition definition;
         SourceInitialModelSelection selection;
@@ -57,6 +57,7 @@ struct SourceSceneryScene::Impl {
     std::vector<SceneryLightprobe> probes;
     std::vector<Scenery> scenery;
     std::map<std::uint32_t,SourceShaderLodDefinition> shader_definitions;
+    std::map<unsigned,std::string> unresolved_materials;
     std::vector<std::size_t> unresolved_owners;
     std::set<std::size_t> source_placements,nonrendered_placements;
     SourceScenerySceneStats counts;
@@ -75,11 +76,10 @@ struct SourceSceneryScene::Impl {
          probes(c.load_scenery_lightprobes(bsp)) {
         for(std::size_t index=0;index<objects.size();++index) {
             const auto &object=objects[index];
-            if(object.type==6 && object.definition!=0xffffffffu &&
-                scenery_multiplayer_game_allowed(object,2) &&
-                (object.origin_bsp<0 || object.origin_bsp==int(bsp)))source_placements.insert(index);
-            if(object.type!=6 || !scenery_automatic_creation_allowed(object,2) ||
-                (object.origin_bsp>=0 && object.origin_bsp!=int(bsp)))continue;
+            if(object.type==6 && object.definition!=0xffffffffu)source_placements.insert(index);
+            // Resource preparation never chooses game-type birth or BSP
+            // visibility. Actual source lifetimes own both during synchronize.
+            if(object.type!=6 || object.definition==0xffffffffu)continue;
             ++counts.placements;
             Scenery s;s.source_object=index;s.authored=object;
             const auto definition=cache.load_scenery_definition(object.definition);
@@ -144,7 +144,7 @@ struct SourceSceneryScene::Impl {
                         auto material=s.dynamic?source_materials[v.material]:g.model.mesh.materials[v.material];
                         if(s.dynamic) {
                             if(!prepare_dynamic_material(cache,material,{},true))
-                                throw FormatError("SCEN dynamic material requires unresolved source inputs: "+material.name);
+                                unresolved_materials.emplace(unsigned(mesh.materials.size()),material.name);
                             ++counts.union_dynamic_materials;
                         } else {
                             if(!material.world_pass)
@@ -178,7 +178,7 @@ struct SourceSceneryScene::Impl {
                             auto material=raw;material.selected_shader_lod=shader_lod;
                             const bool prepared=s.dynamic?prepare_dynamic_material(cache,material,{},true):
                                 prepare_world_material(cache,material,true);
-                            if(!prepared)throw FormatError("SCEN shader LOD requires unresolved source inputs: "+raw.name);
+                            if(!prepared)unresolved_materials.emplace(unsigned(mesh.materials.size()),raw.name);
                             apply_object_colors(material,colors);
                             slots->second.push_back(unsigned(mesh.materials.size()));
                             mesh.materials.push_back(std::move(material));
@@ -320,7 +320,11 @@ struct SourceSceneryScene::Impl {
     }
     std::vector<Vertex> shader_vertices(const Scenery &s,const Lod &g,const SourceObjectViewLod &view)const {
         auto vertices=g.vertices;
-        if(!view.shader)return vertices;
+        const auto require_bound=[&](unsigned slot) {
+            if(const auto at=unresolved_materials.find(slot);at!=unresolved_materials.end())
+                throw FormatError("Admitted SCEN draw requires its live source shader inputs: "+at->second);
+        };
+        if(!view.shader){for(const auto &vertex:vertices)require_bound(vertex.material);return vertices;}
         const auto collector=source_model_shader_collector(s.query_state.sphere_center,
             s.query_state.sphere_radius,*view.shader);
         std::map<std::pair<unsigned,unsigned>,unsigned> selected;
@@ -336,7 +340,10 @@ struct SourceSceneryScene::Impl {
             const auto binding=selected.find({vertex.source_section,vertex.source_part});
             if(binding==selected.end())throw FormatError("SCEN emitted vertex lost its source shader part");
             if(binding->second==0xffffffffu)return true;
-            vertex.material=binding->second;return false;
+            // Resource union preparation may retain an unbound shader for a
+            // different BSP or unselected LOD.41040 requires its actual inputs
+            // only after this part is admitted. Never submit unresolved values.
+            require_bound(binding->second);vertex.material=binding->second;return false;
         }),vertices.end());
         return vertices;
     }

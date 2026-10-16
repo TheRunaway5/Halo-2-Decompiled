@@ -76,6 +76,29 @@ void concurrent_delivery(){
     std::cout<<"PASS concurrent bidirectional pumping, publication, executor acknowledgement, observation and authority-context replacement under loss/reorder/duplicates\n";
 }
 void run(){
+    {
+        auto enabled=limits();enabled.features=authority_feature_source_replay;
+        PeerAuthorityTransfer modern(0,context(),enabled),legacy(4,context(),limits());
+        for(unsigned now=0;now<200;++now){for(auto p:modern.poll(now,8))legacy.receive(0,p.bytes,now);
+            for(auto p:legacy.poll(now,8))modern.receive(4,p.bytes,now);}
+        check(modern.supported(4)&&legacy.supported(0),"Optional replay capability prevented transport admission");
+        check(!modern.feature_supported(4,authority_feature_source_replay)&&legacy.feature_supported(0,authority_feature_source_replay),
+            "Maximum-only legacy hello advertised replay support");
+        check(!legacy.feature_supported(0,authority_feature_source_replay|authority_feature_source_state),
+            "Older replay decoder advertised native state journal support");
+        check(!legacy.feature_supported(0,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera),
+            "Older replay decoder advertised native camera journal support");
+        check(!legacy.feature_supported(0,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query),
+            "Older replay decoder advertised lens query device operands");
+        check(!legacy.feature_supported(0,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw),
+            "Older replay decoder advertised lens drawing and world-pass support");
+        check(!legacy.feature_supported(0,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision),
+            "Older replay decoder advertised standalone particle collision queries");
+        check(!legacy.feature_supported(0,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts),
+            "Older replay decoder advertised the shared projectile journal owner");
+        auto next=context();++next.epoch;check(legacy.replace_context(context(),next),"Capability generation reset rejected");
+        check(!legacy.feature_supported(0,authority_feature_source_replay),"Prior generation replay capability survived reset");
+    }
     Link l;l.handshake();std::vector<std::byte> bytes(180'123);for(unsigned i=0;i<bytes.size();++i)bytes[i]=std::byte((i*37+i/13)&255);
     const std::array<unsigned,1> targets{4};auto cut=l.a.publish(context(),42,bytes,targets,l.now);
     check(!l.b.acknowledge_validated(context(),cut),"Unreceived world was acknowledged");

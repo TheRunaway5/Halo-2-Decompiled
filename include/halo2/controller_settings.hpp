@@ -32,5 +32,5 @@ ControllerSample sample_controller(SDL_GameController *);
 ControllerInput controller_input(const ControllerSample &,
                                  const ControllerSettings &);
 void controller_look(const ControllerInput &, const ControllerSettings &,
-                     float seconds, float &yaw, float &pitch);
+                     float seconds, float &yaw, float &pitch,bool constrain_pitch=true);
 } // namespace halo2

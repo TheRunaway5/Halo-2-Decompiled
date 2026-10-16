@@ -50,6 +50,7 @@ std::string target(const std::string &value,unsigned slot) {
   if(value=="oPos")return "vpOut[0]";
   if(value=="oD0")return "vpOut[3]";
   if(value=="oD1")return "vpOut[4]";
+  if(value=="oFog")return "vpOut[5]";
   if(value.size()==3 && value.starts_with("oT"))return "vpOut["+std::to_string(9+unsigned(value[2]-'0'))+"]";
   throw FormatError("unexpected destination in semantic source fixture");
 }
@@ -148,7 +149,9 @@ void bounds(const VertexProgram &base,unsigned &count) {
   unsigned output=0;while(output<base.count && !(base.instructions[output][3]&0xf000))++output;
   require(output<base.count,"bound source fixture has no ordinary output write");
   reject(base,count,[&](auto &p){p.instructions[output][3]&=~2048u;});
-  reject(base,count,[&](auto &p){p.instructions[output][3]=(p.instructions[output][3]&~(255u<<3))|(5u<<3);});
+  reject(base,count,[&](auto &p){p.instructions[output][3]=(p.instructions[output][3]&~(255u<<3))|(6u<<3);});
+  reject(base,count,[&](auto &p){p.instructions[output][3]=
+      (p.instructions[output][3]&~((255u<<3)|(15u<<12)))|(5u<<3)|(8u<<12);});
   reject(base,count,[&](auto &p){p.instructions[output][3]=(p.instructions[output][3]&~(255u<<3))|(13u<<3);});
   reject(base,count,[&](auto &p){p.instructions[output][3]|=4;});
   reject(base,count,[](auto &p){p.instructions[0][1]&=~(15u<<21);});

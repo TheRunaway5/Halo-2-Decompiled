@@ -6,7 +6,7 @@ SourceEffectLightGeometryFrameResult source_effect_light_geometry_frame(SourceDr
     std::span<SourceOpaqueSortRecord> opaque,const SourceEffectLightGeometryFrameWorld& world,
     const SourceEffectLightGeometryFrameContext& context,
     const SourceEffectLightGeometryFrameObserver& observer) {
-    if(!context.draw.mode || !world.dynamic || !world.object_commands)
+    if(!context.draw.mode || !world.dynamic || (!world.complete_commands && !world.object_commands))
         throw FormatError("source light geometry frame lacks its current secondary/object owners");
     source_bsp_collect_draw_units(state,admission,world.draw,context.draw);
     if(observer)observer(SourceEffectLightGeometryFramePhase::collected,state,admission);
@@ -32,7 +32,9 @@ SourceEffectLightGeometryFrameResult source_effect_light_geometry_frame(SourceDr
     command_context.mask_arena_address=context.draw.mask_arena_address;
     command_context.coverage=state.coverage;command_context.override_slots=state.override_slots;
     command_context.overrides=state.overrides;
-    source_bsp_build_part_commands(commands,state.units,state.arena,world.commands,
+    if(world.complete_commands)
+        world.complete_commands(commands,state,admission,command_context,context.command_selector);
+    else source_bsp_build_part_commands(commands,state.units,state.arena,world.commands,
         command_context,context.command_selector,world.object_commands);
     result.opaque_count=source_effect_light_opaque_select(commands.banks[1],state.units,world.metadata,
         world.opaque_geometry,opaque);

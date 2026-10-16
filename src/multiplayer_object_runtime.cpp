@@ -1,6 +1,8 @@
 #include "halo2/physics_internal_phantom_observation.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/scripts.hpp"
+#include "halo2/source_projectile_effect_observer.hpp"
+#include "halo2/source_execution_inputs.hpp"
 #include <cstring>
 #include "halo2/cache.hpp"
 #include "halo2/native_threads.hpp"
@@ -662,13 +664,17 @@ struct MultiplayerObjectRuntime::Continuation {
   const bool retained_executor;
   mutable std::recursive_mutex gate;
   std::size_t calls{};
+  std::unique_ptr<SourceProjectileEffectObserver> projectile_effects;
   bool staging{},fault{};
   std::shared_ptr<std::atomic<std::uint64_t>> writes=std::make_shared<std::atomic<std::uint64_t>>(0);
+  std::uint64_t mutating_calls{};
   Continuation(SourceRuntimeMemory &bank,bool retained):bank(bank),retained_executor(retained) {
     const auto serial=writes;
-    source_runtime_register_write_guard(bank,this,[serial](auto,auto){serial->fetch_add(1,std::memory_order_relaxed);});
+    source_runtime_register_write_observer(bank,this,[serial](auto,auto){serial->fetch_add(1,std::memory_order_relaxed);});
+    try{source_runtime_register_topology_observer(bank,this,[serial](auto,auto) noexcept {serial->fetch_add(1,std::memory_order_relaxed);});}
+    catch(...){source_runtime_unregister_write_observer(bank,this);throw;}
   }
-  ~Continuation(){source_bind_internal_phantom_observer(bank,{});source_runtime_unregister_write_guard(bank,this);}
+  ~Continuation(){source_bind_internal_phantom_observer(bank,{});source_runtime_unregister_topology_observer(bank,this);source_runtime_unregister_write_observer(bank,this);}
   void require_executor() const {
     if(!retained_executor || std::this_thread::get_id()!=executor || staging)
       throw FormatError("Native object continuation requires its available TU1.5 executor");
@@ -683,6 +689,7 @@ struct MultiplayerObjectRuntime::Continuation {
       if(owner.staging || (mutating && owner.retained_executor && std::this_thread::get_id()!=owner.executor))
         throw FormatError("Native object call requires its available retained executor");
       writes=owner.writes->load(std::memory_order_relaxed);++owner.calls;
+      if(mutating)++owner.mutating_calls;
     }
     ~PublicCall() {
       std::lock_guard lock(owner.gate);
@@ -707,6 +714,10 @@ MultiplayerObjectRuntime::MultiplayerObjectRuntime(const std::filesystem::path &
   continuation_=std::make_unique<Continuation>(tu15_?tu15_->memory():impl_->bank,bool(tu15_));
 }
 MultiplayerObjectRuntime::~MultiplayerObjectRuntime()=default;
+PhysicsLiveWorldTu15 &MultiplayerObjectRuntime::tu15_world() {
+  if(!tu15_)throw FormatError("Campaign requires its actual TU1.5 world owner");
+  return *tu15_;
+}
 SourceRuntimeMemory &MultiplayerObjectRuntime::memory(){Continuation::PublicCall active(*continuation_,false);return tu15_?tu15_->memory():impl_->bank;}
 std::vector<SourceAttachedEffect> MultiplayerObjectRuntime::attached_effects(std::uint32_t object) const {
   Continuation::PublicCall active(*continuation_,false);
@@ -749,6 +760,15 @@ void MultiplayerObjectRuntime::deliver_command(std::uint32_t player,std::uint32_
     std::span<const std::byte,0x5c>command) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Source physics command delivery requires the TU1.5 owner");
   tu15_->deliver_command(player,object,command);
+}
+void MultiplayerObjectRuntime::prepare_player_look(std::uint32_t player,std::uint32_t object,
+    std::span<std::byte,0x5c>command) {Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Source player look requires the TU1.5 owner");
+  tu15_->prepare_player_look(player,object,command);
+}
+std::optional<Vec2> MultiplayerObjectRuntime::player_look(std::uint32_t player,std::uint32_t object) const {
+  Continuation::PublicCall active(*continuation_,false);
+  return tu15_?tu15_->player_look(player,object):std::optional<Vec2>{};
 }
 std::uint32_t MultiplayerObjectRuntime::object_definition(std::uint32_t object)const {Continuation::PublicCall active(*continuation_,false);
   return word(tu15_?tu15_->memory():impl_->bank,object_body(object));
@@ -1092,6 +1112,14 @@ void MultiplayerObjectRuntime::destroy_object(std::uint32_t object) {Continuatio
   tu15_->destroy_object(object);
   death_reports_.erase(object);
 }
+void MultiplayerObjectRuntime::set_unit_controller_active(std::uint32_t unit,bool requested){Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Unit controller admission requires the TU1.5 source world");
+  tu15_->set_unit_controller_active(unit,requested);
+}
+void MultiplayerObjectRuntime::deliver_unit_input(std::uint32_t unit,Vec3 throttle,Vec3 facing){Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Unit input requires the TU1.5 source world");
+  tu15_->deliver_unit_input(unit,throttle,facing);
+}
 void MultiplayerObjectRuntime::step_objects(){Continuation::PublicCall active(*continuation_);
   if(tu15_) {
     tu15_->step_objects();
@@ -1113,6 +1141,11 @@ WeaponHudTarget MultiplayerObjectRuntime::weapon_hud_target(std::uint32_t weapon
   Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Weapon HUD locking requires the TU1.5 source owner");
   return tu15_->weapon_hud_target(weapon);
+}
+VehicleWeaponHudStatus MultiplayerObjectRuntime::vehicle_weapon_hud(std::uint32_t unit) {
+  Continuation::PublicCall active(*continuation_,false);
+  if(!tu15_)throw FormatError("Vehicle weapon HUD requires the retained TU1.5 world");
+  return tu15_->vehicle_weapon_hud(unit);
 }
 void MultiplayerObjectRuntime::populate_weapon_targeting(std::uint32_t player,std::uint32_t object,
     std::span<std::byte,0x5c> command) {Continuation::PublicCall active(*continuation_);
@@ -1216,6 +1249,22 @@ void MultiplayerObjectRuntime::observe_weapon_effects(std::function<void(const S
   if(!tu15_)throw FormatError("Source weapon-effect observation requires the TU1.5 source owner");
   tu15_->observe_weapon_effects(std::move(observer));
 }
+void MultiplayerObjectRuntime::observe_projectile_effects(std::function<void(const SourceProjectileDetonationTu15 &)> observer) {
+  Continuation::PublicCall active(*continuation_);
+  std::lock_guard lock(continuation_->gate);
+  if(!tu15_)throw FormatError("Projectile contact observation requires its actual TU1.5 owner");
+  if(auto *inputs=source_execution_inputs(continuation_->bank))inputs->invalidate_recording();
+  if(observer && continuation_->projectile_effects)throw FormatError("Source world already has its projectile journal owner");
+  if(observer)continuation_->projectile_effects=std::make_unique<SourceProjectileEffectObserver>(continuation_->bank,std::move(observer));
+  else continuation_->projectile_effects.reset();
+}
+bool MultiplayerObjectRuntime::has_projectile_effect_observer() const {
+  // Binding metadata stays readable while Match validates a staged world.
+  std::lock_guard lock(continuation_->gate);return bool(continuation_->projectile_effects);
+}
+void MultiplayerObjectRuntime::retire_projectile_effects() noexcept {
+  std::lock_guard lock(continuation_->gate);continuation_->projectile_effects.reset();
+}
 void MultiplayerObjectRuntime::observe_effect_damage(SourceEffectDamageObserverTu15 observer) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Effect damage observation requires the TU1.5 source owner");
   tu15_->observe_effect_damage(std::move(observer));
@@ -1293,28 +1342,31 @@ ShadowCasterSphere MultiplayerObjectRuntime::object_sphere(std::uint32_t object)
 std::optional<DeathCameraTarget> MultiplayerObjectRuntime::camera_target(std::uint32_t object)const {Continuation::PublicCall active(*continuation_,false);
   return source_death_camera_target(tu15_?tu15_->memory():impl_->bank,object_pool(),object);
 }
-std::optional<DeathCameraPacket> MultiplayerObjectRuntime::vehicle_camera_packet(unsigned view,
-    std::uint32_t unit,float yaw,float pitch,std::array<std::uint32_t,7> &state) {Continuation::PublicCall active(*continuation_);
-  if(!tu15_)throw FormatError("Native vehicle camera requires the TU1.5 live world");
-  return tu15_->vehicle_camera_packet(view,unit,yaw,pitch,state);
+DeathCameraPacket MultiplayerObjectRuntime::player_camera_packet(std::uint32_t player,float seconds,
+    SourceCameraControllerState &controller,SourceObserverState &observer,std::uint32_t &random,
+    bool cycle,std::uint8_t *mode) {Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Player camera scheduler requires the TU1.5 owner");
+  return tu15_->player_camera_packet(player,seconds,controller,observer,random,cycle,mode);
+}
+DeathCameraPacket MultiplayerObjectRuntime::unit_camera_packet(std::uint32_t unit,float seconds,
+    SourceCameraControllerState &controller,SourceObserverState &observer,std::uint8_t *camera_mode) {Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Unit camera scheduler requires the TU1.5 owner");
+  return tu15_->unit_camera_packet(unit,seconds,controller,observer,camera_mode);
 }
 SourceObserverWorldServices MultiplayerObjectRuntime::observer_world_services() {Continuation::PublicCall active(*continuation_,false);
   if(tu15_) {
     const auto invoke=[this](std::uint32_t entry,std::span<const std::uint32_t> args,
                              std::uint32_t eax,std::uint32_t edx,std::uint32_t esi) {
       Continuation::PublicCall active(*continuation_);
-      auto &bank=tu15_->memory();SourcePhysicsWorldRuntimeAbi a{};
-      a.gp[4]=stack;a.fs_base=tls;a.eflags=2;a.floating_point=fp;
+      auto a=tu15_->prepare_source_call(args);
       a.gp[0]=eax;a.gp[2]=edx;a.gp[6]=esi;
-      put(bank,stack,0x60300000u);
-      for(unsigned i=0;i<args.size();++i)put(bank,stack+4u+4u*i,args[i]);
       tu15_->run_actual(entry,a);return a.gp[0];
     };
     SourceObserverWorldServices result;
     result.locate=[this,invoke](Vec3 position) {
       Continuation::PublicCall active(*continuation_);
       constexpr std::uint32_t input=0x60030000u,output=0x60030100u;
-      auto &bank=tu15_->memory();bank.write(input,std::as_bytes(std::span(&position,1)));
+      auto &bank=tu15_->memory();tu15_->write_source_call_input(input,std::as_bytes(std::span(&position,1)));
       // Actual1746B9 supplies EDX point and ESI full eight-byte location.
       invoke(0x11e600u,{},0,input,output);
       return SourceObserverLocation{{word(bank,output),word(bank,output+4u)}};
@@ -1344,8 +1396,8 @@ SourceObserverWorldServices MultiplayerObjectRuntime::observer_world_services() 
     result.collision=[this,invoke](std::uint32_t flags,Vec3 origin,Vec3 delta)->std::optional<float> {
       Continuation::PublicCall active(*continuation_);
       constexpr std::uint32_t start=0x60030200u,direction=0x60030220u,hit=0x60030300u;
-      auto &bank=tu15_->memory();bank.write(start,std::as_bytes(std::span(&origin,1)));
-      bank.write(direction,std::as_bytes(std::span(&delta,1)));
+      auto &bank=tu15_->memory();tu15_->write_source_call_input(start,std::as_bytes(std::span(&origin,1)));
+      tu15_->write_source_call_input(direction,std::as_bytes(std::span(&delta,1)));
       // Actual174933/174A44 call complete16C620 with the original exclusions
       // NONE and its complete5C result. Only the original miss returns null.
       const std::array args{flags,start,direction,0xffffffffu,0xffffffffu,hit};
@@ -1391,6 +1443,20 @@ void MultiplayerObjectRuntime::render_model_view(const std::function<void(Physic
   tu15_->begin_model_view();
   draw(*tu15_);
 }
+void MultiplayerObjectRuntime::completed_main_camera_observer(SourceCompletedMainCameraObserverTu15 observer) {
+  std::unique_lock lock(continuation_->gate,std::try_to_lock);continuation_->require_executor();
+  if(!lock.owns_lock() || continuation_->calls || !tu15_ || (continuation_->fault && observer))
+    throw FormatError("Main camera observer requires its completed actual TU1.5 owner");
+  Continuation::PublicCall active(*continuation_,false);
+  tu15_->completed_main_camera_observer(std::move(observer));
+}
+void MultiplayerObjectRuntime::inspect_render_memory(const SourceRenderMemoryInspectorTu15& inspect) const {
+  std::unique_lock lock(continuation_->gate,std::try_to_lock);continuation_->require_executor();
+  if(!lock.owns_lock() || continuation_->calls || continuation_->fault || !tu15_ || !inspect)
+    throw FormatError("Render memory inspection requires its completed actual TU1.5 owner");
+  Continuation::PublicCall active(*continuation_,false);
+  tu15_->inspect_render_memory(inspect);
+}
 std::optional<std::vector<Transform>> MultiplayerObjectRuntime::rendered_world_nodes(std::uint32_t object)const {
   Continuation::PublicCall active(*continuation_,false);
   return tu15_?tu15_->rendered_world_nodes(object):std::nullopt;
@@ -1406,6 +1472,24 @@ SourceObjectDrawCollector MultiplayerObjectRuntime::build_world_model(std::uint3
   return impl_->build_world_model(object,view,players,modifier,metric,lighting_metric);
 }
 
+bool MultiplayerObjectRuntime::authority_executor_thread() const noexcept {
+  return continuation_->retained_executor&&std::this_thread::get_id()==continuation_->executor;
+}
+void MultiplayerObjectRuntime::require_authority_executor(bool qualified) const {
+  auto &continuation=*continuation_;
+  std::unique_lock lock(continuation.gate,std::try_to_lock);
+  if(!lock.owns_lock())throw FormatError("Native object authority executor is busy");
+  continuation.require_executor();
+  if(continuation.calls)throw FormatError("Native object authority executor has an incomplete call");
+  if(qualified){
+    if(continuation.fault)throw FormatError("Native object authority executor has an incomplete mutation");
+    tu15_->require_execution_boundary();
+  }
+}
+std::array<std::uint64_t,2> MultiplayerObjectRuntime::execution_mutations()const {
+  require_authority_executor(true);
+  return {continuation_->writes->load(std::memory_order_relaxed),continuation_->mutating_calls};
+}
 MultiplayerObjectRuntime::AuthorityCheckpoint MultiplayerObjectRuntime::authority_checkpoint() const {
   auto &continuation=*continuation_;
   std::unique_lock lock(continuation.gate,std::try_to_lock);continuation.require_executor();

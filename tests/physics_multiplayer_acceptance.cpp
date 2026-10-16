@@ -1,6 +1,10 @@
+#include "halo2/source_match_authority.hpp"
+#include "halo2/source_contrail_draw.hpp"
 #include "halo2/physics_velocity_observation.hpp"
 #include "helpers/source_device_script_input_tu15.hpp"
 #include "helpers/live_phantom_original_capture_tu15.hpp"
+#include "helpers/live_physics_entry_capture_tu15.hpp"
+#include "halo2/source_physics_entry_observation.hpp"
 #include "source_device_snapshot_check.hpp"
 #include <atomic>
 #define SDL_MAIN_HANDLED
@@ -15,6 +19,9 @@
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/player_action_edges.hpp"
 #include "halo2/source_camera.hpp"
+#include "halo2/source_light_volume_draw.hpp"
+#include "halo2/gameplay_fov.hpp"
+#include "halo2/hud.hpp"
 #include "halo2/particle_draw.hpp"
 #include "halo2/animation_presentation.hpp"
 #include <nlohmann/json.hpp>
@@ -259,8 +266,57 @@ struct SupportEntrance {
   std::vector<Spawn> spawns;
   std::uint32_t definition;
   Vec3 center,local_top;
+  unsigned node{};
+  std::optional<float> phase;
+  bool narrow{};
 };
 SupportEntrance wheel_support_entrance(const Cache &cache,const LevelContent &content) {
+  if(const auto selected=std::getenv("HALO2_TU15_SUPPORT_DEFINITION")) {
+    const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[&](const Tag&t){return t.group=="mach" && t.name==selected;});
+    check(tag!=cache.tags().end(),"Declared original carrier definition absent");
+    const auto placed=std::find_if(content.objects.begin(),content.objects.end(),[&](const auto&o){return o.definition==tag->datum;});
+    check(placed!=content.objects.end(),"Declared original carrier placement absent");
+    const auto object=cache.load_source_tag_metadata(placed->definition);
+    const auto model=cache.load_source_tag_metadata(Bytes(object.bytes_at(object.source_address(),object.size())).u32(0x38));
+    const auto physics=cache.load_source_tag_metadata(Bytes(model.bytes_at(model.source_address(),model.size())).u32(0x24));
+    const Bytes phmo(physics.bytes_at(physics.source_address(),physics.size()));
+    const auto body_index=std::getenv("HALO2_TU15_SUPPORT_BODY_INPUT")?std::stoul(std::getenv("HALO2_TU15_SUPPORT_BODY_INPUT")):0u;
+    check(body_index<phmo.u32(0x38),"Carrier input has no authored selected PHMO body");
+    const Bytes body(physics.bytes_at(phmo.u32(0x3c)+std::uint32_t(body_index)*0x90u,0x90));
+    const auto node=body.u16(0),shape=body.u16(0x38),index=body.u16(0x3a);
+    Vec3 local_top;float side_offset=2*content.player.radius;
+    if(shape==1) {
+      check(index<phmo.u32(0x58),"Declared carrier input has no authored capsule");
+      const Bytes pill(physics.bytes_at(phmo.u32(0x5c)+index*0x50u,0x50));
+      const Vec3 bottom{pill.f32(0x30),pill.f32(0x34),pill.f32(0x38)},top{pill.f32(0x40),pill.f32(0x44),pill.f32(0x48)};
+      const auto radius=pill.f32(0x2c);
+      check(radius>3*content.player.radius && std::abs(top.z-bottom.z)<content.player.radius,"Carrier capsule has no admitted wide horizontal roof input");
+      local_top=(bottom+top)*.5f+Vec3{0,0,radius};
+    } else {
+      check(shape==4 && index<phmo.u32(0x70),"Declared carrier input requires an original capsule or flat convex paddle");
+      const Bytes hull(physics.bytes_at(phmo.u32(0x74)+index*0x100u,0x100));
+      const Vec3 center{hull.f32(0x40),hull.f32(0x44),hull.f32(0x48)},half{hull.f32(0x30),hull.f32(0x34),hull.f32(0x38)};
+      check(half.x>content.player.radius && half.y>content.player.radius && half.z<content.player.radius,"Original carrier hull has no clear flat paddle input");
+      local_top=center+Vec3{0,0,half.z};side_offset=0.f;
+    }
+    const auto placement=std::size_t(placed-content.objects.begin());
+    check(placement<content.devices.size() && content.devices[placement] && content.devices[placement]->machine && content.devices[placement]->collision,
+        "Original carrier input has no authored device hierarchy");
+    const auto &device=*content.devices[placement];const auto basis=authored_basis(placed->rotation);
+    const auto root=source_object_transform(placed->position,basis.forward,basis.up,placed->scale,false);
+    const auto phase=std::getenv("HALO2_TU15_SUPPORT_PHASE_INPUT")?std::optional<float>{std::stof(std::getenv("HALO2_TU15_SUPPORT_PHASE_INPUT"))}:std::nullopt;
+    check(!phase || (*phase>=0.f && *phase<=1.f),"Carrier declared phase must be a normalized original device input");
+    const auto locals=source_machine_local_pose(device.collision->hierarchy,*device.machine,phase.value_or(device.placement.initial_position),0.f);
+    const auto nodes=pose_model_locals_nodes_world(device.collision->hierarchy,root,locals);
+    check(node<nodes.size(),"Carrier capsule has no authored initial model node");
+    SupportEntrance result{{},tag->datum,nodes[node].position,local_top,node,phase,shape==4};
+    for(const float side:{-1.f,1.f}) {
+      Transform point;point.position=result.local_top+Vec3{0,side*side_offset,content.player.radius};
+      Spawn spawn;spawn.position=compose_transform(nodes[node],point).position;
+      const auto aim=nodes[node].position-spawn.position;spawn.facing=std::atan2(aim.y,aim.x);result.spawns.push_back(spawn);
+    }
+    return result;
+  }
   const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[](const Tag &t){return t.group=="mach" &&
       t.name=="scenarios\\objects\\multi\\zanzibar\\big_wheel\\big_wheel";});
   check(tag!=cache.tags().end(),"Original rotating wheel definition absent");
@@ -287,7 +343,66 @@ SupportEntrance wheel_support_entrance(const Cache &cache,const LevelContent &co
   return result;
 }
 
+struct ConveyorEntrance {Spawn spawn;CollisionSurfaceIdentity surface;};
+ConveyorEntrance conveyor_entrance(const LevelContent &content) {
+  const CollisionWorld terrain(content.collision);
+  for(const auto &triangle:content.collision) {
+    if(!(triangle.flags&0x20u) || triangle.source_normal.z<content.player.maximum_slope_cosine)continue;
+    const auto center=(triangle.a+triangle.b+triangle.c)*(1.f/3.f);
+    const auto normal=normalized(triangle.source_normal);bool clear=true;
+    for(const auto edge:std::array{std::pair{triangle.a,triangle.b},std::pair{triangle.b,triangle.c},std::pair{triangle.c,triangle.a}})
+      clear&=std::abs(dot(cross(edge.second-edge.first,center-edge.first),normal))/length(edge.second-edge.first)>content.player.radius;
+    if(!clear)continue;
+    const auto floor=terrain.raycast(center+Vec3{0,0,content.player.height},{0,0,-1},2*content.player.height);
+    if(!floor || !(floor->surface_flags&0x20u) || floor->normal.z<content.player.maximum_slope_cosine)continue;
+    Spawn spawn;spawn.position=floor->position+Vec3{0,0,content.player.radius};
+    if(terrain.overlaps(spawn.position,content.player.height,content.player.radius))continue;
+    return {spawn,floor->source};
+  }
+  throw FormatError("Original conveyor has no clear upward authored surface approach");
+}
 struct PropWatchEntrance {Spawn spawn;Vec3 target;std::set<unsigned> placements;};
+PropWatchEntrance object_field_entrance(const Cache &cache,const LevelContent &content) {
+  const auto name=std::getenv("HALO2_TU15_OBJECT_FIELD_TARGET");check(name,"Object field input requires its authored target definition");
+  unsigned ordinal=std::getenv("HALO2_TU15_OBJECT_FIELD_INSTANCE")?std::stoul(std::getenv("HALO2_TU15_OBJECT_FIELD_INSTANCE")):0u;
+  for(unsigned n=0;n<content.objects.size();++n) {
+    const auto &placed=content.objects[n];const auto *tag=cache.find_tag(TagHandle{placed.definition});
+    if(placed.type!=11 || !tag || tag->name!=name || ordinal--!=0)continue;
+    const auto basis=authored_basis(placed.rotation);
+    const auto root=source_object_transform(placed.position,basis.forward,basis.up,placed.scale,false);
+    Transform offset;offset.position=placed.bounding_offset;auto radius=placed.bounding_radius*placed.scale;
+    if(const auto selected=std::getenv("HALO2_TU15_OBJECT_FIELD_BODY_INPUT")) {
+      const auto object=cache.load_source_tag_metadata(placed.definition);
+      const auto model=cache.load_source_tag_metadata(Bytes(object.bytes_at(object.source_address(),object.size())).u32(0x38));
+      const auto physics=cache.load_source_tag_metadata(Bytes(model.bytes_at(model.source_address(),model.size())).u32(0x24));
+      const Bytes phmo(physics.bytes_at(physics.source_address(),physics.size()));
+      const auto index=std::stoul(selected);check(index<phmo.u32(0x38),"Declared moving body approach is outside original PHMO rows");
+      const Bytes body(physics.bytes_at(phmo.u32(0x3c)+std::uint32_t(index)*0x90u,0x90));
+      check(body.u16(0x1a)<4,"Interaction approach requires an authored dynamic body");
+      offset.position={body.f32(8),body.f32(12),body.f32(16)};radius=body.f32(0x14)*placed.scale;
+    }
+    const auto target=compose_transform(root,offset).position;
+    const CollisionWorld terrain(content.collision);
+    check(radius>0,"Original physical target has no authored bounds");
+    const unsigned approach=std::getenv("HALO2_TU15_OBJECT_FIELD_APPROACH")?std::stoul(std::getenv("HALO2_TU15_OBJECT_FIELD_APPROACH")):0u;
+    check(approach<32,"Object approach must be one of the declared32 survey directions");
+    for(float clearance:{1.f,2.f,3.f})for(unsigned candidate=0;candidate<32;++candidate) {
+      const auto angle=(approach+candidate)%32;
+      const float radians=6.283185307f*float(angle)/32.f;
+      const auto direction=basis.forward*std::cos(radians)+basis.left*std::sin(radians);
+      auto position=target+direction*(radius+clearance*content.player.height);
+      const auto floor=terrain.raycast(position+Vec3{0,0,2*content.player.height},{0,0,-1},8*content.player.height);
+      if(!floor || floor->normal.z<=0 || floor->position.z<placed.position.z-content.player.height)continue;position.z=floor->position.z+content.player.radius;
+      if(terrain.overlaps(position,content.player.height,content.player.radius))continue;
+      const auto eye=position+Vec3{0,0,content.player.camera_height};const auto delta=target-eye;
+      if(const auto hit=terrain.raycast(eye,normalized(delta),length(delta));hit && hit->distance<length(delta)-content.player.radius)continue;
+      Spawn spawn;spawn.position=position;spawn.facing=std::atan2(delta.y,delta.x);
+      return {spawn,target,{n}};
+    }
+    throw FormatError("Original physical object has no clear BSP-grounded approach");
+  }
+  throw FormatError("Declared physical object has no authored placement");
+}
 PropWatchEntrance prop_watch_entrance(const Cache &cache,const LevelContent &content) {
   PropWatchEntrance result;std::optional<Vec3> origin;
   const std::string prop_name=std::getenv("HALO2_TU15_PROP_WATCH_NAME")?std::getenv("HALO2_TU15_PROP_WATCH_NAME"):"gas_container";
@@ -367,14 +482,19 @@ VehicleEntrance vehicle_entrance(const Cache &cache,const LevelContent &content)
     check(consumed==text.size() && index>=0,"Invalid declared vehicle seat");requested_seat=unsigned(index);
   }
   check(vehicle_name=="warthog" || vehicle_name=="ghost" || vehicle_name=="banshee" ||
-      vehicle_name=="scorpion" || vehicle_name=="wraith" || vehicle_name=="spectre" || vehicle_name=="spectre_secondary" || vehicle_name=="warthog_gauss",
-      "Vehicle acceptance selection has no authored Coagulation fixture");
+      vehicle_name=="scorpion" || vehicle_name=="wraith" || vehicle_name=="spectre" || vehicle_name=="spectre_secondary" || vehicle_name=="warthog_gauss" || vehicle_name=="h_turret_ap" || vehicle_name=="c_turret_ap",
+      "Vehicle acceptance selection has no authored fixture");
   for(const auto &[row,placement]:assets.netgame_placements) {
     const auto &object=content.objects.at(placement);
     const auto tag=std::find_if(cache.tags().begin(),cache.tags().end(),[&](const Tag&t){return t.datum==object.definition;});
     const auto definition_name=vehicle_name=="warthog_gauss"?"warthog":
         vehicle_name=="spectre_secondary"?"spectre":vehicle_name;
     if(tag==cache.tags().end() || tag->name.find("\\"+definition_name+"\\")==std::string::npos)continue;
+    if(vehicle_name=="h_turret_ap" || vehicle_name=="c_turret_ap") {
+      const unsigned classification=std::getenv("HALO2_TU15_TURRET_CLASS")?std::stoul(std::getenv("HALO2_TU15_TURRET_CLASS")):6u;
+      check(classification==6 || classification==7,"Fixed turret requires authored class6/7");
+      if(content.netgame_equipment.at(row).classification!=int(classification))continue;
+    }
     if(vehicle_name=="warthog_gauss")check(object.variant==0x05000694u,"Gauss fixture did not select the original authored variant");
     if(vehicle_name=="spectre_secondary")
       check(content.netgame_equipment.at(row).classification==2,"Secondary Spectre did not use its authored class2 row");
@@ -406,7 +526,8 @@ VehicleEntrance vehicle_entrance(const Cache &cache,const LevelContent &content)
     const auto nodes=pose_model_nodes_world(definition.hierarchy,root);
     for(unsigned index=0;index<definition.seats.size();++index) {
       const auto &seat=definition.seats[index];
-      if(requested_seat?index!=*requested_seat:!(seat.flags&4u))continue;
+      const auto controlling_flag=(vehicle_name=="h_turret_ap" || vehicle_name=="c_turret_ap")?8u:4u;
+      if(requested_seat?index!=*requested_seat:!(seat.flags&controlling_flag))continue;
       // The source admission/animation owners decide whether this seat needs
       // an entry clip. An absent generic clip cannot suppress a test approach.
       const auto marker=definition.markers.find(seat.marker),entry=definition.markers.find(seat.entry_marker);
@@ -432,6 +553,21 @@ VehicleEntrance vehicle_entrance(const Cache &cache,const LevelContent &content)
     }
   }
   throw FormatError("Vehicle acceptance found no authored "+vehicle_name+" selected seat entrance");
+}
+RayHit vehicle_wall_target(const VehicleEntrance &entry,const LevelContent &content) {
+  const CollisionWorld terrain(content.collision);
+  // Preserve the original approach preference, then survey the rest of the
+  // authored horizontal directions. Heavy placements have walls at25..27.
+  for(int offset:{2,-2,4,-4,6,-6,8,-8,0,1,-1,3,-3,5,-5,7,-7,9,-9,10,-10,11,-11,12,-12,13,-13,14,-14,15,-15,16}) {
+    const float angle=float(offset)*6.283185307f/32.f;
+    const auto direction=normalized(entry.root.basis[0]*std::cos(angle)+entry.root.basis[1]*std::sin(angle));
+    const auto hit=terrain.raycast(entry.root.position+Vec3{0,0,.7f},direction,30.f);
+    if(!hit || hit->distance<4.f || std::abs(hit->normal.z)>.35f)continue;
+    const auto upper=terrain.raycast(entry.root.position+Vec3{0,0,1.2f},direction,30.f);
+    if(!upper || std::hypot(upper->position.x-hit->position.x,upper->position.y-hit->position.y)>content.player.height)continue;
+    return *hit;
+  }
+  throw FormatError("Selected original vehicle has no reachable tall cached BSP wall in the declared direction survey");
 }
 Json inventory(const MultiplayerPreparedWorld &world) {
   Json out;out["authored_vehicle_candidates"]=Json::array();out["scene_roots"]=Json::array();
@@ -494,7 +630,13 @@ struct Host {
   Json script_stages=Json::array();
   std::atomic_bool start_device_script{};
   std::atomic_bool resume_support{};
+  std::atomic_bool support_client_ready{};
+  std::atomic_bool capture_world_requested{};
+  bool vehicle_death_observed{};
+  bool source_authority_restored{};
+  std::atomic_uint32_t vehicle_attack_target{null_datum},turret_damage_target{null_datum};std::atomic_bool vehicle_attack_dead{};
   Json support_samples=Json::array();
+  Json vehicle_vitality_samples=Json::array();
   Json script_status;
   std::uint32_t first_prop_generation=null_datum;
   std::shared_ptr<const LevelContent> content;
@@ -509,17 +651,36 @@ struct Host {
       MultiplayerPreparedWorld world(options,std::move(script_input));
       world.match.configure_replicated_first_person(world.cache->load_first_person_binding(world.rules.weapon,2));
       std::optional<std::uint32_t> support_object;bool support_resumed=false;
+      unsigned support_node{};
+      bool support_start_barrier{};
       const auto support_power=[&](float value) {
         check(support_object.has_value(),"Original support command lost its current source object");
         world.source_objects->script_device("device_set_power",{ScriptValue{54,*support_object,{}},ScriptValue::numeric(value,6)});
       };
       if(std::getenv("HALO2_TU15_SUPPORT_INPUT")) {
+        const auto entrance=wheel_support_entrance(*world.cache,world.content);support_node=entrance.node;
+        support_start_barrier=std::getenv("HALO2_TU15_SUPPORT_DEFINITION");
         for(const auto &object:world.source_objects->live_objects()) {
           const auto *tag=world.cache->find_tag(TagHandle{object.definition});
-          if(tag && tag->name=="scenarios\\objects\\multi\\zanzibar\\big_wheel\\big_wheel")support_object=object.object;
+          if(tag && tag->datum==entrance.definition)support_object=object.object;
         }
         check(support_object.has_value(),"Original support fixture has no current wheel body");
-        support_power(0);world.match.step({});
+        if(entrance.phase) {
+          support_start_barrier=true;
+          const auto initial=*support_object;
+          // Let the original startup scripts own their ordinary retirement
+          // and runtime birth. Stage the actual current generation only.
+          world.match.step({});support_object.reset();
+          for(unsigned tick=0;tick<900 && !support_object;++tick) {
+            for(const auto &object:world.source_objects->live_objects())if(object.definition==entrance.definition)support_object=object.object;
+            if(!support_object)world.match.step({});
+          }
+          check(support_object.has_value(),"Original map scripts produced no current carrier generation for the declared approach");
+          support_power(0);
+          world.source_objects->script_device("device_set_position_immediate",{ScriptValue{54,*support_object,{}},ScriptValue::numeric(*entrance.phase,6)});
+          scene_lifecycle.push_back({{"phase","declared_original_carrier_device_input"},{"old",initial},{"new",*support_object},{"position_input",*entrance.phase},{"tick",world.match.simulation().ticks()}});
+          world.match.step({});
+        } else {support_power(0);world.match.step({});}
       }
       if(std::getenv("HALO2_TU15_LIFT_CREATE_INPUT")) {
         const auto selected=std::getenv("HALO2_TU15_LIFT_DEFINITION");check(selected,"Field creation requires a declared definition");
@@ -550,7 +711,7 @@ struct Host {
             {"tick",world.match.simulation().ticks()}});
       }
       std::ofstream impulse_trace;
-      if(world.source_objects && std::getenv("HALO2_TU15_PROP_GRENADE")) {
+      if(world.source_objects && (std::getenv("HALO2_TU15_PROP_GRENADE") || std::getenv("HALO2_TU15_TURRET_DAMAGE_INPUT"))) {
         impulse_trace.open(options.source_object_savegame_directory.parent_path()/"authority-point-impulses.jsonl");
         check(bool(impulse_trace),"Could not retain actual authority point impulses");
         world.source_objects->observe_body_impulses([this,&impulse_trace](const auto &event){
@@ -590,7 +751,67 @@ struct Host {
         original_force_capture=std::make_unique<test::LivePhantomOriginalCaptureTu15>(
             options.source_object_savegame_directory.parent_path()/"original-force-capture");
       }
+      std::map<std::uint32_t,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> physics_entry_captures;
+      std::map<std::uint32_t,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> post_impulse_captures;
+      if(std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT"))for(auto entry:{0xb8f40u,0x1cc8d0u})
+        post_impulse_captures.emplace(entry,std::make_unique<test::LivePhysicsEntryCaptureTu15>(
+            options.source_object_savegame_directory.parent_path()/(entry==0xb8f40u?"original-post-impulse-object-capture":"original-post-impulse-world-capture")));
+      std::map<std::uint32_t,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> post_death_captures;
+      if(std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT"))for(auto entry:{0xb8f40u,0x1cc8d0u})
+        post_death_captures.emplace(entry,std::make_unique<test::LivePhysicsEntryCaptureTu15>(
+            options.source_object_savegame_directory.parent_path()/(entry==0xb8f40u?"original-post-death-object-capture":"original-post-death-world-capture")));
+      std::map<std::uint32_t,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> post_restore_captures;
+      if(std::getenv("HALO2_TU15_AUTHORITY_RESTORE"))for(auto entry:{0xb8f40u,0x1cc8d0u})
+        post_restore_captures.emplace(entry,std::make_unique<test::LivePhysicsEntryCaptureTu15>(
+            options.source_object_savegame_directory.parent_path()/(entry==0xb8f40u?"original-post-restore-object-capture":"original-post-restore-world-capture")));
+      std::optional<SourcePhysicsEntryObserverBinding> physics_entry_observer;
+      const auto add_capture=[&](std::uint32_t entry) {
+        const auto name=entry==0x14fec0u?"original-player-update-capture":entry==0x1cc8d0u?"original-world-capture":entry==0xb8f40u?"original-object-update-capture":entry==0x2ee660u?"original-broadphase-capture":"original-query-capture";
+        physics_entry_captures.emplace(entry,std::make_unique<test::LivePhysicsEntryCaptureTu15>(
+            options.source_object_savegame_directory.parent_path()/name));
+      };
+      if(std::getenv("HALO2_TU15_VEHICLE_PHASE_CAPTURE")) {
+        add_capture(0xb8f40u);add_capture(0x1cc8d0u);
+        if(std::getenv("HALO2_TU15_TURRET_WEAPON_TRACE"))add_capture(0x14fec0u);
+      } else if(std::getenv("HALO2_TU15_BROADPHASE_ORIGINAL_CAPTURE")) {
+        const auto selected=std::getenv("HALO2_TU15_QUERY_CAPTURE_ENTRY");
+        const auto entry=selected?std::uint32_t(std::stoul(selected,nullptr,0)):0x2ee660u;
+        check(entry==0x2f9d70u || entry==0x2ee660u || entry==0x2f1930u || entry==0x2fc5d0u || entry==0x1cc8d0u || entry==0xb8f40u,"Select an authenticated live physics entry");
+        add_capture(entry);
+      }
+      if(!physics_entry_captures.empty())physics_entry_observer.emplace(world.source_objects->memory(),[&](bool entering,std::uint32_t entry,const auto &state) {
+        const auto found=physics_entry_captures.find(entry);
+        if(source_authority_restored)if(const auto post=post_restore_captures.find(entry);post!=post_restore_captures.end())
+          post->second->observe(entering,state,world.source_objects->memory(),entry);
+        // Every export is read-only. The additional pair observes actual
+        // source impulse consequences; neither capture provides game state.
+        if(found!=physics_entry_captures.end() &&
+            ((entry!=0x1cc8d0u && entry!=0xb8f40u && entry!=0x14fec0u) || capture_world_requested.load() || !impulses.empty()))
+          found->second->observe(entering,state,world.source_objects->memory(),entry);
+        if(!impulses.empty())if(const auto post=post_impulse_captures.find(entry);post!=post_impulse_captures.end())
+          post->second->observe(entering,state,world.source_objects->memory(),entry);
+        if(vehicle_death_observed)if(const auto post=post_death_captures.find(entry);post!=post_death_captures.end())
+          post->second->observe(entering,state,world.source_objects->memory(),entry);
+      });
+      std::ofstream turret_weapon_trace,turret_effect_trace;
+      if(std::getenv("HALO2_TU15_TURRET_WEAPON_TRACE")) {
+        turret_weapon_trace.open(options.source_object_savegame_directory.parent_path()/"authority-turret-weapons.jsonl");
+        turret_effect_trace.open(options.source_object_savegame_directory.parent_path()/"authority-turret-effect-calls.jsonl");
+        check(bool(turret_weapon_trace) && bool(turret_effect_trace),"Cannot retain original turret weapon inputs");
+        world.source_objects->observe_weapon_effect_phase([&](bool entering,const auto &a,const auto &memory,const auto &,const auto &) {
+          const auto word=[&](auto p){return Bytes(memory.view(p,4)).u32(0);};
+          Json row{{"entering",entering},{"tick",word(word(0x51df54u)+8u)},{"eax",a.gp[0]},{"ecx",a.gp[1]}};
+          if(entering) {
+            const auto body=word(word(word(0x4ecbd0u)+0x44u)+(a.gp[1]&0xffffu)*0xcu+8u);
+            row["weapon"]=a.gp[1];row["unit"]=word(body+0x14u);row["effect"]=a.gp[0];
+          }
+          turret_effect_trace<<row.dump()<<'\n';turret_effect_trace.flush();
+          check(bool(turret_effect_trace),"Cannot retain original turret effect phase");
+        });
+      }
+      bool contrail_bank_captured{},nonempty_contrail_bank_captured{};
       std::map<std::uint32_t,std::pair<unsigned,std::string>> velocity_targets;
+      std::ofstream contrail_store_trace;
       struct PhysicsObservationScope {
         MultiplayerObjectRuntime *runtime{};
         ~PhysicsObservationScope() {
@@ -599,8 +820,24 @@ struct Host {
           // world teardown executes more stores after those locals retire.
           runtime->observe_body_velocity_inputs({});runtime->observe_physics_stores({});
           runtime->observe_phantom_phase({});
+          if(std::getenv("HALO2_TU15_TURRET_WEAPON_TRACE"))runtime->observe_weapon_effect_phase({});
         }
-      } physics_observation_scope{std::getenv("HALO2_TU15_PHANTOM_TRACE")?world.source_objects.get():nullptr};
+      } physics_observation_scope{(std::getenv("HALO2_TU15_PHANTOM_TRACE") || std::getenv("HALO2_TU15_CONTRAIL_STORES"))?world.source_objects.get():nullptr};
+      if(std::getenv("HALO2_TU15_CONTRAIL_STORES")) {
+        check(!std::getenv("HALO2_TU15_PHANTOM_TRACE"),"Contrail diagnostic requires its independent store observer");
+        contrail_store_trace.open(options.source_object_savegame_directory.parent_path()/"authority-contrail-stores.jsonl");
+        check(bool(contrail_store_trace),"Cannot retain original attachment allocation stores");
+        world.source_objects->observe_physics_stores([&](std::uint32_t,const SourcePhysicsContactRecordStore &store) {
+          if(store.instruction!=0xc0e54u && store.instruction!=0x17e97eu && store.instruction!=0x17e9d6u &&
+              store.instruction!=0xc0f25u && store.instruction!=0x16e71cu)return;
+          const auto &memory=world.source_objects->memory();const auto word=[&](auto p){return Bytes(memory.view(p,4)).u32(0);};
+          const auto pool=word(0x4f7214u);const auto tag=word(word(0x4f0414u)+0xf4au*16u+8u);
+          contrail_store_trace<<Json{{"tick",word(word(0x51df54u)+8u)},{"instruction",store.instruction},
+              {"address",store.address},{"before",hex_bytes(store.before)},{"written",hex_bytes(store.written)},
+              {"contrail_pool",hex_bytes(memory.view(pool,0x4c))},{"human_bitmap",word(tag+0x34u)}}.dump()<<'\n';
+          contrail_store_trace.flush();check(bool(contrail_store_trace),"Cannot retain original attachment store");
+        });
+      }
       if(std::getenv("HALO2_TU15_PHANTOM_TRACE")) {
         phantom_trace.open(options.source_object_savegame_directory.parent_path()/"authority-phantom-phase.jsonl");
         check(bool(phantom_trace),"Could not retain actual source phantom phase");
@@ -651,6 +888,16 @@ struct Host {
           const auto selected=std::getenv("HALO2_TU15_LIFT_DEFINITION");
           if(!tag || (selected?tag->name!=selected:tag->name.find("lift")==std::string::npos))return;
           Json members=Json::array();std::uint32_t capture_target=world.match.player(1).source_current_object;
+          const auto requested_member=std::getenv("HALO2_TU15_OBJECT_FIELD_TARGET");
+          if(requested_member) {
+            unsigned ordinal=std::getenv("HALO2_TU15_OBJECT_FIELD_INSTANCE")?std::stoul(std::getenv("HALO2_TU15_OBJECT_FIELD_INSTANCE")):0u;
+            capture_target=null_datum;
+            for(const auto &root:world.match.simulation().scene().objects()) {
+              const auto *target=world.cache->find_tag(TagHandle{world.content.objects.at(root.placement).definition});
+              if(target && target->name==requested_member && ordinal--==0){capture_target=root.handle;break;}
+            }
+            check(capture_target!=null_datum,"Declared original force capture lost its current authored target");
+          }
           if(std::getenv("HALO2_TU15_PHANTOM_OBJECT_TRACE")) {
             const auto header=word(component+0x94u);
             if(header) {
@@ -672,7 +919,7 @@ struct Host {
                     if(index<word(address+0x74u)) {
                       const auto rigid=word(word(address+0x70u)+index*0x60u+0x40u),motion=word(rigid+0x3cu);
                       member["motion_bytes"]=hex_bytes(memory.view(motion,512));member["motion_address"]=motion;
-                      if(std::getenv("HALO2_TU15_PHANTOM_CAPTURE_ANY_MEMBER") && capture_target==world.match.player(1).source_current_object &&
+                      if(!requested_member && std::getenv("HALO2_TU15_PHANTOM_CAPTURE_ANY_MEMBER") && capture_target==world.match.player(1).source_current_object &&
                           member["type"]!=0)capture_target=other;
                     }
                   }
@@ -725,6 +972,14 @@ struct Host {
       auto next=std::chrono::steady_clock::now();
       while(!stop.stop_requested()) {
         transport.receive(controls);
+        if(support_start_barrier && !support_client_ready.load()) {
+          // Keep the finite fixture at its completed staged source frame
+          // while the real client prepares graphics and joins. Network
+          // admission/publication still run. All actual physics resumes
+          // when that client can display and deliver ordinary controls.
+          {std::lock_guard lock(mutex);history.push_back(world.match.state());}
+          transport.broadcast();next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);continue;
+        }
         if(resume_support.exchange(false)) {support_power(1);support_resumed=true;}
         if(start_device_script.exchange(false)) {
           check(scripted,"Device script start has no declared input");
@@ -733,6 +988,35 @@ struct Host {
         // HELLO can publish a new participant at the existing world clock,
         // before the next physics frame. Retain that actual sent-state phase.
         const auto before=world.match.state();
+        if(std::getenv("HALO2_TU15_AUTHORITY_RESTORE") && !source_authority_restored &&
+            std::ranges::any_of(before.players,[](const auto &p){return p.connected && p.source_parent!=null_datum && p.source_seat>=0;}) &&
+            std::ranges::any_of(before.world_vehicles,[](const auto &v){return length(v.lighting_velocity)>.1f;})) {
+          // An executor-owned transaction restores completed authority only.
+          // No physics input, bank byte, contact, camera, or solved pose changes.
+          constexpr SourceMatchAuthority::AuthorityDigest binding{std::byte{0x15},std::byte{0x53}};
+          SourceMatchAuthority authority(world.match,*world.source_objects);
+          const auto saved=authority.checkpoint(binding);
+          auto prepared=authority.prepare(saved,binding);
+          check(authority.commit(std::move(prepared)),"Live occupied-vehicle authority restore failed");
+          const auto restored=authority.checkpoint(binding);
+          check(saved.world.world.bank==restored.world.world.bank &&
+              saved.match.simulation.ticks==restored.match.simulation.ticks &&
+              saved.match.source_players==restored.match.source_players,
+              "Live occupied-vehicle restore changed source memory, clock or player binding");
+          const auto after=world.match.state();
+          for(unsigned slot=0;slot<before.players.size();++slot) {
+            const auto &a=before.players[slot],&b=after.players[slot];
+            check(a.source_player==b.source_player && a.source_unit==b.source_unit &&
+                a.source_parent==b.source_parent && a.source_seat==b.source_seat &&
+                !std::memcmp(&a.position,&b.position,sizeof(Vec3)) &&
+                !std::memcmp(&a.velocity,&b.velocity,sizeof(Vec3)),
+                "Live occupied-vehicle restore changed its published participant state");
+          }
+          scene_lifecycle.push_back({{"phase","source_authority_restore_while_vehicle_occupied"},
+              {"tick",before.tick},{"full_bank_equal",true},{"source_player_bindings_equal",true},
+              {"source_static_agent_vtable",Bytes(world.source_objects->memory().view(0x48cdc4u,4)).u32(0)}});
+          source_authority_restored=true;
+        }
         if(machine_trace.is_open()) {
           const auto &memory=world.source_objects->memory();
           const auto word=[&](auto address){return Bytes(memory.view(address,4)).u32(0);};
@@ -835,21 +1119,86 @@ struct Host {
         }
         {std::lock_guard lock(mutex);history.push_back(before);}
         world.match.step(controls);
+        if(turret_weapon_trace.is_open() && vehicle_attack_target.load()!=null_datum) {
+          const auto target=vehicle_attack_target.load();const auto &memory=world.source_objects->memory();
+          const auto word=[&](auto p){return Bytes(memory.view(p,4)).u32(0);};
+          const auto body=world.source_objects->object_body(target);
+          Json row{{"tick",world.match.state().tick},{"vehicle",target},{"unit_bytes",hex_bytes(memory.view(body+0x12cu,0x118u))},{"weapons",Json::array()},{"commands",Json::array()}};
+          for(const auto &object:world.source_objects->live_objects())if(object.type==2 && object.parent==target) {
+            const auto weapon=world.source_objects->object_body(object.object);
+            row["weapons"].push_back({{"object",object.object},{"definition",object.definition},{"body_bytes",hex_bytes(memory.view(weapon,0x200u))}});
+          }
+          for(unsigned n=0;n<controls.size();++n)if(world.match.player(n).connected)
+            row["commands"].push_back({{"slot",n},{"fire",controls[n].fire},{"fire_secondary",controls[n].fire_secondary}});
+          turret_weapon_trace<<row.dump()<<'\n';turret_weapon_trace.flush();check(bool(turret_weapon_trace),"Cannot retain actual turret weapon states");
+        }
+        if(std::getenv("HALO2_TU15_TURRET_DAMAGE_INPUT") && turret_damage_target.load()!=null_datum) {
+          const auto target=turret_damage_target.load();const auto vital=world.source_objects->object_vitality(target);
+          vehicle_vitality_samples.push_back({{"tick",world.match.state().tick},{"object",target},{"body",vital.body},{"shield",vital.shield}});
+        }
+        if(std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT")) {
+          const auto state=world.match.state();
+          for(const auto &vehicle:state.world_vehicles) {
+            const auto vital=world.source_objects->object_vitality(vehicle.handle);
+            const auto body=world.source_objects->object_body(vehicle.handle);
+            const auto flags=std::to_integer<unsigned>(world.source_objects->memory().view(body+0x10au,1)[0]);
+            vehicle_death_observed|=vital.body<=0.f && bool(flags&4u);
+            if(vehicle.handle==vehicle_attack_target.load() && vital.body<=0.f && (flags&4u))vehicle_attack_dead.store(true);
+            vehicle_vitality_samples.push_back({{"tick",state.tick},{"object",vehicle.handle},{"placement",vehicle.placement},
+                {"body",vital.body},{"shield",vital.shield},{"original_damage_flags",flags}});
+          }
+        }
         if(support_object && world.match.player(1).connected) {
           const auto &player=world.match.player(1);const auto &memory=world.source_objects->memory();
-          const auto node=world.source_objects->world_nodes(*support_object);check(!node.empty(),"Original rotating support lost WORLD node0");
+          const auto live=world.source_objects->live_objects();
+          const auto exists=[&](std::uint32_t handle){return std::any_of(live.begin(),live.end(),[&](const auto &o){return o.object==handle;});};
+          const auto support_state=world.match.state();
+          const bool released=!exists(player.source_current_object) && player.source_current_object==null_datum &&
+              support_state.players[1].dead && support_state.players[1].source_unit==null_datum;
+          if(!exists(*support_object) || (!exists(player.source_current_object) && !released)) {
+            const auto state=world.match.state();
+            const Json identity{{"tick",state.tick},{"carrier",*support_object},{"carrier_live",exists(*support_object)},
+                {"current_object",player.source_current_object},{"current_live",exists(player.source_current_object)},
+                {"unit",state.players[1].source_unit},{"dead",state.players[1].dead}};
+            std::ofstream(options.source_object_savegame_directory.parent_path()/"support-identity-failure.json")<<identity.dump(2)<<'\n';
+            throw FormatError("Original support diagnostic lost identity: "+identity.dump());
+          }
+          if(released) {
+            support_samples.push_back({{"tick",support_state.tick},{"unit",null_datum},{"wheel",*support_object},
+                {"released_player_body",true},{"dead",true}});
+          } else {
+          const auto nodes=world.source_objects->world_nodes(*support_object);check(support_node<nodes.size(),"Original carrier lost its selected WORLD node");
+          const auto &node=nodes[support_node];
           const auto unit=world.source_objects->object_body(player.source_current_object);
           const auto flags=Bytes(memory.view(unit+0x348u,2)).u16(0);
           const auto state=world.match.state();
           check(state.players[1].native_grounded==((flags&1u)==0),"Rotating support grounded readback differs from original biped");
           const auto wheel_body=world.source_objects->object_body(*support_object);
+          const auto word=[&](auto p){return Bytes(memory.view(p,4)).u32(0);};
+          const auto bodies=[&](auto object_body) {
+            Json rows=Json::array();const auto component=word(object_body+0xb4u);
+            if(component==null_datum)return rows;
+            const auto pool=word(0x52be5cu),row=word(pool+0x44u)+(component&65535u)*word(pool+0x24u);
+            const auto count=word(row+0x74u),list=word(row+0x70u);check(count<=64,"Support diagnostic has an invalid body extent");
+            for(unsigned i=0;i<count;++i) {
+              const auto rigid=word(list+i*0x60u+0x40u),motion=word(rigid+0x3cu);
+              const Bytes velocity(memory.view(motion+0x40u,32));
+              rows.push_back({{"index",i},{"rigid",rigid},{"motion",motion},{"motion_bytes",hex_bytes(memory.view(motion,0x100))},
+                  {"linear",Json::array({velocity.f32(0),velocity.f32(4),velocity.f32(8),velocity.f32(12)})},
+                  {"angular",Json::array({velocity.f32(16),velocity.f32(20),velocity.f32(24),velocity.f32(28)})}});
+            }
+            return rows;
+          };
+          if(support_resumed)capture_world_requested.store(true);
           support_samples.push_back({{"tick",state.tick},{"unit",player.source_current_object},{"wheel",*support_object},
               {"resumed",support_resumed},{"position",xyz(state.players[1].position)},{"velocity",xyz(state.players[1].velocity)},
+              {"carrier_bodies",bodies(wheel_body)},{"player_bodies",bodies(unit)},
               {"grounded",state.players[1].native_grounded},{"source_support_flags",flags},
               {"wheel_position_bits",Bytes(memory.view(wheel_body+0x140u,4)).u32(0)},
               {"wheel_power_bits",Bytes(memory.view(wheel_body+0x134u,4)).u32(0)},
-              {"node_scale",node[0].scale},{"node_position",xyz(node[0].position)},
-              {"node_basis",Json::array({xyz(node[0].basis[0]),xyz(node[0].basis[1]),xyz(node[0].basis[2])})}});
+              {"node_scale",node.scale},{"node_position",xyz(node.position)},
+              {"node_basis",Json::array({xyz(node.basis[0]),xyz(node.basis[1]),xyz(node.basis[2])})}});
+          }
         }
         if(scripted) {
           const auto &vm=world.match.simulation().scripts();
@@ -885,6 +1234,38 @@ struct Host {
                 {"variant",regions.selection.variant_index},{"permutations",regions.selection.permutations}}.dump()<<'\n';
             source_birth_trace.flush();check(bool(source_birth_trace),"Could not retain completed source birth readback");
           }
+        if(std::getenv("HALO2_TU15_CONTRAIL_CAPTURE") && !nonempty_contrail_bank_captured) {
+          const auto &memory=world.source_objects->memory();
+          const auto word=[&](auto p,unsigned n=4){const Bytes b(memory.view(p,n));return n==2?b.u16(0):b.u32(0);};
+          const auto pool=word(0x4f7214u);bool chain_ready{};
+          for(unsigned n=0;n<word(pool+0x38u);++n)if(word(word(pool+0x48u)+n/32u*4u)&(1u<<(n%32u))) {
+            const auto row=word(pool+0x44u)+n*72u;
+            for(unsigned c=0;c<4;++c)if(word(row+0x30u+c*2u,2)>=2) {
+              const auto points=word(0x4f7210u);auto datum=word(row+0x38u+c*4u);
+              for(unsigned q=0;q<word(row+0x30u+c*2u,2) && datum!=null_datum;++q) {
+                const auto point=word(points+0x44u)+(datum&65535u)*56u;
+                chain_ready|=std::int8_t(std::to_integer<unsigned>(memory.view(point+3u,1).front()))>=0;
+                datum=word(point+0x34u);
+              }
+            }
+          }
+          const auto objects=world.source_objects->live_objects();
+          const auto projectile_alive=std::any_of(objects.begin(),objects.end(),[](const auto &o){return o.type==5;});
+          if(chain_ready || (projectile_alive && !contrail_bank_captured)) {
+            const auto directory=options.source_object_savegame_directory.parent_path()/(chain_ready?"original-contrail-geometry-input":"original-contrail-input");
+            std::filesystem::create_directories(directory);
+            Json record{{"tick",world.match.simulation().ticks()},{"regions",Json::array()},
+                {"reference","English TU1.5 actual live source bank; read-only diagnostic"}};
+            memory.visit_committed([&](auto address,auto bytes) {
+              const auto file="bank-"+std::to_string(address)+".bin";
+              std::ofstream bank(directory/file,std::ios::binary);bank.write(reinterpret_cast<const char *>(bytes.data()),bytes.size());
+              check(bool(bank),"Cannot retain actual contrail source bank");
+              record["regions"].push_back({{"address",address},{"size",bytes.size()},{"file",file}});
+            });
+            std::ofstream file(directory/"capture.json");file<<record.dump(2)<<'\n';
+            check(bool(file),"Cannot retain contrail source capture manifest");contrail_bank_captured=true;nonempty_contrail_bank_captured=chain_ready;
+          }
+        }
         {std::lock_guard lock(mutex);history.push_back(world.match.state());}
         transport.broadcast();
         next+=std::chrono::microseconds(33333);std::this_thread::sleep_until(next);
@@ -933,11 +1314,50 @@ int main(int argc,char **argv) try {
       lift=scenario=="lift"||scenario=="lan-lift",vehicle=scenario=="vehicle"||scenario=="lan-vehicle",objects=scenario=="objects"||scenario=="lan-objects";
   const auto vehicle_selection=std::getenv("HALO2_TU15_VEHICLE_NAME");
   const std::string_view vehicle_name=vehicle_selection?vehicle_selection:"warthog";
+  const bool fixed_turret_test=vehicle && (vehicle_name=="h_turret_ap" || vehicle_name=="c_turret_ap");
+  const bool turret_damage_test=fixed_turret_test && std::getenv("HALO2_TU15_TURRET_DAMAGE_INPUT");
+  check(!turret_damage_test || vehicle_name=="h_turret_ap","Turret damage input selects the original human gun");
   const bool accompanied_driver=vehicle && std::getenv("HALO2_TU15_SEAT_DRIVER");
+  unsigned source_drive_ticks{};
+  if(const auto duration=std::getenv("HALO2_TU15_VEHICLE_DRIVE_TICKS")) {
+    source_drive_ticks=std::stoul(duration);
+    check(accompanied_driver && source_drive_ticks>0 && source_drive_ticks<=600,
+        "Declared camera drive duration requires a moving seat and 1..600 source ticks");
+  }
+  const bool vehicle_collision_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_COLLISION_INPUT");
+  const bool vehicle_blast_test=vehicle && std::getenv("HALO2_TU15_VEHICLE_BLAST_INPUT");
+  std::optional<unsigned> vehicle_blast_started;
+  const bool vehicle_weapon_test=vehicle_blast_test && std::getenv("HALO2_TU15_VEHICLE_WEAPON_INPUT");
+  bool vehicle_weapon_pressed{},vehicle_reload_pressed{};unsigned vehicle_weapon_commands{},vehicle_reload_commands{};
+  unsigned vehicle_weapon_press_tick{},vehicle_last_shot{},vehicle_loaded_before{};
+
+  const unsigned vehicle_blast_count=vehicle_blast_test && std::getenv("HALO2_TU15_VEHICLE_BLAST_COUNT")?std::stoul(std::getenv("HALO2_TU15_VEHICLE_BLAST_COUNT")):1u;
+  check(!vehicle_blast_test || (vehicle_blast_count>=1 && vehicle_blast_count<=2),"Vehicle blast uses the ordinary one/two starting grenades");
+  unsigned vehicle_blast_detonations{};std::optional<unsigned> vehicle_last_detonation;
+
+
+  check(!vehicle_collision_test || !accompanied_driver,"Vehicle collision input requires its ordinary driver view");
+  std::optional<RayHit> collision_wall;std::optional<std::pair<std::uint32_t,Vec3>> collision_previous;
+  float collision_peak_speed{},collision_minimum_plane_distance=1000000.f;unsigned collision_stopped_ticks{};
+  bool collision_camera_turned{};
+
   const bool control_test=lan && std::getenv("HALO2_TU15_CONTROL_ENTRY");
   const bool script_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_DEVICE_SCRIPT_INPUT");
   const bool support_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_SUPPORT_INPUT");
-  const bool prop_watch_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_PROP_WATCH_INPUT");
+  const bool conveyor_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_PLAYER_CONVEYOR_INPUT");
+  unsigned conveyor_grounded_ticks{},conveyor_uncommanded_ticks{};float conveyor_grounded_travel{};
+  const bool object_field_test=scenario=="lan-movement" && std::getenv("HALO2_TU15_OBJECT_FIELD_TARGET");
+  const bool prop_watch_test=scenario=="lan-movement" && (std::getenv("HALO2_TU15_PROP_WATCH_INPUT") || object_field_test);
+  const unsigned object_field_ticks=object_field_test && std::getenv("HALO2_TU15_OBJECT_FIELD_TICKS")?
+      std::stoul(std::getenv("HALO2_TU15_OBJECT_FIELD_TICKS")):360u;
+  check(!object_field_test || (object_field_ticks>=360 && object_field_ticks<=1800),"Declared object observation must cover360..1800 normal ticks");
+  bool object_field_jump{},object_field_jump_released{};
+  const bool object_field_shoot=object_field_test && std::getenv("HALO2_TU15_OBJECT_FIELD_SHOOT");
+  const bool object_field_grenade=object_field_test && std::getenv("HALO2_TU15_OBJECT_FIELD_GRENADE");
+  bool object_field_fire_pressed{},object_field_fire_released{};unsigned object_field_fire_commands{};
+  std::map<std::pair<std::uint32_t,unsigned>,Transform> object_field_first_nodes;
+  std::map<std::uint32_t,float> object_field_angles;
+
   std::optional<PropWatchEntrance> prop_watch;
   std::optional<std::pair<float,float>> prop_pending_look;
   std::map<std::uint32_t,Vec3> prop_watch_first;
@@ -953,15 +1373,15 @@ int main(int argc,char **argv) try {
   std::optional<ControlEntrance> control_start;
   bool control_pressed=false,control_released=false;
   std::optional<std::pair<float,float>> control_pending_look;
-  const bool long_vehicle_sequence=vehicle && (accompanied_driver || !std::getenv("HALO2_TU15_VEHICLE_SEAT")) &&
-      (vehicle_name=="warthog" || vehicle_name=="banshee" || vehicle_name=="scorpion" || vehicle_name=="wraith" || vehicle_name=="spectre" || vehicle_name=="spectre_secondary" || vehicle_name=="warthog_gauss");
+  const bool long_vehicle_sequence=vehicle && (vehicle_blast_test || accompanied_driver || !std::getenv("HALO2_TU15_VEHICLE_SEAT")) &&
+      (vehicle_blast_test || vehicle_name=="warthog" || vehicle_name=="banshee" || vehicle_name=="scorpion" || vehicle_name=="wraith" || vehicle_name=="spectre" || vehicle_name=="spectre_secondary" || vehicle_name=="warthog_gauss");
   check(!lan || scenario=="lan-movement" || lift || vehicle || objects,"Unknown LAN physics scenario");
   check(lan||lift||vehicle||objects||scenario=="movement","Unknown multiplayer physics scenario");
   check(std::getenv("DISPLAY")||std::getenv("WAYLAND_DISPLAY"),"Visible desktop display is required");
   const std::filesystem::path output=argv[5];std::filesystem::create_directories(output);
   SDL_SetMainReady();SDL_SetHint(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0x0000/0x0000");
   MultiplayerOptions o;o.map=argv[1];o.shared_maps=argv[2];o.gameplay_xbe=argv[3];o.ui_assets=argv[4];
-  o.starting_weapon=5;o.width=960;o.height=540;o.local_players=lan&&!vehicle&&!objects?1:2;o.mute=true;
+  o.starting_weapon=vehicle_weapon_test?8:5;o.width=960;o.height=540;o.local_players=lan&&!vehicle&&!objects?1:2;o.mute=true;
   o.source_object_world=true;o.source_object_savegame_directory=output/"source-savegame";
   o.variant.values.set(2,0);o.variant.values.set(10,0); // Finite test lifecycle owns exit, not game-over.
   if(accompanied_driver) {o.variant.values.set(91,1);o.selected_teams.assign(o.local_players,0);}
@@ -978,6 +1398,11 @@ int main(int argc,char **argv) try {
     // Actual15CB60 choice2 retains the Warthog definition and writes the
     // authored gauss variant05000694; the model owns its turret child.
     if(selected && std::string_view(selected)=="warthog_gauss")o.variant.values.set(76,2);
+    if(fixed_turret_test) {
+      const unsigned classification=std::getenv("HALO2_TU15_TURRET_CLASS")?std::stoul(std::getenv("HALO2_TU15_TURRET_CLASS")):6u;
+      check(classification==6 || classification==7,"Fixed turret requires authored class6/7");
+      o.variant.values.set(81u+classification-6u,vehicle_name=="h_turret_ap"?1:4);
+    }
   }
   Json report{{"scenario",scenario},{"reference","English TU1.5 only"},{"visible",true},
       {"live_physics_parity",false},{"stimulus","SDL keyboard events; no supplied physics results"}};
@@ -988,7 +1413,25 @@ int main(int argc,char **argv) try {
   // to those views; never move a completed body to repair the test.
   const unsigned actor_view=recreate_test?1u:0u,watcher_view=recreate_test?0u:1u;
   const bool debris_test=prop_test && std::getenv("HALO2_TU15_DYNAMIC_OBJECTS");
-  std::set<std::uint32_t> debris_definitions;
+  std::set<std::uint32_t> debris_definitions,turret_projectile_definitions,turret_glow_definitions,turret_contrail_definitions;
+  std::set<std::uint32_t> turret_damage_definitions;
+  std::uint32_t turret_damage_target=null_datum;
+  std::optional<Vec3> turret_damage_position;
+  std::array<unsigned,2> turret_damage_draws{};
+  std::map<std::uint32_t,Vec3> turret_projectile_births;
+  float turret_projectile_travel{},turret_projectile_speed{};
+  std::array<unsigned,2> turret_projectile_draws{},turret_glow_draws{},turret_contrail_draws{},turret_visible_contrail_draws{};
+  float vehicle_weapon_blast_radius{};
+  if(vehicle_weapon_test) {
+    const Cache cache(o.map,o.shared_maps);
+    const auto damage=std::find_if(cache.tags().begin(),cache.tags().end(),[](const Tag &t){return t.group=="jpt!" &&
+        t.name=="objects\\weapons\\support_high\\rocket_launcher\\damage_effects\\rocket_launcher_explosion";});
+    check(damage!=cache.tags().end(),"Rocket approach has no authored blast definition");
+    const auto metadata=cache.load_source_tag_metadata(damage->datum);
+    vehicle_weapon_blast_radius=Bytes(metadata.bytes_at(metadata.source_address(),metadata.size())).f32(4);
+    check(vehicle_weapon_blast_radius>0.f,"Rocket approach needs the original positive upper blast radius");
+    report["declared_rocket_outer_blast_radius"]=vehicle_weapon_blast_radius;
+  }
   std::optional<std::uint32_t> prop_placement;
   if(prop_test) {
     const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
@@ -1037,14 +1480,48 @@ int main(int argc,char **argv) try {
     }
     check(prop_placement.has_value(),"Authored prop fixture has no power module");
   }
+  if(conveyor_test) {
+    check(!script_test && !support_test && !control_test && !prop_watch_test,"Select one conveyor stimulus");
+    const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
+    const auto approach=conveyor_entrance(content);const CollisionWorld terrain(content.collision);std::optional<Spawn> distant;
+    for(const auto &authored:cache.spawns()) {
+      if(length(authored.position-approach.spawn.position)<12*content.player.height)continue;
+      Spawn candidate=authored;const auto floor=terrain.raycast(candidate.position+Vec3{0,0,content.player.height},{0,0,-1},4*content.player.height);
+      if(!floor || floor->normal.z<=0)continue;candidate.position.z=floor->position.z+content.player.radius;
+      if(terrain.overlaps(candidate.position,content.player.height,content.player.radius))continue;
+      distant=candidate;break;
+    }
+    check(distant.has_value(),"Player conveyor requires a distinct authored authority start");
+    o.native_spawn_inputs={*distant,*distant,approach.spawn};
+    report["stimulus"]="Declared clear original cached BSP conveyor surface and distant authority starts; no movement/jump/fire/grenade input or supplied physics result";
+    report["declared_conveyor_start"]=xyz(approach.spawn.position);
+    report["declared_conveyor_surface"]={{"bsp",approach.surface.bsp},{"record",approach.surface.record},{"surface",approach.surface.surface},{"instance",approach.surface.instance},{"plane",approach.surface.plane}};
+  }
   if(prop_watch_test) {
     check(!script_test && !support_test && !control_test,"Select one declared live physics stimulus");
     const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
-    prop_watch=prop_watch_entrance(cache,content);o.native_spawn_inputs={prop_watch->spawn};
+    prop_watch=object_field_test?object_field_entrance(cache,content):prop_watch_entrance(cache,content);o.native_spawn_inputs={prop_watch->spawn};
     report["stimulus"]="Unchanged authored map spawner scripts and original live physics; declared BSP-grounded watcher with ordinary SDL look only";
     report["declared_prop_watch_position"]=xyz(prop_watch->spawn.position);
     report["declared_prop_watch_target"]=xyz(prop_watch->target);
     report["watched_prop_placements"]=prop_watch->placements;
+    if(object_field_test) {
+      report["stimulus"]="Declared BSP-grounded approach to an existing authored physical object; ordinary SDL movement/look/jump/fire/grenade inputs; original contacts, constraints and fields solve all motion";
+      // Keep the authority's ordinary player out of the interaction approach.
+      // All three starts are supplied before world construction; the normal
+      // original spawn collector retains allocation/selection/body ownership.
+      const CollisionWorld terrain(content.collision);std::optional<Spawn> distant;
+      for(const auto &authored:cache.spawns()) {
+        if(length(authored.position-prop_watch->target)<12*content.player.height)continue;
+        Spawn candidate=authored;const auto floor=terrain.raycast(candidate.position+Vec3{0,0,content.player.height},{0,0,-1},4*content.player.height);
+        if(!floor || floor->normal.z<=0)continue;candidate.position.z=floor->position.z+content.player.radius;
+        if(terrain.overlaps(candidate.position,content.player.height,content.player.radius))continue;
+        distant=candidate;break;
+      }
+      check(distant.has_value(),"Object field interaction has no distant authored authority start");
+      o.native_spawn_inputs={*distant,*distant,prop_watch->spawn};
+      report["declared_distant_authority_start"]=xyz(distant->position);
+    }
   }
   if(control_test || script_test) {
     const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
@@ -1066,9 +1543,38 @@ int main(int argc,char **argv) try {
   if(support_test) {
     const Cache cache(o.map,o.shared_maps);const auto content=cache.load_content(o.bsp,true,source_game_variant(o.variant));
     support_start=wheel_support_entrance(cache,content);o.native_spawn_inputs=support_start->spawns;
-    report["stimulus"]="Declared original hull0 paddle spawn inputs; original device power API pauses/resumes the actual wheel; ordinary SDL look only";
-    report["declared_support_spawns"]=Json::array();for(const auto &spawn:support_start->spawns)report["declared_support_spawns"].push_back(xyz(spawn.position));
+    if(support_start->narrow) {
+      const CollisionWorld terrain(content.collision);std::optional<Spawn> distant;
+      for(const auto &authored:cache.spawns()) {
+        if(length(authored.position-support_start->spawns.front().position)<12*content.player.height)continue;
+        Spawn candidate=authored;const auto floor=terrain.raycast(candidate.position+Vec3{0,0,content.player.height},{0,0,-1},4*content.player.height);
+        if(!floor || floor->normal.z<=0)continue;candidate.position.z=floor->position.z+content.player.radius;
+        if(terrain.overlaps(candidate.position,content.player.height,content.player.radius))continue;
+        distant=candidate;break;
+      }
+      check(distant.has_value(),"Narrow paddle requires a distinct original authority start");
+      o.native_spawn_inputs={*distant,*distant,support_start->spawns.front()};
+    }
+    report["stimulus"]=std::getenv("HALO2_TU15_SUPPORT_DEFINITION")?
+        "Declared original PHMO body and model-node approach; actual current source device APIs pause/resume; ordinary SDL look only; no supplied contact, velocity or solved body":
+        "Declared original hull0 paddle spawn inputs; original device power API pauses/resumes the actual wheel; ordinary SDL look only";
+    report["declared_support_spawns"]=Json::array();for(const auto &spawn:o.native_spawn_inputs)report["declared_support_spawns"].push_back(xyz(spawn.position));
     report["declared_support_local_top"]=xyz(support_start->local_top);
+    report["declared_support_node"]=support_start->node;report["declared_support_definition"]=support_start->definition;
+    if(support_start->phase)report["declared_support_phase_input"]=*support_start->phase;
+    report["support_input_bsp_survey"]=Json::array();
+    report["support_input_player_height"]=content.player.height;report["support_input_player_radius"]=content.player.radius;
+    const CollisionWorld terrain(content.collision);
+    for(const auto &spawn:o.native_spawn_inputs) {
+      Json row{{"spawn",xyz(spawn.position)},{"overlaps_cached_bsp",terrain.overlaps(spawn.position,content.player.height,content.player.radius)}};
+      const auto floor=terrain.raycast(spawn.position+Vec3{0,0,content.player.height},{0,0,-1},4*content.player.height);
+      if(floor)row["floor"]={{"position",xyz(floor->position)},{"normal",xyz(floor->normal)},
+          {"bsp",floor->source.bsp},{"surface",floor->source.surface},{"plane",floor->source.plane}};
+      else row["floor"]=nullptr;
+      report["support_input_bsp_survey"].push_back(std::move(row));
+    }
+    std::ofstream(output/"support-input-survey.json")<<report.dump(2)<<'\n';
+    if(std::getenv("HALO2_TU15_SUPPORT_SURVEY_ONLY"))return 0;
   }
   std::unique_ptr<Host> host;
   std::optional<VehicleEntrance> vehicle_start;
@@ -1109,6 +1615,12 @@ int main(int argc,char **argv) try {
           std::stoul(std::getenv("HALO2_TU15_LIFT_INSTANCE")):0u;
     } else {
       vehicle_start=vehicle_entrance(cache,content);o.native_spawn_inputs={vehicle_start->spawn};
+      if(vehicle_collision_test) {
+        collision_wall=vehicle_wall_target(*vehicle_start,content);
+        report["stimulus"]="Ordinary driver entry, SDL look/steering/throttle toward an existing cached BSP wall, stop and exit; no supplied collision, force, damage or solved pose";
+        report["declared_collision_wall"]={{"position",xyz(collision_wall->position)},{"normal",xyz(collision_wall->normal)},
+            {"surface",collision_wall->source.surface},{"plane",collision_wall->source.plane},{"material",collision_wall->material}};
+      }
       report["declared_initial_location"]=xyz(vehicle_start->spawn.position);
       report["location_authority"]="Declared half-radius approach to authored vehicle entry marker, above cached BSP floor before tick zero";
       const auto selected=std::getenv("HALO2_TU15_VEHICLE_NAME");
@@ -1120,6 +1632,57 @@ int main(int argc,char **argv) try {
       const auto &definition=content.unit_interactions->units.at(placement.definition);
       const auto nodes=pose_model_nodes_world(definition.hierarchy,vehicle_start->root);
       report["selected_vehicle_definition"]=placement.definition;
+      if(turret_damage_test) {
+        for(const auto &target:cache.tags())if(target.group=="vehi") {
+          const auto tag=cache.load_source_tag_metadata(target.datum);
+          const Bytes value(tag.bytes_at(tag.source_address(),tag.size()));
+          if(value.u16(0x1f0u)!=6u)turret_damage_definitions.insert(target.datum);
+        }
+        check(!turret_damage_definitions.empty(),"Human turret has no authored vehicle targets");
+      }
+      if(fixed_turret_test) {
+        // Original unit weapons and each barrel's authored projectile ref.
+        // These definitions only select observations; no body is created here.
+        const auto tag=cache.load_source_tag_metadata(placement.definition);
+        const Bytes unit(tag.bytes_at(tag.source_address(),tag.size()));
+        const Bytes weapons(tag.bytes_at(unit.u32(0x1c4u),unit.u32(0x1c0u)*8u));
+        for(unsigned n=0;n<unit.u32(0x1c0u);++n) {
+          const auto weapon=cache.load_source_tag_metadata(weapons.u32(n*8u+4u));
+          const Bytes value(weapon.bytes_at(weapon.source_address(),weapon.size()));
+          const Bytes barrels(weapon.bytes_at(value.u32(0x2d4u),value.u32(0x2d0u)*0xecu));
+          for(unsigned b=0;b<value.u32(0x2d0u);++b)if(barrels.u32(b*0xecu+0x90u)!=null_datum)
+            turret_projectile_definitions.insert(barrels.u32(b*0xecu+0x90u));
+        }
+        check(!turret_projectile_definitions.empty(),"Fixed turret has no authored barrel projectiles");
+        report["fixed_turret_authored_projectiles"]=turret_projectile_definitions;
+        for(const auto projectile:turret_projectile_definitions) {
+          const auto tag=cache.load_source_tag_metadata(projectile);const Bytes value(tag.bytes_at(tag.source_address(),tag.size()));
+          const Bytes attachments(tag.bytes_at(value.u32(0x98u),value.u32(0x94u)*0x18u));
+          for(unsigned n=0;n<value.u32(0x94u);++n)if(attachments.u32(n*0x18u)==0x4d475332u)
+            turret_glow_definitions.insert(attachments.u32(n*0x18u+4u));
+        }
+        report["fixed_turret_authored_glows"]=turret_glow_definitions;
+        for(const auto projectile:turret_projectile_definitions) {
+          const auto tag=cache.load_source_tag_metadata(projectile);const Bytes value(tag.bytes_at(tag.source_address(),tag.size()));
+          const Bytes attachments(tag.bytes_at(value.u32(0x98u),value.u32(0x94u)*0x18u));
+          for(unsigned n=0;n<value.u32(0x94u);++n)if(attachments.u32(n*0x18u)==0x636f6e74u)
+            turret_contrail_definitions.insert(attachments.u32(n*0x18u+4u));
+        }
+        report["fixed_turret_authored_contrails"]=turret_contrail_definitions;
+      }
+      if(vehicle_blast_test) {
+        const auto tag=cache.query_tag({.handle=TagHandle{placement.definition}});
+        check(tag && tag->name.starts_with("objects\\vehicles\\"),"Vehicle debris needs its actual selected authored tag");
+        const auto end=tag->name.find('\\',std::string_view("objects\\vehicles\\").size());
+        check(end!=std::string::npos,"Selected vehicle has no authored family directory");
+        const auto prefix=tag->name.substr(0,end+1);
+        report["authored_vehicle_debris_definitions"]=Json::array();
+        for(const auto &part:cache.tags())if(part.group=="bloc" && part.name.starts_with(prefix) && part.name.find("garbage")!=std::string::npos) {
+          debris_definitions.insert(part.datum);
+          report["authored_vehicle_debris_definitions"].push_back({{"definition",part.datum},{"name",part.name}});
+        }
+        check(!debris_definitions.empty(),"Selected vehicle has no authored physical debris definitions");
+      }
       report["selected_vehicle_is_child"]=placement.model_attachment.has_value();
       report["authored_seats"]=Json::array();
       for(unsigned index=0;index<definition.seats.size();++index) {
@@ -1176,6 +1739,8 @@ int main(int argc,char **argv) try {
     report["initial_inventory"]=inventory(*o.prepared_world);
   }
   const auto &interaction_content=lan?*host->content:o.prepared_world->content;
+  std::unique_ptr<CollisionWorld> turret_target_terrain;
+  if(turret_damage_test)turret_target_terrain=std::make_unique<CollisionWorld>(interaction_content.collision);
   // Unchanged TU1.5 CB862..CB8A1: player unit+13C != NONE and
   // seat bit16 clear candidate validity. NPC riding is a separate path.
   const bool seat_invalid_for_player=vehicle && (vehicle_start->flags&0x10000u);
@@ -1208,6 +1773,7 @@ int main(int argc,char **argv) try {
     if(!accompanied_driver)report["observer_input"]="Actual SDL virtual gamepad; movement and look only";
     report["actor_view"]=actor_view;report["observer_view"]=watcher_view;
   }
+  if(source_drive_ticks)report["declared_source_drive_ticks"]=source_drive_ticks;
   Json samples=Json::array(),frames=Json::array();
   Json impulses=Json::array();
   std::ofstream impulse_trace;
@@ -1236,6 +1802,7 @@ int main(int argc,char **argv) try {
     std::vector<NativeGrenadeProjectile> grenades;
     std::vector<NativeGrenadeDetonation> detonations;
     SourceDeviceWorldSnapshot devices;
+    SourceContrailSnapshot contrails;
   };
   std::vector<AuthoritySample> authority_samples;
   std::uint32_t driven_vehicle=null_datum;Vec3 vehicle_initial{};float vehicle_distance{};
@@ -1248,6 +1815,34 @@ int main(int argc,char **argv) try {
     if(expected!=expected_vehicle_definitions.end())
       check(definition==expected->second,"Submitted vehicle model differs from the actual authority definition");
     if(object==driven_vehicle && view<driven_vehicle_draws.size())++driven_vehicle_draws[view];
+    if(turret_damage_test && object==turret_damage_target && view<2)++turret_damage_draws[view];
+  };
+  o.weapon_projectile_draw_observer=[&](unsigned view,std::uint32_t,std::uint32_t object,
+      std::uint32_t definition,std::span<const Vertex> vertices) {
+    if(fixed_turret_test && turret_projectile_definitions.contains(definition) && !vertices.empty() && view<2)
+      ++turret_projectile_draws[view];
+  };
+  o.weapon_light_volume_observer=[&](unsigned view,std::uint32_t,const SourceLightVolumeDraw &draw) {
+    if(fixed_turret_test && view<2 && turret_projectile_births.contains(draw.object) &&
+        turret_glow_definitions.contains(draw.definition) && !draw.vertices.empty())++turret_glow_draws[view];
+  };
+  Json contrail_submissions=Json::array();
+  o.weapon_contrail_observer=[&](unsigned view,std::uint32_t tick,const SourceContrailDraw &draw) {
+    if(fixed_turret_test && view<2 && turret_contrail_definitions.contains(draw.definition) && !draw.vertices.empty()) {
+      ++turret_contrail_draws[view];bool colored_area{};
+      for(unsigned n=0;n+2<draw.vertices.size();n+=3) {
+        const auto &a=draw.vertices[n],&b=draw.vertices[n+1],&c=draw.vertices[n+2];
+        colored_area|=((a.color|b.color|c.color)&0xff000000u) && length(cross(b.position-a.position,c.position-a.position))>1e-6f;
+      }
+      if(colored_area)++turret_visible_contrail_draws[view];
+      Json vertices=Json::array();
+      for(const auto &v:draw.vertices)vertices.push_back({{"position",xyz(v.position)},{"uv",{v.uv.x,v.uv.y}},{"color",v.color}});
+      contrail_submissions.push_back({{"view",view},{"authority_tick",tick},{"completed_frames_before_submission",frames.size()},
+          {"sdl_milliseconds",SDL_GetTicks64()},{"trail",draw.datum},{"definition",draw.definition},
+          {"vertices",vertices},{"viewport",draw.viewport},{"clip",draw.clip_range},
+          {"colored_triangle_area",colored_area},{"constants",draw.constants},{"pixel",draw.pixel.words},
+          {"sampler",std::bit_cast<std::array<std::uint32_t,14>>(draw.sampler)}});
+    }
   };
   bool vehicle_entered{},vehicle_exited{};unsigned vehicle_drive_commands{};
   bool entry_released{},exit_released{},entry_approaching{};
@@ -1255,6 +1850,10 @@ int main(int argc,char **argv) try {
   std::optional<unsigned> drive_end;bool steering_started{},steering_released{},forward_released{};
   Vec3 drive_initial{};float driven_distance{},vehicle_climb{};
   Vec3 steering_forward{};float steering_angle{};unsigned steering_commands{};
+  bool turret_fire_pressed{},turret_fire_released{};unsigned turret_fire_commands{};
+  std::optional<unsigned> turret_fire_started;
+  std::set<std::uint32_t> turret_effect_serials;
+  std::map<unsigned,Vec3> turret_initial_node_forward;float turret_node_turn{};
   std::optional<Vec3> steering_camera_forward;float steering_camera_angle{};
   unsigned observer_slot=~0u,observer_back_commands{};Vec3 observer_initial{};float observer_distance{};
   bool companion_entered{},companion_button{},companion_released{};
@@ -1313,7 +1912,7 @@ int main(int argc,char **argv) try {
     check(state.source_scene_roots_authoritative,"Replica scene observer has no source authority");
     for(const auto &root:state.source_scene_roots) {
       const auto &object=scene.get(root.object);
-      if(prop_watch && root.created_tick>0 && prop_watch->placements.contains(root.placement)) {
+      if(prop_watch && (object_field_test || root.created_tick>0) && prop_watch->placements.contains(root.placement)) {
         const auto position=root.transform.position;const auto [at,fresh]=prop_watch_first.try_emplace(root.object,position);(void)fresh;
         const auto delta=position-at->second;
         prop_watch_travel[root.object]=std::max(prop_watch_travel[root.object],length(delta));
@@ -1328,6 +1927,15 @@ int main(int argc,char **argv) try {
           object.visible==root.visible,"Rendered scene root differs from received source placement/frame");
       const auto pose=std::find_if(state.source_body_poses.begin(),state.source_body_poses.end(),
           [&](const auto &p){return p.object==root.object;});
+      if(object_field_test && prop_watch->placements.contains(root.placement) && pose!=state.source_body_poses.end()) {
+        for(unsigned node=0;node<pose->nodes.size();++node) {
+          const auto [first,fresh]=object_field_first_nodes.try_emplace({root.object,node},pose->nodes[node]);(void)fresh;
+          for(unsigned axis=0;axis<3;++axis) {
+            const auto cosine=std::clamp(dot(normalized(first->second.basis[axis]),normalized(pose->nodes[node].basis[axis])),-1.f,1.f);
+            object_field_angles[root.object]=std::max(object_field_angles[root.object],std::acos(cosine));
+          }
+        }
+      }
       check(object.solved_nodes.has_value(),"Rendered scene lost its source WORLD adoption");
       if(root.has_world_nodes)check(pose!=state.source_body_poses.end() &&
           object.solved_nodes->size()==pose->nodes.size() &&
@@ -1338,10 +1946,12 @@ int main(int argc,char **argv) try {
     ++adopted_scene_frames;
   };
   Json camera_frames=Json::array();unsigned seated_camera_frames{},exit_camera_frames{};
+  unsigned source_exit_transition_frames{},ordinary_after_exit_frames{};
   Json body_frames=Json::array();
   struct BodySample {unsigned slot;std::uint32_t tick,unit;float fraction;Vec3 node0;};
   std::array<std::vector<BodySample>,2> body_view_samples;
   std::array<unsigned,2> seated_body_draws{},exited_body_draws{};
+  std::array<unsigned,2> submitted_corpse_draws{};
   o.animation_observer=[&](unsigned view,unsigned slot,const AnimationRenderObservation &sample) {
     if(!vehicle || !started || sample.first_person)return;
     check(view<body_view_samples.size() && slot<multiplayer_capacity,"Vehicle body submission lost its view/player");
@@ -1353,6 +1963,7 @@ int main(int argc,char **argv) try {
   };
   unsigned living_recreation_observer_frames{},aimed_recreation_observer_frames{};
   float seated_camera_distance{};
+  unsigned exact_source_camera_frames{},stable_source_third_person_frames{};
   std::array<float,4> submitted_horizontal_fov{};
   o.view_observer=[&](unsigned view,const Camera &,float horizontal_fov,std::int16_t) {
     check(view<submitted_horizontal_fov.size(),"Camera submission exceeds actual local views");
@@ -1360,9 +1971,12 @@ int main(int argc,char **argv) try {
   };
   o.view_state_observer=[&](unsigned view,const MultiplayerState &state,const Camera &camera) {
     if(prop_watch && view==0)for(const auto &root:state.source_scene_roots) {
-      if(root.created_tick==0 || !prop_watch->placements.contains(root.placement))continue;
+      if((!object_field_test && root.created_tick==0) || !prop_watch->placements.contains(root.placement))continue;
       const auto forward=camera.oriented?camera.forward:direction(camera.yaw,camera.pitch);
-      if(dot(normalized(root.transform.position-camera.position),forward)>.9f)++prop_watch_aimed;
+      auto target=root.transform.position;
+      if(object_field_test)if(const auto pose=std::find_if(state.source_body_poses.begin(),state.source_body_poses.end(),[&](const auto &pose){return pose.object==root.object;});pose!=state.source_body_poses.end())target=pose->sphere.center;
+      if(object_field_test && std::getenv("HALO2_TU15_OBJECT_FIELD_BODY_INPUT"))target=prop_watch->target;
+      if(dot(normalized(target-camera.position),forward)>.9f)++prop_watch_aimed;
     }
 
     if(vehicle && view<body_view_samples.size()) {
@@ -1370,8 +1984,19 @@ int main(int argc,char **argv) try {
       // actual snapshot, including entry/exit and replacement generations.
       for(const auto &sample:body_view_samples[view]) {
         const auto &player=state.players[sample.slot];
-        check(sample.unit==player.source_unit && sample.tick==state.tick,
-            "Vehicle entry submitted a stale player generation or tick");
+        check(sample.tick==state.tick,"Vehicle body submission has a different snapshot tick");
+        if(sample.unit!=player.source_unit) {
+          const auto corpse=std::find_if(state.corpses.begin(),state.corpses.end(),[&](const auto &c){
+            return c.object==sample.unit && (c.player&65535u)==sample.slot;
+          });
+          check(corpse!=state.corpses.end(),"Vehicle body submission has neither current unit nor authoritative corpse identity");
+          check(std::any_of(state.source_body_poses.begin(),state.source_body_poses.end(),[&](const auto &pose){return pose.object==corpse->object && !pose.nodes.empty();}),
+              "Submitted vehicle-blast corpse has no authoritative source WORLD bank");
+          ++submitted_corpse_draws[view];
+          body_frames.push_back({{"view",view},{"tick",sample.tick},{"unit",sample.unit},{"corpse",true},
+              {"corpse_player",corpse->player},{"death_tick",corpse->death_tick},{"fraction",sample.fraction},{"node0",xyz(sample.node0)}});
+          continue;
+        }
         const auto parent=std::find_if(state.world_vehicles.begin(),state.world_vehicles.end(),
             [&](const auto &v){return v.handle==player.source_parent;});
         if(parent!=state.world_vehicles.end()) {
@@ -1437,7 +2062,7 @@ int main(int argc,char **argv) try {
     }
     if(player.source_parent==driven_vehicle && player.source_seat==int(vehicle_start->seat)) {
       ++seated_camera_frames;seated_camera_distance=std::max(seated_camera_distance,separation);
-      if(steering_started && !forward_released) {
+      if(steering_started && (!forward_released || vehicle_collision_test)) {
         if(!steering_camera_forward)steering_camera_forward=camera.forward;
         const auto &f=camera.forward,&s=*steering_camera_forward;
         steering_camera_angle=std::max(steering_camera_angle,std::abs(std::atan2(
@@ -1452,9 +2077,30 @@ int main(int argc,char **argv) try {
             std::bit_cast<std::uint32_t>(submitted_horizontal_fov[view])==
                 std::bit_cast<std::uint32_t>(expected.horizontal_fov),
             "Submitted UDP seat camera differs from the actual authority vehicle view");
+        const auto layout=source_view_grid(o.local_players,view,
+            hud_layout_widescreen(o.local_players,std::uint64_t(o.width)*3>std::uint64_t(o.height)*4,
+                o.desktop->display_settings.two_player_split));
+        const auto lens=vehicle_camera_angles(expected.horizontal_fov,
+            interaction_content.original_data->death_camera_constants->default_fov,
+            o.desktop->display_settings.vehicle_field_of_view,layout.grid,layout.span);
+        check(std::abs(camera.field_of_view-lens.projection_angle*57.295779513f)<.00001f,
+            "Submitted vehicle projection discarded the TU1.5 lens or split-screen factors");
+        ++exact_source_camera_frames;
+        stable_source_third_person_frames+=expected.camera_mode==1;
+
       }
     } else if(vehicle_exited && player.source_parent==null_datum) {
       ++exit_camera_frames;
+      if(player.source_vehicle_camera) {
+        ++source_exit_transition_frames;
+        const auto &expected=*player.source_vehicle_camera;
+        check(!std::memcmp(&camera.position,&expected.position,sizeof(Vec3)) &&
+            !std::memcmp(&camera.forward,&expected.forward,sizeof(Vec3)) &&
+            !std::memcmp(&camera.up,&expected.up,sizeof(Vec3)) &&
+            std::bit_cast<std::uint32_t>(submitted_horizontal_fov[view])==
+                std::bit_cast<std::uint32_t>(expected.horizontal_fov),
+            "Submitted vehicle exit transition differs from the authority observer");
+      } else ++ordinary_after_exit_frames;
     }
     camera_frames.push_back({{"view",view},{"tick",state.tick},{"unit",player.source_unit},
         {"parent",player.source_parent},{"seat",player.source_seat},{"position",xyz(camera.position)},
@@ -1470,6 +2116,7 @@ int main(int argc,char **argv) try {
       if(local_slots.size()<=actor_view)return;
       local_slot=local_slots[actor_view];
       const auto &p=s.players[local_slot];started=true;start_step=step;start_authority_tick=s.tick;initial=p.position;
+      if(support_start && std::getenv("HALO2_TU15_SUPPORT_DEFINITION"))host->support_client_ready.store(true);
       initial_z=peak_z=p.position.z;
       if(observer) {
         check(local_slots.size()>watcher_view,"Visible observer has no actual local view");
@@ -1479,7 +2126,12 @@ int main(int argc,char **argv) try {
       focus(window);
     }
     check(commands.size()>actor_view,"Actor lost its actual local input view");
-    const auto elapsed=(accompanied_driver || script_test || support_test)?s.tick-start_authority_tick:step-start_step;const auto &p=s.players[local_slot];const auto &c=commands[actor_view];
+    // Full source capture can stall the host while client input time advances.
+    // Schedule this finite restore stimulus by completed authoritative ticks,
+    // as the existing passenger/blast fixtures do; do not consume its driving
+    // interval while no original physics frames have executed.
+    const auto elapsed=(vehicle_blast_test || accompanied_driver || script_test || support_test ||
+        std::getenv("HALO2_TU15_AUTHORITY_RESTORE"))?s.tick-start_authority_tick:step-start_step;const auto &p=s.players[local_slot];const auto &c=commands[actor_view];
     if(vehicle)for(const auto &v:s.world_vehicles) {
       check(v.placement<interaction_content.objects.size(),"Vehicle snapshot has no authored authority template");
       expected_vehicle_definitions[v.handle]=interaction_content.objects[v.placement].definition;
@@ -1510,18 +2162,102 @@ int main(int argc,char **argv) try {
           p.action_prompt.target.index==int(vehicle_start->seat) &&
           p.action_prompt.target.action>=4 && p.action_prompt.target.action<=6)++invalid_seat_prompts;
       std::optional<Vec3> vehicle_position,vehicle_forward,entry_target;
+      if(turret_damage_test) {
+        const WorldVehiclePresentation *closest=nullptr;float nearest=100000.f;
+        row["turret_damage_candidates"]=Json::array();
+        for(const auto &target:s.world_vehicles)if(turret_damage_definitions.contains(interaction_content.objects.at(target.placement).definition)) {
+          if(turret_damage_target!=null_datum && target.handle!=turret_damage_target)continue;
+          const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &p){return p.object==target.handle;});
+          if(pose==s.source_body_poses.end())continue;
+          const auto origin=vehicle_start->root.position+Vec3{0,0,interaction_content.player.camera_height};
+          const auto delta=pose->sphere.center-origin;const auto distance=length(delta);
+          if(distance<=pose->sphere.radius)continue;
+          const auto forward=dot(normalized(delta),vehicle_start->root.basis[0]);
+          const bool blocked=turret_target_terrain->raycast(origin,normalized(delta),distance-pose->sphere.radius).has_value();
+          row["turret_damage_candidates"].push_back({{"object",target.handle},{"definition",interaction_content.objects.at(target.placement).definition},
+              {"position",xyz(pose->sphere.center)},{"forward_dot",forward},{"range",distance},{"bsp_occluded",blocked}});
+          // A declared forward60-degree input cone, not a replacement for
+          // the original turret's actual aiming limits or collision result.
+          if(forward<=.5f || blocked)continue;
+          if(distance<nearest){nearest=distance;closest=&target;}
+        }
+        if(closest) {
+          if(turret_damage_target==null_datum)turret_damage_target=closest->handle;
+          host->turret_damage_target.store(turret_damage_target);
+          const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &p){return p.object==turret_damage_target;});
+          check(pose!=s.source_body_poses.end(),"Human turret target lost its actual WORLD sphere");
+          turret_damage_position=pose->sphere.center;
+          row["turret_damage_target"]={{"object",turret_damage_target},{"position",xyz(*turret_damage_position)}};
+        }
+      }
+      if(fixed_turret_test) {
+        if(s.source_contrails.authoritative) {
+          const auto read=[&](std::uint32_t p,unsigned n) {
+            const auto &slices=s.source_contrails.slices;
+            const auto at=std::upper_bound(slices.begin(),slices.end(),p,[](auto address,const auto &r){return address<r.address;});
+            check(at!=slices.begin(),"Contrail diagnostic lacks original source slice");const auto &r=*std::prev(at);
+            check(p>=r.address && std::uint64_t(p)+n<=std::uint64_t(r.address)+r.bytes.size(),"Contrail diagnostic input extent omitted");
+            return std::span<const std::byte>(r.bytes).subspan(p-r.address,n);
+          };
+          const auto word=[&](auto p){return Bytes(read(p,4)).u32(0);};
+          const auto trails=word(0x4f7214u),points=word(0x4f7210u);
+          row["contrail_source_inputs"]={{"point_high",word(points+0x38u)},{"trails",Json::array()}};
+          for(unsigned n=0;n<word(trails+0x38u);++n)if(word(word(trails+0x48u)+n/32u*4u)&(1u<<(n%32u))) {
+            const auto bytes=read(word(trails+0x44u)+n*72u,72);const Bytes value(bytes);
+            row["contrail_source_inputs"]["trails"].push_back({{"object",(value.u16(0)<<16u)|n},
+                {"definition",value.u32(4)},{"owner",value.u32(8)},{"bytes",hex_bytes(bytes)},
+                {"counts",{value.u16(0x30),value.u16(0x32),value.u16(0x34),value.u16(0x36)}}});
+          }
+        }
+        row["turret_projectiles"]=Json::array();
+        for(const auto &projectile:s.weapon_projectiles)if(turret_projectile_definitions.contains(projectile.definition)) {
+          const auto [at,inserted]=turret_projectile_births.try_emplace(projectile.datum,projectile.position);
+          turret_projectile_travel=std::max(turret_projectile_travel,length(projectile.position-at->second));
+          turret_projectile_speed=std::max(turret_projectile_speed,length(projectile.velocity));
+          row["turret_projectiles"].push_back({{"object",projectile.datum},{"definition",projectile.definition},
+              {"position",xyz(projectile.position)},{"velocity",xyz(projectile.velocity)},{"traveled",projectile.traveled}});
+        }
+      }
       for(const auto &v:s.world_vehicles)if(v.placement==vehicle_start->placement) {
         if(driven_vehicle==null_datum){driven_vehicle=v.handle;vehicle_initial=v.transform.position;}
+        if(lan)host->vehicle_attack_target.store(driven_vehicle);
         check(v.handle==driven_vehicle,"Driving acceptance crossed a vehicle generation");
         vehicle_distance=std::max(vehicle_distance,length(v.transform.position-vehicle_initial));
+        if(lan && vehicle_entered && (vehicle_distance>2.f || (fixed_turret_test && turret_fire_commands>0)) && !vehicle_collision_test)host->capture_world_requested.store(true);
         row["vehicle_root"]=xyz(v.transform.position);row["vehicle_forward"]=xyz(v.transform.basis[0]);row["vehicle"]=v.handle;
         vehicle_position=v.transform.position;
         vehicle_forward=v.transform.basis[0];
+        if(vehicle_collision_test && vehicle_entered) {
+          const auto plane_distance=std::abs(dot(v.transform.position-collision_wall->position,collision_wall->normal));
+          collision_minimum_plane_distance=std::min(collision_minimum_plane_distance,plane_distance);
+          if(collision_previous && collision_previous->first!=s.tick) {
+            const float seconds=float(s.tick-collision_previous->first)/30.f;
+            const auto delta=v.transform.position-collision_previous->second;const float speed=std::hypot(delta.x,delta.y)/seconds;
+            collision_peak_speed=std::max(collision_peak_speed,speed);
+            const auto &bounds=interaction_content.unit_interactions->units.at(interaction_content.objects.at(v.placement).definition);
+            if(c.forward>0 && plane_distance<bounds.bound_radius+interaction_content.player.height && collision_peak_speed>1.f && speed<.5f*collision_peak_speed) {
+              ++collision_stopped_ticks;if(lan)host->capture_world_requested.store(true);
+            }
+            row["collision_horizontal_speed"]=speed;
+          }
+          if(!collision_previous || collision_previous->first!=s.tick)collision_previous=std::pair{s.tick,v.transform.position};
+          row["collision_plane_distance"]=plane_distance;row["collision_stopped_ticks"]=collision_stopped_ticks;
+        }
         const auto &definition=interaction_content.unit_interactions->units.at(
             interaction_content.objects.at(vehicle_start->placement).definition);
         const auto &seat=definition.seats.at(vehicle_start->seat);
         const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &pose){return pose.object==v.handle;});
         check(pose!=s.source_body_poses.end(),"Vehicle snapshot omitted the actual WORLD hierarchy");
+        if(fixed_turret_test && vehicle_entered) {
+          for(const auto &effect:s.weapon_effects)if(effect.unit==driven_vehicle && effect.source_scheduled && effect.source_presentation)
+            turret_effect_serials.insert(effect.serial);
+          for(unsigned n=0;n<pose->nodes.size();++n) {
+            const auto current=pose->nodes[n].basis[0];
+            const auto [at,inserted]=turret_initial_node_forward.try_emplace(n,current);
+            if(!inserted)turret_node_turn=std::max(turret_node_turn,std::acos(std::clamp(dot(normalized(at->second),normalized(current)),-1.f,1.f)));
+          }
+          turret_fire_commands+=c.fire;
+        }
         const auto markers=pose_model_markers(definition.markers.at(seat.entry_marker),pose->nodes,definition.permutations,{},1);
         check(!markers.empty(),"Live source vehicle has no actual driver-entry WORLD marker");entry_target=markers.front().world.position;
         const auto entry_delta=*entry_target-(p.position+Vec3{0,0,interaction_content.player.camera_height});
@@ -1621,7 +2357,8 @@ int main(int argc,char **argv) try {
         const bool retreat=elapsed<45 || (elapsed<120 && observer_distance<.75f);
         observer->axis(SDL_CONTROLLER_AXIS_LEFTY,retreat?1.f:0.f);
         if(vehicle_position) {
-          const auto look=*vehicle_position+Vec3{0,0,interaction_content.player.camera_height} -
+          const auto watch=turret_damage_test && turret_damage_position?*turret_damage_position:*vehicle_position+Vec3{0,0,interaction_content.player.camera_height};
+          const auto look=watch -
               (watcher.position+Vec3{0,0,interaction_content.player.camera_height});
           const auto yaw=std::atan2(look.y,look.x),pitch=std::atan2(look.z,std::hypot(look.x,look.y));
           observer->axis(SDL_CONTROLLER_AXIS_RIGHTX,-std::remainder(yaw-input.yaw,6.283185307f)*8.f);
@@ -1691,11 +2428,58 @@ int main(int argc,char **argv) try {
         }
       }
       if(drive_start) {
+        if(fixed_turret_test) {
+          const auto &settings=o.desktop->keyboard_settings;
+          const auto fire=[&](bool down) {
+            const int binding=settings.bindings[unsigned(PcAction::Fire)];
+            if(binding>0 && binding<SDL_NUM_SCANCODES)key(window_id,SDL_Scancode(binding),down);
+            else {
+              check(binding>pc_mouse_button(0) && binding<=pc_mouse_button(5),"Turret input requires actual fire binding");
+              SDL_Event event{};event.type=down?SDL_MOUSEBUTTONDOWN:SDL_MOUSEBUTTONUP;event.button.windowID=window_id;
+              event.button.button=Uint8(binding-pc_mouse_button(0));event.button.state=down?SDL_PRESSED:SDL_RELEASED;
+              check(SDL_PushEvent(&event)==1,"SDL rejected ordinary turret fire input");
+            }
+          };
+          if(!turret_fire_pressed && steering_started) {fire(true);turret_fire_pressed=true;turret_fire_started=elapsed;}
+          if(turret_damage_test && turret_damage_position && vehicle_position && steering_started && !forward_released && elapsed%3u==0) {
+            const auto delta=*turret_damage_position-(*vehicle_position+Vec3{0,0,interaction_content.player.camera_height});
+            const auto yaw=std::atan2(delta.y,delta.x),pitch=std::atan2(delta.z,std::hypot(delta.x,delta.y));
+            const float gain=.0025f*float(settings.sensitivity)/3.f;
+            SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
+            look.motion.xrel=-int(std::lround(std::remainder(yaw-c.yaw,6.283185307f)/gain));
+            look.motion.yrel=-int(std::lround((pitch-c.pitch)/gain))*(settings.invert?-1:1);
+            if(look.motion.xrel || look.motion.yrel)check(SDL_PushEvent(&look)==1,"SDL rejected actual turret target look input");
+          }
+          if(turret_fire_pressed && !turret_fire_released && forward_released) {fire(false);turret_fire_released=true;}
+        }
         // A real desktop focus loss clears SDL's keys. Reacquire the actual
         // window and deliver the remaining observed input budget, instead of
         // silently shortening the driving sequence while counting wall ticks.
         if(!forward_released && !c.forward) {focus(window);key(window_id,SDL_SCANCODE_W,true);}
-        if(vehicle_drive_commands>=(long_vehicle_sequence?120u:25u) && !steering_started) {
+        if(vehicle_collision_test && vehicle_position && vehicle_forward && !forward_released) {
+          const auto delta=collision_wall->position-*vehicle_position;
+          const auto yaw=std::atan2(delta.y,delta.x);
+          const auto error=std::remainder(yaw-std::atan2(vehicle_forward->y,vehicle_forward->x),6.283185307f);
+          key(window_id,SDL_SCANCODE_D,error>.08f);key(window_id,SDL_SCANCODE_A,error<-.08f);
+          if(elapsed%5==0) {
+            const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
+            SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
+            look.motion.xrel=-int(std::lround(std::remainder(yaw-c.yaw,6.283185307f)/gain));
+            look.motion.yrel=-int(std::lround(-c.pitch/gain))*(settings.invert?-1:1);
+            if(look.motion.xrel || look.motion.yrel)check(SDL_PushEvent(&look)==1,"SDL rejected ordinary wall approach look");
+          }
+          if(collision_stopped_ticks>=8 || vehicle_drive_commands>=600) {
+            key(window_id,SDL_SCANCODE_W,false);key(window_id,SDL_SCANCODE_A,false);key(window_id,SDL_SCANCODE_D,false);
+            forward_released=true;drive_end=elapsed;
+            if(!collision_camera_turned) {
+              steering_forward=*vehicle_forward;steering_started=true;collision_camera_turned=true;
+              const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
+              SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;look.motion.xrel=-int(std::lround(.6f/gain));
+              check(SDL_PushEvent(&look)==1,"SDL rejected parked original vehicle camera look");
+            }
+          }
+        }
+        if(!vehicle_collision_test && vehicle_drive_commands>=(long_vehicle_sequence?120u:25u) && !steering_started) {
           check(vehicle_forward.has_value(),"Steering input has no actual vehicle WORLD forward");
           steering_forward=*vehicle_forward;
           key(window_id,SDL_SCANCODE_D,true);steering_started=true;
@@ -1712,11 +2496,13 @@ int main(int argc,char **argv) try {
             check(SDL_PushEvent(&e)==1,"SDL rejected vehicle driving look input");
           }
         }
-        if(steering_started && !steering_released) {
+        if(!vehicle_collision_test && steering_started && !steering_released) {
           if(steering_commands>=25) {key(window_id,SDL_SCANCODE_D,false);steering_released=true;}
           else if(!c.right)key(window_id,SDL_SCANCODE_D,true);
         }
-        if(vehicle_drive_commands>=(long_vehicle_sequence?300u:65u) && !forward_released) {
+        if(!vehicle_collision_test && (source_drive_ticks?elapsed>=*drive_start+source_drive_ticks:
+            vehicle_drive_commands>=(long_vehicle_sequence?300u:65u)) && !forward_released &&
+            (!turret_damage_test || (turret_fire_started && elapsed>=*turret_fire_started+120u))) {
           key(window_id,SDL_SCANCODE_W,false);forward_released=true;drive_end=elapsed;
         }
         if(drive_end && elapsed>=*drive_end+45 && !exit_press) {
@@ -1725,6 +2511,73 @@ int main(int argc,char **argv) try {
       }
       if(exit_press && !exit_released && c.pickup && c.pickup_milliseconds>=threshold) {
         key(window_id,SDL_Scancode(pickup),false);exit_released=true;
+      }
+      if(vehicle_blast_test && vehicle_exited && p.source_parent==null_datum && !p.dead && vehicle_position) {
+        const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &pose){return pose.object==driven_vehicle;});
+        check(pose!=s.source_body_poses.end(),"Vehicle blast lost its actual target sphere");
+        const auto delta=pose->sphere.center-(p.position+Vec3{0,0,interaction_content.player.camera_height});
+        const auto &settings=o.desktop->keyboard_settings;const float gain=.0025f*float(settings.sensitivity)/3.f;
+        if(elapsed%5==0) {
+          SDL_Event look{};look.type=SDL_MOUSEMOTION;look.motion.windowID=window_id;
+          look.motion.xrel=-int(std::lround(std::remainder(std::atan2(delta.y,delta.x)-c.yaw,6.283185307f)/gain));
+          look.motion.yrel=-int(std::lround((std::atan2(delta.z,std::hypot(delta.x,delta.y))-c.pitch)/gain))*(settings.invert?-1:1);
+          if(look.motion.xrel || look.motion.yrel)check(SDL_PushEvent(&look)==1,"SDL rejected ordinary vehicle-blast aim");
+        }
+        const auto range=std::hypot(p.position.x-vehicle_position->x,p.position.y-vehicle_position->y);
+        if(vehicle_weapon_test) {
+          vehicle_weapon_commands+=c.fire;vehicle_reload_commands+=c.reload;
+          const auto fire=[&](bool down) {
+            const int binding=settings.bindings[unsigned(PcAction::Fire)];
+            if(binding>0 && binding<SDL_NUM_SCANCODES)key(window_id,SDL_Scancode(binding),down);
+            else {
+              check(binding>pc_mouse_button(0) && binding<=pc_mouse_button(5),"Vehicle weapon needs the actual fire binding");
+              SDL_Event event{};event.type=down?SDL_MOUSEBUTTONDOWN:SDL_MOUSEBUTTONUP;event.button.windowID=window_id;
+              event.button.button=Uint8(binding-pc_mouse_button(0));event.button.state=down?SDL_PRESSED:SDL_RELEASED;
+              check(SDL_PushEvent(&event)==1,"SDL rejected ordinary vehicle weapon fire");
+            }
+          };
+          if(host->vehicle_attack_dead.load()) {
+            if(vehicle_weapon_pressed){fire(false);vehicle_weapon_pressed=false;}
+            key(window_id,SDL_SCANCODE_S,false);
+            if(elapsed>=vehicle_last_shot+100)key(window_id,SDL_SCANCODE_W,range>3*interaction_content.player.height);
+          } else if(range<vehicle_weapon_blast_radius+interaction_content.player.height) {
+            key(window_id,SDL_SCANCODE_S,true);
+          } else {
+            key(window_id,SDL_SCANCODE_S,false);
+            if(vehicle_weapon_pressed && (unsigned(p.loaded)<vehicle_loaded_before || elapsed>=vehicle_weapon_press_tick+20)) {
+              fire(false);vehicle_weapon_pressed=false;vehicle_last_shot=elapsed;
+            }
+            if(!vehicle_weapon_pressed && p.loaded>0 && elapsed>=vehicle_last_shot+75) {
+              vehicle_loaded_before=p.loaded;vehicle_weapon_press_tick=elapsed;fire(true);vehicle_weapon_pressed=true;
+            }
+            const int reload=settings.bindings[unsigned(PcAction::Reload)];
+            check(reload>0 && reload<SDL_NUM_SCANCODES,"Vehicle weapon needs the actual reload binding");
+            if(p.loaded==0 && p.reserve>0 && !vehicle_reload_pressed){key(window_id,SDL_Scancode(reload),true);vehicle_reload_pressed=true;}
+            if(vehicle_reload_pressed && c.reload){key(window_id,SDL_Scancode(reload),false);vehicle_reload_pressed=false;}
+          }
+        } else {
+        if(s.grenade_detonations.size()>vehicle_blast_detonations) {
+          vehicle_blast_detonations=s.grenade_detonations.size();vehicle_last_detonation=elapsed;
+        }
+        if(vehicle_blast_detonations<vehicle_blast_count && vehicle_last_detonation && elapsed>=*vehicle_last_detonation+100 && grenade_released) {
+          vehicle_blast_started.reset();grenade_pressed=false;grenade_released=false;vehicle_last_detonation.reset();
+        }
+        if(!vehicle_blast_started && vehicle_blast_detonations<vehicle_blast_count) {
+          key(window_id,SDL_SCANCODE_S,range<4*interaction_content.player.height);
+          if(range>=4*interaction_content.player.height) {
+            const int grenade=settings.bindings[unsigned(PcAction::Grenade)];
+            check(grenade>0 && grenade<SDL_NUM_SCANCODES,"Vehicle blast needs the actual grenade binding");
+            key(window_id,SDL_Scancode(grenade),true);grenade_pressed=true;vehicle_blast_started=elapsed;
+          }
+        } else if(vehicle_blast_started) {
+          key(window_id,SDL_SCANCODE_S,elapsed<*vehicle_blast_started+90);
+          if(vehicle_blast_detonations>=vehicle_blast_count && vehicle_last_detonation && elapsed>=*vehicle_last_detonation+100)
+            key(window_id,SDL_SCANCODE_W,range>3*interaction_content.player.height);
+          if(grenade_pressed && !grenade_released && c.grenade) {
+            key(window_id,SDL_Scancode(settings.bindings[unsigned(PcAction::Grenade)]),false);grenade_released=true;
+          }
+        }
+        }
       }
     }
     if(objects && observer) {
@@ -1755,6 +2608,14 @@ int main(int argc,char **argv) try {
           {"yaw",input.yaw},{"pitch",input.pitch}};
     }
     row["source_action_word"]=p.source_action_word;
+    if(conveyor_test) {
+      const bool neutral=c.forward==0 && c.right==0 && !c.jump && !c.crouch && !c.fire && !c.grenade;
+      conveyor_uncommanded_ticks+=neutral;
+      if(p.native_grounded) {++conveyor_grounded_ticks;conveyor_grounded_travel=std::max(conveyor_grounded_travel,std::hypot(p.position.x-initial.x,p.position.y-initial.y));}
+      row["conveyor_neutral_input"]=neutral;row["conveyor_grounded_travel"]=conveyor_grounded_travel;
+      if(conveyor_grounded_ticks>30 && conveyor_grounded_travel>.25f)host->capture_world_requested.store(true);
+    }
+    if(object_field_test)row["weapon_observation"]={{"fire_input",c.fire},{"object",p.source_weapon},{"loaded",p.loaded},{"shot_tick",p.shot_tick},{"trigger_flags",p.weapon_trigger.input_flags},{"trigger_ticks",p.weapon_trigger.ticks},{"trigger_state",p.weapon_trigger.mode}};
     row["source_grenade_phase"]=p.grenade_action.phase();
     row["source_grenade_counter"]=p.grenade_action.counter();
     row["source_held_grenade"]=p.grenade_action.held();
@@ -1801,7 +2662,7 @@ int main(int argc,char **argv) try {
       // thread before receive() returns and records that same-clock roster.
       // Every observed sample must match; no unavailable comparison is skipped.
       authority_samples.push_back({local_slot,s.tick,p.source_player,p.source_unit,p.source_parent,p.source_seat,
-          p.position,p.velocity,p.crouch,s.world_vehicles,s.source_body_poses,s.source_scene_roots,s.source_dynamic_objects,s.grenade_projectiles,s.grenade_detonations,s.devices});
+          p.position,p.velocity,p.crouch,s.world_vehicles,s.source_body_poses,s.source_scene_roots,s.source_dynamic_objects,s.grenade_projectiles,s.grenade_detonations,s.devices,s.source_contrails});
       row["authority_comparison_deferred"]=true;
     }
     trace<<row.dump()<<'\n';samples.push_back(std::move(row));
@@ -1813,7 +2674,7 @@ int main(int argc,char **argv) try {
       look.motion.yrel=int(std::lround((prop_test?1.5f:.8f)/gain))*(settings.invert?-1:1);
       check(SDL_PushEvent(&look)==1,"SDL rejected downward object-test look");
     }
-    if(objects) {
+    if(objects || object_field_grenade) {
       const int binding=o.desktop->keyboard_settings.bindings[unsigned(PcAction::Grenade)];
       check(binding>0 && binding<SDL_NUM_SCANCODES,"Object acceptance needs the actual grenade key binding");
       if(!grenade_pressed && elapsed>=35) {
@@ -1859,9 +2720,34 @@ int main(int argc,char **argv) try {
       Vec3 target=prop_watch->target;std::uint32_t newest{};
       for(const auto &root:s.source_scene_roots)if(prop_watch->placements.contains(root.placement) && root.created_tick>=newest) {
         target=root.transform.position;newest=root.created_tick;
+        if(object_field_test)if(const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &pose){return pose.object==root.object;});pose!=s.source_body_poses.end())target=pose->sphere.center;
+      if(object_field_test && std::getenv("HALO2_TU15_OBJECT_FIELD_BODY_INPUT"))target=prop_watch->target;
+      }
+      if(object_field_test) {
+        key(window_id,SDL_SCANCODE_W,!object_field_shoot && !object_field_grenade && elapsed>=20 && elapsed<100);
+        key(window_id,SDL_SCANCODE_S,!object_field_shoot && !object_field_grenade && elapsed>=100 && elapsed<145);
+        if(object_field_shoot) {
+          const auto fire=[&](bool down) {
+            const int binding=o.desktop->keyboard_settings.bindings[unsigned(PcAction::Fire)];
+            if(binding>0 && binding<SDL_NUM_SCANCODES)key(window_id,SDL_Scancode(binding),down);
+            else {
+              check(binding>pc_mouse_button(0) && binding<=pc_mouse_button(5),"Original interaction requires a keyboard or mouse fire binding");
+              SDL_Event event{};event.type=down?SDL_MOUSEBUTTONDOWN:SDL_MOUSEBUTTONUP;
+              event.button.windowID=window_id;event.button.button=Uint8(binding-pc_mouse_button(0));
+              event.button.state=down?SDL_PRESSED:SDL_RELEASED;check(SDL_PushEvent(&event)==1,"SDL rejected physical object fire input");
+            }
+          };
+          if(elapsed>=50 && !object_field_fire_pressed){fire(true);object_field_fire_pressed=true;}
+          if(elapsed>=110 && object_field_fire_pressed && !object_field_fire_released){fire(false);object_field_fire_released=true;}
+          object_field_fire_commands+=c.fire;
+        }
+        if(std::getenv("HALO2_TU15_OBJECT_FIELD_JUMP") && !object_field_jump && elapsed>=35 && p.native_grounded) {
+          key(window_id,SDL_SCANCODE_SPACE,true);object_field_jump=true;
+        }
+        if(object_field_jump && !object_field_jump_released && c.jump) {key(window_id,SDL_SCANCODE_SPACE,false);object_field_jump_released=true;}
       }
       const auto delta=target-(p.position+Vec3{0,0,interaction_content.player.camera_height});
-      const auto desired=std::pair{std::atan2(delta.y,delta.x),std::atan2(delta.z,std::hypot(delta.x,delta.y))};
+      const auto desired=std::pair{std::atan2(delta.y,delta.x),object_field_grenade && std::getenv("HALO2_TU15_OBJECT_FIELD_DROP") && elapsed>=20 && elapsed<70?-1.5f:std::atan2(delta.z,std::hypot(delta.x,delta.y))};
       const auto current=std::pair{c.yaw,c.pitch};
       if(prop_pending_look && current!=*prop_pending_look)prop_pending_look.reset();
       if(elapsed>=5 && !prop_pending_look) {
@@ -1873,7 +2759,10 @@ int main(int argc,char **argv) try {
       }
     }
     if(support_start) {
-      const auto delta=support_start->center-(p.position+Vec3{0,0,interaction_content.player.camera_height});
+      auto target=support_start->center;
+      const auto root=std::find_if(s.source_scene_roots.begin(),s.source_scene_roots.end(),[&](const auto&r){return r.definition==support_start->definition;});
+      if(root!=s.source_scene_roots.end())if(const auto pose=std::find_if(s.source_body_poses.begin(),s.source_body_poses.end(),[&](const auto &pose){return pose.object==root->object;});pose!=s.source_body_poses.end() && support_start->node<pose->nodes.size())target=pose->nodes[support_start->node].position;
+      const auto delta=target-(p.position+Vec3{0,0,interaction_content.player.camera_height});
       const auto desired=std::pair{std::atan2(delta.y,delta.x),std::atan2(delta.z,std::hypot(delta.x,delta.y))};
       const auto current=std::pair{c.yaw,c.pitch};
       if(support_pending_look && current!=*support_pending_look)support_pending_look.reset();
@@ -1919,20 +2808,21 @@ int main(int argc,char **argv) try {
         key(window_id,SDL_Scancode(binding),false);control_released=true;
       }
     }
-    if(!lift&&!vehicle&&!objects&&!control_test&&!script_test&&!support_test&&!prop_watch_test) switch(elapsed) {
+    if(!lift&&!vehicle&&!objects&&!control_test&&!script_test&&!support_test&&!prop_watch_test&&!conveyor_test) switch(elapsed) {
       case 25:focus(window);key(window_id,SDL_SCANCODE_W,true);break;
       case 40:key(window_id,SDL_SCANCODE_W,false);break;
       case 50:key(window_id,SDL_SCANCODE_LSHIFT,true);break;
       case 65:key(window_id,SDL_SCANCODE_LSHIFT,false);break;
       case 85:focus(window);key(window_id,SDL_SCANCODE_SPACE,true);key(window_id,SDL_SCANCODE_SPACE,false);break;
     }
-    if(accompanied_driver && ((vehicle_exited && exit_camera_frames>=20) ||
-        (companion_entered_tick && !vehicle_entered && elapsed-*companion_entered_tick>=90)))quit();
-    if(elapsed>=(prop_watch_test?650u:support_test?240u:script_test?600u:control_test?900u:accompanied_driver?900u:vehicle?(long_vehicle_sequence?900u:300u):180u))quit();
+    if(vehicle && vehicle_exited && exit_camera_frames>=40 && ordinary_after_exit_frames>0)quit();
+    if(accompanied_driver && companion_entered_tick && !vehicle_entered &&
+        elapsed-*companion_entered_tick>=90)quit();
+    if(elapsed>=(object_field_test?object_field_ticks:prop_watch_test?900u:support_test?(support_start->phase?120u:240u):script_test?600u:control_test?900u:accompanied_driver?900u:vehicle_blast_test?1800u:vehicle?(long_vehicle_sequence?900u:450u):180u))quit();
   };
   // Finite local screenshots retain all earlier real input delivery. Network
   // exit uses SDL_QUIT because exact tick capture deliberately rejects LAN.
-  if(!lan){o.capture_tick=vehicle?(long_vehicle_sequence?901:301):181;o.screenshot=output/"frame.ppm";}
+  if(!lan){o.capture_tick=vehicle?(long_vehicle_sequence?901:451):181;o.screenshot=output/"frame.ppm";}
   const int result=run_multiplayer(o);if(host)host->finish();trace.close();
   if(support_test) {std::ofstream file(output/"authority-support-samples.json");file<<host->support_samples.dump(2)<<'\n';
     check(bool(file),"Could not retain original rotating support observations");}
@@ -1942,7 +2832,7 @@ int main(int argc,char **argv) try {
     Json comparisons=Json::array();
     for(const auto &p:authority_samples) {
       const bool same=std::any_of(host->history.begin(),host->history.end(),[&](const auto &h) {
-        if(h.tick!=p.tick)return false;const auto &a=h.players[p.slot];
+        if(h.tick!=p.tick || h.source_contrails!=p.contrails)return false;const auto &a=h.players[p.slot];
         try {test::same_device_snapshot(h.devices,p.devices);}catch(const FormatError &){return false;}
         const auto same_poses=[&] {
           if(h.source_body_poses.size()!=p.poses.size() || h.world_vehicles.size()!=p.vehicles.size())return false;
@@ -2075,6 +2965,7 @@ int main(int argc,char **argv) try {
   else if(vehicle) {
     std::ofstream(output/"player-body-frames.json")<<body_frames.dump(2)<<'\n';
     report["submitted_seated_player_bodies_by_view"]=seated_body_draws;
+    report["submitted_authoritative_corpse_bodies_by_view"]=submitted_corpse_draws;
     report["submitted_exited_player_bodies_by_view"]=exited_body_draws;
     passed&=!report["initial_inventory"]["authored_vehicle_candidates"].empty() &&
       driven_vehicle!=null_datum;
@@ -2093,7 +2984,9 @@ int main(int argc,char **argv) try {
     report["source_vehicle_maximum_distance"]=vehicle_distance;report["driver_forward_commands"]=vehicle_drive_commands;
     report["source_driver_horizontal_distance"]=driven_distance;
     report["source_vehicle_climb"]=vehicle_climb;
-    if(report["selected_vehicle"]=="banshee")passed&=vehicle_climb>2.f && driven_distance>10.f;
+    // The normal flight case retains its original climb/travel gates. The
+    // separate BSP-wall case measures contact, stop and exit instead.
+    if(!vehicle_collision_test && report["selected_vehicle"]=="banshee")passed&=vehicle_climb>2.f && driven_distance>10.f;
     report["source_driving_observed"]=vehicle_entered && vehicle_drive_commands>0 && driven_distance>1;
     report["driver_steering_commands"]=steering_commands;report["source_driver_steering_radians"]=steering_angle;
     report["observer_backward_commands"]=observer_back_commands;report["observer_maximum_distance"]=observer_distance;
@@ -2102,8 +2995,64 @@ int main(int argc,char **argv) try {
     const bool driver=(vehicle_start->flags&4u)!=0;
     report["source_selected_seat_completed"]=vehicle_entered && vehicle_exited && vehicle_drive_commands>0 &&
         steering_commands>0;
-    passed&=(driver?report["source_driver_controls_completed"].get<bool>():
+    if(vehicle_collision_test) {
+      report["collision_peak_horizontal_speed"]=collision_peak_speed;
+      report["collision_minimum_plane_distance"]=collision_minimum_plane_distance;
+      report["collision_stopped_under_throttle_ticks"]=collision_stopped_ticks;
+      passed&=driver && vehicle_entered && vehicle_exited && driven_distance>1.f && collision_peak_speed>1.f && collision_stopped_ticks>=8;
+    } else if(fixed_turret_test) {
+      report["fixed_turret_fire_commands"]=turret_fire_commands;
+      report["fixed_turret_original_firing_effects"]=turret_effect_serials.size();
+      report["fixed_turret_actual_projectiles"]=turret_projectile_births.size();
+      report["fixed_turret_actual_projectile_travel"]=turret_projectile_travel;
+      report["fixed_turret_actual_projectile_speed"]=turret_projectile_speed;
+      report["fixed_turret_projectile_geometry_by_view"]=turret_projectile_draws;
+      report["fixed_turret_projectile_glows_by_view"]=turret_glow_draws;
+      report["fixed_turret_original_contrails_by_view"]=turret_contrail_draws;
+      report["fixed_turret_colored_area_contrails_by_view"]=turret_visible_contrail_draws;
+      report["fixed_turret_completed_world_node_turn"]=turret_node_turn;
+      report["fixed_turret_controls_completed"]=vehicle_entered && vehicle_exited && steering_commands>0 &&
+          turret_fire_commands>0 && !turret_projectile_births.empty() && turret_projectile_travel>.25f &&
+          turret_projectile_speed>0.f && turret_node_turn>.05f &&
+          (turret_projectile_draws[0]>0 || turret_glow_draws[0]>0 || turret_visible_contrail_draws[0]>0) &&
+          (turret_projectile_draws[1]>0 || turret_glow_draws[1]>0 || turret_visible_contrail_draws[1]>0);
+      if(turret_damage_test) {
+        float minimum=1.f;unsigned target_impulses{};
+        for(const auto &sample:host->vehicle_vitality_samples)if(sample.at("object")==turret_damage_target)minimum=std::min(minimum,sample.at("body").get<float>());
+        for(const auto &event:host->impulses)target_impulses+=event.at("object").get<std::uint32_t>()==turret_damage_target;
+        report["fixed_turret_damage_target"]=turret_damage_target;report["fixed_turret_target_body_minimum"]=minimum;
+        report["fixed_turret_target_impulses"]=target_impulses;report["fixed_turret_target_geometry_by_view"]=turret_damage_draws;
+        report["fixed_turret_controls_completed"]=vehicle_entered && vehicle_exited && steering_commands>0 && turret_fire_commands>0 &&
+            turret_node_turn>.05f && minimum<.999f && turret_damage_draws[0]>0 && turret_damage_draws[1]>0;
+        std::ofstream(output/"authority-turret-target-vitality.json")<<host->vehicle_vitality_samples.dump(2)<<'\n';
+      }
+      passed&=report["fixed_turret_controls_completed"].get<bool>() && (!lan || matched_snapshots==samples.size());
+    } else passed&=(driver?report["source_driver_controls_completed"].get<bool>():
         report["source_selected_seat_completed"].get<bool>()) && (!lan || matched_snapshots==samples.size());
+      if(vehicle_blast_test) {
+        unsigned target_impulses{};for(const auto &event:host->impulses)target_impulses+=event.at("object").get<std::uint32_t>()==driven_vehicle;
+        float minimum_body=1.f;unsigned vital_samples{},dead_samples{};
+        for(const auto &event:host->vehicle_vitality_samples)if(event.at("object").get<std::uint32_t>()==driven_vehicle) {
+          ++vital_samples;minimum_body=std::min(minimum_body,event.at("body").get<float>());
+          dead_samples+=bool(event.at("original_damage_flags").get<unsigned>()&4u);
+        }
+        report["vehicle_blast_grenade_commands"]=grenade_commands;report["vehicle_blast_detonated"]=detonated;
+        report["vehicle_blast_target_impulses"]=target_impulses;report["vehicle_minimum_original_body_fraction"]=minimum_body;
+        report["vehicle_original_vitality_samples"]=vital_samples;
+        {std::ofstream file(output/"authority-vehicle-vitality.json");file<<host->vehicle_vitality_samples.dump(2)<<'\n';check(bool(file),"Could not retain source vehicle vitality");}
+        report["vehicle_requested_blast_count"]=vehicle_blast_count;report["vehicle_observed_blast_detonations"]=vehicle_blast_detonations;
+        report["vehicle_weapon_fire_commands"]=vehicle_weapon_commands;report["vehicle_weapon_reload_commands"]=vehicle_reload_commands;
+        if(vehicle_weapon_test)passed&=vehicle_weapon_commands>0 && target_impulses>0 && vital_samples>0 && minimum_body<=0.f && dead_samples>0;
+        else passed&=grenade_commands==vehicle_blast_count && attached_grenade && released_grenade && detonated &&
+            vehicle_blast_detonations>=vehicle_blast_count && target_impulses>=vehicle_blast_count && vital_samples>0;
+        report["vehicle_original_dead_flag_samples"]=dead_samples;
+        report["vehicle_original_debris_objects"]=first_debris_position.size();
+        report["vehicle_original_debris_maximum_displacement"]=maximum_debris_displacement;
+        std::array<unsigned,2> visible_parts{};
+        for(const auto &[object,draws]:debris_draws)for(unsigned view=0;view<visible_parts.size();++view)visible_parts[view]+=draws[view]>0;
+        report["vehicle_original_debris_visible_parts_by_view"]=visible_parts;
+        if(vehicle_blast_count==2 || vehicle_weapon_test)passed&=minimum_body<=0.f && dead_samples>0 && !first_debris_position.empty() && maximum_debris_displacement>.01f && visible_parts[0]>0 && visible_parts[1]>0;
+      }
     if(accompanied_driver) {
       report["companion_driver_entered"]=companion_entered;
       report["companion_driver_forward_commands"]=companion_forward_commands;
@@ -2113,13 +3062,30 @@ int main(int argc,char **argv) try {
       passed&=companion_entered && companion_forward_commands>0 && companion_camera_frames>0 && driven_distance>1.f;
     } else passed&=observer_back_commands>0 && observer_distance>.5f;
     report["submitted_seated_camera_frames"]=seated_camera_frames;
+    report["submitted_exact_source_camera_frames"]=exact_source_camera_frames;
+    report["submitted_original_third_person_frames"]=stable_source_third_person_frames;
+    // Authored collision/track output owns the distance. A fixed half-unit
+    // minimum rejected a bit-exact TU1.5 turret observer at0.498986 units.
+    if(lan)passed&=exact_source_camera_frames==seated_camera_frames && stable_source_third_person_frames>0;
+
+    report["submitted_source_exit_transition_frames"]=source_exit_transition_frames;
+    report["submitted_ordinary_after_exit_frames"]=ordinary_after_exit_frames;
     report["submitted_camera_distance_from_first_person_eye"]=seated_camera_distance;
     report["submitted_camera_frames_after_exit"]=exit_camera_frames;
-    passed&=seated_camera_frames>0 && seated_camera_distance>.5f && exit_camera_frames>0;
+    passed&=seated_camera_frames>0 && exit_camera_frames>0;
+    if(lan)passed&=source_exit_transition_frames>0 && ordinary_after_exit_frames>0;
     report["submitted_seated_camera_look_turn_radians"]=steering_camera_angle;
     passed&=steering_camera_angle>.05f;
     report["submitted_driver_vehicle_geometry_by_view"]=driven_vehicle_draws;
     passed&=driven_vehicle_draws[0]>0 && driven_vehicle_draws[1]>0;
+    report["camera_acceptance_passed"]=vehicle_entered && vehicle_exited &&
+        seated_camera_frames>0 && steering_camera_angle>.05f &&
+        exit_camera_frames>0 && seated_body_draws[0]>0 && seated_body_draws[1]>0 &&
+        exited_body_draws[1]>0 && driven_vehicle_draws[0]>0 && driven_vehicle_draws[1]>0 &&
+        (!lan || (exact_source_camera_frames==seated_camera_frames && stable_source_third_person_frames>0 &&
+          matched_snapshots==samples.size() && source_exit_transition_frames>0 &&
+          ordinary_after_exit_frames>0)) && (!accompanied_driver ||
+          (companion_entered && companion_forward_commands>0 && companion_camera_frames>0 && driven_distance>1.f));
     }
   } else if(objects) {
     report["grenade_commands"]=grenade_commands;report["attached_grenade"]=attached_grenade;
@@ -2134,6 +3100,41 @@ int main(int argc,char **argv) try {
     }
     passed&=grenade_commands==1 && attached_grenade && released_grenade && falling_grenade && detonated;
     for(unsigned view=0;view<o.local_players;++view)passed&=grenade_draws[view]>0 && explosion_particle_draws[view]>0;
+  } else if(object_field_test) {
+    unsigned angular_deliveries{};const auto path=output/"authority-phantom-phase.jsonl";
+    check(std::filesystem::exists(path),"Object-field acceptance requires its actual source force phases");
+    std::ifstream file(path);std::string line;std::map<std::pair<unsigned,unsigned>,Json> prior;
+    while(std::getline(file,line)) {
+      const auto event=Json::parse(line);const auto key=std::pair{event.at("tick").get<unsigned>(),event.at("component").get<unsigned>()};
+      if(event.at("entering").get<bool>()){prior[key]=event;continue;}
+      const auto first=prior.find(key);if(first==prior.end())continue;
+      for(const auto &member:event.at("members")) {
+        const auto object=member.at("object").get<std::uint32_t>();if(!prop_watch_first.contains(object) || !member.contains("motion_bytes"))continue;
+        for(const auto &before:first->second.at("members"))if(before.at("object")==object && before.contains("motion_bytes")) {
+          const auto a=before.at("motion_bytes").get<std::string>(),b=member.at("motion_bytes").get<std::string>();
+          check(a.size()>=0xb8 && b.size()>=0xb8,"Incomplete actual angular motion state");
+          angular_deliveries+=a.substr(0xa0,24)!=b.substr(0xa0,24);
+        }
+      }
+      prior.erase(first);
+    }
+    Json targets=Json::array();unsigned rotating_drawn{};
+    for(const auto &[object,angle]:object_field_angles) {
+      targets.push_back({{"object",object},{"angle",angle},{"travel",prop_watch_travel[object]},{"draw_submissions",prop_watch_draws[object]}});
+      rotating_drawn+=angle>.05f && prop_watch_draws[object]>0;
+    }
+    report["declared_object_observation_ticks"]=object_field_ticks;
+    report["object_field_targets"]=targets;report["original_angular_deliveries"]=angular_deliveries;
+    report["aimed_prop_camera_frames"]=prop_watch_aimed;report["declared_object_jump"]=object_field_jump;
+    report["object_field_fire_commands"]=object_field_fire_commands;
+    unsigned target_impulses{};
+    for(const auto &impulse:host->impulses)target_impulses+=prop_watch_first.contains(impulse.at("object").get<std::uint32_t>());
+    report["object_field_original_target_impulses"]=target_impulses;
+    report["grenade_commands"]=grenade_commands;report["grenade_detonated"]=detonated;
+    report["attached_grenade"]=attached_grenade;report["released_grenade"]=released_grenade;
+    passed&=angular_deliveries>0 && rotating_drawn>0 && prop_watch_aimed>10 &&
+        (object_field_grenade?(grenade_commands==1 && attached_grenade && released_grenade && detonated && target_impulses>0):
+          object_field_shoot?(object_field_fire_commands>0 && target_impulses>0):forward_commands>0);
   } else if(prop_watch_test) {
     Json trajectories=Json::array();unsigned moving_drawn{},conveyor_drawn{};
     for(const auto &[object,travel]:prop_watch_travel) {
@@ -2149,6 +3150,9 @@ int main(int argc,char **argv) try {
     std::optional<Vec3> origin,local_origin;std::optional<float> initial_phase;
     unsigned static_supported{},moving_supported{};float carried{},wheel_motion{};
     for(const auto &row:host->support_samples) {
+      // Worker teardown may execute further real frames after the visible
+      // client's last input. Count only the observed visible interval.
+      if(row.at("tick").get<std::uint32_t>()>samples.back().at("authority_tick").get<std::uint32_t>())continue;
       if(row.at("unit").get<std::uint32_t>()!=samples.front().at("unit").get<std::uint32_t>())continue;
       const auto position=vector(row.at("position"));
       const auto phase=std::bit_cast<float>(row.at("wheel_position_bits").get<std::uint32_t>());
@@ -2168,6 +3172,8 @@ int main(int argc,char **argv) try {
       if(grounded && power==1 && length(position-expected)<.5f*interaction_content.player.height &&
           length(position-*origin)>.1f) {++moving_supported;carried=std::max(carried,length(position-*origin));}
     }
+    report["support_living_observation_last_tick"]=samples.back().at("authority_tick");
+    report["released_support_unit_observations"]=std::count_if(host->support_samples.begin(),host->support_samples.end(),[](const auto &row){return row.value("released_player_body",false);});
     report["paused_original_support_ticks"]=static_supported;
     report["moving_original_support_ticks"]=moving_supported;
     report["original_support_carried_distance"]=carried;report["original_wheel_position_delta"]=wheel_motion;
@@ -2207,6 +3213,11 @@ int main(int argc,char **argv) try {
     report["source_gate_maximum_position"]=source_position;report["native_gate_maximum_position"]=native_position;
     report["gate_position_mismatching_samples"]=differing_samples;
     passed&=control_pressed && control_released && source_position>.99f && native_position>.99f && differing_samples==0;
+  } else if(conveyor_test) {
+    report["conveyor_grounded_ticks"]=conveyor_grounded_ticks;
+    report["conveyor_neutral_input_ticks"]=conveyor_uncommanded_ticks;
+    report["conveyor_grounded_horizontal_travel"]=conveyor_grounded_travel;
+    passed&=conveyor_grounded_ticks>30 && conveyor_uncommanded_ticks==samples.size() && conveyor_grounded_travel>.25f && forward_commands==0 && jump_commands==0;
   } else passed&=distance>0 && fastest>0 && largest_crouch>0 && jump_commands==1 && forward_commands>0 && (!lan||matched_snapshots>0);
   if(!lan)report["final_inventory"]=inventory(*o.prepared_world);
   if(prop_placement) {
@@ -2242,11 +3253,18 @@ int main(int argc,char **argv) try {
       for(unsigned view=0;view<o.local_players;++view)passed&=debris_draws[owner][view]>0;
     }
   }
+  if(std::getenv("HALO2_TU15_AUTHORITY_RESTORE")) {
+    check(host!=nullptr,"Live source authority restoration requires the actual LAN host");
+    report["source_authority_restore"]=host->scene_lifecycle;
+    report["source_authority_restored"]=host->source_authority_restored;
+    passed&=host->source_authority_restored;
+  }
   report["acceptance_passed"]=passed;
   report["limit"]="Live native behavior only. Full retail contact/solver, driving, dynamic-object impulses and complete TU1.5 parity remain required.";
   {std::ofstream file(output/"report.json");file<<report.dump(2)<<'\n';check(bool(file),"Could not write acceptance report");}
   {std::ofstream file(output/"frames.json");file<<frames.dump()<<'\n';}
   {std::ofstream file(output/"cameras.json");file<<camera_frames.dump(2)<<'\n';}
+  {std::ofstream file(output/"contrail-submissions.json");file<<contrail_submissions.dump(2)<<'\n';}
   std::cout<<(passed?"PASS":"RED")<<" visible "<<scenario<<": ticks="<<samples.size()<<" peak_z="<<peak_z
       <<" upward_velocity="<<fastest<<" crouch="<<largest_crouch<<" LAN_comparisons="<<matched_snapshots<<'\n';
   return passed?0:2;

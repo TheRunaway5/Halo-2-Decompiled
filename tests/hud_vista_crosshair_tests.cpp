@@ -43,7 +43,8 @@ int main(int argc,char **argv) {
     for(auto &p:state.players) {p.connected=true;p.loaded=60;p.reserve=120;p.health=p.shield=1;
       p.secondary_weapon.datum=1;p.secondary_weapon.loaded=60;p.secondary_weapon.reserve=120;
       p.weapon_trigger.target_position=std::array{10.f,0.f,0.f};
-      p.secondary_weapon.trigger.target_position=p.weapon_trigger.target_position;}
+      p.secondary_weapon.trigger.target_position=p.weapon_trigger.target_position;
+      p.weapon_trigger.mode=p.secondary_weapon.trigger.mode=6;}
     unsigned weapons=0,widgets=0,vertices=0,bindings=0;
     std::set<std::pair<std::string,unsigned>> selected;
     for(const auto &tag:cache.tags()) {

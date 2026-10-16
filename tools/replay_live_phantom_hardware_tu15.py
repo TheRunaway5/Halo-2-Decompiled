@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a live force-call capture through unchanged original i386 instructions.
+"""Run a live source-call capture through unchanged original i386 instructions.
 
 The libc-free ELF only loads actual input bytes and captures output after the
 original RET. A ptrace observer changes EIP at that completed return boundary;
@@ -110,7 +110,7 @@ def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--return-breakpoints',action='store_true');p.add_argument('--capture',required=True,type=Path);p.add_argument('--output',required=True,type=Path);a=p.parse_args()
  a.capture=a.capture.resolve();a.output=a.output.resolve();assert not a.output.exists();a.output.mkdir(parents=True)
  sha=lambda p:hashlib.file_digest(Path(p).open('rb'),'sha256').hexdigest()
- assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0x1da750,0x355d0,0x1e1170,0x1cc8d0,0x14fec0,0xb8f40) and d['reference']=='English TU1.5 only'
+ assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);d=json.loads((a.capture/'capture.json').read_text());assert d['entry'] in (0x2fbb70,0x2fc570,0x2fbb10,0x119060,0x297270,0x297400,0x296180,0xc1120,0xf0e70,0xb9180,0xc92c0,0xf2340,0xf48c0,0xce440,0x1da750,0x355d0,0x1e1170,0x1cc8d0,0x14fec0,0xb8f40,0x37c5d0,0x2ee660,0x2f1930,0x2fc5d0,0x158340,0x245ea0,0x18a300,0x18a2a0,0xec780,0xcb7a0,0x157fe0,0x158290,0x2f9d70,0x217470,0x217310) and d['reference']=='English TU1.5 only'
  initial=d['before'];env=bytearray(108);tag=0xffff;top=(initial['x87_status']>>11)&7
  for n,value in enumerate(initial['x87_values']):
   raw=bytes.fromhex(value);mantissa=int.from_bytes(raw[:8],'little');exponent=int.from_bytes(raw[8:],'little')&0x7fff
@@ -126,6 +126,20 @@ def main():
   assert not(r['address']<=0x70000000<r['address']+r['size'])
  text=next(s for s in image.sections if s.name=='.text');text_region=next(r for r in regions if r['address']==text.va)
  assert (a.capture/text_region['before_file']).read_bytes()==image.section_bytes(text),'Original text changed'
+ # B8F40 can query original GPU resource-busy state during object retirement.
+ # Authenticate every admitted instruction, including the non-.text XDK owner.
+ # No original instruction, memory input, result or hardware poll is replaced.
+ authenticated_sites=[];authenticated_external_code=[]
+ if d['entry']==0xb8f40:
+  from oracle_smg_firing_1_1 import _Code
+  from generate_physics_live_support_tu15 import complete_body
+  code=_Code(image,'D3D');body=complete_body(code,0x4057f0);assert len(body.code)==48
+  for pc in sorted(body.code):
+   instruction=code.at(pc);region=next(r for r in regions if r['address']<=pc and pc+len(instruction.bytes)<=r['address']+r['size'])
+   bank=(a.capture/region['before_file']).read_bytes();off=pc-region['address']
+   assert bank[off:off+len(instruction.bytes)]==instruction.bytes,'Original D3D query instruction changed'
+   authenticated_sites.append(pc)
+  authenticated_external_code.append(dict(section='D3D',entry=0x4057f0,instruction_sites=len(authenticated_sites)))
  emit='\n'.join(f' mov ${r["address"]},%ecx\n mov ${r["size"]},%edx\n call write_exact' for r in regions)
  asm=ASM.replace('EMIT_BANKS',emit).replace('ENTRY',str(d['entry'])).replace('INPUT_FILE',str(a.output/'input.bin')).replace('FS_BASE',str(initial['fs_base']))
  (a.output/'bridge.s').write_text(asm+'\n'+'\n'.join(assembly));(a.output/'link.ld').write_text('ENTRY(_start)\nSECTIONS {\n'+'\n'.join(sections)+'\n.bridge 0x70000000 : { *(.bridge) }\n}\n')
@@ -139,6 +153,7 @@ def main():
   from generate_physics_live_support_tu15 import complete_body
   code=_Code(image,'.text');body=complete_body(code,d['entry']);returns=[q for q in sorted(body.code) if code.at(q).mnemonic.startswith('ret')];assert 0<len(returns)<=4
   trace_command.append(','.join(hex(q) for q in returns))
+ if authenticated_sites and not a.return_breakpoints:trace_command.append(','.join(hex(pc)for pc in authenticated_sites))
  subprocess.run(trace_command,check=True,timeout=60)
  with (a.output/'output.bin').open('rb') as output:
   raw=output.read(276);assert len(raw)==276
@@ -162,7 +177,7 @@ def main():
   assert output.read(1)==b''
  trace=json.loads((a.output/'trace.json').read_text());report=dict(reference='English TU1.5 only',passed=not differences,original_instructions=trace['original_instructions'],compared_memory_bytes=compared,
   differences=differences,original_abi=actual,original_sha256=NEW_PIN,harness_sha256=sha(a.output/'original-hardware'),tracer_sha256=sha(tracer),
-  host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,return_breakpoint_observation=a.return_breakpoints,entry=d['entry'],boundary='One real live physics call; unchanged original text, no replaced callee/result. All accessible final source bytes and GP/SSE/x87/FP controls/status compared.')
+  host='Linux i386 CPU execution with ptrace observation; not Xbox hardware',eflags_comparison_mask=flag_mask,hardware_entry_eflags=trace['entry_eflags'],native_entry_eflags=initial['eflags'],host_fixed_interrupt_flag=True,return_breakpoint_observation=a.return_breakpoints,authenticated_external_code=authenticated_external_code,entry=d['entry'],boundary='One real live physics call; unchanged original text, no replaced callee/result. All accessible final source bytes and GP/SSE/x87/FP controls/status compared.')
  (a.output/'report.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps({k:v for k,v in report.items() if k!='original_abi'}));return 0 if report['passed'] else 1
 
 if __name__=='__main__':raise SystemExit(main())

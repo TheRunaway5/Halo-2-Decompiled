@@ -17,11 +17,15 @@ std::array<float,4> normalized_integer_blend(std::array<std::int16_t,4>a,
   return out;
 }
 }
-std::vector<BonePose> sample_frontend_model_primary(const RenderModel&model,
-    const FrontendModelPrimary&clip,float frame,std::span<const std::uint32_t>mask,bool interpolate) {
+namespace {
+std::vector<BonePose> sample_primary(const RenderModel&model,
+    const FrontendModelPrimary&clip,float frame,std::span<const std::uint32_t>mask,bool interpolate,
+    bool model_node_order) {
   if(!clip.frame_count || !std::isfinite(frame) || frame<0 || frame>=float(clip.frame_count) ||
       clip.nodes.size()!=clip.channels.size() || clip.nodes.size()!=clip.components.size())
     throw FormatError("invalid retained source frontend primary frame");
+  if(model_node_order && model.bones.size()>clip.nodes.size())
+    throw FormatError("World object primary does not cover its model node bank");
   const auto frame_index=unsigned(frame);
   float fraction=interpolate?frame-float(frame_index):0.f;
   unsigned index=frame_index;
@@ -35,9 +39,12 @@ std::vector<BonePose> sample_frontend_model_primary(const RenderModel&model,
       if(mask.size()<(model.bones.size()+31)/32)throw FormatError("source primary mask truncated");
       if(!(mask[n/32]&(1u<<(n%32)))){out.push_back(pose);continue;}
     }
-    const auto found=std::find(clip.nodes.begin(),clip.nodes.end(),model.bones[n].name);
-    if(found==clip.nodes.end()){out.push_back(pose);continue;}
-    const auto node=std::size_t(found-clip.nodes.begin());
+    auto node=std::size_t(n);
+    if(!model_node_order) {
+      const auto found=std::find(clip.nodes.begin(),clip.nodes.end(),model.bones[n].name);
+      if(found==clip.nodes.end()){out.push_back(pose);continue;}
+      node=std::size_t(found-clip.nodes.begin());
+    }
     for(unsigned c=0;c<3;++c)if(clip.components[node]&(1u<<c)) {
       const auto&track=clip.channels[node][c];
       const auto upper=std::upper_bound(track.times.begin(),track.times.end(),index);
@@ -62,6 +69,15 @@ std::vector<BonePose> sample_frontend_model_primary(const RenderModel&model,
     out.push_back(pose);
   }
   return out;
+}
+}
+std::vector<BonePose> sample_frontend_model_primary(const RenderModel&model,
+    const FrontendModelPrimary&clip,float frame,std::span<const std::uint32_t>mask,bool interpolate) {
+  return sample_primary(model,clip,frame,mask,interpolate,false);
+}
+std::vector<BonePose> sample_world_object_primary(const RenderModel&model,
+    const FrontendModelPrimary&clip,float frame,std::span<const std::uint32_t>mask,bool interpolate) {
+  return sample_primary(model,clip,frame,mask,interpolate,true);
 }
 FrontendModelPrimary Cache::load_frontend_model_primary_animation(std::uint32_t graph,unsigned index)const {
   const Bytes data(cache_bytes());

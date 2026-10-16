@@ -7,10 +7,16 @@
 namespace halo2 {
 inline constexpr unsigned menu_world_fragment_descriptor_set=1;
 inline constexpr unsigned menu_world_fragment_descriptor_binding=1;
+// Explicit admitted NV097_SET_ZMIN_MAX_CONTROL values. The shader applies
+// this after reconstructed W plus polygon offset, before D24 conversion.
+// Retained ordinary callers keep cull; shadow callers must supply clamp.
+enum class MenuWorldWClipMode : std::uint32_t { cull=0, clamp=16 };
 
 // Actual caller-owned ordinary-world state, not defaults selected from a
 // screen, target extent or a retained capture. The matching GLSL block is
 // set1/binding1, beside the independent raw-vertex bank at set1/binding0.
+// W clipping is a separate explicit pipeline specialization; these original
+// 448 bytes and their independently captured fixture offsets remain intact.
 struct alignas(16) MenuWorldFragmentUniforms {
   std::array<float,4> clip_range;
   std::array<std::array<std::int32_t,4>,8> regions;
@@ -69,6 +75,7 @@ struct MenuWorldFragmentInput {
   std::array<MenuWorldFragmentTexture,4> textures{};
   const MenuWorldFragmentUniforms *uniforms{};
   MenuWorldFragmentDepth depth=MenuWorldFragmentDepth::unspecified;
+  MenuWorldWClipMode w_clip_mode=MenuWorldWClipMode::cull;
   MenuWorldFragmentWindow window=MenuWorldFragmentWindow::unspecified;
   MenuWorldFragmentColors colors=MenuWorldFragmentColors::unspecified;
   MenuWorldFragmentPrimitive primitive=MenuWorldFragmentPrimitive::unspecified;

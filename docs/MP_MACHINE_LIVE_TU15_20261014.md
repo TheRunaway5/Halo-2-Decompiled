@@ -202,3 +202,70 @@ commands use its actual current full source identity after source creation.
 The rejected named/pre-creation wheel probes remain retained as diagnostic
 failures. This closes one live rotating carrier gate. All moving supports,
 linear carriers and quantitative original retail trajectories remain required.
+
+
+## October15 train-carrier investigation
+
+The Terminal train case uses original PHMO capsule body0/model node3 and normal
+source device APIs, with no supplied contact, velocity or body result. The
+initial authored train generation is retired and replaced by actual map
+scripts, so the finite fixture waits for a current runtime generation. A
+client readiness barrier retains the completed staged source frame during
+GPU preparation/network admission; original world/script/physics ticks resume
+once ordinary controls can be displayed. Declared source position/power API
+inputs stage the train; no completed body is moved by the test.
+
+`train-visible-start-live-v401` and the additional read-only body-velocity probe
+`train-motion-probe-live-v402` remain red: 19 paused supported ticks establish
+contact, but the strict moving-carry gate fails. The original train's five
+physical bodies have nonzero resumed linear velocities, around26..28 units/s.
+The actual first resumed B8F40 and1CC8D0 calls both match unchanged TU1.5 CPU
+execution across60,079/23,750 instructions, all60MB source banks and full CPU/FP
+within the documented host IF limit. This rules out an invented body velocity
+repair; it does not establish the retail rider trajectory or explain every
+preceding integration input. `train-carrier-investigation-v402.json` records
+the exact bounded result. No contact, force or inheritance result was supplied
+to make that failed ride pass. The separate Ivory Tower paddle carrier test
+is being prepared from its actual authored flat PHMO hull and model node.
+
+
+## Ivory Tower mechanical paddles and remaining lower approach
+
+Three authored elevator bodies pass visible neutral-input multiplayer rides.
+They use actual PHMO convex hulls and model nodes, normal source device power
+API input and source physics throughout. The authority starts at a distinct
+original map spawn; the client starts at the declared paddle approach. No
+walking, jump, contact, velocity, force or solved body is supplied.
+
+| PHMO body | Model node | Paused supported ticks | Visible moving supported ticks | Verified carried travel | Exact UDP states |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 0 | 2 | 21 | 65 | 2.596529 | 244 |
+| 2 | 3 | 20 | 66 | 2.556674 | 244 |
+| 3 | 4 | 19 | 45 | 0.778292 | 244 |
+
+The independent visible-interval verification excludes worker frames after the
+client's last observed input. All three retained positive cases still pass the
+original strict ride gates. Complete captured object/world calls for those
+three contexts match six untouched TU1.5 calls, 289,775 original instructions,
+all final60MB source banks and all CPU/FP state within the existing host IF
+boundary. `verified-elevator-body-matrix-v406.json` links actual reports,
+recordings and original comparisons; `elevator-visible-interval-verification-v405.json`
+records the conservative interval check.
+
+Body1/node1's declared low approach stays red. The node moves roughly0.9
+horizontally and0.5 vertically, while the actor stays near its floor. The
+initial diagnostic additionally queried an already released player body during
+teardown; the repeated observer records actual dead/NONE ownership without
+reading that body and retains all ride requirements. Its two original calls
+also match exactly across64,912 instructions. This is not a successful rider
+case and does not prove the preceding integration context or retail rider
+trajectory. No source velocity/contact was changed to force it to pass.
+The original output directory names containing `static` retain an early
+probe label; the observed node is not immobile.
+
+The exact v403 source composition is retained in `source-cut-v403.tar.zst`
+(6547 verified files). Its acceptance ELF was not preserved before relinking;
+the actual per-run executed hashes remain in each execution record. The newer
+v405 fixture executable is immutable in `tested-runtime-v405`, with its exact
+source delta from the full v381 archive. Both production physics and the
+production executable remain the unchanged, independently tested v381 version.

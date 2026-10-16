@@ -105,14 +105,21 @@ void validate_values(const Saved &saved,const LevelContent &content){
 std::uint32_t Simulation::authority_service_roles()const {
     std::uint32_t roles=0;unsigned i=0;
     for(bool present:{bool(bsp_loader_),bool(predictor_),bool(vehicle_allied_),bool(subtitle_localized_),bool(sound_duration_),
-        bool(animation_loader_),bool(look_invert_get_),bool(look_invert_set_),bool(source_vehicle_seat_query_),
+        animation_loader_.target<CinematicAnimationLoader>()?bool(animation_loader_.target<CinematicAnimationLoader>()->load):bool(animation_loader_),bool(look_invert_get_),bool(look_invert_set_),bool(source_vehicle_seat_query_),
         bool(allocate_object_),bool(publish_object_),bool(release_object_),bool(damage_hook_),bool(player_damage_scale_),
         bool(first_person_activity_hook_),bool(first_person_timing_hook_),bool(weapon_effect_hook_),bool(world_weapon_effect_hook_),
-        bool(grenade_sandbox_),bool(melee_animation_),bool(source_device_script_)}){if(present)roles|=1u<<i;++i;}
+        bool(grenade_sandbox_),bool(melee_animation_),bool(source_device_script_),
+        animation_loader_.target<CinematicAnimationLoader>() && animation_loader_.target<CinematicAnimationLoader>()->assets}){if(present)roles|=1u<<i;++i;}
     return roles;
 }
 Simulation::AuthorityCheckpoint Simulation::authority_checkpoint(AuthorityDigest admitted_binding,bool qualified_source_world)const {
     authority_calls_.capture();
+    if(cinematic_state())
+        throw FormatError("ONLINE simulation continuation cannot omit a campaign cinematic lighting/postprocess owner");
+    for(const auto &[handle,animation]:object_animations_) {
+        (void)handle;if(animation.channel)
+            throw FormatError("ONLINE simulation continuation cannot omit active campaign cinematic channels");
+    }
     if(checkpoint_||!debug_snapshots_.empty()||save_pending_||revert_pending_)
         throw FormatError("ONLINE simulation continuation cannot omit campaign/debug saved-state owners");
     const bool source=object_lifetimes_.pool().source_memory()!=nullptr;

@@ -34,6 +34,7 @@ struct MenuWorldNativePacketInput {
   std::array<MenuWorldTextureCoordinates,4> texture_coordinates{
       MenuWorldTextureCoordinates::normalized,MenuWorldTextureCoordinates::normalized,
       MenuWorldTextureCoordinates::normalized,MenuWorldTextureCoordinates::normalized};
+  MenuWorldWClipMode w_clip_mode=MenuWorldWClipMode::cull;
 };
 
 // Pure packet assembly and completed-program admission; no Vulkan calls,

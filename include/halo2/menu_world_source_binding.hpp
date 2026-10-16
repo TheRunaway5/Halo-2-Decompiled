@@ -42,6 +42,7 @@ public:
   std::span<const std::byte> resource_bytes(unsigned input) const;
 private:
   MenuWorldSourceBinding() = default;
+  friend MenuWorldSourceBinding menu_world_source_scaled_viewport(const MenuWorldSourceBinding &,unsigned);
   friend MenuWorldSourceBinding menu_world_source_binding(const Cache &,
       MenuWorldSourceOwner,MenuWorldSourceDraw,std::uint32_t,const MenuWorldSourceConstants &);
   friend MenuWorldSourceBinding menu_world_source_binding_class(const Cache &,
@@ -70,4 +71,9 @@ MenuWorldSourceBinding menu_world_source_binding(const Cache &,MenuWorldSourceOw
 MenuWorldSourceBinding menu_world_source_binding_class(const Cache &,MenuWorldSourceOwner,
     MenuWorldSourceDraw,std::uint32_t actual_vertex_shader,unsigned actual_vertex_class,
     const MenuWorldSourceConstants &);
+// Native SSAA extension: re-evaluate literal12FA0 c8..11 for the larger
+// render target, preserving the half-pixel bias instead of scaling it.
+// Rejects nonstandard source viewport banks. Owner, pose, compression, program
+// and every other constant retain their original bits; scale1 is unchanged.
+MenuWorldSourceBinding menu_world_source_scaled_viewport(const MenuWorldSourceBinding &,unsigned scale);
 } // namespace halo2

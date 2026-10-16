@@ -1,6 +1,8 @@
 #include "halo2/particle_renderer.hpp"
 #include "halo2/sampler.hpp"
 #include "halo2/texture.hpp"
+#include "halo2/vertex_program.hpp"
+#include <bit>
 #include "particle_program.hpp"
 #include "particle_directional_program.hpp"
 #include "particle_perpendicular_program.hpp"
@@ -256,6 +258,18 @@ struct ParticleRenderer::Impl {
     }
     gpu.pipeline=make_pipeline(source->pass,source->vertex.classification,distortion);return gpu;
   }
+  RendererParticleProgramConfiguration program(std::shared_ptr<const ParticleMaterial> source) {
+    if(!source)throw FormatError("Native particle program has no material owner");
+    const auto decoded=decode_vertex_program(source->vertex.program);auto &gpu=material(source);
+    std::uint64_t hash=14695981039346656037ull;
+    for(auto byte:source->vertex.program)hash=(hash^std::to_integer<unsigned>(byte))*1099511628211ull;
+    const auto classification=source->vertex.classification;
+    const auto shader=classification==1?shaders[5]:classification==8?shaders[3]:classification==9?shaders[4]:
+        hash==particle_distortion_program_hash?shaders[7]:shaders[0];
+    return {std::bit_cast<std::uint64_t>(gpu.pipeline),std::bit_cast<std::uint64_t>(shader),
+        std::bit_cast<std::uint64_t>(layout),hash,0,classification,decoded.count,
+        NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(&gpu))}};
+  }
   void clear_draws() {
     if(uniform_data)vkUnmapMemory(device,uniforms.memory);
     uniform_data=nullptr;free_buffer(uniforms);uniforms={};
@@ -394,6 +408,7 @@ static_assert(sizeof(ParticleDepthState)==32);
 ParticleRenderer::ParticleRenderer(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path &directory)
   :impl_(std::make_unique<Impl>(p,d,q,family,rp,directory)){}
 ParticleRenderer::~ParticleRenderer()=default;
+RendererParticleProgramConfiguration ParticleRenderer::program(std::shared_ptr<const ParticleMaterial> material){return impl_->program(std::move(material));}
 void ParticleRenderer::prepare(std::span<const ParticleDraw> d,ParticleSceneTexture scene){impl_->prepare(d,scene);}
 bool ParticleRenderer::reads_scene_texture(std::size_t index) const {
   if(index>=impl_->draw_count)throw FormatError("particle scene texture query outside prepared draws");

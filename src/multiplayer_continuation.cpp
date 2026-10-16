@@ -1,4 +1,5 @@
 #include "halo2/multiplayer_authority.hpp"
+#include "halo2/multiplayer_object_runtime.hpp"
 #include "multiplayer_authority_fields.hpp"
 #include "world_continuation_bindings.hpp"
 #include <algorithm>
@@ -83,13 +84,15 @@ std::uint32_t MultiplayerMatch::authority_service_roles()const {
     std::uint32_t result=0;unsigned i=0;
     for(bool present:{bool(source_object_world_),bool(king_services_.record),bool(king_services_.score_changed),bool(king_services_.notification),
         bool(first_person_event_owner_),bool(weapon_effect_owner_),bool(result_wall_clock_),bool(game_engine_presentation_owner_),
-        bool(player_birth_owner_),bool(pre_player_update_owner_)}){if(present)result|=1u<<i;++i;}
+        bool(player_birth_owner_),bool(pre_player_update_owner_),
+        source_object_world_&&source_object_world_->has_projectile_effect_observer()}){if(present)result|=1u<<i;++i;}
     return result;
 }
 MultiplayerMatch::AuthorityCheckpoint MultiplayerMatch::authority_checkpoint(AuthorityDigest binding,bool qualified_source_world)const {
     authority_calls_.capture();
     Saved saved;saved.admitted_binding=binding;saved.configuration_binding=authority_configuration();
     saved.service_roles=authority_service_roles();saved.source_backed=player_pool_.source_memory()!=nullptr;
+    saved.logical_result_seconds=result_wall_time();
     if(saved.source_backed&&!qualified_source_world)throw FormatError("Match continuation requires its complete qualified source world");
     if(saved.source_backed)saved.source_players=player_pool_.source_binding();else saved.owned_players=player_pool_;
     saved.simulation=simulation_.authority_checkpoint(binding,qualified_source_world);
@@ -106,6 +109,7 @@ struct MultiplayerMatch::PreparedAuthority::Impl {
     std::map<std::uint32_t,Unit> retained_units;
     std::optional<DatumPool::PreparedSourceView> source_players;
     std::optional<Simulation::PreparedAuthority> simulation;
+    std::optional<std::uint32_t> result_clock_adjustment;
     ~Impl(){if(staging)*staging=false;}
 };
 MultiplayerMatch::PreparedAuthority::PreparedAuthority()=default;
@@ -115,7 +119,7 @@ MultiplayerMatch::PreparedAuthority &MultiplayerMatch::PreparedAuthority::operat
 bool MultiplayerMatch::PreparedAuthority::for_owner(const MultiplayerMatch &m)const noexcept{return impl_&&impl_->owner==&m;}
 MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Saved &saved,AuthorityDigest binding,const SourceRuntimeMemory *replacement) {
     authority_calls_.prepare();
-    if(saved.version!=1||saved.admitted_binding!=binding||saved.simulation.admitted_binding!=binding||
+    if(saved.version!=2||saved.admitted_binding!=binding||saved.simulation.admitted_binding!=binding||
        saved.configuration_binding!=authority_configuration()||saved.service_roles!=authority_service_roles()||
        saved.source_backed!=bool(player_pool_.source_memory())||saved.source_backed!=saved.source_players.has_value()||
        saved.source_backed==saved.owned_players.has_value()||saved.source_backed!=bool(replacement)||
@@ -138,10 +142,16 @@ MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Sa
         n.retained_units.emplace(h,std::move(u));}
     n.simulation.emplace(simulation_.prepare_authority(saved.simulation,binding,replacement));return p;
 }
+bool MultiplayerMatch::prepare_result_clock(PreparedAuthority &p) const noexcept {
+    if(!p.for_owner(*this)||!authority_calls_.staging||authority_calls_.depth)return false;
+    try{p.impl_->result_clock_adjustment=p.impl_->values.logical_result_seconds-result_wall_clock_();return true;}
+    catch(...){return false;}
+}
 bool MultiplayerMatch::commit_authority(PreparedAuthority &&p) noexcept {
     if(!p.for_owner(*this)||!authority_calls_.staging||authority_calls_.depth)return false;
     auto &n=*p.impl_;
     if(n.source_players&&!player_pool_.source_view_ready(*n.source_players))return false;
+    if(!n.result_clock_adjustment&&!prepare_result_clock(p))return false;
     authority_calls_.fault=true;
     if(!simulation_.commit_authority(std::move(*n.simulation)))return false;
     if(n.source_players&&!player_pool_.commit_source_view(std::move(*n.source_players)))return false;
@@ -149,6 +159,7 @@ bool MultiplayerMatch::commit_authority(PreparedAuthority &&p) noexcept {
 #define SWAP(name) static_assert(std::is_nothrow_swappable_v<decltype(name##_)>);std::swap(name##_,n.values.name);
     HALO2_MULTIPLAYER_AUTHORITY_VALUES(SWAP)
 #undef SWAP
+    result_wall_adjustment_=*n.result_clock_adjustment;
     retained_units_.swap(n.retained_units);authority_calls_.fault=false;p.impl_.reset();return true;
 }
 }

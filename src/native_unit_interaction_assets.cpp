@@ -4,9 +4,23 @@
 #include "halo2/math.hpp"
 #include "halo2/first_person_ik.hpp"
 #include <cmath>
+#include <tuple>
 namespace halo2 {
 std::shared_ptr<const NativeUnitInteractionAssets> load_native_unit_interaction_assets(const Cache &cache,const LevelContent &content) {
   auto out=std::make_shared<NativeUnitInteractionAssets>();
+  using ClipIdentity=std::tuple<std::uint32_t,std::uint32_t,std::string>;
+  std::map<ClipIdentity,std::weak_ptr<const AnimationClip>> clips;
+  const auto retain_clip=[&](AnimationClip clip)->std::shared_ptr<const AnimationClip> {
+    if(clip.source_graph==null_datum || clip.source_index==null_datum)
+      return std::make_shared<const AnimationClip>(std::move(clip));
+    // Only immutable decoded resources share storage. Unit clocks and poses
+    // remain independent, and the selected action name is part of identity.
+    const ClipIdentity identity{clip.source_graph,clip.source_index,clip.name};
+    auto &entry=clips[identity];
+    if(auto retained=entry.lock())return retained;
+    auto retained=std::make_shared<const AnimationClip>(std::move(clip));
+    entry=retained;return retained;
+  };
   const auto add=[&](std::uint32_t id) {
     if(id==null_datum || out->units.contains(id))return;
     const auto tag=cache.load_source_tag_metadata(id);const Bytes b(tag.bytes_at(tag.source_address(),tag.size()));
@@ -32,8 +46,13 @@ std::shared_ptr<const NativeUnitInteractionAssets> load_native_unit_interaction_
     d.markers.emplace(0x04000095u,source_model_markers(mode,0x04000095u));
     for(const auto &seat:d.seats)for(const auto name:{seat.marker,seat.entry_marker,seat.grenade_marker})
       d.markers.try_emplace(name,source_model_markers(mode,name));
-    try{d.idle=std::make_shared<AnimationClip>(cache.load_action(d.hierarchy.animation,"combat","missile","any","idle"));pose_model(d.hierarchy,d.idle.get());}catch(const FormatError &){d.idle.reset();}
-    d.hierarchy.mesh={};d.hierarchy.skin.clear();d.hierarchy.vertex_origins.clear();out->units.emplace(id,std::move(d));
+    try{d.idle=retain_clip(cache.load_action(d.hierarchy.animation,"combat","missile","any","idle"));pose_model(d.hierarchy,d.idle.get());}catch(const FormatError &){d.idle.reset();}
+    d.hierarchy.mesh={};
+    // Interaction queries retain the hierarchy, not expanded render vertices.
+    // clear() leaves their potentially large allocations resident per unit.
+    std::vector<SkinBinding>().swap(d.hierarchy.skin);
+    std::vector<RenderModel::VertexOrigin>().swap(d.hierarchy.vertex_origins);
+    out->units.emplace(id,std::move(d));
   };
   add(content.player.datum);for(const auto &r:content.player_representations)add(r.biped.datum);for(const auto &[id,c]:content.characters)add(c.biped.datum);
   for(const auto &o:content.objects)if(o.type==1)add(o.definition);
@@ -51,7 +70,7 @@ std::shared_ptr<const NativeUnitInteractionAssets> load_native_unit_interaction_
   for(const auto &[id,d]:out->units)for(const auto &seat:d.seats)modes.try_emplace(seat.mode,!(seat.flags&32));
   for(auto &[id,d]:out->units)for(const auto &[mode,blocks]:modes) {
     NativeUnitSeatAnimations a;
-    const auto load=[&](std::uint32_t name){return std::make_shared<AnimationClip>(cache.load_unit_weapon_action(d.hierarchy.animation,mode,blocks?0x07000001u:0x07000101u,0x07000001u,name));};
+    const auto load=[&](std::uint32_t name){return retain_clip(cache.load_unit_weapon_action(d.hierarchy.animation,mode,blocks?0x07000001u:0x07000101u,0x07000001u,name));};
     for(const auto name:{0x05000049u,0x07000679u,0x0700067au,0x0700067bu,0x0700067cu}) {
       try {auto clip=load(name);Transform initial;
         // The retail first-frame cache is built from this decoded authored

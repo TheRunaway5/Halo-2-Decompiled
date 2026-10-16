@@ -3,6 +3,7 @@
 #include "halo2/game_voice.hpp"
 #include "halo2/peer_authority_transfer.hpp"
 #include "halo2/peer_source_admissions.hpp"
+#include "halo2/peer_mesh_quality.hpp"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -53,6 +54,11 @@ public:
   std::vector<OnlineWorldSeal> world_seals();
   std::optional<AuthorityTransferContext> authority_context() const;
   bool authority_supported(unsigned physical_peer) const;
+  bool authority_replay_supported(unsigned physical_peer) const;
+  // Fresh inter-player measurements, never a promotion certificate. The
+  // caller must separately retain a validated native continuation and agree
+  // the authority generation before using a replacement host.
+  std::vector<PeerHostQuality> host_candidates()const;
   // Current host's native allocations, exchanged independently of world cuts
   // over direct encrypted peers and bound to the accepted couch roster.
   bool publish_source_players(const AuthorityTransferContext &,std::span<const SourcePlayerAdmission>);

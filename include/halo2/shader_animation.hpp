@@ -7,7 +7,7 @@
 namespace halo2 {
 class Bytes;
 struct Material;
-// Authored Xbox function tables, read from the user's supported retail disc.
+// Verified Xbox function tables retained in the port's owned material library.
 struct ShaderFunctionTables {
   std::array<std::array<std::uint8_t, 1024>, 12> periodic{};
   std::array<std::array<std::uint8_t, 1024>, 16> transition{};

@@ -1,3 +1,4 @@
+#include "halo2/scene.hpp"
 #include "halo2/source_machine_scene.hpp"
 #include "halo2/source_prop_scene.hpp"
 #include "halo2/source_camera.hpp"
@@ -153,6 +154,7 @@ Image capture(Renderer &renderer,std::span<const ModelView> views,const std::fil
 unsigned verify(SDL_Window *window,const std::filesystem::path &path,const std::filesystem::path &output) {
     const Cache cache(path);const auto content=cache.load_content(0,true);CollisionWorld collision(content.collision);
     Mesh mesh;SourceMachineScene scene(cache,content.objects,0,mesh,collision);
+    SceneObjects machine_objects(content,0,SourceSceneGameContext{2,2});scene.synchronize(machine_objects);
     require(scene.stats().prt_materials>0 && scene.stats().position_overlays>0,"empty machine/PRT fixture");
     std::vector<Vertex> geometry;std::vector<ObjectLightingBinding> bindings;
     scene.update(0,0,{},1,mesh);scene.append(geometry,bindings);

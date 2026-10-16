@@ -32,11 +32,18 @@ int main(int argc,char **argv)try {
     const auto copy=[&](unsigned p,unsigned n){const auto bytes=memory.view(p,n);return std::vector<std::byte>(bytes.begin(),bytes.end());};
     std::array<Controls,multiplayer_capacity> commands{};unsigned peak{},last{};
     for(unsigned tick=0;tick<240;++tick) {
-        world.source_objects->publish_native_observer_position(0,eye);
-        //13AA28 precedes13AAFF and2B630. The preceding render union must
-        //remain available while1778D0 decides whether to retain locations.
-        world.source_objects->render_model_view([&](auto &source){graphics.advance(source,1.f/30.f);});
+        const auto observer_history=copy(0x4f655cu+0xc,0x44);
+        world.source_objects->render_model_view([&](auto &source) {
+            graphics.publish_observer(source,0,eye,{1,0,0},{0,0,1},1.2217304763960306f);
+        });
+        if(copy(0x4f655cu+0xc,0x44)!=observer_history)
+            throw FormatError("Particle lens publication changed the original observer's retained aiming history");
+        if(word(0x4f65acu)!=0x3f800000u)
+            throw FormatError("Original observer FOV ratio was not published for WORLD particle emission");
+        // Original12E142 runs the game ticks before12E151/13AA28. The
+        // preceding render union survives until the later2B630 reset.
         world.match.step(commands);
+        world.source_objects->render_model_view([&](auto &source){graphics.advance(source,1.f/30.f);});
         world.source_objects->render_model_view([&](auto &source) {
             source.begin_model_frame();
             const auto first=graphics.draw(source,visibility,view,0,pi.projection_angle,angle.lighting_distance_scale);

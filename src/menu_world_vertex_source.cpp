@@ -173,8 +173,16 @@ MenuWorldVertexSource emit_vertex_source(const VertexProgram &program,bool skinn
     if((mm && mac==0) || (im && ilu==0))throw UnsupportedVertexProgram("menu source masked absent operation is unsupported");
     if((mm || im) && reg>12)throw UnsupportedVertexProgram("menu source destination exceeds register file");
     const auto output=t[3]>>3&255;
-    if(om && (!(t[3]&2048) || !(output==0 || output==3 || output==4 || (output>=9 && output<=12))))
+    if(om && (!(t[3]&2048) || !(output==0 || output==3 || output==4 ||
+                              (output==5 && om==9) || (output>=9 && output<=12))))
       throw UnsupportedVertexProgram("menu source output destination is outside proved corridor");
+    // Original oFog writes use the leading result components rather than
+    // ordinary vector destinations: e.g. authored shadow mask xw becomes xy.
+    // The epilogue consumes x. Keep the remaining lanes consistent with the
+    // retained original emitter instead of treating this scalar as oD/oT.
+    // Only the authored Apply xw corridor is admitted here. Other oFog masks
+    // remain unproved rather than expanding unrelated program families.
+    const unsigned output_mask=output==5?12u:om;
     const bool output_ilu=(t[3]&4)!=0;
     if(om && (output_ilu?ilu==0:mac==0))throw UnsupportedVertexProgram("menu source output selects absent operation");
     if(!mac && !ilu)continue;
@@ -207,7 +215,7 @@ MenuWorldVertexSource emit_vertex_source(const VertexProgram &program,bool skinn
          (mac && ilu && reg==12 && output_ilu && (om&mac_mask)))
         throw UnsupportedVertexProgram("menu source same-token output/input alias corridor is unproved");
     }
-    if(om && !output_ilu)call(result,text,mac,"vpOut["+std::to_string(output)+"]",om,main_inputs);
+    if(om && !output_ilu)call(result,text,mac,"vpOut["+std::to_string(output)+"]",output_mask,main_inputs);
     if(mac && mac_mask) {
       if(ilu) {
         text<<"    vec4 h2MenuPending"<<i<<"=vec4(0.0);\n";
@@ -215,7 +223,7 @@ MenuWorldVertexSource emit_vertex_source(const VertexProgram &program,bool skinn
       } else call(result,text,mac,temporary(reg),mac_mask,main_inputs);
     }
     if(ilu) {
-      if(om && output_ilu)call(result,text,16+ilu,"vpOut["+std::to_string(output)+"]",om,scalar_inputs);
+      if(om && output_ilu)call(result,text,16+ilu,"vpOut["+std::to_string(output)+"]",output_mask,scalar_inputs);
       if(im)call(result,text,16+ilu,temporary(mac?1u:reg),im,scalar_inputs);
     }
     if(mac && ilu && mac_mask) {

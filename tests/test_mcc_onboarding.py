@@ -80,6 +80,39 @@ class MccOnboardingTests(unittest.TestCase):
         self.assertFalse(any(Path(name).stem in ('mainmenu', 'shared', 'single_player_shared', 'outside') for name in maps))
         self.assertEqual(onboarding.runtime_status(self.root), onboarding.NOT_PLAYABLE)
 
+    def test_shader_repair_reuses_import_and_preserves_gameplay_gate(self):
+        self.select()
+        before = {p.relative_to(self.cache): p.read_bytes() for p in (self.cache / 'halo2').rglob('*') if p.is_file()}
+        def install(root, output):
+            directory = output / 'native-shaders'
+            directory.mkdir()
+            (directory / 'catalog.json').write_text(json.dumps(dict(
+                schema='H2_PRESERVED_NATIVE_SHADER_CATALOG_V1', maps=[dict(map='lockout', complete=True)])))
+            return dict(complete=True, source='bundled native material library', maps=dict(lockout='verified'))
+        with patch('preserve_native_shaders.copy_selected', side_effect=install) as copy:
+            cache, report = onboarding.repair_shaders(self.root, progress=self.messages.append)
+            onboarding.repair_shaders(self.root, progress=self.messages.append)
+        copy.assert_called_once()
+        self.assertEqual(cache, self.cache)
+        self.assertTrue(report['native_shader_library']['complete'])
+        self.assertFalse(report['runtime_active'])
+        self.assertFalse(report['full_tu15_parity'])
+        self.assertEqual(onboarding.runtime_status(self.root), onboarding.NOT_PLAYABLE)
+        self.assertEqual(before, {p.relative_to(self.cache): p.read_bytes() for p in (self.cache / 'halo2').rglob('*') if p.is_file()})
+
+    def test_failed_shader_repair_publishes_no_partial_library(self):
+        self.select()
+        before = (self.cache / 'provenance.json').read_bytes()
+        def broken(root, output):
+            (output / 'native-shaders').mkdir()
+            raise FormatError('shader fingerprint differs')
+        with patch('preserve_native_shaders.copy_selected', side_effect=broken):
+            with self.assertRaisesRegex(FormatError, 'fingerprint differs'):
+                onboarding.repair_shaders(self.root)
+        self.assertEqual((self.cache / 'provenance.json').read_bytes(), before)
+        self.assertFalse((self.cache / 'native-shaders').exists())
+        self.assertFalse(list(self.cache.glob('.native-shaders-*')))
+
     def test_malformed_legacy_registries_have_no_effect(self):
         for name in ('asset-sources', 'gameplay-source', 'loading-source', 'hud-source', 'menu-source'):
             (self.root / ('assets/' + name + '.tsv')).write_text('invalid old data')

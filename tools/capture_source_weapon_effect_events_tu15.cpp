@@ -44,9 +44,7 @@ int main(int argc,char **argv)try {
   objects.publish_native_observer_position(0,unit.body.position+Vec3{0,0,world.content.player.camera_height});
   auto &memory=objects.memory();const auto word=[&](std::uint32_t p,unsigned n=4){const Bytes b(memory.view(p,n));return n==2?b.u16(0):b.u32(0);};
   unsigned contact_effects{};
-  std::unique_ptr<SourceProjectileEffectObserver> contact_observer;
-  if(normal_match)contact_observer=std::make_unique<SourceProjectileEffectObserver>(memory,
-      [&](const SourceProjectileDetonationTu15 &e){++contact_effects;world.match.publish_source_projectile_contact(e);});
+  std::uint64_t contact_serial{};
   const auto weapon=unit.weapon.source_datum,body=objects.source_object_body(weapon);
   const auto unit_datum=unit.source_datum,player_datum=unit.source_player,weapon_definition=unit.weapon.definition;
   const auto yaw=unit.yaw;
@@ -86,6 +84,10 @@ int main(int argc,char **argv)try {
       neutral[0].yaw=yaw;neutral[0].pitch=impact?-.6f:0.f;
       neutral[0].fire=tick>=80 && tick<(charged?140u:92u);
       world.match.step(neutral);
+      for(const auto &e:world.match.state().grenade_detonations)if(e.serial>contact_serial){
+        contact_serial=e.serial;
+        if(e.source_effect_instance!=null_datum && !e.source_locations.empty())++contact_effects;
+      }
       for(const auto &e:world.match.take_grenade_events())
         std::cout<<"Source projectile event kind="<<unsigned(e.kind)<<" projectile="<<std::hex<<e.projectile<<" effect="<<e.effect<<std::dec<<'\n';
       for(const auto &e:world.match.state().weapon_effects)if(!charged && e.serial>journal_serial) {

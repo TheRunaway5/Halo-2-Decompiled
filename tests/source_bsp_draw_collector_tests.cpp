@@ -16,7 +16,7 @@ struct Reader {
     float real(){return std::bit_cast<float>(word());}
     Vec3 point(){return {real(),real(),real()};}
 };
-Words solve(std::span<const std::uint32_t> input,const Cache* cache,unsigned version) {
+Words solve(std::span<const std::uint32_t> input,const Cache* cache,unsigned version,bool complete_owner=false) {
     Reader r{input};SourceBspAdmissionBsp bsp;
     const auto nc=r.word(),ni=r.word(),nd=r.word();
     if(nc>512 || ni>2048 || nd>2048)throw FormatError("BSP collector fixture owner bank");
@@ -74,11 +74,29 @@ Words solve(std::span<const std::uint32_t> input,const Cache* cache,unsigned ver
         // and41C80 has no queue entries in every joined case.
         world.dynamic=[](auto&,auto&,const auto&){};
         world.object_commands=[](auto&,auto){};
+        bool command_owner_called=false,culled_observed=false;
+        if(complete_owner) {
+            // Exercise the full owner dispatch against the unchanged original
+            // joined fixture. A second typed attachment/reset is a failure.
+            world.object_commands=[](auto&,auto){throw FormatError("duplicate typed light command producer");};
+            world.complete_commands=[&](auto& commands,const auto& collected,const auto& query,
+                const auto& command_context,auto selector) {
+                if(command_owner_called || !culled_observed || &collected!=&state || &query!=&admission)
+                    throw FormatError("complete light command owner order/identity differs");
+                command_owner_called=true;
+                source_bsp_build_part_commands(commands,collected.units,collected.arena,world.commands,
+                    command_context,selector,[](auto&,auto){});
+            };
+        }
         world.cull_bank=[&](auto,const auto& unit){return frame->cull(unit);};
         world.opaque_geometry=[&](auto index){return frame->select(state.units.at(index));};
         SourceEffectLightGeometryFrameContext current{context,cull_context,frame->context,0};
         const auto result=source_effect_light_geometry_frame(state,admission,frame->state,frame->opaque,world,current,
-            [&](auto,const auto&,const auto&){append_state();});
+            [&](auto phase,const auto&,const auto&){
+                if(phase==SourceEffectLightGeometryFramePhase::culled)culled_observed=true;
+                append_state();
+            });
+        if(complete_owner && !command_owner_called)throw FormatError("complete light command owner absent");
         output.push_back(result.cull_calls.size());
         for(const auto& call:result.cull_calls) {
             output.push_back(call.unit);
@@ -128,7 +146,11 @@ int main(int argc,char** argv) {try {
     const auto cases=r.word();std::size_t checked=0;
     for(unsigned i=0;i<cases;++i) {
         const auto ni=r.word(),no=r.word();if(ni>values.size()-r.at)throw FormatError("BSP collector input extent");
-        const auto out=solve(std::span(values).subspan(r.at,ni),cache?&*cache:nullptr,version);r.at+=ni;
+        const auto inputs=std::span(values).subspan(r.at,ni);
+        const auto out=solve(inputs,cache?&*cache:nullptr,version);
+        if(version>=3 && solve(inputs,cache?&*cache:nullptr,version,true)!=out)
+            throw FormatError("complete light command owner differs from original joined fixture");
+        r.at+=ni;
         if(no>values.size()-r.at || no!=out.size())throw FormatError("BSP collector output extent");
         for(unsigned j=0;j<no;++j)if(out[j]!=r.word())throw FormatError("BSP collector differs at case"+std::to_string(i)+" word"+std::to_string(j)+" native"+std::to_string(out[j])+" source"+std::to_string(values[r.at-1]));
         checked+=no;

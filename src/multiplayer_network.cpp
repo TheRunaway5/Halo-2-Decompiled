@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "halo2/multiplayer_network.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/source_world_pose_wire.hpp"
@@ -80,6 +81,14 @@ struct Udp {
     fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (fd == invalid_socket)
       throw FormatError("Could not create LAN UDP socket");
+    // Full source-world snapshots can exceed the platform's small default
+    // queue before the receiver reassembles them. Reserve bounded queue space;
+    // operating systems may clamp this request to their configured cap.
+    const int receive_buffer=int(snapshot_limit*2u);
+    if(setsockopt(fd,SOL_SOCKET,SO_RCVBUF,reinterpret_cast<const char*>(&receive_buffer),sizeof(receive_buffer))!=0) {
+      close_socket(fd);fd=invalid_socket;
+      throw FormatError("Could not reserve LAN snapshot receive buffer");
+    }
     sockaddr_in at{};
     at.sin_family = AF_INET;
     at.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -317,7 +326,7 @@ WireControl decode_control(Reader &r) {
   c.pitch = r.real();
   auto flags = r.get(2);
   if (std::abs(c.forward) > 1 || std::abs(c.right) > 1 ||
-      std::abs(c.yaw) > 10000 || std::abs(c.pitch) > 1.55f || flags > 2047)
+      std::abs(c.yaw) > 10000 || std::abs(c.pitch) > 10000 || flags > 2047)
     throw FormatError("Invalid LAN input");
   c.jump = flags & 1;
   c.crouch = flags & 2;
@@ -419,24 +428,67 @@ void validate_death_camera(const MultiplayerState::Player &player) {
       std::abs(dot(v.forward,v.up))>.01f)
     throw FormatError("Invalid native authoritative death camera owner or basis");
   for(float f:{v.position.x,v.position.y,v.position.z,v.forward.x,v.forward.y,v.forward.z,
-      v.up.x,v.up.y,v.up.z,v.horizontal_fov})
+      v.up.x,v.up.y,v.up.z,v.horizontal_fov,v.aim_displacement})
     if(!std::isfinite(f))throw FormatError("Non-finite native authoritative death camera");
 }
 void validate_vehicle_camera(const MultiplayerState::Player &player) {
   if(!player.source_vehicle_camera)return;
   const auto &v=*player.source_vehicle_camera;
-  if(player.dead || !player.connected || player.source_unit==null_datum ||
-      player.source_parent==null_datum || player.source_seat<0 ||
+  // The original observer continues through the authored exit handoff after
+  // the unit has released its parent and seat. Its live player/unit still own
+  // that camera; attachment is not a transport admission requirement.158790
+  // switches to death mode when the current unit is released, so a dying unit
+  // that still has its source player binding also retains this admission.
+  if(!player.connected || player.source_unit==null_datum || player.source_player==null_datum ||
+      (v.camera_mode!=0 && v.camera_mode!=1 && v.camera_mode!=3) ||
       !(v.horizontal_fov>0 && v.horizontal_fov<3.14159265358979323846f) ||
       std::abs(length(v.forward)-1.f)>.01f || std::abs(length(v.up)-1.f)>.01f ||
       std::abs(dot(v.forward,v.up))>.01f)
     throw FormatError("Invalid authoritative TU1.5 vehicle camera owner or basis");
   for(float value:{v.position.x,v.position.y,v.position.z,v.forward.x,v.forward.y,v.forward.z,
-      v.up.x,v.up.y,v.up.z,v.horizontal_fov})
+      v.up.x,v.up.y,v.up.z,v.horizontal_fov,v.aim_displacement})
     if(!std::isfinite(value))throw FormatError("Non-finite authoritative TU1.5 vehicle camera");
+}
+void encode_vehicle_hud(Packet &p,const VehicleWeaponHudStatus &hud) {
+  put(p,unsigned(hud.ownership.seated)|(unsigned(hud.ownership.handheld_visible)<<1),1);
+  put(p,hud.ownership.vehicle_weapon,4);put(p,hud.definition,4);
+  put(p,hud.ownership.parent_hud,4);
+  if(hud.ownership.vehicle_weapon==null_datum)return;
+  const auto &w=hud.weapon;
+  if(!hud.ownership.seated || !w.present || w.datum!=hud.ownership.vehicle_weapon || hud.definition==null_datum)
+    throw FormatError("Invalid native vehicle weapon HUD ownership");
+  for(auto n:{w.loaded,w.reserve,w.capacity,w.maximum_reserve})put(p,std::uint16_t(n),2);
+  for(float f:{w.age,w.heat,w.charge,w.lock_progress,w.target_position.x,w.target_position.y,w.target_position.z})put_float(p,f);
+  put(p,unsigned(bool(w.overheated))|(unsigned(bool(w.magazine_working))<<1)|
+      (unsigned(bool(w.input_held))<<2)|(unsigned(bool(w.charging))<<3)|
+      (unsigned(bool(w.target))<<4)|(unsigned(bool(w.locking))<<5)|(unsigned(bool(w.locked))<<6),1);
+}
+VehicleWeaponHudStatus decode_vehicle_hud(Reader &r) {
+  VehicleWeaponHudStatus hud;const auto flags=r.get(1);
+  if(flags>3u)throw FormatError("Invalid LAN vehicle HUD seat flags");
+  hud.ownership.seated=flags&1u;hud.ownership.handheld_visible=flags&2u;
+  hud.ownership.vehicle_weapon=r.get(4);hud.definition=r.get(4);
+  hud.ownership.parent_hud=r.get(4);
+  if(hud.ownership.vehicle_weapon==null_datum) {
+    if(hud.definition!=null_datum || (!hud.ownership.seated && !hud.ownership.handheld_visible))
+      throw FormatError("Invalid LAN empty vehicle HUD ownership");
+    return hud;
+  }
+  if(!hud.ownership.seated || hud.definition==null_datum)throw FormatError("Invalid LAN vehicle weapon owner");
+  auto &w=hud.weapon;w.datum=hud.ownership.vehicle_weapon;w.present=1;
+  const auto short_word=[&] {return std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));};
+  w.loaded=short_word();w.reserve=short_word();w.capacity=short_word();w.maximum_reserve=short_word();
+  w.age=r.real();w.heat=r.real();w.charge=r.real();w.lock_progress=r.real();
+  w.target_position={r.real(),r.real(),r.real()};const auto state=r.get(1);
+  if(state>0x7fu)throw FormatError("Invalid LAN vehicle HUD weapon flags");
+  w.overheated=bool(state&1u);w.magazine_working=bool(state&2u);w.input_held=bool(state&4u);
+  w.charging=bool(state&8u);w.target=bool(state&0x10u);w.locking=bool(state&0x20u);w.locked=bool(state&0x40u);
+  return hud;
 }
 void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned> local_ids) {
   put(p, s.tick, 4);
+  if(s.source_game_type!=1 && s.source_game_type!=2)throw FormatError("Native snapshot has an invalid source world kind");
+  put(p,unsigned(s.source_game_type),1);
   if((s.source_engine!=2 && s.source_engine!=4) || (s.source_engine==4)!=s.king.has_value())
     throw FormatError("Native snapshot has no matching objective state owner");
   put(p,std::uint32_t(s.source_engine),4);
@@ -530,7 +582,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     if(u.source_death_camera) {
       const auto &v=*u.source_death_camera;
       for(float f:{v.position.x,v.position.y,v.position.z,v.forward.x,v.forward.y,v.forward.z,
-          v.up.x,v.up.y,v.up.z,v.horizontal_fov})put_float(p,f);
+          v.up.x,v.up.y,v.up.z,v.horizontal_fov,v.aim_displacement})put_float(p,f);
     }
     put(p,u.source_flags,2);put(p,std::uint16_t(u.source_membership),2);put(p,u.source_ffa_identity,1);
     encode_profile(p,u.source_configuration);
@@ -542,7 +594,8 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     if(u.source_vehicle_camera) {
       const auto &v=*u.source_vehicle_camera;
       for(float value:{v.position.x,v.position.y,v.position.z,v.forward.x,v.forward.y,v.forward.z,
-          v.up.x,v.up.y,v.up.z,v.horizontal_fov})put_float(p,value);
+          v.up.x,v.up.y,v.up.z,v.horizontal_fov,v.aim_displacement})put_float(p,value);
+      put(p,v.camera_mode,1);
     }
     put(p,std::uint16_t(u.action_prompt.target.action),2);put(p,std::uint16_t(u.action_prompt.target.index),2);
     put(p,u.action_prompt.target.object,4);put(p,u.action_prompt.definition,4);put(p,u.action_prompt.message,4);
@@ -551,6 +604,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,u.source_hud_zoom_mask,2);
     put(p,u.source_hud_target_flags,4);
     put(p,u.source_hud_autoaimed,1);
+    encode_vehicle_hud(p,u.source_vehicle_hud);
     put(p,u.motion_sensor_control,1);
     put(p,u.first_person_clock.present,1);
     if(u.first_person_clock.present) {
@@ -566,6 +620,7 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     put(p,offhand.shader.item_flags,4);put(p,offhand.shader.weapon_flags,4);
     put(p,std::bit_cast<std::uint32_t>(offhand.shader.power_fraction),4);
     put(p,std::bit_cast<std::uint32_t>(offhand.shader.heat),4);put(p,std::uint32_t(offhand.ammunition_available),4);
+    put(p,std::uint16_t(offhand.magazine_mode),2);
     put(p,offhand.trigger.input_flags,2);put(p,std::uint16_t(offhand.trigger.ticks),2);put(p,offhand.trigger.mode,1);put(p,offhand.trigger.charge,1);
     put(p,unsigned(offhand.trigger.target_acquired)|(offhand.trigger.target_position?2u:0u),1);
     if(offhand.trigger.target_position)for(float v:*offhand.trigger.target_position)put_float(p,v);
@@ -597,7 +652,19 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
     for(const auto point:{v.transform.position,v.transform.basis[0],v.transform.basis[1],v.transform.basis[2]})for(float f:{point.x,point.y,point.z})put_float(p,f);
     put(p,v.lighting_owner,4);put(p,v.lighting_definition,4);for(const auto point:{v.lighting_origin,v.lighting_velocity})for(float f:{point.x,point.y,point.z})put_float(p,f);
     put(p,v.lighting_flags,4);put(p,v.lighting_frozen,1);
-    put(p,v.geometry_flags,4);put(p,v.geometry_control_flags,2);}
+    put(p,v.geometry_flags,4);put(p,v.geometry_control_flags,2);
+    put(p,v.regions.has_value(),1);
+    if(v.regions) {
+      const auto &bank=*v.regions;const auto &selection=bank.selection;const auto count=selection.permutations.size();
+      if(count>16 || selection.states.size()!=count || bank.looping_effects.size()!=count || !selection.resolved() || selection.variant_index < -1 || selection.variant_index>127)
+        throw FormatError("Invalid native vehicle model region bank");
+      put(p,std::uint32_t(selection.variant_index),4);put(p,count,1);
+      for(unsigned i=0;i<count;++i){const auto &state=selection.states[i];
+        put(p,selection.permutations[i],1);put(p,std::uint8_t(state.variant_permutation),1);
+        put(p,state.damage,1);put(p,state.properties,1);put(p,bank.looping_effects[i],4);
+      }
+    }
+  }
   // PROP_REMOVAL_BANK: persistent native authoritative scene lifetimes.
   if(s.weapon_projectiles.size()>1024)throw FormatError("Native projectile capacity exceeded");
   put(p,s.weapon_projectiles.size(),2);
@@ -788,10 +855,18 @@ void encode_state(Packet &p, const MultiplayerState &s,std::span<const unsigned>
   }
   const auto poses=encode_source_world_poses(s.source_body_poses_authoritative,s.source_body_poses,body_pose_owners(s));
   p.insert(p.end(),poses.begin(),poses.end());
+  validate_source_contrail_snapshot(s.source_contrails);
+  put(p,s.source_contrails.authoritative,1);put(p,s.source_contrails.slices.size(),4);
+  for(const auto &slice:s.source_contrails.slices) {
+    put(p,slice.address,4);put(p,slice.bytes.size(),4);
+    p.insert(p.end(),slice.bytes.begin(),slice.bytes.end());
+  }
 }
 MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
   MultiplayerState s;
   s.tick = r.get(4);
+  s.source_game_type=int(r.get(1));
+  if(s.source_game_type!=1 && s.source_game_type!=2)throw FormatError("Native snapshot has an invalid source world kind");
   s.source_engine=r.integer();
   if(s.source_engine!=2 && s.source_engine!=4)
     throw FormatError("Native snapshot engine has no objective state owner");
@@ -933,7 +1008,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     if(camera_present) {
       NativeDeathCameraView camera;
       camera.position={r.real(),r.real(),r.real()};camera.forward={r.real(),r.real(),r.real()};
-      camera.up={r.real(),r.real(),r.real()};camera.horizontal_fov=r.real();u.source_death_camera=camera;
+      camera.up={r.real(),r.real(),r.real()};camera.horizontal_fov=r.real();camera.aim_displacement=r.real();u.source_death_camera=camera;
       if(std::find(local_ids.begin(),local_ids.end(),unsigned(&u-s.players.data()))==local_ids.end())
         throw FormatError("Native death camera belongs to another peer");
       validate_death_camera(u);
@@ -956,7 +1031,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     if(r.get(1)) {
       NativeDeathCameraView view;view.position={r.real(),r.real(),r.real()};
       view.forward={r.real(),r.real(),r.real()};view.up={r.real(),r.real(),r.real()};
-      view.horizontal_fov=r.real();u.source_vehicle_camera=view;
+      view.horizontal_fov=r.real();view.aim_displacement=r.real();view.camera_mode=r.get(1);u.source_vehicle_camera=view;
     }
     validate_vehicle_camera(u);
     auto &prompt=u.action_prompt;
@@ -980,6 +1055,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     const auto autoaimed=r.get(1);
     if(autoaimed>1u)throw FormatError("Invalid LAN source HUD autoaim input");
     u.source_hud_autoaimed=autoaimed;
+    u.source_vehicle_hud=decode_vehicle_hud(r);
     u.motion_sensor_control=r.get(1);
     if(u.motion_sensor_control&~0x21u)throw FormatError("Invalid native radar control flags");
     const auto clock_present=r.get(1);
@@ -995,6 +1071,7 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     const auto empty=r.get(1),present=r.get(1);
     offhand.shader={std::uint32_t(r.get(4)),std::uint32_t(r.get(4)),std::bit_cast<float>(std::uint32_t(r.get(4))),
         std::bit_cast<float>(std::uint32_t(r.get(4)))};offhand.ammunition_available=r.integer();
+    offhand.magazine_mode=std::bit_cast<std::int16_t>(std::uint16_t(r.get(2)));
     offhand.trigger={std::uint16_t(r.get(2)),std::bit_cast<std::int16_t>(std::uint16_t(r.get(2))),std::uint8_t(r.get(1)),std::uint8_t(r.get(1))};
     const auto secondary_target_flags=r.get(1);
     if(secondary_target_flags>3u)throw FormatError("Invalid LAN secondary HUD target flags");
@@ -1049,6 +1126,17 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
     v.lighting_owner=r.get(4);v.lighting_definition=r.get(4);v.lighting_origin={r.real(),r.real(),r.real()};v.lighting_velocity={r.real(),r.real(),r.real()};
     v.lighting_flags=r.get(4);const auto frozen=r.get(1);if(frozen>1)throw FormatError("Invalid LAN vehicle lighting freeze flag");v.lighting_frozen=frozen!=0;
     v.geometry_flags=r.get(4);v.geometry_control_flags=r.get(2);
+    const auto has_regions=r.get(1);if(has_regions>1)throw FormatError("Invalid native vehicle model region presence");
+    if(has_regions) {
+      v.regions.emplace();auto &bank=*v.regions;auto &selection=bank.selection;
+      selection.variant_index=r.integer();const auto count=r.get(1);
+      if(count>16 || selection.variant_index < -1 || selection.variant_index>127)throw FormatError("Invalid native vehicle model region bank");
+      for(unsigned n=0;n<count;++n) {
+        selection.permutations.push_back(r.get(1));SourceInitialModelRegionState state;
+        state.variant_permutation=std::bit_cast<std::int8_t>(std::uint8_t(r.get(1)));state.damage=r.get(1);state.properties=r.get(1);
+        selection.states.push_back(state);bank.looping_effects.push_back(r.get(4));
+      }
+    }
     if((v.lighting_owner==null_datum)!=(v.lighting_definition==null_datum))throw FormatError("Invalid LAN vehicle lighting owner");
     if(v.handle==null_datum || !vehicle_handles.insert(v.handle).second || !(v.transform.scale>0) || v.placement>=65536)throw FormatError("Invalid LAN vehicle identity");
     s.world_vehicles.push_back(v);}
@@ -1132,6 +1220,8 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
   std::uint64_t previous_serial{};
   for(unsigned i=0;i<detonation_count;++i){
     NativeGrenadeDetonation e;e.serial=r.get(8);e.tick=r.get(8);
+    // A remote presentation packet does not own this local native pool.
+    e.source_effect_instance=null_datum;
     e.projectile=r.get(4);e.definition=r.get(4);e.effect=r.get(4);e.player=r.get(4);e.unit=r.get(4);
     e.position={r.real(),r.real(),r.real()};e.forward={r.real(),r.real(),r.real()};e.up={r.real(),r.real(),r.real()};
     e.colors={std::uint32_t(r.get(4)),std::uint32_t(r.get(4))};
@@ -1314,6 +1404,18 @@ MultiplayerState decode_state(Reader &r,std::span<const unsigned> local_ids) {
   auto poses=decode_source_world_poses(std::span(r.p).subspan(r.at),body_pose_owners(s));
   r.at+=poses.consumed;s.source_body_poses_authoritative=poses.authoritative;
   s.source_body_poses=std::move(poses.poses);
+  const auto contrail_authoritative=r.get(1);if(contrail_authoritative>1)throw FormatError("Invalid contrail authority flag");
+  s.source_contrails.authoritative=contrail_authoritative;
+  const auto slices=r.get(4);if(slices>32768)throw FormatError("Contrail slice capacity exceeded");
+  std::size_t contrail_bytes{};
+  for(unsigned n=0;n<slices;++n) {
+    SourceContrailSlice slice;slice.address=r.get(4);const auto size=r.get(4);
+    contrail_bytes+=size;
+    if(!size || contrail_bytes>2u*1024u*1024u || std::uint64_t(r.at)+size>r.p.size())throw FormatError("Contrail source input extent exceeds snapshot");
+    slice.bytes.resize(size);std::memcpy(slice.bytes.data(),r.p.data()+r.at,size);r.at+=size;
+    s.source_contrails.slices.push_back(std::move(slice));
+  }
+  validate_source_contrail_snapshot(s.source_contrails);
   return s;
 }
 sockaddr_in resolve(std::string address) {
@@ -1427,8 +1529,6 @@ struct LanHost::Impl {
     std::unique_ptr<NativeVehicleCamera> vehicle_camera;
     std::optional<std::uint32_t> vehicle_camera_tick;
     std::array<std::optional<NativeDeathCameraView>,4> vehicle_views;
-    std::unique_ptr<NativeDeathCamera> death_camera;
-    std::optional<std::uint32_t> camera_tick;
     std::array<std::optional<NativeDeathCameraView>,4> death_views;
     std::array<std::uint32_t,4> camera_jump_serial{};
   };
@@ -1438,8 +1538,6 @@ struct LanHost::Impl {
   std::uint64_t fingerprint;
   Packet session_configuration;
   std::vector<Peer> peers;
-  // Explicit native presentation RNG; camera draws never consume gameplay RNG.
-  std::uint32_t camera_random;
   struct PendingPacket {Packet bytes;sockaddr_in from;};
   std::mutex receive_mutex;
   std::deque<PendingPacket> pending_packets;
@@ -1478,39 +1576,16 @@ struct LanHost::Impl {
     return match;
   }
   Impl(MultiplayerMatch &m, unsigned port, std::uint64_t f)
-      : match(admitted(m)), udp(port), fingerprint(f),camera_random(m.presentation_seed()) {}
+      : match(admitted(m)), udp(port), fingerprint(f) {}
   Impl(MultiplayerMatch &m, std::shared_ptr<MultiplayerDatagrams> relay, std::uint64_t f,
        std::vector<OnlineAdmission> roster)
-      : match(admitted(m)), udp(std::move(relay)), admissions(std::move(roster)), fingerprint(f),camera_random(m.presentation_seed()) {}
+      : match(admitted(m)), udp(std::move(relay)), admissions(std::move(roster)), fingerprint(f) {}
   void respond(Peer &peer) {
     Packet body;
     put(body, peer.ids.size(), 1);
     for (auto id : peer.ids)
       put(body, id, 1);
     auto state=match.state();
-    if(auto *source=match.source_object_runtime();source && source->owns_physics()) {
-      if(!peer.death_camera) {
-        if(!match.original_data())throw FormatError("Remote source camera lost authenticated constants");
-        peer.death_camera=std::make_unique<NativeDeathCamera>(*source,*match.original_data(),camera_random);
-      }
-      if(!peer.camera_tick || *peer.camera_tick!=state.tick) {
-        const auto seconds=peer.camera_tick?float(std::uint32_t(state.tick-*peer.camera_tick))*tick_seconds:tick_seconds;
-        for(unsigned view=0;view<peer.ids.size();++view) {
-          const auto slot=peer.ids[view];const auto &unit=match.unit(slot);const auto &player=state.players[slot];
-          const auto cp=std::cos(unit.pitch);
-          const NativeDeathCameraView ordinary{
-              ordinary_unit_eye(unit.body.position,unit.definition.camera_height,unit.definition.crouch_camera_height,unit.crouch),
-              {std::cos(unit.yaw)*cp,std::sin(unit.yaw)*cp,std::sin(unit.pitch)},{0,0,1},unit.definition.camera_field_of_view};
-          const bool cycle=newer(peer.received_presses[view][0],peer.camera_jump_serial[view]);
-          peer.camera_jump_serial[view]=peer.received_presses[view][0];
-          peer.death_views[view]=peer.death_camera->update(view,player.source_player,player.source_flags,
-              state.team_mode,seconds,cycle,ordinary);
-        }
-        peer.camera_tick=state.tick;
-      }
-      for(unsigned view=0;view<peer.ids.size();++view)
-        state.players[peer.ids[view]].source_death_camera=peer.death_views[view];
-    }
     if(auto *source=match.source_object_runtime();source && source->owns_physics()) {
       if(!peer.vehicle_camera) {
         if(!match.original_data())throw FormatError("Remote vehicle camera lost authenticated TU1.5 constants");
@@ -1519,18 +1594,21 @@ struct LanHost::Impl {
       if(!peer.vehicle_camera_tick || *peer.vehicle_camera_tick!=state.tick) {
         const auto seconds=peer.vehicle_camera_tick?float(std::uint32_t(state.tick-*peer.vehicle_camera_tick))*tick_seconds:tick_seconds;
         for(unsigned view=0;view<peer.ids.size();++view) {
-          const auto slot=peer.ids[view];const auto &unit=match.unit(slot);const auto &player=state.players[slot];
-          const auto cp=std::cos(unit.pitch);
-          const NativeDeathCameraView ordinary{
-              ordinary_unit_eye(unit.body.position,unit.definition.camera_height,unit.definition.crouch_camera_height,unit.crouch),
-              {std::cos(unit.yaw)*cp,std::sin(unit.yaw)*cp,std::sin(unit.pitch)},{0,0,1},unit.definition.camera_field_of_view};
-          peer.vehicle_views[view]=peer.vehicle_camera->update(view,player.source_unit,player.source_flags,
-              unit.yaw,unit.pitch,seconds,ordinary);
+          const auto slot=peer.ids[view];const auto &player=state.players[slot];
+          const bool cycle=newer(peer.received_presses[view][0],peer.camera_jump_serial[view]);
+          peer.camera_jump_serial[view]=peer.received_presses[view][0];
+          const auto camera=peer.vehicle_camera->update_player(view,player.source_player,player.source_flags,
+              seconds,cycle);
+          const bool death=peer.vehicle_camera->death_view(view);
+          peer.vehicle_views[view]=death?std::nullopt:camera;
+          peer.death_views[view]=death?camera:std::nullopt;
         }
         peer.vehicle_camera_tick=state.tick;
       }
-      for(unsigned view=0;view<peer.ids.size();++view)
+      for(unsigned view=0;view<peer.ids.size();++view) {
         state.players[peer.ids[view]].source_vehicle_camera=peer.vehicle_views[view];
+        state.players[peer.ids[view]].source_death_camera=peer.death_views[view];
+      }
     }
     encode_state(body,state,peer.ids);
     if(body.empty() || body.size()>snapshot_limit)

@@ -106,6 +106,10 @@ int run(int argc,char**argv) {
         base_draws=base_selection.copy(world,units);
         std::erase_if(base_draws,[&](const auto& draw){return draw.object!=object || draw.unit.words[1]!=model;});
         require(!base_draws.empty(),"main camera admitted no selected original model units");
+        for(const auto& draw:base_draws)
+            std::cout<<"Completed main unit: owner="<<draw.object<<" class="<<draw.lighting_class
+                <<" override="<<unsigned(draw.override_slot)<<" lod="<<draw.lod
+                <<" section="<<(draw.unit.words[3]>>9&511u)<<'\n';
         const auto record=base_draws.front().unit.words[4]-0x44u;
         std::memcpy(selection.permutations.data(),world.memory().view(record+0xc0u,selection.permutations.size()).data(),selection.permutations.size());
         if(prt_definition)for(const auto& draw:base_draws) {

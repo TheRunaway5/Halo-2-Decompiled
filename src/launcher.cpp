@@ -331,7 +331,12 @@ int main(int argc, char **argv) {
     }
     if(!sources.ready())throw std::runtime_error("The MCC cache needs preparation. Run --setup. "+sources.problem);
     if(!sources.playable && !preview)throw std::runtime_error(not_playable);
-    if(preview)preview_arguments(supplied,installation,sources);
+    if(preview) {
+      preview_arguments(supplied,installation,sources);
+      const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,
+          (installation.root/"tools/repair_mcc_shaders.py").string(),"--root",installation.root.string()});
+      if(status)return status;
+    }
     const bool outdated_preview_runtime=preview && !installation.runtime.empty() && !runtime_supports_preview(installation.runtime);
     bool rebuilt=false;
     if(outdated_preview_runtime)std::cout<<"Updating the runtime for MCC content preview…\n"<<std::flush;

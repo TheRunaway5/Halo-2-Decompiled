@@ -11,7 +11,7 @@
 #include <signal.h>
 #include <ucontext.h>
 uint32_t guest_input[42],guest_entry,guest_host_stack;
-uint16_t guest_selector,host_selector,guest_cw=0x27f;
+uint16_t guest_selector,host_selector,guest_cw=0x27f,guest_status;
 uint32_t guest_mxcsr=0x1f80;
 unsigned char guest_exit[180],guest_environment[28];
 _Alignas(16) unsigned char guest_host_fp[512];
@@ -32,7 +32,9 @@ int main(int argc,char **argv){
  }
  fclose(input);free(mapped);
  snprintf(path,sizeof(path),"%s/native-input.bin",argv[1]);input=fopen(path,"rb");if(!input || fread(guest_input,1,168,input)!=168)fail("native caller ABI");fclose(input);
- if(guest_input[4]!=0x600f0000u || guest_input[41]!=0x60200000u || *(uint32_t*)(uintptr_t)guest_input[4]!=0x60300000u){fprintf(stderr,"Unexpected declared native caller boundary\n");return 1;}
+ snprintf(path,sizeof(path),"%s/native-fp-input.bin",argv[1]);input=fopen(path,"rb");int captured_fp=input!=0;
+ if(input){unsigned char fp[12];if(fread(fp,1,12,input)!=12 || fgetc(input)!=EOF)fail("captured FP caller");fclose(input);uint32_t depth;memcpy(&depth,fp,4);memcpy(&guest_status,fp+4,2);memcpy(&guest_cw,fp+6,2);memcpy(&guest_mxcsr,fp+8,4);if(depth || (guest_cw&0x3f)!=0x3f || (guest_mxcsr&0x1f80)!=0x1f80){fprintf(stderr,"Unsupported captured FP caller\n");return 1;}}
+ if((!captured_fp && guest_input[4]!=0x600f0000u) || guest_input[4]<0x60000000u || guest_input[4]>0x601ffffcu || guest_input[41]!=0x60200000u || *(uint32_t*)(uintptr_t)guest_input[4]!=0x60300000u){fprintf(stderr,"Unexpected declared native caller boundary\n");return 1;}
  if(mmap((void*)0x60300000u,4096,PROT_READ|PROT_WRITE|PROT_EXEC,MAP_PRIVATE|MAP_ANONYMOUS|MAP_FIXED_NOREPLACE,-1,0)==MAP_FAILED)fail("caller return page");
  unsigned char *stop=(unsigned char*)0x60300000u;stop[0]=0xff;stop[1]=0x25;*(uint32_t*)(stop+2)=(uint32_t)(uintptr_t)&guest_return_target;
  struct user_desc descriptor={0};descriptor.entry_number=(uint32_t)-1;descriptor.base_addr=guest_input[41];descriptor.limit=0xfffff;descriptor.seg_32bit=1;descriptor.limit_in_pages=1;descriptor.useable=1;

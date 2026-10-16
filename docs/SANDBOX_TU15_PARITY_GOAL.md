@@ -1371,3 +1371,1990 @@ it yet. World still retires its boot worker and retains three synchronous
 resource bridges. Original six-bank cache startup/map activation, persistent
 worker ownership, query/cancel/free lifetimes and resource continuation remain
 required. Accepted staysv14; goal active and0/102 whole elements complete.
+
+
+v124 resource/cache progress (2026-10-15). Goal remains active, private v15
+unaccepted, accepted v14 unchanged and0/102 whole sandbox elements complete.
+Authenticated whole1A3AD0 cache startup and helper closure added20 roots;
+copy1AAE20/1AAD10 and flush1AB2B0/1AB290 add4 more. Current resource module:
+44 whole roots,2053 instructions, generated SHA
+`cb462b45d4512319c5bf66870faff18fd68162e03636f0f5c1665b869189a61e`.
+
+Original code produces all six bank handles and sizes through the retained
+worker. Native configuration maps only source-selected z/n cache000..019.map
+names into private files and supplies explicit language and UTC platform inputs.
+The test covers cold creation, reopening invalid headers, and writing unchanged
+owned disc headers through original requests before reopening again:78 queued
+requests and12 genuine native clock calls pass. Bank1 correctly rejects the
+missing disc path: disc headers lack the cache-produced path at+20; whole1A4600
+writes that path during copying. This is not full map copying/activation or a
+successful valid bank1 disc probe. Source time, formatting and file APIs remain
+an explicit native platform policy; Xbox wrappers/TLS/hardware timing are open.
+Resource-configured checkpoints reject missing ownership instead of omitting it.
+
+Fifteen original-executable helper comparisons pass for the stack probe,
+signed bit-string addressing, and forward/backward byte scans, with5869634
+retained bytes per case. The expanded queue test passes25 source-owned requests,
+24 external completion stores plus the FileReference stack completion,25 unique
+salted IDs and restored free-node leases. It exercises alternating multi-chunk
+copy, separate flush, read-only destination failure, failed source seek and EOF.
+Seven read and16 other callbacks match unchanged executable CPU, instruction
+order, all57512002 retained bytes and full private file bytes using independent
+real native IO. Nine focused memory/arena/normalization/queue/cache tests pass.
+
+The next authenticated dependency is whole1A4600 copy control with original
+resource-pool construction12EBE0 (literal caller1281D), allocation12FF10/12FE00,
+and release130030. Existing standalone boot leaves4F2D24/4F2D34 zero. Do not
+assign substitute pools, file handles, copied-header paths or completion flags.
+The live World still stops its boot worker and retains three synchronous
+resource bridges. Persistent worker lifetime, map activation, query/cancel/free,
+resource continuation and all full gameplay/pixel/PCM acceptance gates remain.
+Immutable installed r2 has not been repackaged for these private components.
+
+
+v142 original resource allocator progress (2026-10-15):56 whole resource roots,
+2595 instructions, final generated SHA
+`6fee86012bd8b594410a8533e7a9e971410d155eb3ce160e4fd4dc421319f28d`.
+Whole12EBE0 constructs all three metadata pools through its literal11F3F0
+allocator, complete33B3AC XAPI wrapper and original16E450/13FC50 bodies.
+Whole12ECF0 constructs the payload range from original boot-produced physical
+boundaries; whole12FF10/12FE00 allocate, and130030 plus original residency/
+16E8A0 deletion helpers release. Four whole originalCPU/trace/memory comparisons
+pass:5135/5932/456/176 instructions, all57229378 retained bytes per stage.
+Independent real host pages/mprotect supply native resources; one actual native
+CPU timestamp is a declared input. Xbox kernel clobbers/cache policy, allocator
+failures/retry/eviction and composed live ownership remain unproved.2DB4CA is
+MmSetAddressProtect, not an allocation/commit owner.
+
+General dispatch preserves native formatting/yield/last-error policy precedence
+and complete source tail-call ABI. Those three overlapping native boundaries
+caused and now resolve the initial regressions; queue allocation was not the
+cause. Eleven focused checks and refreshed7 read/16 other IO callback original
+comparisons pass at the final head. Whole1A4600 copy control, map activation,
+persistent worker, query/cancel/free and continuation are next. Inspection at
+12E030 was rejected as an entry (it starts JE); no code was lowered or executed
+from it. Acceptedv14 and installedr2 stay unchanged. Privatev15 unaccepted,
+goal active and0/102 whole sandbox elements complete; no full-suite/delivery claim.
+
+
+v158 whole source map-copy progress (2026-10-15):81 resource roots /3860
+instructions, final generated SHA
+`4a3dce266346dfb839ef39c04bd37f48bc4a2bff11d2578514bf70e0e930c875`.
+Whole1A4600 and its request/query/selection/failure/eviction/checksum helpers now
+execute. Native callers supply a declared schedule using the genuine source
+done byte; original code owns all20 states, bank selection, requests, headers,
+checksums, retries and buffer/file cleanup. No engine flag/header/path is forced.
+
+The owned mainmenu,shared,single_player_shared andLockout payloads compare in
+full:706572800 payload bytes plus four exact source-produced cache headers,
+2729 queued source requests. Each copy traverses states0..19. Original warm
+startup retains all four, including the positive bank1 single-player-shared
+disc probe. The original type table selects mainmenu2/shared0/single-player1/
+Lockout3; bank1's special probe is not a Lockout probe. A separate cold Lockout
+request without cached dependencies executes three source attempts/nine queued
+requests, reports original status4, and releases its resources.
+
+The observed MMX high-dword unpack is lowered literally. Twenty-seven original
+pure helper/checksum/clock-getter comparisons pass, including11 checksum sizes
+and a full40000-byte chunk. Existing loader-bound native tick data preserves
+read-only import protection; the native monotonic callback refreshes its retained
+DWORD before original getter execution. Fresh4 allocator and23 IO callback CPU/
+trace/whole-memory comparisons pass, plus13 focused regressions. Clock/kernel/
+GPU-cache equivalence, full interleaved controller CPU proof, full original main
+frame, live map activation and resource continuation remain open.
+
+Next authenticated map activation is1252E0 (CALL1918D0),173 instructions, with
+teardown125570 (CALL11E580/191B46),18 instructions and its real loader closure.
+World still stops the worker and retains3 synchronous bridges. Acceptedv14 and
+installedr2 are unchanged; privatev15 unaccepted; goal active0/102 whole sandbox
+elements complete. No full-suite or fresh installed-delivery claim.
+
+
+## v159-v184 original cached-map activation progress (2026-10-15)
+Goal ACTIVE,0/102 whole elements complete. Privatev15 UNACCEPTED; acceptedv14
+and installed immutable r2 unchanged. No agents, commit/push or root code edits.
+Root concurrent work preserved; root goal document receives only this append.
+
+Current resource module115 whole roots/5078instr(+34/+1218), final post-template
+SHA413071803c0113219748c11ee5c284fb3832911bff3b0e274e44a0b7369eaae5.
+resource-map-activation-native-v180/generation.json records literal CALL/JMP
+proof for every34 added roots. Printed common-generator SHA is pre-template.
+
+New whole bodies:1252E0(173instr),125570,191A10,125870 blocking reader,
+1A3CA0 drain/123510 priority query, stock/build helpers and signature lifecycle
+21B4E0/21B540/21B5B0/21B5F0/21B710. Whole SDK dispatch,12280/122C0 tagged
+allocation,2DA8B0/2DA950,2DB41F/2DB43C,2DEE89 and free helpers are lowered.
+Signature storage uses existing original process-heap constructor actual2DE2EA
+(canonical2DA83A), World allocation body actual2DE70E and real native pages.
+Native notification consumer/uncontended executor identity are explicit inputs;
+contention rejects. Free reason11 CALL2DEED4 is3bytes, lock imports6bytes.
+Three new authenticated TU1.5 lock frames reject wrong returns/tails/TU1.1.
+
+Authored scenario input is scenarios\multi\lockout\lockout(header1BC).
+d:\maps\lockout.map would skip stock signature logic and is not substituted.
+Imports335/336/337(cells41B638/41B634/41B630) bind opaque OpenSSL SHA-1 state
+with actual returns2E073B/2E0754/2E0772. Source allocates/writes SDK type/flags,
+selects stream bytes and frees. Native code does not forge the Xbox private
+0x74-byte SHA layout. Finalization/cancellation retire native state; both
+continuation endpoints reject resource/clock/opaque-state omission. Xbox kernel
+context/clobbers unproved. API:https://docs.openssl.org/3.0/man3/EVP_DigestInit/.
+
+Evidence(all paths below underwork/sandbox-primary-v15):
+-resource-map-activation-v181.json PASS: original1252E0 loads exact two owned
+ sections303104+4014080=4317184bytes and publishes tag/scenario/globals.
+ Whole125870 twice, SHA init1/update2, source heap alloc/free1 each. Whole
+125570 cancels signature, drains source work and clears active selection/base.
+-resource-map-signature-v181.json PASS: whole21B5F0 finalizes/frees once.
+ Independent Python hashlib digest1c2945c6c945a524bc15a24ff5d6856859cb3968
+ matches exact two unrounded update ranges. Primaryv172 stream report pins
+ Lockout SHA14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9.
+ This is finalization proof, not complete later signature verification.
+-resource-map-read_failure-v181.json PASS: real native EOF after genuine
+ warm header acceptance; one blocking read, branch125483, original cancellation/
+ free/drain and source51DD08=0/51DB19=1. No fake done/count/status/header.
+-Each case first copies4 assets(706572800bytes,2729source requests), destroys
+ copy arena, and constructs a fresh original arena. Real cold language/version
+ initialization runs; source closes cold banks; native filesystem installer
+ renames unchanged source-produced caches; actual warm startup validates them
+ and bank1 disc probe(7 UTC reads). Activation adds1. No native writes to
+51DB38/51DD08 or partition boundaries. Full GPU transition is NOT executed.
+-resource-regressions-v181.log17/17 CTests PASS; commands-v181.json retained.
+-resource-activation-helpers-original-v182.json42 original CPU/path/all-memory
+ comparisons PASS(previous27+15 stock/build/partition cases);6180930bytes each,
+6180934 for loader-bound tick input. Standalone helpers, not full caller proof.
+-resource-payload-original-v183.json4 allocator stages PASS/all57229378bytes.
+-resource-copy-read-original-v184.json7 and file-v184.json16 callbacks PASS,
+ full CPU/path/all57512002bytes and private file bytes. Captures/commandsv183.
+ Full interleaved controller/worker and composed activation CPU proof FALSE.
+
+Corrections/dead ends:
+-v16512250 andv1662DA978 are rejected inspection starts, never lowered or
+ executed; literal entries12280/2DA8B0 used instead.
+-v169 red at unadmitted activation;v171 red at original process heap; source
+ constructor/allocation reused, no native malloc. v173/v174 corrected actual
+6-byte imports/3-byte notification frames from owned bytes, no CPU patches.
+-v175/v176 original failure:12ECF0 consumes current partition's high range at
+12ED48. No native boundary repair or skip of12EDA0 allowed. Correct test uses
+ separate fresh arena. v177/v178 fresh startup properly invalidated caches
+ before original language/version initialization(0 header clocks). Corrected
+ fixture via genuine cold/close/native-install/warm sequence;v179/v180 pass.
+-v183 read oracle resolved venv Python symlink to system Python, failed Capstone
+ import BEFORE original execution. Native capture valid;v184 invokes unresolved
+.tools/python/bin/python and both independent IO oracles pass.
+-v184 documentation preflight expected older CTest summary wording, failed
+ before any writes. Actual log says100% tests passed out of17; corrected.
+
+Next real dependency: full parent191890 ->191EF0 ->12EDA0 ->12FBB0 always
+ calls D3D404D10 and reads device411568 GPU status.404D10 is in D3D, not .text
+ and NOT TLS. Bind real source device/command/native GPU synchronization;
+ never fake idle/device fields or bypass it. Then11EF70/191A50 and full
+ signature verification/all-map acceptance. World still stops worker atboot
+ and keeps3 sync bridges; fd registry still has no added mutex. Persistent
+ parallel lifetime/resource continuation and all whole-element, local/split/LAN,
+ Xbox framebuffer/PCM and fresh installed delivery gates remain open.
+
+Launcher-info+SHA verify installed r2 unchanged:
+8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40.
+Acceptedv14 unchanged:
+ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+launcher-preservation-v184.json retained. Current source/executable fingerprints
+in candidate-summary-v15.json versionv184. No tagged debug logs; read-only
+activation paths are retained test evidence. All owned sessions terminal.
+Goal turn classification:PROGRESS. No full game/parity/delivery claim.
+
+
+## v185-v199 source map-transition prefix and shared tag-owner progress (2026-10-15)
+Goal ACTIVE0/102 whole elements complete. Privatev15 UNACCEPTED. Acceptedv14
+and installed immutable r2 unchanged. No agents, commits/pushes or root code
+edits. Root goal documentation receives only this append; concurrent work kept.
+
+Current resource module119 roots5357instructions(+4/+279 fromv184).
+Final post-template SHA33819293ff2e6962b47f0d8d4d22d03149b3fd25f31c251641132f41d3f5999a.
+Manifestresource-map-shared-postprocess-native-v196/generation.json; use its
+final SHA, never the common generator's pre-template printed hash.
+New whole source roots191EF0,166770,12EDA0,12FBB0 are authenticated by literal
+CALLs. All original cold/UI/locale/other conditional required callees remain
+required if entered. No fake GPU call result or idle/device fields supplied.
+
+Source parent191EF0 clones its temporary partition, constructs the original
+payload pool, executes the whole166770 ready-cache branch, and enters reset
+12EDA0/12FBB0. It stops at actual CALL12FBDA->D3D404D10, actual return12FBDF.
+The test stops/joins its worker only to capture a quiescent complete byte bank;
+this ready-cache prefix does not enqueue work. Not a full transition claim.
+resource-map-transition-prefix-original-v199.json PASS: unchanged owned XBE
+runs independently,11476instructions, complete CPU/path/all57270342bytes.
+Independent actual host mmap/mprotect; source request base80061000,size47079424,
+protection404. D3D404D10 is NOT executed or returned by this comparison.
+Native capture/reportv198 retained underwork/sandbox-primary-v15.
+
+D3D primary authorityv185:404D10 is46instructions and404EC0 is9. Both are in
+D3D, not .text. Actual SDK fields include device411568,+934 MMIO base,+1C20
+command submission,+1C28 flush mapping. The current root native graphics API
+publishes an opaque renderer token at515E90; it does not initialize this
+original internal object. Root code was inspected read-only, not imported.
+Pinned primary nxdk14d5ee97e73347c973f1f57b68b79ec08c9e77f2 confirms:
+100410=PFB_WC_CACHE,10000=flush trigger/in-progress;3240=PFIFO_DMA_PUT,
+3244=DMA_GET,400700=PGRAPH_STATUS. Source files/SHA manifest retained in
+work/sandbox-primary-v15/gpu-register-authority-v189. Actual renderer device,
+command progress, flush and status ownership remain required; no fabricated
+NV2A profile, source device layout or ready status is admitted.
+
+Tag postprocessing follows original parent CALL1918D9->11EF70. Important
+correction: the live world ALREADY invokes this owner after its manually
+bound tag image; Generic11EF70/1F31E0 and World canonical1EE380(actual1F2C70)
+already existed. v192 temporarily duplicated three bodies into the resource
+module for initial comparison. v196 REMOVES those duplicate bodies, reuses
+the existing live-world owners in the native cache API, and translates only
+canonical diagnostic instruction/frame addresses through existing verified
+source_world_trace_tu15. Canonical1EE380 is an API ID, never a TU1.5 entry.
+Strict original11F02C->1F2C70 caller/return11F031 is checked. v197 and current
+v199 original comparisons prove the actual shared implementation used by
+live gameplay, not an alternate parallel implementation.
+
+Original postprocessor covers4512 authored tags. Native visit counts are
+checked against original tag-table group counts:58physics-model,16vehicle,
+81collision-model,3biped/creature definitions;4513 iterator invocations.
+Whole source11EF70 completes with real caller stack. Its shape helpers and
+static vtable3061F0 count method are source-owned. Exact216383instructions,
+full CPU/path/all57270342bytes match unchanged original TU1.5 in
+resource-map-tag-postprocess-original-v199.json. No gameplay returns supplied.
+This establishes tag preparation, not whole physics/vehicle/gameplay parity.
+
+For a stable full-bank comparison, the real worker is held at its existing
+native wait hook only AFTER a genuine original125870 zero-byte read retires.
+The original reader reuses caller offset wordSP+8 as done storage after
+extracting the offset; barrier checks that actual publication. No done byte,
+work permit, handle or callback result is invented. Stop token wakes the held
+hook on exceptions; successful comparison releases it and original teardown
+runs with the worker alive. Original125870 is now admitted as a public whole
+blocking reader. Native physical protection diagnostics are read-only and
+observe after actual host success. Authenticated11F0A2/11F1C4/11F2DB callers
+are admitted; existing native2/4/404 protection policies reused. These
+scenario metadata protection branches are NOT entered by owned Lockout.
+
+Evidence(all underwork/sandbox-primary-v15 unless stated):
+-resource-regressions-v198.log19/19 PASS with actual commands-v198.json.
+ Includes previous17 plus exact GPU-boundary and shared tag-postprocess cases.
+ One Ninja/CTest at a time. Current native before/after captures copied to
+ resource-map-transition-prefix-capture-v198 and tag-postprocess-capture-v198.
+-resource-payload-original-v199.json4 allocator stages PASS/all57229378bytes.
+-resource-copy-read-original-v199.json7 and file-v199.json16 callback cases
+ PASS, full CPU/path/all57512002bytes and complete private file bytes. Native
+ capture/commandv199 retained; no resolved-venv Python symlink this time.
+-Previous42pure helper proofv182 remains bounded evidence for unchanged helper
+ bodies. No new broad109-test/full-game/Xbox pixel/PCM/delivery claim.
+
+Corrections: v186 genuine red at missing191EF0 owner. v187 reaches exact GPU
+ boundary. v191 genuine red at unadmitted11EF70 after actual zero read; held
+ worker exits cleanly on failure. v192 duplicate tag bodies passed but were
+ removed after checking existing live-world ownership; v196 reuses shared
+ owner and v197/v199 prove it. v188/v193/v195 are historical intermediate
+ evidence, not current final module/ownership. No source opcode patches or
+ tagged debug logs; read-only instruction paths retained as test evidence.
+
+Next: real GPU dependency at404D10 and direct status reads in12FBB0; full
+191890 map transition/191A50 and signature verification. The existing live
+world still stops worker after boot and manually binds map tags. Its three
+1301B0/130F68/126139 bridges remain synchronous; native fd registry has no
+added lifetime mutex. Persistent live integration/resource continuation,
+all-map/menu acceptance, every whole-element local/split/LAN gate and original
+Xbox framebuffer/PCM plus new installed delivery remain open. Do not close
+scope from these component comparisons.0/102 complete, goal turn PROGRESS.
+
+Launcher-info and actual runtime SHA preserve r2:
+8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40.
+Acceptedv14 SHAca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+Preservationv199/current private source/executable fingerprints saved in
+candidate-summary-v15.json. All owned sessions terminal; no owned processes.
+
+
+## v200-v207 native file-registry concurrency fix (2026-10-15)
+Goal ACTIVE,0/102 whole sandbox elements complete. Privatev15 UNACCEPTED.
+Acceptedv14 and installed immutable r2 are unchanged. Private gameplay edits
+only; root documentation receives this append. No agents, commits or pushes.
+
+The original main-thread disc probe1A3C10 and worker open1AA750 can perform
+successful OS opens concurrently. v202 reproduces the native bug by holding
+both real opens at a declared host schedule barrier before publication: the
+old unguarded next_file read issues the same alias, and the original worker
+cannot finish. resource-file-concurrency-red-v202.log is the retained red.
+No alias, descriptor, bytes or source done result is supplied by the hook.
+1A3C10 is an existing whole generated body, now admitted by the public native
+resource API; generated source remains119 roots/5357instructions with final
+SHA33819293ff2e6962b47f0d8d4d22d03149b3fd25f31c251641132f41d3f5999a.
+
+v203 moves alias allocation/publication into one native file-registry mutex,
+with RAII ownership of a successful OS open before the scheduling hook. The
+same guard protects all descriptor lookups and each real seek/read/write/
+truncate/flush/size/close through the OS operation, so close cannot recycle
+a descriptor being used by another native call. Alias exhaustion and duplicate
+publication reject explicitly. Quiescent checkpoint/restore file access uses
+the guard too. Existing worker-join and active-call barriers remain required.
+This is an explicit native OS concurrency policy, not a claim about original
+Xbox kernel scheduling, sharing flags, XAPI clobbers or IO latency.
+
+v204 strengthens the regression: after the original main probe has read and
+closed its own file, whole original1AAB20 queues a read through the worker's
+separate alias. The worker publishes its real count2048 and exact owned map
+header bytes, then whole1AB160 completes its close and original done store.
+The hook is outside the registry guard and before alias selection, so both
+real OS opens can rendezvous without holding the guard or choosing outcomes.
+Source queue/free-list/request/done ownership remains original.
+
+Current verification:
+- resource-regressions-v205.log:20/20 focused CTests PASS, coherently rebuilt
+  from19 targets. Actual commands retained incommands-v205.json. Includes
+  memory concurrency, arena/continuation, cache startup, four full map copies,
+  activation, signature/failure, GPU boundary, shared-tag processing and race.
+- resource-file-concurrency-v204.log PASS; reportresource-parallel-file-v207.json
+  records2 real simultaneous opens and2048 exact bytes after main-file close.
+- Fresh native IO capturev206, read7/file16 unchanged-original comparisons
+  PASS: full CPU/path/all57512002 retained bytes plus complete private files.
+- resource-payload-original-v206.json:4 allocator cases PASS with original
+  instruction counts5135/5932/456/176 and all57229378 retained bytes each.
+- resource-map-transition-prefix-original-v206.json:11476 instructions and
+  all57270342 bytes PASS, still stops BEFORE404D10 and supplies no GPU return.
+- resource-map-tag-postprocess-original-v206.json:216383 instructions and all
+ 57270342 bytes PASS through existing Generic/World shared owners,4512tags.
+- Total29 unchanged-original comparison cases. Fresh complete native captures
+  are retained underwork/sandbox-primary-v15, including allocator/prefix/tag
+  copies of the CTest-produced banks. Current source/executable/evidence SHA
+  manifestresource-file-registry-acceptance-v207.json and candidate summary.
+  No repeated broad109-test, Xbox pixel/PCM, full-game or new delivery claim.
+
+GPU researchv200/v201 authenticates actual SDK cold factory3FF320(45 whole
+instructions): singleton40F0C0, source publication411568 at3FF361, actual
+initializationCALL3FF37B->405CF0(return3FF380). Initialization is556 whole
+instructions and publishes+934/+1C20 beforeCALL404D10; it passes+1C28 to its
+miniport constructor.406610 is153-instruction cleanup, not initialization.
+Initial fields0/8/770/934/1C20/1C28 are zero; no fabricated nonzero device
+layout, ready bit, push cursor, MMIO field or idle result has been admitted.
+Reportsgpu-device-factory-primary-v200.json andinitialization-primary-v201.json
+retain unchanged owned bytes. Root NativeTu15GraphicsDevice was inspected
+read-only: it owns a genuine renderer lease/targets but publishes an opaque
+native token at515E90, not the original internal SDK object at411568. Its
+current concurrent code was preserved and not copied into this candidate.
+
+Next dependency remains full191890->191EF0->12EDA0->12FBB0: actualD3D404D10
+and direct GPU status reads need a real source/native SDK device and command
+completion owner. Then full191A50/signature verification and all-map/menu
+acceptance. World still stops its worker after boot, manually binds map tags,
+and uses three synchronous1301B0/130F68/126139 resource bridges. Persistent
+World integration/resource continuation and all102 whole-element local/split/
+LAN, original Xbox rendered/audio and fresh installed delivery gates remain.
+The previous statement that the native fd registry lacks a mutex is superseded
+byv203; the persistent live-world integration limitation is unchanged.
+
+Launcher-info and actual SHA reverified inlauncher-preservation-v207.json:
+r2 runtime8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40;
+acceptedv14ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+No repack or full parity acceptance. Goal classificationPROGRESS. All owned
+build/CTest/oracle sessions terminal. No tagged debug logs or opcode patches.
+
+
+## v208-v226 original GPU control recovery and native CPU comparison (2026-10-15)
+Goal ACTIVE,0/102 whole sandbox elements complete. Privatev15 UNACCEPTED.
+Acceptedv14 and installed immutable r2 remain unchanged. Private gameplay code
+only; root documentation append only. No agents, commits/pushes or root GPU
+code imports. Previous turnv207 was verified progress, not a completed goal.
+
+The next map-reset dependency is actual titleCALL12FBDA->D3D404D10, return
+12FBDF. Native source control is now a dedicated shared module with two whole
+roots404D10(46instructions) and404EC0(9),55 total, authenticated by that literal
+caller and internalCALL404D27. No duplicate404D10 body exists in the private
+candidate. Current generated final post-template SHA:
+7d6ccae6a1800f9cc2fadda5f0bdbeaad458848199f38af5cf8ccbb83b71f089.
+Manifestgpu-control-native-v224/generation.json; common generator prints a
+PRE-template hash first, so use the final module manifest. The existing
+resource module remains119 roots5357instructions with itsv196 final SHA.
+
+Authentic original device production is observed, not guessed. New private
+toolcapture_source_gpu_device_boot_tu15.py cold-boots the unchanged owned
+TU1.5 reference disc in xemu0.8.136(fc24584), with owned modifiedComplex4627
+BIOS, separate HDD overlay/EEPROM, hidden private display, and hardware
+breakpoints. No savestate, guest code/data writes, input patches or native
+expected results are supplied. The original source3FF320 factory really
+executes556-instruction405CF0 and returnsHRESULT0 at3FF380. Original full
+.text, factory/initializer bytes, and both reached GPU-control code ranges
+are checked against the owned image; source assets and HDD backing preserved.
+This is controlled emulator resource evidence, not physical Xbox proof.
+
+Actual original singleton40F0C0 publishes MMIO baseFD000000 at+934/+1C28 and
+push-controlFD800000 at+1C20. CPU/push memory pointers come from its real
+original allocations. Those values are retained reference data, NEVER seeded
+into a production native device. Original cold presentation tuple is:
+640,480,6,0,0,1,0,0,1,42,1,0,80000000(hex),0,0,0,0.
+The inspected root NativeTu15GraphicsDevice gate uses different refresh and
+presentation inputs and an opaque515E90 token. Do not import that gate or
+reinterpret the token as original411568 device state. Its real renderer
+lease/targets are preserved concurrent work; faithful native binding remains.
+
+Current original observations:
+-gpu-control-factory-original-boot-v219: SDKCALL406423->404D10,return406428.
+-gpu-control-title-original-boot-v223: titleCALL12FBDA->404D10,return12FBDF.
+Each executes25 actual retired instructions in the whole55-instruction closure.
+NV2A register tracing observes exactly: PFB410read0, write10000, read0, then
+USER40write of the actual original push cursor. Values are produced by real
+emulator MMIO while original instructions execute, not supplied GPU readiness.
+Normal input/output banks include9376 SDK-device bytes, globals, actual caller
+stack, command context and recording data:10064 bytes per case. Original CPU
+GP/SSE/eflags, FP controls/status and opcode bytes are retained. Unused x87
+80-bit register/tag payload is not captured or compared; no full FPU claim.
+prepare_gpu_control_replay_tu15.py independently verifies pinned original
+code, complete original CFG edges, copied capture-tool SHA, raw hardware trace
+and normal-bank hashes. Unknown MMIO blocks/widths reject, never default zero.
+
+The native module preserves source loads, stores, branch/poll logic and actual
+SFENCE via native_mm_sfence. The first attempt revealed a material portability
+bug: the common diagnostic store helper reads old memory before writing even
+with no observer. A GPU MOV must not add that MMIO read. GPU stores now emit
+only the source write; SDK store-observer before is empty because it was not
+observed, while normal stack diagnostics retain their existing behavior.
+The real original four-operation MMIO stream rejects any extra access. A
+separate observer-enabled native case records both original hardware writes
+without adding reads. The common store helper and unrelated modules are kept.
+
+Another genuine comparison failure showed hostFNSTCW returning27F while the
+original captured logicalCW was23F. The entire closed55-instruction source
+closure is checked to contain no FP operation/control/status writer. Its native
+wrapper therefore retains incoming logical FP controls/status on return,
+instead of substituting a host-normalized CW or unrelated host exception state.
+This follows source instruction identity; no expected CPU result is used as an
+input. Unused x87 payload stays outside the proof. No source opcode patch.
+
+Verification and corrections:
+-v210 test compile issue atstring/JSON equality corrected before execution;
+ it is not the meaningful red. v212 compiled regression fails at unowned
+ original GPU entry. v213 rejects extra diagnostic MMIO access. v215/v216
+ expose raw control-word normalization, corrected by source FP identity.
+-v208 initializer capture andv209/v217 preliminary control observations kept;
+ current accepted CPU observations arev219/v223, with explicit GPU-code byte
+ checks. v214 GDB step stopped again at the title CALL before entering SDK;
+ corrected by a separate hardware breakpoint at SDK entry. v220 failed
+ before QMP/guest execution when its private display handshake was incomplete;
+ tool now consumes the full display-ready line. v221 includes debugger stops
+ with unchanged PC; the preparer rejects such non-retired CFG edges. Current
+ capture records non-retiring debug stops separately rather than calling them
+ original instructions. Never restart on observation timeout; all failures
+ were terminal and each owned process/display was stopped by its owner.
+-resource-regressions-v225.log23/23 focused CTests PASS after one coherent
+20-target build. Actual commands-v225.json. Includes previous20 plus factory,
+ actual map-reset GPU control and diagnostic-observer replay cases.
+-Native reportsgpu-control-{factory,title,observer}-native-v226.json:3 replays
+ of2 distinct original observations PASS; each25 retired instructions, all
+10064 captured normal bytes,4 actual observed hardware operations; observer2
+ original MMIO writes. Full GP/SSE/flags and logical FP controls/status match.
+-Previous29 unchanged-original resource comparisonsv206 remain bounded proof
+ for unchanged resource bodies. Fingerprints verify thosev207 source files
+ unchanged except CMake adding the new module/tests. Those29 comparisons are
+ NOT represented as rerun this turn. No new broad109-test or full-game claim.
+-gpu-control-acceptance-v226.json/candidate summary record current source,
+ executable and evidence fingerprints. All original and native owned sessions
+ terminal; emulator/display/build/test process audit finds none still live.
+
+Next required: real live source/native SDK device, push-command ownership,
+GPU/MMIO completion and Vulkan binding. The new CPU module consumes actual
+hardware observations in tests; it is NOT bound into the retained live World.
+Do not seed original captured device pointers, put/get counters or idle flags,
+and do not replace source waits with success.405CF0 initializer is observed
+but not implemented natively. Complete191890/191A50/signature verification,
+all-map/menu acceptance and persistent resource worker integration remain.
+World still stops worker after boot, manually binds tags, and uses three sync
+1301B0/130F68/126139 bridges. All102 whole-element local/split/LAN, original
+Xbox rendered/audio and fresh installed delivery gates remain required.
+
+Launcher-info and actual hashes preserved inlauncher-preservation-v226.json:
+r2 runtime8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40;
+acceptedv14ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+No repack/new installed delivery or full parity acceptance. Goal turnPROGRESS.
+
+Documentation spelling correction forv226: the actual native SFENCE intrinsic is `_mm_sfence()`.
+
+
+## v227-v238 real renderer GPU queue/device ownership (2026-10-15)
+Goal ACTIVE,0/102 whole sandbox elements complete. Privatev15 UNACCEPTED.
+Acceptedv14/installed immutable r2 unchanged. Private gameplay code only; root
+receives this documentation append. No agents, commits/pushes or root runtime
+edits. Previousv226 is classifiedPROGRESS, not completion or a blocked turn.
+
+A real native GPU completion owner now exists in the private renderer. Two
+existing root RendererDeviceLease files were copied unchanged after before/
+after/source-copy SHA verification(import-v227.json). The private renderer
+retains its actual Vulkan implementation through device uses; retirement
+rejects new uses while active native GPU resources remain alive. No other root
+renderer/SDK/target code was imported, and concurrent MCC work is preserved.
+
+New RendererGpuQueue is issued only by a genuine live Renderer and exposes
+its actual logical/physical device, queue and family through NativeRuntimeAddress.
+Native addresses are never truncated into original guest addresses. Acquired
+uses and completion operations require the issuing renderer thread. Each
+completion creates a real initially unsignaled VkFence and submits a native
+ordered marker to the actual VkQueue. Public ready() queriesvkGetFenceStatus;
+wait(timeout) usesvkWaitForFences. NOT_READY/TIMEOUT remain pending, and driver
+errors throw. No source GPU pointer, put/get value, ready bit or idle status is
+published. Marker ordinals are native ownership identifiers, NEVER original
+push cursors. Fence scope covers earlier GPU command submissions, not scanout
+or presentation-engine release. Existing presentation retirement is preserved.
+
+The device optionally enables queried timelineSemaphore support through Vulkan
+1.2 core or the availableKHR extension, preserving the ordinary1.1 renderer
+contract when unsupported. This native capability does not alter Xbox source
+state or replace an original SDK device initializer. Current live test exercises
+the core path;KHR fallback/other platforms remain unverified.
+
+Primary Vulkan authority:
+-https://docs.vulkan.org/spec/latest/chapters/synchronization.html
+-https://docs.vulkan.org/refpages/latest/refpages/source/vkSignalSemaphore.html
+-https://docs.vulkan.org/refpages/latest/refpages/source/VkPhysicalDeviceTimelineSemaphoreFeatures.html
+-https://docs.vulkan.org/refpages/latest/refpages/source/vkSetEvent.html
+A queue fence observes earlier command submissions; a timeline signal is a real
+host operation. The initial host-event fixture was rejected by current validation:
+vkSetEvent cannot signal an event waited on by a pending command buffer. It was
+replaced with an actual timeline wait/signal, never a disabled check or supplied
+readiness result. v230 failed BEFORE GPU work because validation-layer search
+paths were missing; the repo's bundled layer/library were then bound explicitly.
+v228 had a test compile redeclaration corrected before execution. These are
+retained diagnostics, not accepted GPU evidence.
+
+Real hardware verification onNVIDIA GeForceRTX5080:
+- The renderer submits ordinary native frames. A separate actual GPU fill of
+256 bytes is queued behind an unsignaled timeline value. The completion must
+report pending and zero-time wait must return false before host signal. After
+realvkSignalSemaphore, it must complete and all GPU-written words must match.
+- Actual device/queue identity, foreign-thread rejection, moved-ticket rejection
+ and new-use rejection after retirement are checked. No fake renderer/device
+ can issue this owner through its public API.
+- Enhancedv237 retires the renderer while real GPU work is still blocked. New
+ use/status calls reject immediately, the retained real device accepts a host
+ signal, and completion cleanup waits for its actual GPU fence. Another256
+ GPU-written bytes are checked after retirement. A bounded test helper detects
+ incorrect blocking retirement; it never supplies a completion status.
+- Controlled native triangle frame pixels are byte-identical before/after the
+ queue stimulus. This is native regression evidence, not Xbox pixel parity.
+- Khronos validation is enabled and yields zero messages, including complete
+ resource/device teardown. Window lifetime remains required through all uses.
+
+Evidence:
+-resource-renderer-regressions-v234.log26/26 PASS after a coherent24-target
+ build including the actual privatehalo2_native. Includes previous23 resource/
+ GPU-CPU cases and3 native renderer/device/material cases. Actual commands and
+ targets retained. GPU pending-retirement test was strengthened afterward in
+ test code only and passed inv237; other25 tests/production code are unchanged.
+-renderer-gpu-queue-live-v234 preserves the earlier complete GPU case; final
+ enhanced report/PPMs are inrenderer-gpu-queue-live-v237. No repeated broad109
+ or all-game claim. New queue production files unchanged afterv234 build.
+-native-runtime-smoke-v235-1-idle.json:20seconds,exit0. Four-view combat report:
+30seconds,15 scripted events,exit0. Both execute actual rebuilt runtime SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+ Private X11/XTest sessions and isolated save/state paths; only player1 receives
+ input, audio sinkdummy, no extra game validation flag. They prove bounded
+ runtime regression only, not4 real controllers/LAN/allmaps/menus/playthrough/
+ original rendered frames orPCM. Their runtime is not installed r2.
+-renderer-gpu-queue-acceptance-v238.json and candidate summary retain current
+ source/executable/evidence fingerprints. Original resource119-root/GPU55-
+ instruction CPU implementations remain exactly unchanged fromv226.
+
+Next original SDK dependencies are further authenticated inminiport-primary-
+v236.json:405D45->4046C0(49whole instructions) forwards allocator flagsBC800000
+and64800000 to2DA8B0; do not guess their meaning/backing.405D6F->4080E5 is114
+whole instructions and reaches actual kernel ordinals107/44/109/98/47. Existing
+export-map labels areKeInitializeDpc,HalGetInterruptVector,KeInitializeInterrupt,
+KeConnectInterrupt,HalRegisterShutdownNotification. These names are annotations,
+not proof of kernel implementation or permission to return fake registration
+success. Allocation, command, MMIO and IRQ/DPC ownership remain required.
+
+The new native queue is NOT an initialized original SDK object or an MMIO
+adapter. Source3FF320/405CF0 device production, GPU-visible buffers/commands,
+real MMIO completion and IRQ/DPC lifetime binding must be composed next. Do
+not seed captured pointers, reinterpret marker ordinals as original push
+cursors, bypass source waits or synthesize idle. Whole original404D10/404EC0
+CPU code remains available but is NOT bound to this renderer in the live World.
+Complete191890/191A50/signature/all-map/menu acceptance remains open. World
+still stops its worker after boot, manually binds tags and uses three sync
+1301B0/130F68/126139 bridges. Every102-element local/split/LAN, original Xbox
+render/audio and fresh installed delivery gate remains part of the goal.
+
+Installed launcher-info/actual SHA preservationv238:
+r2 runtime8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40;
+acceptedv14ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+No repack/new installed delivery or full acceptance. All owned candidate
+build/CTest/runtime/display sessions are terminal. Goal turnPROGRESS.
+
+
+## v243: original SDK allocation prefix and actual GPU storage
+
+Goal remains ACTIVE, unaccepted, with 0/102 whole sandbox elements complete.
+This step advances the original graphics dependency of map activation; it does
+not complete graphics startup or deliver a new playable build.
+
+The owned TU1.5 XBE authenticates complete bodies 3FF320 (45 instructions),
+405CF0 (556), 4046C0 (49), 2DB45A (28) and 2DB49D (18): 696 body instructions.
+The generator supplies 695 CPU instruction lowerings. Privileged WBINVD at
+40641F remains an explicit required-owner stop, never a no-op. Other SDK,
+miniport, kernel, MMIO and command callees remain required. Generation replay
+v243 reproduces the compiled C++ byte-for-byte, SHA256
+539dac4df4a94604ffea9a766d3dab06ca8a1bff4bc8aaec1fbc3025a2e65866.
+Original caller and six-byte ordinal166 import frames are authenticated.
+
+The original factory/initializer/command constructor now executes through
+original 2DA8B0/2DB45A and existing original RtlAllocateHeap. It publishes its
+own singleton/global, 96-byte control allocation, 524288-byte command buffer
+and heap metadata. No device fields or captured Xbox allocation pointers are
+seeded. It stops BEFORE the genuine 405D6F call enters 4080E5; no miniport
+return, interrupt success or ready/idle state is supplied.
+
+SourceGpuPhysicalMemory owns actual Vulkan buffers/device memory on a genuine
+renderer queue/device lease. Source tokens use an explicit native first-fit
+interval 03000000..03FFFFFF, not a claim about Xbox kernel placement. Native
+64-bit GPU handles stay separate from 32-bit source tokens. Newly allocated
+Vulkan bytes are unspecified; actual mapped initial bytes are retained as
+platform inputs, and original instructions initialize source storage. See
+[Vulkan allocation](https://docs.vulkan.org/refpages/latest/refpages/source/vkAllocateMemory.html)
+and [buffer binding](https://docs.vulkan.org/refpages/latest/refpages/source/vkBindBufferMemory.html).
+SourceRuntimeMemory owns a COPY, not the VkMappedMemory pointer. Explicit
+publish/refresh waits for real queue retirement and copies/flushes/invalidates
+storage. This is not immediate CPU/GPU aliasing, an NV2A cache/MMIO adapter,
+or execution of original push words. Source/kernel cache-policy parity stays
+open. Operations and teardown require the issuing renderer thread and retained
+bank/window lifetimes; real queue retirement protects buffer destruction after
+logical renderer retirement.
+
+Verification v242/v243:
+- Unchanged original executable prefix: 520 instructions, full GP/XMM/defined
+  flags/logical FP control and status/FS state, exact path, and ALL 6410306
+  retained bytes match. New allocation placement is independently computed;
+  only actual native allocation input bytes are replayed. Original code is
+  never patched. Native single-thread heap locks and allocation notifications
+  are explicit platform policy, not Xbox kernel/clobber proof.
+- Real NVIDIA GeForce RTX 5080 copies 256 bytes between source-backed GPU
+  buffers, and bank refresh observes exact GPU-written bytes. A further
+  original 2DB49D constrained/aligned allocation reaches its distinct import
+  frame; this extra ABI case is not part of the 520-instruction comparison.
+  Actual native token exhaustion, invalid return rejection without state
+  changes, foreign-thread rejection and renderer-retirement rejection pass.
+- Coherent 25-target build and 27/27 resource/heap/GPU/renderer CTests pass.
+  GPU fixtures enable Khronos validation, including teardown, with zero
+  messages. v239's initial fixture failed because its native render mesh had
+  zero materials; the valid fixture was repaired, not the renderer guard.
+- Existing resource119-root and GPU-control55-instruction CPU source remains
+  unchanged; only the private CMake lists differ among previous source pins.
+  The 29 original resource oracle cases were not rerun: v206/v226 scoped
+  evidence remains historical. Current CTests exercise their native paths.
+- Private halo2_native stays byte-identical to v238/v235, SHA256
+  72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+  Those earlier bounded 1/4-view runtime smokes are not repeated or expanded
+  into new live GPU integration, controller, LAN, pixel or PCM proof.
+
+Evidence: gpu-device-acceptance-v243.json, gpu-device-live-v242,
+gpu-device-original-comparison-v242.json, gpu-device-generation-replay-v243,
+gpu-device-regressions-v242.log and launcher-preservation-v242.json under
+work/sandbox-primary-v15. Current source/executable/evidence hashes are retained.
+All owned build/CTest/Xvfb sessions are terminal.
+
+Next is actual 4080E5 miniport/kernel107/44/109/98/47 ownership, its IRQ/DPC
+lifetime and callbacks, GPU command/MMIO/cache ownership including 40641F, and
+binding the real source device into live 404D10/404EC0/map transition. The root
+opaque515E90 graphics adapter remains distinct from the SDK singleton411568.
+Full191890/191A50, persistent World resource worker/three synchronous bridges,
+all102-element local/split/LAN acceptance, original rendered/audio comparison,
+all maps/menus and fresh installed delivery remain required. No fake idle,
+IRQ success, captured fields or skipped source waits are acceptable.
+
+Installed r2 remains SHA256
+8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40;
+accepted v14 remains
+ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+Actual launcher-info selection and both hashes were verified. No repack or
+new installed delivery. Goal turn classification: PROGRESS.
+
+
+## v253: genuine kernel DPC initialization advances miniport startup
+
+Goal remains ACTIVE and unaccepted: 0/102 whole sandbox elements complete.
+Previous turn v243 was verified PROGRESS. Current work advances that original
+SDK startup path; full device initialization and installed delivery remain open.
+
+The native device module now authenticates ten complete original game bodies,
+903 instructions: previous five plus 4080E5/408245/408270/4082B3/408334. There
+are 901 CPU instruction lowerings and explicit required-owner stops for
+40641F WBINVD and 408211 OUT DX,AL. External SDK, MMIO and kernel owners are
+still required. Final generated source SHA256:
+7c63c4eb6e1fea49f1e0b0ac9170425202bc6abaafe8f9125b80a7bcdf64a1e6.
+
+Original miniport code calls ordinal107 at4080FC. Its actual eight-instruction
+body was observed at8001A384 in the owned modified Complex4627 kernel under
+pinned xemu. Thirty code bytes SHA256:
+852645af25732043b62746a4193074038c4d91fb63c88e82219570f62ed19342.
+This is a kernel capture authority, not XBE text or proof for every kernel
+build/physical Xbox. The common generator's game-image selection binds the
+caller ABI only; kernel code has a separate BIOS/code/capture pin. All eight
+instructions compile to native CPU operations; no binary emulator/decoder
+runs in production. Generated kernel C++ SHA256:
+3d304aa445c43018ca24c16004462641674347c29ff86276e4ee3280a624d8d1.
+
+The authenticated GPU call adapter validates its six-byte import return,
+import cell and actual source arguments. The kernel body owns GP/flags,
+stdcall cleanup and exact store order: AND byte+2, routine+12, type word+0,
+context+16. It leaves non-GP/flags ABI state intact, including opaque FP/MMX
+state. Missing caller FP controls remain required, with no selected default.
+This initializes the DPC record only; delivery/scheduling, callback408CC0,
+ISR408BA0, shutdown409570 and genuine IRQ registration/lifetimes remain open.
+The existing process-startup compatibility DPC adapter was not silently
+relabelled as this recovered kernel body.
+
+The original factory/device allocation chain now enters 4080E5, executes its
+DPC initialization/list/record producers and calls 408245. The original first
+store publishes FD000000 in the miniport object. Native comparison stops
+BEFORE40824B reads FD001804 (PBUS PCI config). No register value, MMIO success,
+miniport return, interrupt success or idle/completion state is supplied.
+
+Verification:
+- Expanded original composition:556 instructions, exact GP/XMM/defined flags,
+  logical FP controls/status and FS, full path and ALL6410306 retained bytes
+  match. The owned XBE executes unchanged; the composed oracle executes the
+  captured original kernel instructions too. Native physical allocation
+  placement/copy policy remains explicit, as recorded inv243.
+- Actual original kernel replay:8 instructions, GP/XMM/defined flags/FP modes
+  and status, exact store order and ALL540 object/stack bytes match in two
+  independent original boots. A separate native opaque FP/MMX sentinel is
+  preserved; unused original physical FP payloads were not captured/compared.
+- Coherent26-target build and28/28 focused CTests pass. Actual GPU storage
+  transfer/retirement checks remain included, with Khronos validation enabled
+  and zero messages. This is host GPU evidence, not original rendered parity.
+- Final generation replay reproduces both compiled C++ files byte-for-byte.
+  The fresh v251 boot also verifies all750 miniport/helper bytes against the
+  owned XBE before and after setup, alongside existing full text and factory/
+  initializer checks. Observed256-byte kernel export windows remain unchanged;
+  that is not a claim about every kernel byte/function.
+- Reference miniport completes with actual return1 and317 NV2A register
+  events. Ordinal44/109/98/47 frames, object bytes and real reference outputs
+  are retained. Only the first seven register accesses are instruction-
+  attributed; other events remain unattributed observations. None are native
+  provider outputs. Debugger scheduling and modified BIOS/xemu limits remain.
+- First v244 observation failed on an assumed contiguous kernel PE header at
+  inaccessible80030020. It is rejected evidence. The capture tool instead
+  follows actual resolved import cells; no kernel-layout explanation is guessed.
+  Successful boots use private EEPROM/HDD overlays, preserve original inputs,
+  and perform no guest code/data writes. All owned sessions are terminal.
+
+Pinned primary NV2A sources are retained ingpu-miniport-register-authority-v249.
+[PBUS](https://raw.githubusercontent.com/xemu-project/xemu/fc24584ce88f0915ad7f04775bb7712c2e3f49ee/hw/xbox/nv2a/pbus.c)
+uses a PCI configuration owner; source register1804 is not an arbitrary status
+constant. [PFB](https://raw.githubusercontent.com/xemu-project/xemu/fc24584ce88f0915ad7f04775bb7712c2e3f49ee/hw/xbox/nv2a/pfb.c)
+gets capacity from the VRAM owner but returns constant zero for WBC. That
+compatibility behavior cannot establish native GPU completion or justify fake
+idle. [NV2A IRQ routing](https://raw.githubusercontent.com/xemu-project/xemu/fc24584ce88f0915ad7f04775bb7712c2e3f49ee/hw/xbox/nv2a/nv2a.c)
+also depends on actual masked pending sources. These LGPL reference files are
+retained with their headers; no register provider was copied into production.
+
+Evidence:gpu-miniport-acceptance-v253.json, gpu-miniport-original-boot-v251,
+gpu-miniport-live-v250, gpu-miniport-original-comparison-v252.json,
+gpu-kernel-dpc-original-report-v252.json, gpu-miniport-generation-replay-v252,
+gpu-miniport-register-trace-v252.json andgpu-miniport-regressions-v250.log,
+underwork/sandbox-primary-v15. Source/executable/evidence hashes are retained.
+
+Next is actual native NV2A PCI/MMIO/VRAM, command/cache and IRQ/DPC delivery
+ownership. Never seed captured fields/status or return fake interrupt success.
+Then bind source404D10/404EC0/full191890/191A50 and the initialized SDK device
+into live World; its stopped worker/three synchronous resource bridges remain
+open. Every102-element local/split/LAN, original render/audio, all-map/menu and
+fresh installed delivery gate remains part of the same full goal.
+
+Existing resource119-root/GPU-control55-instruction source is unchanged; the
+29 original resource oracle cases were not rerun (v206/v226 remain scoped
+historical evidence). Current native CTests pass those paths. Private runtime
+stays byte-identical to v238/v235 SHA256
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45;
+previous bounded runtime smokes are not repeated or broadened into live GPU,
+full controller/LAN/pixel/PCM proof. Installed r2 remains
+8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40;
+accepted v14 remains
+ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+Actual launcher-info/SHAs were verified. No repack or new installed delivery.
+Goal turn classification: PROGRESS.
+
+
+## v261: original kernel PCI transport and its boot producer
+
+Goal remains ACTIVE, unaccepted, with0/102 whole sandbox elements complete.
+The interrupted work is verified PROGRESS, not a stopped job: the current
+source/binaries and29/29 completed CTests were rechecked after resuming.
+All owned test/build/Xvfb/xemu sessions are terminal.
+
+The first genuine kernel DPC call retains an early loaded kernel image while
+its NT headers and INIT section are readable. Read-only boot capturev254 saves
+all five actual virtual sections and export bindings from owned modified
+Complex4627 under pinned xemu. It preserves original ROM/BIOS/EEPROM/HDD inputs,
+uses a private overlay, and performs no guest code/data writes. This is not
+physical Xbox or every retail kernel build evidence. Late header inaccessibility
+is not used to guess a different kernel layout.
+
+The capture identifies ordinal46 HalReadWritePCISpace at80015178, six transfer
+helpers, and complete boot PCI initializer80063908. Its GPU command producer
+is the original OR7 at80063C75, not a saved command-register value. Eight
+complete bodies/450 instructions compile to native C++; seven transport
+bodies contain141 instructions and the whole boot initializer contains309.
+No production instruction emulator/decoder is added. Generated source SHA256:
+d5e4f5d67e4a080d9dec8a4370a32e795c5e9301347363a16032449936c5e1cb.
+Generation replay reproduces it byte-for-byte. Only the original40-byte
+read-only dispatch/index tables become native bank inputs. Captured dynamic
+kernel data/thread objects/hardware-flags outputs are NOT initialized into
+native memory. The game-image selector binds caller ABI only; the kernel
+capture/BIOS/code authority is separate from XBE text.
+
+SourceGpuPci supplies a native software NV2A reset-header plane tied to a real
+renderer/device lease. Its identity/class/revision and PCI write masks come
+from pinned primary
+[NV2A initialization](https://raw.githubusercontent.com/xemu-project/xemu/fc24584ce88f0915ad7f04775bb7712c2e3f49ee/hw/xbox/nv2a/nv2a.c)
+and
+[PCI reset/write policy](https://raw.githubusercontent.com/xemu-project/xemu/fc24584ce88f0915ad7f04775bb7712c2e3f49ee/hw/pci/pci.c).
+It explicitly starts command0, with no booted7 imported. This is the declared
+native reference profile, not host-card identity or original physical PCI
+behavior proof. Known bytes0..15 include identity/class, command/status and
+cache/latency fields; the primary profile leaves latency read-only. BAR/VRAM,
+vendor registers and other board devices remain required, never default0.
+
+Original IN/OUT operations call owned CF8/CFC port services. CLI/STI retain
+source IF and own a genuine native PCI transaction mutex; this is not Xbox
+interrupt delivery or an STI interrupt-shadow implementation. Non-GP/flags
+ABI state stays untouched by the complete integer bodies. Foreign, destroyed
+and retired callbacks reject. Retirement detaches the renderer lease on the
+issuing thread, so a rejected borrowed callback cannot retain the GPU lease
+until later foreign-thread destruction. Concurrent rejected-callback teardown
+is exercised with real renderer ownership and validation.
+
+Whole original80063908 is retained, not replaced by its GPU-only tail. Native
+execution stops at the first required MCPX PCI device bus0/device1, before the
+GPU command producer. The failed source call retains IF clear and its actual
+transaction/frame until explicit native teardown. No board-owner success,
+GPU enable7 or kernel hardware flags are fabricated. The original SDK frontier
+therefore remains before40824B readsFD001804; reset command0 is not admitted
+as completed original board initialization.
+
+Verificationv260/v261:
+-210 read/write cases cover supported header offsets0..15, zero-length and
+ byte/word/dword/remainder transfers. Unchanged original kernel code executes
+ independently with the declared native reset/configuration policy. All19018
+ retired instructions, GP/XMM/defined flags plusIF, logical FP controls/status,
+ paths, I/O events, final PCI configuration and ALL1742160 retained bytes match.
+ All141 static transport instructions across all seven transport roots are
+ covered. Full boot is not part of that comparison; its genuine missing-owner
+ boundary is separately tested. Original physical PCI/IRQ/MMIO is not proved.
+-Coherent27-target build and29/29 focused resource/heap/kernel/GPU/renderer
+ CTests pass. GPU fixtures enable Khronos validation with zero messages,
+ including concurrent retirement/rejection and real device teardown.
+-Final oracle and source/evidence fingerprints are revalidated after the
+ intentional interruption. v255's initial compile error in local auto-type
+ deduction was corrected; primary write-mask inspection also corrected latency
+ ownership before the accepted210-case matrix. Neither failed/different-scope
+ work is passed off as whole-game acceptance.
+
+Evidence underwork/sandbox-primary-v15:kernel-pci-acceptance-v261.json,
+gpu-kernel-early-original-boot-v254, kernel-pci-generation-replay-v258,
+kernel-pci-live-v260, kernel-pci-original-comparison-v261.json,
+kernel-pci-coverage-v261.json, kernel-pci-regressions-v260.log and
+launcher-preservation-v260.json. Current48-source/27-executable and evidence
+fingerprints are retained. Source/kernel table generation is reproducible.
+
+Next is actual MCPX/board PCI configuration ownership, port80CD and the kernel
+hardware-flags producer, followed by BAR/VRAM/vendor registers and GPU MMIO,
+DMA/commands/cache and genuine IRQ/DPC delivery. Then bind source404D10/404EC0,
+full191890/191A50 and the initialized SDK into live World. Its stopped resource
+worker/three synchronous bridges, all102-element local/split/LAN, original
+render/audio comparison, all maps/menus and fresh installed delivery remain
+required. Full goal scope is unchanged.
+
+Prior resource119-root/GPU-control55-instruction and556-instruction SDK prefix
+implementations are unchanged. The earlier29 resource oracle cases and bounded
+runtime smokes are not rerun or broadened. Private halo2_native remains identical
+tov238/v235 SHA256
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+Installed r2 remains
+8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40;
+accepted v14 remains
+ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+Actual launcher-info and all hashes were checked. No repack, fresh launcher
+build or live World GPU integration is claimed. Goal classification:PROGRESS.
+
+
+## v269: original boot produces native LPC routing/control state
+
+Goal remains ACTIVE/unaccepted,0/102 whole sandbox elements complete. Previous
+turnv261 was verified PROGRESS. This step advances the complete original board
+initializer, while full board/GPU startup and installed delivery stay open.
+
+SourceMcpxLpc owns the known native reference-profile configuration plane:
+header00..0F, routing64..6F and control81. The nForce LPC identity/reset/write
+schema and routing contract come from pinned primary
+[xbox_pci.c](https://raw.githubusercontent.com/xemu-project/xemu/fc24584ce88f0915ad7f04775bb7712c2e3f49ee/hw/xbox/xbox_pci.c),
+SHA22963a0ffab9a68ca8ba719419a129c87cafd99e32f13e5e13056ac808617f82.
+It is explicitly a native software reference profile, not captured running
+kernel state or physical Xbox proof. Unknown BAR/vendor/ROM registers stop;
+control81 behavior beyond that reference configuration contract is not proved.
+The owner is not copied between native threads. SourceGpuPci accepts explicit
+shared LPC ownership for bus0/device1; absence remains required. GPU/LPC leases
+are detached on the issuing thread before borrowed callback state can expire.
+
+The genuine complete80063908 initializer now runs through five LPC transfers.
+Original instructions produce64=00000B0C,6A=03,6C=0E065491 and81=08. Those are
+outputs, not seeded native initialization. Root PCI/internal/PIRQ/ACPI routing
+uses this actual state. Real PIC/ISR delivery requires a supplied owner; no
+interrupt registration success or pending status is fabricated. Disabled routes
+follow the reference drops. Unimplemented ROM control remains required.
+
+Execution advances from missing LPC to the next actual IDE PCI owner0:9.
+The native/original comparison stops BEFORE800150E4 IN EAX,DX on that device,
+with the completed prior writes and source IF-clear transaction/frame retained.
+GPU command remains0: its later original OR7 is not reached or imported. The
+original SDK frontier still stops before40824B readsFD001804. Complete board
+initialization cannot be inferred from this prefix.
+
+Verificationv267/v268:
+-386 retired original kernel instructions plus the final unretired required
+ instruction attempt, exact CPU/path/I/O/PCI/LPC state and ALL8232 retained
+ bytes match. Original kernel code executes unchanged; the oracle independently
+ detects the unowned IDE target before I/O, without returning read data.
+-210 transport regression cases still match:19018 instructions and ALL1742160
+ retained bytes. Source kernel450/SDK556 CPU implementations are unchanged.
+-4560 declared signal cases across60 configurations match independently
+ compiled, verbatim pinned primary routing functions. Native tests cover disabled
+ paths, active routes and explicit missing PIC/ROM/unknown-register/slot/thread
+ boundaries. Signals and recording sinks are diagnostic input; actual World
+ IRQ scheduling/delivery and physical hardware remain unproved.
+-Coherent28-target build and30/30 resource/heap/kernel/GPU/renderer CTests pass.
+ Real GPU fixtures use Khronos validation with zero messages. New pure LPC
+ routing checks do not create a fake graphics or interrupt device.
+
+Evidence underwork/sandbox-primary-v15:mcpx-lpc-acceptance-v269.json,
+mcpx-lpc-live-v267/board-prefix, mcpx-lpc-board-original-comparison-v268.json,
+mcpx-lpc-transport-original-comparison-v268.json,
+mcpx-lpc-routing-reference-v265 (original source header/license retained),
+mcpx-lpc-routing-native-report-v267.json, mcpx-lpc-regressions-v267.log and
+launcher-preservation-v268.json. Current52-source/28-executable/evidence hashes
+are retained. All owned Ninja/CTest/Xvfb sessions are terminal.
+
+The next IDE configuration authority is pinned inmcpx-ide-authority-v268;
+its owner is not implemented. Then remaining NIC/APU/ACI/USB/AGP/board devices,
+port80CD/kernel hardware-flags producer, BAR/VRAM/vendor/ROM owners and actual
+PIC/ISR/IRQ/DPC/commands/cache remain required. Live source404D10/404EC0/full
+191890/191A50, persistent World worker/three synchronous bridges and every102-
+element local/split/LAN/original-render/audio/all-map/menu/fresh-delivery gate
+remain part of the same full goal.
+
+Private halo2_native is still identical tov238/v235 SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+The earlier bounded runtime smokes and29 resource oracle cases are not rerun or
+broadened. Installed launcher-info still selects immutable r2 SHA
+8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40;
+accepted v14 remains
+ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+Actual selection/SHAs were verified. No new launcher build or live GPU binding.
+Goal turn classification:PROGRESS.
+
+
+## v272 — original board IDE configuration advances to NIC (PROGRESS)
+
+Full goal remains ACTIVE/unaccepted:0/102 whole sandbox elements complete. This
+turn implements the optional native IDE PCI configuration plane in the private
+v15 snapshot. Its authority is the pinned xemu Xbox piix.c reset/class/realize
+schema, pci.c generic masks/BAR rules, and retained original kernel4627 code.
+This compatibility profile is not physical MCPX storage proof. No captured
+running configuration, ready status, disk sector or GPU command7 is seeded.
+
+SourceMcpxIdePci owns the256 configuration bytes, immutable10DE:01BC/B1/0101:80
+identity, status0280 capabilities, conventional command/cache/interrupt masks,
+status W1C policy, vendor bytes and the actual16-byte BAR4 sizing/alignment
+configuration. IO command/zero/wrap checks decode an assignment; they do not
+create disk or DMA execution. SourceGpuPci routes bus0/device9/function0 only
+when this owner is explicitly attached; absent ownership keeps the old stop.
+Operations enforce the issuing thread and validate complete extents before
+writes. Legacy ATA ports, disk backing, DMA transfers and IRQ delivery still
+require their real owners and cannot supply invented data or completion.
+
+The complete original80063908 boot root now produces IDE command0005,
+BAR4=0000FF61 (decodedFF60), vendor50=2, vendor58=20202020 and
+vendor60=C0C0C0C0, then stops BEFORE800150E4 IN EAX,DX for the next required
+NIC bus0/device4/function0. Its original HAL read/write paths run unchanged:
+3791 retired instructions plus1 unretired attempt,282 IO events and ALL8232
+retained bytes match original-kernel execution against an independently
+implemented declared configuration policy. GP/XMM/defined flags+IF/logical FP,
+full instruction path, PCI/LPC/IDE state and every retained byte match. The
+oracle independently detects the next unowned device before returning data.
+GPU command remains0; neither full board boot nor original SDK initialization
+is complete. The original SDK frontier is still40824B readingFD001804.
+
+Verificationv270/v271:
+-210 original HAL transport cases still match19018 instructions and ALL1742160
+ bytes. The unattached-IDE LPC prefix still matches386 instructions/8232 bytes.
+-New focused checks cover reset, BAR sizing/alignment/command/wrap, immutable
+ header/unregistered BAR/ROM, status capabilities, vendor timing writes, atomic
+ invalid extents and foreign threads. Unowned storage-port access rejects.
+-Coherent29-target build and31/31 resource/heap/kernel/GPU/renderer CTests pass.
+ Real GPU fixtures retain Khronos validation with zero messages. Captures are
+ byte-identical after the coherent build. All owned sessions are terminal.
+-SDK/kernel/resource generated CPU bodies are unchanged. The earlier broad109
+ suite,29 resource oracle cases and bounded idle/combat smokes are not rerun or
+ extended into whole-game/pixel/audio/physical-device acceptance.
+
+Evidence:work/sandbox-primary-v15/mcpx-ide-acceptance-v272.json,
+mcpx-ide-live-v270/ide-board-prefix, mcpx-ide-board-original-comparison-v270.json,
+mcpx-ide-transport-original-comparison-v270.json, mcpx-ide-regressions-v271.log,
+mcpx-ide-authority-v268 and launcher-preservation-v271.json. Current55-source
+and29-executable fingerprints are retained. The next NIC primary reference is
+pinned inmcpx-nic-authority-v271; its native owner is not yet implemented.
+
+Remaining NIC/APU/ACI/USB/AGP/board, port80CD/hardware-flags, storage PIO/DMA,
+NV2A BAR/VRAM/vendor/ROM, actual PIC/ISR/IRQ/DPC/commands/cache, live404D10/
+404EC0/full191890/191A50, persistent World worker/three synchronous bridges,
+and the full102-element local/split/LAN/original-render/audio/all-map/menu/
+fresh-delivery gates remain required. This does not resolve the reported full
+game/menu/map launch failure or produce a new playable launcher build.
+
+Private halo2_native stays SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+Installed launcher-info selects immutable r2 SHA
+8be194ad2797f0b727212cc18c56910088f4c85b936288de7718c491396e1b40;
+accepted v14 remains
+ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+Actual selection and hashes were verified. No installed update/live GPU binding.
+Goal turn classification:PROGRESS.
+
+
+## v276 — IDE/NIC boot configuration and restored test launcher (PROGRESS)
+
+Full goal remains ACTIVE/unaccepted: 0/102 whole sandbox elements complete.
+The private snapshot now owns optional LPC, IDE and NIC configuration planes.
+SourceMcpxNicPci uses pinned primary nvnet.c's declared 10DE:01C3/B1/0200 reset
+profile, immutable interrupt pin A, generic PCI masks, 1024-byte memory BAR0
+and 8-byte I/O BAR1. Both BARs enforce sizing, alignment, command-enable,
+zero-address and wrap rules. This is a compatibility configuration profile,
+not physical MCPX/network proof. No packet, link/PHY-ready state, DMA or IRQ
+completion is invented. SourceGpuPci only routes bus0/device4/function0 when
+this owner is attached, and releases attached owners on the issuing thread.
+
+The original whole 80063908 boot root now produces NIC command0007,
+BAR0=FEF00000, BAR1=0000E001 and interrupt line4 through its own original
+read/write transport. It then stops BEFORE800150E4 IN EAX,DX at the next
+required USB bus0/device2/function0. 7195 retired original instructions plus
+one unretired attempt match the native CPU/path/I/O/PCI/LPC/IDE/NIC state and
+ALL8232 retained bytes. The oracle independently detects the missing device
+before I/O; original kernel code is unchanged. Earlier LPC/IDE prefixes still
+match386/3791 instructions respectively. All210 HAL transport cases match
+19018 instructions and ALL1742160 bytes. GPU command stays0, full board boot
+remains incomplete and the original SDK frontier stays40824B -> FD001804.
+
+A coherent30-target build and32/32 selected resource/heap/kernel/GPU/renderer
+CTests pass. Native NIC checks cover both BARs, reset/immutable header/pin,
+status, vendor byte lanes, atomic invalid extents, foreign threads and required
+actual packet/PHY I/O boundaries. Real GPU fixtures retain zero Khronos
+validation messages. Source SDK/kernel/resource generated CPU bodies are
+unchanged. Native captures reproduce after the coherent build. The prior109
+suite and29 resource-oracle cases are not rerun or broadened. All owned
+Ninja/CTest/runtime/Xvfb sessions are terminal.
+
+Delivery verification found the previously selected immutable r2 executable
+missing after the earlier v271 preservation check. The cause is unknown and
+no exact retained copy was found. A separate experimental package now lives
+at .local/sandbox-test-v15-20261015-r3; Halo2-Sandbox-Test selects its verified
+runtime SHA72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+This is the already built current private binary, not a claim that standalone
+IDE/NIC owners have been connected to live World GPU initialization. Its
+frozen shader hashes and owned Xbox inputs are verified by the launcher.
+Fresh one-view idle20seconds and four-view combat30seconds pass, including
+firing/reload/movement inputs and clean requested close. The actual launcher
+entrypoint also executes that exact child SHA and exits0 after12 Lockout
+frames. These are bounded native checks, not all-map/menu/controller/LAN/
+original-framebuffer/PCM or whole-game acceptance. The old wrapper is retained
+in work/sandbox-primary-v15/launcher-wrapper-before-r3-v275.txt.
+
+Evidence: work/sandbox-primary-v15/mcpx-nic-acceptance-v276.json,
+mcpx-nic-live-v273/nic-board-prefix, mcpx-nic-board-original-comparison-v273.json,
+mcpx-nic-transport-original-comparison-v273.json, mcpx-nic-regressions-v274.log,
+installed-r3-idle-v275.json, installed-r3-combat-four-v275.json and
+launcher-delivery-r3-v275.json. Current58-source/30-executable and installed
+package fingerprints are retained. Next USB primary OHCI references are pinned
+in mcpx-usb-authority-v274; its native owner is not yet implemented.
+
+Remaining USB/APU/ACI/AGP/board, port80CD/hardware-flags, actual storage and
+network I/O/DMA/IRQ, NV2A BAR/VRAM/vendor/ROM, real PIC/ISR/IRQ/DPC/commands/cache,
+live404D10/404EC0/full191890/191A50, persistent World worker/three synchronous
+bridges, and full102-element local/split/LAN/original-render/audio/all-map/menu
+acceptance remain required. Accepted v14 remains unchanged at SHA
+ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61.
+Goal turn classification: PROGRESS; installed experimental delivery updated;
+full goal remains active and incomplete.
+
+
+## v281 — both original USB PCI configuration paths advance to ACI (PROGRESS)
+
+Full goal remains ACTIVE/unaccepted: 0/102 whole elements complete. The private
+snapshot now owns optional, distinct USB0/USB1 PCI configuration resources.
+Pinned primary Xbox OHCI class/realize/board creation and generic PCI masks
+specify 10DE:01C2/B1/0C03:10, interrupt pin A and a 256-byte memory BAR0. This is
+a declared compatibility configuration profile, not physical OHCI/controller
+proof. OHCI registers, device enumeration, transfers, DMA and IRQ scheduling/
+delivery still require real owners; no ready/connected/completion state is
+supplied. SourceGpuPci::Board attaches explicit typed owners at bus0/device2
+and device3/function0. Old constructor interfaces remain available. Aliasing
+one owner across both controllers rejects; an absent device cannot use the
+other's configuration. Unknown buses/functions remain required. Issuing-thread
+checks and retired weak-callback/resource lifetimes remain enforced.
+
+The unchanged whole original80063908 root now produces both USB configurations:
+
+- USB0 command0007, BAR0=FED00000, interrupt line1, vendor50=0000000F.
+- USB1 command0007, BAR0=FED08000, interrupt line9, vendor50=00000030.
+
+It stops BEFORE800150E4 IN EAX,DX for the next required ACI bus0/device6/function0.
+14125 retired original instructions plus one unretired attempt,1070 IO events
+and ALL8232 retained bytes match native GP/XMM/defined flags+IF/logical FP,
+instruction path and PCI/LPC/IDE/NIC/USB/memory state. The independent oracle
+executes unchanged retained kernel code and detects the absent next owner
+before returning data. USB0-only stops at device3 after10660 instructions.
+Earlier LPC/IDE/NIC prefixes still match386/3791/7195 instructions, and210 HAL
+transport cases match19018 instructions/ALL1742160 bytes. GPU command remains0;
+full board boot and original SDK initialization remain incomplete. SDK still
+stops at40824B readingFD001804. No captured configuration or GPU command7 is seeded.
+
+Verification: coherent31-target build;33 unique selected CTests pass with zero
+skips. The initial run passed32 and failed the arena check because its original
+stores.bin had disappeared. The unchanged authenticated oracle was rerun:
+1065823 original TU1.5 instructions regenerate1049656 ordered stores, yielding
+exactly26241400 bytes and recorded SHA
+73ae9913a4e1be6066fff2fb3fad28cc156b2ca4f4e6eb0371a8c3cdb06a79ba.
+Only this exact stream was restored; the old fixture report and test assertions
+were preserved. The failed arena check then passes. Both original failure and
+focused rerun logs are retained in the aggregate evidence. This is not a claim
+that all33 passed in one run. New checks cover BAR sizing/alignment/command/
+zero/wrap, immutable fields, independent controller/vendor lanes, invalid-write
+atomicity, foreign threads, wrong bus/function, absent-owner routing and owner
+release with concurrent retired callbacks. Real GPU fixtures retain zero
+Khronos validation messages. Captures match after the coherent build. Source
+SDK/kernel/resource generated bodies are unchanged. Broad109 tests and the
+prior29 resource-oracle cases are not rerun. All owned sessions are terminal.
+
+Installed r3 still selects unchanged verified runtime SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+Its wrapper/package/shader/input verification passes. Earlier v275 bounded
+idle/combat/entrypoint proof is retained, not repeated or broadened. No new
+installed binary or live World GPU binding was produced this turn.
+
+The historical accepted-checkpoint-v14.json also disappeared after its last
+successful v275 verification (previous SHA
+ca8d40a2b9ed609f7dc3705404a7fa81959239799796e4b68c854de18bbdcb61).
+No exact retained copy was located. Cause is unknown. It remains a recorded
+historical evidence gap; no substitute or recreated acceptance is claimed.
+Current original-code comparisons and r3 delivery fingerprints remain directly
+verified. Goal status stays active; meaningful ACI/APU/AGP/integration work is
+available despite the missing historical checkpoint.
+
+Evidence: work/sandbox-primary-v15/mcpx-usb-acceptance-v281.json,
+mcpx-usb-live-v278/usb-both-board-prefix, mcpx-usb-both-original-comparison-v278.json,
+mcpx-usb-transport-original-comparison-v278.json,
+mcpx-usb-regression-aggregate-v280.json, arena-reference-restoration-v280.json,
+launcher-preservation-v280.json and checkpoint-reference-missing-v280.json.
+Current62-source/31-executable/installed fingerprints are retained. The next
+ACI source is pinned in mcpx-aci-authority-v279; native ownership is not yet
+implemented. Its primary reference registers only BAR2, with BAR0/1 registration
+commented out; physical ACI I/O semantics must not be guessed from that model.
+
+Remaining ACI/APU/AGP/board, port80CD/hardware-flags, actual USB/storage/network
+owners, NV2A BAR/VRAM/vendor/ROM, actual PIC/ISR/IRQ/DPC/commands/cache, live
+404D10/404EC0/full191890/191A50, persistent World worker/three synchronous
+bridges, and all102-element local/split/LAN/original-render/audio/all-map/menu/
+full installed acceptance remain required. Goal turn classification: PROGRESS.
+
+
+## v286 — measured PCI geometry, ACI configuration and retail trait audit (PROGRESS)
+
+Full goal stays ACTIVE/unaccepted: 0/102 whole elements complete. The private
+snapshot now attaches an explicit ACI configuration owner at bus0/device6/
+function0. Codec registers, PCM/DMA, IRQ delivery and power-transition owners
+remain required. Original kernel code, GPU command7 and live GPU ownership
+are not bypassed or seeded.
+
+New first-party [DVT4 hardware BAR probes](https://xboxdevwiki.net/index.php?title=PCI&oldid=6609)
+identify two ACI IO BARs and its memory BAR. The independent extraction excludes
+captured operating addresses, command/status and vendor state. It supplies
+only structural BAR probes and immutable header types. This is 5558-debug-ROM
+hardware evidence, not retail TU1.5 reset/mask or full configuration proof.
+The emulator aci.c omits both IO BAR registrations; copying that omission would
+lose the original source's programmed IO assignments. SourceMcpxAciPci instead
+uses the measured IO256/IO128/memory4096 geometry and immutable multifunction
+header80. Remaining reset/write masks are explicitly conventional native
+policy; their retail behavior is still unresolved.
+
+The same hardware probe corrects USB BAR0 to4096 bytes. The earlier256-byte
+value described xemu's implemented OHCI register window, not its hardware BAR.
+Sizing/alignment/wrap logic and independent geometry checks now use the
+measured aperture. Both existing original USB boot assignments are unchanged.
+No controller, codec, DMA, PCM or IRQ state is invented by these configuration
+resources. Unknown ACI functions and unowned IO accesses reject. Attached
+ACI/USB resources are released on the issuing thread despite retained/racing
+weak callbacks.
+
+The whole unchanged original80063908 kernel root produces ACI command0007,
+BAR0=0000D001, BAR1=0000D201, BAR2=FEC00000 and interrupt line6. It then stops
+BEFORE800150E4 IN EAX,DX at required APU bus0/device5/function0.17530 retired
+original instructions plus one unretired attempt and ALL8232 retained bytes
+match native CPU/path/I/O/PCI/LPC/IDE/NIC/USB/ACI state. The oracle independently
+executes unchanged kernel bytes against declared native reset/mask policy and
+separately extracted structural geometry; this is not physical retail boot
+proof. All earlier prefixes still match;210 HAL cases match19018 instructions
+and ALL1742160 bytes. GPU command stays0; full board boot is incomplete and
+SDK frontier stays40824B readingFD001804.
+
+Verification: coherent32-target build and34/34 selected CTests pass in one
+run, with zero skips.18 USB/ACI BAR probes match independently extracted
+measurements. Checks cover BAR command/zero/wrap/alignment, fixed IO types and
+header flags, invalid-request atomicity, wrong functions, foreign threads and
+retired owner lifetimes. Real GPU fixtures retain zero Khronos validation
+messages. Captures reproduce after the coherent build; source SDK/kernel/
+resource generated CPU bodies are unchanged. Broad109 tests and prior29
+resource-oracle cases are not rerun. All owned sessions are terminal.
+
+The structural audit also identifies unresolved hardwired PCI capability/
+DEVSEL status traits in the current native policies, and IDE's measured8A
+programming-interface capabilities versus native80. These are explicit
+remaining defects before retail/live acceptance, together with capability/
+register/mask/power and IDE mode-transition owners. They are not hidden by a
+passing original-CPU comparison under declared policy. See
+work/sandbox-primary-v15/pci-structural-trait-audit-v285.json. Next work should
+resolve these known trait gaps and implement the APU configuration dependency;
+pinned APU source is in mcpx-apu-authority-v284.
+
+Evidence: work/sandbox-primary-v15/mcpx-aci-acceptance-v286.json,
+mcpx-aci-live-v283/aci-board-prefix,
+mcpx-aci-aci-original-comparison-v283.json,
+mcpx-aci-transport-original-comparison-v283.json,
+mcpx-pci-bar-geometry-v282.json, mcpx-aci-regressions-v284.log and
+launcher-preservation-v285.json. Current66-source/32-executable/installed
+fingerprints are retained. The unchanged installed r3/private binary remains
+SHA72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+Earlier v275 bounded idle/combat/entrypoint evidence is not repeated or
+broadened. The restored original arena reference stream still matches its
+recorded SHA; historical accepted v14 remains missing and no acceptance is
+recreated. No new installed update or live World GPU binding this turn.
+
+Remaining retail PCI traits, APU/LPC vendor/AGP/board, port80CD/hardware-flags,
+actual audio/USB/storage/network owners, NV2A BAR/VRAM/vendor/ROM, actual PIC/
+ISR/IRQ/DPC/commands/cache, live404D10/404EC0/full191890/191A50, persistent
+World worker/three synchronous bridges and all102-element local/split/LAN/
+original-render/audio/all-map/menu/full installed acceptance remain required.
+Goal turn classification: PROGRESS.
+
+
+## v292 — immutable PCI traits, guarded PM metadata and APU configuration (PROGRESS)
+
+Full goal remains ACTIVE/unaccepted: 0/102 whole sandbox elements complete.
+The v285 measured immutable-trait differences are corrected across eight
+native PCI profiles. Only read-only capability/DEVSEL status bits06F0 are
+extracted; mutable operating status/commands/addresses are excluded. IDE now
+advertises measured fixed8A capabilities, with native compatibility mode0 as
+declared reset policy. Mode changes remain required, not silently acknowledged.
+
+Six fixed PM capability headers match the independent measurement extraction:
+IDE/ACI/APU00020001, NICFE020001, and USB0/1DA020001, with immutable pointer44.
+Logical native reset D0/control0 follows the pinned conventional PCI reset
+contract; it is not copied PMCSR, engine readiness, wake or completion. The
+metadata never supplies codec/PHY/DSP/DMA/IRQ state. Changed power/PME/data-
+selection requests reject before any mutation. Clearing already-zero PME
+status is a valid no-op. GPU/LPC capability-chain reads still stop at their
+required owners. These fixes resolve measured immutable discrepancies, not
+all retail reset/RW-mask/dynamic-power behavior. The physical probe's NIC BAR1
+raw mask implies8 bytes, agreeing with pinned nvnet.c, while its annotation
+says16; both are retained as an explicit evidence discrepancy.
+
+An explicit native APU PCI owner at bus0/device5/function0 uses measured/pinned
+identity10DE:01B0/B1/0401 and BAR0 memory524288. The unchanged whole original
+80063908 kernel root produces command0007, BAR0=FE800000 and interrupt line5.
+No captured APU register bank, DSP/voice/PCM state or completion is installed.
+Original initialization then stops BEFORE800150E4 IN EAX,DX at existing LPC
+bus0/device1/function0, extended register8C, width4. Its producer/reset owner
+is unavailable and no default/published/captured value is returned.
+
+20933 retired original kernel instructions plus one unretired attempt,
+1590 I/O events and ALL8232 retained bytes match native CPU/path/PCI/LPC/IDE/
+NIC/USB/ACI/APU/memory state. The independent oracle executes unchanged kernel
+bytes, validates declared reset against separately extracted immutable traits,
+and independently stops at the unsupported LPC register before I/O. This is
+conditional original-code proof under the declared configuration policy, not
+physical retail boot proof. All earlier prefixes still match;210 HAL transport
+cases match19018 instructions and ALL1742160 bytes. GPU command remains0;
+complete board boot and original SDK initialization are unresolved. SDK still
+stops at40824B readingFD001804.
+
+Verification: coherent33-target build;35/35 selected CTests pass in one run,
+zero skips. Eight immutable profiles and six fixed PM headers are checked,
+including atomic unowned transitions, IDE mode rejection, clear-zero PME
+status, capability-owner boundaries, wrong functions and APU/ACI/USB lifetime
+retirement under concurrent callbacks. BAR sizing/command/zero/wrap/alignment
+checks pass. Real GPU fixtures retain zero Khronos validation messages.
+Captures reproduce after the coherent build. Source SDK/kernel/resource CPU
+bodies are unchanged. Broad109 suite and prior29 resource-oracle cases are
+not rerun. All owned Ninja/CTest/oracle/Xvfb sessions are terminal.
+
+LPC8C research is retained in lpc8c-producer-research-v291. A published boot-
+process description points to the earlier2BL "Enable IDE and NIC" step.
+Owned MCPX1.0 ROM SHA
+e99e3a772bf5f5d262786aee895664eb96136196e37732fe66e14ae062f20335
+and its reset-prefix disassembly are authenticated. A direct LPC8C address
+literal was not found; this does not prove absence of a producer. Owned2BL
+code/full producer path still must be authenticated before implementation.
+The published description is a research lead only, not an initialization
+provider. No native LPC value or successful boot gate is supplied from it.
+
+Evidence: work/sandbox-primary-v15/mcpx-apu-acceptance-v292.json,
+mcpx-apu-live-v289/apu-board-prefix,
+mcpx-apu-apu-original-comparison-v289.json,
+mcpx-apu-transport-original-comparison-v289.json,
+pci-immutable-trait-audit-v291.json, mcpx-pci-immutable-traits-v287.json,
+mcpx-apu-regressions-v290.log and launcher-preservation-v291.json. Current
+70-source/33-executable/installed fingerprints are retained. Installed r3 and
+private runtime remain exact SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+Earlier v275 bounded idle/combat/entrypoint evidence is not repeated or
+broadened. Original arena reference remains exact; historical v14 checkpoint
+is still missing, with no recreated acceptance. No new installed binary or
+live World GPU binding this turn.
+
+Remaining LPC8C/firmware producer, LPC vendor/AGP/board, port80CD/kernel flags,
+entered PM/IDE transitions and relevant retail/reset/RW-mask validation,
+actual APU/ACI/USB/storage/network owners, NV2A BAR/VRAM/vendor/ROM, actual PIC/
+ISR/IRQ/DPC/commands/cache, live404D10/404EC0/full191890/191A50, persistent
+World worker/three synchronous bridges and all102-element local/split/LAN/
+original-render/audio/all-map/menu/full installed acceptance remain required.
+Goal turn classification: PROGRESS.
+
+
+## v295 — authenticated owned 2BL LPC producer and complete original call (PROGRESS)
+
+Full goal remains ACTIVE/unaccepted: 0/102 whole elements complete. This turn
+resolves the LPC8C producer's code provenance and required call graph; it does
+not wire a guessed/default/captured control value into the native runtime.
+
+The reference-only extractor executes unchanged owned MCPX1.0 cipher code
+FFFFFEDD..FFFFFF92. ROM SHA
+e99e3a772bf5f5d262786aee895664eb96136196e37732fe66e14ae062f20335
+and owned modified Complex4627 BIOS SHA
+34f1c8ded59116436065783f8ad2ef0939df3cbfc76277ec9e5c41bf9ccb93cd
+are checked before execution.348262 original instructions,57 code sites and
+74306 bounded memory writes recover24576 2BL bytes. The original signature
+check passes and its transfer entry is0009024C. Recovered image SHA:
+af41ab2fab1b07a2a203f30d7272b7ac00a33311530d67ac3cb9b74e16127bbb.
+Cipher code/inputs are read-only; no algorithm reconstruction, guest patch,
+ready/completion field, key print or separately saved key is used. An initial
+incorrect256KiB size assertion was corrected to the inspected/authenticated
+owned1MiB image before extraction; its failed log is retained.
+
+Original copy instructions000902D9..000902EB execute and copy6144 dwords from
+00090000 to00400000, matching all24576 bytes. Original call operands establish
+main0040061D, producer00400553, caller00400630 and return00400635. The producer
+is202 bytes/86 static instructions. It performs four SMBus/SMC reads, response
+calculation and three writes before the final PCI OUT at00400619. Its optional
+zero-challenge branch invokes a reset/HLT dependency. Selecting just the final
+write would bypass required original logic and is not an admissible fix.
+
+A new read-only wrapper reuses the existing isolated-xemu capture machinery
+unchanged. Hardware execution breakpoints and stepping observe the actual
+complete successful producer call in original boot:428 instructions,201 sites
+and51 I/O events, returning to00400635 with its source image unchanged. The
+relocated original-boot image matches the standalone extraction SHA exactly.
+The caller, SMC read/calculate/write paths and final PCI outputs execute for
+real in the reference; their captured operating values are evidence only,
+never native defaults or replayed production I/O. Error/timeout/reset branches
+are not all exercised. The original title SDK factory also completes after
+the added observation; original TU1.5 text and initializer bytes are verified.
+Private EEPROM/HDD overlay, unchanged backing and no GDB code/data writes are
+confirmed. All owned xemu/GDB/Xvfb sessions are terminal. This owned modified
+BIOS/emulator proof is not physical Xbox or full retail boot equivalence.
+
+Next implementation must lower whole00400553 and every entered SMBus/SMC
+helper, own actual transaction/challenge/response completion, preserve the
+required reset/halt path if entered, and compose the resulting firmware write
+with the later original kernel producer. Native LPC8C reads remain unowned
+until that path exists. Do not seed the observed value, return fixed completion
+flags, replay the51 captured I/O events or skip the SMC exchange.
+
+Evidence: work/sandbox-primary-v15/owned-2bl-acceptance-v295.json,
+owned-2bl-recovery-v293/report.json, relocation-proof.json,
+lpc8c-producer-function.json, original-2bl-producer-live-v294/
+original-2bl-producer.json, bootloader-capture-validation.json and
+owned-2bl-source-audit-v294.json.72 current source fingerprints include the two
+new reference tools; all previous70 source files/33 native executables are
+byte-identical. The prior35 selected CTests are not repeated or broadened.
+Native boot still stops before800150E4 at LPC8C after20933 original instructions;
+GPU command remains0 and SDK frontier stays40824B -> FD001804. Installed r3
+remains exact SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+No new installed binary, live GPU binding or whole-element acceptance.
+
+All remaining original producer/native hardware/IRQ/command/worker integration
+and the full102-element local/split/LAN/original-render/audio/all-map/menu/
+fresh acceptance scope remain required. Historical v14 checkpoint is still
+missing; no acceptance is recreated. Goal turn classification: PROGRESS.
+
+
+## v300 — complete native owned 2BL SMC/LPC call graph (PROGRESS)
+
+Goal remains ACTIVE/unaccepted, 0/102 whole elements. Five complete authenticated
+owned Complex4627 2BL functions (218 static instructions) are now compiled into
+native C++:00400418/0040048C/004004EF/00400553/00400789. All source branches,
+helper calls and the required reset/halt dependency are retained. Generation
+requires exact agreement of MCPX cipher output and original-boot relocated
+image (SHA af41ab2fab1b07a2a203f30d7272b7ac00a33311530d67ac3cb9b74e16127bbb).
+No production opcode decoder, mounted firmware bank, captured port sequence,
+tail-only call or supplied success state exists. Generator replay is identical.
+
+The native whole routine matches the observed original boot call:428 instructions,
+51 I/O operations, GP/defined flags and all65536 retained stack bytes. Captured
+port inputs appear only in an explicitly offline test. Independently executing
+unchanged original2BL instructions against64 declared native protocol cases
+matches20975 instructions,2548 I/O operations and524288 retained bytes. Cases
+cover byte/word reads/writes, collision/retry, protocol error, timeout, aborted
+transactions and the zero-challenge reset/halt path. This is code-lowering proof;
+it does not validate a physical SMC or every possible hardware timing branch.
+
+New native synchronous SMBus ownership requires an actual device callback for
+each transfer. Busy state belongs to the active callback; completion follows a
+successful operation. Missing/faulted/foreign owners stop, zero acknowledgement
+never manufactures completion, and unsupported cycles/IRQ controls stay required.
+A production SMC endpoint/challenge/response/reset owner is NOT implemented.
+The native event-ack policy is explicit; physical controller reset/masks/timing/
+IRQ equivalence is unproved. Pinned primary xemu AMD756/SMC files are retained
+as protocol compatibility references; their permissive/fixed challenge behavior
+is not imported as a production SMC implementation.
+
+LPC8C is unreadable until a complete original source write supplies its word;
+partial/overlapping first writes reject atomically. Native backing retains the
+requested control bits; physical vendor masks remain unproved. A renderer-owned
+native boot transaction holds the actual PCI lock for2BL without inventing guest
+CLI/STI/IF state, rejects nested control and releases the lock on exceptions.
+
+With a declared SMC device fixture, complete00400553 executes all7 device calls/
+51 I/O operations and produces LPC40000000 through actual native PCI. The full
+original kernel initializer then produces48000000 and reaches21016 retired
+instructions/8232 retained bytes/1596 I/O events. Unchanged original kernel
+comparison matches and stops before80063BB3 OUT DX,AL:required port80CD,width1,
+value8. GPU command remains0. This composed fixture is NOT a production SMC or
+live world GPU binding. Without that endpoint, production composition stays
+required. Remaining SDK frontier is40824B -> FD001804.
+
+Coherent34-target build and36/36 selected CTests pass. All210 prior HAL transport
+cases plus7 prior board prefixes and the new firmware-composed prefix match
+unchanged original kernel execution.79 source/34 executable fingerprints and
+all retained inputs/results are recorded in work/sandbox-primary-v15/
+bootloader-native-acceptance-v300.json. The first test compile's unsupported
+optional FP equality was replaced by explicit unchanged-control comparisons;
+no implementation FP behavior changed. All owned sessions are terminal.
+
+Installed r3 and launcher selection remain exact runtime SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+The coherent main runtime remains identical; these new resource modules are
+not yet bound to its live path. No new launcher/gameplay acceptance is claimed.
+Historical v14 acceptance remains missing and is not recreated.
+
+Next:actual production SMC/reset ownership; port80CD and remaining AGP/board/
+flags/MMIO/native commands/IRQ owners; live worker/tag/cache/world GPU binding;
+all102-element local/split/LAN/original-render/audio/all-map/menu/full-game
+acceptance and verified installed delivery. Goal classification:PROGRESS.
+
+
+## v306 — native PRDY selection and AGP header ownership (PROGRESS)
+
+Previous turn was PROGRESS; its79 source/34 executable and installed-r3
+fingerprints were revalidated before work. Goal stays ACTIVE/unaccepted,0/102
+whole elements. Four new native files own explicit GPIO and AGP configuration;
+no source body, hardware flag or unknown vendor value is bypassed or supplied.
+
+Pinned [Cromwell PCI initialization](https://github.com/XboxDev/cromwell/blob/86f547387184d1001d377cce97d3756c8acf91cc/drivers/pci/pci.c#L486)
+identifies port80CD/value08 as selecting the CPU PRDY pin function. This is the
+role reference; owned4627 kernel80063BB3 writes the identical port/value. Pinned
+xemu acpi_xbox.c places this in its GPIO window but ignores the write, which is
+not adopted as a native implementation. SourceMcpxGpio instead retains the
+function selection only after the actual source write through renderer-owned
+transport. I/O-window assignment is explicit native policy, not proof that the
+original ACPI BAR producer ran. Unknown pin/mode/width/input/electrical/debug
+operations stop; no field-pin toggle or zero status is returned. Thread/lifetime,
+retirement and non-PCI-lock GPIO access are verified.
+
+SourceMcpxAgpPci owns a conventional64-byte type1 header. Pinned xbox_pci.c/
+pci_bridge.c provide compatibility identity/schema; [DVT4/5558 measurements](https://xboxdevwiki.net/index.php?title=PCI&oldid=6609)
+provide only immutable10DE:01B7/A1/type1, primary status0220, secondary status
+02A0 and16-bit I/O/32-bit prefetch traits. Operating addresses/status/commands/
+vendor fields are excluded. Existing eight extracted hardware profiles remain
+identical; the new ninth profile does not misinterpret bridge windows as BARs.
+Reset/standard masks are declared native policy, not full retail physical proof.
+Bus fields now gate child GPU configuration when an AGP owner is attached.
+Unowned vendor/upper-window/reset/control changes reject atomically; missing,
+foreign/retired owners and unsupported functions stay required. Actual bridge
+forwarding, DMA, IRQs and physical reset/masks are not claimed.
+
+Complete original00400553 still executes its7 device operations/51 I/O events
+under the declared SMC fixture, supplying LPC40000000. Whole original80063908
+then produces48000000. With GPIO attached it reaches21187 retired instructions/
+1607 I/O events before requiring AGP. With AGP header attached it reaches21603
+retired+1 attempted instructions/8232 retained bytes/1639 I/O events and stops
+before800150E4 IN EAX,DX at bus0/device30/function0,register40,width4. GPU command
+remains0. Unchanged original kernel execution matches all retained bytes, source
+instructions, ABI/I/O and native configuration for both new prefixes.
+
+An initial test expectation incorrectly anticipated hardware-info flags as the
+next stop. Actual original transport reads all256 PCI bytes, so the unowned AGP
+vendor register40 is encountered first. The expectation/oracle were corrected,
+with the failing logs and current required-owner diagnostic retained. The
+implementation was not extended with guessed/default vendor bytes. Hardware
+flags at8003B150 remain later/unreached dependencies.
+
+Reference-only linear inventory of the authenticated owned BIOS finds authored
+rows for LPC BAR80000810=8001 and AGP8000F04C=1. All four256KiB banks match.
+The inventory does not prove branch reachability/executed producers and imports
+no native initial values. Full original producer/native owner evidence remains
+required; these rows are not substitutes for that composition.
+
+Coherent34-target build and36/36 selected CTests pass (68.04 seconds), followed
+by unchanged-original comparisons of210 HAL transport cases, all ten board
+prefixes, and the prior64 whole-2BL differential cases.83 current source/34
+executable fingerprints, primary references, native captures and comparisons
+are recorded in work/sandbox-primary-v15/gpio-agp-native-acceptance-v306.json.
+All owned processes/sessions are terminal. Root concurrent/MCC work is preserved.
+
+Installed r3, rebuilt main runtime and launcher selection remain exact SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+New resource modules remain unbound to the live runtime; no new launcher/live
+GPU/full-game/physical acceptance is claimed. Historical v14 acceptance remains
+missing and is not recreated. SDK frontier remains40824B -> FD001804.
+
+Next:resolve original AGP extended/vendor40 ownership; actual production SMC/
+challenge/response/reset and ACPI/native binding; later hardware flags, AGP/
+GPU MMIO/commands/IRQ and worker/tag/cache/world composition. All102-element
+local/split/LAN/original-render/audio/all-map/menu/full-game/fresh installed
+acceptance remains required. Goal classification:PROGRESS.
+
+
+## v312 — complete original PCI initializer/native comparison (PROGRESS)
+
+Goal remains ACTIVE/unaccepted,0/102 whole elements. Previous v306 was PROGRESS;
+83 source/34 executable and installed-r3 fingerprints were revalidated first.
+This turn closes the complete software-call verification gap beyond the native
+AGP40 stop. It does not fill that vendor register with a captured/default value.
+
+A new read-only wrapper reuses the isolated reference infrastructure unchanged.
+Hardware breakpoints stop the actual owned kernel at80063908 from authenticated
+caller8006286D; original return80062872 is verified. All450 compiled instruction
+sites are checked against the unchanged loaded owned kernel before/after. The
+actual full call executes28082 instructions across413 sites,1066 calls and2133
+I/O events, then returns with ESP+4. The original GPU command-enable write is
+observed; source code/constants remain exact. Private EEPROM/HDD overlay and
+unchanged original TU1.5 text/SDK factory are verified. All owned reference
+xemu/GDB/Xvfb sessions are terminal. This is owned modified4627/xemu evidence,
+not retail physical register semantics or every firmware/IRQ branch.
+
+New native whole-call test executes the existing complete compiled initializer
+against explicitly offline original port inputs. All28082 instructions,2133
+port/CLI/STI operations, GP/EFLAGS/XMM outputs, source FP controls,40 constant
+bytes and65536 retained window bytes match. The8-byte hardware-info input is
+unchanged. Native logical x87 sentinel state is declared and stays untouched;
+raw original physical x87 contents/tag interpretation were not captured/proved.
+The retained64KiB window contains the hardware-info data bank:an initial fixture
+overlap rejection was corrected by splitting its backing around the read-only
+8-byte region, without weakening the memory guard. No native algorithm change
+or production captured-I/O/hardware-info provider was added.
+
+The original call reads and writes all256 AGP configuration bytes. Its192 vendor
+bytes are returned unchanged in the observed write requests. That is NOT proof
+that hardware writes have no side effects. Reference vendor40 is0, whereas the
+published booted DVT4/5558 snapshot is1; neither is reset/write-mask authority.
+The native register therefore remains unowned. Supplemental primary Linux
+NVIDIA AGPGART code identifies later aperture fields for its supported PC
+chipsets, but does not establish Xbox vendor40 or its reset semantics and is
+not used to invent a native value.
+
+Evidence:work/sandbox-primary-v15/original-kernel-pci-whole-call-v308/
+original-kernel-pci-call.json and kernel-pci-call-validation.json,
+agp-original-read-write-contract-v311.json, the new native full-call report,
+and kernel-pci-original-call-acceptance-v312.json. Coherent35-target build and
+new whole-call CTest pass. All previous34 executables and82 previous non-CMake
+source files are byte-identical; prior36 selected CTests are not repeated or
+broadened. Their existing evidence remains applicable.85 source/35 executable
+fingerprints and all reference/native evidence are retained.
+
+Native actual-owner composition is still21603 instructions and stops before
+800150E4 at bus0/device30/function0,register40,width4. GPU command remains0 in
+that composition. The compiled routine's matched enable REQUEST in an offline
+test is not native device enablement. Production SMC/ACPI/native binding,
+later hardware-info/AGP/GPU BAR/MMIO/command/IRQ owners, actual worker/tag/cache/
+world GPU binding and SDK frontier40824B -> FD001804 remain unresolved.
+
+Installed r3, rebuilt main runtime and launcher selection remain exact SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+No fresh gameplay build or live/full/physical parity acceptance is claimed.
+Historical v14 acceptance is still missing and is not recreated. All102-element
+local/split/LAN/original-render/audio/all-map/menu/full-game/fresh installed
+acceptance remains required. Goal classification:PROGRESS.
+
+
+## v318 — actual native SMC boot resource (PROGRESS)
+
+Goal remains ACTIVE/unaccepted,0/102 whole elements. SourceSmcBoot replaces the
+fixed SMC callback in complete original firmware/kernel composition. Actual OS
+entropy supplies a stable nonzero boot challenge; complete compiled owned2BL
+004004EF computes the expected response. Both response bytes must match before
+authentication cancels an actual native watchdog. The owner implements the
+P01/P05 rotating version counter and its source-issued reset. Unsupported,
+incomplete/bad-response, foreign, expired and retired operations stop explicitly.
+Watchdog expiry produces a reset REQUEST; actual platform reset is still required.
+
+Pinned unchanged Cromwell BootPicManipulation independently matches86273 vectors
+against the owned compiled helper. Its source/GPL header and all generated
+reference inputs/outputs are retained for offline verification only. PIC research
+revision5623 supplies the protocol/version role reference, not exact physical
+nonce generation, timing, invalid-response or reset semantics. Positive timeout,
+P01/P05 selection and admission of a nonzero challenge are declared native policy;
+physical1-to-1 SMC acceptance is not claimed. Archive handshake fetch429 remains
+retained; it was not silently counted as successful authority.
+
+Complete original00400553 now executes7 actual device operations/51 I/O events
+and cancels the real watchdog, then produces LPC40000000 through native PCI.
+Original80063908 produces48000000 and reaches21603 retired+1 attempted
+instructions/1639 I/O, still stopping before800150E4 at AGP bus0/dev30/fn0,
+register40,width4. GPU command remains0. Original ACPI BAR producer/native port
+binding, AGP vendor fields, hardware-info and live world GPU binding remain open.
+The valid protocol owner does not replace unknown physical device behavior.
+
+An initial reverse static-library dependency caused a link failure. Moving the
+SMC resource into halo2_systems beside its actual memory dependency fixes it.
+Coherent36-target build and38/38 selected CTests pass in41.44 seconds, followed
+by unchanged-original comparisons for210 transport cases, ten board prefixes
+and64 whole-bootloader cases. The28082-instruction/2133-I/O offline whole kernel
+test also passes. Fresh native captures are archived, including the random
+challenge-dependent stack inputs, with89 source/36 executable fingerprints in
+work/sandbox-primary-v15/smc-boot-native-acceptance-v318.json. Owned sessions
+are terminal. Generated original routines remain byte-identical.
+
+Installed r3/main/launcher selection remain exact SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+Only the previous kernel composition test executable changes; the new SMC owner
+is not yet bound into the playable runtime. No new launcher/full/physical gameplay
+acceptance is claimed. SDK frontier remains40824B -> FD001804. Historical v14
+acceptance remains missing. All102-element local/split/LAN/render/audio/all-map/
+menu/full-game/fresh installed gates remain required. Classification:PROGRESS.
+
+
+## v320 — executed original ACPI BAR producer (PROGRESS)
+
+The previous static-only xcode inventory is now supplemented with actual original
+CPU execution. An unchanged-infrastructure, read-only wrapper stops the owned
+MCPX1.0 ROM atFFFFFE00, authenticates its complete bytecode-loop bytes, observes
+all268 reached/unique firmware rows through actual exitFFFFFEBC, and captures48
+actual original PCI IN/OUT operations. Executed flash rows and ROM code remain
+unchanged. Later original TU1.5 SDK initialization still returns success with
+unchanged text. Private EEPROM/HDD overlay, pinned firmware/xemu and terminal
+reference processes are verified. No guest patches/data writes are introduced.
+
+Original rowFF000092 executes FFFFFE61 OUT DX,EAX for PCI80000810=00008001,
+confirming execution of the authored ACPI BAR producer. RowFF0000BF similarly
+requests AGP8000F04C=1. No vendor40 access occurs in this firmware trace. These
+are software request/reachability facts in owned modified4627/xemu; they do not
+prove physical BAR/vendor masks, reset values, side effects or native binding.
+Neither request is imported as a native configuration default. Native complete
+firmware execution still needs the preceding hardware owners and actual binding.
+
+Evidence:work/sandbox-primary-v15/original-mcpx-xcode-v319/ and
+mcpx-xcode-producer-acceptance-v320.json.90 source/36 executable fingerprints
+are retained. All previous native sources/executables and installed r3 remain
+byte-identical to v318; no duplicate native regression run is needed. Actual
+native composition still stops at21603 instructions/AGP40; SDK40824B->FD001804
+and live GPU/world/launcher gates remain unresolved. Goal remains ACTIVE,
+0/102 whole elements accepted, with full local/split/LAN/render/audio/map/menu/
+game/delivery scope preserved. Classification:PROGRESS.
+
+
+## v329 — compiled original MCPX bytecode and native ACPI binding (PROGRESS)
+
+Previous v320 was PROGRESS;90 source/36 executable/installed fingerprints and
+terminal reference processes were revalidated. Goal remains ACTIVE/unaccepted,
+0/102 whole elements. All work stays in the private snapshot; root concurrent
+and MCC changes remain preserved.
+
+The complete original MCPX1.0 bytecode loop FFFFFE0A..FFFFFEBB is now compiled
+to native C++:78 authenticated instruction sites, all source branches/opcode07
+indirection/default fallthrough retained. A flat segment/memory ABI is required.
+Its native stage boundary is original JMP FFFFFEBC; preceding segment setup and
+following MTRR/cache/cipher stages are required separately. This is not a claim
+that the complete native ROM boot has run or returned.
+
+Expanded unchanged-original capture observes268 reached rows and every original
+port/MMIO operation. The independent original-ROM oracle matches5586 instructions,
+253 expanded hardware operations and actual original GP/flags output. Native
+compiled execution matches those outputs/requests exactly. The actual boot visits
+73 sites;64 explicitly declared opcode10/EBP and protected LPC80 branch cases
+exercise the other five. Combined78-site coverage is not all2^32 argument or
+physical branch proof. Declared native logical FP/SIMD state is preserved;
+original physical FP contents were not captured.
+
+Native LPC ACPI BAR ownership admits a complete source-issued write and follows
+actual command bit0 for decode. No readable running address is seeded. Structural
+256-byte I/O geometry follows pinned schema and DVT4/5558 FFFFFF01 probe, excluding
+the published operating address. Unknown partial/probe/upper-address writes stay
+required. GPIO can bind to its actual LPC and follows enable/disable/relocation;
+foreign/missing/mismatched owners reject. Physical reset/masks/relocation and
+electrical semantics remain unproved. Numeric GPIO policy remains explicit in
+the separate existing later-phase probe.
+
+Starting the complete compiled loop against actual renderer-owned native PCI,
+132 instructions retire and produce BAR8001 and command3. The GPIO binding then
+derives8000 from that source-written LPC state. Original prefix instructions and
+GP/flags match independently. It stops before FFFFFE9F OUT DX,AL at port8049,
+which still needs an actual owner. No transition from that stop into later boot
+stages is performed. The separate2BL/SMC+kernel probe remains21603 instructions
+to AGP40, with GPU command0; it is not a continuous native ROM boot.
+
+The first whole-loop comparison caught an extra read-before-write inserted by
+the shared store-observation helper. The new stage now issues the exact original
+MMIO write directly through its memory owner, without synthetic before-image
+reads. Initial display tests inherited Wayland and SDL failed to enumerate a
+display; the private Xvfb harness now explicitly selects X11. Failure/diagnostic
+logs are retained. No original hardware output was replaced to make tests pass.
+
+Coherent37-target build,39/39 selected CTests (35.63 seconds), generation replay,
+210 original HAL cases, ten board prefixes and64 whole-2BL differentials pass.
+Current captures are archived;95 source/37 executable fingerprints and reference
+evidence are recorded in work/sandbox-primary-v15/mcpx-xcode-native-acceptance-v329.json.
+Owned sessions are terminal. Only prior kernel-PCI and LPC test executables change.
+
+Installed r3/main/launcher selection remain SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+New modules are not bound into the playable runtime. Full8049/firmware composition,
+AGP/GPU startup, SDK40824B->FD001804, worker/tag/cache/world and fresh launcher
+acceptance remain open. Historical v14 acceptance remains missing. All102-element
+local/split/LAN/original render/audio/all-map/menu/full-game gates remain required.
+Classification:PROGRESS.
+
+
+## v331 — ACPI8049 authority gap (PROGRESS, research only)
+
+Previous v329 was PROGRESS;95 native source/37 executable/installed fingerprints
+and prior reference/regression process termination were revalidated. No native
+source or binary changes this turn; previous39-test evidence remains applicable.
+
+The owned original ROM writes byte08 to port8049 atFFFFFE9F, rowFF0000A4.
+Interpreted as the upper byte of a16-bit register at8048, it selects bit11.
+AMD's23167B AMD-766 data sheet (March2001), PM48 on page78, defines bit11 as
+TCOHALT, freezing its TCO timer and suppressing timeout status. This supplies a
+candidate role, not evidence that MCPX has the same register layout. The pinned
+Linux nv_tco.h instead defines halt at bit12; its actual PCI table covers MCP51,
+MCP55,MCP78S,MCP79, and establishes no original MCPX support. These are different
+chips, not contradictory descriptions of one device. Family similarity cannot
+justify importing either layout into the native Xbox owner.
+
+Microsoft's pre-retail hardware-design revision1.02 describes the TCO block and
+interrupt source but refers detailed register definitions to a separate NVIDIA
+MCPX data sheet. It does not resolve8049 masks, reset/timer behavior or side
+effects. The published XboxDev SMBus reference explicitly warns that the AMD
+controllers are similar rather than identical; its scope is SMBus, not8049.
+The pinned full Cromwell archive contains no direct8048/8049/TCO role match.
+
+Primary source/driver metadata, exact header/table excerpts, observed request,
+searches and failed fetches are retained under acpi-register-authority-v330/.
+AMD756 Arrow fetches failed by timeout/HTTP2 reset; official alternatives were
+missing or non-PDF; a university mirror failed certificate validation. AMD766
+text was inspected through web extraction; direct HTML fetch returned403. These
+failures are not successful document captures and no certificate check was
+disabled. No native watchdog, host power or original firmware state was changed.
+
+This evidence changes the next authority step: obtain an Xbox-specific MCPX
+definition or sufficiently authenticated physical/reference behavior, rather
+than treating the AMD or later NVIDIA layout as an implementation contract.
+No no-op or captured-request completion is added. Actual native MCPX prefix
+remains132 retired instructions ->8049; separate kernel probe21603 ->AGP40,
+SDK40824B ->FD001804, and live worker/tag/cache/world composition remain open.
+Installed r3/main/launcher remain unchanged SHA
+72c1a7692441c354206bb5461f2626b179f5b0b8c54659199613a2d07a491e45.
+Goal remains ACTIVE,0/102 whole elements, preserving all local/split/LAN/render/
+audio/map/menu/full-game/fresh delivery gates. No new gameplay acceptance.
+Evidence:work/sandbox-primary-v15/acpi-authority-progress-v331.json.
+
+
+## v338 — complete AI storage startup and fresh sandbox delivery (PROGRESS)
+
+Previous v331 was PROGRESS through authority research; this turn makes a native
+implementation change toward the original tactical AI scope. The hand-written
+1CFA40..1CFAB4 startup prefix is replaced by the complete literal44B6F8 callback
+1CFA40 and its nine additional whole source bodies:670 static instructions.
+Existing original arena/CRC/pool/native heap owners service the real calls.
+The source constructs14 inactive datum pools, including256 actors of stride888,
+and its additional actor structure. No actor, successful allocation address,
+AI readiness, tactical decision or frame result is supplied. The arena startup
+worker is stopped/joined before the read-only diagnostic observer is invoked.
+
+Unchanged owned TU1.5 code executed on the independent host i386 CPU matches
+98,725 source trace events (including string-instruction expansion), complete
+GP/SSE/logical x87/control/status/MXCSR/defined flags and all60,084,310 retained
+bytes. The backend observes22,942 original stores and touches200,704 bytes; all
+remaining committed bytes are checked unchanged. There are no original code
+patches, supplied gameplay returns or native expected outputs used by execution.
+This is a fresh successful startup path on actual native-produced inputs, not
+all branch/failure coverage or physical Xbox/campaign behavior acceptance.
+Unicorn's differing x87/MXCSR status is retained; host original execution agrees.
+
+The comparison exposed canonical addresses in the arena diagnostic callbacks.
+A separately generated730-site authenticated translation fixes those observer
+addresses at the live composition boundary. The original arena module's
+canonical ABI remains unchanged. A first trace regeneration attempt found the
+old world correspondence file missing; its existing tables were preserved, and
+the new arena translation uses its available original correspondence. The first
+link failure and intermediate diagnostics remain retained. Both new generators
+replay byte-identically. No missing historical evidence is reconstructed.
+
+Coherent39-target build and41/41 selected CTests pass in38.00 seconds, including
+fresh live-world construction and the new full AI storage regression. Current
+106 source/39 executable fingerprints and exact captures are recorded in
+work/sandbox-primary-v15/ai-storage-native-acceptance-v338.json.
+
+Fresh r4 runtime SHA98b4a17048fc866d14256db3d419a685fe3f0dfad861f657c078a3b04a7846b6
+is selected by ./Halo2-Sandbox-Test and verified by --launcher-info. Its staged
+identical entrypoint executes12 Lockout frames and records the actual child
+inode SHA. Idle-one runs20.007 seconds; combat-four runs35.010 seconds with
+firing/reload/move/jump/melee/grenade inputs and exits normally. The earlier v336
+four-view process disappeared before a report; it is unaccepted, not treated as
+a successful or still-running check. Only that unfinished check was rerun.
+The old r3 package is preserved. Regular/MCC/title launchers remain untouched.
+The screenshot is Netpbm despite its requested extension; a lossless PNG preview
+was generated separately for inspection. No original pixel/PCM parity is claimed.
+
+AI new-map activation, actor birth, perception/tactical/path/frame/encounter/
+species/difficulty/animation and presentation are still required; the provisional
+campaign brain remains. Actual MCPX8049, later AGP40/SDK and native worker/tag/cache/
+world composition owners remain unresolved. Goal stays ACTIVE,0/102 whole elements.
+All weapon/ability/vehicle/projectile/damage/world/objective/animation/render/audio,
+local/split/LAN, every map/menu/full-game and fresh delivery gates retain full scope.
+Classification:PROGRESS. Next unblocked AI owner is literal new-map callback1CFC90.
+
+
+## v347 — original AI new-map callback and r5 delivery (PROGRESS)
+
+Previous v338 was PROGRESS; all106 source/39 executable/installed fingerprints
+were revalidated before edits. Goal remains ACTIVE,0/102 whole elements.
+Complete original1CFC90, literal44B700, and its direct ten-body closure now run
+in the native map initializer. The555 static instructions retain both branches:
+multiplayer executes the original six-event AI-disable path; the campaign input
+path resets its14 source datum pools/globals and authored squads/squad groups.
+The original tail dispatch to208C90 is retained. Existing140CF0/16E600/16E6A0
+source owners perform real resets and allocations; no successful result, actor
+count, source-ready field or AI decision is supplied by the implementation.
+
+Ten before/after comparisons cover both first and repeated reset on multiplayer,
+empty campaign-mode input, tutorial's six squads, Cairo's117 squads/60 groups,
+and High Charity's252 squads/52 groups. Unchanged original code on Unicorn and
+independent host i386 CPU agrees with415,580 source trace events, complete CPU
+ABI/defined flags and every60,084,310 retained bytes per case. The backend
+observes125,134 original stores. There are no code patches, supplied gameplay
+returns or native expected outputs used by execution. These cases visit465 of555
+new static sites; the90 unexecuted sites and remaining populated-player/object
+branches stay explicit. Source generation replays byte-identically.
+
+The campaign-mode diagnostic delivers only the literal game-options mode1 input
+after native multiplayer setup; it does not establish actual campaign session
+boot. Real owned campaign tag/scenario data supply every squad/group row. All15
+owned campaign maps pass the same native repeated-reset/count/activation probe.
+This is bounded AI map initialization, not NPC birth, tactical decisions, ordinary
+campaign traversal or matched Xbox rendering/audio. A permanent Cairo regression
+adds nonempty squad-group coverage alongside the tutorial and empty/mode tests.
+
+Coherent40-target build passes44 selected CTests in50.57seconds. After registering
+the additional Cairo group test, unchanged implementation/executables pass that
+new test in0.92seconds:45 distinct tests, not a claimed single45-test run. Current
+110 source/40 executable fingerprints and exact original captures are retained
+in work/sandbox-primary-v15/ai-map-native-acceptance-v347.json.
+
+Fresh r5 runtime SHA45c752bea8e73fd5274145a1102dfe2a5015f0edcc532b2a981dca5328664ab3
+is selected by ./Halo2-Sandbox-Test and --launcher-info. Its staged identical
+entrypoint executes12 Lockout frames with actual child-inode hash verification.
+Idle-one passes20.014seconds; combat-four passes30.020seconds with real native
+input events and normal exits. Earlier r3/r4 packages and regular/MCC/title
+launchers are preserved. Full-game/controller/LAN/original frame/PCM parity is
+not inferred from these native delivery checks.
+
+Next unblocked integration is actual actor placement/birth and AI frame/HS
+ownership. Newer root campaign-world-api evidence already contains typed original
+placement and a55-body HS/squad backend; inspect its fresh provenance/ABI and
+source cohort before adapting it into this private sandbox. Do not recopy the
+whole concurrent root or substitute its bounded proof for original CPU comparison.
+The actual campaign runner still has14 mission-owner failures; source HS frame
+scheduling/frontend/player/object lifetimes and broad NPC combat are unfinished.
+All weapon/ability/vehicle/projectile/damage/world/objective/animation/render/audio,
+local/split/LAN/map/menu/full-game gates retain full scope. MCPX8049/laterAGP40/SDK
+hardware composition remains unresolved. Classification:PROGRESS.
+
+
+## v359 — original NPC placement and live AI frames; r6 delivery (PROGRESS)
+
+Previous v347 was PROGRESS. All110 source/40 executable/installed fingerprints
+were revalidated. Goal remains ACTIVE,0/102 whole elements. Newer concurrent root
+has diverged from the sealed campaign-world-api cohort; this adaptation uses the
+sealed routine identities and redecodes every instruction from owned TU1.5.
+The CPU/memory ABI headers match exactly. Existing owners are reused rather than
+copying duplicate bodies; no cohort state, pointer, actor count or successful
+callee result is imported. Eight native modules add293 complete routines and
+26,229 static instructions, including71 authenticated CRT behavior-mask callbacks.
+
+Original HS cold row54 now precedes AI row58. Original team relationships consume
+admitted campaign options/difficulty at new-map reset. The original14EAD0 player
+join continuation updates its true active census, then1D03A0 registers the player
+with AI. Original1D0670 runs before PVS/object physics at actual13AB0D. Typed
+place_ai retains the original counted/authored/packed-reference scheduling. The
+256 overload cases independently replay unchanged original wrappers exactly;
+argument/publication/action-observation services remain declared fixture scope.
+
+Actual Cairo squad0,1st_hum_johnson, now creates an original actor and unit through
+all three placement paths. Real actor/command/HS-thread bindings survive complete
+world authority restoration, followed by three ordinary AI/object ticks per mode.
+This snapshot rebuilds borrowed pool views from restored source pointers through
+its existing API; no source pool contents or actor fields are supplied. The test
+configures campaign options before map callbacks so team/AI resets consume them.
+Adding actual feedback-duration156DD0 and complete new-player registry helpers
+resolved the first real missing calls; failed v350/v351 logs remain retained.
+
+The first bounded live-frame comparisons passed, but inspection found missing
+original CRT behavior masks. All71 real callbacks are now executed before AI
+storage; the storage regression authenticates their actual load/store operands
+and published values. Current nine actual AI phases, across all placement modes,
+match unchanged original host i386 execution:140,007 source trace events,3,519
+original stores, complete CPU ABI/defined flags, every60,092,502 retained bytes
+per case and exact instruction paths. No code patches, expected native outputs,
+CPU-estimate substitutions or supplied gameplay returns are used. Unicorn's
+MXCSR precision-status difference is retained; original host CPU matches native.
+These are bounded first-three-tick source-world comparisons, not broad NPC combat,
+original HS scheduling, all branches/species or physical Xbox/frame/PCM proof.
+
+A new read-only whole placement capture records335,613 native events and85 real
+host CPU estimate samples. Uninterrupted original execution first differs at
+126139->1A3B70: the existing native animation-resource policy synchronously reads
+real cache bytes and publishes its completed native job, while original source
+enters its asynchronous queue. Later original execution reaches unmapped kernel
+import800000EA. Full creation comparison is unaccepted; no completed call or
+kernel success is supplied to hide that boundary. The existing async/cache/worker
+composition requirement stays open. AI comparisons start after actual asset
+loading and do not certify this earlier platform/resource lifecycle.
+
+Coherent42-target build and49/49 selected CTests pass in41.26seconds. All eight
+module generators replay byte-identically. Current 138 source/42 executable
+fingerprints, cohort/ABI/registry pins and exact captures are recorded in
+work/sandbox-primary-v15/campaign-ai-native-acceptance-v359.json.
+
+Fresh r6 SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884
+is selected by ./Halo2-Sandbox-Test and --launcher-info. The identical staged
+entrypoint verifies its actual child inode and12 Lockout frames. Idle-one passes
+20.017seconds; combat-four passes30.014seconds with native inputs and normal
+exits. Earlier r3/r4/r5 packages and regular/MCC/title launchers are preserved.
+The launcher still exposes multiplayer tests; source-world NPC tests do not
+establish a live campaign menu/Simulation bridge or campaign playthrough.
+
+Next work must connect the actual campaign source world to frontend/Simulation/
+player/object ownership and finish original HS frame scheduling, so original
+placement and controls replace the provisional campaign brain in normal play.
+Preserve broader tactical/perception/navigation/species/weapon/vehicle/difficulty/
+encounter/death/recreation, render/audio/LAN and every102-element gate. The known
+14 mission-entry failures and MCPX8049/laterAGP40/SDK hardware gaps remain open.
+No whole element or full-game completion is inferred. Classification:PROGRESS.

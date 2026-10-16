@@ -114,7 +114,8 @@ def x11_window(display, press=False, key='q', duration=.35):
         xt.XTestFakeKeyEvent(d, code, 1, 0)
         x.XFlush(d)
         try:
-            time.sleep(duration)
+            if callable(duration):duration()
+            else:time.sleep(duration)
         finally:
             xt.XTestFakeKeyEvent(d, code, 0, 0)
             x.XFlush(d)

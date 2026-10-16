@@ -1,6 +1,297 @@
 # Normal launcher world-feature delivery
 
-## Current combined normal runtime, October 14
+## Accepted combined direct-lens delivery, October 15
+
+Later shared normal-runtime deliveries are preserved. The ongoing
+[particle-parent continuation](SOURCE_PARTICLE_DRAW_PARENT_TU15.md) is source
+work and has not installed another runtime. Both launchers still select
+`build-multiplayer/halo2_native`; their latest observed binary and selection
+are pinned in `particle-view-state-20261015/acceptance.json`. The capture
+receipt below applies to the exact `7501144f` delivery, not later binaries.
+The [renderer-binding continuation](SOURCE_PARTICLE_GRAPHICS_BINDING_TU15.md)
+also remains source work; its GPU component checks do not replace that delivery
+receipt or claim that the full particle callback is in the launcher.
+The subsequent [depth/layout continuation](SOURCE_PARTICLE_DEPTH_BINDING_TU15.md)
+also remains source work; its latest receipt rechecks both launcher selections
+without overwriting the newer shared runtime.
+The [per-view initializer continuation](SOURCE_PARTICLE_VIEW_INITIALIZER_TU15.md)
+also retains a private current-archive world probe and real-renderer prefix
+check. It adds no normal-launcher installation or ordinary-map acceptance.
+The [viewport/scissor/bounds continuation](SOURCE_PARTICLE_VIEW_STATE_TU15.md)
+also remains source work, with complete CPU producer comparisons and a
+retained source-world regression. Its receipt rechecks the current launchers.
+
+The [direct-object continuation](SOURCE_MAP_LENS_DIRECT_TU15.md) fixes admission
+before the main object/effect producer and retains that producer's particle
+queue. Complete unchanged original Backwash `40E80` world collection matches
+the native boundary, and ordinary Headlong beacon isolation/repeats pass with one/four
+views. The pinned combined candidate `7501144f` passes42 captures across21
+Xbox maps and was installed at `build-multiplayer/halo2_native`. Both launcher
+selections pass. All six subsequent normal-path captures match the candidate's
+images, query results and simulation/RNG exactly: Headlong30, Lockout60 and
+Elongation150, each with one/four views. Current state is recorded in
+`analysis/map-world-features/lens-direct-20261015/finalization-state.json`.
+
+The immediately previous launchers selected the concurrent weapon/HUD package
+`build-weapon-zoom-hud-20261014/halo2_native`, SHA-256
+`21efc54f7ccbccc89c0fe6725a7433ed28d6c5078db72b8e09b2853c68410251`.
+That package remains untouched. Its launchers and the previous `84f600c9`
+multiplayer runtime/shaders are preserved under
+`lens-direct-20261015/normal-before-hud-21efc54f/`. Ten weapon/HUD suites and
+ten device/machine/portal/network suites pass in the combined candidate.
+That accepted delivery's binary SHA-256 is
+`7501144f6b03520a8e368c5f3b66d8820625a5e78c98c1f4a9ddc16a31cc5c74`.
+The selection record is `lens-direct-20261015/selected-7501144f/selection.json`;
+the complete installed receipt is
+`lens-direct-20261015/selected-7501144f/installed.json`.
+MCC-only readiness still reports native MCC gameplay unavailable; the full
+goal remains active.
+
+## Earlier live final-flare delivery, October 15
+
+Both installed launchers select `build-multiplayer/halo2_native`, SHA-256
+`84f600c9db86d71ca8847d11adc98f7adda0bbc0301c3ebbce3830d091f4131c`.
+The exact tested full build is installed, and four subsequent captures through
+that normal runtime path match the candidate images, query results and
+simulation/RNG records exactly: Elongation tick 150 and Lockout tick 60, each
+with one and four local players. Both launchers retain the MCC-only policy and
+report native MCC gameplay unavailable. Launcher binaries and the installed
+intro/credits movie assets are unchanged.
+
+Receipt:
+`analysis/map-world-features/lens-live-20261015/selected-84f600c9/installed.json`.
+The previous shared runtime `04523cc5` and shader bank are preserved in
+`normal-before-04523cc5/`. The earlier `69b169ad` query delivery remains
+historical evidence.
+
+The [live lens owner](SOURCE_MAP_LENS_DRAWS_TU15.md) runs the original parent
+gate, request selection, bitmap binding and final callback. Elongation's
+authored flare now changes 397 pixels with one view and 87 pixels in the first
+of four viewports. Enabled repeats are exact; hiding only final lens draws
+leaves request/query and simulation/RNG histories unchanged. The other three
+views preserve their actual zero-visibility results. Lockout's snow isolation
+changes 11,249/23,254 pixels with one/four views and preserves simulation/RNG.
+
+All **32 candidate captures across 21 Xbox maps** pass with clean exits and
+zero Vulkan validation errors. This includes six Elongation flare controls,
+one/four-view Lockout snow controls and Backwash repeats, 60-tick Headlong and
+Terminal runs, and first-tick checks for the remaining maps. These are startup
+and selected effect checks, not complete all-map interaction acceptance.
+Nine lens CPU suites cover 627 original/native cases; the added original
+`45A70` bounds helper passes 54 integer-selection comparisons covering all 193
+sites. Both genuine GPU suites pass, including resident bitmap, query reuse,
+visibility/depth/alpha controls and unchanged depth/stencil bytes.
+
+The binary retains its compiled shader path
+`analysis/map-world-features/lens-live-20261015/candidate-build/shaders`.
+**Retain that directory.** Its 59 shaders are pinned, saved under the selected
+delivery and copied identically to `build-multiplayer/shaders`. The ordinary
+CLI does not use the standalone GPU test's shader environment override.
+Frozen source pins and current shared-source differences are retained; later
+peer edits are preserved and are not claimed as tested by this binary.
+
+Fresh `needle` and `street_sweeper` attempts with their own shared-map folder
+still stop at **Source resource bindings require the admitted Xbox cache**;
+they are excluded from the 21-map count. A further four-view Backwash
+source-submission isolation changes zero pixels with identical query/RNG
+state, so visible split-screen glowbugs remain unaccepted.
+
+Direct-object lens requests, secondary lens output, complete resource and
+presentation histories, remaining map interactions, independent clients,
+late joins/resets, Vista admission, native MCC entry and Xbox framebuffer
+acceptance remain open. The full goal stays active.
+
+## Earlier normal lens query delivery, October 15
+
+At that delivery, both installed normal launchers selected `build-multiplayer/halo2_native`,
+SHA-256 `69b169ada28f9b8a46ab33d184d61e5741c03a2b75ab5722958d68ae7756d62f`.
+Its final launcher-info outputs and binaries matched the tested delivery.
+The receipt is
+`analysis/map-world-features/lens-query-20261015/selected-69b169ad/installed.json`.
+MCC-only launch policy is preserved; native MCC gameplay still reports unavailable.
+
+The [query continuation](SOURCE_MAP_LENS_QUERIES_TU15.md) adds **20 complete
+original bodies / 1,319 instructions**. Its **235 original/hardware query
+cases** and the prior **114 request/frame cases** pass. Real Vulkan tests
+match all 45 authored quads and distinguish visible, occluded and empty queries,
+including generation reuse, unchanged color/D24/stencil bytes and safe renderer
+retirement. The explicit 240-frame Backwash test also passes with 14 final draws
+and repeated-view particle/RNG invariance; the default CTest entry skipped
+because its XBE cache option was unset, so that skip is not counted as acceptance.
+
+**25 ordinary captures across all 21 Xbox maps** pass with zero Vulkan errors
+and clean exits. They include one/four-view Elongation 150 and Lockout 60,
+Backwash 60, repeated Elongation/Backwash captures, and first-tick startup for
+the remaining 18 maps. Repeated images and simulation/RNG records match.
+Both Lockout images are byte-identical to the prior verified snow images.
+Ordinary rendering uses the compiled `build-multiplayer/shaders` directory;
+every shader matches the saved bank and its actual change time predates the
+first capture. The standalone GPU test's shader environment variable is not
+an ordinary CLI shader override.
+
+Whole `20B90` now issues actual queries; whole `20750` consumes genuine GPU
+results and smooths the source visibility byte. Elongation issues 14 queries
+with one view and 56 with four views; 13/52 results are available before the final
+submission, with actual samples 16/0 and visible-view alpha 200. The source
+presentation stamp advances once per real submitted frame. No visibility
+result or authored delay is forced. A detected query-owner lifetime error in
+the earlier `8f33833b` build was corrected; that build is explicitly rejected.
+The corrected runtime passes ordinary shutdown, repeats and explicit retired
+renderer-owner validation.
+
+The two Vista-only maps were tested with their own supplied shared-map folder.
+Both stop at **Source resource bindings require the admitted Xbox cache**.
+They are incomplete and are excluded from the 21-map acceptance count.
+Final flare bitmap rendering, direct-object lens callbacks, remaining world
+interactions, complete client histories/late joins/reset, native MCC entry
+and Xbox framebuffer acceptance remain open. The full goal is active.
+Later peer edits to the world-particle, multiplayer and renderer source files
+are preserved; the receipt records which current source pins differ from this
+tested binary, without claiming that those later edits were validated here.
+
+## Earlier normal effect-phase and lens admission, October 15
+
+Both normal launchers select `build-weapon-zoom-hud-20261014/halo2_native`,
+SHA-256 `ba659a50373f3a9b1c6387c2576c9caf4285f2b771a5de4df2abb39a19e2cc3f`.
+Independent final launcher-info and binary checks match the exact tested copy.
+The MCC-only launch policy and HUD changes are preserved. Native MCC gameplay
+still reports unavailable; owned-XBE captures do not close that entry path.
+
+The [lens module](SOURCE_MAP_LENS_REQUESTS_TU15.md) now contains **14 complete
+original bodies / 1,276 instructions**, including the effect-part phase and
+original frame/view admission gates. All **114 original/native request and
+frame/view cases** pass, including tests linked to the exact selected lens
+object. The **240-frame Backwash test** retains 14 final source draws and
+repeated-view particle/RNG invariance.
+
+The common particle phase now runs once after game ticks and before visibility
+reset, following original `12E142/12E151/13AA28` order. The live observer sees
+150 particle advances, 150 frame gates, 150 view gates and 150 effect-part
+phases over 150 frames. It also sees 14 actual lens requests, allocations/lookups
+and successful linkage calls after the authored spark delay. Its final image
+and simulation/RNG record exactly match an ordinary run. No original data or
+GPU visibility result is forced.
+
+**31 ordinary captures** pass with unchanged executable, map, runtime and
+compiled-shader pins and zero Vulkan validation errors. Every Xbox map has
+current ordinary startup evidence; 18 maps use one rendered tick. Elongation,
+Lockout and Backwash have the longer effect checks below. These startup checks
+are not full effects, interaction, network or reset acceptance.
+
+| Current effect comparison | Views | Changed pixels | Capture tick |
+| --- | ---: | ---: | ---: |
+| Elongation authored particles | 1 | 1,591 | 130 |
+| Elongation authored particles | 4 | 71 | 150 |
+| Backwash source-created particles, diagnostic camera | 1 | 20 | 60 |
+
+All three enabled repeats are exact, and their hidden-submission runs retain
+identical simulation/RNG. Current one/four-view Lockout snow images exactly
+match the prior selected runtime's verified positive images. The separate live
+observer also passes validation; it is not counted among the 31 ordinary captures.
+
+Receipt: `analysis/map-world-features/lens-request-20261015/selected-ba659a50/installed.json`.
+The build, CMake tests, exact linked-object tests, observer and capture bank are
+retained beside it. Later concurrent world-weapon resource edits remain in the
+checkout and are outside this binary receipt; the lens module itself is unchanged.
+
+Complete attachment admission remains **93/96**. Display-stamp advancement,
+direct-object lens callbacks, asynchronous GPU queries and final flare graphics
+remain open. The remaining interactions, independent client histories, the two
+Vista maps, native MCC gameplay and Xbox framebuffer acceptance also remain open.
+The full goal is active and unfinished.
+
+## Previous nine-body normal lens-request continuation, October 15
+
+Both current normal launchers select
+`build-weapon-zoom-hud-20261014/halo2_native`, SHA-256
+`0d9969a7c73d3bdd6d75a33a112182f561b72df9231ca54bdac6f14a43788e3c`.
+Their final info/path/hash checks preserve the concurrent HUD and launcher
+updates. Native MCC gameplay still reports unavailable; the owned-XBE checks
+below do not establish that separate entry path.
+
+The selected runtime includes the [native lens request continuation](SOURCE_MAP_LENS_REQUESTS_TU15.md):
+**nine complete original bodies / 911 instructions**. The exact lens object
+from this selected build passes all **72 whole original request cases**,
+including 23 admitted requests, with matching instruction paths, GP/SIMD,
+defined flags, retained banks, MXCSR and x87 status/depth. Actual view/pool
+inputs are declared; complete native lens scheduling and rendering remain open.
+
+The selected runtime passes **six final captures**: a one-view Elongation
+spark on/off/repeat comparison changes **1,591 pixels**, with an exact enabled
+repeat and identical simulation/RNG. Additional four-view sparks and
+one/four-view snow captures pass. **All six images and simulation/RNG records
+match their corresponding earlier `0d8ddfd7...` bank cases exactly**, retaining
+the previously verified positive spark/snow images. There are zero Vulkan
+validation errors. The earlier bank separately passes **21 captures**,
+including positive Backwash source particles and Headlong/Terminal/Zanzibar
+one/four-view startup. Those other captures are not relabelled as execution of
+this newer selected runtime.
+
+Current receipt:
+`analysis/map-world-features/lens-request-20261015/selected-0d9969a7/installed.json`.
+Earlier full bank:
+`analysis/map-world-features/lens-request-20261015/normal-0d8ddfd7/bank-verification.json`.
+The normal runtime dependency rebuild and link pass; the first attempt stopped
+on a missing existing renderer object during archive creation and is retained.
+
+The 21-map attachment fixture remains **93/96 fully prepared**, with 69 native
+starts and 2,908 summed peaks. Lens frame/view setup, query completion,
+occlusion and final flare graphics are still missing; source recovery identifies
+their original owners without forcing an active pool. Remaining interactions,
+independent client histories/reset, the two Vista maps, native MCC loading and
+Xbox framebuffer acceptance remain open. The full goal is unfinished.
+
+## Previous combined normal marker runtime, October 15
+
+Both normal launchers select
+`.local/mcc-native-20261013/cmake/halo2_native`, SHA-256
+`385fefbdc04b0be4fcb809a617b9edf6f1dba401b645d1f8404fe8f79f9ae668`.
+Their final `--launcher-info` outputs confirm that path; independent hash
+readback matches the tested binary.
+The accepted capture bank executes a byte-identical pinned copy, retaining
+the original compiled shader paths and checking those actual shader files.
+The current MCC preview and launcher changes are preserved. Native MCC
+gameplay loading remains unavailable; direct owned-XBE captures do not close
+that separate gate.
+
+[The original marker selection fix](SOURCE_MAP_EFFECT_MARKERS_TU15.md) restores
+Elongation's spark, steam and fire emission. Its spark graph starts supported
+authored components while explicitly retaining its incomplete lens boundary.
+The exact final-runtime on/off/repeat comparisons are:
+
+| Effect | Views | Changed pixels | View input |
+| --- | ---: | ---: | --- |
+| Elongation ceiling sparks | 1 | 1,591 | Ordinary spawn and native look |
+| Elongation ceiling sparks | 4 | 905 | Ordinary spawns and native look |
+| Lockout snow | 1 | 11,249 | Ordinary spawn |
+| Lockout snow | 4 | 23,317 | Ordinary spawns |
+| Backwash source-created particles | 1 | 8 | Diagnostic camera only |
+
+All five enabled repeats are exact and their simulation/RNG records match the
+hidden-submission runs. Backwash also retains identical original source RNG
+and 14 actual source-particle draw submissions. Zanzibar passes ordinary
+one/four-player startup. These **17 captures** have zero Vulkan validation
+errors. They do not renew computer activation/traversal, independent-client
+acceptance or visible four-player Backwash particles.
+
+The normal attachment fixture passes all 21 Xbox maps: **93/96 fully prepared
+graphs**, 69 initial native starts and 2,908 summed particle peaks. Elongation
+starts all three authored effects, reaches 111 particles and requires a draw
+from each spark, steam and fire definition. Duplicate synchronization,
+repeated views, retirement and salted recreation pass with declared bind
+WORLD inputs. The refreshed unchanged TU1.5 marker-prefix oracle passes 143
+cases across all 21 caches. Neither check establishes whole original
+scheduling, physics or client particle history.
+
+Receipt:
+`analysis/map-world-features/swarm-lifecycle-20261014/live-swarm/marker-alias-fix/normal-385fefbd/installed.json`.
+The earlier `b62b5554...` bank retains 11 individually pinned captures; a
+concurrent rebuild changed its runtime during capture 12, so that bank is not
+accepted as the current delivery. Full lens/light graphs, direct lens
+attachments, remaining interactions, network/reset, the two Vista maps, MCC
+gameplay loading and Xbox framebuffer acceptance remain open.
+
+## Previous combined normal runtime, October 14
 
 Both current normal launchers select
 `.local/mcc-native-20261013/cmake/halo2_native`, SHA-256

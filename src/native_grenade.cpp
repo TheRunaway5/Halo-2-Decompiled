@@ -236,7 +236,7 @@ void NativeGrenadeSandbox::adopt_source_detonations(std::uint64_t tick,
     if(detonation_serial_==UINT64_MAX)throw FormatError("Native grenade detonation serial exhausted");
     const auto &frame=event.effect_locations.front().frame;
     detonations_.push_back({++detonation_serial_,tick,event.projectile,event.definition,
-        event.effect,event.player,event.unit,frame.position,frame.basis[0],frame.basis[2],event.effect_locations,event.colors,event.controls});
+        event.effect,event.player,event.unit,frame.position,frame.basis[0],frame.basis[2],event.effect_locations,event.colors,event.controls,event.effect_instance});
     if(detonations_.size()>64)detonations_.erase(detonations_.begin());
   }
 }
@@ -414,7 +414,8 @@ void NativeGrenadeSandbox::validate_authority(const AuthorityCheckpoint &saved,s
   std::uint64_t previous=0;
   for(const auto &d:saved.detonations) {
     if(!d.serial || d.serial<=previous || d.serial>saved.detonation_serial || !handle(d.projectile) || !reference(d.unit) ||
-        !finite(d.position) || !finite(d.forward) || !finite(d.up) || !std::isfinite(d.controls.a) || !std::isfinite(d.controls.b))
+        !finite(d.position) || !finite(d.forward) || !finite(d.up) || !std::isfinite(d.controls.a) || !std::isfinite(d.controls.b) ||
+        (d.source_effect_instance!=null_datum && (!saved.source_driven || !(d.source_effect_instance>>16) || (d.source_effect_instance&0xffffu)>=256u)))
       throw FormatError("Grenade continuation has an invalid detonation journal");
     for(const auto &location:d.source_locations)if(!finite(location.frame))
       throw FormatError("Grenade continuation has an invalid source effect location");

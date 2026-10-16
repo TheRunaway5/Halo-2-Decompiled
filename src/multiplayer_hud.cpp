@@ -14,13 +14,15 @@
 
 namespace halo2 {
 SourceWeaponHudState multiplayer_hud_weapon_state(const MultiplayerState::Player &p,const HudContent &content,unsigned hand) {
-  if(hand>1)throw FormatError("Invalid weapon HUD hand");
+  if(hand>2)throw FormatError("Invalid weapon HUD owner");
+  if(hand==2)return p.source_vehicle_hud.weapon;
   const auto &shader=hand?p.secondary_weapon.shader:p.weapon_shader;
   const int loaded=hand?p.secondary_weapon.loaded:p.loaded;
   const int reserve=hand?p.secondary_weapon.reserve:p.reserve;
   const int available=hand?p.secondary_weapon.ammunition_available:p.ammunition_available;
   const auto datum=hand?p.secondary_weapon.datum:p.source_weapon;
   WeaponHudProjectionInput input;input.datum=datum;input.heat=shader.heat;input.age=shader.power_fraction;
+  input.magazine_mode=hand?p.secondary_weapon.magazine_mode:p.source_zoom_magazine_mode;
   input.weapon_flags=std::uint16_t(shader.weapon_flags);input.magazine_present=content.weapon_magazine_count!=0;
   input.loaded=std::bit_cast<std::int16_t>(std::uint16_t(loaded));
   input.capacity=std::int16_t(content.clip_capacity);input.maximum_reserve=std::int16_t(content.reserve_capacity);
@@ -74,17 +76,21 @@ SourceHudScoreDisplay multiplayer_hud_score_display(const MultiplayerState &s,
   return result;
 }
 namespace {
+bool elite_hud(const HudContent &content,const MultiplayerState::Player &player) {
+  const auto representation=content.unit_representation.value_or(multiplayer_representation(player.source_configuration));
+  return representation==1 || representation==3;
+}
 std::array<std::uint16_t, 4> conditions(const HudWidget &w,const HudContent &content,
                                         const MultiplayerState &s, unsigned id,
                                         const SourceHudScoreDisplay &score,bool talking,unsigned hand) {
   const auto &p = s.players.at(id);
-  // Original13A163..13A18F sets shield availability and Elite appearance
-  // independently. Both multiplayer bipeds use shield-enabled nhdt rows.
+  // Retail13A163..13A18F sets shield availability and Elite appearance
+  // independently. TU1.5's2316B4 admits representation1 or3 as Elite.
   std::uint16_t unit = 1 | (p.secondary_weapon.datum==null_datum?0x10:0x20) | p.source_hud_zoom_mask | 0x800 | 0x1000;
-  if (multiplayer_representation(p.source_configuration)==3) unit |= 0x2000;
+  if (elite_hud(content,p)) unit |= 0x2000;
   unit |= p.grenade_current == 0 ? 4 : p.grenade_current == 1 ? 8 : 2;
   const auto projected=multiplayer_hud_weapon_state(p,content,hand);
-  const auto *item=w.weapon_type==1?&projected:nullptr;
+  const auto *item=(w.weapon_type==1 || w.weapon_type==4)?&projected:nullptr;
   const auto weapon=weapon_hud_cutoffs(item,w.cutoffs,weapon_hud_mask(item,w.weapon_type==1?(hand?2u:1u):w.weapon_type));
   const auto flags=p.source_hud_target_flags;
   const auto target=std::uint16_t((flags&1u)|((flags&8u)?2u:0u)|((flags&0x10u)?4u:0u)|
@@ -128,7 +134,7 @@ std::array<float, 4> widget_inputs(const HudWidget &w,
       out[i] = p.shield < .2f ? float(s.tick) * tick_seconds : 0;
       break;
     case 48:case 49:case 50:case 51:case 52:case 53:case 54:case 55:case 56:case 57:
-      out[i]=weapon_hud_input(w.weapon_type==1?&projected:nullptr,w.inputs[i],float(s.tick)*tick_seconds);
+      out[i]=weapon_hud_input((w.weapon_type==1 || w.weapon_type==4)?&projected:nullptr,w.inputs[i],float(s.tick)*tick_seconds);
       break;
     case 64:
       out[i] = score.score_fraction;
@@ -401,8 +407,8 @@ MultiplayerHud::MultiplayerHud(HudContent content,
                                const std::filesystem::path &ui_assets,unsigned hand)
     : content_(std::move(content)),hand_(hand), mesh_(mesh), materials_(local_players),
       variant_(std::move(variant)),geometry_(geometry) {
-  if(hand_>1)throw FormatError("Invalid HUD weapon hand");
-  if(hand_)std::erase_if(content_.widgets,[](const auto &widget){return widget.weapon_type!=1;});
+  if(hand_>2)throw FormatError("Invalid HUD weapon owner");
+  if(hand_)std::erase_if(content_.widgets,[&](const auto &widget){return widget.weapon_type!=(hand_==2?4u:1u);});
   hud_viewport(local_players, 0);
   std::ifstream table(directory / "font_table.txt");
   if (!table)
@@ -643,14 +649,14 @@ void MultiplayerHud::animate(const MultiplayerState &s, unsigned id,
         shield =
             hud_shield_layer(shields_[view], s.players[id].shield,
                              k / content_.images.at(w.bitmap).images.size(),
-                             multiplayer_representation(s.players[id].source_configuration)==3);
+                             elite_hud(content_,s.players[id]));
         resolved_inputs = shield.inputs;
       }
       auto &m = mesh_.materials.at(material);
       const auto &pass = m.passes.at(m.forward_pass_index);
       m.forward_program = pass.program;
       animate_forward_material(m, seconds, [&](auto name) {
-        return function(name, resolved_inputs,multiplayer_representation(s.players[id].source_configuration)==3);
+        return function(name, resolved_inputs,elite_hud(content_,s.players[id]));
       });
       std::array<float, 256> scalars{};
       scalars[40] = 1;
@@ -743,6 +749,7 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
   const bool widescreen = hud_layout_widescreen(players,
       std::uint64_t(width) * 3 > std::uint64_t(height) * 4,split);
   auto viewport = hud_viewport(players, view, widescreen,split);
+  const auto camera_viewport=viewport;
   const unsigned logical_width =
                      unsigned(viewport.outer.right - viewport.outer.left),
                  logical_height =
@@ -773,12 +780,11 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
     Vec2 p = anchor(w.anchor, viewport), ax{1, 0}, ay{0, 1};
     if(w.anchor==5) {
       if(!target_camera)continue;
-      const auto &trigger=hand_?s.players[id].secondary_weapon.trigger:s.players[id].weapon_trigger;
-      const Vec3 point=trigger.target_position?Vec3{(*trigger.target_position)[0],
-          (*trigger.target_position)[1],(*trigger.target_position)[2]}:Vec3{};
-      const auto physical=[&](UiRect r) {return RenderViewport{r.left*scale+left,r.top*scale+top,
-          (r.right-r.left)*scale,(r.bottom-r.top)*scale};};
-      const auto projected=source_hud_target_anchor(*target_camera,physical(viewport.outer),physical(viewport.safe),point);
+      const auto point=(w.weapon_type==1 || w.weapon_type==4)?
+          multiplayer_hud_weapon_state(s.players[id],content_,hand_).target_position:Vec3{};
+      const auto physical=[&](UiRect r) {return full_surface_viewport(
+          {r.left,r.top,r.right-r.left,r.bottom-r.top},width,height);};
+      const auto projected=source_hud_target_anchor(*target_camera,physical(camera_viewport.outer),physical(camera_viewport.safe),point);
       if(!projected)continue;
       p={(projected->x-left)/scale,(projected->y-top)/scale};
     }
@@ -795,7 +801,7 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
       auto value = [&](unsigned k) {
         const auto &f = effect.functions[k];
         return shader_function_value(f.curve, function(f.input, input,
-            multiplayer_representation(s.players[id].source_configuration)==3), 1,
+            elite_hud(content_,s.players[id])), 1,
                                      *tables);
       };
       if (effect.flags & 2) {
@@ -843,7 +849,7 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
             image.sequences[seq].empty())
           throw FormatError("Original HUD sequence outside bitmap");
         const auto &sprites=image.sequences[seq];
-        const auto selected=multiplayer_representation(s.players[id].source_configuration)==3 && sprites.size()>1 ? 1u:0u;
+        const auto selected=elite_hud(content_,s.players[id]) && sprites.size()>1 ? 1u:0u;
         sprite = sprites[selected];
       }
       const auto &texture = image.images.at(sprite.image);
@@ -884,7 +890,7 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
         continue;
       const auto &font = fonts_[f];
       const auto text = codepoints(
-          text_value(w, content_, input, score,multiplayer_representation(s.players[id].source_configuration)==3,voice_text_));
+          text_value(w, content_, input, score,elite_hud(content_,s.players[id]),voice_text_));
       float pen = 0, ink_left = 32767, ink_right = -32768;
       unsigned previous = 0;
       for (auto c : text) {

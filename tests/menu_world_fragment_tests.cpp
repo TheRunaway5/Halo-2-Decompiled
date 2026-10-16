@@ -202,6 +202,10 @@ int main(int argc,char **argv){try {
     rejects([&]{validate_menu_world_fragment(altered);},rejections);
     images[0].depth=0;program=saved_program;
     images[0].layers=6;rejects([&]{validate_menu_world_fragment(input);},rejections);images[0].layers=1;
+    altered=input;altered.w_clip_mode=MenuWorldWClipMode::clamp;
+    validate_menu_world_fragment(altered);
+    altered.w_clip_mode=static_cast<MenuWorldWClipMode>(1);
+    rejects([&]{validate_menu_world_fragment(altered);},rejections);
     if(anisotropic) {
       limits.anisotropy_enabled=false;rejects([&]{validate_menu_world_fragment(input);},rejections);
       limits.anisotropy_enabled=true;limits.maximum_anisotropy=1;
@@ -213,6 +217,8 @@ int main(int argc,char **argv){try {
     packet.depth_factor_offset={-0.0f,2.5f};const auto unmodified=packet;
     validate_menu_world_fragment(input);
     require(std::memcmp(&packet,&unmodified,sizeof(packet))==0,"fragment admission repaired caller packet");
+    altered=input;altered.w_clip_mode=MenuWorldWClipMode::clamp;
+    rejects([&]{validate_menu_world_fragment(altered);},rejections);
   }
   require(rows==8 && families.size()==5 && events==std::set<unsigned>{345,528,1335,1448,1727,1735,1880,2409} &&
       pixel_rows==2 && enabled_alpha_rows==2 && aniso_rows==4 && packet_words==896,

@@ -3,6 +3,14 @@
 #include <bit>
 #include <cmath>
 namespace halo2 {
+CinematicBloomParameters cinematic_bloom_parameters(float threshold,float strength,
+    bool cinematic,const CinematicBloomOverride &override) {
+    if(cinematic && override.enabled) {
+        if(override.threshold!=-1.f)threshold=override.threshold;
+        if(override.brightness!=-1.f)strength=override.brightness;
+    }
+    return {std::clamp(threshold,0.f,1.f),std::clamp(strength,0.f,1.f)};
+}
 MenuBloom menu_bloom(float threshold,float strength) {
     MenuBloom out;
     const auto byte=[](float v){return std::uint32_t(std::nearbyint(double(std::clamp(v,0.f,1.f))*255.));};

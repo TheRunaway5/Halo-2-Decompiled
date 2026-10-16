@@ -89,6 +89,7 @@ public:
   // does not reserve headers, construct bodies or advance another world.
   // Vehicles are presented by the separate authoritative vehicle bank.
   void adopt_source_replicas(std::span<const SourceSceneRoot>,std::span<const SourceWorldPose>);
+  bool source_replica()const{return source_replica_;}
   void destroy_all();
   void destroy_type_mask(std::uint32_t);
   Object &get(std::uint32_t);
@@ -98,6 +99,10 @@ public:
                              float value, float frames, int tick);
   std::optional<float> function_variable(std::uint32_t object,
                                          std::uint32_t name, int tick) const;
+  void clear_function_variable(std::uint32_t object,std::uint32_t name);
+  // Completed samples from the retained source owner. No native interpolation
+  // or slot replacement policy advances these borrowed shader inputs.
+  void publish_source_function_samples(const std::map<std::pair<std::uint32_t,std::uint32_t>,float> &);
   const std::vector<Object> &objects() const { return objects_; }
   const NativeObjectLifetimes &object_lifetimes() const;
   bool contains(const TriggerVolume &, Vec3 center) const;

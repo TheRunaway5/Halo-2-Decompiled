@@ -1,4 +1,5 @@
 #include "halo2/render_interpolation.hpp"
+#include "halo2/model_node_interpolation.hpp"
 #include "halo2/math.hpp"
 #include "halo2/source_model_pose.hpp"
 #include "halo2/source_shadow.hpp"
@@ -56,6 +57,62 @@ Transform render_transform(const Transform &a,const Transform &b,float f) {
     out.position=render_lerp(a.position,b.position,f);
     out.scale=std::lerp(a.scale,b.scale,f);
     return out;
+}
+std::vector<Transform> interpolate_model_nodes(const RenderModel &model,
+    std::span<const Transform> before,std::span<const Transform> after,float f) {
+    validate_render_fraction(f);
+    if(before.size()!=after.size() || after.size()!=model.bones.size())
+        throw FormatError("Completed model interpolation changed its authored hierarchy");
+    if(f==0)return {before.begin(),before.end()};
+    if(f==1 || !std::memcmp(before.data(),after.data(),after.size_bytes()))return {after.begin(),after.end()};
+    std::vector<Transform> result;result.reserve(after.size());
+    for(unsigned n=0;n<after.size();++n) {
+        const auto parent=model.bones[n].parent;
+        if(parent<0)result.push_back(render_transform(before[n],after[n],f));
+        else {
+            if(unsigned(parent)>=n)throw FormatError("Completed model has an unordered parent hierarchy");
+            const auto a=compose_transform(inverse_transform(before[parent]),before[n]);
+            const auto b=compose_transform(inverse_transform(after[parent]),after[n]);
+            result.push_back(compose_transform(result[parent],render_transform(a,b,f)));
+        }
+    }
+    return result;
+}
+void ModelNodeInterpolation::capture(std::uint64_t tick,std::span<const Transform> nodes,
+    std::optional<Transform> reference_frame) {
+    if(nodes.empty())throw FormatError("Completed model interpolation requires nodes");
+    if(!initialized_ || nodes.size()!=current_.size() ||
+       reference_frame.has_value()!=current_frame_.has_value() || tick<tick_ || tick-tick_>1) {
+        previous_.clear();previous_frame_.reset();paired_=false;
+    } else if(tick!=tick_) {
+        previous_=std::move(current_);previous_frame_=current_frame_;paired_=true;
+    }
+    current_.assign(nodes.begin(),nodes.end());current_frame_=reference_frame;
+    tick_=tick;initialized_=true;
+}
+std::vector<Transform> ModelNodeInterpolation::sample(const RenderModel &model,float f,
+    std::optional<Transform> frame)const {
+    validate_render_fraction(f);
+    if(!initialized_ || current_.size()!=model.bones.size() ||
+       frame.has_value()!=current_frame_.has_value())
+        throw FormatError("Completed model interpolation lost its model/reference frame");
+    const auto reframe=[](std::span<const Transform> nodes,const Transform &from,const Transform &to) {
+        if(!std::memcmp(&from,&to,sizeof(Transform)))return std::vector<Transform>(nodes.begin(),nodes.end());
+        auto result=std::vector<Transform>(nodes.begin(),nodes.end());
+        const auto relative=compose_transform(to,inverse_transform(from));
+        for(auto &node:result)node=compose_transform(relative,node);
+        return result;
+    };
+    if(!paired_ || f==1)return frame?reframe(current_,*current_frame_,*frame):current_;
+    if(f==0)return frame?reframe(previous_,*previous_frame_,*frame):previous_;
+    if(!frame)return interpolate_model_nodes(model,previous_,current_,f);
+    // FP animation is relative to its camera. Never blend yesterday's camera
+    // into today's mouse input, nor apply interpolated player movement twice.
+    const auto a=reframe(previous_,*previous_frame_,Transform{});
+    const auto b=reframe(current_,*current_frame_,Transform{});
+    auto result=interpolate_model_nodes(model,a,b,f);
+    for(auto &node:result)node=compose_transform(*frame,node);
+    return result;
 }
 namespace {
 void validate_source_world_poses(std::span<const SourceWorldPose> poses) {

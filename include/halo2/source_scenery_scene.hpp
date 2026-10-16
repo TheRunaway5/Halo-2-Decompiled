@@ -18,6 +18,7 @@ struct SourceSceneryQueryState {
     std::uint32_t runtime_flags{};
     bool frozen=true; // Actual 10A1B0/B9B90 constructor state.
 };
+// Prepared-resource census; synchronize separately owns live draw admission.
 struct SourceScenerySceneStats {
     unsigned placements{},render_models{},baked_models{},dynamic_models{},direct_probes{};
     unsigned union_baked_materials{},union_dynamic_materials{};
@@ -58,6 +59,7 @@ public:
     SourceSceneryScene &operator=(SourceSceneryScene &&) noexcept;
     SourceSceneryScene(const SourceSceneryScene &)=delete;
     SourceSceneryScene &operator=(const SourceSceneryScene &)=delete;
+    // Prepared resources remain inactive until actual source lifetimes bind.
     void synchronize(const SceneObjects &,LifetimeSelection = {});
     void interpolate(const SceneObjects &,const class SceneInterpolation &,float fraction);
     void lighting_query_state(LightingQueryState);

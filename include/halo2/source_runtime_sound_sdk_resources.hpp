@@ -8,6 +8,7 @@ namespace halo2 {
 // the recovered reference allocation rules. Address selection and
 // native lock ABI are explicit platform policies, without Xbox kernel
 // record/clobber emulation. No settings, hardware or device is supplied.
+// This resource and its CallScope lifetimes stay on the creating thread.
 class SourceRuntimeSoundSdkResources {
 public:
     SourceRuntimeSoundSdkResources(SourceRuntimeMemory &,std::uint32_t passive_fs_base);
@@ -19,8 +20,9 @@ public:
     // Explicit actual settings resource; absent input remains unavailable.
     // Immutable user settings stay local and do not initialize any source device.
     void bind_user_settings(SourceTu15UserSettings);
-    std::size_t live_allocations() const noexcept;
-    unsigned lock_depth() const noexcept;
+    // Diagnostics obey the same creating-thread ownership as dispatch.
+    std::size_t live_allocations() const;
+    unsigned lock_depth() const;
     bool quiescent() const noexcept;
     void require_quiescent() const;
     class CallScope {
@@ -38,6 +40,7 @@ public:
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
+    void require_owner_thread() const;
     void abort_new_resources(std::uint32_t,unsigned) noexcept;
 };
 }

@@ -17,15 +17,25 @@ std::vector<std::byte> bytes(const std::string &s) {
   for(std::size_t i=0;i<s.size();i+=2)b.push_back(std::byte(std::stoul(s.substr(i,2),nullptr,16)));
   return b;
 }
-std::vector<std::byte> file(const std::filesystem::path &p) {
-  std::ifstream in(p,std::ios::binary|std::ios::ate);
-  check(bool(in),"Missing original physics physical stage backing: "+p.string());
-  const auto size=in.tellg();check(size>=0,"Invalid physics physical stage backing extent");
-  std::vector<std::byte> b(static_cast<std::size_t>(size));in.seekg(0);
-  check(bool(in.read(reinterpret_cast<char *>(b.data()),b.size())),"Truncated physics physical stage backing");return b;
-}
 void same(std::span<const std::byte> a,std::span<const std::byte>b,const std::string &why) {
   check(a.size()==b.size() && std::equal(a.begin(),a.end(),b.begin()),why);
+}
+void same_file(std::span<const std::byte> actual,const std::filesystem::path &path,
+               const std::string &why) {
+  std::ifstream in(path,std::ios::binary|std::ios::ate);
+  check(bool(in),"Missing original physics physical stage backing: "+path.string());
+  const auto size=in.tellg();
+  check(size>=0 && static_cast<std::uint64_t>(size)==actual.size(),why+" extent");
+  in.seekg(0);
+  // Compare every original byte without holding another complete arena copy.
+  std::array<std::byte,64*1024> chunk;
+  for(std::size_t offset=0;offset<actual.size();) {
+    const auto count=std::min(chunk.size(),actual.size()-offset);
+    check(bool(in.read(reinterpret_cast<char *>(chunk.data()),count)),
+          "Truncated physics physical stage backing");
+    same(actual.subspan(offset,count),std::span(chunk).first(count),why);
+    offset+=count;
+  }
 }
 std::uint32_t word(const SourceRuntimeMemory &m,std::uint32_t p) {
   std::uint32_t v=0;const auto b=m.view(p,4);
@@ -115,7 +125,7 @@ int main(int argc,char**argv) {
         const auto &e=sequence.at("resources")[resource_index++];
         check(event.allocation==e.at("allocation") && event.request==e.at("request").get<decltype(event.request)>() &&
             event.result==e.at("result").get<std::uint32_t>(),"Actual native physical stage resource contract differs");
-        if(event.allocation) same(m.view(event.result,event.request[0]),file(directory/e.at("initial").get<std::string>()),
+        if(event.allocation) same_file(m.view(event.result,event.request[0]),directory/e.at("initial").get<std::string>(),
             "Actual native initial pages differ");
       };
       {
@@ -148,8 +158,9 @@ int main(int argc,char**argv) {
         }
         check(resource_index==sequence.at("resources").size(),"Complete native resource sequence");
         for(const auto &bank:sequence.at("final_storage")) {
-          const auto b=file(directory/bank.at("storage").get<std::string>());
-          same(m.view(bank.at("address"),bank.at("bytes")),b,"Complete retained native physical stage bytes");retained+=b.size();
+          const auto size=bank.at("bytes").get<std::size_t>();
+          same_file(m.view(bank.at("address"),size),directory/bank.at("storage").get<std::string>(),
+                    "Complete retained native physical stage bytes");retained+=size;
         }
       }
       // C++ owner cleanup releases remaining host backing; it is not the

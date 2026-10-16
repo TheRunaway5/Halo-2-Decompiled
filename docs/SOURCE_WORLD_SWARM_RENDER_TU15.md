@@ -1,18 +1,22 @@
 # Original Backwash swarm particles in the native world renderer
 
 `SourceWorldParticleDrawsTu15` selects placed effect systems that actually use
-the authored type2 movement controller. The 21-map resource audit activates
-this consumer only for Backwash. It reads source-created particles and submits
+the authored type2 movement controller. The 21-map placed-swarm resource audit
+selects Backwash; the shared consumer also hosts first-person systems and the
+[lens request phase](SOURCE_MAP_LENS_REQUESTS_TU15.md). It reads source-created particles and submits
 their authored sprite/material data to the existing native GPU renderer. It
 does not implement another swarm simulation or change particle size, color,
 placement, contacts or visibility to make the capture pass.
 
-The original frame order matters. `13AA28 ->179DF0` precedes game ticks at
-`13AAFF` and the later `2B630` render-visibility reset. `1778D0` reads the
+The original frame order matters. `12E142 ->13AA50` runs game ticks before
+`12E151 ->13A9B0`, whose `13AA28 ->179DF0` still precedes the later `2B630`
+render-visibility reset. `1778D0` reads the
 preceding render's `4D1EE0` cluster union and retires invisible locations through
 `178290`. Advancing after `begin_model_frame()` cleared that union and repeatedly
 destroyed the match's particle locations. The corrected native loop advances
-before game ticks, then starts the new render frame. Its particle world owner
+once after game ticks, then starts the new render frame. Queue construction is
+separate from that shared phase, avoiding a duplicate update through the
+first-person consumer. Its particle world owner
 also remains independent of vehicle resources; Backwash has no vehicle models.
 
 The graphics consumer uses the actual `1E0F0` transparent-storage constructor,
@@ -23,6 +27,11 @@ feeds the [original pool/render-input bridge](SOURCE_PARTICLE_SPRITE_CONTEXT_TU1
 The native backend supplies the world pass and camera inputs. This is not a
 claim that the complete original Xbox graphics context or outer frame owner
 has been recovered.
+
+The [queued draw-parent continuation](SOURCE_PARTICLE_DRAW_PARENT_TU15.md)
+now owns original constant emission and compares the actual Backwash callback
+through its next shader/device boundary. It has not yet replaced this manual
+queue-to-sprite consumer or added new framebuffer acceptance.
 
 The original controller's five bodies/668 instructions remain unchanged.
 Untouched host x86 execution agrees with its captured source-created call over

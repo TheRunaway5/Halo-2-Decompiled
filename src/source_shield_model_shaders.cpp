@@ -22,7 +22,12 @@ SourceShieldModelShaders::SourceShieldModelShaders(const Cache &cache,const Rend
     std::uint32_t render_model,std::uint32_t shader,std::vector<Material> &output):shader_(shader) {
     auto material=cache.load_material(shader);
     if(!prepare_shield_overlay_material(cache,material))
-        throw FormatError("source shield override requires a proved plasma pass");
+    {
+        const auto tag=cache.query_tag({.handle=TagHandle{shader}});
+        std::string detail="source shield override requires a proved plasma pass: "+(tag?tag->name:std::to_string(shader));
+        for(const auto &pass:material.passes)detail+=" ["+pass.name+" vertex="+pass.vertex_shader+" vertex_externs="+std::to_string(pass.vertex_externs.size())+" pixel_externs="+std::to_string(pass.pixel_externs.size())+"]";
+        throw FormatError(detail);
+    }
     // The admitted actual plasma family has exactly one LOD.40F60 also binds
     // shaderLOD0/layer15/implementation0 for the transparent callback.
     if(material.lods.size()!=1 || material.lods.front().available_layers!=0x8000u)

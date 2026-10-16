@@ -32,6 +32,7 @@ void mount_native_tu15_arena_data(SourceRuntimeMemory& memory) {
     // globals or presume the values produced by the constructors.
     cold(memory,0x4f0430u,1,"native TU1.5 cold game arena initialized flag");
     cold(memory,0x4f2950u,2*4,"native TU1.5 cold game arena base and cursor");
+    cold(memory,0x4f2958u,4,"native TU1.5 loader-zeroed opposite-end arena allocation cursor");
     cold(memory,0x4f295cu,4,"native TU1.5 cold game arena checksum");
     cold(memory,0x4f2964u,4,"native TU1.5 cold game arena storage binding");
     cold(memory,0x50ebb0u,1,"native TU1.5 cold physical suballocation active flag");

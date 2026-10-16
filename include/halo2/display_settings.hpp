@@ -1,9 +1,11 @@
 #pragma once
 #include <cstdint>
 #include "halo2/source_geometry_lod.hpp"
+#include "halo2/pstencil/shadow.hpp"
 namespace halo2 {
 inline constexpr unsigned minimum_field_of_view=70, maximum_field_of_view=120;
 inline constexpr unsigned default_field_of_view=78;
+inline constexpr unsigned default_vehicle_field_of_view=70;
 // Native contexts reuse the imported numeric-choice pane without adding retail IDs.
 inline constexpr unsigned video_fov_context=2, video_vehicle_fov_context=3;
 constexpr bool valid_field_of_view(unsigned degrees) {
@@ -18,8 +20,9 @@ struct DisplaySettings {
     unsigned anti_aliasing{}; // Native SSAA: 0=off, 1=2x, 2=4x per axis.
     unsigned brightness=3, gamma=0, detail=0;
     bool safe_area{};
-    unsigned field_of_view=default_field_of_view, vehicle_field_of_view=default_field_of_view;
+    unsigned field_of_view=default_field_of_view, vehicle_field_of_view=default_vehicle_field_of_view;
     unsigned volume=10, subtitles=0, speakers=4;
+    pstencil::GraphicsMode graphics_mode=pstencil::GraphicsMode::Original;
     bool operator==(const DisplaySettings &) const = default;
 };
 // PC590B26: High/Medium share the object policy. Low caps ordinary geometry

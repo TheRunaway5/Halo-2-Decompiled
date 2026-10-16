@@ -22,6 +22,7 @@ public:
     bool try_call(SourcePhysicsContactMemory&,const SourcePhysicsContactRuntimeCall&,SourcePhysicsContactRuntimeAbi&);
     void instruction(std::uint32_t);
     std::optional<std::uint64_t> utc_filetime_input()const noexcept{return utc_;}
+    std::span<const std::uint64_t> utc_filetime_inputs()const noexcept{return utc_inputs_;}
     std::optional<std::uint32_t> monotonic_millisecond_input()const noexcept{return tick_;}
     std::optional<std::uint32_t> rng_seed_millisecond_input()const noexcept{return seed_tick_;}
     std::span<const std::uint32_t> monotonic_millisecond_inputs()const noexcept{return ticks_;}
@@ -32,6 +33,7 @@ private:
     std::uint32_t thread_token_;
     NativeTu15RngClock clock_;
     std::optional<std::uint64_t> utc_;
+    std::vector<std::uint64_t> utc_inputs_;
     std::optional<std::uint32_t> tick_;
     std::optional<std::uint32_t> seed_tick_;
     std::vector<std::uint32_t> ticks_;

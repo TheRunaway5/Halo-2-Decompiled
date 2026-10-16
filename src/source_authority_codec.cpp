@@ -219,7 +219,7 @@ std::array<std::byte,32> digest(std::span<const std::byte> bytes){std::array<std
     if(!SHA256(reinterpret_cast<const unsigned char *>(bytes.data()),bytes.size(),reinterpret_cast<unsigned char *>(result.data())))
         throw FormatError("Cannot checksum authority archive");return result;}
 void source_only(const SourceMatchAuthority::Checkpoint &v){
-    if(v.version!=1||!v.match.source_backed||!v.match.simulation.source_backed||v.match.owned_players||v.match.simulation.owned_lifetimes)
+    if(v.version!=2||v.match.version!=2||v.world.world.version!=2||!v.match.source_backed||!v.match.simulation.source_backed||v.match.owned_players||v.match.simulation.owned_lifetimes)
         throw FormatError("Authority archive requires the complete coupled TU1.5 source checkpoint");
 }
 }

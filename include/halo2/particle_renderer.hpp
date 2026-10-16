@@ -1,5 +1,6 @@
 #pragma once
 #include "halo2/particle_draw.hpp"
+#include "halo2/renderer_particle_program.hpp"
 #include <vulkan/vulkan.h>
 
 namespace halo2 {
@@ -18,6 +19,7 @@ public:
   ParticleRenderer(const ParticleRenderer&)=delete;
   ParticleRenderer &operator=(const ParticleRenderer&)=delete;
   void prepare(std::span<const ParticleDraw>,ParticleSceneTexture = {});
+  RendererParticleProgramConfiguration program(std::shared_ptr<const ParticleMaterial>);
   bool reads_scene_texture(std::size_t index) const;
   void resolve_scene_lookup(std::size_t index,const ParticleBumpTextureState &);
   void record(VkCommandBuffer,VkViewport,VkRect2D,std::size_t first,std::size_t count) const;

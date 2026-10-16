@@ -101,6 +101,9 @@ struct WeaponFiringEffectDefinition {
   std::array<std::uint32_t,3> effects{}, damage_effects{};
 };
 struct WeaponDefinition {
+  // Presentation metadata for authored barrel-less items whose gameplay is
+  // owned by the retained source runtime (objectives and depleted weapons).
+  bool source_runtime_only{};
   // Immutable projections of each actual authored barrel. Children retain
   // their own projectile/effect/damage operands and have no child views.
   std::vector<std::shared_ptr<const WeaponDefinition>> barrel_views;
@@ -315,6 +318,7 @@ struct LevelContent {
   };
   std::vector<PlayerRepresentation> player_representations;
   std::uint32_t player_representation_count{};
+  std::vector<std::int16_t> player_start_representations;
   std::uint32_t first_person_hands = null_datum;
   MovementDefinition movement;
   Vec2 player_screen_offset{}; // matg+0xF0 control record+0x18/+0x1C (23C110).
@@ -368,6 +372,8 @@ struct LevelContent {
   // Variant inputs used to resolve cold class1/2 templates. The original
   // netgame factory still owns each birth, controller and physical state.
   std::array<std::int32_t,2> light_vehicle_options{};
+  // Original15CDF0 inputs for cold class6/7 templates; source owns birth.
+  std::array<std::int32_t,2> turret_vehicle_options{};
   std::vector<std::string> limitations;
   std::string describe() const;
 };

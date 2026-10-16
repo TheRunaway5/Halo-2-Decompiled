@@ -46,6 +46,7 @@ public:
     BspPostprocess &operator=(const BspPostprocess &)=delete;
     // Call after the previous submission's fence; no command buffer recording.
     void prepare(std::span<const BspPostprocessView>,float time);
+    void cinematic_bloom(bool,const CinematicBloomOverride &);
     // Preserve CPU motion/RNG when GPU surfaces are recreated on resize.
     BspPostprocessState persistent_state() const;
     void restore_state(const BspPostprocessState &);

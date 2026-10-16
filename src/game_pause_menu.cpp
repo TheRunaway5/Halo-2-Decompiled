@@ -134,7 +134,10 @@ void GamePauseMenu::bind(SDL_Window *window,DesktopSession &desktop,Renderer &re
   state_->set_pc_video_modes(std::move(modes),w,h,bool(SDL_GetWindowFlags(window_)&SDL_WINDOW_FULLSCREEN));
 }
 void GamePauseMenu::show() {
-  if(desktop_)state_->adopt_controller_settings(desktop_->controller_settings);
+  if(desktop_) {
+    state_->adopt_controller_settings(desktop_->controller_settings);
+    state_->adopt_graphics_mode(desktop_->display_settings.graphics_mode);
+  }
   state_->ui_clock(SDL_GetTicks());state_->open_game_pause(campaign_);
   visible_=true;entered_=SDL_GetTicks();screen_=state_->frame().screen;
   if(window_)SDL_SetRelativeMouseMode(SDL_FALSE);

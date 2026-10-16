@@ -63,6 +63,12 @@ struct SourceWeatherDepthAliasBinding {
     VkImageLayout layout{VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
     std::uint32_t mips{1};
 };
+// Original texture color-format fields used by TU1.5 145E0 at 515E48/515E4C.
+// Both are unsigned normalized 8-bit channels over the same D24S8 bytes.
+enum class SourceWeatherDepthAliasFormat : std::uint32_t {
+    linear_a8r8g8b8 = 0x12,
+    linear_a8b8g8r8 = 0x3f,
+};
 // Exact D24S8 current-image producer. Copies integer depth and
 // stencil aspects and writes [N>>8, N, stencil, N>>16] low bytes in native row
 // order. No float depth or row flip. Frame history and activation belong to
@@ -79,11 +85,33 @@ public:
     SourceWeatherDepthAlias(const SourceWeatherDepthAlias &)=delete;
     SourceWeatherDepthAlias &operator=(const SourceWeatherDepthAlias &)=delete;
     void prepare(VkExtent2D);
+    // Actual device/queue facts for the retained producer, useful to native
+    // command owners. Does not expose a submission or readiness claim.
+    SourceWeatherDepthAliasContext context() const;
+    bool has_pending_submission() const;
     void record(const SourceWeatherDepthAliasRecord &);
+    // Color interpretation of the same source bytes (TU1.5 surface515E50).
+    // begin_color() produces the current alias and leaves it as a color
+    // attachment. The caller records color operations outside this module,
+    // then calls end_color() after ending its render pass. Source depth/stencil
+    // MUST remain unchanged between these calls. Each color phase writes its
+    // exact final bytes back before later depth or sampled-alias consumers.
+    // This does not admit simultaneous depth writes or depth/color feedback
+    // within a draw. Those source consumers require their own validation.
+    // Source requires TRANSFER_DST in addition to record()'s ordinary facts.
+    // One exact command/fence covers production, color writes and writeback;
+    // discard_unsubmitted() is the only recovery from an unfinished phase.
+    SourceWeatherDepthAliasBinding begin_color(const SourceWeatherDepthAliasRecord &);
+    void end_color(VkCommandBuffer);
     // Descriptor target only: not a readiness claim. It may be bound before
     // recording, but no GPU consumer may execute before record()'s producer.
     SourceWeatherDepthAliasBinding prepared_binding() const;
     SourceWeatherDepthAliasBinding binding() const;
+    // These views share one production and completion fence. The default
+    // remains A8R8G8B8; A8B8G8R8 samples [stencil, N, N>>8, N>>16]. View
+    // swizzling affects sampling only, not image transfer/readback bytes.
+    SourceWeatherDepthAliasBinding prepared_binding(SourceWeatherDepthAliasFormat) const;
+    SourceWeatherDepthAliasBinding binding(SourceWeatherDepthAliasFormat) const;
     // Recovery only after this exact command was NEVER submitted and has
     // successfully been reset. Caller owns that execution fact; Vulkan cannot
     // reflect it from opaque handles. Restores the pre-record layout history.

@@ -19,6 +19,9 @@ public:
   SourceRuntimeHostPhysicalMemory(const SourceRuntimeHostPhysicalMemory &) = delete;
   SourceRuntimeHostPhysicalMemory &operator=(const SourceRuntimeHostPhysicalMemory &) = delete;
   std::uint32_t allocate(SourcePhysicalAllocationRequest);
+  // Exact owned region only. Reject interior/foreign/replaced backings and
+  // staged ownership before unpublishing pages and their protection rows.
+  void release(std::uint32_t address);
   void protect(std::uint32_t address, std::uint32_t bytes, std::uint32_t protection);
   bool backs(const SourceRuntimeMemory &memory) const noexcept { return &memory_ == &memory; }
   struct AllocationCheckpoint {

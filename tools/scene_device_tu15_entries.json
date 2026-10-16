@@ -557,6 +557,2563 @@
         1099216
       ],
       "indirect_call_sites": []
+    },
+    "000b8c80": {
+      "count": 83,
+      "calls": [
+        763872,
+        773856,
+        794944,
+        1104512,
+        1885248
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "000c2140": {
+      "count": 63,
+      "calls": [
+        1913072
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 000b8c80"
+    },
+    "0010da80": {
+      "count": 31,
+      "calls": [],
+      "indirect_call_sites": [
+        1104586
+      ],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 000b8c80"
+    },
+    "00186d50": {
+      "count": 9,
+      "calls": [
+        1607712
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "00188820": {
+      "count": 16,
+      "calls": [
+        753408
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 00186d50"
+    },
+    "00186d70": {
+      "count": 2,
+      "calls": [
+        1607712
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "001801e0": {
+      "count": 67,
+      "calls": [
+        1363376,
+        1571984
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "001802d0": {
+      "count": 65,
+      "calls": [
+        2375008
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "00243d60": {
+      "count": 28,
+      "calls": [
+        1574304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 001802d0"
+    },
+    "0017e7d0": {
+      "count": 119,
+      "calls": [
+        1363376,
+        1501792
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "00178c10": {
+      "count": 115,
+      "calls": [
+        773616,
+        1501792,
+        1540128,
+        1549184,
+        1554560
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "0018b770": {
+      "count": 23,
+      "calls": [
+        1632624
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "0018e970": {
+      "count": 280,
+      "calls": [
+        1216880,
+        1625552,
+        1628512,
+        1629296,
+        1641088
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 0018b770"
+    },
+    "00129170": {
+      "count": 187,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 0018e970"
+    },
+    "0018d960": {
+      "count": 186,
+      "calls": [
+        1367408,
+        3329240
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 0018e970"
+    },
+    "0014dd70": {
+      "count": 77,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 0018d960"
+    },
+    "0018dc70": {
+      "count": 928,
+      "calls": [
+        1367408,
+        1500832,
+        1639712
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 0018e970"
+    },
+    "00190520": {
+      "count": 364,
+      "calls": [
+        1313040,
+        1367408,
+        2228736,
+        2437232
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 0018dc70"
+    },
+    "00220200": {
+      "count": 44,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 00190520"
+    },
+    "00190a80": {
+      "count": 363,
+      "calls": [
+        1313040,
+        1367408,
+        2228736,
+        2437232
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 0018e970"
+    },
+    "001cfe60": {
+      "count": 192,
+      "calls": [
+        1501792,
+        2004640,
+        2004912,
+        2008448,
+        2146176,
+        2146352,
+        2146704,
+        2146928,
+        2147920,
+        2196816,
+        2751344
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "001e97b0": {
+      "count": 139,
+      "calls": [
+        1172992,
+        1363376,
+        2004640,
+        2008448,
+        2008688,
+        2519968,
+        2586928
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 001cfe60"
+    },
+    "001ea670": {
+      "count": 109,
+      "calls": [
+        2519968,
+        2726656
+      ],
+      "indirect_call_sites": [
+        2008918
+      ],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 001e97b0"
+    },
+    "00299b00": {
+      "count": 23,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 001ea670"
+    },
+    "0020bf80": {
+      "count": 56,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 001cfe60"
+    },
+    "00218550": {
+      "count": 44,
+      "calls": [
+        2196640,
+        2751984,
+        3319392
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 001cfe60"
+    },
+    "0029fdf0": {
+      "count": 98,
+      "calls": [
+        760432,
+        773856
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 00218550"
+    },
+    "000b9a70": {
+      "count": 95,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 0029fdf0"
+    },
+    "0029fb70": {
+      "count": 182,
+      "calls": [
+        760432,
+        764176,
+        773856,
+        1110256,
+        1912992
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal direct callee of complete TU1.5 BSP owner 001cfe60"
+    },
+    "001d0210": {
+      "count": 6,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "002190e0": {
+      "count": 1,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Original44AED0 constructed gameplay-system BSP callback"
+    },
+    "00285a70": {
+      "count": 194,
+      "calls": [],
+      "indirect_call_sites": [
+        2644769,
+        2644961,
+        2645153
+      ],
+      "provenance": "Actual retained04b_floodlab scene object birth at28412D ->285A70"
+    },
+    "0029cc70": {
+      "count": 89,
+      "calls": [
+        763248,
+        1501344
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original campaign BSP/Arbiter world owner"
+    },
+    "00290710": {
+      "count": 267,
+      "calls": [],
+      "indirect_call_sites": [
+        2688983,
+        2689440,
+        2689748
+      ],
+      "provenance": "Reached original campaign BSP/Arbiter world owner"
+    },
+    "001884a0": {
+      "count": 236,
+      "calls": [
+        581424,
+        582176,
+        733376
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00186d50"
+    },
+    "0008df30": {
+      "count": 102,
+      "calls": [
+        580176,
+        580304,
+        584896,
+        585152,
+        585312
+      ],
+      "indirect_call_sites": [
+        581605,
+        581621,
+        581645,
+        581661
+      ],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001884a0"
+    },
+    "0008da50": {
+      "count": 44,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0008df30"
+    },
+    "0008dad0": {
+      "count": 32,
+      "calls": [
+        669392
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0008df30"
+    },
+    "000a36d0": {
+      "count": 116,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0008dad0"
+    },
+    "0008ecc0": {
+      "count": 22,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0008df30"
+    },
+    "0008edc0": {
+      "count": 69,
+      "calls": [],
+      "indirect_call_sites": [
+        585168,
+        585194,
+        585209,
+        585220
+      ],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0008df30"
+    },
+    "0008ee60": {
+      "count": 67,
+      "calls": [],
+      "indirect_call_sites": [
+        585326,
+        585346,
+        585360,
+        585372
+      ],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0008df30"
+    },
+    "000b30c0": {
+      "count": 26,
+      "calls": [
+        582176,
+        752992
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001884a0"
+    },
+    "00188860": {
+      "count": 16,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00186d70"
+    },
+    "00176d80": {
+      "count": 75,
+      "calls": [
+        1363376,
+        1540128
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00178c10"
+    },
+    "0029cc20": {
+      "count": 26,
+      "calls": [
+        2739664
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001cfe60"
+    },
+    "0029cdd0": {
+      "count": 37,
+      "calls": [
+        2739584
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0029cc20"
+    },
+    "0029cd80": {
+      "count": 22,
+      "calls": [
+        1500832
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0029cdd0"
+    },
+    "000de970": {
+      "count": 14,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Reached original campaign BSP unload10DACA/Arbiter FP126319"
+    },
+    "00125fb0": {
+      "count": 53,
+      "calls": [
+        1309968,
+        1310288
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original campaign BSP unload10DACA/Arbiter FP126319"
+    },
+    "00126400": {
+      "count": 38,
+      "calls": [
+        1193632,
+        1501344,
+        2998132
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original Arbiter FP bitmap callback14032C ->126400"
+    },
+    "00262590": {
+      "count": 123,
+      "calls": [
+        2168896
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original actor2624A8/BSP object10DA5A callbacks"
+    },
+    "00211840": {
+      "count": 31,
+      "calls": [
+        2169616
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00262590"
+    },
+    "000fa6f0": {
+      "count": 73,
+      "calls": [
+        1031696,
+        1492512
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original actor2624A8/BSP object10DA5A callbacks"
+    },
+    "0020fee0": {
+      "count": 66,
+      "calls": [
+        2170032,
+        2170272
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original actor211C1B/BSP object10DA5A callbacks"
+    },
+    "0010f0e0": {
+      "count": 3,
+      "calls": [
+        1112272
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original actor211C1B/BSP object10DA5A callbacks"
+    },
+    "00210aa0": {
+      "count": 147,
+      "calls": [
+        2170032,
+        2170272,
+        2171184
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached actual actor211C1B/BSP biped1F16B8 callbacks"
+    },
+    "00212130": {
+      "count": 49,
+      "calls": [
+        1501792
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00210aa0"
+    },
+    "000d7e50": {
+      "count": 44,
+      "calls": [
+        884528
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached actual actor211C1B/BSP biped1F16B8 callbacks"
+    },
+    "000d7f30": {
+      "count": 48,
+      "calls": [
+        884192,
+        884432,
+        884656
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000d7e50"
+    },
+    "000d7de0": {
+      "count": 39,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000d7f30"
+    },
+    "000d7ed0": {
+      "count": 28,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000d7f30"
+    },
+    "002ac6e0": {
+      "count": 39,
+      "calls": [
+        2170272,
+        2170896
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original actor callback211C1B ->2AC6E0"
+    },
+    "00212010": {
+      "count": 85,
+      "calls": [
+        2170032
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002ac6e0"
+    },
+    "001b1810": {
+      "count": 211,
+      "calls": [
+        153984,
+        1182144,
+        1183920,
+        1773504,
+        1775088,
+        1776512,
+        2019104,
+        2085792,
+        2112160
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original live campaign actor callback1B0128 ->1B1810",
+      "tables": [
+        {
+          "address": 1776468,
+          "width": 4,
+          "count": 4,
+          "raw_hex": "191a1b00af191b003f1a1b00e8191b00"
+        },
+        {
+          "address": 1776484,
+          "width": 4,
+          "count": 4,
+          "raw_hex": "ca1a1b00ad1a1b00e01a1b00ad1a1b00"
+        }
+      ]
+    },
+    "001209c0": {
+      "count": 74,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1810"
+    },
+    "001210b0": {
+      "count": 72,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1810"
+    },
+    "001b0fc0": {
+      "count": 373,
+      "calls": [
+        177120,
+        2085840
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1810"
+    },
+    "001fd3d0": {
+      "count": 146,
+      "calls": [
+        1992928,
+        2198080,
+        2580112,
+        2581152
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b0fc0"
+    },
+    "00218a40": {
+      "count": 77,
+      "calls": [
+        1331952,
+        2199520
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001fd3d0"
+    },
+    "00218fe0": {
+      "count": 17,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00218a40"
+    },
+    "00275e90": {
+      "count": 59,
+      "calls": [
+        1912048,
+        2579360,
+        2579632
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001fd3d0"
+    },
+    "00275ba0": {
+      "count": 38,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00275e90"
+    },
+    "00275cb0": {
+      "count": 122,
+      "calls": [
+        926464,
+        996816,
+        2197232,
+        2584080
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00275e90"
+    },
+    "000e2300": {
+      "count": 139,
+      "calls": [
+        769536,
+        773616,
+        918704,
+        925936,
+        926400,
+        2106976
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00275cb0"
+    },
+    "000e04b0": {
+      "count": 19,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e2300"
+    },
+    "000e20f0": {
+      "count": 114,
+      "calls": [
+        925136,
+        2087072
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e2300"
+    },
+    "000e1dd0": {
+      "count": 136,
+      "calls": [
+        769536,
+        918704,
+        1491600,
+        1492272,
+        1492512
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e20f0"
+    },
+    "0016c290": {
+      "count": 61,
+      "calls": [
+        1172992,
+        1489216,
+        1490944
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e1dd0"
+    },
+    "0016c530": {
+      "count": 71,
+      "calls": [
+        769296,
+        1172992,
+        1489216,
+        1491824
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e1dd0"
+    },
+    "001fd8a0": {
+      "count": 109,
+      "calls": [
+        199632,
+        1121552,
+        2198304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e20f0"
+    },
+    "000e22c0": {
+      "count": 13,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e2300"
+    },
+    "00202660": {
+      "count": 166,
+      "calls": [
+        1192400,
+        1192464,
+        1363504,
+        2107472,
+        2107552,
+        2752320
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e2300"
+    },
+    "001231d0": {
+      "count": 14,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00202660"
+    },
+    "00202850": {
+      "count": 31,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00202660"
+    },
+    "002028a0": {
+      "count": 13,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00202660"
+    },
+    "0029ff40": {
+      "count": 15,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00202660"
+    },
+    "000f35d0": {
+      "count": 151,
+      "calls": [
+        769536,
+        1492512,
+        2106976
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00275cb0",
+      "tables": [
+        {
+          "address": 997412,
+          "width": 4,
+          "count": 2,
+          "raw_hex": "26360f00c9370f00"
+        },
+        {
+          "address": 997420,
+          "width": 1,
+          "count": 7,
+          "raw_hex": "00000101000100"
+        }
+      ]
+    },
+    "002186f0": {
+      "count": 54,
+      "calls": [
+        2196960,
+        2197856
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00275cb0"
+    },
+    "002185e0": {
+      "count": 65,
+      "calls": [
+        2063872
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002186f0"
+    },
+    "00218960": {
+      "count": 82,
+      "calls": [
+        1331712,
+        2199520
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002186f0"
+    },
+    "00276e10": {
+      "count": 132,
+      "calls": [
+        1492512,
+        2106976,
+        2196960,
+        2197856
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00275cb0"
+    },
+    "002762a0": {
+      "count": 420,
+      "calls": [
+        2107872,
+        2580624,
+        2597648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001fd3d0"
+    },
+    "002029e0": {
+      "count": 70,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002762a0"
+    },
+    "00276090": {
+      "count": 103,
+      "calls": [
+        2107760
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002762a0"
+    },
+    "00202970": {
+      "count": 41,
+      "calls": [
+        1601072
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00276090"
+    },
+    "0027a310": {
+      "count": 29,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002762a0"
+    },
+    "001b15f0": {
+      "count": 127,
+      "calls": [
+        2086480,
+        2087520,
+        2087600
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1810",
+      "tables": [
+        {
+          "address": 1775588,
+          "width": 4,
+          "count": 4,
+          "raw_hex": "5c161b0073161b0087161b0087161b00"
+        },
+        {
+          "address": 1775604,
+          "width": 4,
+          "count": 4,
+          "raw_hex": "86171b009e171b00b2171b00b2171b00"
+        }
+      ]
+    },
+    "001fd650": {
+      "count": 124,
+      "calls": [
+        2085840
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b15f0",
+      "tables": [
+        {
+          "address": 2086920,
+          "width": 4,
+          "count": 5,
+          "raw_hex": "57d71f0070d71f0076d61f008ad61f00a7d61f00"
+        }
+      ]
+    },
+    "001fda60": {
+      "count": 22,
+      "calls": [
+        955760
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b15f0"
+    },
+    "000e9570": {
+      "count": 55,
+      "calls": [
+        1120800,
+        1120912,
+        1121552
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001fda60"
+    },
+    "00111a90": {
+      "count": 36,
+      "calls": [
+        1982256
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000e9570"
+    },
+    "001b1b80": {
+      "count": 180,
+      "calls": [
+        199632,
+        1182144,
+        1182448,
+        2198304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1810"
+    },
+    "00120af0": {
+      "count": 298,
+      "calls": [
+        1182144
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1b80"
+    },
+    "001ecf20": {
+      "count": 56,
+      "calls": [
+        2606864
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1810"
+    },
+    "0027c710": {
+      "count": 50,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001ecf20",
+      "external_jump_targets": [
+        2606784
+      ]
+    },
+    "0027c6c0": {
+      "count": 21,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027c710"
+    },
+    "001fd3a0": {
+      "count": 16,
+      "calls": [
+        1126800
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1810"
+    },
+    "001b1e90": {
+      "count": 82,
+      "calls": [
+        1776512,
+        2540816
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original live actor callback1B0195 ->1B1E90"
+    },
+    "0026c510": {
+      "count": 46,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001b1e90"
+    },
+    "001be210": {
+      "count": 2,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Reached original live actor callback1B0195 ->1BE210"
+    },
+    "001bae60": {
+      "count": 2,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Authenticated47B478/131-entry behavior callback table"
+    },
+    "001be360": {
+      "count": 2,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Authenticated47B478/131-entry behavior callback table"
+    },
+    "001c5e00": {
+      "count": 2,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Authenticated47B478/131-entry behavior callback table"
+    },
+    "001caca0": {
+      "count": 2,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Authenticated47B478/131-entry behavior callback table"
+    },
+    "001c2220": {
+      "count": 160,
+      "calls": [
+        444992,
+        773616,
+        1768400,
+        1841248,
+        1841936,
+        1848688,
+        1996816,
+        2514752,
+        2520352
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original live actor callback1B0128 ->1C2220"
+    },
+    "001afbd0": {
+      "count": 26,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c2220"
+    },
+    "001c1860": {
+      "count": 18,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c2220"
+    },
+    "001c1b10": {
+      "count": 112,
+      "calls": [
+        829152,
+        831264,
+        832576,
+        1841504,
+        1996816
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c2220"
+    },
+    "000ca6e0": {
+      "count": 47,
+      "calls": [
+        1915856
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c1b10"
+    },
+    "001c1960": {
+      "count": 97,
+      "calls": [
+        794256,
+        1444448
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c1b10"
+    },
+    "001c3570": {
+      "count": 88,
+      "calls": [
+        769536
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c2220"
+    },
+    "001c2ba0": {
+      "count": 57,
+      "calls": [
+        2592208
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached original live actor callback1B0195 ->1C2BA0"
+    },
+    "00278dd0": {
+      "count": 50,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c2ba0"
+    },
+    "001c2470": {
+      "count": 83,
+      "calls": [
+        1016608,
+        1848688,
+        2514752,
+        2520352
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached1B0128/Authenticated47B478 behavior78-79 callbacks"
+    },
+    "001c25b0": {
+      "count": 275,
+      "calls": [
+        1016608,
+        1841936,
+        1842656,
+        1912208,
+        1912368,
+        2018560,
+        2102528,
+        2519968,
+        2579216,
+        2579264,
+        2580016,
+        2580112,
+        2580448,
+        2597536,
+        2597984,
+        2600976,
+        2601648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Reached1B0128/Authenticated47B478 behavior78-79 callbacks"
+    },
+    "001c1de0": {
+      "count": 139,
+      "calls": [
+        199632,
+        769536,
+        1177168,
+        2519968
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "001d2d90": {
+      "count": 43,
+      "calls": [
+        1349856
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "001d2e30": {
+      "count": 21,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0",
+      "external_jump_targets": [
+        1349248
+      ]
+    },
+    "001ecd00": {
+      "count": 20,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "00201500": {
+      "count": 159,
+      "calls": [
+        2018560,
+        2021120,
+        2606784
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "00275b10": {
+      "count": 8,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "00275b40": {
+      "count": 15,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "0027a2a0": {
+      "count": 15,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "0027a460": {
+      "count": 148,
+      "calls": [
+        199632,
+        2198304,
+        2198592,
+        2199216,
+        2606096,
+        2606160
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "00218c40": {
+      "count": 51,
+      "calls": [
+        2198304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027a460"
+    },
+    "00218eb0": {
+      "count": 45,
+      "calls": [
+        2197632,
+        2198304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027a460"
+    },
+    "00218880": {
+      "count": 78,
+      "calls": [
+        1331520,
+        2199600
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00218eb0"
+    },
+    "00219030": {
+      "count": 17,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00218880"
+    },
+    "0027c410": {
+      "count": 17,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027a460"
+    },
+    "0027c450": {
+      "count": 57,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027a460"
+    },
+    "0027b010": {
+      "count": 53,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "0027b2b0": {
+      "count": 40,
+      "calls": [
+        2601216,
+        2601792
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001c25b0"
+    },
+    "0027b100": {
+      "count": 117,
+      "calls": [
+        2198592,
+        2604256,
+        3329036
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027b2b0"
+    },
+    "0027bce0": {
+      "count": 15,
+      "calls": [
+        2603872
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027b100"
+    },
+    "0027bb60": {
+      "count": 41,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027bce0"
+    },
+    "0027b340": {
+      "count": 504,
+      "calls": [
+        2107760,
+        2198592,
+        2199216,
+        2603872,
+        2604032,
+        2604336,
+        2606368
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027b2b0",
+      "tables": [
+        {
+          "address": 2603828,
+          "width": 4,
+          "count": 2,
+          "raw_hex": "68b727006cb72700"
+        },
+        {
+          "address": 2603836,
+          "width": 1,
+          "count": 6,
+          "raw_hex": "000001010000"
+        },
+        {
+          "address": 2603844,
+          "width": 4,
+          "count": 6,
+          "raw_hex": "b0b92700beb92700e3b92700e3b92700b0b92700b0b92700"
+        }
+      ]
+    },
+    "0027bc00": {
+      "count": 57,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027b340"
+    },
+    "0027bd30": {
+      "count": 471,
+      "calls": [
+        2197376,
+        2592352
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027b340",
+      "tables": [
+        {
+          "address": 2606068,
+          "width": 4,
+          "count": 7,
+          "raw_hex": "b6bd270093be2700bfc02700a4c22700a4c22700bec1270093be2700"
+        }
+      ]
+    },
+    "00218780": {
+      "count": 84,
+      "calls": [
+        1331312,
+        2199600
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027bd30"
+    },
+    "00278e60": {
+      "count": 109,
+      "calls": [
+        1044896
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027bd30"
+    },
+    "000ff1a0": {
+      "count": 259,
+      "calls": [
+        199632,
+        1045888
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00278e60"
+    },
+    "000ff580": {
+      "count": 82,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000ff1a0"
+    },
+    "0027c520": {
+      "count": 98,
+      "calls": [
+        2197856
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027b340"
+    },
+    "001c6430": {
+      "count": 19,
+      "calls": [
+        2592208
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Cairo friendly HUD source tick reached original behavior leaf callback at 1B0195 -> 1C6430"
+    },
+    "001b7720": {
+      "count": 18,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1b0195 -> 1b7720; complete owner and literal callees"
+    },
+    "001bce90": {
+      "count": 26,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1b0195 -> 1bce90; complete owner and literal callees"
+    },
+    "001b0c70": {
+      "count": 35,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1b0bd0 -> 1b0c70; complete owner and literal callees"
+    },
+    "001b0f60": {
+      "count": 8,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1b0d1c -> 1b0f60; complete owner and literal callees"
+    },
+    "001164d0": {
+      "count": 19,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached c7ed1 -> 1164d0; complete owner and literal callees"
+    },
+    "00116440": {
+      "count": 16,
+      "calls": [
+        1971440
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached c7ee1 -> 116440; complete owner and literal callees"
+    },
+    "001baa10": {
+      "count": 33,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1b0d1c -> 1baa10; complete owner and literal callees"
+    },
+    "001baad0": {
+      "count": 197,
+      "calls": [
+        1912208,
+        1912368,
+        2014160,
+        2099488,
+        2199088,
+        2532064,
+        2540192,
+        2540480,
+        2540960,
+        2541648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1b0ad9 -> 1baad0; complete owner and literal callees"
+    },
+    "001ebbd0": {
+      "count": 66,
+      "calls": [
+        2018560,
+        2021120
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001baad0"
+    },
+    "00200920": {
+      "count": 15,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001baad0"
+    },
+    "00218e30": {
+      "count": 30,
+      "calls": [
+        2198304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001baad0"
+    },
+    "0026a2e0": {
+      "count": 46,
+      "calls": [
+        2532224,
+        2535968,
+        2538032,
+        3319392
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001baad0"
+    },
+    "0026a380": {
+      "count": 769,
+      "calls": [
+        199632,
+        1313040,
+        1314224,
+        1912208,
+        1912368,
+        2018560,
+        2102192,
+        2102528,
+        2528448,
+        2530672,
+        2530736,
+        2530928,
+        2531904,
+        2597536,
+        2597984,
+        2600976,
+        2601648
+      ],
+      "indirect_call_sites": [
+        2534646
+      ],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a2e0"
+    },
+    "002013b0": {
+      "count": 97,
+      "calls": [
+        2018560,
+        2021120,
+        2580112
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a380"
+    },
+    "002694c0": {
+      "count": 257,
+      "calls": [
+        177120,
+        1173312,
+        1492512,
+        1904800,
+        2007504,
+        2014640,
+        2020656,
+        2607104
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a380"
+    },
+    "0011e740": {
+      "count": 22,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002694c0"
+    },
+    "001d10a0": {
+      "count": 314,
+      "calls": [
+        199632,
+        1173312,
+        1492512,
+        1494688
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002694c0"
+    },
+    "001ebdb0": {
+      "count": 31,
+      "calls": [
+        842208
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002694c0"
+    },
+    "000cd9e0": {
+      "count": 128,
+      "calls": [
+        765280,
+        769536,
+        840864,
+        922800,
+        996816,
+        1076304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001ebdb0"
+    },
+    "000e14b0": {
+      "count": 253,
+      "calls": [
+        199632,
+        769536,
+        923856,
+        930576,
+        1178192,
+        1492512
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000cd9e0"
+    },
+    "00106c50": {
+      "count": 69,
+      "calls": [
+        765280,
+        1076192,
+        1077136,
+        3319392
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 000cd9e0"
+    },
+    "001ed530": {
+      "count": 47,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002694c0"
+    },
+    "0027c800": {
+      "count": 32,
+      "calls": [
+        1363376
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002694c0"
+    },
+    "00269d70": {
+      "count": 26,
+      "calls": [],
+      "indirect_call_sites": [
+        2530717
+      ],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a380"
+    },
+    "00269db0": {
+      "count": 25,
+      "calls": [],
+      "indirect_call_sites": [
+        2530782
+      ],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a380"
+    },
+    "00269e70": {
+      "count": 54,
+      "calls": [
+        2528448,
+        2530672,
+        2530736
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a380"
+    },
+    "0026a240": {
+      "count": 39,
+      "calls": [
+        199632
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a380"
+    },
+    "0026b220": {
+      "count": 544,
+      "calls": [
+        774064,
+        1363376,
+        1912048,
+        2007296,
+        2007504,
+        2014640,
+        2018368,
+        2018496,
+        2018560,
+        2020656,
+        2198304,
+        2519968,
+        2520144,
+        2561360,
+        2580448
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a2e0",
+      "tables": [
+        {
+          "address": 2538012,
+          "width": 4,
+          "count": 2,
+          "raw_hex": "f6b7260009ba2600"
+        },
+        {
+          "address": 2538020,
+          "width": 1,
+          "count": 7,
+          "raw_hex": "00010000010100"
+        }
+      ]
+    },
+    "001ea100": {
+      "count": 65,
+      "calls": [
+        1768400,
+        2520080
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026b220"
+    },
+    "00267410": {
+      "count": 18,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001ea100"
+    },
+    "00271550": {
+      "count": 145,
+      "calls": [
+        199632,
+        842944,
+        1901616,
+        2007296,
+        2519968,
+        2579216
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026b220"
+    },
+    "0026ba30": {
+      "count": 127,
+      "calls": [
+        2538448,
+        2539696,
+        2540000
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026a2e0"
+    },
+    "0026bbd0": {
+      "count": 240,
+      "calls": [
+        2538448,
+        2539152
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026ba30"
+    },
+    "0026be90": {
+      "count": 158,
+      "calls": [
+        2539696,
+        2540000,
+        2783392
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026bbd0"
+    },
+    "0026c0b0": {
+      "count": 98,
+      "calls": [
+        256544,
+        2198304,
+        2541376,
+        2541648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026be90"
+    },
+    "0026c740": {
+      "count": 37,
+      "calls": [
+        1314224
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026c0b0"
+    },
+    "0026c850": {
+      "count": 27,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026c0b0",
+      "external_jump_targets": [
+        2587968
+      ]
+    },
+    "00277d40": {
+      "count": 28,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026c850"
+    },
+    "0026c1e0": {
+      "count": 64,
+      "calls": [
+        2198304,
+        2541648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026be90"
+    },
+    "002a78a0": {
+      "count": 123,
+      "calls": [
+        2108080
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026be90"
+    },
+    "0026c2a0": {
+      "count": 55,
+      "calls": [
+        2150784,
+        2151120,
+        2540368
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001baad0"
+    },
+    "0026c350": {
+      "count": 35,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026c2a0"
+    },
+    "0026c3c0": {
+      "count": 120,
+      "calls": [
+        1501504,
+        2082112,
+        2083248,
+        2540816,
+        2541056,
+        2541648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001baad0"
+    },
+    "001fc540": {
+      "count": 124,
+      "calls": [
+        2099552,
+        2100528,
+        2198784,
+        2541056
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026c3c0"
+    },
+    "00200960": {
+      "count": 15,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001fc540"
+    },
+    "00200d30": {
+      "count": 426,
+      "calls": [
+        774064,
+        955904,
+        1912048,
+        1912208,
+        1912368,
+        2014160,
+        2018368,
+        2018560,
+        2077936,
+        2099552,
+        2099728,
+        2099776,
+        2102192,
+        2102528,
+        2103120,
+        2103360,
+        2519968,
+        2540816,
+        2541648,
+        2580448,
+        2597584,
+        2598464,
+        2600976,
+        2601168,
+        2601648,
+        2786368
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001fc540",
+      "tables": [
+        {
+          "address": 2102156,
+          "width": 4,
+          "count": 6,
+          "raw_hex": "800e2000b00e2000d40e20001c0f2000a20f20003c102000"
+        }
+      ]
+    },
+    "001fb4f0": {
+      "count": 130,
+      "calls": [
+        2198304,
+        2199216,
+        2199392
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "00200a10": {
+      "count": 9,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "00200a40": {
+      "count": 127,
+      "calls": [
+        953936,
+        2014160,
+        2018368,
+        2198928,
+        2540192,
+        2541472,
+        2541568,
+        2541648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "00218d90": {
+      "count": 39,
+      "calls": [
+        2198304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200a40"
+    },
+    "0026c7a0": {
+      "count": 32,
+      "calls": [
+        199632,
+        2198304,
+        2541648,
+        2782160
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200a40"
+    },
+    "002a73d0": {
+      "count": 42,
+      "calls": [
+        2197632,
+        2541648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026c7a0"
+    },
+    "0026c800": {
+      "count": 28,
+      "calls": [
+        2198304,
+        2541648
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200a40"
+    },
+    "00201750": {
+      "count": 74,
+      "calls": [
+        2541648,
+        2580112
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "00201840": {
+      "count": 112,
+      "calls": [
+        177120,
+        774064,
+        840816,
+        1492512,
+        2198304,
+        2541648,
+        2782160
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "000cd470": {
+      "count": 17,
+      "calls": [
+        765280
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00201840"
+    },
+    "0027a2d0": {
+      "count": 18,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "0027a640": {
+      "count": 336,
+      "calls": [
+        1773072,
+        2198592,
+        2599584,
+        2606096,
+        2932448,
+        2940976
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "0027aaa0": {
+      "count": 364,
+      "calls": [
+        199632,
+        2197376,
+        2593024
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027a640"
+    },
+    "00279100": {
+      "count": 346,
+      "calls": [
+        199632,
+        2581152,
+        2597136
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027aaa0",
+      "tables": [
+        {
+          "address": 2594280,
+          "width": 4,
+          "count": 6,
+          "raw_hex": "3291270018952700d8952700d8952700f893270032912700"
+        }
+      ]
+    },
+    "0027a110": {
+      "count": 121,
+      "calls": [
+        2584080,
+        2596688
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00279100"
+    },
+    "00279f50": {
+      "count": 30,
+      "calls": [
+        1122448,
+        1330160,
+        1332576
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027a110"
+    },
+    "002cbee0": {
+      "count": 473,
+      "calls": [
+        2197376,
+        2580976,
+        2582976,
+        2934208,
+        2934672,
+        2935024,
+        2936496
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027a640"
+    },
+    "002761f0": {
+      "count": 48,
+      "calls": [
+        2581152
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cbee0"
+    },
+    "002769c0": {
+      "count": 274,
+      "calls": [
+        2581152,
+        2582768,
+        2931440
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cbee0"
+    },
+    "002768f0": {
+      "count": 59,
+      "calls": [
+        2581152
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002769c0"
+    },
+    "002cbaf0": {
+      "count": 75,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002769c0"
+    },
+    "002cc5c0": {
+      "count": 123,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cbee0"
+    },
+    "002cc790": {
+      "count": 91,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cbee0"
+    },
+    "002cc8f0": {
+      "count": 380,
+      "calls": [
+        177120,
+        3329240
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cbee0"
+    },
+    "002cceb0": {
+      "count": 397,
+      "calls": [
+        2107760
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cbee0"
+    },
+    "002ce030": {
+      "count": 773,
+      "calls": [
+        199632,
+        2197376,
+        2197856,
+        2582976,
+        2927584,
+        2932272,
+        2940592,
+        3319392
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027a640"
+    },
+    "002cabe0": {
+      "count": 919,
+      "calls": [
+        148848,
+        199632,
+        764928,
+        769296,
+        769536,
+        770448,
+        774272,
+        794256,
+        1172992,
+        1331312,
+        1444448,
+        1996816,
+        2520352,
+        2594304,
+        2594368,
+        2595072,
+        2595632,
+        2927488,
+        3319392
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002ce030"
+    },
+    "00279600": {
+      "count": 14,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cabe0"
+    },
+    "00279640": {
+      "count": 39,
+      "calls": [
+        765280
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cabe0"
+    },
+    "00279900": {
+      "count": 56,
+      "calls": [
+        765280
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cabe0"
+    },
+    "00279b30": {
+      "count": 40,
+      "calls": [
+        765280
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cabe0"
+    },
+    "002cab80": {
+      "count": 28,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cabe0"
+    },
+    "002cbe30": {
+      "count": 57,
+      "calls": [
+        2931952
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002ce030"
+    },
+    "002cbcf0": {
+      "count": 96,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cbe30"
+    },
+    "002cdeb0": {
+      "count": 116,
+      "calls": [
+        2938112,
+        2938752,
+        2939840
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002ce030"
+    },
+    "002cd500": {
+      "count": 169,
+      "calls": [
+        2937808
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cdeb0"
+    },
+    "002cd3d0": {
+      "count": 31,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cd500"
+    },
+    "002cd780": {
+      "count": 80,
+      "calls": [
+        2931328,
+        2938112
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cdeb0"
+    },
+    "002cba80": {
+      "count": 32,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cd780"
+    },
+    "002cdbc0": {
+      "count": 221,
+      "calls": [
+        2582976,
+        2937920,
+        2938112,
+        2938992,
+        2939712
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cdeb0"
+    },
+    "002cd440": {
+      "count": 51,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cdbc0"
+    },
+    "002cd870": {
+      "count": 199,
+      "calls": [
+        2581152,
+        2582976,
+        2931728,
+        2938112
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cdbc0"
+    },
+    "002cbc10": {
+      "count": 57,
+      "calls": [
+        2927296
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cd870"
+    },
+    "002caac0": {
+      "count": 50,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cbc10"
+    },
+    "002cdb40": {
+      "count": 33,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002cdbc0"
+    },
+    "0027b0d0": {
+      "count": 16,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "002a8440": {
+      "count": 352,
+      "calls": [
+        774064,
+        2018368,
+        2197376,
+        2197856,
+        2198080,
+        2541472,
+        2541568,
+        2541648,
+        2596784,
+        2783392,
+        2783840,
+        2784768
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 00200d30"
+    },
+    "00279fb0": {
+      "count": 97,
+      "calls": [
+        1122448,
+        1327248,
+        1332576,
+        2584080,
+        2596688
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002a8440"
+    },
+    "002a7a60": {
+      "count": 57,
+      "calls": [
+        1492512
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002a8440"
+    },
+    "002a7e00": {
+      "count": 461,
+      "calls": [
+        2198304,
+        2541648,
+        2784048
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002a8440"
+    },
+    "002a7b30": {
+      "count": 37,
+      "calls": [
+        2783840
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 002a7e00"
+    },
+    "00218d00": {
+      "count": 34,
+      "calls": [
+        2198304
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001fc540"
+    },
+    "001fc9b0": {
+      "count": 69,
+      "calls": [
+        2099552,
+        2100528
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026c3c0"
+    },
+    "0026c5a0": {
+      "count": 30,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001baad0"
+    },
+    "002648b0": {
+      "count": 23,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1b0c57 -> 2648b0; complete owner and literal callees"
+    },
+    "001bad50": {
+      "count": 60,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1b0f56 -> 1bad50; complete owner and literal callees"
+    },
+    "00273ab0": {
+      "count": 20,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 32b512 -> 273ab0; complete owner and literal callees"
+    },
+    "001be370": {
+      "count": 2,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1afce4 -> 1be370; complete owner and literal callees"
+    },
+    "001baa90": {
+      "count": 14,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Cairo original actor targeting tick reached 1afce4 -> 1baa90; complete owner and literal callees"
+    },
+    "0027e000": {
+      "count": 81,
+      "calls": [
+        1997168
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Authenticated whole retail2742F0/TU1.5 27E000 allegiance action and retail1DF770/TU1.5 1E7A20 remove; campaign HS command bridge"
+    },
+    "001e7970": {
+      "count": 58,
+      "calls": [
+        1997936
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0027e000"
+    },
+    "001e7c70": {
+      "count": 72,
+      "calls": [
+        1907424,
+        1998160
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001e7970"
+    },
+    "001d1ae0": {
+      "count": 136,
+      "calls": [
+        1501792,
+        2178352,
+        2554432
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001e7c70"
+    },
+    "0026fa40": {
+      "count": 388,
+      "calls": [
+        794256,
+        1444448,
+        1842544,
+        2007776,
+        2019904,
+        2020592,
+        2519968,
+        2520768,
+        2606864,
+        2607072
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001d1ae0"
+    },
+    "001c1d70": {
+      "count": 38,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026fa40"
+    },
+    "001ea2e0": {
+      "count": 39,
+      "calls": [
+        2007504
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026fa40"
+    },
+    "001ed240": {
+      "count": 56,
+      "calls": [
+        2606864
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026fa40"
+    },
+    "001ed4f0": {
+      "count": 20,
+      "calls": [
+        2007504,
+        2020656
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026fa40"
+    },
+    "002676c0": {
+      "count": 21,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026fa40"
+    },
+    "0027c7e0": {
+      "count": 8,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 0026fa40"
+    },
+    "001e7d50": {
+      "count": 20,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Literal call/tail-jump of complete TU1.5 owner 001e7c70"
+    },
+    "001e7a20": {
+      "count": 63,
+      "calls": [
+        1997936
+      ],
+      "indirect_call_sites": [],
+      "provenance": "Authenticated whole retail2742F0/TU1.5 27E000 allegiance action and retail1DF770/TU1.5 1E7A20 remove; campaign HS command bridge"
+    },
+    "00042840": {
+      "count": 93,
+      "calls": [],
+      "indirect_call_sites": [],
+      "provenance": "Actual Spectre HUD Vulkan render reached source root40E80 callback41B7C -> 42840; original support routine and literal callees"
     }
   }
 }

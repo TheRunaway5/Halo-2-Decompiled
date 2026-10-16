@@ -74,7 +74,7 @@ async def main():
                 assert db.execute("SELECT count(*) FROM players").fetchone()[0] == 2
                 assert db.execute("SELECT count(*) FROM match_results").fetchone()[0] == 0
                 assert db.execute("SELECT count(*) FROM carnage_reports").fetchone()[0] == 0
-                print("PASS two independently authenticated native processes, measured host choice, eight admitted source players, asynchronous full/delta publication, prepared-world receipts, cancellation, and no unfinished result publication")
+                print("PASS two independently authenticated native processes, measured host choice, eight admitted source players, native source-exchange fixture checks, and no unfinished result publication")
             finally:
                 for process in processes:
                     if process.returncode is None:

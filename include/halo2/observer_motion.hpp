@@ -17,6 +17,8 @@ using SourceObserverState=std::array<std::uint32_t,0x358/4>;
 // transform all current derivatives when parent ownership changes.
 void source_observer_register_adopt(SourceObserverState&,DeathCameraPacket&,
     const SourceObserverConstants&);
+void source_observer_adopt(SourceObserverState&,DeathCameraPacket&,
+    const SourceObserverConstants&);
 // Complete171910 six-channel owner, including shared-duration cancellation,
 // angular delta/application and basis repair. Input is original170D00 dt.
 void source_observer_motion(SourceObserverState&,float source_dt,

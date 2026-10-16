@@ -14,3 +14,13 @@ if(UNIX AND NOT APPLE)
         target_compile_definitions(physics_multiplayer_acceptance PRIVATE HALO2_ACCEPTANCE_X11_FOCUS=1)
     endif()
 endif()
+
+
+add_executable(campaign_multiplayer_acceptance_tu15 EXCLUDE_FROM_ALL
+    tests/campaign_multiplayer_acceptance_tu15.cpp src/multiplayer_runtime.cpp)
+target_include_directories(campaign_multiplayer_acceptance_tu15 PRIVATE tests)
+target_link_libraries(campaign_multiplayer_acceptance_tu15 PRIVATE
+    halo2_renderer SDL2::SDL2 Vulkan::Vulkan glm::glm nlohmann_json::nlohmann_json)
+target_compile_definitions(campaign_multiplayer_acceptance_tu15 PRIVATE
+    HALO2_SHADER_DIR="${CMAKE_CURRENT_BINARY_DIR}/shaders")
+add_dependencies(campaign_multiplayer_acceptance_tu15 halo2_shaders)

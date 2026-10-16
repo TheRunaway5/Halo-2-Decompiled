@@ -28,8 +28,8 @@ void same(const NativeGrenadeEvent &a,const NativeGrenadeEvent &b){check(
     std::tie(b.kind,b.unit,b.projectile,b.definition,b.effect,b.activity,b.graph,b.clip,b.counter,b.phase) &&
     same(a.position,b.position)&&same(a.velocity,b.velocity),"Restored queued grenade event differs");}
 void same(const NativeGrenadeDetonation &a,const NativeGrenadeDetonation &b){
-    check(std::tie(a.serial,a.tick,a.projectile,a.definition,a.effect,a.player,a.unit,a.colors.a,a.colors.b)==
-        std::tie(b.serial,b.tick,b.projectile,b.definition,b.effect,b.player,b.unit,b.colors.a,b.colors.b) &&
+    check(std::tie(a.serial,a.tick,a.projectile,a.definition,a.effect,a.player,a.unit,a.colors.a,a.colors.b,a.source_effect_instance)==
+        std::tie(b.serial,b.tick,b.projectile,b.definition,b.effect,b.player,b.unit,b.colors.a,b.colors.b,b.source_effect_instance) &&
         same(a.position,b.position)&&same(a.forward,b.forward)&&same(a.up,b.up)&&same(a.controls.a,b.controls.a)&&same(a.controls.b,b.controls.b)&&
         a.source_locations.size()==b.source_locations.size(),"Restored grenade detonation/journal differs");
     for(unsigned i=0;i<a.source_locations.size();++i)check(a.source_locations[i].name==b.source_locations[i].name &&
@@ -105,6 +105,7 @@ void native(const char *map,const char *xbe,int type) {
         if(ad && a.projectiles().empty() && !(u.source_action_word&0x400000u))break;
     }
     check(released && ad==1 && bd==1 && ar==1 && br==1 && !a.detonations().empty(),"Actual native fuse/retirement did not finish once");
+    for(const auto& d:a.detonations())check(d.source_effect_instance==null_datum,"Native-only grenade fabricated source-pool provenance");
     std::cout<<"PASS actual native grenade type="<<type<<" held attachment/caches/pending events, release/flight/fuse/attribution/retirement across "<<tick<<" steps\n";
 }
 void source_bridge(const char *map,const char *xbe) {
@@ -125,6 +126,9 @@ void source_bridge(const char *map,const char *xbe) {
     Transform frame;frame.position={4,5,6};event.effect_locations.push_back({42,frame});
     for(unsigned i=0;i<70;++i)a.adopt_source_detonations(100+i,std::span(&event,1));
     const auto saved=a.authority_checkpoint({},true);check(saved.detonations.size()==64 && saved.detonation_serial==70,"Source journal retention/frontier changed");
+    for(const auto& d:saved.detonations)check(d.source_effect_instance==event.effect_instance,"Source effect-instance provenance was dropped");
+    auto invalid=saved;invalid.detonations.front().source_effect_instance=4;rejects([&]{b.prepare_authority(invalid,{},true);});
+    invalid=saved;invalid.detonations.front().source_effect_instance=0xe2000100;rejects([&]{b.prepare_authority(invalid,{},true);});
     rejects([&]{b.prepare_authority(saved,{});});auto staged=b.prepare_authority(saved,{},true);
     check(b.commit_authority(std::move(staged)),"Qualified source grenade presentation import failed");same(saved,b.authority_checkpoint({},true));
     auto malformed=event;malformed.effect_locations.clear();rejects([&]{b.adopt_source_detonations(200,std::span(&malformed,1));});

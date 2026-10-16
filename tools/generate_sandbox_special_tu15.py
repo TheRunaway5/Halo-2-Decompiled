@@ -72,7 +72,7 @@ ENTRIES = (0x1f39d0, 0x1f3b80, 0x10f080, 0x30bd0,
            0x10b4b0,0x10b3d0,0x1ad7f0,0x206090,0xb9960,0x148e20,
            0x10a680,0xb1a70,0xff100,0xbac30,0x145070,0xbc330,0xd91d0,0xb1f80,
            # Actual1AD81C and the complete original aim-query descendants.
-           0xcdbb0,0x11fd70,0x1af670,0x1af920,0xbcfb0,
+           0xcdbb0,0x11fd70,0x1af670,0x1af7e0,0x1ae4a0,0x1af920,0xbcfb0,
            # ActualE978A manual reload reads the original magazine phase.
            0x107aa0,
            # Actual107D00 reload transfer spends the genuine shared reserve.
@@ -190,6 +190,13 @@ def main():
     aim_calls={code.at(p).operands[0].imm for p in _trace(code,0x1ad7f0,{0x1ad7f0}).code
                if code.at(p).mnemonic=='call' and code.at(p).operands[0].type==2}
     assert {0xcdbb0,0x11fd70,0x1af670,0x1af920,0xbcfb0}<=aim_calls
+    # The non-empty object/region collision branch resolves the actual retained
+    # attachment transforms. An empty scene never reached this complete owner.
+    assert code.at(0x1af6ba).mnemonic=='call' and code.at(0x1af6ba).operands[0].imm==0x1af7e0
+    assert code.at(0x1af6f5).mnemonic=='call' and code.at(0x1af6f5).operands[0].imm==0x1ae4a0
+    attachment_calls={code.at(p).operands[0].imm for p in _trace(code,0x1af7e0,{0x1af7e0}).code
+                      if code.at(p).mnemonic=='call' and code.at(p).operands[0].type==2}
+    assert attachment_calls=={0xbce50,0xbad60}
     assert code.at(0xe978a).mnemonic=='call' and code.at(0xe978a).operands[0].imm==0x107aa0
     assert code.at(0x107d00).mnemonic=='call' and code.at(0x107d00).operands[0].imm==0x105c50
     assert code.at(0x102f4e).mnemonic=='call' and code.at(0x102f4e).operands[0].imm==0x107d30

@@ -406,6 +406,13 @@ SourcePhysicsGameArenaNative::~SourcePhysicsGameArenaNative()=default;
 SourcePhysicsContactMemory &SourcePhysicsGameArenaNative::memory(){return impl_->shared;}
 void SourcePhysicsGameArenaNative::run(std::uint32_t entry,SourcePhysicsWorldRuntimeAbi &abi){
   Impl::ActiveCall operation(*impl_);
+  if(entry==0x2d79aau || entry==0x2d7a1au) {
+    // Physical pages outlive the joined startup worker, like protect_pages.
+    std::lock_guard lock(impl_->shared.mutex);
+    source_run_physics_physical_storage_with_native_pages(impl_->shared.bank,entry,abi,
+        impl_->config.floating_point,impl_->lower,impl_->physical,impl_->observe);
+    return;
+  }
   impl_->check_worker();
   if(entry==0x12cb70u) {
     std::lock_guard lock(impl_->shared.mutex);

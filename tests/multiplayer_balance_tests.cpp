@@ -3,6 +3,7 @@
 #include "halo2/content.hpp"
 #include "halo2/multiplayer_network.hpp"
 #include <bit>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -24,10 +25,12 @@ bool same(float a, float b) { return std::bit_cast<std::uint32_t>(a) == std::bit
 void consumer_check(const std::filesystem::path& map, const std::filesystem::path& processed,
                     const std::filesystem::path& native_output,
                     const std::shared_ptr<const OriginalData>& source, std::size_t stores) {
-  const Cache native(map, map.parent_path(), source);
+  const auto* shared_override = std::getenv("HALO2_TEST_BALANCE_SHARED_MAPS");
+  const auto shared = shared_override ? std::filesystem::path(shared_override) : map.parent_path();
+  const Cache native(map, shared, source);
   // This reference consumes the unchanged original emulator's expected buffer
   // in differential runs. It imports ordinary disc tables and adds no patch.
-  const Cache expected(processed, map.parent_path());
+  const Cache expected(processed, shared);
   const auto content = native.load_content(0, true), reference = expected.load_content(0, true);
   check(native.multiplayer_balance_writes() == stores, "live Cache omitted original postprocess");
   check(content.original_data == source, "live content lost selected original data source");
@@ -50,10 +53,10 @@ void consumer_check(const std::filesystem::path& map, const std::filesystem::pat
   check(!std::filesystem::exists(copy), "private test executable copy already exists");
   std::filesystem::copy_file(source->source, copy);
   try {
-    const auto raw = multiplayer_fingerprint(map, map.parent_path(), 0, 0);
-    const auto selected = multiplayer_fingerprint(map, map.parent_path(), 0, 0, source->source);
+    const auto raw = multiplayer_fingerprint(map, shared, 0, 0);
+    const auto selected = multiplayer_fingerprint(map, shared, 0, 0, source->source);
     check(raw != selected, "LAN admitted raw and updated balance definitions together");
-    check(selected == multiplayer_fingerprint(map, map.parent_path(), 0, 0, copy),
+    check(selected == multiplayer_fingerprint(map, shared, 0, 0, copy),
           "LAN update identity depends on local file path");
     auto rules = slayer_rules({"Balance compatibility", 0, {}});
     rules.weapon = native.slayer_starting_weapon(0);

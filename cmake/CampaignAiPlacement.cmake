@@ -6,6 +6,14 @@ if(BUILD_TESTING)
     target_include_directories(source_ai_placement_tests PRIVATE include)
     target_link_libraries(source_ai_placement_tests PRIVATE nlohmann_json::nlohmann_json)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        add_executable(source_ai_descriptor_leaf_tests tests/source_ai_descriptor_leaf_tests.cpp)
+        target_link_libraries(source_ai_descriptor_leaf_tests PRIVATE halo2_systems ZLIB::ZLIB)
+        add_test(NAME original_campaign_ai_descriptor_leaf_tu15 COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/tag_match_memory_budget.py"
+            --output-root "${CMAKE_CURRENT_BINARY_DIR}/memory-budget/campaign-ai-descriptor-leaf"
+            --timeout 120 -- $<TARGET_FILE:source_ai_descriptor_leaf_tests>
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/ai_descriptor_1c9c90_original.tsv.gz")
+        set_tests_properties(original_campaign_ai_descriptor_leaf_tu15 PROPERTIES RUN_SERIAL TRUE TIMEOUT 150)
         add_test(NAME original_campaign_ai_placement COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/tag_match_memory_budget.py"
             --output-root "${CMAKE_CURRENT_BINARY_DIR}/memory-budget/campaign-ai-placement"

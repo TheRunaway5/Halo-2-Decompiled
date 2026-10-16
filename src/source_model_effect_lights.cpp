@@ -1,12 +1,15 @@
 #include "halo2/source_model_effect_lights.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/world_material.hpp"
+#include "halo2/pstencil/material.hpp"
+#include "halo2/pstencil/caster.hpp"
 #include <map>
 #include <set>
 #include <tuple>
 namespace halo2 {
 struct SourceModelEffectLights::Impl {
     const Cache& cache;
+    pstencil::MaterialBank pstencil_materials;
     std::shared_ptr<const MenuWorldSourceSection> geometry;
     std::map<std::uint32_t,EffectLightDefinition> lights;
     using Key=std::tuple<std::uint32_t,std::uint32_t,unsigned,unsigned>;
@@ -14,7 +17,7 @@ struct SourceModelEffectLights::Impl {
     std::map<Key,Slot> slots;
     std::vector<std::string> unavailable;
     Impl(const Cache& c,Mesh& mesh,std::uint32_t model,unsigned section,
-        std::span<const std::uint32_t> ids):cache(c),
+        std::span<const std::uint32_t> ids):cache(c),pstencil_materials(c,mesh),
         geometry(std::make_shared<const MenuWorldSourceSection>(load_menu_world_source_model_section(c,model,section))){
         for(auto id:ids)lights.emplace(id,load_effect_light(cache,id));
         std::set<std::uint32_t> shaders;
@@ -38,6 +41,9 @@ struct SourceModelEffectLights::Impl {
                         load_menu_world_source_pass(cache,shader,{lod,12,pass,1})});
                 }
             }catch(const FormatError& e){unavailable.push_back(std::to_string(id)+"/"+std::to_string(shader)+": "+e.what());}
+            for(unsigned lod=0;lod<post.u32(0);++lod)for(const auto& [id,definition]:lights)try {
+                authored.selected_shader_lod=lod;pstencil_materials.preload(authored,id,definition);
+            }catch(const FormatError& e){unavailable.push_back("pStencil "+std::to_string(id)+"/"+authored.name+": "+e.what());}
         }
     }
 };
@@ -58,7 +64,10 @@ EffectLightRawDraw SourceModelEffectLights::draw(const SourceModelEffectLightDra
         in.object&65535u,in.object};
     auto draw=menu_world_source_draw(i.geometry,in.part,in.topology,in.palette,in.range);
     auto binding=menu_world_source_binding_class(i.cache,owner,std::move(draw),slot.pass.vertex_shader(),in.vertex_class,constants);
-    return source_effect_light_raw_draw(slot.material,completed[in.pass],slot.pass,std::move(binding),in.raster,
+    auto result=source_effect_light_raw_draw(slot.material,completed[in.pass],slot.pass,std::move(binding),in.raster,
         in.clip_range,in.fog_parameters);
+    result.pstencil_specular=i.pstencil_materials.complete(in.shader,in.shader_lod,in.light,in.uniforms);
+    result.pstencil_casts_shadow=pstencil::shadow_casting_part(i.geometry->parts().at(in.part).type);
+    return result;
 }
 }

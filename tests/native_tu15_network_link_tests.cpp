@@ -27,6 +27,28 @@
 #include "halo2/source_aux_object_state_tu15.hpp"
 #include "halo2/source_renderer_request_tu15.hpp"
 #include "halo2/native_tu15_graphics_device.hpp"
+#include "halo2/native_tu15_framebuffer_startup.hpp"
+#include "halo2/native_tu15_texture_pair_startup.hpp"
+#include "halo2/source_renderer_target_storage_tu15.hpp"
+#include "halo2/native_tu15_renderer_aux_startup.hpp"
+#include "halo2/source_renderer_transparent_storage_tu15.hpp"
+#include "halo2/source_renderer_tail_storage_tu15.hpp"
+#include "halo2/native_tu15_debug_texture_startup.hpp"
+#include "halo2/source_renderer_cache_pools_tu15.hpp"
+#include "halo2/source_render_object_startup_tu15.hpp"
+#include "halo2/source_startup_sound_storage_tu15.hpp"
+#include "halo2/source_sound_startup_tu15.hpp"
+#include "halo2/source_sound_sdk_tu15.hpp"
+#include "halo2/source_sound_hardware_storage_tu15.hpp"
+#include "halo2/source_sound_dma_storage_tu15.hpp"
+#include "halo2/native_tu15_sound_sdk_prefix_data.hpp"
+#include "halo2/native_tu15_audio_preference.hpp"
+#include "halo2/source_runtime_sound_sdk_resources.hpp"
+#include "halo2/source_runtime_sound_dma_resources.hpp"
+#include "halo2/source_runtime_sound_reset_resources.hpp"
+#include "halo2/source_runtime_sound_interrupt_policy.hpp"
+#include "halo2/source_sound_configuration_tu15.hpp"
+#include "halo2/source_weather_depth_alias.hpp"
 #include "halo2/source_renderer_state_tu15.hpp"
 #include "halo2/source_renderer_pool_tu15.hpp"
 #include "halo2/native_tu15_renderer_palette.hpp"
@@ -36,6 +58,7 @@
 #include "halo2/native_tu15_renderer_coordinates.hpp"
 #include "halo2/source_renderer_resource_storage_tu15.hpp"
 #include "helpers/native_tu15_startup_test.hpp"
+#include "helpers/native_tu15_framebuffer_gpu.hpp"
 #include "halo2/source_combat_action_tu15.hpp"
 #include "halo2/online_service.hpp"
 #include "halo2/physics_pool_host_storage.hpp"
@@ -124,11 +147,11 @@ Json title_observation(const NativeTitleAddressObservation& value) {
         {"gateway",value.gateway?Json(*value.gateway):Json(nullptr)},{"dns",value.dns},{"acquisition_pending",value.acquisition_pending}};
 }
 }
-int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease renderer_lease,RendererPaletteFactory palette_factory,RendererConstantMode constant_control,RendererDepthMode depth_control,RendererOutputState output_control,RendererTextureCoordinates coordinate_control)try {
+int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease renderer_lease,RendererPaletteFactory palette_factory,RendererConstantMode constant_control,RendererDepthMode depth_control,RendererOutputState output_control,RendererTextureCoordinates coordinate_control,RendererTargets target_control,RendererTexturePairFactory texture_pair_factory,RendererAuxTextureFactory aux_texture_factory,RendererDebugTextureFactory debug_texture_factory)try {
 #if !defined(__linux__)
     return 77;
 #endif
-    std::filesystem::path reference,fixture_path,capture;bool advance_xnet=false,advance_online=false,advance_services=false,advance_full=false,advance_rng=false,advance_session=false,advance_cache=false,advance_input=false,advance_bink=false,advance_handles=false,advance_renderer=false,advance_clock=false,advance_context=false,advance_players=false,advance_views=false,advance_registration=false,advance_scalars=false,advance_objects=false,advance_aux_objects=false,advance_renderer_request=false,advance_graphics_device=false,advance_graphics_state=false,advance_graphics_pool=false,advance_graphics_palette=false,advance_graphics_constants=false,advance_graphics_depth=false,advance_graphics_depth_state=false,advance_graphics_output=false,advance_graphics_coordinates=false;
+    std::filesystem::path reference,fixture_path,capture;bool advance_xnet=false,advance_online=false,advance_services=false,advance_full=false,advance_rng=false,advance_session=false,advance_cache=false,advance_input=false,advance_bink=false,advance_handles=false,advance_renderer=false,advance_clock=false,advance_context=false,advance_players=false,advance_views=false,advance_registration=false,advance_scalars=false,advance_objects=false,advance_aux_objects=false,advance_renderer_request=false,advance_graphics_device=false,advance_graphics_state=false,advance_graphics_pool=false,advance_graphics_palette=false,advance_graphics_constants=false,advance_graphics_depth=false,advance_graphics_depth_state=false,advance_graphics_output=false,advance_graphics_coordinates=false,advance_graphics_surfaces=false,advance_graphics_texture_pairs=false,advance_graphics_target_storage=false,advance_graphics_aux_textures=false,advance_graphics_transparent_storage=false,advance_graphics_debug_storage=false,advance_graphics_renderer_complete=false,advance_render_objects=false,advance_sound_storage=false,advance_sound_sdk=false,advance_sound_configuration=false;
     std::string input_devices_mode="host";
     for(int i=1;i<argc;i+=2) {
         check(i+1<argc,"Missing game startup test argument");const std::string_view option=argv[i];
@@ -138,22 +161,22 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
             input_devices_mode=argv[i+1];check(input_devices_mode=="host" || input_devices_mode=="none" || input_devices_mode=="virtual-four","Unknown native input selection");
         }
         else if(option=="--frontier"){
-            const auto value=std::string_view(argv[i+1]);check(value=="xnet-startup" || value=="online-startup" || value=="title-address" || (value=="network-complete" || value=="rng-complete" || value=="session-complete" || value=="cache-complete" || value=="input-complete" || value=="bink-memory" || value=="level-handles" || value=="renderer" || value=="clock" || value=="state-context" || value=="players" || value=="view-storage" || value=="static-registration" || value=="scalar-state" || value=="object-storage" || value=="aux-object-state" || value=="renderer-request" || value=="graphics-device" || value=="graphics-state" || value=="graphics-pool" || value=="graphics-palette" || value=="graphics-constants" || value=="graphics-depth" || value=="graphics-depth-state" || value=="graphics-output" || value=="graphics-coordinates"),"Unknown native network frontier");
-            advance_xnet=true;advance_online=value!="xnet-startup";advance_graphics_coordinates=value=="graphics-coordinates";advance_graphics_output=value=="graphics-output" || advance_graphics_coordinates;advance_graphics_depth_state=value=="graphics-depth-state" || advance_graphics_output;advance_graphics_depth=value=="graphics-depth" || advance_graphics_depth_state;advance_graphics_constants=value=="graphics-constants" || advance_graphics_depth;advance_graphics_palette=value=="graphics-palette" || advance_graphics_constants;advance_graphics_pool=value=="graphics-pool" || advance_graphics_palette;advance_graphics_state=value=="graphics-state" || advance_graphics_pool;advance_graphics_device=value=="graphics-device" || advance_graphics_state;advance_renderer_request=value=="renderer-request" || advance_graphics_device;advance_aux_objects=value=="aux-object-state" || advance_renderer_request;advance_objects=value=="object-storage" || advance_aux_objects;advance_scalars=value=="scalar-state" || advance_objects;advance_registration=value=="static-registration" || advance_scalars;advance_views=value=="view-storage" || advance_registration;advance_players=value=="players" || advance_views;advance_context=value=="state-context" || advance_players;advance_clock=value=="clock" || advance_context;advance_renderer=value=="renderer" || advance_clock;advance_handles=value=="level-handles" || advance_renderer;advance_bink=value=="bink-memory" || advance_handles;advance_input=value=="input-complete" || advance_bink;advance_cache=value=="cache-complete" || advance_input;advance_session=value=="session-complete" || advance_cache;advance_rng=value=="rng-complete" || advance_session;advance_full=value=="network-complete" || advance_rng;
+            const auto value=std::string_view(argv[i+1]);check(value=="xnet-startup" || value=="online-startup" || value=="title-address" || (value=="network-complete" || value=="rng-complete" || value=="session-complete" || value=="cache-complete" || value=="input-complete" || value=="bink-memory" || value=="level-handles" || value=="renderer" || value=="clock" || value=="state-context" || value=="players" || value=="view-storage" || value=="static-registration" || value=="scalar-state" || value=="object-storage" || value=="aux-object-state" || value=="renderer-request" || value=="graphics-device" || value=="graphics-state" || value=="graphics-pool" || value=="graphics-palette" || value=="graphics-constants" || value=="graphics-depth" || value=="graphics-depth-state" || value=="graphics-output" || value=="graphics-coordinates" || value=="graphics-surfaces" || value=="graphics-texture-pairs" || value=="graphics-target-storage" || value=="graphics-aux-textures" || value=="graphics-transparent-storage" || value=="graphics-debug-storage" || value=="graphics-renderer-complete" || value=="render-object-storage" || value=="sound-storage" || value=="sound-sdk" || value=="sound-configuration"),"Unknown native network frontier");
+            advance_xnet=true;advance_online=value!="xnet-startup";advance_sound_configuration=value=="sound-configuration";advance_sound_sdk=value=="sound-sdk" || advance_sound_configuration;advance_sound_storage=value=="sound-storage" || advance_sound_sdk;advance_render_objects=value=="render-object-storage" || advance_sound_storage;advance_graphics_renderer_complete=value=="graphics-renderer-complete" || advance_render_objects;advance_graphics_debug_storage=value=="graphics-debug-storage" || advance_graphics_renderer_complete;advance_graphics_transparent_storage=value=="graphics-transparent-storage" || advance_graphics_debug_storage;advance_graphics_aux_textures=value=="graphics-aux-textures" || advance_graphics_transparent_storage;advance_graphics_target_storage=value=="graphics-target-storage" || advance_graphics_aux_textures;advance_graphics_texture_pairs=value=="graphics-texture-pairs" || advance_graphics_target_storage;advance_graphics_surfaces=value=="graphics-surfaces" || advance_graphics_texture_pairs;advance_graphics_coordinates=value=="graphics-coordinates" || advance_graphics_surfaces;advance_graphics_output=value=="graphics-output" || advance_graphics_coordinates;advance_graphics_depth_state=value=="graphics-depth-state" || advance_graphics_output;advance_graphics_depth=value=="graphics-depth" || advance_graphics_depth_state;advance_graphics_constants=value=="graphics-constants" || advance_graphics_depth;advance_graphics_palette=value=="graphics-palette" || advance_graphics_constants;advance_graphics_pool=value=="graphics-pool" || advance_graphics_palette;advance_graphics_state=value=="graphics-state" || advance_graphics_pool;advance_graphics_device=value=="graphics-device" || advance_graphics_state;advance_renderer_request=value=="renderer-request" || advance_graphics_device;advance_aux_objects=value=="aux-object-state" || advance_renderer_request;advance_objects=value=="object-storage" || advance_aux_objects;advance_scalars=value=="scalar-state" || advance_objects;advance_registration=value=="static-registration" || advance_scalars;advance_views=value=="view-storage" || advance_registration;advance_players=value=="players" || advance_views;advance_context=value=="state-context" || advance_players;advance_clock=value=="clock" || advance_context;advance_renderer=value=="renderer" || advance_clock;advance_handles=value=="level-handles" || advance_renderer;advance_bink=value=="bink-memory" || advance_handles;advance_input=value=="input-complete" || advance_bink;advance_cache=value=="cache-complete" || advance_input;advance_session=value=="session-complete" || advance_cache;advance_rng=value=="rng-complete" || advance_session;advance_full=value=="network-complete" || advance_rng;
             advance_services=value=="title-address" || advance_full;
         }
         else throw std::runtime_error("Unknown game startup test argument");
     }
     check(reference.empty()==fixture_path.empty(),"Original startup comparison needs both reference and fixture");
     if(!reference.empty() && (!std::filesystem::is_regular_file(reference) || !std::filesystem::is_regular_file(fixture_path)))return 77;
-    SourceRuntimeMemory declarations;mount_native_tu15_game_startup_data(declarations);mount_native_tu15_network_storage_data(declarations);if(advance_rng)mount_native_tu15_rng_startup_data(declarations);if(advance_session)mount_native_tu15_network_session_data(declarations);if(advance_cache)mount_native_tu15_cache_startup_data(declarations);if(advance_input)mount_native_tu15_input_startup_data(declarations);if(advance_bink)mount_native_tu15_bink_memory_startup_data(declarations);if(advance_handles)mount_native_tu15_level_handles_startup_data(declarations);if(advance_renderer)mount_native_tu15_renderer_startup_data(declarations);if(advance_clock)mount_native_tu15_clock_startup_data(declarations);if(advance_context)mount_native_tu15_state_context_startup_data(declarations);if(advance_players)mount_native_tu15_player_startup_data(declarations);if(advance_views)mount_native_tu15_view_storage_data(declarations);if(advance_registration)mount_native_tu15_static_registration_data(declarations);if(advance_scalars)mount_native_tu15_scalar_state_data(declarations);if(advance_objects)mount_native_tu15_object_storage_data(declarations);if(advance_aux_objects)mount_native_tu15_aux_object_state_data(declarations);if(advance_renderer_request)mount_native_tu15_renderer_request_data(declarations);if(advance_graphics_device)mount_native_tu15_graphics_device_data(declarations);if(advance_graphics_state)mount_native_tu15_renderer_state_data(declarations);if(advance_graphics_pool)mount_native_tu15_renderer_pool_data(declarations);if(advance_graphics_palette)mount_native_tu15_renderer_palette_data(declarations);if(advance_graphics_depth_state)mount_native_tu15_renderer_depth_state_data(declarations);if(advance_graphics_output)mount_native_tu15_renderer_output_data(declarations);if(advance_graphics_coordinates)mount_native_tu15_renderer_resource_storage_data(declarations);std::size_t bytes=0,regions=0;
+    SourceRuntimeMemory declarations;mount_native_tu15_game_startup_data(declarations);mount_native_tu15_network_storage_data(declarations);if(advance_rng)mount_native_tu15_rng_startup_data(declarations);if(advance_session)mount_native_tu15_network_session_data(declarations);if(advance_cache)mount_native_tu15_cache_startup_data(declarations);if(advance_input)mount_native_tu15_input_startup_data(declarations);if(advance_bink)mount_native_tu15_bink_memory_startup_data(declarations);if(advance_handles)mount_native_tu15_level_handles_startup_data(declarations);if(advance_renderer)mount_native_tu15_renderer_startup_data(declarations);if(advance_clock)mount_native_tu15_clock_startup_data(declarations);if(advance_context)mount_native_tu15_state_context_startup_data(declarations);if(advance_players)mount_native_tu15_player_startup_data(declarations);if(advance_views)mount_native_tu15_view_storage_data(declarations);if(advance_registration)mount_native_tu15_static_registration_data(declarations);if(advance_scalars)mount_native_tu15_scalar_state_data(declarations);if(advance_objects)mount_native_tu15_object_storage_data(declarations);if(advance_aux_objects)mount_native_tu15_aux_object_state_data(declarations);if(advance_renderer_request)mount_native_tu15_renderer_request_data(declarations);if(advance_graphics_device)mount_native_tu15_graphics_device_data(declarations);if(advance_graphics_state)mount_native_tu15_renderer_state_data(declarations);if(advance_graphics_pool)mount_native_tu15_renderer_pool_data(declarations);if(advance_graphics_palette)mount_native_tu15_renderer_palette_data(declarations);if(advance_graphics_depth_state)mount_native_tu15_renderer_depth_state_data(declarations);if(advance_graphics_output)mount_native_tu15_renderer_output_data(declarations);if(advance_graphics_coordinates)mount_native_tu15_renderer_resource_storage_data(declarations);if(advance_graphics_surfaces)mount_native_tu15_framebuffer_publication_data(declarations);if(advance_graphics_texture_pairs)mount_native_tu15_texture_pair_data(declarations);if(advance_graphics_target_storage)mount_native_tu15_renderer_target_storage_data(declarations);if(advance_graphics_aux_textures)mount_native_tu15_renderer_aux_data(declarations);if(advance_graphics_transparent_storage)mount_native_tu15_renderer_transparent_storage_data(declarations);if(advance_graphics_debug_storage){mount_native_tu15_renderer_debug_storage_data(declarations);mount_native_tu15_renderer_cache_pools_data(declarations);}if(advance_graphics_renderer_complete)mount_native_tu15_renderer_tail_storage_data(declarations);if(advance_render_objects)mount_native_tu15_render_object_startup_data(declarations);if(advance_sound_storage)mount_native_tu15_startup_sound_storage_data(declarations);if(advance_sound_sdk){mount_native_tu15_sound_sdk_prefix_data(declarations);mount_native_tu15_sound_dma_imports(declarations);}if(advance_sound_configuration){mount_native_tu15_sound_configuration_data(declarations);mount_native_tu15_sound_event_port_data(declarations);}std::size_t bytes=0,regions=0;
     declarations.visit_committed([&](auto,auto b){bytes+=b.size();++regions;});check(advance_session || (bytes==(advance_rng?816u:788u) && regions==(advance_rng?84u:77u)),"Network startup data includes unclassified storage");
     Json fixture;
     if(!reference.empty()) {
         auto original=load_source_runtime_image(reference,SourcePhysicsContactImage::TitleUpdate15);
         declarations.visit_committed([&](auto p,auto b){if(!std::ranges::equal(b,original.view(p,b.size()))) {std::ostringstream why;why<<"Native startup initializer identity differs from TU1.5 at "<<std::hex<<p;throw std::runtime_error(why.str());}});
         std::ifstream input(fixture_path);fixture=Json::parse(input);
-        check(fixture.at("schema")== (advance_graphics_coordinates?"H2_NATIVE_TU15_GRAPHICS_COORDINATES_ORIGINAL_V1":advance_graphics_output?"H2_NATIVE_TU15_GRAPHICS_OUTPUT_ORIGINAL_V1":advance_graphics_depth_state?"H2_NATIVE_TU15_GRAPHICS_DEPTH_STATE_ORIGINAL_V1":advance_graphics_depth?"H2_NATIVE_TU15_GRAPHICS_DEPTH_ORIGINAL_V1":advance_graphics_constants?"H2_NATIVE_TU15_GRAPHICS_CONSTANTS_ORIGINAL_V1":advance_graphics_palette?"H2_NATIVE_TU15_GRAPHICS_PALETTE_ORIGINAL_V1":advance_graphics_pool?"H2_NATIVE_TU15_GRAPHICS_POOL_ORIGINAL_V1":advance_graphics_state?"H2_NATIVE_TU15_GRAPHICS_STATE_ORIGINAL_V1":advance_graphics_device?"H2_NATIVE_TU15_GRAPHICS_DEVICE_ORIGINAL_V1":advance_renderer_request?"H2_NATIVE_TU15_RENDERER_REQUEST_ORIGINAL_V1":advance_aux_objects?"H2_NATIVE_TU15_AUX_OBJECT_STATE_STARTUP_ORIGINAL_V1":advance_objects?"H2_NATIVE_TU15_OBJECT_STORAGE_STARTUP_ORIGINAL_V1":advance_scalars?"H2_NATIVE_TU15_SCALAR_STATE_STARTUP_ORIGINAL_V1":advance_registration?"H2_NATIVE_TU15_STATIC_REGISTRATION_STARTUP_ORIGINAL_V1":advance_views?"H2_NATIVE_TU15_VIEW_STORAGE_STARTUP_ORIGINAL_V1":advance_players?"H2_NATIVE_TU15_PLAYER_STARTUP_ORIGINAL_V1":advance_context?"H2_NATIVE_TU15_STATE_CONTEXT_STARTUP_ORIGINAL_V1":advance_clock?"H2_NATIVE_TU15_CLOCK_STARTUP_ORIGINAL_V1":advance_renderer?"H2_NATIVE_TU15_RENDERER_STARTUP_ORIGINAL_V1":advance_handles?"H2_NATIVE_TU15_LEVEL_HANDLES_STARTUP_ORIGINAL_V1":advance_bink?"H2_NATIVE_TU15_BINK_MEMORY_STARTUP_ORIGINAL_V1":advance_input?"H2_NATIVE_TU15_INPUT_STARTUP_ORIGINAL_V1":advance_cache?"H2_NATIVE_TU15_CACHE_STARTUP_ORIGINAL_V1":advance_session?"H2_NATIVE_TU15_NETWORK_SESSION_ORIGINAL_V1":advance_rng?"H2_NATIVE_TU15_RNG_STARTUP_ORIGINAL_V1":advance_full?"H2_NATIVE_TU15_NETWORK_COMPLETE_ORIGINAL_V1":advance_services?"H2_NATIVE_TU15_ONLINE_SERVICES_ORIGINAL_V1":advance_online?"H2_NATIVE_TU15_NETWORK_PLATFORM_ORIGINAL_V1":advance_xnet?"H2_NATIVE_TU15_NETWORK_CONNECTION_ORIGINAL_V1":"H2_NATIVE_TU15_NETWORK_LINK_ORIGINAL_V1") &&
+        check(fixture.at("schema")== (advance_render_objects?"H2_NATIVE_TU15_RENDER_OBJECT_STORAGE_ORIGINAL_V1":advance_graphics_renderer_complete?"H2_NATIVE_TU15_GRAPHICS_RENDERER_COMPLETE_ORIGINAL_V1":advance_graphics_debug_storage?"H2_NATIVE_TU15_GRAPHICS_DEBUG_STORAGE_ORIGINAL_V1":advance_graphics_transparent_storage?"H2_NATIVE_TU15_GRAPHICS_TRANSPARENT_STORAGE_ORIGINAL_V1":advance_graphics_aux_textures?"H2_NATIVE_TU15_GRAPHICS_AUX_TEXTURES_ORIGINAL_V1":advance_graphics_target_storage?"H2_NATIVE_TU15_GRAPHICS_TARGET_STORAGE_ORIGINAL_V1":advance_graphics_texture_pairs?"H2_NATIVE_TU15_GRAPHICS_TEXTURE_PAIRS_ORIGINAL_V1":advance_graphics_surfaces?"H2_NATIVE_TU15_GRAPHICS_SURFACES_ORIGINAL_V1":advance_graphics_coordinates?"H2_NATIVE_TU15_GRAPHICS_COORDINATES_ORIGINAL_V1":advance_graphics_output?"H2_NATIVE_TU15_GRAPHICS_OUTPUT_ORIGINAL_V1":advance_graphics_depth_state?"H2_NATIVE_TU15_GRAPHICS_DEPTH_STATE_ORIGINAL_V1":advance_graphics_depth?"H2_NATIVE_TU15_GRAPHICS_DEPTH_ORIGINAL_V1":advance_graphics_constants?"H2_NATIVE_TU15_GRAPHICS_CONSTANTS_ORIGINAL_V1":advance_graphics_palette?"H2_NATIVE_TU15_GRAPHICS_PALETTE_ORIGINAL_V1":advance_graphics_pool?"H2_NATIVE_TU15_GRAPHICS_POOL_ORIGINAL_V1":advance_graphics_state?"H2_NATIVE_TU15_GRAPHICS_STATE_ORIGINAL_V1":advance_graphics_device?"H2_NATIVE_TU15_GRAPHICS_DEVICE_ORIGINAL_V1":advance_renderer_request?"H2_NATIVE_TU15_RENDERER_REQUEST_ORIGINAL_V1":advance_aux_objects?"H2_NATIVE_TU15_AUX_OBJECT_STATE_STARTUP_ORIGINAL_V1":advance_objects?"H2_NATIVE_TU15_OBJECT_STORAGE_STARTUP_ORIGINAL_V1":advance_scalars?"H2_NATIVE_TU15_SCALAR_STATE_STARTUP_ORIGINAL_V1":advance_registration?"H2_NATIVE_TU15_STATIC_REGISTRATION_STARTUP_ORIGINAL_V1":advance_views?"H2_NATIVE_TU15_VIEW_STORAGE_STARTUP_ORIGINAL_V1":advance_players?"H2_NATIVE_TU15_PLAYER_STARTUP_ORIGINAL_V1":advance_context?"H2_NATIVE_TU15_STATE_CONTEXT_STARTUP_ORIGINAL_V1":advance_clock?"H2_NATIVE_TU15_CLOCK_STARTUP_ORIGINAL_V1":advance_renderer?"H2_NATIVE_TU15_RENDERER_STARTUP_ORIGINAL_V1":advance_handles?"H2_NATIVE_TU15_LEVEL_HANDLES_STARTUP_ORIGINAL_V1":advance_bink?"H2_NATIVE_TU15_BINK_MEMORY_STARTUP_ORIGINAL_V1":advance_input?"H2_NATIVE_TU15_INPUT_STARTUP_ORIGINAL_V1":advance_cache?"H2_NATIVE_TU15_CACHE_STARTUP_ORIGINAL_V1":advance_session?"H2_NATIVE_TU15_NETWORK_SESSION_ORIGINAL_V1":advance_rng?"H2_NATIVE_TU15_RNG_STARTUP_ORIGINAL_V1":advance_full?"H2_NATIVE_TU15_NETWORK_COMPLETE_ORIGINAL_V1":advance_services?"H2_NATIVE_TU15_ONLINE_SERVICES_ORIGINAL_V1":advance_online?"H2_NATIVE_TU15_NETWORK_PLATFORM_ORIGINAL_V1":advance_xnet?"H2_NATIVE_TU15_NETWORK_CONNECTION_ORIGINAL_V1":"H2_NATIVE_TU15_NETWORK_LINK_ORIGINAL_V1") &&
             fixture.at("source_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd" &&
             fixture.at("world_correspondence_sha256")=="92379da9dc9d29baea9eaca194cebdab7d69f8be319aecf6cd0b759e26e744cc" &&
             fixture.at("pool_correspondence_sha256")=="6d10227d9838a4e6e2e2db443df0c699bbb203a7843a2b6f756a569fd755b527" &&
@@ -193,9 +216,13 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     std::unique_ptr<NativeTu15RendererDepth> graphics_depth;
     std::unique_ptr<NativeTu15RendererOutput> graphics_output;
     std::unique_ptr<NativeTu15RendererCoordinates> graphics_coordinates;
+    std::unique_ptr<NativeTu15FramebufferStartup> graphics_surfaces;
+    std::unique_ptr<NativeTu15TexturePairStartup> graphics_texture_pairs;
+    std::unique_ptr<NativeTu15RendererAuxStartup> graphics_aux_textures;
+    std::unique_ptr<NativeTu15DebugTextureStartup> graphics_debug_texture;
     if(advance_graphics_state)mount_native_tu15_renderer_state_data(memory);
     if(advance_graphics_pool)mount_native_tu15_renderer_pool_data(memory);
-    if(advance_graphics_device) {mount_native_tu15_graphics_device_data(memory);graphics_device=std::make_unique<NativeTu15GraphicsDevice>(memory,std::move(renderer_lease));}
+    if(advance_graphics_device) {mount_native_tu15_graphics_device_data(memory);graphics_device=std::make_unique<NativeTu15GraphicsDevice>(memory,std::move(renderer_lease),target_control);}
     if(advance_graphics_palette) {mount_native_tu15_renderer_palette_data(memory);graphics_palette=std::make_unique<NativeTu15RendererPalette>(memory,*graphics_device,palette_factory);}
     if(advance_graphics_constants)graphics_constants=std::make_unique<NativeTu15RendererConstants>(memory,*graphics_device,constant_control);
     if(advance_graphics_depth)graphics_depth=std::make_unique<NativeTu15RendererDepth>(memory,*graphics_device,depth_control);
@@ -208,6 +235,16 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         mount_native_tu15_renderer_resource_storage_data(memory);
         graphics_coordinates=std::make_unique<NativeTu15RendererCoordinates>(memory,*graphics_device,*graphics_output,coordinate_control);
     }
+    if(advance_graphics_surfaces){mount_native_tu15_framebuffer_publication_data(memory);graphics_surfaces=std::make_unique<NativeTu15FramebufferStartup>(memory,*graphics_device,*graphics_coordinates);}
+    if(advance_graphics_texture_pairs){mount_native_tu15_texture_pair_data(memory);graphics_texture_pairs=std::make_unique<NativeTu15TexturePairStartup>(memory,*graphics_device,*graphics_surfaces,texture_pair_factory);}
+    if(advance_graphics_target_storage)mount_native_tu15_renderer_target_storage_data(memory);
+    if(advance_graphics_aux_textures){mount_native_tu15_renderer_aux_data(memory);graphics_aux_textures=std::make_unique<NativeTu15RendererAuxStartup>(memory,*graphics_device,aux_texture_factory);}
+    if(advance_graphics_transparent_storage)mount_native_tu15_renderer_transparent_storage_data(memory);
+    if(advance_graphics_debug_storage){mount_native_tu15_renderer_debug_storage_data(memory);mount_native_tu15_renderer_cache_pools_data(memory);graphics_debug_texture=std::make_unique<NativeTu15DebugTextureStartup>(memory,*graphics_device,debug_texture_factory,raw);}
+    if(advance_graphics_renderer_complete)mount_native_tu15_renderer_tail_storage_data(memory);
+    if(advance_render_objects)mount_native_tu15_render_object_startup_data(memory);
+    if(advance_sound_storage)mount_native_tu15_startup_sound_storage_data(memory);
+    const unsigned raw_prelude=advance_sound_storage?1u:0u;
     NativeTu15StorageFormatting storage_formatting(memory);
     std::unique_ptr<NativeTu15RngStartup> rng;
     if(advance_rng) {
@@ -219,6 +256,26 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
             clock.monotonic_milliseconds=[&,index=0u]()mutable{return advance_session?fixture.at("native_millisecond_inputs").at(index++).get<std::uint32_t>():fixture.at("native_rng_inputs").at("monotonic_milliseconds").get<std::uint32_t>();};
         }
         rng=std::make_unique<NativeTu15RngStartup>(startup.process_heap(),std::move(clock));
+    }
+    std::shared_ptr<SdlSoundPlatform> sound_output;
+    std::unique_ptr<NativeTu15AudioPreference> sound_preference;
+    std::unique_ptr<SourceRuntimeSoundSdkResources> sound_sdk;
+    std::unique_ptr<SourceRuntimeSoundDmaResources> sound_dma;
+    std::unique_ptr<SourceRuntimeSoundResetResources> sound_reset;
+    std::unique_ptr<SourceRuntimeSoundFrontendEvents> sound_frontend;
+    std::unique_ptr<SourceRuntimeSoundEventPort> sound_events;
+    std::unique_ptr<SourceRuntimeSoundInterruptPolicy> sound_interrupt_policy;
+    if(advance_sound_sdk) {
+        mount_native_tu15_sound_sdk_prefix_data(memory);mount_native_tu15_sound_dma_imports(memory);
+        if(advance_sound_configuration){mount_native_tu15_sound_configuration_data(memory);mount_native_tu15_sound_event_port_data(memory);}
+        sound_output=std::make_shared<SdlSoundPlatform>(SdlSoundPlatformConfiguration{
+            SdlSoundPlatformConfiguration::Delivery::DeviceCallback,256,{}});
+        sound_preference=std::make_unique<NativeTu15AudioPreference>(memory,sound_output,
+            native_tu15_load_audio_preference(directory.path/"menu.cfg"));
+        sound_preference->publish();
+        sound_sdk=std::make_unique<SourceRuntimeSoundSdkResources>(memory,0x60200000u);
+        sound_dma=std::make_unique<SourceRuntimeSoundDmaResources>(memory,sound_output);
+        sound_reset=std::make_unique<SourceRuntimeSoundResetResources>(memory,sound_output,0x60200000u);
     }
     std::shared_ptr<NativeTu15OnlineServices> online_services;std::unique_ptr<NativeTu15OnlineStartup> online;
     unsigned browser_requests=0;
@@ -310,7 +367,8 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         return fixture.at(map).at(key.str()).get<std::uint32_t>();
     };
     SourcePhysicsWorldRuntimeServices services;
-    Json native_heap_commit_calls=Json::array(),native_graphics_call,native_palette_calls=Json::array(),native_constants_call,native_depth_call,native_depth_state_calls=Json::array(),native_output_calls=Json::array(),native_coordinate_calls=Json::array();
+    Json native_sound_call,native_sound_driver_call,sound_arena_prelude,sound_sdk_priors=Json::array(),native_sound_factory_call,native_sound_sdk_frontier,native_sound_configuration_prefix;
+    Json native_render_object_calls=Json::array(),native_debug_storage_call,native_debug_texture_call,native_transparent_storage_call,native_aux_texture_call,native_target_storage_call,native_texture_pair_call,native_surface_call,native_heap_commit_calls=Json::array(),native_graphics_call,native_palette_calls=Json::array(),native_constants_call,native_depth_call,native_depth_state_calls=Json::array(),native_output_calls=Json::array(),native_coordinate_calls=Json::array();
     std::optional<NativeTu15RendererDeviceFrame> graphics_frame;std::optional<SourcePhysicsWorldRuntimeAbi> graphics_entry;
     const std::uint32_t main_frontier_target=advance_renderer_request?0u:advance_aux_objects?0x12560u:advance_objects?0x10e3b0u:advance_scalars?0xb87f0u:advance_registration?0x1f3830u:advance_views?0x69220u:advance_players?0x1888a0u:advance_context?0x14dfe0u:advance_clock?0x1e7710u:advance_renderer?0x22c100u:
         advance_handles?0x134b00u:advance_bink?0x1a5410u:advance_input?0x1589d0u:advance_cache?0x21e5d0u:
@@ -318,9 +376,128 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     services.instruction=[&](auto instruction){if(rng)rng->instruction(instruction);instructions.push_back(pc(instruction,true));};
     services.required_owner=[&](auto& bank,const auto& call,auto& abi,const auto& observer) {
         check(&bank==&memory,"Game startup crossed native bank owners");
+        if(advance_sound_sdk) {
+            if(call.instruction==0x38eca3u&&call.target==0x38e8c9u&&!call.tail) {
+                const auto reset=sound_reset->state();const auto driver=word(memory,0x52d674);
+                check(word(memory,abi.gp[4])==0x38eca8u&&sound_sdk->live_allocations()==4&&
+                    sound_sdk->lock_depth()==1&&sound_dma->allocations().size()==16&&
+                    reset.reset_count==1&&reset.generation==1&&!reset.gp_program_loaded&&!reset.ep_program_loaded&&
+                    driver&&memory.view(driver,1)[0]==std::byte{}&&word(memory,driver+0x2ab0)==0,
+                    "Sound SDK storage frontier lost genuine constructors or supplied readiness");
+                native_sound_sdk_frontier={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags},
+                    {"native_sdk_objects",sound_sdk->live_allocations()},{"native_lock_depth",sound_sdk->lock_depth()},
+                    {"actual_output_device",sound_preference->output_device()},{"actual_output_channels",sound_output->output_channels()},
+                    {"reset_count",reset.reset_count},{"generation",reset.generation},{"native_apu",reset.native_apu.value},
+                    {"gp_program_loaded",reset.gp_program_loaded},{"ep_program_loaded",reset.ep_program_loaded}};
+                native_sound_sdk_frontier["dma_allocations"]=Json::array();
+                std::size_t capacity=0;
+                for(const auto& row:sound_dma->allocations()) {
+                    check(row.native.value>0xffffffffu&&memory.source_address(row.native,row.capacity)==row.source,
+                        "Sound SDK DMA allocation has lost its native64 backing");
+                    capacity+=row.capacity;
+                    native_sound_sdk_frontier["dma_allocations"].push_back({{"source",row.source},{"requested",row.requested},
+                        {"capacity",row.capacity},{"physical",row.physical},{"native_backing",row.native.value},
+                        {"descriptor",row.source_descriptor},{"sha256",digest(memory.view(row.native,row.capacity))}});
+                }
+                check(capacity==339968u,"Sound SDK DMA capacity differs from original storage requirements");
+                native_sound_sdk_frontier["dma_capacity"]=capacity;
+                if(advance_sound_configuration) {
+                    // A one-command native component queue is an explicit host
+                    // bound. No source FIFO capacity/readiness is advertised.
+                    sound_frontend=std::make_unique<SourceRuntimeSoundFrontendEvents>(memory,*sound_reset,*sound_dma,1);
+                    sound_events=std::make_unique<SourceRuntimeSoundEventPort>(memory,*sound_reset,*sound_frontend,sound_output);
+                    sound_interrupt_policy=std::make_unique<SourceRuntimeSoundInterruptPolicy>(memory,*sound_events,sound_reset->control_lease());
+                    SourceRuntimeSoundEventPort::CallScope event_scope(sound_events.get());
+                    const auto prefix_gp=abi.gp;const auto prefix_flags=abi.eflags;
+                    const auto first_instruction=instructions.size(),first_store=stores.size();
+                    const auto boundary=sound_interrupt_policy->run_initial_prefix(abi,{0x27f,0x1f80},services,observer);
+                    check(abi.gp==prefix_gp&&abi.eflags==prefix_flags&&instructions.size()==first_instruction+1&&
+                        instructions.back()==0x38e8c9&&stores.size()==first_store+1&&
+                        stores.back().at("instruction")==0x38e8c9&&stores.back().at("address")==0xfe801004&&
+                        stores.back().at("written")=="d8000000"&&stores.back().at("before")=="",
+                        "Cold first IEN action changed ABI, skipped its store or invented hardware readback");
+                    const auto policy=sound_interrupt_policy->diagnostics();const auto port=sound_events->state();
+                    check(boundary==0x38e8d3&&policy.prepared&&policy.pending_mask==0xd8&&
+                        policy.unresolved_requested_mask==0xc8&&!policy.source_delivery_enabled&&!policy.full_configuration_ready&&
+                        policy.native_gate.value>0xffffffffu&&policy.dispatcher==port.dispatcher_descriptor&&
+                        !port.timer_initialized&&!port.interrupt_initialized&&!port.connected&&port.delivered_irqs==0,
+                        "Cold configuration prefix fabricated a source route or completed the unresolved policy");
+                    native_sound_configuration_prefix={{"next_instruction",boundary},{"source_store_instruction",0x38e8c9},
+                        {"source_store_address",0xfe801004},{"source_store_value",policy.pending_mask},
+                        {"original_action_instructions",1},{"original_action_stores",1},{"first_action_preimage_unknown",true},
+                        {"unresolved_requested_mask",policy.unresolved_requested_mask},{"native_gate",policy.native_gate.value},
+                        {"actual_dispatcher",policy.dispatcher},{"source_delivery_enabled",false},{"full_configuration_ready",false},
+                        {"configuration_returned",false},{"source_routes_connected",false},{"delivered_callbacks",port.delivered_irqs}};
+                    frontier=call;throw MissingSubsystem();
+                }
+                frontier=call;throw MissingSubsystem();
+            }
+            if(source_sound_hardware_storage_tu15_owns_entry(call.target)) {
+                Scope scope(space,IdentitySpace::Actual);
+                source_run_sound_hardware_storage_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
+            }
+            if(source_sound_dma_storage_tu15_owns_entry(call.target)) {
+                Scope scope(space,IdentitySpace::Actual);
+                source_run_sound_dma_storage_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
+            }
+            if(call.instruction==0x224f26u&&call.target==0x387877u&&!call.tail) {
+                const auto entry_sp=abi.gp[4],driver=word(memory,0x52d674);
+                check(word(memory,entry_sp)==0x224f2bu&&word(memory,entry_sp+4)==0&&
+                    word(memory,entry_sp+8)==driver+0x2ab0u&&word(memory,entry_sp+12)==0,
+                    "Sound SDK factory has a foreign driver argument/frame");
+                native_sound_factory_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},
+                    {"entry_eflags",abi.eflags},{"driver",driver},{"native_driver",memory.native_address(driver,0x2ad8).value}};
+                SourceRuntimeSoundSdkResources::CallScope sdk_scope(sound_sdk.get());
+                SourceRuntimeSoundDmaResources::CallScope dma_scope(sound_dma.get());
+                SourceRuntimeSoundResetResources::CallScope reset_scope(sound_reset.get());
+                Scope scope(space,IdentitySpace::Actual);
+                source_run_sound_sdk_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
+            }
+            if(source_sound_sdk_tu15_owns_entry(call.target)) {
+                Scope scope(space,IdentitySpace::Actual);
+                source_run_sound_sdk_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
+            }
+            if(sound_sdk->dispatch(bank,call,abi,observer)||sound_dma->dispatch(bank,call,abi)||
+                sound_reset->try_call(bank,call,abi,{0x27f,0x1f80},services,observer))return;
+        }
         if(main_frontier_target && call.instruction==0x13a766u && call.target==main_frontier_target && !call.tail) {
             frontier=call;throw MissingSubsystem();
         }
+        if(advance_render_objects&&call.instruction==0x13a766u&&call.target==0x127ee0u&&!call.tail) {
+            if(!advance_sound_storage){frontier=call;throw MissingSubsystem();}
+            check(abi.gp[6]==0x630u&&word(memory,abi.gp[4])==0x13a76cu,
+                "Sound initializer45 has a foreign table slot or caller frame");
+            native_sound_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+            Scope scope(space,IdentitySpace::Actual);
+            source_run_startup_sound_storage_with_native_storage(memory,call.target,abi,{0x27f,0x1f80},services,raw,observer);
+            throw std::runtime_error("Sound storage unexpectedly returned without its required driver");
+        }
+        if(advance_sound_storage&&call.instruction==0x128050u&&call.target==0x224ec0u&&!call.tail) {
+            check(word(memory,abi.gp[4])==0x128055u&&word(memory,abi.gp[4]+4)==0x455b20u,
+                "Sound driver has a foreign source argument or caller frame");
+            native_sound_driver_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+            if(advance_sound_sdk) {
+                Scope scope(space,IdentitySpace::Actual);
+                source_run_sound_startup_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
+            }
+            frontier=call;throw MissingSubsystem();
+        }
+        if(advance_sound_storage&&call.target==0x800000b6u&&word(memory,abi.gp[4])==0x21f0a3u) {
+            check(startup.try_sound_cache_protection_call(bank,call,abi),"Sound cache rejected actual protection");return;
+        }
+        if(advance_sound_storage&&source_startup_sound_storage_tu15_owns_entry(call.target)) {
+            Scope scope(space,IdentitySpace::Actual);
+            source_run_startup_sound_storage_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
+        }
+        if(advance_render_objects&&call.instruction==0x13a766u&&abi.gp[6]>=0x480u&&abi.gp[6]<0x630u&&
+           source_render_object_startup_tu15_is_initializer(call.target)&&!call.tail) {
+            Json row{{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+            Scope scope(space,IdentitySpace::Actual);
+            source_run_render_object_startup_with_native_storage(memory,call.target,abi,{0x27f,0x1f80},services,raw,observer);
+            if(call.target==0x31d400u)++noops;
+            row["returned_gp"]=abi.gp;row["returned_eflags"]=abi.eflags;native_render_object_calls.push_back(std::move(row));return;
+        }
+        if(advance_graphics_renderer_complete&&!advance_render_objects&&call.instruction==0x13a766u&&call.target==0x2b480u&&!call.tail){frontier=call;throw MissingSubsystem();}
         if(advance_renderer_request) {
             if(advance_graphics_depth_state && !advance_graphics_output && call.instruction==0x1269eu && call.target==0x3ffdd0u && !call.tail) {
                 frontier=call;throw MissingSubsystem();
@@ -329,8 +506,89 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
                 frontier=call;throw MissingSubsystem();
             }
             if(advance_graphics_coordinates && call.instruction==0x1279fu && call.target==0x145e0u && !call.tail) {
-                frontier=call;throw MissingSubsystem();
+                if(!advance_graphics_surfaces){frontier=call;throw MissingSubsystem();}
+                native_surface_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},
+                    {"entry_eflags",abi.eflags},{"entry_esp",abi.gp[4]}};
+                check(graphics_surfaces->try_call(bank,call,abi),"Native renderer rejected its framebuffer initialization");
+                auto expected_gp=native_surface_call["entry_gp"].get<decltype(abi.gp)>();
+                expected_gp[0]=(expected_gp[0]&0xffffff00u)|1u;expected_gp[4]+=4;
+                check(abi.gp==expected_gp&&abi.eflags==native_surface_call["entry_eflags"],
+                    "Native framebuffer bool ABI changed a non-return register or flags");
+                native_surface_call["returned_gp"]=abi.gp;native_surface_call["returned_eflags"]=abi.eflags;
+                native_surface_call["bindings"]=Json::array();
+                for(unsigned i=0;i<8;++i) {
+                    const auto cell=0x515e34u+i*4,handle=graphics_surfaces->handle(cell);
+                    const auto& binding=graphics_surfaces->resolve(handle);
+                    check(word(memory,cell)==handle&&graphics_surfaces->native_address(handle).value>0xffffffffu,
+                        "Native framebuffer identity does not resolve to its wide published owner");
+                    native_surface_call["bindings"].push_back({{"source_cell",cell},{"handle",handle},
+                        {"native_backing",graphics_surfaces->native_address(handle).value},{"image",binding.image},
+                        {"view",binding.view},{"parent_image",binding.parent_image},{"width",binding.width},{"height",binding.height},
+                        {"source_texture_format",binding.source_texture_format}});
+                }
+                return;
             }
+            if(advance_graphics_surfaces&&call.instruction==0x127a8u&&call.target==0x14830u&&!call.tail){
+                if(!advance_graphics_texture_pairs){frontier=call;throw MissingSubsystem();}
+                native_texture_pair_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+                auto expected=abi.gp;expected[0]=(expected[0]&0xffffff00u)|1u;expected[4]+=4;
+                check(graphics_texture_pairs->try_call(bank,call,abi),"Native texture-pair owner rejected its original call");
+                check(abi.gp==expected&&abi.eflags==native_texture_pair_call["entry_eflags"],"Native texture-pair bool ABI differs");
+                native_texture_pair_call["returned_gp"]=abi.gp;native_texture_pair_call["bindings"]=Json::array();
+                for(unsigned i=0;i<5;++i) {
+                    const auto cell=0x515e54u+i*4,handle=graphics_texture_pairs->handle(cell);const auto& binding=graphics_texture_pairs->resolve(handle);
+                    check(word(memory,cell)==handle&&graphics_texture_pairs->native_address(handle).value>0xffffffffu,
+                        "Native texture-pair identity lacks its wide descriptor owner");
+                    native_texture_pair_call["bindings"].push_back({{"source_cell",cell},{"handle",handle},
+                        {"native_backing",graphics_texture_pairs->native_address(handle).value},{"image",binding.image},{"view",binding.view},
+                        {"width",binding.width},{"height",binding.height},{"source_texture_format",binding.source_texture_format},
+                        {"unbound_linear_surface",binding.unbound_linear_surface}});
+                }
+                return;
+            }
+            if(advance_graphics_texture_pairs&&call.instruction==0x127b1u&&call.target==0x1d750u&&!call.tail){
+                if(!advance_graphics_target_storage){frontier=call;throw MissingSubsystem();}
+                native_target_storage_call={{"instruction",call.instruction},{"target",call.target},
+                    {"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+                source_run_renderer_target_storage_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);
+                check((abi.gp[0]&255u)==1u&&native_tu15_renderer_target_definitions(memory).size()==18,
+                    "Original target construction lacks real owned native storage");
+                native_target_storage_call["returned_gp"]=abi.gp;
+                native_target_storage_call["returned_eflags"]=abi.eflags;return;
+            }
+            if(advance_graphics_target_storage&&call.instruction==0x127bau&&call.target==0x1d0c0u&&!call.tail){
+                if(!advance_graphics_aux_textures){frontier=call;throw MissingSubsystem();}
+                native_aux_texture_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+                check(graphics_aux_textures->try_call(bank,call,abi),"Native auxiliary texture owner rejected source1D0C0");
+                native_aux_texture_call["returned_gp"]=abi.gp;native_aux_texture_call["returned_eflags"]=abi.eflags;return;
+            }
+            if(advance_graphics_aux_textures&&call.instruction==0x127c3u&&call.target==0x1e0f0u&&!call.tail){
+                if(!advance_graphics_transparent_storage){frontier=call;throw MissingSubsystem();}
+                native_transparent_storage_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+                source_run_renderer_transparent_storage_with_native_storage(memory,abi,{0x27f,0x1f80},services,raw,observer);
+                native_transparent_storage_call["returned_gp"]=abi.gp;native_transparent_storage_call["returned_eflags"]=abi.eflags;return;
+            }
+            if(advance_graphics_transparent_storage&&call.instruction==0x127d6u&&call.target==0x1efd0u&&!call.tail){
+                if(!advance_graphics_debug_storage){frontier=call;throw MissingSubsystem();}
+                native_debug_storage_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+                source_run_renderer_debug_storage_tu15(memory,call.target,abi,{0x27f,0x1f80},services,observer);
+                check((abi.gp[0]&255u)==1&&graphics_debug_texture->initialized(),"Source debugger storage lacks its native texture");
+                (void)graphics_debug_texture->initial_rows();
+                native_debug_storage_call["returned_gp"]=abi.gp;native_debug_storage_call["returned_eflags"]=abi.eflags;return;
+            }
+            if(advance_graphics_debug_storage&&call.target==0x158d0u) {
+                native_debug_texture_call={{"instruction",call.instruction},{"target",call.target},{"entry_gp",abi.gp},{"entry_eflags",abi.eflags}};
+                check(graphics_debug_texture->try_call(bank,call,abi),"Native debugger texture rejected its source request");
+                native_debug_texture_call["returned_gp"]=abi.gp;native_debug_texture_call["returned_eflags"]=abi.eflags;return;
+            }
+            if(advance_graphics_debug_storage&&call.instruction==0x12813u&&call.target==0x1fb90u&&!call.tail&&!advance_graphics_renderer_complete){frontier=call;throw MissingSubsystem();}
+            if(advance_graphics_renderer_complete&&source_renderer_tail_storage_tu15_owns_entry(call.target)) {
+                Scope scope(space,IdentitySpace::Actual);source_run_renderer_tail_storage_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
+            }
+            if(advance_graphics_renderer_complete&&source_renderer_transparent_storage_tu15_owns_entry(call.target)) {
+                Scope scope(space,IdentitySpace::Actual);source_run_renderer_transparent_storage_tu15(bank,call.target,abi,{0x27f,0x1f80},services,observer);return;
+            }
+            if(advance_graphics_target_storage&&startup.try_renderer_target_protection_call(bank,call,abi))return;
             if(advance_graphics_coordinates && call.target==0x3ffe00u) {
                 Json row{{"instruction",call.instruction},{"target",call.target},{"entry_esp",abi.gp[4]},
                     {"entry_gp",abi.gp},{"entry_eflags",abi.eflags},{"argument",word(memory,abi.gp[4]+4)}};
@@ -637,6 +895,18 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         if(store.address>=0x60000000u && store.address<0x60100000u)return;
         stores.push_back({{"instruction",pc(store.instruction)},{"address",store.address},{"before",hex(store.before)},{"written",hex(store.written)}});
     };
+    if(advance_sound_sdk) {
+        for(const auto entry:{0x387baau,0x387bb5u,0x38a988u,0x38a993u}) {
+            auto prior=frame();
+            source_run_sound_sdk_tu15(memory,entry,prior,{0x27f,0x1f80},services,observe);
+            check(prior.gp[4]==sp+4,"Genuine SDK CRT constructor did not return");
+            sound_sdk_priors.push_back({{"entry",entry},{"gp",prior.gp},{"eflags",prior.eflags},
+                {"instructions",instructions},{"stores",stores}});
+            instructions.clear();stores=Json::array();
+        }
+        check(word(memory,0x3912a4)==0x390bc0u&&word(memory,0x3912a0)==0x390bc4u,
+            "SDK CRT statistics bindings lack their genuine prior constructors");
+    }
     Json input_prelude;
     if(advance_input) {
         auto inputs=frame();source_run_input_startup_tu15(memory,0x1273c0u,inputs,{0x27f,0x1f80},services,observe);
@@ -660,6 +930,16 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         }
         instructions.clear();stores=Json::array();
     }
+    if(advance_sound_storage) {
+        auto prepared=frame();prepared.gp[3]=0;
+        source_prepare_native_tu15_sound_arena(memory,prepared,{0x27f,0x1f80},services,raw,observe);
+        check(word(memory,0x51db00)==0x10000000u&&word(memory,0x51db04)==0&&word(memory,0x51db08)==0&&
+            resources.size()==1&&resources.front().request==std::array<std::uint32_t,5>{0,0,0x23000,0x1000,4},
+            "Genuine main sound-arena prefix lost its native allocation");
+        sound_arena_prelude={{"gp",prepared.gp},{"eflags",prepared.eflags},{"instructions",instructions},{"stores",stores},
+            {"source",word(memory,0x51db00)},{"native_backing",memory.native_address(word(memory,0x51db00),0x23000).value}};
+        instructions.clear();stores=Json::array();
+    }
     auto state=frame();bool stopped=false;
     try{source_run_game_storage_startup_tu15(memory,state,{0x27f,0x1f80},services,observe);}catch(const MissingSubsystem&){stopped=true;}catch(const std::exception& error) {
         std::ostringstream why;why<<error.what()<<"; last source sites";
@@ -669,8 +949,8 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     check(link.last_observation().has_value(),"Startup did not query actual native link state");
     const auto host=observation(*link.last_observation());const auto flags=native_tu15_network_link_flags(*link.last_observation());
     if(advance_xnet && !(flags&1u)) {std::cout<<"Active carrier is required for the native XNet-startup frontier comparison\n";return 77;}
-    check(stopped && frontier.target==(advance_graphics_coordinates?0x145e0u:advance_graphics_output?0x3ffe00u:advance_graphics_depth?0x3ffdd0u:advance_graphics_constants?0x3ff5d0u:advance_graphics_palette?0x400ef0u:advance_graphics_pool?0x1d3d0u:advance_graphics_state?0x1c7f0u:advance_graphics_device?0x16af0u:advance_renderer_request?0x3ff320u:advance_aux_objects?0x12560u:advance_objects?0x10e3b0u:advance_scalars?0xb87f0u:advance_registration?0x1f3830u:advance_views?0x69220u:advance_players?0x1888a0u:advance_context?0x14dfe0u:advance_clock?0x1e7710u:advance_renderer?0x22c100u:advance_handles?0x134b00u:advance_bink?0x1a5410u:advance_input?0x1589d0u:advance_cache?0x21e5d0u:advance_session?0x21c0a0u:advance_rng?0x6e830u:advance_full?0x148d40u:advance_services?0x3d725du:advance_online?0x3aad19u:advance_xnet?0x3d7656u:((flags&1u)?0x6e010u:0x31d400u)) && state.gp[6]==(advance_graphics_coordinates?3u:advance_graphics_output?0u:advance_graphics_device?0x492368u:advance_aux_objects?0x45cu:advance_objects?0x3f0u:advance_scalars?0x3ccu:advance_registration?0x384u:advance_views?0x33cu:advance_players?0x2d0u:advance_context?0x2acu:advance_clock?0x288u:advance_renderer?0x21cu:advance_handles?0x1f8u:advance_bink?0x1d4u:advance_input?0x18cu:advance_cache?0x168u:advance_session?0x144u:advance_rng?0x90u:advance_full?0x6cu:(flags&1u)?0u:0x24u) &&
-        state.gp[4]==sp-(advance_graphics_coordinates?0x28u:advance_graphics_output?0x2cu:advance_graphics_depth?0x28u:advance_graphics_constants?0x2cu:advance_graphics_palette?0x28u:advance_graphics_pool?0x30u:advance_graphics_device?0x28u:advance_renderer_request?0x80u:advance_full?16u:advance_services?0x1f0u:advance_xnet?0x1c8u:16u) && word(memory,state.gp[4])==(advance_graphics_coordinates?0x127a4u:advance_graphics_output?0x12770u:advance_graphics_depth_state?0x126a3u:advance_graphics_depth?0x1266eu:advance_graphics_constants?0x1265fu:advance_graphics_palette?0x12658u:advance_graphics_pool?0x125ebu:advance_graphics_state?0x125d7u:advance_graphics_device?0x125cdu:advance_renderer_request?0x129b2u:advance_full?0x13a76cu:advance_services?0x70d11u:advance_online?0x6e0c2u:advance_xnet?0x6e09cu:0x13a76cu) && word(memory,0x56e1ccu)==flags,
+    check(advance_sound_sdk ? (stopped&&frontier.target==0x38e8c9u&&frontier.instruction==0x38eca3u&&word(memory,state.gp[4])==0x38eca8u&&state.gp==native_sound_sdk_frontier.at("entry_gp").get<decltype(state.gp)>()) : advance_sound_storage ? (stopped&&frontier.target==0x224ec0u&&frontier.instruction==0x128050u&&state.gp[4]==sp-44u&&word(memory,state.gp[4])==0x128055u&&word(memory,0x56e1ccu)==flags) : (stopped && frontier.target==(advance_render_objects?0x127ee0u:advance_graphics_renderer_complete?0x2b480u:advance_graphics_debug_storage?0x1fb90u:advance_graphics_transparent_storage?0x1efd0u:advance_graphics_aux_textures?0x1e0f0u:advance_graphics_target_storage?0x1d0c0u:advance_graphics_texture_pairs?0x1d750u:advance_graphics_surfaces?0x14830u:advance_graphics_coordinates?0x145e0u:advance_graphics_output?0x3ffe00u:advance_graphics_depth?0x3ffdd0u:advance_graphics_constants?0x3ff5d0u:advance_graphics_palette?0x400ef0u:advance_graphics_pool?0x1d3d0u:advance_graphics_state?0x1c7f0u:advance_graphics_device?0x16af0u:advance_renderer_request?0x3ff320u:advance_aux_objects?0x12560u:advance_objects?0x10e3b0u:advance_scalars?0xb87f0u:advance_registration?0x1f3830u:advance_views?0x69220u:advance_players?0x1888a0u:advance_context?0x14dfe0u:advance_clock?0x1e7710u:advance_renderer?0x22c100u:advance_handles?0x134b00u:advance_bink?0x1a5410u:advance_input?0x1589d0u:advance_cache?0x21e5d0u:advance_session?0x21c0a0u:advance_rng?0x6e830u:advance_full?0x148d40u:advance_services?0x3d725du:advance_online?0x3aad19u:advance_xnet?0x3d7656u:((flags&1u)?0x6e010u:0x31d400u)) && state.gp[6]==(advance_render_objects?0x630u:advance_graphics_renderer_complete?0x480u:advance_graphics_coordinates?3u:advance_graphics_output?0u:advance_graphics_device?0x492368u:advance_aux_objects?0x45cu:advance_objects?0x3f0u:advance_scalars?0x3ccu:advance_registration?0x384u:advance_views?0x33cu:advance_players?0x2d0u:advance_context?0x2acu:advance_clock?0x288u:advance_renderer?0x21cu:advance_handles?0x1f8u:advance_bink?0x1d4u:advance_input?0x18cu:advance_cache?0x168u:advance_session?0x144u:advance_rng?0x90u:advance_full?0x6cu:(flags&1u)?0u:0x24u) &&
+        state.gp[4]==sp-(advance_graphics_renderer_complete?16u:advance_graphics_coordinates?0x28u:advance_graphics_output?0x2cu:advance_graphics_depth?0x28u:advance_graphics_constants?0x2cu:advance_graphics_palette?0x28u:advance_graphics_pool?0x30u:advance_graphics_device?0x28u:advance_renderer_request?0x80u:advance_full?16u:advance_services?0x1f0u:advance_xnet?0x1c8u:16u) && word(memory,state.gp[4])==(advance_graphics_renderer_complete?0x13a76cu:advance_graphics_debug_storage?0x12818u:advance_graphics_transparent_storage?0x127dbu:advance_graphics_aux_textures?0x127c8u:advance_graphics_target_storage?0x127bfu:advance_graphics_texture_pairs?0x127b6u:advance_graphics_surfaces?0x127adu:advance_graphics_coordinates?0x127a4u:advance_graphics_output?0x12770u:advance_graphics_depth_state?0x126a3u:advance_graphics_depth?0x1266eu:advance_graphics_constants?0x1265fu:advance_graphics_palette?0x12658u:advance_graphics_pool?0x125ebu:advance_graphics_state?0x125d7u:advance_graphics_device?0x125cdu:advance_renderer_request?0x129b2u:advance_full?0x13a76cu:advance_services?0x70d11u:advance_online?0x6e0c2u:advance_xnet?0x6e09cu:0x13a76cu) && word(memory,0x56e1ccu)==flags),
         "Native link result did not select the original next initialization path");
     std::uint32_t parameters=0;std::string parameter_bytes;
     if(advance_xnet && !advance_full) {
@@ -696,7 +976,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         parameters=xnet_input_address;parameter_bytes=xnet_input_bytes;
         check(online->initialized() && online->references()==1 && online->native_address().value>0xffffffffu &&
             network.service() && network.xnet_references()==1 && network.winsock_references()==1 &&
-            title_calls.size()==2 && noops==(advance_scalars?9u:advance_registration?8u:advance_bink?7u:advance_session?6u:2u) && link_queries==2 &&
+            title_calls.size()==2 && noops==(advance_render_objects?13u:advance_scalars?9u:advance_registration?8u:advance_bink?7u:advance_session?6u:2u) && link_queries==2 &&
             memory.view(0x4dc061u,1)[0]==std::byte{1} && memory.view(0x4dc534u,1)[0]==std::byte{1},
             "Complete cold network startup lost platform owners, actual address calls, pool activation or callback ordering");
         const auto first=title_calls[0].at("bytes").get<std::string>(),last=title_calls[1].at("bytes").get<std::string>();
@@ -715,20 +995,20 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         check(wrong_output && wrong_bank && rejected.gp==before,"Native title-address query consumed a foreign bank or output frame");
     }
     const auto options=word(memory,0x4f3218u);const auto address=memory.native_address(options,0x1200);
-    check(address.value>0xffffffffu && word(memory,0x4f2954u)==(advance_aux_objects?1518752u:advance_objects?1510384u:advance_scalars?24256u:advance_views?24228u:advance_players?18652u:advance_context?9628u:advance_clock?9400u:advance_rng?9364u:9356u) && (advance_rng || word(memory,0x4f295cu)==2408784992u),
+    check(address.value>0xffffffffu && word(memory,0x4f2954u)==(advance_render_objects?2028496u:advance_graphics_renderer_complete?1519860u:advance_aux_objects?1518752u:advance_objects?1510384u:advance_scalars?24256u:advance_views?24228u:advance_players?18652u:advance_context?9628u:advance_clock?9400u:advance_rng?9364u:9356u) && (advance_rng || word(memory,0x4f295cu)==2408784992u),
         "Native game-options ownership, cursor or source CRC differs");
     check(digest(memory.view(options,0x1200))=="29f46cc48679c4bdb125ee2f8a32451e056532af46c4b0e3e32b46e95473c30a", "Source game-options clearing/selected-BSP state differs");
     Json rng_inputs;
     if(advance_rng) {
         check(rng->utc_filetime_input().has_value() && rng->monotonic_millisecond_input().has_value(),"Source RNG did not consume real native clock inputs");
         check(rng->rng_seed_millisecond_input().has_value(),"Source RNG seed has no owned clock input");
-        const auto utc=*rng->utc_filetime_input();const auto tick=*rng->rng_seed_millisecond_input();
+        const auto utc=rng->utc_filetime_inputs().front();const auto tick=*rng->rng_seed_millisecond_input();
         const auto seed=std::uint32_t((utc-116444736000000000ull)/10000000ull)^41u^tick;
         const auto bank=word(memory,0x4f3cd8u),crt=word(memory,0x573840u);
         check(bank==options+0x1200u && word(memory,bank)==0x78a8u && (advance_session || word(memory,bank+4u)==seed) &&
             memory.native_address(bank,8).value>0xffffffffu && memory.native_address(crt,0x88).value>0xffffffffu &&
             word(memory,crt)==rng->thread_token() && word(memory,crt+4)==0xffffffffu &&
-            word(memory,crt+0x14u)==0x29e2c0u && word(memory,crt+0x54u)==0x46ecd8u &&
+            word(memory,crt+0x14u)==(advance_sound_storage?std::uint32_t(0x29e2c0u*214013u+2531011u):0x29e2c0u) && word(memory,crt+0x54u)==0x46ecd8u &&
             word(memory,0x60200000u)==0xffffffffu,
             "Original RNG/CRT state, native addresses or restored exception chain differs");
         rng_inputs={{"utc_filetime",utc},{"monotonic_milliseconds",tick},{"thread_token",rng->thread_token()}};
@@ -740,8 +1020,8 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         }
     }
     const auto qos=word(memory,0x4dc538u);const auto native_qos=memory.native_address(qos,0x150);
-    check(qos==0x10000000u && native_qos.value>0xffffffffu && raw.live_allocations()==(advance_graphics_pool?10u:advance_renderer?9u:advance_handles?8u:advance_session?6u:1u) && resources.size()==(advance_graphics_pool?10u:advance_renderer?9u:advance_handles?8u:advance_session?6u:1u) && resources[0].allocation &&
-        resources[0].request==std::array<std::uint32_t,5>{0,0,0x150,0x101000,4} && resources[0].result==std::array<std::uint32_t,3>{0,0x10000000u,0x1000u},
+    check(qos==(advance_sound_storage?0x10023000u:0x10000000u) && native_qos.value>0xffffffffu && raw.live_allocations()==(advance_sound_storage?27u:advance_render_objects?24u:advance_graphics_renderer_complete?20u:advance_graphics_debug_storage?14u:advance_graphics_transparent_storage?13u:advance_graphics_pool?10u:advance_renderer?9u:advance_handles?8u:advance_session?6u:1u) && resources.size()==(advance_sound_storage?27u:advance_render_objects?24u:advance_graphics_renderer_complete?20u:advance_graphics_debug_storage?14u:advance_graphics_transparent_storage?13u:advance_graphics_pool?10u:advance_renderer?9u:advance_handles?8u:advance_session?6u:1u) && resources[raw_prelude].allocation &&
+        resources[raw_prelude].request==std::array<std::uint32_t,5>{0,0,0x150,0x101000,4} && resources[raw_prelude].result==std::array<std::uint32_t,3>{0,qos,0x1000u},
         "Network QoS pool lacks its actual native allocation outcome");
     check(word(memory,qos+0x20u)==0x20 && word(memory,qos+0x24u)==8 && word(memory,0x4dc064u)==(advance_session?3u:1u),
         "Network source pool dimensions or callback registration differ");
@@ -846,7 +1126,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     {
         SourceRuntimeMemory foreign;auto refused=state;bool rejected_bank=false;
         try{raw.try_call(foreign,{0x33786fu,0x800000b8u,false},refused);}catch(const std::exception&){rejected_bank=true;}
-        check(rejected_bank && refused.gp==state.gp && raw.live_allocations()==(advance_graphics_pool?10u:advance_renderer?9u:advance_handles?8u:advance_session?6u:1u),
+        check(rejected_bank && refused.gp==state.gp && raw.live_allocations()==(advance_sound_storage?27u:advance_render_objects?24u:advance_graphics_renderer_complete?20u:advance_graphics_debug_storage?14u:advance_graphics_transparent_storage?13u:advance_graphics_pool?10u:advance_renderer?9u:advance_handles?8u:advance_session?6u:1u),
             "Shared raw allocator accepted a foreign native bank or changed its caller");
     }
     // After measuring the suspended source prefix, retire the actual owned
@@ -862,10 +1142,10 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         put(memory,done.gp[4],0x60200000u);put(memory,done.gp[4]+4u,qos);
         source_run_physics_pool_startup_runtime(memory,0x11e180u,done,SourcePhysicsContactImage::TitleUpdate15,{0x27f,0x1f80},release);
         bool released=false;try{memory.source_address(native_qos,1);}catch(const std::exception&){released=true;}
-        check(released && raw.live_allocations()==(advance_graphics_pool?9u:advance_renderer?8u:advance_handles?7u:advance_session?5u:0u) && done.gp[4]==sp-0x800u+8u && resources.size()==(advance_graphics_pool?11u:advance_renderer?10u:advance_handles?9u:advance_session?7u:2u) && !resources.back().allocation,
+        check(released && raw.live_allocations()==(advance_sound_storage?26u:advance_render_objects?23u:advance_graphics_renderer_complete?19u:advance_graphics_debug_storage?13u:advance_graphics_transparent_storage?12u:advance_graphics_pool?9u:advance_renderer?8u:advance_handles?7u:advance_session?5u:0u) && done.gp[4]==sp-0x800u+8u && resources.size()==(advance_sound_storage?28u:advance_render_objects?25u:advance_graphics_renderer_complete?21u:advance_graphics_debug_storage?15u:advance_graphics_transparent_storage?14u:advance_graphics_pool?11u:advance_renderer?10u:advance_handles?9u:advance_session?7u:2u) && !resources.back().allocation,
             "QoS source release retained a native allocation or lost its caller frame");
     }
-    Json report{{"schema",advance_graphics_coordinates?"H2_NATIVE_TU15_GRAPHICS_COORDINATES_V1":advance_graphics_output?"H2_NATIVE_TU15_GRAPHICS_OUTPUT_V1":advance_graphics_depth_state?"H2_NATIVE_TU15_GRAPHICS_DEPTH_STATE_V1":advance_graphics_depth?"H2_NATIVE_TU15_GRAPHICS_DEPTH_V1":advance_graphics_constants?"H2_NATIVE_TU15_GRAPHICS_CONSTANTS_V1":advance_graphics_palette?"H2_NATIVE_TU15_GRAPHICS_PALETTE_V1":advance_graphics_pool?"H2_NATIVE_TU15_GRAPHICS_POOL_V1":advance_graphics_state?"H2_NATIVE_TU15_GRAPHICS_STATE_V1":advance_graphics_device?"H2_NATIVE_TU15_GRAPHICS_DEVICE_V1":advance_renderer_request?"H2_NATIVE_TU15_RENDERER_REQUEST_V1":advance_aux_objects?"H2_NATIVE_TU15_AUX_OBJECT_STATE_STARTUP_V1":advance_objects?"H2_NATIVE_TU15_OBJECT_STORAGE_STARTUP_V1":advance_scalars?"H2_NATIVE_TU15_SCALAR_STATE_STARTUP_V1":advance_registration?"H2_NATIVE_TU15_STATIC_REGISTRATION_STARTUP_V1":advance_views?"H2_NATIVE_TU15_VIEW_STORAGE_STARTUP_V1":advance_players?"H2_NATIVE_TU15_PLAYER_STARTUP_V1":advance_context?"H2_NATIVE_TU15_STATE_CONTEXT_STARTUP_V1":advance_clock?"H2_NATIVE_TU15_CLOCK_STARTUP_V1":advance_renderer?"H2_NATIVE_TU15_RENDERER_STARTUP_V1":advance_handles?"H2_NATIVE_TU15_LEVEL_HANDLES_STARTUP_V1":advance_bink?"H2_NATIVE_TU15_BINK_MEMORY_STARTUP_V1":advance_input?"H2_NATIVE_TU15_INPUT_STARTUP_V1":advance_cache?"H2_NATIVE_TU15_CACHE_STARTUP_V1":advance_session?"H2_NATIVE_TU15_NETWORK_SESSION_V1":advance_rng?"H2_NATIVE_TU15_RNG_STARTUP_V1":advance_full?"H2_NATIVE_TU15_NETWORK_COMPLETE_V1":advance_services?"H2_NATIVE_TU15_ONLINE_SERVICES_V1":advance_online?"H2_NATIVE_TU15_NETWORK_PLATFORM_V1":advance_xnet?"H2_NATIVE_TU15_NETWORK_CONNECTION_V1":"H2_NATIVE_TU15_NETWORK_LINK_V1"},{"passed",true},{"typed_data_bytes",bytes},{"initializer_slots",68},
+    Json report{{"schema",advance_sound_configuration?"H2_NATIVE_TU15_SOUND_DISABLED_CONFIGURATION_PREFIX_V1":advance_sound_sdk?"H2_NATIVE_TU15_SOUND_SDK_PREFIX_V1":advance_sound_storage?"H2_NATIVE_TU15_SOUND_STORAGE_PREFIX_V1":advance_render_objects?"H2_NATIVE_TU15_RENDER_OBJECT_STORAGE_V1":advance_graphics_renderer_complete?"H2_NATIVE_TU15_GRAPHICS_RENDERER_COMPLETE_V1":advance_graphics_debug_storage?"H2_NATIVE_TU15_GRAPHICS_DEBUG_STORAGE_V1":advance_graphics_transparent_storage?"H2_NATIVE_TU15_GRAPHICS_TRANSPARENT_STORAGE_V1":advance_graphics_aux_textures?"H2_NATIVE_TU15_GRAPHICS_AUX_TEXTURES_V1":advance_graphics_target_storage?"H2_NATIVE_TU15_GRAPHICS_TARGET_STORAGE_V1":advance_graphics_texture_pairs?"H2_NATIVE_TU15_GRAPHICS_TEXTURE_PAIRS_V1":advance_graphics_surfaces?"H2_NATIVE_TU15_GRAPHICS_SURFACES_V1":advance_graphics_coordinates?"H2_NATIVE_TU15_GRAPHICS_COORDINATES_V1":advance_graphics_output?"H2_NATIVE_TU15_GRAPHICS_OUTPUT_V1":advance_graphics_depth_state?"H2_NATIVE_TU15_GRAPHICS_DEPTH_STATE_V1":advance_graphics_depth?"H2_NATIVE_TU15_GRAPHICS_DEPTH_V1":advance_graphics_constants?"H2_NATIVE_TU15_GRAPHICS_CONSTANTS_V1":advance_graphics_palette?"H2_NATIVE_TU15_GRAPHICS_PALETTE_V1":advance_graphics_pool?"H2_NATIVE_TU15_GRAPHICS_POOL_V1":advance_graphics_state?"H2_NATIVE_TU15_GRAPHICS_STATE_V1":advance_graphics_device?"H2_NATIVE_TU15_GRAPHICS_DEVICE_V1":advance_renderer_request?"H2_NATIVE_TU15_RENDERER_REQUEST_V1":advance_aux_objects?"H2_NATIVE_TU15_AUX_OBJECT_STATE_STARTUP_V1":advance_objects?"H2_NATIVE_TU15_OBJECT_STORAGE_STARTUP_V1":advance_scalars?"H2_NATIVE_TU15_SCALAR_STATE_STARTUP_V1":advance_registration?"H2_NATIVE_TU15_STATIC_REGISTRATION_STARTUP_V1":advance_views?"H2_NATIVE_TU15_VIEW_STORAGE_STARTUP_V1":advance_players?"H2_NATIVE_TU15_PLAYER_STARTUP_V1":advance_context?"H2_NATIVE_TU15_STATE_CONTEXT_STARTUP_V1":advance_clock?"H2_NATIVE_TU15_CLOCK_STARTUP_V1":advance_renderer?"H2_NATIVE_TU15_RENDERER_STARTUP_V1":advance_handles?"H2_NATIVE_TU15_LEVEL_HANDLES_STARTUP_V1":advance_bink?"H2_NATIVE_TU15_BINK_MEMORY_STARTUP_V1":advance_input?"H2_NATIVE_TU15_INPUT_STARTUP_V1":advance_cache?"H2_NATIVE_TU15_CACHE_STARTUP_V1":advance_session?"H2_NATIVE_TU15_NETWORK_SESSION_V1":advance_rng?"H2_NATIVE_TU15_RNG_STARTUP_V1":advance_full?"H2_NATIVE_TU15_NETWORK_COMPLETE_V1":advance_services?"H2_NATIVE_TU15_ONLINE_SERVICES_V1":advance_online?"H2_NATIVE_TU15_NETWORK_PLATFORM_V1":advance_xnet?"H2_NATIVE_TU15_NETWORK_CONNECTION_V1":"H2_NATIVE_TU15_NETWORK_LINK_V1"},{"passed",true},{"typed_data_bytes",bytes},{"initializer_slots",68},
         {"instructions",instructions.size()},{"ordered_stores",stores.size()},{"frontier_target",frontier.target},{"frontier_gp",state.gp},
         {"x87_control",state.floating_point->x87_control_word},{"mxcsr",state.floating_point->mxcsr},{"game_options",options},
         {"excluded_reserved_x87_control_bit",6},{"defined_floating_point_state_verified",true},
@@ -884,14 +1164,14 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         {"native_browser_requests",browser_requests},
         {"foreign_network_startup_bank_site_and_return_frame_rejected",true},
         {"foreign_link_bank_site_and_return_frame_rejected",true},
-        {"native_raw_allocation_request",resources[0].request},{"native_raw_allocation_result",resources[0].result},
+        {"native_raw_allocation_request",resources[raw_prelude].request},{"native_raw_allocation_result",resources[raw_prelude].result},
         {"foreign_allocator_bank_rejected",true},{"source_release_and_retired_native_pointer_verified",true},
         {"game_options_native_address_bits",64},{"source_game_storage_complete",false},{"world_startup_complete",false},
         {"reference_executable_is_runtime_input",false},{"original_cpu_comparison",!fixture.is_null()},{"normal_gameplay_admission",false}};
     if(advance_input) {
         report["source_input_prelude"]=input_prelude;report["source_input_initializer_complete"]=true;
         report["native_input_device_selection"]=input_devices_mode;
-        report["initializer_slots_completed"]=advance_aux_objects?31:advance_objects?28:advance_scalars?27:advance_registration?25:advance_views?23:advance_players?20:advance_context?19:advance_clock?18:advance_renderer?15:advance_handles?14:advance_bink?13:11;report["input_fields"]=Json::array();
+        report["initializer_slots_completed"]=advance_render_objects?44:advance_graphics_renderer_complete?32:advance_aux_objects?31:advance_objects?28:advance_scalars?27:advance_registration?25:advance_views?23:advance_players?20:advance_context?19:advance_clock?18:advance_renderer?15:advance_handles?14:advance_bink?13:11;report["input_fields"]=Json::array();
         report["native_input_calls"]=Json::array();
         SourceRuntimeMemory fields;mount_native_tu15_input_startup_data(fields);
         fields.visit_committed([&](auto p,auto bytes) {
@@ -996,7 +1276,538 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
             "Online context teardown changed actual account authentication");
         report["native_online_context_reference_lifecycle_verified"]=true;
     }
+    if(advance_sound_storage) {
+        const auto cache=startup.sound_cache_protection();
+        check(cache&&cache->bytes==0x300000u&&cache->protection==4u&&cache->native_backing.value>0xffffffffu&&
+            word(memory,0x4f2c44)==0&&(advance_sound_sdk?word(memory,0x52d674)!=0:word(memory,0x52d674)==0)&&
+            memory.view(word(memory,0x4f2c50)+0x78,1)[0]==std::byte{},
+            "Sound CPU prefix lost owned pages or supplied driver readiness");
+        report["source_sound_arena_prelude"]=sound_arena_prelude;
+        report["native_sound_initializer_call"]=native_sound_call;
+        report["native_sound_required_driver_call"]=native_sound_driver_call;
+        report["native_sound_cache_protection"]={{"source",cache->source_address},{"bytes",cache->bytes},{"protection",cache->protection},{"native_backing",cache->native_backing.value}};
+        report["native_sound_utc_inputs"]=rng->utc_filetime_inputs();
+        report["native_sound_arena_address_bits"]=64;
+        report["source_sound_initializer45_returned"]=false;
+        report["native_sound_driver_ready"]=false;
+        auto probe=state;probe.gp[4]=sp-0x800u;
+        put(memory,probe.gp[4],0x21f0a3u);put(memory,probe.gp[4]+4,cache->source_address);
+        put(memory,probe.gp[4]+8,0x300000u);put(memory,probe.gp[4]+12,4u);
+        const auto unchanged=probe;const SourcePhysicsContactRuntimeCall request{0x2db4d1u,0x800000b6u,true};
+        unsigned rejected=0;
+        const auto reject=[&](auto action) {
+            bool caught=false;try{action();}catch(const std::invalid_argument&){caught=true;}
+            check(caught&&probe.gp==unchanged.gp&&probe.eflags==unchanged.eflags,
+                "Rejected sound cache protection changed source ABI");++rejected;
+        };
+        SourceRuntimeMemory foreign;
+        reject([&]{startup.try_sound_cache_protection_call(foreign,request,probe);});
+        reject([&]{startup.try_sound_cache_protection_call(memory,{0x2db4d2u,0x800000b6u,true},probe);});
+        reject([&]{startup.try_sound_cache_protection_call(memory,{0x2db4d1u,0x800000b6u,false},probe);});
+        put(memory,probe.gp[4],0x21f0a4u);
+        reject([&]{startup.try_sound_cache_protection_call(memory,request,probe);});
+        put(memory,probe.gp[4],0x21f0a3u);put(memory,probe.gp[4]+8,0x2fffffu);
+        reject([&]{startup.try_sound_cache_protection_call(memory,request,probe);});
+        put(memory,probe.gp[4]+8,0x300000u);put(memory,probe.gp[4]+12,0x404u);
+        reject([&]{startup.try_sound_cache_protection_call(memory,request,probe);});
+        put(memory,probe.gp[4]+12,4u);
+        bool wrong_thread=false;
+        std::thread outsider([&]{try{startup.try_sound_cache_protection_call(memory,request,probe);}
+            catch(const std::invalid_argument&){wrong_thread=true;}});outsider.join();
+        check(wrong_thread&&probe.gp==unchanged.gp&&probe.eflags==unchanged.eflags,
+            "Sound cache protection crossed native thread ownership");
+        report["native_sound_cache_protection_rejections_checked"]=rejected+1;
+    }
+    if(advance_sound_sdk) {
+        check(sound_sdk->live_allocations()==0&&sound_sdk->lock_depth()==0&&!sound_sdk->quiescent()&&!sound_dma->quiescent(),
+            "Stopped SDK factory leaked native objects/locks or admitted partial state");
+        report["source_sound_sdk_prior_constructors"]=sound_sdk_priors;
+        report["native_sound_factory_call"]=native_sound_factory_call;
+        report["native_sound_sdk_required_configuration_call"]=native_sound_sdk_frontier;
+        report["source_sound_sdk_factory_returned"]=false;
+        report["native_sound_sdk_partial_resources_released"]=true;
+        report["native_sound_sdk_partial_checkpoint_rejected"]=true;
+        report["native_sound_pcm_dsp_parity_verified"]=false;
+        check(sound_reset->state().faulted&&!sound_reset->quiescent(),"Stopped SDK factory reused its partial reset owner");
+        if(advance_sound_configuration) {
+            const auto policy=sound_interrupt_policy->diagnostics();const auto port=sound_events->state();
+            check(policy.retired&&port.retired&&port.faulted&&!port.connected&&port.delivered_irqs==0,
+                "Stopped cold sound configuration retained active native delivery");
+            native_sound_configuration_prefix["interrupted_parent_retired_actual_gate"]=true;
+            native_sound_configuration_prefix["interrupted_parent_retired_actual_port"]=true;
+            report["native_sound_disabled_configuration_prefix"]=native_sound_configuration_prefix;
+            sound_interrupt_policy.reset();sound_events.reset();sound_frontend.reset();
+        }
+        sound_reset.reset();sound_dma.reset();
+        for(const auto& row:native_sound_sdk_frontier.at("dma_allocations")) {
+            bool released=false;try{memory.view(row.at("source").get<std::uint32_t>(),row.at("capacity").get<std::size_t>());}
+            catch(const std::exception&){released=true;}
+            check(released,"Partial sound DMA teardown retained source-accessible pages");
+        }
+        report["native_sound_dma_pages_released"]=true;
+        sound_preference->retire();sound_preference->require_quiescent();
+        report["native_sound_preference_withdrawn"]=word(memory,0x390be8)==0xffffffffu;
+    }
+    if(advance_render_objects) {
+        check(native_render_object_calls.size()==12,"Source startup33..44 skipped an initializer");
+        const auto views=native_tu15_render_object_startup_views(memory);
+        check(views.regions.size()==25,"Source startup33..44 has incomplete native storage");
+        report["native_render_object_calls"]=native_render_object_calls;
+        report["native_render_object_storage"]=Json::array();
+        for(const auto& region:views.regions)report["native_render_object_storage"].push_back(
+            {{"binding",region.binding},{"source",region.source},{"bytes",region.bytes},{"native_backing",region.native.value},
+             {"source_bytes_sha256",digest(memory.view(region.native,region.bytes))}});
+        report["source_initializers33_through44_returned"]=true;
+        report["native_render_object_storage_address_bits"]=64;
+    }
+    if(advance_graphics_renderer_complete) {
+        const auto tail=native_tu15_renderer_tail_storage_views(memory);
+        const auto pools=native_tu15_renderer_cache_pool_views(memory);
+        check(memory.view(0x4922a8,1)[0]==std::byte{1}&&word(memory,0x4c3ae0)==0xffffffffu&&
+            std::ranges::all_of(memory.view(0x4c3ad4,12),[](auto byte){return byte==std::byte{};}),
+            "Original renderer initializer did not return its successful source admission/defaults");
+        report["native_renderer_tail_storage"]={{"capture",tail.state_1fb90.value},{"render",tail.state_12560.value},
+            {"lens",tail.state_20e90.value},{"query_bank",tail.query_bank.value}};
+        report["native_renderer_cache_pools"]=Json::array();
+        const std::array views{pools.geometry,pools.predicted_geometry,pools.geometry_cache,
+            pools.texture,pools.predicted_texture,pools.texture_cache};
+        constexpr std::array<std::uint32_t,6> sizes{0x188c,0xb68,0x30fc,0x508c,0x6a8,0x30fc};
+        for(unsigned i=0;i<6;++i) {
+            const auto& event=resources.at(raw_prelude+14+i);
+            check(event.allocation&&event.request==std::array<std::uint32_t,5>{0,0,sizes[i],0x101000,4}&&
+                memory.native_address(event.result[1],sizes[i])==views[i],
+                "Renderer cache pools lost their actual source allocation outcomes");
+            report["native_renderer_cache_pools"].push_back({{"bytes",sizes[i]},{"native_backing",views[i].value},
+                {"request",event.request},{"result",event.result},{"source_bytes_sha256",digest(memory.view(views[i],sizes[i]))}});
+        }
+        report["source_renderer_resource_initializer_complete"]=true;
+        report["source_renderer_initializer32_returned"]=true;
+        report["native_renderer_cache_pools_address_bits"]=64;
+        report["native_renderer_retained_cache_callbacks_executed"]=false;
+    }
+    if(advance_graphics_debug_storage) {
+        check(graphics_debug_texture->initialized()&&!graphics_debug_texture->content_initialized(),
+            "Native debugger constructor lost its resource or invented initial pixels");
+        const auto& binding=graphics_debug_texture->resolve(graphics_debug_texture->handle());
+        const auto rows=graphics_debug_texture->initial_rows();
+        report["native_debug_storage_call"]=native_debug_storage_call;
+        report["native_debug_texture_call"]=native_debug_texture_call;
+        report["native_debug_texture"]={{"bitmap_source",binding.source_bitmap},{"native_bitmap",binding.bitmap.value},
+            {"native_descriptor",graphics_debug_texture->native_address(binding.source_handle).value},
+            {"source_format_word",binding.source_texture_format},{"source_size_word",binding.source_size_word},
+            {"source_pitch",binding.source_pitch},{"image",binding.texture.image},{"view",binding.texture.view},
+            {"format",binding.texture.format},{"native_backing",binding.texture.image_backing.value},{"native_rows",rows.value},
+            {"rows",512},{"content_initialized",false}};
+        auto probe=frame();probe.gp=native_debug_texture_call["entry_gp"].get<decltype(probe.gp)>();
+        probe.eflags=native_debug_texture_call["entry_eflags"];probe.gp[4]=sp-0x3800u;
+        put(memory,probe.gp[4],0x1d0a2);put(memory,probe.gp[4]+4,256);put(memory,probe.gp[4]+8,256);
+        put(memory,probe.gp[4]+12,0);put(memory,probe.gp[4]+16,0);const auto before=probe;
+        const auto saved=word(memory,binding.source_bitmap+0x50);unsigned guards=0;
+        const SourcePhysicsContactRuntimeCall request{0x1d09d,0x158d0,false};SourceRuntimeMemory foreign;
+        const auto reject=[&](auto&& action) {
+            bool caught=false;try{action();}catch(const std::exception&){caught=true;}
+            check(caught&&probe.gp==before.gp&&probe.eflags==before.eflags&&
+                word(memory,binding.source_bitmap+0x50)==saved,
+                "Rejected native debugger request changed the caller or published identity");++guards;
+        };
+        reject([&]{graphics_debug_texture->try_call(foreign,request,probe);});
+        reject([&]{graphics_debug_texture->try_call(memory,{0x1d09e,0x158d0,false},probe);});
+        reject([&]{graphics_debug_texture->try_call(memory,{0x1d09d,0x158d0,true},probe);});
+        reject([&]{graphics_debug_texture->try_call(memory,request,probe);});
+        NativeTu15DebugTextureStartup cold(memory,*graphics_device,debug_texture_factory,raw);
+        NativeTu15DebugTextureStartup absent(memory,*graphics_device,{},raw);
+        reject([&]{cold.try_call(memory,request,probe);});reject([&]{absent.try_call(memory,request,probe);});
+        reject([&]{graphics_debug_texture->resolve(graphics_device->handle());});
+        reject([&]{graphics_debug_texture->resolve(graphics_palette->handle());});
+        reject([&]{graphics_debug_texture->resolve(graphics_surfaces->handle(0x515e34));});
+        reject([&]{graphics_debug_texture->resolve(graphics_texture_pairs->handle(0x515e54));});
+        reject([&]{graphics_debug_texture->resolve(graphics_aux_textures->handle(0x492304));});
+        reject([&]{graphics_debug_texture->resolve(0xf9000502);});
+        reject([&]{memory.native_address(saved,4);});
+        bool wrong_thread=false;std::thread outsider([&] {
+            try{graphics_debug_texture->try_call(memory,request,probe);}catch(const std::invalid_argument&){wrong_thread=true;}
+        });outsider.join();
+        check(wrong_thread&&probe.gp==before.gp&&word(memory,binding.source_bitmap+0x50)==saved,
+            "Foreign debugger thread changed the source publication");++guards;
+        const auto source_bitmap=binding.source_bitmap;
+        put(memory,source_bitmap+0x50,0xf90005ff);bool tampered=false,cleanup=false;
+        try{graphics_debug_texture->resolve(saved);}catch(const std::runtime_error&){tampered=true;}
+        try{graphics_debug_texture->release();}catch(const std::invalid_argument&){cleanup=true;}
+        check(tampered&&cleanup&&word(memory,source_bitmap+0x50)==0xf90005ff,
+            "Native debugger cleanup replaced a foreign publication");put(memory,source_bitmap+0x50,saved);guards+=2;
+        graphics_debug_texture->release();bool retired=false;
+        try{graphics_debug_texture->resolve(saved);}catch(const std::runtime_error&){retired=true;}
+        check(retired&&!graphics_debug_texture->initialized()&&!word(memory,source_bitmap+0x50)&&
+            graphics_device->initialized()&&memory.native_address(source_bitmap,116).value>0xffffffffu,
+            "Native debugger cleanup retained the texture or retired its separate bitmap owner");++guards;
+        report["native_debug_storage_constructor_complete"]=true;
+        report["native_debug_texture_undefined_content_preserved"]=true;
+        report["native_debug_texture_rejections_checked"]=guards;
+        report["native_debug_texture_cleanup_verified"]=true;
+    }
+    if(advance_graphics_transparent_storage) {
+        const auto views=native_tu15_renderer_transparent_storage_initial_views(memory);
+        report["native_transparent_storage_call"]=native_transparent_storage_call;
+        report["native_transparent_storage"]={{"planes",views.planes.value},{"indices",views.indices.value},
+            {"container",views.container.value},{"buckets",views.buckets.value},{"free_nodes",views.free_nodes.value},
+            {"bucket_count",views.bucket_count},{"node_count",views.node_count},{"node_payload_bytes",views.node_payload_bytes},
+            {"source_container_sha256",digest(memory.view(views.container,0x1203c))}};
+        constexpr std::array<unsigned,3> sizes{0x1c000,0x800,0x1203c};
+        constexpr std::array<unsigned,3> rounded{0x1c000,0x1000,0x13000};
+        const std::array bindings{views.planes,views.indices,views.container};
+        report["native_transparent_storage_allocations"]=Json::array();
+        for(unsigned i=0;i<3;++i) {
+            const auto& event=resources.at(raw_prelude+10+i);
+            check(event.allocation&&event.request==std::array<std::uint32_t,5>{0,0,sizes[i],0x101000,4}&&
+                event.result[0]==0&&event.result[2]==rounded[i]&&
+                memory.native_address(event.result[1],sizes[i])==bindings[i],
+                "Transparent storage differs from its actual native virtual allocation receipts");
+            report["native_transparent_storage_allocations"].push_back({{"request",event.request},{"result",event.result},
+                {"native_backing",bindings[i].value}});
+        }
+        unsigned guards=0;
+        for(const auto cell:std::array<std::uint32_t,3>{0x4c2aa8,0x4c2aac,0x52dfd0}) {
+            const auto saved=word(memory,cell);put(memory,cell,0);bool refused=false;
+            try{native_tu15_renderer_transparent_storage_initial_views(memory);}catch(const std::exception&){refused=true;}
+            check(refused&&word(memory,cell)==0,"Transparent storage admitted missing backing or rewrote a rejected binding");
+            put(memory,cell,saved);++guards;
+        }
+        const auto head=memory.source_address(views.container,0x1203c)+0x38;
+        const auto saved_head=word(memory,head);put(memory,head,0);bool refused=false;
+        try{native_tu15_renderer_transparent_storage_initial_views(memory);}catch(const std::exception&){refused=true;}
+        check(refused&&word(memory,head)==0,"Transparent storage admitted a broken initial free chain");
+        put(memory,head,saved_head);++guards;
+        report["native_transparent_storage_constructor_complete"]=true;
+        report["native_transparent_storage_address_bits"]=64;
+        report["native_transparent_storage_incomplete_rejections_checked"]=guards;
+        report["native_transparent_storage_draw_callbacks_executed"]=false;
+    }
+    if(advance_graphics_aux_textures) {
+        check(graphics_aux_textures->initialized(),"Source auxiliary textures have no live native publication");
+        report["native_aux_texture_call"]=native_aux_texture_call;
+        report["native_aux_texture_bindings"]=Json::array();
+        unsigned checked_pixels=0;
+        for(const auto cell:std::array<std::uint32_t,3>{0x492304,0x492308,0x49230c}) {
+            const auto handle=graphics_aux_textures->handle(cell);
+            const auto& binding=graphics_aux_textures->resolve(handle);
+            const auto& texture=binding.texture;const auto& image=texture.image;
+            check(binding.source_texture_format==4&&image.width==4&&image.height==4&&image.mips==1&&
+                image.image_backing.value>0xffffffffu&&graphics_aux_textures->native_address(handle).value>0xffffffffu,
+                "Source auxiliary texture dimensions/format/native identity differ");
+            const auto pixels=graphics_aux_textures->pixels(handle);
+            check(pixels.size()==std::size_t(image.width)*image.height*texture.depth*image.layers*4,
+                "Native auxiliary texture readback has another footprint");
+            for(std::size_t i=0;i<pixels.size();i+=4) {
+                // The independent original-code oracle pins transparent red
+                // and opaque green at alternating X, including all cube faces.
+                const auto alternate=(i/4)&1u;
+                const std::array expected=alternate?
+                    std::array{std::byte{},std::byte{255},std::byte{},std::byte{255}}:
+                    std::array{std::byte{255},std::byte{},std::byte{},std::byte{}};
+                check(std::ranges::equal(std::span(pixels).subspan(i,4),expected),
+                    "Published native auxiliary texture pixels differ from source1D0C0");++checked_pixels;
+            }
+            report["native_aux_texture_bindings"].push_back({{"cell",cell},{"opaque_handle",handle},
+                {"source_format",binding.source_texture_format},{"source_format_word",texture.source_format_word},
+                {"image",image.image},{"view",image.view},{"native_backing",image.image_backing.value},
+                {"width",image.width},{"height",image.height},{"depth",texture.depth},{"layers",image.layers},
+                {"rgba_bytes",hex(pixels)}});
+        }
+        check(checked_pixels==176,"Native auxiliary publication omits original texels");
+        auto probe=frame();probe.gp=native_aux_texture_call["entry_gp"].get<decltype(probe.gp)>();
+        probe.eflags=native_aux_texture_call["entry_eflags"];probe.gp[4]=sp-0x3400u;put(memory,probe.gp[4],0x127bf);
+        const auto before=probe;const auto published=hex(memory.view(0x492304,12));unsigned guards=0;
+        const SourcePhysicsContactRuntimeCall request{0x127ba,0x1d0c0,false};SourceRuntimeMemory foreign;
+        const auto reject=[&](auto&& action) {
+            bool caught=false;try{action();}catch(const std::exception&){caught=true;}
+            check(caught&&probe.gp==before.gp&&probe.eflags==before.eflags&&hex(memory.view(0x492304,12))==published,
+                "Rejected native auxiliary call changed its caller or identities");++guards;
+        };
+        reject([&]{graphics_aux_textures->try_call(foreign,request,probe);});
+        reject([&]{graphics_aux_textures->try_call(memory,{0x127bb,0x1d0c0,false},probe);});
+        reject([&]{graphics_aux_textures->try_call(memory,{0x127ba,0x1d0c0,true},probe);});
+        reject([&]{graphics_aux_textures->try_call(memory,request,probe);});
+        NativeTu15RendererAuxStartup cold(memory,*graphics_device,aux_texture_factory);
+        NativeTu15RendererAuxStartup absent(memory,*graphics_device,{});
+        reject([&]{cold.try_call(memory,request,probe);});reject([&]{absent.try_call(memory,request,probe);});
+        reject([&]{graphics_aux_textures->resolve(graphics_palette->handle());});
+        reject([&]{graphics_aux_textures->resolve(graphics_device->handle());});
+        reject([&]{graphics_aux_textures->resolve(graphics_surfaces->handle(0x515e34));});
+        reject([&]{graphics_aux_textures->resolve(graphics_texture_pairs->handle(0x515e54));});
+        reject([&]{graphics_aux_textures->handle(0x492305);});
+        reject([&]{memory.native_address(graphics_aux_textures->handle(0x492304),4);});
+        bool thread_rejected=false;std::thread outsider([&] {
+            try{graphics_aux_textures->try_call(memory,request,probe);}catch(const std::invalid_argument&){thread_rejected=true;}
+        });outsider.join();
+        check(thread_rejected&&probe.gp==before.gp&&hex(memory.view(0x492304,12))==published,
+            "Foreign auxiliary texture thread changed the publication");++guards;
+        const auto saved=word(memory,0x492304);put(memory,0x492304,0xf90004ff);
+        bool tampered=false,cleanup=false;
+        try{graphics_aux_textures->resolve(saved);}catch(const std::runtime_error&){tampered=true;}
+        try{graphics_aux_textures->release();}catch(const std::invalid_argument&){cleanup=true;}
+        check(tampered&&cleanup&&word(memory,0x492304)==0xf90004ff,
+            "Auxiliary cleanup replaced a foreign identity");put(memory,0x492304,saved);guards+=2;
+        graphics_aux_textures->release();bool retired=false;
+        try{graphics_aux_textures->resolve(saved);}catch(const std::runtime_error&){retired=true;}
+        check(retired&&!graphics_aux_textures->initialized()&&graphics_device->initialized()&&
+            std::ranges::all_of(memory.view(0x492304,12),[](auto byte){return byte==std::byte{};}),
+            "Native auxiliary cleanup retained identities or destroyed its device owner");++guards;
+        report["native_aux_texture_initializer_complete"]=true;report["native_aux_texture_rejections_checked"]=guards;
+        report["native_aux_texture_startup_pixels_checked"]=checked_pixels;report["native_aux_texture_cleanup_verified"]=true;
+        report["original_aux_texture_returned_scratch_register_parity_verified"]=false;
+    }
+    if(advance_graphics_target_storage) {
+        const auto definitions=native_tu15_renderer_target_definitions(memory);
+        const auto& protections=startup.renderer_target_protections();
+        check(protections.size()==3,"Native target construction lost its physical protection calls");
+        report["native_target_storage_call"]=native_target_storage_call;
+        report["native_target_storage_definitions"]=Json::array();
+        report["native_target_storage_protections"]=Json::array();
+        for(const auto& d:definitions) {
+            check(d.pixels.value>0xffffffffu && d.surfaces.front().pixels==d.pixels,
+                "Renderer target definition lost its real native parent");
+            Json levels=Json::array();
+            for(const auto& level:d.surfaces)levels.push_back({{"width",level.width},{"height",level.height},
+                {"format_word",level.format_word},{"size_word",level.size_word},
+                {"native_pixels",level.pixels.value},{"bytes",level.bytes}});
+            report["native_target_storage_definitions"].push_back({{"index",d.index},
+                {"width",d.width},{"height",d.height},{"format_word",d.format_word},{"size_word",d.size_word},
+                {"pitch",d.pitch},{"linear",d.linear},{"bytes",d.bytes},
+                {"native_pixels",d.pixels.value},{"surfaces",levels}});
+        }
+        const auto definition=[&](unsigned index)->const NativeTu15TargetStorageDefinition& {
+            return *std::ranges::find(definitions,index,&NativeTu15TargetStorageDefinition::index);
+        };
+        constexpr std::array<unsigned,3> parents{1,9,15};
+        constexpr std::array<unsigned,3> protected_bytes{0x12c000,0x100000,0x4000};
+        for(unsigned i=0;i<3;++i) {
+            const auto& p=protections[i];const auto& d=definition(parents[i]);
+            check(p.bytes==protected_bytes[i]&&p.protection==0x404&&p.native_backing==d.pixels&&
+                memory.native_address(p.source_address,p.bytes)==p.native_backing,
+                "Native renderer protection differs from the actual retained parent storage");
+            report["native_target_storage_protections"].push_back({{"source_address",p.source_address},
+                {"bytes",p.bytes},{"protection",p.protection},{"native_backing",p.native_backing.value}});
+        }
+        check(definition(1).pixels==definition(5).pixels&&definition(5).pixels==definition(23).pixels&&
+            definition(6).pixels==definition(5).pixels+0x4b000&&
+            definition(7).pixels==definition(9).pixels&&definition(9).pixels==definition(13).pixels&&
+            definition(13).surfaces.size()==3&&definition(13).surfaces[1].pixels==definition(9).pixels+0x40000&&
+            definition(13).surfaces[2].pixels==definition(9).pixels+0x50000&&
+            definition(7).pitch==640&&definition(7).bytes==0x16800&&
+            definition(8).pixels==definition(7).pixels+0x16800&&
+            definition(22).pixels==definition(21).pixels+0x80000,
+            "Native target definitions lost their original overlaps, pitch or mip offsets");
+        // Check actual shared bytes after measuring the source prefix, then
+        // restore the producer's byte before any later constructor can run.
+        const auto saved=memory.view(definition(9).pixels,1)[0];
+        const std::array<std::byte,1> marker{std::byte{0xa7}};
+        memory.write(definition(7).pixels,marker);
+        check(memory.view(definition(13).pixels,1)[0]==marker[0]&&
+            memory.view(definition(10).pixels,1)[0]==marker[0],
+            "Native render target overlaps became separate allocations");
+        memory.write(definition(9).pixels,std::array<std::byte,1>{saved});
+        auto probe=frame();probe.gp[4]=sp-0x3000u;
+        put(memory,probe.gp[4],0x1db4b);put(memory,probe.gp[4]+4,protections[0].source_address);
+        put(memory,probe.gp[4]+8,protections[0].bytes);put(memory,probe.gp[4]+12,0x404);
+        const auto before=probe;const SourcePhysicsContactRuntimeCall protect{0x2db4d1,0x800000b6,true};
+        unsigned guards=0;
+        const auto reject=[&](auto&& action) {
+            bool caught=false;try{action();}catch(const std::exception&){caught=true;}
+            check(caught&&probe.gp==before.gp&&probe.eflags==before.eflags&&
+                startup.renderer_target_protections().size()==3,
+                "Rejected physical protection changed its caller or physical storage");++guards;
+        };
+        SourceRuntimeMemory foreign;
+        reject([&]{startup.try_renderer_target_protection_call(foreign,protect,probe);});
+        reject([&]{startup.try_renderer_target_protection_call(memory,{0x2db4d2,0x800000b6,true},probe);});
+        reject([&]{startup.try_renderer_target_protection_call(memory,{0x2db4d1,0x800000b6,false},probe);});
+        put(memory,probe.gp[4],0x1db4c);reject([&]{startup.try_renderer_target_protection_call(memory,protect,probe);});
+        put(memory,probe.gp[4],0x1db4b);put(memory,probe.gp[4]+12,4);
+        reject([&]{startup.try_renderer_target_protection_call(memory,protect,probe);});
+        put(memory,probe.gp[4]+12,0x404);put(memory,probe.gp[4]+4,0x4c1378);
+        reject([&]{startup.try_renderer_target_protection_call(memory,protect,probe);});
+        put(memory,probe.gp[4]+4,protections[0].source_address);
+        bool wrong_thread=false;std::thread outsider([&] {
+            try{startup.try_renderer_target_protection_call(memory,protect,probe);}
+            catch(const std::invalid_argument&){wrong_thread=true;}
+        });outsider.join();
+        check(wrong_thread&&probe.gp==before.gp&&startup.renderer_target_protections().size()==3,
+            "Foreign renderer thread changed physical protection");++guards;
+        check(!startup.try_renderer_target_protection_call(memory,{0x2db4d1,0x800000b7,true},probe)&&probe.gp==before.gp,
+            "Renderer physical protection consumed another kernel service");
+        report["native_target_storage_protection_rejections_checked"]=guards;
+        report["native_target_storage_cpu_constructor_complete"]=true;
+        report["native_target_storage_native_address_bits"]=64;
+        report["native_target_storage_overlapping_bytes_verified"]=true;
+        report["native_target_storage_gpu_binding_or_visibility_verified"]=false;
+    }
+    if(advance_graphics_texture_pairs) {
+        check(graphics_texture_pairs->initialized(),"Native texture pairs lost their retained owners");
+        report["native_texture_pair_call"]=native_texture_pair_call;
+        const auto& a=graphics_texture_pairs->resolve(graphics_texture_pairs->handle(0x515e54));
+        const auto& b=graphics_texture_pairs->resolve(graphics_texture_pairs->handle(0x515e58));
+        const auto& c=graphics_texture_pairs->resolve(graphics_texture_pairs->handle(0x515e5c));
+        const auto& d=graphics_texture_pairs->resolve(graphics_texture_pairs->handle(0x515e60));
+        const auto& unbound=graphics_texture_pairs->resolve(graphics_texture_pairs->handle(0x515e64));
+        check(a.image&&a.image==b.image&&a.view==b.view&&c.image&&c.image==d.image&&c.view==d.view&&a.image!=c.image&&
+            a.width==64&&a.height==64&&a.source_texture_format==6&&a.image_backing.value>0xffffffffu&&
+            c.image_backing.value>0xffffffffu&&unbound.unbound_linear_surface&&!unbound.image&&!unbound.view&&
+            unbound.width==512&&unbound.height==512&&unbound.source_texture_format==0x12,
+            "Native texture pairs differ from original14830's physical/alias/unbound relationships");
+        auto probe=frame();probe.gp=native_texture_pair_call["entry_gp"].get<decltype(probe.gp)>();
+        probe.eflags=native_texture_pair_call["entry_eflags"];probe.gp[4]=sp-0x2c00u;put(memory,probe.gp[4],0x127adu);
+        const auto before=probe;const auto publication=hex(memory.view(0x515e54,20));unsigned guards=0;
+        const SourcePhysicsContactRuntimeCall request{0x127a8,0x14830,false};SourceRuntimeMemory foreign;
+        auto reject=[&](auto&& action){bool caught=false;try{action();}catch(const std::exception&){caught=true;}
+            check(caught&&probe.gp==before.gp&&probe.eflags==before.eflags&&hex(memory.view(0x515e54,20))==publication,
+                "Rejected native texture-pair call changed the caller or published identities");++guards;};
+        reject([&]{graphics_texture_pairs->try_call(foreign,request,probe);});
+        reject([&]{graphics_texture_pairs->try_call(memory,{0x127a9,0x14830,false},probe);});
+        reject([&]{graphics_texture_pairs->try_call(memory,{0x127a8,0x14830,true},probe);});
+        reject([&]{graphics_texture_pairs->try_call(memory,request,probe);});
+        NativeTu15TexturePairStartup cold(memory,*graphics_device,*graphics_surfaces,texture_pair_factory);
+        NativeTu15TexturePairStartup absent(memory,*graphics_device,*graphics_surfaces,{});
+        reject([&]{cold.try_call(memory,request,probe);});reject([&]{absent.try_call(memory,request,probe);});
+        reject([&]{graphics_texture_pairs->resolve(graphics_palette->handle());});
+        reject([&]{graphics_texture_pairs->resolve(graphics_device->handle());});
+        reject([&]{graphics_texture_pairs->resolve(graphics_surfaces->handle(0x515e34));});
+        reject([&]{graphics_texture_pairs->native_address(0xf9000306);});
+        reject([&]{graphics_texture_pairs->handle(0x515e55);});
+        reject([&]{memory.native_address(graphics_texture_pairs->handle(0x515e54),4);});
+        reject([&]{memory.native_address(0x491770,24);}); // SDK static object remains offline reference data.
+        bool thread_rejected=false;std::thread outsider([&]{try{graphics_texture_pairs->try_call(memory,request,probe);}catch(const std::invalid_argument&){thread_rejected=true;}});outsider.join();
+        check(thread_rejected&&probe.gp==before.gp&&probe.eflags==before.eflags&&hex(memory.view(0x515e54,20))==publication,
+            "Foreign native texture thread consumed the publication");++guards;
+        const auto saved=word(memory,0x515e54);put(memory,0x515e54,0xf90003ff);const auto changed=hex(memory.view(0x515e54,20));
+        bool tampered=false,cleanup=false;
+        try{graphics_texture_pairs->resolve(saved);}catch(const std::runtime_error&){tampered=true;}
+        try{graphics_texture_pairs->release();}catch(const std::invalid_argument&){cleanup=true;}
+        check(tampered&&cleanup&&hex(memory.view(0x515e54,20))==changed,"Native texture cleanup replaced a foreign publication");
+        put(memory,0x515e54,saved);guards+=2;
+        graphics_texture_pairs->release();bool retired=false;
+        try{graphics_texture_pairs->resolve(saved);}catch(const std::runtime_error&){retired=true;}
+        check(retired&&!graphics_texture_pairs->initialized()&&graphics_surfaces->initialized()&&graphics_device->initialized()&&
+            std::ranges::all_of(memory.view(0x515e54,20),[](auto byte){return byte==std::byte{};}),
+            "Native texture cleanup retained its identities or retired its framebuffer parent");++guards;
+        report["native_texture_pair_initializer_complete"]=true;report["native_texture_pair_rejections_checked"]=guards;
+        report["native_texture_pair_unbound_surface_preserved"]=true;report["native_texture_pair_cleanup_verified"]=true;
+    }
     if(advance_graphics_coordinates) {
+        if(target_control.valid()) {
+            const auto targets=graphics_device->target_resources();const auto& bank=targets.bank();
+            check(targets.device_address()==graphics_device->native_address() &&
+                bank.depth_stencil.image==graphics_depth->configuration().attachment_handle &&
+                bank.source_double_buffer && bank.color.size()==2,
+                "Native source graphics target owner differs from the actual depth attachment");
+            report["native_render_targets"]={{"generation",bank.generation},{"color_images",Json::array()},
+                {"depth_image",bank.depth_stencil.image},{"depth_backing",bank.depth_stencil.image_backing.value}};
+            report["native_render_targets"]["presentation_images"]=bank.presentation_images;
+            report["native_render_targets"]["source_double_buffer"]=bank.source_double_buffer;
+            report["native_render_targets"]["source_frames_submitted"]=bank.source_frames_submitted;
+            for(const auto& color:bank.color) {
+                check(color.image_backing.value>0xffffffffu && color.view_backing.value>0xffffffffu,
+                    "Native render target backing is not an actual 64-bit owner");
+                report["native_render_targets"]["color_images"].push_back({{"image",color.image},{"view",color.view},
+                    {"image_backing",color.image_backing.value},{"width",color.width},{"height",color.height},{"format",color.format}});
+            }
+            report["native_source_surface_alias_initializer_complete"]=advance_graphics_surfaces;
+            const auto before_aliases=memory.checkpoint();
+            auto aliases=graphics_device->framebuffer_aliases();
+            check(before_aliases==memory.checkpoint(),"Preparing native aliases changed source startup bytes");
+            report["native_framebuffer_aliases"]=Json::array();
+            for(const auto cell:std::array<std::uint32_t,8>{0x515e34,0x515e38,0x515e3c,0x515e40,0x515e44,0x515e48,0x515e4c,0x515e50}) {
+                const auto& binding=aliases.resolve(cell);
+                check(binding.image && binding.view && binding.width==bank.depth_stencil.width &&
+                    binding.height==bank.depth_stencil.height && aliases.native_address(cell).value>0xffffffffu,
+                    "Original framebuffer identity lacks its native 64-bit descriptor owner");
+                report["native_framebuffer_aliases"].push_back({{"source_cell",cell},{"image",binding.image},
+                    {"view",binding.view},{"parent_image",binding.parent_image},{"native_backing",aliases.native_address(cell).value},
+                    {"kind",std::uint32_t(binding.kind)},{"source_texture_format",binding.source_texture_format}});
+            }
+            check(aliases.resolve(0x515e34).image==bank.color[0].image && aliases.resolve(0x515e38).image==bank.color[1].image &&
+                aliases.resolve(0x515e3c).image==bank.color[0].image && aliases.resolve(0x515e40).image==bank.color[1].image &&
+                aliases.resolve(0x515e44).image==bank.depth_stencil.image &&
+                aliases.resolve(0x515e48).image==aliases.resolve(0x515e4c).image &&
+                aliases.resolve(0x515e48).view!=aliases.resolve(0x515e4c).view &&
+                aliases.resolve(0x515e48).view==aliases.resolve(0x515e50).view &&
+                aliases.resolve(0x515e50).parent_image==bank.depth_stencil.image,
+                "Native alias registry does not match original145E0's parent relationships");
+            bool unproduced=false;try{aliases.depth_producer().binding();}catch(const FormatError&){unproduced=true;}
+            check(unproduced,"Preparing a native alias registry claimed a produced depth image");
+            report["native_framebuffer_alias_registry_prepared"]=true;
+            report["native_alias_registry_source_bytes_unchanged"]=true;
+        }
+        if(advance_graphics_surfaces) {
+            check(graphics_surfaces->initialized()&&
+                (native_surface_call["returned_gp"][0].get<std::uint32_t>()&255u)==1u,
+                "Successful native surfaces did not reach the actual following initializer");
+            report["native_surface_call"]=native_surface_call;
+            report["native_surface_pointer_cells_are_opaque_handles"]=true;
+            report["native_surface_descriptor_addresses_bits"]=64;
+            report["native_surface_preparation_is_not_production_readiness"]=true;
+            auto probe=frame();probe.gp=native_surface_call["entry_gp"].get<decltype(probe.gp)>();
+            probe.eflags=native_surface_call["entry_eflags"];probe.gp[4]=sp-0x2400u;
+            put(memory,probe.gp[4],0x127a4u);const auto before=probe;
+            const auto published=hex(memory.view(0x515e34,32));
+            const SourcePhysicsContactRuntimeCall request{0x1279f,0x145e0,false};SourceRuntimeMemory foreign;
+            unsigned guards=0;
+            auto reject=[&](auto&& action){bool caught=false;try{action();}catch(const std::exception&){caught=true;}
+                check(caught&&probe.gp==before.gp&&probe.eflags==before.eflags&&hex(memory.view(0x515e34,32))==published,
+                    "Rejected native framebuffer request changed its caller or published resource identities");++guards;};
+            reject([&]{graphics_surfaces->try_call(foreign,request,probe);});
+            reject([&]{graphics_surfaces->try_call(memory,{0x127a0,0x145e0,false},probe);});
+            reject([&]{graphics_surfaces->try_call(memory,{0x1279f,0x145e0,true},probe);});
+            reject([&]{graphics_surfaces->try_call(memory,request,probe);});
+            bool thread_rejected=false;
+            std::thread outsider([&]{try{graphics_surfaces->try_call(memory,request,probe);}catch(const std::invalid_argument&){thread_rejected=true;}});outsider.join();
+            check(thread_rejected&&probe.gp==before.gp&&probe.eflags==before.eflags&&hex(memory.view(0x515e34,32))==published,
+                "Foreign framebuffer thread consumed the publication");++guards;
+            check(!graphics_surfaces->try_call(memory,{0x1279f,0x145e1,false},probe)&&probe.gp==before.gp,
+                "Framebuffer adapter consumed an unrelated call");
+            NativeTu15FramebufferStartup cold(memory,*graphics_device,*graphics_coordinates);
+            reject([&]{cold.try_call(memory,request,probe);}); // Existing identities must not be replaced.
+            NativeTu15GraphicsDevice absent_device(memory,{});
+            NativeTu15FramebufferStartup absent(memory,absent_device,*graphics_coordinates);
+            reject([&]{absent.try_call(memory,request,probe);});
+            NativeTu15RendererCoordinates early_coordinates(memory,*graphics_device,*graphics_output,coordinate_control);
+            NativeTu15FramebufferStartup early(memory,*graphics_device,early_coordinates);
+            reject([&]{early.try_call(memory,request,probe);});
+            reject([&]{graphics_surfaces->resolve(0xf9000200u);});
+            reject([&]{graphics_surfaces->native_address(0xf9000209u);});
+            check(graphics_palette->initialized(),"Framebuffer test lost its live palette");
+            reject([&]{graphics_surfaces->resolve(word(memory,0x4915dc));});
+            reject([&]{graphics_surfaces->resolve(graphics_device->handle());});
+            reject([&]{graphics_surfaces->handle(0x515e35u);});
+            reject([&]{memory.native_address(graphics_surfaces->handle(0x515e34),4);});
+            check(memory.native_address(0x515e34,32).value>0xffffffffu,
+                "Source publication cell backing was narrowed");
+            const auto saved=word(memory,0x515e44);put(memory,0x515e44,0xf90002ffu);
+            const auto tampered=hex(memory.view(0x515e34,32));bool resolve_rejected=false,release_rejected=false;
+            try{graphics_surfaces->resolve(0xf9000201u);}catch(const std::runtime_error&){resolve_rejected=true;}
+            try{graphics_surfaces->release();}catch(const std::invalid_argument&){release_rejected=true;}
+            check(!graphics_surfaces->initialized()&&resolve_rejected&&release_rejected&&hex(memory.view(0x515e34,32))==tampered,
+                "Framebuffer lookup/cleanup admitted a replaced source identity");put(memory,0x515e44,saved);guards+=2;
+            check(graphics_surfaces->initialized()&&!cold.initialized()&&!absent.initialized()&&!early.initialized(),
+                "Rejected framebuffer owners acquired the retained publication");
+            {
+                auto aliases=graphics_device->framebuffer_aliases();
+                halo2_test::framebuffer_pending_cleanup_probe(*graphics_surfaces,aliases);
+                check(hex(memory.view(0x515e34,32))==published,"Pending framebuffer cleanup changed published identities");
+            }
+            report["native_surface_pending_producer_cleanup_rejected"]=true;
+            graphics_surfaces->release();
+            check(!graphics_surfaces->initialized()&&graphics_device->initialized()&&
+                std::ranges::all_of(memory.view(0x515e34,32),[](auto byte){return byte==std::byte{};}),
+                "Framebuffer cleanup retained identities or retired its parent renderer");
+            bool retired=false,duplicate_release=false;
+            try{graphics_surfaces->resolve(0xf9000201u);}catch(const std::runtime_error&){retired=true;}
+            try{graphics_surfaces->release();}catch(const std::invalid_argument&){duplicate_release=true;}
+            check(retired&&duplicate_release,"Released framebuffer publication remained accessible");guards+=2;
+            report["native_surface_rejections_checked"]=guards;
+            report["native_surface_rejections_preserve_state"]=true;
+            report["native_surface_quiescent_cleanup_verified"]=true;
+            report["native_surface_native_bool_abi_verified"]=true;
+        }
         const auto config=graphics_coordinates->configuration();
         check(graphics_coordinates->calls()==4 && native_coordinate_calls.size()==4 && config.registers==renderer_passthrough_registers &&
             config.pipeline_handle && config.state_backing.value>0xffffffffu && config.material_backing.value>0xffffffffu &&
@@ -1085,7 +1896,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         const auto config=graphics_depth->configuration();
         check(graphics_depth->state_calls()==3 && native_depth_state_calls.size()==3 && config.write_enabled==1 &&
             config.function==0x203 && config.bias==0 && word(memory,0x411678)==1 && word(memory,0x41165c)==0x203 &&
-            (advance_graphics_coordinates ? state.gp[1]==0 && state.gp[2]==0 : advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : state.gp[1]==0x40338 && state.gp[2]==0),
+            (advance_graphics_target_storage ? true : advance_graphics_coordinates ? state.gp[1]==0 && state.gp[2]==0 : advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : state.gp[1]==0x40338 && state.gp[2]==0),
             "Native cold depth write/function/bias sequence or inline caches differ");
         auto probe=frame();probe.gp=native_depth_state_calls.back().at("entry_gp").get<decltype(probe.gp)>();
         probe.gp[4]=sp-0x2400u;put(memory,probe.gp[4],0x12697);put(memory,probe.gp[4]+4,0);const auto before=probe;
@@ -1139,7 +1950,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         const auto config=graphics_constants->configuration();
         check(config.mode==0x11 && config.registers==192 && config.application_owned &&
             config.material_backing.value>0xffffffffu && config.extended_backing.value>0xffffffffu && config.extended_bytes==2544 &&
-            (advance_graphics_coordinates ? state.gp[1]==0 && state.gp[2]==0 : advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : advance_graphics_depth_state ? state.gp[1]==0x40338 && state.gp[2]==0 : advance_graphics_depth ? state.gp[1]==0x4035c && state.gp[2]==1 : word(memory,state.gp[4]+4)==2),
+            (advance_graphics_target_storage ? true : advance_graphics_coordinates ? state.gp[1]==0 && state.gp[2]==0 : advance_graphics_output ? state.gp[1]==0x40350 && state.gp[2]==0x8006 : advance_graphics_depth_state ? state.gp[1]==0x40338 && state.gp[2]==0 : advance_graphics_depth ? state.gp[1]==0x4035c && state.gp[2]==1 : word(memory,state.gp[4]+4)==2),
             "Native shader constant configuration lacks its actual storage or pending depth request");
         auto probe=frame();probe.gp=native_constants_call.at("entry_gp").get<decltype(probe.gp)>();
         probe.gp[4]=sp-0x2400u;put(memory,probe.gp[4],0x12658u);const auto before=probe.gp;
@@ -1159,7 +1970,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     }
     if(advance_graphics_palette) {
         check(graphics_palette->initialized() && graphics_palette->bindings()==4 && native_palette_calls.size()==5 &&
-            graphics_palette->native_address().value>0xffffffffu && memory.view(0x4922a8,1)[0]==std::byte{} &&
+            graphics_palette->native_address().value>0xffffffffu && memory.view(0x4922a8,1)[0]==std::byte(advance_graphics_renderer_complete?1:0) &&
             std::ranges::all_of(memory.view(0x4915f0,384),[](auto value){return value==std::byte{};}),
             "Source palette calls lack their real native color owner, stage bindings or pending completion");
         for(unsigned stage=0;stage<4;++stage)check(palette_factory.bound(stage).native_address()==graphics_palette->native_address(),
@@ -1197,12 +2008,12 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         Json pool_words=Json::object();
         for(auto offset:{0x20u,0x24u,0x30u,0x34u,0x64u,0x68u,0x90u,0x94u})
             pool_words[std::to_string(offset)]=word(memory,pool+offset);
-        check(resources[9].allocation && resources[9].request==std::array<std::uint32_t,5>{0,0,0x180,0x101000,4} &&
-            pool==resources[9].result[1] && resources[9].result[2]==4096u &&
+        check(resources[raw_prelude+9].allocation && resources[raw_prelude+9].request==std::array<std::uint32_t,5>{0,0,0x180,0x101000,4} &&
+            pool==resources[raw_prelude+9].result[1] && resources[raw_prelude+9].result[2]==4096u &&
             word(memory,pool+0x20u)==0x1c7d0u && word(memory,pool+0x24u)==0x25bcb0u &&
             word(memory,pool+0x30u)==0x88u && word(memory,pool+0x34u)==0u &&
             word(memory,pool+0x64u)==pool+0x70u && word(memory,pool+0x68u)==0x77656565u &&
-            word(memory,pool+0x90u)==8u && word(memory,pool+0x94u)==0x18u && memory.view(0x4922a8u,1)[0]==std::byte{},
+            word(memory,pool+0x90u)==8u && word(memory,pool+0x94u)==0x18u && memory.view(0x4922a8u,1)[0]==std::byte(advance_graphics_renderer_complete?1:0),
             "Source renderer pool lacks its real allocation and original constructor fields: "+pool_words.dump());
         report["source_renderer_pool_constructor_complete"]=true;
         report["renderer_pool_body_correspondence_sha256"]="9b038202a04dcfa5fe34cfa62fd5ab1089087e67c24b85eef79f26efac4a1e2f";
@@ -1218,7 +2029,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     }
     if(advance_graphics_state) {
         check(word(memory,0x492368u)==0xffffffffu && word(memory,0x49238cu)==0u &&
-            word(memory,0x493698u)==0x40400000u && memory.view(0x4922a8u,1)[0]==std::byte{},
+            word(memory,0x493698u)==0x40400000u && memory.view(0x4922a8u,1)[0]==std::byte(advance_graphics_renderer_complete?1:0),
             "Source renderer state selectors/scalars or pending completion differ");
         report["source_renderer_state_and_table_constructors_complete"]=true;
         report["renderer_state_body_correspondence_sha256"]="1f77feaba03a48dc965a1a4cab97eec411e1f2b27975f40fdfa1e095b2211919";
@@ -1233,7 +2044,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     }
     if(advance_graphics_device) {
         check(graphics_device->initialized() && graphics_device->native_address().value>0xffffffffu &&
-            memory.view(0x515e9c,1)[0]==std::byte{1} && memory.view(0x4922a8,1)[0]==std::byte{},
+            memory.view(0x515e9c,1)[0]==std::byte{1} && memory.view(0x4922a8,1)[0]==std::byte(advance_graphics_renderer_complete?1:0),
             "Source graphics publication lacks its real native renderer or bypassed later initialization");
         const SourcePhysicsContactRuntimeCall create{0x129ad,0x3ff320,false};auto probe=*graphics_entry;
         // The real128A0 suffix reuses its old argument cell while copying
@@ -1265,7 +2076,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     if(advance_renderer_request) {
         const auto device=advance_graphics_device?*graphics_frame:native_tu15_renderer_device_frame(memory,frontier,state);
         check(device.output_backing.value>0xffffffffu && device.parameters_backing.value>0xffffffffu &&
-            word(memory,device.output_token)==(advance_graphics_device?graphics_device->handle():0u) && memory.view(0x4922a8,1)[0]==std::byte{},
+            word(memory,device.output_token)==(advance_graphics_device?graphics_device->handle():0u) && memory.view(0x4922a8,1)[0]==std::byte(advance_graphics_renderer_complete?1:0),
             "Pending renderer device request lost native backing or supplied an unowned device/completion result");
         const auto entry=advance_graphics_device?*graphics_entry:state;const SourcePhysicsContactRuntimeCall call{0x129ad,0x3ff320,false};
         auto rejected=entry;rejected.gp[0]^=1;bool bad_flags=false,bad_site=false,bad_output=false;
@@ -1274,7 +2085,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
         rejected=entry;rejected.gp[1]+=4;
         try{native_tu15_renderer_device_frame(memory,call,rejected);}catch(const std::invalid_argument&){bad_output=true;}
         check(bad_flags && bad_site && bad_output,"Renderer device frame decoder accepted a foreign request");
-        report["source_renderer_device_request_producer_complete"]=true;report["source_renderer_resource_initializer_complete"]=false;
+        report["source_renderer_device_request_producer_complete"]=true;report["source_renderer_resource_initializer_complete"]=advance_graphics_renderer_complete;
         report["native_gpu_device_creation_attempted"]=false;report["renderer_device_request_frame_rejections_verified"]=true;
         report["renderer_device_request"]={{"parameters_token",device.parameters_token},{"output_token",device.output_token},
             {"flags",device.flags},{"presentation",device.presentation},{"native_output_address_bits",64},{"native_parameters_address_bits",64}};
@@ -1422,7 +2233,7 @@ int halo2::run_native_tu15_startup_test(int argc,char** argv,RendererDeviceLease
     }
     if(advance_handles) {
         const auto levels=word(memory,0x4fafbc),multiplayer=word(memory,0x4fafb8);
-        check(levels==0x10006000u && multiplayer==0x10007000u && (memory.view(levels+0x2a,1)[0]&std::byte{4})!=std::byte{} &&
+        check(levels==resources.at(raw_prelude+6).result[1] && multiplayer==resources.at(raw_prelude+7).result[1] && (memory.view(levels+0x2a,1)[0]&std::byte{4})!=std::byte{} &&
             (memory.view(multiplayer+0x2a,1)[0]&std::byte{4})!=std::byte{},"Level-handle pools did not construct their real raw backing/ownership flags");
         for(unsigned i=0;i<64;++i)check(word(memory,0x4fadb8+i*8)==0xffffffffu && !word(memory,0x4fadbc+i*8),"Level-handle pairs were not source-initialized");
         report["source_level_handles_initializer_complete"]=true;report["level_handles_fields"]=Json::array();

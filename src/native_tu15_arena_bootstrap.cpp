@@ -55,4 +55,36 @@ NativeTu15ArenaBootstrap::NativeTu15ArenaBootstrap(const std::filesystem::path& 
     if(!address)throw std::runtime_error("Native arena constructor returned no owned storage");
     arena_address_=bank.native_address(address,0x3fe000u);
 }
+bool NativeTu15ArenaBootstrap::try_renderer_target_protection_call(SourcePhysicsContactMemory& bank,
+    const SourcePhysicsContactRuntimeCall& call,SourcePhysicsWorldRuntimeAbi& abi) {
+    if(call.target!=0x800000b6u)return false;
+    const auto sp=abi.gp[4];
+    if(&bank!=&memory()||std::this_thread::get_id()!=thread_||!call.tail||call.instruction!=0x2db4d1u||
+       word(memory(),0x41b648)!=call.target||word(memory(),sp)!=0x1db4bu||word(memory(),sp+12)!=0x404u)
+        throw std::invalid_argument("Renderer physical protection has a foreign bank/site/frame");
+    const auto address=word(memory(),sp+4),bytes=word(memory(),sp+8);
+    const auto backing=memory().native_address(address,bytes);
+    arena_owner_->protect_pages(address,bytes,0x404);
+    renderer_target_protections_.push_back({address,bytes,0x404,backing});
+    abi.gp[4]+=16; // Native kernel void stdcall ABI; source words/results stay owned by source code.
+    return true;
+}
+bool NativeTu15ArenaBootstrap::try_sound_cache_protection_call(SourcePhysicsContactMemory& bank,
+    const SourcePhysicsContactRuntimeCall& call,SourcePhysicsWorldRuntimeAbi& abi) {
+    if(call.target!=0x800000b6u)return false;
+    const auto sp=abi.gp[4];
+    // Source21EFE0 reserves this cache from its physical partition and reaches
+    // the same genuine XPhysicalProtect wrapper as renderer target storage.
+    // Its authored site, return, footprint and protection are distinct.
+    if(&bank!=&memory()||std::this_thread::get_id()!=thread_||!call.tail||call.instruction!=0x2db4d1u||
+       word(memory(),0x41b648)!=call.target||word(memory(),sp)!=0x21f0a3u||
+       word(memory(),sp+8)!=0x300000u||word(memory(),sp+12)!=4u)
+        throw std::invalid_argument("Sound cache physical protection has a foreign bank/site/frame");
+    const auto address=word(memory(),sp+4);
+    const auto backing=memory().native_address(address,0x300000);
+    arena_owner_->protect_pages(address,0x300000,4);
+    sound_cache_protection_=RendererTargetProtection{address,0x300000,4,backing};
+    abi.gp[4]+=16; // Actual kernel void stdcall; no game result is supplied.
+    return true;
+}
 }

@@ -10,6 +10,8 @@
 #include "halo2/kernels.hpp"
 #include "halo2/navigation.hpp"
 #include "halo2/scene.hpp"
+#include "halo2/cinematic_animation.hpp"
+#include "halo2/campaign_frame_clock.hpp"
 #include "halo2/source_unit_interaction_target.hpp"
 #include "halo2/source_world_pose.hpp"
 #include "halo2/scripts.hpp"
@@ -34,6 +36,7 @@
 #include "halo2/native_weapon_projectile.hpp"
 #include <memory>
 namespace halo2 {
+class CampaignSourceRuntime;
 constexpr float tick_seconds = 1.f / 30.f;
 constexpr float retail_gravity =
     4.1712594f; // XBE 0x4455D8, initialized by 0x1EB550.
@@ -196,14 +199,14 @@ public:
              Presentation::AnimationLoader = {}, BspLoader = {}, Predictor = {},
              std::optional<SourceSceneGameContext> = {},
              std::optional<NativeObjectLifetimes> = {},
-             SourceSceneObjectOwner = {});
+             SourceSceneObjectOwner = {},std::shared_ptr<CampaignSourceRuntime> = {});
   // Transfer an already loaded BSP without retaining a second collision bank.
   // Metadata and navigation in LevelContent remain available to their owners.
   Simulation(const LevelContent &, BspContent initial_geometry, std::size_t bsp, Spawn,
              Presentation::AnimationLoader = {}, BspLoader = {}, Predictor = {},
              std::optional<SourceSceneGameContext> = {},
              std::optional<NativeObjectLifetimes> = {},
-             SourceSceneObjectOwner = {});
+             SourceSceneObjectOwner = {},std::shared_ptr<CampaignSourceRuntime> = {});
   Simulation(const Simulation &)=delete;
   Simulation &operator=(const Simulation &)=delete;
   Simulation(Simulation &&)=delete;
@@ -238,11 +241,7 @@ public:
   bool flashlights_allowed() const { return flashlights_allowed_; }
   std::uint64_t flashlights_changed_tick() const { return flashlights_changed_tick_; }
   bool ambience_details_enabled() const { return ambience_details_enabled_; }
-  void set_difficulty(unsigned value) {
-    if(value>3)throw FormatError("invalid campaign difficulty");
-    NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
-    difficulty_=value;
-  }
+  void set_difficulty(unsigned value);
   void preview_camera(std::uint32_t graph, std::uint32_t name, int flag) {
     NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
     presentation_.camera_animation(graph, name, flag);
@@ -251,7 +250,9 @@ public:
     presentation_.letterbox(true, true);
   }
   bool allied(int a,int b)const{return a>=0 && a<16 && b>=0 && b<16 && peace_[a][b];}
+  void set_team_allegiance(int,int,bool);
   const Unit &player() const { return player_; }
+  CampaignSourceRuntime *campaign_source()const{return source_campaign_.get();}
   float player_pitch() const { return player_pitch_; }
   const std::vector<Unit> &actors() const { return actors_; }
   const CollisionWorld &collision() const;
@@ -309,7 +310,22 @@ public:
   }
   const CampaignSubtitle &subtitle() const {return subtitle_;}
   const auto &titles() const {return titles_;}
-  struct ObjectAnimation {std::shared_ptr<const AnimationClip> clip;std::uint64_t tick{};bool loop{};};
+  struct ObjectAnimation {
+    std::shared_ptr<const AnimationClip> clip;std::uint64_t tick{};bool loop{};
+    std::shared_ptr<CinematicAnimationAssets> assets;
+    std::optional<CinematicAnimationChannel> channel;
+    std::uint32_t anchor=null_datum;
+    // Actual source timing/event packets, retained until this channel retires.
+    std::vector<std::array<std::byte,20>> events;
+  };
+  void cinematic_animation_assets(std::shared_ptr<CinematicAnimationAssets>);
+  const CampaignCinematicState *cinematic_state()const;
+  CampaignFrameTime advance_frame_time(float seconds,bool paused);
+  float frame_fraction()const;
+  void cinematic_screen_consumer(bool);
+  void advance_cinematic_render_time(float seconds,int requested,int completed);
+  CinematicCrossfadeFrame cinematic_crossfade_frame()const;
+  void cinematic_crossfade_capture_complete();
   struct VehicleFlip {std::uint32_t object;std::uint8_t direction{},ticks{};Vec3 velocity;};
   struct ImpulseClock {std::uint32_t datum=null_datum;std::uint64_t start{},duration{};};
   struct Projectile {
@@ -382,6 +398,7 @@ public:
 
 private:
   friend class MultiplayerMatch;
+  friend class CampaignSourceRuntime;
   mutable NativeAuthorityBoundary authority_calls_;
   std::uint32_t authority_service_roles()const;
   void step_impl(const Controls &, std::span<const Controls>);
@@ -397,6 +414,7 @@ private:
   std::optional<std::size_t> pending_bsp_;
   std::uint64_t bsp_revision_{};
   void commit_bsp();
+  std::shared_ptr<CampaignSourceRuntime> source_campaign_;
   NativeObjectLifetimes object_lifetimes_;
   SourceObjectBodyStorage object_bodies_;
   SceneObjects scene_;
@@ -497,6 +515,7 @@ private:
   std::uint64_t checkpoint_restores_{};
   void capture_checkpoint();
   void restore_checkpoint();
+  CampaignCinematicState &mutable_cinematic_state();
   void move_unit(Unit &, Vec3 desired, bool jump, bool crouch,
                  bool player_control = false);
   Unit &script_unit(std::uint32_t);
@@ -523,5 +542,11 @@ private:
       std::optional<float> amount={},bool radius=false,
       std::optional<DamageImpactContext> impact={});
   ScriptValue host(const std::string &, const std::vector<ScriptValue> &);
+  bool start_cinematic_object_animation(std::uint32_t object,std::uint32_t graph,
+      std::uint32_t name,std::uint32_t anchor,bool unit,bool loop,bool interpolate);
+  void step_cinematic_object_animations();
+  void refresh_cinematic_object_poses(std::optional<std::uint32_t> requested = {});
+  void attach_cinematic_objects(std::uint32_t parent,std::uint32_t parent_marker,
+                                std::uint32_t child,std::uint32_t child_marker);
 };
 } // namespace halo2

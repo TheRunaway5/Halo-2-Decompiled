@@ -1,0 +1,18 @@
+{
+  "schema": "H2_RECORD0_CONTEXT_COMPACT_NUMERIC_V1",
+  "scope": "Explicit entry fixtures and two retained calls; full native trace hash was independently compared against unchanged original instructions",
+  "cases_gzip_sha256": "34316af0e1b333feddf75505e7be34157ce2f9e37d228ee453af35c6d928c4d5",
+  "cases_uncompressed_sha256": "f0999d97e89c1b4ca6914eef8aacf29529aba9ad807205e597a51b88be11a313",
+  "cases_uncompressed_bytes": 835250,
+  "expected_native_stdout_sha256": "985c2f65ee31a9c25cf65305ada16ab47e6bd7885aa43d4d67a3d452a2f7477a",
+  "expected_calls": 1152,
+  "explicit_cases": 576,
+  "arithmetic_transfer_steps": 737568,
+  "loop_checkpoints": 20736,
+  "knowledge_provenance_checks": 758304,
+  "old_numeric_state_comparisons_performed_by_probe": true,
+  "source_entry_status_is_explicit_fixture": true,
+  "authentic_boot_or_full_graph_or_initializer45_proven": false,
+  "native_candidate_sha256": "acfff3f6d86886644001714d1c8a89109e20a9bb2ced15bd9a3ad651171f9d5b",
+  "native_independent_review_sha256": "fb0da936ef6b7d5538d142551cdc6c582fcd3cc70fa84b47ff773c0183792e65"
+}

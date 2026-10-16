@@ -85,6 +85,37 @@ RenderModel Cache::load_model(std::uint32_t datum, bool textures,
                               std::uint32_t variant) const {
   return load_model_with_initial_selection(datum,textures,variant,nullptr);
 }
+RenderModel Cache::load_model_hierarchy(std::uint32_t datum) const {
+  const Bytes data(cache_bytes());
+  const auto find=[&](std::uint32_t id)->const Tag& {
+    const auto *tag=find_tag({id});
+    if(!tag || !tag->address)throw FormatError("Cinematic model hierarchy tag is unavailable");
+    return *tag;
+  };
+  const Tag *tag=&find(datum);RenderModel out;
+  if(tag->group!="mode" && tag->group!="hlmt")
+    tag=&find(data.u32(metadata_offset(tag->address,0x3c)+0x38));
+  if(tag->group=="hlmt") {
+    const auto root=metadata_offset(tag->address,0x18);
+    out.animation=data.u32(root+0x14);tag=&find(data.u32(root+4));
+  }
+  if(tag->group!="mode")throw FormatError("Cinematic object has no render-model hierarchy");
+  const auto root=metadata_offset(tag->address,0x50);
+  out.name=tag->name;out.checksum=data.u32(root+8);
+  out.compound_nodes=load_source_model_palette_definition(tag->datum).compounds[5];
+  const auto nodes=TagAddressSpace(data,metadata_magic_).block(root+0x48,0x60,255);
+  for(std::size_t i=0;i<nodes.count;++i) {
+    const auto at=nodes.offset+i*0x60;ModelBone bone;
+    bone.name=data.u32(at);bone.parent=i16(data,at+4);
+    if(bone.parent>=int(nodes.count) || bone.parent==int(i))throw FormatError("Invalid cinematic model parent");
+    bone.bind.translation=point(data,at+12);
+    bone.bind.rotation=rotation(data,at+24,false,false);
+    bone.inverse_scale=real(data,at+40);
+    for(unsigned n=0;n<12;++n)bone.inverse[n]=real(data,at+44+n*4);
+    out.bones.push_back(bone);
+  }
+  return out;
+}
 RenderModel Cache::load_model(std::uint32_t datum, bool textures,
                               std::uint32_t variant,
                               const SourceInitialModelSelection& selected) const {
@@ -522,6 +553,7 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
                                 : std::uint32_t(materials.count);
           vertex.source_section=std::uint32_t(section);
           vertex.source_part=std::uint32_t(i);
+          vertex.source_part_type=part_type;vertex.source_part_flags=b.u16(p+2);
           out.mesh.vertices.push_back(vertex);
           out.skin.push_back(skin);
           out.vertex_origins.push_back({std::uint16_t(section),std::uint16_t(v),std::uint16_t(i),
@@ -569,6 +601,10 @@ std::optional<std::uint32_t> Cache::find_animation_name(
 }
 AnimationClip Cache::load_named_animation(std::uint32_t datum,
                                           std::uint32_t name) const {
+  if(const auto index=find_local_animation_index(datum,name))return load_animation(datum,*index);
+  throw FormatError("named animation missing: " + string_id(name));
+}
+std::optional<unsigned> Cache::find_local_animation_index(std::uint32_t datum,std::uint32_t name) const {
   const auto* tag = find_tag({datum}, tag_groups::model_animation_graph);
   if (!tag || !tag->address)
     throw FormatError("named animation graph missing");
@@ -578,8 +614,8 @@ AnimationClip Cache::load_named_animation(std::uint32_t datum,
   const auto animations = TagAddressSpace(data, metadata_magic_).block(root + 0x2c, stride);
   for (std::size_t i = 0; i < animations.count; ++i)
     if (data.u32(animations.offset + i * stride) == name)
-      return load_animation(datum, unsigned(i));
-  throw FormatError("named animation missing: " + string_id(name));
+      return unsigned(i);
+  return {};
 }
 UnitAnimationGraphMetadata Cache::load_source_unit_animation_graph_metadata(
     std::uint32_t graph) const {

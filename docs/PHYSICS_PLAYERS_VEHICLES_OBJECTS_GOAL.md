@@ -14,7 +14,69 @@ The owned English TU1.5 executable is pinned to
 Legacy correspondence IDs remain internal references in retained source modules.
 All new parity execution and acceptance validation target TU1.5.
 
-## Current live integration checkpoint (October14)
+October16 continuation: the shared kind1 Enforcer world now passes real UDP
+and two rendered multiplayer views (156 frames,434 exact snapshots), with
+30 matching neutral ticks followed by a causal original-controller response.
+Three captured whole original calls match210,078 instructions. All four
+Sentinel Walls BSP fog paths match672,318 binary32 fields across16,398 queries.
+Fresh Warthog driving uses505 actual original vehicle-camera frames and passes
+902 exact UDP states; ordinary120-frame/340-tick startup delivers the tested
+v517 launcher. Other campaign-only definitions and placements, remaining lift
+and train contexts, full collision/lifetime/controller coverage and quantitative
+Xbox TU1.5 reference validation remain open. See
+[shared campaign integration](MP_CAMPAIGN_SHARED_PHYSICS_TU15_20261015.md).
+
+Current continuation: all five campaign-only class3 definitions now respond to declared controller input in the same immutable source runtime. Fifteen complete admission/controller/object/world calls match 405,409 unchanged TU1.5 instructions. The reached helpers and original static contact-agent initializer are wired into both live source trees. The new v448 production launcher passes normal rendered startup; stock Ghost/lift/object multiplayer passes 665 exact UDP observations with actual original vehicle cameras. Visible class3 multiplayer, the inactive intro Pelican cinematic/script context, and the full wider parity gates remain open. See [class3 integration evidence](MP_CLASS3_PHYSICS_INTEGRATION_TU15_20261015.md).
+
+Authority continuation now preserves the original static contact-agent initializer across world restoration. The final v453 visible occupied-Ghost restore passes491 exact UDP states,8.740213 units of travel, original vehicle-camera turn and exit; both complete post-restore original calls match120,561 instructions. The production launcher selects normally tested v451. Visible class3 multiplayer and the full wider physics scope remain open.
+
+Contrail checkpoint: original contrail source inputs now reach multiplayer clients and run the complete original geometry callback. Human turret v426 passes actual authored bullet motion, colored trail triangles in both views,303 exact UDP states, boarding/aim/exit and exact original vehicle camera. Full-bank versus sparse input geometry and actual live GPU-packet pixel checks pass. The normal v427 launcher delivers the tested integration. Human target damage, remaining carrier contexts, campaign-only vehicle classes and the wider full-parity gates stay open. See [live contrail integration](MP_SOURCE_CONTRAIL_MULTIPLAYER_TU15_20261015.md) and [fixed turret integration](MP_FIXED_TURRETS_TU15_20261015.md).
+
+## Current October15 live checkpoint
+
+All43 audited authored phantom placements have bounded native multiplayer
+force/motion/render/UDP evidence:32 player candidates and11 player-excluded
+object fields. Both Turf springs, both Gemini columns and Midship's suspended
+platform now pass visibly. Nine complete original query bodies also close the
+normal Gemini grenade path; the real column receives an original point impulse
+and rotates. Five same-ELF live cases retain2,476 exact UDP states, including
+Spectre travel with both actual original cameras and object recreation/blast/
+debris. Original full-call and point-impulse comparisons are retained alongside
+the immutable v381 source cut. See
+[the current object/query report](MP_OBJECT_ANGULAR_FIELDS_TU15_20261015.md).
+
+Actual stationary players also ride both original conveyor belts. Three complete
+world solves during transport/after a grenade impulse match312,562 untouched
+TU1.5 instructions and all memory/CPU/FP state. All eight surveyed drivers now
+pass fresh visible multiplayer and all16 complete object/world comparisons
+(1,540,296 original instructions), using actual original vehicle cameras.
+See [vehicle whole-world evidence](MP_VEHICLE_PHYSICS_WORLDS_TU15_20261015.md).
+
+Eight surveyed vehicle choices also pass real driving/destruction/debris
+sequences with actual original cameras and 18,750 exact UDP states. All eight
+post-death world solves and seven object updates match3,382,575 untouched
+original instructions; the Banshee object update reaches an unresolved Xbox
+kernel wait in the host replay. The native destruction case remains green.
+See the same vehicle report for the retained red fixture trials and exact scope.
+
+Three Ivory Tower elevator paddles also carry a neutral player visibly,
+with65/66/45 moving supported ticks and2.60/2.56/0.78 units of carried travel.
+Six complete original object/world calls match289,775 instructions. The train
+and fourth lower-body approach remain red, despite bounded matching original
+phases; their retail rider trajectories and preceding context stay unresolved.
+See [mechanical carrier evidence](MP_MACHINE_LIVE_TU15_20261014.md).
+
+The separate `Halo2-Physics-TU15` launcher selects the pinned tested production
+runtime and original maps. Normal windowed startup passes with two local
+players,120 rendered frames and357 physics ticks, with no physics fixture
+controls or declared spawn overrides. Source ownership remains automatic for
+TU1.5. See [normal runtime delivery](MP_PHYSICS_RUNTIME_DELIVERY_TU15_20261015.md).
+
+The goal remains active. Broader collisions/physical lifetimes, remaining
+player/physical-carrier/shared engine branches, quantitative retail comparisons
+and complete canonical production delivery still require completion.
+
+## October14 live integration checkpoint
 
 All32 audited player-flag candidate placements now have bounded visible native
 multiplayer force/rise evidence. Eleven authored placements exclude players
@@ -34,6 +96,26 @@ The full goal remains active. Linear carriers, remaining object fields,
 vehicle collision/damage/destruction and broader controller/solver branch
 coverage plus original quantitative trajectory/visual comparisons remain
 required. Historical checkpoints below retain their original evidence scope.
+
+Current conveyor checkpoint v368 closes the original static constraint
+prototype wiring gap: both Elongation/Colossus conveyors pass visibly, all four
+Colossus object fields deliver real forces, and occupied Spectre travel uses
+both actual original cameras. The three same-ELF cases retain2,435 exact UDP
+states. Fresh selected checks pass8/8; complete original-call comparisons cover
+12 corrected Colossus and6 corrected Elongation controller/object/world calls.
+See [the complete evidence and remaining scope](MP_RUNTIME_PROP_BIRTH_TU15_20261014.md).
+These gates do not complete the all-player/vehicle/object parity objective.
+
+## October15 object angular field continuation
+
+All11 player-excluded authored fields now have bounded natural object evidence,
+including Midship's suspended platform, both Gemini columns and both Turf
+spring doors. Together with32 player candidates this covers all43 placements
+in the finite authored inventory; complete physics parity remains open. A normal Turf grenade exposed the missing original
+2EE660 broadphase query; its complete body and scratch owners are now wired
+into the live dispatcher and are undergoing the same visible test. Failed
+firing, stationary-door and unreachable-platform runs remain red. See
+[object field evidence and remaining gates](MP_OBJECT_ANGULAR_FIELDS_TU15_20261015.md).
 
 ## Required coverage
 

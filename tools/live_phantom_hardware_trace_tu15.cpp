@@ -11,11 +11,15 @@
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <iostream>
+#include <set>
+#include <sstream>
 using J=nlohmann::json;
 void require(bool yes,const char *why){if(!yes)throw std::runtime_error(why);}
 long request(__ptrace_request op,pid_t pid,void *a=nullptr,void *b=nullptr){errno=0;auto r=ptrace(op,pid,a,b);if(r==-1&&errno)throw std::runtime_error(strerror(errno));return r;}
 int main(int argc,char **argv)try{
- require(argc==7,"Supply ELF, output, return, capture trampoline, text end and trace");
+ require(argc==7 || argc==8,"Supply ELF, output, return, capture trampoline, text end, trace and optional authenticated sites");
+ std::set<unsigned long> authenticated;
+ if(argc==8){std::istringstream input(argv[7]);std::string site;while(std::getline(input,site,','))authenticated.insert(std::stoul(site,nullptr,0));}
  const auto target=std::stoul(argv[3],nullptr,0),capture=std::stoul(argv[4],nullptr,0),text_end=std::stoul(argv[5],nullptr,0);
  auto child=fork();require(child>=0,"Cannot create original hardware process");
  if(!child){auto fd=open(argv[2],O_CREAT|O_TRUNC|O_WRONLY,0600);if(fd<0||dup2(fd,1)<0)_exit(125);close(fd);
@@ -28,7 +32,12 @@ int main(int argc,char **argv)try{
  for(unsigned n=0;n<5000000;++n){
   require(WIFSTOPPED(status)&&WSTOPSIG(status)==SIGTRAP,"Original hardware execution fault");request(PTRACE_GETREGS,child,nullptr,&regs);
   if(regs.rip==target)break;
-  require(regs.rip>=0x12000 && regs.rip<text_end,"Original execution escaped authenticated text");trace.push_back(regs.rip);
+  if(!(regs.rip>=0x12000 && regs.rip<text_end) && !authenticated.contains(regs.rip)) {
+    std::ofstream out(argv[6]);out<<J{{"instructions",trace},{"original_instructions",trace.size()},
+        {"escaped_address",regs.rip},{"esp",regs.rsp},{"entry_eflags",entry_flags}}.dump()<<'\n';
+    throw std::runtime_error("Original execution escaped authenticated text at "+std::to_string(regs.rip));
+  }
+  trace.push_back(regs.rip);
   request(PTRACE_SINGLESTEP,child);wait();
  }
  require(regs.rip==target,"Original hardware did not return");

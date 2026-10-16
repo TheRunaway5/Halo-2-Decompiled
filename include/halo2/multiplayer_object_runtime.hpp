@@ -60,6 +60,9 @@ public:
   NativeRuntimeAddress object_pool() const;
   NativeRuntimeAddress player_pool() const;
   bool owns_physics() const;
+  // The campaign adapter borrows this same retained bank and its original
+  // session/AI/checkpoint owners; it never creates a shadow object world.
+  PhysicsLiveWorldTu15 &tu15_world();
   std::optional<std::uint32_t> physical_body_count() const;
   NativeRuntimeAddress source_clock() const;
   NativeRuntimeAddress object_body(std::uint32_t object) const;
@@ -89,8 +92,12 @@ public:
   SourceWeaponEffectPresentation request_weapon_effect(const WeaponEffectInput &);
   void populate_weapon_targeting(std::uint32_t player,std::uint32_t object,
       std::span<std::byte,0x5c> command);
+  void prepare_player_look(std::uint32_t player,std::uint32_t object,
+      std::span<std::byte,0x5c> command);
+  std::optional<Vec2> player_look(std::uint32_t player,std::uint32_t unit) const;
   std::uint32_t weapon_hud_target_flags(std::uint32_t unit);
   WeaponHudTarget weapon_hud_target(std::uint32_t weapon);
+  VehicleWeaponHudStatus vehicle_weapon_hud(std::uint32_t unit);
   std::optional<ParticleCollisionHit> particle_collision(std::uint32_t flags,Vec3 origin,Vec3 displacement);
   std::int8_t current_grenade(std::uint32_t unit) const;
   // Read-only actual type5 bodies whose definitions occur in the retained
@@ -102,6 +109,7 @@ public:
     void observe_physics_stores(SourcePhysicsStoreObserverTu15);
     void observe_body_velocity_inputs(SourceBodyVelocityInputObserverTu15);
   void observe_weapon_effects(std::function<void(const SourceWeaponEffectEventTu15 &)>);
+  bool has_projectile_effect_observer() const;
   void observe_weapon_effect_phase(SourceFirstPersonPhaseObserverTu15);
   void observe_effect_damage(SourceEffectDamageObserverTu15);
   MultiplayerSourceVitality object_vitality(std::uint32_t object) const;
@@ -160,6 +168,8 @@ public:
   void destroy_object(std::uint32_t full_datum);
   // Actual source clock increment followed by the five complete object/world
   // phases. Retains the same bank; does not supply contacts or death admission.
+  void set_unit_controller_active(std::uint32_t unit,bool requested);
+  void deliver_unit_input(std::uint32_t unit,Vec3 throttle,Vec3 facing);
   void step_objects();
   // Read-only presentation of the current source WORLD matrices. A stale
   // full handle or unavailable node backing is an error, never an idle pose.
@@ -176,6 +186,9 @@ public:
   // Keep native presentation and all its readbacks within one public-call
   // lifetime. The callback must not retain a world/memory reference.
   void render_model_view(const std::function<void(PhysicsLiveWorldTu15&)>&);
+  // Host observer/read-borrow metadata only: no native view reset is made.
+  void completed_main_camera_observer(SourceCompletedMainCameraObserverTu15);
+  void inspect_render_memory(const SourceRenderMemoryInspectorTu15&) const;
   std::optional<std::vector<Transform>> rendered_world_nodes(std::uint32_t object) const;
   SourceObjectAdmission admit_render_objects(const SourcePortalVisibilitySet&,
       const SourceObjectAdmissionInput&,std::span<const std::array<std::uint32_t,4>> prior={})const;
@@ -183,8 +196,11 @@ public:
       unsigned local_players,bool view_modifier,float geometry_metric,float lighting_metric);
   std::optional<DeathCameraTarget> camera_target(std::uint32_t object) const;
   SourceObserverWorldServices observer_world_services();
-  std::optional<DeathCameraPacket> vehicle_camera_packet(unsigned view,
-      std::uint32_t unit,float yaw,float pitch,std::array<std::uint32_t,7> &);
+  DeathCameraPacket player_camera_packet(std::uint32_t player,float seconds,
+      SourceCameraControllerState &,SourceObserverState &,std::uint32_t &camera_random,
+      bool cycle_pressed=false,std::uint8_t *camera_mode=nullptr);
+    DeathCameraPacket unit_camera_packet(std::uint32_t unit,float seconds,
+      SourceCameraControllerState &,SourceObserverState &,std::uint8_t *camera_mode=nullptr);
   SourceObserverWorldFrame observer_world_frame(std::int32_t view,
       std::uint32_t current_unit,std::uint16_t player_flags,
       const DeathCameraSavedClusters &) const;
@@ -221,11 +237,21 @@ public:
   // Quiesce raw memory borrowers and returned services through publication;
   // stage their source pool views against replacement_memory() and rebind.
   AuthorityCheckpoint authority_checkpoint() const;
+  // Check the available quiescent executor before changing coupled import
+  // metadata. A later complete preparation may repair a faulted old world.
+  void require_authority_executor(bool qualified=false) const;
+  // Actual native bank writes/topology and public mutating bridge calls.
+  // Permission-only admission does not advance these executor-local stamps.
+  std::array<std::uint64_t,2> execution_mutations()const;
+  bool authority_executor_thread() const noexcept;
   PreparedAuthority prepare_authority(const AuthorityCheckpoint &);
   // Owner must outlive preparation; commit/cancel on its retained executor.
   // Native observers/services stay local. Publication performs no allocation.
   bool commit_authority(PreparedAuthority &&) noexcept;
 private:
+  friend class MultiplayerMatch;
+  void observe_projectile_effects(std::function<void(const SourceProjectileDetonationTu15 &)>);
+  void retire_projectile_effects() noexcept;
   struct Impl;
   std::unique_ptr<Impl> impl_;
   std::unique_ptr<PhysicsLiveWorldTu15> tu15_;

@@ -400,6 +400,7 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
                 for(const auto source:{a,b,c}) {
                     auto vertex=make_vertex(source,color,slot);
                     vertex.source_part=std::uint32_t(part);
+                    vertex.source_part_type=type;vertex.source_part_flags=data.u16(p+2);
                     triangles.vertices.push_back(vertex);
                 }
                 triangles.source_vertices.push_back(a);

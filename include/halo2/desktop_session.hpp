@@ -14,6 +14,7 @@ class Renderer;
 class SourceBspResidentPlan;
 struct Mesh;
 struct SourceShadowPlanMaterial;
+struct SourceShadowRawPlanMaterial;
 class DesktopLoadingBridge;
 struct DesktopLoadingSnapshot {
   bool active{},fade_active{},fade_complete{};
@@ -47,7 +48,8 @@ public:
   std::shared_ptr<Renderer> make_renderer(Mesh&,bool validation,
       std::span<const SourceShadowPlanMaterial> shadow_materials={},
       const SourceBspResidentPlan *bsp_resident_plan=nullptr,
-      const std::filesystem::path &shader_directory={});
+      const std::filesystem::path &shader_directory={},
+      std::span<const SourceShadowRawPlanMaterial> raw_shadow_materials={});
   // Called after actual GPU/audio initialization, before an ordinary frame.
   void renderer_ready(const std::shared_ptr<Renderer>&);
   void begin_loading();

@@ -6,6 +6,25 @@
 #include <set>
 namespace halo2 {
 HudContent Cache::load_hud(std::uint32_t biped, std::uint32_t weapon) const {
+  return load_hud(biped,weapon,null_datum);
+}
+HudContent Cache::load_hud_definition(std::uint32_t biped,std::uint32_t hud_definition)const {
+  auto out=load_hud(biped,null_datum,hud_definition);
+  std::erase_if(out.widgets,[](const auto &w){return w.weapon_type!=5;});
+  for(auto &w:out.widgets)w.weapon_type=0;
+  out.action_messages.enabled=false;return out;
+}
+std::vector<std::uint32_t> Cache::load_unit_seat_huds(std::uint32_t unit)const {
+  const auto tag=query_tag({.handle=TagHandle{unit},.require_address=true});
+  if(!tag || (tag->group!="bipd" && tag->group!="vehi") || tag->size<0x1d0)
+    throw FormatError("Seat HUD requires an authored unit definition");
+  const Bytes data(cache_bytes());std::set<std::uint32_t> ids;
+  for(const auto seat:metadata_block_offsets(metadata_offset(tag->address,tag->size)+0x1c8u,0xb0))
+    for(const auto row:metadata_block_offsets(seat+0x7cu,8))
+      if(const auto id=data.u32(row+4);id!=null_datum)ids.insert(id);
+  return {ids.begin(),ids.end()};
+}
+HudContent Cache::load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_t hud_definition) const {
   HudContent out;
   const Bytes data(cache_bytes());
   auto root = [&](std::uint32_t datum, const std::string &group,
@@ -30,6 +49,7 @@ HudContent Cache::load_hud(std::uint32_t biped, std::uint32_t weapon) const {
                 float(std::int16_t(data.u16(p + 2)))};
   };
   std::vector<std::pair<std::uint32_t, unsigned>> interfaces;
+  if(hud_definition!=null_datum)interfaces.emplace_back(hud_definition,5);
   const auto unit_interfaces = metadata_block_offsets(root(biped, "bipd", 0x1a8) + 0x1a0, 8);
   if(weapon!=null_datum) {
     const auto wp = root(weapon, "weap", 0x2d0);
@@ -52,6 +72,9 @@ HudContent Cache::load_hud(std::uint32_t biped, std::uint32_t weapon) const {
   if (!globals)
     throw FormatError("Missing HUD globals");
   const auto gp = root(globals->datum, "matg", 0x1ac);
+  const auto hud_representations=metadata_block_offsets(gp+0x138u,0xbcu,16);
+  for(unsigned i=0;i<hud_representations.size();++i)
+    if(data.u32(hud_representations[i]+0xb4u)==biped) {out.unit_representation=i;break;}
   const auto scenario = query_tag({.group=tag_groups::scenario});
   out.score_scenario_present = scenario && scenario->address && scenario->size;
   for (const auto p : metadata_block_offsets(gp + 0x160, 12)) {
@@ -106,9 +129,8 @@ HudContent Cache::load_hud(std::uint32_t biped, std::uint32_t weapon) const {
   const auto player_info=metadata_block_offsets(gp+0x130, 0x11c, 16);
   if(player_info.empty())throw FormatError("Missing motion-sensor player information");
   out.sensor.sneak_speed=real(player_info[0]+0x3c);
-  const auto representations=metadata_block_offsets(gp+0x138, 0xbc, 16);
-  for(unsigned n=2;n<std::min(std::size_t(4),representations.size());++n) {
-    const auto unit=data.u32(representations[n]+0xb4);
+  for(unsigned n=2;n<std::min(std::size_t(4),hud_representations.size());++n) {
+    const auto unit=data.u32(hud_representations[n]+0xb4);
     if(unit==null_datum)continue;
     const auto size=std::int16_t(data.u16(root(unit,"bipd",0x196)+0x194));
     out.sensor.blip_sizes[n]=std::uint8_t(std::clamp(int(size),0,3));
@@ -157,7 +179,7 @@ HudContent Cache::load_hud(std::uint32_t biped, std::uint32_t weapon) const {
     if (interfaces.size() > 64)
       throw FormatError("HUD inheritance cycle");
     const auto p = root(id, "nhdt", 0x28);
-    interfaces.emplace_back(data.u32(p + 4), 0);
+    interfaces.emplace_back(data.u32(p + 4), type==5?5:0);
     if (i == 0) {
       out.clip_cutoff = data.u16(p + 0x18);
       out.ammo_cutoff = data.u16(p + 0x1a);

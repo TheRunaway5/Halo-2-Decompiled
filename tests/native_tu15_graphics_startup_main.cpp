@@ -1,23 +1,36 @@
 #include "helpers/native_tu15_startup_test.hpp"
 #include "halo2/renderer.hpp"
 #include "helpers/native_tu15_coordinate_gpu.hpp"
+#include "helpers/native_tu15_texture_pair_gpu.hpp"
+#include "helpers/native_tu15_renderer_aux_gpu.hpp"
+#include "helpers/native_tu15_debug_texture_gpu.hpp"
 #include <cstdlib>
 #include <chrono>
 #include <fstream>
 #include <iostream>
 #include <nlohmann/json.hpp>
+#include <optional>
 #include <sstream>
 int main(int argc,char** argv)try {
     if(SDL_Init(SDL_INIT_VIDEO)!=0)throw std::runtime_error(SDL_GetError());
     auto* window=SDL_CreateWindow("Native TU1.5 graphics startup",0,0,640,480,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN);
     if(!window)throw std::runtime_error(SDL_GetError());
-    int result;bool palette_probe=false,palette_temporary=false,depth_probe=false,coordinate_probe=false;unsigned coordinate_base=0;
+    int result;bool palette_probe=false,palette_temporary=false,depth_probe=false,coordinate_probe=false,texture_pair_probe=false,aux_texture_probe=false,debug_texture_probe=false;unsigned coordinate_base=0;
     nlohmann::json depth_samples=nlohmann::json::array(),coordinate_samples=nlohmann::json::array();
+    nlohmann::json texture_pair_samples;
+    nlohmann::json aux_texture_samples;
+    nlohmann::json debug_texture_samples;
+    std::optional<halo2::RendererTexturePairs> retained_texture_pairs;
+    std::optional<halo2::RendererAuxTextures> retained_aux_textures;
+    std::optional<halo2::RendererDebugTexture> retained_debug_texture;
     std::filesystem::path capture_path,palette_output;
     for(int i=1;i+1<argc;i+=2) {
-        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-palette" || std::string_view(argv[i+1])=="graphics-constants" || std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output" || std::string_view(argv[i+1])=="graphics-coordinates"))palette_probe=true;
-        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output" || std::string_view(argv[i+1])=="graphics-coordinates"))depth_probe=true;
-        if(std::string_view(argv[i])=="--frontier" && std::string_view(argv[i+1])=="graphics-coordinates")coordinate_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && std::string_view(argv[i+1])=="graphics-aux-textures")aux_texture_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-debug-storage" || std::string_view(argv[i+1])=="graphics-renderer-complete" || std::string_view(argv[i+1])=="render-object-storage" || std::string_view(argv[i+1])=="sound-storage" || std::string_view(argv[i+1])=="sound-sdk"))debug_texture_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-texture-pairs" || std::string_view(argv[i+1])=="graphics-target-storage"))texture_pair_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-palette" || std::string_view(argv[i+1])=="graphics-constants" || std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output" || (std::string_view(argv[i+1])=="graphics-coordinates" || (std::string_view(argv[i+1])=="graphics-surfaces" || (std::string_view(argv[i+1])=="graphics-texture-pairs" || std::string_view(argv[i+1])=="graphics-target-storage")))))palette_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-depth" || std::string_view(argv[i+1])=="graphics-depth-state" || std::string_view(argv[i+1])=="graphics-output" || (std::string_view(argv[i+1])=="graphics-coordinates" || (std::string_view(argv[i+1])=="graphics-surfaces" || (std::string_view(argv[i+1])=="graphics-texture-pairs" || std::string_view(argv[i+1])=="graphics-target-storage")))))depth_probe=true;
+        if(std::string_view(argv[i])=="--frontier" && (std::string_view(argv[i+1])=="graphics-coordinates" || (std::string_view(argv[i+1])=="graphics-surfaces" || (std::string_view(argv[i+1])=="graphics-texture-pairs" || std::string_view(argv[i+1])=="graphics-target-storage"))))coordinate_probe=true;
         if(std::string_view(argv[i])=="--capture")capture_path=argv[i+1];
     }
     if(palette_probe) {
@@ -29,7 +42,7 @@ int main(int argc,char** argv)try {
     }
     if(depth_probe && SDL_setenv("HALO2_DEPTH_DIAGNOSTICS","1",1))throw std::runtime_error("Cannot enable actual depth readback");
     std::ostringstream diagnostics;auto* previous=std::cerr.rdbuf(diagnostics.rdbuf());
-    std::string gpu;halo2::RendererDeviceLease observed;halo2::RendererPaletteFactory observed_palettes;halo2::RendererConstantMode observed_constants;halo2::RendererDepthMode observed_depth;halo2::RendererOutputState observed_output;halo2::RendererTextureCoordinates observed_coordinates;
+    std::string gpu;halo2::RendererDeviceLease observed;halo2::RendererPaletteFactory observed_palettes;halo2::RendererConstantMode observed_constants;halo2::RendererDepthMode observed_depth;halo2::RendererOutputState observed_output;halo2::RendererTextureCoordinates observed_coordinates;halo2::RendererTexturePairFactory observed_texture_pairs;halo2::RendererAuxTextureFactory observed_aux_textures;halo2::RendererDebugTextureFactory observed_debug_texture;
     try {
         halo2::Mesh mesh;halo2::Material material;
         halo2::BspAtmosphere depth_atmosphere;
@@ -58,10 +71,22 @@ int main(int argc,char** argv)try {
         auto depth=renderer.depth_mode_control();observed_depth=depth;
         auto output=renderer.output_state_control();observed_output=output;
         auto coordinates=renderer.texture_coordinate_control();observed_coordinates=coordinates;
+        observed_texture_pairs=renderer.texture_pair_factory();
+        observed_aux_textures=renderer.aux_texture_factory();
+        observed_debug_texture=renderer.debug_texture_factory();
         halo2::Camera camera;camera.field_of_view=60;
         if(palette_probe && !renderer.draw(camera,palette_output/"before.ppm"))
             throw std::runtime_error("Native palette baseline draw failed");
-        result=halo2::run_native_tu15_startup_test(argc,argv,std::move(lease),palettes,constants,depth,output,coordinates);
+        result=halo2::run_native_tu15_startup_test(argc,argv,std::move(lease),palettes,constants,depth,output,coordinates,renderer.target_resources(),renderer.texture_pair_factory(),renderer.aux_texture_factory(),renderer.debug_texture_factory());
+        if(!result && debug_texture_probe) {
+            debug_texture_samples=halo2_test::debug_texture_gpu_probe(observed_debug_texture);
+            retained_debug_texture.emplace(observed_debug_texture.create());
+        }
+        if(!result && aux_texture_probe) {
+            const auto* fixture=std::getenv("HALO2_NATIVE_AUX_TEXTURE_FIXTURE");
+            aux_texture_samples=halo2_test::renderer_aux_gpu_probe(observed_aux_textures,fixture?std::filesystem::path(fixture):std::filesystem::path(HALO2_NATIVE_AUX_TEXTURE_FIXTURE));
+            retained_aux_textures.emplace(observed_aux_textures.create());
+        }
         if(!result && palette_probe) {
             for(unsigned stage=0;stage<4;++stage)if(!palettes.bound(stage).valid())
                 throw std::runtime_error("Native palette stage has no live renderer color resource");
@@ -108,9 +133,47 @@ int main(int argc,char** argv)try {
             }
         }
         if(!result && coordinate_probe)coordinate_samples=halo2_test::coordinate_gpu_probe(renderer,coordinate_base,palette_output);
-    }catch(...) {std::cerr.rdbuf(previous);std::cerr<<diagnostics.str();SDL_DestroyWindow(window);SDL_Quit();throw;}
+        if(!result && texture_pair_probe) {
+            texture_pair_samples=halo2_test::texture_pair_gpu_probe(observed_texture_pairs);
+            retained_texture_pairs.emplace(observed_texture_pairs.create());
+            const auto identity=retained_texture_pairs->image(0).image;
+            SDL_SetWindowSize(window,320,240);renderer.resized();
+            if(!renderer.draw(camera) || retained_texture_pairs->image(0).image!=identity ||
+                retained_texture_pairs->image(0).width!=64)
+                throw std::runtime_error("Independent texture pair changed during presentation recreation");
+            texture_pair_samples["survives_presentation_recreation"]=true;
+        }
+    }catch(...) {retained_texture_pairs.reset();std::cerr.rdbuf(previous);std::cerr<<diagnostics.str();SDL_DestroyWindow(window);SDL_Quit();throw;}
     std::cerr.rdbuf(previous);std::cerr<<diagnostics.str();
+    if(retained_texture_pairs) {
+        bool rejected=false;try{retained_texture_pairs->image(0);}catch(const std::runtime_error&){rejected=true;}
+        if(retained_texture_pairs->valid()||!rejected)throw std::runtime_error("Retired renderer retained accessible texture-pair images");
+        // Release the retained native implementation while its SDL window
+        // still exists, then destroy that window below.
+        retained_texture_pairs.reset();texture_pair_samples["retained_device_cleanup_after_retirement"]=true;
+    }
+    if(retained_aux_textures) {
+        bool rejected=false;try{retained_aux_textures->image(0);}catch(const std::runtime_error&){rejected=true;}
+        if(retained_aux_textures->valid()||!rejected)throw std::runtime_error("Retired renderer retained accessible auxiliary textures");
+        retained_aux_textures.reset();aux_texture_samples["retained_device_cleanup_after_retirement"]=true;
+    }
+    if(retained_debug_texture) {
+        bool rejected=false;try{retained_debug_texture->image();}catch(const std::runtime_error&){rejected=true;}
+        if(retained_debug_texture->valid()||!rejected)throw std::runtime_error("Retired renderer retained an accessible debugger texture");
+        retained_debug_texture.reset();debug_texture_samples["retained_device_cleanup_after_retirement"]=true;
+    }
     SDL_DestroyWindow(window);SDL_Quit();
+    if(observed_debug_texture.valid())throw std::runtime_error("Departed renderer retained a debugger texture factory");
+    if(observed_aux_textures.valid())throw std::runtime_error("Departed renderer retained an auxiliary texture factory");
+    if(aux_texture_probe) {
+        bool retired=false;try{observed_aux_textures.create();}catch(const std::runtime_error&){retired=true;}
+        if(!retired)throw std::runtime_error("Retired renderer created auxiliary textures");
+    }
+    if(observed_texture_pairs.valid())throw std::runtime_error("Departed renderer retained a live texture-pair factory");
+    if(texture_pair_probe) {
+        bool retired=false;try{observed_texture_pairs.create();}catch(const std::runtime_error&){retired=true;}
+        if(!retired)throw std::runtime_error("Retired renderer created another texture pair");
+    }
     if(observed_coordinates.valid())throw std::runtime_error("Departed renderer retained a live coordinate control");
     if(observed_output.valid())throw std::runtime_error("Departed renderer retained a live output-state control");
     if(observed_depth.valid())throw std::runtime_error("Departed renderer retained a live depth-mode control");
@@ -123,6 +186,9 @@ int main(int argc,char** argv)try {
     if(!result)for(int i=1;i+1<argc;i+=2)if(std::string_view(argv[i])=="--capture") {
         std::ifstream input(argv[i+1]);auto report=nlohmann::json::parse(input);input.close();
         report["native_vulkan_validation_enabled"]=true;report["native_vulkan_validation_messages"]=0;
+        if(aux_texture_probe){report["native_aux_texture_gpu"]=aux_texture_samples;report["native_aux_texture_factory_retirement_verified"]=true;}
+        if(debug_texture_probe){report["native_debug_texture_gpu"]=debug_texture_samples;report["native_debug_texture_factory_retirement_verified"]=true;}
+        if(texture_pair_probe){report["native_texture_pair_gpu"]=texture_pair_samples;report["native_texture_pair_factory_retirement_verified"]=true;}
         if(palette_probe) {
             report["native_palette_gpu_upload_draw_verified"]=true;
             report["native_palette_factory_retirement_verified"]=true;

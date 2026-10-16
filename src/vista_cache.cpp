@@ -45,7 +45,7 @@ Directory directory(const Bytes& data) {
         const auto name=data.u32(name_table+i*4);
         if(name>=names_size)throw FormatError("Vista tag path escapes filename table");
         tag={TagGroup(data.u32(at)).string(),data.string(names+name,names_size-name),datum,data.u32(at+8),data.u32(at+12)};
-        if(tag.address && tag.size)TagAddressSpace(data, out.magic).offset(tag.address, tag.size);
+        if(tag.address)TagAddressSpace(data, out.magic).offset(tag.address, tag.size);
     }
     return out;
 }
@@ -102,31 +102,23 @@ void Cache::initialize_vista() {
         }
     }
     tags_=local.tags;
-    if(tags_.size()<shared.tags.size())tags_.resize(shared.tags.size(),Tag{"","",0xffffffffu,0,0});
-    std::vector<bool> shared_owner(tags_.size());
-    for(std::size_t i=0;i<shared.tags.size();++i) {
-        const auto& source=shared.tags[i];auto& target=tags_[i];
-        if(source.datum==0xffffffffu || !source.address || !source.size)continue;
-        if(target.datum!=0xffffffffu && (target.datum!=source.datum || target.group!=source.group || target.name!=source.name))
-            throw FormatError("Vista shared datum/group/path collision");
-        if(target.datum==0xffffffffu || !target.address || !target.size) {
-            target=source;shared_owner[i]=true;
-        }
-    }
+    const auto shared_owner=merge_shared_tag_directory(tags_,shared.tags,
+        SharedTagLoadPolicy::unloaded_or_empty);
     validate_tag_directory();
     std::vector<std::size_t> resident;
     for(std::size_t i=0;i<tags_.size();++i)
         if(tags_[i].datum!=0xffffffffu && tags_[i].address && tags_[i].size)resident.push_back(i);
     if(resident.empty())throw FormatError("Vista cache has no resident metadata");
     std::sort(resident.begin(),resident.end(),[&](auto a,auto b){return tags_[a].address<tags_[b].address;});
-    const auto first=tags_[resident.front()].address;
+    vista_metadata_regions_=tag_metadata_regions(tags_);
+    const auto first=vista_metadata_regions_.front().first;
     std::uint64_t end=first;
     for(auto i:resident) {
         const auto& tag=tags_[i];
         if(tag.address<end)throw FormatError("overlapping Vista resident tag allocations");
         end=std::uint64_t(tag.address)+tag.size;
-        vista_metadata_regions_.emplace_back(tag.address,tag.size);
     }
+    end=std::max(end,std::uint64_t(vista_metadata_regions_.back().first)+vista_metadata_regions_.back().second);
     if(end>0x100000000ull || end-first>128ull*1024*1024)
         throw FormatError("excessive Vista virtual metadata span");
     const auto base=storage_.size();

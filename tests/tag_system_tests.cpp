@@ -1,6 +1,7 @@
 #include "halo2/tags/system.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/source_mutable_tag_store.hpp"
+#include "../src/tags/directory.hpp"
 #include <algorithm>
 #include <chrono>
 #include <fstream>
@@ -70,6 +71,19 @@ int main() {
     const auto path=std::filesystem::temp_directory_path()/
         ("halo2-tags-"+std::to_string(std::chrono::steady_clock::now().time_since_epoch().count())+".map");
     try {
+        {
+            const std::array<Tag,3> aliases{{
+                {"colo","empty",0xe0000000u,0x1000,0},
+                {"matg","forwarding",0xe1000001u,0x2004,0},
+                {"matg","moved",0xe2000002u,0x3000,16}}};
+            const std::pair<std::uint32_t,std::uint32_t> retained{0x2000,16};
+            const auto regions=tag_metadata_regions(aliases,std::span(&retained,1));
+            check(regions==std::vector<std::pair<std::uint32_t,std::uint32_t>>{
+                {0x1000,0},{0x2000,16},{0x3000,16}},
+                "Relocated tag lost its original forwarding bank or an alias shadowed it");
+            const std::pair<std::uint32_t,std::uint32_t> overlapping{0x3004,16};
+            rejects([&]{(void)tag_metadata_regions(aliases,std::span(&overlapping,1));});
+        }
         auto bytes=fixture(); save(path,bytes);
         auto cache=std::make_shared<Cache>(path);
         TagSystem tags(cache);

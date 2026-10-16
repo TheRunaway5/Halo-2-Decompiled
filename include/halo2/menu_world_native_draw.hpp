@@ -29,10 +29,12 @@ struct MenuWorldNativeDrawInput {
   MenuWorldFragmentUniforms fragment;
   MenuWorldRasterPacket raster;
   ForwardRasterState forward;
-  // Only0(disabled),5(planar CONSTANT_COLOR),10(sphere diffuse) admitted.
+  // Only0(disabled),5(planar CONSTANT_COLOR),9(shadow DST_COLOR/ZERO),
+  // and10(sphere diffuse) admitted. Pass/receiver admission is caller owned.
   unsigned forward_blend{};
   VkDescriptorSet material_set{};
   std::uint32_t material_offset{}; // Existing set0/binding4 dynamic offset.
+  MenuWorldWClipMode w_clip_mode=MenuWorldWClipMode::cull;
 };
 
 // Standalone Vulkan resource/submission seam; selects no owners, visibility,

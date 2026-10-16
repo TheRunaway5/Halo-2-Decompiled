@@ -8,6 +8,7 @@
 #include "halo2/source_model_pose.hpp"
 #include "halo2/source_model_palette.hpp"
 #include "halo2/first_person_dual.hpp"
+#include "halo2/frontend_model_primary.hpp"
 #include <algorithm>
 #include <functional>
 #include <cstdlib>
@@ -338,6 +339,17 @@ std::vector<Transform> pose_model_nodes_world_frame(const RenderModel &model,con
                                                    const AnimationClip *clip,float frame,const RenderModel *companion) {
   validate_controller_frame(clip,frame);
   return model_order_nodes(sample_skeleton(model,clip,0,companion,false,frame,&root));
+}
+std::vector<Transform> pose_world_object_nodes_frame(const RenderModel &model,const Transform &root,
+                                                   const FrontendModelPrimary &clip,float frame) {
+  // BF0C0 copies mode bind locals, samples by node index, then publishes each
+  // matrix using mode+48/+4C parent order. No StringID remapping occurs here.
+  for(std::size_t i=0;i<model.bones.size();++i)
+    if(i==0?model.bones[i].parent!=-1:
+        model.bones[i].parent<0 || std::size_t(model.bones[i].parent)>=i)
+      throw FormatError("World object model hierarchy differs from its source node order");
+  const auto locals=sample_world_object_primary(model,clip,frame,{},frame!=std::floor(frame));
+  return pose_model_locals_nodes_world(model,root,locals);
 }
 std::vector<Vertex> pose_model_world_between_frames(const RenderModel &model,const Transform &root,
     const AnimationClip &clip,AnimationFrameWindow window) {

@@ -10,7 +10,9 @@ from generate_physics_live_support_tu15 import generate,sha
 # 88C50's actual identity gate ->155920 ->15A860. Result remapping retains
 # allocated left-player identity/stat rows. Slot7's actual Slayer RET4 owner
 # and complete stack probe are included without a fabricated service return.
-ENTRIES=(0x88c50,0x14ead0,0x155920,0x15a860,0x15a950,0x19ae70,0x19dd10,0x19dc50,0x19dbf0,0x2e4d60,0x32a660)
+# Active original session cleanup uses the complete 6A9A0 row reset and
+# 6A890 typed-row iterator; neither callee has an external dependency.
+ENTRIES=(0x6a890,0x6a9a0,0x88c50,0x14ead0,0x155920,0x15a860,0x15a950,0x19ae70,0x19dd10,0x19dc50,0x19dbf0,0x2e4d60,0x32a660)
 def departure_instructions(*,get,put,**unused):
     def emit(i):
         if i.address!=0x32a674:return None

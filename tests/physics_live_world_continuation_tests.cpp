@@ -99,6 +99,9 @@ int main(int argc,char **argv) try {
     rejects([&]{source.source_object_body(unit^0x10000u);});
     rejects([&]{source.preload_render_model(0xffffffffu);}); // Rejected preconditions did not mutate the world.
     const auto saved=source.authority_checkpoint();
+    check(std::ranges::count(saved.exit_callbacks,0x383b30u)==1 &&
+        Bytes(source.memory().view(0x48cdc4u,4)).u32(0)==0x41d638u,
+        "Original static contact-agent initializer/destructor binding absent");
     const auto saved_lifetimes=source_lifetimes.source_authority_checkpoint();
     const auto saved_players=players.source_binding();
     check(saved.model_scratch_mounted && !saved.model_collectors.empty() && !saved.resource_reads.empty(),
@@ -117,10 +120,19 @@ int main(int argc,char **argv) try {
         check(target_bank.checkpoint()==before,"Preparation changed current world backing");
     }
     check(target_bank.checkpoint()==before,"Cancelled preparation changed current world");
-    auto bad=saved;bad.version=2;rejects([&]{target.prepare_authority(bad);});
+    auto bad=saved;++bad.version;rejects([&]{target.prepare_authority(bad);});
+    bad=saved;++bad.bsp;rejects([&]{target.prepare_authority(bad);});
     bad=saved;bad.resources.resident[0]^=std::byte{1};rejects([&]{target.prepare_authority(bad);});
     bad=saved;++bad.main_thread_token;rejects([&]{target.prepare_authority(bad);});
     bad=saved;bad.exit_callbacks.push_back(0x12345678);rejects([&]{target.prepare_authority(bad);});
+    bad=saved;std::erase(bad.exit_callbacks,0x383b30u);rejects([&]{target.prepare_authority(bad);});
+    bad=saved;bad.exit_callbacks.push_back(0x383b30u);rejects([&]{target.prepare_authority(bad);});
+    bad=saved;
+    const auto static_agent=std::ranges::find_if(bad.bank.regions,[](const auto &region){
+        return region.address<=0x48cdc4u && std::uint64_t(region.address)+region.bytes.size()>=0x48cdc8u;});
+    check(static_agent!=bad.bank.regions.end(),"Source static contact-agent region absent");
+    static_agent->bytes[0x48cdc4u-static_agent->address]^=std::byte{1};
+    rejects([&]{target.prepare_authority(bad);});
     bad=saved;++bad.next_resource_read;rejects([&]{target.prepare_authority(bad);});
     bad=saved;bad.model_scratch_mounted=!bad.model_scratch_mounted;rejects([&]{target.prepare_authority(bad);});
     bad=saved;const auto immutable=std::ranges::find(bad.bank.regions,SourceRuntimeMemory::Access::ReadOnly,&SourceRuntimeMemory::CheckpointRegion::access);

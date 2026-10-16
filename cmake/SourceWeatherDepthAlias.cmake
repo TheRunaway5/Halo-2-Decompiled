@@ -2,14 +2,18 @@
 # from graphics and simulation so no native frame admission is implied.
 function(halo2_add_source_weather_depth_alias weather_source_root)
     set(weather_shader_directory "${CMAKE_CURRENT_BINARY_DIR}/shaders")
-    set(weather_alias_shader "${weather_shader_directory}/source_weather_depth_alias.comp.spv")
-    add_custom_command(OUTPUT "${weather_alias_shader}"
+    set(weather_alias_shaders)
+    foreach(alias_shader source_weather_depth_alias.comp source_depth_color_writeback.comp)
+      set(weather_alias_shader "${weather_shader_directory}/${alias_shader}.spv")
+      add_custom_command(OUTPUT "${weather_alias_shader}"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${weather_shader_directory}"
         COMMAND "${GLSLANG_VALIDATOR}" -V --target-env vulkan1.1
-            "${weather_source_root}/shaders/source_weather_depth_alias.comp" -o "${weather_alias_shader}"
-        DEPENDS "${weather_source_root}/shaders/source_weather_depth_alias.comp"
+            "${weather_source_root}/shaders/${alias_shader}" -o "${weather_alias_shader}"
+        DEPENDS "${weather_source_root}/shaders/${alias_shader}"
         VERBATIM)
-    add_custom_target(source_weather_depth_alias_shader DEPENDS "${weather_alias_shader}")
+      list(APPEND weather_alias_shaders "${weather_alias_shader}")
+    endforeach()
+    add_custom_target(source_weather_depth_alias_shader DEPENDS ${weather_alias_shaders})
     add_library(halo2_weather_depth_alias "${weather_source_root}/src/source_weather_depth_alias.cpp")
     target_include_directories(halo2_weather_depth_alias PUBLIC "${weather_source_root}/include")
     target_link_libraries(halo2_weather_depth_alias PUBLIC Vulkan::Vulkan)
@@ -62,5 +66,29 @@ function(halo2_add_source_weather_depth_alias weather_source_root)
             PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE LABELS "weather;original-reference")
     endforeach()
     add_dependencies(source_weather_depth_alias_tests source_weather_depth_alias_probe_shader)
+    add_executable(source_depth_color_alias_tests "${weather_source_root}/tests/source_depth_color_alias_tests.cpp")
+    target_include_directories(source_depth_color_alias_tests PRIVATE "${weather_source_root}/tests")
+    target_link_libraries(source_depth_color_alias_tests PRIVATE halo2_weather_depth_alias)
+    target_compile_definitions(source_depth_color_alias_tests PRIVATE
+        HALO2_SOURCE_DIR="${weather_source_root}" HALO2_WEATHER_DEPTH_ALIAS_SHADER_DIR="${weather_shader_directory}")
+    add_dependencies(source_depth_color_alias_tests source_weather_depth_alias_probe_shader)
+    set(color_alias_probe_shaders)
+    foreach(probe_stage vert frag)
+        if(probe_stage STREQUAL "vert")
+            set(probe_shader menu_world_depth_attachment_fullscreen.vert)
+        else()
+            set(probe_shader source_depth_color_alias_test.frag)
+        endif()
+        set(probe_output "${weather_shader_directory}/source_depth_color_alias_test.${probe_stage}.spv")
+        add_custom_command(OUTPUT "${probe_output}"
+            COMMAND ${CMAKE_COMMAND} -E make_directory "${weather_shader_directory}"
+            COMMAND "${GLSLANG_VALIDATOR}" -V --target-env vulkan1.1 "${weather_source_root}/tests/${probe_shader}" -o "${probe_output}"
+            DEPENDS "${weather_source_root}/tests/${probe_shader}" VERBATIM)
+        list(APPEND color_alias_probe_shaders "${probe_output}")
+    endforeach()
+    add_custom_target(source_depth_color_alias_probe_shaders DEPENDS ${color_alias_probe_shaders})
+    add_dependencies(source_depth_color_alias_tests source_depth_color_alias_probe_shaders)
+    add_test(NAME source_depth_color_alias_gpu COMMAND source_depth_color_alias_tests)
+    set_tests_properties(source_depth_color_alias_gpu PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE LABELS "weather;gpu;original-reference")
     target_link_libraries(source_weather_depth_alias_composition_tests PRIVATE halo2_weather_render)
 endfunction()

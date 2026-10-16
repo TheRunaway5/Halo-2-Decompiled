@@ -1,5 +1,6 @@
 #include "halo2/cache.hpp"
 #include "halo2/source_tag_metadata.hpp"
+#include "halo2/tags.hpp"
 #include <algorithm>
 #include <bit>
 #include <chrono>
@@ -51,6 +52,22 @@ Buffer fixture(bool shared) {
     }
     return b;
 }
+Buffer alias_fixture(bool shared) {
+    auto b=fixture(shared);
+    const auto original=Bytes(b).slice(2080,48);
+    Buffer rows(original.begin(),original.end());
+    std::copy(rows.begin(),rows.end(),b.begin()+2208);
+    word(b,2056,160);word(b,2072,8);word(b,716,8);
+    word(b,724,512);word(b,728,3700);word(b,3704,0);word(b,3708,64);
+    const std::array addresses{0x100000u,0xffff0u,0x100004u,0x1000c0u,0u};
+    for(unsigned i=0;i<addresses.size();++i) {
+        const auto slot=i+3,at=2208+slot*16;
+        word(b,at,tag_groups::bitmap.value);word(b,at+4,0xe2000003u+i*0x1000001u);
+        word(b,at+8,shared?addresses[i]:0u);word(b,at+12,0);
+        word(b,3700+slot*4,128+i*64);text(b,3000+128+i*64,"textures\\alias"+std::to_string(i));
+    }
+    return b;
+}
 template<class F> void rejects(F action,const char* message) {
     try {action();}catch(const FormatError&) {return;}
     throw std::runtime_error(message);
@@ -77,6 +94,27 @@ int main() {
                   cache.spawns()[0].position.y==-.5f && cache.spawns()[0].position.z==9.f,"Vista spawn pointer was not retained");
             rejects([&]{(void)cache.load_source_tag_metadata(0xe2000002u);},"Different datum salt resolved");
             rejects([&]{(void)cache.load_bitmap(0xe1000002u,0);},"Missing Xbox donor silently used Vista artwork");
+        }
+        {
+            const auto aliases=alias_fixture(false),donor=alias_fixture(true);
+            save(path,aliases);save(shared_path,donor);
+            auto owner=std::make_shared<const Cache>(path);TagSystem tags(owner);
+            const auto alias=tags.get({0xe2000003u},tag_groups::bitmap);
+            check(alias.source_address()==0x100000 && alias.bytes().empty(),
+                  "Vista shared alias lost its source address or serialized empty extent");
+            check(std::ranges::equal(owner->tag_payload({0xe2000003u}),std::span(donor).subspan(4096,192)),
+                  "Vista shared alias does not resolve the original same-group payload");
+            check(tags.resolve({tag_groups::bitmap,{0xe2000003u}})->info().datum==0xe2000003u,
+                  "Vista shared alias reference lost its salted identity");
+            check(tags.get({0xe3000004u}).bytes().empty() && tags.get({0xe5000006u}).bytes().empty(),
+                  "Vista empty tag locations were discarded");
+            check(tags.read_source(0x100008,8).size()==8,"Vista interior alias shadowed its containing allocation");
+            rejects([&]{(void)tags.read_source(0xffff0,1);},"Vista empty tag acquired invented payload bytes");
+            rejects([&]{(void)tags.read_source(0x1000c0,1);},"Vista end alias escaped its payload allocation");
+            check(!tags.try_get({0xe6000007u}),"Vista alias without a source address became resident");
+            auto malformed=donor;word(malformed,2208+3*16+4,0xe9000003u);save(shared_path,malformed);
+            rejects([&]{Cache invalid(path);},"Vista zero-size alias admitted a different salt");
+            save(path,local);save(shared_path,shared);
         }
         auto changed=shared;
         text(changed,3064,"textures\\different");save(shared_path,changed);

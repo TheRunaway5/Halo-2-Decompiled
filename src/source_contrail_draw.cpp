@@ -1,6 +1,8 @@
 #include "halo2/source_contrail_draw.hpp"
 #include "halo2/source_contrail_geometry_tu15.hpp"
 #include "halo2/source_runtime_memory.hpp"
+#include "halo2/source_runtime_image.hpp"
+#include "halo2/original_data.hpp"
 #include "halo2/physics_phantom_world_tu15.hpp"
 #include "halo2/raw_datum_pool.hpp"
 #include "halo2/source_transparent_queue.hpp"
@@ -10,12 +12,23 @@
 #include <set>
 namespace halo2 {
 namespace {
+class ReadViews final:public SourcePhysicsContactMemory {
+    const SourcePhysicsContactMemory &source;
+    mutable std::map<std::pair<std::uint32_t,std::size_t>,std::vector<std::byte>> buffers;
+public:
+    explicit ReadViews(const SourcePhysicsContactMemory &s):source(s){}
+    std::span<const std::byte> view(std::uint32_t p,std::size_t n)const {
+        auto &b=buffers[{p,n}];b.resize(n);source.read(p,b);return b;
+    }
+    void read(std::uint32_t p,std::span<std::byte> out)const override{source.read(p,out);}
+    void write(std::uint32_t,std::span<const std::byte>)override{throw FormatError("Contrail read view cannot mutate source inputs");}
+};
 class DrawMemory final:public SourcePhysicsContactMemory {
 public:
     static constexpr std::uint32_t base=0x6ff00000u;
-    const SourceRuntimeMemory &source;Vec3 eye;
+    const SourcePhysicsContactMemory &source;Vec3 eye;
     std::vector<std::byte> scratch=std::vector<std::byte>(0x100000);
-    DrawMemory(const SourceRuntimeMemory &m,Vec3 e):source(m),eye(e){}
+    DrawMemory(const SourcePhysicsContactMemory &m,Vec3 e):source(m),eye(e){}
     void read(std::uint32_t p,std::span<std::byte> out)const override {
         if(p>=base && std::uint64_t(p)+out.size()<=std::uint64_t(base)+scratch.size())
             std::memcpy(out.data(),scratch.data()+p-base,out.size());
@@ -34,7 +47,8 @@ public:
 struct SourceContrailScene::Impl {
     struct Bank {std::uint32_t bitmap{};unsigned blend{};std::uint8_t properties{};ShaderTextureState sampler;std::vector<Texture> images;};
     std::map<std::uint32_t,Bank> banks;bool enabled{};
-    explicit Impl(const Cache &c) {
+    const Cache &cache;mutable std::unique_ptr<SourceRuntimeMemory> replica_original_data;
+    explicit Impl(const Cache &c):cache(c) {
         if(c.is_vista()||c.is_mcc())return;
         const auto globals=c.query_tag({.group=tag_groups::globals});
         if(!globals)throw FormatError("Contrail renderer requires actual rasterizer globals");
@@ -63,10 +77,11 @@ struct SourceContrailScene::Impl {
 };
 SourceContrailScene::SourceContrailScene(const Cache &c):impl_(std::make_unique<Impl>(c)){}
 SourceContrailScene::~SourceContrailScene()=default;
-std::vector<SourceContrailDraw> SourceContrailScene::draw(const SourceRuntimeMemory &memory,
+std::vector<SourceContrailDraw> SourceContrailScene::draw(const SourcePhysicsContactMemory &source,
     Vec3 eye,Vec3 forward,const std::array<ShaderVector,192> &constants,
     ShaderVector viewport,ShaderVector clip)const {
     if(!impl_->enabled)return {};
+    ReadViews memory(source);
     const auto word=[&](std::uint32_t p,unsigned n=4){const Bytes b(memory.view(p,n));return n==2?b.u16(0):b.u32(0);};
     const auto pool=word(0x4f7214u),points=word(0x4f7210u);
     if(word(pool+0x24)!=72 || word(points+0x24)!=56)
@@ -135,5 +150,17 @@ std::vector<SourceContrailDraw> SourceContrailScene::draw(const SourceRuntimeMem
         }
     }
     return result;
+}
+std::vector<SourceContrailDraw> SourceContrailScene::draw(const SourceContrailSnapshot &snapshot,
+    Vec3 eye,Vec3 forward,const std::array<ShaderVector,192> &constants,ShaderVector viewport,ShaderVector clip)const {
+    if(!snapshot.authoritative || !impl_->enabled)return {};
+    if(!impl_->replica_original_data) {
+        const auto original=impl_->cache.original_data();
+        if(!original || original->image!=OriginalData::Image::TitleUpdate15)
+            throw FormatError("Contrail replica requires authenticated original TU1.5 static data");
+        impl_->replica_original_data=std::make_unique<SourceRuntimeMemory>(load_source_runtime_image(original->source,SourcePhysicsContactImage::TitleUpdate15));
+    }
+    SourceContrailSnapshotMemory memory(snapshot,*impl_->replica_original_data);
+    return draw(memory,eye,forward,constants,viewport,clip);
 }
 }

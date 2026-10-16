@@ -1,3 +1,4 @@
+#include "halo2/scene.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/content.hpp"
 #include "halo2/math.hpp"
@@ -146,6 +147,7 @@ std::size_t verify(SDL_Window *window,const std::filesystem::path &map,
     camera.field_of_view=source_camera_angles(content.player.camera_field_of_view).projection_angle*57.295779513f;
     const CollisionWorld collision(content.collision);
     SourceMachineScene machines(cache,content.objects,0,mesh,collision);
+    SceneObjects machine_objects(content,0,SourceSceneGameContext{2,2});machines.synchronize(machine_objects);
     machines.update(0,0,camera.position,source_camera_angles(content.player.camera_field_of_view).lighting_distance_scale,mesh);
     std::vector<ObjectLightingBinding> machine_lighting;
     machines.append(mesh.vertices,machine_lighting);

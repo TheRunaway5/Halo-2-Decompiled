@@ -317,15 +317,8 @@ void Cache::initialize_mcc() {
         }
     }
     tags_=local.tags;
-    if(tags_.size()<shared.tags.size())tags_.resize(shared.tags.size(),Tag{"","",0xffffffffu,0,0});
-    std::vector<bool> shared_owner(tags_.size());
-    for(std::size_t i=0;i<shared.tags.size();++i) {
-        const auto& source=shared.tags[i];auto& target=tags_[i];
-        if(source.datum==0xffffffffu || !source.address || !source.size)continue;
-        if(target.datum!=0xffffffffu && (source.datum!=target.datum || source.group!=target.group || source.name!=target.name))
-            throw FormatError("MCC shared datum/group/path collision");
-        if(target.datum==0xffffffffu || !target.address) {target=source;shared_owner[i]=true;}
-    }
+    const auto shared_owner=merge_shared_tag_directory(tags_,shared.tags,
+        SharedTagLoadPolicy::unloaded_only);
     std::array<std::uint32_t,2> sound_gestalt{0xffffffffu,0xffffffffu};
     for(std::size_t i=0;i<tags_.size();++i)if(tags_[i].group=="ugh!" && tags_[i].address) {
         auto& owner=sound_gestalt[shared_owner[i]?1:0];
@@ -340,13 +333,15 @@ void Cache::initialize_mcc() {
     for(std::size_t i=0;i<tags_.size();++i)if(tags_[i].datum!=0xffffffffu && tags_[i].address && tags_[i].size)resident.push_back(i);
     if(resident.empty())throw FormatError("MCC cache has no resident metadata");
     std::ranges::sort(resident,[&](auto a,auto b){return tags_[a].address<tags_[b].address;});
-    const auto first=tags_[resident.front()].address;
+    vista_metadata_regions_=tag_metadata_regions(tags_);
+    const auto first=vista_metadata_regions_.front().first;
     std::uint64_t end=first;
     for(auto i:resident) {
         const auto& t=tags_[i];
         if(t.address<end)throw FormatError("Overlapping MCC resident tag allocations");
-        end=std::uint64_t(t.address)+t.size;vista_metadata_regions_.emplace_back(t.address,t.size);
+        end=std::uint64_t(t.address)+t.size;
     }
+    end=std::max(end,std::uint64_t(vista_metadata_regions_.back().first)+vista_metadata_regions_.back().second);
     if(end>0x100000000ull || end-first>128ull*1024*1024)throw FormatError("Excessive MCC metadata span");
     std::vector<std::byte> metadata(std::size_t(end-first));
     for(auto i:resident) {
@@ -406,9 +401,7 @@ void Cache::initialize_mcc() {
         const auto converted=normalize_mcc_unit_physics(Bytes(storage_).slice(at,t.size),t.address,kind);
         std::copy(converted.begin(),converted.end(),storage_.begin()+std::ptrdiff_t(at));
     }
-    vista_metadata_regions_.clear();
-    for(const auto& t:tags_)if(t.address && t.size)vista_metadata_regions_.emplace_back(t.address,t.size);
-    std::ranges::sort(vista_metadata_regions_);
+    vista_metadata_regions_=tag_metadata_regions(tags_);
     initialize_mcc_native_shaders();
     const auto table=storage_.size();storage_.resize(table+tags_.size()*16);
     for(std::size_t i=0;i<tags_.size();++i) {

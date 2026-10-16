@@ -29,16 +29,24 @@ struct SourceRuntimeSoundSdkResources::Impl {
         const std::array passive{std::byte{0}};bank.write(fs+0x24u,passive);
     }
     void require_thread(const SourcePhysicsWorldRuntimeAbi&a)const{
-        if(fault||std::this_thread::get_id()!=thread||a.fs_base!=fs_base||bank.view(fs_base+0x24u,1)[0]!=std::byte{0})
+        // The immutable executor identity must precede every mutable owner
+        // field or bank read, including diagnostics from a foreign thread.
+        if(std::this_thread::get_id()!=thread)
+            throw FormatError("Native SDK resource requires its creating owner thread");
+        if(fault||a.fs_base!=fs_base||bank.view(fs_base+0x24u,1)[0]!=std::byte{0})
             throw FormatError("Native SDK resource requires its owned passive execution context");
     }
 };
 SourceRuntimeSoundSdkResources::SourceRuntimeSoundSdkResources(SourceRuntimeMemory&m,std::uint32_t fs):impl_(std::make_unique<Impl>(m,fs)){}
 SourceRuntimeSoundSdkResources::~SourceRuntimeSoundSdkResources(){abort_new_resources(0,0);}
-std::size_t SourceRuntimeSoundSdkResources::live_allocations()const noexcept{return impl_->allocations.size();}
-unsigned SourceRuntimeSoundSdkResources::lock_depth()const noexcept{return impl_->locks;}
+void SourceRuntimeSoundSdkResources::require_owner_thread()const{
+    if(std::this_thread::get_id()!=impl_->thread)throw FormatError("Native SDK resource requires its creating owner thread");
+}
+std::size_t SourceRuntimeSoundSdkResources::live_allocations()const{require_owner_thread();return impl_->allocations.size();}
+unsigned SourceRuntimeSoundSdkResources::lock_depth()const{require_owner_thread();return impl_->locks;}
 bool SourceRuntimeSoundSdkResources::quiescent()const noexcept{
-    if(impl_->fault||!impl_->allocations.empty()||impl_->locks||impl_->next!=sound_pool_first||std::this_thread::get_id()!=impl_->thread)return false;
+    if(std::this_thread::get_id()!=impl_->thread)return false;
+    if(impl_->fault||!impl_->allocations.empty()||impl_->locks||impl_->next!=sound_pool_first)return false;
     try{return impl_->bank.view(impl_->fs_base+0x24u,1)[0]==std::byte{0};}catch(...){return false;}
 }
 void SourceRuntimeSoundSdkResources::require_quiescent()const{if(!quiescent())throw FormatError("Live/faulted SDK factory resources cannot cross a world checkpoint");}
@@ -52,23 +60,31 @@ void SourceRuntimeSoundSdkResources::abort_new_resources(std::uint32_t cursor,un
     // Their source rollback is not invented; reject reuse/export after abort.
     if(changed)impl_->fault=true;
 }
-SourceRuntimeSoundSdkResources::CallScope::CallScope(SourceRuntimeSoundSdkResources*p):owner_(p),cursor_(p?p->impl_->next:0),locks_(p?p->lock_depth():0),exceptions_(std::uncaught_exceptions()){}
+SourceRuntimeSoundSdkResources::CallScope::CallScope(SourceRuntimeSoundSdkResources*p)
+    :owner_(p),cursor_(0),locks_(0),exceptions_(std::uncaught_exceptions()){
+    if(owner_){owner_->require_owner_thread();
+        if(owner_->impl_->fault)throw FormatError("Faulted native SDK resources cannot begin another source call");
+        cursor_=owner_->impl_->next;locks_=owner_->impl_->locks;}
+}
 SourceRuntimeSoundSdkResources::CallScope::~CallScope(){if(owner_&&std::uncaught_exceptions()>exceptions_)owner_->abort_new_resources(cursor_,locks_);}
 void SourceRuntimeSoundSdkResources::bind_user_settings(SourceTu15UserSettings settings){
     require_quiescent();impl_->settings=std::make_shared<const SourceTu15UserSettings>(std::move(settings));
 }
 bool SourceRuntimeSoundSdkResources::dispatch(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&observe){
-    if(c.instruction==0x2e101cu && word(m,a.gp[4]+4u)==9u) {
+    if(c.instruction==0x2e101cu) {
         if(&m!=&impl_->bank)throw FormatError("Native audio settings query bank ownership differs");
-        if(!impl_->settings)return false;
         impl_->require_thread(a);
+        if(word(m,a.gp[4]+4u)!=9u)return false;
+        if(!impl_->settings)return false;
         return source_try_tu15_audio_settings_query(impl_->bank,c,a,*impl_->settings,observe);
     }
     struct Request {std::uint32_t instruction,slot;unsigned words;};
     constexpr std::array requests{Request{0x383f92u,0x41b680u,1},Request{0x3878b0u,0x41b67cu,1},Request{0x3842cau,0x41b67cu,1},Request{0x384311u,0x41b67cu,1},Request{0x387975u,0x41b79cu,2},Request{0x387982u,0x41b7ecu,1}};
     const Request*r=nullptr;for(const auto&candidate:requests)if(c.instruction==candidate.instruction){r=&candidate;break;}if(!r)return false;
-    if(&m!=&impl_->bank||c.tail||c.target!=word(m,r->slot)||word(m,a.gp[4])!=c.instruction+6u)throw FormatError("Native SDK platform call differs from its actual instruction/import/frame");
-    impl_->require_thread(a);const auto sp=a.gp[4],arg=word(m,sp+4u);
+    if(&m!=&impl_->bank)throw FormatError("Native SDK platform call bank ownership differs");
+    impl_->require_thread(a);
+    if(c.tail||c.target!=word(m,r->slot)||word(m,a.gp[4])!=c.instruction+6u)throw FormatError("Native SDK platform call differs from its actual instruction/import/frame");
+    const auto sp=a.gp[4],arg=word(m,sp+4u);
     if(r->slot==0x41b680u){
         if(arg!=0x390bf8u)throw FormatError("Native SDK lock identity differs");impl_->critical.lock();++impl_->locks;
     }else if(r->slot==0x41b67cu){

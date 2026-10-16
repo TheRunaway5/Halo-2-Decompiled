@@ -53,7 +53,7 @@ int main(int argc,char **argv)try {
   const bool clan=mode=="clan" || mode=="clan-major" || mode=="clan-full";
   const bool group=mode=="party" || clan;
   const bool team=group || mode=="team" || mode=="team-render";
-  const unsigned participants=mode=="clan-full"?16:mode=="clan-major"?14:clan?6:group?4:2;
+  const unsigned participants=mode=="source-render"?8:mode=="clan-full"?16:mode=="clan-major"?14:clan?6:group?4:2;
   const std::vector<std::string> owners={"one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen"};
   const auto found=std::find(owners.begin(),owners.end(),owner);check(found!=owners.end(),"Unknown fixture owner");
   const unsigned owner_index=unsigned(found-owners.begin());
@@ -183,7 +183,9 @@ int main(int argc,char **argv)try {
       party_menu->accept();check(party_menu->frame().screen==210,"Party Find Match did not open native search");
       std::cout<<"Native party "<<(leader?"leader":"member")<<" chose "<<playlist<<" through Vista playlist/search owners"<<std::endl;
     } else {
-      queue.refresh("Same Pilot");wait([&]{return queue.snapshot().status==OnlineMatchmakingStatus::Ready;});
+      std::vector<OnlineLocalPlayer> guests;
+      if(mode=="source-render")for(unsigned n=1;n<4;++n)guests.push_back({"Guest "+owner+" "+std::to_string(n),{}});
+      queue.refresh("Same Pilot",std::move(guests));wait([&]{return queue.snapshot().status==OnlineMatchmakingStatus::Ready;});
       const auto catalog=queue.snapshot().playlists;
       const auto row=std::find_if(catalog.begin(),catalog.end(),[&](const auto &p){return p.id==playlist;});
       check(row!=catalog.end(),"Requested playlist absent");
@@ -248,6 +250,29 @@ int main(int argc,char **argv)try {
     check(session->roster().size()==participants && session->roster()[0].identity!=old_identity,"Requeue reused old room identity or lost roster");
     std::cout<<"PASS completed match -> actual Vista PCR16 -> Done -> retained Discord sign-in -> fresh matched room\n";
   };
+  if(mode=="source-render") {
+    if(!std::getenv("DISPLAY"))return 77;
+    MultiplayerOptions runtime;runtime.map=maps/"lockout.map";runtime.shared_maps=maps;runtime.online_match=session;
+    runtime.gameplay_xbe="/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe";
+    runtime.ui_assets=vista;runtime.width=1280;runtime.height=720;runtime.hidden=true;runtime.mute=true;runtime.replay=true;
+    runtime.source_object_world=true; // Replay controls must not select the fallback world.
+    bool native_world{};runtime.source_world_observer=[&](const auto &){native_world=true;};
+    runtime.local_players=4;runtime.variant={"Slayer",0,{}};runtime.variant.values.set(10,100);runtime.variant.values.set(2,0);
+    std::array<std::uint8_t,9> appearance{};
+    for(auto slot:session->local_slots())runtime.selected_profiles.push_back(native_selected_player_configuration(session->roster()[slot].name,appearance,-1));
+    runtime.screenshot=output/(owner+"-source-online.ppm");
+    std::optional<std::chrono::steady_clock::time_point> started;unsigned ticks{},players{},frames{};bool quit{};
+    runtime.input_observer=[&](auto step,auto,const auto &state){ticks=step;
+      if(!started)started=std::chrono::steady_clock::now();
+      players=std::max(players,unsigned(std::count_if(state.players.begin(),state.players.end(),[](const auto &p){return p.connected;})));
+      if(!quit&&std::chrono::steady_clock::now()-*started>45s){SDL_Event e{};e.type=SDL_QUIT;check(SDL_PushEvent(&e)==1,"Source capture could not end its actual game loop");quit=true;}};
+    runtime.frame_observer=[&](const auto &timing){frames+=timing.submitted;};
+    MultiplayerRuntimeOutcome outcome;run_multiplayer(runtime,outcome);
+    std::cout<<"Rendered source capture: ticks="<<ticks<<" players="<<players<<" frames="<<frames<<"\n";
+    check(ticks>30&&players==8&&frames>10&&outcome.state.has_value(),"Rendered TU1.5 source session did not advance all couch players");
+    check(session->self()!=session->host()||native_world,"Rendered host silently omitted its actual TU1.5 source owner");
+    session.reset();std::cout<<"PASS actual rendered TU1.5 ONLINE source capture workload with eight admitted couch seats\n";return 0;
+  }
   if(mode=="render" || mode=="team-render") {
     if(!std::getenv("DISPLAY"))return 77;
     std::filesystem::create_directories(output);

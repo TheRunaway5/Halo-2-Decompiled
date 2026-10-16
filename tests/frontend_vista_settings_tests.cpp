@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
       view.set_pc_video_modes({{800, 600}, {1024, 768}}, 960, 720, false);
       view.open(vista_menu(menu));
       if(kind=="video" && i>=2)++i; // Native Internal Resolution follows Screen Resolution.
-      if(kind=="video" && i==8)i+=4; // Native FOV, CRT and split controls precede Restore Defaults.
+      if(kind=="video" && i==8)i+=5; // Native FOV, CRT, split and graphics controls precede Restore Defaults.
       check(i < view.frame().entries.size(),
             "source row missing from native menu");
       auto expected = content.vista->localized(content.vista->screens.at(menu), sid);
@@ -257,7 +257,7 @@ int main(int argc, char **argv) {
     check(state.frame().entries.at(8).label=="Field of View" &&
           state.frame().entries.at(9).label=="Vehicle Field of View" &&
           state.pc_value_label(state.frame(),8)=="78" &&
-          state.pc_value_label(state.frame(),9)=="78","independent FOV video rows missing");
+          state.pc_value_label(state.frame(),9)=="70","independent FOV video rows missing");
     choose(state,8);
     check(state.frame().context==video_fov_context && state.frame().selected==8 &&
           state.frame().entries.front().value==70 && state.frame().entries.back().value==120,
@@ -265,7 +265,7 @@ int main(int argc, char **argv) {
     state.select(50);state.back();
     check(applied_display.field_of_view==78,"canceling FOV changed the camera");
     choose(state,8);choose(state,50);
-    check(applied_display.field_of_view==120 && applied_display.vehicle_field_of_view==78 &&
+    check(applied_display.field_of_view==120 && applied_display.vehicle_field_of_view==70 &&
           applied_display.brightness==3,"on-foot FOV changed another setting");
     choose(state,9);choose(state,20);
     check(applied_display.field_of_view==120 && applied_display.vehicle_field_of_view==90,
@@ -299,9 +299,19 @@ int main(int argc, char **argv) {
     choose(state,11);
     check(MenuState(content,preferences).pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
           "horizontal two-player layout did not persist");
-    choose(state,11);choose(state,10);choose(state,12);choose(state,0);
-    check(applied_display.field_of_view==78 && applied_display.vehicle_field_of_view==78 && !applied_display.crt_filter &&
-          applied_display.two_player_split==TwoPlayerSplit::Horizontal,
+    check(state.frame().entries.at(12).label=="Graphics Mode" &&
+          state.pc_value_label(state.frame(),12)=="Original","Original graphics default missing");
+    choose(state,12);
+    check(applied_display.graphics_mode==pstencil::GraphicsMode::pStencil &&
+          state.pc_value_label(state.frame(),12)=="pStencil" &&
+          MenuState(content,preferences).pc_display_settings().graphics_mode==pstencil::GraphicsMode::pStencil,
+          "pStencil mode did not apply and persist");
+    choose(state,12);
+    check(applied_display.graphics_mode==pstencil::GraphicsMode::Original,"Original mode did not restore");
+    choose(state,12);choose(state,11);choose(state,10);choose(state,13);choose(state,0);
+    check(applied_display.field_of_view==78 && applied_display.vehicle_field_of_view==70 && !applied_display.crt_filter &&
+          applied_display.two_player_split==TwoPlayerSplit::Horizontal &&
+          applied_display.graphics_mode==pstencil::GraphicsMode::Original,
           "video defaults did not reset FOV, CRT and split controls");
     {
       MenuState rejected(content);
@@ -309,10 +319,12 @@ int main(int argc, char **argv) {
       rejected.open(vista_menu(256));choose(rejected,10);
       check(!rejected.pc_display_settings().crt_filter,"rejected CRT toggle modified preferences");
       const auto invalid=preferences.string()+".invalid-crt";
-      {std::ofstream file(invalid);file<<"pc_crt_filter 2\npc_two_player_split 2\n";}
+      {std::ofstream file(invalid);file<<"pc_crt_filter 2\npc_two_player_split 2\npc_graphics_mode 99\n";}
       check(!MenuState(content,invalid).pc_display_settings().crt_filter,"invalid saved CRT value was accepted");
       check(MenuState(content,invalid).pc_display_settings().two_player_split==TwoPlayerSplit::Horizontal,
             "invalid saved split layout was accepted");
+      check(MenuState(content,invalid).pc_display_settings().graphics_mode==pstencil::GraphicsMode::Original,
+            "invalid saved graphics mode was accepted");
       std::filesystem::remove(invalid);
     }
     Mesh mesh;

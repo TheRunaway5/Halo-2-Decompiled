@@ -13,7 +13,7 @@ FrontendModelWeaponIk Cache::load_unit_weapon_ik(std::uint32_t unit,
   const Bytes data(cache_bytes());
   const auto root_for=[&](std::uint32_t id,const char*group,std::size_t size) {
     const auto tag=query_tag({.handle=TagHandle{id}, .group=TagGroup::from_string(group), .require_address=true});
-    if(!tag)throw FormatError("frontend world IK source tag missing");
+    if(!tag)throw FormatError("frontend world IK source tag missing: group="+std::string(group)+" datum="+std::to_string(id)+" unit="+std::to_string(unit)+" weapon="+std::to_string(weapon));
     return metadata_offset(tag->address,size);
   };
   const auto object=root_for(unit,"bipd",0xc0);
@@ -39,7 +39,11 @@ FrontendModelWeaponIk Cache::load_unit_weapon_ik(std::uint32_t unit,
       }
   }
   const auto weapon_object=root_for(weapon,"weap",0x3c);
-  const auto weapon_model=root_for(data.u32(weapon_object+0x38),"hlmt",8);
+  const auto weapon_model_definition=data.u32(weapon_object+0x38);
+  // TU1.5 BADAE..BADB1 admits no weapon marker when object+38 is NONE.
+  // The116060 IK iterator consequently admits no constraint for this weapon.
+  if(weapon_model_definition==null_datum)return out;
+  const auto weapon_model=root_for(weapon_model_definition,"hlmt",8);
   out.definition=load_first_person_ik(graph,data.u32(weapon_model+4),
       data.u32(model+4),mode,weapon_class);
   return out;

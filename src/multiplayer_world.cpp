@@ -13,7 +13,9 @@ TagSystem world_tags(std::shared_ptr<const Cache> cache, std::size_t bsp) {
 }
 LevelContent world_content(const Cache &cache,const MultiplayerOptions &options,
     std::optional<ScriptProgram> &script_input) {
-  auto content=cache.load_content(options.bsp,true,source_game_variant(options.variant));
+  if(options.campaign_difficulty && (*options.campaign_difficulty<0 || *options.campaign_difficulty>3))
+    throw FormatError("Campaign physical roster requires original difficulty0..3");
+  auto content=cache.load_content(options.bsp,!options.campaign_difficulty,source_game_variant(options.variant));
   if(script_input) {
     if(options.online_match || options.host_port || !options.join.empty() || options.dedicated)
       throw FormatError("Declared script inputs require an offline acceptance world");
@@ -21,7 +23,7 @@ LevelContent world_content(const Cache &cache,const MultiplayerOptions &options,
   }
   return content;
 }
-SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options) {
+SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options,const LevelContent &content) {
   auto variant=options.variant;
   if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
   auto rules=slayer_rules(variant,true);
@@ -32,7 +34,9 @@ SlayerRules world_rules(const Cache& cache,const MultiplayerOptions& options) {
        std::any_of(options.selected_teams.begin(),options.selected_teams.end(),
            [](auto team){return team<0 || team>7;})))
     throw FormatError("Team selections must provide one source team 0..7 per local player");
-  rules.weapon=cache.slayer_starting_weapon(rules.custom==CustomSlayer::none?rules.starting_weapon:5,rules.source_engine);
+  rules.weapon=options.campaign_difficulty ? content.starting_weapon :
+       cache.slayer_starting_weapon(rules.custom==CustomSlayer::none?rules.starting_weapon:5,rules.source_engine);
+   if(rules.weapon==null_datum)throw FormatError("Selected session has no authored starting weapon");
   if(rules.custom!=CustomSlayer::none) {
     rules.weapon_choices=cache.multiplayer_weapon_choices();
     if(rules.custom==CustomSlayer::infection && options.local_players<2 && !options.host_port && options.join.empty() && !options.online_match && !options.dedicated)throw FormatError("Infection requires at least two players");
@@ -78,7 +82,10 @@ std::unique_ptr<MultiplayerObjectRuntime> object_world(
       std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,options.bsp,*storage);
   auto variant=options.variant;
   if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
-  world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
+  if(options.campaign_difficulty) {
+    world->tu15_world().initialize_map();
+    world->tu15_world().configure_campaign_session(*options.campaign_difficulty,1,30,rules.random_seed);
+  } else world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
   if(options.reference_auxiliary_seed) {
     if(options.input_script.empty() || !options.capture_tick || options.frames || options.ticks ||
         options.screenshot.empty() || options.host_port || !options.join.empty() ||
@@ -91,7 +98,15 @@ std::unique_ptr<MultiplayerObjectRuntime> object_world(
     memory.view(rng,8);const auto seed=*options.reference_auxiliary_seed;
     memory.write(rng+4u,std::as_bytes(std::span(&seed,1)));
   }
+  if(options.source_world_observer)options.source_world_observer(world->memory());
   return world;
+}
+std::function<std::uint32_t()> result_clock_source(const std::shared_ptr<PhysicsLiveClockSource> &clock) {
+  if(!clock)return {};
+  // The native provider's FILETIME domain is100ns since1601, as in
+  // NativeWorldClock. Keep Match's separate32-bit Unix/PCR domain while
+  // allowing an explicitly supplied source to own both physical inputs.
+  return [clock]{return std::uint32_t(std::int64_t(clock->utc_filetime()/10'000'000ull)-11'644'473'600ll);};
 }
 }
 struct MultiplayerPreparedWorld::SourceShadowSetup {
@@ -116,28 +131,32 @@ std::unique_ptr<MultiplayerPreparedWorld> MultiplayerPreparedWorld::source_shado
   for(const auto &player:setup.roster)if(online_admission_peer(player)==peer)setup.locals.push_back(player.slot);
   if(setup.locals.empty()||setup.locals.size()>4||setup.selected.size()!=options.local_players)
     throw FormatError("Source shadow views differ from the accepted couch roster");
-  return std::unique_ptr<MultiplayerPreparedWorld>(new MultiplayerPreparedWorld(options,std::nullopt,&setup));
+  return std::unique_ptr<MultiplayerPreparedWorld>(new MultiplayerPreparedWorld(options,std::nullopt,&setup,setup.clock));
 }
 MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options)
   :MultiplayerPreparedWorld(options,std::nullopt) {}
 MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options,
     std::optional<ScriptProgram> script_input)
-  :MultiplayerPreparedWorld(options,std::move(script_input),nullptr) {}
+  :MultiplayerPreparedWorld(options,std::move(script_input),nullptr,{}) {}
 MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options,
-    std::optional<ScriptProgram> script_input,const SourceShadowSetup *shadow)
+    std::optional<ScriptProgram> script_input,std::shared_ptr<PhysicsLiveClockSource> clock)
+  :MultiplayerPreparedWorld(options,std::move(script_input),nullptr,std::move(clock)) {}
+MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& options,
+    std::optional<ScriptProgram> script_input,const SourceShadowSetup *shadow,std::shared_ptr<PhysicsLiveClockSource> clock)
   :cache(std::make_shared<const Cache>(options.map,options.shared_maps,
        options.gameplay_xbe.empty()?std::shared_ptr<const OriginalData>{}:
            OriginalData::load_xbe(options.gameplay_xbe))),
    tags(world_tags(cache,options.bsp)),
-   content(world_content(*cache,options,script_input)),rules(world_rules(*cache,options)),
+   content(world_content(*cache,options,script_input)),rules(world_rules(*cache,options,content)),
    source_savegames(source_storage(*cache,options,rules,shadow!=nullptr)),
-   source_objects(object_world(*cache,options,rules,source_savegames,shadow?shadow->clock:nullptr)),
+   source_objects(object_world(*cache,options,rules,source_savegames,clock?clock:(shadow?shadow->clock:nullptr))),
    match(content,options.bsp,options.native_spawn_inputs.empty()?cache->spawns():
-       std::span<const Spawn>(options.native_spawn_inputs),rules,{}, {},source_objects.get()),map_(options.map),shared_(options.shared_maps),
+       std::span<const Spawn>(options.native_spawn_inputs),rules,{},result_clock_source(clock),source_objects.get(),options.campaign_difficulty ?
+        std::optional(SourceSceneGameContext{1,rules.source_engine}):std::nullopt,options.campaign_spawn_input),map_(options.map),shared_(options.shared_maps),
    xbe_(options.gameplay_xbe),bsp_(options.bsp),players_(options.local_players),
    starting_weapon_(options.starting_weapon),variant_(source_game_variant(options.variant)),
    teams_(options.selected_teams),profiles_(options.selected_profiles),seed_(options.session_random_seed),
-   source_object_world_(options.source_object_world),source_object_savegame_directory_(options.source_object_savegame_directory),
+   source_object_world_(options.source_object_world),campaign_difficulty_(options.campaign_difficulty),source_object_savegame_directory_(options.source_object_savegame_directory),
    native_spawn_inputs_(options.native_spawn_inputs),shadow_(shadow!=nullptr) {
   if(!options.native_spawn_inputs.empty() && (options.online_match || options.host_port || !options.join.empty() || options.dedicated))
     throw FormatError("Declared native spawn inputs require an offline acceptance world");
@@ -154,11 +173,11 @@ MultiplayerPreparedWorld::MultiplayerPreparedWorld(const MultiplayerOptions& opt
   if(cache->original_data() && cache->original_data()->grenade_constants)
     match.configure_grenades(cache,*cache->original_data()->grenade_constants);
   if(options.host_port || options.online_match)
-    for(unsigned representation:{2u,3u})
+    for(unsigned representation:source_session_player_representations(content,match.source_game_type()))
       if(representation<content.player_representations.size() &&
           content.player_representations[representation].biped.datum!=null_datum)
-        for(const auto &[datum,weapon]:content.weapons)if(!weapon.first_person_models.empty() && weapon.first_person_models.front().model!=null_datum && weapon.first_person_models.front().animation!=null_datum)
-          match.configure_replicated_first_person(cache->load_first_person_binding(datum,representation));
+        for(const auto &[datum,weapon]:content.weapons)if(!weapon.first_person_models.empty())
+          {const auto binding=cache->load_first_person_binding(datum,representation);if(binding.record_present && binding.weapon_model!=null_datum && binding.graph!=null_datum)match.configure_replicated_first_person(binding);}
   if(shadow) {
     for(const auto &player:shadow->roster){const auto selected=std::ranges::find(shadow->selected,player.slot);
       std::optional<SourcePlayerConfiguration> profile;
@@ -179,9 +198,9 @@ void MultiplayerPreparedWorld::bind_source_local_views(std::span<const unsigned>
     throw FormatError("Source local views require this world's actual TU1.5 owner");
   std::vector<FirstPersonBindingDefinition> definitions;
   for(const auto &[datum,weapon]:content.weapons)
-    if(!weapon.first_person_models.empty()&&weapon.first_person_models.front().model!=null_datum&&weapon.first_person_models.front().animation!=null_datum)
-      for(unsigned representation:{2u,3u})if(representation<content.player_representations.size()&&content.player_representations[representation].biped.datum!=null_datum)
-        definitions.push_back(cache->load_first_person_binding(datum,representation));
+    if(!weapon.first_person_models.empty())
+      for(unsigned representation:source_session_player_representations(content,match.source_game_type()))if(representation<content.player_representations.size()&&content.player_representations[representation].biped.datum!=null_datum)
+        {const auto binding=cache->load_first_person_binding(datum,representation);if(binding.record_present && binding.weapon_model!=null_datum && binding.graph!=null_datum)definitions.push_back(binding);}
   match.configure_local_views(locals,definitions);local_slots.assign(locals.begin(),locals.end());
 }
 bool MultiplayerPreparedWorld::matches(const MultiplayerOptions& options) const {
@@ -198,6 +217,7 @@ bool MultiplayerPreparedWorld::matches(const MultiplayerOptions& options) const 
       variant_.bytes==source_game_variant(options.variant).bytes && teams_==options.selected_teams &&
       profiles_==options.selected_profiles && seed_==options.session_random_seed &&
       source_object_world_==options.source_object_world &&
+      campaign_difficulty_==options.campaign_difficulty &&
       source_object_savegame_directory_==options.source_object_savegame_directory && same_spawns;
 }
 } // namespace halo2

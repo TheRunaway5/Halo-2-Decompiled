@@ -4,7 +4,7 @@ The engine's shared tag module lives in `include/halo2/tags/` and `src/tags/`.
 Include `halo2/tags.hpp` for normal engine/tool access. `Cache` owns file-format
 loading and the original bytes; `TagSystem` supplies group queries, residency,
 references, nested blocks, data, strings and shared resources over that owner.
-Xbox and converted Vista caches use the same interface.
+Xbox, Vista and converted MCC caches use the same interface.
 
 ## Read a tag
 
@@ -141,6 +141,20 @@ Dependencies therefore share the cache owner. Resource activation continues
 through the geometry, bitmap, sound and animation owners, with their existing
 original startup and postprocess routines.
 
+Vista and MCC merge shared directories through one internal tag-module helper.
+The complete salted datum, group and path must agree before an import is
+accepted. A shared definition with an address and a serialized size of zero
+is still a valid alias and retains both values. Vista keeps its existing
+replacement rule for empty local rows; MCC keeps its rule for unloaded rows.
+
+An alias's ordinary `TagView::bytes()` stays empty, matching its directory row.
+Decoders that need its complete definition use `Cache::tag_payload`, which
+resolves only an owned payload at the exact same address and group. A truly
+empty tag has no invented definition. PC resident-region checks retain empty
+locations without letting them shadow containing allocations. MCC native
+shader restoration uses the same region builder and retains the original
+globals bank for existing forwarding pointers.
+
 ## Ownership and BSP residency
 
 `Cache` owns a stable initial file image through one private byte accessor.
@@ -259,3 +273,14 @@ python3 tools/install_launcher.py --build build-tags-20261012 --title-first
 The executable-derived fixture is generated locally from the user's files.
 Missing original files/fixtures produce CTest skip code 77. The asset test
 does not require generating an oracle fixture.
+
+The 2026-10-15 loading audit covers 157 available map files, including repeated
+copies, with no invalid directory rows or missing layouts for present groups.
+It identified 33 distinct PC shared-alias identities skipped by the old
+loaders. Focused tests reproduce that rejection with the old code and pass
+with the shared import/region fix. The final checks cover Vista/MCC loading,
+the tag API, original metadata bytes across 23 multiplayer maps, and the
+engine access boundary. The loading implementation and limits are recorded in
+[the audit](../analysis/tags/missing-audit-20261015/RESULTS.md).
+Full gameplay testing is deferred to the user under their latest instruction;
+this audit does not establish campaign completion or original gameplay parity.

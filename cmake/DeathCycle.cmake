@@ -38,6 +38,11 @@ if(BUILD_TESTING)
             "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
             ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map)
         set_tests_properties(native_death_remote_render_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+        add_test(NAME native_vehicle_camera_remote_lifetime_tu15 COMMAND native_death_remote_render_tu15_tests
+            "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map)
+        set_tests_properties(native_vehicle_camera_remote_lifetime_tu15 PROPERTIES
+            SKIP_RETURN_CODE 77 TIMEOUT 180 ENVIRONMENT "HALO2_DEATH_SEATED_COMPONENT=1")
         add_test(NAME native_death_match_stationary_tu15 COMMAND native_death_match_tu15_tests
             "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
             ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map)

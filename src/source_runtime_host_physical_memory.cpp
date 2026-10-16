@@ -82,13 +82,16 @@ SourceRuntimeHostPhysicalMemory::~SourceRuntimeHostPhysicalMemory() {
   source_runtime_unregister_write_guard(memory_,this);
   {std::lock_guard lock(physical_protection_mutex);physical_protections.erase(this);}
   for (const auto &[base, allocation] : allocations_) {
-    (void)allocation;
-    try { memory_.release(base); } catch (...) {}
+    try { if(memory_.has_backing(base,allocation.backing))memory_.release(base); } catch (...) {}
   }
 }
 std::uint32_t SourceRuntimeHostPhysicalMemory::allocate(SourcePhysicalAllocationRequest q) {
-  if (!q.bytes || q.protection != 4 || q.lowest > q.highest ||
-      q.highest >= 0x80000000u || (q.alignment && (q.alignment & (q.alignment - 1))))
+  // Both reached SDK requests own writable native pages. As in protect(),
+  // anonymous host storage retains the host cache policy; GPU coherency is
+  // a separate contract rather than a successful graphics result.
+  if (!q.bytes || (q.protection != 4 && q.protection != 0x404) || q.lowest > q.highest ||
+      (q.highest >= 0x80000000u && q.highest != UINT32_MAX) ||
+      q.lowest >= 0x80000000u || (q.alignment && (q.alignment & (q.alignment - 1))))
     unsupported();
   const std::uint64_t alignment = std::max(q.alignment, page);
   const auto bytes = (std::uint64_t(q.bytes) + page - 1) & ~std::uint64_t(page - 1);
@@ -100,7 +103,10 @@ std::uint32_t SourceRuntimeHostPhysicalMemory::allocate(SourcePhysicalAllocation
     if (physical < hi && physical + bytes > lo)
       physical = (hi + alignment - 1) & ~(alignment - 1);
   }
-  if (physical + bytes > std::uint64_t(q.highest) + 1 || bytes > UINT32_MAX)
+  // The original SDK also requests an unrestricted highest address. Keep the
+  // native physical-token namespace bounded even when that sentinel is used.
+  if (physical + bytes > std::min(std::uint64_t(q.highest) + 1,
+                                 std::uint64_t{0x80000000u}) || bytes > UINT32_MAX)
     return 0; // Actual native resource namespace exhaustion.
   const auto token = std::uint32_t(physical) | 0x80000000u;
   auto backing=physical_backing(std::uint32_t(bytes));
@@ -109,6 +115,21 @@ std::uint32_t SourceRuntimeHostPhysicalMemory::allocate(SourcePhysicalAllocation
   try { allocations_.emplace(token, Allocation{std::move(backing), std::uint32_t(bytes)}); }
   catch (...) { memory_.release(token); throw; }
   return token;
+}
+void SourceRuntimeHostPhysicalMemory::release(std::uint32_t address) {
+  const auto state=protection_of(this);
+  std::unique_lock lock(state->mutex,std::try_to_lock);
+  if(!lock.owns_lock())
+    throw std::runtime_error("Native physical release cannot cross staged ownership or protection");
+  const auto found=allocations_.find(address);
+  if(found==allocations_.end() || !memory_.has_backing(address,found->second.backing))
+    throw std::invalid_argument("Native physical release requires its exact unchanged owned backing");
+  const auto end=std::uint64_t(address)+found->second.bytes;
+  memory_.release(address);
+  const auto first=state->read_only.lower_bound(address);
+  auto last=first;while(last!=state->read_only.end() && *last<end)++last;
+  state->read_only.erase(first,last);
+  allocations_.erase(found);
 }
 void SourceRuntimeHostPhysicalMemory::protect(std::uint32_t address,
                                               std::uint32_t bytes,

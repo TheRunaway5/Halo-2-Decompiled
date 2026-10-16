@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lower the complete authenticated TU1.5 static registration initializer and helper."""
+"""Lower the complete authenticated TU1.5 static registration initializer, local world constructor and player registration owners."""
 import argparse,hashlib,json
 from pathlib import Path
 from oracle_smg_firing_1_1 import Xbe,_Code,_trace
@@ -8,13 +8,13 @@ from generate_physics_live_support_tu15 import generate
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
  ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,required=True);ap.add_argument('--manifest',type=Path,required=True);a=ap.parse_args()
- assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);code=_Code(image,'.text');entries=[0x69220,0x85e70];bodies={entry:_trace(code,entry,set(entries))for entry in entries};instructions={};addresses={};assert not any(body.tables for body in bodies.values())
+ assert sha(NEW_DEFAULT)==NEW_PIN;image=Xbe(NEW_DEFAULT);code=_Code(image,'.text');entries=[0x69220,0x85e70,0x69ff0,0x6c830,0x6c190,0x6c1c0,0x6a8e0,0x88470,0x158240];bodies={entry:_trace(code,entry,set(entries))for entry in entries};instructions={};addresses={};assert all(w==4 for body in bodies.values()for _,w,_ in body.tables)
  for p in sorted(set().union(*(body.code for body in bodies.values()))):
   ins=code.at(p);assert bytes(ins.bytes)==image.read(p,ins.size);instructions[f'{p:08x}']=p;addresses[p]=p;addresses[p+ins.size]=p+ins.size
   for o in ins.operands:
    if o.type==2:addresses[o.imm&0xffffffff]=o.imm&0xffffffff
    if o.type==3:addresses[o.mem.disp&0xffffffff]=o.mem.disp&0xffffffff
- paired=dict(image='English TU1.5',original_sha256=NEW_PIN,entries={f'{entry:08x}':entry for entry in entries},body_sites={f'{entry:08x}':sorted(body.code)for entry,body in bodies.items()},instruction_map=instructions,address_map={f'{p:08x}':v for p,v in addresses.items()},routines=[dict(entry=entry,tables=[],byte_tables=[])for entry in entries])
+ paired=dict(image='English TU1.5',original_sha256=NEW_PIN,entries={f'{entry:08x}':entry for entry in entries},body_sites={f'{entry:08x}':sorted(body.code)for entry,body in bodies.items()},instruction_map=instructions,address_map={f'{p:08x}':v for p,v in addresses.items()},routines=[dict(entry=entry,tables=[dict(disc=p,count=n)for p,w,n in bodies[entry].tables],byte_tables=[])for entry in entries])
  a.correspondence=a.manifest.with_name('static-registration-bodies.json');a.correspondence.parent.mkdir(parents=True,exist_ok=True);a.correspondence.write_text(json.dumps(paired,sort_keys=True,indent=2)+'\n');a.additional_entries=Path(__file__)
  generate(a,paired,complete_listings=True)
  s=a.output.read_text().replace('halo2/physics_live_support_tu15.hpp','halo2/source_static_registration_tu15.hpp').replace('source_run_physics_live_support_tu15','source_run_static_registration_tu15').replace('source_physics_live_support_tu15_owns_entry','source_static_registration_tu15_owns_entry');a.output.write_text(s)

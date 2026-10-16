@@ -7,7 +7,7 @@
 // bound completed float bank. Original-layout diagnostics already supply the
 // actual original consts18 bank through that same hook.
 // Required hooks: MENU_WORLD_PROGRAM_WORD, CLIP_RANGE, CLIP_REGION,
-// DEPTH_FACTOR, DEPTH_OFFSET, SURFACE_SCALE, ALPHA_STATE, TEXTURE_EFFECTS and
+// W_CLIP_MODE, DEPTH_FACTOR, DEPTH_OFFSET, SURFACE_SCALE, ALPHA_STATE, TEXTURE_EFFECTS and
 // BUMP_MATRIX (all prefixed MENU_WORLD_). The caller supplies unchanged
 // stageCoordinates[4] plus fetchStage2D/Cube/Projected2D. The projected hook
 // preserves original textureProj and rectangle normalization BEFORE division.
@@ -64,7 +64,8 @@ vec4 menuWorldFragment(vec4 front0,vec4 front1,vec4 p0,vec4 p1,vec4 p2,float slo
     float depth=worldWDepth(gl_FragCoord.xy,vec2(MENU_WORLD_SURFACE_SCALE()),
         p0,p1,p2,slope,MENU_WORLD_DEPTH_FACTOR(),MENU_WORLD_DEPTH_OFFSET());
     vec4 clip=MENU_WORLD_CLIP_RANGE();
-    if(depth<clip.z || depth>clip.w)demote;
+    if(MENU_WORLD_W_CLIP_MODE()==16u)depth=clamp(depth,clip.z,clip.w);
+    else if(depth<clip.z || depth>clip.w)demote;
     gl_FragDepth=worldD24Depth(depth);
     vec4 samples[4];runTextureStages(samples);
     H2_FIXED_STAGE_UNROLL for(uint i=0u;i<4u;++i) {

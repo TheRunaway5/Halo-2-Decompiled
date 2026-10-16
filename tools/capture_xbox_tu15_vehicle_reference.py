@@ -18,7 +18,7 @@ from capture_xbox_tu15_grenade_reference import ROOT, TEXT_SHA, qmp, sha, wait_f
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=['start', 'key', 'frame', 'stop', 'snapshot', 'state', 'resume', 'gpu_start', 'gpu_end'])
+    p.add_argument('action', choices=['start', 'key', 'frame', 'stop', 'snapshot', 'state', 'resume', 'gpu_start', 'gpu_end', 'motion', 'adopt'])
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--session', type=Path)
     p.add_argument('--disc-manifest', type=Path)
@@ -69,7 +69,9 @@ rstick_right = 15'''
         read_fd, write_fd = os.pipe()
         xvfb = subprocess.Popen(['Xvfb', '-displayfd', str(write_fd), '-screen', '0', '1280x960x24', '-nolisten', 'tcp', '-noreset'],
             pass_fds=(write_fd,), stdout=(out/'xvfb.log').open('w'), stderr=subprocess.STDOUT, start_new_session=True)
-        os.close(write_fd); display = ':'+os.read(read_fd, 64).decode().strip(); os.close(read_fd)
+        os.close(write_fd)
+        with os.fdopen(read_fd) as display_pipe:
+            display = ':'+display_pipe.readline().strip()
         with socket.socket() as port:
             port.bind(('127.0.0.1', 0)); gdb_port = port.getsockname()[1]
         # Use a short socket path; the retained output path exceeds UNIX limits.
@@ -119,6 +121,44 @@ rstick_right = 15'''
         record['qmp']=qmp(qp,[{'execute':'cont'}])
     elif a.action in ('gpu_start','gpu_end'):
         host_capture(out,state['pid'],a.action=='gpu_start')
+    elif a.action in ('motion','adopt'):
+        dest=out/a.name;assert not dest.exists();dest.mkdir()
+        qmp(qp,[{'execute':'stop'}])
+        script=dest/'guest.gdb'
+        script.write_text(f"""set pagination off
+set confirm off
+set architecture i386
+set remotetimeout 15
+target remote 127.0.0.1:{state['gdb_port']}
+hbreak *{"0x172cf0 if $edi==0" if a.action=="motion" else "0x1723d0 if *(int*)($esp+4)==0"}
+{"ignore 1 3" if a.key else ""}
+continue
+python
+import gdb,json,struct,pathlib,hashlib
+out=pathlib.Path({str(dest)!r});inf=gdb.selected_inferior()
+def read(p,n):return bytes(inf.read_memory(p,n))
+text=read(0x12000,3611948);assert hashlib.sha256(text).hexdigest()=={TEXT_SHA!r}
+(out/'before.bin').write_bytes(read(0x4f64a4,0x358))
+packet=struct.unpack('<I',read(0x4f64a8,4))[0]
+if {a.action!r}=='adopt':(out/'packet-before.bin').write_bytes(read(packet,0xac))
+dt=read(0x4f64a0,4);(out/'dt.bin').write_bytes(dt)
+ret=struct.unpack('<I',read(int(gdb.parse_and_eval('$esp')),4))[0]
+gdb.execute('delete 1');gdb.execute('hbreak *'+hex(ret));gdb.execute('continue')
+(out/'after.bin').write_bytes(read(0x4f64a4,0x358))
+if {a.action!r}=='adopt':(out/'packet-after.bin').write_bytes(read(packet,0xac))
+(out/({a.action!r}+'.json')).write_text(json.dumps(dict(reference='OG Xbox TU1.5',entry={'00172cf0' if a.action=='motion' else '001723d0'!r},whole_live_text_matches_original=True,text_sha256=hashlib.sha256(text).hexdigest(),source_dt=struct.unpack('<f',dt)[0],guest_code_patches=[],guest_memory_patches=[]),indent=2)+'\\n')
+end
+delete 2
+detach
+quit
+""")
+        def capture_call():
+            with (dest/'guest.log').open('w') as f:subprocess.run(['gdb','-q','-nx','-batch','-x',str(script)],stdout=f,stderr=subprocess.STDOUT,timeout=45,check=True)
+        try:
+            if a.key:x11_window(state['display'],True,a.key,capture_call)
+            else:capture_call()
+        finally:qmp(qp,[{'execute':'stop'}])
+        qmp(qp,[{'execute':'stop'}]);record.update(directory=str(dest),whole_live_text_matches_original=True)
     elif a.action == 'state':
         dest=out/a.name;assert not dest.exists();dest.mkdir()
         qmp(qp,[{'execute':'stop'}])
@@ -140,6 +180,11 @@ def word(p):return struct.unpack('<I',read(p,4))[0]
 text=read(0x12000,3611948);assert hashlib.sha256(text).hexdigest()=={TEXT_SHA!r}
 (out/'tu15-text.bin').write_bytes(text)
 camera=read(0x4c6634,192);(out/'camera.bin').write_bytes(camera)
+(out/'video-widescreen.bin').write_bytes(read(0x4922e2,1))
+(out/'director-globals.bin').write_bytes(read(0x4f5504,16))
+(out/'controllers.bin').write_bytes(read(0x4f5514,4*0x140))
+(out/'observers.bin').write_bytes(read(0x4f64a4,4*0x358))
+(out/'input-records.bin').write_bytes(read(word(0x4f9b54)+0x14,4*0x94))
 (out/'view-header.bin').write_bytes(read(0x491e20,0x298))
 (out/'next-view-header.bin').write_bytes(read(word(int(gdb.parse_and_eval('$esp'))+4),0x298))
 (out/'game-variant.bin').write_bytes(read(word(0x4f3218)+0x13c,0x130))

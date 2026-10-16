@@ -888,6 +888,38 @@ still load native BSP geometry after preservation. The two PC-exclusive maps
 and shared resource containers have no separate original-map shader library.
 That catalog is not a claim of complete original rendering support.
 
+The retained material library is now also distributed as
+`tools/data/native-materials.json.zlib`, with a fingerprint/extent catalog in
+`tools/data/native-materials.json`. `tools/native_shader_bundle.py` builds this
+deduplicated package from an already preserved library, without opening maps,
+ISOs or executables. It contains 24,037 shader/rasterizer definitions across
+the same 39 maps, their relocations and identity bindings, and the verified
+scalar function tables. Bitmap and gameplay payloads are excluded. The isolated
+464-byte rasterizer sub-block is allowed; the gameplay globals tag is not.
+Independent comparison confirmed that every retained definition, payload and
+function table survives packaging unchanged. Existing Vulkan shader sources
+were not changed by this delivery.
+
+MCC preparation uses this package when no custom native shader library is
+selected. Before preview, the launcher repairs older imports missing their
+material library through `tools/repair_mcc_shaders.py`. It installs in a staging
+directory, verifies the package, and publishes the owned library beside the
+MCC tree. It preserves existing libraries, MCC file paths/data and the gameplay
+admission flags. Scalar tables are available independently of the per-map
+libraries, including PC-exclusive/mod maps. Their unconverted material passes
+remain explicit gaps. MCC function loading never falls back to an XBE.
+
+The fresh SSD import reproduced the fatal `shader function tables require
+retail default.xbe`. Repairing that same import changed Lockout from 40/69 to
+66/69 resident textures and from zero to 32 static lightmap passes. Its launcher
+then rendered a 640x480 frame on Vulkan; the file/network trace opened no XBE
+or ISO and made no external Internet calls. All 883 copied MCC files passed
+the importer integrity check. The PC-exclusive `needle` map also rendered with
+the global function tables, while retaining its 223 unconverted material-use
+gaps. These are preview/import checks, not full native gameplay or Xbox pixel
+parity. Evidence is retained in
+`analysis/asset-setup/mcc-native-20261014/launcher-integration/fresh-cache-shaders`.
+
 `tools/restore_mcc_zanzibar_bump.py` creates a separate private converted tree,
 retaining the complete MCC folder structure and donor provenance. It changes
 only Zanzibar's exact bitmap descriptor and appends an owned BGRA resource to
@@ -1884,3 +1916,948 @@ old-runtime failure and passing automatic-rebuild regression, four launcher
 test groups and a real cached Lockout render are recorded in
 `analysis/asset-setup/mcc-native-20261014/launcher-integration/runtime-mismatch/report.json`.
 Normal gameplay remains gated and the full goal stays active.
+
+### Native programmable texture coordinates and resource storage
+
+The four reached `3FFE00` calls from1276B,12777,12783 and1278F now select the
+existing programmable coordinate identity: stage0..3 use o9..12 with S/T/R
+texture generation disabled. A live Renderer issues the control, validates its
+pipeline and material storage, and enforces the retained coordinate contract
+on draw. The exact cold inputs0..3 are admitted; coordinate aliases, generated
+coordinates, missing, foreign, duplicate, out-of-order and retired owners are
+rejected. Each native void return advances ESP by8 while retaining other GP,
+defined flags and FP. Xbox SDK coordinate-cache bytes, driver/FIFO banks and
+internal clobbers are not imported.
+
+A controlled GPU probe uses five declared MOV instructions, four distinct
+texture-coordinate constants and PROJECT2D/final-combiner inputs through the
+production world shaders. The four outputs select red, green, blue and white
+texel centers independently. Each case checks153,600 pixels inside its
+rectangle. Integrated empty-input/four-controller comparisons, separately
+rebuilt comparisons and the reference-free run all pass these probes and the
+existing full controlled W-depth surfaces, without Vulkan validation messages.
+These are isolation probes, not retail gameplay framebuffer comparisons.
+
+Original1D640 now executes its complete19-site resource-storage reset as
+compiled native arithmetic. Its two banks contain184,320 bytes; counters and
+flags add26 typed cold bytes. Both actual bank backings are above4GiB. The
+unmodified original initializer clears the banks and sets its initialized flag;
+its complete resulting bytes, original instruction order, stores and CPU state
+match. No initializer completion or result is supplied for the following call.
+The prefix retains357,363 instructions and128,312 ordered non-stack writes,
+with445,794 typed cold bytes and the unchanged1,518,752-byte arena cursor.
+All112 focused checks pass without skips. The reference-free trace opens no
+Xbox/MCC executable, ISO or map and sends no external INET traffic.
+
+Evidence is indexed by
+`analysis/asset-setup/mcc-native-20261014/native-startup/renderer-coordinates-progress-report.json`.
+The immutable `.local/mcc-native-20261014/native-renderer-coordinates/` snapshot
+retains2,623 verified pins,52 rebuilt direct startup sources and68 unique
+copied archives; archive bodies are not independently rebuilt. This stage
+changes no shader source. Concurrent changes to `world.frag` and
+`texture_program.glsl` are recorded instead of claiming byte identity to the
+previous snapshot. Generator naming, synthetic pass/atmosphere fixture and
+oracle allowlist/tracer diagnostics remain in the evidence; canonical native
+receipts are `native-empty-v3.json` and `native-controllers.json`.
+
+The next reached call is `1279F -> 145E0`, return127A4 at6000EFD8. Initializer32
+is still incomplete, with31 of68 slots returned. Source execution ABI remains
+32-bit despite the native backing addresses. Full native64 execution and large
+mod admission, all-tag vanilla TU1.5 conversion, MCC-only world loading,
+graphics parity and the loading video with sound remain unfinished. Gameplay
+stays gated and the full goal remains active.
+
+### Native render-target owner access
+
+`RendererTargets` now exposes the live renderer's color and D24S8 attachments
+through a renderer-issued lease. Image/view handles retain their full width;
+their actual native backing addresses are independently checked above 4GiB.
+The source graphics-device owner can acquire this same attachment bank, and
+the startup check confirms its depth image is the one selected by the native
+W-depth control. No Xbox SDK device-object memory is synthesized.
+
+Uses retain the renderer implementation, reject another thread and become
+invalid when presentation resources are recreated or retired. Tests cover
+640x480 rendering, an 800x600 resize, 320x240 internal rendering, presentation
+handoff and destruction. Read-only attachment queries leave the captured
+pixels byte-identical. The real Vulkan device exposes three presentation
+images here; those are not incorrectly substituted for the original two
+persistent physical color banks. Stable source color history and the depth
+texture aliases remain separate work before original145E0 can return.
+
+The immutable `.local/mcc-native-20261015/native-render-targets` snapshot
+retains 2,403 SHA-256 pins, 53 independently rebuilt direct startup sources,
+two probe compilation units and 68 copied archives. Archive bodies are not
+independently rebuilt. Native empty/four-controller startup and both existing
+TU1.5 original comparisons pass. Their prefix is unchanged at357,363
+instructions,128,312 ordered stores and445,794 typed cold bytes. GPU probes
+report no validation messages; the native trace opens no XBE, ISO or map and
+sends no external INET traffic. Evidence is indexed by
+`analysis/asset-setup/mcc-native-20261015/native-render-targets/progress-report.json`.
+
+This adds real native resource ownership, not initializer completion. The
+source execution ABI is still32-bit, initializer32 still stops at145E0, and
+all full native gameplay, MCC vanilla admission and parity gates stay false.
+
+
+### Native two-buffer color storage
+
+The admitted native device request now realizes two persistent scene color
+images independently of the Vulkan presentation pool. The source slot rotates
+by the native submitted-frame counter; acquired presentation indices choose
+only presentation images and semaphores. Source images support attachment,
+sampling and transfer use. A same-size presentation copies bytes directly;
+existing scaled and SSAA paths retain their blit behavior. World and loading
+submission share this mapping. No existing shader source is changed.
+
+Renderer-owned diagnostic readback waits for the submitted producer, uses its
+own temporary command/fence and refuses unwritten or retired source images.
+It does not rotate the source bank or alter the renderer's frame fence.
+Tests compare all displayed pixels with the existing presentation path and
+read both complete physical images to verify that writing one preserves the
+other. Six controlled cases cover native resolution, resize, internal scaling,
+two supersampling settings and the loading draw path. All48 source frames
+match their paired baseline. MCC Lockout, Zanzibar and Waterworks BSP probes
+add24 matching source frames. These preserve the current port output; they
+are not proof of full Xbox gameplay framebuffer parity.
+
+The untouched TU1.5 external23 binder and SDK surface rotation pass120 declared
+counter/stage/readiness cases and eight rotations. Their fixed aliases select
+the same physical surface as the declared rotating surface objects. This
+reference does not prove that the original game's frame-counter producer has
+been wired to the native renderer. That integration remains unfinished.
+
+Native empty/four-controller startup and both existing original comparisons
+still match357,363 instructions,128,312 ordered stores and445,794 typed cold
+bytes. Six focused CTests pass without skips. The native trace opens no XBE,
+ISO or map and makes no external INET calls. The immutable
+`.local/mcc-native-20261015/native-source-buffers` snapshot retains2,411 verified
+SHA-256 pins,53 independently rebuilt startup sources, four probe compilation
+units and68 copied archives; archive bodies are not independently rebuilt.
+Evidence is indexed by
+`analysis/asset-setup/mcc-native-20261015/native-source-buffers/progress-report.json`.
+
+The first loading fixture omitted its required full-surface flag; that rejected
+input and its captures are retained as diagnostics. The corrected controlled
+receipt is `gpu-controlled-v2/report.json`; the independently rebuilt receipt
+is `frozen-controlled/report.json`.
+
+The physical color-bank portion is now realized, but original145E0 still
+requires its depth/color texture aliases and source consumer bindings.
+Initializer32 remains incomplete at the same boundary, the execution ABI is
+still32-bit, and the native64 gameplay, all-tag vanilla TU1.5 conversion,
+MCC-only world loading, graphical parity and loading-video gates remain false.
+
+### Native depth sampled views (2026-10-15)
+
+The original145E0 headers at515E48 and515E4C use texture color formats0x12
+(linear A8R8G8B8) and0x3F (linear A8B8G8R8). The pinned xemu format tables
+identify both as unsigned normalized eight-bit channels. Format0x3F is not a
+signed HILO format. `SourceWeatherDepthAlias` now exposes both sampled views
+over its existing current-image D24S8 producer. The second view swaps R/B
+components; image storage, the producer compute shader and existing port
+shaders are unchanged. Existing no-argument bindings retain their original
+format and ABI. Explicit format selection rejects unsupported formats.
+
+Both views share one image, sampler, production and completion fence. Prepared
+descriptors do not claim production readiness. Discard/retry restores both
+views' readiness history, and resizing invalidates both recorded bindings.
+The sampled component mapping does not change raw image transfer bytes.
+
+Five independently built focused checks passed on the RTX5080 without skips
+or Vulkan validation errors. Seven input states checked1,843,812 sampled
+texels across both views, all byte values,28 clamp-edge samples, five source
+layouts and reuse. A deliberately identity-swizzled second view fails the
+specific alternate-sampling check. The existing weather composition remains
+byte-identical to its previous native result; that prior result still differs
+from the retained xemu OpenGL frame at14,477 pixels by at most one channel
+value. This is bounded producer/view evidence, not physical Xbox framebuffer
+parity. The frozen build independently compiles four production translation
+units and three test translation units, with no copied static archives.
+
+Evidence: `analysis/asset-setup/mcc-native-20261015/native-depth-texture-views/progress-report.json`.
+The renderable depth-as-color surface at515E50, source alias registry,
+consumer bindings and original frame-counter producer remain unfinished.
+Original145E0 is still gated; native64 execution, complete gameplay tag
+conversion, MCC-only native world loading and the requested loading video
+remain incomplete. This stage does not install a new gameplay runtime into
+the SSD checkout.
+
+### Native depth color writeback (2026-10-15)
+
+The same alias image now supports an explicit color phase:
+`begin_color()` produces the current D24S8 bytes and returns its identity
+color-attachment view; `end_color()` converts the resulting integer channels
+back into the actual source depth and stencil aspects. This adds an integer
+transfer utility, `source_depth_color_writeback.comp`. Existing visual shaders
+and the original depth producer remain unchanged. No normalized float depth
+round trip is used. One invocation owns each complete stencil word, including
+odd tails, so pixels cannot race while packing stencil bytes.
+
+The command/fence contract covers production, color operations and writeback.
+Sampled ready bindings reject an open color phase, and retirement rejects an
+unfinished writeback. Resetting a never-submitted command and discarding it
+restores the prior readiness/layout history. The source must support both
+transfer directions and remain unchanged during the color phase. Dispatch
+size is checked against the actual device limit before recording.
+
+Six frozen focused checks passed without skips or Vulkan validation errors.
+Six color cases and reuse verified1,229,412 exact D24/stencil pixels,5,928
+edited pixels, all channel byte values, untouched regions, five source layouts,
+odd extents and60 phase guards. A seventh case uses an actual blue-only draw
+with blending disabled and the source depth attachment bound: all289 stencil
+bytes change while every D24 bit is preserved. Its LEQUAL/read-only depth
+policy is a declared control, not an inferred original depth-test policy.
+Both sampled views remain exact. A wrong inverse packing shader passes the
+proxy sampling checks but fails the actual source-depth comparison, proving
+the test observes writeback rather than only its color image.
+
+Six untouched TU1.5 selector prefixes at14BA0, with declared surface inputs,
+stop at the first unowned binder1CD10 and verify mode3's515E50 selection.
+The authenticated caller3A5B0 selects mode3 at3B4FC, then sets deferred state
+0x43 to1 and0x3B to0. Two original deferred-state prefixes identify those as
+NV097 color-mask BLUE-only and blend disabled. Source depth/stencil-test
+policy, overlapping-fragment alias feedback, SDK binding and live frame
+scheduling are still unverified. This storage implementation does not admit
+those consumers or complete original145E0.
+
+Evidence: `analysis/asset-setup/mcc-native-20261015/native-depth-renderable-alias/progress-report.json`.
+The frozen build independently compiles four production and four test
+translation units, with no copied archives. The next work is the native alias
+registry and original consumers, including the remaining source state above.
+The source startup gate, full native64 gameplay, complete TU1.5 tag conversion,
+MCC-only native world loading, graphics parity and loading-video gates remain
+unfinished. This stage does not install a new SSD gameplay runtime.
+
+### Native framebuffer alias ownership (2026-10-15)
+
+`NativeTu15GraphicsDevice::framebuffer_aliases()` now prepares a retained
+native registry for all eight145E0 identities. The identities are lookup keys;
+they are not imported SDK object addresses. The registry owns its renderer
+use, keeps native64 descriptor records, and binds the two fixed color
+textures, two rotating color surfaces, actual D24S8 surface, two sampled
+depth views and depth-as-color view to their genuine GPU parents. It does not
+publish source pointer cells or claim that prepared images contain produced
+data. The source initializer and its consumers remain separately gated.
+
+The renderer supplies the depth producer with its actual physical device,
+logical device, queue family, current extent and compiled shader directory.
+Its real D24S8 image now supports transfer writes as required by exact color
+writeback. The producer belongs to the attachment generation, is reused
+without resetting an outstanding fence, and is destroyed with its attachments.
+Registry access checks the issuing thread, device lease and generation before
+touching records or producer handles. Record addresses also expire when the
+registry moves or is destroyed.
+
+Original SDK403B50 rotates surface Data fields while145E0's texture headers
+retain their physical addresses. Native surface lookup therefore observes the
+current submitted-frame ordinal; texture lookup retains its fixed bank. The
+retained original eight-rotation oracle and native presentation checks support
+this relationship. They do not establish the original game's live frame-counter
+producer or complete scheduling. A deliberately fixed-surface mutation fails
+the actual post-presentation lookup check.
+
+Seven integrated checks pass without skips. The frozen validation also passes
+all eight runs: alias ownership, target lifetimes, six color-buffer controls,
+native/original startup with no controllers and four controllers, and actual
+MCC Lockout. The alias probe verifies940,800 current renderer D24/stencil
+pixels across640x480,800x600,320x240 and presentation recreation, with
+unchanged color bytes and frame selection. All eight descriptor addresses are
+above4GiB. Cross-thread, unknown-key, stale-generation and retired access are
+rejected. Six controlled color cases contain48 pixel-matched source frames;
+Lockout supplies another eight. All Vulkan validation counts are zero.
+
+The native cold trace opens no XBE, ISO or map and makes no external INET
+calls. Both original comparisons still match357,363 instructions,128,312
+ordered stores,445,794 typed bytes and31/68 initializers. Preparing the
+registry changes no source startup bytes and makes no production-readiness
+claim. Original145E0 still stops at the same source call. Its source-visible
+publication, remaining consumers and cleanup must be implemented and verified
+before that gate advances.
+
+Evidence: `analysis/asset-setup/mcc-native-20261015/native-framebuffer-registry/progress-report.json`.
+The immutable snapshot independently rebuilds55 startup translation units
+and12 probe translation units;68 static archives retain copied body provenance.
+Existing shader programs are preserved. Full native64 execution, complete
+TU1.5 gameplay conversion and vanilla admission, MCC-only native world loading,
+complete graphical parity and the loading video remain unfinished. This stage
+does not install a new SSD gameplay runtime.
+
+### Native framebuffer publication (2026-10-15)
+
+The native owner for the reached `1279F -> 145E0` call now publishes all eight
+framebuffer identities at `515E34..515E50`. The current source ABI holds opaque
+32-bit GPU handles; actual descriptors and retained GPU owners use native
+64-bit addresses. Handles cannot be dereferenced as source SDK objects. The
+adapter admits successful owned creation only, returns AL1 with its declared
+native bool ABI, and lets the unchanged caller test that result. Preparation
+does not make depth alias data ready for consumers.
+
+The independent original constructor oracle executes unchanged TU1.5 145E0,
+its allocation wrapper and recursive SDK AddRef. Four successful cases verify
+headers, parent relationships and retained references using actual host-backed
+pages above 4 GiB. Five allocation failures stop before the unowned status
+translation import. There are 206 unchanged instruction sites, no instruction
+patches and no supplied game results. Native allocation failure translation
+and a full original cold-prefix comparison through this new adapter remain
+unverified; earlier coordinate-frontier original comparisons still pass.
+
+Nine integrated checks and seven runs of the sealed build pass without skips
+or Vulkan validation messages. Both native controller configurations reach
+`127A8 -> 14830`, return127AD at6000EFD8, after 357,366 source instructions,
+128,312 ordered CPU stores and 445,826 typed cold bytes. Each checks sixteen
+rejected requests, replaced identities and retired access. A real recorded,
+never-submitted GPU producer prevents cleanup until its exact command is reset
+and discarded; quiescent cleanup clears only the owned publication. The
+framebuffer registry probe again checks 940,800 actual native depth/stencil
+pixels. The native trace opens no XBE, ISO or map and makes no INET calls.
+
+Evidence: `analysis/asset-setup/mcc-native-20261015/native-surface-publication/progress-report.json`.
+The sealed snapshot has 2,439 verified pins, 56 independently rebuilt startup
+units, four probe units and 68 copied static archives. Archive bodies are not
+independently rebuilt. All shader files match the previous sealed stage.
+
+Initializer32 remains unfinished, with 31 of 68 slots returned. This advances
+the validation harness; it does not install a new SSD gameplay runtime or
+enable Play. Source execution ABI remains 32-bit. Native64 execution, remaining
+resource consumers, full MCC tag conversion into vanilla TU1.5 internal data,
+native world loading, graphical corrections/parity, loading presentation and
+the requested video with sound remain open.
+
+### Startup renderer texture pairs (2026-10-15)
+
+Native14830 now owns two independent 64x64 ARGB GPU images. Each image serves
+its paired texture/surface identities at515E54/58 and515E5C/60. The original
+engine format11 maps through45C488 to D3D format6, represented natively by
+B8G8R8A8_UNORM. The fifth identity515E64 is the original unbound512x512
+linear surface; no backing image is fabricated before its later producer.
+Allocation does not claim produced pixels or admit those later consumers.
+
+The original-code oracle executes unchanged14830,158D0 and the SDK header,
+subresource and surface constructors. Four successful cases, two authentic
+false returns and four original null-read stops cover all six allocation
+failure positions. Its386 unchanged instruction sites have no patches or
+supplied game results. XMemAllocDefault/FreeDefault are explicit host-backed
+allocation boundaries; their complete allocator bodies are not executed by
+this oracle. This is constructor evidence, not an Xbox frame comparison.
+
+The framebuffer handle range is now F9000201..208, disjoint from the existing
+paletteF9000101, deviceF9000001 and new texture-pair rangeF9000301..305.
+Framebuffer checks reject live palette/device handles. A separately compiled
+mutation restoring the collision fails the new rejection check, without
+modifying the sealed sources.
+
+Eleven integrated checks and nine preserved-build runs pass with no skips or
+Vulkan validation messages. Both controller modes reach127B1->1D750,
+return127B6 at6000EFD8, after357,369 source instructions,128,312 ordered CPU
+stores and445,846 typed bytes. Each checks seventeen texture-owner rejections
+and eighteen framebuffer rejections. The GPU probe verifies8,192 exact BGRA
+pixels,286 partial updates, independent images, move/thread checks, survival
+across presentation recreation and retained-device cleanup after retirement.
+Earlier coordinate-frontier original comparisons still pass; full original
+cold-prefix comparison through the new native adapters remains unverified.
+
+Evidence: `analysis/asset-setup/mcc-native-20261015/native-renderer-texture-pairs/progress-report.json`.
+The sealed snapshot has2,461 verified pins,58 independently rebuilt startup
+units,five probe units and69 copied static archives. Archive bodies are not
+independently rebuilt. This startup work edits no shader program; the snapshot
+retains the current shared checkout shaders, whose two lens-query files differ
+from the previous snapshot. The native trace opens no XBE,ISO or map and makes
+no INET calls. No new SSD gameplay runtime is installed here.
+
+User priority is now to finish all68 startup initializers before other goal
+work. Renderer initializer32 remains incomplete, with31 slots returned.
+Continue at1D750 and its1DAF0/1DF00 resource bank constructors. Source execution
+ABI remains32-bit. Full native64 execution, MCC tag conversion/vanilla world
+admission, graphics parity and the loading/video deliverables remain open;
+normal Play stays gated.
+
+### Native startup through initializer 44 (2026-10-15)
+
+The remaining renderer constructors now return through initializer 32, and
+the original initializer table continues through all twelve slots 33–44.
+Both controller configurations pass the integrated native prefix: 452,871
+source instructions, 169,509 ordered stores, 478,096 typed cold bytes and
+44/68 returned initializers. The next outstanding call is initializer 45,
+sound startup at 127EE0. Neither run reports a Vulkan validation message.
+
+The new constructor comparisons cover target storage and physical page
+protection, auxiliary texture pixels, transparent storage, debugger bitmap
+storage, geometry/texture cache pools, renderer tail storage and slots 33–44.
+The target-storage tests preserve overlapping subresources and authored mip
+headers. The debugger texture retains undefined initial content; its separate
+GPU probe roundtrips all 65,536 source A4R4G4B4 words without claiming sampled
+gameplay pixels. The auxiliary startup reads back 176 original texels.
+
+Evidence: `analysis/asset-setup/mcc-native-20261015/native-startup-44/progress-report.json`.
+The read-only snapshot verifies 2,574 file pins, independently rebuilds 72
+startup/GPU units and includes five standalone constructor probe executables.
+Its 71 copied static archives are not independently rebuilt. The native trace
+accesses no XBE, ISO or map. It observes host interfaces through netlink and
+opens/binds the actual local UDP startup sockets; no outbound INET connection
+or transmission is observed. This work installs no new SSD runtime.
+
+Independent component tests also cover the genuine sound-arena allocation
+prefix, sound CPU startup up to its required driver, and later storage
+initializers. These components do not count as returned cold-startup slots
+until sound initialization returns through the original caller. The remaining
+audio work includes the original SDK object graph, actual voice/queue/DSP
+resources and removal of the runtime reference-XBE DSP dependency.
+
+The source execution ABI remains 32-bit while native resources and views use
+64-bit owners. Full native64 gameplay, all MCC tag conversion into vanilla
+TU1.5 internal data, native world admission, graphics parity and the loading
+video with sound remain open. Normal Play stays gated.
+
+### Native sound CPU prefix after initializer 44 (2026-10-15)
+
+The integrated startup now executes the genuine main12008..1201F sound-arena
+allocation before the initializer chain. Its 23 source instructions request
+0x23000 bytes with allocation type1000 from the actual native allocator.
+Later pool checks resolve their addresses through real allocation receipts.
+The complete source127EE0 CPU prefix then constructs its sound/cache pools,
+consumes native UTC/tick inputs through the original CRT time/rand code, and
+protects the actual 3MiB physical cache. Seven rejected owner/thread/site/frame
+or protection requests preserve the source ABI.
+
+Both controller modes pass at the required128050→224EC0 driver call:
+466,432 source instructions,172,456 ordered stores,478,360 typed cold bytes
+and zero Vulkan validation messages. Initializer45 has not returned; the
+completed count remains44/68. Sound readiness and normal gameplay admission
+remain false. Earlier original coordinate comparisons pass in both modes,
+and the prior initializer44 native run remains unchanged.
+
+Evidence: `analysis/asset-setup/mcc-native-20261015/native-startup-45-integration/progress-report.json`.
+Its preserved snapshot rebuilds74 translation units and retains71 copied
+archives whose bodies are not independently rebuilt. Shader files exactly
+match the initializer44 snapshot. The native trace accesses no XBE,ISO or map,
+and observes no outbound INET operation; local startup UDP binds remain real.
+
+Separate composed component evidence now covers the genuine SDK factory
+prefix with retained COM constructors, native allocations, a real mutex and
+one actual stereo output. It supplies the source-supported explicit audio
+preference and stops at required audio hardware ownership. It does not return
+an SDL ID as an Xbox COM object or claim usable DSP/voice capacities.
+
+The combined prior CRT constructor plus slots46–68 also passes all three
+declared storage fills:223,359 original instructions,53,552 exact ordered
+stores,65 native views and complete saved-storage restoration. This suffix
+does not bypass45 in the cold chain. An isolated MULSS hardware comparison
+explains its Unicorn precision-status difference; full floating-point sticky
+exception parity remains explicitly unverified. Integration details are in
+`analysis/asset-setup/mcc-native-20261015/native-late-startup-storage/integration.md`.
+The full migration and MCC-only gameplay goal remains active and incomplete.
+
+### Native sound SDK storage in the cold chain (2026-10-15)
+
+Cold startup now composes127EE0, the complete224EC0 driver CPU owner, the
+retained387877 SDK object graph, real native reset and the genuine38E996
+storage constructor. Four registered CRT constructors run before the chain:
+387BAA,387BB5,38A988 and38A993. The explicit audio preference uses the actual
+live stereo output. The SDK retains real mutex/allocation ownership and its
+original COM/refcount/statistics computations.
+
+Both controller configurations pass557,984 source instructions,260,877
+ordered stores and478,896 typed cold bytes, with zero Vulkan validation
+messages. At the next required38ECA3→38E8C9 call, four native SDK objects,
+one held mutex and sixteen actual DMA spans totaling339,968 bytes exist.
+Each DMA span resolves through its genuine source descriptor to native64
+storage. Reset executes on a real bounded worker, with no program-readiness
+or source factory result supplied. Initializer45 still has not returned;
+44/68 remains the completed cold-chain count.
+
+Suspending this partial factory faults its native transaction, releases the
+SDK objects/mutex, retains DMA diagnostics until teardown, releases those
+pages on teardown and withdraws the owned explicit preference. It cannot be
+reused as a completed factory checkpoint. Independent review also corrected
+retired-voice submission, completion handoff and foreign-thread guard order.
+
+Evidence: `analysis/asset-setup/mcc-native-20261015/native-sound-sdk-integration/progress-report.json`.
+The main integrated build also passes18 focused constructor/resource tests
+and both controller cold-start cases with the same instruction/store/byte
+counts and zero Vulkan validation messages. These results precede the new
+frontend notification and EP byte-resource components; their separate probes
+do not advance the cold-chain completed count.
+The read-only snapshot has2,594 verified pins and85 independently rebuilt
+translation units, plus71 copied archives whose bodies are not independently
+rebuilt. Its shaders exactly match the preceding preserved build. Native
+tracing confirms real local PipeWire IPC and startup UDP binds, with no
+reference XBE/ISO/map access or outbound INET operation. Full original cold
+execution through the native GPU/audio adapters remains unverified; the
+driver/SDK/reset/storage component comparisons cover their declared inputs.
+
+Remaining audio ownership includes frontend notification/configuration,
+actual output rings and voice/effect processing. Source inspection corrected
+an earlier research label:38E484 and its channel helpers construct AC97/output
+DMA resources; the title's1972C0 DSP effects bank is a separate later owner.
+The current runtime-XBE DSP-section dependency still needs replacement for
+the final MCC-only path. Full native64 execution, converted vanilla TU1.5
+gameplay admission, visual parity and the loading video remain unfinished;
+normal Play stays gated.
+
+### Audio resource prerequisites after the SDK storage frontier (2026-10-15)
+
+The main build now includes genuine idle-voice interrupt/unlink handling and
+retained EP output byte resources. Four focused main-build checks pass:
+reset, frontend events, EP output prerequisites and MCC effect definitions.
+The frontend comparison covers two real completion witnesses, source
+notifier publication and actual native deferred-call insertion. Its source
+DPC/notification execution is a separate required owner. The EP comparison
+covers two source-derived circular ranges, actual shared DMA pages, bounded
+byte copying, cancellation fences and creating-thread retirement. It does
+not publish source SGE/DSP readiness or submit these bytes as DSP PCM.
+
+`MccSoundEffectDefinitions` now retains the actual imported cache and shared
+effect children, including full salted identities, raw parameters and
+unknown bits. Native comparisons match26 definitions across introduction,
+main menu and Lockout, with the latter resolving globals from shared.map.
+Six invalid private-metadata requests fail, native64 backing and final
+release are checked, and tracing observes no XBE/ISO/Vista input or writes to
+the imported maps. Evidence is in
+`analysis/asset-setup/mcc-native-20261015/mcc-native-audio-definitions/component-proof.json`.
+
+These are resource prerequisites for initializer45. The completed cold
+count remains44/68 at38E8C9. Complete frontend configuration, output-channel
+recovery, native source voice/effects processing and the title DSP replacement
+remain unfinished. Parameter presence does not establish DSP algorithms,
+TU1.5 conversion or converted-vanilla gameplay admission.
+The exact68-entry status and evidence matrix is
+`analysis/asset-setup/mcc-native-20261015/native-startup-68-status.json`.
+The refreshed main build passes nine focused audio checks and both complete
+cold-prefix controller cases at the same557,984 instructions/260,877 stores,
+with zero Vulkan validation messages. The original configuration CPU also
+matches twelve declared cold/warm transcripts; those test transcripts supply
+no native configuration provider. Newer DPC/channel work remains outside
+this validation.
+
+The later deferred notification component now executes the original source
+thunk, virtual callbacks, cancellation and pending-status aggregation against
+actual retained voice receipts and the shared control worker. Its main-build
+comparison passes alongside reset, frontend events, AC97 page prerequisites
+and the table/context owner. This establishes the declared notification
+domain; it does not enable the completeD8 interrupt policy or its missing
+output-recovery/producer routes.
+
+Five authenticated38E0CE table-base subrequests now bind the observed source
+capacities to their actual retained native64 allocations. The independent
+original interval38E0DB..38E131 excludes the hardware FIFO poll and later
+methods. Native checks cover first/last published records, foreign bank and
+thread rejection, and invalidation by a genuine repeated device reset.
+No FIFO space, whole configuration/function return or voice/SGE execution
+is supplied. Evidence is in
+`analysis/asset-setup/mcc-native-20261015/native-sound-table-bindings/component-proof.json`.
+These additional focused results leave cold startup at44/68 and normal Play
+gated; the previous full cold-prefix reports do not claim execution of these
+new methods.
+
+### Combined audio ownership and teardown validation (2026-10-15)
+
+The production library now includes actual native event/dispatcher/unarmed
+timer registration, paused channel reset, default analog/SPDIF PCM descriptor
+binding, read-only prepared EP bytes and source-owned initialized channel
+teardown. Every composed control domain validates the actual retained worker,
+including rejection of two different workers with the same bank, output and
+generation. Descriptor ownership is reserved before source writes. Source
+teardown rejects outstanding PCM/EP ownership, frees actual pages, closes new
+channel admission and preserves receipt accounting. Partial source/native
+commits fault the shared control assembly.
+
+The combined main build passes21 selected checks with no skips. These include
+the new audio components and the existing physical protection and snapshot
+adoption regressions. Both current cold-prefix controller configurations
+still pass557,984 instructions,260,877 stores and478,896 typed bytes, with zero
+Vulkan validation messages and44 returned initializers. The scoped consumed
+audio inputs remained stable during the build; this is a live-checkout build,
+not a newly sealed complete source snapshot.
+
+These components are available in the production library and validated in
+their declared source domains. The cold harness still stops before entering
+38E8C9; it does not skip that boundary to execute later sound work. Full
+configuration, codec initialization, source DSP production, output start and
+recovery remain required. The prepared bytes are not labelled valid queued
+DSP PCM, and the initialized timer is not labelled armed. Neither initializer45
+completion nor full native64/MCC-only gameplay or visual parity is established.
+Normal Play remains gated. Evidence:
+`analysis/asset-setup/mcc-native-20261015/native-sound-components-integrated/integration-proof.json`.
+
+
+### Timed callbacks and the first cold configuration action (2026-10-15)
+
+The production timer owner now executes the original inactive index4 timed
+notification path against the same real EventPort timerfd and frontend DPC
+queue. An exclusive immutable timer lease prevents a rejected second owner
+from cancelling the first owner's armed timer or queued callback. Retirement
+checks actual kernel cancellation, queued/executing callback ownership and a
+real worker fence. The complete timed callback matches111 original instructions
+and32 stores; three recorded native clock/timer cases match291 distinct
+unchanged TU1.5 instruction sites. Playing voice/PIO callbacks remain required.
+
+The disabled interrupt policy gates the actual source ISR before consuming
+its eventfd receipt or callback frame. It retains pending events across real
+route registration, and the unchanged global-enable branch fails closed while
+requested routes remain unimplemented. The first configuration MOV records
+an unknown hardware preimage; it performs no invented readback. The native
+control lease also authenticates the exact retained SDL output object.
+
+The combined main build passes25 focused checks without failures or skips.
+Both existing sound-sdk cold cases remain557,984 instructions/260,877 stores
+and478,896 typed bytes. The new sound-configuration mode executes the genuine
+first IEN=D8 action, then retains unsupported instruction38E8D3: both controller
+cases pass557,985 instructions/260,878 stores and478,936 typed bytes. All four
+cold cases have zero Vulkan validation messages and44 returned initializers.
+Interrupted parent calls retire the actual gate/port and release partial SDK,
+control and DMA resources. All278 scoped inputs remained stable during the
+build; the complete repository is not a newly sealed source snapshot.
+
+This advances one real cold configuration operation. It does not return
+38E8C9, implement the unknown frontend/sequencer/scheduler policy, enable the
+completeD8 routes, initialize the full codec/channel path, install a native
+source DSP producer, or complete initializer45. Source execution still uses
+the32-bit shadow ABI with native64 resource owners. Normal Play stays gated;
+full MCC-only gameplay, converted vanilla admission and rendered TU1.5 parity
+remain unverified. Evidence:
+`analysis/asset-setup/mcc-native-20261015/native-sound-disabled-configuration-integrated/integration-proof.json`.
+
+
+The later combined build also includes the native codec conversion/command
+owner and passes27 selected checks with no failures or skips. It retains two
+real native64 stereo48000 conversion resources on the exact shared output and
+control worker, serializes the authenticated WM9709 profile commands, and
+resets the actual queues. An exclusive controller claim prevents duplicate
+owners; interruption and reset invalidation release converters and the claim
+after a real worker fence. Creator-thread destruction is checked by exact
+exit77. The manufacturer profile preserves unity for its unsupported mixer
+controls; no arbitrary attenuation is added.
+
+The codec component compares the retained original constructor CPU up to
+38F4C4's unowned IRQ6 request, plus four bounded later command components.
+Two hardware-only helper leaves have native functional ABI adaptations;
+20 explicitly recorded private hardware-helper stack bytes are excluded.
+This is not a whole original codec-stack or physical codec comparison. Native
+conversion probes use synthetic PCM, not source DSP output. IRQ6 completion,
+shutdown/channel composition, source processor installation and playback
+remain required. The codec owner is not skipped into cold startup.
+
+All four cold modes were revalidated after this integration with the same
+instruction/store/byte counts, zero Vulkan validation messages and44 returned
+initializers. The278 prior scoped inputs and48 frozen codec handoff pins
+remained unchanged. The latest main validation is
+`analysis/asset-setup/mcc-native-20261015/native-sound-codec-initialization/main-integration/integration-proof.json`.
+
+The bounded PIO/notifier owner is now included in the main build. Its frozen
+component proof validates three original CPU cases and four failure cases:
+2068 instructions and 263 stores publish the actual table and notifier
+resources, stopping before 38E140's unsupported tracking action. A separately
+declared three-instruction input component binds the actual eight-byte SGE
+record; it does not skip the earlier tracking actions in cold startup. The
+eight real queue slots provide measured backpressure, worker draining and
+cancellation, and every SGE write passes the source memory mutation auditors.
+The main combined build and all 29 focused checks pass with no skips. Four
+fresh cold runs retain 44 returned initializers and zero Vulkan validation
+messages, with all 355 scoped source inputs unchanged during validation.
+This component does not complete initializer 45 or either whole 38E0CE/38E8C9
+function. Its proof is
+`analysis/asset-setup/mcc-native-20261015/native-sound-frontend-executor-contract/component-proof.json`.
+The combined validation is
+`analysis/asset-setup/mcc-native-20261015/native-sound-frontend-executor-contract/main-integration/integration-proof.json`.
+
+The sealed codec completion component now composes one actual default analog
+descriptor consumer with an independent eventfd/epoll route and the registered
+original shutdown callback. Three live Success cases match 171 original
+instructions, 44 ordered stores and 485640 source bytes each. Cancellation
+preserves real Flushed, Success and Failure receipts for caller accounting;
+the Failure fixture supplies an explicit native device-removal notification,
+without claiming a physical OS unplug. Descriptor drift rejects before source
+delivery, and shutdown cancels consumption before releasing both channel
+pages. The four reviewed shared overlays are applied. The main production
+build, 31 focused checks, three fresh original ISR comparisons and four cold
+cases all pass, with 369 scoped inputs unchanged during validation. Cold
+startup still returns 44 of 68 initializers with zero Vulkan validation
+messages. Source 38F0AA start, DSP PCM generation, the whole configuration
+and initializer 45 remain incomplete. The seal is
+`analysis/asset-setup/mcc-native-20261015/native-sound-codec-event-route/implementation/seal.json`.
+The combined proof is
+`analysis/asset-setup/mcc-native-20261015/native-sound-codec-event-route/main-integration/integration-proof.json`.
+
+The reference-only GP oracle now executes the original command 3 installation
+DMA and acknowledgement, then enters the overwritten title entry. Complete
+code/state match before the bounded 16/64 title instructions. Its flat scratch,
+synchronous DMA and explicit peripheral-input limits remain documented; it
+does not implement a native processor or establish whole DSP/PCM parity.
+Separately, 26 original CPU controls recover pitch, descriptor and target-volume
+computations. The five tracking-policy values remain unresolved; xemu's
+explicitly unverified smoothing constant does not supply that missing law.
+Accepted evidence is in `native-sound-gp-command-execution/handoff.md` and
+`native-sound-tracking-dataflow/findings.md` under the 20261015 analysis stage.
+
+Independent review reproduced a native descriptor-index mismatch using whole
+38EDF4 calls. The default consumer now requires native current/last indices
+zero both before its claim and before delivery. The new regression fails
+against the sealed earlier consumer and passes against the fix, preserving
+pending Success and source state on rejection. The refreshed production
+build, all 31 focused checks, three original ISR comparisons and four cold
+runs pass. The 369 scoped inputs remain unchanged during validation, and
+startup still returns 44 of 68 initializers. The corrected sources and evidence
+are frozen in `native-sound-codec-event-route/main-integration-v2/fix-seal-v2.json`;
+the combined proof is in that directory's `integration-proof.json`.
+
+
+The sealed offline GP reference now executes a complete zero-voice title
+frame: 26796 title instructions, all 15 effect records and the shared RTS,
+with no unresolved accesses. Six explicitly supplied raw 24-bit input
+patterns at the authenticated record-1 input also complete that frame.
+Their actual output and state differences are retained for native arithmetic
+comparisons. These fixtures do not authenticate hardware voice admission,
+normalized input scale, physical DMA/timing or native PCM output. Root
+integrity validation rechecked the 47-file first-frame seal and the 88-file
+input-fixture seal and their prerequisites; this was not an independent DSP
+execution rerun. Evidence is in `native-sound-gp-first-frame-execution` and
+`native-sound-gp-direct-input-fixtures` under the 20261015 analysis stage.
+
+Original CPU and actual MCC metadata comparisons now identify eleven of the
+fifteen original effect-record relationships and pass 45 bounded parameter,
+name-route and converter controls. Raw MCC string IDs differ from the
+original switch IDs, and nested override function curves are nonempty;
+production metadata still needs to retain those nested children. MCC also
+omits the original speaker-chorus template. Authored cold state and runtime
+parameter conversion remain separate: the mono-distortion default gain
+conversion differs from its authored initial state. The original converter
+caller's FP environment remains unresolved. These findings do not establish
+converted vanilla tags or a native DSP graph. Their sealed evidence is in
+`native-sound-effect-definition-mapping/findings.md`.
+
+
+The genuine bounded cold analog start/stop component is now integrated. Three
+native cases execute whole source38F0AA(-1), perform its real reset, bind the
+successor endpoint epoch, submit2048 stereo frames and retain actual run
+through the original IRQ6 accounting. Whole source38F05C stops that run.
+Registered38F443 shutdown has a separately witnessed cancellation; it retains
+real Flushed/Success receipts, drains queued events and leaves healthy shared
+control live after owner destruction. Independent red/green review caught and
+resolved the shutdown fault and generator reproducibility issues. This is
+one-span analog admission, not the SPDIF mirror, repeated refetch or source
+DSP producer.
+
+MCC effect metadata now retains typed nested override roots, components,
+functions, constants and source bytes alongside the original raw roots.
+Every nonempty extent retains its resolving Cache, so detached curves remain
+valid after the definitions owner is released. The actual116-byte radio_3d
+curve is checked unchanged, with17 malformed-child rejections and3 raw-bit /
+shared-child controls. Function evaluation, TU1.5 parameter conversion and
+vanilla gameplay admission remain separate unfinished requirements. A
+concurrent equivalent select_tags(require_address=true) refactor and separate
+CMake test addition were preserved during integration.
+
+The refreshed main build passes all33 focused checks without failures or
+skips. Fresh original comparisons cover six ISRs, three whole analog starts
+and three whole analog stops; each compares485640 source bytes. Four fresh
+cold runs retain44 returned initializers and zero Vulkan validation messages,
+with381 scoped inputs stable during validation and frozen with its evidence.
+The combined proof and seal are in
+`analysis/asset-setup/mcc-native-20261015/native-sound-output-start/main-integration`.
+The cold configuration still stops before38E8D3 FECTL=88; no full
+configuration, initializer45 return, complete native64 gameplay or Play
+admission is claimed.
+
+The typed native mono-distortion module now has an independent review across
+105 frames and39 cases, including the original57 accepted frames and48 raw
+coefficient stress frames. The review confirmed and corrected an offline
+oracle scaled-limiter defect against the manufacturer's arithmetic rule;
+the native algorithm required no arithmetic change. The compiled module
+uses native64 allocations with no runtime original program or state bank.
+Its production build integration passes35 combined checks, all105 numeric
+frames and16 admission guards. The proof and frozen392 scoped inputs are at
+`native-sound-mono-distortion-production/main-integration`.
+
+That combined run exposed an actual control-worker owner-retirement race:
+the worker published idle before releasing its callable, and an exception
+could bypass the creator's retirement fence. An actual-main GDB trace and
+six deterministic ordering controls reproduce it. The reviewed correction
+retires worker task ownership before idle and waits on both success and
+exception paths. Fifty private and five independent hook-free PipeWire
+codec processes pass. The refreshed main build additionally passes50 actual
+hook-free codec processes (350 cases and250 registration-failure controls),
+six original ISRs, three original whole starts and stops, and four cold
+runs retaining44/68 returned initializers with zero Vulkan validation
+messages. See `native-sound-control-worker-lifetime/handoff.md`.
+
+The separately reviewed gain-fanout component is now compiled into the main
+systems library. All37 combined checks pass, including80 numeric frames,
+18 gain-fanout admission guards and the mono-distortion checks. Six fresh
+original ISR comparisons, three whole starts and stops, and four fresh
+cold runs pass. The earlier50-process worker regression is reused only
+after verifying the identical codec binary and worker-source hashes.
+The proof and399 frozen scoped inputs are in
+`native-sound-gain-fanout-production/main-integration`.
+
+The corrected records2/3 module is also compiled into the main systems
+library. Independent review resolved SC13 admission, unsupported SM compare
+overflow and counted-loop FV restoration within explicit bounded modes.
+The native arithmetic stayed unchanged; all40 previously admitted calls
+remain exact, and27 native guards reject before mutation. The separately
+versioned offline oracle has11 independently checked rejection paths and7
+admitted controls; old oracle and candidate seals remain preserved.
+
+All39 combined checks now pass, including40 records2/3 calls and5120 signed
+arithmetic checkpoint values. Six fresh original ISR comparisons, three
+whole starts and stops, and four fresh cold starts pass with zero Vulkan
+validation messages. The identical-binary worker stress evidence remains
+reused. The latest proof and406 frozen scoped inputs are in
+`native-sound-two-product-accumulator-production/main-integration`.
+Concurrent unrelated source and CMake edits were preserved during rebuild.
+
+Controller11..14 source recovery proves exact124-word bodies differing
+only at the state-base immediate. Fresh original observations establish a
+cold counter010000, six output words and final counter2. Their input and
+output logical addresses alias one in-place buffer in the pinned reference;
+the reviewed native arithmetic projection is now compiled into the main
+systems library. Its116 numeric calls,31 guards and8064 individual additions
+pass in isolated builds; source DMA/scratch writeback and complete processing
+remain separate unfinished work. Combined main validation passes41 checks,
+six original ISRs, three whole analog starts/stops and four fresh cold starts
+with zero Vulkan validation messages and44/68 returned initializers. The proof
+and415 frozen scoped inputs are at
+`native-sound-controller-arithmetic-production/main-integration`. Two configured
+CMake inputs preserve the exact tested bytes while newer concurrent unrelated
+registrations remain in the live checkout. The two contended memory tests pass
+under their required kernel budget; the other39 checks are retained unchanged.
+See `native-sound-controller-records-recovery/findings.md` and the separate
+`native-sound-controller-entry-context-clarification.json` for the sample-loop
+SR observation boundary and alias clarification.
+
+The chorus4..7 production overlay is independently reviewed and compiled into
+the main systems library, verified across140 individual calls,140 coupled calls,105 shared endpoints
+and46 guards. Its401-cell views intentionally share endpoints in one1601-cell
+native owner. The reviewed record0..3 admission correction adds an explicit
+state-relative linear M5 precondition without changing any of225 previous
+numeric results;70 native guards and24 actual original cold/warm stops pass.
+Both overlays are now applied to the main build. The explicit M5 admission
+guards total21 for gain-fanout,19 for mono-distortion and30 for records2/3.
+
+Crosstalk record10 is also compiled after independent review of the corrected
+fixture coverage. The original29 arithmetic comparisons remain valid; ten
+additional original/native comparisons preserve genuine cold/warm state and
+the prior-output overlap. The unmodified chorus clears the gain routes before
+crosstalk, so these fixtures do not prove a nonzero record0-to-crosstalk input.
+Nonzero outputs in the corrected nominal fixture arise from the26-word overlap
+with prior crosstalk output. The first six input words still lack a recovered
+producer. All39 crosstalk calls,19968 arithmetic values and132 guards pass.
+
+The latest combined build passes45 checks and four fresh cold starts with
+zero Vulkan validation messages. Six original ISRs and three whole analog
+starts/stops pass. Its565 scoped inputs and145 configured CMake snapshots are
+frozen at `native-sound-chorus-production/main-integration`; subsequent unrelated
+checkout changes remain outside that seal.
+
+Records8/9 are now independently reviewed and compiled into the main build.
+Their882 numeric comparisons cover441 original frames and871392 ordered
+arithmetic values, with1393 admission guards and retained shared workspace/rings.
+The six other effect modules now share one actual C++ Word24 type. All660
+previous numeric calls and279 guards remain unchanged;26 persistent cross-module
+frames verify100 warm cached bindings and104 inclusive shared-history endpoints.
+All dependent modules were rebuilt because the C++ type identities changed.
+The24-bit sample layout and32-bit source execution ABI remain unchanged.
+
+The latest combined validation passes48 checks and four fresh cold starts,
+with576 scoped source inputs and147 configured CMake snapshots frozen at
+`native-sound-ring-effect-production/main-integration`. The two memory tests
+were retried under their required kernel containment after a genuine lock
+conflict; the other46 passing checks were retained. The desktop reported no
+displays, so cold checks used an isolated X server with the actual RTX5080
+Vulkan device and zero validation messages. This does not prove physical-display
+parity. Newer unrelated live CMake changes remain outside the frozen configuration.
+
+The private typed GP storage owner also passes independent Release and
+ASan/UBSan review:462 literal fields,1795 guards and80 retained chorus calls.
+It retains774144 bytes of logical title scratch storage, persistent bindings
+and checked value-copy adapters. Its histories/sinks are logical24-bit values,
+not an attested physical DMA byte image, and it publishes no install/frame
+receipt. Original CPU consumer recovery proves that XHV reads16-bit samples
+at byte2 of each four-byte controller-ring word and consumes state13's byte
+cursor. The inherited offline DMA format2 packing conflicts with its named
+MSB format; a separately versioned correction is under review before any claim
+of physical scratch packing or complete native processing.
+None of these results establishes the complete DSP graph, source producer,
+physical audio or initializer45 return. Cold remains44/68.
+
+
+The reviewed typed GP storage constructor is now compiled into the main systems
+library. Two fresh focused checks pass:462 literal fields,13 constructor guards,
+1795 independent guards and82 real retained chorus calls. The prior48 checks and
+four cold starts are retained only after verifying their checked binaries remain
+byte-identical; they were not rerun for this constructor-only change. The focused
+proof freezes163 build inputs and13 evidence files at
+`native-sound-graph-storage-production/main-constructor-integration`.
+The constructor owns logical24-bit values and native64 resources; it does not
+publish an install or frame receipt or establish a physical DMA byte image.
+Source execution still uses the32-bit ABI, and cold remains44/68.
+
+
+The reviewed full controller producer and CPU consumer are now compiled with
+GraphStorage in one archive. Four fresh main checks pass:208 retained producer
+calls,208 coupled original CPU callbacks,72 copy controls,324 reset/gate/error
+controls,6200 rejection guards and7 nominal controls, plus the changed graph
+storage's462 literal fields and1795 ownership guards. Four640-word native sinks
+own their cursor/count and actual circular writes; each consumer owns two stable
+320-halfword packets and preserves real endpoint return values and source reset
+partial failures. The submitted packet views require actual backend lifetime
+and scheduling ownership; this component supplies no physical completion.
+
+The prior48 checks and four cold runs remain retained by byte-identical checked
+products, not repeated. See `native-sound-controller-production/main-integration`.
+The source execution ABI remains32-bit, native resources64-bit, and cold44/68.
+Complete GP status/routing/voice/clock producers, native installation and physical
+endpoint ownership are still required before initializer45 or Play admission.
+
+
+The GP output value owner is now compiled after independent V2 review. Its one
+fresh main check passes33 original supervisor output frames,4762 guards and12
+receipt lifetime controls. The six512-word rings and640-word auxiliary owner
+perform actual native copies; receipts retain the real resources after owner
+destruction and retain both views across copy/move operations. The V1 move
+failure remains preserved as rejected evidence. This copy receipt establishes
+no graph execution, installation, physical DMA packing, clock, PCM or endpoint
+completion. The earlier48 checks, four cold runs and four controller/storage
+checks remain retained by byte-identical checked products. The frozen proof is
+at `native-sound-gp-output-production/main-integration`; cold remains44/68.
+
+The current installation phase contract is the later source-proved
+`native-sound-typed-gp-graph-contract`, which supersedes the older processor
+proposal's consumed-PCM prerequisite for installation acknowledgement. Original
+P0098 clears the command andP011C transfers the acknowledgement header before
+P0171 enters the installed graph. A native install receipt therefore requires
+actual converted definitions, compiled module/state/buffer construction, completed
+command actions and the retained worker/reset/output generation. Actual frame
+input, full status propagation, EP/PCM and endpoint consumption need their own
+capabilities. The current constructor and logical-copy receipts establish none
+of those installation or frame capabilities. These new owners are built and
+tested as systems dependencies; the live cold prefix still stops before their
+complete native processing path is admitted.
+
+The bounded mono parameter converter and retained MCC definition compiler now
+build as public systems dependencies. Three fresh main checks pass:1779
+unchanged-original host-x87 proposals,840 original quantizer controls,81 actual
+MCC metadata guards and50 definition/ownership/FP controls. Independent Release
+and ASan/UBSan review also checks786432 exact dyadic quantizations,720 caller FP
+combinations and21 occupied-stack rejections per build. The main proof freezes
+474 scoped inputs at `native-mcc-mono-distortion-production/main-integration`.
+Loaded control-word operand023F and actual hardware readback027F remain distinct;
+the148 Unicorn/hardware differences stay preserved. Physical Xbox transcendental
+parity and the full live caller FP owner remain unresolved. This converts supplied
+MCC mono values faithfully; changed MCC defaults/functions still require vanilla
+Xbox restoration, and selected functions are a separate unfinished component.
+
+The reviewed record0 status context also builds as a public systems dependency.
+Three fresh main checks pass1152 retained calls,737568 arithmetic/transfer
+checkpoints,20736 loop checkpoints and758304 knowledge/provenance checks, plus
+admission and independent boundary controls. The native owner preserves unknown
+bits and per-bit evidence; diagnostic incoming labels supply no authenticated
+boot/reset/install capability. The166-input frozen main proof is at
+`native-sound-record0-status-production/main-integration`. This covers the
+approved no-scaling eight-route profile; other records, full legal mod routing
+and actual boot/interrupt owners remain required.
+
+Both phases retain earlier checked products by exact identity and do not repeat
+the earlier cold runs. These components are compiled and tested, but the complete
+cold initializer45 does not execute them yet. Source execution still uses the
+32-bit ABI with64-bit native owners; cold remains44/68 and Play remains gated.

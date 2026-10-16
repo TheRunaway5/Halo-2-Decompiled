@@ -20,6 +20,10 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--case',type=Path,required=True);ap.add_argument('--output',type=Path);a=ap.parse_args();case=a.case.resolve();out=(a.output or case/'hardware').resolve();assert not out.exists();out.mkdir(parents=True)
     original=json.loads((case/'report.json').read_text());assert original['completed'] and not original['supplied_game_services'] and not original['instruction_patches'];assert original['original_xbe_sha256']==NEW_PIN==file_sha(NEW_DEFAULT)
     for name in ('before.bin','native-input.bin','original-after.bin','original-exit.bin'):assert file_sha(case/name)==original['files_sha256'][name]
+    if original.get('captured_caller_fp') is not None:
+        assert file_sha(case/'native-fp-input.bin')==original['files_sha256']['native-fp-input.bin']
+        depth,status,cw,mxcsr=struct.unpack('<IHHI',(case/'native-fp-input.bin').read_bytes())
+        assert dict(depth=depth,status=status,control=cw,mxcsr=mxcsr)==original['captured_caller_fp'] and depth==0
     image=Xbe(NEW_DEFAULT);owners=[_Code(image,'.text'),_Code(image,'D3D')];before=list(regions(case/'before.bin'))
     for code in owners:assert any(p<=code.lo and code.hi<=p+len(b) and b[code.lo-p:code.hi-p]==code.bytes for p,b in before)
     forbidden={'pushf','pushfd','pushfw','popf','popfd','popfw','cli','sti','iret','iretd','iretw','hlt'}

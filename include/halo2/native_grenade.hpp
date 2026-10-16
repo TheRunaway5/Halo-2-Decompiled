@@ -57,6 +57,9 @@ struct NativeGrenadeDetonation {
   std::vector<SourceEffectLocation> source_locations;
   SourceEffectColors colors;
   SourceEffectControls controls{1,1};
+  // Local source provenance. Qualified local checkpoints retain this handle;
+  // network imports leave NONE and do not authenticate another world's pool.
+  std::uint32_t source_effect_instance=0xffffffffu;
 };
 // FCF90 entry through FD0F8, before any world query. Source constructor
 // supplies timer_step/arming_step; contact flags are actual backend inputs.

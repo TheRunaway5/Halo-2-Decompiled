@@ -2,6 +2,7 @@
 #include "halo2/physics_world_runtime.hpp"
 #include <exception>
 #include <map>
+#include <stdexcept>
 namespace halo2 {
 // Read-only host diagnostics at a complete source entry/return boundary.
 using SourcePhysicsEntryObserver=std::function<void(bool,std::uint32_t,const SourcePhysicsWorldRuntimeAbi &)>;

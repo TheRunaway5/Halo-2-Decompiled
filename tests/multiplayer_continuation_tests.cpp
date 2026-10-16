@@ -81,9 +81,10 @@ void run(const char *xbe,const char *map) {
     first.collision.clear();first.kill_triggers.clear();second.collision.clear();second.kill_triggers.clear();
     auto rules=slayer_rules({"Slayer",0,{}});rules.weapon=ac.slayer_starting_weapon(5);
     rules.score_limit=2;rules.time_ticks=0;rules.respawn_ticks=30;
-    MultiplayerMatch *ap=nullptr,*bp=nullptr;unsigned a_callbacks=0,b_callbacks=0,a_events=0,b_events=0;bool interrupt=false;
-    MultiplayerMatch a(first,0,ac.spawns(),rules,{},[&]{return 100000u+(ap?unsigned(ap->simulation().ticks()/30):0);});ap=&a;
-    MultiplayerMatch b(second,0,bc.spawns(),rules,{},[&]{return 100000u+(bp?unsigned(bp->simulation().ticks()/30):0);});bp=&b;
+    unsigned a_callbacks=0,b_callbacks=0,a_events=0,b_events=0;bool interrupt=false;
+    std::uint32_t a_wall=100000,b_wall=900000;
+    MultiplayerMatch a(first,0,ac.spawns(),rules,{},[&]{return a_wall;});
+    MultiplayerMatch b(second,0,bc.spawns(),rules,{},[&]{return b_wall;});
     const std::array<unsigned,4> local{0,1,2,3};
     for(auto *match:{&a,&b}) {
         for(unsigned i=0;i<4;++i)check(match->join("Native seat "+std::to_string(i))==i,"Four-seat native admission failed");
@@ -95,12 +96,12 @@ void run(const char *xbe,const char *map) {
     b.set_game_engine_presentation_owner([&](const auto&){++b_callbacks;rejects([&]{b.authority_checkpoint(binding);});if(interrupt)throw 17;});
     a.configure_first_person_event_owner([&](auto,auto,const auto&,const auto&){++a_events;rejects([&]{a.authority_checkpoint(binding);});});
     b.configure_first_person_event_owner([&](auto,auto,const auto&,const auto&){++b_events;rejects([&]{b.authority_checkpoint(binding);});});
-    std::array<Controls,16> inputs{};for(unsigned i=0;i<100;++i)a.step(inputs);
+    std::array<Controls,16> inputs{};for(unsigned i=0;i<100;++i){++a_wall;a.step(inputs);}
     place(a,0,{0,0,0});place(a,1,{1,0,0});place(a,2,{100,100,0});place(a,3,{-100,100,0});
     inputs[0].fire=true;
-    for(unsigned i=0;i<180&&!a.unit(1).vitality.dead;++i)a.step(inputs);
+    for(unsigned i=0;i<180&&!a.unit(1).vitality.dead;++i){++a_wall;a.step(inputs);}
     check(a.player(0).kills==1&&a.player(1).deaths==1&&!a.finished(),"Actual stock SMG did not produce a recorded first death");
-    inputs={};for(unsigned i=0;i<5;++i)a.step(inputs);
+    inputs={};for(unsigned i=0;i<5;++i){++a_wall;a.step(inputs);}
     const auto saved=a.authority_checkpoint(binding),before=b.authority_checkpoint(binding);
     check(saved.players[1].respawn.countdown>0&&saved.result_events_started&&saved.retained_recording.enabled&&
         !saved.corpses.empty()&&!saved.weapon_pickups.empty(),"Fixture lost pending respawn/recording/corpse/pickup owners");
@@ -108,7 +109,7 @@ void run(const char *xbe,const char *map) {
         rejects([&]{b.authority_checkpoint(binding);});rejects([&]{b.prepare_authority(saved,binding);});
         check(!a.commit_authority(std::move(cancelled)),"Foreign match transaction committed");}
     equal(before,b.authority_checkpoint(binding));
-    auto malformed=saved;malformed.version=2;rejects([&]{b.prepare_authority(malformed,binding);});
+    auto malformed=saved;malformed.version=1;rejects([&]{b.prepare_authority(malformed,binding);});
     malformed=saved;malformed.configuration_binding[0]^=std::byte{1};rejects([&]{b.prepare_authority(malformed,binding);});
     malformed=saved;malformed.service_roles^=1u;rejects([&]{b.prepare_authority(malformed,binding);});
     malformed=saved;malformed.players[1].source_datum^=0x10000u;rejects([&]{b.prepare_authority(malformed,binding);});
@@ -122,7 +123,7 @@ void run(const char *xbe,const char *map) {
     for(unsigned i=0;i<180;++i) {
         if(i==55){place(a,0,{0,0,0});place(b,0,{0,0,0});place(a,1,{1,0,0});place(b,1,{1,0,0});inputs[0].fire=true;}
         if(a.finished())inputs={};
-        a.step(inputs);b.step(inputs);equal(a.authority_checkpoint(binding),b.authority_checkpoint(binding));++compared;
+        ++a_wall;++b_wall;a.step(inputs);b.step(inputs);equal(a.authority_checkpoint(binding),b.authority_checkpoint(binding));++compared;
     }
     check(a.finished()&&b.finished()&&a.player(0).kills==2&&b.player(1).deaths==2&&
         a_callbacks>0&&b_callbacks==compared&&a_events>0&&b_events>0,"Continued match lost scoring/end phase or local callback owners");
@@ -133,7 +134,7 @@ void run(const char *xbe,const char *map) {
     malformed=final;const auto retained=malformed.retained_units.begin()->first;
     malformed.simulation.owned_lifetimes->release(retained);rejects([&]{b.prepare_authority(malformed,binding);});
     staged=b.prepare_authority(saved,binding);check(b.commit_authority(std::move(staged)),"Match rewind preparation failed");
-    interrupt=true;bool interrupted=false;try{b.step({});}catch(int value){interrupted=value==17;}
+    interrupt=true;bool interrupted=false;++b_wall;try{b.step({});}catch(int value){interrupted=value==17;}
     check(interrupted,"Declared presentation interruption did not execute");rejects([&]{b.authority_checkpoint(binding);});interrupt=false;
     staged=b.prepare_authority(final,binding);check(b.commit_authority(std::move(staged)),"Faulted match could not restore an admitted boundary");
     equal(final,b.authority_checkpoint(binding));
@@ -159,15 +160,16 @@ void king(const char *xbe,const char *map) {
     bs.record=[&](const auto&,auto,auto,auto){++b_records;rejects([&]{bp->authority_checkpoint(binding);});};
     as.score_changed=[](const auto&,auto,auto){};bs.score_changed=[](const auto&,auto,auto){};
     as.notification=[](const auto&,const auto&){};bs.notification=[&](const auto&,const auto&){++b_notices;};
-    MultiplayerMatch a(first,0,ac.spawns(),rules,as,[&]{return 200000u+(ap?unsigned(ap->simulation().ticks()/30):0);});ap=&a;
-    MultiplayerMatch b(second,0,bc.spawns(),rules,bs,[&]{return 200000u+(bp?unsigned(bp->simulation().ticks()/30):0);});bp=&b;
+    std::uint32_t a_wall=200000,b_wall=900000;
+    MultiplayerMatch a(first,0,ac.spawns(),rules,as,[&]{return a_wall;});ap=&a;
+    MultiplayerMatch b(second,0,bc.spawns(),rules,bs,[&]{return b_wall;});bp=&b;
     for(auto *match:{&a,&b}){match->join("King native participant");DebugGameSettings settings;settings.players[0].noclip=true;match->debug_settings(settings);}
-    for(unsigned i=0;i<80;++i){place(a,0,interior(*a.source_king_state()));a.step({});}
+    for(unsigned i=0;i<80;++i){place(a,0,interior(*a.source_king_state()));++a_wall;a.step({});}
     const auto saved=a.authority_checkpoint(binding);
     check(saved.result_events.index>0&&a_records>0&&saved.players[0].score>0,"Actual King scorer did not produce retained events/points");
     auto staged=b.prepare_authority(saved,binding);check(b.commit_authority(std::move(staged)),"King match publication failed");
     equal(saved,b.authority_checkpoint(binding));
-    for(unsigned i=0;i<90;++i){place(a,0,interior(*a.source_king_state()));place(b,0,interior(*b.source_king_state()));a.step({});b.step({});
+    for(unsigned i=0;i<90;++i){place(a,0,interior(*a.source_king_state()));place(b,0,interior(*b.source_king_state()));++a_wall;++b_wall;a.step({});b.step({});
         equal(a.authority_checkpoint(binding),b.authority_checkpoint(binding));}
     const auto final=b.authority_checkpoint(binding);
     check(final.result_events.index>saved.result_events.index&&b_records>0,"King continuation did not append new real recording events");

@@ -32,8 +32,9 @@ SourceViewProjectionBank source_view_projection(const SourceViewProjectionInput&
 // Original 12D50 ordered view/projection products followed by 12FA0's
 // c4/c5/c6 basis copies. The first four vectors are source GPU constants,
 // with no Vulkan clip conversion or GLM matrix reconstruction.
-// actual_w_distance is global48565C. Original 2BA10 camera copy at state+18
-// and 132D0's state->485600 copy produce it from submitting camera+44.
+// actual_w_distance is submitting camera+44. In the canonical image,2BA10
+// and132D0 publish48565C; TU1.5's2BAEF/132B0 publish491E7C instead.
+// These image-specific addresses must not be interchanged.
 // first_person selects original 12D50 BL nonzero, multiplying c0..3 by .15.
 std::array<ShaderVector,7> source_view_shader_constants(
     const SourceViewProjectionBank&,float actual_w_distance,bool first_person);

@@ -55,7 +55,7 @@ bool NativeTu15RngStartup::try_call(SourcePhysicsContactMemory& bank,const Sourc
     const auto output=word(memory,sp+4u);memory.mutable_view(output,8);
     const auto value=clock_.utc_filetime();
     put(memory,output,std::uint32_t(value));put(memory,output+4u,std::uint32_t(value>>32));
-    utc_=value;abi.gp[4]+=8u;return true;
+    utc_=value;utc_inputs_.push_back(value);abi.gp[4]+=8u;return true;
 }
 void NativeTu15RngStartup::instruction(std::uint32_t instruction) {
     if(instruction==0x148d98u) {

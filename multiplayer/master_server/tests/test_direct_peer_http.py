@@ -113,6 +113,41 @@ class DirectPeerHttpTests(unittest.IsolatedAsyncioTestCase):
                                               type='candidate', payload='forged', mid='0')})
         self.assertIsNone(await self.next(qb, 'peer_signal'))
 
+    async def test_measured_upload_changes_physical_host_selection(self):
+        descriptors = await self.descriptors()
+        connections = [await self.connect(d) for d in descriptors]
+        preferred = descriptors[1]['slot']
+        for d, (socket, _) in zip(descriptors, connections):
+            await socket.send_json({'peer_ready': [dict(peer=other['slot'], rtt_ms=30,
+                upload_bytes_per_second=2_000_000 if d['slot'] == preferred else 100_000,
+                loss_per_mille=0) for other in descriptors if other != d]})
+        for _, queue in connections:
+            self.assertEqual((await self.next(queue, 'phase', 'loading'))['host'], preferred)
+        room = self.api.transport.rooms[descriptors[0]['id']]
+        self.assertEqual(len(room.measured_hosts()), 2)
+
+    async def test_missing_reciprocal_measurement_cannot_downgrade_host_policy(self):
+        descriptors = await self.descriptors()
+        connections = [await self.connect(d) for d in descriptors]
+        await connections[0][0].send_json({'peer_ready': [dict(peer=descriptors[1]['slot'], rtt_ms=30,
+            upload_bytes_per_second=100_000, loss_per_mille=0)]})
+        await connections[1][0].send_json({'peer_ready': [dict(peer=descriptors[0]['slot'], rtt_ms=20)]})
+        self.assertIsNone(await self.next(connections[0][1], 'phase', 'loading'))
+
+    async def test_invalid_upload_measurement_is_rejected(self):
+        descriptors = await self.descriptors()
+        connections = [await self.connect(d) for d in descriptors]
+        await connections[0][0].send_json({'peer_ready': [dict(peer=descriptors[1]['slot'], rtt_ms=30,
+            upload_bytes_per_second=64 * 1024 * 1024 + 1, loss_per_mille=0)]})
+        self.assertIsNone(await self.next(connections[1][1], 'phase', 'loading'))
+
+    async def test_boolean_upload_measurement_is_rejected(self):
+        descriptors = await self.descriptors()
+        connections = [await self.connect(d) for d in descriptors]
+        await connections[0][0].send_json({'peer_ready': [dict(peer=descriptors[1]['slot'], rtt_ms=30,
+            upload_bytes_per_second=True, loss_per_mille=0)]})
+        self.assertIsNone(await self.next(connections[1][1], 'phase', 'loading'))
+
     async def test_master_reconnect_preserves_room_and_result_retry_is_idempotent(self):
         from .test_match_transport import MatchTransportTests
         descriptors = await self.descriptors()

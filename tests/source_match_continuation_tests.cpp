@@ -72,9 +72,9 @@ void run(const char *xbe,const char *map,bool active,bool departure) {
     MultiplayerObjectRuntime wa(xbe,ac,0,af.path,at),wb(xbe,bc,0,bf.path,bt);
     UiVariant variant{"Slayer",0,{{0x59,5}}};auto rules=slayer_rules(variant);rules.weapon=ac.slayer_starting_weapon(5);rules.score_limit=rules.time_ticks=0;
     wa.configure_session(source_game_variant(variant),1,30,rules.random_seed);wb.configure_session(source_game_variant(variant),1,30,rules.random_seed);
-    MultiplayerMatch *ap=nullptr,*bp=nullptr;
-    MultiplayerMatch a(ca,0,ac.spawns(),rules,{},[&]{return 100000u+(ap?unsigned(ap->simulation().ticks()/30):0);},&wa);ap=&a;
-    MultiplayerMatch b(cb,0,bc.spawns(),rules,{},[&]{return 100000u+(bp?unsigned(bp->simulation().ticks()/30):0);},&wb);bp=&b;
+    std::uint32_t a_wall=100000,b_wall=900000;
+    MultiplayerMatch a(ca,0,ac.spawns(),rules,{},[&]{return a_wall;},&wa);
+    MultiplayerMatch b(cb,0,bc.spawns(),rules,{},[&]{return b_wall;},&wb);
     const std::array<unsigned,4> locals{0,1,2,3};
     for(auto *match:{&a,&b}) {
         const auto &cache=match==&a?ac:bc;match->configure_weapon_pickups();
@@ -93,7 +93,7 @@ void run(const char *xbe,const char *map,bool active,bool departure) {
         for(unsigned tick=0;tick<20;++tick){std::array<Controls,16> delivered{};
             for(unsigned i=0;i<4;++i)delivered[i].yaw=a.unit(i).yaw;
             delivered[0].fire=tick<12;delivered[0].reload=tick==12;delivered[0].grenade=tick>=17;
-            at->time+=33;a.step(delivered);
+            at->time+=33;++a_wall;a.step(delivered);
         }
         check(a.unit(0).weapon.loaded<initial_ammo,"Actual source firing input did not consume ammunition before handoff");
         const auto &unit=a.unit(0);const auto &magazine=unit.weapon.source_magazines[0];
@@ -121,7 +121,7 @@ void run(const char *xbe,const char *map,bool active,bool departure) {
         check(target.commit(std::move(transfer)),"Pending source departure could not continue on its target authority");
         same(source.checkpoint(binding),target.checkpoint(binding));
         std::array<Controls,16> neutral{};for(unsigned i=0;i<4;++i)neutral[i].yaw=a.unit(i).yaw;
-        at->time+=33;bt->time+=33;a.step(neutral);b.step(neutral);
+        at->time+=33;bt->time+=33;++a_wall;++b_wall;a.step(neutral);b.step(neutral);
         same(source.checkpoint(binding),target.checkpoint(binding));
         check(a.unit(0).vitality.dead&&!a.finished()&&a.available_player_slots()==12&&
             a.player(0).source_datum==player.source_datum&&a.player(0).deaths==player.deaths&&
@@ -145,7 +145,7 @@ void run(const char *xbe,const char *map,bool active,bool departure) {
     for(unsigned tick=0;tick<40;++tick){
         at->time+=33;bt->time+=33;
         for(unsigned i=0;i<4;++i){inputs[i].yaw=a.unit(i).yaw;inputs[i].forward=(i&1)?0:.1f;}
-        a.step(inputs);b.step(inputs);same(source.checkpoint(binding),target.checkpoint(binding));
+        ++a_wall;++b_wall;a.step(inputs);b.step(inputs);same(source.checkpoint(binding),target.checkpoint(binding));
     }
     const auto saved=source.checkpoint(binding);check(saved.match.simulation.ticks==initial.match.simulation.ticks+40,"Complete source Match did not advance forty actual ticks");
     auto bad=saved;bad.world=initial.world;rejects([&]{target.prepare(bad,binding);});

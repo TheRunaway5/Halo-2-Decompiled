@@ -1,5 +1,11 @@
 # TU1.5 vehicle camera live integration
 
+October 15: the final vehicle lens now preserves the original observer and
+Xbox split-grid projection at its 70-degree default. The expanded 14-seat
+matrix and 28 exact original CPU comparisons are recorded in
+[the current camera audit](VEHICLE_CAMERA_TU15_20261015.md). Its remaining
+scope section supersedes historical delivery/coverage statements below.
+
 October14 correction: the heavy-vehicle recordings exposed a shared frozen-look
 defect in remote seated players. Exact authority/client camera agreement alone
 did not detect it. The native controlled-actor path now retains delivered look

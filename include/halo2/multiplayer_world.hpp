@@ -15,6 +15,10 @@ public:
   // It supplies commands only; network and physical results remain owned by
   // the actual native authority. Ordinary construction retains map scripts.
   MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>);
+  // The same native initialization with an owned external clock source.
+  // Default construction still uses the platform clock.
+  MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>,
+      std::shared_ptr<PhysicsLiveClockSource>);
   enum class SourceShadowViews { LocalPeer, IncomingHost };
   // Separate, quiescent TU1.5 executor for an accepted direct ONLINE roster.
   // It owns private cache/files/physics and all admitted prototype players.
@@ -40,7 +44,8 @@ public:
   std::vector<unsigned> local_slots;
 private:
   struct SourceShadowSetup;
-  MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>,const SourceShadowSetup*);
+  MultiplayerPreparedWorld(const MultiplayerOptions&,std::optional<ScriptProgram>,const SourceShadowSetup*,
+      std::shared_ptr<PhysicsLiveClockSource>);
   std::filesystem::path map_,shared_,xbe_;
   std::size_t bsp_{};
   unsigned players_{},starting_weapon_{};
@@ -49,6 +54,7 @@ private:
   std::vector<SourcePlayerConfiguration> profiles_;
   std::optional<std::uint32_t> seed_;
   bool source_object_world_{};
+  std::optional<std::int16_t> campaign_difficulty_;
   std::filesystem::path source_object_savegame_directory_;
   std::vector<Spawn> native_spawn_inputs_;
   bool shadow_{};

@@ -37,6 +37,8 @@ def main():
     parser.add_argument('--original', type=Path, required=True)
     parser.add_argument('--native', type=Path, required=True)
     parser.add_argument('--coverage', type=Path, required=True)
+    parser.add_argument('--native-geometry',type=Path,required=True,
+                        help='Actual same-capture GPU geometry receipt; prior coverage cannot qualify another screenshot')
     parser.add_argument('--rectangle', type=int, nargs=4, required=True,
                         metavar=('TOP', 'LEFT', 'BOTTOM', 'RIGHT'))
     parser.add_argument('--original-gl-flip-y', action='store_true')
@@ -47,9 +49,15 @@ def main():
     args = parser.parse_args()
     assert not args.output.exists()
     geometry = json.loads((args.coverage/'receipt.json').read_text())
+    native_geometry=json.loads(args.native_geometry.read_text())
+    assert native_geometry['complete'] and native_geometry['rows'], 'Actual GPU geometry is incomplete'
+    assert not any(r['mixed_unrelated_geometry'] for r in native_geometry['rows'])
+    assert geometry['native_geometry_receipt_sha256']==hashlib.sha256(args.native_geometry.read_bytes()).hexdigest(), 'Coverage belongs to another GPU geometry capture'
+    assert Path(native_geometry['capture']).resolve().parent==args.native.resolve().parent, 'RGB screenshot belongs to another capture'
     assert geometry['coverage_passed'] and geometry['differing_pixels'] == 0
     assert geometry['source_rectangle'] == args.rectangle
     assert geometry['original_gl_flip_y'] == args.original_gl_flip_y
+    assert geometry['native_rectangle']==args.native_rectangle
     assert not geometry['resizing'] and not geometry['alignment']
     original = np.asarray(Image.open(args.original).convert('RGB'))
     if args.original_gl_flip_y:
@@ -78,7 +86,7 @@ def main():
     difference_image[mask & ~differences] = [255, 255, 255]
     difference_image[differences] = [255, 0, 0]
     Image.fromarray(difference_image).save(args.output/'rgb-differences.png')
-    inputs = [args.original, args.native, args.coverage/'receipt.json', args.coverage/'original.png']
+    inputs = [args.original, args.native, args.native_geometry,args.coverage/'receipt.json', args.coverage/'original.png']
     result.update(scope='Strict RGB comparison for one retained render-input replay',
         source_rectangle=args.rectangle, original_gl_flip_y=args.original_gl_flip_y,
         native_rectangle=args.native_rectangle,

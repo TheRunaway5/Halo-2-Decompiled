@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <thread>
+#include <sstream>
 
 using namespace halo2;
 namespace {
@@ -52,20 +53,28 @@ int main(int argc,char **argv)try{
   const auto fp=cache.load_first_person_binding(rules.weapon,2);match.configure_replicated_first_person(fp);
   const std::array<unsigned,1> local{0};match.configure_local_views(local,fp);
   std::map<std::uint32_t,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> entry_captures;
+  std::map<std::pair<std::uint32_t,unsigned>,std::unique_ptr<test::LivePhysicsEntryCaptureTu15>> world_captures;
   std::optional<SourcePhysicsEntryObserverBinding> entry_diagnostic;
   if(props) {
     if(const auto path=std::getenv("HALO2_TU15_PROP_ENTRY_CAPTURE")) {
       entry_captures.emplace(0x355d0u,std::make_unique<test::LivePhysicsEntryCaptureTu15>(std::filesystem::path(path)/"conveyor"));
       entry_captures.emplace(0x1e1170u,std::make_unique<test::LivePhysicsEntryCaptureTu15>(std::filesystem::path(path)/"query"));
     }
-    if(const auto path=std::getenv("HALO2_TU15_WORLD_ENTRY_CAPTURE"))for(const auto entry:{0x14fec0u,0xb8f40u,0x1cc8d0u})
-      entry_captures.emplace(entry,std::make_unique<test::LivePhysicsEntryCaptureTu15>(std::filesystem::path(path)/std::to_string(entry)));
-    if(!entry_captures.empty())entry_diagnostic.emplace(world.memory(),[&](bool entering,std::uint32_t entry,const auto &state){
-      const auto found=entry_captures.find(entry);if(found==entry_captures.end())return;
-      if(entry==0x14fec0u || entry==0xb8f40u || entry==0x1cc8d0u) {
-        const auto clock=word(world.memory(),0x51df54u);if(word(world.memory(),clock+8u)<200u)return;
+    if(const auto path=std::getenv("HALO2_TU15_WORLD_ENTRY_CAPTURE")) {
+      std::vector<unsigned> ticks{200};
+      if(const auto selected=std::getenv("HALO2_TU15_WORLD_CAPTURE_TICKS")) {
+        ticks.clear();std::istringstream text(selected);for(std::string item;std::getline(text,item,',');) {
+          std::size_t used{};const auto tick=std::stoul(item,&used);check(used==item.size() && tick<650,"Invalid declared original-call capture tick");ticks.push_back(tick);
+        }
+        check(!ticks.empty() && ticks.size()<=8,"Invalid original-call capture count");
       }
-      found->second->observe(entering,state,world.memory(),entry);
+      for(const auto entry:{0x14fec0u,0xb8f40u,0x1cc8d0u})for(const auto tick:ticks)
+        world_captures.emplace(std::pair{entry,tick},std::make_unique<test::LivePhysicsEntryCaptureTu15>(std::filesystem::path(path)/(std::to_string(entry)+"-"+std::to_string(tick))));
+    }
+    if(!entry_captures.empty() || !world_captures.empty())entry_diagnostic.emplace(world.memory(),[&](bool entering,std::uint32_t entry,const auto &state){
+      if(const auto found=entry_captures.find(entry);found!=entry_captures.end())found->second->observe(entering,state,world.memory(),entry);
+      const auto clock=word(world.memory(),0x51df54u);const auto tick=word(world.memory(),clock+8u);
+      if(const auto found=world_captures.find({entry,tick});found!=world_captures.end())found->second->observe(entering,state,world.memory(),entry);
     });
   }
   constexpr std::uint64_t fingerprint=0x15de000332u;
@@ -80,7 +89,7 @@ int main(int argc,char **argv)try{
   check(peer.ready() && host.peers()==1,"Actual source script UDP admission failed");
   if(props) {
     const std::string prop_name=std::getenv("HALO2_TU15_SCRIPT_PROP_NAME")?std::getenv("HALO2_TU15_SCRIPT_PROP_NAME"):"gas_container";
-    unsigned comparisons{},dynamic_observations{};std::set<std::uint32_t> moved;
+    unsigned comparisons{},dynamic_observations{};std::set<std::uint32_t> moved,transported;
     std::map<std::uint32_t,Vec3> last;
     std::map<std::uint32_t,Vec3> first;
     for(unsigned tick=0;tick<650;++tick) {
@@ -104,9 +113,11 @@ int main(int argc,char **argv)try{
               "Script-created source prop was incorrectly forced frozen at birth by the automatic placement caller");
         }
         if(!inserted && length(position-prior->second)>.1f)moved.insert(object.handle);
+        if(!inserted && std::hypot(position.x-prior->second.x,position.y-prior->second.y)>.25f)transported.insert(object.handle);
       }
     }
     check(dynamic_observations>0 && moved.size()>=2,"Authored source prop spawners did not produce two moving physical generations");
+    if(std::getenv("HALO2_TU15_REQUIRE_CONVEYOR_TRANSPORT"))check(transported.size()>=2,"Original surface velocities did not transport two actual authored prop generations");
     for(const auto &[object,position]:first)std::cout<<"prop="<<object<<" first="<<position.x<<","<<position.y<<","<<position.z<<" final="<<last[object].x<<","<<last[object].y<<","<<last[object].z<<"\n";
     std::cout<<"PASS authored "<<std::filesystem::path(argv[2]).filename().string()<<" source prop creation/dynamics, "<<moved.size()<<" moving generations, "<<comparisons<<" exact UDP device banks\n";return 0;
   }

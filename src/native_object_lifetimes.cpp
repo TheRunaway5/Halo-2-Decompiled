@@ -37,6 +37,13 @@ void NativeObjectLifetimes::observe_source_retirement(std::uint32_t handle) {
     record(NativeObjectLifetimeEventKind::release,found->second);
     owners_.erase(found);
 }
+void NativeObjectLifetimes::observe_source_retirements() {
+    if(!pool_.source_memory())throw FormatError("Source retirement sweep requires its retained source pool");
+    for(auto at=owners_.begin();at!=owners_.end();) {
+        if(!pool_.lookup(at->first).empty()){++at;continue;}
+        record(NativeObjectLifetimeEventKind::release,at->second);at=owners_.erase(at);
+    }
+}
 std::uint64_t NativeObjectLifetimes::record(NativeObjectLifetimeEventKind kind,
     const NativeObjectLifetime& owner) {
     if(ordinal_==std::numeric_limits<std::uint64_t>::max())

@@ -73,11 +73,10 @@ struct SourcePropScene::Impl {
         for(std::size_t source_object=0;source_object<objects.size();++source_object){
             const auto&object=objects[source_object];
             if(object.type==11)prop_placements.insert(source_object);
-            //D5560's NeverPlaced gate controls automatic birth. Explicit
-            //source creation can also admit an unnamed authored placement.
-            //Prepare every prop in this BSP before renderer allocation;
-            //synchronize still admits geometry only for an actual live owner.
-            if(object.type!=11 || (object.origin_bsp>=0 && object.origin_bsp!=int(bsp)))continue;
+            // Prepare authored resources independently of source birth/BSP
+            // admission. Persistent owners can originate in another BSP;
+            // synchronize admits geometry only for their actual live lifetime.
+            if(object.type!=11 || object.definition==null_datum)continue;
             ++counts.placements;
             Prop p;p.source_object=source_object;p.object_definition=object.definition;p.definition=cache.load_source_prop_definition(object.definition);
             if(!p.definition.constructor_admitted)

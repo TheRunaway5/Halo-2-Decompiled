@@ -24,25 +24,29 @@ struct Directory {
 };
 struct Clock final:PhysicsLiveClockSource {
     std::uint32_t time{};mutable std::atomic<std::uint64_t> counter{};
+    std::uint64_t cycle_stride=1000;
+    std::uint64_t filetime=132000000000000000ull;
     std::uint32_t milliseconds()const noexcept override{return time;}
-    std::uint64_t cycles()const noexcept override{return counter.fetch_add(1000);}
-    std::uint64_t utc_filetime()const noexcept override{return 132000000000000000ull;}
+    std::uint64_t cycles()const noexcept override{return counter.fetch_add(cycle_stride);}
+    std::uint64_t utc_filetime()const noexcept override{return filetime;}
 };
 constexpr unsigned player_count=8;
 constexpr SourceMatchAuthority::AuthorityDigest binding{std::byte{0x15},std::byte{0x4c}};
 struct Owner {
     Cache cache;LevelContent content;Directory files;std::shared_ptr<Clock> clock=std::make_shared<Clock>();
+    std::uint32_t result_seconds{};
     std::unique_ptr<MultiplayerObjectRuntime> world;std::unique_ptr<MultiplayerMatch> match;
     std::unique_ptr<SourceMatchAuthority> authority;FirstPersonBindingDefinition fp;
     Owner(const char *xbe,const char *map,std::span<const unsigned> locals,std::uint32_t time,
-        std::span<const OnlineAdmission> roster={})
+        std::span<const OnlineAdmission> roster={},std::function<std::uint32_t()> result_clock={})
         :cache(map,{},OriginalData::load_xbe(xbe)),content(cache.load_content(0,true)){
-        clock->time=time;world=std::make_unique<MultiplayerObjectRuntime>(xbe,cache,0,files.path,clock);
+        clock->time=time;result_seconds=100000u+time/1000u;world=std::make_unique<MultiplayerObjectRuntime>(xbe,cache,0,files.path,clock);
         UiVariant variant{"Slayer",0,{{0x59,5}}};auto rules=slayer_rules(variant);
         rules.weapon=cache.slayer_starting_weapon(5);rules.score_limit=rules.time_ticks=0;
         world->configure_session(source_game_variant(variant),1,30,rules.random_seed);
         match=std::make_unique<MultiplayerMatch>(content,0,cache.spawns(),rules,MultiplayerKingServices{},
-            [this]{return 100000u+(match?unsigned(match->simulation().ticks()/30):0);},world.get());
+            result_clock?std::move(result_clock):std::function<std::uint32_t()>(
+                [this]{return result_seconds;}),world.get());
         match->configure_weapon_pickups();
         const auto borrowed=std::shared_ptr<const Cache>(&cache,[](const Cache*){});
         match->configure_grenades(borrowed,*cache.original_data()->grenade_constants);
@@ -57,7 +61,8 @@ struct Owner {
         authority=std::make_unique<SourceMatchAuthority>(*match,*world);
     }
     void local_views(std::span<const unsigned> ids){match->configure_local_views(ids,fp);}
-    void step(const std::array<Controls,16> &input){clock->time+=33;match->step(input);}
+    // Independent scripted wall-clock seconds; restoring Match cannot move it.
+    void step(const std::array<Controls,16> &input){clock->time+=33;++result_seconds;match->step(input);}
 };
 std::uint32_t word(const SourceRuntimeMemory &bank,std::uint32_t at,unsigned bytes=4){
     const auto value=bank.view(at,bytes);std::uint32_t v{};

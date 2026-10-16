@@ -111,11 +111,15 @@ void read_alias(Gpu &g,SourceWeatherDepthAliasBinding binding,Buffer output) {
     b.oldLayout=VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;b.newLayout=binding.layout;b.srcAccessMask=VK_ACCESS_TRANSFER_READ_BIT;b.dstAccessMask=VK_ACCESS_SHADER_READ_BIT;vkCmdPipelineBarrier(g.command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,0,0,nullptr,0,nullptr,1,&b);
     VkBufferMemoryBarrier host{VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER};host.srcAccessMask=VK_ACCESS_TRANSFER_WRITE_BIT;host.dstAccessMask=VK_ACCESS_HOST_READ_BIT;host.srcQueueFamilyIndex=host.dstQueueFamilyIndex=VK_QUEUE_FAMILY_IGNORED;host.buffer=output.handle;host.size=output.size;vkCmdPipelineBarrier(g.command,VK_PIPELINE_STAGE_TRANSFER_BIT,VK_PIPELINE_STAGE_HOST_BIT,0,0,nullptr,1,&host,0,nullptr);
 }
-unsigned gpu_rejections{},busy_rejections{};
-std::vector<std::byte> run(Gpu &g,SourceWeatherDepthAlias &producer,SampleProbe &probe,Image depth,const Input &input,VkImageLayout layout,bool controls) {
+unsigned gpu_rejections{},busy_rejections{},view_rejections{};
+std::vector<std::byte> run(Gpu &g,SourceWeatherDepthAlias &producer,SampleProbe &probe,SampleProbe &alternate_probe,Image depth,const Input &input,VkImageLayout layout,bool controls) {
     producer.prepare(input.extent);Fence fence(g),different(g);const auto p=packet(g,depth,input,layout,fence.value);
+    const auto target=producer.prepared_binding(),alternate_target=producer.prepared_binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);
+    require(target.view==producer.prepared_binding(SourceWeatherDepthAliasFormat::linear_a8r8g8b8).view,"default source alias format changed");
+    require(target.image==alternate_target.image&&target.sampler==alternate_target.sampler&&target.view!=alternate_target.view,"source alias formats must share one image/sampler with distinct views");
+    if(controls)reject([&]{producer.prepared_binding(static_cast<SourceWeatherDepthAliasFormat>(0x3e));},view_rejections);
     const auto pixels=source_weather_depth_alias_storage(input.extent).pixels;
-    const auto out=g.buffer(std::uint64_t(pixels)*4,VK_BUFFER_USAGE_TRANSFER_DST_BIT),sampled=g.buffer(std::uint64_t(pixels+2)*4,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    const auto out=g.buffer(std::uint64_t(pixels)*4,VK_BUFFER_USAGE_TRANSFER_DST_BIT),sampled=g.buffer(std::uint64_t(pixels+2)*4,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT),alternate_sampled=g.buffer(std::uint64_t(pixels+2)*4,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     g.begin();
     if(controls){const auto reject_packet=[&](SourceWeatherDepthAliasRecord bad){reject([&]{producer.record(bad);},gpu_rejections);};auto bad=p;
         bad.source.type=VK_IMAGE_TYPE_3D;reject_packet(bad);bad=p;bad.source.tiling=VK_IMAGE_TILING_LINEAR;reject_packet(bad);bad=p;bad.source.create_flags=VK_IMAGE_CREATE_SPARSE_BINDING_BIT;reject_packet(bad);bad=p;
@@ -129,14 +133,21 @@ std::vector<std::byte> run(Gpu &g,SourceWeatherDepthAlias &producer,SampleProbe 
     const auto retire=[&]{check(vkWaitForFences(g.device,1,&fence.value,VK_TRUE,std::numeric_limits<std::uint64_t>::max()));producer.retire(fence.value);retired=true;};
     try {
         if(controls){reject([&]{producer.record(p);},busy_rejections);reject([&]{producer.prepare(input.extent);},busy_rejections);reject([&]{producer.retire(fence.value);},busy_rejections);reject([&]{producer.retire(different.value);},busy_rejections);}
-        const auto binding=producer.binding();probe.record(binding,sampled);read_alias(g,binding,out);submit();retire();
+        const auto binding=producer.binding(),alternate=producer.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);
+        require(binding.view==target.view&&alternate.view==alternate_target.view,"prepared source alias views changed during production");
+        if(controls)reject([&]{producer.binding(static_cast<SourceWeatherDepthAliasFormat>(0x3e));},view_rejections);
+        probe.record(binding,sampled);alternate_probe.record(alternate,alternate_sampled);read_alias(g,binding,out);submit();retire();
     }catch(...){
         // A failing assertion after record still honors its submission/fence
         // contract before local fence destruction and producer teardown.
         if(!submitted)submit();if(!retired)retire();throw;
     }
     std::vector<std::byte> result(input.expected.size());std::memcpy(result.data(),out.mapped,result.size());require(result==input.expected,"GPU packed alias differs from exact expected RGBA bytes");require(std::memcmp(sampled.mapped,input.expected.data(),input.expected.size())==0,"owned nearest sampled UNORM alias differs from exact RGBA bytes");
-    const auto *samples=static_cast<std::byte*>(sampled.mapped);require(std::memcmp(samples+pixels*4,input.expected.data(),4)==0&&std::memcmp(samples+(pixels+1)*4,input.expected.data()+(pixels-1)*4,4)==0,"owned alias clamp sampler did not preserve edge pixels");verify_source(g,depth,input,layout);return result;
+    auto alternate_expected=input.expected;
+    for(unsigned i=0;i<pixels;++i)std::swap(alternate_expected[i*4],alternate_expected[i*4+2]);
+    require(std::memcmp(alternate_sampled.mapped,alternate_expected.data(),alternate_expected.size())==0,"original A8B8G8R8 sampled alias differs from exact R/B byte permutation");
+    const auto edges=[&](Buffer buffer,const auto &expected){const auto *samples=static_cast<std::byte*>(buffer.mapped);return std::memcmp(samples+pixels*4,expected.data(),4)==0&&std::memcmp(samples+(pixels+1)*4,expected.data()+(pixels-1)*4,4)==0;};
+    require(edges(sampled,input.expected)&&edges(alternate_sampled,alternate_expected),"owned alias clamp sampler did not preserve both formats' edge pixels");verify_source(g,depth,input,layout);return result;
 }
 }
 int main(int argc,char **argv){try{
@@ -147,20 +158,23 @@ int main(int argc,char **argv){try{
     const auto full=control({17,17},0);for(unsigned c=0;c<4;++c){std::array<bool,256> seen{};for(unsigned i=0;i<289;++i)seen[std::to_integer<unsigned>(full.expected[i*4+c])]=true;require(std::all_of(seen.begin(),seen.end(),[](bool b){return b;}),"all-byte packing controls incomplete");}
     require(rejected==4,"CPU input guards incomplete");std::cout<<"Original event215778: all 307200 alias pixels match raw D24S8 byte permutation; checked odd stencil storage, all byte values, four CPU input guards\n";
     if(argc==1)return 0;Gpu g;if(!g.initialize())return 77;if(std::string(argv[1])=="--gpu-baseline")return 0;
-    SourceWeatherDepthAlias producer({g.physical,g.device,g.family,HALO2_WEATHER_DEPTH_ALIAS_SHADER_DIR});SampleProbe probe(g);
+    SourceWeatherDepthAlias producer({g.physical,g.device,g.family,HALO2_WEATHER_DEPTH_ALIAS_SHADER_DIR});SampleProbe probe(g),alternate_probe(g);
+    reject([&]{producer.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);},view_rejections);
+    reject([&]{producer.prepared_binding();},view_rejections);
+    reject([&]{producer.prepared_binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);},view_rejections);
     reject([&]{producer.binding();},gpu_rejections);reject([&]{producer.retire({});},gpu_rejections);
     reject([&]{SourceWeatherDepthAlias p({g.physical,g.device,std::numeric_limits<unsigned>::max(),HALO2_WEATHER_DEPTH_ALIAS_SHADER_DIR});},gpu_rejections);
     const auto depth=g.image(original.extent,VK_FORMAT_D24_UNORM_S8_UINT,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT);
     upload(g,depth,original,VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);verify_source(g,depth,original,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    const auto exact=run(g,producer,probe,depth,original,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,true);const auto binding=producer.binding();
+    const auto exact=run(g,producer,probe,alternate_probe,depth,original,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,true);const auto binding=producer.binding(),alternate_binding=producer.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8);
     auto changed=original;for(auto &byte:changed.expected)byte^=std::byte{255};for(auto &byte:changed.depth)byte^=std::byte{255};for(auto &byte:changed.stencil)byte^=std::byte{255};
-    upload(g,depth,changed,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);run(g,producer,probe,depth,changed,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,false);require(binding.image==producer.binding().image&&binding.view==producer.binding().view&&binding.sampler==producer.binding().sampler,"same extent did not reuse owned alias bindings");
-    upload(g,depth,original,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);require(run(g,producer,probe,depth,original,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,false)==exact,"restored original alias reuse was not exact");
+    upload(g,depth,changed,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);run(g,producer,probe,alternate_probe,depth,changed,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,false);require(binding.image==producer.binding().image&&binding.view==producer.binding().view&&binding.sampler==producer.binding().sampler&&alternate_binding.view==producer.binding(SourceWeatherDepthAliasFormat::linear_a8b8g8r8).view,"same extent did not reuse both owned alias bindings");
+    upload(g,depth,original,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);require(run(g,producer,probe,alternate_probe,depth,original,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,false)==exact,"restored original alias reuse was not exact");
     const VkImageLayout layouts[]{VK_IMAGE_LAYOUT_GENERAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL};
     const Input controls[]{control({1,1},0),control({1,1},255),control({3,5},1),full};
-    for(unsigned i=0;i<4;++i){const auto image=g.image(controls[i].extent,VK_FORMAT_D24_UNORM_S8_UINT,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT);upload(g,image,controls[i],VK_IMAGE_LAYOUT_UNDEFINED,layouts[i]);run(g,producer,probe,image,controls[i],layouts[i],false);}
-    require(gpu_rejections==28&&busy_rejections==4,"GPU ownership/admission controls incomplete");require(validation_errors==0,"depth alias SDK validation diagnostics");
+    for(unsigned i=0;i<4;++i){const auto image=g.image(controls[i].extent,VK_FORMAT_D24_UNORM_S8_UINT,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_TRANSFER_DST_BIT);upload(g,image,controls[i],VK_IMAGE_LAYOUT_UNDEFINED,layouts[i]);run(g,producer,probe,alternate_probe,image,controls[i],layouts[i],false);}
+    require(gpu_rejections==28&&busy_rejections==4&&view_rejections==5,"GPU ownership/admission/view controls incomplete");require(validation_errors==0,"depth alias SDK validation diagnostics");
     const auto output=std::filesystem::path(HALO2_SOURCE_DIR)/"analysis/multiplayer-shading/weather-depth-alias-prototype";std::filesystem::create_directories(output);save(output/"native-event215778-alias.rgba",exact);
-    std::cout<<"GPU: all 307200 original alias pixels byte-exact; source depth/stencil unchanged; current-image changes and binding reuse exact; 1x1 zero/max, 3x5 tail and 17x17 all-byte controls exact; all five source layouts restored; sampled nearest/clamp exact; 28 admission and four pending-ownership controls rejected; zero validation errors\n";
+    std::cout<<"GPU: both original 0x12 A8R8G8B8 and 0x3F A8B8G8R8 views exact over one producer image; 1843812 sampled texels and 28 clamp controls exact; source depth/stencil unchanged; current-image changes and both bindings reused; 1x1 zero/max, 3x5 tail and 17x17 all-byte controls exact; all five source layouts restored; 28 admission, four pending-ownership and five view controls rejected; zero validation errors\n";
     return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

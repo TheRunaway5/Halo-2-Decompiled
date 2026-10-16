@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <bit>
 #include <cstdint>
 #include <span>
 
@@ -51,7 +52,7 @@ inline std::int8_t source_local_profile_team(std::int32_t committed) {
 enum class SourceProfileRepresentationPolicy { Retain, MultiplayerMapping };
 struct SourcePlayerConfigurationContext {
   std::int32_t game_type{}, representation_count{};
-  // Actual scenario player-profile rows+2C, in original row order.
+  // Actual scenario player-start rows+2C, in original row order.
   std::span<const std::int16_t> scenario_representations;
   bool selected_engine{}, team_mode{};
   std::uint16_t team_mask{};
@@ -59,6 +60,30 @@ struct SourcePlayerConfigurationContext {
   // by the recovered source owner, not an editable gameplay setting.
   SourceProfileRepresentationPolicy representation_policy = SourceProfileRepresentationPolicy::Retain;
 };
+// Literal representation selection is shared by native player admission
+// and loading the exact authored biped/hands definition. No cache fallback.
+inline void source_sanitize_player_representation(SourcePlayerConfiguration &profile,
+    const SourcePlayerConfigurationContext &context) {
+  if(context.game_type==1) {
+    std::int16_t selected=0;
+    for(const auto value:context.scenario_representations)
+      if(value!=-1){selected=value;break;}
+    profile[0x7c]=1;profile[0x44]=std::uint8_t(selected);
+  } else if(context.game_type==2 &&
+      context.representation_policy==SourceProfileRepresentationPolicy::MultiplayerMapping) {
+    const auto representation=std::bit_cast<std::int8_t>(profile[0x44]);
+    profile[0x44]=(representation==1||representation==3) ? 3 : 2;
+  }
+  if(auto representation=std::bit_cast<std::int8_t>(profile[0x44]);representation!=-1) {
+    if(representation<0)representation=0;
+    else {
+      const auto maximum=std::bit_cast<std::int32_t>(
+          std::uint32_t(context.representation_count)-1);
+      if(maximum<representation)representation=std::bit_cast<std::int8_t>(std::uint8_t(maximum));
+    }
+    profile[0x44]=std::uint8_t(representation);
+  }
+}
 // Whole14BC80/14D3D0/14E7B0, including signed-byte/word clamping, NONE,
 // original32-bit wrapping representation-count arithmetic and team admission.
 void source_sanitize_player_configuration(SourcePlayerConfiguration&,

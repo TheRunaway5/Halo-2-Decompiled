@@ -45,6 +45,26 @@ int main(int argc,char **argv)try {
     if(std::abs(zoom.lighting_distance_scale-.895f/4)>1e-7f)
         throw std::runtime_error("zoom lighting baseline did not follow the selected FOV");
     const float authored=70.f*.01745329238474369f;
+    if(halo2::DisplaySettings{}.vehicle_field_of_view!=70)
+        throw std::runtime_error("Vehicle camera default does not select TU1.5");
+    for(float current:{.7f,1.2217304706573486f,1.57f}) {
+        if(halo2::vehicle_observer_field_of_view(current,authored,70)!=current)
+            throw std::runtime_error("Retail vehicle setting replaced the original observer lens");
+        for(unsigned players=1;players<=4;++players)for(unsigned view=0;view<players;++view)
+            for(bool wide:{false,true}) {
+                const auto layout=halo2::source_view_grid(players,view,wide);
+                const auto actual=halo2::vehicle_camera_angles(current,authored,70,layout.grid,layout.span);
+                const auto expected=halo2::source_camera_angles(current,1.3333333730697632f,
+                    layout.grid,layout.span,authored);
+                if(actual.projection_angle!=expected.projection_angle ||
+                    actual.lighting_distance_scale!=expected.lighting_distance_scale)
+                    throw std::runtime_error("Vehicle projection lost original split-screen factors");
+            }
+        const auto custom=halo2::vehicle_observer_field_of_view(current,authored,120);
+        if(std::abs(std::tan(double(custom)*.5)/std::tan(double(wide)*.5)-
+            std::tan(double(current)*.5)/std::tan(double(authored)*.5))>3e-7)
+            throw std::runtime_error("Vehicle FOV override discarded the authored lens transition");
+    }
     for(float magnification:{1.f,2.f,4.f,10.f}) {
         const float original=float(2*std::atan(std::tan(double(authored)*.5)/magnification));
         const float adjusted=halo2::gameplay_observer_field_of_view(original,authored,120);

@@ -1,0 +1,13 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct Material {uvec4 program[15];};
+struct Fixture {Material material;vec4 samples[4];vec4 facing;vec4 glancing;};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 pixels[];};
+Material material;
+#include "combiner.glsl"
+void main() {
+    uint n=gl_GlobalInvocationID.x;material=fixtures[n].material;
+    pixels[n]=runCombiners(fixtures[n].samples,fixtures[n].facing,fixtures[n].glancing);
+}
