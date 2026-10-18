@@ -19,15 +19,25 @@ void main() {
     gl_Position=camera.matrix*p;
     sourceDepth=dot(p,camera.depthRow);
     if(camera.control.z!=0.0) {
-        // Use the SAME source c0..3, physical12FA0 half-pixel bias and
-        // 1/16-pixel snapping as the currently drawn armor. A GLM camera
-        // without that bias moves near caps relative to their own surfaces,
-        // producing striped false self-shadowing at integer W boundaries.
-        vec4 clip=gl_Position;
-        vec2 window=(clip.xy/clip.w)*camera.viewport.zw*vec2(.5,-.5)+
-            camera.viewport.xy+camera.viewport.zw*.5+vec2(.5);
-        window=trunc(window*16.0)/16.0;
-        vec2 ndc=(window-camera.viewport.xy)*2.0/camera.viewport.zw-1.0;
-        gl_Position=vec4(ndc*clip.w,clip.z,clip.w);
+        // Match the surface program's DPH, MUL c10, RCC and MAD c11
+        // ordering, including its Z round trip. A matrix multiply or XY/W
+        // division can change W after cancellation at campaign coordinates;
+        // a one-D24 near-cap difference then becomes a false stencil shadow.
+        mat4 rows=transpose(camera.matrix);
+        precise vec4 clip;
+        for(int axis=0;axis<4;++axis) {
+            precise vec3 product=p.xyz*rows[axis].xyz;
+            clip[axis]=((product.x+product.y)+product.z)+rows[axis].w;
+        }
+        precise float reciprocal=sign(clip.w)*clamp(abs(1.0/clip.w),
+            5.421010862427522e-20,1.8446744073709552e19);
+        precise vec3 scaled=clip.xyz*vec3(camera.viewport.zw*vec2(.5,-.5),16777215.0);
+        precise vec2 bias=(camera.viewport.zw*.5+camera.viewport.xy)+vec2(.5);
+        precise vec3 screen=scaled*reciprocal+vec3(bias,0);
+        screen.xy=trunc(screen.xy*16.0)/16.0;
+        clip.w=(clip.w<0.0?-1.0:1.0)*clamp(abs(clip.w),
+            5.421010862427522e-20,1.8446744073709552e19);
+        vec2 ndc=(screen.xy-camera.viewport.xy)*2.0/camera.viewport.zw-1.0;
+        gl_Position=vec4(ndc*clip.w,(screen.z/16777215.0)*clip.w,clip.w);
     }
 }

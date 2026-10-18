@@ -59,8 +59,8 @@ std::shared_ptr<const std::filesystem::path> source_storage(
       cache.original_data()->image==OriginalData::Image::TitleUpdate15 && rules.custom==CustomSlayer::none &&
       !options.replay && !options.capture_root && options.reference_player.empty();
   if(!shadow&&!automatic && !options.source_object_world)return {};
-  if(cache.is_mcc())throw FormatError("MCC native world startup and complete Xbox TU1.5 gameplay conversion are incomplete; Xbox reference executables are not runtime inputs");
-  if(options.gameplay_xbe.empty())throw FormatError("Source world requires its authenticated executable");
+  if(options.gameplay_xbe.empty() && !cache.is_mcc())
+    throw FormatError("Source reference world requires its authenticated executable");
   if(!shadow&&!options.source_object_savegame_directory.empty()) {
     std::filesystem::create_directories(options.source_object_savegame_directory);
     return std::make_shared<const std::filesystem::path>(options.source_object_savegame_directory);
@@ -81,8 +81,9 @@ std::unique_ptr<MultiplayerObjectRuntime> object_world(
     const std::shared_ptr<const std::filesystem::path> &storage,
     std::shared_ptr<PhysicsLiveClockSource> clock={}) {
   if(!storage)return {};
-  auto world=clock?std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,options.bsp,*storage,std::move(clock)):
-      std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,options.bsp,*storage);
+  auto world=options.gameplay_xbe.empty()?
+      std::make_unique<MultiplayerObjectRuntime>(cache,options.bsp,*storage,std::move(clock)):
+      std::make_unique<MultiplayerObjectRuntime>(options.gameplay_xbe,cache,options.bsp,*storage,std::move(clock));
   auto variant=options.variant;
   if(options.starting_weapon)variant.values.set(0x59,int(options.starting_weapon));
   if(options.campaign_difficulty) {

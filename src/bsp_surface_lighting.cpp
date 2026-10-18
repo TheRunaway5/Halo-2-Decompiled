@@ -254,6 +254,7 @@ BspSurfaceLighting Cache::load_bsp_surface_lighting(std::size_t index) const {
         const auto base=std::size_t(meta.u32(at+48))+8;
         struct RawStream {std::size_t offset{},size{};bool present{};};
         std::array<RawStream,32> streams{};RawStream descriptors;
+        std::vector<std::uint32_t> canonical_lightmap;
         for(std::size_t r=0;r<resources.count;++r) {
             const auto p=resources.offset+r*16,size=std::size_t(meta.u32(p+8)),offset=base+std::size_t(meta.u32(p+12));
             bytes.require(offset,size);const auto kind=std::to_integer<unsigned>(meta.slice(p,1)[0]);
@@ -277,13 +278,19 @@ BspSurfaceLighting Cache::load_bsp_surface_lighting(std::size_t index) const {
                     if(size!=std::size_t(count)*8)throw FormatError("source diffuse UV invalid");
                     for(unsigned v=0;v<count;++v)g.diffuse_uv.push_back({bytes.f32(offset+v*8),bytes.f32(offset+v*8+4)});
                 } else if(channel==3) {
-                    if(size!=std::size_t(count)*4)throw FormatError("source lightmap UV invalid");
+                    const auto stride=pc_geometry()?8u:4u;
+                    if(size!=std::size_t(count)*stride)throw FormatError("source lightmap UV invalid");
                     constexpr float factor=std::bit_cast<float>(0x37800080u);
-                    for(unsigned v=0;v<count;++v)g.lightmap_uv.push_back({float(2*std::int16_t(bytes.u16(offset+v*4))+1)*factor,
-                        float(2*std::int16_t(bytes.u16(offset+v*4+2))+1)*factor});
+                    for(unsigned v=0;v<count;++v) {
+                        const auto x=pc_geometry()?pack_bsp_lightmap_uv_tu15(bytes.f32(offset+v*8)):
+                            std::int16_t(bytes.u16(offset+v*4));
+                        const auto y=pc_geometry()?pack_bsp_lightmap_uv_tu15(bytes.f32(offset+v*8+4)):
+                            std::int16_t(bytes.u16(offset+v*4+2));
+                        canonical_lightmap.push_back(std::uint16_t(x)|(std::uint32_t(std::uint16_t(y))<<16));
+                        g.lightmap_uv.push_back({float(2*x+1)*factor,float(2*y+1)*factor});
+                    }
                 } else if(channel==4) {
-                    if(size!=std::size_t(count)*4)throw FormatError("source incident stream invalid");
-                    for(unsigned v=0;v<count;++v)g.incident.push_back(bytes.u32(offset+v*4));
+                    if(size!=std::size_t(count)*(pc_geometry()?12u:4u))throw FormatError("source incident stream invalid");
                 }
             }
         }
@@ -294,15 +301,39 @@ BspSurfaceLighting Cache::load_bsp_surface_lighting(std::size_t index) const {
         // (SHORT2 lightmap UV) on an instance definition. This CPU behavior
         // is independent of the GPU's separately bound instance bucket.
         if(!descriptors.present || descriptors.size/32>streams.size())throw FormatError("source render descriptor bank missing");
+        if(pc_geometry()) {
+            // Same PC declarations already admitted by load_bsp. The CPU
+            // bank below restores the original packed representation before
+            // running the unchanged descriptor-selection/interpolation path.
+            const auto declared=[&](unsigned channel,unsigned type,unsigned stride) {
+                if(descriptors.size<(channel+1)*32 ||
+                    bytes.slice(descriptors.offset+channel*32,1)[0]!=std::byte(type) ||
+                    bytes.slice(descriptors.offset+channel*32+1,1)[0]!=std::byte(stride))
+                    throw FormatError("unsupported PC CPU-lighting vertex declaration");
+            };
+            declared(0,1,12);declared(1,23,8);
+            if(streams[2].present)declared(2,25,36);
+            if(streams[3].present)declared(3,29,8);
+            if(streams[4].present)declared(4,47,12);
+        }
         g.incident.clear();const auto descriptor_count=descriptors.size/32;
         if(descriptor_count>3) {
             std::size_t selected=3;
             for(;selected<descriptor_count;++selected)
-                if(bytes.slice(descriptors.offset+selected*32,1)[0]==std::byte{48})break;
+                if(bytes.slice(descriptors.offset+selected*32,1)[0]==(pc_geometry()?std::byte{47}:std::byte{48}))break;
             if(selected==descriptor_count)--selected;
             const auto& stream=streams[selected];
             if(!stream.present || stream.size<std::size_t(count)*4)throw FormatError("CPU incident stream escapes resident geometry");
-            for(unsigned v=0;v<count;++v)g.incident.push_back(bytes.u32(stream.offset+v*4));
+            if(pc_geometry()) {
+                const auto type=bytes.slice(descriptors.offset+selected*32,1)[0];
+                if(selected==4 && type==std::byte{47} && stream.size==std::size_t(count)*12) {
+                    for(unsigned v=0;v<count;++v)g.incident.push_back(pack_bsp_incident_tu15(point(bytes,stream.offset+v*12)));
+                } else if(selected==3 && type==std::byte{29} && canonical_lightmap.size()==count) {
+                    // With no incident declaration, D31C0 interprets the
+                    // final original SHORT2 UV words as packed incident.
+                    g.incident=std::move(canonical_lightmap);
+                } else throw FormatError("unsupported PC CPU incident fallback declaration");
+            } else for(unsigned v=0;v<count;++v)g.incident.push_back(bytes.u32(stream.offset+v*4));
         }
         return g;
     };

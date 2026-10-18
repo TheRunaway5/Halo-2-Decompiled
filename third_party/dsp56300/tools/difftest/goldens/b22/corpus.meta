@@ -1,0 +1,7 @@
+fill 00b71d 0517a3 00d9e5 1f4b27 000050 000080
+case rep_mod_store 0100 0116 200
+case rep_bitrev_store 0116 012e 200
+case do_mod_store 012e 0146 400
+case do_nested_shared_la 0146 0157 400
+case do_nested_shared_la3 0157 016a 800
+case do_nested_shared_la_lc1 016a 0179 400

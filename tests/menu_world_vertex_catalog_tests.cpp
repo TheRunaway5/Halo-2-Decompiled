@@ -97,7 +97,7 @@ int main(int argc,char **argv) {try {
   std::array<MenuWorldVertexCatalogEntry,2> duplicate{first,first};
   rejects([&]{(void)menu_world_vertex_catalog_lookup(duplicate,first_program,declaration);},rejections,
       "catalog accepted two modules for one literal identity");
-  auto damaged=first;damaged.abi++;
+  auto damaged=first;damaged.abi=menu_world_vertex_attribute_catalog_abi+1;
   rejects([&]{(void)menu_world_vertex_catalog_lookup(std::span(&damaged,1),first_program,declaration);},rejections,
       "catalog accepted an incompatible wrapper ABI");
   const std::array<std::uint32_t,5> invalid_spirv{0,0x00010600,0,1,0};damaged=first;damaged.spirv=invalid_spirv;

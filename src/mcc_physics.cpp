@@ -202,6 +202,53 @@ std::vector<std::byte> normalize_graph(Record root,std::span<const std::byte> pa
     relocate(relocate,root,source_address,0,0);
     return result;
 }
+std::vector<MccNormalizedPointerField> normalized_pointer_fields(
+    Record root,std::span<const std::byte> payload,std::uint32_t source_address) {
+    const Bytes data(payload);
+    const auto root_size=root==Record::CollisionRoot?0x34u:0x110u;
+    data.require(0,root_size);
+    if(!source_address || payload.size()>maximum ||
+       std::uint64_t(source_address)+payload.size()>0x100000000ull)
+        throw FormatError("Invalid normalized MCC physics allocation");
+    // These blocks have no admitted compiled layout and were excluded by
+    // normalize_graph. Do not silently treat an unnormalized graph as closed.
+    const auto imports=root==Record::CollisionRoot?0u:0xd0u;
+    const auto errors=root==Record::CollisionRoot?8u:0xd8u;
+    if(data.u32(imports) || data.u32(imports+4) || data.u32(errors) || data.u32(errors+4))
+        throw FormatError("Normalized MCC physics retains import/error descriptors");
+    const auto offset=[&](std::uint32_t pointer,std::size_t bytes) {
+        if(!pointer || pointer<source_address ||
+           std::uint64_t(pointer)-source_address>payload.size() ||
+           bytes>payload.size()-(std::uint64_t(pointer)-source_address))
+            throw FormatError("Normalized MCC physics pointer escapes its owned graph");
+        return std::size_t(pointer-source_address);
+    };
+    std::vector<MccNormalizedPointerField> result;
+    std::set<std::pair<std::size_t,Record>> visited;
+    const auto visit=[&](auto&& self,Record kind,std::size_t at,unsigned depth)->void {
+        if(depth>8 || visited.size()>1000000)
+            throw FormatError("Excessive normalized MCC physics pointer graph");
+        if(!visited.emplace(at,kind).second)return;
+        for(const auto& block:blocks(kind)) {
+            const auto descriptor=at+block.target_offset;
+            data.require(descriptor,8);
+            const auto count=data.u32(descriptor),pointer=data.u32(descriptor+4);
+            if(!count) {
+                if(pointer)throw FormatError("Normalized MCC physics empty descriptor has an address");
+                continue;
+            }
+            const auto bytes=std::uint64_t(count)*block.target_stride;
+            if((!block.data && count>65536) || bytes>maximum)
+                throw FormatError("Excessive normalized MCC physics descriptor extent");
+            const auto bank=offset(pointer,std::size_t(bytes));
+            result.push_back({std::uint32_t(descriptor+4),pointer,std::uint32_t(bytes)});
+            if(!block.data && !blocks(block.record).empty())for(std::size_t n=0;n<count;++n)
+                self(self,block.record,bank+n*block.target_stride,depth+1);
+        }
+    };
+    visit(visit,root,0,0);
+    return result;
+}
 }
 std::vector<std::byte> normalize_mcc_physics_model(std::span<const std::byte> payload,
     std::uint32_t source_address,std::uint32_t target_address,
@@ -212,6 +259,14 @@ std::vector<std::byte> normalize_mcc_collision_model(std::span<const std::byte> 
     std::uint32_t source_address,std::uint32_t target_address,
     const std::function<std::span<const std::byte>(std::uint32_t,std::size_t)>& resident_read) {
     return normalize_graph(Record::CollisionRoot,payload,source_address,target_address,resident_read);
+}
+std::vector<MccNormalizedPointerField> normalized_mcc_physics_pointer_fields(
+    std::span<const std::byte> payload,std::uint32_t source_address) {
+    return normalized_pointer_fields(Record::Root,payload,source_address);
+}
+std::vector<MccNormalizedPointerField> normalized_mcc_collision_pointer_fields(
+    std::span<const std::byte> payload,std::uint32_t source_address) {
+    return normalized_pointer_fields(Record::CollisionRoot,payload,source_address);
 }
 std::vector<std::byte> normalize_mcc_structure_bsp_physics(
     std::span<const std::byte> payload,std::uint32_t source_address) {

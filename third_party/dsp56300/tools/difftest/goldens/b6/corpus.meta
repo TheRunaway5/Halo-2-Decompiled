@@ -1,0 +1,14 @@
+case btst_ssh_pop 0100 0105 100
+case movem_aa_roundtrip 0105 010e 100
+case l_store_gap 010e 012a 100
+case l_store_b_limited_sat 012a 0134 100
+case l_load_pairs 0134 0143 100
+case l_load_ab_ba 0143 015c 100
+case l_short_parallel 015c 016c 100
+case lsl_zero_pair 016c 0178 100
+case ori_mr_scale 0178 0182 100
+case do_rep_inside 0182 018c 400
+case do_body_bsr 018c 019b 400
+case jclr_ssh_pops 019b 01a6 100
+case jsset_ssh_pops 01a6 01b1 100
+case ssh_rmw_inplace 01b1 01bc 100

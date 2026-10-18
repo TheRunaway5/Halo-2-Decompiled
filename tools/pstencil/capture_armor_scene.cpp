@@ -15,6 +15,7 @@
 #include "halo2/source_bsp_resident_plan.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/source_dynamic_model_shaders.hpp"
+#include "halo2/pstencil/light_response_material.hpp"
 #include "halo2/source_object_draw_collector.hpp"
 #include "halo2/source_geometry_lod.hpp"
 #include "halo2/source_camera.hpp"
@@ -341,6 +342,17 @@ int run(int argc,char**argv) {
             {"visible_material_vertex_counts",materials},{"posed_vertices",a.vertices.size()}});
     }
     std::ofstream(output/"variant-bindings.json")<<actor_bindings.dump(2)<<'\n';
+    nlohmann::json light_bindings=nlohmann::json::array();
+    for(const auto& packet:packets)if(packet.pstencil_specular)for(const auto& draw:*packet.pstencil_specular) {
+        const auto& material=mesh.materials.at(draw.material_slot);
+        light_bindings.push_back({{"shader",material.name},{"slot",draw.material_slot},
+            {"phase",pstencil::normal_accumulation_material_2003(material)?"normal-producer":
+                pstencil::normal_light_utility_material_2003(material)?"normal-utility":
+                pstencil::light_utility_material_2003(material)?"utility":pstencil::dependent_light_material_2003(material)?"dependent":"legacy-specular"},
+            {"program",draw.program.words},{"v10",draw.constants[0][10]},{"v11",draw.constants[0][11]},
+            {"normal_format",material.bump.format},{"normal_layers",material.bump.layers}});
+    }
+    std::ofstream(output/"lighting-response-bindings.json")<<light_bindings.dump(2)<<'\n';
     if(SDL_Init(SDL_INIT_VIDEO)!=0)throw FormatError(std::string("SDL video initialization: ")+SDL_GetError());struct Sdl{~Sdl(){SDL_Quit();}} sdl;
     auto window=std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)>(SDL_CreateWindow("pStencil armor in level",0,0,width,height,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN),SDL_DestroyWindow);
     unsigned environment_responses{};
@@ -386,10 +398,14 @@ int run(int argc,char**argv) {
     for(auto& packet:ordinary_armor_specular)if(packet.pstencil_specular &&
         pstencil::arbiter_metal(mesh.materials.at(packet.material_slot).name)) {
         const auto& original=*packet.pstencil_specular;
-        const auto stride=1u+pstencil::arbiter_specular_copies;
+        const bool response=!original.empty() && pstencil::light_utility_material_2003(mesh.materials.at(original.front().material_slot));
+        const bool normal=!original.empty() && pstencil::normal_accumulation_material_2003(mesh.materials.at(original.front().material_slot));
+        const auto base=normal?3u:response?2u:1u;
+        const auto stride=base+pstencil::arbiter_specular_copies;
         require(original.size()%stride==0,"polished armor lost its authored specular groups");
         auto filtered=std::make_shared<std::vector<EffectLightDraw>>();
-        for(unsigned n=0;n<original.size();n+=stride)filtered->push_back(original[n]);
+        for(unsigned n=0;n<original.size();n+=stride)
+            for(unsigned p=0;p<base;++p)filtered->push_back(original[n+p]);
         polish_controls+=unsigned(original.size()/stride)*pstencil::arbiter_specular_copies;packet.pstencil_specular=std::move(filtered);
     }
     require(polish_controls>0 || framing=="visor" || framing=="chief" || framing=="elite",
@@ -403,7 +419,18 @@ int run(int argc,char**argv) {
     auto dynamic_only=packets;for(auto& packet:dynamic_only)packet.pstencil_casts_shadow=false;
     view.raw_effect_lights=dynamic_only;capture("pStencil-dynamic-shadows-only.ppm");
     view.raw_effect_lights=packets;
-    auto diffuse=packets;for(auto& p:diffuse)p.pstencil_specular.reset();view.raw_effect_lights=diffuse;capture("pStencil-diffuse.ppm");
+    auto diffuse=packets;for(auto& p:diffuse)if(p.pstencil_specular) {
+        auto response=std::make_shared<std::vector<EffectLightDraw>>(*p.pstencil_specular);
+        const bool dependent=std::any_of(response->begin(),response->end(),[&](const auto& draw) {
+            return pstencil::dependent_light_material_2003(mesh.materials.at(draw.material_slot));
+        });
+        if(dependent) {
+            for(auto& draw:*response)if(pstencil::dependent_light_material_2003(mesh.materials.at(draw.material_slot)))
+                draw.program.words[13]=0; // Actual original7 specular RGB constant.
+            p.pstencil_specular=std::move(response);
+        } else p.pstencil_specular.reset();
+    }
+    view.raw_effect_lights=diffuse;capture("pStencil-diffuse.ppm");
     view.raw_effect_lights=packets;
     settings.graphics_mode=pstencil::GraphicsMode::Original;renderer.debug_panel().display_settings(settings);capture("Original-restored.ppm");
     const auto file_bytes=[](const auto& path){std::ifstream f(path,std::ios::binary);return std::vector<char>{std::istreambuf_iterator<char>(f),{}};};
@@ -444,7 +471,9 @@ int run(int argc,char**argv) {
             unreflected.materials[n]=clone(clone,unreflected.materials[n]);
         require(cubes>0,"visor has no bound authored environment cube");
         renderer_owner.reset();
-        Renderer control_renderer(window.get(),unreflected,true,{},&bsp_shaders);control_renderer.scene_bsp_atmosphere(cache.load_bsp_atmosphere(0));
+        Renderer control_renderer(window.get(),unreflected,true,{},&bsp_shaders);
+        // Renderer borrows this bank through later swapchain preparation.
+        control_renderer.scene_bsp_atmosphere(atmosphere);
         control_renderer.debug_panel().display_settings(settings);view.raw_effect_lights=packets;
         for(unsigned i=0;i<5;++i)if(control_renderer.draw(view.camera,output/"pStencil-visor-no-reflection.ppm",{},false,{},{},{},std::span(&view,1)))break;
         std::cout<<"Authored visor environment control: cubes="<<cubes<<'\n';

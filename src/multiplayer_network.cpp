@@ -1,9 +1,12 @@
 #include <cstdlib>
-#include "halo2/multiplayer_network.hpp"
+#include "multiplayer_host_continuation_data.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/source_world_pose_wire.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/source_camera.hpp"
+#include "halo2/source_match_authority.hpp"
+#include "halo2/source_authority_binding.hpp"
+#include "halo2/source_player_departure.hpp"
 #include <algorithm>
 #include <bit>
 #include <chrono>
@@ -1550,6 +1553,13 @@ struct LanHost::Impl {
     std::uint32_t snapshot_sequence{};
     bool seen{};
     Clock::time_point last = Clock::now();
+    std::chrono::nanoseconds idle_offset{};
+    auto age(Clock::time_point now)const {
+      const auto elapsed=std::chrono::duration_cast<std::chrono::nanoseconds>(now-last);
+      const auto maximum=std::chrono::nanoseconds::max();
+      return elapsed>=maximum-idle_offset?maximum:elapsed+idle_offset;
+    }
+    void heard(){last=Clock::now();idle_offset={};}
     std::array<Controls, 4> controls{};
     std::array<PressSerials,4> received_presses{},delivered_presses{};
     std::array<InteractionDurations,4> completed{};
@@ -1571,6 +1581,9 @@ struct LanHost::Impl {
   std::deque<PendingPacket> pending_packets;
   // Declared last: stop/join before destroying the socket or queue.
   std::jthread configuration_service;
+  void own()const {
+    if(auto *world=match.source_object_runtime();world&&world->owns_physics())world->require_authority_executor();
+  }
   bool receive_packet(Packet &p,sockaddr_in &from) {
     std::lock_guard lock(receive_mutex);
     if(pending_packets.empty())return udp.receive(p,from);
@@ -1705,9 +1718,189 @@ LanHost::LanHost(MultiplayerMatch &m,std::shared_ptr<MultiplayerDatagrams> relay
   impl_->start_configuration_service();
 }
 unsigned LanHost::port() const { return impl_->udp.port(); }
-unsigned LanHost::peers() const { return unsigned(impl_->peers.size()); }
+unsigned LanHost::peers() const { impl_->own();return unsigned(impl_->peers.size()); }
+MultiplayerMatch &LanHost::continuation_match()const {impl_->own();return impl_->match;}
+std::uint64_t LanHost::continuation_allocation(const Continuation &cut){
+  if(!cut.data_)return 0;const auto &s=*cut.data_;
+  std::uint64_t bytes=sizeof(Continuation::Data)+s.configuration.size()+s.admissions.size()*sizeof(OnlineAdmission)+
+      s.roster.size()*sizeof(SourcePlayerAdmission)+s.peers.size()*sizeof(Continuation::Data::Peer);
+  for(const auto &p:s.admissions)bytes+=p.name.size();
+  for(const auto &p:s.peers){bytes+=p.ids.size()*sizeof(unsigned)+p.selected_teams.size()*sizeof(std::int8_t)+
+      p.profiles.size()*sizeof(std::optional<SourcePlayerConfiguration>);
+    if(p.camera)bytes+=NativeVehicleCamera::checkpoint_allocation(*p.camera);}
+  return bytes;
+}
+namespace {
+std::vector<unsigned> allocated_host_slots(const MultiplayerMatch &match) {
+  std::vector<unsigned> slots;
+  for(unsigned slot=0;slot<multiplayer_capacity;++slot)
+    if(match.player(slot).source_datum!=null_datum)slots.push_back(slot);
+  return slots;
+}
+bool same_host_admissions(std::span<const OnlineAdmission> a,std::span<const OnlineAdmission> b) {
+  if(a.size()!=b.size())return false;
+  for(unsigned i=0;i<a.size();++i)
+    if(a[i].slot!=b[i].slot||a[i].name!=b[i].name||a[i].team!=b[i].team||
+        a[i].identity!=b[i].identity||online_admission_peer(a[i])!=online_admission_peer(b[i])||
+        a[i].guest!=b[i].guest)return false;
+  return true;
+}
+void host_continuation_boundary(MultiplayerObjectRuntime &world) {
+  world.require_authority_executor(true);
+  if(source_execution_inputs(world.memory()))
+    throw FormatError("Host continuation requires a completed native frame");
+}
+std::array<std::uint32_t,4> host_local_players(MultiplayerObjectRuntime &world) {
+  const auto &bank=world.memory();const auto census=Bytes(bank.view(0x4f54f0u,4)).u32(0);
+  std::array<std::uint32_t,4> players{};
+  bank.read(census+offsetof(SourceDepartureCensus,users),std::as_writable_bytes(std::span(players)));
+  return players;
+}
+void host_loss_contexts(const AuthorityTransferContext &previous,const AuthorityTransferContext &next){
+  if(previous.host>=16||next.host>=16||previous.host==next.host||
+      !(previous.peers&(1u<<previous.host))||!(next.peers&(1u<<next.host))||
+      next.session!=previous.session||previous.epoch==UINT32_MAX||next.epoch!=previous.epoch+1||
+      next.membership_revision<=previous.membership_revision||
+      next.peers!=std::uint16_t(previous.peers&~(1u<<previous.host)))
+    throw FormatError("Host loss requires an independently agreed next generation and survivor membership");
+}
+}
+LanHost::Continuation LanHost::checkpoint(MultiplayerMatch::AuthorityDigest binding)const {
+  const auto &h=*impl_;auto *world=h.match.source_object_runtime();
+  if(!h.udp.relay||!world||!world->owns_physics()||
+      std::ranges::all_of(binding,[](auto b){return b==std::byte{};}))
+    throw FormatError("Host continuation requires an admitted native cut and logical peer transport");
+  host_continuation_boundary(*world);SourceMatchAuthority authority(h.match,*world);
+  const auto before=authority.execution_boundary();
+  auto saved=std::make_shared<Continuation::Data>();
+  saved->binding=binding;saved->fingerprint=h.fingerprint;saved->tick=before.tick;
+  saved->configuration=h.session_configuration;saved->admissions=h.admissions;
+  saved->local_players=host_local_players(*world);
+  saved->roster=authority.player_admissions(allocated_host_slots(h.match));
+  const auto now=Clock::now();std::uint16_t endpoints{},slots{};
+  for(const auto &peer:h.peers) {
+    const auto endpoint=ntohl(peer.address.sin_addr.s_addr)-1;
+    if(endpoint>=multiplayer_capacity||peer.address.sin_port||peer.address.sin_family!=AF_INET||
+        (endpoints&(1u<<endpoint))||peer.ids.empty()||peer.ids.size()>4)
+      throw FormatError("Host continuation has an invalid logical endpoint bank");
+    endpoints|=std::uint16_t(1u<<endpoint);
+    std::vector<unsigned> admitted;
+    for(const auto &p:h.admissions)if(online_admission_peer(p)==endpoint)admitted.push_back(p.slot);
+    if(admitted!=peer.ids||peer.selected_teams.size()!=peer.ids.size()||peer.profiles.size()!=peer.ids.size())
+      throw FormatError("Host continuation differs from its accepted couch roster");
+    for(auto slot:peer.ids) {
+      if(slot>=multiplayer_capacity||(slots&(1u<<slot))||h.match.player(slot).source_datum==null_datum||
+          (h.match.player(slot).source_flags&2u))
+        throw FormatError("Host continuation has a missing, duplicate or departed remote player");
+      slots|=std::uint16_t(1u<<slot);
+    }
+    auto &p=saved->peers.emplace_back();p.endpoint=endpoint;p.nonce=peer.nonce;p.cookie=peer.cookie;
+    p.ids=peer.ids;p.selected_teams=peer.selected_teams;p.profiles=peer.profiles;
+    p.sequence=peer.sequence;p.snapshot_sequence=peer.snapshot_sequence;p.seen=peer.seen;
+    p.idle=peer.age(now);p.controls=peer.controls;p.received_presses=peer.received_presses;
+    p.delivered_presses=peer.delivered_presses;p.completed=peer.completed;p.completed_vehicle=peer.completed_vehicle;
+    if(peer.vehicle_camera)p.camera=peer.vehicle_camera->checkpoint(binding);
+    p.camera_tick=peer.vehicle_camera_tick;p.vehicle_views=peer.vehicle_views;p.death_views=peer.death_views;
+    p.camera_jump_serial=peer.camera_jump_serial;
+  }
+  if(authority.execution_boundary()!=before)
+    throw FormatError("Native world changed during host continuation capture");
+  Continuation result;result.data_=std::move(saved);return result;
+}
+std::unique_ptr<LanHost> LanHost::resume(MultiplayerMatch &match,std::shared_ptr<MultiplayerDatagrams> transport,
+    std::uint64_t fingerprint,std::vector<OnlineAdmission> admissions,const Continuation &cut,
+    MultiplayerMatch::AuthorityDigest binding,std::span<const SourcePlayerAdmission> accepted_roster) {
+  auto *world=match.source_object_runtime();
+  if(!cut.data_||!transport||!world||!world->owns_physics())
+    throw FormatError("Host continuation requires owning state, a native world and logical transport");
+  host_continuation_boundary(*world);SourceMatchAuthority authority(match,*world);
+  const auto before=authority.execution_boundary();const auto &saved=*cut.data_;
+  const auto actual=authority.player_admissions(allocated_host_slots(match));
+  std::vector<SourcePlayerAdmission> accepted(accepted_roster.begin(),accepted_roster.end());
+  std::ranges::sort(accepted,{},&SourcePlayerAdmission::slot);
+  if(saved.binding!=binding||saved.fingerprint!=fingerprint||saved.tick!=before.tick||
+      !same_host_admissions(saved.admissions,admissions)||accepted!=saved.roster||actual!=accepted||
+      saved.local_players!=host_local_players(*world))
+    throw FormatError("Host continuation differs from its admitted cut, native identities or connection roster");
+  for(const auto &peer:saved.peers)for(unsigned view=0;view<peer.ids.size();++view){
+    const auto slot=peer.ids[view];const auto admitted=std::ranges::find(admissions,slot,&OnlineAdmission::slot);
+    if(admitted==admissions.end()||peer.profiles[view]!=match.player(slot).source_profile_request||
+        peer.selected_teams[view]!=(match.team_mode()?admitted->team:-1))
+      throw FormatError("Host continuation has a different admitted profile request or join team");
+  }
+  auto host=std::make_unique<LanHost>(match,std::move(transport),fingerprint,std::move(admissions));
+  auto &h=*host->impl_;
+  if(h.session_configuration!=saved.configuration)
+    throw FormatError("Host continuation has a different native session configuration");
+  h.peers.reserve(saved.peers.size());const auto now=Clock::now();
+  for(const auto &p:saved.peers) {
+    Impl::Peer peer;peer.address={};peer.address.sin_family=AF_INET;
+    peer.address.sin_addr.s_addr=htonl(p.endpoint+1);peer.nonce=p.nonce;peer.cookie=p.cookie;
+    peer.ids=p.ids;peer.selected_teams=p.selected_teams;peer.profiles=p.profiles;
+    peer.sequence=p.sequence;peer.snapshot_sequence=p.snapshot_sequence;peer.seen=p.seen;
+    // Retain the observed idle age. Time spent in the paused continuation is
+    // neither fresh peer traffic nor time executing the resumed match.
+    peer.last=now;peer.idle_offset=p.idle;peer.controls=p.controls;peer.received_presses=p.received_presses;
+    peer.delivered_presses=p.delivered_presses;peer.completed=p.completed;peer.completed_vehicle=p.completed_vehicle;
+    if(p.camera) {
+      if(!match.original_data())throw FormatError("Host continuation lost native camera constants");
+      peer.vehicle_camera=std::make_unique<NativeVehicleCamera>(*world,*match.original_data());
+      auto prepared=peer.vehicle_camera->prepare(*p.camera,binding);
+      if(!peer.vehicle_camera->commit(std::move(prepared)))
+        throw FormatError("Host continuation could not restore its private remote camera");
+    }
+    peer.vehicle_camera_tick=p.camera_tick;peer.vehicle_views=p.vehicle_views;peer.death_views=p.death_views;
+    peer.camera_jump_serial=p.camera_jump_serial;h.peers.push_back(std::move(peer));
+  }
+  if(authority.execution_boundary()!=before)
+    throw FormatError("Native world changed during host continuation preparation");
+  return host;
+}
+LanHost::HostLossResume LanHost::resume_after_host_loss(MultiplayerMatch &match,
+    std::shared_ptr<MultiplayerDatagrams> transport,std::uint64_t fingerprint,std::vector<OnlineAdmission> admissions,
+    const Continuation &cut,const AuthorityTransferContext &previous,const AuthorityTransferContext &next,
+    std::span<const SourcePlayerAdmission> accepted){
+  host_loss_contexts(previous,next);
+  const auto before_binding=source_authority_binding(previous),after_binding=source_authority_binding(next);
+  auto *world=match.source_object_runtime();
+  if(!cut.data_||!world||!world->owns_physics()||cut.data_->binding!=before_binding)
+    throw FormatError("Host loss has no owning native predecessor continuation");
+  host_continuation_boundary(*world);SourceMatchAuthority authority(match,*world);const auto before=authority.execution_boundary();
+  const auto &saved=*cut.data_;const auto promoted=std::ranges::find(saved.peers,next.host,&Continuation::Data::Peer::endpoint);
+  if(promoted==saved.peers.end())throw FormatError("Replacement host has no admitted predecessor peer state");
+  std::vector<unsigned> local_slots;
+  for(const auto &p:admissions)if(online_admission_peer(p)==next.host)local_slots.push_back(p.slot);
+  if(local_slots.empty()||local_slots!=promoted->ids||local_slots.size()>4)
+    throw FormatError("Replacement host has a different admitted couch roster");
+  std::array<std::uint32_t,4> local_players;local_players.fill(null_datum);
+  for(unsigned i=0;i<local_slots.size();++i){const auto found=std::ranges::find(accepted,local_slots[i],&SourcePlayerAdmission::slot);
+    if(found==accepted.end())throw FormatError("Replacement host omitted an independently admitted local player");
+    local_players[i]=found->player;
+  }
+  if(host_local_players(*world)!=local_players)
+    throw FormatError("Replacement native world has not rebound to its new local couch views");
+  const auto rebind_camera=[&](const Continuation::Data::Peer &p){
+    std::optional<NativeVehicleCamera::Checkpoint> camera;
+    if(p.camera){std::vector<SourcePlayerAdmission> views;
+      for(auto slot:p.ids){const auto found=std::ranges::find(accepted,slot,&SourcePlayerAdmission::slot);
+        if(found==accepted.end())throw FormatError("Host loss omitted a camera's independent player admission");views.push_back(*found);}
+      camera=NativeVehicleCamera::rebind_checkpoint(*p.camera,before_binding,after_binding,views);
+    }return camera;
+  };
+  LocalContinuation local{promoted->ids,promoted->controls,promoted->received_presses,promoted->delivered_presses,
+      promoted->completed,promoted->completed_vehicle,rebind_camera(*promoted),promoted->camera_tick,
+      promoted->vehicle_views,promoted->death_views,promoted->camera_jump_serial};
+  auto rebound=std::make_shared<Continuation::Data>(saved);rebound->binding=after_binding;rebound->local_players=local_players;
+  std::erase_if(rebound->peers,[&](const auto &p){return p.endpoint==next.host;});
+  for(auto &p:rebound->peers)p.camera=rebind_camera(p);
+  Continuation incoming;incoming.data_=std::move(rebound);
+  auto host=resume(match,std::move(transport),fingerprint,std::move(admissions),incoming,after_binding,accepted);
+  if(authority.execution_boundary()!=before)throw FormatError("Host role transition changed its native world");
+  return {std::move(host),std::move(local)};
+}
 void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
   auto &h = *impl_;
+  h.own();
   Packet p;
   sockaddr_in from{};
   for (unsigned packets = 0; packets < 256 && h.receive_packet(p, from); ++packets)
@@ -1755,7 +1948,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
                          [&](const auto &v) { return same(v.address, from); });
         if (peer != h.peers.end()) {
           if (peer->nonce == nonce && peer->selected_teams == selected_teams && peer->profiles==profiles) {
-            peer->last = Clock::now();
+            peer->heard();
             h.respond(*peer);
           }
           continue;
@@ -1835,7 +2028,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
           }
           peer->sequence = sequence;
           peer->seen = true;
-          peer->last = Clock::now();
+          peer->heard();
         }
       }
     } catch (const FormatError
@@ -1843,7 +2036,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
     }
   for (std::size_t i = 0; i < h.peers.size();) {
     auto &peer = h.peers[i];
-    const auto age = Clock::now() - peer.last;
+    const auto age = peer.age(Clock::now());
     if (age > std::chrono::seconds(5)) {
       h.remove(i);
       continue;
@@ -1880,6 +2073,7 @@ void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
   }
 }
 void LanHost::broadcast() {
+  impl_->own();
   for (auto &peer : impl_->peers)
     impl_->respond(peer);
 }
@@ -1911,6 +2105,9 @@ struct LanClient::Impl {
   std::string error;
   Clock::time_point last = Clock::now();
   std::optional<Clock::time_point> started;
+  std::optional<AuthorityTransferContext> continuity;
+  unsigned physical_self=16;
+  std::optional<std::uint32_t> rebound_tick;
   Impl(std::string address, std::uint64_t f, unsigned n, std::span<const std::int8_t> teams,
       std::span<const SourcePlayerConfiguration> selected_profiles)
       : host(resolve(std::move(address))), fingerprint(f), count(n) {
@@ -2031,7 +2228,7 @@ void LanClient::receive() {
       const auto cookie = r.get(8);
       const auto sequence=std::uint32_t(r.get(4));
       const auto index=unsigned(r.get(2)), fragments=unsigned(r.get(2)), total=unsigned(r.get(4));
-      if ((v.connected && (cookie != v.cookie || !newer(sequence,v.snapshot_sequence))))
+      if ((v.connected && (cookie != v.cookie || (!v.rebound_tick&&!newer(sequence,v.snapshot_sequence)))))
         continue;
       if(!total || total>snapshot_limit || !fragments ||
           fragments!=(total+snapshot_chunk-1)/snapshot_chunk || index>=fragments ||
@@ -2039,7 +2236,7 @@ void LanClient::receive() {
         throw FormatError("Invalid native LAN snapshot fragment");
       for(auto at=v.assemblies.begin();at!=v.assemblies.end();)
         if(Clock::now()-at->second.started>std::chrono::seconds(1) ||
-            (v.connected && !newer(at->first,v.snapshot_sequence)))at=v.assemblies.erase(at);
+            (v.connected && !v.rebound_tick && !newer(at->first,v.snapshot_sequence)))at=v.assemblies.erase(at);
         else ++at;
       auto at=v.assemblies.find(sequence);
       if(at==v.assemblies.end()) {
@@ -2089,16 +2286,20 @@ void LanClient::receive() {
       for (auto id : ids)
         if (!state.players[id].connected)
           throw FormatError("Missing assigned LAN player");
+      if(v.rebound_tick){
+        if(ids!=v.ids||!(state.tick==*v.rebound_tick||newer(state.tick,*v.rebound_tick)))continue;
+      }
       // A newer complete native snapshot can change roster/ownership between
       // world ticks. Its transport sequence already rejects stale fragments;
       // permit equal clocks without advancing the original simulation clock.
-      if (!v.connected || state.tick == v.state.tick || newer(state.tick, v.state.tick)) {
+      if (v.rebound_tick || !v.connected || state.tick == v.state.tick || newer(state.tick, v.state.tick)) {
         v.cookie = cookie;
         v.ids = ids;
         v.state = state;
         v.received_states.push_back(std::move(state));
         v.connected = true;
         v.last = Clock::now();
+        v.rebound_tick.reset();
       }
       v.snapshot_sequence=sequence;
     } catch (const FormatError &) {
@@ -2113,4 +2314,26 @@ const MultiplayerState &LanClient::state() const { return impl_->state; }
 std::span<const MultiplayerState> LanClient::received_states() const { return impl_->received_states; }
 std::span<const unsigned> LanClient::slots() const { return impl_->ids; }
 std::string LanClient::error() const { return impl_->error; }
+void LanClient::bind_continuity(const AuthorityTransferContext &context,unsigned self,std::span<const OnlineAdmission> roster){
+  auto &v=*impl_;
+  if(!v.udp.relay||!v.connected||!v.error.empty()||v.continuity||self>=16||context.host>=16||
+      context.host==self||!(context.peers&(1u<<self))||!(context.peers&(1u<<context.host))||
+      ntohl(v.host.sin_addr.s_addr)!=context.host+1||v.host.sin_port||
+      std::ranges::all_of(context.session,[](auto b){return b==std::byte{};}))
+    throw FormatError("Client continuity requires its independently admitted native peer context");
+  std::vector<unsigned> slots;std::uint16_t seen{};
+  for(const auto &p:roster){if(p.slot>=16||(seen&(1u<<p.slot)))throw FormatError("Client continuity has a duplicate admitted slot");
+    seen|=std::uint16_t(1u<<p.slot);if(online_admission_peer(p)==self)slots.push_back(p.slot);}
+  if(slots!=v.ids)throw FormatError("Client continuity differs from its accepted couch slots");
+  v.continuity=context;v.physical_self=self;
+}
+void LanClient::rebind_host(const AuthorityTransferContext &previous,const AuthorityTransferContext &next,const AuthorityCutSeal &cut){
+  auto &v=*impl_;host_loss_contexts(previous,next);
+  if(!v.udp.relay||!v.connected||!v.continuity||*v.continuity!=previous||v.physical_self==next.host||
+      !(next.peers&(1u<<v.physical_self))||!cut.id||!cut.bytes||cut.tick>UINT32_MAX||
+      std::ranges::all_of(cut.digest,[](auto b){return b==std::byte{};}))
+    throw FormatError("Client host rebind has a stale context, unadmitted role or missing accepted cut");
+  v.host.sin_addr.s_addr=htonl(next.host+1);v.continuity=next;v.assemblies.clear();v.received_states.clear();
+  v.rebound_tick=std::uint32_t(cut.tick);v.last=Clock::now();v.started.reset();v.attempts=0;v.error.clear();
+}
 } // namespace halo2

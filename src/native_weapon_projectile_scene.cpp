@@ -11,6 +11,15 @@
 #include <iostream>
 
 namespace halo2 {
+namespace {
+std::span<const std::byte> resident_projectile_metadata(const Cache &cache,
+    std::uint32_t address,std::size_t extent) {
+    const auto owner=cache.query_tag({.contains=TagAddressRange{address,extent},.require_address=true});
+    if(!owner)throw FormatError("Projectile metadata pointer has no retained source owner");
+    (void)cache.tag_payload(owner->handle());
+    return cache.read_tag_bytes(address,extent);
+}
+}
 struct NativeWeaponProjectileScene::Impl {
     struct Color {unsigned channel{};Vec3 lower,upper;};
     struct Bank {
@@ -41,8 +50,10 @@ struct NativeWeaponProjectileScene::Impl {
         if(metadata.group()!="proj" || object.u16(0)!=5)throw FormatError("Projectile glow lost its actual definition type");
         if(object.u32(0x38)!=0xffffffffu)return; // Posed model markers retain their own owner.
         std::vector<LightAttachment> attachments;
-        const Bytes rows(object.u32(0x94)?metadata.bytes_at(object.u32(0x98),std::size_t(object.u32(0x94))*0x18):std::span<const std::byte>{});
-        for(unsigned n=0;n<object.u32(0x94);++n) {
+        const auto descriptor=read_tag_block_descriptor(object,0x94);
+        const auto extent=descriptor.extent(0x18,4095);
+        const Bytes rows(descriptor.count?resident_projectile_metadata(cache,descriptor.address,extent):std::span<const std::byte>{});
+        for(unsigned n=0;n<unsigned(descriptor.count);++n) {
             const auto at=n*0x18;
             if(rows.u32(at)!=0x4d475332u || rows.u32(at+4)==0xffffffffu)continue;
             // Whole41980/B8D30/BE6D0 on these actual no-model/free tags:
@@ -108,8 +119,11 @@ struct NativeWeaponProjectileScene::Impl {
                     if(!channel.permutations.empty() || channel.function_count>1)
                         throw FormatError("projectile color selection requires its constructor owner");
                     if(!channel.function_count)continue;
-                    const Bytes row(tag.bytes_at(object.u32(0xb0)+i*16,16));
-                    const Bytes function(tag.bytes_at(row.u32(12),40));
+                    const auto channels=read_tag_block_descriptor(object,0xac);
+                    const Bytes rows(resident_projectile_metadata(c,channels.address,channels.extent(16,4)));
+                    const auto functions=read_tag_block_descriptor(rows,i*16+8);
+                    if(functions.count!=1)throw FormatError("Projectile color function descriptor differs from its source channel");
+                    const Bytes function(resident_projectile_metadata(c,functions.address,functions.extent(40,1)));
                     // Literal BE8E0/131C20 RGB interpolation on the actual
                     // FBE80 acceleration_range input, with no scale function.
                     if(function.u32(0) || function.u32(4) || function.u32(32) || function.u32(36)!=0x12000565u)

@@ -86,6 +86,7 @@ Installation locate() {
       continue;
     const auto project = fs::canonical(root);
     std::vector<fs::path> binaries{directory / native_name,
+                                  project / "bin" / native_name,
                                   project / "build" / native_name};
     // Installed local launchers retain their configured build directory.
     // A relocated launcher only searches the project beside it.
@@ -231,6 +232,8 @@ bool runtime_supports_preview(const fs::path &runtime) {
       "sys.exit(result.returncode!=0)\n",runtime.string()})==0;
 }
 fs::path launcher_executable(const fs::path &root) {
+  if(fs::is_regular_file(root/"PRECOMPILED_TEST_BUILD.json"))
+    return root/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
 #if defined(__linux__)
   std::error_code error;
   auto path=fs::read_symlink("/proc/self/exe",error);
@@ -286,6 +289,7 @@ int main(int argc, char **argv) {
                 << "MCC cache: " << sources.cache.string() << '\n'
                 << "MCC maps: " << (sources.ready()?sources.maps().string():"") << '\n'
                 << "Native MCC gameplay ready: " << (sources.playable?"yes":"no") << '\n'
+                << "Play: " << (sources.playable?"native gameplay":sources.ready()?"MCC content test build":"import MCC first") << '\n'
                 << "MCC content preview: " << (sources.ready()?"available":"import MCC first") << '\n'
                 << "Status: " << (!sources.problem.empty()?sources.problem:
                     !sources.ready()?"MCC has not been imported yet. Run --setup.":
@@ -300,10 +304,13 @@ int main(int argc, char **argv) {
           "--prepare-mcc-gameplay [--mcc-source PATH] prepares and selects that cache, then exits.\n"
           "--launcher-info reports cache and native-gameplay readiness.\n"
           "--preview-mcc [--map NAME] previews imported map assets with the existing renderer.\n"
-          "--update downloads changes and rebuilds; --launch-game skips the launcher home.\n";
+          "--update downloads changes and rebuilds; --launch-game skips the launcher home.\n"
+          "While conversion is in progress, Play and --launch-game open the MCC content test build.\n";
       return 0;
     }
     if(update) {
+      if(fs::is_regular_file(installation.root/"PRECOMPILED_TEST_BUILD.json"))
+        throw std::runtime_error("This is a precompiled test package. Extract a newer test ZIP to update it.");
       if(setup || launch_game || !supplied.empty())
         throw std::runtime_error("Use --update by itself to download changes and rebuild the game");
       return run_tool({HALO2_PYTHON_EXECUTABLE,
@@ -330,17 +337,29 @@ int main(int argc, char **argv) {
       installation=locate();sources=read_sources(installation.root);
     }
     if(!sources.ready())throw std::runtime_error("The MCC cache needs preparation. Run --setup. "+sources.problem);
-    if(!sources.playable && !preview)throw std::runtime_error(not_playable);
+    if(!sources.playable && !preview) {
+      if((!launch_game && !supplied.empty()) || has("--multiplayer") || has("--play") ||
+          has("--campaign") || has("--simulate") || has("--host") || has("--join") || has("--dedicated"))
+        throw std::runtime_error(not_playable);
+      // Explicit test access requested by the user. Reuse the verified asset
+      // viewer; do not admit unfinished gameplay or change conversion flags.
+      preview=true;
+      std::cout<<"Launching MCC content test build. Native gameplay and Xbox TU1.5 conversion remain in progress.\n";
+    }
     if(preview) {
       preview_arguments(supplied,installation,sources);
       const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,
           (installation.root/"tools/repair_mcc_shaders.py").string(),"--root",installation.root.string()});
       if(status)return status;
     }
-    const bool outdated_preview_runtime=preview && !installation.runtime.empty() && !runtime_supports_preview(installation.runtime);
+    const bool precompiled=fs::is_regular_file(installation.root/"PRECOMPILED_TEST_BUILD.json");
+    // A packaged runtime is pinned and feature-checked when the ZIP is made.
+    // It has no source/build dependency and must never enter an auto-build.
+    const bool outdated_preview_runtime=preview && !precompiled && !installation.runtime.empty() && !runtime_supports_preview(installation.runtime);
     bool rebuilt=false;
     if(outdated_preview_runtime)std::cout<<"Updating the runtime for MCC content preview…\n"<<std::flush;
     if(installation.runtime.empty() || fs::exists(update_pending) || outdated_preview_runtime) {
+      if(precompiled)throw std::runtime_error("The precompiled runtime is missing or incomplete. Extract the complete test ZIP again.");
       const auto tool=installation.root/"tools/build_runtime.py";
       if(!fs::is_regular_file(tool))throw std::runtime_error("Automatic build tool is missing: "+tool.string());
       const auto status=run_tool({HALO2_PYTHON_EXECUTABLE,tool.string(),"--root",

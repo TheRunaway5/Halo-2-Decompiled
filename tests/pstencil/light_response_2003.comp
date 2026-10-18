@@ -1,0 +1,38 @@
+#version 450
+#extension GL_GOOGLE_include_directive : require
+layout(local_size_x=1) in;
+struct Fixture {
+    uvec4 utility[15];
+    uvec4 dependent[15];
+    vec4 samples[4];
+    vec4 mappedTexture;
+    vec4 gel;
+    vec4 diffuseMaterial;
+    vec4 specularMaterial;
+};
+layout(set=0,binding=0,std430) readonly buffer Inputs {Fixture fixtures[];};
+layout(set=0,binding=1,std430) writeonly buffer Outputs {vec4 results[];};
+uint fixtureIndex;
+bool dependentPhase;
+uint selectedWord(uint index) {
+    return dependentPhase ? fixtures[fixtureIndex].dependent[index/4u][index%4u]
+        : fixtures[fixtureIndex].utility[index/4u][index%4u];
+}
+#define H2_COMBINER_WORD(index) selectedWord(index)
+#include "combiner.glsl"
+void main() {
+    fixtureIndex=gl_GlobalInvocationID.x;dependentPhase=false;
+    vec4 samples[4];
+    for(uint i=0u;i<4u;++i)samples[i]=fixtures[fixtureIndex].samples[i];
+    vec4 utility=runCombiners(samples,vec4(0,0,0,1),vec4(0,0,0,1));
+    results[fixtureIndex*2u]=utility;
+    // Explicit normalized 8-bit intermediate fixture. The actual original
+    // target is linear A8R8G8B8; native pass scheduling and original hardware
+    // conversion precision require separate framebuffer verification.
+    vec4 stored=roundEven(clamp(utility,0.0,1.0)*255.0)/255.0;
+    dependentPhase=true;
+    samples[0]=fixtures[fixtureIndex].mappedTexture;
+    samples[1]=stored;samples[2]=vec4(0);samples[3]=fixtures[fixtureIndex].gel;
+    results[fixtureIndex*2u+1u]=runCombiners(samples,
+        fixtures[fixtureIndex].diffuseMaterial,fixtures[fixtureIndex].specularMaterial);
+}

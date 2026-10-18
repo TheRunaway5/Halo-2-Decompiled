@@ -13,6 +13,8 @@
 #include "halo2/vista_player_birth.hpp"
 #include "halo2/source_player_damage.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
+#include "halo2/script_clock_builtin.hpp"
+#include "halo2/source_script_rumble_tu15.hpp"
 #include "halo2/source_execution_inputs.hpp"
 #include "halo2/source_execution_calls.hpp"
 #include "halo2/source_shadow.hpp"
@@ -277,18 +279,36 @@ MultiplayerMatch::MultiplayerMatch(const LevelContent &content, std::size_t bsp,
                                   if(parent.netgame_row>=0)
                                       return source_object_world->netgame_object(unsigned(parent.netgame_row));
                                   if(parent.model_attachment)
-                                      return source_object_world->child_object(self(self,parent.model_attachment->parent,depth+1u),parent.definition);
+                                      return source_object_world->model_child_object(self(self,parent.model_attachment->parent,depth+1u),parent.definition,parent.model_attachment->parent_marker,parent.model_attachment->child_marker);
                                   throw FormatError("Source vehicle child requires its actual retained parent identity");
                               };
                               const auto parent=resolve(resolve,placement.model_attachment->parent,0);
-                              const auto child=source_object_world->child_object(parent,placement.definition);
+                              const auto child=source_object_world->model_child_object(parent,placement.definition,placement.model_attachment->parent_marker,placement.model_attachment->child_marker);
                               if(child==null_datum)throw FormatError("Original source vehicle constructor has not published its authored model child");
                               return child;
                           }
                           return source_object_world->create_scenario_object(placement,birth);
                       },
-                      [source_object_world](auto object){source_object_world->destroy_object(object);}}
-                      : SourceSceneObjectOwner{}),
+                      [source_object_world](auto object){source_object_world->destroy_object(object);},
+                      [source_object_world](const auto &placement,std::uint32_t parent) {
+                          if(parent==null_datum || !placement.model_attachment)
+                              throw FormatError("Source model child requires its actual authored parent generation");
+                          const auto child=source_object_world->model_child_object(parent,placement.definition,placement.model_attachment->parent_marker,placement.model_attachment->child_marker);
+                          if(child==null_datum || source_object_world->object_parent(child)!=parent)
+                              throw FormatError("Original source parent has not published the requested authored child");
+                          return child;
+                      }}
+                      : SourceSceneObjectOwner{}, {},
+                  source_object_world && source_object_world->owns_physics()
+                      ? Simulation::ScriptTickRate([source_object_world]{
+                          return source_script_tick_rate(source_object_world->memory());})
+                      : Simulation::ScriptTickRate{},
+                  source_object_world && source_object_world->owns_physics()
+                      ? Simulation::ScriptSetMaxRumble([source_object_world](float left,float right){
+                          auto &world=source_object_world->tu15_world();
+                          source_script_max_rumble_tu15(world.memory(),[&](auto address,auto bytes){
+                            world.write_source_call_input(address,bytes);},left,right);})
+                      : Simulation::ScriptSetMaxRumble{}),
       spawns_(spawns.begin(), spawns.end()),source_spawn_input_(std::move(source_spawn_input)), rules_(rules),king_services_(std::move(king_services)),
       player_pool_(source_object_world ? DatumPool(source_object_world->memory(),source_object_world->player_pool())
                                       : DatumPool("players",multiplayer_capacity,0x21c)),
@@ -1811,10 +1831,24 @@ void MultiplayerMatch::step(
       source_result_lifetime_tick(*publication,i,{clock,30,1,
           players_[i].source_current_object!=null_datum,true,!results_finalized_,!finished_});
   step_weapon_pickups(controls);
+  auto delivered=controls;
   if(simulation_.source_physics_movement_) {
     for(unsigned i=0;i<players_.size();++i) {
       const auto &p=players_[i];
       if(!p.connected || p.source_current_object==null_datum || unit(i).vitality.dead)continue;
+      const DatumPool &pool=player_pool_;const auto row=pool.lookup(p.source_datum);
+      if(row.size()<offsetof(SourceDeparturePlayer,current_unit)+4)
+        throw FormatError("Native command lost its full source player allocation");
+      const auto current=Bytes(std::as_bytes(row)).u32(offsetof(SourceDeparturePlayer,current_unit));
+      // A completed native fatal phase may detach the player between Match
+      // ticks. Original control admission uses that actual current-unit owner;
+      // the later world/death readback still retains and accounts for the body.
+      if(current==null_datum){
+        delivered[i]={};delivered[i].yaw=unit(i).yaw;delivered[i].pitch=unit(i).pitch;
+        continue;
+      }
+      if(current!=p.source_current_object)
+        throw FormatError("Native command and player disagree about the current unit");
       const auto &input=controls[i];std::array<std::byte,0x5c> command;
       initialize_source_neutral_command(command);
       const auto put=[&](unsigned offset,std::uint32_t bits,unsigned bytes=4) {
@@ -1886,7 +1920,6 @@ void MultiplayerMatch::step(
       source_object_world_->deliver_command(p.source_datum,p.source_current_object,command);
     }
   }
-  auto delivered=controls;
   for(unsigned i=0;i<players_.size();++i)if(players_[i].source_flags&2u) {
     delivered[i]={};delivered[i].yaw=unit(i).yaw;delivered[i].pitch=unit(i).pitch;
   }
@@ -2463,7 +2496,7 @@ MultiplayerState MultiplayerMatch::state() const {
       root.frozen=(std::to_integer<unsigned>(bank.view(body+0xc1u,1)[0])&1u)!=0;
       root.created_tick=object.created_tick;
       root.attached_effects=source_object_world_->attached_effects(object.handle);
-      if(content_.objects.at(object.placement).type==6)
+      if(const auto type=content_.objects.at(object.placement).type;type==6 || type==11)
         root.model_regions=source_object_world_->object_model_regions(object.handle);
       result.source_scene_roots.push_back(root);
       if(!object.solved_nodes->empty())result.source_body_poses.push_back({object.handle,*object.solved_nodes,

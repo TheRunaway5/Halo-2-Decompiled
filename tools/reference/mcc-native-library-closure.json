@@ -1,0 +1,654 @@
+{
+  "schema": "H2_MCC_RETAINED_NATIVE_LIBRARY_CLOSURE_V1",
+  "source_map": "01b_spacestation",
+  "source_canonical_sha256": "db415f7973f0cc7a966148db98fd2837c8dfd3c4c320e534eec00ae7e11beb41",
+  "closure": [
+    [
+      "stem",
+      "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\bloom\\bloom"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\stencil_texture"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\fog\\fog_planar"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\fog_planar"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\stencil_emissive"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\lightmap\\lightmap_tex"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightmap_dynamic_tex"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightmap_pervertex_tex"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightmap_perpixel_tex"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\light_response\\default_light_combined_tangentspace_specular_sphere"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\stencil_light_specular_tangentspace_sphere"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\light_response\\default_light_combined_tex_first_person_detail"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_tex_first_person_change_color"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_no_specular_gel_tex"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_no_specular_tex"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightaccum_sphere_diffuse_tex"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightaccum_frustum_tex"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\shadow\\shadow_apply_combined"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\shadow_buffer_application_3tap"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\shadow_buffer_application_lightmap"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\shadow_buffer_application_1tap"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\shadow\\shadow_generate"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\shadow_buffer_generation"
+    ],
+    [
+      "spas",
+      "shaders\\shader_passes\\lightmap\\lightmap_tex_detail"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightmap_dynamic_tex_detail"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightmap_pervertex_tex_detail"
+    ],
+    [
+      "vrtx",
+      "rasterizer\\vertex_shaders_xbox\\lightmap_perpixel_tex_detail"
+    ]
+  ],
+  "libraries": [
+    {
+      "map": "00a_introduction",
+      "canonical_sha256": "524aa9fef932f89e3110f1410c1535530d9f2470b8b4d2f3079dbe84c4ffe49a",
+      "existing_records": 512,
+      "missing": []
+    },
+    {
+      "map": "01a_tutorial",
+      "canonical_sha256": "cef811be198e2f40581f153a131f3039088eb40c53188dc468a6e0d562369a0d",
+      "existing_records": 424,
+      "missing": []
+    },
+    {
+      "map": "01b_spacestation",
+      "canonical_sha256": "db415f7973f0cc7a966148db98fd2837c8dfd3c4c320e534eec00ae7e11beb41",
+      "existing_records": 860,
+      "missing": []
+    },
+    {
+      "map": "03a_oldmombasa",
+      "canonical_sha256": "a249dafbf4bf99413cc4470c65e83e66ba1c1c94d8fc5bf4deffb4870e53f519",
+      "existing_records": 851,
+      "missing": []
+    },
+    {
+      "map": "03b_newmombasa",
+      "canonical_sha256": "fb031f9ef910595180983caa9d29843d0c47c52a63bb7968781e474b11b5fd2a",
+      "existing_records": 938,
+      "missing": []
+    },
+    {
+      "map": "04a_gasgiant",
+      "canonical_sha256": "2d486204932531c726ea6db76d9f4a2e367a470cc9be9ae8c9c7d03da8dff9aa",
+      "existing_records": 705,
+      "missing": []
+    },
+    {
+      "map": "04b_floodlab",
+      "canonical_sha256": "b85b76b3efb909b95d45d378990b575f222e3f6d14eb520db266d0c9945e6421",
+      "existing_records": 657,
+      "missing": []
+    },
+    {
+      "map": "05a_deltaapproach",
+      "canonical_sha256": "473cef43ccbcbf7a598821bf1083b556a786018bbe5a2b74ca1b85a066e699e0",
+      "existing_records": 820,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "05b_deltatowers",
+      "canonical_sha256": "9bba471795ce7bcea031d9a9bf0a4813a306c4c3560c2ff5939b800be6fb83ab",
+      "existing_records": 757,
+      "missing": []
+    },
+    {
+      "map": "06a_sentinelwalls",
+      "canonical_sha256": "761d6da4bf268e1917bb51ebb80e7e950b06852944e8b3314c96905366ea3514",
+      "existing_records": 797,
+      "missing": []
+    },
+    {
+      "map": "06b_floodzone",
+      "canonical_sha256": "c9d9020ca26df7c48f1291650f5a333cb78d91fb586fb94e2887c66b53e12c45",
+      "existing_records": 708,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "07a_highcharity",
+      "canonical_sha256": "510db865f97f12859ff6b3d592beae434477d01b205814d951d14c2da1b47f09",
+      "existing_records": 785,
+      "missing": []
+    },
+    {
+      "map": "07b_forerunnership",
+      "canonical_sha256": "96989b467075f9b99f5acc747c268123012d79b797a57b47a19c9babbd38ad35",
+      "existing_records": 759,
+      "missing": []
+    },
+    {
+      "map": "08a_deltacliffs",
+      "canonical_sha256": "2545efc4371ad18d51123ec6009c7b559db3e44369897887f9aac25e4d8818eb",
+      "existing_records": 654,
+      "missing": []
+    },
+    {
+      "map": "08b_deltacontrol",
+      "canonical_sha256": "d246e7ced2a749d0bee74e2f2ef7b3322d2d0bc4d4d394170b4c0103dbebb289",
+      "existing_records": 850,
+      "missing": []
+    },
+    {
+      "map": "ascension",
+      "canonical_sha256": "024b732d65a639b51a7cc224057208bd668fdb3d425311fd6b3f1141e9393fc9",
+      "existing_records": 511,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "backwash",
+      "canonical_sha256": "80583fccbb53fcd5457b3b000e0d6ad0876a034e6445fe1ebaed1c312cc6521e",
+      "existing_records": 523,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "beavercreek",
+      "canonical_sha256": "055cb2af9b9c1d7df01670a2fe36a9b2c924e6a3dfcd7ac13d64c8c9c9c076ed",
+      "existing_records": 541,
+      "missing": []
+    },
+    {
+      "map": "burial_mounds",
+      "canonical_sha256": "1280e5701c7bfab0e1cb64c5c049344aca3702286a2a7173b2218882d78138bc",
+      "existing_records": 494,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "coagulation",
+      "canonical_sha256": "f523c80325d5fe3f8bff7d4f3768a3b97fb2d9904a9fa455f307757e7436917e",
+      "existing_records": 533,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "colossus",
+      "canonical_sha256": "1b2005497c7f1f4922860dc21ee660006bf334b2824c7e46fb80c89287e7c225",
+      "existing_records": 518,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "containment",
+      "canonical_sha256": "1df68cf23cd6d03f5c7f161cf5554b04a5dacb396fd31d4d3349f30b5f4d4aac",
+      "existing_records": 550,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "cyclotron",
+      "canonical_sha256": "1266f9772ffcb64ea4a40d3e16f056ca76b7aa60f4c5b14aa9b9d4e78466d354",
+      "existing_records": 565,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "deltatap",
+      "canonical_sha256": "b1dc10c8f04fdfcaa6523baa2bbed8f74995fb2b3d77ea5085a86032c821b450",
+      "existing_records": 534,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "derelict",
+      "canonical_sha256": "702c47bb5172739cb3db2def286108586e2ae65ee7e6f8c3f5342e121f0ad441",
+      "existing_records": 583,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "dune",
+      "canonical_sha256": "d4ba6bf2e48b7f27be3059b7eb90dd8ca12e093330450d44dafcb4b0f66f56e8",
+      "existing_records": 550,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "elongation",
+      "canonical_sha256": "be7506441a40d86af467e5dab48db3c2945cdb62619bd2ca59457a10b9545dd2",
+      "existing_records": 517,
+      "missing": []
+    },
+    {
+      "map": "foundation",
+      "canonical_sha256": "c2d1905e876405788e945a52d50021973acebe92e14e4e044881e64de01fae9f",
+      "existing_records": 531,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "gemini",
+      "canonical_sha256": "fb160a086fd92e36ecb31f36783822cb93edd48f34a7576d93d3a63159105326",
+      "existing_records": 604,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "headlong",
+      "canonical_sha256": "112f9ea53367574023f0dca3881332562b24bb5c425c2b81a0e1c463d8a014ac",
+      "existing_records": 614,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "highplains",
+      "canonical_sha256": "a25b27c0cbb849be2ecdcf5dabffa75b32b73a422cd124d96ba0e21819e423cc",
+      "existing_records": 564,
+      "missing": []
+    },
+    {
+      "map": "lockout",
+      "canonical_sha256": "12a25b27abcb4aacf8b57bdfc1a4be2bc1383b57904631eaf4e9c7327fea57a1",
+      "existing_records": 516,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "mainmenu",
+      "canonical_sha256": "a78de2c700c3bb422c55d377709c13154d5f65629d9987628170fae5a05c23c5",
+      "existing_records": 275,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\lightmap\\lightmap_tex"
+        ],
+        [
+          "vrtx",
+          "rasterizer\\vertex_shaders_xbox\\lightmap_dynamic_tex"
+        ],
+        [
+          "vrtx",
+          "rasterizer\\vertex_shaders_xbox\\lightmap_pervertex_tex"
+        ],
+        [
+          "vrtx",
+          "rasterizer\\vertex_shaders_xbox\\lightmap_perpixel_tex"
+        ]
+      ]
+    },
+    {
+      "map": "midship",
+      "canonical_sha256": "c2fa10c437f397cf257c69e1af4319c88d1b4f157c7d57298409b3aa03ac9950",
+      "existing_records": 528,
+      "missing": []
+    },
+    {
+      "map": "triplicate",
+      "canonical_sha256": "d65ac3da4f38ba178d41f0ab025ddc3e9c03ad80afadbf160aeaefb6082fa54c",
+      "existing_records": 586,
+      "missing": []
+    },
+    {
+      "map": "turf",
+      "canonical_sha256": "c3b6a581743e04a9b95bf33838c76216a5cc82597a65a68f89e613aca2a5b745",
+      "existing_records": 622,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "warlock",
+      "canonical_sha256": "24652ebb5a67910094abb7593e72814e30b796a8b5f0358244bdfb5bf1539851",
+      "existing_records": 537,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "waterworks",
+      "canonical_sha256": "3ce92a64866bf5823f419611ae443e3edccbaf4fed074c6bfc56d4326b3e31c6",
+      "existing_records": 533,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    },
+    {
+      "map": "zanzibar",
+      "canonical_sha256": "836dc371006640ddaf22b931904c88ee1a9602702fa69c9216b72100ac6cdb84",
+      "existing_records": 592,
+      "missing": [
+        [
+          "stem",
+          "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\bloom\\bloom"
+        ],
+        [
+          "spas",
+          "shaders\\shader_passes\\self_illumination\\default_self_illumination_scroll"
+        ]
+      ]
+    }
+  ],
+  "evidence": {
+    "all_library_compatibility_sha256": "fcd30f246eff6d71dd2cc34d2a7b1a9eeb4c2eb91d49cfca90c76c58aa8e0a79",
+    "semantic_audit_sha256": "357e7bc437430692f4f2118138302b83f6dbed25a87481a23a9b4726feb134d2",
+    "consumer_validation_sha256": "c089d4d1d21d661f3b219c3c5faaba1bc8d801d6919fe8a3e60127ebe0ca4cc9"
+  },
+  "scope": "Existing retained native definitions only; complete typed closure and source programs audited; no original program replacement or runtime reference files"
+}

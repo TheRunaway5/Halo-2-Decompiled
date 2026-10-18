@@ -4,11 +4,11 @@ set_source_files_properties(src/source_execution_calls.cpp PROPERTIES INCLUDE_DI
 if(BUILD_TESTING)
     add_custom_target(online_source_replay_qualification DEPENDS
         halo2_native source_execution_inputs_tests source_execution_codec_tests source_runtime_shared_backing_tests source_execution_inputs_native_tests
-        source_execution_calls_native_tests source_execution_abi_native_tests
+        source_execution_calls_native_tests source_execution_abi_native_tests source_effect_frame_inactive_native_tests
         source_execution_live_model_native_tests source_execution_render_commands_native_tests
         source_execution_particle_native_tests source_execution_shadow_storage_native_tests source_world_particle_draws_tu15_tests
         source_player_session_departure_tu15_tests source_match_local_rebind_tests
-        source_match_network_departure_tests source_authority_receiver_tests source_authority_codec_tests
+        source_match_network_departure_tests source_host_continuation_tests source_authority_receiver_tests source_authority_codec_tests
         source_replay_batch_tests source_authority_replay_tests source_authority_publisher_tests source_runtime_memory_tests)
     add_executable(source_execution_shadow_storage_native_tests tests/source_execution_shadow_storage_native_tests.cpp)
     target_link_libraries(source_execution_shadow_storage_native_tests PRIVATE halo2_authority_codec)
@@ -41,6 +41,12 @@ if(BUILD_TESTING)
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
     set_tests_properties(source_execution_abi_native_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+    add_executable(source_effect_frame_inactive_native_tests tests/source_effect_frame_inactive_native_tests.cpp)
+    target_link_libraries(source_effect_frame_inactive_native_tests PRIVATE halo2_authority_codec)
+    add_test(NAME source_effect_frame_inactive_native_tu15 COMMAND source_effect_frame_inactive_native_tests
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+    set_tests_properties(source_effect_frame_inactive_native_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
     add_executable(source_execution_calls_native_tests tests/source_execution_calls_native_tests.cpp)
     target_link_libraries(source_execution_calls_native_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_execution_calls_native_tu15 COMMAND source_execution_calls_native_tests
@@ -71,6 +77,12 @@ if(BUILD_TESTING)
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
     set_tests_properties(source_match_network_departure_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(source_host_continuation_tests tests/source_host_continuation_tests.cpp)
+    target_link_libraries(source_host_continuation_tests PRIVATE halo2_authority_codec)
+    add_test(NAME source_host_continuation_tu15 COMMAND source_host_continuation_tests
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+    set_tests_properties(source_host_continuation_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
     add_executable(source_player_departure_tu15_tests tests/source_player_departure_tu15_tests.cpp)
     target_link_libraries(source_player_departure_tu15_tests PRIVATE halo2_systems)
     add_test(NAME source_player_departure_tu15 COMMAND source_player_departure_tu15_tests

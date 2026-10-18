@@ -16,6 +16,11 @@ struct SourceMachineSceneStats {
     unsigned placements{},render_models{},position_overlays{};
     unsigned dynamic_materials{},prt_materials{},initial_state_only{};
     unsigned union_dynamic_materials{},union_prt_materials{},union_section_banks{};
+    unsigned deferred_resources{}; // Retained failures, rejected on a visible lifetime.
+};
+struct SourceMachineResourceBoundary {
+    std::size_t source_object{};
+    std::string error;
 };
 struct SourceMachinePortalState {
     std::size_t source_object{};
@@ -33,7 +38,7 @@ struct SourceMachinePortalState {
 class SourceMachineScene {
 public:
     SourceMachineScene(const Cache &,std::span<const ScenarioObject>,std::size_t bsp,
-                       Mesh &,const CollisionWorld &);
+                       Mesh &,const CollisionWorld &,bool source_resource_defer=false);
     ~SourceMachineScene();
     SourceMachineScene(SourceMachineScene &&) noexcept;
     SourceMachineScene &operator=(SourceMachineScene &&) noexcept;
@@ -61,6 +66,8 @@ public:
     std::vector<SourceSceneEffectOwner> effect_owners() const;
     // Render-only channels; portal/collision snapshots retain the current state.
     void interpolate(const struct SourceDeviceWorldSnapshot &previous,float fraction);
+    // Retained source WORLD endpoints; no second machine controller is run.
+    void interpolate(const SceneObjects &,const class SceneInterpolation &,float fraction);
     void append(std::vector<Vertex> &,std::vector<ObjectLightingBinding> &) const;
     void append_view(std::vector<Vertex> &,std::vector<ObjectLightingBinding> &,
                      const SourceObjectViewLod &,std::vector<SourceObjectViewSelection> * = nullptr);
@@ -70,6 +77,7 @@ public:
     // snapshot does not bind/step a mask or run HS scripts.
     std::vector<SourceMachinePortalState> portal_owners() const;
     const SourceMachineSceneStats &stats() const;
+    std::span<const SourceMachineResourceBoundary> deferred_resource_owners() const;
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

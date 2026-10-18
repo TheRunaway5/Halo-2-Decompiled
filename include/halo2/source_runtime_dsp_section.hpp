@@ -11,13 +11,19 @@ namespace halo2 {
 // supported. Other sections and an unmatched unload remain unavailable.
 class SourceRuntimeDspSection {
 public:
+    enum class LoadPolicy { eager, on_demand };
     SourceRuntimeDspSection(SourceRuntimeMemory &,const std::filesystem::path &);
+    // The normal native PCM path does not request a DSP program. Retain the
+    // optional reference adapter without opening its image until a real
+    // section request arrives. No DSP result or readiness is supplied here.
+    SourceRuntimeDspSection(SourceRuntimeMemory &,const std::filesystem::path &,LoadPolicy);
     ~SourceRuntimeDspSection();
     SourceRuntimeDspSection(const SourceRuntimeDspSection &)=delete;
     SourceRuntimeDspSection &operator=(const SourceRuntimeDspSection &)=delete;
     std::uint32_t retain();
     void release();
     std::span<const std::byte> retained_bytes() const;
+    // Zero before an on-demand owner receives its first completed request.
     std::uint32_t address() const noexcept;
     std::size_t active_references() const noexcept;
     std::size_t resident_references() const noexcept;

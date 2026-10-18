@@ -556,8 +556,8 @@ MenuFogExterns bsp_fog_externs(const BspFogSample &fog) {
     s[3]=fog.planar.maximum_density; // 336F0 slot 3 reads aggregate +0xAC.
     s[24]=fog.primary.maximum_density;s[25]=fog.transition;
     s[26]=(1.f-fog.transition)*fog.planar.maximum_density;s[27]=fog.transition*s[24];
-    s[28]=fog.secondary.maximum_density;s[29]=fog.interpolation*s[24];
-    s[30]=(1.f-fog.interpolation)*s[28];s[31]=fog.interpolation;
+    s[28]=fog.secondary.maximum_density;s[29]=fog.interpolation;
+    s[30]=(1.f-fog.interpolation)*s[28];s[31]=fog.interpolation*s[24];
     s[32]=fog.sky_fog.maximum_density;
     s[33]=fog.planar.maximum_density;s[34]=fog.eye_fraction;
     s[35]=(1.f-fog.eye_fraction)*s[33];s[36]=fog.eye_fraction*s[33];

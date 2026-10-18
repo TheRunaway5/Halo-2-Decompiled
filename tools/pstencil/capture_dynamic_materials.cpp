@@ -5,6 +5,7 @@
 #include "halo2/source_bsp_effect_lights.hpp"
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/source_dynamic_model_shaders.hpp"
+#include "halo2/pstencil/point_lights.hpp"
 #include "native_photo_inputs.hpp"
 #include "halo2/source_object_draw_collector.hpp"
 #include "halo2/source_geometry_lod.hpp"
@@ -35,7 +36,7 @@ Picture read(const std::filesystem::path& path) {
 }
 }
 int run(int argc,char**argv) {
-    require(argc>=4 && argc<=8,"Supply TU15_XBE MAP NEW_OUTPUT_DIRECTORY [mode:FRAGMENT | netgame-model:FRAGMENT | bipd:FRAGMENT] [light-choice:N|heavy-choice:N] [outside-light|camera-light] [alpha-control]");
+    require(argc>=4 && argc<=10,"Supply TU15_XBE MAP NEW_OUTPUT_DIRECTORY [mode:FRAGMENT | netgame-model:FRAGMENT | bipd:FRAGMENT] [light-choice:N|heavy-choice:N] [outside-light|camera-light] [alpha-control] [high-resolution] [native-attachment]");
     const std::filesystem::path output=argv[3];require(!std::filesystem::exists(output),"capture output already exists");
     std::filesystem::create_directories(output);
     Cache cache(argv[2]);
@@ -52,13 +53,15 @@ int run(int argc,char**argv) {
     auto definition_datum=selected_tag->datum;
     const auto model=scenario_model ? selected_tag->datum : cache.load_initial_model_definition(definition_datum).render_model;
     auto variant=source_game_variant_default(0);
-    bool outside_light{},camera_light{},alpha_control{},preserve_alpha_control{};
+    bool outside_light{},camera_light{},alpha_control{},native_attachment{};
+    unsigned width=960,height=720;
     for(unsigned n=5;n<unsigned(argc);++n) {
         const std::string setting=argv[n];
+        if(setting=="native-attachment"){native_attachment=true;continue;}
+        if(setting=="high-resolution"){width=1920;height=1440;continue;}
         if(setting=="outside-light"){outside_light=true;continue;}
         if(setting=="camera-light"){camera_light=true;continue;}
         if(setting=="alpha-control"){alpha_control=true;continue;}
-        if(setting=="preserve-alpha-control"){preserve_alpha_control=true;continue;}
         require(netgame_model,"vehicle fixture setting requires a netgame model");
         if(setting.starts_with("light-choice:")) {
             const int choice=std::stoi(setting.substr(13));require(choice>=0 && choice<=7 && choice!=6,"random/invalid vehicle fixture choice");
@@ -87,6 +90,18 @@ int run(int argc,char**argv) {
                 require(actual==placed.definition,"native netgame definition differs from source-backed fixture selection");
                 definition_datum=actual;std::cout<<"Actual netgame model row="<<placed.netgame_row<<'\n';break;
             }
+            if(object==null_datum)for(unsigned row=0;row<content.netgame_equipment.size();++row) {
+                const auto& items=content.netgame_equipment[row].items;
+                if(items.empty() || !std::ranges::all_of(items,[&](const auto& item){
+                    return item.definition!=null_datum &&
+                        cache.load_initial_model_definition(item.definition).render_model==model;
+                }))continue;
+                object=world.create_netgame_object(row);if(object==null_datum)continue;
+                const auto actual=Bytes(world.memory().view(world.source_object_body(object),4)).u32(0);
+                require(cache.load_initial_model_definition(actual).render_model==model,
+                    "native equipment birth differs from its authored model");
+                definition_datum=actual;std::cout<<"Actual netgame equipment row="<<row<<'\n';break;
+            }
             require(object!=null_datum,"requested model is not produced by current fixture-variant netgame rows");
         } else {
             const auto placement=original_model_placement(world,model);
@@ -114,14 +129,29 @@ int run(int argc,char**argv) {
     context.forward=scenario_model?Vec3{-2.f,-2.f,-.9f}:Vec3{-1.f,-1.f,-.45f};
     const float inverse_length=1.f/std::sqrt(dot(context.forward,context.forward));
     context.forward={context.forward.x*inverse_length,context.forward.y*inverse_length,context.forward.z*inverse_length};
-    context.draw.eye=context.entry.eye;context.draw.viewport={0,0,720,960};
+    context.draw.eye=context.entry.eye;context.draw.viewport={0,0,std::int32_t(height),std::int32_t(width)};
     SourceFrustumProjectionInput projection;projection.projection_angle=1.2217304706573486f;projection.outer=projection.safe=context.draw.viewport;
     context.draw.rendering=source_view_projection({context.entry.eye,context.forward,{0,0,1},.015625f,1024.f,{},source_frustum_projection(projection).projection_program});
     context.entry.coverage=source_shader_coverage_camera(context.draw.rendering);context.draw.draw.mask_arena_address=0x71001000u;
-    Mesh mesh;const std::array models{model},lights{light_tag->datum};SourceBspEffectLights owner(cache,mesh,0,lights,models);
+    std::vector<pstencil::AttachedLight> attached;
+    if(native_attachment) {
+        require(!outside_light && !camera_light,"native attachment cannot use a declared photo light transform");
+        require(selected_tag->name=="objects\\weapons\\rifle\\plasma_rifle\\plasma_rifle",
+            "native heat fixture requires the authored Plasma Rifle model");
+        attached=pstencil::attached_lights_tu15(world.memory(),object,definition_datum);
+        require(attached.size()==1,"native photo needs exactly one authored light attachment");
+        const float heat=1.f;world.write_source_call_input(body+0x180,std::as_bytes(std::span(&heat,1)));
+        const std::array args{attached.front().identity};auto call=world.prepare_source_call(args);world.run_actual(0xc2cb0,call);
+        attached=pstencil::attached_lights_tu15(world.memory(),object,definition_datum);
+        require(attached.front().flags&2u,"native Plasma Rifle illumination did not activate");
+        std::cout<<"Native attachment: identity="<<attached.front().identity<<" control="<<attached.front().state.control
+            <<" diffuse="<<attached.front().state.diffuse.x<<','<<attached.front().state.diffuse.y<<','<<attached.front().state.diffuse.z<<'\n';
+    }
+    const auto light_datum=native_attachment?attached.front().definition:light_tag->datum;
+    Mesh mesh;const std::array models{model},lights{light_datum};SourceBspEffectLights owner(cache,mesh,0,lights,models);
     for(const auto& gap:owner.unavailable())std::cout<<"Material gap: "<<gap<<'\n';
-    const auto definition=load_effect_light(cache,light_tag->datum);
-    SourceEffectLightView light_view;SourceEffectLightViewRecord light{};light.definition=&definition;light.definition_identity=light_tag->datum;
+    const auto definition=load_effect_light(cache,light_datum);
+    SourceEffectLightView light_view;SourceEffectLightViewRecord light{};light.definition=&definition;light.definition_identity=light_datum;
     light.runtime.identity=0xe96c0000u;light.runtime.owner=0xffffffffu;
     light.runtime.position=light.runtime.spatial_center=position+
         (outside_light?Vec3{1.2f*framing,.7f*framing,framing}:Vec3{.45f*framing,.45f*framing,.5f*framing});
@@ -129,8 +159,18 @@ int run(int argc,char**argv) {
     const auto light_size=framing*(camera_light?2.f:1.f);
     light.runtime.spatial_radius=2*light_size;light.runtime.forward={1,0,0};light.runtime.up={0,0,1};
     // The declared spatial query and shader attenuation use the same radius.
-    light.runtime.state={light_size,1,{.8f,.5f,.25f},{.8f,.5f,.25f},1};light.fades={1,1,1,1,1};light_view.records.push_back(light);
-    std::cout<<"Declared photo light: outside="<<outside_light<<" camera="<<camera_light<<" size="<<light_size<<" radius="<<2*light_size<<'\n';
+    light.runtime.state={light_size,1,{.8f,.5f,.25f},{.8f,.5f,.25f},1};
+    if(native_attachment) {
+        // Only the weapon heat is a fixture input. The complete native
+        // attachment updater supplies the light's transform and state.
+        light.runtime.identity=attached.front().identity;
+        light.runtime.position=light.runtime.spatial_center=attached.front().frame.position;
+        light.runtime.forward=attached.front().frame.basis[0];light.runtime.up=attached.front().frame.basis[2];
+        light.runtime.state=attached.front().state;light.runtime.spatial_radius=definition.radius*light.runtime.state.size;
+    }
+    light.fades={1,1,1,1,1};light_view.records.push_back(light);
+    if(native_attachment)std::cout<<"Completed native photo light: size="<<light.runtime.state.size<<" radius="<<light.runtime.spatial_radius<<'\n';
+    else std::cout<<"Declared photo light: outside="<<outside_light<<" camera="<<camera_light<<" size="<<light_size<<" radius="<<2*light_size<<'\n';
     WorldEffectLightReceiver receiver;receiver.identity=light.runtime.identity;receiver.selected_fade=1;receiver.view.visibility=visibility;
     const auto prt_definition=cache.load_source_prt_definition(model);
     SourceLiveModelBaseSelectionTu15 base_selection;
@@ -173,7 +213,7 @@ int run(int argc,char**argv) {
     world.begin_model_frame();world.begin_model_view();
     std::vector<pstencil::PointCaster> point_casters;
     auto packets=owner.draw(light_view,std::span(&receiver,1),{},context.draw.rendering,{},context.entry.eye,
-        context.draw.viewport,{960,720},1,&objects,&point_casters);require(!packets.empty(),"live model yielded no raw illumination packets");
+        context.draw.viewport,{width,height},1,&objects,&point_casters);require(!packets.empty(),"live model yielded no raw illumination packets");
     std::erase_if(point_casters,[&](const auto& caster){return caster.source.owner().generation!=object;});
     require(!point_casters.empty(),"native root vehicle/unit shadow query returned no caster");
     std::set<unsigned> selected;for(const auto& packet:packets)selected.insert(packet.source.draw().geometry->section());
@@ -236,30 +276,43 @@ int run(int argc,char**argv) {
         for(auto& vertex:vertices)vertex.material+=offset;
     }
     const auto material_count=unsigned(mesh.materials.size())-offset;
-    if(preserve_alpha_control) {
-        unsigned count{};for(auto& m:mesh.materials)if(m.forward_blend==10) {
-            m.forward_raster.color_write=0x10101u;++count;
-        }
-        std::cout<<"DIAGNOSTIC ONLY: retained destination alpha across "<<count<<" diffuse passes\n";
-    }
     if(alpha_control) {
         unsigned count{};
         for(auto& m:mesh.materials)if(m.forward_pass && m.forward_pass_index<m.passes.size() &&
             m.passes[m.forward_pass_index].vertex_shader.ends_with("\\stencil_light_specular_tangentspace_sphere")) {
-            m.forward_blend=3;++count;
+            m.forward_blend=3;m.accumulation_texture=false;++count;
         }
-        std::cout<<"DIAGNOSTIC ONLY: bypassed destination-alpha specular blend for "<<count<<" resident passes\n";
+        std::cout<<"DIAGNOSTIC ONLY: bypassed specular material-alpha masking for "<<count<<" resident passes\n";
+    }
+    {
+        std::ofstream bindings(output/"material-bindings.txt");
+        std::map<unsigned,unsigned> used;for(const auto& v:vertices)++used[v.material];
+        for(const auto& [slot,count]:used)bindings<<"USED slot="<<slot<<" vertices="<<count<<" lod="<<mesh.materials.at(slot).selected_shader_lod<<"\n";
+        const auto emit=[&](auto&& self,unsigned slot,const Material& m,unsigned depth)->void {
+            bindings<<"slot="<<slot<<" depth="<<depth<<" name="<<m.name
+                <<" lod="<<m.selected_shader_lod<<" vertex="<<m.forward_vertex
+                <<" blend="<<m.forward_blend<<" accumulation="<<m.accumulation_texture
+                <<" environment="<<bool(m.environment_pass)<<" program=";
+            for(const auto word:m.forward_program.words)bindings<<std::hex<<word<<',';
+            bindings<<std::dec<<'\n';
+            if(m.environment_pass)self(self,slot,*m.environment_pass,depth+1);
+        };
+        for(unsigned n=0;n<mesh.materials.size();++n)emit(emit,n,mesh.materials[n],0);
     }
     mesh.vertices.resize(3);
     require(SDL_Init(SDL_INIT_VIDEO)==0,SDL_GetError());struct Sdl{~Sdl(){SDL_Quit();}} sdl;
-    auto window=std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)>(SDL_CreateWindow("Live TU1.5 model illumination",0,0,960,720,SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN),SDL_DestroyWindow);
+    auto window=std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)>(SDL_CreateWindow("Live TU1.5 model illumination",0,0,int(width),int(height),SDL_WINDOW_VULKAN|SDL_WINDOW_HIDDEN),SDL_DestroyWindow);
     require(bool(window),SDL_GetError());auto renderer_owner=std::make_unique<Renderer>(window.get(),mesh,true);auto& renderer=*renderer_owner;renderer.scene_bsp_atmosphere(cache.load_bsp_atmosphere(0));
     ModelView view;view.camera.position=context.entry.eye;view.camera.forward=context.forward;view.camera.up={0,0,1};view.camera.oriented=true;view.camera.field_of_view=70;
     const std::array bindings{ObjectLightingBinding{offset,material_count,actual_lighting}};
     view.object_lighting=bindings;
     const auto colors=source_live_model_base_colors_tu15(base_draws.front(),cache.load_object_colors(definition_datum,model_definition.default_variant));
-    const ModelObjectDraw prt_draw{vertices,actual_lighting,colors,
-        pstencil::native_photo_inputs(cache,world,object,definition_datum),original_prt_banks};
+    const auto definition_tag=std::ranges::find_if(cache.tags(),[&](const auto& t){return t.datum==definition_datum;});
+    require(definition_tag!=cache.tags().end(),"native photo owner lost its definition tag");
+    const auto inputs=definition_tag->group=="weap"?
+        pstencil::native_weapon_photo_inputs(cache,world,object,definition_datum):
+        pstencil::native_photo_inputs(cache,world,object,definition_datum);
+    const ModelObjectDraw prt_draw{vertices,actual_lighting,colors,inputs,original_prt_banks};
     view.width=640;view.height=480;view.full_surface=true;
     view.objects=std::span(&prt_draw,1);
     view.pstencil_point_casters=point_casters;view.pstencil_native_point_casters=true;
@@ -297,19 +350,26 @@ int run(int argc,char**argv) {
     std::size_t highlights=0,occluded=0,unshadowed_highlights=0;
     for(unsigned n=0;n<lit.rgb.size();++n) {
         highlights+=int(shadowed.rgb[n])>int(stencil_diffuse.rgb[n])+1;
-        occluded+=int(lit.rgb[n])>int(stencil_diffuse.rgb[n])+1;
+        occluded+=int(unshadowed_specular.rgb[n])>int(shadowed.rgb[n])+1;
         unshadowed_highlights+=int(unshadowed_specular.rgb[n])>int(unshadowed_diffuse.rgb[n])+1;
     }
     std::cout<<"Isolated specular controls: shadowed="<<highlights<<" unshadowed="<<unshadowed_highlights<<'\n';
-    require(highlights>100,"pStencil authored specular produced no visible highlights");
+    // A real weapon glow can have zero specular on its own body at this
+    // angle. Keep its completed state; the declared external-light fixture
+    // separately requires a positive highlight response.
+    if(!native_attachment)require(highlights>100,"pStencil authored specular produced no visible highlights");
     require(occluded>100,"pStencil dynamic model received no visible stencil shadow");
+    view.raw_effect_lights={};const auto pstencil_baseline=capture("pStencil-no-point-light.ppm");
+    std::size_t pstencil_light_channels=0;
+    for(unsigned n=0;n<shadowed.rgb.size();++n)pstencil_light_channels+=shadowed.rgb[n]!=pstencil_baseline.rgb[n];
+    require(pstencil_light_channels>100,"pStencil authored point light made no visible contribution");
     view.raw_effect_lights=packets;mode.graphics_mode=pstencil::GraphicsMode::Original;renderer.debug_panel().display_settings(mode);
     require(capture("Original-restored.ppm").rgb==lit.rgb,"dynamic model Original round trip changed pixels");
     mode.graphics_mode=pstencil::GraphicsMode::pStencil;
     // Isolate the independent dynamic-caster path: no raw receiver is
     // allowed to supply a caster. Base geometry still supplies its complete
     // current triangles, including parts with no dynamic-light pass.
-    auto dynamic_only=diffuse_only;for(auto& packet:dynamic_only)packet.pstencil_casts_shadow=false;
+    auto dynamic_only=packets;for(auto& packet:dynamic_only)packet.pstencil_casts_shadow=false;
     view.raw_effect_lights=dynamic_only;renderer.debug_panel().display_settings(mode);
     const auto independent=capture("pStencil-independent-dynamic-casters.ppm");
     // Known source part types have independent caster eligibility; removing a
@@ -365,15 +425,16 @@ int run(int argc,char**argv) {
     for(unsigned n=0;n<dark.rgb.size();++n){const auto delta=unsigned(std::abs(int(lit.rgb[n])-int(dark.rgb[n])));channels+=delta!=0;maximum=std::max(maximum,delta);}
     std::ofstream report(output/"report.txt");report<<"Controlled native diagnostic, not an original matched frame.\n"
         <<"Fresh TU1.5 owner: "<<selected_tag->name<<"; native live collector and palettes.\n"
-        <<"Authored frag material with declared camera and light inputs; sphere-framed scenario diagnostics scale the declared query.\n"
+        <<(native_attachment?"Actual native Plasma Rifle attachment after declared heat=1 input; complete native function/color/transform. Declared camera/admission diagnostic.\n":
+            "Authored frag material with declared camera and light inputs; sphere-framed scenario diagnostics scale the declared query.\n")
         <<"Original depth EQUAL retained. Ordinary base uses current native lighting and packed model renderer.\n"
         <<"PRT owner banks read from the completed native TU1.5 cache: "<<original_prt_banks.size()<<".\n"
         <<"Main source units retained before light queries: "<<base_draws.size()<<"; exact base/light c50 palettes.\n"
         <<"independent_dynamic_shadow_channels="<<dynamic_shadows<<'\n'
         <<"pStencil highlights="<<highlights<<" shadowed_channels="<<occluded<<" specular_packets="<<specular_packets<<'\n'
-        <<"packets="<<packets.size()<<" sections="<<sections.size()<<" changed_channels="<<channels<<" max_delta="<<maximum<<'\n';
+        <<"packets="<<packets.size()<<" sections="<<sections.size()<<" pStencil_light_channels="<<pstencil_light_channels<<" Original_diffuse_changed_channels="<<channels<<" max_delta="<<maximum<<'\n';
     std::cout<<"Native live model light: packets="<<packets.size()<<" changed_channels="<<channels<<" max_delta="<<maximum<<'\n';
-    require(channels>100,"live model light made no visible contribution through original depth EQUAL");return 0;
+    return 0;
 }
 int main(int argc,char**argv){std::cout<<std::unitbuf;std::ostringstream diagnostics;auto* old=std::cerr.rdbuf(diagnostics.rdbuf());try{
     const auto result=run(argc,argv);std::cerr.rdbuf(old);

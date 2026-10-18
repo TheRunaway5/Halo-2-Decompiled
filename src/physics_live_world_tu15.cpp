@@ -1,11 +1,24 @@
+#include "halo2/mcc_sound_duration_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
+#include "mcc_sound_variation_provider_internal.hpp"
+#include "mcc_script_sound_world_access_internal.hpp"
+#include "halo2/source_campaign_lens_restore_tu15.hpp"
+#include "halo2/source_campaign_environment_tu15.hpp"
 #include "halo2/source_dialogue_admission_tu15.hpp"
+#include "halo2/source_campaign_audio_tu15.hpp"
+#include "halo2/source_sound_dsp_image_tu15.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
+#include "halo2/source_unit_view_reset_tu15.hpp"
 #include "halo2/source_havok_static_lifetime_tu15.hpp"
 #include "halo2/source_shadow_frame_tu15.hpp"
 #include "halo2/source_cinematic_shadow_control_tu15.hpp"
 #include "halo2/source_effect_light_view_tu15.hpp"
+#include "halo2/pstencil/native_light_update_tu15.hpp"
+#include "halo2/pstencil/native_scenario_lights_tu15.hpp"
+#include "halo2/pstencil/native_light_shape_tu15.hpp"
+#include "halo2/pstencil/native_light_constants_tu15.hpp"
+#include "halo2/pstencil/native_light_portal_tu15.hpp"
 #include "halo2/source_renderer_request_tu15.hpp"
 #include "halo2/source_renderer_tail_storage_tu15.hpp"
 #include "halo2/source_object_velocity_read_only_tu15.hpp"
@@ -41,6 +54,10 @@
 #include "halo2/physics_platform_locks.hpp"
 #include "halo2/source_process_heap_platform.hpp"
 #include "halo2/native_tu15_heap_data.hpp"
+#include "halo2/native_tu15_world_memory.hpp"
+#include "halo2/mcc_runtime_delivery.hpp"
+#include "halo2/mcc_script_layout.hpp"
+#include "halo2/native_mcc_script_builtin.hpp"
 #include "halo2/source_runtime_image.hpp"
 #include "halo2/source_runtime_write_protection.hpp"
 #include "halo2/source_view_projection.hpp"
@@ -61,17 +78,25 @@
 #include "halo2/source_lens_flare_tu15.hpp"
 #include "halo2/source_script_effect_tu15.hpp"
 #include "halo2/source_campaign_cinematic_tu15.hpp"
+#include "halo2/source_campaign_completion_tu15.hpp"
+#include "halo2/source_campaign_activation_tu15.hpp"
+#include "halo2/native_tu15_renderer_palette.hpp"
 #include "halo2/source_campaign_camera_tu15.hpp"
 #include "halo2/source_campaign_screen_tu15.hpp"
 #include "halo2/source_animation_composition_tu15.hpp"
 #include "halo2/source_object_functions_tu15.hpp"
 #include "halo2/source_unit_cinematic_tu15.hpp"
+#include "halo2/source_unit_speech_tu15.hpp"
 #include "halo2/source_resource_cache_pressure_tu15.hpp"
 #include "halo2/source_lens_query_tu15.hpp"
 #include "halo2/source_effect_particle_draw_tu15.hpp"
 #include "halo2/source_ai_actor_tu15.hpp"
 #include "halo2/source_ai_frame_tu15.hpp"
+#include "halo2/source_level_handles_startup_tu15.hpp"
+#include "halo2/source_level_handles_new_map_tu15.hpp"
+#include "halo2/source_render_object_startup_tu15.hpp"
 #include "halo2/source_object_material_tu15.hpp"
+#include "halo2/source_damage_feedback_tu15.hpp"
 #include "halo2/source_recorded_animation_tu15.hpp"
 #include "halo2/source_ai_placement.hpp"
 #include "halo2/source_campaign_runtime_tu15.hpp"
@@ -82,16 +107,19 @@
 #include "halo2/source_static_registration_tu15.hpp"
 #include "halo2/source_runtime_dsp_section.hpp"
 #include "halo2/source_runtime_sound_sdk_resources.hpp"
+#include "halo2/source_boot_smc_video_mode_input.hpp"
 #include "halo2/source_sound_sdk_tu15.hpp"
 #include "halo2/weapon_effect.hpp"
 #include "halo2/fp_registration.hpp"
 #include "halo2/math.hpp"
 #include "physics_live_entries_tu15.hpp"
+#include "native_startup_memory_hints.hpp"
 #include <algorithm>
 #include <bit>
 #include <chrono>
 #include <cmath>
 #include <cstring>
+#include <cstdio>
 #include <fstream>
 #include <cerrno>
 #if defined(__GLIBC__)
@@ -243,6 +271,8 @@ const SourceMainCameraOperandsTu15& SourceMainCameraRasterUseTu15::operands()con
 struct PhysicsLiveWorldTu15::Impl {
     const Cache&cache_owner;
     const std::shared_ptr<PhysicsLiveClockSource> clocks;
+    std::optional<MccRuntimeCacheDelivery> canonical_cache;
+    std::optional<NativeMccScriptBuiltinProfile> mcc_script_profile;
     SourceRuntimeResources resources;
     std::uint32_t tick_adjustment{};
     std::uint64_t cycle_adjustment{};
@@ -277,7 +307,13 @@ struct PhysicsLiveWorldTu15::Impl {
         int exceptions=std::uncaught_exceptions();
         std::optional<SourceRuntimeDspSection::CallScope> dsp_scope;
         std::optional<SourceRuntimeSoundSdkResources::CallScope> sdk_scope;
-        explicit Execution(Impl &owner):owner(owner){owner.require_executor();dsp_scope.emplace(owner.dsp_section.get());sdk_scope.emplace(owner.sound_sdk_resources.get());++owner.execution_depth;}
+        std::optional<NativeMccScriptBuiltinBinding> script_scope;
+        explicit Execution(Impl &owner):owner(owner){
+            owner.require_executor();dsp_scope.emplace(owner.dsp_section.get());sdk_scope.emplace(owner.sound_sdk_resources.get());
+            if(owner.mcc_script_profile && owner.mcc_script_profile->calls())
+                script_scope.emplace(owner.bank,*owner.mcc_script_profile);
+            ++owner.execution_depth;
+        }
         ~Execution(){if(std::uncaught_exceptions()>exceptions)owner.continuation_fault=true;--owner.execution_depth;}
     };
     std::size_t vehicle_input_call_depth{};
@@ -292,9 +328,11 @@ struct PhysicsLiveWorldTu15::Impl {
             owner.flush_vehicle_input_resets();
         }
     };
-    SourceRuntimeMemory bank;
+    std::shared_ptr<SourceRuntimeMemory> bank_storage;
+    SourceRuntimeMemory &bank;
     std::unique_ptr<SourceRuntimeDspSection> dsp_section;
     std::unique_ptr<SourceRuntimeSoundSdkResources> sound_sdk_resources;
+    std::unique_ptr<NativeTu15RendererPalette> renderer_palette;
     WorldMutationObserver mutations{bank};
     detail::MainReceiptAuthority main_receipts{bank,this};
     SourceRuntimeHostVirtualMemory virtual_memory;
@@ -318,6 +356,7 @@ struct PhysicsLiveWorldTu15::Impl {
     bool session_configured{};
     std::uint32_t delivered_players{};
     std::map<std::pair<unsigned,std::uint32_t>,SourceObjectDrawCollector> model_collectors;
+    std::map<std::uint32_t,SourceObjectAttachmentTu15> model_attachments;
     std::map<std::uint32_t,std::vector<Transform>> rendered_model_nodes;
     std::uint64_t next_model_collector=0x62000000u;
     static constexpr std::uint32_t model_scratch=0x60400000u;
@@ -341,21 +380,112 @@ struct PhysicsLiveWorldTu15::Impl {
     std::vector<SourceFirstPersonCpuInputTu15> first_person_phase_cpu;
     std::vector<UnitDamageEffectEvent> unit_damage_effects;
     std::vector<MeleeImpact> melee_impacts;
+    std::optional<MccSoundRuntimePlan> sound_runtime_plan;
+    std::optional<MccSoundTimingPlan> sound_timing_plan;
+    std::shared_ptr<MccSoundTimingMemoryOwner> sound_timing_memory;
+    std::optional<MccSoundTimingBoundPlan> sound_timing_bound;
+    std::optional<MccSoundTimingResourceProof> sound_timing_resource;
+    std::optional<std::tuple<std::uint32_t,unsigned,unsigned>> sound_timing_resource_key;
+    bool sound_timing_active{},sound_timing_guard_registered{},sound_timing_observer_registered{};
+    bool sound_timing_protected(std::uint32_t at,std::size_t bytes)const noexcept {
+        if(!at && !bytes)return true;
+        const auto overlaps=[&](std::uint32_t base,std::size_t n){return std::uint64_t(at)<std::uint64_t(base)+n && std::uint64_t(base)<std::uint64_t(at)+bytes;};
+        if(canonical_cache && overlaps(canonical_cache->index().region.address,canonical_cache->reservation_bytes()))return true;
+        for(const auto [base,n]:std::array<std::pair<std::uint32_t,std::size_t>,7>{{
+            {0x60000000u,0x100000u},{0x556d90u,4},{0x4f0414u,4},{0x52d664u,4},
+            {0x455aacu,44},{0x46a1dcu,4},{0x46a540u,4}}})if(overlaps(base,n))return true;
+        return false;
+    }
+    void retire_sound_timing()noexcept {
+        if(sound_timing_memory)sound_timing_memory->invalidate();
+        sound_timing_bound.reset();sound_timing_resource.reset();sound_timing_resource_key.reset();
+    }
+    struct SoundTimingLifetime {
+        Impl &owner;
+        ~SoundTimingLifetime() {
+            owner.retire_sound_timing();
+            if(owner.sound_timing_observer_registered)source_runtime_unregister_topology_observer(owner.bank,this);
+            if(owner.sound_timing_guard_registered)source_runtime_unregister_topology_guard(owner.bank,this);
+        }
+    } sound_timing_lifetime{*this};
+    void install_sound_timing() {
+        if(!sound_timing_plan)return;
+        sound_timing_memory=std::make_shared<MccSoundTimingMemoryOwner>(bank_storage);
+        source_runtime_register_topology_guard(bank,&sound_timing_lifetime,[this](auto at,auto bytes) {
+            if(!sound_timing_protected(at,bytes))return;
+            if(std::this_thread::get_id()!=main_thread)throw FormatError("MCC sound timing topology requires its retained executor");
+            if(sound_timing_active)throw FormatError("MCC sound timing topology changed during execution");
+        });sound_timing_guard_registered=true;
+        source_runtime_register_topology_observer(bank,&sound_timing_lifetime,[this](auto at,auto bytes) {
+            if(sound_timing_protected(at,bytes))retire_sound_timing();
+        });sound_timing_observer_registered=true;
+    }
+    void run_sound_duration(const SourcePhysicsContactRuntimeCall &call,
+        SourcePhysicsWorldRuntimeAbi &abi,const SourcePhysicsContactRecordObserver &observe) {
+        require_executor();
+        if(!sound_timing_plan || !sound_timing_memory || sound_timing_active ||
+            call.target!=0x21f590u || call.instruction!=0x21f6f3u || call.tail)
+            throw FormatError("MCC sound duration requires the authenticated original caller");
+        const auto sp=abi.gp[4];
+        if(sp<0x60000004u || sp>0x600ffff4u)throw FormatError("MCC sound duration escapes its designated main stack");
+        bool exact_stack=false;
+        bank.visit_committed([&](auto address,auto bytes){if(address==0x60000000u && bytes.size()==0x100000u)exact_stack=true;});
+        if(!exact_stack)throw FormatError("MCC sound duration lost its complete main stack owner");
+        bank.validate_mutable_view(sp-4u,16);
+        MccSoundTimingEntry entry{0x21f590u,0x21f6f8u,abi.gp[0],abi.gp[3],abi.gp[1],abi.gp[2],abi.gp[6],abi.gp[7],sp,
+            {word(bank,sp),word(bank,sp+4u),word(bank,sp+8u)}};
+        if(!sound_timing_bound)sound_timing_bound.emplace(bind_mcc_sound_timing_memory(*sound_timing_plan,sound_timing_memory));
+        const MccSoundTimingBinding *binding=nullptr;
+        const auto permutation=std::uint64_t(entry.edx)+entry.ecx;
+        for(const auto &candidate:sound_timing_plan->bindings())if(candidate.native_root==entry.esi && candidate.native_range==entry.edi && candidate.native_permutation==permutation) {
+            if(binding)throw FormatError("MCC sound duration has ambiguous actual metadata ownership");
+            binding=&candidate;
+        }
+        if(!binding)throw FormatError("MCC sound duration has no authenticated original timing key");
+        const auto key=std::tuple{binding->sound.value,binding->relative_pitch,binding->relative_permutation};
+        if(sound_timing_resource_key!=key) {
+            auto encoded=std::make_shared<const EncodedSound>(cache_owner.load_sound(binding->sound.value,binding->relative_pitch,binding->relative_permutation));
+            auto proof=authenticate_mcc_sound_timing_resource(*sound_timing_bound,sound_timing_memory,binding->sound,binding->relative_pitch,binding->relative_permutation,std::move(encoded));
+            sound_timing_resource.emplace(std::move(proof));sound_timing_resource_key=key;
+        }
+        struct Active {bool &value;explicit Active(bool &value):value(value){value=true;}~Active(){value=false;}} active(sound_timing_active);
+        const auto status=with_mcc_sound_original_timing(*sound_timing_bound,sound_timing_memory,entry,*sound_timing_resource,
+            [&](const auto &original){run_mcc_sound_duration_read_projection(bank,entry,original,abi,fp,services(),observe);});
+        if(status!=MccSoundTimingLookupStatus::Reference)throw FormatError("MCC sound duration rejected stale or changed actual ownership");
+    }
     struct NativeExitRegistrations {
         Impl &owner;
         std::vector<std::uint32_t> callbacks;
-        ~NativeExitRegistrations() {for(auto i=callbacks.rbegin();i!=callbacks.rend();++i)owner.call_actual(*i);}
+        ~NativeExitRegistrations() noexcept {
+            for(auto i=callbacks.rbegin();i!=callbacks.rend();++i) {
+                try {owner.call_actual(*i);}
+                catch(const std::exception &failure) {
+                    owner.continuation_fault=true;
+                    std::fprintf(stderr,"TU1.5 native exit callback %08x failed: %s\n",*i,failure.what());
+                }catch(...) {
+                    owner.continuation_fault=true;
+                    std::fprintf(stderr,"TU1.5 native exit callback %08x failed with an unknown exception\n",*i);
+                }
+            }
+        }
     } native_exits{*this,{}};
     // Destroy and join before destroying callbacks, locks or retained memory.
     std::unique_ptr<SourcePhysicsGameArenaNative> arena;
 
     Impl(const Cache&cache,const std::filesystem::path&xbe,const std::filesystem::path&files,std::size_t selected,
          std::shared_ptr<PhysicsLiveClockSource> clocks)
-        :cache_owner(cache),clocks(std::move(clocks)),resources(cache),bank(load_source_runtime_image(xbe,image,SourceRuntimeKernelTickCount{
-            native_tick_count,{},"native monotonic millisecond tick-count data import"})),virtual_memory(bank,0x08000000u),
-         pool_storage(bank,0x10000000u),bsp(cache.load_source_runtime_cache_bsp_image(selected)) {
+        :cache_owner(cache),clocks(std::move(clocks)),resources(cache,[this](auto descriptor,auto bytes) {
+            return canonical_cache?canonical_cache->source_address(descriptor,bytes):descriptor;
+        }),bank_storage(std::make_shared<SourceRuntimeMemory>(xbe.empty()?
+            native_tu15_world_memory(SourceRuntimeKernelTickCount{
+                native_tick_count,{},"native monotonic millisecond tick-count data import"}):
+            load_source_runtime_image(xbe,image,SourceRuntimeKernelTickCount{
+                native_tick_count,{},"native monotonic millisecond tick-count data import"}))),bank(*bank_storage),virtual_memory(bank,0x08000000u),
+         pool_storage(bank,0x10000000u),bsp(cache.is_mcc()?SourceRuntimeCacheBspImage{}:
+             cache.load_source_runtime_cache_bsp_image(selected)) {
         if(!this->clocks)throw FormatError("TU1.5 world requires local native clock inputs");
-        dsp_section=std::make_unique<SourceRuntimeDspSection>(bank,xbe);
+        dsp_section=std::make_unique<SourceRuntimeDspSection>(bank,xbe,
+            SourceRuntimeDspSection::LoadPolicy::on_demand);
         release_unused_loader_memory();
         bank.mount(0x60000000u,std::vector<std::byte>(0x100000),
             SourceRuntimeMemory::Access::ReadWrite,"native TU1.5 multiplayer main call stack");
@@ -419,9 +549,20 @@ struct PhysicsLiveWorldTu15::Impl {
         // Actual SDK accounting CRT rows46D7E4..46D7F0; source writes its
         // statistics pointers, not native-assigned pool/capability totals.
         for(auto entry:{0x387baau,0x387bb5u,0x38a988u,0x38a993u})call_actual(entry);
+        // CRT rows46DC90/94 own245400's packet limits. Unrun BSS limits
+        // clamp every normal camera packet to zero before observer repair.
+        for(auto entry:{0x382360u,0x382380u})call_actual(entry);
         call_actual(0x3825d0u); // Actual CRT game-engine class registration.
+        call_actual(0x381010u); // Actual _cinit46D98C directional math scalar.
+        call_actual(0x3811b0u); // Actual _cinit46D9C4 environment spread scalar.
+        call_actual(0x3817f0u); // Actual _cinit46DA84 ratio threshold.
+        // Original _cinit row46DC64 owns the cosine threshold read by
+        //2296D5 during the ordinary player's first spatial update. Preserve
+        //its actual FLD/FCOS/FSTP computation before any gameplay consumer.
+        call_actual(0x382230u);
         initialize_game_storage();
         call_actual(0x148d40u); // Actual startup row3 constructs both RNG streams.
+        call_actual(0x1a5410u); // Actual row13 constructs both level-handle pools before their new-map callbacks.
         call_actual(0x149050u); // Actual source clock storage owner, row17.
         call_actual(0x1e7710u); // Actual row18 constructs team relationship state.
         call_actual(0x1f3830u); // Actual source gravity/physics constants, row25.
@@ -475,6 +616,9 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x2293e0u); // Literal44B590 per-view feedback request storage.
         call_actual(0x1563a0u); // Literal44B5B4 local player effect/impulse storage.
         call_actual(0x157e10u); // Literal44B3BC original director storage.
+        call_actual(0x171e10u); // Actual row36 owns51DF70's arena allocation and CRC update.
+        call_actual(0x228260u); // Actual row43 owns50EBF0's cleared feedback storage.
+        call_actual(0x380dd0u); // Original_cinit speech-weight normalization constant.
         call_actual(0x380df0u); // Original_cinit facial-weight normalization constant.
         for(auto entry:{0x381710u,0x381730u,0x381750u,0x381770u})call_actual(entry);
         // Literal _cinit table46D768 constructs the static contact agent.
@@ -488,17 +632,78 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x2129d0u); // Actual row54 constructs HS syntax, object lists, threads and globals.
         call_actual(0x2035b0u); // Literal44B68C row55 constructs recorded animations.
         call_actual(0x1cfa40u); // Actual44B6F8 complete AI storage initializer.
+        release_unused_loader_memory();
+        detail::release_native_startup_code_pages();
+        call_actual(0x137870u); // Actual44B7D0 row64 environment mixer storage constructor.
         {
-            const auto tags=cache.view_source_runtime_cache_tags();
-            reserve_map_pages(tags);
-            source_bind_runtime_cache_tags_tu15(bank,tags);
+            if(cache.is_mcc()) {
+                // Converted metadata has its own real native allocation.
+                // The original physical arena and its resource-cache requests
+                // retain their existing owners and exact source procedures.
+                // Serialized pointers remain logical32 tokens; the bank owns
+                // the host64 backing and includes it in normal checkpoints.
+                constexpr std::uint32_t native_base=0x90000000u,native_budget=0x60000000u;
+                canonical_cache.emplace(MccRuntimeCacheDelivery::plan(cache,native_base,native_budget,
+                    [this](MccSoundRuntimePlan &&plan){
+                        if(sound_runtime_plan)throw FormatError("MCC native delivery produced duplicate sound plans");
+                        sound_runtime_plan.emplace(std::move(plan));
+                    }));
+                if(!sound_runtime_plan)throw FormatError("MCC native delivery lost its sound ownership plan");
+                sound_timing_plan.emplace(build_mcc_sound_timing_reference(cache,*sound_runtime_plan,
+                    [this](auto address,auto bytes){return canonical_cache->runtime_address(address,bytes);}));
+                // Strict complete-schema publication precedes every source
+                // tag consumer. The unchanged vanilla index/binders own the
+                // converted definitions after this native I/O boundary.
+                auto tags=canonical_cache->tag_image();
+                const auto* scenario=cache.find_tag(cache.scenario_tag(),tag_groups::scenario);
+                if(!scenario)throw FormatError("Canonical MCC script conversion lost its scenario");
+                const Bytes root(cache.read_tag_bytes(scenario->address,0x240));
+                const auto script_block=[&](unsigned at,std::size_t stride) {
+                    const auto count=root.u32(at);
+                    if(!count)return std::span<const std::byte>{};
+                    if(count>0x10000u)throw FormatError("MCC script bank exceeds its serialized datum space");
+                    return cache.read_tag_bytes(root.u32(at+4u),std::size_t(count)*stride);
+                };
+                // Strings have byte offsets, independently of syntax's
+                // serialized16-bit datum indices.
+                const auto strings=root.u32(0x1b0)?cache.read_tag_bytes(root.u32(0x1b4),root.u32(0x1b0)):
+                    std::span<const std::byte>{};
+                const auto syntax=project_mcc_script_layout(cache,script_block(0x238,20),
+                    strings,script_block(0x1b8,0x28),{true});
+                mcc_script_profile.emplace(syntax,strings);
+                MccScriptLayout unowned;
+                for(const auto& requirement:syntax.requirements)
+                    if(!mcc_script_profile->owns(requirement))unowned.requirements.push_back(requirement);
+                unowned.require_native_ready();
+                if(!syntax.nodes.empty()) {
+                    const auto target=canonical_cache->runtime_address(root.u32(0x23c),syntax.nodes.size());
+                    const auto region=std::ranges::find_if(tags.regions,[&](const auto& allocation) {
+                        return target>=allocation.address &&
+                            std::uint64_t(target)-allocation.address+syntax.nodes.size()<=allocation.bytes.size();
+                    });
+                    if(region==tags.regions.end())throw FormatError("Converted MCC syntax has no owned native backing");
+                    std::copy(syntax.nodes.begin(),syntax.nodes.end(),
+                        region->bytes.begin()+std::ptrdiff_t(target-region->address));
+                }
+                bsp=canonical_cache->bsp_image(selected);
+                const std::vector<std::byte> empty(tags.reservation_bytes);
+                bank.mount(native_base,empty,SourceRuntimeMemory::Access::ReadWrite,
+                    "converted vanilla gameplay tag and BSP native allocation");
+                source_bind_runtime_cache_tags_tu15(bank,tags,native_cache_range());
+                put(bank,0x55658cu,tags.index); // Native cache reservation input, not a source completion flag.
+            } else {
+                const auto tags=cache.view_source_runtime_cache_tags();
+                reserve_map_pages(tags);
+                source_bind_runtime_cache_tags_tu15(bank,tags);
+                detail::release_delivered_cache_source_pages(tags);
+            }
         } // The independent source bank owns its bytes before definition fixups.
         source_bind_runtime_cache_sound_gestalt_tu15(bank);
         // Original1918D9 prepares every resident collision, biped, creature,
         // physical model and vehicle definition. In particular11F02A passes
         // zero to1F2C70, resolving serialized shape references before birth.
         call_actual(0x11ef70u);
-        for(const auto&tag:cache.select_tags({.group=tag_groups::biped}))bipeds.emplace(tag.datum,tag.address);
+        for(const auto&tag:cache.select_tags({.group=tag_groups::biped}))bipeds.emplace(tag.datum,runtime_tag_address(tag));
         a=frame({});a.gp[0]=bsp.mapping;
         source_run_physics_live_support_tu15(bank,0x1255c0,a,fp,services());
         if(!(a.gp[0]&255u))throw FormatError("TU1.5 source BSP publication failed");
@@ -524,6 +729,8 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x17e700u); // Actual44B454 effect-instance/location new-map reset.
         call_actual(0x186d30u); // Actual44B3A0 activates breakable-surface effect storage.
         call_actual(0x2b520u); // Actual44B358 activates/resets cached render states.
+        install_sound_timing();
+        call_actual(0x1378c0u); // Actual44B7D8 row64 new-map environment mixer reset.
     }
     void initialize_object_looping_sound_storage() {
         // Literal18B660..18B71C storage prefix. The original2279E0 audio
@@ -588,23 +795,26 @@ struct PhysicsLiveWorldTu15::Impl {
         a=frame({});a.gp[0]=0x455b20u;run_actual(0x2247b0u,a);
         if(!(a.gp[0]&255u))throw FormatError("TU1.5 sound voice storage construction failed");
     }
-    void reserve_map_pages(const SourceRuntimeCacheTagView &tags) {
-        // Native map I/O supplies the literal header. Original125354..1253A2
-        // reserves header+1C from the selected physical lower bound before
-        // tag publication. Omitting this reservation lets12ECF0 give the map
-        // pages to textures and the first resource read destroys the tag table.
-        std::array<std::byte,0x20> header;
-        std::ifstream input(cache_owner.path(),std::ios::binary);
-        input.read(reinterpret_cast<char*>(header.data()),header.size());
-        if(!input)throw FormatError("Native physical map reservation requires its actual cache header");
-        const auto raw=[&](unsigned p) {
-            std::uint32_t value{};
-            for(unsigned i=0;i<4;++i)value|=std::to_integer<std::uint32_t>(header[p+i])<<(8*i);
-            return value;
-        };
-        const auto requested=raw(0x1c),selected=word(bank,0x4f2cf0u);
-        if(raw(0)!=0x68656164u || raw(4)!=8u || !requested || requested>0xfffff000u || selected>=5)
-            throw FormatError("Native physical map reservation input differs from an Xbox cache");
+    std::uint32_t runtime_tag_address(const Tag& tag) const {
+        return canonical_cache?canonical_cache->runtime_address(tag.address,tag.size):tag.address;
+    }
+    SourceRuntimeCacheBspImage cache_bsp_image(std::size_t selected) const {
+        return canonical_cache?canonical_cache->bsp_image(selected):cache_owner.load_source_runtime_cache_bsp_image(selected);
+    }
+    SourceRuntimeNativeCacheRange native_cache_range() const {
+        if(!canonical_cache)throw FormatError("Native cache allocation requires a canonical delivery owner");
+        const auto bytes=canonical_cache->reservation_bytes();
+        return {bank.native_address(canonical_cache->index().region.address,bytes),bytes};
+    }
+    template<class Image>void reserve_map_pages(const Image &tags) {
+        // Original125354..1253A2 reserves the owning delivery's extent from
+        // the selected physical lower bound before tag publication. Xbox
+        // delivery supplies header+1C. Native MCC metadata uses its separate
+        // owned allocation instead of entering this physical-only path.
+        // Omitting this reservation lets12ECF0 give map pages to textures.
+        const auto requested=tags.reservation_bytes,selected=word(bank,0x4f2cf0u);
+        if(!requested || requested>0xfffff000u || selected>=5)
+            throw FormatError("Native physical map reservation requires a valid owned extent");
         const auto slot=0x4f2cfcu+selected*4u;
         const auto lower=word(bank,slot),upper=word(bank,0x4f2d10u+selected*4u);
         const auto bytes=(requested+0xfffu)&0xfffff000u;
@@ -614,7 +824,7 @@ struct PhysicsLiveWorldTu15::Impl {
         for(const auto &region:tags.regions)
             if(region.address<tags.index || std::uint64_t(region.address)+region.bytes.size()>
                 std::uint64_t(tags.index)+bytes)
-                throw FormatError("Native map payload escapes its header's physical reservation");
+                throw FormatError("Native map payload escapes its owned physical reservation");
         // Preserve original12538A's allocator store before12539D protection.
         put(bank,slot,lower+bytes);
         arena->protect_pages(tags.index,bytes,4u);
@@ -663,6 +873,11 @@ struct PhysicsLiveWorldTu15::Impl {
     SourcePhysicsWorldRuntimeServices services() {
         SourcePhysicsWorldRuntimeServices s;
         s.instruction=[this](auto p) {
+            //38846E publishes work for the actual GP and then polls its
+            // request word. This graph has no native GP request owner yet;
+            // stop before publishing work which no processor can consume.
+            if(p==0x38846eu)throw FormatError("Original DSP image publication requires the native GP scratch/DMA execution owner");
+            if(canonical_cache && p==0x21f590u && !sound_timing_active)throw FormatError("MCC duration requires authenticated resource timing admission");
             if(std::this_thread::get_id()==main_thread)last_instruction=p;
             if(first_person_phase_active && std::this_thread::get_id()==main_thread)
                 first_person_phase_trace.push_back(p);
@@ -705,6 +920,7 @@ struct PhysicsLiveWorldTu15::Impl {
     void required(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
         SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
         if(&m!=&bank)throw std::runtime_error("TU1.5 live world bank owner differs");
+        if(c.target==0x21f590u && canonical_cache){run_sound_duration(c,a,o);return;}
         if(c.target==0x1d9080u && c.instruction!=c.target && !c.tail && body_velocity_input_observer)
             body_velocity_input_observer(c.instruction,a,bank);
         if(c.target==0x1da750u && c.instruction!=c.target && !c.tail && phantom_phase_observer) {
@@ -965,6 +1181,7 @@ struct PhysicsLiveWorldTu15::Impl {
             a.gp[4]+=8u;return;
         }
         if(pool_storage.try_call(m,c,a))return;
+        if(renderer_palette && renderer_palette->try_call(m,c,a))return;
         if(c.instruction==0x1301b0u && c.target==0x1a3b70u && !c.tail) {
             // Actual1300B0 has allocated the original texture cache block and
             // produced its hardware descriptor. Native file I/O fills that
@@ -1060,6 +1277,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         // These camera owners have the current exact FP spill lowering. The
         // older sandbox closure also contains18A300; do not shadow this owner.
+        if(source_campaign_environment_tu15_owns_entry(c.target)) {
+            source_run_campaign_environment_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(source_vehicle_look_tu15_owns_entry(c.target)) {
             source_run_vehicle_look_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -1082,8 +1302,23 @@ struct PhysicsLiveWorldTu15::Impl {
         if(source_combat_action_tu15_owns_entry(c.target)) {
             source_run_combat_action_tu15(m,c.target,a,fp,services(),o);return;
         }
+        if(pstencil_native_light_portal_tu15_owns_entry(c.target)) {
+            pstencil_run_native_light_portal_tu15(m,c.target,a,fp,services(),o);return;
+        }
         // Complete per-view math has no query/cache publication. Keep the
         // existing16EA60 route; this module owns it only as a private callee.
+        if(pstencil_native_light_constants_tu15_owns_entry(c.target)) {
+            pstencil_run_native_light_constants_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(pstencil_native_scenario_lights_tu15_owns_entry(c.target)) {
+            pstencil_run_native_scenario_lights_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(pstencil_native_light_shape_tu15_owns_entry(c.target)) {
+            pstencil_run_native_light_shape_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(pstencil_native_light_update_tu15_owns_entry(c.target)) {
+            pstencil_run_native_light_update_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(c.target==0xc2a80u || c.target==0xc3300u || c.target==0xc35d0u) {
             source_run_effect_light_view_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -1127,6 +1362,12 @@ struct PhysicsLiveWorldTu15::Impl {
         if(source_physics_deactivation_tu15_owns_entry(c.target)) {
             source_run_physics_deactivation_tu15(m,c.target,a,fp,services(),o);return;
         }
+        if(source_sound_dsp_image_tu15_owns_entry(c.target)) {
+            source_run_sound_dsp_image_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_campaign_audio_tu15_owns_entry(c.target)) {
+            source_run_campaign_audio_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(source_object_sound_tu15_owns_entry(c.target)) {
             source_run_object_sound_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -1150,9 +1391,26 @@ struct PhysicsLiveWorldTu15::Impl {
             if(c.instruction!=c.target)observation.emplace(m,c.target,[&]{return a;});
             source_run_recorded_animation_tu15(m,c.target,a,fp,services(),o);return;
         }
+        if(source_damage_feedback_tu15_owns_entry(c.target)) {
+            std::optional<SourcePhysicsEntryObservation> nested;
+            if(c.instruction!=c.target)nested.emplace(m,c.target,[&]{return a;});
+            source_run_damage_feedback_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(source_object_material_tu15_owns_entry(c.target)) {
             SourcePhysicsEntryObservation diagnostic(m,c.target,[&]{return a;});
             source_run_object_material_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_level_handles_new_map_tu15_owns_entry(c.target)) {
+            source_run_level_handles_new_map_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x171e10u || c.target==0x228260u) {
+            source_run_render_object_startup_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_campaign_activation_tu15_owns_entry(c.target)) {
+            source_run_campaign_activation_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_unit_view_reset_tu15_owns_entry(c.target)) {
+            source_run_unit_view_reset_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_physics_live_support_tu15_owns_entry(c.target)) {
             source_run_physics_live_support_tu15(m,c.target,a,fp,services(),o);return;
@@ -1165,6 +1423,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_campaign_cinematic_tu15_owns_entry(c.target)) {
             source_run_campaign_cinematic_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_campaign_completion_tu15_owns_entry(c.target)) {
+            source_run_campaign_completion_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_campaign_camera_tu15_owns_entry(c.target)) {
             source_run_campaign_camera_tu15(m,c.target,a,fp,services(),o);return;
@@ -1180,6 +1441,9 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_unit_cinematic_tu15_owns_entry(c.target)) {
             source_run_unit_cinematic_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_unit_speech_tu15_owns_entry(c.target)) {
+            source_run_unit_speech_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_resource_cache_pressure_tu15_owns_entry(c.target)) {
             source_run_resource_cache_pressure_tu15(m,c.target,a,fp,services(),o);return;
@@ -1208,6 +1472,9 @@ struct PhysicsLiveWorldTu15::Impl {
         // Complete custom-controller/query bodies already belong to this
         // module. Native campaign callers also enter them directly, outside
         // its usual AI-frame root. Its dispatcher retains their full ABI.
+        if(source_level_handles_startup_tu15_owns_entry(c.target)) {
+            source_run_level_handles_startup_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(c.target==0x11dc00u || c.target==0x11dd90u || source_ai_frame_tu15_owns_entry(c.target)) {
             source_run_ai_frame_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -1256,7 +1523,8 @@ struct PhysicsLiveWorldTu15::Impl {
                 a.gp[0]!=bsp.file_offset || a.gp[2]!=bsp.region.address ||
                 a.gp[6]!=((bsp.region.bytes.size()+511u)&~511u))
                 throw FormatError("TU1.5 BSP I/O frame differs from the actual cache resource");
-            source_deliver_runtime_cache_bsp_tu15(bank,bsp);
+            if(canonical_cache)source_deliver_runtime_cache_bsp_tu15(bank,bsp,native_cache_range());
+            else source_deliver_runtime_cache_bsp_tu15(bank,bsp);
             a.gp[0]=(a.gp[0]&0xffffff00u)|1u;a.gp[4]+=12;return;
         }
         // Actual fresh-segment and retained-segment commitment frames in the
@@ -1297,7 +1565,7 @@ struct PhysicsLiveWorldTu15::Impl {
             using Module=physics_live_entries_tu15::Module;
             switch(e.module) {
             case Module::Damage:source_run_damage_delivery_runtime(m,e.canonical,a,image,fp,services(),o);return;
-            case Module::World:source_run_physics_world_runtime(m,e.canonical,a,image,fp,services(),o);return;
+            case Module::World:source_run_physics_world_runtime_selected_observations(m,e.canonical,a,image,fp,services(),o);return;
             case Module::Pool:
                 // The generated module already reports the selected image's
                 // instruction PC. Mapping it again treats a TU1.5 PC as TU1.1.
@@ -1350,6 +1618,7 @@ struct PhysicsLiveWorldTu15::Impl {
     void run(std::uint32_t entry,SourcePhysicsWorldRuntimeAbi&a,
         const SourcePhysicsContactRecordObserver&o={}) {
         source_execution_untracked(bank,entry);Execution execution(*this);
+        SourceObjectAttachmentBindingTu15 attachment_events(bank,[this](const auto &event){model_attachments[event.child]=event;});
         VehicleInputCall input_call(*this);
         SourceVehicleInputResetBindingTu15 input_events(bank,[this](const auto &event){vehicle_input_resets.push_back(event);});
         try {
@@ -1357,7 +1626,7 @@ struct PhysicsLiveWorldTu15::Impl {
                 source_run_physics_renderer_storage_with_native_pages(bank,entry,a,fp,services(),pool_storage,o);
             else if(entry==0x1c5f00u || entry==0x1f15b0u)
                 source_run_physics_early_initializer_with_native_storage(bank,entry,a,fp,services(),pool_storage,o);
-            else source_run_physics_world_runtime(bank,entry,a,image,fp,services(),o);
+            else source_run_physics_world_runtime_selected_observations(bank,entry,a,image,fp,services(),o);
         }catch(const std::exception&e) {
             std::ostringstream message;message<<"TU1.5 live root "<<std::hex<<entry
                 <<" at "<<last_instruction<<": "<<e.what();
@@ -1374,6 +1643,7 @@ struct PhysicsLiveWorldTu15::Impl {
     void run_actual(std::uint32_t entry,SourcePhysicsWorldRuntimeAbi&a,
                     const SourcePhysicsContactRecordObserver&o={}) {
         source_execution_untracked(bank,entry);Execution execution(*this);
+        SourceObjectAttachmentBindingTu15 attachment_events(bank,[this](const auto &event){model_attachments[event.child]=event;});
         VehicleInputCall input_call(*this);
         SourceVehicleInputResetBindingTu15 input_events(bank,[this](const auto &event){vehicle_input_resets.push_back(event);});
         if(std::this_thread::get_id()!=main_thread)
@@ -1424,7 +1694,8 @@ struct PhysicsLiveWorldTu15::Impl {
             SourceRuntimeMemory &bank;
             std::vector<std::pair<std::uint32_t,std::vector<std::byte>>> saved;
             void save(std::uint32_t p,std::size_t n) {
-                saved.emplace_back(p,std::vector<std::byte>(n));bank.read(p,saved.back().second);
+                std::vector<std::byte> bytes(n);bank.read(p,bytes);
+                saved.emplace_back(p,std::move(bytes));
             }
             ~Context(){for(auto i=saved.rbegin();i!=saved.rend();++i)bank.write(i->first,i->second);}
         } context{bank,{}};
@@ -1877,8 +2148,9 @@ struct PhysicsLiveWorldTu15::Impl {
         const auto body=object_body(weapon);WeaponHudTarget result;
         const auto definition=cache_owner.query_tag({.handle=TagHandle{word(bank,body)},.require_address=true});
         if(!definition)throw FormatError("HUD weapon lost its resident definition");
-        if(!word(bank,definition->address+0x2c8u) ||
-            word(bank,word(bank,definition->address+0x2ccu)+6u,2)!=5u ||
+        const auto definition_address=runtime_tag_address(*definition);
+        if(!word(bank,definition_address+0x2c8u) ||
+            word(bank,word(bank,definition_address+0x2ccu)+6u,2)!=5u ||
             std::bit_cast<std::int16_t>(std::uint16_t(word(bank,body+0x22cu,2)))<=0)return result;
         const auto mode=word(bank,body+0x20cu,1),target=word(bank,body+0x194u);
         if(target==0xffffffffu)return result;
@@ -1896,15 +2168,17 @@ struct PhysicsLiveWorldTu15::Impl {
             if(region<0)return result;
             const auto tag=cache_owner.query_tag({.handle=TagHandle{word(bank,other)},.require_address=true});
             if(!tag)throw FormatError("HUD lock target lost its definition");
-            const auto model=word(bank,tag->address+0x38u);
+            const auto model=word(bank,runtime_tag_address(*tag)+0x38u);
             if(model==0xffffffffu)return result;
             const auto model_tag=cache_owner.query_tag({.handle=TagHandle{model},.require_address=true});
             if(!model_tag)throw FormatError("HUD lock target lost its model");
-            if(region>=std::bit_cast<std::int32_t>(word(bank,model_tag->address+0x68u)))return result;
-            const auto marker=word(bank,word(bank,model_tag->address+0x6cu)+std::uint32_t(region)*0x1cu);
+            const auto model_address=runtime_tag_address(*model_tag);
+            if(region>=std::bit_cast<std::int32_t>(word(bank,model_address+0x68u)))return result;
+            const auto marker=word(bank,word(bank,model_address+0x6cu)+std::uint32_t(region)*0x1cu);
             constexpr std::uint32_t output=0x60057000u;
             auto a=frame(std::array{target,marker,1u});a.gp[1]=0;a.gp[3]=output;
             Execution execution(*this);
+        SourceObjectAttachmentBindingTu15 attachment_events(bank,[this](const auto &event){model_attachments[event.child]=event;});
             source_run_damage_delivery_runtime(bank,0xb9c20u,a,image,fp,services());
             if((a.gp[0]&65535u)==1u)result.position=Vec3{
                 std::bit_cast<float>(word(bank,output+0x60u)),std::bit_cast<float>(word(bank,output+0x64u)),
@@ -1975,17 +2249,6 @@ struct PhysicsLiveWorldTu15::Impl {
         // its ten-request counter must not accumulate across all game ticks.
         // This is native scheduling, not the complete Xbox render scheduler.
         call_actual(0x12f110u);
-        // Original13A9CC runs cached-decal aging before13AAFF player/action
-        // delivery. This composition runs that complete owner once per native
-        // game tick against the actual source clock, pools and cache pages.
-        // Actual13A9C7 advances all contrail marker chains immediately
-        // before13A9CC decals. Object-local17EA60 alone cannot age/fade or
-        // retire detached trails, and would leave impact-only point pairs.
-        const auto tick_clock=word(bank,0x51df54u);
-        if(!tick_clock)throw FormatError("Contrail tick requires its original clock owner");
-        const std::array contrail_delta{word(bank,tick_clock+4u)};
-        call_actual(0x17ead0u,contrail_delta);
-        call_actual(0x180520u);
         // Original13AAFF applies the complete player/input/action scheduler
         // before PVS and the object/world phases. Its1500C0..1501A8 path
         // produces the player clusters consumed by13B6F0 itself.
@@ -2001,6 +2264,9 @@ struct PhysicsLiveWorldTu15::Impl {
         // Native presentation/audio remain separate consumers of completed
         // source requests; source instance lifetime and RNG cannot be skipped.
         call_actual(0x179cd0u);
+        // Original13AB4E updates every native light, including sleeping
+        // owners, after effects and before later player/render phases.
+        call_actual(0xc3430u);
         // Literal13AB80 observes actual local players and advances their
         // original FP managers/poses, before13ABD3 increments the clock.
         if(!first_person_phase_observer)call_actual(0x168ca1u);
@@ -2023,6 +2289,7 @@ struct PhysicsLiveWorldTu15::Impl {
     }
     void initialize_map() {
         if(word(bank,0x52be48u))throw FormatError("TU1.5 physics world is already constructed");
+        detail::release_native_startup_code_pages();
         call_actual(0x1e7760u); // Actual row18 new-map team relationship reset.
         for(auto entry:{0x37f110u,0x37f130u,0x37f150u,0x37f1e0u,0x37f240u,
             0x37fc70u,0x37fc90u,0x37fcb0u})call(entry);
@@ -2036,13 +2303,14 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x1563e0u); // Literal44B5BC new-map local player effect reset.
         call_actual(0x157eb0u); // Literal44B3C4 original director new-map reset.
         call_actual(0x22c480u); // Literal44B574 resets that frame state through its real owner.
+        detail::release_native_startup_code_pages();
     }
     void switch_campaign_bsp(std::size_t selected) {
         const auto game=word(bank,0x4f3218u);
         if(!session_configured || word(bank,game+8u)!=1u)
             throw FormatError("Source BSP transition requires its actual campaign session");
         if(selected==bsp.index)return;
-        auto next=cache_owner.load_source_runtime_cache_bsp_image(selected);
+        auto next=cache_bsp_image(selected);
         //13A886 unloads in descending subsystem order;13A860 loads in
         //ascending order. These are the original callbacks of this native
         //world's constructed gameplay systems. Rendering has its own owner.
@@ -2160,6 +2428,37 @@ struct PhysicsLiveWorldTu15::Impl {
             if(word(bank,child_body)==definition) {
                 if(result!=0xffffffffu)throw FormatError("TU1.5 child definition requires additional authored attachment identity");
                 result=child;
+            }
+            child=word(bank,child_body+0xcu);
+        }
+        return result;
+    }
+    std::map<std::uint32_t,SourceObjectAttachmentTu15> current_model_attachments() const {
+        std::map<std::uint32_t,SourceObjectAttachmentTu15> result;
+        const auto pool=word(bank,0x4ecbd0u);
+        for(const auto &[child,event]:model_attachments) {
+            if(event.caller_return!=0xc08a6u || !record(pool,child) || !record(pool,event.parent))continue;
+            const auto body=object_body(child);
+            if(word(bank,body+0x14u)==event.parent && (word(bank,body+4u)&0x04000000u))result.emplace(child,event);
+        }
+        return result;
+    }
+    std::uint32_t model_child_object(std::uint32_t parent,std::uint32_t definition,
+        std::uint32_t parent_marker,std::uint32_t child_marker) const {
+        const auto body=object_body(parent);std::uint32_t result=0xffffffffu;unsigned count=0;
+        for(auto child=word(bank,body+0x10u);child!=0xffffffffu;) {
+            if(++count>0x800u)throw FormatError("TU1.5 source child chain is cyclic");
+            const auto child_body=object_body(child);
+            if(word(bank,child_body+0x14u)!=parent)throw FormatError("TU1.5 source child has another salted parent");
+            if(word(bank,child_body)==definition) {
+                const auto at=model_attachments.find(child);
+                if(at==model_attachments.end())throw FormatError("TU1.5 model child requires its completed original attachment owner");
+                const auto &event=at->second;
+                if(event.parent==parent && event.parent_marker==parent_marker && event.child_marker==child_marker &&
+                    event.caller_return==0xc08a6u && (word(bank,child_body+4u)&0x04000000u)) {
+                    if(result!=0xffffffffu)throw FormatError("TU1.5 authored model child marker identity is duplicated");
+                    result=child;
+                }
             }
             child=word(bank,child_body+0xcu);
         }
@@ -2419,6 +2718,25 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         put(bank,game+0xcu,std::uint32_t(mode)|(std::uint32_t(std::uint16_t(rate))<<16));
         put(bank,game+0x18u,seed);
+        if(kind==1u) {
+            // Native campaign admission supplies the actual cache scenario
+            // path in game-options+1C (game+24). Original1A5B60 resolves its
+            // campaign/map key from the retained matg+170 records, including
+            // its own basename comparison through whole original32C0A0.
+            // Zero-filled IDs are a different campaign and must not survive
+            // delivery. NONE remains explicit when metadata has no match.
+            const auto &path=cache_owner.scenario();
+            if(path.size()>=0x104u)throw FormatError("Admitted campaign scenario path exceeds original game options");
+            std::array<std::byte,0x104> scenario_path{};
+            std::memcpy(scenario_path.data(),path.data(),path.size());
+            bank.write(game+0x24u,scenario_path);
+            put(bank,game+0x1cu,0xffffffffu);put(bank,game+0x20u,0xffffffffu);
+            const auto record=call_actual(0x1a5b60u,std::array{game+0x24u});
+            if(record) {
+                put(bank,game+0x1cu,word(bank,record));
+                put(bank,game+0x20u,word(bank,record+4u));
+            }
+        }
         // Literal13A8F2..13A8FB copies the admitted options seed to the
         // already constructed gameplay stream before map object creation.
         const auto random=word(bank,0x4f3cd8u);
@@ -2451,6 +2769,7 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x2035f0u); // Literal44B694 row55 activates and clears recorded animations.
         call_actual(0x1cfc90u); // Actual44B700 AI reset consumes delivered game options.
         session_configured=true;
+        detail::release_native_startup_code_pages();
     }
     void place_ai(std::uint32_t reference,std::optional<std::int16_t> count) {
         if(!session_configured)
@@ -2500,15 +2819,65 @@ struct PhysicsLiveWorldTu15::Impl {
         return (a.gp[0]&255u)!=0;
     }
 };
+PhysicsLiveWorldTu15::PhysicsLiveWorldTu15(const Cache&cache,const std::filesystem::path&files,std::size_t bsp)
+    :PhysicsLiveWorldTu15(cache,{},files,bsp) {}
+PhysicsLiveWorldTu15::PhysicsLiveWorldTu15(const Cache&cache,const std::filesystem::path&files,std::size_t bsp,
+    std::shared_ptr<PhysicsLiveClockSource> clocks):PhysicsLiveWorldTu15(cache,{},files,bsp,std::move(clocks)) {}
 PhysicsLiveWorldTu15::PhysicsLiveWorldTu15(const Cache&cache,const std::filesystem::path&xbe,const std::filesystem::path&files,std::size_t bsp)
     :PhysicsLiveWorldTu15(cache,xbe,files,bsp,std::make_shared<NativeWorldClock>()) {}
 PhysicsLiveWorldTu15::PhysicsLiveWorldTu15(const Cache&cache,const std::filesystem::path&xbe,const std::filesystem::path&files,std::size_t bsp,
     std::shared_ptr<PhysicsLiveClockSource> clocks):impl_(std::make_unique<Impl>(cache,xbe,files,bsp,std::move(clocks))) {}
 PhysicsLiveWorldTu15::~PhysicsLiveWorldTu15(){if(impl_)impl_->main_receipts.close();}
 SourceRuntimeMemory&PhysicsLiveWorldTu15::memory(){Impl::PublicCall active(*impl_,false);return impl_->bank;}
+NativeRuntimeAddress PhysicsLiveWorldTu15::resident_cache_address(const Cache& expected_owner,
+    std::uint32_t cache_address,std::size_t bytes) const {
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    if(&expected_owner!=&impl_->cache_owner || !bytes)
+        throw FormatError("Resident cache address requires this world's complete Cache owner");
+    const auto logical=impl_->canonical_cache?
+        impl_->canonical_cache->runtime_address(cache_address,bytes):cache_address;
+    if(impl_->canonical_cache) {
+        const auto range=impl_->native_cache_range();
+        const auto base=impl_->bank.source_address(range.allocation,range.bytes);
+        if(logical<base || std::uint64_t(logical)-base>range.bytes ||
+           bytes>range.bytes-(std::uint64_t(logical)-base))
+            throw FormatError("Resident cache address escapes its canonical native allocation");
+    }else (void)impl_->cache_owner.read_tag_bytes(cache_address,bytes);
+    return impl_->bank.native_address(logical,bytes);
+}
+MccScriptSoundWorldAccess PhysicsLiveWorldTu15::script_sound_access(const Cache& expected_owner) {
+    require_execution_boundary();
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    if(!impl_->canonical_cache||!impl_->sound_runtime_plan||!impl_->sound_timing_plan||!impl_->sound_timing_memory)
+        throw FormatError("Script sound World access requires complete converted sound ownership");
+    auto provider=detail::make_mcc_sound_variation_provider(impl_->cache_owner,expected_owner,
+        *impl_->canonical_cache,*impl_->sound_runtime_plan,impl_->sound_timing_memory);
+    return detail::make_mcc_script_sound_world_access(*this,impl_->cache_owner,expected_owner,
+        std::move(provider),*impl_->sound_runtime_plan,*impl_->sound_timing_plan,impl_->sound_timing_memory,
+        SoundDriverFloatingPointContext{fp.x87_control_word,fp.mxcsr});
+}
+MccSoundVariationProvider PhysicsLiveWorldTu15::sound_variation_provider(const Cache& expected_owner) const {
+    Impl::PublicCall active(*impl_,false);impl_->require_executor();
+    if(impl_->execution_depth||impl_->render_read_borrows||impl_->continuation_fault)
+        throw FormatError("Native sound variation provider requires a completed available World boundary");
+    if(!impl_->canonical_cache||!impl_->sound_runtime_plan||!impl_->sound_timing_memory)
+        throw FormatError("Native sound variation provider requires complete converted sound ownership");
+    return detail::make_mcc_sound_variation_provider(impl_->cache_owner,expected_owner,
+        *impl_->canonical_cache,*impl_->sound_runtime_plan,impl_->sound_timing_memory);
+}
 void PhysicsLiveWorldTu15::write_source_call_input(std::uint32_t address,std::span<const std::byte> bytes){
     SourceExecutionCallScope journal(&impl_->bank,SourceExecutionCallKind::WriteSourceCallInput,[&]{return source_execution_arguments(address,bytes);});
     Impl::PublicCall active(*impl_);impl_->bank.write(address,bytes);
+}
+void PhysicsLiveWorldTu15::write_script_sound_inputs(
+    std::span<const std::pair<std::uint32_t,std::span<const std::byte>>> writes){
+    // The closed sound adapter already needs a completed, unbound producer
+    // boundary. An outer PublicCall extends the existing serial-based fault
+    // policy across all writes, including a later guard rejecting before its
+    // own write begins. Individual writes retain their ordinary journals.
+    require_execution_boundary();
+    Impl::PublicCall active(*impl_);
+    for(const auto& [address,bytes]:writes)write_source_call_input(address,bytes);
 }
 void PhysicsLiveWorldTu15::run(std::uint32_t p,SourcePhysicsWorldRuntimeAbi&a,
     const SourcePhysicsContactRecordObserver&o){
@@ -2685,6 +3054,12 @@ NativeRuntimeAddress PhysicsLiveWorldTu15::world()const {Impl::PublicCall active
     return source?impl_->bank.native_address(source,4):NativeRuntimeAddress{};
 }
 void PhysicsLiveWorldTu15::initialize_map(){Impl::PublicCall active(*impl_);impl_->initialize_map();}
+void PhysicsLiveWorldTu15::admit_renderer_palette(RendererPaletteFactory factory) {
+    Impl::PublicCall active(*impl_);
+    if(impl_->session_configured || impl_->renderer_palette)
+        throw FormatError("Native source palette admission requires an unconfigured world without a prior graphics owner");
+    impl_->renderer_palette=std::make_unique<NativeTu15RendererPalette>(impl_->bank,std::move(factory));
+}
 void PhysicsLiveWorldTu15::switch_campaign_bsp(std::size_t b){Impl::PublicCall active(*impl_);impl_->switch_campaign_bsp(b);}
 std::uint32_t PhysicsLiveWorldTu15::source_object_pool()const{Impl::PublicCall active(*impl_,false);return word(impl_->bank,0x4ecbd0u);}
 std::uint32_t PhysicsLiveWorldTu15::source_player_pool()const{Impl::PublicCall active(*impl_,false);return word(impl_->bank,0x4f54f4u);}
@@ -2727,6 +3102,10 @@ std::optional<Vec2> PhysicsLiveWorldTu15::player_look(std::uint32_t p,std::uint3
 }
 void PhysicsLiveWorldTu15::bind_sound_user_settings(const std::filesystem::path &path) {Impl::PublicCall active(*impl_);
     impl_->sound_sdk_resources->bind_user_settings(SourceTu15UserSettings::load(path));
+}
+void PhysicsLiveWorldTu15::bind_sound_boot_smc_input(const std::filesystem::path &path) {Impl::PublicCall active(*impl_);
+    impl_->sound_sdk_resources->require_quiescent();
+    source_mount_tu15_boot_smc_video_mode_input(impl_->bank,SourceBootSmcVideoModeInput::load(path));
 }
 void PhysicsLiveWorldTu15::observe_effect_light_births(SourceEffectLightBirthObserverTu15 observer) {Impl::PublicCall active(*impl_);
     impl_->effect_light_birth_observer=std::move(observer);
@@ -2806,6 +3185,7 @@ std::uint32_t PhysicsLiveWorldTu15::create_scenario_object(const ScenarioObject&
 std::uint32_t PhysicsLiveWorldTu15::create_netgame_object(unsigned r){Impl::PublicCall active(*impl_);return impl_->create_netgame_object(r);}
 std::uint32_t PhysicsLiveWorldTu15::netgame_object(unsigned r)const{Impl::PublicCall active(*impl_,false);return impl_->netgame_object(r);}
 std::uint32_t PhysicsLiveWorldTu15::child_object(std::uint32_t p,std::uint32_t d)const{Impl::PublicCall active(*impl_,false);return impl_->child_object(p,d);}
+std::uint32_t PhysicsLiveWorldTu15::model_child_object(std::uint32_t p,std::uint32_t d,std::uint32_t pm,std::uint32_t cm)const{Impl::PublicCall active(*impl_,false);return impl_->model_child_object(p,d,pm,cm);}
 void PhysicsLiveWorldTu15::destroy_object(std::uint32_t object){Impl::PublicCall active(*impl_);impl_->destroy_object(object);}
 void PhysicsLiveWorldTu15::configure_session(const SourceGameVariant&v,std::uint16_t m,std::int16_t r,std::uint32_t s){Impl::PublicCall active(*impl_);impl_->configure_session(v,m,r,s);}
 void PhysicsLiveWorldTu15::configure_campaign_session(std::int16_t d,std::uint16_t m,std::int16_t r,std::uint32_t s){Impl::PublicCall active(*impl_);impl_->configure_session(source_game_variant_default(0),m,r,s,1u,d);}
@@ -2839,6 +3219,7 @@ PhysicsLiveWorldTu15::AuthorityCheckpoint PhysicsLiveWorldTu15::authority_checkp
         saved.lock_events=impl_->lock_events;
     }
     saved.last_instruction=impl_->last_instruction;saved.delivered_players=impl_->delivered_players;
+    saved.model_attachments=impl_->current_model_attachments();
     saved.allocations=impl_->allocations;saved.resource_reads=impl_->resource_reads;
     saved.next_resource_read=impl_->next_resource_read;saved.model_collectors=impl_->model_collectors;
     saved.next_model_collector=impl_->next_model_collector;saved.model_scratch_mounted=impl_->model_scratch_mounted;
@@ -2883,6 +3264,7 @@ struct PhysicsLiveWorldTu15::PreparedAuthority::Impl {
     };
     std::optional<Barrier> barrier;
     SourceRuntimeMemory replacement;
+    std::shared_ptr<MccSoundTimingMemoryOwner> prepared_sound_timing;
     std::optional<SourceRuntimeCacheBspImage> campaign_bsp;
     AuthorityCheckpoint fields;
     std::map<std::thread::id,std::uint32_t> thread_ids;
@@ -2894,23 +3276,119 @@ struct PhysicsLiveWorldTu15::PreparedAuthority::Impl {
     explicit Impl(PhysicsLiveWorldTu15::Impl &owner,const AuthorityCheckpoint &saved)
         :owner(owner),gate(owner.call_gate,std::try_to_lock) {
         owner.require_executor();
-        if(!gate.owns_lock() || owner.public_calls || owner.execution_depth || saved.version!=2 ||
+        if(owner.sound_timing_plan)prepared_sound_timing=std::make_shared<MccSoundTimingMemoryOwner>(owner.bank_storage);
+        if(!gate.owns_lock() || owner.public_calls || owner.execution_depth || saved.version!=3 ||
             !saved.session_configured || saved.resources!=owner.resources.identity())
             throw FormatError("TU1.5 authority image/resource/BSP or barrier mismatch");
         if(saved.bsp!=owner.bsp.index) {
             if(word(owner.bank,word(owner.bank,0x4f3218u)+8u)!=1u)
                 throw FormatError("Multiplayer authority cannot change its admitted BSP");
-            campaign_bsp=owner.cache_owner.load_source_runtime_cache_bsp_image(saved.bsp);
+            campaign_bsp=owner.cache_bsp_image(saved.bsp);
+        }
+        // Require every separately declared writable environment owner before
+        // restoring bytes. Old/partial captures must fail here rather than
+        // losing required cold storage and faulting in a later producer.
+        // Offline-XBE worlds retain their existing whole-section topology.
+        bool native_environment_owner{};
+        owner.bank.visit_committed([&](auto address,auto bytes) {
+            if(address==0x4c6710u && bytes.size()==0x120u)native_environment_owner=true;
+        });
+        if(native_environment_owner) {
+            struct Required {std::uint32_t address;std::size_t bytes;const char *name;};
+            for(const auto &required:std::array{
+                Required{0x4f2d88u,0x10u,"native TU1.5 cold environment flags and current view position"},
+                Required{0x4f2d98u,0x4u,"native TU1.5 cold environment membership control"},
+                Required{0x4f3008u,0x8u,"native TU1.5 cold environment interpolation scalars"},
+                Required{0x556554u,0x4u,"native TU1.5 cold CRT directional math scalar destination"},
+                Required{0x556e10u,0x4u,"native TU1.5 cold CRT fog spread scalar destination"},
+                Required{0x4c6710u,0x120u,"native TU1.5 cold complete main environment publication destination"},
+            }) {
+                const auto incoming=std::ranges::find(saved.bank.regions,required.address,
+                    &SourceRuntimeMemory::CheckpointRegion::address);
+                if(incoming==saved.bank.regions.end() || incoming->bytes.size()!=required.bytes ||
+                    incoming->access!=SourceRuntimeMemory::Access::ReadWrite ||
+                    incoming->owner!=required.name || incoming->page_bytes || !incoming->committed.empty())
+                    throw FormatError("TU1.5 authority lacks its required complete environment owner");
+            }
         }
         owner.dsp_section->require_quiescent();
         owner.sound_sdk_resources->require_quiescent();
-        barrier.emplace(owner);replacement.restore(saved.bank);
+        barrier.emplace(owner);
+        if(owner.canonical_cache) {
+            // The physical arena's ownership receipt cannot admit this
+            // separate native allocation. Require its exact topology before
+            // restoring any snapshot storage; copied tag bytes stay mutable
+            // because the original definition fixups own their live state.
+            const auto base=owner.canonical_cache->index().region.address;
+            const auto native=std::ranges::find(saved.bank.regions,base,
+                &SourceRuntimeMemory::CheckpointRegion::address);
+            if(native==saved.bank.regions.end() ||
+                native->bytes.size()!=owner.canonical_cache->reservation_bytes() ||
+                native->owner!="converted vanilla gameplay tag and BSP native allocation" ||
+                native->access!=SourceRuntimeMemory::Access::ReadWrite ||
+                native->page_bytes || !native->committed.empty())
+                throw FormatError("MCC authority changed its admitted native cache allocation");
+        }
+        native_tu15_validate_type_runtime_restore(owner.bank,saved.bank);
+        replacement.restore(saved.bank);
+        if(owner.canonical_cache) {
+            const auto& canonical=*owner.canonical_cache;
+            const auto& index=canonical.index();
+            const auto& selected=campaign_bsp?*campaign_bsp:owner.bsp;
+            const auto prefix=std::size_t(index.table-index.region.address);
+            if(!std::ranges::equal(replacement.view(index.region.address,prefix),
+                std::span(index.region.bytes).first(prefix)))
+                throw FormatError("MCC authority changed its vanilla index or group directory");
+            const Bytes admitted(index.region.bytes);
+            const auto selected_tag=[&](std::uint32_t datum) {
+                return admitted.u32(prefix+std::size_t(datum&65535u)*16u+8u);
+            };
+            for(const auto& [address,expected]:std::array{
+                std::pair{0x55658cu,index.region.address},std::pair{0x556d90u,index.region.address},
+                std::pair{0x4f0414u,index.table},std::pair{0x474c20u,index.scenario},
+                std::pair{0x4ecc20u,selected_tag(index.scenario)},
+                std::pair{0x4ecc1cu,selected_tag(index.globals)}})
+                if(word(replacement,address)!=expected)
+                    throw FormatError("MCC authority changed its vanilla tag publication bindings");
+            for(std::size_t n=0;n<index.count;++n) {
+                const auto at=prefix+n*16u;
+                const auto row=index.table+std::uint32_t(n)*16u;
+                if(word(replacement,row)!=admitted.u32(at) ||
+                    word(replacement,row+4u)!=admitted.u32(at+4u) ||
+                    word(replacement,row+12u)!=admitted.u32(at+12u))
+                    throw FormatError("MCC authority changed an admitted tag identity or extent");
+                const auto address=word(replacement,row+8u),group=admitted.u32(at);
+                if(group==tag_groups::scenario_structure_bsp.value ||
+                    group==tag_groups::scenario_structure_lightmap.value) {
+                    const auto* tag=owner.cache_owner.find_tag({admitted.u32(at+4u)});
+                    if(!tag || (address && address!=canonical.runtime_address(tag->address,tag->size)))
+                        throw FormatError("MCC authority changed a BSP tag publication address");
+                } else if(address!=admitted.u32(at+8u))
+                    throw FormatError("MCC authority changed an admitted tag payload address");
+            }
+            //1255C0 legitimately publishes the selected BSP/lightmap row's
+            // address while leaving its zero directory extent unchanged.
+            // Validate those publications separately from mutable payloads.
+            const Bytes header(selected.region.bytes);
+            const auto bsp_row=index.table+(selected.bsp&65535u)*16u;
+            if(word(replacement,0x556d94u)!=selected.region.address ||
+                word(replacement,0x474c24u,2)!=saved.bsp ||
+                word(replacement,bsp_row+8u)!=header.u32(4) ||
+                word(replacement,0x4ecc18u)!=header.u32(4) ||
+                word(replacement,0x4ecc14u)!=(selected.lightmap==0xffffffffu?0u:header.u32(8)) ||
+                (selected.lightmap!=0xffffffffu &&
+                    word(replacement,index.table+(selected.lightmap&65535u)*16u+8u)!=header.u32(8)) ||
+                !std::ranges::equal(replacement.view(selected.region.address,16),
+                    std::span(selected.region.bytes).first(16)) ||
+                !std::ranges::equal(replacement.view(selected.mapping,0x44),selected.mapping_bytes))
+                throw FormatError("MCC authority changed its admitted selected BSP bindings");
+        }
         if(campaign_bsp && (word(replacement,word(replacement,0x4f3218u)+8u)!=1u ||
             word(replacement,0x474c24u,2)!=saved.bsp ||
             !std::ranges::equal(replacement.view(campaign_bsp->mapping,0x44),campaign_bsp->mapping_bytes)))
             throw FormatError("Campaign checkpoint BSP binding differs from its admitted cache");
-        // The loader authenticated the original executable. Its immutable
-        // regions must remain exactly those of the local admitted image.
+        // Immutable declared operands (or the explicit offline reference
+        // image) must remain exactly those of the locally admitted owner.
         if(!owner.bank.matches_read_only_checkpoint(saved.bank))
             throw FormatError("TU1.5 authority changed immutable image bytes or topology");
         if(!saved.main_thread_token || saved.main_thread_token>=saved.next_thread_token || saved.next_thread_token>0x100000000ull ||
@@ -2977,6 +3455,20 @@ struct PhysicsLiveWorldTu15::PreparedAuthority::Impl {
         fields.logical_utc_filetime=saved.logical_utc_filetime;
         fields.lock_events=saved.lock_events;fields.allocations=saved.allocations;fields.resource_reads=saved.resource_reads;
         fields.next_resource_read=saved.next_resource_read;fields.next_model_collector=saved.next_model_collector;
+        const auto object_pool=word(replacement,0x4ecbd0u);
+        const SourceRawDatumPoolServices attachment_storage{.read=[&](auto at,auto bytes){return replacement.view(at,bytes);}};
+        if(saved.model_attachments.size()>word(replacement,object_pool+0x20u))
+            throw FormatError("TU1.5 model attachment owners exceed the original object pool");
+        for(const auto &[child,event]:saved.model_attachments) {
+            const auto header=source_raw_datum_lookup(object_pool,child,attachment_storage);
+            if(child!=event.child || event.caller_return!=0xc08a6u || !header ||
+                !source_raw_datum_lookup(object_pool,event.parent,attachment_storage))
+                throw FormatError("TU1.5 model attachment owner lost its original full generation/caller");
+            const auto body=word(replacement,header+8u);
+            if(!body || word(replacement,body+0x14u)!=event.parent || !(word(replacement,body+4u)&0x04000000u))
+                throw FormatError("TU1.5 model attachment owner differs from its actual source child link");
+        }
+        fields.model_attachments=saved.model_attachments;
         fields.model_collectors=saved.model_collectors;fields.model_scratch_mounted=saved.model_scratch_mounted;
         fields.session_configured=saved.session_configured;fields.exit_callbacks=saved.exit_callbacks;
         fields.projectile_detonations=saved.projectile_detonations;fields.unit_damage_effects=saved.unit_damage_effects;
@@ -2994,6 +3486,18 @@ const SourceRuntimeMemory &PhysicsLiveWorldTu15::PreparedAuthority::replacement_
     if(!impl_)throw FormatError("TU1.5 authority preparation has no replacement bank");
     return impl_->replacement;
 }
+void PhysicsLiveWorldTu15::PreparedAuthority::retain_live_campaign_lens() {
+    if(!impl_ || !impl_->gate.owns_lock() || !impl_->barrier ||
+        std::this_thread::get_id()!=impl_->owner.main_thread || !impl_->owner.staging ||
+        impl_->owner.public_calls || impl_->owner.execution_depth || impl_->owner.continuation_fault)
+        throw FormatError("Live campaign lens adoption requires its held authority preparation barrier");
+    const auto campaign=[](const SourceRuntimeMemory &memory) {
+        const auto game=word(memory,0x4f3218u);return game && word(memory,game+8u)==1u;
+    };
+    if(!campaign(impl_->owner.bank) || !campaign(impl_->replacement))
+        throw FormatError("Live lens renderer adoption cannot alter a multiplayer authority import");
+    source_stage_live_campaign_lens_tu15(impl_->owner.bank,impl_->replacement);
+}
 PhysicsLiveWorldTu15::PreparedAuthority PhysicsLiveWorldTu15::prepare_authority(const AuthorityCheckpoint &saved) {
     PreparedAuthority prepared;prepared.impl_=std::make_unique<PreparedAuthority::Impl>(*impl_,saved);return prepared;
 }
@@ -3010,6 +3514,7 @@ bool PhysicsLiveWorldTu15::commit_authority(PreparedAuthority &&prepared) noexce
     // Denied topology admission must leave both current owners and receipts intact.
     // Checked swap has no throwing operations after both permission gates pass.
     try{impl_->bank.swap_backing(state.replacement);}catch(...){return false;}
+    if(impl_->sound_timing_plan)impl_->sound_timing_memory.swap(state.prepared_sound_timing);
     impl_->main_receipts.retire();
     if(state.campaign_bsp)std::swap(impl_->bsp,*state.campaign_bsp);
     impl_->virtual_memory.commit_ownership(std::move(*state.virtual_memory));
@@ -3019,6 +3524,7 @@ bool PhysicsLiveWorldTu15::commit_authority(PreparedAuthority &&prepared) noexce
     impl_->thread_ids.swap(state.thread_ids);impl_->next_thread_token=fields.next_thread_token;
     impl_->lock_events.swap(fields.lock_events);impl_->allocations.swap(fields.allocations);
     impl_->resource_reads.swap(fields.resource_reads);impl_->next_resource_read=fields.next_resource_read;
+    impl_->model_attachments.swap(fields.model_attachments);
     impl_->model_collectors.swap(fields.model_collectors);impl_->next_model_collector=fields.next_model_collector;
     impl_->rendered_model_nodes.clear();
     impl_->model_scratch_mounted=fields.model_scratch_mounted;impl_->session_configured=fields.session_configured;

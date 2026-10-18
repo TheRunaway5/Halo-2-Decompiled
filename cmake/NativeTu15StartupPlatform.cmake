@@ -2,6 +2,8 @@ add_library(halo2_native_tu15_startup_platform STATIC src/native_tu15_startup_pl
 target_include_directories(halo2_native_tu15_startup_platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_startup_platform PUBLIC cxx_std_20)
 target_link_libraries(halo2_native_tu15_startup_platform PUBLIC halo2_source_tu15_settings)
+# Startup platform directly uses the authenticated hardware and record owners.
+target_link_libraries(halo2_native_tu15_startup_platform PRIVATE halo2_source_tu15_startup_records)
 if(HALO2_SANITIZERS AND NOT MSVC)
     target_compile_options(halo2_native_tu15_startup_platform PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
     target_link_options(halo2_native_tu15_startup_platform PUBLIC -fsanitize=address,undefined)

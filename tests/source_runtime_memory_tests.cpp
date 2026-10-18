@@ -1,6 +1,7 @@
 #include "halo2/object_body_heap.hpp"
 #include <algorithm>
 #include "halo2/source_runtime_memory.hpp"
+#include "halo2/source_runtime_write_protection.hpp"
 #include <array>
 #include <iostream>
 #include <stdexcept>
@@ -27,9 +28,67 @@ std::uint32_t word(const SourceRuntimeMemory &m, std::uint32_t p) {
     v |= std::to_integer<unsigned>(b[i]) << (8 * i);
   return v;
 }
+
+void guarded_topology() {
+  using A = SourceRuntimeMemory::Access;
+  SourceRuntimeMemory left, right;
+  const std::array left_bytes{std::byte{1}, std::byte{2}, std::byte{3}, std::byte{4}};
+  const std::array right_bytes{std::byte{5}, std::byte{6}, std::byte{7}, std::byte{8}};
+  left.mount(0x4000, left_bytes, A::ReadWrite, "left retained owner");
+  right.mount(0x4000, right_bytes, A::ReadWrite, "right retained owner");
+  struct Watch {
+    SourceRuntimeMemory &memory;
+    unsigned notifications{};
+    bool deny{};
+    explicit Watch(SourceRuntimeMemory &memory) : memory(memory) {
+      halo2::source_runtime_register_topology_observer(memory, this,
+          [this](auto, auto) noexcept { ++notifications; });
+      halo2::source_runtime_register_topology_guard(memory, this, [this](auto, auto) {
+        if (deny) throw std::runtime_error("actual render borrow retains this backing");
+      });
+    }
+    ~Watch() {
+      halo2::source_runtime_unregister_topology_guard(memory, this);
+      halo2::source_runtime_unregister_topology_observer(memory, this);
+    }
+  } left_watch(left), right_watch(right);
+  const auto left_before = left.checkpoint(), right_before = right.checkpoint();
+  const auto left_native = left.native_address(0x4000, 4);
+  const auto right_native = right.native_address(0x4000, 4);
+  for (auto *blocked : {&left_watch, &right_watch}) {
+    blocked->deny = true;
+    fails([&] { left.swap_backing(right); });
+    fails([&] { right.swap_backing(left); });
+    fails([&] { left = std::move(right); });
+    fails([&] { right = std::move(left); });
+    auto &owner = blocked->memory;
+    fails([&] { SourceRuntimeMemory stolen(std::move(owner)); });
+    fails([&] { owner.restore(left_before); });
+    fails([&] { owner.mount(0x5000, left_bytes, A::ReadWrite, "denied new backing"); });
+    check(left.checkpoint() == left_before && right.checkpoint() == right_before &&
+          left.native_address(0x4000, 4) == left_native &&
+          right.native_address(0x4000, 4) == right_native,
+          "Denied backing changes must preserve both real owners and native addresses");
+    check(left_watch.notifications == 0 && right_watch.notifications == 0,
+          "Denied backing changes must not retire receipts through observers");
+    blocked->deny = false;
+  }
+  left.swap_backing(right);
+  check(left_watch.notifications == 1 && right_watch.notifications == 1 &&
+        left.native_address(0x4000, 4) == right_native &&
+        right.native_address(0x4000, 4) == left_native,
+        "Accepted swap must notify both owners and preserve moved native allocations");
+  SourceRuntimeMemory moved(std::move(left));
+  check(left_watch.notifications == 2 && moved.native_address(0x4000, 4) == right_native,
+        "Accepted move must retire the source receipt and retain its real allocation");
+  left.restore(left_before);
+  check(left_watch.notifications == 3 && left.checkpoint() == left_before,
+        "Accepted restore must retain its owner observers and restore exact source bytes");
+}
 } // namespace
 int main() {
   try {
+    guarded_topology();
     SourceRuntimeMemory m;
     using A = SourceRuntimeMemory::Access;
     const std::array first{std::byte{1}, std::byte{2}, std::byte{3},

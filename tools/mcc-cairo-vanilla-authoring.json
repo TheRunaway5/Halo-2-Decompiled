@@ -1,0 +1,6977 @@
+{
+  "schema": 6,
+  "scenario_path": "scenarios\\solo\\01b_spacestation\\01b_spacestation",
+  "scenario_address": 226992,
+  "mcc_dll_sha256": "de65b4f4fdbf3f0a5eab7431fe530da17dd815599182dfd6ae9b7e21cf171946",
+  "xbox_tu15_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "script_count_before": 420,
+  "script_count_after": 418,
+  "banks": [
+    {
+      "name": "scenario",
+      "size": 592,
+      "token": 226992,
+      "sha256": "d3c0b41383013b97a1ac752a6f8cec2675eb798393cf251169f5d690e9097cc2"
+    },
+    {
+      "name": "block_568",
+      "size": 554440,
+      "token": 664508,
+      "sha256": "f1346f4296b80d1ae79f42f80863a27cc0e7aa53e9b7a9fa8bc06a39d5d7aa03"
+    },
+    {
+      "name": "block_432",
+      "size": 51211,
+      "token": 586280,
+      "sha256": "81396286821b9a1f486fc7e0e2bf361cfaf499300a7652bf9e09360c641dfcc8"
+    },
+    {
+      "name": "block_440",
+      "size": 16800,
+      "token": 637492,
+      "sha256": "ccc017a9b72aab62521e1e90d3f04dcdff4e70be1c4e2412bfb1706c2e64afbf"
+    },
+    {
+      "name": "block_448",
+      "size": 2080,
+      "token": 654292,
+      "sha256": "19c4708720e569777bfb78e03d9b5e88643b6a030673fc95ec801b65912b7ddf"
+    },
+    {
+      "name": "block_72",
+      "size": 17496,
+      "token": 228112,
+      "sha256": "cde3f7453151563a51f5aed1c6bcc0a9c13b5948a0d2a8dd4123bce88b4832aa"
+    },
+    {
+      "name": "block_160",
+      "size": 240,
+      "token": 324408,
+      "sha256": "943e1a14d0226295c0216e5af4ef5e07ce644c9a5f3be66b2c792b8dfc1ddbf4"
+    },
+    {
+      "name": "block_264",
+      "size": 3536,
+      "token": 347516,
+      "sha256": "425788f3532afea9619535fd203a30e42104ff344016459141c900b441e532c6"
+    },
+    {
+      "name": "block_352",
+      "size": 13572,
+      "token": 361360,
+      "sha256": "eeb2319f606f6ecb7dd90bc977bc3752e73dbb87be5d858abcb6590f0f7ba3c3"
+    },
+    {
+      "name": "child_352_0",
+      "size": 100,
+      "token": 374932,
+      "sha256": "7648fe0fd66367f1678dea8be8a66172f44fca432e810702950c2f0355ced67c"
+    },
+    {
+      "name": "child_352_1",
+      "size": 300,
+      "token": 375032,
+      "sha256": "f988ad836d13f53fc2b466dbb31f3d0292f17688295c1ea6c19ab119aba6e279"
+    },
+    {
+      "name": "child_352_2",
+      "size": 300,
+      "token": 375332,
+      "sha256": "cf52490c2e7db80640f75e18b6ff34b9edee8f7c5494c4c5e02ed64dc60cc400"
+    },
+    {
+      "name": "child_352_3",
+      "size": 100,
+      "token": 375632,
+      "sha256": "b828cbabefe01d5717200db92d1adeae09f0cba5ac5b7ad2a808d4720d5f486b"
+    },
+    {
+      "name": "child_352_4",
+      "size": 100,
+      "token": 375732,
+      "sha256": "f4b5cb39d041a2a456cfefbce5e5b264c2bf1406998602c33941644ea8d0bf94"
+    },
+    {
+      "name": "child_352_5",
+      "size": 300,
+      "token": 375832,
+      "sha256": "c5091535205399d046adad9ee8bbc8d23aa5fc8787d3aecdd388115ce62e2cd5"
+    },
+    {
+      "name": "child_352_6",
+      "size": 500,
+      "token": 376132,
+      "sha256": "9bfdccf15db0d4bfa8c460778d75a26a36b6d567180c5ba6fc6bfa697a34afe2"
+    },
+    {
+      "name": "child_352_7",
+      "size": 200,
+      "token": 376632,
+      "sha256": "01d8c0556c5d6f9e62679424291d8b1eabfa0976ff38d4d4886cccef518e6cf2"
+    },
+    {
+      "name": "child_352_8",
+      "size": 600,
+      "token": 376832,
+      "sha256": "522d901e3fc586ff8fffa67677e8c794f0f7cf96130e9929e6c8f86a8be1d738"
+    },
+    {
+      "name": "child_352_9",
+      "size": 200,
+      "token": 377432,
+      "sha256": "3aa0980dc01bb8d417544a93f3f788339f5b0affa1c04e481bb209b418a144b4"
+    },
+    {
+      "name": "child_352_10",
+      "size": 500,
+      "token": 377632,
+      "sha256": "72e34334a4271ddc33d14df87e3512404f635e3f126a637b23bcf2265d576864"
+    },
+    {
+      "name": "child_352_11",
+      "size": 300,
+      "token": 378132,
+      "sha256": "d92ef0168ab185af21c8ca846040932a5ffe233aeb2951a9f82840f4821d175d"
+    },
+    {
+      "name": "child_352_12",
+      "size": 100,
+      "token": 378432,
+      "sha256": "e36e2901b063c96bffbd47a8e617d6bcd8b0f7bea4de42911dcff10fb1d1018b"
+    },
+    {
+      "name": "child_352_13",
+      "size": 600,
+      "token": 378532,
+      "sha256": "513146be8931cbcef30a7ce399aa60938336728c51e1fda9c908f275ae1b8c63"
+    },
+    {
+      "name": "child_352_14",
+      "size": 100,
+      "token": 379132,
+      "sha256": "918cd99c4181e7cc23b7547b01a63e5159403ae0504ea9e75a3cef3e6208a50b"
+    },
+    {
+      "name": "child_352_15",
+      "size": 200,
+      "token": 379232,
+      "sha256": "aa7b05f610bab1fe272b5e1a08dcb76f1437133681cfdc53a93a8b5b232ba9a7"
+    },
+    {
+      "name": "child_352_16",
+      "size": 200,
+      "token": 379432,
+      "sha256": "7b64cd2ce867b76c7b1a80300dfea612b31d4cd4bc2f5a1b181daa077267c6ae"
+    },
+    {
+      "name": "child_352_17",
+      "size": 400,
+      "token": 379632,
+      "sha256": "0f5a0012f484f5c66c4181df1c6bb95575a43da7d1a72b6b1c57ab480e7e5796"
+    },
+    {
+      "name": "child_352_18",
+      "size": 200,
+      "token": 380032,
+      "sha256": "884298aa25b9fe45a2dd71ae21586de12bbef3c6bccc79aeb9630516a3256077"
+    },
+    {
+      "name": "child_352_19",
+      "size": 100,
+      "token": 380232,
+      "sha256": "3403faceac41f17c39e81d3b7052a70c46a87b8bb4d5892a27eafec09f5093da"
+    },
+    {
+      "name": "child_352_20",
+      "size": 200,
+      "token": 380332,
+      "sha256": "a977c81cb55e411d39b796b4a242813bc31ffad357fb4d63f3cb8ccdc7a6ea4c"
+    },
+    {
+      "name": "child_352_21",
+      "size": 300,
+      "token": 380532,
+      "sha256": "dd57599d42d7343c19eee0b27160b99b6c2e1badb36cd1c8b0b51a34182b5906"
+    },
+    {
+      "name": "child_352_22",
+      "size": 300,
+      "token": 380832,
+      "sha256": "eff0dd7eb0cc33ce2034dd923de0dd77ef7b9659c1a978487714d6efb8909bcf"
+    },
+    {
+      "name": "child_352_23",
+      "size": 100,
+      "token": 381132,
+      "sha256": "afb009259fa7ee78eb1eef629f9e533be94381e42121b08967576db8c3fc3c33"
+    },
+    {
+      "name": "child_352_24",
+      "size": 200,
+      "token": 381232,
+      "sha256": "6aa8834df87b2f6a7ff62b285922686b499037c0c6450546eaf9b6e7a3144010"
+    },
+    {
+      "name": "child_352_25",
+      "size": 200,
+      "token": 381432,
+      "sha256": "ca56384450f00ec45fbd5dc8f3914a70807acbf96be39445304a6d81dec1a2d6"
+    },
+    {
+      "name": "child_352_26",
+      "size": 300,
+      "token": 381632,
+      "sha256": "636e3ebbe4089dec060366faef45703703a61289017ca057416bcdb92ef7ca82"
+    },
+    {
+      "name": "child_352_27",
+      "size": 200,
+      "token": 381932,
+      "sha256": "907e02a95cc84819b1e63b31ffbf2d34d27c1b3e6bd40f4519ad40840388467a"
+    },
+    {
+      "name": "child_352_28",
+      "size": 300,
+      "token": 382132,
+      "sha256": "1a8869ee3b0fa27732accbf05424f22b4762adf4425333be13cbe9d122709b47"
+    },
+    {
+      "name": "child_352_29",
+      "size": 300,
+      "token": 382432,
+      "sha256": "116c6cacfcfa9048b4d3bc1174ac1f64ca4275542f7e4293e6f15a98d74dde4d"
+    },
+    {
+      "name": "child_352_30",
+      "size": 100,
+      "token": 382732,
+      "sha256": "e6de4b3d6e65db56e1afff9139978976e2402b39aa3ab61cb587f5d4ee840637"
+    },
+    {
+      "name": "child_352_31",
+      "size": 300,
+      "token": 382832,
+      "sha256": "ed310957651ddfc86236e43a969989297e2b6a9f2410e60b46675d648b3ebe98"
+    },
+    {
+      "name": "child_352_32",
+      "size": 200,
+      "token": 383132,
+      "sha256": "b07b006603baf59c1f4818ba02979fecfb190e0974a40d1bc9917e83b0dd02d8"
+    },
+    {
+      "name": "child_352_33",
+      "size": 100,
+      "token": 383332,
+      "sha256": "d8e92a9c366829457f045808d10ce7337244ab377782d6c99d8de40ec4236307"
+    },
+    {
+      "name": "child_352_34",
+      "size": 500,
+      "token": 383432,
+      "sha256": "3c837a91f5808c47316778d276ac908d673b8164b15c3975f2949bb65768f614"
+    },
+    {
+      "name": "child_352_35",
+      "size": 200,
+      "token": 383932,
+      "sha256": "14ecdac343c5fefb970bdc5b9e873f001388f5f15e52707ae0e72969eebbb816"
+    },
+    {
+      "name": "child_352_36",
+      "size": 100,
+      "token": 384132,
+      "sha256": "76ee874ca75a8f455f938f4bc7ecbc6f5528baf938d6a3c9ed88678959765887"
+    },
+    {
+      "name": "child_352_37",
+      "size": 200,
+      "token": 384232,
+      "sha256": "16a396c3da2c0ec10d573a5d67868e7d86a4c901cfb32d6841a81597fcc75bf3"
+    },
+    {
+      "name": "child_352_38",
+      "size": 500,
+      "token": 384432,
+      "sha256": "32c11e518616df125a68c9b7f07836568c782ddc30a3f40f35be3b6b1e2dd7f1"
+    },
+    {
+      "name": "child_352_39",
+      "size": 200,
+      "token": 384932,
+      "sha256": "6f51fa26265132495530e1d38abcb5d2fb10349e48fcf55290f661c84b0942a2"
+    },
+    {
+      "name": "child_352_40",
+      "size": 400,
+      "token": 385132,
+      "sha256": "245a562b07587053fcc645f69c39c9560dc7acc911e593f4de3feeb3f0ca6319"
+    },
+    {
+      "name": "child_352_41",
+      "size": 200,
+      "token": 385532,
+      "sha256": "331ec6f5fcb09ecb0e72394cbbb73d81fdb42e5e15761f5040652619e5cc1190"
+    },
+    {
+      "name": "child_352_42",
+      "size": 400,
+      "token": 385732,
+      "sha256": "3373bd9c1bcb74b6560c5c60602d2a265e847d388a619a00278dd77b5c026b94"
+    },
+    {
+      "name": "child_352_43",
+      "size": 200,
+      "token": 386132,
+      "sha256": "c605dd936c0f8401f65072313f6bb46c11d69591f949a251fedf77d2894867b4"
+    },
+    {
+      "name": "child_352_44",
+      "size": 400,
+      "token": 386332,
+      "sha256": "938b948d0653b6a82d7a2550afd57a429875eeb2075992f21fd419de3dfc68f0"
+    },
+    {
+      "name": "child_352_45",
+      "size": 300,
+      "token": 386732,
+      "sha256": "fd6d4765b2e9411b4d7b1104683e6ee418212a090ae10573ad1974f3869a3868"
+    },
+    {
+      "name": "child_352_46",
+      "size": 500,
+      "token": 387032,
+      "sha256": "83a01202d693cbb8c465c45cbc038a0d0de01d311291a15156f07c9c2e007932"
+    },
+    {
+      "name": "child_352_47",
+      "size": 500,
+      "token": 387532,
+      "sha256": "4fc629ba8a80c20a21b8cf50803a59f5dcd2b8ea38ea48b87204be8b6fc59011"
+    },
+    {
+      "name": "child_352_48",
+      "size": 300,
+      "token": 388032,
+      "sha256": "e524536fa1e7ead9f61eceb1f042e0c3ffef04cf79342910293a42e179c63e62"
+    },
+    {
+      "name": "child_352_49",
+      "size": 600,
+      "token": 388332,
+      "sha256": "4fa6faf89ab8a55d97d39b9bec7d7e5c5cc214af291e5573beff580e34bb05f1"
+    },
+    {
+      "name": "child_352_50",
+      "size": 500,
+      "token": 388932,
+      "sha256": "a4f586c8300ba4a508b6c1ac14c50eef01e32860c3cbbadb23f1316e4a963b48"
+    },
+    {
+      "name": "child_352_51",
+      "size": 200,
+      "token": 389432,
+      "sha256": "a9913cb9b423f99efc86bfd298ac7c42b5d0606f699e5d06eedb1a5f98b6f7fc"
+    },
+    {
+      "name": "child_352_52",
+      "size": 200,
+      "token": 389632,
+      "sha256": "a6c6dd5e35262e0bfaa7fc4a8dd7f64e81a73f94a4f21207a24f67940a78f369"
+    },
+    {
+      "name": "child_352_53",
+      "size": 500,
+      "token": 389832,
+      "sha256": "4cf00f89935316585da18e091584c11476ef2470db9f2008769c8c0111ae6673"
+    },
+    {
+      "name": "child_352_54",
+      "size": 200,
+      "token": 390332,
+      "sha256": "86b0ed2b0472594a24e9701bb182f8732fbcc119bf2ec2579bd630846cd21a14"
+    },
+    {
+      "name": "child_352_55",
+      "size": 500,
+      "token": 390532,
+      "sha256": "ba4bee3fabea1ccf3b8e1e043e427631f66383ede374a03076a86293b3ecdeb5"
+    },
+    {
+      "name": "child_352_56",
+      "size": 200,
+      "token": 391032,
+      "sha256": "d8ea7635c0e4c8af3b51d81a283ef02fc5954b151496b49e1be5634bc83f173a"
+    },
+    {
+      "name": "child_352_57",
+      "size": 500,
+      "token": 391232,
+      "sha256": "f5ba19699bd48ad0eb38ebc55c8102ad62faee2b20fd5b319e3738a90cbe7f0c"
+    },
+    {
+      "name": "child_352_58",
+      "size": 400,
+      "token": 391732,
+      "sha256": "9c565f704aaa6ed9c2ad489e1aa2f80e493a153052141df0a3e4a53f10033d82"
+    },
+    {
+      "name": "child_352_59",
+      "size": 200,
+      "token": 392132,
+      "sha256": "c966a0db3bde959622587eeae3aea83263dc860370e1e796765d1a39c3d50d0c"
+    },
+    {
+      "name": "child_352_60",
+      "size": 200,
+      "token": 392332,
+      "sha256": "a339f12806af539bc53c9610e3fc23e658a24426c55b499061d4078fbad10ebd"
+    },
+    {
+      "name": "child_352_61",
+      "size": 100,
+      "token": 392532,
+      "sha256": "663bc32358335282300ad1b063f30da3355602d606dcb048f1fdf4cfd1ee9e0d"
+    },
+    {
+      "name": "child_352_62",
+      "size": 200,
+      "token": 392632,
+      "sha256": "f3ea13378f89f32ff2e228f7f63b88c897e84526059695fc492dfd01888fb64a"
+    },
+    {
+      "name": "child_352_63",
+      "size": 400,
+      "token": 392832,
+      "sha256": "ec7e0a186e7fb864470691f25bfccbbb47d792575a01327478c143487bbcb33f"
+    },
+    {
+      "name": "child_352_64",
+      "size": 100,
+      "token": 393232,
+      "sha256": "812f62c51b4c0093968ad649dafd110277f37b54af15de4339fbdab867ac4d04"
+    },
+    {
+      "name": "child_352_65",
+      "size": 100,
+      "token": 393332,
+      "sha256": "fc1875acd983d60032c28f1cda87660131528f09243ad281152f405cec1b9bc5"
+    },
+    {
+      "name": "child_352_66",
+      "size": 100,
+      "token": 393432,
+      "sha256": "198eda3d6c83872093a11ee95b764518796bdb01bec9ce71546c1b404056a1e2"
+    },
+    {
+      "name": "child_352_67",
+      "size": 100,
+      "token": 393532,
+      "sha256": "49a5d4b7b2ca4fdf9c2cffcaf4863aabf17884b4e78793b64c9cb6e84e89d56a"
+    },
+    {
+      "name": "child_352_68",
+      "size": 200,
+      "token": 393632,
+      "sha256": "c81fe60d7d8e64ee4a5a2fab1307f6b8da72bcf17aa0a9a34cc4072dfa11bf02"
+    },
+    {
+      "name": "child_352_69",
+      "size": 100,
+      "token": 393832,
+      "sha256": "3f8fc378efb3f0b354b302aa624b5bdfc12c9e507f64eb0cbd51040177378315"
+    },
+    {
+      "name": "child_352_70",
+      "size": 500,
+      "token": 393932,
+      "sha256": "5b0639bf4ba5ba7a44d68889bd5a7ec11ae2f006974a1d44480fbc21b019fef0"
+    },
+    {
+      "name": "child_352_71",
+      "size": 200,
+      "token": 394432,
+      "sha256": "9efc7ec638a305e8af53c43f0cd7bc4fd0db1b37aa8038477fde56310e12e7f3"
+    },
+    {
+      "name": "child_352_72",
+      "size": 100,
+      "token": 394632,
+      "sha256": "0ff20d0e27e5f11695ce0269793646676d94f5f5ea9f03094b344fc2751881a6"
+    },
+    {
+      "name": "child_352_73",
+      "size": 100,
+      "token": 394732,
+      "sha256": "2a1de05e546e2a5c34e2ded3a5159f6a4edbfa7a1a93654b3f1738beedbe90a2"
+    },
+    {
+      "name": "child_352_74",
+      "size": 300,
+      "token": 394832,
+      "sha256": "fb13a999909e0ac25ddd0e7641f78bd9a356d2dfc1a974ed2b754e2a7e4c822d"
+    },
+    {
+      "name": "child_352_75",
+      "size": 100,
+      "token": 395132,
+      "sha256": "651eb41cfebc170d52f67c10cb3e5771fa048b2755d604a1cec20505203408d8"
+    },
+    {
+      "name": "child_352_76",
+      "size": 400,
+      "token": 395232,
+      "sha256": "4e1577c25849aaef35d08643d6d8d5082ca36a1052fd79c2317722a81572f7b2"
+    },
+    {
+      "name": "child_352_77",
+      "size": 100,
+      "token": 395632,
+      "sha256": "1280cc1a2525edbd7329b69e6ed8d9c2641bb1dd3e77b198b969be794d22af26"
+    },
+    {
+      "name": "child_352_78",
+      "size": 100,
+      "token": 395732,
+      "sha256": "82ce00b2cde85d1044b4d98330de0319b53c4b6d0fec80cf8c123dd9e085d2c2"
+    },
+    {
+      "name": "child_352_79",
+      "size": 300,
+      "token": 395832,
+      "sha256": "a3da49b5b6532cacaa0f5b62996727692c60454acbd35db87fe078e5ec09ba03"
+    },
+    {
+      "name": "child_352_80",
+      "size": 400,
+      "token": 396132,
+      "sha256": "54c59eadadd12ec3e0ed18a85ef6d3b18b09a6bf3d59a269ebbfc2e41be4bc27"
+    },
+    {
+      "name": "child_352_81",
+      "size": 200,
+      "token": 396532,
+      "sha256": "a880da92007407335114100dad74e3f61f7a6f13551668eb07bf6b68993c5051"
+    },
+    {
+      "name": "child_352_82",
+      "size": 400,
+      "token": 396732,
+      "sha256": "3b7f8f9be80d15c6558b4623a47dfe268f40fd3029ff6ea445fa805cfd682ec0"
+    },
+    {
+      "name": "child_352_83",
+      "size": 300,
+      "token": 397132,
+      "sha256": "8b66371e5d08b7310367f2784f91acef9639e7ec84dbafcbe5dcb2bc6c6359f6"
+    },
+    {
+      "name": "child_352_84",
+      "size": 400,
+      "token": 397432,
+      "sha256": "127a4dd916678a726505bd56e4461cd5d3f62a223dccb93a3ae6df696852a973"
+    },
+    {
+      "name": "child_352_85",
+      "size": 200,
+      "token": 397832,
+      "sha256": "c206a9da477ab5a1c17f58497a1bf42474ca111b50f8d8b273f574edf254c2b8"
+    },
+    {
+      "name": "child_352_86",
+      "size": 200,
+      "token": 398032,
+      "sha256": "210c02080482df041a5eb7c57ff07adcdbc925e85336cd5bbfd6a5e9e73ec7ff"
+    },
+    {
+      "name": "child_352_87",
+      "size": 200,
+      "token": 398232,
+      "sha256": "fd641e4fbfd96fd3edda5e883ef98efbaaacb6a12a5b44f3692ccca9e8e36997"
+    },
+    {
+      "name": "child_352_88",
+      "size": 200,
+      "token": 398432,
+      "sha256": "ee5f29b4235e904cc917f325ec015d85d0db1d85d9c9bf0aed1ff26d2ed93228"
+    },
+    {
+      "name": "child_352_89",
+      "size": 500,
+      "token": 398632,
+      "sha256": "a866a49cbb3126664208102025fa4c4b46d167bdcab7fd8b7ce6817a51989092"
+    },
+    {
+      "name": "child_352_90",
+      "size": 500,
+      "token": 399132,
+      "sha256": "ba5154f131c6904587f0b217e698b8b18a93801a226e31c57c0e9481b4a28cdf"
+    },
+    {
+      "name": "child_352_91",
+      "size": 500,
+      "token": 399632,
+      "sha256": "632e9c9258329ab76d7ec8de754719e857dc3c5ba964ca0f690d1608ff433591"
+    },
+    {
+      "name": "child_352_92",
+      "size": 200,
+      "token": 400132,
+      "sha256": "50b85025050308756c222f8dc585995c266aa76ebe803d168cde66f45f6dad9a"
+    },
+    {
+      "name": "child_352_93",
+      "size": 400,
+      "token": 400332,
+      "sha256": "20d509043660a3b79ce57b0ae4c0a38b8b41cbd4686227026b5562ba9ed2a325"
+    },
+    {
+      "name": "child_352_94",
+      "size": 100,
+      "token": 400732,
+      "sha256": "b142722913190e369428ffe3262761188c07c7f8c986e0dc6a60c72f66abdec4"
+    },
+    {
+      "name": "child_352_95",
+      "size": 300,
+      "token": 400832,
+      "sha256": "5b6d990b6675c7b546319efaa185abee53f034d487ebf013389e892e2aa7702a"
+    },
+    {
+      "name": "child_352_96",
+      "size": 300,
+      "token": 401132,
+      "sha256": "dbf2a332161d45250d078d00f99ad00a4993c4451e1d924cee65e9d815373e28"
+    },
+    {
+      "name": "child_352_97",
+      "size": 200,
+      "token": 401432,
+      "sha256": "14cc0cf3e714106f1fd01612a4b9b82ffd95de1d2e713a4bab16e7b1856775bc"
+    },
+    {
+      "name": "child_352_98",
+      "size": 400,
+      "token": 401632,
+      "sha256": "de20cb3db7e7b829363600fddfbb945025fe86165a42f997277df88a84b6fddc"
+    },
+    {
+      "name": "child_352_99",
+      "size": 200,
+      "token": 402032,
+      "sha256": "f2993b1d2038912b5b6c0be50a6eb191f7950de7c19041be94b0a8c71388d7d4"
+    },
+    {
+      "name": "child_352_100",
+      "size": 200,
+      "token": 402232,
+      "sha256": "2e3381ae47341274431401bf1560f1ba61d7bfd9d093bb0e0c2c4e12d53f1be1"
+    },
+    {
+      "name": "child_352_101",
+      "size": 200,
+      "token": 402432,
+      "sha256": "7209c5e44927ffcf0b58bb6a7b361093efefa17d742b31eaa8213e24806b67f0"
+    },
+    {
+      "name": "child_352_102",
+      "size": 200,
+      "token": 402632,
+      "sha256": "6de2ff567e3f992dfbf33629f109a854a2193964d29477a8be2f6a71877ee90d"
+    },
+    {
+      "name": "child_352_103",
+      "size": 100,
+      "token": 402832,
+      "sha256": "cbcf3d8db26fc6308a58344d6d16ec4c1552ba5d4e601e712eab4d3d3fa1bbc3"
+    },
+    {
+      "name": "child_352_104",
+      "size": 100,
+      "token": 402932,
+      "sha256": "f48938bfdde57513caf3a62f190f69dcc1d2f9bd763550f92fa42dbd0fbcb67c"
+    },
+    {
+      "name": "child_352_105",
+      "size": 100,
+      "token": 403032,
+      "sha256": "75f7ed3e08e850392bbf3d2eeea9ecbab4c1d4af4c033311c583ad01981e76eb"
+    },
+    {
+      "name": "child_352_106",
+      "size": 100,
+      "token": 403132,
+      "sha256": "0f4754fadd95913816be0a0280534e9a3c8ae94190090848bf9b397607c6675c"
+    },
+    {
+      "name": "child_352_107",
+      "size": 200,
+      "token": 403232,
+      "sha256": "f6c19fc65cb59f5fc0f75f25e7b46ae9a464498fad005b95d92b417d472ad95c"
+    },
+    {
+      "name": "child_352_108",
+      "size": 100,
+      "token": 403432,
+      "sha256": "fa2455fe99ad8dfbf11672916a8fdc5a2df94ba0826cea4ba198b1333007cacf"
+    },
+    {
+      "name": "child_352_109",
+      "size": 100,
+      "token": 403532,
+      "sha256": "fedd4ab0be1381e6d2fa68a05b090c53795217bc126d26097870857c63908683"
+    },
+    {
+      "name": "child_352_110",
+      "size": 100,
+      "token": 403632,
+      "sha256": "aab4644f135344f079a96c745cc2d8932ed7dde571c021b734f0a9bc5d7d8475"
+    },
+    {
+      "name": "child_352_111",
+      "size": 100,
+      "token": 403732,
+      "sha256": "f326d81e2361e64776dc100132e84b011701faa537cd902412c2c842f137e44a"
+    },
+    {
+      "name": "child_352_112",
+      "size": 200,
+      "token": 403832,
+      "sha256": "b5385c4bdfb723d56484e2781b66ce84258e0807f4162c0ab366a03885eb5ff5"
+    },
+    {
+      "name": "child_352_113",
+      "size": 100,
+      "token": 404032,
+      "sha256": "207c09d204b5811836394f74d4028237fa445627c56116501af6fbcdab0fa1ac"
+    },
+    {
+      "name": "child_352_114",
+      "size": 200,
+      "token": 404132,
+      "sha256": "9e4887afb69c5e4a7b8e9095b0f2f809f8779cb5699361e71427bd23fdb2df3a"
+    },
+    {
+      "name": "child_352_115",
+      "size": 100,
+      "token": 404332,
+      "sha256": "bef979e570530702296f38b93c02a988c8d62840331af4317d9413c503e6f199"
+    },
+    {
+      "name": "child_352_116",
+      "size": 200,
+      "token": 404432,
+      "sha256": "9a3a3717d8282598c7376601713d452bde5b721d286bfa85b98eb0c6453eb042"
+    },
+    {
+      "name": "block_576",
+      "size": 12772,
+      "token": 1218948,
+      "sha256": "2fd8184a1a12eb178e574ee2af3b9331df3a7304d1a8867a0e7fa62ff774ef8b"
+    },
+    {
+      "name": "block_584",
+      "size": 2112,
+      "token": 1238860,
+      "sha256": "8b03ef09c84132e1da95a0eb2b74bfdc8d12c66fd8078e67c824c9421d4230e6"
+    },
+    {
+      "name": "child_584_0",
+      "size": 56,
+      "token": 1240972,
+      "sha256": "debcdec6efdc2ecfcaabdb3dd9fd014c5d6f6de91748c6e747b2f2d73afc9b9d"
+    },
+    {
+      "name": "child_584_1",
+      "size": 56,
+      "token": 1241028,
+      "sha256": "69279f79c18702c10f63eb2190ec492d912f631a8a6693527f7a3b219d82fe04"
+    },
+    {
+      "name": "child_584_2",
+      "size": 56,
+      "token": 1241084,
+      "sha256": "9640b1ce2921efb0b25a308fdd4f0621e7439c3b1084a75d150c9122f99a7875"
+    },
+    {
+      "name": "child_584_3",
+      "size": 56,
+      "token": 1241140,
+      "sha256": "376cf30e8668e4d397f71715aee3584588b214092de33b39234c168e5536666a"
+    },
+    {
+      "name": "child_584_4",
+      "size": 56,
+      "token": 1241196,
+      "sha256": "be015195970a030a8581fc0a32db2bed4cd2c132aebcb30980763325aee0d554"
+    },
+    {
+      "name": "child_584_5",
+      "size": 56,
+      "token": 1241252,
+      "sha256": "c2a9bfbfcff75106b6f85b15aa94884e20df288e8910bfbeaea13e6b34f00e7b"
+    },
+    {
+      "name": "child_584_6",
+      "size": 56,
+      "token": 1241308,
+      "sha256": "14c0a018083d82ad467771adc76d8cd1732ff0fe4b355e2a753a8e0df1340e34"
+    },
+    {
+      "name": "child_584_7",
+      "size": 56,
+      "token": 1241364,
+      "sha256": "8542a1ef64ed47c6670c1e8b94a312bd0b6b46053edee6e7d866fc0ee523c870"
+    },
+    {
+      "name": "child_584_8",
+      "size": 112,
+      "token": 1241420,
+      "sha256": "771cac941d8279a1d20b1e11493b656eb0ab9f7038e9080b9ac774e9aff26ca0"
+    },
+    {
+      "name": "child_584_9",
+      "size": 56,
+      "token": 1241532,
+      "sha256": "b936f62ccf6e0c47ef4881bd247f254778d6277a99a664e357720c9d22d8e372"
+    },
+    {
+      "name": "child_584_10",
+      "size": 56,
+      "token": 1241588,
+      "sha256": "be18c7bcc403697b2877eeac940b801323a4480be62ead4f150457ba258986fe"
+    },
+    {
+      "name": "child_584_11",
+      "size": 112,
+      "token": 1241644,
+      "sha256": "5c7baa34e3824e31e5f54a9b0af2c4e9aad0f07b7bd2c5ccddadf78b2037fc6f"
+    },
+    {
+      "name": "child_584_12",
+      "size": 56,
+      "token": 1241756,
+      "sha256": "1dbd80c96b335ae47bec2ba9f1c648ec1c00d7b17f9e573b9a68ff5e684c0fa9"
+    },
+    {
+      "name": "child_584_13",
+      "size": 56,
+      "token": 1241812,
+      "sha256": "a791d872ef3866010041a8db6cc9e825ec5ea2eadf039b892b939b437a6f3c84"
+    },
+    {
+      "name": "child_584_14",
+      "size": 56,
+      "token": 1241532,
+      "sha256": "b936f62ccf6e0c47ef4881bd247f254778d6277a99a664e357720c9d22d8e372"
+    },
+    {
+      "name": "child_584_15",
+      "size": 56,
+      "token": 1241588,
+      "sha256": "be18c7bcc403697b2877eeac940b801323a4480be62ead4f150457ba258986fe"
+    },
+    {
+      "name": "child_584_16",
+      "size": 56,
+      "token": 1241868,
+      "sha256": "390f0da7eca1d5d4ee8261ab65e425d94fab0f0e50add937f46f01eec76f0a7e"
+    },
+    {
+      "name": "child_584_17",
+      "size": 112,
+      "token": 1241924,
+      "sha256": "c6bd6d37fd084f92639f00c47a134f9a3696bfb76e02491a400fd1dab6f3c84b"
+    },
+    {
+      "name": "child_584_18",
+      "size": 112,
+      "token": 1242036,
+      "sha256": "f7adb83da967a74495181a95765e7720912c24ebedfcc2c501305ebf4fc2352b"
+    },
+    {
+      "name": "child_584_19",
+      "size": 112,
+      "token": 1242148,
+      "sha256": "82de3ed35a1b3370e8343c13fec26db5db4563ef6aabeca4319fb8aefab55bb3"
+    },
+    {
+      "name": "child_584_20",
+      "size": 112,
+      "token": 1242260,
+      "sha256": "f46251d9a1d1667959c5d8d05f6c733cc2bb28fc911f76a5262da15fff092744"
+    },
+    {
+      "name": "child_584_21",
+      "size": 56,
+      "token": 1242372,
+      "sha256": "5aeac3be08449e077f2d2aa6293079f68ff77233c3ddf49753a4e63d5d0a04fa"
+    },
+    {
+      "name": "child_584_22",
+      "size": 56,
+      "token": 1242428,
+      "sha256": "def81789bf05638bf82d2d564838d1ac7f7079eff3beef8d69646321b5cdcb51"
+    },
+    {
+      "name": "child_584_23",
+      "size": 112,
+      "token": 1242484,
+      "sha256": "c2913d955f5cb5912414a05a6b23ec52f8a55145fad5ea26443d92ad6848a186"
+    },
+    {
+      "name": "child_584_25",
+      "size": 56,
+      "token": 1242596,
+      "sha256": "6c4f59261a2865b1c488a8c756c5acfc6b39cd0ac9a5107b7eccb774f171e089"
+    },
+    {
+      "name": "child_584_26",
+      "size": 56,
+      "token": 1242652,
+      "sha256": "a8754604f80f017b03d226a88bc4b26de9b314d988c96e45c804d3ab3daada45"
+    },
+    {
+      "name": "child_584_27",
+      "size": 56,
+      "token": 1242708,
+      "sha256": "ac74df40545698d6cb204c2b6ebe1f3fff25901d0a1fa905b9c29a2aa7b10a69"
+    },
+    {
+      "name": "child_584_28",
+      "size": 112,
+      "token": 1242764,
+      "sha256": "cd5e38b8a013979c80ce17bc26567a0d72ea995a02c47161c1b2c28cfbe52a69"
+    },
+    {
+      "name": "child_584_29",
+      "size": 112,
+      "token": 1242876,
+      "sha256": "397e5bc883700e150a8936ebeeb10b33f0379802b6baa9e40d93ed72b869be65"
+    },
+    {
+      "name": "child_584_30",
+      "size": 112,
+      "token": 1242988,
+      "sha256": "a980988df6514bad0f0f2f52db984787fd61e9b1a071781267a97e7564241d42"
+    },
+    {
+      "name": "child_584_31",
+      "size": 112,
+      "token": 1243100,
+      "sha256": "aed5b714b0f89eda7d92307422f4856a42a7443d943e55a02b1cdaf7c7b6d6f4"
+    },
+    {
+      "name": "child_584_32",
+      "size": 112,
+      "token": 1243212,
+      "sha256": "83e656f74b466d2375c92eecdc1eb31ba396d0dd4ddb5130f48055b1d802211a"
+    },
+    {
+      "name": "child_584_33",
+      "size": 56,
+      "token": 1243324,
+      "sha256": "28fb7670a141fd349c475623f0e5aeeeb1f9bb09c4afb68c36be7ba7b3e71409"
+    },
+    {
+      "name": "child_584_34",
+      "size": 112,
+      "token": 1243380,
+      "sha256": "4bafae9d1e1be6457c26fc70187424f25ddb78e22632fd36751fa44f139e6fe2"
+    },
+    {
+      "name": "child_584_35",
+      "size": 112,
+      "token": 1243492,
+      "sha256": "579a4e8709da2f8d930b131a113b29b0e901850650449fd3a0edb00383ccb654"
+    },
+    {
+      "name": "child_584_36",
+      "size": 56,
+      "token": 1243604,
+      "sha256": "83f69813353546a7016ed0738e229c130d7a5b7296ce741e3d980f1da1d1de0d"
+    },
+    {
+      "name": "child_584_37",
+      "size": 56,
+      "token": 1243660,
+      "sha256": "61b2d6de751c3d2462cea41569ca12f4d85fae363e42b5d0769a7e0d86cd775e"
+    },
+    {
+      "name": "child_584_38",
+      "size": 56,
+      "token": 1243660,
+      "sha256": "61b2d6de751c3d2462cea41569ca12f4d85fae363e42b5d0769a7e0d86cd775e"
+    },
+    {
+      "name": "child_584_39",
+      "size": 56,
+      "token": 1243716,
+      "sha256": "161ff7e80c278a11a946678d4d52d096cef28ce0d3f7ccc180009502884ab748"
+    },
+    {
+      "name": "child_584_40",
+      "size": 56,
+      "token": 1243772,
+      "sha256": "56ac8865fbc7bc3846c285ba42207958ce130477dc58d72ace4eefad7a34b783"
+    },
+    {
+      "name": "child_584_41",
+      "size": 112,
+      "token": 1243828,
+      "sha256": "3856062436ce83d79a4dce67966f6f6f63a392a99c6914278682edd0a0e9dbe8"
+    },
+    {
+      "name": "child_584_42",
+      "size": 56,
+      "token": 1243940,
+      "sha256": "22cfa2fe32172fb2b9a71a0a62f20f5635a2f017ebcc399b5d23514e2fd8d08f"
+    },
+    {
+      "name": "child_584_43",
+      "size": 56,
+      "token": 1243996,
+      "sha256": "e7f0416730a200870ebb4c4272a998a9cfe24f7a8ae4c71fe82f49140071a1a1"
+    },
+    {
+      "name": "branding_placement",
+      "token": 247356,
+      "size": 92,
+      "sha256": "a608298151aee8cca3bda98e46ca062c249cf73839ea6cd8bbc85520e6d25391",
+      "source": "cache_namespace"
+    },
+    {
+      "name": "branding_palette",
+      "token": 300600,
+      "size": 40,
+      "sha256": "eadb5bf4be39d2a5b52f6cacbbdd0f8ab76d9852627dad36a21b58cb8bbe9ce6",
+      "source": "cache_namespace"
+    },
+    {
+      "name": "branding_object_header",
+      "token": 5132320,
+      "size": 64,
+      "sha256": "cc65cf17472d24a1c24373d2a5170362447be16f28ccfbff5d52e0823b15e13f",
+      "source": "cache_namespace"
+    },
+    {
+      "name": "branding_model_header",
+      "token": 5132636,
+      "size": 96,
+      "sha256": "02b0e73d4a655cd71a5dfcfae93f6a6b0d24e01f0f9a560bf6cc454f4243f369",
+      "source": "cache_namespace"
+    },
+    {
+      "name": "branding_render_header",
+      "token": 5132980,
+      "size": 96,
+      "sha256": "3eb6364cbbacc51b85e80acb7a3fcb0b3e6a63d099ca42eaa0394b360a6decc1",
+      "source": "cache_namespace"
+    },
+    {
+      "name": "branding_nodes",
+      "token": 5133432,
+      "size": 96,
+      "sha256": "b82bfb64ac99ef2acac532f6e74266ca7759f5073b2cc930a87be0d5471a0ad4",
+      "source": "cache_namespace"
+    },
+    {
+      "name": "branding_marker_groups",
+      "token": 5133528,
+      "size": 24,
+      "sha256": "36a3f3e1f7dc089f10522fde0aa4853f501b3c57d8a004d2d39d751371dca7d5",
+      "source": "cache_namespace"
+    },
+    {
+      "name": "branding_markers_0",
+      "token": 5133552,
+      "size": 36,
+      "sha256": "1a7d03e2fe877eceb809a9ff9025bba63738ff974736ea9d49a57875c2445801",
+      "source": "cache_namespace"
+    },
+    {
+      "name": "branding_markers_1",
+      "token": 5133588,
+      "size": 36,
+      "sha256": "0888f2131fc4f231261b06b9449cedc37e7650786ef749da6cdcb323ce4a23b5",
+      "source": "cache_namespace"
+    }
+  ],
+  "patches": [
+    {
+      "predecessor": 3928491701,
+      "removed_call": 3928688312,
+      "next": 3928884923,
+      "last_removed": 3928688312
+    },
+    {
+      "predecessor": 2177113680,
+      "removed_call": 2177310291,
+      "next": 2177506902,
+      "last_removed": 2177310291
+    },
+    {
+      "predecessor": 4157084757,
+      "removed_call": 4157215831,
+      "next": 4157346905,
+      "last_removed": 4157215831
+    },
+    {
+      "predecessor": 4165735641,
+      "removed_call": 4165932252,
+      "next": 4166063326,
+      "last_removed": 4165932252
+    },
+    {
+      "predecessor": 2935114622,
+      "removed_call": 2935245696,
+      "next": 2935442307,
+      "last_removed": 2935245696
+    },
+    {
+      "predecessor": 4083159021,
+      "removed_call": 4083355632,
+      "last_removed": 4083552243,
+      "next": 4083748854
+    },
+    {
+      "predecessor": 4111012246,
+      "removed_call": 4111405468,
+      "last_removed": 4111602079,
+      "next": 4111798690
+    },
+    {
+      "predecessor": 4192867959,
+      "removed_call": 4193261181,
+      "last_removed": 4193523329,
+      "next": 4193719940
+    },
+    {
+      "predecessor": 2652453541,
+      "removed_call": 2652715689,
+      "last_removed": 2652715689,
+      "next": 2652977837
+    },
+    {
+      "predecessor": 2663529294,
+      "removed_call": 2664053590,
+      "last_removed": 2664053590,
+      "next": 2664315738
+    },
+    {
+      "predecessor": 2679979081,
+      "removed_call": 2680437840,
+      "last_removed": 2680437840,
+      "next": 2680699988
+    },
+    {
+      "predecessor": 2720743095,
+      "removed_call": 2720939706,
+      "last_removed": 2720939706,
+      "next": 4294967295
+    },
+    {
+      "predecessor": 2855421630,
+      "removed_call": 2855683778,
+      "last_removed": 2855683778,
+      "next": 2855945926
+    },
+    {
+      "predecessor": 2614376544,
+      "removed_call": 2614900840,
+      "next": 2615359599,
+      "last_removed": 2614900840
+    },
+    {
+      "predecessor": 2678799415,
+      "removed_call": 2679127100,
+      "next": 2679454785,
+      "last_removed": 2679127100
+    },
+    {
+      "predecessor": 2680699988,
+      "removed_call": 2680896599,
+      "next": 2681224284,
+      "last_removed": 2680896599
+    },
+    {
+      "predecessor": 2706783714,
+      "removed_call": 2707045862,
+      "next": 2707701232,
+      "last_removed": 2707373547
+    },
+    {
+      "predecessor": 2716221042,
+      "removed_call": 2716417653,
+      "next": 2716745338,
+      "last_removed": 2716417653
+    },
+    {
+      "predecessor": 2717073023,
+      "removed_call": 2717269634,
+      "next": 2717597319,
+      "last_removed": 2717269634
+    },
+    {
+      "predecessor": 2623682798,
+      "removed_call": 2624272631,
+      "last_removed": 2624469242,
+      "next": 2624796927
+    }
+  ],
+  "retired_nodes": [
+    2177310291,
+    2177375828,
+    2177441365,
+    2420255950,
+    2573219308,
+    2573284845,
+    2573350382,
+    2573415919,
+    2573481456,
+    2573546993,
+    2573612530,
+    2573678067,
+    2573743604,
+    2573809141,
+    2573874678,
+    2573940215,
+    2574005752,
+    2574071289,
+    2574136826,
+    2574202363,
+    2574267900,
+    2574333437,
+    2574398974,
+    2574464511,
+    2574530048,
+    2574595585,
+    2574661122,
+    2574726659,
+    2574792196,
+    2574857733,
+    2574923270,
+    2574988807,
+    2575054344,
+    2575119881,
+    2575185418,
+    2575250955,
+    2575316492,
+    2575382029,
+    2575447566,
+    2575513103,
+    2575578640,
+    2575644177,
+    2575709714,
+    2575775251,
+    2575840788,
+    2575906325,
+    2575971862,
+    2576037399,
+    2576102936,
+    2576168473,
+    2576234010,
+    2576299547,
+    2576365084,
+    2576430621,
+    2576496158,
+    2576561695,
+    2576627232,
+    2576692769,
+    2576758306,
+    2576823843,
+    2576889380,
+    2576954917,
+    2577020454,
+    2577085991,
+    2577151528,
+    2577217065,
+    2577282602,
+    2577348139,
+    2577413676,
+    2577479213,
+    2577544750,
+    2577610287,
+    2577675824,
+    2577741361,
+    2577806898,
+    2577872435,
+    2577937972,
+    2578003509,
+    2578069046,
+    2578134583,
+    2578200120,
+    2578265657,
+    2578331194,
+    2578396731,
+    2578462268,
+    2578527805,
+    2578593342,
+    2578658879,
+    2578724416,
+    2578789953,
+    2578855490,
+    2578921027,
+    2578986564,
+    2579052101,
+    2579117638,
+    2579183175,
+    2579248712,
+    2579314249,
+    2579379786,
+    2579445323,
+    2579510860,
+    2579576397,
+    2579641934,
+    2579707471,
+    2579773008,
+    2579838545,
+    2579904082,
+    2579969619,
+    2580035156,
+    2580100693,
+    2580166230,
+    2580231767,
+    2580297304,
+    2580362841,
+    2580428378,
+    2580493915,
+    2580559452,
+    2580624989,
+    2580690526,
+    2580756063,
+    2580821600,
+    2580887137,
+    2580952674,
+    2581018211,
+    2581083748,
+    2581149285,
+    2581214822,
+    2581280359,
+    2581345896,
+    2581411433,
+    2581476970,
+    2581542507,
+    2581608044,
+    2581673581,
+    2581739118,
+    2581804655,
+    2581870192,
+    2581935729,
+    2582001266,
+    2582066803,
+    2582132340,
+    2582197877,
+    2582263414,
+    2582328951,
+    2582394488,
+    2582460025,
+    2582525562,
+    2582591099,
+    2582656636,
+    2582722173,
+    2582787710,
+    2582853247,
+    2582918784,
+    2582984321,
+    2583049858,
+    2583115395,
+    2583180932,
+    2583246469,
+    2583312006,
+    2583377543,
+    2583443080,
+    2583508617,
+    2583574154,
+    2583639691,
+    2583705228,
+    2583770765,
+    2583836302,
+    2583901839,
+    2583967376,
+    2584032913,
+    2584098450,
+    2584163987,
+    2584229524,
+    2584295061,
+    2584360598,
+    2584426135,
+    2584491672,
+    2584557209,
+    2584622746,
+    2584688283,
+    2584753820,
+    2584819357,
+    2584884894,
+    2584950431,
+    2585015968,
+    2585081505,
+    2585147042,
+    2585212579,
+    2585278116,
+    2585343653,
+    2585409190,
+    2585474727,
+    2585540264,
+    2585605801,
+    2585671338,
+    2585736875,
+    2585802412,
+    2585867949,
+    2585933486,
+    2585999023,
+    2586064560,
+    2586130097,
+    2586195634,
+    2586261171,
+    2586326708,
+    2586392245,
+    2586457782,
+    2586523319,
+    2586588856,
+    2586654393,
+    2586719930,
+    2586785467,
+    2586851004,
+    2586916541,
+    2586982078,
+    2587047615,
+    2587113152,
+    2587178689,
+    2587244226,
+    2587309763,
+    2587375300,
+    2587440837,
+    2587506374,
+    2587571911,
+    2587637448,
+    2587702985,
+    2587768522,
+    2587834059,
+    2587899596,
+    2587965133,
+    2588030670,
+    2588096207,
+    2588161744,
+    2588227281,
+    2588292818,
+    2588358355,
+    2588423892,
+    2588489429,
+    2588554966,
+    2588620503,
+    2588686040,
+    2588751577,
+    2588817114,
+    2588882651,
+    2588948188,
+    2589013725,
+    2589079262,
+    2589144799,
+    2589210336,
+    2589275873,
+    2589341410,
+    2589406947,
+    2589472484,
+    2589538021,
+    2589603558,
+    2589669095,
+    2589734632,
+    2589800169,
+    2589865706,
+    2589931243,
+    2589996780,
+    2590062317,
+    2590127854,
+    2590193391,
+    2590258928,
+    2590324465,
+    2590390002,
+    2590455539,
+    2590521076,
+    2590586613,
+    2590652150,
+    2590717687,
+    2590783224,
+    2590848761,
+    2590914298,
+    2590979835,
+    2591045372,
+    2591110909,
+    2591176446,
+    2591241983,
+    2591307520,
+    2591373057,
+    2591438594,
+    2591504131,
+    2591569668,
+    2591635205,
+    2591700742,
+    2591766279,
+    2591831816,
+    2591897353,
+    2591962890,
+    2592028427,
+    2592093964,
+    2592159501,
+    2592225038,
+    2592290575,
+    2592356112,
+    2592421649,
+    2592487186,
+    2592552723,
+    2592618260,
+    2592683797,
+    2592749334,
+    2592814871,
+    2592880408,
+    2592945945,
+    2593011482,
+    2593077019,
+    2593142556,
+    2593208093,
+    2593273630,
+    2593339167,
+    2593404704,
+    2593470241,
+    2593535778,
+    2593601315,
+    2593666852,
+    2593732389,
+    2593797926,
+    2593863463,
+    2593929000,
+    2593994537,
+    2594060074,
+    2594125611,
+    2594191148,
+    2594256685,
+    2594322222,
+    2594387759,
+    2594453296,
+    2594518833,
+    2594584370,
+    2594649907,
+    2594715444,
+    2594780981,
+    2594846518,
+    2594912055,
+    2594977592,
+    2595043129,
+    2595108666,
+    2595174203,
+    2595239740,
+    2595305277,
+    2595370814,
+    2595436351,
+    2595501888,
+    2595567425,
+    2595632962,
+    2595698499,
+    2595764036,
+    2595829573,
+    2595895110,
+    2595960647,
+    2596026184,
+    2596091721,
+    2596157258,
+    2596222795,
+    2596288332,
+    2596353869,
+    2596419406,
+    2596484943,
+    2596550480,
+    2596616017,
+    2596681554,
+    2596747091,
+    2596812628,
+    2596878165,
+    2596943702,
+    2597009239,
+    2597074776,
+    2597140313,
+    2597205850,
+    2597271387,
+    2597336924,
+    2597402461,
+    2597467998,
+    2597533535,
+    2597599072,
+    2597664609,
+    2597730146,
+    2597795683,
+    2597861220,
+    2597926757,
+    2597992294,
+    2598057831,
+    2598123368,
+    2598188905,
+    2598254442,
+    2598319979,
+    2598385516,
+    2598451053,
+    2598516590,
+    2598582127,
+    2598647664,
+    2598713201,
+    2598778738,
+    2598844275,
+    2598909812,
+    2598975349,
+    2599040886,
+    2599106423,
+    2599171960,
+    2599237497,
+    2599303034,
+    2599368571,
+    2599434108,
+    2599499645,
+    2599565182,
+    2599630719,
+    2599696256,
+    2599761793,
+    2599827330,
+    2599892867,
+    2599958404,
+    2600023941,
+    2600089478,
+    2600155015,
+    2600220552,
+    2600286089,
+    2600351626,
+    2600417163,
+    2600482700,
+    2600548237,
+    2600613774,
+    2600679311,
+    2600744848,
+    2600810385,
+    2600875922,
+    2600941459,
+    2601006996,
+    2601072533,
+    2601138070,
+    2601203607,
+    2601269144,
+    2601334681,
+    2601400218,
+    2601465755,
+    2601531292,
+    2601596829,
+    2601662366,
+    2601727903,
+    2601793440,
+    2601858977,
+    2601924514,
+    2601990051,
+    2602055588,
+    2602121125,
+    2602186662,
+    2602252199,
+    2602317736,
+    2602383273,
+    2602448810,
+    2602514347,
+    2602579884,
+    2602645421,
+    2602710958,
+    2602776495,
+    2602842032,
+    2602907569,
+    2602973106,
+    2603038643,
+    2603104180,
+    2603169717,
+    2603235254,
+    2603300791,
+    2603366328,
+    2603431865,
+    2603497402,
+    2603562939,
+    2603628476,
+    2603694013,
+    2603759550,
+    2603825087,
+    2603890624,
+    2603956161,
+    2604021698,
+    2604087235,
+    2604152772,
+    2604218309,
+    2604283846,
+    2604349383,
+    2604414920,
+    2604480457,
+    2604545994,
+    2604611531,
+    2604677068,
+    2604742605,
+    2604808142,
+    2604873679,
+    2604939216,
+    2605004753,
+    2605070290,
+    2605135827,
+    2605201364,
+    2605266901,
+    2605332438,
+    2605397975,
+    2605463512,
+    2605529049,
+    2605594586,
+    2605660123,
+    2605725660,
+    2605791197,
+    2605856734,
+    2605922271,
+    2605987808,
+    2606053345,
+    2606118882,
+    2606184419,
+    2606249956,
+    2606315493,
+    2606381030,
+    2606446567,
+    2606512104,
+    2606577641,
+    2606643178,
+    2606708715,
+    2606774252,
+    2606839789,
+    2606905326,
+    2614900840,
+    2614966377,
+    2615031914,
+    2615097451,
+    2615162988,
+    2615228525,
+    2615294062,
+    2624010483,
+    2624076020,
+    2624141557,
+    2624207094,
+    2624272631,
+    2624338168,
+    2624403705,
+    2624469242,
+    2624534779,
+    2624600316,
+    2624665853,
+    2624731390,
+    2652715689,
+    2652781226,
+    2652846763,
+    2652912300,
+    2664053590,
+    2664119127,
+    2664184664,
+    2664250201,
+    2679127100,
+    2679192637,
+    2679258174,
+    2679323711,
+    2679389248,
+    2680437840,
+    2680503377,
+    2680568914,
+    2680634451,
+    2680896599,
+    2680962136,
+    2681027673,
+    2681093210,
+    2681158747,
+    2707045862,
+    2707111399,
+    2707176936,
+    2707242473,
+    2707308010,
+    2707373547,
+    2707439084,
+    2707504621,
+    2707570158,
+    2707635695,
+    2716417653,
+    2716483190,
+    2716548727,
+    2716614264,
+    2716679801,
+    2717269634,
+    2717335171,
+    2717400708,
+    2717466245,
+    2717531782,
+    2720939706,
+    2721005243,
+    2721070780,
+    2721136317,
+    2855683778,
+    2855749315,
+    2855814852,
+    2855880389,
+    2935245696,
+    2935311233,
+    2935376770,
+    3928688312,
+    3928753849,
+    3928819386,
+    4083355632,
+    4083421169,
+    4083486706,
+    4083552243,
+    4083617780,
+    4083683317,
+    4111405468,
+    4111471005,
+    4111536542,
+    4111602079,
+    4111667616,
+    4111733153,
+    4157215831,
+    4157281368,
+    4165932252,
+    4165997789,
+    4179826096,
+    4179891633,
+    4179957170,
+    4180022707,
+    4180088244,
+    4180153781,
+    4180219318,
+    4180284855,
+    4180350392,
+    4193261181,
+    4193326718,
+    4193392255,
+    4193457792,
+    4193523329,
+    4193588866,
+    4193654403
+  ],
+  "script_references": [
+    {
+      "datum": 3843621286,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3843686823
+    },
+    {
+      "datum": 3843948971,
+      "index": 1,
+      "name": "player1",
+      "kind": "static",
+      "function_datum": 3844014508
+    },
+    {
+      "datum": 3844997563,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3845063100
+    },
+    {
+      "datum": 3845325248,
+      "index": 1,
+      "name": "player1",
+      "kind": "static",
+      "function_datum": 3845390785
+    },
+    {
+      "datum": 3847094747,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3847160284
+    },
+    {
+      "datum": 3848864246,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3848929783
+    },
+    {
+      "datum": 3849257468,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3849323005
+    },
+    {
+      "datum": 3849650690,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3849716227
+    },
+    {
+      "datum": 3850699282,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3850764819
+    },
+    {
+      "datum": 3851682337,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3851747874
+    },
+    {
+      "datum": 3852075559,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 3852141096
+    },
+    {
+      "datum": 3923838574,
+      "index": 45,
+      "name": "x02_score_01",
+      "kind": "script"
+    },
+    {
+      "datum": 3924035185,
+      "index": 46,
+      "name": "x02_foley_01",
+      "kind": "script"
+    },
+    {
+      "datum": 3924231796,
+      "index": 47,
+      "name": "x02_0010_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 3924428407,
+      "index": 48,
+      "name": "x02_0020_jon",
+      "kind": "script"
+    },
+    {
+      "datum": 3924625018,
+      "index": 49,
+      "name": "x02_0030_jon",
+      "kind": "script"
+    },
+    {
+      "datum": 3924821629,
+      "index": 50,
+      "name": "x02_0040_jon",
+      "kind": "script"
+    },
+    {
+      "datum": 3925018240,
+      "index": 51,
+      "name": "x02_0050_jon",
+      "kind": "script"
+    },
+    {
+      "datum": 3925214851,
+      "index": 55,
+      "name": "x02_hum_crowd_01a",
+      "kind": "script"
+    },
+    {
+      "datum": 3925411462,
+      "index": 56,
+      "name": "x02_hum_crowd_01b",
+      "kind": "script"
+    },
+    {
+      "datum": 3925608073,
+      "index": 52,
+      "name": "x02_01_dof",
+      "kind": "script"
+    },
+    {
+      "datum": 3925804684,
+      "index": 53,
+      "name": "cinematic_lighting_x02_01",
+      "kind": "script"
+    },
+    {
+      "datum": 3926001295,
+      "index": 57,
+      "name": "open_bridge_door",
+      "kind": "script"
+    },
+    {
+      "datum": 3929540293,
+      "index": 24,
+      "name": "x02_01_predict_stub",
+      "kind": "static",
+      "function_datum": 3929605830
+    },
+    {
+      "datum": 3930261200,
+      "index": 58,
+      "name": "x02_01_setup",
+      "kind": "static",
+      "function_datum": 3930326737
+    },
+    {
+      "datum": 3935504160,
+      "index": 54,
+      "name": "x02_02_problem_actors",
+      "kind": "static",
+      "function_datum": 3935569697
+    },
+    {
+      "datum": 3936225067,
+      "index": 59,
+      "name": "x02_01_cleanup",
+      "kind": "static",
+      "function_datum": 3936290604
+    },
+    {
+      "datum": 3977447840,
+      "index": 61,
+      "name": "x02_foley_02",
+      "kind": "script"
+    },
+    {
+      "datum": 3977644451,
+      "index": 62,
+      "name": "x02_0070_gch",
+      "kind": "script"
+    },
+    {
+      "datum": 3977841062,
+      "index": 63,
+      "name": "x02_fov_02",
+      "kind": "script"
+    },
+    {
+      "datum": 3978037673,
+      "index": 65,
+      "name": "place_cov_crowd_01a",
+      "kind": "script"
+    },
+    {
+      "datum": 3978234284,
+      "index": 66,
+      "name": "place_cov_crowd_01b",
+      "kind": "script"
+    },
+    {
+      "datum": 3978430895,
+      "index": 67,
+      "name": "place_cov_crowd_01c",
+      "kind": "script"
+    },
+    {
+      "datum": 3978627506,
+      "index": 68,
+      "name": "place_cov_crowd_01d",
+      "kind": "script"
+    },
+    {
+      "datum": 3978824117,
+      "index": 69,
+      "name": "place_cov_crowd_distant",
+      "kind": "script"
+    },
+    {
+      "datum": 3979020728,
+      "index": 71,
+      "name": "create_columns",
+      "kind": "script"
+    },
+    {
+      "datum": 3979217339,
+      "index": 70,
+      "name": "activate_manacles",
+      "kind": "script"
+    },
+    {
+      "datum": 3979413950,
+      "index": 64,
+      "name": "cinematic_lighting_x02_02",
+      "kind": "script"
+    },
+    {
+      "datum": 3982428652,
+      "index": 25,
+      "name": "x02_02_predict_stub",
+      "kind": "static",
+      "function_datum": 3982494189
+    },
+    {
+      "datum": 3982559726,
+      "index": 72,
+      "name": "x02_02_setup",
+      "kind": "static",
+      "function_datum": 3982625263
+    },
+    {
+      "datum": 3988982352,
+      "index": 26,
+      "name": "x02_03_predict_stub",
+      "kind": "static",
+      "function_datum": 3989047889
+    },
+    {
+      "datum": 3990030944,
+      "index": 73,
+      "name": "x02_02_cleanup",
+      "kind": "static",
+      "function_datum": 3990096481
+    },
+    {
+      "datum": 4004514621,
+      "index": 75,
+      "name": "x02_foley_03",
+      "kind": "script"
+    },
+    {
+      "datum": 4004711232,
+      "index": 76,
+      "name": "x02_0090_tar",
+      "kind": "script"
+    },
+    {
+      "datum": 4004907843,
+      "index": 77,
+      "name": "x02_0100_der",
+      "kind": "script"
+    },
+    {
+      "datum": 4005104454,
+      "index": 78,
+      "name": "x02_0110_tar",
+      "kind": "script"
+    },
+    {
+      "datum": 4005301065,
+      "index": 79,
+      "name": "effect_beam_01_start",
+      "kind": "script"
+    },
+    {
+      "datum": 4005497676,
+      "index": 80,
+      "name": "effect_beams",
+      "kind": "script"
+    },
+    {
+      "datum": 4005694287,
+      "index": 81,
+      "name": "place_cov_crowd_02",
+      "kind": "script"
+    },
+    {
+      "datum": 4007070564,
+      "index": 82,
+      "name": "x02_03_setup",
+      "kind": "static",
+      "function_datum": 4007136101
+    },
+    {
+      "datum": 4011002784,
+      "index": 83,
+      "name": "x02_scene_03_cleanup",
+      "kind": "static",
+      "function_datum": 4011068321
+    },
+    {
+      "datum": 4052160020,
+      "index": 85,
+      "name": "x02_foley_04a",
+      "kind": "script"
+    },
+    {
+      "datum": 4052356631,
+      "index": 86,
+      "name": "x02_0140_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4052553242,
+      "index": 87,
+      "name": "marine_whisper",
+      "kind": "script"
+    },
+    {
+      "datum": 4052749853,
+      "index": 88,
+      "name": "x02_0150_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4052946464,
+      "index": 89,
+      "name": "x02_0160_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 4053143075,
+      "index": 92,
+      "name": "x02_marine_crowd_01",
+      "kind": "script"
+    },
+    {
+      "datum": 4053339686,
+      "index": 93,
+      "name": "x02_marine_crowd_02",
+      "kind": "script"
+    },
+    {
+      "datum": 4053536297,
+      "index": 90,
+      "name": "effect_cortana_on",
+      "kind": "script"
+    },
+    {
+      "datum": 4053732908,
+      "index": 91,
+      "name": "cinematic_lighting_x02_04a",
+      "kind": "script"
+    },
+    {
+      "datum": 4056223314,
+      "index": 27,
+      "name": "x02_04a_predict_stub",
+      "kind": "static",
+      "function_datum": 4056288851
+    },
+    {
+      "datum": 4056354388,
+      "index": 94,
+      "name": "x02_04a_setup",
+      "kind": "static",
+      "function_datum": 4056419925
+    },
+    {
+      "datum": 4065988327,
+      "index": 28,
+      "name": "x02_04b_predict_stub",
+      "kind": "static",
+      "function_datum": 4066053864
+    },
+    {
+      "datum": 4067036919,
+      "index": 95,
+      "name": "x02_scene_04a_cleanup",
+      "kind": "static",
+      "function_datum": 4067102456
+    },
+    {
+      "datum": 4083879928,
+      "index": 97,
+      "name": "x02_foley_04b",
+      "kind": "script"
+    },
+    {
+      "datum": 4084076539,
+      "index": 98,
+      "name": "x02_0170_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4084273150,
+      "index": 99,
+      "name": "x02_0180_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 4084469761,
+      "index": 100,
+      "name": "x02_0190_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 4084666372,
+      "index": 101,
+      "name": "x02_0200_jon",
+      "kind": "script"
+    },
+    {
+      "datum": 4084862983,
+      "index": 102,
+      "name": "x02_0210_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4085059594,
+      "index": 103,
+      "name": "x02_0220_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4085256205,
+      "index": 104,
+      "name": "x02_0230_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4085780501,
+      "index": 106,
+      "name": "x02_04b_setup",
+      "kind": "static",
+      "function_datum": 4085846038
+    },
+    {
+      "datum": 4111929764,
+      "index": 108,
+      "name": "x02_score_05",
+      "kind": "script"
+    },
+    {
+      "datum": 4112126375,
+      "index": 109,
+      "name": "x02_foley_05",
+      "kind": "script"
+    },
+    {
+      "datum": 4112322986,
+      "index": 110,
+      "name": "x02_0240_tar",
+      "kind": "script"
+    },
+    {
+      "datum": 4112519597,
+      "index": 111,
+      "name": "x02_0250_tar",
+      "kind": "script"
+    },
+    {
+      "datum": 4112716208,
+      "index": 112,
+      "name": "x02_0270_tar",
+      "kind": "script"
+    },
+    {
+      "datum": 4112912819,
+      "index": 113,
+      "name": "effect_body_smoke",
+      "kind": "script"
+    },
+    {
+      "datum": 4113109430,
+      "index": 114,
+      "name": "cinematic_lighting_x02_05",
+      "kind": "script"
+    },
+    {
+      "datum": 4116386280,
+      "index": 29,
+      "name": "x02_05_predict_stub",
+      "kind": "static",
+      "function_datum": 4116451817
+    },
+    {
+      "datum": 4116517354,
+      "index": 115,
+      "name": "x02_05_setup",
+      "kind": "static",
+      "function_datum": 4116582891
+    },
+    {
+      "datum": 4125626997,
+      "index": 116,
+      "name": "x02_05_cleanup",
+      "kind": "static",
+      "function_datum": 4125692534
+    },
+    {
+      "datum": 4154004518,
+      "index": 124,
+      "name": "x02_marine_crowd_03",
+      "kind": "script"
+    },
+    {
+      "datum": 4154201129,
+      "index": 118,
+      "name": "x02_foley_06",
+      "kind": "script"
+    },
+    {
+      "datum": 4154397740,
+      "index": 119,
+      "name": "x02_0280_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4154594351,
+      "index": 120,
+      "name": "x02_0290_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4154790962,
+      "index": 121,
+      "name": "x02_0300_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4154987573,
+      "index": 122,
+      "name": "x02_0310_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4155184184,
+      "index": 123,
+      "name": "cinematic_lighting_x02_06",
+      "kind": "script"
+    },
+    {
+      "datum": 4156953683,
+      "index": 30,
+      "name": "x02_06_predict_stub",
+      "kind": "static",
+      "function_datum": 4157019220
+    },
+    {
+      "datum": 4157084757,
+      "index": 125,
+      "name": "x02_06_setup",
+      "kind": "static",
+      "function_datum": 4157150294
+    },
+    {
+      "datum": 4166063326,
+      "index": 126,
+      "name": "x02_06_cleanup",
+      "kind": "static",
+      "function_datum": 4166128863
+    },
+    {
+      "datum": 4185003519,
+      "index": 137,
+      "name": "delete_brand",
+      "kind": "script"
+    },
+    {
+      "datum": 4186248722,
+      "index": 129,
+      "name": "x02_foley_07",
+      "kind": "script"
+    },
+    {
+      "datum": 4186445333,
+      "index": 130,
+      "name": "x02_0320_der",
+      "kind": "script"
+    },
+    {
+      "datum": 4186641944,
+      "index": 132,
+      "name": "effect_helmet_smoke",
+      "kind": "script"
+    },
+    {
+      "datum": 4186838555,
+      "index": 135,
+      "name": "backup_brand",
+      "kind": "script"
+    },
+    {
+      "datum": 4187035166,
+      "index": 133,
+      "name": "effect_brand",
+      "kind": "script"
+    },
+    {
+      "datum": 4187231777,
+      "index": 134,
+      "name": "cinematic_lighting_x02_07",
+      "kind": "script"
+    },
+    {
+      "datum": 4187428388,
+      "index": 138,
+      "name": "emotion_tartarus_07",
+      "kind": "script"
+    },
+    {
+      "datum": 4190115405,
+      "index": 31,
+      "name": "x02_07_predict_stub",
+      "kind": "static",
+      "function_datum": 4190180942
+    },
+    {
+      "datum": 4190246479,
+      "index": 139,
+      "name": "x02_07_setup",
+      "kind": "static",
+      "function_datum": 4190312016
+    },
+    {
+      "datum": 4193654403,
+      "index": 136,
+      "name": "bring_back_brand",
+      "kind": "script"
+    },
+    {
+      "datum": 4195096217,
+      "index": 128,
+      "name": "x02_score_08",
+      "kind": "script"
+    },
+    {
+      "datum": 4196210346,
+      "index": 140,
+      "name": "x02_07_cleanup",
+      "kind": "static",
+      "function_datum": 4196275883
+    },
+    {
+      "datum": 4224325719,
+      "index": 142,
+      "name": "x02_foley_08",
+      "kind": "script"
+    },
+    {
+      "datum": 4224522330,
+      "index": 143,
+      "name": "x02_0330_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 4224718941,
+      "index": 144,
+      "name": "x02_0340_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4224915552,
+      "index": 145,
+      "name": "x02_0350_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 4225112163,
+      "index": 146,
+      "name": "x02_0360_ahp",
+      "kind": "script"
+    },
+    {
+      "datum": 4225308774,
+      "index": 147,
+      "name": "x02_0370_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4225505385,
+      "index": 148,
+      "name": "x02_0380_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4225701996,
+      "index": 149,
+      "name": "x02_0390_mir",
+      "kind": "script"
+    },
+    {
+      "datum": 4225898607,
+      "index": 150,
+      "name": "x02_0400_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4226095218,
+      "index": 151,
+      "name": "x02_0405_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 4226291829,
+      "index": 152,
+      "name": "x02_0410_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4226488440,
+      "index": 153,
+      "name": "effect_cortana_off",
+      "kind": "script"
+    },
+    {
+      "datum": 4226685051,
+      "index": 154,
+      "name": "cinematic_lighting_x02_08",
+      "kind": "script"
+    },
+    {
+      "datum": 4228782235,
+      "index": 32,
+      "name": "x02_08_predict_stub",
+      "kind": "static",
+      "function_datum": 4228847772
+    },
+    {
+      "datum": 4228913309,
+      "index": 155,
+      "name": "x02_08_setup",
+      "kind": "static",
+      "function_datum": 4228978846
+    },
+    {
+      "datum": 4235335935,
+      "index": 33,
+      "name": "x02_09_predict_stub",
+      "kind": "static",
+      "function_datum": 4235401472
+    },
+    {
+      "datum": 4236384527,
+      "index": 156,
+      "name": "x02_scene_08_cleanup",
+      "kind": "static",
+      "function_datum": 4236450064
+    },
+    {
+      "datum": 4263320234,
+      "index": 162,
+      "name": "x02_foley_09",
+      "kind": "script"
+    },
+    {
+      "datum": 4263516845,
+      "index": 163,
+      "name": "x02_0420_to1",
+      "kind": "script"
+    },
+    {
+      "datum": 4263713456,
+      "index": 164,
+      "name": "x02_0430_to1",
+      "kind": "script"
+    },
+    {
+      "datum": 4263910067,
+      "index": 165,
+      "name": "x02_0440_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4264106678,
+      "index": 166,
+      "name": "x02_0450_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 4264303289,
+      "index": 167,
+      "name": "x02_0460_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 4264499900,
+      "index": 168,
+      "name": "x02_0480_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 4264696511,
+      "index": 169,
+      "name": "x02_0490_jon",
+      "kind": "script"
+    },
+    {
+      "datum": 4264762048,
+      "index": 173,
+      "name": "place_x02_ai",
+      "kind": "static",
+      "function_datum": 4264827585
+    },
+    {
+      "datum": 4265024196,
+      "index": 171,
+      "name": "x02_fov_09_01",
+      "kind": "script"
+    },
+    {
+      "datum": 4265220807,
+      "index": 172,
+      "name": "x02_fov_09_02",
+      "kind": "script"
+    },
+    {
+      "datum": 4265417418,
+      "index": 170,
+      "name": "cinematic_lighting_x02_09",
+      "kind": "script"
+    },
+    {
+      "datum": 4266072788,
+      "index": 174,
+      "name": "x02_09_setup",
+      "kind": "script"
+    },
+    {
+      "datum": 4269218564,
+      "index": 34,
+      "name": "x02_10_predict_stub",
+      "kind": "static",
+      "function_datum": 4269284101
+    },
+    {
+      "datum": 4285275129,
+      "index": 176,
+      "name": "x02_foley_10",
+      "kind": "script"
+    },
+    {
+      "datum": 4285471740,
+      "index": 178,
+      "name": "fighters_unhide",
+      "kind": "script"
+    },
+    {
+      "datum": 4285668351,
+      "index": 177,
+      "name": "cinematic_lighting_x02_10",
+      "kind": "script"
+    },
+    {
+      "datum": 4288027683,
+      "index": 179,
+      "name": "x02_10_setup",
+      "kind": "static",
+      "function_datum": 4288093220
+    },
+    {
+      "datum": 2147884178,
+      "index": 180,
+      "name": "x02_scene_10_cleanup",
+      "kind": "static",
+      "function_datum": 2147949715
+    },
+    {
+      "datum": 2149588140,
+      "index": 60,
+      "name": "x02_scene_01",
+      "kind": "static",
+      "function_datum": 2149653677
+    },
+    {
+      "datum": 2150112436,
+      "index": 74,
+      "name": "x02_scene_02",
+      "kind": "static",
+      "function_datum": 2150177973
+    },
+    {
+      "datum": 2150243510,
+      "index": 84,
+      "name": "x02_scene_03",
+      "kind": "static",
+      "function_datum": 2150309047
+    },
+    {
+      "datum": 2150767806,
+      "index": 96,
+      "name": "x02_scene_04a",
+      "kind": "static",
+      "function_datum": 2150833343
+    },
+    {
+      "datum": 2150898880,
+      "index": 107,
+      "name": "x02_scene_04b",
+      "kind": "static",
+      "function_datum": 2150964417
+    },
+    {
+      "datum": 2151423176,
+      "index": 117,
+      "name": "x02_scene_05",
+      "kind": "static",
+      "function_datum": 2151488713
+    },
+    {
+      "datum": 2151947472,
+      "index": 127,
+      "name": "x02_scene_06",
+      "kind": "static",
+      "function_datum": 2152013009
+    },
+    {
+      "datum": 2152471768,
+      "index": 141,
+      "name": "x02_scene_07",
+      "kind": "static",
+      "function_datum": 2152537305
+    },
+    {
+      "datum": 2152996064,
+      "index": 157,
+      "name": "x02_scene_08",
+      "kind": "static",
+      "function_datum": 2153061601
+    },
+    {
+      "datum": 2153127138,
+      "index": 175,
+      "name": "x02_scene_09",
+      "kind": "static",
+      "function_datum": 2153192675
+    },
+    {
+      "datum": 2153258212,
+      "index": 181,
+      "name": "x02_scene_10",
+      "kind": "static",
+      "function_datum": 2153323749
+    },
+    {
+      "datum": 2173574682,
+      "index": 183,
+      "name": "c01_outro_score_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2173771293,
+      "index": 184,
+      "name": "c01_outro_foley_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2173967904,
+      "index": 185,
+      "name": "c01_9010_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 2174164515,
+      "index": 186,
+      "name": "c01_9050_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 2174361126,
+      "index": 187,
+      "name": "c01_9060_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 2174557737,
+      "index": 188,
+      "name": "c01_9070_mir",
+      "kind": "script"
+    },
+    {
+      "datum": 2174754348,
+      "index": 190,
+      "name": "effects_cortana_transfer",
+      "kind": "script"
+    },
+    {
+      "datum": 2174950959,
+      "index": 194,
+      "name": "upload_cortana",
+      "kind": "script"
+    },
+    {
+      "datum": 2175147570,
+      "index": 192,
+      "name": "bomb_deactivate",
+      "kind": "script"
+    },
+    {
+      "datum": 2175344181,
+      "index": 189,
+      "name": "cinematic_lighting_outro_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2178293346,
+      "index": 24,
+      "name": "x02_01_predict_stub",
+      "kind": "static",
+      "function_datum": 2178358883
+    },
+    {
+      "datum": 2179014253,
+      "index": 195,
+      "name": "c01_outro_01_setup",
+      "kind": "static",
+      "function_datum": 2179079790
+    },
+    {
+      "datum": 2182422177,
+      "index": 36,
+      "name": "01_outro_02_predict_stub",
+      "kind": "static",
+      "function_datum": 2182487714
+    },
+    {
+      "datum": 2182553251,
+      "index": 193,
+      "name": "c01_outro_02_problem_actors",
+      "kind": "static",
+      "function_datum": 2182618788
+    },
+    {
+      "datum": 2183601843,
+      "index": 196,
+      "name": "c01_outro_01_cleanup",
+      "kind": "static",
+      "function_datum": 2183667380
+    },
+    {
+      "datum": 2206146571,
+      "index": 198,
+      "name": "c01_outro_foley_02",
+      "kind": "script"
+    },
+    {
+      "datum": 2206343182,
+      "index": 199,
+      "name": "c01_9080_mir",
+      "kind": "script"
+    },
+    {
+      "datum": 2206539793,
+      "index": 200,
+      "name": "c01_9090_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 2206736404,
+      "index": 201,
+      "name": "c01_9100_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 2206933015,
+      "index": 202,
+      "name": "c01_9110_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 2207129626,
+      "index": 203,
+      "name": "c01_9120_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 2207326237,
+      "index": 204,
+      "name": "c01_9130_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 2207522848,
+      "index": 205,
+      "name": "c01_9140_lhd",
+      "kind": "script"
+    },
+    {
+      "datum": 2207719459,
+      "index": 206,
+      "name": "cinematic_lighting_bridges_01a",
+      "kind": "script"
+    },
+    {
+      "datum": 2207916070,
+      "index": 207,
+      "name": "cinematic_lighting_bridges_01b",
+      "kind": "script"
+    },
+    {
+      "datum": 2208112681,
+      "index": 208,
+      "name": "cinematic_lighting_chief_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2208309292,
+      "index": 209,
+      "name": "cinematic_lighting_bridges_02",
+      "kind": "script"
+    },
+    {
+      "datum": 2210472013,
+      "index": 210,
+      "name": "c01_outro_02_setup",
+      "kind": "static",
+      "function_datum": 2210537550
+    },
+    {
+      "datum": 2214469770,
+      "index": 37,
+      "name": "01_outro_03_predict_stub",
+      "kind": "static",
+      "function_datum": 2214535307
+    },
+    {
+      "datum": 2215518362,
+      "index": 211,
+      "name": "c01_outro_02_cleanup",
+      "kind": "static",
+      "function_datum": 2215583899
+    },
+    {
+      "datum": 2226331967,
+      "index": 213,
+      "name": "c01_outro_foley_03",
+      "kind": "script"
+    },
+    {
+      "datum": 2226987337,
+      "index": 214,
+      "name": "doors_outro_03",
+      "kind": "script"
+    },
+    {
+      "datum": 2227183948,
+      "index": 215,
+      "name": "outro_sparks_03",
+      "kind": "script"
+    },
+    {
+      "datum": 2227380559,
+      "index": 216,
+      "name": "cinematic_lighting_chief_02",
+      "kind": "script"
+    },
+    {
+      "datum": 2228560225,
+      "index": 217,
+      "name": "c01_outro_03_setup",
+      "kind": "static",
+      "function_datum": 2228625762
+    },
+    {
+      "datum": 2230788483,
+      "index": 38,
+      "name": "01_outro_04_predict_stub",
+      "kind": "static",
+      "function_datum": 2230854020
+    },
+    {
+      "datum": 2231837075,
+      "index": 218,
+      "name": "c01_outro_03_cleanup",
+      "kind": "static",
+      "function_datum": 2231902612
+    },
+    {
+      "datum": 2254643951,
+      "index": 220,
+      "name": "c01_outro_foley_04",
+      "kind": "script"
+    },
+    {
+      "datum": 2254840562,
+      "index": 221,
+      "name": "c01_9150_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 2255037173,
+      "index": 222,
+      "name": "c01_9160_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 2255233784,
+      "index": 223,
+      "name": "c01_9170_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 2255430395,
+      "index": 224,
+      "name": "c01_9180_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 2255627006,
+      "index": 229,
+      "name": "doors_outro_04",
+      "kind": "script"
+    },
+    {
+      "datum": 2255823617,
+      "index": 228,
+      "name": "outro_sparks_03_04",
+      "kind": "script"
+    },
+    {
+      "datum": 2256020228,
+      "index": 230,
+      "name": "create_bloom_quad",
+      "kind": "script"
+    },
+    {
+      "datum": 2256216839,
+      "index": 231,
+      "name": "top_light",
+      "kind": "script"
+    },
+    {
+      "datum": 2256413450,
+      "index": 232,
+      "name": "bottom_light",
+      "kind": "script"
+    },
+    {
+      "datum": 2256610061,
+      "index": 225,
+      "name": "c01_outro_shake_04_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2256806672,
+      "index": 226,
+      "name": "c01_outro_shake_04_02",
+      "kind": "script"
+    },
+    {
+      "datum": 2257003283,
+      "index": 227,
+      "name": "c01_outro_shake_04_03",
+      "kind": "script"
+    },
+    {
+      "datum": 2258641708,
+      "index": 233,
+      "name": "c01_outro_04_setup",
+      "kind": "static",
+      "function_datum": 2258707245
+    },
+    {
+      "datum": 2260869966,
+      "index": 39,
+      "name": "01_outro_05_predict_stub",
+      "kind": "static",
+      "function_datum": 2260935503
+    },
+    {
+      "datum": 2262115169,
+      "index": 234,
+      "name": "c01_outro_04_cleanup",
+      "kind": "static",
+      "function_datum": 2262180706
+    },
+    {
+      "datum": 2275681328,
+      "index": 242,
+      "name": "lever",
+      "kind": "script"
+    },
+    {
+      "datum": 2275877939,
+      "index": 243,
+      "name": "airlock",
+      "kind": "script"
+    },
+    {
+      "datum": 2276074550,
+      "index": 236,
+      "name": "c01_outro_foley_05",
+      "kind": "script"
+    },
+    {
+      "datum": 2276271161,
+      "index": 237,
+      "name": "c01_9190_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 2276467772,
+      "index": 238,
+      "name": "c01_9200_cor",
+      "kind": "script"
+    },
+    {
+      "datum": 2276664383,
+      "index": 239,
+      "name": "c01_9210_mas",
+      "kind": "script"
+    },
+    {
+      "datum": 2276860994,
+      "index": 240,
+      "name": "c01_outro_shake_05_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2277057605,
+      "index": 241,
+      "name": "cinematic_lighting_bay_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2278630493,
+      "index": 244,
+      "name": "c01_outro_05_setup",
+      "kind": "static",
+      "function_datum": 2278696030
+    },
+    {
+      "datum": 2282038417,
+      "index": 40,
+      "name": "01_outro_06_predict_stub",
+      "kind": "static",
+      "function_datum": 2282103954
+    },
+    {
+      "datum": 2283283620,
+      "index": 245,
+      "name": "c01_outro_05_cleanup",
+      "kind": "static",
+      "function_datum": 2283349157
+    },
+    {
+      "datum": 2303927775,
+      "index": 247,
+      "name": "c01_outro_music_06",
+      "kind": "script"
+    },
+    {
+      "datum": 2304124386,
+      "index": 248,
+      "name": "c01_outro_foley_06",
+      "kind": "script"
+    },
+    {
+      "datum": 2304320997,
+      "index": 249,
+      "name": "c01_outro_shake_06_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2304517608,
+      "index": 250,
+      "name": "cinematic_lighting_bay_02",
+      "kind": "script"
+    },
+    {
+      "datum": 2304714219,
+      "index": 251,
+      "name": "final_sparks",
+      "kind": "script"
+    },
+    {
+      "datum": 2304910830,
+      "index": 252,
+      "name": "destroy_fleet",
+      "kind": "script"
+    },
+    {
+      "datum": 2306483718,
+      "index": 253,
+      "name": "c01_outro_06_setup",
+      "kind": "static",
+      "function_datum": 2306549255
+    },
+    {
+      "datum": 2309760568,
+      "index": 254,
+      "name": "c01_outro_06_cleanup",
+      "kind": "static",
+      "function_datum": 2309826105
+    },
+    {
+      "datum": 2326144818,
+      "index": 256,
+      "name": "c01_outro_foley_07",
+      "kind": "script"
+    },
+    {
+      "datum": 2326341429,
+      "index": 257,
+      "name": "effect_covenant_beams",
+      "kind": "script"
+    },
+    {
+      "datum": 2326538040,
+      "index": 258,
+      "name": "effect_poa_explosions",
+      "kind": "script"
+    },
+    {
+      "datum": 2326734651,
+      "index": 259,
+      "name": "cinematic_lighting_outro_07",
+      "kind": "script"
+    },
+    {
+      "datum": 2326931262,
+      "index": 260,
+      "name": "cinematic_lighting_poa_reverse",
+      "kind": "script"
+    },
+    {
+      "datum": 2328438613,
+      "index": 41,
+      "name": "01_outro_07_predict_stub",
+      "kind": "static",
+      "function_datum": 2328504150
+    },
+    {
+      "datum": 2328569687,
+      "index": 261,
+      "name": "c01_outro_07_setup",
+      "kind": "static",
+      "function_datum": 2328635224
+    },
+    {
+      "datum": 2333550499,
+      "index": 42,
+      "name": "01_outro_08_predict_stub",
+      "kind": "static",
+      "function_datum": 2333616036
+    },
+    {
+      "datum": 2334599091,
+      "index": 262,
+      "name": "c01_outro_07_cleanup",
+      "kind": "static",
+      "function_datum": 2334664628
+    },
+    {
+      "datum": 2351835322,
+      "index": 264,
+      "name": "c01_outro_foley_08",
+      "kind": "script"
+    },
+    {
+      "datum": 2352031933,
+      "index": 265,
+      "name": "effect_cluster_bombs",
+      "kind": "script"
+    },
+    {
+      "datum": 2352228544,
+      "index": 271,
+      "name": "save_framerate_08",
+      "kind": "script"
+    },
+    {
+      "datum": 2352425155,
+      "index": 266,
+      "name": "effect_interior_blast",
+      "kind": "script"
+    },
+    {
+      "datum": 2352621766,
+      "index": 268,
+      "name": "bomb_reactivate",
+      "kind": "script"
+    },
+    {
+      "datum": 2352818377,
+      "index": 267,
+      "name": "x02_08_dof",
+      "kind": "script"
+    },
+    {
+      "datum": 2353014988,
+      "index": 269,
+      "name": "cinematic_lighting_scene_08",
+      "kind": "script"
+    },
+    {
+      "datum": 2353211599,
+      "index": 270,
+      "name": "cinematic_light_carrier_int",
+      "kind": "script"
+    },
+    {
+      "datum": 2355374320,
+      "index": 272,
+      "name": "c01_outro_08_setup",
+      "kind": "static",
+      "function_datum": 2355439857
+    },
+    {
+      "datum": 2359961910,
+      "index": 43,
+      "name": "01_outro_09_predict_stub",
+      "kind": "static",
+      "function_datum": 2360027447
+    },
+    {
+      "datum": 2361010502,
+      "index": 273,
+      "name": "c01_outro_08_cleanup",
+      "kind": "static",
+      "function_datum": 2361076039
+    },
+    {
+      "datum": 2364680574,
+      "index": 275,
+      "name": "c01_outro_foley_09",
+      "kind": "script"
+    },
+    {
+      "datum": 2364877185,
+      "index": 276,
+      "name": "cinematic_lighting_scene_09",
+      "kind": "script"
+    },
+    {
+      "datum": 2366908832,
+      "index": 277,
+      "name": "c01_outro_09_setup",
+      "kind": "static",
+      "function_datum": 2366974369
+    },
+    {
+      "datum": 2369530312,
+      "index": 44,
+      "name": "01_outro_10_predict_stub",
+      "kind": "static",
+      "function_datum": 2369595849
+    },
+    {
+      "datum": 2370578904,
+      "index": 278,
+      "name": "c01_outro_09_cleanup",
+      "kind": "static",
+      "function_datum": 2370644441
+    },
+    {
+      "datum": 2406558717,
+      "index": 280,
+      "name": "c01_outro_foley_10",
+      "kind": "script"
+    },
+    {
+      "datum": 2406755328,
+      "index": 281,
+      "name": "c01_9220_jon",
+      "kind": "script"
+    },
+    {
+      "datum": 2406951939,
+      "index": 282,
+      "name": "c01_9230_jon",
+      "kind": "script"
+    },
+    {
+      "datum": 2407148550,
+      "index": 283,
+      "name": "c01_9240_mir",
+      "kind": "script"
+    },
+    {
+      "datum": 2407345161,
+      "index": 284,
+      "name": "c01_9250_mir",
+      "kind": "script"
+    },
+    {
+      "datum": 2407541772,
+      "index": 295,
+      "name": "save_framerate_10",
+      "kind": "script"
+    },
+    {
+      "datum": 2407738383,
+      "index": 285,
+      "name": "carrier_explosion_tiny",
+      "kind": "script"
+    },
+    {
+      "datum": 2407934994,
+      "index": 286,
+      "name": "carrier_explosion_medium",
+      "kind": "script"
+    },
+    {
+      "datum": 2408131605,
+      "index": 287,
+      "name": "carrier_explosion_large",
+      "kind": "script"
+    },
+    {
+      "datum": 2408328216,
+      "index": 288,
+      "name": "white_flash",
+      "kind": "script"
+    },
+    {
+      "datum": 2408524827,
+      "index": 289,
+      "name": "effect_africa_explosions",
+      "kind": "script"
+    },
+    {
+      "datum": 2408721438,
+      "index": 290,
+      "name": "cinematic_lighting_outro_10",
+      "kind": "script"
+    },
+    {
+      "datum": 2408918049,
+      "index": 291,
+      "name": "cinematic_lighting_iac_ext_01",
+      "kind": "script"
+    },
+    {
+      "datum": 2409114660,
+      "index": 292,
+      "name": "cinematic_lighting_iac_interior",
+      "kind": "script"
+    },
+    {
+      "datum": 2409311271,
+      "index": 293,
+      "name": "cinematic_lighting_iac_ext_02",
+      "kind": "script"
+    },
+    {
+      "datum": 2409507882,
+      "index": 294,
+      "name": "emotion_10",
+      "kind": "script"
+    },
+    {
+      "datum": 2411670603,
+      "index": 296,
+      "name": "c01_outro_10_setup",
+      "kind": "static",
+      "function_datum": 2411736140
+    },
+    {
+      "datum": 2416192656,
+      "index": 297,
+      "name": "c01_outro_10_cleanup",
+      "kind": "static",
+      "function_datum": 2416258193
+    },
+    {
+      "datum": 2417896618,
+      "index": 197,
+      "name": "c01_outro_scene_01",
+      "kind": "static",
+      "function_datum": 2417962155
+    },
+    {
+      "datum": 2418027692,
+      "index": 212,
+      "name": "c01_outro_scene_02",
+      "kind": "static",
+      "function_datum": 2418093229
+    },
+    {
+      "datum": 2418158766,
+      "index": 219,
+      "name": "c01_outro_scene_03",
+      "kind": "static",
+      "function_datum": 2418224303
+    },
+    {
+      "datum": 2418289840,
+      "index": 235,
+      "name": "c01_outro_scene_04",
+      "kind": "static",
+      "function_datum": 2418355377
+    },
+    {
+      "datum": 2418420914,
+      "index": 246,
+      "name": "c01_outro_scene_05",
+      "kind": "static",
+      "function_datum": 2418486451
+    },
+    {
+      "datum": 2418551988,
+      "index": 255,
+      "name": "c01_outro_scene_06",
+      "kind": "static",
+      "function_datum": 2418617525
+    },
+    {
+      "datum": 2419076284,
+      "index": 263,
+      "name": "c01_outro_scene_07",
+      "kind": "static",
+      "function_datum": 2419141821
+    },
+    {
+      "datum": 2419207358,
+      "index": 274,
+      "name": "c01_outro_scene_08",
+      "kind": "static",
+      "function_datum": 2419272895
+    },
+    {
+      "datum": 2419338432,
+      "index": 279,
+      "name": "c01_outro_scene_09",
+      "kind": "static",
+      "function_datum": 2419403969
+    },
+    {
+      "datum": 2419469506,
+      "index": 298,
+      "name": "c01_outro_scene_10",
+      "kind": "static",
+      "function_datum": 2419535043
+    },
+    {
+      "datum": 2431855999,
+      "index": 4,
+      "name": "difficulty_legendary",
+      "kind": "static",
+      "function_datum": 2431921536
+    },
+    {
+      "datum": 2433691035,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2433756572
+    },
+    {
+      "datum": 2436181441,
+      "index": 4,
+      "name": "difficulty_legendary",
+      "kind": "static",
+      "function_datum": 2436246978
+    },
+    {
+      "datum": 2437164496,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2437230033
+    },
+    {
+      "datum": 2437623255,
+      "index": 1,
+      "name": "player1",
+      "kind": "static",
+      "function_datum": 2437688792
+    },
+    {
+      "datum": 2492870946,
+      "index": 327,
+      "name": "flavor_stop",
+      "kind": "static",
+      "function_datum": 2492936483
+    },
+    {
+      "datum": 2502242737,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2502308274
+    },
+    {
+      "datum": 2503815625,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2503881162
+    },
+    {
+      "datum": 2505126365,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2505191902
+    },
+    {
+      "datum": 2508927511,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2508993048
+    },
+    {
+      "datum": 2510238251,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2510303788
+    },
+    {
+      "datum": 2511548991,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2511614528
+    },
+    {
+      "datum": 2516071044,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2516136581
+    },
+    {
+      "datum": 2519151283,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2519216820
+    },
+    {
+      "datum": 2520462023,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2520527560
+    },
+    {
+      "datum": 2529375055,
+      "index": 326,
+      "name": "timer_flavor_set_long",
+      "kind": "static",
+      "function_datum": 2529440592
+    },
+    {
+      "datum": 2535338922,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2535404459
+    },
+    {
+      "datum": 2543072288,
+      "index": 326,
+      "name": "timer_flavor_set_long",
+      "kind": "static",
+      "function_datum": 2543137825
+    },
+    {
+      "datum": 2550477969,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2550543506
+    },
+    {
+      "datum": 2555983077,
+      "index": 325,
+      "name": "timer_flavor_set",
+      "kind": "static",
+      "function_datum": 2556048614
+    },
+    {
+      "datum": 2631481701,
+      "index": 329,
+      "name": "cs_clear",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2637904327,
+      "index": 304,
+      "name": "save_1st_wv4",
+      "kind": "static",
+      "function_datum": 2637969864
+    },
+    {
+      "datum": 2640460270,
+      "index": 305,
+      "name": "save_1st_wv5_end",
+      "kind": "static",
+      "function_datum": 2640525807
+    },
+    {
+      "datum": 2645768767,
+      "index": 336,
+      "name": "1st_malta",
+      "kind": "static",
+      "function_datum": 2645834304
+    },
+    {
+      "datum": 2646620748,
+      "index": 335,
+      "name": "cs_1st_johnson_deploy",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2648062562,
+      "index": 334,
+      "name": "cs_1st_fieldoffire",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2648455784,
+      "index": 321,
+      "name": "title_1st",
+      "kind": "script"
+    },
+    {
+      "datum": 2648717932,
+      "index": 303,
+      "name": "save_1st_start",
+      "kind": "static",
+      "function_datum": 2648783469
+    },
+    {
+      "datum": 2648980080,
+      "index": 337,
+      "name": "1st_waves",
+      "kind": "script"
+    },
+    {
+      "datum": 2651470486,
+      "index": 300,
+      "name": "megg_check",
+      "kind": "script"
+    },
+    {
+      "datum": 2652388004,
+      "index": 337,
+      "name": "1st_waves",
+      "kind": "script"
+    },
+    {
+      "datum": 2657762038,
+      "index": 306,
+      "name": "save_atr2_start",
+      "kind": "static",
+      "function_datum": 2657827575
+    },
+    {
+      "datum": 2664315738,
+      "index": 307,
+      "name": "save_atr2_mid",
+      "kind": "static",
+      "function_datum": 2664381275
+    },
+    {
+      "datum": 2671524808,
+      "index": 341,
+      "name": "cs_lookat_malta",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2682731635,
+      "index": 308,
+      "name": "save_bay1_start",
+      "kind": "static",
+      "function_datum": 2682797172
+    },
+    {
+      "datum": 2684959893,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2685025430
+    },
+    {
+      "datum": 2689613020,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2689678557
+    },
+    {
+      "datum": 2694266147,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2694331684
+    },
+    {
+      "datum": 2696363331,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2696428868
+    },
+    {
+      "datum": 2699443570,
+      "index": 4,
+      "name": "difficulty_legendary",
+      "kind": "static",
+      "function_datum": 2699509107
+    },
+    {
+      "datum": 2704293308,
+      "index": 342,
+      "name": "bay1_malta",
+      "kind": "static",
+      "function_datum": 2704358845
+    },
+    {
+      "datum": 2704424382,
+      "index": 309,
+      "name": "save_bay1_mid",
+      "kind": "static",
+      "function_datum": 2704489919
+    },
+    {
+      "datum": 2704752067,
+      "index": 329,
+      "name": "cs_clear",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2712092211,
+      "index": 344,
+      "name": "cs_lookat_athens",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2722512594,
+      "index": 310,
+      "name": "save_bay2_start",
+      "kind": "static",
+      "function_datum": 2722578131
+    },
+    {
+      "datum": 2724544241,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2724609778
+    },
+    {
+      "datum": 2728410924,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2728476461
+    },
+    {
+      "datum": 2728673072,
+      "index": 311,
+      "name": "save_bay2_retreat",
+      "kind": "script"
+    },
+    {
+      "datum": 2729656127,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2729721664
+    },
+    {
+      "datum": 2734309254,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2734374791
+    },
+    {
+      "datum": 2736406438,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2736471975
+    },
+    {
+      "datum": 2739486677,
+      "index": 4,
+      "name": "difficulty_legendary",
+      "kind": "static",
+      "function_datum": 2739552214
+    },
+    {
+      "datum": 2744926248,
+      "index": 345,
+      "name": "bay2_athens",
+      "kind": "static",
+      "function_datum": 2744991785
+    },
+    {
+      "datum": 2745057322,
+      "index": 312,
+      "name": "save_bay2_mid",
+      "kind": "static",
+      "function_datum": 2745122859
+    },
+    {
+      "datum": 2745319470,
+      "index": 322,
+      "name": "title_bay2",
+      "kind": "script"
+    },
+    {
+      "datum": 2747285580,
+      "index": 313,
+      "name": "save_bay2_fnl",
+      "kind": "script"
+    },
+    {
+      "datum": 2751545485,
+      "index": 314,
+      "name": "save_arm_start",
+      "kind": "script"
+    },
+    {
+      "datum": 2754363576,
+      "index": 4,
+      "name": "difficulty_legendary",
+      "kind": "static",
+      "function_datum": 2754429113
+    },
+    {
+      "datum": 2755805390,
+      "index": 4,
+      "name": "difficulty_legendary",
+      "kind": "static",
+      "function_datum": 2755870927
+    },
+    {
+      "datum": 2756460760,
+      "index": 5,
+      "name": "difficulty_heroic",
+      "kind": "static",
+      "function_datum": 2756526297
+    },
+    {
+      "datum": 2759868684,
+      "index": 4,
+      "name": "difficulty_legendary",
+      "kind": "static",
+      "function_datum": 2759934221
+    },
+    {
+      "datum": 2770354604,
+      "index": 315,
+      "name": "save_atr1_start",
+      "kind": "script"
+    },
+    {
+      "datum": 2778022433,
+      "index": 315,
+      "name": "save_atr1_start",
+      "kind": "script"
+    },
+    {
+      "datum": 2784379522,
+      "index": 353,
+      "name": "cs_trm1_lookat_player_crouch",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2787066539,
+      "index": 353,
+      "name": "cs_trm1_lookat_player_crouch",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2788180668,
+      "index": 354,
+      "name": "cs_trm1_lookat_miranda_crouch",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2789622482,
+      "index": 355,
+      "name": "cs_trm1_lookat_johnson_crouch",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2790212315,
+      "index": 329,
+      "name": "cs_clear",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2790671074,
+      "index": 329,
+      "name": "cs_clear",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2791850740,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2791916277
+    },
+    {
+      "datum": 2801288068,
+      "index": 357,
+      "name": "cs_trm1_approach",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2801550216,
+      "index": 357,
+      "name": "cs_trm1_approach",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2801812364,
+      "index": 357,
+      "name": "cs_trm1_approach",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2807120861,
+      "index": 329,
+      "name": "cs_clear",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2807383009,
+      "index": 329,
+      "name": "cs_clear",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2809152508,
+      "index": 2,
+      "name": "player_count",
+      "kind": "static",
+      "function_datum": 2809218045
+    },
+    {
+      "datum": 2811577377,
+      "index": 316,
+      "name": "save_trm1_start",
+      "kind": "static",
+      "function_datum": 2811642914
+    },
+    {
+      "datum": 2813084728,
+      "index": 352,
+      "name": "cs_trm1_bunker",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2813346876,
+      "index": 352,
+      "name": "cs_trm1_bunker",
+      "kind": "command_script"
+    },
+    {
+      "datum": 2814264394,
+      "index": 367,
+      "name": "trm1_cleanup",
+      "kind": "script"
+    },
+    {
+      "datum": 2814329931,
+      "index": 356,
+      "name": "trm1_tomyship",
+      "kind": "static",
+      "function_datum": 2814395468
+    },
+    {
+      "datum": 2816492652,
+      "index": 366,
+      "name": "trm1_bugproblem",
+      "kind": "script"
+    },
+    {
+      "datum": 2817737855,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2817803392
+    },
+    {
+      "datum": 2818065540,
+      "index": 1,
+      "name": "player1",
+      "kind": "static",
+      "function_datum": 2818131077
+    },
+    {
+      "datum": 2830648644,
+      "index": 2,
+      "name": "player_count",
+      "kind": "static",
+      "function_datum": 2830714181
+    },
+    {
+      "datum": 2831697236,
+      "index": 317,
+      "name": "save_dck_start",
+      "kind": "static",
+      "function_datum": 2831762773
+    },
+    {
+      "datum": 2831959384,
+      "index": 323,
+      "name": "title_dck",
+      "kind": "script"
+    },
+    {
+      "datum": 2835039623,
+      "index": 369,
+      "name": "dck_hog",
+      "kind": "script"
+    },
+    {
+      "datum": 2836546974,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2836612511
+    },
+    {
+      "datum": 2836874659,
+      "index": 1,
+      "name": "player1",
+      "kind": "static",
+      "function_datum": 2836940196
+    },
+    {
+      "datum": 2837464492,
+      "index": 370,
+      "name": "dck_setusup",
+      "kind": "static",
+      "function_datum": 2837530029
+    },
+    {
+      "datum": 2839102917,
+      "index": 370,
+      "name": "dck_setusup",
+      "kind": "script"
+    },
+    {
+      "datum": 2843690507,
+      "index": 318,
+      "name": "save_elv_start",
+      "kind": "static",
+      "function_datum": 2843756044
+    },
+    {
+      "datum": 2849850985,
+      "index": 318,
+      "name": "save_elv_start",
+      "kind": "static",
+      "function_datum": 2849916522
+    },
+    {
+      "datum": 2850113133,
+      "index": 372,
+      "name": "elv_goinloud",
+      "kind": "script"
+    },
+    {
+      "datum": 2865514328,
+      "index": 319,
+      "name": "save_lvr_start",
+      "kind": "static",
+      "function_datum": 2865579865
+    },
+    {
+      "datum": 2869184400,
+      "index": 2,
+      "name": "player_count",
+      "kind": "static",
+      "function_datum": 2869249937
+    },
+    {
+      "datum": 2870036381,
+      "index": 377,
+      "name": "lvr_carriers",
+      "kind": "script"
+    },
+    {
+      "datum": 2871281584,
+      "index": 319,
+      "name": "save_lvr_start",
+      "kind": "static",
+      "function_datum": 2871347121
+    },
+    {
+      "datum": 2871936954,
+      "index": 376,
+      "name": "lvr_carrier_flyby",
+      "kind": "script"
+    },
+    {
+      "datum": 2875672563,
+      "index": 6,
+      "name": "difficulty_normal",
+      "kind": "static",
+      "function_datum": 2875738100
+    },
+    {
+      "datum": 2878228506,
+      "index": 2,
+      "name": "player_count",
+      "kind": "static",
+      "function_datum": 2878294043
+    },
+    {
+      "datum": 2878818339,
+      "index": 377,
+      "name": "lvr_carriers",
+      "kind": "script"
+    },
+    {
+      "datum": 2882619485,
+      "index": 324,
+      "name": "title_gun",
+      "kind": "script"
+    },
+    {
+      "datum": 2893236479,
+      "index": 2,
+      "name": "player_count",
+      "kind": "static",
+      "function_datum": 2893302016
+    },
+    {
+      "datum": 2894219534,
+      "index": 320,
+      "name": "save_gun_start",
+      "kind": "static",
+      "function_datum": 2894285071
+    },
+    {
+      "datum": 2894874904,
+      "index": 381,
+      "name": "gun_flyby",
+      "kind": "script"
+    },
+    {
+      "datum": 2931313476,
+      "index": 2,
+      "name": "player_count",
+      "kind": "static",
+      "function_datum": 2931379013
+    },
+    {
+      "datum": 2931641161,
+      "index": 16,
+      "name": "cinematic_snap_to_white",
+      "kind": "static",
+      "function_datum": 2931706698
+    },
+    {
+      "datum": 2931772235,
+      "index": 302,
+      "name": "save_cutscene",
+      "kind": "static",
+      "function_datum": 2931837772
+    },
+    {
+      "datum": 2932034383,
+      "index": 7,
+      "name": "cinematic_skip_start",
+      "kind": "static",
+      "function_datum": 2932099920
+    },
+    {
+      "datum": 2932296531,
+      "index": 17,
+      "name": "cinematic_stash_players",
+      "kind": "static",
+      "function_datum": 2932362068
+    },
+    {
+      "datum": 2932427605,
+      "index": 182,
+      "name": "x02",
+      "kind": "static",
+      "function_datum": 2932493142
+    },
+    {
+      "datum": 2932558679,
+      "index": 18,
+      "name": "cinematic_unstash_players",
+      "kind": "static",
+      "function_datum": 2932624216
+    },
+    {
+      "datum": 2932689753,
+      "index": 8,
+      "name": "cinematic_skip_stop",
+      "kind": "static",
+      "function_datum": 2932755290
+    },
+    {
+      "datum": 2933738345,
+      "index": 387,
+      "name": "mission_start",
+      "kind": "static",
+      "function_datum": 2933803882
+    },
+    {
+      "datum": 2933869419,
+      "index": 388,
+      "name": "mission_setup",
+      "kind": "static",
+      "function_datum": 2933934956
+    },
+    {
+      "datum": 2934000493,
+      "index": 383,
+      "name": "load_bsp0a",
+      "kind": "static",
+      "function_datum": 2934066030
+    },
+    {
+      "datum": 2934262641,
+      "index": 328,
+      "name": "flavor_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2934459252,
+      "index": 339,
+      "name": "1st_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2934655863,
+      "index": 340,
+      "name": "atr2_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2934852474,
+      "index": 333,
+      "name": "1st_tram",
+      "kind": "script"
+    },
+    {
+      "datum": 2935114622,
+      "index": 10,
+      "name": "cinematic_fade_from_white",
+      "kind": "static",
+      "function_datum": 2935180159
+    },
+    {
+      "datum": 2935376770,
+      "index": 330,
+      "name": "breadcrumbs_nav_points_01b",
+      "kind": "script"
+    },
+    {
+      "datum": 2935966603,
+      "index": 384,
+      "name": "load_bsp2",
+      "kind": "static",
+      "function_datum": 2936032140
+    },
+    {
+      "datum": 2936490899,
+      "index": 343,
+      "name": "bay1_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2936687510,
+      "index": 346,
+      "name": "bay2_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2937277343,
+      "index": 385,
+      "name": "load_bsp0b",
+      "kind": "static",
+      "function_datum": 2937342880
+    },
+    {
+      "datum": 2937539491,
+      "index": 301,
+      "name": "ice_cream_check",
+      "kind": "script"
+    },
+    {
+      "datum": 2937736102,
+      "index": 348,
+      "name": "arm_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2937932713,
+      "index": 351,
+      "name": "atr1_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2938129324,
+      "index": 368,
+      "name": "trm1_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2938325935,
+      "index": 371,
+      "name": "dck_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2938915768,
+      "index": 386,
+      "name": "load_bsp3",
+      "kind": "static",
+      "function_datum": 2938981305
+    },
+    {
+      "datum": 2939177916,
+      "index": 375,
+      "name": "elv_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2939374527,
+      "index": 378,
+      "name": "lvr_mission",
+      "kind": "script"
+    },
+    {
+      "datum": 2939440064,
+      "index": 382,
+      "name": "gun_mission",
+      "kind": "static",
+      "function_datum": 2939505601
+    },
+    {
+      "datum": 2939571138,
+      "index": 23,
+      "name": "playtest_mission",
+      "kind": "static",
+      "function_datum": 2939636675
+    },
+    {
+      "datum": 2939702212,
+      "index": 302,
+      "name": "save_cutscene",
+      "kind": "static",
+      "function_datum": 2939767749
+    },
+    {
+      "datum": 2939833286,
+      "index": 9,
+      "name": "cinematic_fade_to_white",
+      "kind": "static",
+      "function_datum": 2939898823
+    },
+    {
+      "datum": 2940816341,
+      "index": 7,
+      "name": "cinematic_skip_start",
+      "kind": "static",
+      "function_datum": 2940881878
+    },
+    {
+      "datum": 2941078489,
+      "index": 17,
+      "name": "cinematic_stash_players",
+      "kind": "static",
+      "function_datum": 2941144026
+    },
+    {
+      "datum": 2941209563,
+      "index": 299,
+      "name": "c01_outro",
+      "kind": "static",
+      "function_datum": 2941275100
+    },
+    {
+      "datum": 2941340637,
+      "index": 18,
+      "name": "cinematic_unstash_players",
+      "kind": "static",
+      "function_datum": 2941406174
+    },
+    {
+      "datum": 2941471711,
+      "index": 8,
+      "name": "cinematic_skip_stop",
+      "kind": "static",
+      "function_datum": 2941537248
+    },
+    {
+      "datum": 2942520303,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2942585840
+    },
+    {
+      "datum": 2943503358,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2943568895
+    },
+    {
+      "datum": 2944486413,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2944551950
+    },
+    {
+      "datum": 2945469468,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2945535005
+    },
+    {
+      "datum": 2946452523,
+      "index": 389,
+      "name": "mission_spacestation",
+      "kind": "script"
+    },
+    {
+      "datum": 2946649134,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2946714671
+    },
+    {
+      "datum": 2947632189,
+      "index": 389,
+      "name": "mission_spacestation",
+      "kind": "script"
+    },
+    {
+      "datum": 2947828800,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2947894337
+    },
+    {
+      "datum": 2948811855,
+      "index": 389,
+      "name": "mission_spacestation",
+      "kind": "script"
+    },
+    {
+      "datum": 2949008466,
+      "index": 389,
+      "name": "mission_spacestation",
+      "kind": "script"
+    },
+    {
+      "datum": 2949205077,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2949270614
+    },
+    {
+      "datum": 2950188132,
+      "index": 389,
+      "name": "mission_spacestation",
+      "kind": "script"
+    },
+    {
+      "datum": 2950384743,
+      "index": 389,
+      "name": "mission_spacestation",
+      "kind": "script"
+    },
+    {
+      "datum": 2950581354,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2950646891
+    },
+    {
+      "datum": 2951564409,
+      "index": 389,
+      "name": "mission_spacestation",
+      "kind": "script"
+    },
+    {
+      "datum": 2951761020,
+      "index": 389,
+      "name": "mission_spacestation",
+      "kind": "script"
+    },
+    {
+      "datum": 2951957631,
+      "index": 0,
+      "name": "player0",
+      "kind": "static",
+      "function_datum": 2952023168
+    },
+    {
+      "datum": 3438504319,
+      "index": 399,
+      "name": "x02_01_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3439159689,
+      "index": 400,
+      "name": "x02_02_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3439815059,
+      "index": 401,
+      "name": "x02_03_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3440470429,
+      "index": 402,
+      "name": "x02_04a_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3441125799,
+      "index": 403,
+      "name": "x02_04b_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3441781169,
+      "index": 404,
+      "name": "x02_05_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3442436539,
+      "index": 405,
+      "name": "x02_06_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3443091909,
+      "index": 406,
+      "name": "x02_07_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3443747279,
+      "index": 407,
+      "name": "x02_08_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3444402649,
+      "index": 408,
+      "name": "x02_09_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3445058019,
+      "index": 409,
+      "name": "x02_10_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3445713389,
+      "index": 410,
+      "name": "01_outro_01_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3446368759,
+      "index": 411,
+      "name": "01_outro_02_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3447024129,
+      "index": 412,
+      "name": "01_outro_03_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3447679499,
+      "index": 413,
+      "name": "01_outro_04_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3448334869,
+      "index": 414,
+      "name": "01_outro_05_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3448990239,
+      "index": 415,
+      "name": "01_outro_06_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3449645609,
+      "index": 416,
+      "name": "01_outro_07_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3450300979,
+      "index": 417,
+      "name": "01_outro_08_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3450956349,
+      "index": 418,
+      "name": "01_outro_09_predict",
+      "kind": "script"
+    },
+    {
+      "datum": 3451611719,
+      "index": 419,
+      "name": "01_outro_10_predict",
+      "kind": "script"
+    }
+  ],
+  "scenario_ordinals": [
+    {
+      "source_token": 375028,
+      "index": 332,
+      "script_name": "cs_weapons",
+      "path": "squad/0/start/0/script_index"
+    },
+    {
+      "source_token": 361704,
+      "index": 332,
+      "script_name": "cs_weapons",
+      "path": "squad/2/placement_index"
+    },
+    {
+      "source_token": 392628,
+      "index": 347,
+      "script_name": "cs_arm_guns_grate",
+      "path": "squad/61/start/0/script_index"
+    },
+    {
+      "source_token": 393328,
+      "index": 349,
+      "script_name": "cs_atr1_turret_fbalcony",
+      "path": "squad/64/start/0/script_index"
+    },
+    {
+      "source_token": 393528,
+      "index": 350,
+      "script_name": "cs_atr1_turret_bbalcony",
+      "path": "squad/66/start/0/script_index"
+    },
+    {
+      "source_token": 373420,
+      "index": 379,
+      "script_name": "cs_expand_cortana",
+      "path": "squad/103/placement_index"
+    },
+    {
+      "source_token": 373536,
+      "index": 379,
+      "script_name": "cs_expand_cortana",
+      "path": "squad/104/placement_index"
+    },
+    {
+      "source_token": 373652,
+      "index": 379,
+      "script_name": "cs_expand_cortana",
+      "path": "squad/105/placement_index"
+    },
+    {
+      "source_token": 373768,
+      "index": 379,
+      "script_name": "cs_expand_cortana",
+      "path": "squad/106/placement_index"
+    },
+    {
+      "source_token": 403528,
+      "index": 158,
+      "script_name": "cs_x02_panic_01",
+      "path": "squad/108/start/0/script_index"
+    },
+    {
+      "source_token": 403628,
+      "index": 159,
+      "script_name": "cs_x02_panic_02",
+      "path": "squad/109/start/0/script_index"
+    },
+    {
+      "source_token": 403728,
+      "index": 160,
+      "script_name": "cs_x02_panic_03",
+      "path": "squad/110/start/0/script_index"
+    },
+    {
+      "source_token": 403828,
+      "index": 161,
+      "script_name": "cs_x02_panic_04",
+      "path": "squad/111/start/0/script_index"
+    },
+    {
+      "source_token": 1242028,
+      "index": 373,
+      "script_name": "elv_elevator_test",
+      "path": "trigger/17/condition/1/script_index"
+    },
+    {
+      "source_token": 1242140,
+      "index": 374,
+      "script_name": "elv_elevator_down",
+      "path": "trigger/18/condition/1/script_index"
+    },
+    {
+      "source_token": 1243820,
+      "index": 338,
+      "script_name": "1st_waves_end",
+      "path": "trigger/40/condition/0/script_index"
+    },
+    {
+      "source_token": 1244044,
+      "index": 338,
+      "script_name": "1st_waves_end",
+      "path": "trigger/43/condition/0/script_index"
+    }
+  ],
+  "proof": {
+    "full_mission_tree_equal_to_OG_after_wake_removal": true,
+    "shared_script_prototypes": 418,
+    "authored_fields_scanned": 1150,
+    "breadcrumb_rows": 515,
+    "breadcrumb_external_syntax_edges": 0,
+    "breadcrumb_typed_references": 1,
+    "mission_wake_rows": 3,
+    "v3_retired_rows": 10,
+    "static_parents_reindexed": 12,
+    "static_function_companions_reindexed": 12,
+    "script_literals_reindexed": 51,
+    "command_script_literals_reindexed": 13,
+    "scenario_fields_reindexed": 17,
+    "v5_new_retired_rows": 48,
+    "retired_rows": 626,
+    "script_ordinal_words": 374,
+    "literal_environment_restores": 2,
+    "v5_script_reindex_kinds": {
+      "script": 177,
+      "static": 89,
+      "command_script": 19
+    },
+    "preserved_unproven_differences": [],
+    "v6_global_name_and_initializer_restored": true,
+    "v6_clock_reference_labels": 25,
+    "v6_literal_to_mutable_global_refs": 10,
+    "v6_effect_brand_binding_restored": true,
+    "v6_exact_shared_script_bodies": 411,
+    "v6_exact_original_global_initializers": 51,
+    "v6_borrowed_namespace_guard_banks": 9,
+    "preserved_unused_global": "orphan declaration and initializer bytes only; excluded from global count",
+    "v7_global_count_before": 52,
+    "v7_global_count_after": 51,
+    "v7_removed_global_references_retired": 38,
+    "v8_remastered_sound_calls": 7,
+    "v8_added_retired_rows": 37,
+    "v8_merged_sibling_patches": 6,
+    "v8_complete_original_script_bodies": 415,
+    "v9_complete_original_script_bodies": 418,
+    "v9_added_flush_calls": 4,
+    "v9_allocated_rows": 8,
+    "v9_timing_reused_rows": 5,
+    "v9_extra_retired_rows": 12,
+    "v9_remastered_sound_calls": 1,
+    "v9_retired_rows_total": 626
+  },
+  "removed_scripts": [
+    {
+      "index": 136,
+      "name": "bring_back_brand",
+      "type": 1,
+      "return_type": 4,
+      "root": 4180284855
+    },
+    {
+      "index": 330,
+      "name": "breadcrumbs_nav_points_01b",
+      "type": 1,
+      "return_type": 4,
+      "root": 2606839789
+    }
+  ],
+  "literal_restores": [
+    {
+      "script": "dck_mission",
+      "datum": 2833597809,
+      "parent_datum": 2833204587,
+      "argument": 4,
+      "before": 1000,
+      "after": 1200,
+      "opcode": 8,
+      "context": 8,
+      "flags": 9,
+      "function": "set_global_sound_environment"
+    },
+    {
+      "script": "lvr_mission",
+      "datum": 2874492897,
+      "parent_datum": 2874099675,
+      "argument": 4,
+      "before": 1000,
+      "after": 1200,
+      "opcode": 8,
+      "context": 8,
+      "flags": 9,
+      "function": "set_global_sound_environment"
+    }
+  ],
+  "clock_restore": {
+    "global_index": 18,
+    "before_name": "tick_seconds",
+    "after_name": "seconds",
+    "label_offset": 23,
+    "root": 2420190413,
+    "function": 2420255950,
+    "literal_value": 4294901790,
+    "references": [
+      2422090986,
+      2440310272,
+      2441752086,
+      2443193900,
+      2444635714,
+      2446077528,
+      2447519342,
+      2448961156,
+      2450402970,
+      2452238006,
+      2453679820,
+      2455449319,
+      2457415429,
+      2458791706,
+      2461019964,
+      2463641444,
+      2465083258,
+      2466525072,
+      2467966886,
+      2469408700,
+      2470850514,
+      2479632472,
+      2479894620,
+      2480746601,
+      2481008749
+    ]
+  },
+  "clock_literal_restores": [
+    {
+      "owner": "script:flavor_mission",
+      "datum": 2493919538,
+      "parent": 2493722927,
+      "other": 2493854001,
+      "parent_context": 7,
+      "other_value": 1084227584
+    },
+    {
+      "owner": "script:flavor_mission",
+      "datum": 2494771519,
+      "parent": 2494574908,
+      "other": 2494705982,
+      "parent_context": 6,
+      "other_value": 1084227584
+    },
+    {
+      "owner": "script:flavor_mission",
+      "datum": 2500211090,
+      "parent": 2500014479,
+      "other": 2500145553,
+      "parent_context": 7,
+      "other_value": 1077936128
+    },
+    {
+      "owner": "script:flavor_mission",
+      "datum": 2500473238,
+      "parent": 2500276627,
+      "other": 2500407701,
+      "parent_context": 7,
+      "other_value": 1088421888
+    },
+    {
+      "owner": "script:bay1_mission",
+      "datum": 2700033403,
+      "parent": 2699836792,
+      "other": 2699967866,
+      "parent_context": 7,
+      "other_value": 1097859072
+    },
+    {
+      "owner": "script:bay2_mission",
+      "datum": 2740076510,
+      "parent": 2739879899,
+      "other": 2740010973,
+      "parent_context": 7,
+      "other_value": 1092616192
+    },
+    {
+      "owner": "script:dck_hog",
+      "datum": 2823701722,
+      "parent": 2823505111,
+      "other": 2823636185,
+      "parent_context": 7,
+      "other_value": 1128792064
+    },
+    {
+      "owner": "script:elv_mission",
+      "datum": 2855356093,
+      "parent": 2855159482,
+      "other": 2855290556,
+      "parent_context": 8,
+      "other_value": 1101004800
+    },
+    {
+      "owner": "script:elv_mission",
+      "datum": 2856732370,
+      "parent": 2856535759,
+      "other": 2856666833,
+      "parent_context": 8,
+      "other_value": 1123024896
+    },
+    {
+      "owner": "script:lvr_carriers",
+      "datum": 2866366309,
+      "parent": 2866169698,
+      "other": 2866300772,
+      "parent_context": 8,
+      "other_value": 1097859072
+    }
+  ],
+  "effect_brand_restore": {
+    "parent": 4174386525,
+    "function": 4174452062,
+    "effect": 4174517599,
+    "object": 4174583136,
+    "marker": 4174648673,
+    "old_object_index": 25,
+    "new_object_index": 24,
+    "old_label_offset": 13938,
+    "new_label_offset": 13979,
+    "old_marker": 83888633,
+    "new_marker": 0,
+    "old_marker_offset": 13955,
+    "new_marker_offset": 0,
+    "effect_path": "effects\\objects\\cinematics\\branding_iron\\branding_iron_burn",
+    "object_path": "objects\\cinematics\\covenant\\branding_iron\\branding_iron"
+  },
+  "removed_final_global": {
+    "index": 51,
+    "name": "g_breadcrumb_nav_index",
+    "type": 7,
+    "kind": 0,
+    "root": 2431266166,
+    "references": [
+      {
+        "datum": 2573481456,
+        "opcode": 0
+      },
+      {
+        "datum": 2575382029,
+        "opcode": 0
+      },
+      {
+        "datum": 2576037399,
+        "opcode": 0
+      },
+      {
+        "datum": 2576430621,
+        "opcode": 0
+      },
+      {
+        "datum": 2578331194,
+        "opcode": 0
+      },
+      {
+        "datum": 2578855490,
+        "opcode": 65535
+      },
+      {
+        "datum": 2579248712,
+        "opcode": 0
+      },
+      {
+        "datum": 2581149285,
+        "opcode": 0
+      },
+      {
+        "datum": 2581673581,
+        "opcode": 65535
+      },
+      {
+        "datum": 2582066803,
+        "opcode": 0
+      },
+      {
+        "datum": 2583836302,
+        "opcode": 0
+      },
+      {
+        "datum": 2584491672,
+        "opcode": 0
+      },
+      {
+        "datum": 2584884894,
+        "opcode": 0
+      },
+      {
+        "datum": 2586785467,
+        "opcode": 0
+      },
+      {
+        "datum": 2587440837,
+        "opcode": 0
+      },
+      {
+        "datum": 2587834059,
+        "opcode": 0
+      },
+      {
+        "datum": 2590979835,
+        "opcode": 0
+      },
+      {
+        "datum": 2591766279,
+        "opcode": 65535
+      },
+      {
+        "datum": 2592159501,
+        "opcode": 0
+      },
+      {
+        "datum": 2593142556,
+        "opcode": 0
+      },
+      {
+        "datum": 2594912055,
+        "opcode": 0
+      },
+      {
+        "datum": 2595436351,
+        "opcode": 65535
+      },
+      {
+        "datum": 2595829573,
+        "opcode": 0
+      },
+      {
+        "datum": 2597730146,
+        "opcode": 0
+      },
+      {
+        "datum": 2598254442,
+        "opcode": 65535
+      },
+      {
+        "datum": 2598647664,
+        "opcode": 0
+      },
+      {
+        "datum": 2599630719,
+        "opcode": 0
+      },
+      {
+        "datum": 2601072533,
+        "opcode": 0
+      },
+      {
+        "datum": 2601727903,
+        "opcode": 0
+      },
+      {
+        "datum": 2602121125,
+        "opcode": 0
+      },
+      {
+        "datum": 2603562939,
+        "opcode": 0
+      },
+      {
+        "datum": 2604087235,
+        "opcode": 65535
+      },
+      {
+        "datum": 2604480457,
+        "opcode": 0
+      },
+      {
+        "datum": 2652846763,
+        "opcode": 65535
+      },
+      {
+        "datum": 2664184664,
+        "opcode": 65535
+      },
+      {
+        "datum": 2680568914,
+        "opcode": 65535
+      },
+      {
+        "datum": 2721070780,
+        "opcode": 65535
+      },
+      {
+        "datum": 2855814852,
+        "opcode": 65535
+      }
+    ]
+  },
+  "sound_removals": [
+    {
+      "script": "cs_1st_johnson_deploy",
+      "root": 2614900840,
+      "function": 2614966377,
+      "sound": 2615031914,
+      "emitter": 2615097451,
+      "volume": 2615294062,
+      "ai_function": 2615162988,
+      "ai_literal": 2615228525,
+      "predecessor": 2614376544,
+      "opcode": 599,
+      "xbox_opcode": 597,
+      "sound_type": 32,
+      "sound_handle": 2230133426,
+      "path": "sound_remastered\\weapons\\chain_gun\\place",
+      "function_name": "sound_impulse_start",
+      "rows": [
+        {
+          "datum": 2614900840,
+          "salt": 39900,
+          "opcode": 599,
+          "type": 4,
+          "flags": 8,
+          "next": 2615359599,
+          "label": 178234,
+          "value": 2614966377
+        },
+        {
+          "datum": 2614966377,
+          "salt": 39901,
+          "opcode": 599,
+          "type": 2,
+          "flags": 9,
+          "next": 2615031914,
+          "label": 1466,
+          "value": 0
+        },
+        {
+          "datum": 2615031914,
+          "salt": 39902,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 2615097451,
+          "label": 32595,
+          "value": 2230133426
+        },
+        {
+          "datum": 2615097451,
+          "salt": 39903,
+          "opcode": 285,
+          "type": 50,
+          "flags": 8,
+          "next": 2615294062,
+          "label": 178296,
+          "value": 2615162988
+        },
+        {
+          "datum": 2615162988,
+          "salt": 39904,
+          "opcode": 285,
+          "type": 2,
+          "flags": 9,
+          "next": 2615228525,
+          "label": 32412,
+          "value": 0
+        },
+        {
+          "datum": 2615228525,
+          "salt": 39905,
+          "opcode": 19,
+          "type": 19,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 32426,
+          "value": 0
+        },
+        {
+          "datum": 2615294062,
+          "salt": 39906,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 178328,
+          "value": 1065353216
+        }
+      ]
+    },
+    {
+      "script": "bay1_malta",
+      "root": 2679127100,
+      "function": 2679192637,
+      "sound": 2679258174,
+      "emitter": 2679323711,
+      "volume": 2679389248,
+      "ai_function": 0,
+      "ai_literal": 0,
+      "predecessor": 2678799415,
+      "opcode": 599,
+      "xbox_opcode": 597,
+      "sound_type": 32,
+      "sound_handle": 2233017054,
+      "path": "sound_remastered\\visual_effects\\ss_distship_explode",
+      "function_name": "sound_impulse_start",
+      "rows": [
+        {
+          "datum": 2679127100,
+          "salt": 40880,
+          "opcode": 599,
+          "type": 4,
+          "flags": 8,
+          "next": 2679454785,
+          "label": 189455,
+          "value": 2679192637
+        },
+        {
+          "datum": 2679192637,
+          "salt": 40881,
+          "opcode": 599,
+          "type": 2,
+          "flags": 9,
+          "next": 2679258174,
+          "label": 1466,
+          "value": 0
+        },
+        {
+          "datum": 2679258174,
+          "salt": 40882,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 2679323711,
+          "label": 35625,
+          "value": 2233017054
+        },
+        {
+          "datum": 2679323711,
+          "salt": 40883,
+          "opcode": 50,
+          "type": 50,
+          "flags": 9,
+          "next": 2679389248,
+          "label": 1540,
+          "value": 4294967295
+        },
+        {
+          "datum": 2679389248,
+          "salt": 40884,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 189533,
+          "value": 1065353216
+        }
+      ]
+    },
+    {
+      "script": "bay1_malta",
+      "root": 2680896599,
+      "function": 2680962136,
+      "sound": 2681027673,
+      "emitter": 2681093210,
+      "volume": 2681158747,
+      "ai_function": 0,
+      "ai_literal": 0,
+      "predecessor": 2680699988,
+      "opcode": 608,
+      "xbox_opcode": 606,
+      "sound_type": 35,
+      "sound_handle": 2233541350,
+      "path": "sound_remastered\\visual_effects\\ss_distship_shake_quad",
+      "function_name": "sound_looping_start",
+      "rows": [
+        {
+          "datum": 2680896599,
+          "salt": 40907,
+          "opcode": 608,
+          "type": 4,
+          "flags": 8,
+          "next": 2681224284,
+          "label": 189803,
+          "value": 2680962136
+        },
+        {
+          "datum": 2680962136,
+          "salt": 40908,
+          "opcode": 608,
+          "type": 2,
+          "flags": 9,
+          "next": 2681027673,
+          "label": 28067,
+          "value": 0
+        },
+        {
+          "datum": 2681027673,
+          "salt": 40909,
+          "opcode": 35,
+          "type": 35,
+          "flags": 9,
+          "next": 2681093210,
+          "label": 35783,
+          "value": 2233541350
+        },
+        {
+          "datum": 2681093210,
+          "salt": 40910,
+          "opcode": 50,
+          "type": 50,
+          "flags": 9,
+          "next": 2681158747,
+          "label": 1540,
+          "value": 4294967295
+        },
+        {
+          "datum": 2681158747,
+          "salt": 40911,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 189884,
+          "value": 1065353216
+        }
+      ]
+    },
+    {
+      "script": "bay1_mission",
+      "root": 2707045862,
+      "function": 2707111399,
+      "sound": 2707176936,
+      "emitter": 2707242473,
+      "volume": 2707308010,
+      "ai_function": 0,
+      "ai_literal": 0,
+      "predecessor": 2706783714,
+      "opcode": 599,
+      "xbox_opcode": 597,
+      "sound_type": 32,
+      "sound_handle": 2234131183,
+      "path": "sound_remastered\\visual_effects\\ss_smalldoor_explode",
+      "function_name": "sound_impulse_start",
+      "rows": [
+        {
+          "datum": 2707045862,
+          "salt": 41306,
+          "opcode": 599,
+          "type": 4,
+          "flags": 8,
+          "next": 2707373547,
+          "label": 193483,
+          "value": 2707111399
+        },
+        {
+          "datum": 2707111399,
+          "salt": 41307,
+          "opcode": 599,
+          "type": 2,
+          "flags": 9,
+          "next": 2707176936,
+          "label": 1466,
+          "value": 0
+        },
+        {
+          "datum": 2707176936,
+          "salt": 41308,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 2707242473,
+          "label": 36442,
+          "value": 2234131183
+        },
+        {
+          "datum": 2707242473,
+          "salt": 41309,
+          "opcode": 56,
+          "type": 50,
+          "flags": 9,
+          "next": 2707308010,
+          "label": 36495,
+          "value": 4294902188
+        },
+        {
+          "datum": 2707308010,
+          "salt": 41310,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 193572,
+          "value": 1065353216
+        }
+      ]
+    },
+    {
+      "script": "bay1_mission",
+      "root": 2707373547,
+      "function": 2707439084,
+      "sound": 2707504621,
+      "emitter": 2707570158,
+      "volume": 2707635695,
+      "ai_function": 0,
+      "ai_literal": 0,
+      "predecessor": 2707045862,
+      "opcode": 599,
+      "xbox_opcode": 597,
+      "sound_type": 32,
+      "sound_handle": 4217772337,
+      "path": "sound_remastered\\weapons\\plasma_grenade\\plasma_expl",
+      "function_name": "sound_impulse_start",
+      "rows": [
+        {
+          "datum": 2707373547,
+          "salt": 41311,
+          "opcode": 599,
+          "type": 4,
+          "flags": 8,
+          "next": 2707701232,
+          "label": 193577,
+          "value": 2707439084
+        },
+        {
+          "datum": 2707439084,
+          "salt": 41312,
+          "opcode": 599,
+          "type": 2,
+          "flags": 9,
+          "next": 2707504621,
+          "label": 1466,
+          "value": 0
+        },
+        {
+          "datum": 2707504621,
+          "salt": 41313,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 2707570158,
+          "label": 36510,
+          "value": 4217772337
+        },
+        {
+          "datum": 2707570158,
+          "salt": 41314,
+          "opcode": 56,
+          "type": 50,
+          "flags": 9,
+          "next": 2707635695,
+          "label": 36495,
+          "value": 4294902188
+        },
+        {
+          "datum": 2707635695,
+          "salt": 41315,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 193665,
+          "value": 1065353216
+        }
+      ]
+    },
+    {
+      "script": "bay2_athens",
+      "root": 2716417653,
+      "function": 2716483190,
+      "sound": 2716548727,
+      "emitter": 2716614264,
+      "volume": 2716679801,
+      "ai_function": 0,
+      "ai_literal": 0,
+      "predecessor": 2716221042,
+      "opcode": 599,
+      "xbox_opcode": 597,
+      "sound_type": 32,
+      "sound_handle": 2233017054,
+      "path": "sound_remastered\\visual_effects\\ss_distship_explode",
+      "function_name": "sound_impulse_start",
+      "rows": [
+        {
+          "datum": 2716417653,
+          "salt": 41449,
+          "opcode": 599,
+          "type": 4,
+          "flags": 8,
+          "next": 2716745338,
+          "label": 194986,
+          "value": 2716483190
+        },
+        {
+          "datum": 2716483190,
+          "salt": 41450,
+          "opcode": 599,
+          "type": 2,
+          "flags": 9,
+          "next": 2716548727,
+          "label": 1466,
+          "value": 0
+        },
+        {
+          "datum": 2716548727,
+          "salt": 41451,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 2716614264,
+          "label": 35625,
+          "value": 2233017054
+        },
+        {
+          "datum": 2716614264,
+          "salt": 41452,
+          "opcode": 50,
+          "type": 50,
+          "flags": 9,
+          "next": 2716679801,
+          "label": 1540,
+          "value": 4294967295
+        },
+        {
+          "datum": 2716679801,
+          "salt": 41453,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 195064,
+          "value": 1065353216
+        }
+      ]
+    },
+    {
+      "script": "bay2_athens",
+      "root": 2717269634,
+      "function": 2717335171,
+      "sound": 2717400708,
+      "emitter": 2717466245,
+      "volume": 2717531782,
+      "ai_function": 0,
+      "ai_literal": 0,
+      "predecessor": 2717073023,
+      "opcode": 608,
+      "xbox_opcode": 606,
+      "sound_type": 35,
+      "sound_handle": 2233541350,
+      "path": "sound_remastered\\visual_effects\\ss_distship_shake_quad",
+      "function_name": "sound_looping_start",
+      "rows": [
+        {
+          "datum": 2717269634,
+          "salt": 41462,
+          "opcode": 608,
+          "type": 4,
+          "flags": 8,
+          "next": 2717597319,
+          "label": 195134,
+          "value": 2717335171
+        },
+        {
+          "datum": 2717335171,
+          "salt": 41463,
+          "opcode": 608,
+          "type": 2,
+          "flags": 9,
+          "next": 2717400708,
+          "label": 28067,
+          "value": 0
+        },
+        {
+          "datum": 2717400708,
+          "salt": 41464,
+          "opcode": 35,
+          "type": 35,
+          "flags": 9,
+          "next": 2717466245,
+          "label": 35783,
+          "value": 2233541350
+        },
+        {
+          "datum": 2717466245,
+          "salt": 41465,
+          "opcode": 50,
+          "type": 50,
+          "flags": 9,
+          "next": 2717531782,
+          "label": 1540,
+          "value": 4294967295
+        },
+        {
+          "datum": 2717531782,
+          "salt": 41466,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 195215,
+          "value": 1065353216
+        }
+      ]
+    },
+    {
+      "script": "1st_malta",
+      "root": 2624469242,
+      "function": 2624534779,
+      "sound": 2624600316,
+      "emitter": 2624665853,
+      "volume": 2624731390,
+      "ai_function": 0,
+      "ai_literal": 0,
+      "predecessor": 2624272631,
+      "opcode": 599,
+      "xbox_opcode": 597,
+      "sound_type": 32,
+      "sound_handle": 2231050944,
+      "path": "sound_remastered\\ambience\\spacestation\\docking_clangs\\dockingcov_incoming",
+      "function_name": "sound_impulse_start",
+      "rows": [
+        {
+          "datum": 2624469242,
+          "salt": 40046,
+          "opcode": 599,
+          "type": 4,
+          "flags": 8,
+          "next": 2624796927,
+          "label": 180531,
+          "value": 2624534779
+        },
+        {
+          "datum": 2624534779,
+          "salt": 40047,
+          "opcode": 599,
+          "type": 2,
+          "flags": 9,
+          "next": 2624600316,
+          "label": 1466,
+          "value": 0
+        },
+        {
+          "datum": 2624600316,
+          "salt": 40048,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 2624665853,
+          "label": 33355,
+          "value": 2231050944
+        },
+        {
+          "datum": 2624665853,
+          "salt": 40049,
+          "opcode": 50,
+          "type": 50,
+          "flags": 9,
+          "next": 2624731390,
+          "label": 1540,
+          "value": 4294967295
+        },
+        {
+          "datum": 2624731390,
+          "salt": 40050,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 180631,
+          "value": 1065353216
+        }
+      ]
+    }
+  ],
+  "final_holder_restoration": {
+    "status": "source-proven original Cairo timing and leading flush restoration",
+    "rewrites": [
+      {
+        "datum": 2623682798,
+        "index": 14574,
+        "allocated": false,
+        "before": {
+          "datum": 2623682798,
+          "salt": 40034,
+          "opcode": 21,
+          "type": 4,
+          "flags": 8,
+          "next": 2624272631,
+          "label": 180443,
+          "value": 2623748335
+        },
+        "after": {
+          "datum": 2623682798,
+          "salt": 40034,
+          "opcode": 19,
+          "type": 4,
+          "flags": 8,
+          "next": 2624796927,
+          "label": 180443,
+          "value": 2623748335
+        }
+      },
+      {
+        "datum": 2623748335,
+        "index": 14575,
+        "allocated": false,
+        "before": {
+          "datum": 2623748335,
+          "salt": 40035,
+          "opcode": 21,
+          "type": 2,
+          "flags": 9,
+          "next": 2623813872,
+          "label": 261,
+          "value": 0
+        },
+        "after": {
+          "datum": 2623748335,
+          "salt": 40035,
+          "opcode": 19,
+          "type": 2,
+          "flags": 9,
+          "next": 2623813872,
+          "label": 110,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2623813872,
+        "index": 14576,
+        "allocated": false,
+        "before": {
+          "datum": 2623813872,
+          "salt": 40036,
+          "opcode": 16,
+          "type": 5,
+          "flags": 8,
+          "next": 2624207094,
+          "label": 180456,
+          "value": 2623879409
+        },
+        "after": {
+          "datum": 2623813872,
+          "salt": 40036,
+          "opcode": 604,
+          "type": 7,
+          "flags": 8,
+          "next": 4294967295,
+          "label": 180456,
+          "value": 2623879409
+        }
+      },
+      {
+        "datum": 2623879409,
+        "index": 14577,
+        "allocated": false,
+        "before": {
+          "datum": 2623879409,
+          "salt": 40037,
+          "opcode": 16,
+          "type": 2,
+          "flags": 9,
+          "next": 2623944946,
+          "label": 877,
+          "value": 0
+        },
+        "after": {
+          "datum": 2623879409,
+          "salt": 40037,
+          "opcode": 604,
+          "type": 2,
+          "flags": 9,
+          "next": 2623944946,
+          "label": 31294,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2623944946,
+        "index": 14578,
+        "allocated": false,
+        "before": {
+          "datum": 2623944946,
+          "salt": 40038,
+          "opcode": 258,
+          "type": 6,
+          "flags": 8,
+          "next": 2624141557,
+          "label": 180459,
+          "value": 2624010483
+        },
+        "after": {
+          "datum": 2623944946,
+          "salt": 40038,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 33264,
+          "value": 2230985407
+        }
+      },
+      {
+        "datum": 2625517834,
+        "index": 14602,
+        "allocated": false,
+        "before": {
+          "datum": 2625517834,
+          "salt": 40062,
+          "opcode": 9,
+          "type": 9,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 33429,
+          "value": 33429
+        },
+        "after": {
+          "datum": 2625517834,
+          "salt": 40062,
+          "opcode": 9,
+          "type": 9,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 31229,
+          "value": 31229
+        }
+      },
+      {
+        "datum": 3815964672,
+        "index": 0,
+        "allocated": true,
+        "before": {
+          "datum": 3815964672,
+          "salt": 0,
+          "opcode": 47802,
+          "type": 47802,
+          "flags": 47802,
+          "next": 3132799674,
+          "label": 3132799674,
+          "value": 3132799674
+        },
+        "after": {
+          "datum": 3815964672,
+          "salt": 58227,
+          "opcode": 533,
+          "type": 4,
+          "flags": 8,
+          "next": 3816095746,
+          "label": 0,
+          "value": 3816030209
+        }
+      },
+      {
+        "datum": 3816030209,
+        "index": 1,
+        "allocated": true,
+        "before": {
+          "datum": 3816030209,
+          "salt": 0,
+          "opcode": 47802,
+          "type": 47802,
+          "flags": 47802,
+          "next": 3132799674,
+          "label": 3132799674,
+          "value": 3132799674
+        },
+        "after": {
+          "datum": 3816030209,
+          "salt": 58228,
+          "opcode": 533,
+          "type": 2,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 13342,
+          "value": 0
+        }
+      },
+      {
+        "datum": 3816095746,
+        "index": 2,
+        "allocated": true,
+        "before": {
+          "datum": 3816095746,
+          "salt": 0,
+          "opcode": 47802,
+          "type": 47802,
+          "flags": 47802,
+          "next": 3132799674,
+          "label": 3132799674,
+          "value": 3132799674
+        },
+        "after": {
+          "datum": 3816095746,
+          "salt": 58229,
+          "opcode": 534,
+          "type": 4,
+          "flags": 8,
+          "next": 2148670622,
+          "label": 0,
+          "value": 3816161283
+        }
+      },
+      {
+        "datum": 3816161283,
+        "index": 3,
+        "allocated": true,
+        "before": {
+          "datum": 3816161283,
+          "salt": 0,
+          "opcode": 47802,
+          "type": 47802,
+          "flags": 47802,
+          "next": 3132799674,
+          "label": 3132799674,
+          "value": 3132799674
+        },
+        "after": {
+          "datum": 3816161283,
+          "salt": 58230,
+          "opcode": 534,
+          "type": 2,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 13641,
+          "value": 0
+        }
+      },
+      {
+        "datum": 3816226820,
+        "index": 4,
+        "allocated": true,
+        "before": {
+          "datum": 3816226820,
+          "salt": 0,
+          "opcode": 47802,
+          "type": 47802,
+          "flags": 47802,
+          "next": 3132799674,
+          "label": 3132799674,
+          "value": 3132799674
+        },
+        "after": {
+          "datum": 3816226820,
+          "salt": 58231,
+          "opcode": 533,
+          "type": 4,
+          "flags": 8,
+          "next": 3816357903,
+          "label": 0,
+          "value": 3816292366
+        }
+      },
+      {
+        "datum": 3816292366,
+        "index": 14,
+        "allocated": true,
+        "before": {
+          "datum": 3816292366,
+          "salt": 0,
+          "opcode": 47802,
+          "type": 47802,
+          "flags": 47802,
+          "next": 3132799674,
+          "label": 3132799674,
+          "value": 3132799674
+        },
+        "after": {
+          "datum": 3816292366,
+          "salt": 58232,
+          "opcode": 533,
+          "type": 2,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 13342,
+          "value": 0
+        }
+      },
+      {
+        "datum": 3816357903,
+        "index": 15,
+        "allocated": true,
+        "before": {
+          "datum": 3816357903,
+          "salt": 0,
+          "opcode": 47802,
+          "type": 47802,
+          "flags": 47802,
+          "next": 3132799674,
+          "label": 3132799674,
+          "value": 3132799674
+        },
+        "after": {
+          "datum": 3816357903,
+          "salt": 58233,
+          "opcode": 534,
+          "type": 4,
+          "flags": 8,
+          "next": 2416979100,
+          "label": 0,
+          "value": 3816423440
+        }
+      },
+      {
+        "datum": 3816423440,
+        "index": 16,
+        "allocated": true,
+        "before": {
+          "datum": 3816423440,
+          "salt": 0,
+          "opcode": 47802,
+          "type": 47802,
+          "flags": 47802,
+          "next": 3132799674,
+          "label": 3132799674,
+          "value": 3132799674
+        },
+        "after": {
+          "datum": 3816423440,
+          "salt": 58234,
+          "opcode": 534,
+          "type": 2,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 13641,
+          "value": 0
+        }
+      }
+    ],
+    "retired_nodes": [
+      2624010483,
+      2624076020,
+      2624141557,
+      2624207094,
+      2624272631,
+      2624338168,
+      2624403705,
+      2624469242,
+      2624534779,
+      2624600316,
+      2624665853,
+      2624731390
+    ],
+    "retired_rows": [
+      {
+        "datum": 2624010483,
+        "before": {
+          "salt": 40039,
+          "opcode": 258,
+          "type": 2,
+          "flags": 9,
+          "next": 2624076020,
+          "label": 33321,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2624076020,
+        "before": {
+          "salt": 40040,
+          "opcode": 60,
+          "type": 54,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 33161,
+          "value": 4294902232
+        }
+      },
+      {
+        "datum": 2624141557,
+        "before": {
+          "salt": 40041,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 180491,
+          "value": 1061158912
+        }
+      },
+      {
+        "datum": 2624207094,
+        "before": {
+          "salt": 40042,
+          "opcode": 7,
+          "type": 7,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 180497,
+          "value": 4294901761
+        }
+      },
+      {
+        "datum": 2624272631,
+        "before": {
+          "salt": 40043,
+          "opcode": 27,
+          "type": 4,
+          "flags": 8,
+          "next": 2624469242,
+          "label": 180502,
+          "value": 2624338168
+        }
+      },
+      {
+        "datum": 2624338168,
+        "before": {
+          "salt": 40044,
+          "opcode": 27,
+          "type": 2,
+          "flags": 9,
+          "next": 2624403705,
+          "label": 116,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2624403705,
+        "before": {
+          "salt": 40045,
+          "opcode": 9,
+          "type": 9,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 33341,
+          "value": 33341
+        }
+      },
+      {
+        "datum": 2624469242,
+        "before": {
+          "salt": 40046,
+          "opcode": 599,
+          "type": 4,
+          "flags": 8,
+          "next": 2624796927,
+          "label": 180531,
+          "value": 2624534779
+        }
+      },
+      {
+        "datum": 2624534779,
+        "before": {
+          "salt": 40047,
+          "opcode": 599,
+          "type": 2,
+          "flags": 9,
+          "next": 2624600316,
+          "label": 1466,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2624600316,
+        "before": {
+          "salt": 40048,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 2624665853,
+          "label": 33355,
+          "value": 2231050944
+        }
+      },
+      {
+        "datum": 2624665853,
+        "before": {
+          "salt": 40049,
+          "opcode": 50,
+          "type": 50,
+          "flags": 9,
+          "next": 2624731390,
+          "label": 1540,
+          "value": 4294967295
+        }
+      },
+      {
+        "datum": 2624731390,
+        "before": {
+          "salt": 40050,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 180631,
+          "value": 1065353216
+        }
+      }
+    ],
+    "old_timing_closure": [
+      {
+        "datum": 2623682798,
+        "before": {
+          "salt": 40034,
+          "opcode": 21,
+          "type": 4,
+          "flags": 8,
+          "next": 2624272631,
+          "label": 180443,
+          "value": 2623748335
+        }
+      },
+      {
+        "datum": 2623748335,
+        "before": {
+          "salt": 40035,
+          "opcode": 21,
+          "type": 2,
+          "flags": 9,
+          "next": 2623813872,
+          "label": 261,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2623813872,
+        "before": {
+          "salt": 40036,
+          "opcode": 16,
+          "type": 5,
+          "flags": 8,
+          "next": 2624207094,
+          "label": 180456,
+          "value": 2623879409
+        }
+      },
+      {
+        "datum": 2623879409,
+        "before": {
+          "salt": 40037,
+          "opcode": 16,
+          "type": 2,
+          "flags": 9,
+          "next": 2623944946,
+          "label": 877,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2623944946,
+        "before": {
+          "salt": 40038,
+          "opcode": 258,
+          "type": 6,
+          "flags": 8,
+          "next": 2624141557,
+          "label": 180459,
+          "value": 2624010483
+        }
+      },
+      {
+        "datum": 2624010483,
+        "before": {
+          "salt": 40039,
+          "opcode": 258,
+          "type": 2,
+          "flags": 9,
+          "next": 2624076020,
+          "label": 33321,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2624076020,
+        "before": {
+          "salt": 40040,
+          "opcode": 60,
+          "type": 54,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 33161,
+          "value": 4294902232
+        }
+      },
+      {
+        "datum": 2624141557,
+        "before": {
+          "salt": 40041,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 180491,
+          "value": 1061158912
+        }
+      },
+      {
+        "datum": 2624207094,
+        "before": {
+          "salt": 40042,
+          "opcode": 7,
+          "type": 7,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 180497,
+          "value": 4294901761
+        }
+      },
+      {
+        "datum": 2624272631,
+        "before": {
+          "salt": 40043,
+          "opcode": 27,
+          "type": 4,
+          "flags": 8,
+          "next": 2624469242,
+          "label": 180502,
+          "value": 2624338168
+        }
+      },
+      {
+        "datum": 2624338168,
+        "before": {
+          "salt": 40044,
+          "opcode": 27,
+          "type": 2,
+          "flags": 9,
+          "next": 2624403705,
+          "label": 116,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2624403705,
+        "before": {
+          "salt": 40045,
+          "opcode": 9,
+          "type": 9,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 33341,
+          "value": 33341
+        }
+      },
+      {
+        "datum": 2624469242,
+        "before": {
+          "salt": 40046,
+          "opcode": 599,
+          "type": 4,
+          "flags": 8,
+          "next": 2624796927,
+          "label": 180531,
+          "value": 2624534779
+        }
+      },
+      {
+        "datum": 2624534779,
+        "before": {
+          "salt": 40047,
+          "opcode": 599,
+          "type": 2,
+          "flags": 9,
+          "next": 2624600316,
+          "label": 1466,
+          "value": 0
+        }
+      },
+      {
+        "datum": 2624600316,
+        "before": {
+          "salt": 40048,
+          "opcode": 32,
+          "type": 32,
+          "flags": 9,
+          "next": 2624665853,
+          "label": 33355,
+          "value": 2231050944
+        }
+      },
+      {
+        "datum": 2624665853,
+        "before": {
+          "salt": 40049,
+          "opcode": 50,
+          "type": 50,
+          "flags": 9,
+          "next": 2624731390,
+          "label": 1540,
+          "value": 4294967295
+        }
+      },
+      {
+        "datum": 2624731390,
+        "before": {
+          "salt": 40050,
+          "opcode": 6,
+          "type": 6,
+          "flags": 9,
+          "next": 4294967295,
+          "label": 180631,
+          "value": 1065353216
+        }
+      }
+    ],
+    "links": [
+      {
+        "datum": 2153979119,
+        "before": 2148670622,
+        "after": 3815964672
+      },
+      {
+        "datum": 2419862728,
+        "before": 2416979100,
+        "after": 3816226820
+      }
+    ],
+    "flush_calls": [
+      {
+        "script": "x02",
+        "root": 3815964672,
+        "function": 3816030209,
+        "opcode": 533,
+        "xbox_opcode": 531,
+        "name": "texture_cache_flush"
+      },
+      {
+        "script": "x02",
+        "root": 3816095746,
+        "function": 3816161283,
+        "opcode": 534,
+        "xbox_opcode": 532,
+        "name": "geometry_cache_flush"
+      },
+      {
+        "script": "c01_outro",
+        "root": 3816226820,
+        "function": 3816292366,
+        "opcode": 533,
+        "xbox_opcode": 531,
+        "name": "texture_cache_flush"
+      },
+      {
+        "script": "c01_outro",
+        "root": 3816357903,
+        "function": 3816423440,
+        "opcode": 534,
+        "xbox_opcode": 532,
+        "name": "geometry_cache_flush"
+      }
+    ],
+    "function_slots": [
+      {
+        "offset": 13342,
+        "size": 32,
+        "before": "64697361626c655f72656e6465725f6c696768745f73757070726573736f7200",
+        "before_owner": 4157281368,
+        "after_name": "texture_cache_flush",
+        "after_owners": [
+          3816030209,
+          3816292366
+        ],
+        "preserved_debug_rows": [
+          {
+            "datum": 3893298332,
+            "row": {
+              "datum": 3893298332,
+              "salt": 59407,
+              "opcode": 702,
+              "type": 4,
+              "flags": 8,
+              "next": 3893494943,
+              "label": 13353,
+              "value": 3893363869
+            },
+            "reason": "expression debug offset"
+          }
+        ]
+      },
+      {
+        "offset": 13641,
+        "size": 31,
+        "before": "656e61626c655f72656e6465725f6c696768745f73757070726573736f7200",
+        "before_owner": 4165997789,
+        "after_name": "geometry_cache_flush",
+        "after_owners": [
+          3816161283,
+          3816423440
+        ],
+        "preserved_debug_rows": [
+          {
+            "datum": 3895329979,
+            "row": {
+              "datum": 3895329979,
+              "salt": 59438,
+              "opcode": 6,
+              "type": 6,
+              "flags": 9,
+              "next": 3895395516,
+              "label": 13656,
+              "value": 1065353216
+            },
+            "reason": "numeric primitive debug offset"
+          },
+          {
+            "datum": 3895395516,
+            "row": {
+              "datum": 3895395516,
+              "salt": 59439,
+              "opcode": 6,
+              "type": 6,
+              "flags": 9,
+              "next": 3895461053,
+              "label": 13658,
+              "value": 0
+            },
+            "reason": "numeric primitive debug offset"
+          },
+          {
+            "datum": 3895461053,
+            "row": {
+              "datum": 3895461053,
+              "salt": 59440,
+              "opcode": 6,
+              "type": 6,
+              "flags": 9,
+              "next": 3895526590,
+              "label": 13660,
+              "value": 0
+            },
+            "reason": "numeric primitive debug offset"
+          },
+          {
+            "datum": 3895526590,
+            "row": {
+              "datum": 3895526590,
+              "salt": 59441,
+              "opcode": 6,
+              "type": 6,
+              "flags": 9,
+              "next": 3895592127,
+              "label": 13662,
+              "value": 0
+            },
+            "reason": "numeric primitive debug offset"
+          },
+          {
+            "datum": 3895592127,
+            "row": {
+              "datum": 3895592127,
+              "salt": 59442,
+              "opcode": 6,
+              "type": 6,
+              "flags": 9,
+              "next": 3895657664,
+              "label": 13664,
+              "value": 1056964608
+            },
+            "reason": "numeric primitive debug offset"
+          },
+          {
+            "datum": 3895657664,
+            "row": {
+              "datum": 3895657664,
+              "salt": 59443,
+              "opcode": 6,
+              "type": 6,
+              "flags": 9,
+              "next": 3895723201,
+              "label": 13667,
+              "value": 1056964608
+            },
+            "reason": "numeric primitive debug offset"
+          },
+          {
+            "datum": 3895723201,
+            "row": {
+              "datum": 3895723201,
+              "salt": 59444,
+              "opcode": 6,
+              "type": 6,
+              "flags": 9,
+              "next": 4294967295,
+              "label": 13670,
+              "value": 0
+            },
+            "reason": "numeric primitive debug offset"
+          }
+        ]
+      }
+    ],
+    "dialog_sound": {
+      "binding": {
+        "group": "snd!",
+        "path": "sound\\dialog\\levels\\01_spacestation\\mission\\l01_0130_mm1"
+      },
+      "datum": 2623420650,
+      "flags": 9,
+      "index": 14570,
+      "next": 2623486187,
+      "opcode": 32,
+      "raw": "5e9c200020000900eb385f9cf0810000bf22fa84",
+      "string_offset": 33264,
+      "text": "sound\\dialog\\levels\\01_spacestation\\mission\\l01_0130_mm1",
+      "type": 32,
+      "value": 2230985407
+    },
+    "removed_sound": {
+      "binding": {
+        "group": "snd!",
+        "path": "sound_remastered\\ambience\\spacestation\\docking_clangs\\dockingcov_incoming"
+      },
+      "datum": 2624600316,
+      "flags": 9,
+      "index": 14588,
+      "next": 2624665853,
+      "opcode": 32,
+      "raw": "709c200020000900fd38719c4b820000c022fb84",
+      "string_offset": 33355,
+      "text": "sound_remastered\\ambience\\spacestation\\docking_clangs\\dockingcov_incoming",
+      "type": 32,
+      "value": 2231050944
+    },
+    "allocator": [
+      {
+        "handle": 3815964672,
+        "index": 0,
+        "salt": 58227
+      },
+      {
+        "handle": 3816030209,
+        "index": 1,
+        "salt": 58228
+      },
+      {
+        "handle": 3816095746,
+        "index": 2,
+        "salt": 58229
+      },
+      {
+        "handle": 3816161283,
+        "index": 3,
+        "salt": 58230
+      },
+      {
+        "handle": 3816226820,
+        "index": 4,
+        "salt": 58231
+      },
+      {
+        "handle": 3816292366,
+        "index": 14,
+        "salt": 58232
+      },
+      {
+        "handle": 3816357903,
+        "index": 15,
+        "salt": 58233
+      },
+      {
+        "handle": 3816423440,
+        "index": 16,
+        "salt": 58234
+      }
+    ],
+    "source_slots": 27722,
+    "full_holder_names": [
+      "1st_malta",
+      "x02",
+      "c01_outro"
+    ],
+    "incoming": [
+      {
+        "datum": 2623682798,
+        "from": 2623289576,
+        "child": false
+      },
+      {
+        "datum": 2623748335,
+        "from": 2623682798,
+        "child": true
+      },
+      {
+        "datum": 2623813872,
+        "from": 2623748335,
+        "child": false
+      },
+      {
+        "datum": 2623879409,
+        "from": 2623813872,
+        "child": true
+      },
+      {
+        "datum": 2623944946,
+        "from": 2623879409,
+        "child": false
+      },
+      {
+        "datum": 2624010483,
+        "from": 2623944946,
+        "child": true
+      },
+      {
+        "datum": 2624076020,
+        "from": 2624010483,
+        "child": false
+      },
+      {
+        "datum": 2624141557,
+        "from": 2623944946,
+        "child": false
+      },
+      {
+        "datum": 2624207094,
+        "from": 2623813872,
+        "child": false
+      },
+      {
+        "datum": 2624272631,
+        "from": 2623682798,
+        "child": false
+      },
+      {
+        "datum": 2624338168,
+        "from": 2624272631,
+        "child": true
+      },
+      {
+        "datum": 2624403705,
+        "from": 2624338168,
+        "child": false
+      },
+      {
+        "datum": 2624469242,
+        "from": 2624272631,
+        "child": false
+      },
+      {
+        "datum": 2624534779,
+        "from": 2624469242,
+        "child": true
+      },
+      {
+        "datum": 2624600316,
+        "from": 2624534779,
+        "child": false
+      },
+      {
+        "datum": 2624665853,
+        "from": 2624600316,
+        "child": false
+      },
+      {
+        "datum": 2624731390,
+        "from": 2624665853,
+        "child": false
+      }
+    ],
+    "postimages": {
+      "nodes": "1804dfe227e4b6baae9e6eadf26ad63ccde2bfb8319d89d6898c8c56c53a8765",
+      "strings": "9eb455863146c30755790f324e98d4c8a06b36516c6f8b25e1f1f07bcf7100fb"
+    },
+    "holders": [
+      {
+        "index": 336,
+        "name": "1st_malta",
+        "type": 3,
+        "return_type": 4,
+        "root": 2626763037
+      },
+      {
+        "index": 182,
+        "name": "x02",
+        "type": 3,
+        "return_type": 4,
+        "root": 2153913582
+      },
+      {
+        "index": 299,
+        "name": "c01_outro",
+        "type": 3,
+        "return_type": 4,
+        "root": 2419797191
+      }
+    ]
+  }
+}

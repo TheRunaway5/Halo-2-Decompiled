@@ -23,6 +23,12 @@ MenuWorldVertexSource menu_world_vertex_source(const VertexProgram &);
 // Original local model corridor: v0..6, ARL and c[A0+50..52]. Relative reads
 // retain the whole c50..169 palette dependency; no current pose is selected.
 MenuWorldVertexSource menu_world_skinned_vertex_source(const VertexProgram &);
+// Explicit constant-attribute corridor. V10/V11 are supplied by the selected
+// material's separate attribute bank, never by an invented geometry stream.
+MenuWorldVertexSource menu_world_material_vertex_source(const VertexProgram &,bool skinned);
+// XYZW read masks (bits0..3), including instruction masks and operand swizzles.
+// Used to reject material packets whose consumed lanes were never supplied.
+std::array<std::uint8_t,16> menu_world_vertex_input_components(const VertexProgram &,bool skinned);
 // Bits0..3 identify texture outputs whose W is never written by an already
 // admitted straight-line program. Original output initialization leaves these
 // lanes exactly1; preserve that constant through the fragment interface rather

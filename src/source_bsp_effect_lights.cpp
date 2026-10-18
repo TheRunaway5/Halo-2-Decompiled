@@ -2,6 +2,7 @@
 #include "halo2/source_live_model_geometry_tu15.hpp"
 #include "halo2/source_live_shadow_main_draws_tu15.hpp"
 #include "halo2/source_live_shadow_selection_tu15.hpp"
+#include "halo2/source_campaign_view_tu15.hpp"
 #include "halo2/source_live_shadow_main_inputs_tu15.hpp"
 #include "halo2/source_live_shadow_storage_tu15.hpp"
 #include "halo2/source_live_effect_light_commands_tu15.hpp"
@@ -11,6 +12,7 @@
 #include "halo2/source_tag_metadata_store.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/pstencil/material.hpp"
+#include "halo2/pstencil/shared_light_materials.hpp"
 #include "halo2/pstencil/caster.hpp"
 #include "halo2/menu_world_depth.hpp"
 #include <algorithm>
@@ -25,6 +27,7 @@ namespace halo2 {
 struct SourceBspEffectLights::Impl {
     const Cache& cache;
     pstencil::MaterialBank pstencil_materials;
+    std::shared_ptr<pstencil::SharedLightMaterials> model_materials;
     std::size_t bsp_index;
     SourceBspAdmissionBsp bsp;
     SourceTagMetadataStore store;
@@ -69,8 +72,10 @@ struct SourceBspEffectLights::Impl {
     static constexpr std::uint32_t main_arena_token=0x71000000,
         light_arena_token=0x71001000,instance_token=0x71002000;
 
-    Impl(const Cache& c,Mesh& mesh,std::size_t index,std::span<const std::uint32_t> ids,std::span<const std::uint32_t> model_ids)
-      :cache(c),pstencil_materials(c,mesh),bsp_index(index),bsp(c.load_source_bsp_admission(index)),
+    Impl(const Cache& c,Mesh& mesh,std::size_t index,std::span<const std::uint32_t> ids,std::span<const std::uint32_t> model_ids,
+        std::shared_ptr<pstencil::SharedLightMaterials> shared)
+      :cache(c),pstencil_materials(c,mesh),model_materials(shared?std::move(shared):std::make_shared<pstencil::SharedLightMaterials>(c,mesh)),
+       bsp_index(index),bsp(c.load_source_bsp_admission(index)),
        store(std::shared_ptr<const Cache>(&c,[](const Cache*){}),{"shad","stem","spas","vrtx"}),metadata(store.providers()),
        clusters(bsp.clusters.size()),definitions(bsp.definitions.size()),instances(bsp.instances.size()),
        transforms(bsp.instances.size()),palettes(bsp.instances.size()),
@@ -164,7 +169,7 @@ struct SourceBspEffectLights::Impl {
                 if(!row.u16(4) || models.contains({model,section}))continue;
                 ModelSection value;value.ranges=load_source_model_range_geometry(cache,model,section);
                 value.metadata=load_source_opaque_model_geometry_metadata(cache,model,section);
-                value.draw=std::make_unique<SourceModelEffectLights>(cache,mesh,model,section,ids);
+                value.draw=std::make_unique<SourceModelEffectLights>(cache,mesh,model,section,ids,model_materials);
                 for(const auto& gap:value.draw->unavailable())unavailable.push_back(gap);
                 models.emplace(ModelKey{model,section},std::move(value));
             }
@@ -220,7 +225,11 @@ struct SourceBspEffectLights::Impl {
 };
 SourceBspEffectLights::SourceBspEffectLights(const Cache& c,Mesh& mesh,std::size_t bsp,
     std::span<const std::uint32_t> ids,std::span<const std::uint32_t> models)
-    :impl_(std::make_unique<Impl>(c,mesh,bsp,ids,models)){}
+    :SourceBspEffectLights(c,mesh,bsp,ids,models,{}){}
+SourceBspEffectLights::SourceBspEffectLights(const Cache& c,Mesh& mesh,std::size_t bsp,
+    std::span<const std::uint32_t> ids,std::span<const std::uint32_t> models,
+    std::shared_ptr<pstencil::SharedLightMaterials> shared)
+    :impl_(std::make_unique<Impl>(c,mesh,bsp,ids,models,std::move(shared))){}
 SourceBspEffectLights::~SourceBspEffectLights()=default;
 const std::vector<std::string>& SourceBspEffectLights::unavailable() const{return impl_->unavailable;}
 std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLightView& lights,
@@ -231,11 +240,15 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
     std::uint32_t light_domain) {
     auto& i=*impl_;std::vector<EffectLightRawDraw> output;
     if(objects)i.preload_native_bsp_resources(objects->world,main);
-    if(receivers.empty() && (!objects || !objects->main_draws))return output;
+    if(receivers.empty() && (!objects || (!objects->main_draws && !objects->main_collected)))return output;
     const auto coverage=source_shader_coverage_camera(camera);
     SourceBspDrawWorld draw_world{i.bsp,i.clusters,i.definitions,i.instances,i.lightmap_matches};
-    auto admission=main;source_bsp_range_arena_begin(i.main_arena);i.units.arena=i.main_arena;
-    source_bsp_collect_draw_units(i.units,admission,draw_world,{0,Impl::main_arena_token,0,fog,coverage});
+    auto admission=main;
+    const bool completed_main=objects && objects->completed_campaign_main;
+    if(!completed_main) {
+        source_bsp_range_arena_begin(i.main_arena);i.units.arena=i.main_arena;
+        source_bsp_collect_draw_units(i.units,admission,draw_world,{0,Impl::main_arena_token,0,fog,coverage});
+    }
     const auto object_context=[&](const SourceBspDrawContext& c) {
         auto out=objects->context;
         out.entry.mode=out.draw.draw.mode=c.mode;
@@ -247,7 +260,17 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             fog.eye_fraction,fog.planar_only,std::uint8_t(fog.planar_flags)};
         return out;
     };
-    if(objects) {
+    if(completed_main) {
+        if(!objects->completed_campaign_main->main_commands_completed ||
+           &main!=&objects->completed_campaign_main->bsp)
+            throw FormatError("Campaign light draw requires its actual completed main frame");
+        const auto retained=source_live_effect_light_state_tu15(objects->world.memory());
+        if(retained.current_context!=0x556e18u)
+            throw FormatError("Campaign light draw no longer owns its completed main context");
+        i.units=retained.state;i.units.arena=retained.main_arena;
+        if(objects->main_draws)objects->main_draws(i.units);
+        if(objects->main_collected)objects->main_collected(admission,objects->main,objects->context);
+    } else if(objects) {
         // Renderer BSP activation is separate from each view's collection.
         // Preserve the original source-populated plane hash across frames.
         if(!i.shadow_storage)i.shadow_storage=source_live_shadow_storage_activate_tu15(objects->world);
@@ -271,6 +294,11 @@ std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLi
             objects->main.associations,Impl::main_arena_token,Impl::instance_token,i.transforms,
             [&](auto address,auto bytes){objects->world.write_source_call_input(address,bytes);});
         (void)main_handoff; // Pre-cull state; native44710 integration follows.
+
+        // The auxiliary main view in134C00 consumes these actual completed
+        // queues, independently of the draw-unit handoff above. Preserve all
+        // four columns so secondary model queries retain color admission.
+        source_live_shadow_main_queues_tu15(objects->world,admission,objects->main);
 
         // Original335D0 follows ordinary draw preparation and precedes
         //31C80's secondary light queries. Retain the same completed queues.

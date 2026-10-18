@@ -36,8 +36,8 @@ SourceEffectLightAdmission source_effect_light_render_admission(
     if(!local_allowed(definition,record,context))return result;
     const bool debug_allowed=(flags&0x100) || !context.debug_gate || !(context.debug_flags&2);
     if(context.renderer_enabled && debug_allowed) {
-        if(record.animation_index!=-1)
-            throw FormatError("Effect light requires original runtime animation shape owner");
+        if(record.scenario_placement!=-1)
+            throw FormatError("Effect light requires original scenario placement shape owner");
         result.sphere=source_effect_light_sphere(definition,record.position,record.forward,
             record.up,record.state.size);
         result.eligible=result.sphere->radius>epsilon;

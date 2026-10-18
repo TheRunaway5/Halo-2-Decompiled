@@ -42,9 +42,9 @@ int main(int argc,char **argv)try {
         host.clock->filetime+=10000;replica.clock->filetime+=50000;
         std::array<Controls,16> controls{};for(unsigned id=0;id<8;++id)controls[id].yaw=host.match->unit(id).yaw;
         controls[0].fire=tick<4;controls[0].grenade=tick==5;
-        const auto phase=host.authority->capture_execution_phase([&]{host.step(controls);host.world->advance_effect_particles(1.f/60.f);});
+        const auto phase=host.authority->capture_execution_phase([&]{host.step(controls);host.world->advance_effect_frame(1.f/60.f);});
         for(const auto &value:phase.inputs)kinds.insert(value.kind);readings+=phase.inputs.size();
-        replica.authority->replay_execution_phase(phase,[&]{replica.step(controls);replica.world->advance_effect_particles(1.f/60.f);});
+        replica.authority->replay_execution_phase(phase,[&]{replica.step(controls);replica.world->advance_effect_frame(1.f/60.f);});
         same(host,replica);
     }
     check(kinds.contains(K::ResultWallSeconds)&&kinds.contains(K::ReciprocalSquareRoot),"Native fixture did not consume actual result/CPU inputs");
@@ -52,15 +52,15 @@ int main(int argc,char **argv)try {
     // domains without any tape or source function return substitution.
     for(unsigned tick=0;tick<40;++tick){
         ++host_wall;++replica_wall;host.clock->filetime+=330000;replica.clock->filetime+=330000;
-        host.step({});host.world->advance_effect_particles(1.f/60.f);
-        replica.step({});replica.world->advance_effect_particles(1.f/60.f);same(host,replica);
+        host.step({});host.world->advance_effect_frame(1.f/60.f);
+        replica.step({});replica.world->advance_effect_frame(1.f/60.f);same(host,replica);
     }
     const auto tick=host.match->simulation().ticks();
-    rejects([&]{host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_particles(1.f/60.f);},1);});
+    rejects([&]{host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_frame(1.f/60.f);},1);});
     check(host.match->simulation().ticks()==tick+1,"Transcript overflow interrupted the actual host");
     const auto before_bad=host.authority->checkpoint(binding);
     prepared=replica.authority->prepare(before_bad,binding);check(replica.authority->commit(std::move(prepared)),"Replay reset failed");
-    auto phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_particles(1.f/60.f);});
+    auto phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_frame(1.f/60.f);});
     check(!phase.inputs.empty(),"Bad replay fixture has no source input");auto changed=phase;changed.inputs.front().operand^=1;
     // Use a structurally valid but wrong estimate operand when the first read
     // has no operand; the real call sequence must reject it before use.
@@ -77,15 +77,15 @@ int main(int argc,char **argv)try {
     {auto p=replica.authority->prepare(preflight_cut,binding);unavailable=true;
         check(!replica.authority->commit(std::move(p)),"Unavailable result clock published the source bank");unavailable=false;}
     check(replica.world->memory().checkpoint()==bank_before,"Failed result-clock preflight changed the live bank");same(host,replica);
-    phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_particles(1.f/60.f);});
+    phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_frame(1.f/60.f);});
     changed=phase;changed.inputs.push_back({K::Milliseconds,0,0});++changed.calls.back().input_end;
-    rejects([&]{replica.authority->replay_execution_phase(changed,[&]{replica.step({});replica.world->advance_effect_particles(1.f/60.f);});});
+    rejects([&]{replica.authority->replay_execution_phase(changed,[&]{replica.step({});replica.world->advance_effect_frame(1.f/60.f);});});
     rejects([&]{replica.authority->checkpoint(binding);});
     prepared=replica.authority->prepare(host.authority->checkpoint(binding),binding);
     check(replica.authority->commit(std::move(prepared)),"Unconsumed replay could not repair through complete import");same(host,replica);
-    phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_particles(1.f/60.f);});
+    phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_frame(1.f/60.f);});
     unavailable=true;
-    rejects([&]{replica.authority->replay_execution_phase(phase,[&]{replica.step({});replica.world->advance_effect_particles(1.f/60.f);});});
+    rejects([&]{replica.authority->replay_execution_phase(phase,[&]{replica.step({});replica.world->advance_effect_frame(1.f/60.f);});});
     unavailable=false;rejects([&]{replica.authority->checkpoint(binding);});
     prepared=replica.authority->prepare(host.authority->checkpoint(binding),binding);
     check(replica.authority->commit(std::move(prepared)),"Unavailable phase clock could not repair through complete import");same(host,replica);

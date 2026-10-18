@@ -7,6 +7,7 @@ import fcntl
 import json
 import os
 from pathlib import Path
+import signal
 import subprocess
 import sys
 import time
@@ -26,6 +27,8 @@ DISPLAY_ENV = ('DISPLAY', 'WAYLAND_DISPLAY', 'XAUTHORITY', 'XDG_RUNTIME_DIR',
                'SDL_AUDIODRIVER', 'SDL_GAMECONTROLLERCONFIG',
                'SDL_GAMECONTROLLER_IGNORE_DEVICES', 'VK_ICD_FILENAMES',
                'VK_DRIVER_FILES')
+TEST_STORAGE_ENV = ('TMPDIR', 'TMP', 'TEMP', 'HALO2_TEST_SCRATCH',
+                    'HALO2_KEEP_TEST_ARTIFACTS', 'PYTHONDONTWRITEBYTECODE')
 
 
 def _systemctl(*args):
@@ -108,7 +111,7 @@ def run_in_memory_budget(command, output, timeout):
                 '--property=TasksMax=512', '--property=LimitCORE=0',
                 '--property=StandardOutput=append:' + str(log), '--property=StandardError=inherit',
                 '--setenv=' + MARKER + '=' + UNIT]
-        args += ['--setenv=' + name for name in DISPLAY_ENV if name in os.environ]
+        args += ['--setenv=' + name for name in (*DISPLAY_ENV, *TEST_STORAGE_ENV) if name in os.environ]
         result = subprocess.run(args + ['--', *command], text=True, stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, timeout=10)
         if result.returncode:
@@ -179,7 +182,18 @@ def run_in_memory_budget(command, output, timeout):
         (output / 'report.json').write_text(json.dumps({
             'passed': False, 'scope': 'Contained job did not complete match validation',
             'errors': report['errors'], 'memory_budget': str(report_path)}, indent=2) + '\n')
+    if not report['passed']:
+        # CTest scratch is disposable. Forward a bounded native failure log so
+        # its useful diagnostics survive in CTest's output after cleanup.
+        try:
+            with (output / 'memory-budget-runtime.log').open('rb') as stream:
+                stream.seek(0, os.SEEK_END)
+                stream.seek(max(0, stream.tell() - 65536))
+                print(stream.read().decode('utf-8', errors='replace'), flush=True)
+        except FileNotFoundError:
+            pass
     print(json.dumps({'passed': report['passed'], 'memory_budget': str(report_path),
+                      'kernel': report.get('kernel'), 'verified_limits': report.get('verified_limits'),
                       'errors': report['errors']}), flush=True)
     return 0 if report['passed'] else 1
 
@@ -187,6 +201,9 @@ def run_in_memory_budget(command, output, timeout):
 if __name__ == '__main__':
     import argparse
     import uuid
+    def interrupted(_number, _frame):
+        raise KeyboardInterrupt
+    signal.signal(signal.SIGTERM, interrupted)
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-root', type=Path, required=True)
     parser.add_argument('--timeout', type=float, default=60)

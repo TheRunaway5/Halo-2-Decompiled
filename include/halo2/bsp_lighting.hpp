@@ -1,7 +1,29 @@
 #pragma once
 #include "halo2/cache.hpp"
+#include <algorithm>
+#include <cmath>
 
 namespace halo2 {
+// TU1.5 183AF0 (vector3d_pack in the original source): clamp, multiply in
+// single precision, then round down. GPU normalization is a separate step.
+inline std::uint32_t pack_bsp_incident_tu15(Vec3 value) {
+    const auto axis=[](float component,float scale,std::uint32_t mask) {
+        if(!std::isfinite(component))throw FormatError("nonfinite MCC incident direction");
+        const float product=std::clamp(component,-1.f,1.f)*scale;
+        return std::uint32_t(std::int32_t(std::floor(product)))&mask;
+    };
+    return axis(value.x,1023.5f,0x7ffu)|(axis(value.y,1023.5f,0x7ffu)<<11)|
+        (axis(value.z,511.5f,0x3ffu)<<22);
+}
+// Canonical inverse of D2DC0's signed SHORT2 midpoint representation. This
+// recovers the authored Xbox codes from the paired MCC FLOAT2 streams. Values
+// outside that representable domain require an explicit format conversion.
+inline std::int16_t pack_bsp_lightmap_uv_tu15(float value) {
+    if(!std::isfinite(value)||value<-1.f||value>1.f)
+        throw FormatError("MCC lightmap UV outside Xbox SHORT2 domain");
+    const float product=value*32767.5f;
+    return std::int16_t(std::int32_t(std::floor(product)));
+}
 // Xbox NORMPACKED3: three signed normalized components (11, 11, 10).
 // The bucket's incident direction stream is the same declaration as the
 // cluster incident stream; its length carries authored directional strength.

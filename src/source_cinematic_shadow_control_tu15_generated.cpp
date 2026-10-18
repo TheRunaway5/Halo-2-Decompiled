@@ -3,6 +3,7 @@
 #include "physics_world_runtime_internal.hpp"
 #include "halo2/source_cinematic_shadow_control_tu15.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
+#include "halo2/source_object_attachment_tu15.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;

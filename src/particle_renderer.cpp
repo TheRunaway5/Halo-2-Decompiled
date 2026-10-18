@@ -11,6 +11,7 @@
 #include <cstring>
 #include <fstream>
 #include <map>
+#include <cmath>
 
 namespace halo2 {
 namespace {
@@ -47,11 +48,15 @@ struct ParticleRenderer::Impl {
   static_assert(sizeof(MaterialUniform)==288);
   struct ModelGpu {std::shared_ptr<const ParticleModelDefinition> source;Buffer vertices,indices;};
   struct DrawGpu {MaterialGpu *material{};VkDescriptorSet set{};ModelGpu *model{};unsigned first{},count{};
-    bool scene_resolved{};mutable bool scene_recorded{};};
+    bool scene_resolved{};mutable bool scene_recorded{},view_recorded{};bool view_prepared{},view_published{};
+    mutable VkViewport viewport{};mutable VkRect2D scissor{};
+    std::optional<ParticlePreparedViewBounds> required_view;
+    unsigned local_view{};bool foreground{},material_bindings_ready{};};
   std::map<const ParticleMaterial*,MaterialGpu> materials;
   std::map<const ParticleModelDefinition*,ModelGpu> models;
   std::vector<DrawGpu> draws;VkDescriptorPool descriptors{};
   Buffer uniforms;void *uniform_data{};std::size_t draw_count{},material_offset{},depth_offset{},draw_stride{};
+  mutable std::uint64_t view_revision{};
   Impl(VkPhysicalDevice p,VkDevice d,VkQueue q,unsigned family,VkRenderPass rp,const std::filesystem::path &directory)
     :physical(p),device(d),queue(q),pass(rp) {
     try {
@@ -309,15 +314,20 @@ struct ParticleRenderer::Impl {
       }
     }
   }
-  void prepare(std::span<const ParticleDraw> source,ParticleSceneTexture scene) {
+  void prepare(std::span<const ParticleDraw> source,ParticleSceneTexture scene,
+      std::span<const std::optional<ParticlePreparedViewBounds>> required = {}) {
+    if(!required.empty() && required.size()!=source.size())throw FormatError("Prepared particle view bounds do not cover their actual draw bank");
     // The owner waits for its frame fence before prepare. Retain one mapped
     // uniform arena and descriptor bank across frames instead of allocating
     // three Vulkan memory objects per live particle on every upload.
-    draw_count=0;reserve_draws(source.size());
+    ++view_revision;draw_count=0;reserve_draws(source.size());
     for(std::size_t index=0;index<source.size();++index) {
       const auto &d=source[index];auto &m=material(d.material);auto &gpu=draws[index];
       if(m.external23 && !scene.view)throw FormatError("particle external23 requires its current-surface texture owner");
-      gpu.scene_resolved=bool(d.bump_texture);gpu.scene_recorded=false;
+      gpu.scene_resolved=bool(d.bump_texture);gpu.scene_recorded=false;gpu.view_recorded=false;
+      gpu.view_prepared=false;gpu.view_published=false;
+      gpu.local_view=0;gpu.foreground=false;
+      gpu.required_view=required.empty()?std::nullopt:required[index];
       gpu.model=nullptr;
       if(d.model) {
         if(d.material->vertex.classification!=1 || d.model_first>d.model->indices.size() ||
@@ -352,7 +362,7 @@ struct ParticleRenderer::Impl {
       }
       std::memcpy(destination+material_offset,&uniform,sizeof(uniform));
       std::memcpy(destination+depth_offset,&d.depth,sizeof(d.depth));
-      if(gpu.material!=&m || m.external23) {
+      if(!gpu.material_bindings_ready || gpu.material!=&m || m.external23) {
         for(unsigned stage=0;stage<2;++stage) {
           const auto &image=m.images[stage];VkDescriptorImageInfo ii{image.sampler,
               stage==1 && m.external23?scene.view:image.view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
@@ -360,6 +370,7 @@ struct ParticleRenderer::Impl {
           vkUpdateDescriptorSets(device,1,&w,0,nullptr);
         }
         gpu.material=&m;
+        gpu.material_bindings_ready=true;
       }
     }
     draw_count=source.size();
@@ -367,6 +378,17 @@ struct ParticleRenderer::Impl {
   void record(VkCommandBuffer command,VkViewport viewport,VkRect2D scissor,std::size_t first,std::size_t count) const {
     if(first>draw_count || count>draw_count-first)throw FormatError("particle draw range outside prepared state");
     if(!count)return;
+    for(std::size_t n=first;n<first+count;++n)if(draws[n].view_prepared)
+      throw FormatError("Camera-only prepared particle resources cannot record particle geometry");
+    for(std::size_t n=first;n<first+count;++n)if(draws[n].required_view) {
+      const auto &r=*draws[n].required_view;const auto &v=r.viewport;const auto&s=r.scissor;
+      if(v.x!=viewport.x || v.y!=viewport.y || v.width!=viewport.width || v.height!=viewport.height ||
+         v.minDepth!=viewport.minDepth || v.maxDepth!=viewport.maxDepth ||
+         s.offset.x!=scissor.offset.x || s.offset.y!=scissor.offset.y ||
+         s.extent.width!=scissor.extent.width || s.extent.height!=scissor.extent.height)
+        throw FormatError("Particle draw recording differs from its actual prepared view owner");
+    }
+    ++view_revision;
     for(std::size_t index=first;index<first+count;++index)if(draws[index].material->external23) {
       if(!draws[index].scene_resolved || draws[index].scene_recorded)
         throw FormatError("particle external23 requires one completed ordered scene lookup per draw");
@@ -376,6 +398,7 @@ struct ParticleRenderer::Impl {
     vkCmdBindVertexBuffers(command,0,1,&corners,&offset);
     for(std::size_t n=first;n<first+count;++n) {
       const auto &d=draws[n];
+      d.viewport=viewport;d.scissor=scissor;d.view_recorded=true;
       vkCmdBindPipeline(command,VK_PIPELINE_BIND_POINT_GRAPHICS,d.material->pipeline);
       vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,layout,0,1,&d.set,0,nullptr);
       if(d.model) {
@@ -384,6 +407,77 @@ struct ParticleRenderer::Impl {
         vkCmdDrawIndexed(command,d.count,1,d.first,0,0);
       } else {vkCmdBindVertexBuffers(command,0,1,&corners,&offset);vkCmdDraw(command,4,1,0,0);}
     }
+  }
+  void prepare_views(std::span<const RendererParticleViewInput> source,unsigned width,unsigned height) {
+    if(source.empty() || source.size()>8 || !width || !height)
+      throw FormatError("Particle view preparation requires its actual local-view bank and target extent");
+    for(const auto &input:source) {
+      const auto &r=input.rectangle;
+      if(!input.material || r[0]<0 || r[1]<0 || r[2]<=0 || r[3]<=0 ||
+         std::uint64_t(r[0])+r[2]>width || std::uint64_t(r[1])+r[3]>height)
+        throw FormatError("Prepared particle view escapes its actual target");
+      if(input.material->vertex.classification<7 || input.material->vertex.classification>9)
+        throw FormatError("Prepared particle camera requires its admitted original world shader interface");
+    }
+    // Only vertex/depth bindings are produced here. Texture/current-surface
+    // lookups and material uniforms retain their actual draw-time owners.
+    // No command may record the camera-only attribute workspace.
+    ++view_revision;draw_count=0;reserve_draws(source.size());
+    for(std::size_t n=0;n<source.size();++n) {
+      const auto &input=source[n];auto &gpu=draws[n];const auto&r=input.rectangle;
+      gpu.material=&material(input.material);gpu.material_bindings_ready=false;gpu.model=nullptr;
+      gpu.scene_recorded=gpu.scene_resolved=gpu.view_recorded=gpu.view_published=false;
+      gpu.required_view.reset();gpu.view_prepared=true;
+      ParticleVertexState vertex;vertex.constants=input.constants;vertex.clip_range=input.clip_range;vertex.surface_fog=input.surface_fog;
+      const ParticleDepthState depth{input.clip_range,input.depth_parameters};
+      auto *data=static_cast<std::byte*>(uniform_data)+n*draw_stride;
+      std::memcpy(data,&vertex,sizeof(vertex));std::memcpy(data+depth_offset,&depth,sizeof(depth));
+      gpu.viewport={0,0,float(width),float(height),0,1};
+      gpu.scissor={{r[0],r[1]},{unsigned(r[2]),unsigned(r[3])}};
+      gpu.local_view=source[n].local_view;gpu.foreground=source[n].foreground;
+    }
+    draw_count=source.size();
+  }
+  void publish_view(std::size_t index,std::span<const ShaderVector,12> camera,ShaderVector clip) {
+    if(index>=draw_count || !draws[index].view_prepared || draws[index].view_recorded ||
+       draws[index].view_published || !uniform_data)
+      throw FormatError("Particle view has no unique live camera publication slot");
+    for(const auto&v:camera)for(float x:v)if(!std::isfinite(x))throw FormatError("Prepared particle camera contains a nonfinite input");
+    for(float x:clip)if(!std::isfinite(x))throw FormatError("Prepared particle camera contains a nonfinite clip plane");
+    auto *data=static_cast<std::byte*>(uniform_data)+index*draw_stride;
+    ParticleVertexState current;std::memcpy(&current,data,sizeof(current));
+    if(std::memcmp(current.constants.data(),camera.data(),12*sizeof(ShaderVector)) ||
+       clip[0]!=current.clip_range[0] || clip[1]!=current.clip_range[1] || clip[2]<0 || clip[3]<clip[2] || clip[3]>16777215.f)
+      throw FormatError("Original camera publication differs from its actual prepared native inputs");
+    std::memcpy(data+offsetof(ParticleVertexState,constants),camera.data(),12*sizeof(ShaderVector));
+    std::memcpy(data+offsetof(ParticleVertexState,clip_range),clip.data(),sizeof(clip));
+    std::memcpy(data+depth_offset+offsetof(ParticleDepthState,clip_range),clip.data(),sizeof(clip));
+    draws[index].view_published=true;
+  }
+  RendererParticleViewState view_inputs(std::size_t index) const {
+    if(index>=draw_count || (!draws[index].view_recorded && !draws[index].view_prepared) || !uniform_data)
+      throw FormatError("Particle view requires actual prepared or recorded native inputs");
+    const auto &draw=draws[index];const auto &v=draw.viewport;const auto &s=draw.scissor;
+    if(s.extent.width>INT32_MAX || s.extent.height>INT32_MAX)
+      throw FormatError("Particle view scissor exceeds its native observation domain");
+    ParticleVertexState vertex;ParticleDepthState depth;
+    const auto *data=static_cast<const std::byte*>(uniform_data)+index*draw_stride;
+    std::memcpy(&vertex,data,sizeof(vertex));std::memcpy(&depth,data+depth_offset,sizeof(depth));
+    RendererParticleViewState result;result.revision=view_revision;result.draw=index;
+    result.pipeline=std::bit_cast<std::uint64_t>(draw.material->pipeline);
+    result.layout=std::bit_cast<std::uint64_t>(layout);
+    result.descriptor=std::bit_cast<std::uint64_t>(draw.set);
+    result.uniform_buffer=std::bit_cast<std::uint64_t>(uniforms.handle);
+    result.uniform_backing=NativeRuntimeAddress{std::uint64_t(reinterpret_cast<std::uintptr_t>(data))};
+    result.vertex_offset=index*draw_stride;result.depth_offset=result.vertex_offset+depth_offset;
+    result.viewport={v.x,v.y,v.width,v.height,v.minDepth,v.maxDepth};
+    result.scissor={s.offset.x,s.offset.y,std::int32_t(s.extent.width),std::int32_t(s.extent.height)};
+    std::copy_n(vertex.constants.begin()+8,4,result.viewport_constants.begin());
+    std::copy_n(vertex.constants.begin(),12,result.camera_constants.begin());
+    result.vertex_clip=vertex.clip_range;result.depth_clip=depth.clip_range;
+    result.depth_parameters=depth.parameters;result.prepared=draw.view_prepared;
+    result.published=draw.view_published;result.recorded=draw.view_recorded;
+    result.local_view=draw.local_view;result.foreground=draw.foreground;return result;
   }
   void release() {
     for(auto &[key,model]:models){free_buffer(model.vertices);free_buffer(model.indices);}
@@ -409,7 +503,12 @@ ParticleRenderer::ParticleRenderer(VkPhysicalDevice p,VkDevice d,VkQueue q,unsig
   :impl_(std::make_unique<Impl>(p,d,q,family,rp,directory)){}
 ParticleRenderer::~ParticleRenderer()=default;
 RendererParticleProgramConfiguration ParticleRenderer::program(std::shared_ptr<const ParticleMaterial> material){return impl_->program(std::move(material));}
-void ParticleRenderer::prepare(std::span<const ParticleDraw> d,ParticleSceneTexture scene){impl_->prepare(d,scene);}
+RendererParticleViewState ParticleRenderer::view_inputs(std::size_t index) const{return impl_->view_inputs(index);}
+std::uint64_t ParticleRenderer::view_revision() const{return impl_->view_revision;}
+void ParticleRenderer::prepare(std::span<const ParticleDraw> d,ParticleSceneTexture scene,
+    std::span<const std::optional<ParticlePreparedViewBounds>> required){impl_->prepare(d,scene,required);}
+void ParticleRenderer::prepare_views(std::span<const RendererParticleViewInput> v,unsigned w,unsigned h){impl_->prepare_views(v,w,h);}
+void ParticleRenderer::publish_view(std::size_t n,std::span<const ShaderVector,12> c,ShaderVector clip){impl_->publish_view(n,c,clip);}
 bool ParticleRenderer::reads_scene_texture(std::size_t index) const {
   if(index>=impl_->draw_count)throw FormatError("particle scene texture query outside prepared draws");
   return impl_->draws[index].material->external23;

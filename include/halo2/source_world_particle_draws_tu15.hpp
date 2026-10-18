@@ -17,6 +17,10 @@ public:
     bool first_person_effect(std::uint32_t effect) const;
     bool preload_world(std::uint32_t effect);
     bool world_effect(std::uint32_t effect) const;
+    // Admit resources named by occupied original effect/system records. This
+    // reads actual full-generation pools; it creates no effect or particle,
+    // consumes no source RNG and does not advance any source frame.
+    std::vector<std::uint32_t> preload_live_world(const SourceRuntimeMemory &);
     // Publish the real native observer packet and run complete174BF0. Its
     // unscaled FOV ratio at observer+50 drives251C80's WORLD emission LOD;
     // the split render camera's lighting scale is a different value.

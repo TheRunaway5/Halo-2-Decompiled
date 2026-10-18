@@ -46,4 +46,8 @@ float source_sound_playback_fade(SoundPlaybackFade &fade, std::int32_t time) {
   } else return 0.f;
   return sound_linear_to_db(value);
 }
+void source_sound_request_stop_tu15(SoundPlaybackFade &fade, std::int32_t time) {
+  const auto gain = source_sound_playback_fade(fade,time);
+  fade = SoundPlaybackFade{0,gain,300,-1,true};
+}
 } // namespace halo2

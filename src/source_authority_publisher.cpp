@@ -15,49 +15,57 @@ std::uint64_t micros(Clock::time_point started){return std::chrono::duration_cas
 }
 struct SourceAuthorityPublisher::Impl {
     SourceMatchAuthority &authority;const std::shared_ptr<OnlineMatchSession> session;const unsigned target;
-    const SourceAuthorityStreamMode mode;
+    const SourceAuthorityStreamMode mode;LanHost *host{};
     const std::chrono::milliseconds timeout;const std::thread::id executor=std::this_thread::get_id();
     std::optional<AuthorityTransferContext> context;std::optional<AuthorityArchiveImage> base;
     SourceAuthorityPublisherState stats;
+    std::optional<LanHost::Continuation> validated_host;
     struct Pending {AuthorityTransferContext context;AuthorityCutSeal seal;std::optional<AuthorityArchiveImage> image;
-        std::optional<SourceReplayBinding> replay;std::uint64_t phases{};Clock::time_point started;};
-    std::optional<Pending> pending;
+        std::optional<SourceReplayBinding> replay;std::uint64_t phases{};Clock::time_point started;bool paired{};
+        std::optional<LanHost::Continuation> host;};
+    std::deque<Pending> pending;
     std::optional<SourceReplayBinding> replay;
     std::optional<SourceMatchAuthority::ExecutionBoundary> recorded_boundary;
     bool frame_active{};
-    std::deque<SourceReplayStep> phases;std::uint64_t queued_bytes{};
+    struct QueuedPhase {SourceReplayStep step;std::optional<LanHost::Continuation> host;std::uint64_t bytes{};};
+    std::deque<QueuedPhase> phases;std::uint64_t queued_bytes{};
     static constexpr std::uint64_t queue_limit=64ull*1024*1024;
     struct Job {std::uint64_t generation{};AuthorityTransferContext context;std::optional<SourceMatchAuthority::Checkpoint> cut;
-        std::optional<SourceReplayBatch> replay;std::optional<AuthorityArchiveImage> base;};
+        std::optional<SourceReplayBatch> replay;std::optional<AuthorityArchiveImage> base;std::optional<LanHost::Continuation> host;std::uint64_t serial{};};
     struct Result {std::uint64_t generation{},tick{},encoding_us{},full_bytes{};AuthorityTransferContext context;
         std::optional<AuthorityArchiveImage> image;std::optional<SourceReplayBinding> replay;std::uint64_t phases{};
-        ArchiveBytes payload;bool delta{};std::string error;};
+        ArchiveBytes payload;std::optional<LanHost::Continuation> host;bool delta{},paired{};std::string error;};
     mutable std::mutex mutex;std::condition_variable_any condition;
     std::uint64_t generation{};bool working{};std::optional<Job> job;std::optional<Result> result;
     // Join before destroying the captured value queue or any session borrower.
     std::jthread worker;
-    Impl(SourceMatchAuthority &a,std::shared_ptr<OnlineMatchSession> s,unsigned t,SourceAuthorityStreamMode m,std::chrono::milliseconds wait)
-        :authority(a),session(std::move(s)),target(t),mode(m),timeout(wait){
+    Impl(SourceMatchAuthority &a,std::shared_ptr<OnlineMatchSession> s,unsigned t,SourceAuthorityStreamMode m,std::chrono::milliseconds wait,LanHost *h=nullptr)
+        :authority(a),session(std::move(s)),target(t),mode(m),host(h),timeout(wait){
         need(session&&session->direct_udp()&&target<16&&target!=session->self()&&wait>=std::chrono::seconds(1)&&wait<=std::chrono::minutes(5));
         need(mode==SourceAuthorityStreamMode::Snapshots||mode==SourceAuthorityStreamMode::Replay);
+        need(!host||source_host_continuation_owner(*host,authority));
         worker=std::jthread([this](std::stop_token stop){encode(stop);});
     }
     ~Impl(){worker.request_stop();condition.notify_all();if(worker.joinable())worker.join();}
     void own()const{need(std::this_thread::get_id()==executor);}
     void append(std::uint64_t before,SourceExecutionPhase phase){
         const auto after=authority.execution_boundary();
-        const auto size=source_replay_phase_allocation(phase)+sizeof(SourceReplayStep);
+        std::optional<LanHost::Continuation> saved;
+        if(host)saved=host->checkpoint(source_authority_binding(*context));
+        const auto size=source_replay_phase_allocation(phase)+sizeof(QueuedPhase)+(saved?LanHost::continuation_allocation(*saved):0);
         need(phases.size()<1024&&size<=queue_limit-queued_bytes);
-        phases.push_back({before,after.tick,std::move(phase)});queued_bytes+=size;recorded_boundary=after;
+        need(authority.execution_boundary()==after);
+        phases.push_back({{before,after.tick,std::move(phase)},std::move(saved),size});queued_bytes+=size;recorded_boundary=after;
         ++stats.recorded_phases;
     }
-    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();pending.reset();base.reset();replay.reset();
-        phases.clear();queued_bytes=0;recorded_boundary.reset();stats.ready.reset();stats.awaiting_validation=false;}
+    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();pending.clear();base.reset();replay.reset();
+        phases.clear();queued_bytes=0;recorded_boundary.reset();stats.ready.reset();validated_host.reset();stats.awaiting_validation=false;stats.host_ready=false;}
     bool available()const{std::lock_guard lock(mutex);return !working&&!job&&!result;}
     bool active(const std::optional<AuthorityTransferContext> &c)const{
         return c&&c->host==session->self()&&member(*c,target)&&session->phase()==OnlineMatchSession::Phase::Running&&
             session->authority_supported(target)&&session->source_players_confirmed(target)&&
-            (mode!=SourceAuthorityStreamMode::Replay||session->authority_replay_supported(target));
+            (mode!=SourceAuthorityStreamMode::Replay||session->authority_replay_supported(target))&&
+            (!host||session->authority_host_continuation_supported(target));
     }
     void encode(std::stop_token stop){
         while(!stop.stop_requested()){
@@ -66,18 +74,22 @@ struct SourceAuthorityPublisher::Impl {
                 item=std::move(job);job.reset();working=true;}
             Result out;out.generation=item->generation;out.context=item->context;const auto started=Clock::now();
             try {
+                out.host=item->host;
                 if(item->replay){
                     need(!item->cut&&item->replay->binding.context==item->context&&!item->replay->steps.empty());
                     out.replay=item->replay->binding;out.phases=item->replay->steps.size();out.tick=item->replay->steps.back().after_tick;
-                    out.payload=encode_source_replay_batch(*item->replay);
+                    out.paired=item->host.has_value();
+                    out.payload=item->host?encode_source_host_replay({std::move(*item->replay),std::move(*item->host)}):encode_source_replay_batch(*item->replay);
                 }else {
                 need(item->cut.has_value());out.tick=item->cut->match.simulation.ticks;
                 const auto binding=source_authority_binding(item->context);
                 need(item->cut->match.admitted_binding==binding&&item->cut->match.simulation.admitted_binding==binding);
                 SourceAuthorityCodecLimits limits;limits.encoded_bytes=64ull*1024*1024;
-                out.payload=encode_source_authority(*item->cut,limits);out.full_bytes=out.payload.size();
-                out.image=AuthorityArchiveImage::read(out.payload);
-                if(item->base){auto delta=encode_authority_delta(*item->base,*out.image);
+                out.paired=item->host.has_value();
+                out.payload=item->host?encode_source_host_continuation({item->context,item->serial,std::move(*item->cut),std::move(*item->host)},limits):
+                    encode_source_authority(*item->cut,limits);out.full_bytes=out.payload.size();
+                if(!out.paired)out.image=AuthorityArchiveImage::read(out.payload);
+                if(item->base&&!out.paired){auto delta=encode_authority_delta(*item->base,*out.image);
                     if(delta.size()<out.payload.size()){out.payload=std::move(delta);out.delta=true;}}
                 }
             }catch(const std::exception &e){out.error=e.what();out.image.reset();out.payload.clear();}
@@ -91,10 +103,18 @@ SourceAuthorityPublisher::SourceAuthorityPublisher(SourceMatchAuthority &a,std::
 SourceAuthorityPublisher::SourceAuthorityPublisher(SourceMatchAuthority &a,std::shared_ptr<OnlineMatchSession> s,unsigned target,
     SourceAuthorityStreamMode mode,std::chrono::milliseconds timeout):impl_(std::make_unique<Impl>(a,std::move(s),target,mode,timeout)){}
 SourceAuthorityPublisher::~SourceAuthorityPublisher()=default;
+SourceAuthorityPublisher::SourceAuthorityPublisher(SourceMatchAuthority &a,LanHost &h,std::shared_ptr<OnlineMatchSession> s,
+    unsigned target,std::chrono::milliseconds timeout):impl_(std::make_unique<Impl>(a,std::move(s),target,SourceAuthorityStreamMode::Replay,timeout,&h)){}
 void SourceAuthorityPublisher::cancel(){impl_->own();need(!impl_->frame_active);impl_->discard();impl_->context.reset();}
 SourceAuthorityPublisherState SourceAuthorityPublisher::state()const{
     impl_->own();auto stats=impl_->stats;stats.queued_phases=impl_->phases.size();stats.queued_bytes=impl_->queued_bytes;
     stats.tracking_replay=impl_->recorded_boundary.has_value();std::lock_guard lock(impl_->mutex);stats.encoding=impl_->working||bool(impl_->job);return stats;
+}
+unsigned SourceAuthorityPublisher::in_flight_cuts()const{impl_->own();return unsigned(impl_->pending.size());}
+LanHost::Continuation SourceAuthorityPublisher::host_checkpoint(const ValidatedAuthorityCut &expected)const{
+    const auto &s=*impl_;s.own();need(s.stats.ready&&s.stats.host_ready&&s.validated_host&&
+        s.stats.ready->peer==expected.peer&&s.stats.ready->context==expected.context&&s.stats.ready->seal==expected.seal);
+    return *s.validated_host;
 }
 void SourceAuthorityPublisher::update(){
     auto &s=*impl_;s.own();need(!s.frame_active);const auto current=s.session->authority_context();
@@ -106,44 +126,56 @@ void SourceAuthorityPublisher::update(){
     if(s.recorded_boundary&&s.authority.execution_boundary()!=*s.recorded_boundary){
         s.discard();s.stats.error="Unrecorded native work between replay phases";return;
     }
-    for(const auto &receipt:s.session->validated_authority())if(s.pending&&receipt.peer==s.target&&receipt.context==s.pending->context&&receipt.seal==s.pending->seal){
-        if(s.pending->replay){need(s.replay&&*s.replay==*s.pending->replay);s.replay->previous=receipt.seal;
-            s.replay->first_sequence+=s.pending->phases;s.stats.acknowledged_phases+=s.pending->phases;
-        }else {need(s.pending->image.has_value());s.base=s.pending->image;
+    for(const auto &receipt:s.session->validated_authority())if(!s.pending.empty()&&receipt.peer==s.target&&receipt.context==s.pending.front().context&&receipt.seal==s.pending.front().seal){
+        if(s.pending.front().replay){s.stats.acknowledged_phases+=s.pending.front().phases;
+        }else {need(s.pending.front().image.has_value()||s.pending.front().paired);s.base=s.pending.front().image;
             if(s.mode==SourceAuthorityStreamMode::Replay)s.replay=SourceReplayBinding{receipt.context,receipt.seal,receipt.seal,1};}
-        s.stats.ready=receipt;++s.stats.validations;s.pending.reset();s.stats.awaiting_validation=false;
+        s.stats.ready=receipt;s.stats.host_ready=s.pending.front().paired;s.validated_host=std::move(s.pending.front().host);
+        ++s.stats.validations;s.pending.pop_front();s.stats.awaiting_validation=!s.pending.empty();
     }
-    if(s.pending&&Clock::now()-s.pending->started>s.timeout){s.discard();s.stats.error="Shadow executor validation timed out";return;}
+    if(!s.pending.empty()&&Clock::now()-s.pending.front().started>s.timeout){s.discard();s.stats.error="Shadow executor validation timed out";return;}
+    const bool pipeline=s.session->authority_pipeline_supported(s.target);
+    const auto appendable=[&]{return pipeline&&s.pending.size()==1&&s.pending.back().replay&&
+        s.session->authority_delivered(s.target,s.pending.back().context,s.pending.back().seal);};
     std::optional<Impl::Result> output;
-    {std::lock_guard lock(s.mutex);output=std::move(s.result);s.result.reset();}
+    {std::lock_guard lock(s.mutex);if(s.result&&(s.pending.empty()||(s.result->replay&&appendable()))){output=std::move(s.result);s.result.reset();}}
     if(output&&output->generation==s.generation&&output->context==current){
     s.stats.encoding_microseconds=output->encoding_us;
     if(!output->error.empty()){const auto error=output->error;s.discard();s.stats.error=error;return;}
     try {
-        need(!s.pending&&(output->image||output->replay));
+        need((s.pending.empty()||(output->replay&&appendable()))&&(output->image||output->replay||output->paired));
         if(output->replay)need(s.replay&&*s.replay==*output->replay);
         const std::array<unsigned,1> targets{s.target};
-        const auto bytes=output->payload.size();const auto seal=s.session->publish_authority(*current,output->tick,std::move(output->payload),targets);
-        s.pending.emplace(Impl::Pending{*current,seal,std::move(output->image),output->replay,output->phases,Clock::now()});
+        const auto bytes=output->payload.size();const auto seal=s.pending.empty()?
+            s.session->publish_authority(*current,output->tick,std::move(output->payload),targets):
+            s.session->publish_authority_ahead(*current,s.pending.back().seal,output->tick,std::move(output->payload),s.target);
+        s.pending.emplace_back(Impl::Pending{*current,seal,std::move(output->image),output->replay,output->phases,Clock::now(),output->paired,std::move(output->host)});
+        // Advance only the sent chain here. Promotion readiness and the count
+        // of validated phases advance solely on the ordered native receipt.
+        if(output->replay){s.replay->previous=seal;s.replay->first_sequence+=output->phases;}
         ++s.stats.publications;if(output->replay)++s.stats.replay_batches;
         s.stats.awaiting_validation=true;s.stats.payload_bytes=bytes;if(!output->replay)s.stats.full_bytes=output->full_bytes;
         s.stats.delta=output->delta;s.stats.error.clear();
     }catch(const std::exception &e){const std::string error=e.what();s.discard();s.stats.error=error;return;}
     }
-    if(s.replay&&!s.pending&&s.available()&&!s.phases.empty())try{
+    if(s.replay&&s.pending.size()<(pipeline?2u:1u)&&s.available()&&!s.phases.empty())try{
         SourceReplayBatch batch{*s.replay,{}};std::uint64_t bytes{};
-        while(!s.phases.empty()&&batch.steps.size()<32){const auto size=source_replay_phase_allocation(s.phases.front().phase)+sizeof(SourceReplayStep);
+        std::optional<LanHost::Continuation> end_host;
+        while(!s.phases.empty()&&batch.steps.size()<32){const auto size=s.phases.front().bytes;
             if(!batch.steps.empty()&&size>16ull*1024*1024-bytes)break;
-            bytes+=size;s.queued_bytes-=size;batch.steps.push_back(std::move(s.phases.front()));s.phases.pop_front();}
-        Impl::Job next;next.generation=s.generation;next.context=*current;next.replay=std::move(batch);
+            bytes+=size;s.queued_bytes-=size;end_host=std::move(s.phases.front().host);batch.steps.push_back(std::move(s.phases.front().step));s.phases.pop_front();}
+        Impl::Job next;next.generation=s.generation;next.context=*current;next.replay=std::move(batch);next.host=std::move(end_host);
         {std::lock_guard lock(s.mutex);s.job=std::move(next);}s.condition.notify_one();
     }catch(const std::exception &e){const std::string error=e.what();s.discard();s.stats.error=error;}
 }
 bool SourceAuthorityPublisher::capture(){
-    auto &s=*impl_;s.own();update();if(!s.active(s.context)||s.pending||!s.available())return false;
+    auto &s=*impl_;s.own();update();if(!s.active(s.context)||!s.pending.empty()||!s.available())return false;
     try {
-        const auto started=Clock::now();auto cut=s.authority.checkpoint(source_authority_binding(*s.context));s.stats.capture_microseconds=micros(started);
-        Impl::Job next;next.generation=s.generation;next.context=*s.context;next.cut=std::move(cut);next.base=s.base;
+        const auto started=Clock::now();Impl::Job next;next.generation=s.generation;next.context=*s.context;
+        if(s.host){need(s.stats.captures<UINT64_MAX);auto cut=capture_source_host_continuation(*s.host,*s.context,s.stats.captures+1);
+            next.cut=std::move(cut.world);next.host=std::move(cut.host);next.serial=cut.serial;}
+        else next.cut=s.authority.checkpoint(source_authority_binding(*s.context));
+        s.stats.capture_microseconds=micros(started);next.base=s.base;
         s.replay.reset();s.phases.clear();s.queued_bytes=0;s.recorded_boundary.reset();
         if(s.mode==SourceAuthorityStreamMode::Replay)s.recorded_boundary=s.authority.execution_boundary();
         {std::lock_guard lock(s.mutex);s.job=std::move(next);}

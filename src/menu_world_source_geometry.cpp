@@ -1,4 +1,7 @@
 #include "halo2/menu_world_source_geometry.hpp"
+#include "halo2/mcc_bsp_vertex_layout.hpp"
+#include "halo2/mcc_model_vertex_layout.hpp"
+#include "halo2/mcc_skinned_model_vertex_layout.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include <algorithm>
 #include <cmath>
@@ -63,7 +66,8 @@ class MenuWorldSourceSectionBuilder {
 public:
   static MenuWorldSourceSection decode(const Metadata &m,std::size_t at,
       std::span<const std::byte> raw,MenuWorldSourceSectionKind kind,unsigned ordinal,
-      unsigned material_count,std::size_t materials,std::optional<std::size_t> bounds) {
+      unsigned material_count,std::size_t materials,std::optional<std::size_t> bounds,bool mcc_bsp=false,
+      bool mcc_model=false,unsigned model_nodes=0) {
     const bool model=kind==MenuWorldSourceSectionKind::render_model;
     const Bytes &meta=m.bytes;const Bytes b(raw);MenuWorldSourceSection out;
     out.kind_=kind;out.owner_datum_=m.owned.datum();out.section_=ordinal;
@@ -107,15 +111,55 @@ public:
       if(result.type==32)admit(index_resource);
       if(result.type==56 && result.channel==32)admit(descriptor_resource);
       if(result.type==56 && result.channel<3)admit(stream_resources[result.channel]);
-      if(result.type==100)admit(node_resource);
+      if(result.type==(mcc_model?104:100)) {
+        if(mcc_model && result.channel!=1)throw FormatError("MCC model node resource has an unsupported typed channel");
+        admit(node_resource);
+      }
       out.resources_.push_back(std::move(result));
     }
     if(index_resource==~0u || descriptor_resource==~0u ||
        std::find(stream_resources.begin(),stream_resources.end(),~0u)!=stream_resources.end())
       throw FormatError("source geometry lacks original indices or supported stream bindings");
-    const auto &descriptor_bytes=out.resources_[descriptor_resource].bytes;
+    auto &descriptor_bytes=out.resources_[descriptor_resource].bytes;
     if(descriptor_bytes.size()<3*32 || descriptor_bytes.size()%32 || descriptor_bytes.size()>16*32)
       throw FormatError("unsupported source geometry descriptor bank");
+    if(mcc_bsp) {
+      const auto layout=project_mcc_bsp_vertex_layout(out.vertex_count_,descriptor_bytes,
+          out.resources_[stream_resources[0]].bytes,out.resources_[stream_resources[1]].bytes,
+          out.resources_[stream_resources[2]].bytes);
+      std::copy(layout.descriptors.begin(),layout.descriptors.end(),descriptor_bytes.begin());
+      out.resources_[stream_resources[2]].bytes=layout.basis;
+    }
+    if(mcc_model) {
+      // An absent MCC node104 bank is the source's direct model-node domain,
+      // also used by the existing palette owner. Do not invent an identity
+      // map: each consumed index is validated against the actual root count.
+      const std::span<const std::byte> node_bytes=node_resource==~0u?
+          std::span<const std::byte>{}:out.resources_[node_resource].bytes;
+      if(*out.model_geometry_class_==3) {
+        const auto &parts=out.resources_.front();
+        if(parts.type!=0 || parts.channel!=72)
+          throw FormatError("MCC skinned model first resource is not its actual parts");
+        auto layout=project_mcc_skinned_model_vertex_layout(
+            std::to_integer<unsigned>(meta.slice(at+0x14,1)[0]),
+            std::to_integer<unsigned>(meta.slice(at+0x15,1)[0]),model_nodes,out.vertex_count_,
+            out.model_raw_header_,descriptor_bytes,out.resources_[stream_resources[0]].bytes,
+            out.resources_[stream_resources[1]].bytes,out.resources_[stream_resources[2]].bytes,
+            node_bytes,parts.bytes,out.resources_[index_resource].bytes);
+        std::copy(layout.descriptors.begin(),layout.descriptors.end(),descriptor_bytes.begin());
+        out.resources_[stream_resources[0]].bytes=std::move(layout.positions);
+        out.resources_[stream_resources[2]].bytes=std::move(layout.basis);
+        out.node_map_=std::move(layout.node_map);
+      } else {
+        auto layout=project_mcc_rigid_model_vertex_layout(*out.model_geometry_class_,
+            std::to_integer<unsigned>(meta.slice(at+0x14,1)[0]),model_nodes,out.vertex_count_,out.model_raw_header_,descriptor_bytes,
+            out.resources_[stream_resources[0]].bytes,out.resources_[stream_resources[1]].bytes,
+            out.resources_[stream_resources[2]].bytes,node_bytes);
+        std::copy(layout.descriptors.begin(),layout.descriptors.end(),descriptor_bytes.begin());
+        out.resources_[stream_resources[2]].bytes=std::move(layout.basis);
+        out.node_map_=std::move(layout.node_map);
+      }
+    }
     for(unsigned d=0;d<descriptor_bytes.size()/32;++d) {
       std::array<std::byte,32> descriptor;
       std::copy_n(descriptor_bytes.begin()+d*32,32,descriptor.begin());out.descriptors_.push_back(descriptor);
@@ -186,7 +230,7 @@ public:
       }
       out.parts_.push_back(part);
     }
-    if(model) {
+    if(model && !mcc_model) {
       const auto nodes=b.u16(0x6c);
       if(nodes && (node_resource==~0u || out.resources_[node_resource].bytes.size()!=nodes))
         throw FormatError("source model node-map extent differs from raw header");
@@ -210,7 +254,7 @@ MenuWorldSourceSection load_menu_world_source_bsp_section(const Cache &cache,std
   if(resources.size()!=std::size_t(clusters)+instances || r>=resources.size())
     throw FormatError("source BSP raw resource bank differs from metadata");
   return MenuWorldSourceSectionBuilder::decode(m,(instance?ip:cp)+section*(instance?200:176),
-      resources[r],kind,section,materials,mp,std::nullopt);
+      resources[r],kind,section,materials,mp,std::nullopt,cache.is_mcc());
 }
 MenuWorldSourceSection load_menu_world_source_model_section(const Cache &cache,std::uint32_t datum,unsigned section) {
   const Metadata m(cache.load_source_tag_metadata(datum));
@@ -222,7 +266,8 @@ MenuWorldSourceSection load_menu_world_source_model_section(const Cache &cache,s
   const auto resources=cache.load_model_resources(datum);
   if(section>=resources.size())throw FormatError("source model raw resource bank differs from metadata");
   return MenuWorldSourceSectionBuilder::decode(m,sp+section*0x5c,resources[section],
-      MenuWorldSourceSectionKind::render_model,section,materials,mp,bounds?std::optional(bp):std::nullopt);
+      MenuWorldSourceSectionKind::render_model,section,materials,mp,bounds?std::optional(bp):std::nullopt,
+      false,cache.is_mcc(),m.bytes.u32(0x48));
 }
 MenuWorldSourceBspOwner load_menu_world_source_bsp_owner(const Cache &cache,std::size_t bsp,unsigned instance) {
   const Metadata m(cache.load_source_bsp_metadata(bsp));const auto [count,p]=m.block(16+320,88,2048);

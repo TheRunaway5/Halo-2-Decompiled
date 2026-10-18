@@ -4,6 +4,13 @@
 #include <cmath>
 
 namespace halo2 {
+float source_campaign_frame_interval_tu15(float seconds) {
+  // Actual counters/frequency produce finite intervals. Reject host-only
+  // nonfinite inputs; no original NaN/Inf counter result is invented.
+  if(!std::isfinite(seconds))throw FormatError("Source incoming frame interval must be finite");
+  if(seconds<0.f)return 0.f;
+  return seconds>10.f?10.f:seconds;
+}
 float accepted_campaign_frame_elapsed(float seconds,int requested,int completed) {
   if(!std::isfinite(seconds) || seconds<0 || requested<0 || completed<0 || completed>requested)
     throw FormatError("Campaign frame completion differs from its admitted budget");

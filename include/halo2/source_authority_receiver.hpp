@@ -3,6 +3,7 @@
 #include "halo2/online_match_session.hpp"
 #include "halo2/source_replay_batch.hpp"
 #include "halo2/source_match_authority.hpp"
+#include "halo2/multiplayer_network.hpp"
 #include <future>
 
 namespace halo2 {
@@ -14,7 +15,19 @@ struct SourceAuthorityReceiverState {
     std::optional<ValidatedAuthorityCut> ready;
     std::string error;
     std::uint64_t replay_batches{},replayed_phases{},replay_sequence{},replay_microseconds{};
-    bool replaying{};
+    bool replaying{},replay_paused{},host_ready{};
+};
+// Owning recovery input only. The source executor validates this exact cut and
+// its independent roster before export. It is not an election certificate or
+// permission to replace the accepted host/membership. No native view, callback,
+// device or executor pointer crosses this boundary.
+struct SourceAuthorityRetainedWorld {
+    ValidatedAuthorityCut cut;
+    AcceptedSourcePlayers admissions;
+    std::vector<unsigned> producer_views,local_views;
+    SourceMatchAuthority::Checkpoint checkpoint;
+    // Present only after paired host/world validation at this exact cut.
+    std::optional<LanHost::Continuation> host;
 };
 // One client executor's private complete-world candidate. The worker decodes
 // owning bytes only; native construction/preparation stays on this executor.
@@ -37,12 +50,22 @@ public:
     // workspace_warmed for the pair. Requires independent identities; no receipt.
     bool warm();
     void update();
+    // Admit/decode bounded pending cuts without executing a native replay
+    // phase. Full-cut construction/preparation may still update this private
+    // candidate. This neither freezes the live host nor changes authority.
+    void prefetch();
     SourceAuthorityReceiverState state()const;
     // Read-only, executor-local inspection. Expires on cancellation, context
     // change, replacement or take_world(); never retain borrowers across update.
     const MultiplayerPreparedWorld *world()const;
     SourceMatchAuthority::Checkpoint checkpoint(const ValidatedAuthorityCut &expected)const;
+    // Permanently stop taking new transfers. Already decoding/replaying input
+    // drains through its normal complete validation before export. Null means
+    // that work is still active; a quiescent missing/invalid world throws.
+    // This must precede receiver destruction on a recoverable host loss.
+    std::optional<SourceAuthorityRetainedWorld> retain_validated_world();
     // Transfer this exact validated world to an external continuation owner.
+    // This world-only API drops any host sidecar; use retention for both owners.
     // This does not promote a host or rebind peers. The application must first
     // certify its chosen cut/generation, then perform role/hardware rebinding.
     std::unique_ptr<MultiplayerPreparedWorld> take_world(const ValidatedAuthorityCut &expected);
@@ -54,6 +77,7 @@ public:
     // Does not revoke an authority generation or stop peer transport/voice.
     void cancel();
 private:
+    void update(bool advance_replay);
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
@@ -69,10 +93,19 @@ public:
     SourceAuthorityReplayWorker(const SourceAuthorityReplayWorker &)=delete;
     SourceAuthorityReplayWorker &operator=(const SourceAuthorityReplayWorker &)=delete;
     SourceAuthorityReceiverState state()const;
+    // Applies between native phases. state().replay_paused acknowledges the
+    // applied scheduling mode; no native executor/world borrower is exported.
+    // Receipt/decoding continue. A paused retention drains after resumption.
+    bool pause_replay(bool);
     // At most one outstanding export. Rejects a stale/unvalidated cut; this
     // does not freeze, promote or transfer the native executor. A certified
     // continuation must import this value into its own quiescent executor.
     std::future<SourceMatchAuthority::Checkpoint> checkpoint(ValidatedAuthorityCut);
+    // One-shot, mutually exclusive with checkpoint export. Stops new receives,
+    // drains the authenticated in-flight batches and returns their final validated
+    // world plus independent admissions for a later certified takeover. The
+    // owning result survives worker destruction. No host is elected here.
+    std::future<SourceAuthorityRetainedWorld> retain_validated_world();
     // Nonblocking permanent cancellation. Destruction joins after any current
     // original native call returns and destroys the world on its own thread.
     void cancel();

@@ -38,7 +38,7 @@ that omit the detail texture need no such substitution. Unknown operations
 and later shader paths are rejected.
 
 The renderer applies this response only in pStencil after owner uniform
-completion. Original's shaders and the on-disk maps are unchanged. The code,
+completion. Original's texture response and the on-disk maps are unchanged. The code,
 tests and photo helpers remain under pStencil subfolders.
 
 ## Actual rank comparisons and capture corrections

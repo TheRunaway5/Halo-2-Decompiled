@@ -1,0 +1,208 @@
+{
+  "schema": "H2_MCC_BITMAP_DELTA_V2",
+  "source_map_sha256": "563bef8cc5f8f8cf28112eff44f4e1377e1f012b69f65e3e2e9a04484c497ca7",
+  "original_map_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+  "profiles": [
+    {
+      "profile": {
+        "tag": "scenarios\\bitmaps\\multi\\zanzibar\\massive_concrete_bump",
+        "encoding": "rgba8",
+        "format": 11,
+        "width": 512,
+        "height": 512,
+        "mip_count": 10,
+        "pixel_bytes": 1398100,
+        "donor_sha256": "e3bf56db0a97306a9a6e7e5efa48a6e050e808464d23e65db3e443bcfdbae915",
+        "target_sha256": "e73e664e6b6fa60d5f245ca7b3edac4d00200f38bc8a67ee12330666e30e063c"
+      },
+      "mips": [
+        {
+          "width": 512,
+          "height": 512,
+          "depth": 1,
+          "offset": 0,
+          "size": 1048576
+        },
+        {
+          "width": 256,
+          "height": 256,
+          "depth": 1,
+          "offset": 1048576,
+          "size": 262144
+        },
+        {
+          "width": 128,
+          "height": 128,
+          "depth": 1,
+          "offset": 1310720,
+          "size": 65536
+        },
+        {
+          "width": 64,
+          "height": 64,
+          "depth": 1,
+          "offset": 1376256,
+          "size": 16384
+        },
+        {
+          "width": 32,
+          "height": 32,
+          "depth": 1,
+          "offset": 1392640,
+          "size": 4096
+        },
+        {
+          "width": 16,
+          "height": 16,
+          "depth": 1,
+          "offset": 1396736,
+          "size": 1024
+        },
+        {
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "offset": 1397760,
+          "size": 256
+        },
+        {
+          "width": 4,
+          "height": 4,
+          "depth": 1,
+          "offset": 1398016,
+          "size": 64
+        },
+        {
+          "width": 2,
+          "height": 2,
+          "depth": 1,
+          "offset": 1398080,
+          "size": 16
+        },
+        {
+          "width": 1,
+          "height": 1,
+          "depth": 1,
+          "offset": 1398096,
+          "size": 4
+        }
+      ],
+      "donor_mip_sha256": [
+        "1bef5ef214bd9ff76c06eced42306d771d4ced7a6f9b05f5f8a9126d2af82344",
+        "65cb8c6a860b64feb75ca5ea6507a6343e8b8e356dda6ef90ed5398614d21046",
+        "550bbb2275fc8b5ad2506f6f2a17cd4b7e6607d22653a71d973239373684483c",
+        "8f4887b7c4e29428f43fda209d1fa9856ac016cfce92fa936151eecc4253953f",
+        "b6e272a3adaa950911e6a9d374e351643165f6714f48649f9ad0965d00843bbb",
+        "a419c09259b79ccfeb0ad81e0ca266e8b8ee507832c5def1f923554779dafe50",
+        "de7104f491a46ad708d223399bbdd5ba97c4410dabebbcc74cdd3ed481590007",
+        "5ce3aa8aceac9b1c3ce8da447d2554ca42e30f77bc4e4b4345374688bf24e528",
+        "d24ef7993b6b2b8365793ad54ef0e0eba80d428c340de27f664fc993f50e90f3",
+        "7d3637f853b2bd5a74fcb24776369cb407f4588675dcc5a32165bf6994a32c9b"
+      ],
+      "target_mip_sha256": [
+        "400eea9377ee3ee79b56675fd5e027c2ded253792543b96ce5abcb950dffe7dc",
+        "25c96693bd6a91b7443d5c873a61ba88bcc115f7c9bcfae5e31b2d7ce654697d",
+        "d53dcb56848c54ffd578a415fc6ce3379d4a5cfb38a62c8615d32c806f1bd6bc",
+        "973a9af9be226b17f6923eab6a43d4197dba4fdecc96715c67614e7dc5653c5a",
+        "10c6f4d92d834cf3096f94f8aef827083d9a2362cbb8c077fa0aceb073abcfb5",
+        "62bf45575aeeb8822fdf2863c143a4942bd7faaae55bde833f07e2563c290b04",
+        "12cc47feef34d3fa2ee7175cf75492fb1a24aea967970d34cdf0b04b983f0f23",
+        "5ce3aa8aceac9b1c3ce8da447d2554ca42e30f77bc4e4b4345374688bf24e528",
+        "d24ef7993b6b2b8365793ad54ef0e0eba80d428c340de27f664fc993f50e90f3",
+        "7d3637f853b2bd5a74fcb24776369cb407f4588675dcc5a32165bf6994a32c9b"
+      ],
+      "delta_offset": 0,
+      "delta_bytes": 565812,
+      "delta_sha256": "d4a1cae474e0b1cbb8f330d461697690df7b2c8558bf6d5bd1d06f1c87e6a2a9"
+    },
+    {
+      "profile": {
+        "tag": "scenarios\\bitmaps\\human\\urban\\metals\\matte_grey",
+        "encoding": "bc3",
+        "format": 16,
+        "width": 256,
+        "height": 256,
+        "mip_count": 7,
+        "pixel_bytes": 87376,
+        "donor_sha256": "cb0d67d51093c58594944262febc2abc2dab789de244f8cb4de2cc24495fa334",
+        "target_sha256": "7221dd1f5eac5b5e65c40a5dfcef4942a9455e94c9afa55e181aab9ff6b807ee"
+      },
+      "mips": [
+        {
+          "width": 256,
+          "height": 256,
+          "depth": 1,
+          "offset": 0,
+          "size": 65536
+        },
+        {
+          "width": 128,
+          "height": 128,
+          "depth": 1,
+          "offset": 65536,
+          "size": 16384
+        },
+        {
+          "width": 64,
+          "height": 64,
+          "depth": 1,
+          "offset": 81920,
+          "size": 4096
+        },
+        {
+          "width": 32,
+          "height": 32,
+          "depth": 1,
+          "offset": 86016,
+          "size": 1024
+        },
+        {
+          "width": 16,
+          "height": 16,
+          "depth": 1,
+          "offset": 87040,
+          "size": 256
+        },
+        {
+          "width": 8,
+          "height": 8,
+          "depth": 1,
+          "offset": 87296,
+          "size": 64
+        },
+        {
+          "width": 4,
+          "height": 4,
+          "depth": 1,
+          "offset": 87360,
+          "size": 16
+        }
+      ],
+      "donor_mip_sha256": [
+        "eed46ac6f6ab2e9030daefbee31668e80ec66b96414a93db2d884a9144231893",
+        "36ca0325331be79e764c2108361e039c0226db54cb3526be515cfca9e9cb26b3",
+        "2557863483485ae9a8443b53b58fdda3a3c5025635ca6973f7b43e03bc445c56",
+        "8fde17c7a35db888363bb4cce46c643435060c8e1bcf08bf63d00f741537a3ec",
+        "12fdb4b1624f00babec149e749719f001703340d178a8af2d4047951e9803ec2",
+        "96cd1e1be359dcf6e3c7dc9342db6f828c0252f3ee708d9b96a67d892f055de4",
+        "bba91b2803c0eb5c1387a6f1415399ec00655282fdbb94dd46471aa24c41392b"
+      ],
+      "target_mip_sha256": [
+        "7db1d9a431bc909aacc72e1b2d0733d4af46276b9b724841c6735151d132ca4d",
+        "99b9df5b89d612fed0f95546b32f54e2340af8fb60bed3517cf6e4acbce22d93",
+        "6b20fcddf9e620c4b0f17c06b9e01d9eff8e14d7fc8383f2a7ad7b600e6b7ba9",
+        "638174af0b56adf681a6f7468f4cf0228aa20fcce5a176e4fa1997ec7659ef12",
+        "307163f59d2453398a602456c6f893ee38b12fb7da2bbb624e38444e8d559aed",
+        "b9d6e9278f09f24983380a06deb9d721af1234da6791415960bdbeff8df3c237",
+        "4871a1be3dcd680d3f4e43b5520e2d77fcdf8b2cb36fbac1c5baecbec3c36537"
+      ],
+      "delta_offset": 565812,
+      "delta_bytes": 75069,
+      "delta_sha256": "54b9714aa2a26fab8eb11a82a406a780dfcc9e941e21e5eba92ceecbbb8c5e5b"
+    }
+  ],
+  "delta_bytes": 640881,
+  "delta_sha256": "f9607b78304d4ae9c862bc541a0f36342bd91e4d8ea072ca088f3c302c27cf56",
+  "full_graphics_parity": false,
+  "scope": "Authenticated Zanzibar concrete and matte_grey only; other maps and shaders unchanged"
+}

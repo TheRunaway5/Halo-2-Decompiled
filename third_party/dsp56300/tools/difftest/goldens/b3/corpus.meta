@@ -1,0 +1,13 @@
+case bra_short_fwd 0100 0108 100
+case bcc_short_taken_pair 0118 0124 100
+case bcc_short_backward 0130 013c 100
+case bsr_short_lit 0148 0152 100
+case bscc_short_forms 0160 016d 100
+case bscc_long_lit 0178 0183 100
+case jcc_short_lit 0190 0199 100
+case jscc_short_lit 01a8 01b4 100
+case bcc_long_label 01c0 01ca 100
+case bcc_rn_forms 01d8 01e2 100
+case bscc_rn_form 01f0 01fc 100
+case jscc_ea_form 0208 0214 100
+case bra_rn_backward 0220 022c 100

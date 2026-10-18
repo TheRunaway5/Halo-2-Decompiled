@@ -1,0 +1,8 @@
+{
+  "scope": "Retain the same actual 49 cue programs and external wake-relative input as v43.",
+  "map_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+  "program_sha256": "b5bded00de7239d33bbf850c633e1b7ef8efb1b4d393080343a3cbf618a349b0",
+  "oracle_sha256": "843eb280ebd1dc18d772285a2451a027855a64f025c998cbff8b5ec04a8fe930",
+  "cue_count": 49,
+  "full_scene_or_voice_scheduling_verified": false
+}

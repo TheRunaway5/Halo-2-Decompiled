@@ -20,6 +20,7 @@
 /tests/fixtures/*
 !/tests/fixtures/*.md
 !/tests/fixtures/*.py
+!/tests/fixtures/mcc_scoreboard_hud_metadata.json
 
 # Builds, downloaded tools/references, and local analysis workspaces.
 /build*/
@@ -29,7 +30,12 @@
 /.tools/
 /analysis/
 /work/
-/tools/reference/
+/tools/reference/*
+# Authored conversion policies contain identities, shapes and audit hashes;
+# downloaded reference trees and extracted payloads remain local.
+!/tools/reference/mcc-native-library-closure.json
+!/tools/reference/mcc-native-template-variants.json
+!/tools/reference/mcc-tex-bump-unanimated.json
 /.ark-*/
 CMakeFiles/
 CMakeCache.txt

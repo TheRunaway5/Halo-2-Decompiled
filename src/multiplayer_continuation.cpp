@@ -11,7 +11,7 @@ namespace {
 using Saved=MultiplayerMatch::AuthorityCheckpoint;
 using namespace world_continuation;
 bool handle(std::uint32_t h){return h!=null_datum&&(h>>16)&&(h&65535u)<2048;}
-void validate(const Saved &s,const DatumPool &pool,unsigned maximum,const LevelContent &content) {
+void validate(const Saved &s,const DatumPool &pool,unsigned maximum,const LevelContent &content,int game_type) {
     if(pool.capacity()!=int(multiplayer_capacity)||pool.stride()!=0x21c||
        s.simulation.actors.size()!=multiplayer_capacity-1||s.result_events.index>=1000||
        s.winner< -1||s.winner>=int(multiplayer_capacity)||s.winner_team< -1||s.winner_team>=8||
@@ -40,7 +40,7 @@ void validate(const Saved &s,const DatumPool &pool,unsigned maximum,const LevelC
         if(p.source_current_unit!=(p.source_current_object!=null_datum)||
            (p.source_current_unit&&(!p.connected||!u.exists||u.source_datum!=p.source_current_object||u.source_player!=p.source_datum)))
             throw FormatError("Match continuation changed the current player/unit binding");
-        if(p.source_configuration)multiplayer_biped(content,multiplayer_representation(p.source_configuration));
+        if(p.source_configuration)multiplayer_biped(content,source_session_player_representation(p.source_configuration,game_type));
         if(p.source_current_unit)object(u.source_datum,u.definition.datum,0);
     }
     if(allocated.size()!=std::size_t(pool.count()))throw FormatError("Match continuation omitted an allocated player record");
@@ -101,7 +101,7 @@ MultiplayerMatch::AuthorityCheckpoint MultiplayerMatch::authority_checkpoint(Aut
 #undef SAVE
     for(const auto &[h,u]:retained_units_){Simulation::AuthorityCheckpoint::UnitRecord r;r.value=u;
         if(u.custom_animation)r.animation=*u.custom_animation;r.value.custom_animation.reset();saved.retained_units.emplace(h,std::move(r));}
-    validate(saved,player_pool_,rules_.maximum_players,content_);return saved;
+    validate(saved,player_pool_,rules_.maximum_players,content_,source_game_context_.game_type);return saved;
 }
 struct MultiplayerMatch::PreparedAuthority::Impl {
     MultiplayerMatch *owner{};bool *staging{};
@@ -132,10 +132,10 @@ MultiplayerMatch::PreparedAuthority MultiplayerMatch::prepare_authority(const Sa
         // Read-only view for validation; no allocation metadata is imported by
         // this temporary wrapper. The exact bank has already been staged.
         DatumPool view(*const_cast<SourceRuntimeMemory *>(replacement),saved.source_players->pool);
-        validate(saved,view,rules_.maximum_players,content_);
+        validate(saved,view,rules_.maximum_players,content_,source_game_context_.game_type);
     }else {
         if(saved.owned_players->source_memory())throw FormatError("Match continuation imported a process player-pool pointer");
-        validate(saved,*saved.owned_players,rules_.maximum_players,content_);
+        validate(saved,*saved.owned_players,rules_.maximum_players,content_,source_game_context_.game_type);
     }
     n.values=saved;
     for(const auto &[h,r]:saved.retained_units){Unit u=r.value;if(r.animation)u.custom_animation=std::make_shared<const AnimationClip>(*r.animation);

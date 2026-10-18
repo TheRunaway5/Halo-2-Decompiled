@@ -64,6 +64,18 @@ struct SdlSoundVoiceStatus {
   std::size_t completed_packets;
 };
 
+// Observed native consumption, not a submitted-packet or wall-clock estimate.
+// The first frames identify the callback/manual mixer sample that consumed
+// this voice, including an authored zero-valued PCM sample.
+struct SdlSoundPlaybackPosition {
+  std::optional<std::uint64_t> first_device_frame;
+  std::optional<std::uint64_t> first_presentation_frame;
+  // Cumulative decoded 48 kHz input frames traversed, including relative
+  // rate, bounded by supplied PCM. Underruns and canceled PCM add nothing.
+  double source_frames{};
+  std::uint64_t output_frames{};
+};
+
 class SdlSoundPlatform {
 public:
   using Voice = std::uint64_t;
@@ -81,9 +93,16 @@ public:
   unsigned output_channels() const;
   Voice create_voice(std::uint64_t channel_context,
                      const SdlSoundVoiceParameters &);
+  // Uses the shared 48 kHz presentation clock for this voice's first PCM frame.
+  // A late voice starts at the next available sample; PCM is never discarded
+  // to conceal lateness. Its two packet slots retain ordinary stream behavior.
+  Voice create_voice_at(std::uint64_t channel_context,
+                       const SdlSoundVoiceParameters &,
+                       std::uint64_t presentation_frame);
   void parameters(Voice, const SdlSoundVoiceParameters &);
   Submission submit(Voice, SdlSoundPacket);
   SdlSoundVoiceStatus status(Voice) const;
+  SdlSoundPlaybackPosition playback_position(Voice) const;
 
   // A stream has exactly two retained packet slots (2215F0). Completion alone
   // does not release its PCM: acknowledge only after the source completion
@@ -101,8 +120,15 @@ public:
   // devices. It does not report physical speaker consumption or audibility.
   std::vector<float> render(std::size_t frames);
   std::uint64_t rendered_frames() const;
+  // Global presentation pause holds this clock and every stream. The device
+  // clock still advances while SDL consumes silence. A per-voice pause alone
+  // does not move another voice's deadline or this shared clock.
+  void paused(bool);
+  std::uint64_t presentation_frames() const;
 
 private:
+  Voice create_voice_impl(std::uint64_t, const SdlSoundVoiceParameters &,
+                          std::optional<std::uint64_t>);
   struct State;
   std::unique_ptr<State> state_;
 };

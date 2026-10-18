@@ -6,6 +6,9 @@
 #include "halo2/renderer_depth_mode.hpp"
 #include "halo2/renderer_particle_program.hpp"
 #include "halo2/source_particle_declaration_tu15.hpp"
+#include "halo2/renderer_particle_view.hpp"
+#include "halo2/particle_draw.hpp"
+#include "halo2/source_particle_view_pass_tu15.hpp"
 
 namespace halo2 {
 // Whole original format normalization/layout/depth-scale arithmetic for the
@@ -51,6 +54,33 @@ public:
     void configure_program_declaration(SourcePhysicsWorldRuntimeAbi &,
         const SourcePhysicsWorldRuntimeServices & = {});
     const SourceParticleDeclarationTu15 &program_declaration() const;
+    // Native explicit programmable bounds, backed by an actually recorded
+    // draw's descriptor inputs. Whole13430 owns reset/control/bound packets.
+    // Call before constructing this view's queues. This does not reconstruct
+    // original SDK boot, fixed-function projection or prior-frame history.
+    void initialize_view(RendererParticleView::Use,SourcePhysicsWorldRuntimeAbi &,
+        const SourcePhysicsWorldRuntimeServices & = {});
+    // Ordinary2B9F0 publishes132B0/12F80 before13660/2BCB0 resets the view.
+    // Stage the actual resource without resetting queues. Its camera remains
+    // unavailable to drawing until both original producers have completed.
+    void prepare_view(RendererParticleView::Use);
+    // Native value seam for the authenticated2BCB0 packet producer, followed
+    // by complete13430. ECX names real writable caller packet storage. The
+    // serial comes from source4C685C; pass scheduling/queue retirement remain
+    // the caller's responsibility, not inferred from this packet.
+    SourceParticleViewPassTu15 initialize_view_pass(RendererParticleView::Use,
+        std::uint32_t boundary_mode,std::uint32_t boundary_distance_bits,
+        SourcePhysicsWorldRuntimeAbi &,const SourcePhysicsWorldRuntimeServices & = {});
+    SourceParticleViewPassTu15 initialize_prepared_view_pass(
+        std::uint32_t boundary_mode,std::uint32_t boundary_distance_bits,
+        SourcePhysicsWorldRuntimeAbi &,const SourcePhysicsWorldRuntimeServices & = {});
+    // Declared native complete12F80 caller: EAX names its actual projection
+    // bank, ECX its submitting camera, stack has scaling/mode arguments. The
+    // complete emitted c0..11 bank must match the recorded descriptor inputs.
+    // This does not establish the original frame's current-camera history.
+    void publish_camera(SourcePhysicsWorldRuntimeAbi &,
+        const SourcePhysicsWorldRuntimeServices & = {});
+    void consume_draw(ParticleDraw &) const;
     void run(std::uint32_t,SourcePhysicsWorldRuntimeAbi &,
         const SourcePhysicsWorldRuntimeServices & = {});
     bool configured() const;
@@ -62,6 +92,13 @@ public:
     void visit_committed(const std::function<void(std::uint32_t,
         std::span<const std::byte>)> &) const;
 private:
+    void stage_view(RendererParticleView::Use);
+    void require_empty_view_queues() const;
+    void check_view_initialization() const;
+    void initialize_staged_view(SourcePhysicsWorldRuntimeAbi &,const SourcePhysicsWorldRuntimeServices &);
+    void decode_constants(std::span<ShaderVector,192>,bool pending_camera) const;
+    std::size_t last_bounds_packet() const;
+    void publish_view_resource();
     void check(bool require_configuration=true) const;
     bool owns_field(std::uint32_t,std::size_t) const;
     void reject_unknown_device_field(std::uint32_t,std::size_t) const;
@@ -85,6 +122,11 @@ private:
     SourceParticleDeclarationTu15 declaration_;
     bool declaration_configuring_{},declaration_attempted_{},declaration_configured_{};
     std::size_t declaration_packet_begin_{},declaration_packet_end_{};
+    std::optional<RendererParticleView::Use> view_;
+    bool view_initializing_{},view_initialized_{},view_attempted_{},control_cache_owned_{};
+    std::size_t view_packet_begin_{},view_packet_end_{};
+    bool camera_initializing_{},camera_attempted_{},camera_configured_{};
+    std::size_t camera_bounds_begin_{},camera_bounds_end_{};
     std::uint32_t instruction_{};
     const std::thread::id thread_=std::this_thread::get_id();
 };

@@ -1,0 +1,14 @@
+fill 00a50d 03157e 00c3a9 2b0c99 0000a0 0000c0
+case dirty_probe_x 0100 0108 100
+case dirty_probe_y 0108 0110 100
+case dirty_stack_ramp 0110 0119 100
+case dirty_rmw 0119 0122 100
+case dirty_mod_wrap 0122 012d 100
+case dirty_bitrev_walk 012d 0137 100
+case dirty_pm8_read 0137 013e 100
+case dirty_lmove_read 013e 0143 100
+case dirty_write_zero 0143 014a 100
+case dirty_partial_overwrite 014a 0151 100
+case dirty_do_dyn 0151 015e 100
+case dirty_movec_lc 015e 0161 100
+case dirty_indexed_n 0161 016c 100

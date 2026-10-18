@@ -43,7 +43,9 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
     def imm(p):
         p&=0xffffffff
         if p in addresses:
-            used_addresses.add(p);return f'selected(0x{p:x}u,s.image)'
+            used_addresses.add(p)
+            if addresses[p]==p:return f'0x{p:x}u'
+            return f'selected(0x{p:x}u,s.image)'
         return f'0x{p:x}u'
     def name(i,op):return i.reg_name(op.reg)
     def addr(i,op):
@@ -261,7 +263,19 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn=='mul':
             assert op[0].size==4
             return '{const auto x=std::uint64_t(s.gp[0])*'+get(i,op[0])+';s.gp[0]=std::uint32_t(x);s.gp[2]=std::uint32_t(x>>32u);s.flags.cf=s.flags.of=s.gp[2]!=0;}'
-        if mn=='imul' and len(op)==1:return f'{{const auto x=std::int64_t(si(s.gp[0]))*si({get(i,op[0])});s.gp[0]=std::uint32_t(x);s.gp[2]=std::uint32_t(std::uint64_t(x)>>32u);s.flags.cf=s.flags.of=x!=std::int64_t(si(s.gp[0]));}}'
+        if mn=='imul' and len(op)==1:
+            # F6 /5 multiplies signed AL into AX and preserves EDX and the
+            # upper EAX word. The DSP decoder consumes AL, so a returned-byte
+            # comparison alone can miss a wrong 32-bit register side effect.
+            if op[0].size==1:
+                return ('{const auto x=std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t(s.gp[0])))*'
+                    f'std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t({get(i,op[0])})));'
+                    's.set(0,std::uint32_t(x),2,0);s.flags.cf=s.flags.of=x!='
+                    'std::int32_t(std::bit_cast<std::int8_t>(std::uint8_t(x)));}')
+            # Other widths require their own original-instruction controls;
+            # never silently widen a not-yet-supported source operation.
+            assert op[0].size==4
+            return f'{{const auto x=std::int64_t(si(s.gp[0]))*si({get(i,op[0])});s.gp[0]=std::uint32_t(x);s.gp[2]=std::uint32_t(std::uint64_t(x)>>32u);s.flags.cf=s.flags.of=x!=std::int64_t(si(s.gp[0]));}}'
         if mn=='imul':return put(i,op[0],f's.flags.product({get(i,op[-2])},{get(i,op[-1])})')
         if mn in ('div','idiv'):return f's.quotient({get(i,op[0])},{str(mn=="idiv").lower()});'
         if mn=='cdq':return 's.gp[2]=si(s.gp[0])<0?0xffffffffu:0u;'
@@ -272,6 +286,8 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn=='cld':return 's.other_flags&=~1024u;'
         if mn=='ret':return f's.pop();s.gp[4]+={op[0].imm if op else 0}u;return;'
         if mn=='rdtsc':return 'if(!s.services.timestamp_counter)throw std::runtime_error("Required original contact RDTSC owner unavailable");{const auto x=s.services.timestamp_counter();s.gp[0]=std::uint32_t(x);s.gp[2]=std::uint32_t(x>>32u);}'
+        if mn=='repne scasb':
+            return f'while(s.gp[1]){{s.flags.minus(s.reg(0,1,0),r(s.memory,s.gp[7],1),1);const auto delta=(s.other_flags&1024u)?0xffffffffu:1u;s.gp[7]+=delta;--s.gp[1];if(s.flags.zf)break;if(s.services.instruction)s.services.instruction(0x{p:x}u);}}'
         if mn in ('rep stosd','rep stosw','rep stosb'):
             width={'rep stosd':4,'rep stosw':2,'rep stosb':1}[mn]
             return f'while(s.gp[1]){{w(s.memory,s.observe,0x{p:x}u,s.gp[7],{width},s.gp[0]);const auto delta=(s.other_flags&1024u)?{0x100000000-width}u:{width}u;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0x{p:x}u);}}'
@@ -427,6 +443,11 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
         if mn=='frndint':return '{std::uint16_t status;s.fp.st(0)=native_frndint(s.fp.st(0),status);s.fp.status=(s.fp.status&~0x200u)|(status&0x200u);}'
         if mn in ('fsin','fcos'):
             return '{std::uint16_t status;s.fp.st(0)=native_'+mn+'(s.fp.st(0),status);s.fp.status=(s.fp.status&~0x600u)|(status&0x600u);}'
+        if p==0x21f65e:
+            # Capstone's Intel spelling for DE F9 is FDIVP. The native
+            # helper uses GAS's AT&T spelling for that same pop division.
+            assert i.bytes.hex()=='def9' and mn=='fdivp'
+            return '{std::uint16_t actual;s.fp.st(1)=native_sound_duration_divide(s.fp.st(1),s.fp.st(0),actual);s.fp.status=(s.fp.status&~0x200u)|(actual&0x200u);}s.fp.pop();'
         if mn in ('fadd','fmul','fsub','fsubr','fdiv','fdivr','fdivp','fdivrp','fsubp','fsubrp','fmulp','faddp'):
             operation='add' if 'add' in mn else 'mul' if 'mul' in mn else 'sub' if 'sub' in mn else 'divide'
             popping=mn.endswith('p');reverse=mn in ('fdivr','fdivrp','fsubr','fsubrp')
@@ -460,10 +481,21 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
                 if table not in tables:continue
                 targets.update(table_targets(table,old))
         lines=[f'static void run_{entry:x}(WorldState &s) {{']
+        if entry==0x21f590:
+            assert hashlib.sha256(b''.join(bytes(i.bytes) for i in ins)).hexdigest()== \
+                '6cab0fba83a56a36f6f934ef61eb96eb2105140cee8ac5c9039574ed918810f7'
+            lines.append('// The original signed indices address fixed 3/3/5 operand arrays.\n// Extended MCC formats need an authenticated timing owner; truthful PCM\n// playback duration alone does not prove original TU1.5 gameplay timing.\nif(r(s.memory,s.gp[6]+3u,1)>2u || r(s.memory,s.gp[6]+4u,1)>2u ||\n   r(s.memory,s.gp[6]+5u,1)>4u)\n    throw MccSoundLayoutRequirement(MccSoundLayoutNeed::NativeCodecDuration,\n        "Extended MCC sound duration requires an authenticated native timing owner");\n')
+        if entry==0xbaf10:
+            lines.append('SourceObjectAttachmentScopeTu15 attachment_scope(s.memory);')
         if entry==0xfdeb0:
             lines.append('SourceProjectileUpdateScope projectile_scope(s.memory,r(s.memory,s.gp[4]+4u,4));')
         for i in ins:
             translated=emit(i);lowered[f'{i.address:08x}']=dict(mnemonic=i.mnemonic,source_bytes=i.bytes.hex())
+            if entry==0xbaf10 and i.address==0xbaf5f:
+                translated='attachment_scope.inputs(s.gp[2],s.gp[1],s.gp[5],s.gp[7]);'+translated
+            if entry==0xbaf10 and i.address==0xbb1ef:
+                assert translated=='s.pop();s.gp[4]+=12u;return;'
+                translated='attachment_scope.complete(s.pop());s.gp[4]+=12u;return;'
             label=f'L{i.address:x}: ' if i.address in targets else ''
             guard=instruction_guard(i) if instruction_guard else ''
             lines.append(f'{label}{guard}if(s.services.instruction){{s.services.instruction(0x{i.address:x}u);}} {translated}')
@@ -478,7 +510,9 @@ def generate(a,paired,process_heap=False,*,complete_listings=False,
 // Complete authenticated bodies compile to native arithmetic and static calls.
 #include "physics_world_runtime_internal.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
+#include "halo2/mcc_sound_tag_layout.hpp"
 #include "halo2/source_projectile_effect_observer.hpp"
+#include "halo2/source_object_attachment_tu15.hpp"
 namespace halo2 {
 namespace {
 using namespace physics_world_runtime_detail;
@@ -724,6 +758,16 @@ long double native_fpatan(long double y,long double x) {
     throw std::runtime_error("Required TU1.5 FPATAN backend unavailable");
 #endif
 }
+long double native_sound_duration_divide(long double numerator,long double denominator,std::uint16_t &status) {
+#if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
+    long double result;
+    asm volatile("fldt %2\\n\\tfldt %3\\n\\tfdivrp %%st,%%st(1)\\n\\tfnstsw %1\\n\\tfstpt %0"
+        :"=m"(result),"=m"(status):"m"(numerator),"m"(denominator):"st","st(1)");
+    return result;
+#else
+    throw std::runtime_error("Required TU1.5 sound FDIVRP backend unavailable");
+#endif
+}
 long double native_integer_multiply(long double x,std::int32_t integer,std::uint16_t &status) {
 #if (defined(__i386__) || defined(__x86_64__)) && !defined(_MSC_VER)
     // Original FIMUL m32int: signed memory operand, retained precision/rounding
@@ -823,7 +867,10 @@ std::uint32_t sign_extend(std::uint32_t x,unsigned n) {
     preamble+='std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){'+''.join(f'case 0x{p:x}u:return 0x{addresses[p]:x}u;' for p in sorted(used_addresses))+'default:throw std::runtime_error("Unbound original contact executable address");}}\n'
     preamble+='std::uint32_t canonical_branch(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){'+''.join(f'case 0x{q:x}u:return 0x{p:x}u;' for p,q in sorted(branches.items()))+'default:throw std::runtime_error("Unbound TU1.5 contact dispatch target");}}\n'
     preamble+='\n'.join(f'static void run_{p:x}(WorldState &);' for p in ENTRIES)+'\n'
-    preamble+='static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){'+''.join(f'if(target==selected(0x{p:x}u,s.image)){{run_{p:x}(s);return;}}' for p in ENTRIES)+'s.required(site,target,tail);}\n'
+    if all(p in addresses and addresses[p]==p for p in ENTRIES):
+        preamble+='static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){'+''.join(f'case 0x{p:x}u:run_{p:x}(s);return;' for p in ENTRIES)+'default:s.required(site,target,tail);return;}}\n'
+    else:
+        preamble+='static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){'+''.join(f'if(target==selected(0x{p:x}u,s.image)){{run_{p:x}(s);return;}}' for p in ENTRIES)+'s.required(site,target,tail);}\n'
     ending='''
 } // namespace
 void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
@@ -866,9 +913,19 @@ void source_run_physics_live_support_tu15(M &m,std::uint32_t entry,
         bodies=[body.replace(needle,
             'source_vehicle_input_reset_tu15(s.memory,s.gp[6],s.gp[3],r(s.memory,s.gp[4]+0x24u,4)+0x150u);\n'+needle)
             for body in bodies]
+    # The duration instruction has a dedicated x87 helper. Do not inject its
+    # unused definition or unrelated declarations into every recovered module:
+    # that makes unchanged modules drift whenever this owner is extended.
+    body_source='\n\n'.join(bodies)
+    if 'native_sound_duration_divide(' not in body_source:
+        first=preamble.index('long double native_sound_duration_divide(')
+        last=preamble.index('long double native_integer_multiply(',first)
+        preamble=preamble[:first]+preamble[last:]
+    if not any(name in body_source+extra_preamble for name in ('MccSound','project_mcc_sound_')):
+        preamble=preamble.replace('#include "halo2/mcc_sound_tag_layout.hpp"\n','')
     temporary=a.output.with_name('.'+a.output.name+f'.{os.getpid()}.tmp')
     try:
-        temporary.write_text(preamble+'\n\n'.join(bodies)+ending)
+        temporary.write_text(preamble+body_source+ending)
         temporary.replace(a.output)
     finally:
         temporary.unlink(missing_ok=True)

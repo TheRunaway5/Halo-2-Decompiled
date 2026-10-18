@@ -50,7 +50,20 @@ FullScoreboardAssets Cache::load_full_scoreboard_assets() const {
   const auto locale_count=data.u32(lp),locale_size=data.u32(lp+4);
   const auto indices=data.u32(lp+8),text=data.u32(lp+12);
   if(locale_count>65536 || locale_size>16*1024*1024)throw FormatError("Original scoreboard locale exceeds import bounds");
-  data.require(indices,std::size_t(locale_count)*8);const Bytes table(data.slice(text,locale_size));
+  std::vector<std::byte> owned_rows,owned_text;
+  std::span<const std::byte> row_bytes,text_bytes;
+  if(mcc_) {
+    // These are the serialized matg English cache-offset fields, not the
+    // separate unloaded runtime pointers at188/18C. MCC offsets retain the
+    // local/mainmenu/shared/single-player resource selector in their top bits.
+    if(locale_count)owned_rows=load_source_runtime_resource(indices,std::size_t(locale_count)*8);
+    if(locale_size)owned_text=load_source_runtime_resource(text,locale_size);
+    row_bytes=owned_rows;text_bytes=owned_text;
+  } else {
+    row_bytes=data.slice(indices,std::size_t(locale_count)*8);
+    text_bytes=data.slice(text,locale_size);
+  }
+  const Bytes rows(row_bytes),table(text_bytes);
   const auto read_locale=[&](std::uint32_t datum,const auto &destination) {
     const auto *strings=find(datum,"unic");
     if(!strings || strings->size<52)return;
@@ -58,9 +71,10 @@ FullScoreboardAssets Cache::load_full_scoreboard_assets() const {
     const auto start=data.u16(sp+16),length=data.u16(sp+18);
     if(start>locale_count || length>locale_count-start)throw FormatError("Original scoreboard locale range is invalid");
     for(unsigned i=start;i<unsigned(start)+length;++i) {
-      const auto row=indices+i*8,offset=data.u32(row+4);
+      const auto row=std::size_t(i)*8;
+      const auto offset=rows.u32(row+4);
       if(offset>=locale_size)throw FormatError("Original scoreboard label exceeds locale bytes");
-      if(auto *label=destination(data.u32(row))) *label=table.string(offset,locale_size-offset);
+      if(auto *label=destination(rows.u32(row))) *label=table.string(offset,locale_size-offset);
     }
   };
   read_locale(data.u32(universal+0x1c),[&](std::uint32_t id)->std::string * {
@@ -75,6 +89,13 @@ FullScoreboardAssets Cache::load_full_scoreboard_assets() const {
   // strings are resolved in the separately referenced team_names unic slice,
   // rather than the global messages or frontend color labels.
   read_locale(data.u32(universal+0x0c),[&](std::uint32_t id)->std::string * {
+    if(mcc_) {
+      // MCC retains these ordinal token identities but relocates their numeric
+      // string IDs. Resolve only the nine tokens in this referenced unic bank.
+      const auto token=string_id(id);
+      return token.size()==1 && token[0]>='0' && token[0]<='8'
+          ? &out.team_names[static_cast<unsigned>(token[0]-'0')] : nullptr;
+    }
     return id>=0x0100030a && id<=0x01000312 ? &out.team_names[id-0x0100030a] : nullptr;
   });
   return out;

@@ -1,0 +1,2982 @@
+{
+  "schema": "H2_MCC_NATIVE_TEMPLATE_VARIANTS_V1",
+  "authority": "Complete typed original TU1.5 stem and native-program closure equality across all39 retained libraries; every fixed byte/dataref/reference/StringID accounted; logical storage dedup excluded",
+  "audit_sha256": "98b4829727c5d42c824c62b3d800f89f4f23ac6da63d51f1cec7919e10a565bb",
+  "existing_stem_instances": 211,
+  "exact_raw_variants": 199,
+  "profiles": [
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump",
+      "baseline_map": "lockout",
+      "normalized_stem_sha256": "36b0f9abed399d93f1ed41fb305b887320e2f32f05d79219f0fcb89fc89abdc7",
+      "native_program_closure_records": 22,
+      "native_shape_lod_layer_pass_impl_remap": [
+        2,
+        50,
+        8,
+        32,
+        116
+      ],
+      "variants": [
+        {
+          "payload": "08116674a432acefc29c108c2e9160fea0940e34b6092bdaa85a5b124f8699a2.bin",
+          "bytes": 1012,
+          "fnv64": "eafb602c0239ab9d",
+          "maps": [
+            "07a_highcharity"
+          ]
+        },
+        {
+          "payload": "114ec762bb811cdc3dd0cab23f1ca61ceb2af83bb7dd80ccae183ffc562c6fa6.bin",
+          "bytes": 1012,
+          "fnv64": "c64348903cd7b90d",
+          "maps": [
+            "06a_sentinelwalls"
+          ]
+        },
+        {
+          "payload": "16b8b10f4d09b40eec2543bf5c1b0bb85de278a61626fa130e819f3245d2d021.bin",
+          "bytes": 1012,
+          "fnv64": "cdd69aea7aa46f25",
+          "maps": [
+            "07b_forerunnership"
+          ]
+        },
+        {
+          "payload": "28b2e1de26fab58b2b9abc34e0407c5b41558ee335ef4ead946f56988f668630.bin",
+          "bytes": 996,
+          "fnv64": "3134691000ad3c3a",
+          "maps": [
+            "mainmenu"
+          ]
+        },
+        {
+          "payload": "2d01808a678b57f7bb2adfe6cbc33ca31a9b462c8740c877e1ada57774fe5c9e.bin",
+          "bytes": 1024,
+          "fnv64": "30d8589ff5dfe86a",
+          "maps": [
+            "04a_gasgiant"
+          ]
+        },
+        {
+          "payload": "2e786225698781c8c0ffcf5e96297dd4e2286db9bc2b51c109ee873943396501.bin",
+          "bytes": 1024,
+          "fnv64": "9bf1d3397fc29600",
+          "maps": [
+            "elongation",
+            "midship"
+          ]
+        },
+        {
+          "payload": "312bb836f532c58ffef8bfbbeff4db3e609345452f23d7235c36066b0c927ad3.bin",
+          "bytes": 996,
+          "fnv64": "34b9311935a890e2",
+          "maps": [
+            "colossus"
+          ]
+        },
+        {
+          "payload": "3a24679805901ef31fca872d3f54de69bab3a4d76a686644b1dfb9a64fde248b.bin",
+          "bytes": 996,
+          "fnv64": "3b7cbdc57a96abc8",
+          "maps": [
+            "highplains"
+          ]
+        },
+        {
+          "payload": "4172fbb587ae53d8c7d87dd18b08013bc7dfb1a0f865fe97a74f85c5f59f069c.bin",
+          "bytes": 996,
+          "fnv64": "7fa50d05798153c8",
+          "maps": [
+            "foundation"
+          ]
+        },
+        {
+          "payload": "49f0a2212639b0bd2c39b23afdb88d9142a9f1f3b4ad68f812f7e6a420a7c117.bin",
+          "bytes": 1012,
+          "fnv64": "8433adb0fd8e0e2b",
+          "maps": [
+            "backwash"
+          ]
+        },
+        {
+          "payload": "501ecf64cdcda7b1d3c1bc8b7dec8b81defe7757838f0e7766a02726e4ef2502.bin",
+          "bytes": 996,
+          "fnv64": "9757df0b4598ce50",
+          "maps": [
+            "beavercreek"
+          ]
+        },
+        {
+          "payload": "5585c242d6bf0fa3c88dd93b07e1a9b0c0a2684565ee43d85f4a231e008d31d9.bin",
+          "bytes": 1012,
+          "fnv64": "600a79c48bb16905",
+          "maps": [
+            "08b_deltacontrol"
+          ]
+        },
+        {
+          "payload": "57e3235d2f2ddd4ffc796e2bd5c174af40d7b50e460a226db9ecb505bce934af.bin",
+          "bytes": 1012,
+          "fnv64": "6f75c44596c122df",
+          "maps": [
+            "04b_floodlab"
+          ]
+        },
+        {
+          "payload": "63bbc4d71e4c910cec2d12e09cd302f51facafe53516276c024e2009308ba724.bin",
+          "bytes": 1024,
+          "fnv64": "e84c38ae23dada80",
+          "maps": [
+            "01b_spacestation"
+          ]
+        },
+        {
+          "payload": "67d1261ce2238e577e05b82fdb04e366c30cba6d4369d5439758bf520ab34d47.bin",
+          "bytes": 1012,
+          "fnv64": "7c06805b495f391d",
+          "maps": [
+            "06b_floodzone"
+          ]
+        },
+        {
+          "payload": "7abafe60462bbbe590c4e5bebafb4d956d712edf0085633c41fabc3fe3091801.bin",
+          "bytes": 996,
+          "fnv64": "9ecd2cec4c140372",
+          "maps": [
+            "00a_introduction"
+          ]
+        },
+        {
+          "payload": "7c145f0dfa486b8f1bb710b19ef70a8ffa9c560321cb1ec0447bd9c8f0e40d51.bin",
+          "bytes": 1024,
+          "fnv64": "73aab0392b73a0b0",
+          "maps": [
+            "05a_deltaapproach"
+          ]
+        },
+        {
+          "payload": "7c2694626ed040fa82dd562775b7f753a8db311deae59504b6451ed563798d8a.bin",
+          "bytes": 996,
+          "fnv64": "b7d11c53370e26a8",
+          "maps": [
+            "derelict"
+          ]
+        },
+        {
+          "payload": "93d296a12e1d99805fdc48225c72dc11f049029f39f80d69a244376317e34110.bin",
+          "bytes": 1024,
+          "fnv64": "4057fcf4a8008740",
+          "maps": [
+            "cyclotron"
+          ]
+        },
+        {
+          "payload": "9445f017b0d4134ebbcdc7c43c4f610f71cb9bc8e4802764152ee01a0696b0bd.bin",
+          "bytes": 1024,
+          "fnv64": "e237fcb053cd8460",
+          "maps": [
+            "ascension"
+          ]
+        },
+        {
+          "payload": "9f98ffd0a332afea6aee9a8a83e4c3d01fd177b4b45fdc8828bc83c55a317a3c.bin",
+          "bytes": 996,
+          "fnv64": "91aa79c513439256",
+          "maps": [
+            "01a_tutorial"
+          ]
+        },
+        {
+          "payload": "a00d1f993c751e659e3489c834afa986f0c995e20bcb95392241f8a6db224c64.bin",
+          "bytes": 1008,
+          "fnv64": "73b7b31c8b65c969",
+          "maps": [
+            "deltatap"
+          ]
+        },
+        {
+          "payload": "a11a46a63845fcc78031ce76e88c4fa414cebfc7bc61846ca628bf26a78d6b2c.bin",
+          "bytes": 1024,
+          "fnv64": "6b5a9104899b0922",
+          "maps": [
+            "triplicate"
+          ]
+        },
+        {
+          "payload": "a2b12abe79e75f104e6bf4ecd730d67d0d3d4fd54da51b9fcbf839824ccc774c.bin",
+          "bytes": 1024,
+          "fnv64": "782ad040a084bd80",
+          "maps": [
+            "containment"
+          ]
+        },
+        {
+          "payload": "b010ce9a128fdf2520f2d0070fdb80a29c887ced94ac930a9e9a006b44694d3a.bin",
+          "bytes": 1024,
+          "fnv64": "cae0422f80c457e0",
+          "maps": [
+            "03b_newmombasa"
+          ]
+        },
+        {
+          "payload": "b031416129ef84ba3e5686ec76ae10ba3488ef6a1b806f66e8876eb91ee1825a.bin",
+          "bytes": 1012,
+          "fnv64": "fa93c90bbe97ee33",
+          "maps": [
+            "gemini"
+          ]
+        },
+        {
+          "payload": "b6fbb13f98c7a18047509ce232ac00c43bccaef1aa7faae2b8a061e05a9a2070.bin",
+          "bytes": 1024,
+          "fnv64": "b45ede5c5d8b95d0",
+          "maps": [
+            "dune"
+          ]
+        },
+        {
+          "payload": "b9e56cc40f22d203e2f37fb5c742cca4684efef0ab7d6d6da9ddbe135bb716c6.bin",
+          "bytes": 1008,
+          "fnv64": "8a57903bb6292bdb",
+          "maps": [
+            "headlong"
+          ]
+        },
+        {
+          "payload": "be0798fbf46d78995b1eb57b9cda9bb76c329655dc01f4cc11aee83886ff62c5.bin",
+          "bytes": 1024,
+          "fnv64": "e662729443c91fd0",
+          "maps": [
+            "burial_mounds",
+            "waterworks",
+            "zanzibar"
+          ]
+        },
+        {
+          "payload": "c0d3b6c7a86b89d85b6078acb3819a380acaed4952d6522bd54d5f941cb00414.bin",
+          "bytes": 1024,
+          "fnv64": "73e7574d712656d0",
+          "maps": [
+            "lockout",
+            "turf"
+          ]
+        },
+        {
+          "payload": "d9ae8917410994464651b04e71a2935dffa3b0657f8f1eef87a4861ce0c4a08e.bin",
+          "bytes": 1012,
+          "fnv64": "eb9d5622192327ed",
+          "maps": [
+            "08a_deltacliffs"
+          ]
+        },
+        {
+          "payload": "db3e629e946f5c4f35a80f3f4c981fcdd54f11b89dcb77a8eb2ef7db94211cb4.bin",
+          "bytes": 1024,
+          "fnv64": "31ba799f827102b0",
+          "maps": [
+            "05b_deltatowers"
+          ]
+        },
+        {
+          "payload": "df545f80b73fb2d2db58020316840ba82dc4725f7a8b9221970202dc825c4fcc.bin",
+          "bytes": 1024,
+          "fnv64": "03541f305fa812c8",
+          "maps": [
+            "warlock"
+          ]
+        },
+        {
+          "payload": "e1aba7bf88f69ae073f9f43bae5c7877ddc0a1bdac8a89b8b8bbcb888902555d.bin",
+          "bytes": 1024,
+          "fnv64": "c865f0de09dc53d8",
+          "maps": [
+            "03a_oldmombasa"
+          ]
+        },
+        {
+          "payload": "ffd712a87067bbaf256000c637d78650ceb32d83d187da7e6e905785ccce8e39.bin",
+          "bytes": 996,
+          "fnv64": "a62911b3e5f94bc8",
+          "maps": [
+            "coagulation"
+          ]
+        }
+      ],
+      "map_evidence": [
+        {
+          "map": "00a_introduction",
+          "library_sha256": "e2647e819c9d7d21bcc30be7e83337ffc646ef60f8fa419668707f68d9d6e943",
+          "original_source_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+          "payload": "7abafe60462bbbe590c4e5bebafb4d956d712edf0085633c41fabc3fe3091801.bin"
+        },
+        {
+          "map": "01a_tutorial",
+          "library_sha256": "1153ab6a4d3b4703055d0f11ec34a148cefde0c16f7f2e8fcc8ef7c6f769b386",
+          "original_source_sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+          "payload": "9f98ffd0a332afea6aee9a8a83e4c3d01fd177b4b45fdc8828bc83c55a317a3c.bin"
+        },
+        {
+          "map": "01b_spacestation",
+          "library_sha256": "05a957a61f94d18aa8222b3e01394e38045324370f378b163c9fff65d62a9ad0",
+          "original_source_sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+          "payload": "63bbc4d71e4c910cec2d12e09cd302f51facafe53516276c024e2009308ba724.bin"
+        },
+        {
+          "map": "03a_oldmombasa",
+          "library_sha256": "6c5240f00d5e05b908378bee2bb9f3a4868d957282ccef8deb0b5d7d0376210c",
+          "original_source_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+          "payload": "e1aba7bf88f69ae073f9f43bae5c7877ddc0a1bdac8a89b8b8bbcb888902555d.bin"
+        },
+        {
+          "map": "03b_newmombasa",
+          "library_sha256": "24e72d342dd267c44719c41c72a1d134b1e0a9105a6cc997a3a622ce594d272e",
+          "original_source_sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+          "payload": "b010ce9a128fdf2520f2d0070fdb80a29c887ced94ac930a9e9a006b44694d3a.bin"
+        },
+        {
+          "map": "04a_gasgiant",
+          "library_sha256": "9bc7b68c437e4d94b70b186559521dbe2c43f6cb668781d0902664a3ca094539",
+          "original_source_sha256": "9cb7a3da993bf1314dd9b61874ea2c18636b8114f56253263d35e729a170118e",
+          "payload": "2d01808a678b57f7bb2adfe6cbc33ca31a9b462c8740c877e1ada57774fe5c9e.bin"
+        },
+        {
+          "map": "04b_floodlab",
+          "library_sha256": "77e6a3ab63bb3935648dc5ab8ffb2f166d52b0564362ae802107f84843e59473",
+          "original_source_sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+          "payload": "57e3235d2f2ddd4ffc796e2bd5c174af40d7b50e460a226db9ecb505bce934af.bin"
+        },
+        {
+          "map": "05a_deltaapproach",
+          "library_sha256": "3f82d2144216bceeb02644144cc79e4c893e98fac6d80b24acddebf532d069ef",
+          "original_source_sha256": "6b511e815ab8e4200f36df4b25f42e73c9de498e147ec8fbd0b8cfc95f0c565c",
+          "payload": "7c145f0dfa486b8f1bb710b19ef70a8ffa9c560321cb1ec0447bd9c8f0e40d51.bin"
+        },
+        {
+          "map": "05b_deltatowers",
+          "library_sha256": "a96fa168f6476cc41a8d10760ca63a46bcaff9fb2d816f622948ac1d6b3c45ed",
+          "original_source_sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+          "payload": "db3e629e946f5c4f35a80f3f4c981fcdd54f11b89dcb77a8eb2ef7db94211cb4.bin"
+        },
+        {
+          "map": "06a_sentinelwalls",
+          "library_sha256": "effaad2c23cd49f8e8b7772208992ef06195f98cd19357b3ef433bcbcb057824",
+          "original_source_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+          "payload": "114ec762bb811cdc3dd0cab23f1ca61ceb2af83bb7dd80ccae183ffc562c6fa6.bin"
+        },
+        {
+          "map": "06b_floodzone",
+          "library_sha256": "404239de93a1fa6f4131458a44089cd04fb7bc733266a99381bb639dd3d9f951",
+          "original_source_sha256": "f96ccf1ed35a0c6fbef5dd2d51d46a8a4d64468cd79281b7f3339c31b1b4abea",
+          "payload": "67d1261ce2238e577e05b82fdb04e366c30cba6d4369d5439758bf520ab34d47.bin"
+        },
+        {
+          "map": "07a_highcharity",
+          "library_sha256": "0e39d7bf58e66fa5a4cb2a5e45bdad8c4b27180b56da6c23a20a4f589246b807",
+          "original_source_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+          "payload": "08116674a432acefc29c108c2e9160fea0940e34b6092bdaa85a5b124f8699a2.bin"
+        },
+        {
+          "map": "07b_forerunnership",
+          "library_sha256": "6b046e6e0f1f0f546e49e222111835ed2d8602a424ad3697f9568938396a3c7a",
+          "original_source_sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+          "payload": "16b8b10f4d09b40eec2543bf5c1b0bb85de278a61626fa130e819f3245d2d021.bin"
+        },
+        {
+          "map": "08a_deltacliffs",
+          "library_sha256": "b746348a15a92b2f6a227c1b45639632fa2991d02f8018439e394dbcffc46b19",
+          "original_source_sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+          "payload": "d9ae8917410994464651b04e71a2935dffa3b0657f8f1eef87a4861ce0c4a08e.bin"
+        },
+        {
+          "map": "08b_deltacontrol",
+          "library_sha256": "96572aed76e483d792b74242ab6073974f32aca47b9f06d88f7ed70ec7881a6e",
+          "original_source_sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+          "payload": "5585c242d6bf0fa3c88dd93b07e1a9b0c0a2684565ee43d85f4a231e008d31d9.bin"
+        },
+        {
+          "map": "ascension",
+          "library_sha256": "4ffc67e446be672455978f190e447a89f006c2b65b4cf0b344b4b1b45c13c7a3",
+          "original_source_sha256": "84d3164df56ca6ee7de073bd540f24ef6a2e9d2508f143bd94970d66ec5c0bfe",
+          "payload": "9445f017b0d4134ebbcdc7c43c4f610f71cb9bc8e4802764152ee01a0696b0bd.bin"
+        },
+        {
+          "map": "backwash",
+          "library_sha256": "f9467e6c54424693a0b6dd97734ced8dad27bcac75aa76e56c7ae2ce6fef0a02",
+          "original_source_sha256": "5b0b3b77ad7c010d08581430804daab25edd2a94df73ebd5d940a2e88ef63582",
+          "payload": "49f0a2212639b0bd2c39b23afdb88d9142a9f1f3b4ad68f812f7e6a420a7c117.bin"
+        },
+        {
+          "map": "beavercreek",
+          "library_sha256": "32457475ac10107ebe50ff9749c64773ad818ac7d77835351721066c871a6527",
+          "original_source_sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+          "payload": "501ecf64cdcda7b1d3c1bc8b7dec8b81defe7757838f0e7766a02726e4ef2502.bin"
+        },
+        {
+          "map": "burial_mounds",
+          "library_sha256": "8ba418796ac1b8c1398eb7a2cbb6a272ad825596b080d2485a26a18a09df9422",
+          "original_source_sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+          "payload": "be0798fbf46d78995b1eb57b9cda9bb76c329655dc01f4cc11aee83886ff62c5.bin"
+        },
+        {
+          "map": "coagulation",
+          "library_sha256": "350aca23945d490f9394adf785389e68d202b276b2f94e4a467cb7c188c0a900",
+          "original_source_sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+          "payload": "ffd712a87067bbaf256000c637d78650ceb32d83d187da7e6e905785ccce8e39.bin"
+        },
+        {
+          "map": "colossus",
+          "library_sha256": "ee470878cc450c51c177080ad2558d65e1243510ef89a86917620f7d972cae9e",
+          "original_source_sha256": "f1f9b6de456c43989201331f594e42f717095af51cb9762c0b420e21f9a5f982",
+          "payload": "312bb836f532c58ffef8bfbbeff4db3e609345452f23d7235c36066b0c927ad3.bin"
+        },
+        {
+          "map": "containment",
+          "library_sha256": "50100488d82701a233c8b26bd550f452c919e49d7d26083dc4dab90c96a7b48b",
+          "original_source_sha256": "e65de92bb58b7b2bae2979759d4cd6386d58c96f468cd06b0a4558c0bd1cd915",
+          "payload": "a2b12abe79e75f104e6bf4ecd730d67d0d3d4fd54da51b9fcbf839824ccc774c.bin"
+        },
+        {
+          "map": "cyclotron",
+          "library_sha256": "c9e1fe6d67a601e7a4f560199768dd8f28e8ac29caba4199834460e23a86853b",
+          "original_source_sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+          "payload": "93d296a12e1d99805fdc48225c72dc11f049029f39f80d69a244376317e34110.bin"
+        },
+        {
+          "map": "deltatap",
+          "library_sha256": "f5da5a8fb9f5016eabdc0b1434256e1e80239d4c8af674bdfcc09d00dec41646",
+          "original_source_sha256": "adab707164195d10299be971f2096411c5862486abd89b669a7b1783f57a011c",
+          "payload": "a00d1f993c751e659e3489c834afa986f0c995e20bcb95392241f8a6db224c64.bin"
+        },
+        {
+          "map": "derelict",
+          "library_sha256": "dd95a1410b498e94ee89b1763633f23e5a1f23343d8379eff1ba59fb3d79f386",
+          "original_source_sha256": "85c9d98556a0cd8dd6bcce94992425518f8a5753c0adb0c353fddf83696f7efd",
+          "payload": "7c2694626ed040fa82dd562775b7f753a8db311deae59504b6451ed563798d8a.bin"
+        },
+        {
+          "map": "dune",
+          "library_sha256": "17ba90e8f16aff4f35969012cefeba89e25f6b0a92c3ed1ced9e2ab7a12961db",
+          "original_source_sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+          "payload": "b6fbb13f98c7a18047509ce232ac00c43bccaef1aa7faae2b8a061e05a9a2070.bin"
+        },
+        {
+          "map": "elongation",
+          "library_sha256": "33fb65f1f394a975a55d0f9e919004520a0f51a6065c97031bc3cde816eb7a7b",
+          "original_source_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+          "payload": "2e786225698781c8c0ffcf5e96297dd4e2286db9bc2b51c109ee873943396501.bin"
+        },
+        {
+          "map": "foundation",
+          "library_sha256": "c4fb4026c63b71fe03093af276f089bce338b32abd3a5871500c21925118afe9",
+          "original_source_sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+          "payload": "4172fbb587ae53d8c7d87dd18b08013bc7dfb1a0f865fe97a74f85c5f59f069c.bin"
+        },
+        {
+          "map": "gemini",
+          "library_sha256": "0ba62ed1ff6c6475a870fce0583c7dd538b132e8239bcc21cb82f4b4f46fb81b",
+          "original_source_sha256": "220b42701086a24fc0660041439a72337a3bb7b848d424a4da53ad9e15704095",
+          "payload": "b031416129ef84ba3e5686ec76ae10ba3488ef6a1b806f66e8876eb91ee1825a.bin"
+        },
+        {
+          "map": "headlong",
+          "library_sha256": "c9628ee0c09fa963d079eb0e74c0ec1d403fa6e3e64959709fff196e2b7c5944",
+          "original_source_sha256": "f459e179138ef954298dc52c43e5d400fe89efca44e7eaae1691315a3fad7748",
+          "payload": "b9e56cc40f22d203e2f37fb5c742cca4684efef0ab7d6d6da9ddbe135bb716c6.bin"
+        },
+        {
+          "map": "highplains",
+          "library_sha256": "547349db062d9618718251b8a11d10a8382a6d53b6a4200f25e71fe0ce186c29",
+          "original_source_sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+          "payload": "3a24679805901ef31fca872d3f54de69bab3a4d76a686644b1dfb9a64fde248b.bin"
+        },
+        {
+          "map": "lockout",
+          "library_sha256": "8e8f2465003bd286344df5f49f47260a615afd221569b0f8259c345df4176000",
+          "original_source_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+          "payload": "c0d3b6c7a86b89d85b6078acb3819a380acaed4952d6522bd54d5f941cb00414.bin"
+        },
+        {
+          "map": "mainmenu",
+          "library_sha256": "aaff5f02fc98e779359d61f714578d3457a4c5b305060c3f2d97991d9d7a3093",
+          "original_source_sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+          "payload": "28b2e1de26fab58b2b9abc34e0407c5b41558ee335ef4ead946f56988f668630.bin"
+        },
+        {
+          "map": "midship",
+          "library_sha256": "aaae4882050ba2b4f9252d9fddb534a1756aa4f93073606e2072b1c462ab908d",
+          "original_source_sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+          "payload": "2e786225698781c8c0ffcf5e96297dd4e2286db9bc2b51c109ee873943396501.bin"
+        },
+        {
+          "map": "triplicate",
+          "library_sha256": "e19600f21dc79c38aa5590fbd42dbb61a448e7ab21ffa51c772452cd0b585a03",
+          "original_source_sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+          "payload": "a11a46a63845fcc78031ce76e88c4fa414cebfc7bc61846ca628bf26a78d6b2c.bin"
+        },
+        {
+          "map": "turf",
+          "library_sha256": "b7469c3ec380acf86393996787a0d7b0ae07c3a991b11f6c3d5760d50298f1b3",
+          "original_source_sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+          "payload": "c0d3b6c7a86b89d85b6078acb3819a380acaed4952d6522bd54d5f941cb00414.bin"
+        },
+        {
+          "map": "warlock",
+          "library_sha256": "ca381418f68b94134879d0cbae648c95b2161402b8c86e4b2a982b7ac7c59c39",
+          "original_source_sha256": "980bb3b26a00848c420488f5edf11626a789e5b5bc5134722142c7b9730aa65a",
+          "payload": "df545f80b73fb2d2db58020316840ba82dc4725f7a8b9221970202dc825c4fcc.bin"
+        },
+        {
+          "map": "waterworks",
+          "library_sha256": "abf49ef8eb85e9702d84c6017ad8d795b43ff5fe3d8a264618516fac228adf1d",
+          "original_source_sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+          "payload": "be0798fbf46d78995b1eb57b9cda9bb76c329655dc01f4cc11aee83886ff62c5.bin"
+        },
+        {
+          "map": "zanzibar",
+          "library_sha256": "c29203fd3a95a89303835449632b7d3dcc1a11a8e39dcc28e5299b257475e642",
+          "original_source_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+          "payload": "be0798fbf46d78995b1eb57b9cda9bb76c329655dc01f4cc11aee83886ff62c5.bin"
+        }
+      ]
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_active_camo",
+      "baseline_map": "lockout",
+      "normalized_stem_sha256": "21e49c416fc35976f928edd62702597eb52c61357106dc9461c6b47c9fbf369a",
+      "native_program_closure_records": 22,
+      "native_shape_lod_layer_pass_impl_remap": [
+        2,
+        50,
+        8,
+        32,
+        116
+      ],
+      "variants": [
+        {
+          "payload": "0a2e8aef316a71b2c557ddfc393329f9ab9ce1ef1fc618c5b5fa0a8193ba1aaf.bin",
+          "bytes": 1008,
+          "fnv64": "66caf5b059d6b292",
+          "maps": [
+            "containment"
+          ]
+        },
+        {
+          "payload": "0cbe4b344633867aeca7bb65daa1c02755b70b26277e2e7b96eb7719bf92abb2.bin",
+          "bytes": 1008,
+          "fnv64": "e2905c0b8daeb1e2",
+          "maps": [
+            "burial_mounds",
+            "waterworks",
+            "zanzibar"
+          ]
+        },
+        {
+          "payload": "0fd4bd0a2411db846e00149980565135571c7b82ed8e3eac782a84a0a35e7af3.bin",
+          "bytes": 1008,
+          "fnv64": "d906a43d71319612",
+          "maps": [
+            "01b_spacestation"
+          ]
+        },
+        {
+          "payload": "14d007d7cf6503a7a84d76b4cbea787d8659893cc91bb1ba5f3e1eb747870673.bin",
+          "bytes": 1008,
+          "fnv64": "e223be1bd7b6ea5d",
+          "maps": [
+            "headlong"
+          ]
+        },
+        {
+          "payload": "1a6c41be8d96bcea9088618f4e0a0d9eb8c3ee2980911057a59a4601093940c1.bin",
+          "bytes": 1008,
+          "fnv64": "3490d46617db5a9d",
+          "maps": [
+            "foundation"
+          ]
+        },
+        {
+          "payload": "1d33f723640ed3e22c339221ef4d15030a786d0ee0408bb32ff7e93e3b0d339b.bin",
+          "bytes": 1008,
+          "fnv64": "a32e967d8c72385d",
+          "maps": [
+            "07b_forerunnership"
+          ]
+        },
+        {
+          "payload": "1fd75086b39b0696dd1b9d5e6bf76eece653ccbafa5f75eb9fc217b622c83291.bin",
+          "bytes": 1008,
+          "fnv64": "5799900d67c3cf72",
+          "maps": [
+            "03b_newmombasa"
+          ]
+        },
+        {
+          "payload": "304bf62d4c84e9020120483ae727cb6467a79c5d3a9bef15edb72545a5a59833.bin",
+          "bytes": 1008,
+          "fnv64": "53fa465010137695",
+          "maps": [
+            "beavercreek"
+          ]
+        },
+        {
+          "payload": "332f75cf870af091cc10b0e118ed384aeef8ad0719c09c95486edb4ba453599e.bin",
+          "bytes": 1008,
+          "fnv64": "3e4f808e06daa35d",
+          "maps": [
+            "06a_sentinelwalls"
+          ]
+        },
+        {
+          "payload": "3948bee72c3734bb65c4350d60232e05457365c02b96d50b141ca0eff089b61f.bin",
+          "bytes": 1008,
+          "fnv64": "72204c05f709e023",
+          "maps": [
+            "01a_tutorial"
+          ]
+        },
+        {
+          "payload": "4ad8ea416cd74f90327e10cd34645ee67372cf3b6297e64ce9ceb4df5af9e33d.bin",
+          "bytes": 1008,
+          "fnv64": "5aeac2a32887d13f",
+          "maps": [
+            "00a_introduction"
+          ]
+        },
+        {
+          "payload": "53bbef24e444c4388752b6c3810ba8cd017b69025a640c9399fda32fe6284a01.bin",
+          "bytes": 1008,
+          "fnv64": "458930ea02f91412",
+          "maps": [
+            "cyclotron"
+          ]
+        },
+        {
+          "payload": "5b74f4df1b76e7151acd32e8e448052065181a170a0f1a4a034180b32f3507e9.bin",
+          "bytes": 1008,
+          "fnv64": "39ea07de475ed623",
+          "maps": [
+            "backwash"
+          ]
+        },
+        {
+          "payload": "65d5ff7f13eabae58517dccb9aceb81a672e9fdde5fa8543a146772baefb4c70.bin",
+          "bytes": 1008,
+          "fnv64": "f01548226a9c4327",
+          "maps": [
+            "triplicate"
+          ]
+        },
+        {
+          "payload": "7799f93298438a571c25cc7d496949440f04d83b26b1cd5254678db945783108.bin",
+          "bytes": 1008,
+          "fnv64": "2c94508aee95c29d",
+          "maps": [
+            "derelict"
+          ]
+        },
+        {
+          "payload": "7e5ff38ae84e4bb35c96200580b6481be5e0c64c4e9294cdb79ef47041195fe5.bin",
+          "bytes": 1008,
+          "fnv64": "08702fbb64208342",
+          "maps": [
+            "05a_deltaapproach"
+          ]
+        },
+        {
+          "payload": "82fb1da1603d28cdae4572e0384e512cc56ea2e0bb8a38e475c52e39a563a5d1.bin",
+          "bytes": 1008,
+          "fnv64": "dd0d36e050684942",
+          "maps": [
+            "05b_deltatowers"
+          ]
+        },
+        {
+          "payload": "86a4e87596994bb6b3f6fa62c16aed5d2f30f346a23ccbf497537bcf52f0be00.bin",
+          "bytes": 1008,
+          "fnv64": "8d96a63b5f940092",
+          "maps": [
+            "elongation",
+            "midship"
+          ]
+        },
+        {
+          "payload": "8fdddd378d91d19273bc683b3899dfa54d3e3625b6e7c79e68c35516ba48a245.bin",
+          "bytes": 1008,
+          "fnv64": "03a3fb1502ba24d5",
+          "maps": [
+            "06b_floodzone"
+          ]
+        },
+        {
+          "payload": "985c7aff057ca1fd9babf75361c110cd8361c66c06c1e6f9735b9a66a1baa63f.bin",
+          "bytes": 1008,
+          "fnv64": "81684970a28cd215",
+          "maps": [
+            "07a_highcharity"
+          ]
+        },
+        {
+          "payload": "99cc95cb2a7e67f6b2f62dc5d54a5a632ab04835f3e32b11d755e093e412728b.bin",
+          "bytes": 1008,
+          "fnv64": "2e1b6b9cf0c4534a",
+          "maps": [
+            "03a_oldmombasa"
+          ]
+        },
+        {
+          "payload": "9cbb078030ad688234e8df121e3a399eef5f9823da0e868a9a7063199eabb758.bin",
+          "bytes": 1008,
+          "fnv64": "dd5dc18322b902d7",
+          "maps": [
+            "colossus"
+          ]
+        },
+        {
+          "payload": "9cc071acc2214d178440520c1d4d5bde55fdfbdb860644f55dd50ba8e6f946de.bin",
+          "bytes": 1008,
+          "fnv64": "cc99b83d4f4840e2",
+          "maps": [
+            "dune"
+          ]
+        },
+        {
+          "payload": "adae15357cb73fc3757eb833a27fbe45f90490134605dadb95ec647d4a501f3b.bin",
+          "bytes": 1008,
+          "fnv64": "92a1b8f1d8923727",
+          "maps": [
+            "deltatap"
+          ]
+        },
+        {
+          "payload": "b68f410dd4682c0d830ddb94bc76353c780f0fc367d779fe385add277da867f1.bin",
+          "bytes": 1008,
+          "fnv64": "c5888002f8c244ef",
+          "maps": [
+            "mainmenu"
+          ]
+        },
+        {
+          "payload": "c94dfefd08d9a0db13faceafea0f63a6639234d60e0d0161aca3ce10d6408d48.bin",
+          "bytes": 1008,
+          "fnv64": "b3069ed2d49c0522",
+          "maps": [
+            "lockout",
+            "turf"
+          ]
+        },
+        {
+          "payload": "ca939238ea4591aa642783aaa2061cd6256bf409920ce97ae6685e7959ae52d3.bin",
+          "bytes": 1008,
+          "fnv64": "7d912ae7abf7437f",
+          "maps": [
+            "04a_gasgiant"
+          ]
+        },
+        {
+          "payload": "cf08fb5489f31f2732db1c517f589d6a3a8890adbfee6abc1139f4dd73d76127.bin",
+          "bytes": 1008,
+          "fnv64": "d4449edcacbffd72",
+          "maps": [
+            "ascension"
+          ]
+        },
+        {
+          "payload": "d321d5afddcf188cfa68ad3398ed67afb05c1424921a42472ba144add43abd86.bin",
+          "bytes": 1008,
+          "fnv64": "e76d73df5012e885",
+          "maps": [
+            "highplains"
+          ]
+        },
+        {
+          "payload": "db488c037026606228934f44f72b34e2b490a85d961c91e4fa46abc8ea383443.bin",
+          "bytes": 1008,
+          "fnv64": "fb9da09dc3565e8b",
+          "maps": [
+            "gemini"
+          ]
+        },
+        {
+          "payload": "e743cee72e2d85252f8d265aad2a7a55240168d0fe0480c0d3d75e63f1c8adc0.bin",
+          "bytes": 1008,
+          "fnv64": "5d5487b50de1b43a",
+          "maps": [
+            "warlock"
+          ]
+        },
+        {
+          "payload": "ec244220525a763fc792c51a5e5eef8f55bfad786cee9e08726fef37090c4292.bin",
+          "bytes": 1008,
+          "fnv64": "5c50fbd57bacd0ed",
+          "maps": [
+            "08a_deltacliffs"
+          ]
+        },
+        {
+          "payload": "f8200a19b3acd9d05ada9c068b5a547c1d6e3765ac0814ee740ff329e269845c.bin",
+          "bytes": 1008,
+          "fnv64": "3d4c92adad31881d",
+          "maps": [
+            "coagulation"
+          ]
+        }
+      ],
+      "map_evidence": [
+        {
+          "map": "00a_introduction",
+          "library_sha256": "e2647e819c9d7d21bcc30be7e83337ffc646ef60f8fa419668707f68d9d6e943",
+          "original_source_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+          "payload": "4ad8ea416cd74f90327e10cd34645ee67372cf3b6297e64ce9ceb4df5af9e33d.bin"
+        },
+        {
+          "map": "01a_tutorial",
+          "library_sha256": "1153ab6a4d3b4703055d0f11ec34a148cefde0c16f7f2e8fcc8ef7c6f769b386",
+          "original_source_sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+          "payload": "3948bee72c3734bb65c4350d60232e05457365c02b96d50b141ca0eff089b61f.bin"
+        },
+        {
+          "map": "01b_spacestation",
+          "library_sha256": "05a957a61f94d18aa8222b3e01394e38045324370f378b163c9fff65d62a9ad0",
+          "original_source_sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+          "payload": "0fd4bd0a2411db846e00149980565135571c7b82ed8e3eac782a84a0a35e7af3.bin"
+        },
+        {
+          "map": "03a_oldmombasa",
+          "library_sha256": "6c5240f00d5e05b908378bee2bb9f3a4868d957282ccef8deb0b5d7d0376210c",
+          "original_source_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+          "payload": "99cc95cb2a7e67f6b2f62dc5d54a5a632ab04835f3e32b11d755e093e412728b.bin"
+        },
+        {
+          "map": "03b_newmombasa",
+          "library_sha256": "24e72d342dd267c44719c41c72a1d134b1e0a9105a6cc997a3a622ce594d272e",
+          "original_source_sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+          "payload": "1fd75086b39b0696dd1b9d5e6bf76eece653ccbafa5f75eb9fc217b622c83291.bin"
+        },
+        {
+          "map": "04a_gasgiant",
+          "library_sha256": "9bc7b68c437e4d94b70b186559521dbe2c43f6cb668781d0902664a3ca094539",
+          "original_source_sha256": "9cb7a3da993bf1314dd9b61874ea2c18636b8114f56253263d35e729a170118e",
+          "payload": "ca939238ea4591aa642783aaa2061cd6256bf409920ce97ae6685e7959ae52d3.bin"
+        },
+        {
+          "map": "05a_deltaapproach",
+          "library_sha256": "3f82d2144216bceeb02644144cc79e4c893e98fac6d80b24acddebf532d069ef",
+          "original_source_sha256": "6b511e815ab8e4200f36df4b25f42e73c9de498e147ec8fbd0b8cfc95f0c565c",
+          "payload": "7e5ff38ae84e4bb35c96200580b6481be5e0c64c4e9294cdb79ef47041195fe5.bin"
+        },
+        {
+          "map": "05b_deltatowers",
+          "library_sha256": "a96fa168f6476cc41a8d10760ca63a46bcaff9fb2d816f622948ac1d6b3c45ed",
+          "original_source_sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+          "payload": "82fb1da1603d28cdae4572e0384e512cc56ea2e0bb8a38e475c52e39a563a5d1.bin"
+        },
+        {
+          "map": "06a_sentinelwalls",
+          "library_sha256": "effaad2c23cd49f8e8b7772208992ef06195f98cd19357b3ef433bcbcb057824",
+          "original_source_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+          "payload": "332f75cf870af091cc10b0e118ed384aeef8ad0719c09c95486edb4ba453599e.bin"
+        },
+        {
+          "map": "06b_floodzone",
+          "library_sha256": "404239de93a1fa6f4131458a44089cd04fb7bc733266a99381bb639dd3d9f951",
+          "original_source_sha256": "f96ccf1ed35a0c6fbef5dd2d51d46a8a4d64468cd79281b7f3339c31b1b4abea",
+          "payload": "8fdddd378d91d19273bc683b3899dfa54d3e3625b6e7c79e68c35516ba48a245.bin"
+        },
+        {
+          "map": "07a_highcharity",
+          "library_sha256": "0e39d7bf58e66fa5a4cb2a5e45bdad8c4b27180b56da6c23a20a4f589246b807",
+          "original_source_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+          "payload": "985c7aff057ca1fd9babf75361c110cd8361c66c06c1e6f9735b9a66a1baa63f.bin"
+        },
+        {
+          "map": "07b_forerunnership",
+          "library_sha256": "6b046e6e0f1f0f546e49e222111835ed2d8602a424ad3697f9568938396a3c7a",
+          "original_source_sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+          "payload": "1d33f723640ed3e22c339221ef4d15030a786d0ee0408bb32ff7e93e3b0d339b.bin"
+        },
+        {
+          "map": "08a_deltacliffs",
+          "library_sha256": "b746348a15a92b2f6a227c1b45639632fa2991d02f8018439e394dbcffc46b19",
+          "original_source_sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+          "payload": "ec244220525a763fc792c51a5e5eef8f55bfad786cee9e08726fef37090c4292.bin"
+        },
+        {
+          "map": "ascension",
+          "library_sha256": "4ffc67e446be672455978f190e447a89f006c2b65b4cf0b344b4b1b45c13c7a3",
+          "original_source_sha256": "84d3164df56ca6ee7de073bd540f24ef6a2e9d2508f143bd94970d66ec5c0bfe",
+          "payload": "cf08fb5489f31f2732db1c517f589d6a3a8890adbfee6abc1139f4dd73d76127.bin"
+        },
+        {
+          "map": "backwash",
+          "library_sha256": "f9467e6c54424693a0b6dd97734ced8dad27bcac75aa76e56c7ae2ce6fef0a02",
+          "original_source_sha256": "5b0b3b77ad7c010d08581430804daab25edd2a94df73ebd5d940a2e88ef63582",
+          "payload": "5b74f4df1b76e7151acd32e8e448052065181a170a0f1a4a034180b32f3507e9.bin"
+        },
+        {
+          "map": "beavercreek",
+          "library_sha256": "32457475ac10107ebe50ff9749c64773ad818ac7d77835351721066c871a6527",
+          "original_source_sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+          "payload": "304bf62d4c84e9020120483ae727cb6467a79c5d3a9bef15edb72545a5a59833.bin"
+        },
+        {
+          "map": "burial_mounds",
+          "library_sha256": "8ba418796ac1b8c1398eb7a2cbb6a272ad825596b080d2485a26a18a09df9422",
+          "original_source_sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+          "payload": "0cbe4b344633867aeca7bb65daa1c02755b70b26277e2e7b96eb7719bf92abb2.bin"
+        },
+        {
+          "map": "coagulation",
+          "library_sha256": "350aca23945d490f9394adf785389e68d202b276b2f94e4a467cb7c188c0a900",
+          "original_source_sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+          "payload": "f8200a19b3acd9d05ada9c068b5a547c1d6e3765ac0814ee740ff329e269845c.bin"
+        },
+        {
+          "map": "colossus",
+          "library_sha256": "ee470878cc450c51c177080ad2558d65e1243510ef89a86917620f7d972cae9e",
+          "original_source_sha256": "f1f9b6de456c43989201331f594e42f717095af51cb9762c0b420e21f9a5f982",
+          "payload": "9cbb078030ad688234e8df121e3a399eef5f9823da0e868a9a7063199eabb758.bin"
+        },
+        {
+          "map": "containment",
+          "library_sha256": "50100488d82701a233c8b26bd550f452c919e49d7d26083dc4dab90c96a7b48b",
+          "original_source_sha256": "e65de92bb58b7b2bae2979759d4cd6386d58c96f468cd06b0a4558c0bd1cd915",
+          "payload": "0a2e8aef316a71b2c557ddfc393329f9ab9ce1ef1fc618c5b5fa0a8193ba1aaf.bin"
+        },
+        {
+          "map": "cyclotron",
+          "library_sha256": "c9e1fe6d67a601e7a4f560199768dd8f28e8ac29caba4199834460e23a86853b",
+          "original_source_sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+          "payload": "53bbef24e444c4388752b6c3810ba8cd017b69025a640c9399fda32fe6284a01.bin"
+        },
+        {
+          "map": "deltatap",
+          "library_sha256": "f5da5a8fb9f5016eabdc0b1434256e1e80239d4c8af674bdfcc09d00dec41646",
+          "original_source_sha256": "adab707164195d10299be971f2096411c5862486abd89b669a7b1783f57a011c",
+          "payload": "adae15357cb73fc3757eb833a27fbe45f90490134605dadb95ec647d4a501f3b.bin"
+        },
+        {
+          "map": "derelict",
+          "library_sha256": "dd95a1410b498e94ee89b1763633f23e5a1f23343d8379eff1ba59fb3d79f386",
+          "original_source_sha256": "85c9d98556a0cd8dd6bcce94992425518f8a5753c0adb0c353fddf83696f7efd",
+          "payload": "7799f93298438a571c25cc7d496949440f04d83b26b1cd5254678db945783108.bin"
+        },
+        {
+          "map": "dune",
+          "library_sha256": "17ba90e8f16aff4f35969012cefeba89e25f6b0a92c3ed1ced9e2ab7a12961db",
+          "original_source_sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+          "payload": "9cc071acc2214d178440520c1d4d5bde55fdfbdb860644f55dd50ba8e6f946de.bin"
+        },
+        {
+          "map": "elongation",
+          "library_sha256": "33fb65f1f394a975a55d0f9e919004520a0f51a6065c97031bc3cde816eb7a7b",
+          "original_source_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+          "payload": "86a4e87596994bb6b3f6fa62c16aed5d2f30f346a23ccbf497537bcf52f0be00.bin"
+        },
+        {
+          "map": "foundation",
+          "library_sha256": "c4fb4026c63b71fe03093af276f089bce338b32abd3a5871500c21925118afe9",
+          "original_source_sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+          "payload": "1a6c41be8d96bcea9088618f4e0a0d9eb8c3ee2980911057a59a4601093940c1.bin"
+        },
+        {
+          "map": "gemini",
+          "library_sha256": "0ba62ed1ff6c6475a870fce0583c7dd538b132e8239bcc21cb82f4b4f46fb81b",
+          "original_source_sha256": "220b42701086a24fc0660041439a72337a3bb7b848d424a4da53ad9e15704095",
+          "payload": "db488c037026606228934f44f72b34e2b490a85d961c91e4fa46abc8ea383443.bin"
+        },
+        {
+          "map": "headlong",
+          "library_sha256": "c9628ee0c09fa963d079eb0e74c0ec1d403fa6e3e64959709fff196e2b7c5944",
+          "original_source_sha256": "f459e179138ef954298dc52c43e5d400fe89efca44e7eaae1691315a3fad7748",
+          "payload": "14d007d7cf6503a7a84d76b4cbea787d8659893cc91bb1ba5f3e1eb747870673.bin"
+        },
+        {
+          "map": "highplains",
+          "library_sha256": "547349db062d9618718251b8a11d10a8382a6d53b6a4200f25e71fe0ce186c29",
+          "original_source_sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+          "payload": "d321d5afddcf188cfa68ad3398ed67afb05c1424921a42472ba144add43abd86.bin"
+        },
+        {
+          "map": "lockout",
+          "library_sha256": "8e8f2465003bd286344df5f49f47260a615afd221569b0f8259c345df4176000",
+          "original_source_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+          "payload": "c94dfefd08d9a0db13faceafea0f63a6639234d60e0d0161aca3ce10d6408d48.bin"
+        },
+        {
+          "map": "mainmenu",
+          "library_sha256": "aaff5f02fc98e779359d61f714578d3457a4c5b305060c3f2d97991d9d7a3093",
+          "original_source_sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+          "payload": "b68f410dd4682c0d830ddb94bc76353c780f0fc367d779fe385add277da867f1.bin"
+        },
+        {
+          "map": "midship",
+          "library_sha256": "aaae4882050ba2b4f9252d9fddb534a1756aa4f93073606e2072b1c462ab908d",
+          "original_source_sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+          "payload": "86a4e87596994bb6b3f6fa62c16aed5d2f30f346a23ccbf497537bcf52f0be00.bin"
+        },
+        {
+          "map": "triplicate",
+          "library_sha256": "e19600f21dc79c38aa5590fbd42dbb61a448e7ab21ffa51c772452cd0b585a03",
+          "original_source_sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+          "payload": "65d5ff7f13eabae58517dccb9aceb81a672e9fdde5fa8543a146772baefb4c70.bin"
+        },
+        {
+          "map": "turf",
+          "library_sha256": "b7469c3ec380acf86393996787a0d7b0ae07c3a991b11f6c3d5760d50298f1b3",
+          "original_source_sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+          "payload": "c94dfefd08d9a0db13faceafea0f63a6639234d60e0d0161aca3ce10d6408d48.bin"
+        },
+        {
+          "map": "warlock",
+          "library_sha256": "ca381418f68b94134879d0cbae648c95b2161402b8c86e4b2a982b7ac7c59c39",
+          "original_source_sha256": "980bb3b26a00848c420488f5edf11626a789e5b5bc5134722142c7b9730aa65a",
+          "payload": "e743cee72e2d85252f8d265aad2a7a55240168d0fe0480c0d3d75e63f1c8adc0.bin"
+        },
+        {
+          "map": "waterworks",
+          "library_sha256": "abf49ef8eb85e9702d84c6017ad8d795b43ff5fe3d8a264618516fac228adf1d",
+          "original_source_sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+          "payload": "0cbe4b344633867aeca7bb65daa1c02755b70b26277e2e7b96eb7719bf92abb2.bin"
+        },
+        {
+          "map": "zanzibar",
+          "library_sha256": "c29203fd3a95a89303835449632b7d3dcc1a11a8e39dcc28e5299b257475e642",
+          "original_source_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+          "payload": "0cbe4b344633867aeca7bb65daa1c02755b70b26277e2e7b96eb7719bf92abb2.bin"
+        }
+      ]
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_dprs_env",
+      "baseline_map": "lockout",
+      "normalized_stem_sha256": "2ebc32c6e4e762d8ddf23e7597b2ce498bd260892fe9f7fbb4d35cd390b5e911",
+      "native_program_closure_records": 26,
+      "native_shape_lod_layer_pass_impl_remap": [
+        2,
+        50,
+        12,
+        40,
+        168
+      ],
+      "variants": [
+        {
+          "payload": "0038cbcc448e992c5f560da5f3b70f1d95adb0a5225b24f61153e49dbbc4a259.bin",
+          "bytes": 1300,
+          "fnv64": "ab53dd0b633e9fa0",
+          "maps": [
+            "colossus"
+          ]
+        },
+        {
+          "payload": "027d130c5417792a9ffe213597660188774241ab8dcf18306ca8795396eb50c4.bin",
+          "bytes": 1300,
+          "fnv64": "a494512c0d2b7280",
+          "maps": [
+            "07b_forerunnership"
+          ]
+        },
+        {
+          "payload": "059f88d513bcc1b3902e6da3e1d30351852cea83286ff1c45014c4f7e49e0ea5.bin",
+          "bytes": 1300,
+          "fnv64": "d8ce100c235d0834",
+          "maps": [
+            "01a_tutorial"
+          ]
+        },
+        {
+          "payload": "081a517df6b582a9848328549e0542164de91a3c883ec331757fa90f6872ea22.bin",
+          "bytes": 1300,
+          "fnv64": "48032a25f163a065",
+          "maps": [
+            "01b_spacestation"
+          ]
+        },
+        {
+          "payload": "12131d931568a8578e25f3aaa3867203dc14a58c1e3869d5ac3f03d975e75c1d.bin",
+          "bytes": 1300,
+          "fnv64": "68c05dfc97e8b6d8",
+          "maps": [
+            "containment"
+          ]
+        },
+        {
+          "payload": "1768e0f3db32e1511f5c8161f8f1e75ac6e75f27f4beed1bf5bb428afb83be98.bin",
+          "bytes": 1300,
+          "fnv64": "af038fa94815a790",
+          "maps": [
+            "zanzibar"
+          ]
+        },
+        {
+          "payload": "1e2a0e48cd489c906c8069f9fa38b1f422be994171885a3a627630eb121a9934.bin",
+          "bytes": 1300,
+          "fnv64": "ff10506f977ade38",
+          "maps": [
+            "derelict"
+          ]
+        },
+        {
+          "payload": "2568d2f0ee5d4162957803a388af1c7326ddfca969cbb14b8e3fbe12fc34a3d9.bin",
+          "bytes": 1300,
+          "fnv64": "e4a9070905d683dc",
+          "maps": [
+            "gemini"
+          ]
+        },
+        {
+          "payload": "2bb61dbd82b5b085318184c9652db32a43e3b69687248153fb3dd8c6606a5277.bin",
+          "bytes": 1300,
+          "fnv64": "a139260d8a156c4c",
+          "maps": [
+            "07a_highcharity"
+          ]
+        },
+        {
+          "payload": "2d6cdd06c6240a4114c8f949ebc79baf3b12a5ed72b8b2f85c0d9ff804cb665c.bin",
+          "bytes": 1300,
+          "fnv64": "36253c60dd536220",
+          "maps": [
+            "04b_floodlab"
+          ]
+        },
+        {
+          "payload": "2f50a53b4aad431ef3a1fb93ba803ecc6eeafb8abed4a6ae61bd2c671579f10a.bin",
+          "bytes": 1300,
+          "fnv64": "a5b25ba8094aaae4",
+          "maps": [
+            "warlock"
+          ]
+        },
+        {
+          "payload": "3c7dd992cb1dfa8832300e0058733e5171664fe25c31fb56602c496474b7b261.bin",
+          "bytes": 1300,
+          "fnv64": "9348a1ae1231266c",
+          "maps": [
+            "cyclotron"
+          ]
+        },
+        {
+          "payload": "43064ded97b72be795b14d6a71a3fcbae507fdf2e255fd66a2e3590f490f9eee.bin",
+          "bytes": 1300,
+          "fnv64": "bd16ea9c45257a84",
+          "maps": [
+            "turf"
+          ]
+        },
+        {
+          "payload": "5e24f7a7268bcdf7a5c42334453f04266f3599b25a78f818ec2f1c9e7186446c.bin",
+          "bytes": 1300,
+          "fnv64": "0abb5dcb8f601904",
+          "maps": [
+            "midship"
+          ]
+        },
+        {
+          "payload": "6334acda48b64cfcbc5e2d77b39d89beb0355bb2e5d9b311cf501bafd25c2fd9.bin",
+          "bytes": 1300,
+          "fnv64": "ddd3dc61bc1a6660",
+          "maps": [
+            "05b_deltatowers"
+          ]
+        },
+        {
+          "payload": "648589f3e525efd1365eeda770de460e30727568adaf4c5f213a03bb663f3816.bin",
+          "bytes": 1300,
+          "fnv64": "04160ac62f6b2058",
+          "maps": [
+            "04a_gasgiant"
+          ]
+        },
+        {
+          "payload": "6ca18811157f80ec537fdfc69bb4cf5774cd4398949e9aa0c6ea7445db3d905e.bin",
+          "bytes": 1300,
+          "fnv64": "813b11298e3ea3bc",
+          "maps": [
+            "triplicate"
+          ]
+        },
+        {
+          "payload": "6dcec4969fcbb2dddb160a1a1b2a6a1736425deea561daa1245ca3118302af2c.bin",
+          "bytes": 1300,
+          "fnv64": "8842fd7d9679b868",
+          "maps": [
+            "08a_deltacliffs"
+          ]
+        },
+        {
+          "payload": "6ecf535525eba3cf4cc0b760c38589423ce6addf29e834c41dfa3020ccc3248e.bin",
+          "bytes": 1300,
+          "fnv64": "67e0f2f3322efb7a",
+          "maps": [
+            "00a_introduction"
+          ]
+        },
+        {
+          "payload": "8a376cd4d049b3cdf5bf39d924ce1ea391e4978b98dedf55e60682971c56e2df.bin",
+          "bytes": 1300,
+          "fnv64": "b400ad3d0d93b310",
+          "maps": [
+            "03a_oldmombasa"
+          ]
+        },
+        {
+          "payload": "8b58bc6adfbf3ad16ee2c39c76cc4d1ea21fdbe4a5157b6f24ad568519ad0da7.bin",
+          "bytes": 1300,
+          "fnv64": "ea7bfa0af31ec450",
+          "maps": [
+            "headlong"
+          ]
+        },
+        {
+          "payload": "9087703a961001dfdd5ba2a16ab341f53e1182b949d0cc4e3dde456f95b5b1b3.bin",
+          "bytes": 1300,
+          "fnv64": "af9a81b320291e5f",
+          "maps": [
+            "dune"
+          ]
+        },
+        {
+          "payload": "943759a41398ec4bf6b512c1dbe27fd652a8c4a6e5942c5032f585be1d2b6b6a.bin",
+          "bytes": 1300,
+          "fnv64": "dc0d92bbca42f914",
+          "maps": [
+            "ascension"
+          ]
+        },
+        {
+          "payload": "98fdcfe70968002c998f3c809243f5a59a11ef07d0c89c327c6cf745cf73d8c4.bin",
+          "bytes": 1300,
+          "fnv64": "ab6a311bd299d768",
+          "maps": [
+            "05a_deltaapproach"
+          ]
+        },
+        {
+          "payload": "9a4c701359a85b1022d1f3a38a41787d7eeb3d39574b98b9f311818aae4d95ea.bin",
+          "bytes": 1300,
+          "fnv64": "9afbd00a19b162a4",
+          "maps": [
+            "beavercreek"
+          ]
+        },
+        {
+          "payload": "9cef23aabbd8406c8f4bb231f8f9f2132bef1fcf91550db29843484295bfe783.bin",
+          "bytes": 1300,
+          "fnv64": "55219faffc4a236c",
+          "maps": [
+            "deltatap"
+          ]
+        },
+        {
+          "payload": "afd65766399309e2c4112a0414cc6abfa0f61b47afc9e24818ae255386b0a9d4.bin",
+          "bytes": 1300,
+          "fnv64": "855e85a074d43720",
+          "maps": [
+            "06a_sentinelwalls"
+          ]
+        },
+        {
+          "payload": "afed4b520485557c6a64b3c398ff58444e07c457bf6c4a4b1b355cdc55d80f53.bin",
+          "bytes": 1300,
+          "fnv64": "e158a6d9c2b4ea0c",
+          "maps": [
+            "elongation"
+          ]
+        },
+        {
+          "payload": "b1a43068f2eaec41a69bb381527f11c6faa216c20c5d949ff9fce0d922f2b344.bin",
+          "bytes": 1300,
+          "fnv64": "cb903405079b4218",
+          "maps": [
+            "06b_floodzone"
+          ]
+        },
+        {
+          "payload": "baea8381d174cf108cbd3fce2ec3b8f19df35b1890f991182a710320a8b86815.bin",
+          "bytes": 1300,
+          "fnv64": "4f0a711a2edb0278",
+          "maps": [
+            "foundation"
+          ]
+        },
+        {
+          "payload": "bcc7f919aa26df49979947cdb8ebeb787cb1ee14381e8f1d36f0a69d7569af97.bin",
+          "bytes": 1300,
+          "fnv64": "6f7af48a1bc940bc",
+          "maps": [
+            "mainmenu"
+          ]
+        },
+        {
+          "payload": "c116f4466aa88cf36f7c5734492f624e300068801128a4e6e538845d0c2d35db.bin",
+          "bytes": 1300,
+          "fnv64": "d918499e6f3b4e3c",
+          "maps": [
+            "highplains"
+          ]
+        },
+        {
+          "payload": "cf75422e0c23fb27b993f9a2530f3e7d8bb8766c50756bccf224a27ab768d8bb.bin",
+          "bytes": 1300,
+          "fnv64": "4829c2a3ef7f3210",
+          "maps": [
+            "waterworks"
+          ]
+        },
+        {
+          "payload": "dae02018208bbabd633eac34b740d5f56484714414ee5ba40f248c93e3505528.bin",
+          "bytes": 1300,
+          "fnv64": "f537524a06195a00",
+          "maps": [
+            "backwash"
+          ]
+        },
+        {
+          "payload": "ebfcc1b138ca50b3b33b3dface32daaa95416ff2049cc20855f802182ee84cb6.bin",
+          "bytes": 1300,
+          "fnv64": "49df46deb0084978",
+          "maps": [
+            "08b_deltacontrol"
+          ]
+        },
+        {
+          "payload": "ee8568726214f699943ea59ca519f280c6c897bb5ce9c56ce057d83aecb1e12c.bin",
+          "bytes": 1300,
+          "fnv64": "58b9c23afeaa2564",
+          "maps": [
+            "burial_mounds"
+          ]
+        },
+        {
+          "payload": "ef0614fbb593ed55e743396542a335c1ed5164ce037eaa08ffd3d4205b89f644.bin",
+          "bytes": 1300,
+          "fnv64": "e448f24e9aa1ffdb",
+          "maps": [
+            "03b_newmombasa"
+          ]
+        },
+        {
+          "payload": "f32db9544699bac894da7e1e5c0ce4fc8214807d8d1e1b55e6ec9851949f5791.bin",
+          "bytes": 1300,
+          "fnv64": "488aaa5e5827cfac",
+          "maps": [
+            "coagulation"
+          ]
+        },
+        {
+          "payload": "f484a4cc29b05bd636663693ec5f135577093babb7b815fedfaf7fe1f407188d.bin",
+          "bytes": 1300,
+          "fnv64": "b57583321b2834b4",
+          "maps": [
+            "lockout"
+          ]
+        }
+      ],
+      "map_evidence": [
+        {
+          "map": "00a_introduction",
+          "library_sha256": "e2647e819c9d7d21bcc30be7e83337ffc646ef60f8fa419668707f68d9d6e943",
+          "original_source_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+          "payload": "6ecf535525eba3cf4cc0b760c38589423ce6addf29e834c41dfa3020ccc3248e.bin"
+        },
+        {
+          "map": "01a_tutorial",
+          "library_sha256": "1153ab6a4d3b4703055d0f11ec34a148cefde0c16f7f2e8fcc8ef7c6f769b386",
+          "original_source_sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+          "payload": "059f88d513bcc1b3902e6da3e1d30351852cea83286ff1c45014c4f7e49e0ea5.bin"
+        },
+        {
+          "map": "01b_spacestation",
+          "library_sha256": "05a957a61f94d18aa8222b3e01394e38045324370f378b163c9fff65d62a9ad0",
+          "original_source_sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+          "payload": "081a517df6b582a9848328549e0542164de91a3c883ec331757fa90f6872ea22.bin"
+        },
+        {
+          "map": "03a_oldmombasa",
+          "library_sha256": "6c5240f00d5e05b908378bee2bb9f3a4868d957282ccef8deb0b5d7d0376210c",
+          "original_source_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+          "payload": "8a376cd4d049b3cdf5bf39d924ce1ea391e4978b98dedf55e60682971c56e2df.bin"
+        },
+        {
+          "map": "03b_newmombasa",
+          "library_sha256": "24e72d342dd267c44719c41c72a1d134b1e0a9105a6cc997a3a622ce594d272e",
+          "original_source_sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+          "payload": "ef0614fbb593ed55e743396542a335c1ed5164ce037eaa08ffd3d4205b89f644.bin"
+        },
+        {
+          "map": "04a_gasgiant",
+          "library_sha256": "9bc7b68c437e4d94b70b186559521dbe2c43f6cb668781d0902664a3ca094539",
+          "original_source_sha256": "9cb7a3da993bf1314dd9b61874ea2c18636b8114f56253263d35e729a170118e",
+          "payload": "648589f3e525efd1365eeda770de460e30727568adaf4c5f213a03bb663f3816.bin"
+        },
+        {
+          "map": "04b_floodlab",
+          "library_sha256": "77e6a3ab63bb3935648dc5ab8ffb2f166d52b0564362ae802107f84843e59473",
+          "original_source_sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+          "payload": "2d6cdd06c6240a4114c8f949ebc79baf3b12a5ed72b8b2f85c0d9ff804cb665c.bin"
+        },
+        {
+          "map": "05a_deltaapproach",
+          "library_sha256": "3f82d2144216bceeb02644144cc79e4c893e98fac6d80b24acddebf532d069ef",
+          "original_source_sha256": "6b511e815ab8e4200f36df4b25f42e73c9de498e147ec8fbd0b8cfc95f0c565c",
+          "payload": "98fdcfe70968002c998f3c809243f5a59a11ef07d0c89c327c6cf745cf73d8c4.bin"
+        },
+        {
+          "map": "05b_deltatowers",
+          "library_sha256": "a96fa168f6476cc41a8d10760ca63a46bcaff9fb2d816f622948ac1d6b3c45ed",
+          "original_source_sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+          "payload": "6334acda48b64cfcbc5e2d77b39d89beb0355bb2e5d9b311cf501bafd25c2fd9.bin"
+        },
+        {
+          "map": "06a_sentinelwalls",
+          "library_sha256": "effaad2c23cd49f8e8b7772208992ef06195f98cd19357b3ef433bcbcb057824",
+          "original_source_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+          "payload": "afd65766399309e2c4112a0414cc6abfa0f61b47afc9e24818ae255386b0a9d4.bin"
+        },
+        {
+          "map": "06b_floodzone",
+          "library_sha256": "404239de93a1fa6f4131458a44089cd04fb7bc733266a99381bb639dd3d9f951",
+          "original_source_sha256": "f96ccf1ed35a0c6fbef5dd2d51d46a8a4d64468cd79281b7f3339c31b1b4abea",
+          "payload": "b1a43068f2eaec41a69bb381527f11c6faa216c20c5d949ff9fce0d922f2b344.bin"
+        },
+        {
+          "map": "07a_highcharity",
+          "library_sha256": "0e39d7bf58e66fa5a4cb2a5e45bdad8c4b27180b56da6c23a20a4f589246b807",
+          "original_source_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+          "payload": "2bb61dbd82b5b085318184c9652db32a43e3b69687248153fb3dd8c6606a5277.bin"
+        },
+        {
+          "map": "07b_forerunnership",
+          "library_sha256": "6b046e6e0f1f0f546e49e222111835ed2d8602a424ad3697f9568938396a3c7a",
+          "original_source_sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+          "payload": "027d130c5417792a9ffe213597660188774241ab8dcf18306ca8795396eb50c4.bin"
+        },
+        {
+          "map": "08a_deltacliffs",
+          "library_sha256": "b746348a15a92b2f6a227c1b45639632fa2991d02f8018439e394dbcffc46b19",
+          "original_source_sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+          "payload": "6dcec4969fcbb2dddb160a1a1b2a6a1736425deea561daa1245ca3118302af2c.bin"
+        },
+        {
+          "map": "08b_deltacontrol",
+          "library_sha256": "96572aed76e483d792b74242ab6073974f32aca47b9f06d88f7ed70ec7881a6e",
+          "original_source_sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+          "payload": "ebfcc1b138ca50b3b33b3dface32daaa95416ff2049cc20855f802182ee84cb6.bin"
+        },
+        {
+          "map": "ascension",
+          "library_sha256": "4ffc67e446be672455978f190e447a89f006c2b65b4cf0b344b4b1b45c13c7a3",
+          "original_source_sha256": "84d3164df56ca6ee7de073bd540f24ef6a2e9d2508f143bd94970d66ec5c0bfe",
+          "payload": "943759a41398ec4bf6b512c1dbe27fd652a8c4a6e5942c5032f585be1d2b6b6a.bin"
+        },
+        {
+          "map": "backwash",
+          "library_sha256": "f9467e6c54424693a0b6dd97734ced8dad27bcac75aa76e56c7ae2ce6fef0a02",
+          "original_source_sha256": "5b0b3b77ad7c010d08581430804daab25edd2a94df73ebd5d940a2e88ef63582",
+          "payload": "dae02018208bbabd633eac34b740d5f56484714414ee5ba40f248c93e3505528.bin"
+        },
+        {
+          "map": "beavercreek",
+          "library_sha256": "32457475ac10107ebe50ff9749c64773ad818ac7d77835351721066c871a6527",
+          "original_source_sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+          "payload": "9a4c701359a85b1022d1f3a38a41787d7eeb3d39574b98b9f311818aae4d95ea.bin"
+        },
+        {
+          "map": "burial_mounds",
+          "library_sha256": "8ba418796ac1b8c1398eb7a2cbb6a272ad825596b080d2485a26a18a09df9422",
+          "original_source_sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+          "payload": "ee8568726214f699943ea59ca519f280c6c897bb5ce9c56ce057d83aecb1e12c.bin"
+        },
+        {
+          "map": "coagulation",
+          "library_sha256": "350aca23945d490f9394adf785389e68d202b276b2f94e4a467cb7c188c0a900",
+          "original_source_sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+          "payload": "f32db9544699bac894da7e1e5c0ce4fc8214807d8d1e1b55e6ec9851949f5791.bin"
+        },
+        {
+          "map": "colossus",
+          "library_sha256": "ee470878cc450c51c177080ad2558d65e1243510ef89a86917620f7d972cae9e",
+          "original_source_sha256": "f1f9b6de456c43989201331f594e42f717095af51cb9762c0b420e21f9a5f982",
+          "payload": "0038cbcc448e992c5f560da5f3b70f1d95adb0a5225b24f61153e49dbbc4a259.bin"
+        },
+        {
+          "map": "containment",
+          "library_sha256": "50100488d82701a233c8b26bd550f452c919e49d7d26083dc4dab90c96a7b48b",
+          "original_source_sha256": "e65de92bb58b7b2bae2979759d4cd6386d58c96f468cd06b0a4558c0bd1cd915",
+          "payload": "12131d931568a8578e25f3aaa3867203dc14a58c1e3869d5ac3f03d975e75c1d.bin"
+        },
+        {
+          "map": "cyclotron",
+          "library_sha256": "c9e1fe6d67a601e7a4f560199768dd8f28e8ac29caba4199834460e23a86853b",
+          "original_source_sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+          "payload": "3c7dd992cb1dfa8832300e0058733e5171664fe25c31fb56602c496474b7b261.bin"
+        },
+        {
+          "map": "deltatap",
+          "library_sha256": "f5da5a8fb9f5016eabdc0b1434256e1e80239d4c8af674bdfcc09d00dec41646",
+          "original_source_sha256": "adab707164195d10299be971f2096411c5862486abd89b669a7b1783f57a011c",
+          "payload": "9cef23aabbd8406c8f4bb231f8f9f2132bef1fcf91550db29843484295bfe783.bin"
+        },
+        {
+          "map": "derelict",
+          "library_sha256": "dd95a1410b498e94ee89b1763633f23e5a1f23343d8379eff1ba59fb3d79f386",
+          "original_source_sha256": "85c9d98556a0cd8dd6bcce94992425518f8a5753c0adb0c353fddf83696f7efd",
+          "payload": "1e2a0e48cd489c906c8069f9fa38b1f422be994171885a3a627630eb121a9934.bin"
+        },
+        {
+          "map": "dune",
+          "library_sha256": "17ba90e8f16aff4f35969012cefeba89e25f6b0a92c3ed1ced9e2ab7a12961db",
+          "original_source_sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+          "payload": "9087703a961001dfdd5ba2a16ab341f53e1182b949d0cc4e3dde456f95b5b1b3.bin"
+        },
+        {
+          "map": "elongation",
+          "library_sha256": "33fb65f1f394a975a55d0f9e919004520a0f51a6065c97031bc3cde816eb7a7b",
+          "original_source_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+          "payload": "afed4b520485557c6a64b3c398ff58444e07c457bf6c4a4b1b355cdc55d80f53.bin"
+        },
+        {
+          "map": "foundation",
+          "library_sha256": "c4fb4026c63b71fe03093af276f089bce338b32abd3a5871500c21925118afe9",
+          "original_source_sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+          "payload": "baea8381d174cf108cbd3fce2ec3b8f19df35b1890f991182a710320a8b86815.bin"
+        },
+        {
+          "map": "gemini",
+          "library_sha256": "0ba62ed1ff6c6475a870fce0583c7dd538b132e8239bcc21cb82f4b4f46fb81b",
+          "original_source_sha256": "220b42701086a24fc0660041439a72337a3bb7b848d424a4da53ad9e15704095",
+          "payload": "2568d2f0ee5d4162957803a388af1c7326ddfca969cbb14b8e3fbe12fc34a3d9.bin"
+        },
+        {
+          "map": "headlong",
+          "library_sha256": "c9628ee0c09fa963d079eb0e74c0ec1d403fa6e3e64959709fff196e2b7c5944",
+          "original_source_sha256": "f459e179138ef954298dc52c43e5d400fe89efca44e7eaae1691315a3fad7748",
+          "payload": "8b58bc6adfbf3ad16ee2c39c76cc4d1ea21fdbe4a5157b6f24ad568519ad0da7.bin"
+        },
+        {
+          "map": "highplains",
+          "library_sha256": "547349db062d9618718251b8a11d10a8382a6d53b6a4200f25e71fe0ce186c29",
+          "original_source_sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+          "payload": "c116f4466aa88cf36f7c5734492f624e300068801128a4e6e538845d0c2d35db.bin"
+        },
+        {
+          "map": "lockout",
+          "library_sha256": "8e8f2465003bd286344df5f49f47260a615afd221569b0f8259c345df4176000",
+          "original_source_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+          "payload": "f484a4cc29b05bd636663693ec5f135577093babb7b815fedfaf7fe1f407188d.bin"
+        },
+        {
+          "map": "mainmenu",
+          "library_sha256": "aaff5f02fc98e779359d61f714578d3457a4c5b305060c3f2d97991d9d7a3093",
+          "original_source_sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+          "payload": "bcc7f919aa26df49979947cdb8ebeb787cb1ee14381e8f1d36f0a69d7569af97.bin"
+        },
+        {
+          "map": "midship",
+          "library_sha256": "aaae4882050ba2b4f9252d9fddb534a1756aa4f93073606e2072b1c462ab908d",
+          "original_source_sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+          "payload": "5e24f7a7268bcdf7a5c42334453f04266f3599b25a78f818ec2f1c9e7186446c.bin"
+        },
+        {
+          "map": "triplicate",
+          "library_sha256": "e19600f21dc79c38aa5590fbd42dbb61a448e7ab21ffa51c772452cd0b585a03",
+          "original_source_sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+          "payload": "6ca18811157f80ec537fdfc69bb4cf5774cd4398949e9aa0c6ea7445db3d905e.bin"
+        },
+        {
+          "map": "turf",
+          "library_sha256": "b7469c3ec380acf86393996787a0d7b0ae07c3a991b11f6c3d5760d50298f1b3",
+          "original_source_sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+          "payload": "43064ded97b72be795b14d6a71a3fcbae507fdf2e255fd66a2e3590f490f9eee.bin"
+        },
+        {
+          "map": "warlock",
+          "library_sha256": "ca381418f68b94134879d0cbae648c95b2161402b8c86e4b2a982b7ac7c59c39",
+          "original_source_sha256": "980bb3b26a00848c420488f5edf11626a789e5b5bc5134722142c7b9730aa65a",
+          "payload": "2f50a53b4aad431ef3a1fb93ba803ecc6eeafb8abed4a6ae61bd2c671579f10a.bin"
+        },
+        {
+          "map": "waterworks",
+          "library_sha256": "abf49ef8eb85e9702d84c6017ad8d795b43ff5fe3d8a264618516fac228adf1d",
+          "original_source_sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+          "payload": "cf75422e0c23fb27b993f9a2530f3e7d8bb8766c50756bccf224a27ab768d8bb.bin"
+        },
+        {
+          "map": "zanzibar",
+          "library_sha256": "c29203fd3a95a89303835449632b7d3dcc1a11a8e39dcc28e5299b257475e642",
+          "original_source_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+          "payload": "1768e0f3db32e1511f5c8161f8f1e75ac6e75f27f4beed1bf5bb428afb83be98.bin"
+        }
+      ]
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env",
+      "baseline_map": "lockout",
+      "normalized_stem_sha256": "850744c2c817b284a02fb9dfe53e55cde9bae77f02b844323b2b716c7869b38c",
+      "native_program_closure_records": 32,
+      "native_shape_lod_layer_pass_impl_remap": [
+        3,
+        75,
+        15,
+        57,
+        238
+      ],
+      "variants": [
+        {
+          "payload": "00cc8fe24b841159f49d3b98b50b9cc92d381dd9a0c3e7b267cfa1255a8bafad.bin",
+          "bytes": 1766,
+          "fnv64": "5cc9a65c8662ed77",
+          "maps": [
+            "coagulation"
+          ]
+        },
+        {
+          "payload": "0621bb4f3b9488e2d98e1270035d97a810677e1cbba717318176b4070b54d3b0.bin",
+          "bytes": 1784,
+          "fnv64": "578017fe42924dec",
+          "maps": [
+            "derelict"
+          ]
+        },
+        {
+          "payload": "1081e87996d59663f92681d3e39e38ad073a46949f200bb06001aa4873470585.bin",
+          "bytes": 1768,
+          "fnv64": "a292e8989afd18d0",
+          "maps": [
+            "01b_spacestation"
+          ]
+        },
+        {
+          "payload": "1a475aa36da43f14d2a0cbc3dd2fa8252db46a9a2f19db77c2729bdaf8133d45.bin",
+          "bytes": 1768,
+          "fnv64": "a64488b82471b48d",
+          "maps": [
+            "05b_deltatowers"
+          ]
+        },
+        {
+          "payload": "20faae08d801b99656635d0b55cc22969670bca306d1939f87517c20bcf98eb9.bin",
+          "bytes": 1768,
+          "fnv64": "8e64515a94153d90",
+          "maps": [
+            "cyclotron"
+          ]
+        },
+        {
+          "payload": "22a02d644797de4bd9470c738185d53c143ec8194cadd8e5d8e97d9ed80f90d1.bin",
+          "bytes": 1768,
+          "fnv64": "bc7d726b988c5a7e",
+          "maps": [
+            "00a_introduction"
+          ]
+        },
+        {
+          "payload": "232e7e6eda896b71314a1e84f08da0d9657e5b59d7a60acaf05639bb40f40acb.bin",
+          "bytes": 1768,
+          "fnv64": "a3f546c38db8c103",
+          "maps": [
+            "03b_newmombasa"
+          ]
+        },
+        {
+          "payload": "25c7cc41c440ee36c8ebfd815fb888aa37016cb06069ae9b8eae1dc1bd33242e.bin",
+          "bytes": 1768,
+          "fnv64": "26b179bd3378b131",
+          "maps": [
+            "foundation"
+          ]
+        },
+        {
+          "payload": "2fa9da50403f3f1e3a9b75636cce071977da37056e7e4a1e00c47c76b48b201a.bin",
+          "bytes": 1768,
+          "fnv64": "144253e482eb6624",
+          "maps": [
+            "colossus"
+          ]
+        },
+        {
+          "payload": "334eb8d18d929f0495c0f1c90f013f90378cbbb0e66a48580a8dd219e5e03b89.bin",
+          "bytes": 1768,
+          "fnv64": "53839fef2d257b14",
+          "maps": [
+            "turf"
+          ]
+        },
+        {
+          "payload": "3877966c4847b22b04364db36d04a0c8e8672c4362180b6f72654c999397f5d0.bin",
+          "bytes": 1768,
+          "fnv64": "0a0d4ec35b65329c",
+          "maps": [
+            "waterworks",
+            "zanzibar"
+          ]
+        },
+        {
+          "payload": "403c7a4790d6a94e6412c2dffc75fea0d79ab9c5db8f2c56ef7b181f327fdae9.bin",
+          "bytes": 1766,
+          "fnv64": "959dbce4d913e9d4",
+          "maps": [
+            "deltatap"
+          ]
+        },
+        {
+          "payload": "40464eb089e1c406826e877f57683cf3aadcfc7505599c6637bcaca108bd99a8.bin",
+          "bytes": 1768,
+          "fnv64": "a4d41ca2ecb467aa",
+          "maps": [
+            "06b_floodzone"
+          ]
+        },
+        {
+          "payload": "53f22d81b3116fd1af9f7deab31751313bb96309cdaa950fd41774d67028bf7d.bin",
+          "bytes": 1768,
+          "fnv64": "6368172608090e87",
+          "maps": [
+            "06a_sentinelwalls"
+          ]
+        },
+        {
+          "payload": "5912b791ed8d150fd88dbf91ad2dacae6b024e408f5a6bfdb96901ec9ef5b515.bin",
+          "bytes": 1766,
+          "fnv64": "f5280fadef8eb404",
+          "maps": [
+            "midship"
+          ]
+        },
+        {
+          "payload": "5fb6fe216b61942344a57aea3f4e7b96066168c2463f639b657006e9f98a2fa4.bin",
+          "bytes": 1768,
+          "fnv64": "d0bf629b239d95d4",
+          "maps": [
+            "01a_tutorial"
+          ]
+        },
+        {
+          "payload": "685e13bb1dcd7418eed0aaced9fc534053d2d234d5ae1a31ae1eabedb881c8c3.bin",
+          "bytes": 1768,
+          "fnv64": "8dfdda8c7ec82fdb",
+          "maps": [
+            "08b_deltacontrol"
+          ]
+        },
+        {
+          "payload": "6b3556438ef73ee8abe883461bfec08ca639f258d7c7fe6310fba1a57114929d.bin",
+          "bytes": 1766,
+          "fnv64": "e17f6668489c12a9",
+          "maps": [
+            "08a_deltacliffs"
+          ]
+        },
+        {
+          "payload": "748b25c68f39a1c71d14197283d2b41e6d956e7535d39b9473ab36362e761c91.bin",
+          "bytes": 1766,
+          "fnv64": "54c71ee9fa561844",
+          "maps": [
+            "04a_gasgiant"
+          ]
+        },
+        {
+          "payload": "7743d26f2201914189d13fa733dd60e6c2e42b5baff026cb0bc7c43ec7cafad3.bin",
+          "bytes": 1768,
+          "fnv64": "12800f2427a9c448",
+          "maps": [
+            "04b_floodlab"
+          ]
+        },
+        {
+          "payload": "896bf52146653f503d5a15b1d85e1293cd0666cfb6fd0f0d05937807b2ed051c.bin",
+          "bytes": 1784,
+          "fnv64": "9f9fdbf2471cb7bf",
+          "maps": [
+            "elongation"
+          ]
+        },
+        {
+          "payload": "974f92cb9ba08dc16bcd727a30e2499a23ef1b24d062fe852be6c9dac82021f5.bin",
+          "bytes": 1768,
+          "fnv64": "b1d878584a99aefd",
+          "maps": [
+            "07a_highcharity"
+          ]
+        },
+        {
+          "payload": "a031cd3475e09766f9d99b221486b8c36b9459fbfd1676c01502f75b1fbec049.bin",
+          "bytes": 1766,
+          "fnv64": "4f65b0035ab86f1e",
+          "maps": [
+            "03a_oldmombasa"
+          ]
+        },
+        {
+          "payload": "a28a84f2f7b2d8c5d383c9f171ac876a9a062a5776cff1ead9873cc3cddc8550.bin",
+          "bytes": 1768,
+          "fnv64": "26f25d618a5cad8b",
+          "maps": [
+            "gemini"
+          ]
+        },
+        {
+          "payload": "aa96db36c9179e40ae269d4d3ebe1aef29e3b97ac5d71650c6f613d11e19c913.bin",
+          "bytes": 1768,
+          "fnv64": "c4e2104244520062",
+          "maps": [
+            "warlock"
+          ]
+        },
+        {
+          "payload": "b07f2c3f693415c25bbeb019ee27ba9f090316dad4c5b2d7788229bc9a748c52.bin",
+          "bytes": 1768,
+          "fnv64": "6a407bc4fe74dd4f",
+          "maps": [
+            "headlong"
+          ]
+        },
+        {
+          "payload": "b1fd4eeeab2492ec31b579dfd797a7cc33c36f1769166e77e38890ce561d8cae.bin",
+          "bytes": 1766,
+          "fnv64": "5f0373b0aff70874",
+          "maps": [
+            "07b_forerunnership"
+          ]
+        },
+        {
+          "payload": "b6558d387e952aba97888a1b4a4a47b6039fc0546e85fd5fb9262428656b01d7.bin",
+          "bytes": 1768,
+          "fnv64": "d2e85fb4e9101f6c",
+          "maps": [
+            "mainmenu"
+          ]
+        },
+        {
+          "payload": "b6a2dcd9baee42a64fe5796a70cc0657d4b97d048b2243e59686aa75f0776fda.bin",
+          "bytes": 1768,
+          "fnv64": "f46be319798db45f",
+          "maps": [
+            "highplains"
+          ]
+        },
+        {
+          "payload": "b8beca003bc52dbd1ff2164698851b3f17a684e4d12ed606ce16bbf042e5f092.bin",
+          "bytes": 1768,
+          "fnv64": "9645fcf2c70ef050",
+          "maps": [
+            "lockout"
+          ]
+        },
+        {
+          "payload": "c84a55b1f4ef1ee5720354f83457b47309ffc16e84666051af20e49ee0fb4595.bin",
+          "bytes": 1768,
+          "fnv64": "4d796492261263c8",
+          "maps": [
+            "backwash"
+          ]
+        },
+        {
+          "payload": "d07ba8bb9010cda7fa542cc5e6e0825fbb27f7c4a300673e47740c8fc87d2461.bin",
+          "bytes": 1768,
+          "fnv64": "04338d7f7e7e6c60",
+          "maps": [
+            "burial_mounds"
+          ]
+        },
+        {
+          "payload": "d43274de1151359427ded2d65742859b3ace66b455838529ae093928ca991704.bin",
+          "bytes": 1768,
+          "fnv64": "60f3e96fab1e6905",
+          "maps": [
+            "beavercreek"
+          ]
+        },
+        {
+          "payload": "d463e677a858a4b96681e7f6e1ad257e7ca9618281dd3fa6539f120f45fcc28b.bin",
+          "bytes": 1768,
+          "fnv64": "ba2a1495c786717d",
+          "maps": [
+            "dune"
+          ]
+        },
+        {
+          "payload": "db1afdc13f27e1a024a9ce4e64f33901275696d3a55f4581c89cddd50bb1eccd.bin",
+          "bytes": 1768,
+          "fnv64": "0438f2661465e47d",
+          "maps": [
+            "05a_deltaapproach"
+          ]
+        },
+        {
+          "payload": "db9bcad33eaa57fdd76f6b02d6601028ef1fffc2a047ccea7015f5054b11655b.bin",
+          "bytes": 1768,
+          "fnv64": "493c42921ade636c",
+          "maps": [
+            "triplicate"
+          ]
+        },
+        {
+          "payload": "e4947c7a526df898cf4304772504d760987a95c4fe6fc7c3013b2ebd62df61f2.bin",
+          "bytes": 1766,
+          "fnv64": "ccbecb056f270e28",
+          "maps": [
+            "ascension"
+          ]
+        },
+        {
+          "payload": "e6e8c56cbc702b8476e79b3b5b261b566e7effed2826698e9819ea1fa3270596.bin",
+          "bytes": 1768,
+          "fnv64": "829c10c364f3bdbc",
+          "maps": [
+            "containment"
+          ]
+        }
+      ],
+      "map_evidence": [
+        {
+          "map": "00a_introduction",
+          "library_sha256": "e2647e819c9d7d21bcc30be7e83337ffc646ef60f8fa419668707f68d9d6e943",
+          "original_source_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+          "payload": "22a02d644797de4bd9470c738185d53c143ec8194cadd8e5d8e97d9ed80f90d1.bin"
+        },
+        {
+          "map": "01a_tutorial",
+          "library_sha256": "1153ab6a4d3b4703055d0f11ec34a148cefde0c16f7f2e8fcc8ef7c6f769b386",
+          "original_source_sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+          "payload": "5fb6fe216b61942344a57aea3f4e7b96066168c2463f639b657006e9f98a2fa4.bin"
+        },
+        {
+          "map": "01b_spacestation",
+          "library_sha256": "05a957a61f94d18aa8222b3e01394e38045324370f378b163c9fff65d62a9ad0",
+          "original_source_sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+          "payload": "1081e87996d59663f92681d3e39e38ad073a46949f200bb06001aa4873470585.bin"
+        },
+        {
+          "map": "03a_oldmombasa",
+          "library_sha256": "6c5240f00d5e05b908378bee2bb9f3a4868d957282ccef8deb0b5d7d0376210c",
+          "original_source_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+          "payload": "a031cd3475e09766f9d99b221486b8c36b9459fbfd1676c01502f75b1fbec049.bin"
+        },
+        {
+          "map": "03b_newmombasa",
+          "library_sha256": "24e72d342dd267c44719c41c72a1d134b1e0a9105a6cc997a3a622ce594d272e",
+          "original_source_sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+          "payload": "232e7e6eda896b71314a1e84f08da0d9657e5b59d7a60acaf05639bb40f40acb.bin"
+        },
+        {
+          "map": "04a_gasgiant",
+          "library_sha256": "9bc7b68c437e4d94b70b186559521dbe2c43f6cb668781d0902664a3ca094539",
+          "original_source_sha256": "9cb7a3da993bf1314dd9b61874ea2c18636b8114f56253263d35e729a170118e",
+          "payload": "748b25c68f39a1c71d14197283d2b41e6d956e7535d39b9473ab36362e761c91.bin"
+        },
+        {
+          "map": "04b_floodlab",
+          "library_sha256": "77e6a3ab63bb3935648dc5ab8ffb2f166d52b0564362ae802107f84843e59473",
+          "original_source_sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+          "payload": "7743d26f2201914189d13fa733dd60e6c2e42b5baff026cb0bc7c43ec7cafad3.bin"
+        },
+        {
+          "map": "05a_deltaapproach",
+          "library_sha256": "3f82d2144216bceeb02644144cc79e4c893e98fac6d80b24acddebf532d069ef",
+          "original_source_sha256": "6b511e815ab8e4200f36df4b25f42e73c9de498e147ec8fbd0b8cfc95f0c565c",
+          "payload": "db1afdc13f27e1a024a9ce4e64f33901275696d3a55f4581c89cddd50bb1eccd.bin"
+        },
+        {
+          "map": "05b_deltatowers",
+          "library_sha256": "a96fa168f6476cc41a8d10760ca63a46bcaff9fb2d816f622948ac1d6b3c45ed",
+          "original_source_sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+          "payload": "1a475aa36da43f14d2a0cbc3dd2fa8252db46a9a2f19db77c2729bdaf8133d45.bin"
+        },
+        {
+          "map": "06a_sentinelwalls",
+          "library_sha256": "effaad2c23cd49f8e8b7772208992ef06195f98cd19357b3ef433bcbcb057824",
+          "original_source_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+          "payload": "53f22d81b3116fd1af9f7deab31751313bb96309cdaa950fd41774d67028bf7d.bin"
+        },
+        {
+          "map": "06b_floodzone",
+          "library_sha256": "404239de93a1fa6f4131458a44089cd04fb7bc733266a99381bb639dd3d9f951",
+          "original_source_sha256": "f96ccf1ed35a0c6fbef5dd2d51d46a8a4d64468cd79281b7f3339c31b1b4abea",
+          "payload": "40464eb089e1c406826e877f57683cf3aadcfc7505599c6637bcaca108bd99a8.bin"
+        },
+        {
+          "map": "07a_highcharity",
+          "library_sha256": "0e39d7bf58e66fa5a4cb2a5e45bdad8c4b27180b56da6c23a20a4f589246b807",
+          "original_source_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+          "payload": "974f92cb9ba08dc16bcd727a30e2499a23ef1b24d062fe852be6c9dac82021f5.bin"
+        },
+        {
+          "map": "07b_forerunnership",
+          "library_sha256": "6b046e6e0f1f0f546e49e222111835ed2d8602a424ad3697f9568938396a3c7a",
+          "original_source_sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+          "payload": "b1fd4eeeab2492ec31b579dfd797a7cc33c36f1769166e77e38890ce561d8cae.bin"
+        },
+        {
+          "map": "08a_deltacliffs",
+          "library_sha256": "b746348a15a92b2f6a227c1b45639632fa2991d02f8018439e394dbcffc46b19",
+          "original_source_sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+          "payload": "6b3556438ef73ee8abe883461bfec08ca639f258d7c7fe6310fba1a57114929d.bin"
+        },
+        {
+          "map": "08b_deltacontrol",
+          "library_sha256": "96572aed76e483d792b74242ab6073974f32aca47b9f06d88f7ed70ec7881a6e",
+          "original_source_sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+          "payload": "685e13bb1dcd7418eed0aaced9fc534053d2d234d5ae1a31ae1eabedb881c8c3.bin"
+        },
+        {
+          "map": "ascension",
+          "library_sha256": "4ffc67e446be672455978f190e447a89f006c2b65b4cf0b344b4b1b45c13c7a3",
+          "original_source_sha256": "84d3164df56ca6ee7de073bd540f24ef6a2e9d2508f143bd94970d66ec5c0bfe",
+          "payload": "e4947c7a526df898cf4304772504d760987a95c4fe6fc7c3013b2ebd62df61f2.bin"
+        },
+        {
+          "map": "backwash",
+          "library_sha256": "f9467e6c54424693a0b6dd97734ced8dad27bcac75aa76e56c7ae2ce6fef0a02",
+          "original_source_sha256": "5b0b3b77ad7c010d08581430804daab25edd2a94df73ebd5d940a2e88ef63582",
+          "payload": "c84a55b1f4ef1ee5720354f83457b47309ffc16e84666051af20e49ee0fb4595.bin"
+        },
+        {
+          "map": "beavercreek",
+          "library_sha256": "32457475ac10107ebe50ff9749c64773ad818ac7d77835351721066c871a6527",
+          "original_source_sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+          "payload": "d43274de1151359427ded2d65742859b3ace66b455838529ae093928ca991704.bin"
+        },
+        {
+          "map": "burial_mounds",
+          "library_sha256": "8ba418796ac1b8c1398eb7a2cbb6a272ad825596b080d2485a26a18a09df9422",
+          "original_source_sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+          "payload": "d07ba8bb9010cda7fa542cc5e6e0825fbb27f7c4a300673e47740c8fc87d2461.bin"
+        },
+        {
+          "map": "coagulation",
+          "library_sha256": "350aca23945d490f9394adf785389e68d202b276b2f94e4a467cb7c188c0a900",
+          "original_source_sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+          "payload": "00cc8fe24b841159f49d3b98b50b9cc92d381dd9a0c3e7b267cfa1255a8bafad.bin"
+        },
+        {
+          "map": "colossus",
+          "library_sha256": "ee470878cc450c51c177080ad2558d65e1243510ef89a86917620f7d972cae9e",
+          "original_source_sha256": "f1f9b6de456c43989201331f594e42f717095af51cb9762c0b420e21f9a5f982",
+          "payload": "2fa9da50403f3f1e3a9b75636cce071977da37056e7e4a1e00c47c76b48b201a.bin"
+        },
+        {
+          "map": "containment",
+          "library_sha256": "50100488d82701a233c8b26bd550f452c919e49d7d26083dc4dab90c96a7b48b",
+          "original_source_sha256": "e65de92bb58b7b2bae2979759d4cd6386d58c96f468cd06b0a4558c0bd1cd915",
+          "payload": "e6e8c56cbc702b8476e79b3b5b261b566e7effed2826698e9819ea1fa3270596.bin"
+        },
+        {
+          "map": "cyclotron",
+          "library_sha256": "c9e1fe6d67a601e7a4f560199768dd8f28e8ac29caba4199834460e23a86853b",
+          "original_source_sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+          "payload": "20faae08d801b99656635d0b55cc22969670bca306d1939f87517c20bcf98eb9.bin"
+        },
+        {
+          "map": "deltatap",
+          "library_sha256": "f5da5a8fb9f5016eabdc0b1434256e1e80239d4c8af674bdfcc09d00dec41646",
+          "original_source_sha256": "adab707164195d10299be971f2096411c5862486abd89b669a7b1783f57a011c",
+          "payload": "403c7a4790d6a94e6412c2dffc75fea0d79ab9c5db8f2c56ef7b181f327fdae9.bin"
+        },
+        {
+          "map": "derelict",
+          "library_sha256": "dd95a1410b498e94ee89b1763633f23e5a1f23343d8379eff1ba59fb3d79f386",
+          "original_source_sha256": "85c9d98556a0cd8dd6bcce94992425518f8a5753c0adb0c353fddf83696f7efd",
+          "payload": "0621bb4f3b9488e2d98e1270035d97a810677e1cbba717318176b4070b54d3b0.bin"
+        },
+        {
+          "map": "dune",
+          "library_sha256": "17ba90e8f16aff4f35969012cefeba89e25f6b0a92c3ed1ced9e2ab7a12961db",
+          "original_source_sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+          "payload": "d463e677a858a4b96681e7f6e1ad257e7ca9618281dd3fa6539f120f45fcc28b.bin"
+        },
+        {
+          "map": "elongation",
+          "library_sha256": "33fb65f1f394a975a55d0f9e919004520a0f51a6065c97031bc3cde816eb7a7b",
+          "original_source_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+          "payload": "896bf52146653f503d5a15b1d85e1293cd0666cfb6fd0f0d05937807b2ed051c.bin"
+        },
+        {
+          "map": "foundation",
+          "library_sha256": "c4fb4026c63b71fe03093af276f089bce338b32abd3a5871500c21925118afe9",
+          "original_source_sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+          "payload": "25c7cc41c440ee36c8ebfd815fb888aa37016cb06069ae9b8eae1dc1bd33242e.bin"
+        },
+        {
+          "map": "gemini",
+          "library_sha256": "0ba62ed1ff6c6475a870fce0583c7dd538b132e8239bcc21cb82f4b4f46fb81b",
+          "original_source_sha256": "220b42701086a24fc0660041439a72337a3bb7b848d424a4da53ad9e15704095",
+          "payload": "a28a84f2f7b2d8c5d383c9f171ac876a9a062a5776cff1ead9873cc3cddc8550.bin"
+        },
+        {
+          "map": "headlong",
+          "library_sha256": "c9628ee0c09fa963d079eb0e74c0ec1d403fa6e3e64959709fff196e2b7c5944",
+          "original_source_sha256": "f459e179138ef954298dc52c43e5d400fe89efca44e7eaae1691315a3fad7748",
+          "payload": "b07f2c3f693415c25bbeb019ee27ba9f090316dad4c5b2d7788229bc9a748c52.bin"
+        },
+        {
+          "map": "highplains",
+          "library_sha256": "547349db062d9618718251b8a11d10a8382a6d53b6a4200f25e71fe0ce186c29",
+          "original_source_sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+          "payload": "b6a2dcd9baee42a64fe5796a70cc0657d4b97d048b2243e59686aa75f0776fda.bin"
+        },
+        {
+          "map": "lockout",
+          "library_sha256": "8e8f2465003bd286344df5f49f47260a615afd221569b0f8259c345df4176000",
+          "original_source_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+          "payload": "b8beca003bc52dbd1ff2164698851b3f17a684e4d12ed606ce16bbf042e5f092.bin"
+        },
+        {
+          "map": "mainmenu",
+          "library_sha256": "aaff5f02fc98e779359d61f714578d3457a4c5b305060c3f2d97991d9d7a3093",
+          "original_source_sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+          "payload": "b6558d387e952aba97888a1b4a4a47b6039fc0546e85fd5fb9262428656b01d7.bin"
+        },
+        {
+          "map": "midship",
+          "library_sha256": "aaae4882050ba2b4f9252d9fddb534a1756aa4f93073606e2072b1c462ab908d",
+          "original_source_sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+          "payload": "5912b791ed8d150fd88dbf91ad2dacae6b024e408f5a6bfdb96901ec9ef5b515.bin"
+        },
+        {
+          "map": "triplicate",
+          "library_sha256": "e19600f21dc79c38aa5590fbd42dbb61a448e7ab21ffa51c772452cd0b585a03",
+          "original_source_sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+          "payload": "db9bcad33eaa57fdd76f6b02d6601028ef1fffc2a047ccea7015f5054b11655b.bin"
+        },
+        {
+          "map": "turf",
+          "library_sha256": "b7469c3ec380acf86393996787a0d7b0ae07c3a991b11f6c3d5760d50298f1b3",
+          "original_source_sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+          "payload": "334eb8d18d929f0495c0f1c90f013f90378cbbb0e66a48580a8dd219e5e03b89.bin"
+        },
+        {
+          "map": "warlock",
+          "library_sha256": "ca381418f68b94134879d0cbae648c95b2161402b8c86e4b2a982b7ac7c59c39",
+          "original_source_sha256": "980bb3b26a00848c420488f5edf11626a789e5b5bc5134722142c7b9730aa65a",
+          "payload": "aa96db36c9179e40ae269d4d3ebe1aef29e3b97ac5d71650c6f613d11e19c913.bin"
+        },
+        {
+          "map": "waterworks",
+          "library_sha256": "abf49ef8eb85e9702d84c6017ad8d795b43ff5fe3d8a264618516fac228adf1d",
+          "original_source_sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+          "payload": "3877966c4847b22b04364db36d04a0c8e8672c4362180b6f72654c999397f5d0.bin"
+        },
+        {
+          "map": "zanzibar",
+          "library_sha256": "c29203fd3a95a89303835449632b7d3dcc1a11a8e39dcc28e5299b257475e642",
+          "original_source_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+          "payload": "3877966c4847b22b04364db36d04a0c8e8672c4362180b6f72654c999397f5d0.bin"
+        }
+      ]
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_env_no_detail",
+      "baseline_map": "lockout",
+      "normalized_stem_sha256": "4bde21c6956bb48b8668a193c602b19ba4e3e5d071e0e9724784351633cc25d7",
+      "native_program_closure_records": 22,
+      "native_shape_lod_layer_pass_impl_remap": [
+        2,
+        50,
+        8,
+        32,
+        142
+      ],
+      "variants": [
+        {
+          "payload": "04c9064cbe028de8cf613062f58d307d676aaa759f62e4ab55f5db6b61459b88.bin",
+          "bytes": 1108,
+          "fnv64": "91a239032836d65d",
+          "maps": [
+            "00a_introduction"
+          ]
+        },
+        {
+          "payload": "0b4b5334ef1ebb615e0b2abf70ef6b691df44818cc3f89982a6aea9fd7aa91b6.bin",
+          "bytes": 1108,
+          "fnv64": "bec85634a09f023f",
+          "maps": [
+            "containment"
+          ]
+        },
+        {
+          "payload": "146eb2e74fd50074f29272f6cc9878bbf6a2da6696ab6801f4f8e5ee234087d0.bin",
+          "bytes": 1108,
+          "fnv64": "38776b7e4f8150e7",
+          "maps": [
+            "warlock"
+          ]
+        },
+        {
+          "payload": "1fee8de69a9bd15efba1db7a1e96435499e11c8544e50846875f13dc245cde09.bin",
+          "bytes": 1108,
+          "fnv64": "5662f53381780d12",
+          "maps": [
+            "06a_sentinelwalls"
+          ]
+        },
+        {
+          "payload": "2095f7018888645ea75a486553acf2d2b86305d815a926c5b5a883a1f945cb58.bin",
+          "bytes": 1108,
+          "fnv64": "1536c3492db09130",
+          "maps": [
+            "04a_gasgiant"
+          ]
+        },
+        {
+          "payload": "35383e46f0302756f08bb5e1634b1caac1f02efa95ed52ce22be2f17a1e887b0.bin",
+          "bytes": 1108,
+          "fnv64": "fa0c352765aea177",
+          "maps": [
+            "03b_newmombasa"
+          ]
+        },
+        {
+          "payload": "35b5772f91274476aeb51d2ff7515629c8b957870e188cfd199b6087730b1ade.bin",
+          "bytes": 1108,
+          "fnv64": "3f60145d1286ec4f",
+          "maps": [
+            "headlong"
+          ]
+        },
+        {
+          "payload": "35e8b257c50453c93452759e1b10e711128af556e1c91ac6ed8fc1a0bce00f8c.bin",
+          "bytes": 1108,
+          "fnv64": "3f1bbc1865e5048a",
+          "maps": [
+            "08b_deltacontrol"
+          ]
+        },
+        {
+          "payload": "3cc249a20ec24eeeed84b610913b85c326bc7706e668a069dcd6eb750a121e75.bin",
+          "bytes": 1108,
+          "fnv64": "c8fda84bc106622b",
+          "maps": [
+            "coagulation"
+          ]
+        },
+        {
+          "payload": "5743b668fec4613f70307ad2755e40db73e54ed549e7c6d055840114f7bd3f7f.bin",
+          "bytes": 1108,
+          "fnv64": "52b79a72c6e0e019",
+          "maps": [
+            "01a_tutorial"
+          ]
+        },
+        {
+          "payload": "67363707c16e9f283932c493e474f7b90c70d953dee0c650e51cacc7e2bf3d65.bin",
+          "bytes": 1108,
+          "fnv64": "d0ed20e9158cc97f",
+          "maps": [
+            "01b_spacestation"
+          ]
+        },
+        {
+          "payload": "687ff3cccfbab758cde3f08c041d97a45e0bb7128ade9cdf124b383e8256e3d8.bin",
+          "bytes": 1108,
+          "fnv64": "8c167d2cce61e45a",
+          "maps": [
+            "07a_highcharity"
+          ]
+        },
+        {
+          "payload": "6897fe5ce7f9a776cf163b32bfa8c7c6e8d19c58a55e414f4e7865d25da08672.bin",
+          "bytes": 1108,
+          "fnv64": "409f3ddbd4113a1f",
+          "maps": [
+            "foundation"
+          ]
+        },
+        {
+          "payload": "72383cc10fa8838c14a3419a745baa389077650d70e50829e93e52d578acedd2.bin",
+          "bytes": 1108,
+          "fnv64": "f62aaa582b4a4c7c",
+          "maps": [
+            "gemini"
+          ]
+        },
+        {
+          "payload": "7312efbaab1b78ca6671ded8bae5ad25a40e8481dd33605d72e77bf3a2bf0fa6.bin",
+          "bytes": 1108,
+          "fnv64": "982a1b90547ad617",
+          "maps": [
+            "beavercreek"
+          ]
+        },
+        {
+          "payload": "7cead94d8ac73aae72b640e8c69c7c1d93f7142b3453c74aed10845e508057ef.bin",
+          "bytes": 1108,
+          "fnv64": "0724efcd182599c5",
+          "maps": [
+            "mainmenu"
+          ]
+        },
+        {
+          "payload": "89a234a621f2c9870fb4d849e7442c85f4a80c326cbe30b9382c20fa143eaadc.bin",
+          "bytes": 1108,
+          "fnv64": "604b8b1baaa3f76f",
+          "maps": [
+            "dune"
+          ]
+        },
+        {
+          "payload": "90efab05dbc4728e54212b2352cabd9cd50ca5342c15901e02af78b7f3e7033a.bin",
+          "bytes": 1108,
+          "fnv64": "d285ab1135999a07",
+          "maps": [
+            "elongation"
+          ]
+        },
+        {
+          "payload": "93ce301299fc283f7ebbcdc735350dfe531aedf8bbff9cfa658446372ee54f3c.bin",
+          "bytes": 1108,
+          "fnv64": "ed6c07d3b2ff00ef",
+          "maps": [
+            "lockout",
+            "turf"
+          ]
+        },
+        {
+          "payload": "964bef3a86d7ba6a439a0da7fcb33d25ebd77fc4ba2ab3b5acba495dada60d25.bin",
+          "bytes": 1108,
+          "fnv64": "9a43f461caf8a09f",
+          "maps": [
+            "cyclotron"
+          ]
+        },
+        {
+          "payload": "9dac117f9fad174c10dacfc9da12673ef13eb086733c300376779caaadae8922.bin",
+          "bytes": 1108,
+          "fnv64": "13ff92ff0d2d98e0",
+          "maps": [
+            "04b_floodlab"
+          ]
+        },
+        {
+          "payload": "9e10cc6673ba8c6f034272ad29b5865c65435d1a6d81759093db9393dfbd593c.bin",
+          "bytes": 1108,
+          "fnv64": "b58e631f53ae713f",
+          "maps": [
+            "03a_oldmombasa"
+          ]
+        },
+        {
+          "payload": "a0801466fb88f481997916779f64a74e9c10bb1802959811b5948403ae61fd2b.bin",
+          "bytes": 1108,
+          "fnv64": "f6f848528979efc4",
+          "maps": [
+            "backwash"
+          ]
+        },
+        {
+          "payload": "a2316f2e21978c30184d20f1719eaecf36d8b9859227562fd52ddac8bfbd713b.bin",
+          "bytes": 1108,
+          "fnv64": "7072092ab38f3aff",
+          "maps": [
+            "burial_mounds",
+            "waterworks",
+            "zanzibar"
+          ]
+        },
+        {
+          "payload": "aaeca94b79883132a046ba47a5941e766127736d68182438608f03601f53ef5a.bin",
+          "bytes": 1108,
+          "fnv64": "84ddbd577da2df72",
+          "maps": [
+            "08a_deltacliffs"
+          ]
+        },
+        {
+          "payload": "b63e917b7dd99bde3d27c6690fc2a887a99a3941a6c1768a318b2974597a9041.bin",
+          "bytes": 1108,
+          "fnv64": "0a07ccb6e49309a5",
+          "maps": [
+            "colossus"
+          ]
+        },
+        {
+          "payload": "bee6f03433aeb8d4e291f7cab7cb1442c34e75d2bfde42eb75c2c13bb2a370ad.bin",
+          "bytes": 1108,
+          "fnv64": "c43492d0df87d687",
+          "maps": [
+            "highplains"
+          ]
+        },
+        {
+          "payload": "d32d2c5683ea5c0ee3ae6bec18ff544ed5852bfbd2e379abf78e73cc8762c047.bin",
+          "bytes": 1108,
+          "fnv64": "c3661b9c88870f9a",
+          "maps": [
+            "05b_deltatowers"
+          ]
+        },
+        {
+          "payload": "de5087cd0b90bbb4bc714137d15d835d8a7ef84728fb5897eb138764c4ed625d.bin",
+          "bytes": 1108,
+          "fnv64": "596164e997412971",
+          "maps": [
+            "deltatap"
+          ]
+        },
+        {
+          "payload": "e583d82c3856de96137844d586e79d803467b21081ae1b0d8d05314ea444ec34.bin",
+          "bytes": 1108,
+          "fnv64": "e7051909f782872f",
+          "maps": [
+            "ascension"
+          ]
+        },
+        {
+          "payload": "ec08f6d536dafe607600e4ae3474267d4668a350622398140742866a1593c4cb.bin",
+          "bytes": 1108,
+          "fnv64": "3b2b7f4bd298237f",
+          "maps": [
+            "midship"
+          ]
+        },
+        {
+          "payload": "ef29ef91e6dd9be3d158e34654917595d916adace3525e64e619e6d288604d1c.bin",
+          "bytes": 1108,
+          "fnv64": "30f9c347b3c9190a",
+          "maps": [
+            "07b_forerunnership"
+          ]
+        },
+        {
+          "payload": "f4aa17f5a5cb1f654c679382aece02992e9637839b7bcdcf213c3063cb830a73.bin",
+          "bytes": 1108,
+          "fnv64": "43c5156e3847a3d7",
+          "maps": [
+            "derelict"
+          ]
+        },
+        {
+          "payload": "fc071bfc71f4477aff83d81b5fdd4a0836c04f132a3673930ce706c7f9bf3a30.bin",
+          "bytes": 1108,
+          "fnv64": "2a8bcd3816bc598a",
+          "maps": [
+            "06b_floodzone"
+          ]
+        },
+        {
+          "payload": "ff1dc4d00e08d2f1a502b3dfae899623238f42bee3740766eb24ba1fba646a6b.bin",
+          "bytes": 1108,
+          "fnv64": "21a98a35eed20570",
+          "maps": [
+            "triplicate"
+          ]
+        },
+        {
+          "payload": "ffa467cf6c4164752aeb2922c2765b1725abd617012f8d2e258937f20ba42617.bin",
+          "bytes": 1108,
+          "fnv64": "675ef542cb1dcdff",
+          "maps": [
+            "05a_deltaapproach"
+          ]
+        }
+      ],
+      "map_evidence": [
+        {
+          "map": "00a_introduction",
+          "library_sha256": "e2647e819c9d7d21bcc30be7e83337ffc646ef60f8fa419668707f68d9d6e943",
+          "original_source_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+          "payload": "04c9064cbe028de8cf613062f58d307d676aaa759f62e4ab55f5db6b61459b88.bin"
+        },
+        {
+          "map": "01a_tutorial",
+          "library_sha256": "1153ab6a4d3b4703055d0f11ec34a148cefde0c16f7f2e8fcc8ef7c6f769b386",
+          "original_source_sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+          "payload": "5743b668fec4613f70307ad2755e40db73e54ed549e7c6d055840114f7bd3f7f.bin"
+        },
+        {
+          "map": "01b_spacestation",
+          "library_sha256": "05a957a61f94d18aa8222b3e01394e38045324370f378b163c9fff65d62a9ad0",
+          "original_source_sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+          "payload": "67363707c16e9f283932c493e474f7b90c70d953dee0c650e51cacc7e2bf3d65.bin"
+        },
+        {
+          "map": "03a_oldmombasa",
+          "library_sha256": "6c5240f00d5e05b908378bee2bb9f3a4868d957282ccef8deb0b5d7d0376210c",
+          "original_source_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+          "payload": "9e10cc6673ba8c6f034272ad29b5865c65435d1a6d81759093db9393dfbd593c.bin"
+        },
+        {
+          "map": "03b_newmombasa",
+          "library_sha256": "24e72d342dd267c44719c41c72a1d134b1e0a9105a6cc997a3a622ce594d272e",
+          "original_source_sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+          "payload": "35383e46f0302756f08bb5e1634b1caac1f02efa95ed52ce22be2f17a1e887b0.bin"
+        },
+        {
+          "map": "04a_gasgiant",
+          "library_sha256": "9bc7b68c437e4d94b70b186559521dbe2c43f6cb668781d0902664a3ca094539",
+          "original_source_sha256": "9cb7a3da993bf1314dd9b61874ea2c18636b8114f56253263d35e729a170118e",
+          "payload": "2095f7018888645ea75a486553acf2d2b86305d815a926c5b5a883a1f945cb58.bin"
+        },
+        {
+          "map": "04b_floodlab",
+          "library_sha256": "77e6a3ab63bb3935648dc5ab8ffb2f166d52b0564362ae802107f84843e59473",
+          "original_source_sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+          "payload": "9dac117f9fad174c10dacfc9da12673ef13eb086733c300376779caaadae8922.bin"
+        },
+        {
+          "map": "05a_deltaapproach",
+          "library_sha256": "3f82d2144216bceeb02644144cc79e4c893e98fac6d80b24acddebf532d069ef",
+          "original_source_sha256": "6b511e815ab8e4200f36df4b25f42e73c9de498e147ec8fbd0b8cfc95f0c565c",
+          "payload": "ffa467cf6c4164752aeb2922c2765b1725abd617012f8d2e258937f20ba42617.bin"
+        },
+        {
+          "map": "05b_deltatowers",
+          "library_sha256": "a96fa168f6476cc41a8d10760ca63a46bcaff9fb2d816f622948ac1d6b3c45ed",
+          "original_source_sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+          "payload": "d32d2c5683ea5c0ee3ae6bec18ff544ed5852bfbd2e379abf78e73cc8762c047.bin"
+        },
+        {
+          "map": "06a_sentinelwalls",
+          "library_sha256": "effaad2c23cd49f8e8b7772208992ef06195f98cd19357b3ef433bcbcb057824",
+          "original_source_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+          "payload": "1fee8de69a9bd15efba1db7a1e96435499e11c8544e50846875f13dc245cde09.bin"
+        },
+        {
+          "map": "06b_floodzone",
+          "library_sha256": "404239de93a1fa6f4131458a44089cd04fb7bc733266a99381bb639dd3d9f951",
+          "original_source_sha256": "f96ccf1ed35a0c6fbef5dd2d51d46a8a4d64468cd79281b7f3339c31b1b4abea",
+          "payload": "fc071bfc71f4477aff83d81b5fdd4a0836c04f132a3673930ce706c7f9bf3a30.bin"
+        },
+        {
+          "map": "07a_highcharity",
+          "library_sha256": "0e39d7bf58e66fa5a4cb2a5e45bdad8c4b27180b56da6c23a20a4f589246b807",
+          "original_source_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+          "payload": "687ff3cccfbab758cde3f08c041d97a45e0bb7128ade9cdf124b383e8256e3d8.bin"
+        },
+        {
+          "map": "07b_forerunnership",
+          "library_sha256": "6b046e6e0f1f0f546e49e222111835ed2d8602a424ad3697f9568938396a3c7a",
+          "original_source_sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+          "payload": "ef29ef91e6dd9be3d158e34654917595d916adace3525e64e619e6d288604d1c.bin"
+        },
+        {
+          "map": "08a_deltacliffs",
+          "library_sha256": "b746348a15a92b2f6a227c1b45639632fa2991d02f8018439e394dbcffc46b19",
+          "original_source_sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+          "payload": "aaeca94b79883132a046ba47a5941e766127736d68182438608f03601f53ef5a.bin"
+        },
+        {
+          "map": "08b_deltacontrol",
+          "library_sha256": "96572aed76e483d792b74242ab6073974f32aca47b9f06d88f7ed70ec7881a6e",
+          "original_source_sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+          "payload": "35e8b257c50453c93452759e1b10e711128af556e1c91ac6ed8fc1a0bce00f8c.bin"
+        },
+        {
+          "map": "ascension",
+          "library_sha256": "4ffc67e446be672455978f190e447a89f006c2b65b4cf0b344b4b1b45c13c7a3",
+          "original_source_sha256": "84d3164df56ca6ee7de073bd540f24ef6a2e9d2508f143bd94970d66ec5c0bfe",
+          "payload": "e583d82c3856de96137844d586e79d803467b21081ae1b0d8d05314ea444ec34.bin"
+        },
+        {
+          "map": "backwash",
+          "library_sha256": "f9467e6c54424693a0b6dd97734ced8dad27bcac75aa76e56c7ae2ce6fef0a02",
+          "original_source_sha256": "5b0b3b77ad7c010d08581430804daab25edd2a94df73ebd5d940a2e88ef63582",
+          "payload": "a0801466fb88f481997916779f64a74e9c10bb1802959811b5948403ae61fd2b.bin"
+        },
+        {
+          "map": "beavercreek",
+          "library_sha256": "32457475ac10107ebe50ff9749c64773ad818ac7d77835351721066c871a6527",
+          "original_source_sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+          "payload": "7312efbaab1b78ca6671ded8bae5ad25a40e8481dd33605d72e77bf3a2bf0fa6.bin"
+        },
+        {
+          "map": "burial_mounds",
+          "library_sha256": "8ba418796ac1b8c1398eb7a2cbb6a272ad825596b080d2485a26a18a09df9422",
+          "original_source_sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+          "payload": "a2316f2e21978c30184d20f1719eaecf36d8b9859227562fd52ddac8bfbd713b.bin"
+        },
+        {
+          "map": "coagulation",
+          "library_sha256": "350aca23945d490f9394adf785389e68d202b276b2f94e4a467cb7c188c0a900",
+          "original_source_sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+          "payload": "3cc249a20ec24eeeed84b610913b85c326bc7706e668a069dcd6eb750a121e75.bin"
+        },
+        {
+          "map": "colossus",
+          "library_sha256": "ee470878cc450c51c177080ad2558d65e1243510ef89a86917620f7d972cae9e",
+          "original_source_sha256": "f1f9b6de456c43989201331f594e42f717095af51cb9762c0b420e21f9a5f982",
+          "payload": "b63e917b7dd99bde3d27c6690fc2a887a99a3941a6c1768a318b2974597a9041.bin"
+        },
+        {
+          "map": "containment",
+          "library_sha256": "50100488d82701a233c8b26bd550f452c919e49d7d26083dc4dab90c96a7b48b",
+          "original_source_sha256": "e65de92bb58b7b2bae2979759d4cd6386d58c96f468cd06b0a4558c0bd1cd915",
+          "payload": "0b4b5334ef1ebb615e0b2abf70ef6b691df44818cc3f89982a6aea9fd7aa91b6.bin"
+        },
+        {
+          "map": "cyclotron",
+          "library_sha256": "c9e1fe6d67a601e7a4f560199768dd8f28e8ac29caba4199834460e23a86853b",
+          "original_source_sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+          "payload": "964bef3a86d7ba6a439a0da7fcb33d25ebd77fc4ba2ab3b5acba495dada60d25.bin"
+        },
+        {
+          "map": "deltatap",
+          "library_sha256": "f5da5a8fb9f5016eabdc0b1434256e1e80239d4c8af674bdfcc09d00dec41646",
+          "original_source_sha256": "adab707164195d10299be971f2096411c5862486abd89b669a7b1783f57a011c",
+          "payload": "de5087cd0b90bbb4bc714137d15d835d8a7ef84728fb5897eb138764c4ed625d.bin"
+        },
+        {
+          "map": "derelict",
+          "library_sha256": "dd95a1410b498e94ee89b1763633f23e5a1f23343d8379eff1ba59fb3d79f386",
+          "original_source_sha256": "85c9d98556a0cd8dd6bcce94992425518f8a5753c0adb0c353fddf83696f7efd",
+          "payload": "f4aa17f5a5cb1f654c679382aece02992e9637839b7bcdcf213c3063cb830a73.bin"
+        },
+        {
+          "map": "dune",
+          "library_sha256": "17ba90e8f16aff4f35969012cefeba89e25f6b0a92c3ed1ced9e2ab7a12961db",
+          "original_source_sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+          "payload": "89a234a621f2c9870fb4d849e7442c85f4a80c326cbe30b9382c20fa143eaadc.bin"
+        },
+        {
+          "map": "elongation",
+          "library_sha256": "33fb65f1f394a975a55d0f9e919004520a0f51a6065c97031bc3cde816eb7a7b",
+          "original_source_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+          "payload": "90efab05dbc4728e54212b2352cabd9cd50ca5342c15901e02af78b7f3e7033a.bin"
+        },
+        {
+          "map": "foundation",
+          "library_sha256": "c4fb4026c63b71fe03093af276f089bce338b32abd3a5871500c21925118afe9",
+          "original_source_sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+          "payload": "6897fe5ce7f9a776cf163b32bfa8c7c6e8d19c58a55e414f4e7865d25da08672.bin"
+        },
+        {
+          "map": "gemini",
+          "library_sha256": "0ba62ed1ff6c6475a870fce0583c7dd538b132e8239bcc21cb82f4b4f46fb81b",
+          "original_source_sha256": "220b42701086a24fc0660041439a72337a3bb7b848d424a4da53ad9e15704095",
+          "payload": "72383cc10fa8838c14a3419a745baa389077650d70e50829e93e52d578acedd2.bin"
+        },
+        {
+          "map": "headlong",
+          "library_sha256": "c9628ee0c09fa963d079eb0e74c0ec1d403fa6e3e64959709fff196e2b7c5944",
+          "original_source_sha256": "f459e179138ef954298dc52c43e5d400fe89efca44e7eaae1691315a3fad7748",
+          "payload": "35b5772f91274476aeb51d2ff7515629c8b957870e188cfd199b6087730b1ade.bin"
+        },
+        {
+          "map": "highplains",
+          "library_sha256": "547349db062d9618718251b8a11d10a8382a6d53b6a4200f25e71fe0ce186c29",
+          "original_source_sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+          "payload": "bee6f03433aeb8d4e291f7cab7cb1442c34e75d2bfde42eb75c2c13bb2a370ad.bin"
+        },
+        {
+          "map": "lockout",
+          "library_sha256": "8e8f2465003bd286344df5f49f47260a615afd221569b0f8259c345df4176000",
+          "original_source_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+          "payload": "93ce301299fc283f7ebbcdc735350dfe531aedf8bbff9cfa658446372ee54f3c.bin"
+        },
+        {
+          "map": "mainmenu",
+          "library_sha256": "aaff5f02fc98e779359d61f714578d3457a4c5b305060c3f2d97991d9d7a3093",
+          "original_source_sha256": "1b5de78212ee7439b086ef3554885a4188884864ce1040b24ec6604af4a0143b",
+          "payload": "7cead94d8ac73aae72b640e8c69c7c1d93f7142b3453c74aed10845e508057ef.bin"
+        },
+        {
+          "map": "midship",
+          "library_sha256": "aaae4882050ba2b4f9252d9fddb534a1756aa4f93073606e2072b1c462ab908d",
+          "original_source_sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+          "payload": "ec08f6d536dafe607600e4ae3474267d4668a350622398140742866a1593c4cb.bin"
+        },
+        {
+          "map": "triplicate",
+          "library_sha256": "e19600f21dc79c38aa5590fbd42dbb61a448e7ab21ffa51c772452cd0b585a03",
+          "original_source_sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+          "payload": "ff1dc4d00e08d2f1a502b3dfae899623238f42bee3740766eb24ba1fba646a6b.bin"
+        },
+        {
+          "map": "turf",
+          "library_sha256": "b7469c3ec380acf86393996787a0d7b0ae07c3a991b11f6c3d5760d50298f1b3",
+          "original_source_sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+          "payload": "93ce301299fc283f7ebbcdc735350dfe531aedf8bbff9cfa658446372ee54f3c.bin"
+        },
+        {
+          "map": "warlock",
+          "library_sha256": "ca381418f68b94134879d0cbae648c95b2161402b8c86e4b2a982b7ac7c59c39",
+          "original_source_sha256": "980bb3b26a00848c420488f5edf11626a789e5b5bc5134722142c7b9730aa65a",
+          "payload": "146eb2e74fd50074f29272f6cc9878bbf6a2da6696ab6801f4f8e5ee234087d0.bin"
+        },
+        {
+          "map": "waterworks",
+          "library_sha256": "abf49ef8eb85e9702d84c6017ad8d795b43ff5fe3d8a264618516fac228adf1d",
+          "original_source_sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+          "payload": "a2316f2e21978c30184d20f1719eaecf36d8b9859227562fd52ddac8bfbd713b.bin"
+        },
+        {
+          "map": "zanzibar",
+          "library_sha256": "c29203fd3a95a89303835449632b7d3dcc1a11a8e39dcc28e5299b257475e642",
+          "original_source_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+          "payload": "a2316f2e21978c30184d20f1719eaecf36d8b9859227562fd52ddac8bfbd713b.bin"
+        }
+      ]
+    },
+    {
+      "template": "shaders\\shader_templates\\opaque\\tex_bump_illum_bloom",
+      "baseline_map": "01b_spacestation",
+      "normalized_stem_sha256": "9886c66bc252ff2189eda7582760b67a447117ec55bbcbe0e9f8f55881d12bb0",
+      "native_program_closure_records": 29,
+      "native_shape_lod_layer_pass_impl_remap": [
+        2,
+        50,
+        12,
+        36,
+        126
+      ],
+      "variants": [
+        {
+          "payload": "2bb07b594f1e07370c03faaa2bba911e309df8c1d0432a51f4b648a19745131c.bin",
+          "bytes": 1108,
+          "fnv64": "f7c0184fc9ed7826",
+          "maps": [
+            "05b_deltatowers"
+          ]
+        },
+        {
+          "payload": "2d65603db1ebbaaa3083333d4c0a131d57f3b7510787bb2e3291f4f8d2cebd25.bin",
+          "bytes": 1108,
+          "fnv64": "546bc5a832fa0883",
+          "maps": [
+            "00a_introduction"
+          ]
+        },
+        {
+          "payload": "2dee0bc29093df34ffa487245fee61142087097cffa0356b15d6f87fb414ed81.bin",
+          "bytes": 1108,
+          "fnv64": "c9e8e650f8610457",
+          "maps": [
+            "beavercreek"
+          ]
+        },
+        {
+          "payload": "4c7654dc11d9fa88d0014001dc42c1a235f354ad18d77ce7ebd9dc3a1846db1f.bin",
+          "bytes": 1108,
+          "fnv64": "f2364143f061a158",
+          "maps": [
+            "midship"
+          ]
+        },
+        {
+          "payload": "6e665301701df29221d3d8de533ebd2d440dad4aca14972fc78d7883993ada76.bin",
+          "bytes": 1108,
+          "fnv64": "39b2df761dde08e0",
+          "maps": [
+            "07b_forerunnership"
+          ]
+        },
+        {
+          "payload": "803a75509dce79e47537f54989fa49fee7a5948f677249046075d60c76fbe7c5.bin",
+          "bytes": 1108,
+          "fnv64": "f2c87bd1d8644306",
+          "maps": [
+            "07a_highcharity"
+          ]
+        },
+        {
+          "payload": "9143c739e8931d590b0750d974716144ad0dfbca4499f3abcd8341569497fd37.bin",
+          "bytes": 1108,
+          "fnv64": "bf4372a02aec42ef",
+          "maps": [
+            "04a_gasgiant"
+          ]
+        },
+        {
+          "payload": "952e588d5c17861741e9a823afc84b4be5656ab129608fea776e29ab2fe1f14b.bin",
+          "bytes": 1108,
+          "fnv64": "29929886bf26ed0b",
+          "maps": [
+            "highplains"
+          ]
+        },
+        {
+          "payload": "a1a2bf36f7214dadb4e69688ff734cbb08441e68e0ee0eb4a18537bff1aa4cdf.bin",
+          "bytes": 1108,
+          "fnv64": "5f9ed6dea12a0f05",
+          "maps": [
+            "elongation"
+          ]
+        },
+        {
+          "payload": "a6bdba1c7b834d3bb9ce9a7062fe92c0373d293e5a6a9ff34b646a9ecf945255.bin",
+          "bytes": 1108,
+          "fnv64": "cda7de2bfb4df8cb",
+          "maps": [
+            "03b_newmombasa"
+          ]
+        },
+        {
+          "payload": "ad5dd0715e80bed68ea9404db9d9ee977282e771a3472f208e61baba045e232f.bin",
+          "bytes": 1108,
+          "fnv64": "e46b3eaf15588568",
+          "maps": [
+            "08a_deltacliffs"
+          ]
+        },
+        {
+          "payload": "d7e7a09658aadca654045509ac3a88041bbc32ec66688283890d92c72fabe0b9.bin",
+          "bytes": 1108,
+          "fnv64": "52fa6a3db3b695e7",
+          "maps": [
+            "01b_spacestation"
+          ]
+        },
+        {
+          "payload": "d99bd76ec4f44c07f15420222889a8625a7fd43ab3b7ffbf44ab1c38f06cd853.bin",
+          "bytes": 1108,
+          "fnv64": "1fd9795f19343387",
+          "maps": [
+            "01a_tutorial"
+          ]
+        },
+        {
+          "payload": "eb9399961ee2dc415df4b281344f3767638ddb0b333629f2e3e37734a9440963.bin",
+          "bytes": 1108,
+          "fnv64": "4f8d1c1d64f48e20",
+          "maps": [
+            "03a_oldmombasa"
+          ]
+        },
+        {
+          "payload": "ec63586b54d6b04ce663a91362130a26e1edf166e3e0b038cc013c7a100dde27.bin",
+          "bytes": 1108,
+          "fnv64": "22aa6c8ee20394e3",
+          "maps": [
+            "04b_floodlab"
+          ]
+        },
+        {
+          "payload": "f5fd0fbf96b1997c83905f6de89410ecd228b044282c6e79193b28de2750ff4c.bin",
+          "bytes": 1108,
+          "fnv64": "8a273f9a58bc71fd",
+          "maps": [
+            "triplicate"
+          ]
+        },
+        {
+          "payload": "fa079b0504b279997c651398843bd683bc771464d8c3a0a90964af2d3cd2b328.bin",
+          "bytes": 1108,
+          "fnv64": "3c5bf576e5bab841",
+          "maps": [
+            "06a_sentinelwalls"
+          ]
+        },
+        {
+          "payload": "fbb7335138554b3a32fe9c1b5a8b7787aed337baa32e9ea2a883faee0bdbe203.bin",
+          "bytes": 1108,
+          "fnv64": "7ac4b916256b91c9",
+          "maps": [
+            "08b_deltacontrol"
+          ]
+        }
+      ],
+      "map_evidence": [
+        {
+          "map": "00a_introduction",
+          "library_sha256": "e2647e819c9d7d21bcc30be7e83337ffc646ef60f8fa419668707f68d9d6e943",
+          "original_source_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+          "payload": "2d65603db1ebbaaa3083333d4c0a131d57f3b7510787bb2e3291f4f8d2cebd25.bin"
+        },
+        {
+          "map": "01a_tutorial",
+          "library_sha256": "1153ab6a4d3b4703055d0f11ec34a148cefde0c16f7f2e8fcc8ef7c6f769b386",
+          "original_source_sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+          "payload": "d99bd76ec4f44c07f15420222889a8625a7fd43ab3b7ffbf44ab1c38f06cd853.bin"
+        },
+        {
+          "map": "01b_spacestation",
+          "library_sha256": "05a957a61f94d18aa8222b3e01394e38045324370f378b163c9fff65d62a9ad0",
+          "original_source_sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+          "payload": "d7e7a09658aadca654045509ac3a88041bbc32ec66688283890d92c72fabe0b9.bin"
+        },
+        {
+          "map": "03a_oldmombasa",
+          "library_sha256": "6c5240f00d5e05b908378bee2bb9f3a4868d957282ccef8deb0b5d7d0376210c",
+          "original_source_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+          "payload": "eb9399961ee2dc415df4b281344f3767638ddb0b333629f2e3e37734a9440963.bin"
+        },
+        {
+          "map": "03b_newmombasa",
+          "library_sha256": "24e72d342dd267c44719c41c72a1d134b1e0a9105a6cc997a3a622ce594d272e",
+          "original_source_sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+          "payload": "a6bdba1c7b834d3bb9ce9a7062fe92c0373d293e5a6a9ff34b646a9ecf945255.bin"
+        },
+        {
+          "map": "04a_gasgiant",
+          "library_sha256": "9bc7b68c437e4d94b70b186559521dbe2c43f6cb668781d0902664a3ca094539",
+          "original_source_sha256": "9cb7a3da993bf1314dd9b61874ea2c18636b8114f56253263d35e729a170118e",
+          "payload": "9143c739e8931d590b0750d974716144ad0dfbca4499f3abcd8341569497fd37.bin"
+        },
+        {
+          "map": "04b_floodlab",
+          "library_sha256": "77e6a3ab63bb3935648dc5ab8ffb2f166d52b0564362ae802107f84843e59473",
+          "original_source_sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+          "payload": "ec63586b54d6b04ce663a91362130a26e1edf166e3e0b038cc013c7a100dde27.bin"
+        },
+        {
+          "map": "05b_deltatowers",
+          "library_sha256": "a96fa168f6476cc41a8d10760ca63a46bcaff9fb2d816f622948ac1d6b3c45ed",
+          "original_source_sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+          "payload": "2bb07b594f1e07370c03faaa2bba911e309df8c1d0432a51f4b648a19745131c.bin"
+        },
+        {
+          "map": "06a_sentinelwalls",
+          "library_sha256": "effaad2c23cd49f8e8b7772208992ef06195f98cd19357b3ef433bcbcb057824",
+          "original_source_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+          "payload": "fa079b0504b279997c651398843bd683bc771464d8c3a0a90964af2d3cd2b328.bin"
+        },
+        {
+          "map": "07a_highcharity",
+          "library_sha256": "0e39d7bf58e66fa5a4cb2a5e45bdad8c4b27180b56da6c23a20a4f589246b807",
+          "original_source_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+          "payload": "803a75509dce79e47537f54989fa49fee7a5948f677249046075d60c76fbe7c5.bin"
+        },
+        {
+          "map": "07b_forerunnership",
+          "library_sha256": "6b046e6e0f1f0f546e49e222111835ed2d8602a424ad3697f9568938396a3c7a",
+          "original_source_sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+          "payload": "6e665301701df29221d3d8de533ebd2d440dad4aca14972fc78d7883993ada76.bin"
+        },
+        {
+          "map": "08a_deltacliffs",
+          "library_sha256": "b746348a15a92b2f6a227c1b45639632fa2991d02f8018439e394dbcffc46b19",
+          "original_source_sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+          "payload": "ad5dd0715e80bed68ea9404db9d9ee977282e771a3472f208e61baba045e232f.bin"
+        },
+        {
+          "map": "08b_deltacontrol",
+          "library_sha256": "96572aed76e483d792b74242ab6073974f32aca47b9f06d88f7ed70ec7881a6e",
+          "original_source_sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+          "payload": "fbb7335138554b3a32fe9c1b5a8b7787aed337baa32e9ea2a883faee0bdbe203.bin"
+        },
+        {
+          "map": "beavercreek",
+          "library_sha256": "32457475ac10107ebe50ff9749c64773ad818ac7d77835351721066c871a6527",
+          "original_source_sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+          "payload": "2dee0bc29093df34ffa487245fee61142087097cffa0356b15d6f87fb414ed81.bin"
+        },
+        {
+          "map": "elongation",
+          "library_sha256": "33fb65f1f394a975a55d0f9e919004520a0f51a6065c97031bc3cde816eb7a7b",
+          "original_source_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+          "payload": "a1a2bf36f7214dadb4e69688ff734cbb08441e68e0ee0eb4a18537bff1aa4cdf.bin"
+        },
+        {
+          "map": "highplains",
+          "library_sha256": "547349db062d9618718251b8a11d10a8382a6d53b6a4200f25e71fe0ce186c29",
+          "original_source_sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+          "payload": "952e588d5c17861741e9a823afc84b4be5656ab129608fea776e29ab2fe1f14b.bin"
+        },
+        {
+          "map": "midship",
+          "library_sha256": "aaae4882050ba2b4f9252d9fddb534a1756aa4f93073606e2072b1c462ab908d",
+          "original_source_sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+          "payload": "4c7654dc11d9fa88d0014001dc42c1a235f354ad18d77ce7ebd9dc3a1846db1f.bin"
+        },
+        {
+          "map": "triplicate",
+          "library_sha256": "e19600f21dc79c38aa5590fbd42dbb61a448e7ab21ffa51c772452cd0b585a03",
+          "original_source_sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+          "payload": "f5fd0fbf96b1997c83905f6de89410ecd228b044282c6e79193b28de2750ff4c.bin"
+        }
+      ]
+    }
+  ],
+  "policy": "Exact payload filename/SHA256, byte extent and FNV64 only, plus unchanged source authored contract/local namespace/actual native bank/owned pointer checks. No wildcard, new program, ABI change or supplemental library transfer."
+}

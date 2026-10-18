@@ -11,6 +11,10 @@ class PhysicsLiveWorldTu15;
 void source_object_function_set_tu15(PhysicsLiveWorldTu15 &,std::uint32_t object,
     std::uint32_t name,float value,float frames);
 void source_object_function_clear_tu15(PhysicsLiveWorldTu15 &,std::uint32_t object,std::uint32_t name);
+// Actual2AC409 action, including original region/permutation lookup and live
+// model/animation/effect notifications. StringIDs remain serialized32 values.
+void source_object_set_permutation_tu15(PhysicsLiveWorldTu15 &,std::uint32_t object,
+    std::uint32_t region,std::uint32_t permutation);
 std::optional<float> source_object_function_value_tu15(PhysicsLiveWorldTu15 &,
     std::uint32_t object,std::uint32_t name);
 // Read-only samples of the original32 slots at the actual source game clock.

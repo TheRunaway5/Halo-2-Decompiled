@@ -1,0 +1,338 @@
+{
+  "schema": "H2_PINNED_ORDINARY_POINTER_LAYOUTS_V1",
+  "assembly_commit": "fd14ef3c46135e9422966c6a64cd926fb0bd23fb",
+  "fallback": "Halo2MCC inherits Halo2 plugin paths in the pinned Engines.xml",
+  "normalized_unit_shapes": "bipd/crea sphere 0x80, pill 0x50; vehi phantom 0x2a0; src/mcc_physics.cpp",
+  "normalized_bsp_physics": "sbsp root138/c8 row+B0 reserves A0; normalized MOPP dataref64/68; src/mcc_physics.cpp",
+  "relative_fields_preserved": [
+    "scnr Script Expressions +0xc is ScriptNode::string_offset, src/content.cpp and src/scripts.cpp"
+  ],
+  "resource_addresses_delegated": [
+    "scnr Structure BSPs +8 is bound by canonical BSP resource delivery"
+  ],
+  "sources": [
+    {
+      "path": "src/Blamite/Formats/Engines.xml",
+      "sha256": "03a0e9b41d098206f12e5133b827761ac4d19708668009a2d0357bd05347bf33"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/_fx_.xml",
+      "sha256": "d9be70b9ed3dc4696c12c20bace0edb20538b338bd7e9a37f876cee0b2371426"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/DECR.xml",
+      "sha256": "7788e41a4a23578259fd095c5408b5bc57a436d69b39950a7882db94bc68c47d"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/MGS2.xml",
+      "sha256": "f4df5a8c833f96cc1d5af3fe3dd21e87026b61d5d6d356a5ee7279725cca7f74"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/PRTM.xml",
+      "sha256": "c7e72636bbcf3d5355685abac5107fc56ffe9be8007509eb9b8ba18bdd949303"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/adlg.xml",
+      "sha256": "e84d56baf9428ed7f905ae11409327643ee290ac743ad0723fc13a02907deccf"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/ant!.xml",
+      "sha256": "e11133d6f14abe41aefb8abcdcbd1a799332e59d7a1ba640bf5f7b912148231f"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/bipd.xml",
+      "sha256": "1b8c556e22f1500c71085baeb47d8f5922e6c2e0fbf3066606a536413594f259"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/bitm.xml",
+      "sha256": "52fccf9d67228d986b851a6c73727d7aa371bc44425fde67df6d69687deb4740"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/bloc.xml",
+      "sha256": "13be696a8233ec1d5924b5cffb9cc69d76940d8a5a4423d65a0d5021d4247c79"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/bsdt.xml",
+      "sha256": "993d3a214abf849de726bff475e3c048ff926ff0780b006419880aacf8799d7d"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/char.xml",
+      "sha256": "edd0fec11f6dae451e1a1d7a5aac421fb3d8fb984cb4a63bb162db9decfa54bb"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/clwd.xml",
+      "sha256": "4c20777113eda9f4e9e3689b7b8939711e4f0803441bbd659841976c6cdfb235"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/colo.xml",
+      "sha256": "b9e4bd4f7853a2be057a792e61849c6232776f4c1e90eb0cb42383c868f2ed25"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/cont.xml",
+      "sha256": "e84bd42e7bd8776b2fddf0c867b96e58ce8d9a1d16f526b6ef88d9f5357260c9"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/crea.xml",
+      "sha256": "27ce3f6ae4e1f21c23ebfffd90a4a597257f298c56250510f5b64e94462d6b7d"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/ctrl.xml",
+      "sha256": "c51e9eb7b3a95bea02afd4aeaf631d93d072a59d78c875a280be478aa2745b5a"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/deca.xml",
+      "sha256": "7bb1bb081d74199908fedd400287ca07573c75dafc3f131e25d4ca55df3ecaaf"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/effe.xml",
+      "sha256": "85f11263e8566bbaf2a7bd9ee8c52f597a6d41d60307b26b7fcfd83bea7fdb32"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/egor.xml",
+      "sha256": "09d7eb16cf67515c0c30568f949916a77fb4bc9c8fdd8ce94f3f85e7b270f6e0"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/eqip.xml",
+      "sha256": "9da52760b0605028ba06b6216a99ff02f5c92c1edbb6082d6ad204293e9d6c74"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/fog.xml",
+      "sha256": "687aff16e559a80254b0315f8a5603e1eb56a9d39f99dada92600b4b60d2ef55"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/foot.xml",
+      "sha256": "94b4603d5f504c56cc55994ee1fed795e7e22c255d51ac7fc95f01aa733f2822"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/fpch.xml",
+      "sha256": "eedb6b7fed9a0a45fe615c2a1b0a6a8fc14ce06c849ba958cbe0290cd8b88373"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/garb.xml",
+      "sha256": "5d71751fdd5cfe7e604b2c13f56b5c2c56f09854b621cdd602eed6ee0998cd3f"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/gldf.xml",
+      "sha256": "f12de8f0ae3817726345532c99025792dbf26c49a77178dd6f7c56e095f047d0"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/goof.xml",
+      "sha256": "9fdd7aed38609e43de7e4fa92ebeabf681782038ad66d7011884fd23f9aaa5be"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/hlmt.xml",
+      "sha256": "cf462282c9c32e69faeaa55d2afb757e448e48a013b1aafb6a10ad8c188ac6d1"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/hudg.xml",
+      "sha256": "aed8e2aefbf5f6ba168f3f807bb1dc7b59e5bfd46a1ada38931e23202653cb9a"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/itmc.xml",
+      "sha256": "7bc9ec582e5da3037bd258c0a4be7f0a3e73dc79868afe748bffe2a7e8fcdf1e"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/jpt!.xml",
+      "sha256": "093a9165e7af0712e1073c59ce08baa98a06c2b60e6c4e9b418835ba28f5f8fe"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/lens.xml",
+      "sha256": "dde66d56de1a47a2465ccf536e51b5046a806dd8fef82e47051f1fb7ee0764da"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/lifi.xml",
+      "sha256": "1dbdb79387e47aef5131c00201981eeeed7c7db2dfbb7327dca9909afa90c014"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/ligh.xml",
+      "sha256": "ef14e8fbc473b6b967b10b716c6eed8b3121e8a474c688a83ff9d51c3f4eb7fc"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/lsnd.xml",
+      "sha256": "ee0da239263d31995840f31ca193028a89a1efc71a5a40a2185d487aa81f63bd"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/ltmp.xml",
+      "sha256": "6176f19097ff732492c4493bf0e8ab232f4ec05517d18fba43ed8c69bba4f419"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/mach.xml",
+      "sha256": "56bb43e60038fa30eab51f2f34ef25870a6e4b9ee33c908be22207e64d849af8"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/matg.xml",
+      "sha256": "452069645f4ba6eb3e4e94567026e6f7f05e0054d7daf23f450dfd1dca60e4fc"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/mcsr.xml",
+      "sha256": "c45ed11ded96ae97acca84635ff98947e03330223cddb26c45646e2539727b07"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/mdlg.xml",
+      "sha256": "d71f2053f210c412c1117a5f7859ffb5610b26ca5a72432c6d8ab2d9032bdcae"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/mode.xml",
+      "sha256": "3e831acd89db06fb68b76d2f6a6087ece819e0089ba7bb96b30ced07f205eae4"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/mulg.xml",
+      "sha256": "dce456e3e19896f6cd4952401825c4d0ea9ba4ab5d02278235052cee128b39d2"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/nhdt.xml",
+      "sha256": "d3a56611385f8dbf12620a90e534a4df0175436a422c672f06db78b270f5fd05"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/phys.xml",
+      "sha256": "a7ef1c5f1d4953186f9c902f644c9b9f667b837abf03eccba7164f70fcb623b7"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/pmov.xml",
+      "sha256": "c8a34ddb1799dc5006a9a8c120a6bced936d82d5484313b6c28325d67f4f627e"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/pphy.xml",
+      "sha256": "99a8f5d5e5d867d2186f67b3033d30acf6040c725c0a90ffe9315e6d98477c36"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/proj.xml",
+      "sha256": "684f03ec1f5adf4fe8223a7732bc978cff6e708513fc51076127e979f0ebdcf0"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/prt3.xml",
+      "sha256": "54a4998df9014f7dcf30a19842d2e2c20148414605d26fa6a02dee24e83a4d68"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/sbsp.xml",
+      "sha256": "d9a28c4b0b0343d49c766ea1bfdbafb6bdeefe3914bfdfdf4084085275ef9c13"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/scen.xml",
+      "sha256": "5251b5e0733022fcf811c06579c40fde0a0331f124ba4a6697fc8deb3512ca6c"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/scnr.xml",
+      "sha256": "f65984df4f5381025d333ac0defe4b512e94011c4d6b94cacc124a57e0452a65"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/sfx+.xml",
+      "sha256": "8aa58ecc140567061ba8c11fc666da1aa2d5da0ad57a9e48da448943ba2964ca"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/shad.xml",
+      "sha256": "7cdccef19e4295a7d980340d410de0f5b9959dff0c17ac75bed80cd5bb07eb88"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/sily.xml",
+      "sha256": "76cc62f34c5c0fb746ff46b6a9edf22a605df5223191f53fa510d899b7af8887"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/skin.xml",
+      "sha256": "36dd39b6d74e3bebe08ad9b1bb792ab256f96e1506c7719d2a67b0b660cca2d8"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/sky.xml",
+      "sha256": "8ae98b867c9d8c69b47d08c9b95c80435423e5c99553e76bdc164610774923e9"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/sncl.xml",
+      "sha256": "069128ca594ee5fa0cd85f682839a1d1630533068b59fb4d83e12f862841eacb"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/snd!.xml",
+      "sha256": "8c52c3d2eb7e370a97a2bef8cbc7e29c3d333f5f6466ef6f4353cfa7e806cdac"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/snde.xml",
+      "sha256": "27d66e04a3bfbf365050e3ea27d389940022a5d804f75629696286b406e373e2"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/snmx.xml",
+      "sha256": "1c9e982410807a8da526a6fad180a65d61bc63664285c165129148bdc6139408"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/spas.xml",
+      "sha256": "a312319424b8d5a1dcd14a37300e630560d8d065359fdc07b6f8fa1288d53d8c"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/spk!.xml",
+      "sha256": "6b5ef723ee32fd10694cd5ebc98a70d44837ad4be35681fd1c7f0e7b6f11e1b8"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/ssce.xml",
+      "sha256": "30d7208c34e99de87960d39b84d306d9837ee01cf8f5205c463270cc72f20428"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/sslt.xml",
+      "sha256": "9e40bfed34ee0e7293b62d406f72f1124fd1d70107fd0a8335a5d6c1ae6a63ff"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/stem.xml",
+      "sha256": "1b8d7f5261576e5f24ccf19f6cd97426fc501c05dd011c9b9d3d206322935c70"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/styl.xml",
+      "sha256": "5ae2c5f4a6de06ad2386cba9f3c48523c232942501b823a0f0180e5d3916bc7f"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/tdtl.xml",
+      "sha256": "a914e214ec3266786addbf496f250c4e48887700ca064eb9c9b425c22a92b845"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/trak.xml",
+      "sha256": "2921ced0a0d81648a9fa8f487da0d0f04e0e499786acf982402c01b0f6070547"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/trg_.xml",
+      "sha256": "c428d286ad32673b8a3728434599f4cecc7298d60cade98b5e5a4611da7019bb"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/udlg.xml",
+      "sha256": "d95a0f0c2fdc4f3f3ca28349d72ea3e30143921f5dc3433805d4d3a4e94f7d87"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/ugh!.xml",
+      "sha256": "773b341b17c3627fb070a61285d6da1eac10e6143b50463e1040be7fa55217fe"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/unic.xml",
+      "sha256": "7159b4eaa725c42b516ecb448b5e9f2be33c8c83cd58e2d29756b9a6d7d3aff3"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/vehc.xml",
+      "sha256": "01865eef56a40dce05b83ef26280bd3d7c7decd2fe8a5087f0685ddc26d275f9"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/vehi.xml",
+      "sha256": "8605238cf96701087c87dd1aba2ddadb5da24cdf6bb860b9a269588f67863fab"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/vrtx.xml",
+      "sha256": "c66cde9027e51ab54a4e09937b00e28eb6b2c941b549b5b5b745141c2be251a8"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2MCC/weap.xml",
+      "sha256": "dda6c50bae572d179566133b9f73f7d1676e95441e84e3b3c4b8b8994d8d9c5e"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/weat.xml",
+      "sha256": "4375324329f9c218766f9b9339adf7263fd69b1dfa66f1199431c2fc6b640f08"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/wgit.xml",
+      "sha256": "ed2c3fe884d45e1dd22b9ffbdce4eba2e0746db337401ceac5792b6d31dd1e99"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/wgtz.xml",
+      "sha256": "88565504067df3a548e8b56d52943891888a664d30ac7e6f04ede2b4c063e198"
+    },
+    {
+      "path": "src/Assembly/Plugins/Halo2/wigl.xml",
+      "sha256": "b4f232e8cdec8234a1eeaea42047eca469cf721d3fea921b8461d08d1b30c2bf"
+    }
+  ],
+  "schema_count": 79,
+  "node_count": 1045,
+  "field_count": 1214
+}

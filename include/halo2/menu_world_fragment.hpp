@@ -81,6 +81,9 @@ struct MenuWorldFragmentInput {
   MenuWorldFragmentPrimitive primitive=MenuWorldFragmentPrimitive::unspecified;
   // Enabled vkCreateDevice feature, not merely physical-device support.
   bool demote_to_helper_enabled{};
+  // Explicit interpolated vertex fog alpha. Fog RGB remains unbound; the
+  // caller's actual VS/fog-parameter packet owns this attenuation input.
+  bool fog_alpha_bound{};
 };
 
 // Bounded admission for original PROJECT2D/PROJECT3D/CUBE/NONE families and

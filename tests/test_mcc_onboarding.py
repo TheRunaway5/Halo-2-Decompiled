@@ -1,4 +1,5 @@
 """Verify MCC cache selection, reuse and failure publication boundaries."""
+import hashlib
 import json
 from pathlib import Path
 import shutil
@@ -83,13 +84,18 @@ class MccOnboardingTests(unittest.TestCase):
     def test_shader_repair_reuses_import_and_preserves_gameplay_gate(self):
         self.select()
         before = {p.relative_to(self.cache): p.read_bytes() for p in (self.cache / 'halo2').rglob('*') if p.is_file()}
+        tables = b'T' * (28 * 1024)
         def install(root, output):
             directory = output / 'native-shaders'
             directory.mkdir()
             (directory / 'catalog.json').write_text(json.dumps(dict(
                 schema='H2_PRESERVED_NATIVE_SHADER_CATALOG_V1', maps=[dict(map='lockout', complete=True)])))
+            (directory / 'lockout').mkdir()
+            (directory / 'lockout/library.json').write_text(json.dumps(dict(map='lockout', custom=True)))
+            (directory / 'function-tables.bin').write_bytes(tables)
             return dict(complete=True, source='bundled native material library', maps=dict(lockout='verified'))
-        with patch('preserve_native_shaders.copy_selected', side_effect=install) as copy:
+        with patch('native_shader_bundle.TABLE_SHA', hashlib.sha256(tables).hexdigest()), \
+             patch('preserve_native_shaders.copy_selected', side_effect=install) as copy:
             cache, report = onboarding.repair_shaders(self.root, progress=self.messages.append)
             onboarding.repair_shaders(self.root, progress=self.messages.append)
         copy.assert_called_once()

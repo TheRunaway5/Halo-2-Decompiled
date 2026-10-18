@@ -96,7 +96,7 @@ template<class T>bool enum_allowed(std::underlying_type_t<T> value){
     if constexpr(!std::is_convertible_v<T,int>)return true;
     else if constexpr(std::is_same_v<T,Unit::State>)return value>=U(Unit::Idle)&&value<=U(Unit::Dead);
     else if constexpr(std::is_same_v<T,Unit::SeatAction::Phase>)return value>=U(Unit::SeatAction::None)&&value<=U(Unit::SeatAction::Exiting);
-    else if constexpr(std::is_same_v<T,SoundEvent::Action>)return value>=U(SoundEvent::Impulse)&&value<=U(SoundEvent::Reset);
+    else if constexpr(std::is_same_v<T,SoundEvent::Action>)return value>=U(SoundEvent::Impulse)&&value<=U(SoundEvent::NonSpatialImpulse);
     else if constexpr(std::is_same_v<T,NativeGrenadeEvent::Kind>)return value>=U(NativeGrenadeEvent::Begin)&&value<=U(NativeGrenadeEvent::Unavailable);
     else static_assert(unhandled<T>,"Define the archive admission domain of this unscoped state enum");
 }

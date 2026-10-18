@@ -37,11 +37,36 @@ int main(int argc,char **argv)try {
     const std::array<unsigned,4> locals{0,1,2,3};
     Owner host(argv[1],argv[2],locals,1000),replica(argv[1],argv[2],locals,900000);restore(host,replica);
     using K=SourceExecutionCallKind;
-    auto phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_particles(1.f/60.f);host.world->publish_native_observer_position(0,{3,4,5});});
-    rejects([&]{replica.authority->replay_execution_phase(phase,[&]{replica.step({});replica.world->advance_effect_particles(1.f/60.f);});});
+    // Actual source-world scheduling and automatic replay, complementing the
+    // independent original-body state fixture in the parent evidence folder.
+    struct FrameCase {unsigned ticks;float seconds;};
+    for(const auto frame:std::array{FrameCase{0,0.f},FrameCase{0,1.f/120.f},
+            FrameCase{1,1.f/30.f},FrameCase{3,.1f}}) {
+        const auto recorded=host.authority->capture_execution_phase([&]{
+            for(unsigned n=0;n<frame.ticks;++n)host.step({});
+            host.world->advance_effect_frame(frame.seconds);
+        });
+        std::vector<std::uint32_t> owners;
+        unsigned particle_calls{};
+        for(const auto &call:recorded.calls) {
+            if(call.kind==K::CallActualSource)owners.push_back(Bytes(call.arguments).u32(0));
+            if(call.kind==K::EffectParticles) {
+                owners.push_back(0x179df0u);
+                ++particle_calls;
+                check(Bytes(call.arguments).u32(0)==std::bit_cast<std::uint32_t>(frame.seconds),
+                    "Actual particle journal changed its accepted interval");
+            }
+        }
+        check(owners==(frame.seconds>0?std::vector<std::uint32_t>{0x17ead0u,0x180520u,0x1378e0u,0x179df0u}:std::vector<std::uint32_t>{0x179df0u}) && particle_calls==1,
+            "Zero/one/multi-tick native frame repeated or omitted a retained effect owner");
+        replica.authority->replay_execution_phase(decode_source_execution_phase(encode_source_execution_phase(recorded)));equal(host,replica);
+    }
+    std::cout<<"PASS actual source zero/one/multi-tick effect scheduling and automatic complete-world replay\n";
+    auto phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_frame(1.f/60.f);host.world->publish_native_observer_position(0,{3,4,5});});
+    rejects([&]{replica.authority->replay_execution_phase(phase,[&]{replica.step({});replica.world->advance_effect_frame(1.f/60.f);});});
     rejects([&]{replica.authority->checkpoint(binding);});restore(host,replica);
-    phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_particles(1.f/60.f);host.world->publish_native_observer_position(0,{4,5,6});});
-    rejects([&]{replica.authority->replay_execution_phase(phase,[&]{replica.step({});replica.world->advance_effect_particles(1.f/60.f);replica.world->publish_native_observer_position(0,{4,5,7});});});
+    phase=host.authority->capture_execution_phase([&]{host.step({});host.world->advance_effect_frame(1.f/60.f);host.world->publish_native_observer_position(0,{4,5,6});});
+    rejects([&]{replica.authority->replay_execution_phase(phase,[&]{replica.step({});replica.world->advance_effect_frame(1.f/60.f);replica.world->publish_native_observer_position(0,{4,5,7});});});
     restore(host,replica);
     phase=host.authority->capture_execution_phase([&]{host.world->publish_native_observer_position(0,{5,6,7});host.world->begin_model_frame();});
     rejects([&]{replica.authority->replay_execution_phase(phase,[&]{replica.world->begin_model_frame();});});restore(host,replica);
@@ -49,7 +74,7 @@ int main(int argc,char **argv)try {
     for(unsigned frame=0;frame<2;++frame){
         phase=host.authority->capture_execution_phase([&]{
             std::array<Controls,16> controls{};controls[0].fire=frame==0;
-            host.step(controls);host.world->advance_effect_particles(1.f/60.f);host.world->begin_model_frame();
+            host.step(controls);host.world->advance_effect_frame(1.f/60.f);host.world->begin_model_frame();
             for(unsigned view=0;view<4;++view){
                 const auto position=host.match->unit(view).body.position+Vec3{0,0,1.7f};
                 host.world->publish_native_observer_position(view,position);
@@ -69,7 +94,7 @@ int main(int argc,char **argv)try {
         check(phase.calls.size()>20,"Native multiview fixture did not record the actual outside-tick calls");
         replica.authority->replay_execution_phase(decode_source_execution_phase(encode_source_execution_phase(phase)));equal(host,replica);
     }
-    check(kinds.size()==13,"Native multiview fixture omitted a declared journal operation");
+    check(kinds.size()==14 && kinds.contains(K::CallActualSource),"Native multiview fixture omitted a declared journal operation");
     auto malformed=phase;malformed.calls.back().arguments.push_back(std::byte{1});
     rejects([&]{replica.authority->replay_execution_phase(malformed);});equal(host,replica);
     auto before=host.match->simulation().ticks();
@@ -84,7 +109,7 @@ int main(int argc,char **argv)try {
         rejects([&]{host.authority->checkpoint(binding);});
         rejects([&]{host.authority->start_execution_phase();});
         auto foreign=std::async(std::launch::async,[&]{rejects([&]{recording.finish();});});foreign.get();
-        host.step({});host.world->advance_effect_particles(1.f/60.f);
+        host.step({});host.world->advance_effect_frame(1.f/60.f);
         // A real frame tail remains in the same owning phase after the tick.
         host.world->publish_native_observer_position(3,{8,9,10});host.world->begin_model_frame();
         phase=recording.finish();rejects([&]{recording.finish();});

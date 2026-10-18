@@ -1,3 +1,5 @@
+#include "halo2/source_effect_frame_tu15.hpp"
+#include "halo2/source_campaign_lens_restore_tu15.hpp"
 #include "halo2/physics_internal_phantom_observation.hpp"
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/scripts.hpp"
@@ -665,7 +667,7 @@ struct MultiplayerObjectRuntime::Continuation {
   mutable std::recursive_mutex gate;
   std::size_t calls{};
   std::unique_ptr<SourceProjectileEffectObserver> projectile_effects;
-  bool staging{},fault{};
+  bool staging{},fault{},live_campaign_lens_renderer{};
   std::shared_ptr<std::atomic<std::uint64_t>> writes=std::make_shared<std::atomic<std::uint64_t>>(0);
   std::uint64_t mutating_calls{};
   Continuation(SourceRuntimeMemory &bank,bool retained):bank(bank),retained_executor(retained) {
@@ -699,13 +701,25 @@ struct MultiplayerObjectRuntime::Continuation {
     }
   };
 };
+MultiplayerObjectRuntime::MultiplayerObjectRuntime(const Cache &cache,std::size_t bsp,
+    const std::filesystem::path &files):MultiplayerObjectRuntime({},cache,bsp,files,{}) {}
+MultiplayerObjectRuntime::MultiplayerObjectRuntime(const Cache &cache,std::size_t bsp,
+    const std::filesystem::path &files,std::shared_ptr<PhysicsLiveClockSource> clocks)
+    :MultiplayerObjectRuntime({},cache,bsp,files,std::move(clocks)) {}
 MultiplayerObjectRuntime::MultiplayerObjectRuntime(const std::filesystem::path &image,const Cache &cache,
     std::size_t bsp,const std::filesystem::path &files):MultiplayerObjectRuntime(image,cache,bsp,files,{}) {}
 MultiplayerObjectRuntime::MultiplayerObjectRuntime(const std::filesystem::path &image,const Cache &cache,
     std::size_t bsp,const std::filesystem::path &files,std::shared_ptr<PhysicsLiveClockSource> clocks) {
+  if(image.empty() && (!cache.original_data() ||
+      cache.original_data()->image!=OriginalData::Image::TitleUpdate15))
+    throw FormatError("Native object startup requires its compiled TU1.5 gameplay constants");
   const auto original=cache.original_data()?cache.original_data():OriginalData::load_xbe(image);
   if(original->image==OriginalData::Image::TitleUpdate15) {
-    if(clocks)tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,image,files,bsp,std::move(clocks));
+    if(image.empty()) {
+      if(clocks)tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,files,bsp,std::move(clocks));
+      else tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,files,bsp);
+    }
+    else if(clocks)tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,image,files,bsp,std::move(clocks));
     else tu15_=std::make_unique<PhysicsLiveWorldTu15>(cache,image,files,bsp);
   } else {
     if(clocks)throw FormatError("Native object clock provider requires its TU1.5 physics owner");
@@ -1106,6 +1120,11 @@ std::uint32_t MultiplayerObjectRuntime::netgame_object(unsigned row)const {Conti
 std::uint32_t MultiplayerObjectRuntime::child_object(std::uint32_t parent,std::uint32_t definition)const {Continuation::PublicCall active(*continuation_,false);
   if(!tu15_)throw FormatError("Model child lookup requires the TU1.5 live physics world");
   return tu15_->child_object(parent,definition);
+}
+std::uint32_t MultiplayerObjectRuntime::model_child_object(std::uint32_t parent,std::uint32_t definition,
+    std::uint32_t parent_marker,std::uint32_t child_marker)const {Continuation::PublicCall active(*continuation_,false);
+  if(!tu15_)throw FormatError("Model child lookup requires the TU1.5 live physics world");
+  return tu15_->model_child_object(parent,definition,parent_marker,child_marker);
 }
 void MultiplayerObjectRuntime::destroy_object(std::uint32_t object) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Original body retirement requires the TU1.5 physics owner");
@@ -1548,6 +1567,28 @@ const SourceRuntimeMemory &MultiplayerObjectRuntime::PreparedAuthority::replacem
 MultiplayerObjectRuntime::PreparedAuthority MultiplayerObjectRuntime::prepare_authority(const AuthorityCheckpoint &saved) {
   PreparedAuthority prepared;prepared.impl_=std::make_unique<PreparedAuthority::Impl>(*this,saved);return prepared;
 }
+void MultiplayerObjectRuntime::live_campaign_lens_renderer(bool active) {
+  auto &continuation=*continuation_;
+  std::unique_lock lock(continuation.gate,std::try_to_lock);continuation.require_executor();
+  if(!lock.owns_lock() || continuation.calls || !tu15_ || (active && continuation.fault))
+    throw FormatError("Campaign lens registration requires its completed actual TU1.5 owner");
+  if(active) {
+    tu15_->require_execution_boundary();
+    const auto &memory=tu15_->memory();const auto game=word(memory,0x4f3218u);
+    if(!game || word(memory,game+8u)!=1u)
+      throw FormatError("Live lens renderer retention is owned by campaign only");
+    source_require_live_campaign_lens_tu15(memory);
+  }
+  continuation.live_campaign_lens_renderer=active;
+}
+MultiplayerObjectRuntime::PreparedAuthority MultiplayerObjectRuntime::prepare_campaign_authority(const AuthorityCheckpoint &saved) {
+  auto prepared=prepare_authority(saved);
+  // Both object and Physics preparations still hold their original locks and
+  // staging barriers. Neither source backing nor native sidecars are published.
+  if(continuation_->live_campaign_lens_renderer)
+    prepared.impl_->world->retain_live_campaign_lens();
+  return prepared;
+}
 bool MultiplayerObjectRuntime::commit_authority(PreparedAuthority &&prepared) noexcept {
   if(!prepared.for_owner(*this) || std::this_thread::get_id()!=continuation_->executor)return false;
   auto &state=*prepared.impl_;
@@ -1557,6 +1598,10 @@ bool MultiplayerObjectRuntime::commit_authority(PreparedAuthority &&prepared) no
 void MultiplayerObjectRuntime::publish_render_visibility(const SourcePortalVisibilitySet& v) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Particle visibility requires its actual TU1.5 world");
   tu15_->publish_render_visibility(v);
+}
+void MultiplayerObjectRuntime::advance_effect_frame(float seconds,const SourceFirstPersonPhaseObserverTu15& observer) {Continuation::PublicCall active(*continuation_);
+  if(!tu15_)throw FormatError("Effect frames require their actual TU1.5 world");
+  source_effect_frame_tu15(*tu15_,seconds,observer);
 }
 void MultiplayerObjectRuntime::advance_effect_particles(float seconds,const SourceFirstPersonPhaseObserverTu15& observer) {Continuation::PublicCall active(*continuation_);
   if(!tu15_)throw FormatError("Particle frames require their actual TU1.5 world");

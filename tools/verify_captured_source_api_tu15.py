@@ -3,8 +3,8 @@
 
 The isolated caller's declared return sentinel is the sole permitted input
 adaptation. Stack outputs must be listed explicitly; the ordinary complete-bank
-comparison excludes the source stack. Actual API instruction traces are not
-available, so the separate same-input standalone trace remains mandatory.
+comparison excludes the source stack. Actual API traces are checked when
+present; the separate same-input standalone trace remains mandatory.
 """
 import argparse
 import hashlib
@@ -75,6 +75,9 @@ def main():
     trace = original / ('hardware/hardware-trace.bin' if stepped else 'original-trace.bin')
     stores = original / ('hardware/hardware-stores.bin' if stepped else 'original-stores.bin')
     checks['strict_native_instruction_trace_exact'] = (native / 'native-trace.bin').read_bytes() == trace.read_bytes()
+    actual_trace_available=(actual / 'native-trace.bin').is_file()
+    if actual_trace_available:
+        checks['actual_API_instruction_trace_exact']=(actual/'native-trace.bin').read_bytes()==trace.read_bytes()
     checks['strict_native_stores_exact'] = (native / 'native-stores.bin').read_bytes() == stores.read_bytes()
     checks['actual_API_stores_exact'] = (actual / 'native-stores.bin').read_bytes() == stores.read_bytes()
     expected_cpu = bytearray((original / 'hardware/hardware-exit.bin').read_bytes())
@@ -110,7 +113,7 @@ def main():
                   original_report_sha256=sha(original / 'report.json'),
                   hardware_report_sha256=sha(original / 'hardware/report.json'),
                   actual_API_build_sha256=sha(actual / 'build.json'), native_build_sha256=sha(args.build / 'build.json'),
-                  tool_sha256=sha(Path(__file__)), actual_API_instruction_trace_available=False,
+                  tool_sha256=sha(Path(__file__)), actual_API_instruction_trace_available=actual_trace_available,
                   physical_xbox_verified=False, full_weapon_parity=False)
     args.output.write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps({key: report[key] for key in ('passed', 'original_entry', 'original_instructions', 'original_nonstack_writes', 'retained_nonstack_bytes')}))

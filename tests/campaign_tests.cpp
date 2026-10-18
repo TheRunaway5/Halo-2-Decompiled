@@ -884,6 +884,22 @@ void checkpoint_audio_and_faults() {
   check(sim.scripts().diagnostics().size() == 1,
         "restoring a checkpoint cannot conceal observed script faults");
 }
+void scripted_sound_location_kind() {
+  auto c=arena();Program p;
+  p.script("sound_location",p.call("begin",{
+      p.call("sound_impulse_start",{p.scalar(43,32),p.scalar(-1,50),p.scalar(1)}),
+      p.call("sound_impulse_start",{p.scalar(44,32),p.scalar(0,50),p.scalar(1)})}));
+  c.scripts=p.data;Simulation sim(c,0,{{200,300,400},0,0});
+  sim.run_script("sound_location");sim.step({});const auto sounds=sim.take_sounds();
+  check(sounds.size()==2 && sounds[0].action==SoundEvent::NonSpatialImpulse &&
+      sounds[1].action==SoundEvent::Impulse,
+      "HSC NONE and live player emitters lost their distinct audio locations");
+  check(sounds[0].owner==null_datum && sounds[1].owner==sim.player().source_datum,
+      "HSC audio delivery lost its resolved speaker identity");
+  check(sounds[0].position.x==0 && sounds[0].position.y==0 && sounds[0].position.z==0 &&
+      sounds[1].position.x==200 && sounds[1].position.y==300,
+      "HSC centered sound inherited the parked gameplay listener position");
+}
 void player_controls_and_external_global() {
   auto c = arena(); add_enemy(c);
   Program p;
@@ -1227,11 +1243,16 @@ int main(int argc, char **argv) {
       std::cout << "Opening release time-code continuation passed\n";
       return 0;
     }
+    if(argc==2 && std::string_view(argv[1])=="--scripted-sound-location") {
+      scripted_sound_location_kind();
+      std::cout<<"HSC centered and actor-bound sound locations passed\n";
+      return 0;
+    }
     opening_release_timing();
     campaign_frame_clock_schedule();cinematic_bootstrap_presentation();cinematic_crossfade_checkpoint();cinematic_attachment_retirement();
     vm_checkpoint(); dispatch_boundary(); poll_boundaries(); scene_checkpoint();campaign_create_containing();
     protection_flags(); actor_reference_frames(); posed_unit_volume_center(); tutorial_actor_commands_and_text(); checkpoint_audio_and_faults();
-    campaign_fixed_upper_damage();
+    campaign_fixed_upper_damage();scripted_sound_location_kind();
     player_controls_and_external_global();tutorial_controls_and_checkpoint();
     combat_checkpoint_replay(); projectile_lifetime_cleanup(); source_body_checkpoint(); bsp_builtin_boundary();
     initial_geometry_ownership();

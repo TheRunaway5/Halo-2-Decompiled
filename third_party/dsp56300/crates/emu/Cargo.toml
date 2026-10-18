@@ -1,0 +1,43 @@
+[package]
+name = "dsp56300-emu"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+
+description = "DSP56300 JIT emulator"
+keywords = ["dsp56300", "motorola", "emulator", "jit", "dsp"]
+categories = ["emulators"]
+
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+# Test-only: lets a JitEngine be built with a non-default inline-loop
+# preemption quantum, so the slice/preemption differential tests can compare
+# a fully inline loop against a preempted one in the same process.
+tunable-loop-quantum = []
+
+[dependencies]
+dsp56300-core = { version = "1.0.0", path = "../core" }
+cranelift-codegen = "0.134.3"
+cranelift-frontend = "0.134.3"
+cranelift-jit = "0.134.3"
+cranelift-module = "0.134.3"
+cranelift-native = "0.134.3"
+target-lexicon = "0.13"
+clap = { version = "4", features = ["derive"], optional = true }
+
+[[bin]]
+name = "dsp56300-emu"
+path = "src/bin/emu.rs"
+required-features = ["cli"]
+
+[[bench]]
+name = "jit"
+harness = false
+
+[[bin]]
+name = "difftest"
+path = "src/bin/difftest.rs"

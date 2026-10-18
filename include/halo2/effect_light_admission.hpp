@@ -12,7 +12,7 @@ struct SourceEffectLightRuntime {
     std::uint32_t identity,owner;
     std::uint8_t flags; // record+2
     std::int16_t attached_node,cluster; // record+54/+48
-    std::int32_t animation_index; // record+8; NONE selects the tag definition
+    std::int32_t scenario_placement; // record+8; scenario+EC ordinal, NONE for attached/effect lights
     float spatial_radius,overall_fade; // record+24/+100
     Vec3 spatial_center; // record+18, distinct from the render position
     Vec3 position,forward,up; // record+84/+AC/+B8
@@ -34,9 +34,9 @@ struct SourceEffectLightAdmission {
 };
 // Complete C3140 active/bound/fade/color-energy test over current state.
 bool source_effect_light_live(const SourceEffectLightRuntime&);
-// Complete retail 31590 with C3140,31520,C17F0 for nonanimated spheres.
-// No PVS collection or history is created here. Animated definitions retain
-// their separate C1980 owner and reject only when that branch is consumed.
+// Complete retail 31590 with C3140,31520,C17F0 for tag-defined spheres.
+// No PVS collection or history is created here. Scenario placements retain
+// their separate C1980 shape owner and reject only when that branch is consumed.
 SourceEffectLightAdmission source_effect_light_render_admission(
     const EffectLightDefinition&,const SourceEffectLightRuntime&,
     const SourceEffectLightRenderContext&);

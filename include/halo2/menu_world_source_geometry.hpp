@@ -29,8 +29,10 @@ struct MenuWorldSourcePart {
   std::uint32_t shader=0xffffffffu;
 };
 class MenuWorldSourceSectionBuilder;
-// Owns unchanged source bytes. No CPU decompression, skinning, basis rotation,
-// triangle expansion, resource activation or shader selection occurs here.
+// Owns draw resource bytes. MCC BSP and supported model vertex channels project
+// through the authenticated original declaration/packed-basis contract;
+// source allocations remain unchanged. No skinning, basis rotation, triangle
+// expansion, resource activation or shader selection occurs here.
 class MenuWorldSourceSection {
 public:
   MenuWorldSourceSectionKind kind() const { return kind_; }

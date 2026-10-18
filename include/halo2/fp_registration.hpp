@@ -13,7 +13,11 @@ struct FirstPersonClockClip {
   std::uint32_t activity{}, index{};
   std::int16_t frames{}, loop_frame{};
   std::vector<FirstPersonAnimationEvent> events;
+  std::uint16_t inheritance=0xffffu; // Literal action low signed16; FFFF selects the manager graph.
 };
+inline std::uint32_t first_person_clip_identifier(const FirstPersonClockClip &clip) {
+  return (clip.index<<16)|clip.inheritance;
+}
 // The represented fields of TU1677E5/1678C1/169D8A/169965/167D32.
 // Native secondary hands reuse the same node map and clock with authored dual clips.
 struct FirstPersonBindingDefinition {
@@ -27,6 +31,7 @@ struct FirstPersonBindingDefinition {
   bool continuous_fire_animation{}; // Authored weap+12C bit17.
   std::vector<FirstPersonClockClip> clock_clips,dual_clock_clips;
   std::array<std::optional<AnimationClip>,2> ammunition; // Single/dual original169965 overlay lookup.
+  std::uint32_t idle_identifier=0xffffffffu;
 };
 // Original169728..169846 frame selector. available is104CF0 (loaded plus
 // eligible shared reserve), elapsed is signed16 weapon+228 minus+226.

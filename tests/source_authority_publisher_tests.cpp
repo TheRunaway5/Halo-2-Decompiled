@@ -99,7 +99,7 @@ void run(int argc,char **argv){
         auto next=Wall::now();const auto deadline=Wall::now()+90s;
         while(true){publisher.update();auto state=publisher.state();check(state.error.empty(),state.error.c_str());
             if(captures<2&&state.validations==captures&&!state.encoding&&!state.awaiting_validation){
-                if(captures)world.world->advance_effect_particles(1.f/60.f);
+                if(captures)world.world->advance_effect_frame(1.f/60.f);
                 check(publisher.capture(),"Actual source capture was refused");const auto tick=world.match->simulation().ticks();write(files/("bodies-"+std::to_string(tick)),bodies(world));++captures;
                 check(!publisher.capture(),"Overlapping native capture was accepted");
             }

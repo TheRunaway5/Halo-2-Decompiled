@@ -14,9 +14,9 @@ foreach(shader volume.vert volume.frag lightmap.vert lightmap.frag)
 endforeach()
 foreach(stage vert frag)
     add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/shaders/fixture.${stage}.spv
-        COMMAND ${GLSLANG_VALIDATOR} -V -I${ROOT}/shaders ${CMAKE_CURRENT_SOURCE_DIR}/fixture.${stage}
+        COMMAND ${GLSLANG_VALIDATOR} -V -I${ROOT}/shaders -I${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/fixture.${stage}
             -o ${CMAKE_CURRENT_BINARY_DIR}/shaders/fixture.${stage}.spv
-        DEPENDS fixture.${stage} ${ROOT}/shaders/world_depth_fragment.glsl VERBATIM)
+        DEPENDS fixture.${stage} captured_surface.glsl ${ROOT}/shaders/vertex_program.glsl ${ROOT}/shaders/render_view.glsl ${ROOT}/shaders/world_depth_fragment.glsl VERBATIM)
 endforeach()
 add_custom_target(shaders DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/volume.vert.spv
     ${CMAKE_CURRENT_BINARY_DIR}/shaders/pstencil/volume.frag.spv

@@ -37,6 +37,8 @@ struct SourcePropScene::Impl {
         std::uint32_t handle=0xffffffffu;
         std::uint64_t created_tick{};
         bool active=true,visible=true;
+        bool source_regions{};
+        std::int32_t prepared_variant=-1;
         SourcePropDefinition definition;
         std::uint32_t object_definition=0xffffffffu;
         SourceObjectGeometry geometry;
@@ -67,7 +69,7 @@ struct SourcePropScene::Impl {
     std::vector<Prop> props;
     std::set<std::size_t> prop_placements,nonrendered_placements;
 
-    Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld &cw)
+    Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld &cw,bool region_union)
         :cache(c),collision(cw),lighting(c.load_bsp_lighting(bsp)),surface(c.load_bsp_surface_lighting(bsp)),
          conversion(c.load_object_lighting_definition()),sh(c.load_source_prt_lighting(bsp)) {
         for(std::size_t source_object=0;source_object<objects.size();++source_object){
@@ -91,10 +93,18 @@ struct SourcePropScene::Impl {
                 throw FormatError("prop initial controller requires source frame state: "+p.definition.name);
             const auto initial_definition=cache.load_initial_model_definition(object.definition);
             const auto selection=cache.load_initial_model_selection(object.definition,object.variant);
-            p.active_permutations=selection.permutations;
-            if(!selection.resolved())
-                throw FormatError("prop initial model RNG selection requires source state: "+p.definition.name);
-            p.geometry.load(cache,object,initial_definition,selection,p.definition.render_model,true);
+            p.source_regions=region_union;p.prepared_variant=selection.variant_index;
+            if(region_union) {
+                // Resource preparation does not select an RNG outcome. Current
+                // original region bytes bind only with the actual full lifetime.
+                p.active=false;p.visible=false;
+                p.geometry.load_union(cache,object,initial_definition,p.definition.render_model);
+            } else {
+                p.active_permutations=selection.permutations;
+                if(!selection.resolved())
+                    throw FormatError("prop initial model RNG selection requires source state: "+p.definition.name);
+                p.geometry.load(cache,object,initial_definition,selection,p.definition.render_model,true);
+            }
             const auto basis=authored_basis(object.rotation);p.scale=object.scale;
             p.object=source_object_transform(object.position,basis.forward,basis.up,p.scale,false);
             pose(p);
@@ -185,7 +195,12 @@ struct SourcePropScene::Impl {
                 throw FormatError("prop full handle changed its source creation tick");
             p.object=scene_object_transform(object);p.scale=p.object.scale;
             p.solved_nodes=object.solved_nodes;
-            if(region_state)if(const auto *selection=region_state(p.handle)){
+            const auto *selection=region_state?region_state(p.handle):nullptr;
+            if(p.source_regions && !selection)
+                throw FormatError("prop source union requires actual current region bytes: "+p.definition.name);
+            if(selection) {
+                if(p.source_regions && selection->variant_index!=p.prepared_variant)
+                    throw FormatError("prop source variant requires its actual named color context: "+p.definition.name);
                 p.geometry.regions(*selection);p.active_permutations=selection->permutations;
             }
             p.active=true;p.visible=object.visible;
@@ -230,7 +245,7 @@ struct SourcePropScene::Impl {
 
 };
 SourcePropScene::SourcePropScene(const Cache&c,std::span<const ScenarioObject>objects,std::size_t bsp,Mesh&mesh,
-    const CollisionWorld&collision):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision)){}
+    const CollisionWorld&collision,bool source_regions):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision,source_regions)){}
 SourcePropScene::~SourcePropScene()=default;
 SourcePropScene::SourcePropScene(SourcePropScene&&)noexcept=default;
 SourcePropScene&SourcePropScene::operator=(SourcePropScene&&)noexcept=default;

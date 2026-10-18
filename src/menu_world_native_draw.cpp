@@ -114,6 +114,11 @@ FixedState fixed_state(const MenuWorldNativeDrawInput &input) {
   result.blend.colorBlendOp=result.blend.alphaBlendOp=VK_BLEND_OP_ADD;
   if(input.forward_blend==0) {
     result.blend.blendEnable=VK_FALSE;
+  } else if(input.forward_blend==3) {
+    // Authored projected-light passes use ONE/ONE for both RGB and alpha.
+    result.blend.blendEnable=VK_TRUE;
+    result.blend.srcColorBlendFactor=result.blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_ONE;
+    result.blend.dstColorBlendFactor=result.blend.dstAlphaBlendFactor=VK_BLEND_FACTOR_ONE;
   } else if(input.forward_blend==5) {
     result.blend.blendEnable=VK_TRUE;
     result.blend.srcColorBlendFactor=result.blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_CONSTANT_COLOR;
@@ -127,6 +132,11 @@ FixedState fixed_state(const MenuWorldNativeDrawInput &input) {
     result.blend.srcColorBlendFactor=VK_BLEND_FACTOR_DST_COLOR;
     result.blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_DST_ALPHA;
     result.blend.dstColorBlendFactor=result.blend.dstAlphaBlendFactor=VK_BLEND_FACTOR_ZERO;
+  } else if(input.forward_blend==8) {
+    // Combined projected light: sourceDST_ALPHA + destinationONE.
+    result.blend.blendEnable=VK_TRUE;
+    result.blend.srcColorBlendFactor=result.blend.srcAlphaBlendFactor=VK_BLEND_FACTOR_DST_ALPHA;
+    result.blend.dstColorBlendFactor=result.blend.dstAlphaBlendFactor=VK_BLEND_FACTOR_ONE;
   } else if(input.forward_blend==10) {
     // Sphere diffuse: ONE + CONSTANT_COLOR, literal00FFFFFF. The alpha
     // destination factor is the same constant's zero alpha component.
@@ -218,10 +228,10 @@ struct MenuWorldNativeDraw::Impl {
         !features.features.shaderTessellationAndGeometryPointSize || !features.features.depthClamp ||
         !vk13.shaderDemoteToHelperInvocation || limits.maxBoundDescriptorSets<2 ||
         limits.maxPushConstantsSize<112 || limits.maxUniformBufferRange<sizeof(WorldMaterialUniform) ||
-        limits.maxUniformBufferRange<sizeof(MenuWorldVertexUniforms) ||
+        limits.maxUniformBufferRange<sizeof(MenuWorldVertexAttributeUniforms) ||
         limits.maxUniformBufferRange<sizeof(MenuWorldFragmentUniforms))
       throw FormatError("raw world draw device does not support the production shader/layout contract");
-    vertex_stride=aligned(sizeof(MenuWorldVertexUniforms),limits.minUniformBufferOffsetAlignment);
+    vertex_stride=aligned(sizeof(MenuWorldVertexAttributeUniforms),limits.minUniformBufferOffsetAlignment);
     fragment_stride=aligned(sizeof(MenuWorldFragmentUniforms),limits.minUniformBufferOffsetAlignment);
     const VkDescriptorSetLayoutBinding bindings[]{
         {0,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_VERTEX_BIT,nullptr},
@@ -278,8 +288,14 @@ struct MenuWorldNativeDraw::Impl {
       throw FormatError("raw world draw has no catalog/material or an unaligned material offset");
     (void)menu_world_vertex_catalog_lookup(std::span(input.vertex_shader,1),
         input.source.program_bytes(),input.source.declaration());
-    if(!input.source.external_attribute_registers().empty())
-      throw FormatError("raw world draw consumes unbound external attributes");
+    if(!input.source.external_attribute_registers().empty()) {
+      if(input.vertex_shader->abi!=menu_world_vertex_attribute_catalog_abi)
+        throw FormatError("raw world draw constant attributes require ABI3");
+      const auto reads=menu_world_vertex_input_components(input.source.program(),input.source.declaration().class_index>=2);
+      for(const auto reg:input.source.external_attribute_registers())
+        if((input.vertex_attribute_components[reg]&reads[reg])!=reads[reg])
+          throw FormatError("raw world draw consumes unbound external attribute components");
+    }
     if(!std::ranges::equal(input.vertex_shader->consumed_inputs,input.source.consumed_registers()) ||
         !std::ranges::equal(input.vertex_shader->consumed_constants,input.source.consumed_constants()))
       throw FormatError("raw world catalog read set differs from actual source binding");
@@ -343,6 +359,7 @@ struct MenuWorldNativeDraw::Impl {
     const auto state=fixed_state(input);auto identity=key(draw,*input.vertex_shader,state);
     identity.push_back(default_texture_w);
     identity.push_back(std::uint32_t(input.w_clip_mode));
+    identity.push_back(std::uint32_t(input.fog_alpha_bound));
     if(const auto found=pipelines.find(identity);found!=pipelines.end())return found->second;
     std::vector<std::uint32_t> words(input.vertex_shader->spirv.begin(),input.vertex_shader->spirv.end());
     auto found=vertex_modules.find(words);
@@ -351,10 +368,11 @@ struct MenuWorldNativeDraw::Impl {
       try {found=vertex_modules.emplace(std::move(words),handle).first;}
       catch(...) {vkDestroyShaderModule(context.device,handle,nullptr);throw;}
     }
-    const std::array<std::uint32_t,2> specialization_values{default_texture_w,std::uint32_t(input.w_clip_mode)};
+    const std::array<std::uint32_t,3> specialization_values{default_texture_w,std::uint32_t(input.w_clip_mode),std::uint32_t(input.fog_alpha_bound)};
     const VkSpecializationMapEntry specialization_entries[]{{0,0,sizeof(std::uint32_t)},
-        {1,sizeof(std::uint32_t),sizeof(std::uint32_t)}};
-    const VkSpecializationInfo projection{2,specialization_entries,sizeof(specialization_values),specialization_values.data()};
+        {1,sizeof(std::uint32_t),sizeof(std::uint32_t)},
+        {2,2*sizeof(std::uint32_t),sizeof(std::uint32_t)}};
+    const VkSpecializationInfo projection{3,specialization_entries,sizeof(specialization_values),specialization_values.data()};
     const VkPipelineShaderStageCreateInfo stages[]{
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_VERTEX_BIT,found->second,"main",nullptr},
         {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,nullptr,0,VK_SHADER_STAGE_GEOMETRY_BIT,geometry_shader,"main",nullptr},
@@ -416,9 +434,12 @@ struct MenuWorldNativeDraw::Impl {
     for(std::size_t i=0;i<inputs.size();++i) {
       const auto &input=inputs[i];
       std::memcpy(static_cast<std::byte *>(next->vertex->mapped)+i*vertex_stride,&input.vertex,sizeof(input.vertex));
+      std::memcpy(static_cast<std::byte *>(next->vertex->mapped)+i*vertex_stride+sizeof(input.vertex),
+          input.vertex_attributes.data(),sizeof(input.vertex_attributes));
       std::memcpy(static_cast<std::byte *>(next->fragment->mapped)+i*fragment_stride,&input.fragment,sizeof(input.fragment));
       const VkDescriptorBufferInfo buffers[]{
-          {next->vertex->handle,i*vertex_stride,sizeof(MenuWorldVertexUniforms)},
+          {next->vertex->handle,i*vertex_stride,input.vertex_shader->abi==menu_world_vertex_attribute_catalog_abi?
+              sizeof(MenuWorldVertexAttributeUniforms):sizeof(MenuWorldVertexUniforms)},
           {next->fragment->handle,i*fragment_stride,sizeof(MenuWorldFragmentUniforms)}};
       VkWriteDescriptorSet writes[2]{};
       for(unsigned binding=0;binding<2;++binding) {

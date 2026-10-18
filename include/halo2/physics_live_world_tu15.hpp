@@ -8,6 +8,7 @@
 #include "halo2/source_runtime_memory.hpp"
 #include <filesystem>
 #include <memory>
+#include <utility>
 #include "halo2/transform.hpp"
 #include "halo2/source_player_profile.hpp"
 #include "halo2/death_camera.hpp"
@@ -25,8 +26,13 @@
 #include "halo2/physics_platform_locks.hpp"
 #include "halo2/source_object_draw_collector.hpp"
 
+#include "halo2/source_object_attachment_tu15.hpp"
+
 namespace halo2 {
 class Cache;
+class MccSoundVariationProvider;
+class MccScriptSoundWorldAccess;
+class RendererPaletteFactory;
 struct WeaponEffectInput;
 struct FirstPersonViewBinding;
 struct SourceGameVariant;
@@ -121,6 +127,13 @@ using SourceEffectDamageObserverTu15=std::function<void(bool,
 // process binding is explicit; it is not a claim of complete Xbox boot.
 class PhysicsLiveWorldTu15 {
 public:
+    // Ordinary native startup uses compiled, individually declared TU1.5
+    // operands and cold storage. No original executable path is required.
+    PhysicsLiveWorldTu15(const Cache &,const std::filesystem::path &savegame_directory,
+                        std::size_t bsp=0);
+    PhysicsLiveWorldTu15(const Cache &,const std::filesystem::path &savegame_directory,
+                        std::size_t bsp,std::shared_ptr<PhysicsLiveClockSource>);
+    // Explicit offline-reference image startup for differential probes.
     PhysicsLiveWorldTu15(const Cache &,const std::filesystem::path &xbe,
                         const std::filesystem::path &savegame_directory,std::size_t bsp=0);
     PhysicsLiveWorldTu15(const Cache &,const std::filesystem::path &xbe,
@@ -130,6 +143,16 @@ public:
     PhysicsLiveWorldTu15(const PhysicsLiveWorldTu15 &)=delete;
     PhysicsLiveWorldTu15 &operator=(const PhysicsLiveWorldTu15 &)=delete;
     SourceRuntimeMemory &memory();
+    // Resolve this Cache's admitted resident bytes through the retained
+    // canonical delivery and actual native allocation. No host pointer is
+    // narrowed; foreign Cache owners or unloaded extents are rejected.
+    NativeRuntimeAddress resident_cache_address(const Cache& expected_owner,
+        std::uint32_t cache_address,std::size_t bytes) const;
+    // Opaque native metadata ownership. Teardown/restore retires the old
+    // provider even for identical bytes; Cache keeps actual DAT/PCM ownership.
+    MccSoundVariationProvider sound_variation_provider(const Cache& expected_owner) const;
+    // Epoch-qualified actual script-sound policy and checkpointed metadata.
+    MccScriptSoundWorldAccess script_sound_access(const Cache& expected_owner);
     // Explicit caller input, including retained native stack scratch. The
     // journal owns a copy; arbitrary memory writes remain unrecorded work.
     void write_source_call_input(std::uint32_t,std::span<const std::byte>);
@@ -150,6 +173,9 @@ public:
                              std::span<const std::uint32_t> arguments={});
     NativeRuntimeAddress world() const;
     void initialize_map();
+    // Optional actual native graphics owner, admitted before session options.
+    // Headless execution supplies no graphics success or palette bindings.
+    void admit_renderer_palette(RendererPaletteFactory);
     // Native campaign BSP delivery over the same source object/actor bank.
     void switch_campaign_bsp(std::size_t);
     NativeRuntimeAddress object_pool() const;
@@ -215,6 +241,10 @@ public:
     // This retains only its immutable non-key UserSettings section; absence
     // never becomes a speaker/configuration or initialized-device default.
     void bind_sound_user_settings(const std::filesystem::path &);
+    // Explicit observed boot-SMC transaction inputs, before source audio
+    // construction. The original kernel expression publishes immutable data;
+    // this does not select a mode or supply a device-initialization result.
+    void bind_sound_boot_smc_input(const std::filesystem::path &);
     // Original152078..152098 post-birth activation and full1613B0 equipment
     // setup.1A8B50 selects authored loadouts and creates/attaches real weapons.
     SourcePlayerEquipmentTu15 initialize_player_equipment(std::uint32_t player,
@@ -316,12 +346,15 @@ public:
     // Presentation adopts the original model-created child in this salted
     // parent/body chain instead of constructing a second body.
     std::uint32_t child_object(std::uint32_t parent,std::uint32_t definition) const;
+    // Exact original C0790/BAF10 model-child provenance, including duplicate definitions.
+    std::uint32_t model_child_object(std::uint32_t parent,std::uint32_t definition,
+        std::uint32_t parent_marker,std::uint32_t child_marker) const;
     // Complete BA3E0 deactivation and BA490 deletion precede header retirement.
     void destroy_object(std::uint32_t full_datum);
     struct AuthorityCheckpoint {
         struct Allocation {std::uint32_t payload,bytes,flags;};
         struct ResourceRead {std::uint32_t descriptor,destination,bytes;};
-        std::uint32_t version=2,bsp{},main_thread_token{},last_instruction{},delivered_players{};
+        std::uint32_t version=3,bsp{},main_thread_token{},last_instruction{},delivered_players{};
         std::uint64_t next_thread_token{};
         std::uint32_t logical_milliseconds{};
         std::uint64_t logical_cycles{};
@@ -338,6 +371,7 @@ public:
         std::map<std::uint32_t,ResourceRead> resource_reads;
         std::uint64_t next_resource_read{},next_model_collector{};
         std::map<std::pair<unsigned,std::uint32_t>,SourceObjectDrawCollector> model_collectors;
+        std::map<std::uint32_t,SourceObjectAttachmentTu15> model_attachments;
         bool session_configured{},model_scratch_mounted{};
         std::vector<std::uint32_t> exit_callbacks;
         std::vector<SourceProjectileDetonationTu15> projectile_detonations;
@@ -354,6 +388,9 @@ public:
         // native-address bindings to this exact replacement allocation.
         // The reference expires when preparation commits or is cancelled.
         const SourceRuntimeMemory &replacement_memory() const;
+        // Fixed campaign renderer-static adoption under this preparation
+        // lock/barrier; never used by default full-RAM authority imports.
+        void retain_live_campaign_lens();
     private:
         friend class PhysicsLiveWorldTu15;
         PreparedAuthority();
@@ -376,6 +413,11 @@ public:
     // This owner must outlive preparation; commit/cancel on its executor thread.
     bool commit_authority(PreparedAuthority &&) noexcept;
 private:
+    friend class MccScriptSoundWorldAccess;
+    // One closed metadata publication owns the existing mutation-fault
+    // barrier across its separately journaled source-input writes.
+    void write_script_sound_inputs(
+        std::span<const std::pair<std::uint32_t,std::span<const std::byte>>>);
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };

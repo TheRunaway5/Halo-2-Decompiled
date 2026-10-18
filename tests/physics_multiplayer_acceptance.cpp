@@ -15,6 +15,7 @@
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/source_tag_metadata.hpp"
+#include "halo2/raw_datum_pool.hpp"
 #include "halo2/source_dynamic_object_scene.hpp"
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/player_action_edges.hpp"
@@ -650,6 +651,36 @@ struct Host {
       const bool scripted=script_input.has_value();
       MultiplayerPreparedWorld world(options,std::move(script_input));
       world.match.configure_replicated_first_person(world.cache->load_first_person_binding(world.rules.weapon,2));
+      std::ofstream support_field_trace;
+      struct SupportStoreBinding {
+        MultiplayerObjectRuntime *owner{};
+        ~SupportStoreBinding(){if(owner)owner->observe_physics_stores({});}
+      } support_store_binding;
+      if(std::getenv("HALO2_TU15_SUPPORT_FIELD_STORES")) {
+        check(std::getenv("HALO2_TU15_SUPPORT_INPUT") && !std::getenv("HALO2_TU15_PHANTOM_TRACE"),
+            "Support field tracing requires its own read-only store observer");
+        support_field_trace.open(options.source_object_savegame_directory.parent_path()/"authority-support-field-stores.jsonl");
+        check(bool(support_field_trace),"Cannot retain original biped field stores");
+        support_store_binding.owner=world.source_objects.get();
+        world.source_objects->observe_physics_stores([&](std::uint32_t instruction,const SourcePhysicsContactRecordStore &store) {
+          const auto &player=world.match.player(1);
+          if(!player.connected || player.source_current_object==null_datum)return;
+          const auto &memory=world.source_objects->memory();
+          const SourceRawDatumPoolServices readback{.read=[&](auto p,auto n){return memory.view(p,n);}};
+          const auto header=source_raw_datum_lookup(world.source_objects->source_object_pool(),player.source_current_object,readback);
+          if(!header || Bytes(memory.view(header+6,2)).u16(0)<0x44c)return;
+          const auto body=Bytes(memory.view(header+8,4)).u32(0);
+          if(!body)return;
+          for(auto offset:{0x394u,0x448u}) {
+            const auto address=body+offset;
+            if(std::uint64_t(store.address)+store.written.size()<=address || store.address>=address+4u)continue;
+            support_field_trace<<Json{{"tick",world.match.simulation().ticks()},{"unit",player.source_current_object},
+                {"body",body},{"offset",offset},{"actual_instruction",instruction},{"record_instruction",store.instruction},
+                {"address",store.address},{"before",hex_bytes(store.before)},{"written",hex_bytes(store.written)}}.dump()<<'\n';
+            support_field_trace.flush();check(bool(support_field_trace),"Cannot write original biped field store evidence");
+          }
+        });
+      }
       std::optional<std::uint32_t> support_object;bool support_resumed=false;
       unsigned support_node{};
       bool support_start_barrier{};
@@ -1189,10 +1220,31 @@ struct Host {
             }
             return rows;
           };
+          Json contact_readback;
+          if(std::getenv("HALO2_TU15_SUPPORT_CONTACT_BYTES")) {
+            const SourceRawDatumPoolServices readback{.read=[&](auto p,auto n){return memory.view(p,n);}};
+            const auto header=source_raw_datum_lookup(world.source_objects->source_object_pool(),player.source_current_object,readback);
+            check(header!=0,"Support readback lost its actual full biped header");
+            const auto extent=Bytes(memory.view(header+6,2)).u16(0);
+            check(extent>=0x34a && extent<=0x7fff,"Support readback has an invalid constructed body extent");
+            contact_readback={{"unit_body",world.source_objects->source_object_body(player.source_current_object)},
+                {"native_unit_body",unit.value},{"unit_extent",extent},{"unit_bytes",hex_bytes(memory.view(unit,extent))}};
+            const auto component=word(unit+0xb4u);
+            contact_readback["component"]=component;
+            if(component!=null_datum) {
+              const auto pool=word(0x52be5cu),row=source_raw_datum_lookup(pool,component,readback);
+              check(row!=0,"Support readback lost its full physics component");
+              const auto stride=word(pool+0x24u);
+              check(stride>=0x78 && stride<=65536,"Support readback has an invalid physical component stride");
+              contact_readback["component_row"]=row;
+              contact_readback["component_bytes"]=hex_bytes(memory.view(row,stride));
+            }
+          }
           if(support_resumed)capture_world_requested.store(true);
           support_samples.push_back({{"tick",state.tick},{"unit",player.source_current_object},{"wheel",*support_object},
               {"resumed",support_resumed},{"position",xyz(state.players[1].position)},{"velocity",xyz(state.players[1].velocity)},
               {"carrier_bodies",bodies(wheel_body)},{"player_bodies",bodies(unit)},
+              {"contact_readback",std::move(contact_readback)},
               {"grounded",state.players[1].native_grounded},{"source_support_flags",flags},
               {"wheel_position_bits",Bytes(memory.view(wheel_body+0x140u,4)).u32(0)},
               {"wheel_power_bits",Bytes(memory.view(wheel_body+0x134u,4)).u32(0)},

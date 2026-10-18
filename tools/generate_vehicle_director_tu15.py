@@ -7,7 +7,7 @@ from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 
-ENTRIES=(0x158290,0x157fe0,0x158450,0x158900,0x158790,0x171ff0,0x245400,0x245060,0x189f20,0xcad60,0x106160,0x37cde8,0x246cf0,0x247140,0x247020,0x247090,0x246e90,0x246f30,0xbcee0)
+ENTRIES=(0x158290,0x157fe0,0x158450,0x158900,0x158790,0x171ff0,0x245400,0x245060,0x189f20,0xcad60,0x106160,0x37cde8,0x246cf0,0x247140,0x247020,0x247090,0x246e90,0x246f30,0xbcee0,0x382360,0x382380)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -15,6 +15,13 @@ def main():
     p.add_argument('--directory',type=Path,required=True)
     a=p.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=_Code(image,'.text')
+    # Literal CRT registrations and complete MOVSS/MOVSS/RET owners. The
+    # runtime must execute these before245400 consumes their BSS destinations.
+    for entry,row,operand,destination in ((0x382360,0x46dc90,0x46a164,0x56d324),
+                                         (0x382380,0x46dc94,0x46a5f8,0x56d328)):
+        assert int.from_bytes(image.read(row,4),'little')==entry
+        assert image.read(entry,17)==(b'\xf3\x0f\x10\x05'+operand.to_bytes(4,'little')+
+            b'\xf3\x0f\x11\x05'+destination.to_bytes(4,'little')+b'\xc3')
     assert code.at(0x15812c).bytes.hex()=="ff53b6"
     assert code.at(0x1581e2).operands[0].imm==0x171ff0
     sites,instructions,addresses,routines={},{},{},[]

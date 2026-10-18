@@ -1,6 +1,14 @@
 #include "halo2/mcc_cache.hpp"
 #include "halo2/mcc_animation.hpp"
 #include "halo2/mcc_physics.hpp"
+#include "halo2/mcc_gameplay_scalar.hpp"
+#include "halo2/mcc_gameplay_reference.hpp"
+#include "halo2/mcc_bsp_collision_reference.hpp"
+#include "halo2/mcc_bsp_instance_bounds.hpp"
+#include "halo2/mcc_hud_reference.hpp"
+#include "halo2/mcc_gameplay_unit_scalar.hpp"
+#include "halo2/mcc_cairo_vanilla.hpp"
+#include "halo2/mcc_campaign_vanilla.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/content.hpp"
 #include "halo2/original_data.hpp"
@@ -367,6 +375,10 @@ void Cache::initialize_mcc() {
             throw FormatError("Excessive canonical animation metadata span");
         storage_.resize(file_offset);
         storage_.insert(storage_.end(),converted.begin(),converted.end());
+        // Other MCC definitions can deduplicate authored byte banks into the
+        // original animation allocation. Keep that exact typed owner alive;
+        // the directory still publishes only the normalized vanilla graph.
+        retained_tag_allocations_.push_back(t);
         t.address=std::uint32_t(next);t.size=std::uint32_t(converted.size());
     }
     // Authored phmo values enter the same ordinary directory with checked
@@ -401,7 +413,104 @@ void Cache::initialize_mcc() {
         const auto converted=normalize_mcc_unit_physics(Bytes(storage_).slice(at,t.size),t.address,kind);
         std::copy(converted.begin(),converted.end(),storage_.begin()+std::ptrdiff_t(at));
     }
-    vista_metadata_regions_=tag_metadata_regions(tags_);
+    std::vector<std::pair<std::uint32_t,std::uint32_t>> retained_regions;
+    for(const auto& allocation:retained_tag_allocations_)
+        retained_regions.emplace_back(allocation.address,allocation.size);
+    vista_metadata_regions_=tag_metadata_regions(tags_,retained_regions);
+    // Exact named retail scalar tuples enter the ordinary internal directory
+    // before gameplay or resource-only cache consumers. Unknown authored
+    // tuples remain untouched; the pure converter exposes their mismatch
+    // receipt for import/audit callers. This does not certify full parity.
+    for(const auto& t:tags_)if(t.address && t.size &&
+        (t.type()==tag_groups::weapon || t.type()==tag_groups::projectile ||
+            t.type()==tag_groups::damage_effect)) {
+        const auto at=metadata_offset(t.address,t.size);
+        (void)convert_mcc_gameplay_scalar(t.type(),t.name,
+            std::span(storage_).subspan(at,t.size));
+    }
+    const MccGameplayReferenceAccess reference_access{
+        .bytes=[&](std::uint32_t address,std::size_t size) {
+            return std::span(storage_).subspan(metadata_offset(address,size),size);
+        },
+        .resolve=[&](TagHandle handle)->std::optional<MccGameplayReferenceIdentity> {
+            if(handle.is_null() || handle.index()>=tags_.size())return {};
+            const auto& t=tags_[handle.index()];
+            if(t.handle()!=handle || !t.address || !t.size)return {};
+            return MccGameplayReferenceIdentity{handle,t.type(),t.name};
+        },
+        .find=[&](TagGroup group,std::string_view name)->std::optional<MccGameplayReferenceIdentity> {
+            const Tag* found=nullptr;
+            for(const auto& t:tags_)if(!t.handle().is_null() && t.address && t.size &&
+                t.type()==group && t.name==name) {
+                if(found)return {}; // Ambiguous authored target is not a local identity proof.
+                found=&t;
+            }
+            if(!found)return {};
+            return MccGameplayReferenceIdentity{found->handle(),found->type(),found->name};
+        }
+    };
+    for(const auto& t:tags_)if(t.address && t.size &&
+        (t.type()==tag_groups::weapon || t.type()==tag_groups::projectile))
+        // Missing local dependencies stay unchanged and produce an explicit
+        // requirement receipt for callers of the same pure profile converter.
+        (void)convert_mcc_gameplay_references(t.type(),t.name,t.address,reference_access);
+    for(const auto& t:tags_)if(t.address && t.size &&
+        (t.type()==tag_groups::biped || t.type()==tag_groups::vehicle))
+        (void)convert_mcc_gameplay_unit_scalars(t.type(),t.name,t.address,reference_access.bytes);
+    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::multiplayer_globals)
+        (void)convert_mcc_multiplayer_weapon_table(t.type(),t.name,t.address,reference_access);
+    for(const auto& t:tags_)if(t.address && t.size && t.type()==tag_groups::scenario_structure_bsp) {
+        (void)convert_mcc_bsp_instance_transform(t.type(),t.name,t.address,reference_access.bytes);
+        (void)convert_mcc_bsp_collision_reference(t.type(),t.name,t.address,reference_access.bytes);
+        (void)convert_mcc_bsp_instance_bounds(t,reference_access.bytes);
+    }
+    const MccHudReferenceAccess hud_reference_access{
+        .read=[&](std::uint32_t address,std::size_t size) {
+            return Bytes(storage_).slice(metadata_offset(address,size),size);
+        },
+        .resolve=[&](TagHandle handle)->std::optional<Tag> {
+            if(handle.is_null() || handle.index()>=tags_.size())return {};
+            const auto& t=tags_[handle.index()];
+            if(t.handle()!=handle || !t.address || !t.size)return {};
+            return t;
+        },
+        .string_id=[&](std::uint32_t id) {return string_id(id);},
+        .directory=tags_
+    };
+    for(auto& t:tags_)if(t.group=="nhdt" && t.address && t.size) {
+        auto projection=project_mcc_scoreboard_hud_reference(t,hud_reference_access);
+        if(!projection || projection->status!=MccGameplayReferenceStatus::Converted)continue;
+        // A complete authenticated owner is cloned because other definitions
+        // can share its source curves. The ordinary directory publishes only
+        // the converted owner; its physical layout still uses the nhdt schema.
+        auto& converted=projection->bytes;
+        if(converted.empty() || converted.size()>65536)
+            throw FormatError("Invalid canonical MCC HUD allocation extent");
+        const auto current=std::uint64_t(std::int64_t(storage_.size())+metadata_magic_);
+        const auto next=(current+15)&~std::uint64_t(15);
+        const auto file_offset=storage_.size()+std::size_t(next-current);
+        if(next>0xffffffffu || converted.size()>0x100000000ull-next ||
+            next+converted.size()-first>128ull*1024*1024 ||
+            file_offset>maximum_cache || converted.size()>maximum_cache-file_offset)
+            throw FormatError("Excessive canonical MCC HUD metadata span");
+        auto pointers=projection->pointers;
+        std::ranges::sort(pointers);
+        std::uint64_t previous_end=0;
+        for(const auto [field,target]:pointers) {
+            if(field<previous_end || field>converted.size() || converted.size()-field<4 ||
+                target>=converted.size() || Bytes(converted).u32(field)!=target)
+                throw FormatError("Invalid canonical MCC HUD pointer ownership");
+            previous_end=std::uint64_t(field)+4;
+        }
+        for(const auto [field,target]:pointers)
+            word(converted,field,std::uint32_t(next+target));
+        storage_.resize(file_offset);
+        storage_.insert(storage_.end(),converted.begin(),converted.end());
+        retained_tag_allocations_.push_back(t);
+        retained_regions.emplace_back(t.address,t.size);
+        t.address=std::uint32_t(next);t.size=std::uint32_t(converted.size());
+    }
+    vista_metadata_regions_=tag_metadata_regions(tags_,retained_regions);
     initialize_mcc_native_shaders();
     const auto table=storage_.size();storage_.resize(table+tags_.size()*16);
     for(std::size_t i=0;i<tags_.size();++i) {
@@ -451,6 +560,45 @@ void Cache::initialize_mcc() {
         for(unsigned j=0;j<4;++j) {spawn.game_types[j]=std::int16_t(data.u16(at+0x14+j*2));spawn.spawn_types[j]=std::int16_t(data.u16(at+0x1c+j*2));}
         spawns_.push_back(spawn);
     }
+    // Authenticated authoring differences become ordinary internal data
+    // before any content, script or native gameplay consumer sees this cache.
+    // Prepare every checked owner and original-byte comparison before the
+    // first mutation; a stale or overlapping plan cannot partially convert it.
+    const auto commit_authoring=[&](const auto& writes,const auto& source_token) {
+        struct PreparedWrite {std::size_t offset;std::span<const std::byte> after;};
+        std::vector<PreparedWrite> prepared;
+        prepared.reserve(writes.size());
+        for(const auto& write:writes) {
+            if(write.before.empty() || write.before.size()!=write.after.size())
+                throw FormatError("MCC vanilla authoring write has an invalid extent");
+            const auto at=metadata_offset(source_token(write),write.before.size());
+            if(!std::ranges::equal(std::span<const std::byte>(storage_).subspan(at,write.before.size()),write.before))
+                throw FormatError("MCC vanilla authoring changed before publication");
+            prepared.push_back({at,write.after});
+        }
+        std::ranges::sort(prepared,{},&PreparedWrite::offset);
+        std::size_t end=0;
+        for(const auto& target:prepared) {
+            if(target.offset<end)throw FormatError("MCC vanilla authoring owners overlap");
+            end=target.offset+target.after.size();
+        }
+        for(const auto& target:prepared)
+            std::copy(target.after.begin(),target.after.end(),
+                storage_.begin()+std::ptrdiff_t(target.offset));
+    };
+    const auto vanilla=plan_mcc_cairo_vanilla(*this);
+    if(vanilla.matched)commit_authoring(vanilla.writes,[](const auto& write){return write.source_token;});
+    const auto campaign=plan_mcc_campaign_vanilla({
+        .is_mcc=true,.scenario_path=scenario.name,.scenario_address=scenario.address,
+        .read=[&](auto address,auto size){return read_tag_bytes(address,size);},
+        .resolve_tag=[&](std::uint32_t handle)->std::optional<MccCampaignTagIdentity> {
+            const auto* selected=find_tag(TagHandle{handle});
+            if(!selected)return {};
+            return MccCampaignTagIdentity{selected->group,selected->name};
+        },
+        .resolve_string_id=[&](std::uint32_t id){return string_id(id);}
+    });
+    if(campaign.matched)commit_authoring(campaign.writes,[](const auto& write){return write.address;});
 }
 
 BitmapResource Cache::load_mcc_bitmap_resource(std::uint32_t datum,unsigned index) const {

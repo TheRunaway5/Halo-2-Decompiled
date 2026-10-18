@@ -110,7 +110,7 @@ void run(int argc,char **argv){
         {SourceAuthorityPublisher publisher(*authority,session,other,90s);unsigned captures=0;const auto deadline=Wall::now()+180s;
             while(publisher.state().validations<2){pump();publisher.update();const auto state=publisher.state();check(state.error.empty(),state.error.c_str());
                 if(captures<2&&state.validations==captures&&!state.encoding&&!state.awaiting_validation){
-                    if(captures)host_world->source_objects->advance_effect_particles(1.f/60.f);
+                    if(captures)host_world->source_objects->advance_effect_frame(1.f/60.f);
                     check(publisher.capture(),"Full prepared-world host capture failed");write(files/("bodies-"+std::to_string(host_world->match.simulation().ticks())),bodies(*host_world));++captures;
                 }
                 for(unsigned i=0;i<8;++i)controls[i].yaw=host_world->match.unit(i).yaw;controls[locals[0]].fire=host_world->match.simulation().ticks()%30<2;

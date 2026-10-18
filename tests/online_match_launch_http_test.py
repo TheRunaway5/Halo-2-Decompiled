@@ -160,6 +160,9 @@ async def main():
                 if mode == "source-render":
                     assert all(b"PASS actual rendered TU1.5 ONLINE source capture workload" in out for out, err in results)
                     assert all(room.direct_udp for room in next(iter(app.values())).match_transport.rooms.values())
+                    if os.environ.get("HALO2_RUNTIME_RETENTION"):
+                        assert sum(b"PASS real rendered runtime disconnect handoff" in out for out, err in results) == 1
+                        assert next(iter(app.values())).store.db.execute("SELECT count(*) FROM match_results").fetchone()[0] == 0
                     print("PASS actual rendered eight-seat native source workload; replication qualification requires its separate evidence")
                     return 0
                 assert set(verified) == set(owners)

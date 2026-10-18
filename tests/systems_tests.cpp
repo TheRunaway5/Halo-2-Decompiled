@@ -2,6 +2,7 @@
 #include "halo2/math.hpp"
 #include "halo2/model.hpp"
 #include "halo2/simulation.hpp"
+#include "halo2/simulation_authority.hpp"
 #include <bit>
 #include <cmath>
 #include <filesystem>
@@ -440,6 +441,42 @@ void synthetic_tests() {
   check(combat.actors()[0].vitality.dead,
         "shield then body damage kills target");
   check(combat.hits() >= 8, "combat hit count");
+  // Real MCC Falcon RPG metadata retains one barrel but authors NONE/NONE
+  // trigger indices. Neither automatic nor latched generic fallbacks may
+  // invent a shot, while ready/recovery/reload clocks must keep advancing.
+  for(const auto behavior:{0,1,4}) {
+    auto inactive=arena();auto& definition=inactive.weapons.at(3);
+    WeaponTriggerDefinition trigger{};trigger.primary_barrel=-1;trigger.secondary_barrel=-1;
+    trigger.behavior=std::int16_t(behavior);definition.triggers.push_back(trigger);
+    definition.trigger_behavior=std::int16_t(behavior);definition.barrel_ammunition.resize(1);
+    Simulation disabled(inactive,0,{{0,0,0},0,0});
+    const Simulation::AuthorityDigest binding{std::byte{0x4e},std::byte{0x4f}};
+    auto saved=disabled.authority_checkpoint(binding);
+    auto& weapon=saved.player.value.weapon;
+    weapon.delay=2*tick_seconds;weapon.reload=2*tick_seconds;weapon.loaded=5;
+    const auto reserve=weapon.reserve;
+    auto prepared=disabled.prepare_authority(saved,binding);
+    check(disabled.commit_authority(std::move(prepared)),"inactive weapon fixture restored");
+    for(unsigned tick=0;tick<4;++tick)disabled.step({0,0,0,0,false,false,true});
+    check(disabled.shots()==0&&disabled.hits()==0,"NONE trigger never fires a retained barrel");
+    check(disabled.player().weapon.reload<=0&&disabled.player().weapon.delay==0,
+        "inactive trigger preserves recovery/reload clock updates");
+    check(disabled.player().weapon.loaded==20&&disabled.player().weapon.reserve==reserve-15,
+        "inactive trigger preserves the existing magazine transfer");
+    check(inactive.weapons.at(3).triggers[0].primary_barrel==-1&&inactive.weapons.at(3).barrel_ammunition.size()==1,
+        "inactive firing does not replace authored trigger/barrel data");
+  }
+  for(const auto behavior:{0,1,4}) {
+    auto mixed=arena();auto& definition=mixed.weapons.at(3);
+    WeaponTriggerDefinition trigger{};trigger.primary_barrel=-1;trigger.secondary_barrel=0;
+    trigger.behavior=std::int16_t(behavior);definition.triggers.push_back(trigger);
+    definition.trigger_behavior=std::int16_t(behavior);definition.barrel_ammunition.resize(1);
+    Simulation primary(mixed,0,{{0,0,0},0,0});
+    primary.step({});
+    primary.step({0,0,0,0,false,false,true});
+    check(primary.shots()==0&&primary.player().weapon.loaded==20,
+        "ordinary primary input does not substitute the secondary barrel for NONE");
+  }
   auto pellets = arena();
   pellets.weapons.at(3).projectiles_per_shot = 3;
   Simulation multishot(pellets, 0, {{0, 0, 0}, 0, 0});

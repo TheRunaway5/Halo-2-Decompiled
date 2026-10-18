@@ -1,6 +1,7 @@
 #include "halo2/source_runtime_resources.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/cache_file_snapshot.hpp"
+#include "halo2/mcc_cache.hpp"
 #include <openssl/evp.h>
 #include <fstream>
 #include <algorithm>
@@ -66,12 +67,13 @@ struct SourceRuntimeResources::Impl {
     struct File {
         std::shared_ptr<CacheFileSnapshot> snapshot;
         std::vector<std::byte> storage;
-        std::span<const std::byte> bytes()const{return snapshot?snapshot->bytes():std::span<const std::byte>(storage);}
+        std::span<const std::byte> bytes()const{return storage.empty()&&snapshot?snapshot->bytes():std::span<const std::byte>(storage);}
     };
     std::array<std::optional<File>,3> shared;
     Identity identity;
-    explicit Impl(const Cache &cache):cache(cache) {
-        if(cache.is_vista() || cache.is_mcc())throw FormatError("Source resource bindings require the admitted Xbox cache");
+    DescriptorAddress descriptor_address;
+    explicit Impl(const Cache &cache,DescriptorAddress address):cache(cache),descriptor_address(std::move(address)) {
+        if(cache.is_vista())throw FormatError("Native source resources require Xbox or normalized MCC cache ownership");
         identity.resident=digest(cache.source_runtime_cache_bytes());
         const std::array names{"mainmenu.map","shared.map","single_player_shared.map"};
         for(unsigned i=0;i<names.size();++i) {
@@ -85,17 +87,28 @@ struct SourceRuntimeResources::Impl {
                 if(!input.read(reinterpret_cast<char*>(file.storage.data()),file.storage.size()))
                     throw FormatError("Truncated source resource binding file");
             }
+            if(cache.is_mcc())file.storage=decode_mcc_cache(file.bytes());
             identity.shared[i]=digest(file.bytes());shared[i]=std::move(file);
         }
     }
 };
-SourceRuntimeResources::SourceRuntimeResources(const Cache &cache):impl_(std::make_unique<Impl>(cache)){}
+SourceRuntimeResources::SourceRuntimeResources(const Cache &cache):SourceRuntimeResources(cache,{}){}
+SourceRuntimeResources::SourceRuntimeResources(const Cache &cache,DescriptorAddress address):impl_(std::make_unique<Impl>(cache,std::move(address))){}
 SourceRuntimeResources::~SourceRuntimeResources()=default;
 const SourceRuntimeResources::Identity &SourceRuntimeResources::identity() const noexcept{return impl_->identity;}
 std::vector<std::byte> SourceRuntimeResources::load(std::uint32_t encoded,std::uint32_t bytes) const {
     if(!bytes || bytes>128u*1024u*1024u)throw FormatError("Invalid original source resource size");
     const auto location=encoded>>30,offset=encoded&0x3fffffffu;
     auto backing=impl_->cache.source_runtime_cache_bytes();
+    if(impl_->cache.is_mcc() && !location) {
+        const auto logical_end=Bytes(backing).u32(8);
+        if(offset>logical_end || bytes>logical_end-offset)
+            // Generated animation resources live beyond the original logical
+            // file. Cache admits only an exact normalized jmad group with
+            // its verified sector padding, never arbitrary appended data.
+            return impl_->cache.load_source_runtime_resource(encoded,bytes);
+        backing=backing.first(logical_end);
+    }
     if(location) {
         if(!impl_->shared[location-1])throw FormatError("Required bound source resource file is unavailable");
         backing=impl_->shared[location-1]->bytes();
@@ -103,6 +116,7 @@ std::vector<std::byte> SourceRuntimeResources::load(std::uint32_t encoded,std::u
     const auto source=Bytes(backing).slice(offset,bytes);return {source.begin(),source.end()};
 }
 SourceRuntimeCacheAnimationImage SourceRuntimeResources::animation(std::uint32_t descriptor) const {
+    if(impl_->descriptor_address)descriptor=impl_->descriptor_address(descriptor,20);
     return impl_->cache.load_source_runtime_animation_image(descriptor,[this](auto p,auto bytes){return load(p,bytes);});
 }
 }

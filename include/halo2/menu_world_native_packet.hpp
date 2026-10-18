@@ -35,6 +35,10 @@ struct MenuWorldNativePacketInput {
       MenuWorldTextureCoordinates::normalized,MenuWorldTextureCoordinates::normalized,
       MenuWorldTextureCoordinates::normalized,MenuWorldTextureCoordinates::normalized};
   MenuWorldWClipMode w_clip_mode=MenuWorldWClipMode::cull;
+  // Authored/material-completed XYZW coverage for the separate attribute bank.
+  // A zero mask proves no values; the packet rejects every uncovered read.
+  std::array<std::uint8_t,16> vertex_attribute_components{};
+  bool fog_alpha_bound{};
 };
 
 // Pure packet assembly and completed-program admission; no Vulkan calls,

@@ -269,3 +269,39 @@ the actual per-run executed hashes remain in each execution record. The newer
 v405 fixture executable is immutable in `tested-runtime-v405`, with its exact
 source delta from the full v381 archive. Both production physics and the
 production executable remain the unchanged, independently tested v381 version.
+
+## October18 source-contact continuation (v623-v643)
+
+The original PHMO/model-pose and cached BSP survey covers65 declared phases
+per paddle, then nine prospective footprint points per phase. It retains the
+actual0.175 player radius,0.725 height,authored hulls and source phase inputs.
+The lower center approach overlaps the native BSP floor during part of its
+travel. These are metadata/clearance observations,not a supplied contact or
+proof of a retail rider trajectory.
+
+Fresh v631/v639 multiplayer repeats preserve the previous strict ride gates.
+Body0/node2 again passes65 moving supported ticks and2.596529 carried units;
+the first repeat has244 exact UDP states,the store-observer repeat245.
+Body1/node1 remains red with0 moving supported ticks and0 carried distance,
+with244/245 exact UDP states respectively. The observer captures full actual
+biped records and physical-component rows without changing physical outputs.
+`elevator-support-readback-visible-v637.json` limits matching raw-handle counts
+to the client's observed interval; the lower records retain NONE at both
+candidate offsets394/448 while the passing upper records retain the carrier.
+Matching raw values alone are not field-semantics proof.
+
+`elevator-original-contact-store-provenance-v643.json` ties actual stores to the
+pinned TU1.5 instructions and complete containing bodies. Original1F875C clears
+the retained output+5C field;1FA4DA writes source record+18 there only in the
+upper case,while E559F changes the394 field. The same numeric offsets in other
+object types are not used as biped semantic evidence. The observer unregisters
+before source-world teardown. This identifies the admission-path difference;
+the lower approach's complete preceding context remains unresolved.
+
+Four fresh actual upper/lower object/world calls match222,057 unchanged original
+instructions,all60,084,310 accessible bytes per call and CPU/FP state under the
+recorded host IF boundary (`elevator-contact-original-whole-calls-v634.json`).
+The lower failed ride retains its actual output; it is not converted to a pass.
+Other lift/train riders and full TU1.5 physics parity remain open. The separately
+verified ordinary production launcher is v614 and is not replaced by these
+observer fixtures.

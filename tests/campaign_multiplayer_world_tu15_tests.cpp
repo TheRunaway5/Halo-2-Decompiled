@@ -7,13 +7,16 @@
 #include <chrono>
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
+#include "halo2/source_match_authority.hpp"
 #include "helpers/live_physics_entry_capture_tu15.hpp"
 #include "helpers/campaign_vehicle_observer_inputs_tu15.hpp"
+#include "helpers/multiplayer_snapshot_checks.hpp"
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <cstdlib>
+#include <cstring>
 using namespace halo2;
 using Json=nlohmann::json;
 int main(int argc,char **argv) {
@@ -199,6 +202,50 @@ int main(int argc,char **argv) {
         if(world.match.simulation().ticks()!=initial_tick+1)
             throw FormatError("Shared campaign source tick did not advance exactly once");
         report["source_ticks_after_unarmed_step"]=world.match.simulation().ticks();
+        report["original_attached_vehicle_children"]=Json::array();
+        for(std::size_t child_index=0;child_index<world.content.objects.size();++child_index) {
+            const auto &child=world.content.objects[child_index];
+            if(!child.model_attachment || child.model_attachment->parent!=index)continue;
+            const auto before_attachment_lookup=bank.checkpoint();
+            const auto handle=world.source_objects->model_child_object(object,child.definition,
+                child.model_attachment->parent_marker,child.model_attachment->child_marker);
+            if(bank.checkpoint()!=before_attachment_lookup)
+                throw FormatError("Model child identity lookup mutated the source world");
+            if(world.source_objects->model_child_object(object,child.definition,
+                child.model_attachment->parent_marker^0x80000000u,child.model_attachment->child_marker)!=null_datum ||
+               world.source_objects->model_child_object(object,child.definition,
+                child.model_attachment->parent_marker,child.model_attachment->child_marker^0x80000000u)!=null_datum)
+                throw FormatError("Model child lookup accepted another authored marker identity");
+            if(handle==null_datum || world.source_objects->object_parent(handle)!=object)
+                throw FormatError("Actual source vehicle constructor lost its authored child/parent generation");
+            const auto &adopted=world.match.simulation().scene().get(handle);
+            if(adopted.placement!=child_index || adopted.attachment_parent!=object || !adopted.solved_nodes)
+                throw FormatError("Vehicle model child did not adopt the actual full source parent and WORLD nodes");
+            const auto actual=world.source_objects->world_nodes(handle);
+            if(adopted.solved_nodes->size()!=actual.size() || (!actual.empty() &&
+                std::memcmp(adopted.solved_nodes->data(),actual.data(),actual.size()*sizeof(Transform))))
+                throw FormatError("Native marker composition replaced a source child WORLD bank");
+            report["original_attached_vehicle_children"].push_back({{"object",handle},{"parent",object},
+                {"source_object",child_index},{"definition",child.definition},{"parent_marker",child.model_attachment->parent_marker},
+                {"child_marker",child.model_attachment->child_marker},{"world_nodes",actual.size()}});
+        }
+        if(std::getenv("HALO2_TU15_CHILD_AUTHORITY_CHECK")) {
+            SourceMatchAuthority authority(world.match,*world.source_objects);
+            constexpr SourceMatchAuthority::AuthorityDigest binding{std::byte{0x15},std::byte{0x69}};
+            const auto checkpoint=authority.checkpoint(binding);
+            if(checkpoint.world.world.model_attachments.empty())throw FormatError("Original model attachment provenance was not retained");
+            auto invalid=checkpoint;invalid.world.world.model_attachments.begin()->second.parent^=0x10000u;
+            bool rejected=false;try{auto prepared=authority.prepare(invalid,binding);}catch(const FormatError &){rejected=true;}
+            if(!rejected)throw FormatError("Model attachment continuation accepted another source generation");
+            auto restored=authority.prepare(checkpoint,binding);
+            if(!authority.commit(std::move(restored)))throw FormatError("Coupled model attachment continuation did not commit");
+            for(const auto &entry:report["original_attached_vehicle_children"]) {
+                const auto handle=world.source_objects->model_child_object(entry["parent"],entry["definition"],entry["parent_marker"],entry["child_marker"]);
+                if(handle!=entry["object"].get<std::uint32_t>())throw FormatError("Restored original attachment selected another child generation");
+            }
+            report["model_attachment_continuation"]={{"retained_owners",checkpoint.world.world.model_attachments.size()},
+                {"stale_generation_rejected",true},{"actual_children_restored",true},{"coupled_match_world_transaction",true}};
+        }
         if(world.match.state().finished)throw FormatError("Campaign inherited multiplayer round end without a registered original engine");
         report["stage"]="admit the complete actual campaign state over loopback UDP";
         const auto fingerprint=multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.rules.weapon,options.gameplay_xbe);
@@ -228,6 +275,23 @@ int main(int argc,char **argv) {
             }
         }
         report["udp_actual_scene_region_banks"]=region_banks;
+        unsigned source_props{};
+        for(const auto &root:received.source_scene_roots)
+            if(world.content.objects.at(root.placement).type==11) {
+                if(!root.model_regions)throw FormatError("Campaign BLOC root lost its actual source model regions");
+                ++source_props;
+            }
+        report["udp_actual_source_prop_banks"]=source_props;
+        test::verify_prop_region_snapshot(expected,received);
+        for(const auto &row:expected.prop_regions) {
+            const auto actual=world.source_objects->object_model_regions(row.handle);
+            if(row.regions.selection.variant_index!=actual.selection.variant_index ||
+                row.regions.selection.permutations!=actual.selection.permutations ||
+                row.regions.selection.states!=actual.selection.states ||
+                row.regions.looping_effects!=actual.looping_effects)
+                throw FormatError("Campaign prop region publication changed the actual source bank");
+        }
+        report["udp_actual_prop_region_banks"]=received.prop_regions.size();
         unsigned connected{};
         for(unsigned slot=0;slot<multiplayer_capacity;++slot)if(expected.players[slot].connected) {
             ++connected;const auto &actual=received.players[slot];const auto &wanted=expected.players[slot];
@@ -249,6 +313,7 @@ int main(int argc,char **argv) {
         client.match.replicate_source_scene(received.source_scene_roots,received.source_body_poses);
         client.match.replicate_prop_removals(received.prop_removals);
         client.match.replicate_prop_regions(received.prop_regions);
+        test::verify_prop_region_snapshot(received,client.match.state());
         for(const auto &owner:received.source_scene_roots) {
             const auto &adopted=client.match.simulation().scene().get(owner.object);
             if(adopted.placement!=owner.placement || adopted.source_model_regions.has_value()!=owner.model_regions.has_value())

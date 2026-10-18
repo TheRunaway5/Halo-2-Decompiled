@@ -20,12 +20,33 @@ SCHEMAS = ROOT / "tools/reference/assembly/src/Assembly/Plugins"
 GROUPS = {"shad", "stem", "spas", "vrtx"}
 
 
-def copy_selected(root, output):
+def read_selected_library(library, name):
+    """Validate an already retained bank without changing its programs."""
+    from native_shader_bundle import TABLE_SHA, digest, fingerprint, identity, validate_library
+    library = Path(library)
+    identity(name)
+    if library.is_symlink() or any(path.is_symlink() for path in library.rglob("*")):
+        raise FormatError("Symlink in selected native shader library")
+    manifest = json.loads((library / "library.json").read_bytes())
+    payloads = {}
+    for record in [*manifest["shader_tags"], manifest["rasterizer"]]:
+        payload = record["payload"]
+        if not isinstance(payload, str) or not payload.endswith(".bin") or not fingerprint(payload[:-4]):
+            raise FormatError("Invalid selected shader payload identity")
+        payloads[payload[:-4]] = (library / "payloads" / payload).read_bytes()
+    validate_library(name, manifest, payloads)
+    tables = (library / "function-tables.bin").read_bytes()
+    if len(tables) != 28 * 1024 or digest(tables) != TABLE_SHA:
+        raise FormatError("Selected native shader function tables differ")
+    return manifest, tables
+
+
+def copy_selected(root, output, *, maps=None):
     """Carry an already owned shader library into an offline MCC import."""
     registry = Path(root) / "assets/native-shaders-source.tsv"
     if not registry.is_file():
         from native_shader_bundle import copy_bundled
-        return copy_bundled(root, output)
+        return copy_bundled(root, output) if maps is None else copy_bundled(root, output, maps=maps)
     rows = registry.read_text().splitlines()
     if len(rows) != 2 or rows[0] != "H2_NATIVE_SHADER_SOURCE_V1" or not rows[1].startswith("native\t"):
         raise FormatError("Invalid selected native shader library")
@@ -34,43 +55,68 @@ def copy_selected(root, output):
     catalog = json.loads((source / "catalog.json").read_text())
     if catalog.get("schema") != "H2_PRESERVED_NATIVE_SHADER_CATALOG_V1":
         raise FormatError("Invalid selected native shader catalog")
+    from native_shader_bundle import closure_dependency, identity, install_bundled_library, load_bundled, require_closure_source
+    available = {}
+    for row in catalog["maps"]:
+        name = row["map"]
+        identity(name)
+        if name in available:
+            raise FormatError("Duplicate selected native shader map identity")
+        available[name] = row
+    selected = {name for name, row in available.items() if row["complete"]} if maps is None else set(maps)
+    for name in selected:
+        identity(name)
+    if any(name not in available or not available[name]["complete"] for name in selected):
+        # A pruned development selection may lack Cairo, but the shipped port
+        # bundle still owns it independently of any installed gameplay maps.
+        from native_shader_bundle import closure_policy, copy_bundled
+        if selected == {closure_policy()["source_map"]}:
+            return copy_bundled(root, output, maps=selected)
+        raise FormatError("Selected retained native library is unavailable")
+    manifests = {name: read_selected_library(source / name, name) for name in selected}
+    dependencies = {dependency for manifest, _ in manifests.values() if (dependency := closure_dependency(manifest))}
+    package = None
+    for name in dependencies:
+        if name in manifests:
+            require_closure_source(manifests[name][0])
+        elif name in available and available[name]["complete"]:
+            manifests[name] = read_selected_library(source / name, name)
+            require_closure_source(manifests[name][0])
+            selected.add(name)
+        else:
+            package = load_bundled(root)
+            if package is None or name not in package[1]:
+                raise FormatError("Canonical retained Cairo native library is missing; update this port installation")
+            require_closure_source(package[1][name])
     destination = Path(output) / "native-shaders"
     if destination.exists():
         raise FormatError("Native shader preservation destination already exists")
     destination.mkdir()
     copied = {}
+    copied_rows = []
     for row in catalog["maps"]:
         if not row["complete"]:
             continue
         name = row["map"]
-        if Path(name).name != name or name in (".", ".."):
-            raise FormatError("Invalid native shader map identity")
+        if name not in selected:
+            continue
         library = source / name
-        for path in library.rglob("*"):
-            if path.is_symlink():
-                raise FormatError("Symlink in selected native shader library")
-        manifest = json.loads((library / "library.json").read_text())
-        if manifest.get("map") != name or manifest.get("schema") != "H2_PRESERVED_NATIVE_SHADERS_V1":
-            raise FormatError("Selected native shader map manifest differs")
-        records = [*manifest["shader_tags"], manifest["rasterizer"]]
-        for record in records:
-            payload = record["payload"]
-            if len(payload)!=68 or not payload.endswith(".bin") or any(c not in "0123456789abcdef" for c in payload[:64]):
-                raise FormatError("Invalid selected shader payload identity")
-            path = library / "payloads" / payload
-            if file_sha(path) != payload[:64] or path.stat().st_size != record["bytes"]:
-                raise FormatError("Selected native shader payload fingerprint differs")
-        tables = (library / "function-tables.bin").read_bytes()
-        if len(tables)!=28*1024 or fnv(tables)!="22708b4cc478ddb7":
-            raise FormatError("Selected native shader function tables differ")
+        tables = manifests[name][1]
         (destination / "function-tables.bin").write_bytes(tables)
         shutil.copytree(library, destination / name)
         for path in library.rglob("*"):
             if path.is_file() and file_sha(path) != file_sha(destination / name / path.relative_to(library)):
                 raise FormatError("Preserved native shader readback differs")
         copied[name] = file_sha(destination / name / "library.json")
-    shutil.copyfile(source / "catalog.json", destination / "catalog.json")
-    return dict(complete=all(row["complete"] for row in catalog["maps"]), source=str(source), maps=copied,
+        copied_rows.append(row)
+    for name in dependencies - selected:
+        copied[name], row = install_bundled_library(destination, name, package)
+        copied_rows.append(row)
+    if maps is None and not dependencies - selected:
+        shutil.copyfile(source / "catalog.json", destination / "catalog.json")
+    else:
+        (destination / "catalog.json").write_text(json.dumps({**catalog, "maps": copied_rows}, indent=2) + "\n")
+    return dict(complete=all(row["complete"] for row in (catalog["maps"] if maps is None else copied_rows)), source=str(source), maps=copied,
                 policy="Existing native shader metadata; never MCC shader programs")
 
 

@@ -1,0 +1,4 @@
+case do_annul_regs 0100 010b 70000
+case do_annul_zero_clobber 010b 0119 70000
+case rep_zero_pm_body 0119 0121 70000
+case tcc_loop_carried 0121 0131 400

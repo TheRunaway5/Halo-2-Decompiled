@@ -1,5 +1,849 @@
 # MCC data import and Xbox TU1.5 conversion
 
+The current implementation priority is to reuse the working development-build
+loaders, gameplay, audio, renderer and startup systems. Changes must address a
+verified MCC-only loading or native 64-bit compatibility requirement while
+preserving Xbox TU1.5 gameplay, visuals, timing, precision and existing shaders.
+The historical 68-initializer and Xbox hardware investigations below remain
+reference evidence; reproducing them is required only where the reused gameplay
+path demonstrably depends on that behavior. Gameplay admission must be verified
+through the actual MCC-only launcher and game path. Converted definitions remain
+vanilla internal data, and the original Xbox/Vista inputs remain offline references.
+
+The user has also enabled Play for interim testing. While native gameplay is
+unfinished, Play launches the existing MCC content viewer and keeps the conversion
+status visible. Precompiled test packages contain the compiled viewer, retained
+shaders and onboarding runtime; they never enter the source build/update path.
+
+October 17 component validation now admits all 40 gameplay maps through actual
+Cache script preflight with zero unowned MCC calls or clock-getter substitutions.
+The fourteen guarded campaign profiles restore Introduction's original fade,
+sleep and cleanup graph using eight handles produced by the actual original
+syntax allocator, plus six reused rows. Tutorial restores the original sound
+duration expressions and mutable `seconds` global. Planning remains read-only;
+unknown or modified donors receive no partial writes. These checks establish
+conversion boundaries, not complete script execution or a campaign playthrough.
+
+Cairo's guarded conversion now restores all 418 complete original script bodies
+and all 51 original globals, including the genuine dynamic dialogue-duration
+expression and four original cache-flush calls. This has passed actual Cache
+initialization and the all-map preflight. A frozen native World cohort now also
+completes Cairo startup and sixty ordinary script updates (arguments 0 through
+59), with sixty simulation ticks, zero VM diagnostics and zero faulted threads.
+The live mission emits its actual score/foley, rack-focus and first-marine-crowd
+events. It reuses the existing depth-of-field host case and complete original
+setter, with eight verified cold clock bytes; the VM and its error policy are
+unchanged. The identical cohort's offline original-reference run also passes.
+The native run opens no reference files. Earlier probes that merely returned
+from sixty outer physics steps while a script thread remained faulted are
+superseded by this measured script result. Sleeping or dormant threads need not
+execute on every update. Rendering, audio and complete campaign behavior remain
+separate gates. A later frozen cohort now completes 300 ordinary Cairo script
+updates and 300 simulation ticks with no diagnostics, faulted threads, checkpoint
+restores or reference-file opens. It reuses the actual imported subtitle owner
+and restores the thirteen original emotion-name operands through the retained
+Cache facade before the unchanged native handler. All 192 complete emotion-body
+and clock controls match the unchanged TU1.5 CPU reference. This longer run still
+uses the existing MCC PCM-duration callback, so it establishes execution progress
+and ownership rather than original dialogue pacing. The immutable handoff is
+`.local/mcc-reuse-20261016/native-world-integration-v5/validated-render-cold-cohort/6bce369dbfe9846574e3f80195659ee6ebfb9095af7ac14aa735b4450e2dd3fb-cairo-300-hs-clean-emotion-v1/cohort.json`.
+
+A later coherent Cairo run completes 900 ordinary updates and simulation ticks
+with zero script diagnostics, faulted threads, restores or reference-file opens.
+It reuses the complete pressure predicate and compaction owner, with exact
+original thresholds and no capacity changes. Compaction matches 22 original CPU
+cases and 1,477 ordered guest memory events; its extra final REP instruction
+callback is explicitly qualified rather than counted as literal trace or timing
+parity. BSP5 and the second camera remain live. This run still uses the MCC PCM
+duration callback and establishes execution progress, not complete mission,
+audio or framebuffer parity. The immutable handoff is
+`.local/mcc-reuse-20261016/native-world-integration-v5/validated-render-cold-cohort/0a2f981904d97aa3fd3140a6616917a04a13cbcefed60ed1aa0d76554d66aacf-cairo-900-hs-clean-compaction-v1/cohort.json`.
+
+The subsequent frozen cohort completes 1,800 ordinary Cairo updates and ticks
+with zero script diagnostics, faulted threads, restores, nonordinary returns
+or reference-file opens. A bounded inventory of the already reached complete
+bodies adds only their authenticated read-only operands. The mission wakes at
+tick 1,301 and executes the next crowd dialogue at tick 1,387; BSP5 and the
+third cinematic director remain live. This is a headless execution result using
+the existing MCC PCM-duration callback, not original dialogue timing, rendered
+output or a complete mission. The coherent source/object/header handoff is
+`.local/mcc-reuse-20261016/native-world-integration-v5/validated-render-cold-cohort/a1c00f0b1ef1b7459a8fcf9e3956362469fb7837c352974d5c5c564aa3b4a21a-cairo-1800-hs-clean-ro-batch-v1/cohort.json`.
+
+The earlier frozen Cairo cohort completes 817 ordinary updates and simulation
+ticks with zero script diagnostics, faulted threads, restores or reference-file
+opens. It makes a real transition to BSP5 and advances the second imported camera
+track. The target was 900 updates; the next attempt stops at an explicit resource
+recovery dependency, so 900 is not a passing result. This cohort retains the MCC
+PCM timing and the existing target-lifecycle limits. Its complete object/header
+handoff is
+`.local/mcc-reuse-20261016/native-world-integration-v5/validated-render-cold-cohort/005ffa757b0a5dc40abdb67f36f846a92bebce2cd6765f41cb0a7eefbf9f8194-cairo-817-hs-clean-frontier-v1/cohort.json`.
+
+The original multiplayer option decoder consumes 18 authored weapon references.
+MCC replaces two entries and appends two others. A complete known-tuple guard now
+restores the original count, slot 15's duplicate local rocket-launcher reference,
+and slot 17's literal null before ordinary gameplay reads `mulg`. Full salted
+handle, group and path checks cover every row; partial/custom tuples are left
+untouched. This matches the complete table identities and normal gameplay lookup
+on all 21 paired multiplayer maps, without importing original Xbox datum values.
+
+The CPU BSP lighting reader now accepts MCC's FLOAT2/FLOAT3 resource declarations
+and restores the original SHORT2/packed incident representation. TU1.5's actual
+`183AF0` vector packer and `D5300` UV decoder provide the packing authority;
+12,093 untouched original vector executions and all 65,536 SHORT2 inverse cases
+pass. CPU midpoint conversion and GPU signed normalization stay separate. The
+original CPU fallback that interprets the final UV words as incident data is
+retained. The ordinary MCC BSP mesh path also restores original tangent/binormal
+physical slots and packed precision, including static lightmap bucket vectors.
+No shader or public geometry-layout change is required.
+
+All 40 MCC maps load through the corrected CPU surface reader without reference
+file access. Offline paired geometry checks match bit for bit on all 21 original
+multiplayer maps and ten campaign maps, including expanded GPU attributes with
+and without static lighting buckets. Five campaign maps still have explicit
+differences under investigation. Evidence and immutable component hashes are in
+`.local/mcc-bsp-lighting-20261017/`; the original-code packing oracle is under
+`.local/mcc-render-cohort-20261017/packing-work-status.json`. These new components
+have not replaced the already compiled v6 content-preview package. Native rendered
+gameplay, complete tag semantics, final framebuffer parity and the requested
+video with sound remain separate validation gates.
+
+The guarded Old Mombasa `earthcity_3` instance-zero transform now restores all
+136,515 expanded GPU vertices for that BSP. A separate complete collision-bank
+preimage guard restores seventeen float words before normal BSP publication;
+all 42,524 expanded collision triangles, source normals and topology then match
+the original. Custom or partial collision banks remain untouched. A separate
+whole-owner guard now restores the 49 differing float words in 35 stored instance
+spheres across twelve definitions. It authenticates all 243 instance rows and
+43 complete definition headers while preserving the independently converted
+instance-zero transform. The normal Cache hook verifies the complete postimage
+in both canonical metadata and the published BSP copy, with zero reference reads.
+
+For these spheres, 1,050 boundary queries run through the unchanged original
+SSE broad-phase block produce identical converted/original flags, XMM lanes and
+MXCSR. Raw MCC changes admission on 128 of those queries. This is bounded block
+validation, not complete spatial-query parity: the separate cinematic BSP and
+navigation authoring still differ (6,310 MCC sectors versus 6,309 original).
+
+The six unanimated material converters accept 199 exact retained native-template
+fingerprints, with 211 actual template instances across 39 maps verified through
+typed binding and native pointer delivery. A finite complete-manifest policy also
+supplies the missing existing Cairo template closure from the port's retained
+libraries. All 23,998 existing records across those libraries remain unchanged;
+67 missing records receive declared retained payload owners. Customized libraries
+are preserved. An ordinary Cache before/after comparison keeps all 516 existing
+Lockout records, their handles/addresses/payload bytes, and all 376 decoded vertex
+programs identical. This adds no shader program or original-file dependency.
+
+The earlier rendered native player-setup failure was a sound metadata boundary:
+original `1718C0` indexes twelve-byte chunk records through `ugh!+44`, whereas
+the unconverted MCC field points to sixteen-byte reflection records. A sound tag
+reference was consequently interpreted as a live runtime resource handle. The
+reached flags-eight request is a readiness query; it does not authorize creating
+or inventing a ready resource. The existing MCC PCM decoder remains the audio
+owner while complete native sound-table ownership and layout conversion are
+connected. No dynamic backing was added for the erroneous handle.
+
+The staged sound conversion now passes all 41 non-shared MCC maps. It merges the
+eleven original table domains, retains full salted sound/gestalt ownership and
+actual DAT routes, and leaves unloaded chunk resource handles at `NONE`. Invalid
+serialized flag indices are admitted only when every sound user has the original
+nonpersistent flag in both its MCC-selected and native Legacy class; the original
+reader and writer then skip those indices. The field bytes remain unchanged.
+Twenty-four untouched original CPU cases also confirm that non-loading readiness
+queries return false without a mapped resource pool. These are metadata and
+readiness checks. Gameplay duration requires authenticated original timing
+operands and original arithmetic; actual MCC PCM remains the playback owner.
+
+Normal Cache delivery now also validates the complete appended sound tables,
+projected roots and retained route ownership on Lockout, Cairo and Old Mombasa,
+with no reference-file reads. Sound ownership transfers only after complete
+metadata admission; failed reservations invoke no ownership callback. This is
+still a private integration result. The verified general flag projection now
+preserves bits 0..9, removes MCC's separate DAT-route bits, and restores the four
+original runtime/default flags from MCC bits 12..15. All 65,536 flagwords and 192
+actual original CPU cases pass. Nine authenticated complete-owner profiles also
+restore 66 authored low-flag differences across 29 named sounds in their frozen
+helper cohort; Backwash's intentional variants remain unchanged. Integration
+with the newer Cache/native-library cohort exposed two relocated derived globals
+addresses in that source fingerprint. A Cache-qualified adapter now authenticates
+the unique retained globals owner and exact active/retained child bytes before
+using the stable retained identity. All 41 maps again pass the planner,
+runtime-layout and sound-tag suites with exactly 66 corrections across nine
+authenticated owners. The normal thin delivery test additionally requires actual
+admission: Old Mombasa delivers its one correction from one authenticated owner;
+Lockout and Cairo each correctly deliver none. This assertion failed with the
+previous planner. The retained-owner controls also reject modified, ambiguous,
+foreign or out-of-extent metadata. Actual MCC payload routes and raw Cache
+records remain intact; these checks do not establish live audio playback.
+
+Sound duration remains a separate boundary: actual paired PCM checks show that
+MCC decoded duration can exceed TU1.5 duration, including some original-domain
+codecs. The original timing routine now rejects unsupported codec/rate/encoding
+indices before accessing its tables; 1,810 original CPU cases and 761 invalid
+format cases validate that bounded guard. Complete gameplay timing and authored
+playback-gain restoration remain unfinished.
+
+The original lens draw owner now has a sparse MCC bitmap adapter. It projects
+only the authenticated 24-byte common prefix and separately owns the actual
+renderer alias, resident header and frame stamp; unknown row holes stay unowned.
+The pure resource/layout checks pass 97 adversarial cases and 1,404 actual image
+contexts across all 40 MCC maps. The frame integration retains the existing lens
+vertex and pixel programs and validates canonical full-salt bitmap ownership
+before publication. A native resident-address lookup binds these checks to the
+exact Cache object, retained canonical relocation and actual native allocation;
+matching common bitmap headers cannot establish ownership. The focused Lockout
+check validates 849 complete bitmap roots/banks and rejects foreign Cache,
+foreign thread, zero-length and crossing-extent requests, including a real
+matching-prefix redirected-bank control, with no reference-file reads.
+
+The private native renderer passed the earlier blanket lens rejection and
+exposed a HUD motion-sensor reader that treated MCC bitmaps as original 116-byte
+rows. The HUD now reuses the actual MCC bitmap resource/decoder and the existing
+BC kernels, while locale tables follow their actual local/shared resource route.
+All 40 gameplay maps pass complete HUD data loading: 230 HUD contexts verify
+19,799 UI image frames, 17,976 sprites and 920 sensor image contexts. The two
+shared resource maps bring the full parse sweep to 246 HUD contexts. The old Xbox path retains identical pixels, mips, sprites,
+widget identities and localized bytes on the two offline regression maps.
+Existing material/rendering gaps remain explicit, independent of data parsing.
+
+The next native launch boundary was the gameplay font directory. MCC keeps its
+fonts in `halo2/h2_fonts` with twelve selectors; the original gameplay consumers
+use eleven selectors and different logical metrics for six faces. The shared
+font adapter authenticates the complete MCC table and files, retains their actual
+decoded atlas pixels and source identities, and applies the original logical
+metrics, lookup aliases and kerning from finite metadata profiles. All eleven
+selectors match the offline original layout differential across 720,544 logical
+glyph entries while 32,690,176 decoded MCC atlas bytes remain unchanged. Existing
+eleven-selector custom sources retain their prior behavior. This does not prove
+glyph-pixel parity: 3,663 distinct per-selector glyph rasters or dimensions still
+differ. The small constructor modules are linked with the retained runtime, and
+the native MCC-only launch now passes the missing-font boundary. Its next stop
+identified MCC-only scoreboard chat widgets using an unsupported text-flash
+material. The guarded scoreboard conversion now publishes a separate 2,608-byte
+ordinary `nhdt` allocation with 56 verified pointer fields. It restores the
+complete original ten bitmap and five text widgets, thirty position fields and
+nine curve contexts while retaining actual MCC handles, strings and resources.
+The source allocation and curves shared by other tags remain intact. All 43
+actual Cache owners pass the publication sweep: 27 recognized scoreboards and
+16 absent owners, with whole-postimage idempotence and 2,322 retained-region
+reads. Fifteen widgets and 315 dynamic curve outputs match the original reference.
+Detached HUD function operands resolve verified names to the unchanged TU1.5
+callback constants; raw Cache StringIDs retain their MCC namespace.
+
+Actual HUD constructors now pass all 220 tested contexts. The eight former
+silenced-SMG/GPMG failures are resolved by a guarded, separately owned grey
+material metadata projection using the established original widget template
+contract. The actual grey colour and curves remain distinct; no existing native
+template, pass or shader program is replaced. Across 43 maps, all 33,992 existing
+shader-library records retain their bytes, addresses and identities except the
+23 declared grey material owners. The 322 negative controls reject foreign or
+modified source metadata. All tested unit, vehicle and parent HUD contexts pass. Complete
+native metadata publication also passes Lockout, Cairo and Old Mombasa with no
+unresolved pointer fields or reference-file opens. These are CPU ownership and
+consumer checks; bitmap extents, sixteen other changed HUD definitions, pixels
+and a completed native framebuffer remain separate requirements. Evidence is in
+`.local/mcc-hud-authoring-20261017/v2/validation.json` and
+`.local/mcc-hud-grey-material-20261017/v1/validation.json` and
+`.local/mcc-hud-grey-material-20261017/native-delivery-v1/validation.json`.
+
+The retained-runtime render test passes the former HUD constructor boundary.
+Its next BSP vertex-stream failure is resolved by a separate owned draw-input
+projection: position/UV bytes remain unchanged, and the existing authenticated
+TU1.5 packer converts the three physical basis slots. All 40 maps pass 7,854
+nonempty sections; all 21 paired original multiplayer maps match positions, UVs,
+first-three descriptors and 1,944,393 packed basis words. All 119 malformed
+controls reject and raw resources remain unchanged. This is a BSP stream
+representation result, with no lighting or topology parity claim. Evidence is
+`.local/mcc-source-geometry-frontier-20261017/v1/validation.json`.
+
+The earlier native render test reached a model position-descriptor/class
+mismatch before its first completed frame. The projections below address that
+observed boundary; its preserved result is
+`.local/mcc-lens-bridge-20261017/frame-v7/run-v1-real-mcc/run.json`.
+
+The subsequent guarded rigid/class-2 model projection uses genuine original
+FLOAT declarations, retains literal normalized MCC positions/UVs and actual
+compression bounds, and packs the physical basis with the established original
+rule. It owns the real type-104 node bank and preserves the complete 120-byte
+MCC raw header. All 21 supported Master Chief/sky sections pass both executed
+SourceModelRange readers and exact original compression-body controls, with
+24 malformed controls and no raw-resource changes. Six skinned sections were
+unsupported at that stage. Original position-quantization and sky mesh/LOD/material
+differences remain separate; FLOAT compatibility does not establish visual
+parity. Evidence is
+`.local/mcc-rigid-model-vertex-layout-20261017/v1/validation.json`.
+
+The separate skinned projection now passes all 24 eager Lockout startup models
+and 131 sections, including 12 skinned actor sections with 8,487 vertices, two
+mixed opaque/transparent sections and three genuine direct-node sections with
+no node-map resource. All 43,750 paired active index/weight bytes and 24,146
+default fetch lanes match the original actor layouts. The executed original
+selector/declaration and compression controls pass, as do 31 new adverse
+controls and the original Cairo 419-section regression. Source resources remain
+unchanged and the MCC-only run opens no reference files. The complete model
+paths and frozen proof are in
+`.local/mcc-skinned-model-vertex-layout-20261017/v1/validation.json`.
+This covers that startup cohort and the established range consumers; later
+models, unexecuted native header consumers, original precision/mesh differences
+and actual GPU output remain separate gates.
+
+The resource reader now reuses one immutable decoded MCC container per thread,
+qualified by the identity of the actual opened file descriptor. It rejects
+changed or truncated sources and preserves owned returned slices and separate
+mod paths. All 24 startup models and 131 sections retain identical resource
+bytes and headers; the paired sweep falls from 160.73 seconds to 0.239 seconds.
+The portable 94 checks, 23 negative controls and complete actual 45,107,200-byte
+shared container comparison pass. Non-Linux hosts retain the original uncached
+decoder. Evidence is `.local/mcc-resource-range-20261017/v1/validation.json`.
+
+The subsequent render attempt exposed missing storage in the original per-view
+PRT reset. The bounded fix adds exactly three named banks totaling 2,617 cold
+bytes and preserves all 2,296 existing regions. Twelve complete original CPU
+cases match ordered stores, registers, defined flags, instruction counts and
+31,404 postimage bytes. Evidence is
+`.local/mcc-prt-storage-20261017/v1/validation.json`.
+The bounded main-view fix preserves every existing bank and adds 357 bytes of
+authenticated storage. Twelve complete original view-policy cases and three
+caller prefixes pass, including registers, defined flags and ordered stores.
+The subsequent transparent-container factory uses the existing cold storage
+module and allocates its real native planes, indices and container; the actual
+4,096-bucket/2,048-node free-chain checks pass. An existing scalar leaf then
+restores the exact original 1/255 initializer. The respective proofs are
+`.local/mcc-main-view-storage-20261018/v1/validation.json`,
+`.local/mcc-transparent-factory-20261018/v1/validation.json` and
+`.local/mcc-lens-scalar-leaf-20261018/v1/validation.json`.
+The lens setup now has both authenticated four-byte input owners. Sixteen
+complete original begin/prepare cases and ten original publisher prefixes pass;
+all existing factory regions remain unchanged. The next actual dependency
+reuses the already implemented render-resource storage module plus the exact
+64-byte cluster union. Its complete reset matches three genuine original
+executions and 46,089 ordered stores. Evidence is
+`.local/mcc-lens-next-20261018/v2/validation.json` and
+`.local/mcc-model-resource-factory-20261018/v2/validation.json`.
+The camera path now composes the existing input bank, exact five-entry mode
+table and three original camera words. Its real CRT producers compute the FOV
+limits; the genuine MCC player/biped camera returns 70 degrees and restores the
+complete scoped input bank. All previous factory owners remain unchanged.
+The separate read-before-save fix prevents an unavailable input from creating
+an invalid unwind entry. Camera evidence is
+`.local/mcc-input-camera-factory-20261018/v3/validation.json`; the clean missing
+input negative is `.local/mcc-lens-bridge-20261017/frame-v16/run-v1-real-mcc/run.json`.
+The subsequent diagnostic now supplies the exact renderer-context, viewport,
+first-person count and rasterizer-pointer storage reached by the retained code.
+The complete original viewport computation and the corresponding bounded
+owner checks pass. The count and pointer start at their original cold values;
+this does not implement the full first-person preparation or rasterizer
+new-map/camouflage producer. Frame 22 passes the model-animation predicate and
+stops at the missing lighting ray-vector table `44a7cc`, opens no
+original-reference files, and preserves all 97
+shaders and link inputs. It produces no frame. Evidence is
+`.local/mcc-lens-bridge-20261017/frame-v22/run-v1-real-mcc/run.json`,
+`.local/mcc-viewport-coordinate-data-20261018/v1/validation.json`,
+`.local/mcc-first-person-model-count-20261018/v1/validation.json` and
+`.local/mcc-rasterizer-globals-pointer-20261018/v1/validation.json`.
+The next helper supplies only the original authored writable byte `01` at
+`474c04`. Ten complete original predicate comparisons pass; no predicate return,
+pose or node pointer is preset. Its frame integration passes that dependency.
+Evidence is `.local/mcc-model-animation-gate-20261018/v1/validation.json`.
+The faster CPU-only public model probe then passes the exact ray-vector table,
+five-entry selector table and two authored color bindings. The color pointers
+retain original writable data access; their vectors retain read-only access.
+These additions preserve the original lighting computations. Three subsequent
+read-only scalars now pass the complete original clamp comparison. The next
+CPU probe exposes a real layout incompatibility: MCC bitmap `+50`/`+54` hold
+partition sizes, while the Xbox consumer expects texture-header and data
+pointers. A separate owned CPU bitmap view now passes ten complete original
+DXT5 sampler comparisons, including the direct delivery-row path with MCC mip
+metadata. It retains the real decompressed encoded bytes, validates native
+backing and publishes only proven sparse CPU fields; other row cells remain
+unreadable. The format11 extension passes all 65 Lockout lightmap headers,
+195 cached lookups and 74 direct samples, including changed-module ASAN/UBSAN
+and DXT5 regression checks. The actual public player/model probe now advances
+through that lightmap path. A separate inline `D5610` reader bypasses
+`13A030`, so the private follow-up retains the compiled model body and projects
+only its authenticated `D459D` full-handle stack read through the exact
+`D45A5`/`D5610`/`D563B` sequence. Model run v4 passes the original invalid
+`42b10` header and reaches the genuine texture constructor. Model run v5
+then passes that constructor after adding its five authenticated data cells
+(12 bytes, preserving all 2,350 existing regions). Model run v6 also passes
+the separate `D5700` sampler after its three missing constants are supplied;
+its complete 124-instruction leaf and 20 original CPU controls identify all
+five operands. The next `D5D30` lighting dependency has five missing constants
+identified from its complete 566-instruction body. Model run v7 is the next
+integration check; the native model and GPU frame are not yet complete.
+The inline constructor path admits only the proved DXT5
+domain; format11 remains supported by the separate direct `D5506` path.
+The private World derivative explicitly rejects authority export
+and restore after its first resource attempt; it is not a product checkpoint
+implementation. No subsequent GPU frame is claimed. Evidence
+is `.local/mcc-model-probe-vectors-20261018/v1/validation.json`,
+`.local/mcc-model-probe-selector-20261018/v1/validation.json` and
+`.local/mcc-model-probe-colors-20261018/v1/validation.json`; the scalar and
+actual bitmap diagnosis are in
+`.local/mcc-model-probe-clamp-20261018/v1/validation.json` and its
+`bitmap-diagnostic-run.json` sibling.
+The owned CPU view and actual integration evidence are
+`.local/mcc-model-cpu-bitmap-20261018/v2/validation.json`,
+`.local/mcc-model-cpu-bitmap-20261018/v3/validation.json`,
+`.local/mcc-model-cpu-bitmap-20261018/world-v1/backing-frozen-v1/cohort.json`
+and `.local/mcc-model-cpu-bitmap-20261018/world-v1/actual-model-run-v3/validation.json`.
+The inline-reader trace and new run are
+`.local/mcc-model-cpu-bitmap-20261018/raw-row-trace-v1/validation.json` and
+`.local/mcc-model-cpu-bitmap-20261018/world-v2-inline/actual-model-run-v4/validation.json`.
+The constructor closure and subsequent actual model run are
+`.local/mcc-model-bitmap-selector-20261018/v3/validation.json` and
+`.local/mcc-model-cpu-bitmap-20261018/world-v2-inline/actual-model-run-v5/validation.json`;
+its original complete `D5610` CPU proof is in
+`.local/mcc-model-cpu-bitmap-20261018/d5610-audit-v1/original.json`.
+The scoped reader's portable positive/negative and sanitizer checks are frozen
+in `.local/mcc-model-cpu-bitmap-20261018/inline-helper-v1/release-v1.json`;
+these contracts alone are not a complete native frame test. Forty genuine
+Original/native `D5610` comparisons additionally match RGB output, constructed
+116-byte row, registers, XMM state, defined flags and retained instruction flow;
+the existing native metadata boundary remains separately declared. Those
+comparisons and sanitizer checks are frozen in
+`.local/mcc-model-cpu-bitmap-20261018/inline-helper-v1/validation.json`.
+The subsequent exact constant closures are
+`.local/mcc-model-cpu-bitmap-20261018/d5700-audit-v1/closure.json`,
+`.local/mcc-model-cpu-bitmap-20261018/d5d30-audit-v1/closure.json` and
+`.local/mcc-model-bitmap-selector-20261018/v4/validation.json`.
+The independent inline owner review passes 13 checks and nine negative controls,
+including post-stamp mutation rejection and unchanged-bank preallocation failures:
+`.local/mcc-model-cpu-bitmap-20261018/controller-review-v2-inline/review-final.json`.
+The ordinary compiled client was last exercised at the earlier renderer-context
+frontier, before these helper additions; it also produced no frame. Evidence is
+`.local/mcc-native-client-20261018/client-v5/run-v1-real-mcc/validation.json`.
+The existing compiled Main and frontend also link with their compiled sky,
+campaign-view/model and Audio support against this tested module cohort;
+the ordinary CLI help succeeds. This is a private linkage check, with no
+installed runtime replacement or native gameplay readiness claim. Evidence is
+`.local/mcc-native-client-20261018/client-v2/cohort.json`.
+
+A small complete TU1.5 sound-duration leaf also fixes the compiled support
+archive's lost x87 C1 status bit without rebuilding that large archive. All
+1,810 genuine CPU cases match registers, flags, stack stores and floating-point
+state; 761 unsupported-codec controls reject before executing the body. Its
+read adapter projects only the four authenticated original timing operands while
+retaining the actual MCC codec and encoded bytes. Nine actual sound resources
+across Lockout, Cairo and Old Mombasa pass complete-leaf comparisons inside the
+locked memory/resource transaction. Those tests use explicit constant/stack
+fixtures; actual World integration and script-clock/audio wiring are separate
+gates. Actual native World integration now completes nine resources across
+Lockout, Cairo and Old Mombasa, plus repeat calls through the genuine complete `21F6B0` caller, its owned main
+stack and authenticated resource transaction. All nine results match the prior
+complete-leaf reference comparison, including an actual Opus resource; root/codec
+bytes remain unchanged and a foreign direct entry rejects. No reference files
+are opened. The measured proof is
+`.local/mcc-sound-timing-bridge-20261018/world-v4/validation.json`.
+The bounded World changes are promoted to current source after a current-header
+syntax check; the installed full runtime has not been rebuilt or replaced.
+The actual integration test also passes native backing above 4 GB, foreign-thread
+and active-topology rejection, denied-restore preservation and successful
+identical-byte authority restore with a fresh timing epoch and equal repeated
+result. Its evidence is
+`.local/mcc-sound-timing-bridge-20261018/product-integration-restore-v2/validation.json`.
+The guarded return read also rejects a changed return word during an
+observer callback. The promoted helper passes the same 1,810 cases byte for byte.
+Evidence is in `.local/mcc-sound-leaf-compiled-20261018/v2/` and
+`.local/mcc-sound-timing-bridge-20261018/product-v1/validation.json`.
+
+The separate native script-clock kernels pass 4,266 query cases and 773 complete
+admission, stop and selection comparisons against genuine TU1.5 CPU execution.
+These include signed wraparound, the first eligible row, the last exact match,
+first-match stop behavior, selector persistence and actual auxiliary RNG effects.
+Game ticks remain distinct from the HS wrapper's 30-Hz counts. The registered
+portable tests also pass independently of World, Cache or Audio. The frozen
+receipt is `.local/mcc-native64-script-sound-clock-20261018/v1/work-status.json`;
+the actual prepared Audio handoff now passes seven real MCC/SDL controls,
+independent review and ASAN/UBSAN. The existing default playback paths retain
+10,485,760 identical PCM bytes, RNG effects and submission parameters. Genuine
+64-bit receipts retain the actual Audio epoch, platform and published voice
+record; failed publication and late completion cannot retire a replacement.
+Evidence is `.local/mcc-native64-script-sound-clock-20261018/audio-v3-frozen/work-status.json`.
+
+The separate final HS explicit-time arithmetic now matches 8,756 executions of
+the original 41-byte tail across independent x87/SSE rounding, precision and
+FTZ/DAZ controls. It rereads the actual delta after the game-tick query; simply
+returning game ticks differs in 7,424 cases. The earlier query and admission
+outputs remain byte-identical. This pure numeric helper and its registered test
+do not establish complete HS coercion/completion or runtime integration.
+Evidence is `.local/mcc-native64-script-sound-clock-20261018/hs-tail-v1/work-status.json`.
+
+The additive timed-stop request also matches 3,289 complete TU1.5 CPU cases,
+including repeated requests and signed clock wrapping. It reuses the existing
+fade calculation and authors the original linear 300 ms state after sampling
+the current fade. Eight actual MCC/SDL controls pass normally and with
+ASAN/UBSAN, including foreign-owner/thread rejection and single packet
+retirement. No ordinary Audio or update-cadence body changed. Evidence is in
+`.local/mcc-script-sound-stop-20261018/product-v1/comparison.json` and
+`.local/mcc-script-sound-stop-20261018/audio-asan-v1/validation.json`.
+This establishes the native request/state handoff, with the existing native
+Audio clock and retirement behavior. Original hardware update cadence and
+audible waveform parity are not established.
+
+The native metadata provider now retains the actual World allocation and epoch,
+validates full salted roots and merged table ownership, and returns owned
+metadata snapshots. Binding it to the existing Audio adapter passes actual
+Lockout, Cairo and Old Mombasa parameter/PCM-owner checks. Cairo's classic
+shield-death witness uses the native projected -13 dB rather than the raw MCC
+path's approximately -31 dB. Rebinding requires quiescent playback and closes
+old script clocks. Cached consumers reject a stale epoch before RNG, playback
+or presentation changes, including after an identical-byte authority restore;
+cleanup remains available after World destruction. Actual pending-admission,
+same-file/foreign-Cache, callback and thread controls pass, as does ASAN/UBSAN
+on the changed Audio/provider/test units. The unbound paths still match all
+10,485,760 baseline PCM bytes and the eight prepared/stop controls. Evidence is
+`.local/mcc-native-audio-metadata-20261018/frozen-v1/validation.json`.
+These are metadata handoff and lifetime results. Original class authoring,
+native selection-state writeback, original script clock policy, Sim/Main
+integration and physical audibility remain separate requirements.
+
+The same three-map Audio tests also pass with the restored stored-millisecond
+publication and the count-32 variation fix together. The guarded publication
+restores 7,064 four-byte words across Lockout, Cairo and Old Mombasa while
+preserving the complete MCC resource headers and DAT/PCM owners. Cache-aware
+timing rejects an unconverted or mixed native bank. Evidence is
+`.local/mcc-sound-stored-time-publication-20261018/v3/work-status.json` and
+`.local/mcc-native-audio-metadata-20261018/converted-v3/validation.json`.
+
+Audio can now import qualified timing metadata into a fresh clock after a
+quiescent metadata rebind. It retains all twelve metadata bytes per row,
+including duplicate sounds and partial selectors, and creates no voice.
+Foreign sound salts, threads, live playback and a second import in the same
+epoch reject. The actual Lockout checks and ASAN/UBSAN pass; the existing
+10,485,760-byte default PCM comparison and eight prepared/stop controls remain
+unchanged. These controls use fixed qualified rows; actual World capture and
+checkpoint integration have a separate acceptance gate. Evidence is
+`.local/mcc-native-audio-metadata-20261018/metadata-import-v2/validation.json`,
+`.local/mcc-native-audio-metadata-20261018/metadata-import-asan-v1/validation.json`
+and `.local/mcc-native-audio-metadata-20261018/metadata-import-regressions-v1/validation.json`.
+
+That separate integration gate now passes on Lockout, Cairo and Old Mombasa:
+the actual World policy runs its genuine selector, the existing Audio adapter
+publishes real PCM, and metadata publication preserves all sixteen source voice
+words as NONE. After actual authority restore, stale access rejects; a fresh
+metadata rebind imports the exact current timing rows without fabricating a
+host voice. The restored row can then stop and publish its resulting metadata.
+ASAN/UBSAN also passes with Audio, the native clock owner and driver instrumented;
+the reused World/SDL dependencies remain uninstrumented. These tests establish
+that bounded handoff and checkpoint path, with no original-reference opens.
+Complete Main integration, original class authoring and physical output remain
+separate. Frozen
+evidence is `.local/mcc-native-audio-metadata-20261018/restored-frozen-v1/validation.json`.
+
+The typed HS query bridge now passes portable, ASAN/UBSAN and actual Lockout
+World/VM controls for both time-query overloads and language time. It preserves
+raw LONG results and source scalar coercion, rereads the time delta for the
+explicit-query tail, and rejects stale, foreign-thread and reentrant bindings
+before fallback. Callable copying, destruction and binding removal are covered.
+The old admission/event binding remains unchanged. The focused tests install
+this binding after Simulation construction; Main playback remains a separate
+gate. Evidence is
+`.local/mcc-reuse-20261016/native-world-integration-v5/script-sound-hs-query-stage1-v1/frozen-handoff-v1/cohort.json`
+and its `root-final-review-v1/review-final.json` sibling.
+
+The producer-owned query service now retains the actual World, paired metadata
+capabilities and a separate 64-bit metadata clock. Its callbacks use the current
+generation and reject changed rows until an explicit quiescent refresh. Eight
+actual World/VM groups pass on each of Lockout, Cairo and Old Mombasa, including
+successful and rejected restore refreshes, callback lifetime, thread guards
+and queries after Audio teardown. Changed-module ASAN/UBSAN checks pass; all
+runs open no original-reference files. The service and optional regression test
+are registered in the build. This is metadata/query support without an audio
+device; Main playback, admission, mute equivalence and stored-NONE behavior
+remain separate gates. A census of all forty stock maps found 823 globals and
+no sound-query initializer calls, so the constructor whitelist is unchanged.
+Evidence is
+`.local/mcc-script-sound-query-service-20261018/v1/frozen-handoff-v1/cohort.json`
+and its `cmake-registration-v1/validation.json` sibling.
+
+The native timing publication now composes flags, finite original permutation
+milliseconds (`+6`), then stored sound milliseconds (`+10`). Cache-aware timing
+requires that complete ordered projection and retains separate immutable
+catalogs for both timing domains. The permutation catalog contains 4,506,
+16,210 and 13,824 admitted tuples on Lockout, Cairo and Old Mombasa; unknown
+tuples gain no authority. Source permutation order and all encoded resources
+remain unchanged. The guarded World query now executes the genuine
+`213690 -> 21f670` branch after checking current full owners and exact native
+permutation bytes. All three maps match original CPU results, including real
+zero-millisecond values and restored differences; sanitizers pass on the
+changed query and test units. Evidence is
+`.local/mcc-sound-permutation-time-reference-20261018/catalog-v2/work-status.json`
+and `.local/mcc-reuse-20261016/native-world-integration-v5/script-sound-selected-seconds-v1/frozen-handoff-v1/cohort.json`.
+
+The shared first-permutation adapter now publishes the actual World auxiliary
+RNG, packed used bits and range state through one existing World fault scope.
+The prepared Audio overload uses that result for the initial packet while
+preserving the original private voice seed captured before shared selection.
+Lockout, Cairo and Old Mombasa pass genuine script admission, two successive
+shared selections, exact nonzero PCM comparisons and the declared forced-pair
+bypass. Default playback still matches the 10,485,760-byte baseline; changed
+Audio, Access and driver sanitizer checks pass with reused World dependencies
+uninstrumented. This is a bounded prepared-impulse handoff, not Main integration,
+generic impulse/loop migration or physical output parity. Evidence is
+`.local/mcc-reuse-20261016/native-world-integration-v5/script-sound-first-ff-v1/frozen-handoff-v1/cohort.json`
+and `.local/mcc-native-audio-first-permutation-20261018/frozen-v1/validation.json`.
+
+An independent review reproduced a cross-World owner mismatch in that first
+Audio overload when two Worlds shared the same Cache. The promoted fix now
+checks both current leases and their actual retained memory owner before
+consuming playback or changing RNG. Seven real two-World controls pass,
+including unchanged pending requests after rejection, wrapper destruction,
+restore, thread and teardown cases. Changed Audio/Access/provider/driver
+ASAN/UBSAN checks also pass. This closes that bounded mismatch; qualified
+per-World policy/clock callers and Main wiring remain separate requirements.
+Evidence is `.local/mcc-native-audio-first-permutation-20261018/owner-pairing-v1/frozen-handoff-v1/cohort.json`
+and `.local/mcc-native-audio-first-permutation-20261018/root-owner-pairing-review-v1/review-final.json`.
+
+The complete sound conversion pipeline is now promoted together: flags,
+finite class corrections, permutation milliseconds, then stored milliseconds.
+All 40 gameplay maps pass the complete native publication and timing catalogs,
+including both current and retained globals namespace cases. The admitted
+catalogs contain 286,536 permutation contexts, 78,223 stored-time records and
+286,440 encoded bindings across those maps. Source maps and Cache data remain
+unchanged, with no reference-file reads. Detailed Lockout, Cairo and Old Mombasa
+checks reconstruct the whole result exactly; generic Source contracts, atomic
+failures and changed-module ASAN/UBSAN checks pass. Class corrections change
+only 48 named words in 25 classes; six unresolved classes remain unchanged.
+Unknown class banks reject the stock qualified path, while generic Source
+behavior remains available. Evidence is
+`.local/mcc-sound-class-authoring-20261018/coherent-v1/frozen-handoff-v1/cohort.json`
+and `.local/mcc-sound-class-authoring-20261018/root-coherent-review-v1/review-final.json`.
+The unified camera/World and this sound pipeline also pass the existing
+Lockout initial-packet Audio comparison with the owner-pairing fix: two initial
+selections and a forced valid control each produce the same 4,096 PCM frames
+and shared selection state as the existing Audio path. The combined objects
+also pass eight typed-query groups, including sixteen exact original CPU
+results across four rounding modes, and complete native class metadata checks
+for eight changed classes. Only the small metadata test harness was compiled;
+the engine, World, Audio and query objects were reused. This does not establish
+Main wiring, all class acoustics, later packet selection or physical output.
+Evidence is
+`.local/mcc-sound-class-authoring-20261018/unified-world-v1/validation.json`
+and its `root-final-review/review-final.json` sibling.
+
+The ordinary variation selector and provider now admit the two actual
+32-permutation marine banks. Untouched original `21FA80`/`21FB20` execution
+proves the literal zero-mask behavior at count 32. The bounded fix uses a
+defined masked shift and preserves all lower counts, layouts and budgets;
+counts above 32 still reject. All 1,131 CPU cases, 12,034 RNG stores, the
+existing 83 ordered-store controls and actual Cairo/Old Mombasa restore and
+lifetime checks pass, including ASAN/UBSAN. Deliberately using an all-ones
+count-32 mask fails 284 controls. The separate `213410` script-selection
+kernel retains its independently qualified domain. Evidence is
+`.local/mcc-reuse-20261016/native-world-integration-v5/native-variation-provider-v1/frozen-handoff-count32-v2/cohort.json`.
+
+Setup also repairs an older cache missing its common scalar function table by
+publishing the exact 28 KiB bytes already present in its retained map banks. All
+24,116 existing native-library files remain unchanged; the repair is idempotent
+and opens no reference files. Native rendered validation, higher-resolution frame
+and flashlight authoring differences remain separate gates; no completed frame
+or audio is claimed.
+
+The October 16 integration now connects the canonical MCC tag/BSP delivery to
+the existing `PhysicsLiveWorldTu15` publication boundary. All 40 gameplay maps
+pass the pointer-closure and byte-preservation checks, including the verified
+Sound Globals record projection. Converted animation clips now select their
+owned resource groups and start with the original unallocated tracking sentinel;
+their codec bytes and authored animation fields remain owned by the MCC cache.
+
+Converted resident metadata now has a separate native allocation rather than
+consuming the original physical tag partition. Admission checks the actual
+native owner, complete allocation bounds, salted directory identities and BSP
+mapping before writing or publishing it. Focused tests reject foreign and stale
+allocation proofs and verify checkpoint rebinding. Whole-world checkpoint
+admission also rejects a missing, truncated, split, renamed or paged metadata
+owner and changed vanilla tag/BSP bindings before commit. Seventeen malformed
+cases and a genuine restore pass without reference-file access. The source
+physical arena and resource-cache procedures retain their existing
+implementations and budgets.
+
+Lockout passes actual biped creation, player binding, initial equipment and 180
+simulation ticks with the converted MCC definitions. That regression uses the
+explicit offline reference startup bank to isolate conversion; it does not prove
+complete source-free gameplay or Xbox framebuffer parity. Lockout also passes a
+whole-world checkpoint restore with the separate metadata allocation. The
+source-free probe reaches world creation and session configuration with no
+Xbox/Vista/MCPX file accesses, including actual biped creation, player binding,
+starting-weapon construction through the existing `MultiplayerObjectRuntime`,
+and a genuine whole-world checkpoint. The direct native controller now completes
+120 neutral and 60 forward-input ticks. With identical explicit clocks and inputs,
+all 180 position/velocity samples match the offline-reference development path
+bit for bit. The native run opens no reference files. This bounded headless
+comparison does not establish rendering, Xbox hardware or complete-match parity.
+The normal match path also completes sixty native ticks after running the
+original reached CRT cosine-threshold constructor. Its complete four-instruction
+body matches 24 original i386 CPU fixtures, including x87 precision/rounding and
+live-stack preservation. Player birth, starting equipment, native pools above
+the 32-bit range and genuine checkpoint admission pass with no reference-file
+opens; all 133 linked module/archive hashes remain fixed during the run.
+Rendered multiplayer and longer gameplay admission remain unverified.
+The normal
+`MultiplayerPreparedWorld` now selects that compiled startup owner automatically
+for MCC; remaining undeclared operands are checked against the actual reached
+scenario/player/gameplay continuations. This removes the obsolete blanket MCC error
+without setting a gameplay-ready or parity flag. High Charity's 116,658,176-byte converted
+bank now passes world/campaign-session construction with the offline startup
+reference. Cairo Station now completes native vanilla tag/BSP publication,
+world construction, HS/global initialization and campaign session configuration
+with no XBE/ISO/Vista/MCPX input. This does not yet exercise a campaign tick or
+playthrough. Its earlier script mismatch involved MCC opcode38F, a no-argument
+`game_tick_rate` call with a long result coerced
+to short by its expression, whereas
+the original catalogue names that opcode `test_web_event_local_cheater`. The
+original same-named `game_tick_rate` entry is a void-returning setter with one
+argument, so a name-only opcode remap would also be wrong. The installed MCC
+binary confirms that the getter reads the actual clock rate rather than
+returning a literal constant. The guarded Cairo conversion now restores the
+original mutable `seconds` global and its original initializer; it does not
+replace the getter with a hardcoded runtime return. The original Xbox Cairo
+cache passes the same offline-reference session probe. These checks do not establish a campaign
+playthrough or complete tag semantics. Evidence is in `.local/mcc-reuse-20261016/native-world-integration-v5/`.
+
+The pinned script projection now resolves 388 signature-compatible builtin
+definitions and all 15 used external-global declarations to their original
+indices. The raw forty-map audit converts 92,888 builtin calls (35,893
+changed opcode words) and 910 external-global references while preserving
+3,448 static calls and every unrelated syntax byte. Both the existing content
+loader and the native vanilla publication boundary use this projection. One
+additional explicit vibration-to-rumble alias restores the original setter,
+verified against both binaries and the actual Delta Towers script context.
+Its complete original evaluator, argument reader and thread completion run
+unchanged; the reused C++ path writes the same current player-effects owner
+through the owning world's checked publication boundary. No hardware feedback
+event is synthesized. Native
+publication now owns both clock getters through the actual original return/
+coercion path, with per-entry bindings that resolve current backing afresh.
+After the latest Cairo authoring conversion, these cover 40 remaining calls.
+A separately guarded Cairo conversion removes four
+MCC-added movie/render-light calls after proving that the three complete
+converted control-flow subtrees match the original Xbox scripts. It retires
+ten syntax rows using the original allocator's free-row representation;
+five custom-variant guards preserve unproven authored changes. Both ordinary
+content loading and native publication use the cache-aware projection.
+An additional authenticated Cairo authoring plan removes the added dormant
+breadcrumb script and its sole added wake. Before any content consumer runs,
+the cache initializer validates every write owner, original bytes and
+non-overlap. The extended Cairo plan has twenty-two writes, retires 577 rows and
+rewrites the proven script ordinals. It also removes the added branding/near-clip
+authoring and restores two exact authored sound-environment words.
+All 459 retained script references keep their authored targets; 411 of 418 complete
+script trees and all 51 original global initializers match their original
+normalized trees. Ten expressions again read the mutable `seconds` global,
+and the branding effect uses the original named object and root marker.
+The seven remaining differing sound/flush bodies are preserved. All 418 declarations have the
+original ordered names, kinds and return types.
+Each of the 180 donor/namespace-bank mutations rejects without a conversion plan;
+eight additional mutations guard removal of the unused final breadcrumb global.
+Only its declaration count changes: the trailing declaration and orphan literal
+remain byte-exact, all retained ordinals stay fixed, and Cache, ordinary content
+and ScriptVm expose the original 51 globals.
+The integrated cache publishes 418 declarations and all 27,722 projected rows
+through ordinary content loading. Cairo has no remaining builtin conversion
+requirements. The actual forty-map preflight rejects the remaining
+10 calls across five unowned definitions;
+inspection can retain their explicit requirements. Twenty-five multiplayer
+maps have no script-layout requirements; 38 maps in total pass preflight with
+the converted authoring and any required genuine clock owner. This is script-layout evidence,
+not a complete campaign semantic or gameplay-parity claim. The earlier large
+campaign-bank capacity/checkpoint probes precede this semantic preflight; current
+native publication rejects their still-unowned script helpers.
+
+Fourteen additional guarded campaign authoring profiles now run through the same
+internal cache initialization. They remove twenty-two added dormant helpers,
+fourteen added wakes, three added breadcrumb-index assignments, 38 added
+movie calls and twenty navigation/oversteer calls, retiring 6,046 rows and preserving every retained typed
+script/namespace target. Each complete affected holder tree matches its original
+Xbox counterpart. Recovery's added remastered sound/environment calls and
+Floodzone's added animation/prints are removed only with their complete original
+holder proofs; the original dialogue, tentacle and index animations stay intact.
+Tutorial's original static fade helper and exact fifteen-tick ordering are
+restored through guarded typed references and its existing owned string slot;
+all 77 declarations and the other 75 bodies stay unchanged. Two AI spelling
+aliases are accepted only at their exact authenticated namespace tuples.
+Aliased authored banks retain their ownership; 305 custom-data
+cases reject before conversion. The actual forty-map cache preflight verifies
+the reduction from 393 to 10 unowned calls with no reference-file access.
+Remaining cinematic, navigation, sound and AI differences are explicit
+work; this is not a campaign playthrough or full tag-parity claim. Evidence is
+in `.local/mcc-campaign-authoring-audit-20261016/v6/` and
+`.local/mcc-reuse-20261016/native-world-integration-v5/context-v9/`.
+
+The existing C++ interpreter now forwards `object_set_permutation` to the
+complete original BC440 action and its two original StringID lookup owners.
+All seven earlier shader-function bodies stay byte-exact. Thirty-five original
+i386 CPU fixtures cover every lookup instruction and the action's no-model
+paths, including complete registers, stack and memory. The same-data offline
+campaign probe now executes that action and reaches the first marine crowd;
+cinematic depth of field is its next explicit interpreter/presentation gap.
+This is not a complete campaign or rendered-visual claim. Evidence is in
+`.local/mcc-object-permutation-20261017/`.
+
+The reused C++ script interpreter and Simulation constructors now use the same
+live clock owner during global initialization and runtime calls. The initializer
+provider cannot call the general host while Simulation is partially constructed.
+The raw forty-map audit initializes all 824 globals; three initializers use
+the actual clock getter before the guarded Cairo restoration. Focused tests also cover changed signed rates, original
+integer division, expression coercion, checkpoint backing replacement and both
+Simulation construction paths. These checks do not run a full campaign session.
+
+A guarded retail scalar profile restores four named weapon/projectile
+definitions to exact authenticated reference tuples: the two sword melee-angle
+pairs, authored flak movement fields, and the Gauss projectile reporting cause.
+The constructor applies these as internal data before any source consumer.
+A further 153 explicit retail damage profiles restore original definition
+flag words, after confirming MCC added an area-damage delivery gate that the
+existing Xbox source path does not use. Together, all 38 comparable original/MCC
+map pairs eliminate exactly 3,176 known field differences with no new
+named-field differences. Four further guarded weapon words and four dependency
+profiles remove another 182 differences: 88 weapon flag words and 94 dependency
+identities whose full salted targets exist in the current directory. All 43 MCC
+caches, including both shared banks, pass
+the profile audit. Unexpected authored tuples remain
+unchanged and have an explicit unrecognized receipt; this is not a blanket
+rewrite of custom mod values. Missing local dependencies leave the complete
+tuple unchanged and produce an explicit requirement. Resource-bank handles are
+never borrowed into another directory. The remaining 59 audited reference
+differences in these three tag classes still require individual investigation;
+other gameplay classes and
+rendered/audio parity need their own evidence.
+
+A further 29 guarded biped/vehicle profiles restore 669 named geometry,
+scalar and seat-word differences across the same 38 pairs, with no new or
+changed readable differences. Their complete donor tuples are consistent in
+all 504 matching contexts; 43 banks pass idempotence and bounds checks.
+The class inventory now covers all 120 catalog classes, of which 77 appear
+in the paired directories. None is certified fully semantically complete.
+In particular, equal damage-table values after matching row names do not
+validate original numeric-index consumers, and packed/runtime fields, missing
+definitions and opaque payloads remain explicit requirements. The matrix and
+profile evidence are in `.local/mcc-gameplay-class-audit-20261016/`.
+
+These integration executables are private component builds. The already compiled
+`dist/Halo2-MCC-Test-Linux-x86_64-20261016-v6.zip` is the verified MCC content
+preview package. It reuses exactly the v5 compiled game and every shader file,
+with no compilation required. Its updated onboarding includes the
+checked Zanzibar bitmap deltas and needs only the tester's MCC installation.
+It does not contain the newer source-only gameplay integration changes.
+The extracted v6 launcher's full automatic onboarding was also exercised from
+stock installed MCC: 883 selected files, 43 maps, 50,283 bitmap frames and
+19,518 decoded bitmap partitions. The requested menu inventory passes with
+648 frame owners and 40 fonts. Both verified texture corrections are applied,
+the launcher selects its new private MCC cache, and the compiled runtime hash
+is unchanged. The file trace records no Xbox/Vista/MCPX reference opens.
+This verifies setup and selection, not native gameplay admission. Evidence:
+`.local/mcc-graphics-bundle-20261016/v6-full-onboarding/result.json`.
+
+The v6 importer bundle additionally restores Zanzibar's `matte_grey`
+texture. Fresh MCC-only preparation reconstructs the original concrete's ten
+mips and grey's seven mips, retaining grey's BC3 encoding. Native decoded
+readback matches all seventeen original mip images. Both reconstructions and
+descriptor owners are validated before writing; corrupt deltas, mip receipts
+and overlapping delta ownership reject without modifying the cache. Existing
+v1 converted caches and the v5 package remain unchanged. This verifies these
+two textures, not full-game framebuffer parity; evidence is in
+`.local/mcc-graphics-bundle-20261016/v2/`.
+
 MCC installation discovery, private asset copying, a native v13 reader,
 geometry/model/bitmap/animation/audio adapters, compiled immutable TU1.5 engine
 operands, preserved native shader libraries and the two recovered TU1.5
@@ -60,13 +904,14 @@ shader programs and texture contents are unchanged by this address migration.
 
 Live engine world, object/player pool, object-body and clock interfaces now also use `NativeRuntimeAddress`. Datum-pool views, object lifetime tracking, scene publication, vehicle readback and death-camera bindings use checked native addresses. A separate allocation index checks owner identity, permissions, commitment holes and bounds. Checkpoint files retain source tokens; restored worlds rebind native addresses to their new allocations. Focused checks exercise actual backing above 4 GiB and reject cross-world pointers.
 
-This covers the native tag and live-state interfaces. It does not widen
-the recovered Xbox execution ABI or remove its physical cache reservations,
-tag-count limits or remaining MCC physics/layout conversion requirements.
-Large native mod banks and their gameplay admission still require those
-remaining consumers to be ported or explicitly adapted; replacing an integer
-type alone would not make those banks playable. Full gameplay and framebuffer
-parity remain separate validation requirements.
+This covers the native tag and live-state interfaces. Converted resident tag/BSP
+data now uses separate native backing, removing the old physical tag-partition
+limit. The current original-ABI delivery still uses a checked 1.5-GiB logical
+token interval and preserves its serialized tag-count/field widths; those tokens
+are not host pointers. Original resource-cache budgets and remaining MCC
+physics/layout/semantic requirements still apply. Large native mod banks need
+their actual consumers validated. Full gameplay and framebuffer parity remain
+separate requirements.
 
 The checked 64-bit tag layer passes four focused native test groups and all
 13 import tests. Complete payload comparison covers 84 original/Vista maps,
@@ -930,12 +1775,18 @@ Terminal and other maps retain their original references. Its output is
 change the installed MCC files or the game launch selection.
 
 The selected owned correction profile is also applied automatically to future
-MCC preparations. It requires the measured MCC map fingerprint, verifies the
-original complete pixel bank, appends the converted texture partition and
-records donor/converted hashes. It needs the preserved correction profile,
-rather than rereading the disc or Workshop mod. A profile-application replay
-produces exactly the same map and texture-bank bytes as the native-verified
-restoration above. Unrecognized source revisions fail preparation explicitly.
+MCC preparations. Fresh installations without a local selection now use
+`tools/data/native-bitmap-corrections.json.zlib`. This 565,812-byte bundle contains
+pixel XOR differences, rather than an original bitmap bank. Onboarding requires
+the measured MCC map and decoded pixel fingerprints, bounds decompression to
+the exact donor extent, and validates the reconstructed complete pixel bank
+and all ten mip fingerprints before appending the converted texture partition.
+It reads no disc, executable, Workshop mod or development profile. A fresh
+default-application replay produces exactly the same map and texture-bank bytes
+as the native-verified restoration above. Corrupt deltas fail before either
+owned MCC file is changed; unrecognized source revisions fail explicitly.
+The existing shader library and unrelated map references remain unchanged.
+Evidence is in `.local/mcc-graphics-bundle-20261016/validation.json`.
 
 `native_mcc_preserved_shaders` compares Zanzibar's `metal_roof`,
 `basic_concrete`, `zanzibar_seawall` and `massive_concrete` against the original

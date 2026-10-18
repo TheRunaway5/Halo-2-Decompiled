@@ -1,0 +1,7222 @@
+{
+  "schema": 1,
+  "mcc_sha256": "de65b4f4fdbf3f0a5eab7431fe530da17dd815599182dfd6ae9b7e21cf171946",
+  "xbox_tu15_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "builtin_table_mcc": "0x180e04850",
+  "builtin_table_xbox": "0x480c00",
+  "external_global_table_mcc": "0x180e086f0",
+  "external_global_table_xbox": "0x47fb88",
+  "coverage": "Definitions referenced by all 40 installed MCC gameplay maps; unlisted definitions require explicit admission.",
+  "builtins": [
+    {
+      "mcc_opcode": 0,
+      "name": "begin",
+      "return_type": 3,
+      "arguments": [],
+      "xbox_opcode": 0,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b32fc0",
+      "mcc_evaluator": "0x1806f7940",
+      "xbox_descriptor": "0x456b20",
+      "xbox_return_type": 3,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 1,
+      "name": "begin_random",
+      "return_type": 3,
+      "arguments": [],
+      "xbox_opcode": 1,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33020",
+      "mcc_evaluator": "0x1806f7a90",
+      "xbox_descriptor": "0x456b30",
+      "xbox_return_type": 3,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 2,
+      "name": "if",
+      "return_type": 3,
+      "arguments": [],
+      "xbox_opcode": 2,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33070",
+      "mcc_evaluator": "0x1806f7e80",
+      "xbox_descriptor": "0x456b40",
+      "xbox_return_type": 3,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 4,
+      "name": "set",
+      "return_type": 3,
+      "arguments": [],
+      "xbox_opcode": 4,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33150",
+      "mcc_evaluator": "0x1806f8690",
+      "xbox_descriptor": "0x456b60",
+      "xbox_return_type": 3,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 5,
+      "name": "and",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 5,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b331b0",
+      "mcc_evaluator": "0x1806f8380",
+      "xbox_descriptor": "0x456b70",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 6,
+      "name": "or",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 6,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33200",
+      "mcc_evaluator": "0x1806f8380",
+      "xbox_descriptor": "0x456b80",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 7,
+      "name": "+",
+      "return_type": 6,
+      "arguments": [],
+      "xbox_opcode": 7,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33240",
+      "mcc_evaluator": "0x1806f7690",
+      "xbox_descriptor": "0x456b90",
+      "xbox_return_type": 6,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 8,
+      "name": "-",
+      "return_type": 6,
+      "arguments": [],
+      "xbox_opcode": 8,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33290",
+      "mcc_evaluator": "0x1806f7690",
+      "xbox_descriptor": "0x456ba0",
+      "xbox_return_type": 6,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 9,
+      "name": "*",
+      "return_type": 6,
+      "arguments": [],
+      "xbox_opcode": 9,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b332f0",
+      "mcc_evaluator": "0x1806f7690",
+      "xbox_descriptor": "0x456bb0",
+      "xbox_return_type": 6,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 10,
+      "name": "/",
+      "return_type": 6,
+      "arguments": [],
+      "xbox_opcode": 10,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33330",
+      "mcc_evaluator": "0x1806f7690",
+      "xbox_descriptor": "0x456bc0",
+      "xbox_return_type": 6,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 11,
+      "name": "min",
+      "return_type": 6,
+      "arguments": [],
+      "xbox_opcode": 11,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33370",
+      "mcc_evaluator": "0x1806f7690",
+      "xbox_descriptor": "0x456bd0",
+      "xbox_return_type": 6,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 12,
+      "name": "max",
+      "return_type": 6,
+      "arguments": [],
+      "xbox_opcode": 12,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b333b0",
+      "mcc_evaluator": "0x1806f7690",
+      "xbox_descriptor": "0x456be0",
+      "xbox_return_type": 6,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 13,
+      "name": "=",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 13,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b333f0",
+      "mcc_evaluator": "0x1806f7d60",
+      "xbox_descriptor": "0x456bf0",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 15,
+      "name": ">",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 15,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33490",
+      "mcc_evaluator": "0x1806f80d0",
+      "xbox_descriptor": "0x456c10",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 16,
+      "name": "<",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 16,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b334d0",
+      "mcc_evaluator": "0x1806f80d0",
+      "xbox_descriptor": "0x456c20",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 17,
+      "name": ">=",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 17,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33510",
+      "mcc_evaluator": "0x1806f80d0",
+      "xbox_descriptor": "0x456c30",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 18,
+      "name": "<=",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 18,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33550",
+      "mcc_evaluator": "0x1806f80d0",
+      "xbox_descriptor": "0x456c40",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 19,
+      "name": "sleep",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 19,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33590",
+      "mcc_evaluator": "0x1806f8880",
+      "xbox_descriptor": "0x456c50",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 20,
+      "name": "sleep_forever",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 20,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b335f0",
+      "mcc_evaluator": "0x1806f8b30",
+      "xbox_descriptor": "0x456c60",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 21,
+      "name": "sleep_until",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 21,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33650",
+      "mcc_evaluator": "0x1806f8c00",
+      "xbox_descriptor": "0x456c70",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 22,
+      "name": "wake",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 22,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b336c0",
+      "mcc_evaluator": "0x1806f8f90",
+      "xbox_descriptor": "0x456c80",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 24,
+      "name": "unit",
+      "return_type": 51,
+      "arguments": [],
+      "xbox_opcode": 24,
+      "xbox_flags": 2,
+      "mcc_descriptor": "0x180b33780",
+      "mcc_evaluator": "0x1806f8550",
+      "xbox_descriptor": "0x456ca0",
+      "xbox_return_type": 51,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 25,
+      "name": "not",
+      "return_type": 5,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 25,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b337d0",
+      "mcc_evaluator": "0x18078bce0",
+      "xbox_descriptor": "0x456cb0",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 26,
+      "name": "pin",
+      "return_type": 6,
+      "arguments": [
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 26,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33820",
+      "mcc_evaluator": "0x18078bd20",
+      "xbox_descriptor": "0x456cc4",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 27,
+      "name": "print",
+      "return_type": 4,
+      "arguments": [
+        9
+      ],
+      "xbox_opcode": 27,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33870",
+      "mcc_evaluator": "0x180789b30",
+      "xbox_descriptor": "0x456cdc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        9
+      ]
+    },
+    {
+      "mcc_opcode": 28,
+      "name": "players",
+      "return_type": 31,
+      "arguments": [],
+      "xbox_opcode": 28,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b338c0",
+      "mcc_evaluator": "0x18078bd70",
+      "xbox_descriptor": "0x456cf0",
+      "xbox_return_type": 31,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 29,
+      "name": "kill_volume_enable",
+      "return_type": 4,
+      "arguments": [
+        13
+      ],
+      "xbox_opcode": 29,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33900",
+      "mcc_evaluator": "0x18078bd90",
+      "xbox_descriptor": "0x456d00",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        13
+      ]
+    },
+    {
+      "mcc_opcode": 30,
+      "name": "kill_volume_disable",
+      "return_type": 4,
+      "arguments": [
+        13
+      ],
+      "xbox_opcode": 30,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33960",
+      "mcc_evaluator": "0x18078bdc0",
+      "xbox_descriptor": "0x456d14",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        13
+      ]
+    },
+    {
+      "mcc_opcode": 31,
+      "name": "volume_teleport_players_not_inside",
+      "return_type": 4,
+      "arguments": [
+        13,
+        14
+      ],
+      "xbox_opcode": 31,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b339c0",
+      "mcc_evaluator": "0x18078bdf0",
+      "xbox_descriptor": "0x456d28",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        13,
+        14
+      ]
+    },
+    {
+      "mcc_opcode": 32,
+      "name": "volume_test_object",
+      "return_type": 5,
+      "arguments": [
+        13,
+        50
+      ],
+      "xbox_opcode": 32,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33a30",
+      "mcc_evaluator": "0x18078be30",
+      "xbox_descriptor": "0x456d3c",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        13,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 33,
+      "name": "volume_test_objects",
+      "return_type": 5,
+      "arguments": [
+        13,
+        31
+      ],
+      "xbox_opcode": 33,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33a90",
+      "mcc_evaluator": "0x18078be70",
+      "xbox_descriptor": "0x456d50",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        13,
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 34,
+      "name": "volume_test_objects_all",
+      "return_type": 5,
+      "arguments": [
+        13,
+        31
+      ],
+      "xbox_opcode": 34,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33af0",
+      "mcc_evaluator": "0x18078beb0",
+      "xbox_descriptor": "0x456d64",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        13,
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 35,
+      "name": "volume_return_objects",
+      "return_type": 31,
+      "arguments": [
+        13
+      ],
+      "xbox_opcode": 35,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33b50",
+      "mcc_evaluator": "0x18078bef0",
+      "xbox_descriptor": "0x456d78",
+      "xbox_return_type": 31,
+      "xbox_arguments": [
+        13
+      ]
+    },
+    {
+      "mcc_opcode": 36,
+      "name": "volume_return_objects_by_type",
+      "return_type": 31,
+      "arguments": [
+        13,
+        8
+      ],
+      "xbox_opcode": 36,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33bb0",
+      "mcc_evaluator": "0x18078bf20",
+      "xbox_descriptor": "0x456d8c",
+      "xbox_return_type": 31,
+      "xbox_arguments": [
+        13,
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 37,
+      "name": "list_get",
+      "return_type": 50,
+      "arguments": [
+        31,
+        7
+      ],
+      "xbox_opcode": 37,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33c20",
+      "mcc_evaluator": "0x18078bf60",
+      "xbox_descriptor": "0x456da0",
+      "xbox_return_type": 50,
+      "xbox_arguments": [
+        31,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 38,
+      "name": "list_count",
+      "return_type": 7,
+      "arguments": [
+        31
+      ],
+      "xbox_opcode": 38,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33c80",
+      "mcc_evaluator": "0x18078bfa0",
+      "xbox_descriptor": "0x456db4",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 39,
+      "name": "list_count_not_dead",
+      "return_type": 7,
+      "arguments": [
+        31
+      ],
+      "xbox_opcode": 39,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33ce0",
+      "mcc_evaluator": "0x18078bfe0",
+      "xbox_descriptor": "0x456dc8",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 40,
+      "name": "effect_new",
+      "return_type": 4,
+      "arguments": [
+        33,
+        14
+      ],
+      "xbox_opcode": 40,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33d40",
+      "mcc_evaluator": "0x18078c020",
+      "xbox_descriptor": "0x456ddc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        33,
+        14
+      ]
+    },
+    {
+      "mcc_opcode": 41,
+      "name": "effect_new_on_object_marker",
+      "return_type": 4,
+      "arguments": [
+        33,
+        50,
+        11
+      ],
+      "xbox_opcode": 41,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33da0",
+      "mcc_evaluator": "0x18078c060",
+      "xbox_descriptor": "0x456df0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        33,
+        50,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 42,
+      "name": "damage_new",
+      "return_type": 4,
+      "arguments": [
+        34,
+        14
+      ],
+      "xbox_opcode": 42,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33e10",
+      "mcc_evaluator": "0x18078c0a0",
+      "xbox_descriptor": "0x456e08",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        34,
+        14
+      ]
+    },
+    {
+      "mcc_opcode": 43,
+      "name": "damage_object",
+      "return_type": 4,
+      "arguments": [
+        34,
+        50
+      ],
+      "xbox_opcode": 43,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33e70",
+      "mcc_evaluator": "0x18078c0e0",
+      "xbox_descriptor": "0x456e1c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        34,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 45,
+      "name": "damage_players",
+      "return_type": 4,
+      "arguments": [
+        34
+      ],
+      "xbox_opcode": 45,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33f30",
+      "mcc_evaluator": "0x18078c140",
+      "xbox_descriptor": "0x456e44",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        34
+      ]
+    },
+    {
+      "mcc_opcode": 46,
+      "name": "object_create",
+      "return_type": 4,
+      "arguments": [
+        56
+      ],
+      "xbox_opcode": 46,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33f90",
+      "mcc_evaluator": "0x18078c170",
+      "xbox_descriptor": "0x456e58",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        56
+      ]
+    },
+    {
+      "mcc_opcode": 47,
+      "name": "object_create_clone",
+      "return_type": 4,
+      "arguments": [
+        56
+      ],
+      "xbox_opcode": 47,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b33ff0",
+      "mcc_evaluator": "0x18078c1a0",
+      "xbox_descriptor": "0x456e6c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        56
+      ]
+    },
+    {
+      "mcc_opcode": 48,
+      "name": "object_create_anew",
+      "return_type": 4,
+      "arguments": [
+        56
+      ],
+      "xbox_opcode": 48,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b34050",
+      "mcc_evaluator": "0x18078c1d0",
+      "xbox_descriptor": "0x456e80",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        56
+      ]
+    },
+    {
+      "mcc_opcode": 49,
+      "name": "object_create_containing",
+      "return_type": 4,
+      "arguments": [
+        9
+      ],
+      "xbox_opcode": 49,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b340b0",
+      "mcc_evaluator": "0x18078c200",
+      "xbox_descriptor": "0x456e94",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        9
+      ]
+    },
+    {
+      "mcc_opcode": 51,
+      "name": "object_create_anew_containing",
+      "return_type": 4,
+      "arguments": [
+        9
+      ],
+      "xbox_opcode": 51,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b34190",
+      "mcc_evaluator": "0x18078c280",
+      "xbox_descriptor": "0x456ebc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        9
+      ]
+    },
+    {
+      "mcc_opcode": 52,
+      "name": "object_destroy",
+      "return_type": 4,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 52,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b34200",
+      "mcc_evaluator": "0x18078c2c0",
+      "xbox_descriptor": "0x456ed0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 53,
+      "name": "object_destroy_containing",
+      "return_type": 4,
+      "arguments": [
+        9
+      ],
+      "xbox_opcode": 53,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b34260",
+      "mcc_evaluator": "0x18078c2f0",
+      "xbox_descriptor": "0x456ee4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        9
+      ]
+    },
+    {
+      "mcc_opcode": 55,
+      "name": "object_destroy_type_mask",
+      "return_type": 4,
+      "arguments": [
+        8
+      ],
+      "xbox_opcode": 55,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1dca0",
+      "mcc_evaluator": "0x180783a60",
+      "xbox_descriptor": "0x456f08",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 57,
+      "name": "object_hide",
+      "return_type": 4,
+      "arguments": [
+        50,
+        5
+      ],
+      "xbox_opcode": 57,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1dd80",
+      "mcc_evaluator": "0x180783ac0",
+      "xbox_descriptor": "0x456f30",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 60,
+      "name": "object_set_function_variable",
+      "return_type": 4,
+      "arguments": [
+        50,
+        11,
+        6,
+        6
+      ],
+      "xbox_opcode": 60,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1dea0",
+      "mcc_evaluator": "0x180783b80",
+      "xbox_descriptor": "0x456f6c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        11,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 61,
+      "name": "object_clear_function_variable",
+      "return_type": 4,
+      "arguments": [
+        50,
+        11
+      ],
+      "xbox_opcode": 61,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1df10",
+      "mcc_evaluator": "0x180783bc0",
+      "xbox_descriptor": "0x456f84",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 62,
+      "name": "object_clear_all_function_variables",
+      "return_type": 4,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 62,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1df80",
+      "mcc_evaluator": "0x180783bf0",
+      "xbox_descriptor": "0x456f98",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 63,
+      "name": "object_dynamic_simulation_disable",
+      "return_type": 4,
+      "arguments": [
+        50,
+        5
+      ],
+      "xbox_opcode": 63,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1dff0",
+      "mcc_evaluator": "0x180783c20",
+      "xbox_descriptor": "0x456fac",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 64,
+      "name": "object_set_phantom_power",
+      "return_type": 4,
+      "arguments": [
+        50,
+        5
+      ],
+      "xbox_opcode": 64,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e060",
+      "mcc_evaluator": "0x180783c60",
+      "xbox_descriptor": "0x456fc0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 69,
+      "name": "object_get_health",
+      "return_type": 6,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 69,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e270",
+      "mcc_evaluator": "0x180783d50",
+      "xbox_descriptor": "0x457020",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 70,
+      "name": "object_get_shield",
+      "return_type": 6,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 70,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e2d0",
+      "mcc_evaluator": "0x180783d90",
+      "xbox_descriptor": "0x457034",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 73,
+      "name": "object_get_parent",
+      "return_type": 50,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 73,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e400",
+      "mcc_evaluator": "0x180783e50",
+      "xbox_descriptor": "0x457074",
+      "xbox_return_type": 50,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 74,
+      "name": "objects_attach",
+      "return_type": 4,
+      "arguments": [
+        50,
+        11,
+        50,
+        11
+      ],
+      "xbox_opcode": 74,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e460",
+      "mcc_evaluator": "0x180783e80",
+      "xbox_descriptor": "0x457088",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        11,
+        50,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 75,
+      "name": "object_at_marker",
+      "return_type": 50,
+      "arguments": [
+        50,
+        11
+      ],
+      "xbox_opcode": 75,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e4c0",
+      "mcc_evaluator": "0x180783ec0",
+      "xbox_descriptor": "0x4570a0",
+      "xbox_return_type": 50,
+      "xbox_arguments": [
+        50,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 76,
+      "name": "objects_detach",
+      "return_type": 4,
+      "arguments": [
+        50,
+        50
+      ],
+      "xbox_opcode": 76,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e520",
+      "mcc_evaluator": "0x180783ef0",
+      "xbox_descriptor": "0x4570b4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 77,
+      "name": "object_set_scale",
+      "return_type": 4,
+      "arguments": [
+        50,
+        6,
+        7
+      ],
+      "xbox_opcode": 77,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e580",
+      "mcc_evaluator": "0x180783f20",
+      "xbox_descriptor": "0x4570c8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        6,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 78,
+      "name": "object_set_velocity",
+      "return_type": 4,
+      "arguments": [
+        50,
+        6
+      ],
+      "xbox_opcode": 78,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e5e0",
+      "mcc_evaluator": "0x180783f60",
+      "xbox_descriptor": "0x4570e0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 79,
+      "name": "object_set_velocity",
+      "return_type": 4,
+      "arguments": [
+        50,
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 79,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e640",
+      "mcc_evaluator": "0x180783fa0",
+      "xbox_descriptor": "0x4570f4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 80,
+      "name": "object_set_deleted_when_deactivated",
+      "return_type": 4,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 80,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e690",
+      "mcc_evaluator": "0x180783fe0",
+      "xbox_descriptor": "0x45710c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 83,
+      "name": "object_model_targets_destroyed",
+      "return_type": 7,
+      "arguments": [
+        50,
+        11
+      ],
+      "xbox_opcode": 83,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e7e0",
+      "mcc_evaluator": "0x180784080",
+      "xbox_descriptor": "0x457148",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        50,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 84,
+      "name": "object_damage_damage_section",
+      "return_type": 4,
+      "arguments": [
+        50,
+        11,
+        6
+      ],
+      "xbox_opcode": 84,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e850",
+      "mcc_evaluator": "0x1807840c0",
+      "xbox_descriptor": "0x45715c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        11,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 85,
+      "name": "object_cannot_die",
+      "return_type": 4,
+      "arguments": [
+        50,
+        5
+      ],
+      "xbox_opcode": 85,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e8c0",
+      "mcc_evaluator": "0x180784100",
+      "xbox_descriptor": "0x457174",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 87,
+      "name": "garbage_collect_now",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 87,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e980",
+      "mcc_evaluator": "0x180784180",
+      "xbox_descriptor": "0x45719c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 88,
+      "name": "garbage_collect_unsafe",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 88,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1e9e0",
+      "mcc_evaluator": "0x1807841a0",
+      "xbox_descriptor": "0x4571ac",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 90,
+      "name": "object_cannot_take_damage",
+      "return_type": 4,
+      "arguments": [
+        31
+      ],
+      "xbox_opcode": 90,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1eaa0",
+      "mcc_evaluator": "0x1807841e0",
+      "xbox_descriptor": "0x4571cc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 91,
+      "name": "object_can_take_damage",
+      "return_type": 4,
+      "arguments": [
+        31
+      ],
+      "xbox_opcode": 91,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1eb10",
+      "mcc_evaluator": "0x180784210",
+      "xbox_descriptor": "0x4571e0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 92,
+      "name": "object_cinematic_lod",
+      "return_type": 4,
+      "arguments": [
+        50,
+        5
+      ],
+      "xbox_opcode": 92,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1eb70",
+      "mcc_evaluator": "0x180784240",
+      "xbox_descriptor": "0x4571f4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 94,
+      "name": "object_cinematic_visibility",
+      "return_type": 4,
+      "arguments": [
+        50,
+        5
+      ],
+      "xbox_opcode": 94,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1ec40",
+      "mcc_evaluator": "0x1807842c0",
+      "xbox_descriptor": "0x45721c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 95,
+      "name": "object_uses_cinematic_lighting",
+      "return_type": 4,
+      "arguments": [
+        50,
+        5
+      ],
+      "xbox_opcode": 95,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1ecb0",
+      "mcc_evaluator": "0x180784300",
+      "xbox_descriptor": "0x457230",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 96,
+      "name": "cinematic_lighting_set_primary_light",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 96,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1ed20",
+      "mcc_evaluator": "0x180784340",
+      "xbox_descriptor": "0x457244",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 97,
+      "name": "cinematic_lighting_set_secondary_light",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 97,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1eda0",
+      "mcc_evaluator": "0x180784390",
+      "xbox_descriptor": "0x457260",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 98,
+      "name": "cinematic_lighting_set_ambient_light",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 98,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1ee20",
+      "mcc_evaluator": "0x1807843e0",
+      "xbox_descriptor": "0x45727c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 99,
+      "name": "objects_predict",
+      "return_type": 4,
+      "arguments": [
+        31
+      ],
+      "xbox_opcode": 99,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1ee90",
+      "mcc_evaluator": "0x180784420",
+      "xbox_descriptor": "0x457294",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 100,
+      "name": "objects_predict_high",
+      "return_type": 4,
+      "arguments": [
+        31
+      ],
+      "xbox_opcode": 100,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1eef0",
+      "mcc_evaluator": "0x180784420",
+      "xbox_descriptor": "0x4572a8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 102,
+      "name": "object_type_predict_high",
+      "return_type": 4,
+      "arguments": [
+        38
+      ],
+      "xbox_opcode": 102,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1efb0",
+      "mcc_evaluator": "0x180784480",
+      "xbox_descriptor": "0x4572d0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        38
+      ]
+    },
+    {
+      "mcc_opcode": 104,
+      "name": "object_type_predict",
+      "return_type": 4,
+      "arguments": [
+        38
+      ],
+      "xbox_opcode": 104,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f080",
+      "mcc_evaluator": "0x180784480",
+      "xbox_descriptor": "0x4572f8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        38
+      ]
+    },
+    {
+      "mcc_opcode": 105,
+      "name": "object_teleport",
+      "return_type": 4,
+      "arguments": [
+        50,
+        14
+      ],
+      "xbox_opcode": 105,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f0e0",
+      "mcc_evaluator": "0x1807844e0",
+      "xbox_descriptor": "0x45730c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        14
+      ]
+    },
+    {
+      "mcc_opcode": 107,
+      "name": "object_set_shield",
+      "return_type": 4,
+      "arguments": [
+        50,
+        6
+      ],
+      "xbox_opcode": 107,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f1a0",
+      "mcc_evaluator": "0x180784560",
+      "xbox_descriptor": "0x457334",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 109,
+      "name": "object_set_shield_stun_infinite",
+      "return_type": 4,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 109,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f260",
+      "mcc_evaluator": "0x1807845e0",
+      "xbox_descriptor": "0x45735c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 110,
+      "name": "object_set_permutation",
+      "return_type": 4,
+      "arguments": [
+        50,
+        11,
+        11
+      ],
+      "xbox_opcode": 110,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f2d0",
+      "mcc_evaluator": "0x180784610",
+      "xbox_descriptor": "0x457370",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        11,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 111,
+      "name": "object_set_region_state",
+      "return_type": 4,
+      "arguments": [
+        50,
+        11,
+        48
+      ],
+      "xbox_opcode": 111,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f330",
+      "mcc_evaluator": "0x180784650",
+      "xbox_descriptor": "0x457388",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        11,
+        48
+      ]
+    },
+    {
+      "mcc_opcode": 112,
+      "name": "objects_can_see_object",
+      "return_type": 5,
+      "arguments": [
+        31,
+        50,
+        6
+      ],
+      "xbox_opcode": 112,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f390",
+      "mcc_evaluator": "0x180784690",
+      "xbox_descriptor": "0x4573a0",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        31,
+        50,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 113,
+      "name": "objects_can_see_flag",
+      "return_type": 5,
+      "arguments": [
+        31,
+        14,
+        6
+      ],
+      "xbox_opcode": 113,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f3f0",
+      "mcc_evaluator": "0x1807846e0",
+      "xbox_descriptor": "0x4573b8",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        31,
+        14,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 114,
+      "name": "objects_distance_to_object",
+      "return_type": 6,
+      "arguments": [
+        31,
+        50
+      ],
+      "xbox_opcode": 114,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f450",
+      "mcc_evaluator": "0x180784730",
+      "xbox_descriptor": "0x4573d0",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        31,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 115,
+      "name": "objects_distance_to_flag",
+      "return_type": 6,
+      "arguments": [
+        31,
+        14
+      ],
+      "xbox_opcode": 115,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f4c0",
+      "mcc_evaluator": "0x180784770",
+      "xbox_descriptor": "0x4573e4",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        31,
+        14
+      ]
+    },
+    {
+      "mcc_opcode": 116,
+      "name": "objects_distance_to_position",
+      "return_type": 6,
+      "arguments": [
+        31,
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f530",
+      "mcc_evaluator": "0x1807847b0",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 125,
+      "name": "random_range",
+      "return_type": 7,
+      "arguments": [
+        7,
+        7
+      ],
+      "xbox_opcode": 124,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f870",
+      "mcc_evaluator": "0x180784940",
+      "xbox_descriptor": "0x45748c",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        7,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 126,
+      "name": "real_random_range",
+      "return_type": 6,
+      "arguments": [
+        6,
+        6
+      ],
+      "xbox_opcode": 125,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f8d0",
+      "mcc_evaluator": "0x1807849b0",
+      "xbox_descriptor": "0x4574a0",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 128,
+      "name": "physics_set_gravity",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 127,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f990",
+      "mcc_evaluator": "0x180784a50",
+      "xbox_descriptor": "0x4574c4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 129,
+      "name": "physics_set_velocity_frame",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 128,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1f9f0",
+      "mcc_evaluator": "0x180784a80",
+      "xbox_descriptor": "0x4574d8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 130,
+      "name": "physics_disable_character_ground_adhesion_forces",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 129,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b1fa60",
+      "mcc_evaluator": "0x180784ac0",
+      "xbox_descriptor": "0x4574f0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 145,
+      "name": "texture_camera_set_object_marker",
+      "return_type": 4,
+      "arguments": [
+        50,
+        11,
+        6
+      ],
+      "xbox_opcode": 144,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b20050",
+      "mcc_evaluator": "0x180784cb0",
+      "xbox_descriptor": "0x457604",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        11,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 146,
+      "name": "texture_camera_off",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 145,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b200c0",
+      "mcc_evaluator": "0x180784cf0",
+      "xbox_descriptor": "0x45761c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 147,
+      "name": "render_lights_enable_cinematic_shadow",
+      "return_type": 4,
+      "arguments": [
+        5,
+        50,
+        11,
+        6
+      ],
+      "xbox_opcode": 146,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b20120",
+      "mcc_evaluator": "0x180784d10",
+      "xbox_descriptor": "0x45762c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        50,
+        11,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 186,
+      "name": "scenery_animation_start_loop",
+      "return_type": 4,
+      "arguments": [
+        55,
+        36,
+        11
+      ],
+      "xbox_opcode": 185,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b211d0",
+      "mcc_evaluator": "0x180784d90",
+      "xbox_descriptor": "0x45792c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        55,
+        36,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 187,
+      "name": "scenery_animation_start_relative",
+      "return_type": 4,
+      "arguments": [
+        55,
+        36,
+        11,
+        50
+      ],
+      "xbox_opcode": 186,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21240",
+      "mcc_evaluator": "0x180784dd0",
+      "xbox_descriptor": "0x457944",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        55,
+        36,
+        11,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 191,
+      "name": "scenery_get_animation_time",
+      "return_type": 7,
+      "arguments": [
+        55
+      ],
+      "xbox_opcode": 190,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b213f0",
+      "mcc_evaluator": "0x180784ec0",
+      "xbox_descriptor": "0x4579a0",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        55
+      ]
+    },
+    {
+      "mcc_opcode": 194,
+      "name": "unit_set_active_camo",
+      "return_type": 4,
+      "arguments": [
+        51,
+        5,
+        6
+      ],
+      "xbox_opcode": 193,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21520",
+      "mcc_evaluator": "0x180784f40",
+      "xbox_descriptor": "0x4579dc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51,
+        5,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 197,
+      "name": "unit_kill",
+      "return_type": 4,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 196,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21640",
+      "mcc_evaluator": "0x180784fe0",
+      "xbox_descriptor": "0x457a1c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 198,
+      "name": "unit_kill_silent",
+      "return_type": 4,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 197,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b216a0",
+      "mcc_evaluator": "0x180785010",
+      "xbox_descriptor": "0x457a30",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 199,
+      "name": "unit_is_emitting",
+      "return_type": 5,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 198,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21700",
+      "mcc_evaluator": "0x180785040",
+      "xbox_descriptor": "0x457a44",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 200,
+      "name": "unit_get_custom_animation_time",
+      "return_type": 7,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 199,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21760",
+      "mcc_evaluator": "0x180785080",
+      "xbox_descriptor": "0x457a58",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 201,
+      "name": "unit_stop_custom_animation",
+      "return_type": 4,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 200,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b217d0",
+      "mcc_evaluator": "0x1807850c0",
+      "xbox_descriptor": "0x457a6c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 202,
+      "name": "custom_animation",
+      "return_type": 5,
+      "arguments": [
+        51,
+        36,
+        11,
+        5
+      ],
+      "xbox_opcode": 201,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21840",
+      "mcc_evaluator": "0x1807850f0",
+      "xbox_descriptor": "0x457a80",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        51,
+        36,
+        11,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 203,
+      "name": "custom_animation_loop",
+      "return_type": 5,
+      "arguments": [
+        51,
+        36,
+        11,
+        5
+      ],
+      "xbox_opcode": 202,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b218a0",
+      "mcc_evaluator": "0x180785140",
+      "xbox_descriptor": "0x457a98",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        51,
+        36,
+        11,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 204,
+      "name": "custom_animation_relative",
+      "return_type": 5,
+      "arguments": [
+        51,
+        36,
+        11,
+        5,
+        50
+      ],
+      "xbox_opcode": 203,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21900",
+      "mcc_evaluator": "0x180785190",
+      "xbox_descriptor": "0x457ab0",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        51,
+        36,
+        11,
+        5,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 205,
+      "name": "custom_animation_relative_loop",
+      "return_type": 5,
+      "arguments": [
+        51,
+        36,
+        11,
+        5,
+        50
+      ],
+      "xbox_opcode": 204,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21970",
+      "mcc_evaluator": "0x1807851e0",
+      "xbox_descriptor": "0x457acc",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        51,
+        36,
+        11,
+        5,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 214,
+      "name": "unit_set_enterable_by_player",
+      "return_type": 4,
+      "arguments": [
+        51,
+        5
+      ],
+      "xbox_opcode": 213,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21d70",
+      "mcc_evaluator": "0x180785430",
+      "xbox_descriptor": "0x457b94",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 216,
+      "name": "unit_only_takes_damage_from_players_team",
+      "return_type": 4,
+      "arguments": [
+        51,
+        5
+      ],
+      "xbox_opcode": 215,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b21e50",
+      "mcc_evaluator": "0x1807854b0",
+      "xbox_descriptor": "0x457bbc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 221,
+      "name": "unit_set_emotional_state",
+      "return_type": 4,
+      "arguments": [
+        51,
+        11,
+        6,
+        7
+      ],
+      "xbox_opcode": 220,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22060",
+      "mcc_evaluator": "0x1807855d0",
+      "xbox_descriptor": "0x457c24",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51,
+        11,
+        6,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 223,
+      "name": "unit_in_vehicle",
+      "return_type": 5,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 222,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22140",
+      "mcc_evaluator": "0x180785650",
+      "xbox_descriptor": "0x457c50",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 224,
+      "name": "vehicle_test_seat_list",
+      "return_type": 5,
+      "arguments": [
+        52,
+        11,
+        31
+      ],
+      "xbox_opcode": 223,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b221a0",
+      "mcc_evaluator": "0x180785690",
+      "xbox_descriptor": "0x457c64",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        52,
+        11,
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 225,
+      "name": "vehicle_test_seat",
+      "return_type": 5,
+      "arguments": [
+        52,
+        11,
+        51
+      ],
+      "xbox_opcode": 224,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22200",
+      "mcc_evaluator": "0x1807856e0",
+      "xbox_descriptor": "0x457c7c",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        52,
+        11,
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 228,
+      "name": "unit_exit_vehicle",
+      "return_type": 4,
+      "arguments": [
+        51,
+        7
+      ],
+      "xbox_opcode": 227,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22330",
+      "mcc_evaluator": "0x1807857a0",
+      "xbox_descriptor": "0x457cbc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 229,
+      "name": "unit_set_maximum_vitality",
+      "return_type": 4,
+      "arguments": [
+        51,
+        6,
+        6
+      ],
+      "xbox_opcode": 228,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22380",
+      "mcc_evaluator": "0x1807857e0",
+      "xbox_descriptor": "0x457cd0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 230,
+      "name": "units_set_maximum_vitality",
+      "return_type": 4,
+      "arguments": [
+        31,
+        6,
+        6
+      ],
+      "xbox_opcode": 229,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b223f0",
+      "mcc_evaluator": "0x180785820",
+      "xbox_descriptor": "0x457ce8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 231,
+      "name": "unit_set_current_vitality",
+      "return_type": 4,
+      "arguments": [
+        51,
+        6,
+        6
+      ],
+      "xbox_opcode": 230,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22460",
+      "mcc_evaluator": "0x180785860",
+      "xbox_descriptor": "0x457d00",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 232,
+      "name": "units_set_current_vitality",
+      "return_type": 4,
+      "arguments": [
+        31,
+        6,
+        6
+      ],
+      "xbox_opcode": 231,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b224d0",
+      "mcc_evaluator": "0x1807858a0",
+      "xbox_descriptor": "0x457d18",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 233,
+      "name": "vehicle_load_magic",
+      "return_type": 7,
+      "arguments": [
+        50,
+        12,
+        31
+      ],
+      "xbox_opcode": 232,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22540",
+      "mcc_evaluator": "0x1807858e0",
+      "xbox_descriptor": "0x457d30",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        50,
+        12,
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 234,
+      "name": "vehicle_unload",
+      "return_type": 7,
+      "arguments": [
+        50,
+        12
+      ],
+      "xbox_opcode": 233,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b225a0",
+      "mcc_evaluator": "0x180785930",
+      "xbox_descriptor": "0x457d48",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        50,
+        12
+      ]
+    },
+    {
+      "mcc_opcode": 238,
+      "name": "vehicle_driver",
+      "return_type": 51,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 237,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22720",
+      "mcc_evaluator": "0x1807859f0",
+      "xbox_descriptor": "0x457d94",
+      "xbox_return_type": 51,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 240,
+      "name": "unit_get_health",
+      "return_type": 6,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 239,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b227e0",
+      "mcc_evaluator": "0x180785a50",
+      "xbox_descriptor": "0x457dbc",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 241,
+      "name": "unit_get_shield",
+      "return_type": 6,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 240,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22840",
+      "mcc_evaluator": "0x180785a90",
+      "xbox_descriptor": "0x457dd0",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 243,
+      "name": "unit_has_weapon",
+      "return_type": 5,
+      "arguments": [
+        51,
+        38
+      ],
+      "xbox_opcode": 242,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22910",
+      "mcc_evaluator": "0x180785b10",
+      "xbox_descriptor": "0x457df8",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        51,
+        38
+      ]
+    },
+    {
+      "mcc_opcode": 248,
+      "name": "unit_doesnt_drop_items",
+      "return_type": 4,
+      "arguments": [
+        31
+      ],
+      "xbox_opcode": 247,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22b00",
+      "mcc_evaluator": "0x180785c10",
+      "xbox_descriptor": "0x457e5c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31
+      ]
+    },
+    {
+      "mcc_opcode": 249,
+      "name": "unit_impervious",
+      "return_type": 4,
+      "arguments": [
+        31,
+        5
+      ],
+      "xbox_opcode": 248,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22b60",
+      "mcc_evaluator": "0x180785c40",
+      "xbox_descriptor": "0x457e70",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 251,
+      "name": "unit_add_equipment",
+      "return_type": 4,
+      "arguments": [
+        51,
+        24,
+        5,
+        5
+      ],
+      "xbox_opcode": 250,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22c20",
+      "mcc_evaluator": "0x180785cc0",
+      "xbox_descriptor": "0x457e98",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51,
+        24,
+        5,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 252,
+      "name": "weapon_hold_trigger",
+      "return_type": 4,
+      "arguments": [
+        53,
+        8,
+        5
+      ],
+      "xbox_opcode": 251,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22c80",
+      "mcc_evaluator": "0x180785d00",
+      "xbox_descriptor": "0x457eb0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        53,
+        8,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 253,
+      "name": "weapon_enable_warthog_chaingun_light",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 252,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22ce0",
+      "mcc_evaluator": "0x180785d40",
+      "xbox_descriptor": "0x457ec8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 254,
+      "name": "device_set_never_appears_locked",
+      "return_type": 4,
+      "arguments": [
+        54,
+        5
+      ],
+      "xbox_opcode": 253,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22d50",
+      "mcc_evaluator": "0x180785d70",
+      "xbox_descriptor": "0x457edc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        54,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 255,
+      "name": "device_set_power",
+      "return_type": 4,
+      "arguments": [
+        54,
+        6
+      ],
+      "xbox_opcode": 254,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22dc0",
+      "mcc_evaluator": "0x180785db0",
+      "xbox_descriptor": "0x457ef0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        54,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 257,
+      "name": "device_set_position",
+      "return_type": 5,
+      "arguments": [
+        54,
+        6
+      ],
+      "xbox_opcode": 256,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22e80",
+      "mcc_evaluator": "0x180785e30",
+      "xbox_descriptor": "0x457f18",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        54,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 258,
+      "name": "device_get_position",
+      "return_type": 6,
+      "arguments": [
+        54
+      ],
+      "xbox_opcode": 257,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22ee0",
+      "mcc_evaluator": "0x180785e70",
+      "xbox_descriptor": "0x457f2c",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        54
+      ]
+    },
+    {
+      "mcc_opcode": 259,
+      "name": "device_set_position_immediate",
+      "return_type": 4,
+      "arguments": [
+        54,
+        6
+      ],
+      "xbox_opcode": 258,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22f40",
+      "mcc_evaluator": "0x180785eb0",
+      "xbox_descriptor": "0x457f40",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        54,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 260,
+      "name": "device_group_get",
+      "return_type": 6,
+      "arguments": [
+        18
+      ],
+      "xbox_opcode": 259,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b22fb0",
+      "mcc_evaluator": "0x180785ef0",
+      "xbox_descriptor": "0x457f54",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        18
+      ]
+    },
+    {
+      "mcc_opcode": 261,
+      "name": "device_group_set",
+      "return_type": 5,
+      "arguments": [
+        54,
+        18,
+        6
+      ],
+      "xbox_opcode": 260,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23010",
+      "mcc_evaluator": "0x180785f30",
+      "xbox_descriptor": "0x457f68",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        54,
+        18,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 262,
+      "name": "device_group_set_immediate",
+      "return_type": 4,
+      "arguments": [
+        18,
+        6
+      ],
+      "xbox_opcode": 261,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23070",
+      "mcc_evaluator": "0x180785f80",
+      "xbox_descriptor": "0x457f80",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        18,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 263,
+      "name": "device_one_sided_set",
+      "return_type": 4,
+      "arguments": [
+        54,
+        5
+      ],
+      "xbox_opcode": 262,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b230e0",
+      "mcc_evaluator": "0x180785fc0",
+      "xbox_descriptor": "0x457f94",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        54,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 264,
+      "name": "device_operates_automatically_set",
+      "return_type": 4,
+      "arguments": [
+        54,
+        5
+      ],
+      "xbox_opcode": 263,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23140",
+      "mcc_evaluator": "0x180786000",
+      "xbox_descriptor": "0x457fa8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        54,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 265,
+      "name": "device_closes_automatically_set",
+      "return_type": 4,
+      "arguments": [
+        54,
+        5
+      ],
+      "xbox_opcode": 264,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b231b0",
+      "mcc_evaluator": "0x180786040",
+      "xbox_descriptor": "0x457fbc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        54,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 266,
+      "name": "device_group_change_only_once_more_set",
+      "return_type": 4,
+      "arguments": [
+        18,
+        5
+      ],
+      "xbox_opcode": 265,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23220",
+      "mcc_evaluator": "0x180786080",
+      "xbox_descriptor": "0x457fd0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        18,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 267,
+      "name": "device_set_position_track",
+      "return_type": 5,
+      "arguments": [
+        54,
+        11,
+        6
+      ],
+      "xbox_opcode": 266,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23290",
+      "mcc_evaluator": "0x1807860c0",
+      "xbox_descriptor": "0x457fe4",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        54,
+        11,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 268,
+      "name": "device_set_overlay_track",
+      "return_type": 5,
+      "arguments": [
+        54,
+        11
+      ],
+      "xbox_opcode": 267,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23300",
+      "mcc_evaluator": "0x180786110",
+      "xbox_descriptor": "0x457ffc",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        54,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 269,
+      "name": "device_animate_position",
+      "return_type": 4,
+      "arguments": [
+        54,
+        6,
+        6,
+        6,
+        6,
+        5
+      ],
+      "xbox_opcode": 268,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23370",
+      "mcc_evaluator": "0x180786150",
+      "xbox_descriptor": "0x458010",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        54,
+        6,
+        6,
+        6,
+        6,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 270,
+      "name": "device_animate_overlay",
+      "return_type": 4,
+      "arguments": [
+        54,
+        6,
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 269,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b233e0",
+      "mcc_evaluator": "0x1807861a0",
+      "xbox_descriptor": "0x45802c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        54,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 276,
+      "name": "cheat_active_camouflage_by_player",
+      "return_type": 4,
+      "arguments": [
+        7,
+        5
+      ],
+      "xbox_opcode": 275,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23630",
+      "mcc_evaluator": "0x1806f9e90",
+      "xbox_descriptor": "0x45809c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        7,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 278,
+      "name": "drop",
+      "return_type": 4,
+      "arguments": [
+        9
+      ],
+      "xbox_opcode": 277,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b236f0",
+      "mcc_evaluator": "0x1806f9e90",
+      "xbox_descriptor": "0x4580c0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        9
+      ]
+    },
+    {
+      "mcc_opcode": 282,
+      "name": "ai_dialogue_enable",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 281,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23850",
+      "mcc_evaluator": "0x180786280",
+      "xbox_descriptor": "0x45810c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 285,
+      "name": "ai_get_object",
+      "return_type": 50,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 284,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23970",
+      "mcc_evaluator": "0x1807862b0",
+      "xbox_descriptor": "0x458144",
+      "xbox_return_type": 50,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 286,
+      "name": "ai_get_unit",
+      "return_type": 51,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 285,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b239d0",
+      "mcc_evaluator": "0x1807862b0",
+      "xbox_descriptor": "0x458158",
+      "xbox_return_type": 51,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 288,
+      "name": "ai_attach_units",
+      "return_type": 4,
+      "arguments": [
+        31,
+        19
+      ],
+      "xbox_opcode": 287,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23a90",
+      "mcc_evaluator": "0x180786310",
+      "xbox_descriptor": "0x458180",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31,
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 291,
+      "name": "ai_place",
+      "return_type": 4,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 290,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23bb0",
+      "mcc_evaluator": "0x1807863a0",
+      "xbox_descriptor": "0x4581bc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 292,
+      "name": "ai_place",
+      "return_type": 4,
+      "arguments": [
+        19,
+        7
+      ],
+      "xbox_opcode": 291,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23c10",
+      "mcc_evaluator": "0x1807863d0",
+      "xbox_descriptor": "0x4581d0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 293,
+      "name": "ai_place_in_vehicle",
+      "return_type": 4,
+      "arguments": [
+        19,
+        19
+      ],
+      "xbox_opcode": 292,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23c60",
+      "mcc_evaluator": "0x180786410",
+      "xbox_descriptor": "0x4581e4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 294,
+      "name": "ai_cannot_die",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": 293,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23cc0",
+      "mcc_evaluator": "0x180786440",
+      "xbox_descriptor": "0x4581f8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 295,
+      "name": "ai_vitality_pinned",
+      "return_type": 5,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 294,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23d20",
+      "mcc_evaluator": "0x180786480",
+      "xbox_descriptor": "0x45820c",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 296,
+      "name": "ai_overcomes_oversteer",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23d80",
+      "mcc_evaluator": "0x1807864c0",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 297,
+      "name": "ai_kill",
+      "return_type": 4,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 295,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23de0",
+      "mcc_evaluator": "0x180786500",
+      "xbox_descriptor": "0x458220",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 298,
+      "name": "ai_kill_silent",
+      "return_type": 4,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 296,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23e30",
+      "mcc_evaluator": "0x180786530",
+      "xbox_descriptor": "0x458234",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 299,
+      "name": "ai_erase",
+      "return_type": 4,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 297,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23e90",
+      "mcc_evaluator": "0x180786560",
+      "xbox_descriptor": "0x458248",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 300,
+      "name": "ai_erase_all",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 298,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23ef0",
+      "mcc_evaluator": "0x180786590",
+      "xbox_descriptor": "0x45825c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 301,
+      "name": "ai_disposable",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": 299,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b23f40",
+      "mcc_evaluator": "0x1807865b0",
+      "xbox_descriptor": "0x45826c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 304,
+      "name": "ai_set_deaf",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": 302,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24050",
+      "mcc_evaluator": "0x180786620",
+      "xbox_descriptor": "0x4582a4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 305,
+      "name": "ai_set_blind",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": 303,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b240b0",
+      "mcc_evaluator": "0x180786660",
+      "xbox_descriptor": "0x4582b8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 306,
+      "name": "ai_magically_see",
+      "return_type": 4,
+      "arguments": [
+        19,
+        19
+      ],
+      "xbox_opcode": 304,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24110",
+      "mcc_evaluator": "0x1807866a0",
+      "xbox_descriptor": "0x4582cc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 307,
+      "name": "ai_magically_see_object",
+      "return_type": 4,
+      "arguments": [
+        19,
+        50
+      ],
+      "xbox_opcode": 305,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24170",
+      "mcc_evaluator": "0x1807866d0",
+      "xbox_descriptor": "0x4582e0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 308,
+      "name": "ai_set_active_camo",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": 306,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b241d0",
+      "mcc_evaluator": "0x180786700",
+      "xbox_descriptor": "0x4582f4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 309,
+      "name": "ai_suppress_combat",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": 307,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24230",
+      "mcc_evaluator": "0x180786740",
+      "xbox_descriptor": "0x458308",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 310,
+      "name": "ai_migrate",
+      "return_type": 4,
+      "arguments": [
+        19,
+        19
+      ],
+      "xbox_opcode": 308,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24290",
+      "mcc_evaluator": "0x180786780",
+      "xbox_descriptor": "0x45831c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 311,
+      "name": "ai_allegiance",
+      "return_type": 4,
+      "arguments": [
+        45,
+        45
+      ],
+      "xbox_opcode": 309,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b242f0",
+      "mcc_evaluator": "0x1807867b0",
+      "xbox_descriptor": "0x458330",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        45,
+        45
+      ]
+    },
+    {
+      "mcc_opcode": 313,
+      "name": "ai_braindead",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": 311,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b243b0",
+      "mcc_evaluator": "0x180786830",
+      "xbox_descriptor": "0x458358",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 315,
+      "name": "ai_disregard",
+      "return_type": 4,
+      "arguments": [
+        31,
+        5
+      ],
+      "xbox_opcode": 313,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24470",
+      "mcc_evaluator": "0x1807868b0",
+      "xbox_descriptor": "0x458380",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 316,
+      "name": "ai_prefer_target",
+      "return_type": 4,
+      "arguments": [
+        31,
+        5
+      ],
+      "xbox_opcode": 314,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b244d0",
+      "mcc_evaluator": "0x1807868f0",
+      "xbox_descriptor": "0x458394",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        31,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 317,
+      "name": "ai_teleport_to_starting_location_if_outside_bsp",
+      "return_type": 4,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 315,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24530",
+      "mcc_evaluator": "0x180786930",
+      "xbox_descriptor": "0x4583a8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 318,
+      "name": "ai_renew",
+      "return_type": 4,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 316,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b245b0",
+      "mcc_evaluator": "0x180786960",
+      "xbox_descriptor": "0x4583bc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 323,
+      "name": "ai_berserk",
+      "return_type": 4,
+      "arguments": [
+        19,
+        5
+      ],
+      "xbox_opcode": 321,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24780",
+      "mcc_evaluator": "0x180786a50",
+      "xbox_descriptor": "0x45841c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 327,
+      "name": "ai_fighting_count",
+      "return_type": 7,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 325,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24900",
+      "mcc_evaluator": "0x180786b10",
+      "xbox_descriptor": "0x45846c",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 328,
+      "name": "ai_living_count",
+      "return_type": 7,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 326,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24960",
+      "mcc_evaluator": "0x180786b50",
+      "xbox_descriptor": "0x458480",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 330,
+      "name": "ai_strength",
+      "return_type": 6,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 328,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24a20",
+      "mcc_evaluator": "0x180786bd0",
+      "xbox_descriptor": "0x4584a8",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 331,
+      "name": "ai_swarm_count",
+      "return_type": 7,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 329,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24a80",
+      "mcc_evaluator": "0x180786c10",
+      "xbox_descriptor": "0x4584bc",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 332,
+      "name": "ai_nonswarm_count",
+      "return_type": 7,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 330,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24ae0",
+      "mcc_evaluator": "0x180786c50",
+      "xbox_descriptor": "0x4584d0",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 333,
+      "name": "ai_actors",
+      "return_type": 31,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 331,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24b40",
+      "mcc_evaluator": "0x180786c90",
+      "xbox_descriptor": "0x4584e4",
+      "xbox_return_type": 31,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 335,
+      "name": "ai_set_orders",
+      "return_type": 4,
+      "arguments": [
+        19,
+        23
+      ],
+      "xbox_opcode": 333,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24c00",
+      "mcc_evaluator": "0x180786d00",
+      "xbox_descriptor": "0x45850c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        23
+      ]
+    },
+    {
+      "mcc_opcode": 336,
+      "name": "ai_spawn_count",
+      "return_type": 7,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 334,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24c60",
+      "mcc_evaluator": "0x180786d40",
+      "xbox_descriptor": "0x458520",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 337,
+      "name": "object_get_ai",
+      "return_type": 19,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 335,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24cc0",
+      "mcc_evaluator": "0x180786d80",
+      "xbox_descriptor": "0x458534",
+      "xbox_return_type": 19,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 338,
+      "name": "ai_trigger_test",
+      "return_type": 5,
+      "arguments": [
+        9,
+        19
+      ],
+      "xbox_opcode": 336,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24d20",
+      "mcc_evaluator": "0x180786db0",
+      "xbox_descriptor": "0x458548",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        9,
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 341,
+      "name": "ai_vehicle_get",
+      "return_type": 52,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 339,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24e40",
+      "mcc_evaluator": "0x180786e30",
+      "xbox_descriptor": "0x45857c",
+      "xbox_return_type": 52,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 342,
+      "name": "ai_vehicle_get_from_starting_location",
+      "return_type": 52,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 340,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24ea0",
+      "mcc_evaluator": "0x180786e60",
+      "xbox_descriptor": "0x458590",
+      "xbox_return_type": 52,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 343,
+      "name": "ai_vehicle_reserve_seat",
+      "return_type": 5,
+      "arguments": [
+        52,
+        11,
+        5
+      ],
+      "xbox_opcode": 341,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24f10",
+      "mcc_evaluator": "0x180786e90",
+      "xbox_descriptor": "0x4585a4",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        52,
+        11,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 344,
+      "name": "ai_vehicle_reserve",
+      "return_type": 5,
+      "arguments": [
+        52,
+        5
+      ],
+      "xbox_opcode": 342,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24f70",
+      "mcc_evaluator": "0x180786ee0",
+      "xbox_descriptor": "0x4585bc",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        52,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 345,
+      "name": "ai_vehicle_enter",
+      "return_type": 4,
+      "arguments": [
+        19,
+        51,
+        12
+      ],
+      "xbox_opcode": 343,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b24fd0",
+      "mcc_evaluator": "0x180786f20",
+      "xbox_descriptor": "0x4585d0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        51,
+        12
+      ]
+    },
+    {
+      "mcc_opcode": 346,
+      "name": "ai_vehicle_enter",
+      "return_type": 4,
+      "arguments": [
+        19,
+        51
+      ],
+      "xbox_opcode": 344,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25030",
+      "mcc_evaluator": "0x180786f60",
+      "xbox_descriptor": "0x4585e8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 347,
+      "name": "ai_vehicle_enter_immediate",
+      "return_type": 4,
+      "arguments": [
+        19,
+        51,
+        12
+      ],
+      "xbox_opcode": 345,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25080",
+      "mcc_evaluator": "0x180786f90",
+      "xbox_descriptor": "0x4585fc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        51,
+        12
+      ]
+    },
+    {
+      "mcc_opcode": 349,
+      "name": "ai_enter_squad_vehicles",
+      "return_type": 7,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 347,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25140",
+      "mcc_evaluator": "0x180787000",
+      "xbox_descriptor": "0x458628",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 351,
+      "name": "ai_vehicle_exit",
+      "return_type": 4,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 349,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25200",
+      "mcc_evaluator": "0x180787070",
+      "xbox_descriptor": "0x458650",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 354,
+      "name": "ai_combat_status",
+      "return_type": 7,
+      "arguments": [
+        19
+      ],
+      "xbox_opcode": 352,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25300",
+      "mcc_evaluator": "0x180787110",
+      "xbox_descriptor": "0x45868c",
+      "xbox_return_type": 7,
+      "xbox_arguments": [
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 355,
+      "name": "flock_start",
+      "return_type": 5,
+      "arguments": [
+        11
+      ],
+      "xbox_opcode": 353,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25360",
+      "mcc_evaluator": "0x180787150",
+      "xbox_descriptor": "0x4586a0",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 356,
+      "name": "flock_stop",
+      "return_type": 5,
+      "arguments": [
+        11
+      ],
+      "xbox_opcode": 354,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b253c0",
+      "mcc_evaluator": "0x180787190",
+      "xbox_descriptor": "0x4586b4",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 361,
+      "name": "ai_play_line",
+      "return_type": 6,
+      "arguments": [
+        19,
+        11
+      ],
+      "xbox_opcode": 359,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25590",
+      "mcc_evaluator": "0x180787290",
+      "xbox_descriptor": "0x458714",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        19,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 362,
+      "name": "ai_play_line_at_player",
+      "return_type": 6,
+      "arguments": [
+        19,
+        11
+      ],
+      "xbox_opcode": 360,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b255f0",
+      "mcc_evaluator": "0x1807872e0",
+      "xbox_descriptor": "0x458728",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        19,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 363,
+      "name": "ai_play_line_on_object",
+      "return_type": 6,
+      "arguments": [
+        50,
+        11
+      ],
+      "xbox_opcode": 361,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25650",
+      "mcc_evaluator": "0x180787330",
+      "xbox_descriptor": "0x45873c",
+      "xbox_return_type": 6,
+      "xbox_arguments": [
+        50,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 364,
+      "name": "ai_scene",
+      "return_type": 5,
+      "arguments": [
+        11,
+        21,
+        19
+      ],
+      "xbox_opcode": 362,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b256b0",
+      "mcc_evaluator": "0x180787380",
+      "xbox_descriptor": "0x458750",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        11,
+        21,
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 365,
+      "name": "ai_scene",
+      "return_type": 5,
+      "arguments": [
+        11,
+        21,
+        19,
+        19
+      ],
+      "xbox_opcode": 363,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25710",
+      "mcc_evaluator": "0x1807873d0",
+      "xbox_descriptor": "0x458768",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        11,
+        21,
+        19,
+        19
+      ]
+    },
+    {
+      "mcc_opcode": 367,
+      "name": "cs_run_command_script",
+      "return_type": 4,
+      "arguments": [
+        19,
+        21
+      ],
+      "xbox_opcode": 365,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b257b0",
+      "mcc_evaluator": "0x180787470",
+      "xbox_descriptor": "0x45879c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        21
+      ]
+    },
+    {
+      "mcc_opcode": 368,
+      "name": "cs_queue_command_script",
+      "return_type": 4,
+      "arguments": [
+        19,
+        21
+      ],
+      "xbox_opcode": 366,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25810",
+      "mcc_evaluator": "0x1807874b0",
+      "xbox_descriptor": "0x4587b0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        21
+      ]
+    },
+    {
+      "mcc_opcode": 369,
+      "name": "cs_stack_command_script",
+      "return_type": 4,
+      "arguments": [
+        19,
+        21
+      ],
+      "xbox_opcode": 367,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25870",
+      "mcc_evaluator": "0x1807874f0",
+      "xbox_descriptor": "0x4587c4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        19,
+        21
+      ]
+    },
+    {
+      "mcc_opcode": 372,
+      "name": "cs_command_script_running",
+      "return_type": 5,
+      "arguments": [
+        19,
+        21
+      ],
+      "xbox_opcode": 370,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25990",
+      "mcc_evaluator": "0x1807875b0",
+      "xbox_descriptor": "0x458808",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        19,
+        21
+      ]
+    },
+    {
+      "mcc_opcode": 373,
+      "name": "cs_command_script_queued",
+      "return_type": 5,
+      "arguments": [
+        19,
+        21
+      ],
+      "xbox_opcode": 371,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b25a00",
+      "mcc_evaluator": "0x1807875f0",
+      "xbox_descriptor": "0x45881c",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        19,
+        21
+      ]
+    },
+    {
+      "mcc_opcode": 375,
+      "name": "cs_switch",
+      "return_type": 4,
+      "arguments": [
+        11
+      ],
+      "xbox_opcode": 373,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25ad0",
+      "mcc_evaluator": "0x180787670",
+      "xbox_descriptor": "0x458844",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 380,
+      "name": "cs_fly_to",
+      "return_type": 4,
+      "arguments": [
+        28
+      ],
+      "xbox_opcode": 378,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25cb0",
+      "mcc_evaluator": "0x180787850",
+      "xbox_descriptor": "0x4588a8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 381,
+      "name": "cs_fly_to",
+      "return_type": 4,
+      "arguments": [
+        28,
+        6
+      ],
+      "xbox_opcode": 379,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25d10",
+      "mcc_evaluator": "0x1807878b0",
+      "xbox_descriptor": "0x4588bc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 382,
+      "name": "cs_fly_to_and_face",
+      "return_type": 4,
+      "arguments": [
+        28,
+        28
+      ],
+      "xbox_opcode": 380,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25d60",
+      "mcc_evaluator": "0x180787910",
+      "xbox_descriptor": "0x4588d0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 383,
+      "name": "cs_fly_to_and_face",
+      "return_type": 4,
+      "arguments": [
+        28,
+        28,
+        6
+      ],
+      "xbox_opcode": 381,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25dc0",
+      "mcc_evaluator": "0x180787970",
+      "xbox_descriptor": "0x4588e4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        28,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 384,
+      "name": "cs_fly_by",
+      "return_type": 4,
+      "arguments": [
+        28
+      ],
+      "xbox_opcode": 382,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25e10",
+      "mcc_evaluator": "0x1807879d0",
+      "xbox_descriptor": "0x4588fc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 385,
+      "name": "cs_fly_by",
+      "return_type": 4,
+      "arguments": [
+        28,
+        6
+      ],
+      "xbox_opcode": 383,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25e70",
+      "mcc_evaluator": "0x180787a30",
+      "xbox_descriptor": "0x458910",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 386,
+      "name": "cs_go_to",
+      "return_type": 4,
+      "arguments": [
+        28
+      ],
+      "xbox_opcode": 384,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25ec0",
+      "mcc_evaluator": "0x180787a90",
+      "xbox_descriptor": "0x458924",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 387,
+      "name": "cs_go_to",
+      "return_type": 4,
+      "arguments": [
+        28,
+        6
+      ],
+      "xbox_opcode": 385,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25f20",
+      "mcc_evaluator": "0x180787af0",
+      "xbox_descriptor": "0x458938",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 388,
+      "name": "cs_go_by",
+      "return_type": 4,
+      "arguments": [
+        28,
+        28
+      ],
+      "xbox_opcode": 386,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b25f70",
+      "mcc_evaluator": "0x180787b50",
+      "xbox_descriptor": "0x45894c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 390,
+      "name": "cs_go_to_and_face",
+      "return_type": 4,
+      "arguments": [
+        28,
+        28
+      ],
+      "xbox_opcode": 388,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26020",
+      "mcc_evaluator": "0x180787c10",
+      "xbox_descriptor": "0x458978",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 391,
+      "name": "cs_start_to",
+      "return_type": 4,
+      "arguments": [
+        28
+      ],
+      "xbox_opcode": 389,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26080",
+      "mcc_evaluator": "0x180787c70",
+      "xbox_descriptor": "0x45898c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 392,
+      "name": "cs_go_to_nearest",
+      "return_type": 4,
+      "arguments": [
+        28
+      ],
+      "xbox_opcode": 390,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b260e0",
+      "mcc_evaluator": "0x180787cd0",
+      "xbox_descriptor": "0x4589a0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 393,
+      "name": "cs_moving",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 391,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26140",
+      "mcc_evaluator": "0x180787d30",
+      "xbox_descriptor": "0x4589b4",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 394,
+      "name": "cs_look",
+      "return_type": 4,
+      "arguments": [
+        5,
+        28
+      ],
+      "xbox_opcode": 392,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26190",
+      "mcc_evaluator": "0x180787d60",
+      "xbox_descriptor": "0x4589c4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 395,
+      "name": "cs_look_player",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 393,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b261e0",
+      "mcc_evaluator": "0x180787da0",
+      "xbox_descriptor": "0x4589d8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 396,
+      "name": "cs_look_object",
+      "return_type": 4,
+      "arguments": [
+        5,
+        50
+      ],
+      "xbox_opcode": 394,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26240",
+      "mcc_evaluator": "0x180787dd0",
+      "xbox_descriptor": "0x4589ec",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 397,
+      "name": "cs_aim",
+      "return_type": 4,
+      "arguments": [
+        5,
+        28
+      ],
+      "xbox_opcode": 395,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b262a0",
+      "mcc_evaluator": "0x180787e10",
+      "xbox_descriptor": "0x458a00",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 398,
+      "name": "cs_aim_player",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 396,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b262f0",
+      "mcc_evaluator": "0x180787e50",
+      "xbox_descriptor": "0x458a14",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 399,
+      "name": "cs_aim_object",
+      "return_type": 4,
+      "arguments": [
+        5,
+        50
+      ],
+      "xbox_opcode": 397,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26350",
+      "mcc_evaluator": "0x180787e80",
+      "xbox_descriptor": "0x458a28",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 400,
+      "name": "cs_face",
+      "return_type": 4,
+      "arguments": [
+        5,
+        28
+      ],
+      "xbox_opcode": 398,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b263b0",
+      "mcc_evaluator": "0x180787ec0",
+      "xbox_descriptor": "0x458a3c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 401,
+      "name": "cs_face_player",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 399,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26400",
+      "mcc_evaluator": "0x180787f00",
+      "xbox_descriptor": "0x458a50",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 402,
+      "name": "cs_face_object",
+      "return_type": 4,
+      "arguments": [
+        5,
+        50
+      ],
+      "xbox_opcode": 400,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26460",
+      "mcc_evaluator": "0x180787f30",
+      "xbox_descriptor": "0x458a64",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 403,
+      "name": "cs_move_in_direction",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 401,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b264c0",
+      "mcc_evaluator": "0x180787f70",
+      "xbox_descriptor": "0x458a78",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 404,
+      "name": "cs_pause",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 402,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26520",
+      "mcc_evaluator": "0x180787fd0",
+      "xbox_descriptor": "0x458a90",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 405,
+      "name": "cs_shoot",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 403,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26580",
+      "mcc_evaluator": "0x180788030",
+      "xbox_descriptor": "0x458aa4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 406,
+      "name": "cs_shoot",
+      "return_type": 4,
+      "arguments": [
+        5,
+        50
+      ],
+      "xbox_opcode": 404,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b265e0",
+      "mcc_evaluator": "0x180788060",
+      "xbox_descriptor": "0x458ab8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 407,
+      "name": "cs_shoot_point",
+      "return_type": 4,
+      "arguments": [
+        5,
+        28
+      ],
+      "xbox_opcode": 405,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26630",
+      "mcc_evaluator": "0x1807880a0",
+      "xbox_descriptor": "0x458acc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 408,
+      "name": "cs_vehicle_speed",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 406,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26690",
+      "mcc_evaluator": "0x1807880e0",
+      "xbox_descriptor": "0x458ae0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 409,
+      "name": "cs_grenade",
+      "return_type": 4,
+      "arguments": [
+        28,
+        7
+      ],
+      "xbox_opcode": 407,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b266f0",
+      "mcc_evaluator": "0x180788110",
+      "xbox_descriptor": "0x458af4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 410,
+      "name": "cs_jump",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6
+      ],
+      "xbox_opcode": 408,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26750",
+      "mcc_evaluator": "0x180788170",
+      "xbox_descriptor": "0x458b08",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 411,
+      "name": "cs_jump_to_point",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6
+      ],
+      "xbox_opcode": 409,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b267a0",
+      "mcc_evaluator": "0x1807881d0",
+      "xbox_descriptor": "0x458b1c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 417,
+      "name": "cs_custom_animation",
+      "return_type": 4,
+      "arguments": [
+        36,
+        11,
+        6,
+        5
+      ],
+      "xbox_opcode": 415,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b269c0",
+      "mcc_evaluator": "0x180788410",
+      "xbox_descriptor": "0x458b98",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        36,
+        11,
+        6,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 418,
+      "name": "cs_stop_custom_animation",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 416,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26a20",
+      "mcc_evaluator": "0x180788470",
+      "xbox_descriptor": "0x458bb0",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 419,
+      "name": "cs_play_line",
+      "return_type": 4,
+      "arguments": [
+        11
+      ],
+      "xbox_opcode": 417,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26a80",
+      "mcc_evaluator": "0x180788490",
+      "xbox_descriptor": "0x458bc0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 421,
+      "name": "cs_teleport",
+      "return_type": 4,
+      "arguments": [
+        28,
+        28
+      ],
+      "xbox_opcode": 419,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26b30",
+      "mcc_evaluator": "0x180788550",
+      "xbox_descriptor": "0x458be8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28,
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 423,
+      "name": "cs_movement_mode",
+      "return_type": 4,
+      "arguments": [
+        7
+      ],
+      "xbox_opcode": 421,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26bf0",
+      "mcc_evaluator": "0x1807885e0",
+      "xbox_descriptor": "0x458c10",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 424,
+      "name": "cs_crouch",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 422,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b26c50",
+      "mcc_evaluator": "0x180788610",
+      "xbox_descriptor": "0x458c24",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 427,
+      "name": "cs_go_to_vehicle",
+      "return_type": 4,
+      "arguments": [
+        52
+      ],
+      "xbox_opcode": 425,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26d70",
+      "mcc_evaluator": "0x1807886e0",
+      "xbox_descriptor": "0x458c60",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        52
+      ]
+    },
+    {
+      "mcc_opcode": 428,
+      "name": "cs_set_behavior",
+      "return_type": 4,
+      "arguments": [
+        22
+      ],
+      "xbox_opcode": 426,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26dd0",
+      "mcc_evaluator": "0x180788740",
+      "xbox_descriptor": "0x458c74",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        22
+      ]
+    },
+    {
+      "mcc_opcode": 430,
+      "name": "cs_deploy_turret",
+      "return_type": 4,
+      "arguments": [
+        28
+      ],
+      "xbox_opcode": 428,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26e90",
+      "mcc_evaluator": "0x180788800",
+      "xbox_descriptor": "0x458ca0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        28
+      ]
+    },
+    {
+      "mcc_opcode": 431,
+      "name": "cs_approach",
+      "return_type": 4,
+      "arguments": [
+        50,
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 429,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26ef0",
+      "mcc_evaluator": "0x180788860",
+      "xbox_descriptor": "0x458cb4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 432,
+      "name": "cs_start_approach",
+      "return_type": 4,
+      "arguments": [
+        50,
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 430,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26f50",
+      "mcc_evaluator": "0x1807888d0",
+      "xbox_descriptor": "0x458ccc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 433,
+      "name": "cs_approach_player",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 431,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b26fb0",
+      "mcc_evaluator": "0x180788940",
+      "xbox_descriptor": "0x458ce4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 434,
+      "name": "cs_start_approach_player",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 432,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b27010",
+      "mcc_evaluator": "0x1807889a0",
+      "xbox_descriptor": "0x458cfc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 435,
+      "name": "cs_approach_stop",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 433,
+      "xbox_flags": 1,
+      "mcc_descriptor": "0x180b27080",
+      "mcc_evaluator": "0x180788a00",
+      "xbox_descriptor": "0x458d14",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 436,
+      "name": "cs_ignore_obstacles",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 434,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b270e0",
+      "mcc_evaluator": "0x180788a50",
+      "xbox_descriptor": "0x458d24",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 437,
+      "name": "cs_turn_sharpness",
+      "return_type": 4,
+      "arguments": [
+        5,
+        6
+      ],
+      "xbox_opcode": 435,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27140",
+      "mcc_evaluator": "0x180788a80",
+      "xbox_descriptor": "0x458d38",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 439,
+      "name": "cs_vehicle_boost",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 437,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27210",
+      "mcc_evaluator": "0x180788af0",
+      "xbox_descriptor": "0x458d60",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 440,
+      "name": "cs_abort_on_alert",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 438,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27270",
+      "mcc_evaluator": "0x180788b20",
+      "xbox_descriptor": "0x458d74",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 441,
+      "name": "cs_abort_on_damage",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 439,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b272d0",
+      "mcc_evaluator": "0x180788b50",
+      "xbox_descriptor": "0x458d88",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 442,
+      "name": "cs_abort_on_combat_status",
+      "return_type": 4,
+      "arguments": [
+        7
+      ],
+      "xbox_opcode": 440,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27330",
+      "mcc_evaluator": "0x180788b80",
+      "xbox_descriptor": "0x458d9c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 443,
+      "name": "cs_enable_targeting",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 441,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b273a0",
+      "mcc_evaluator": "0x180788bb0",
+      "xbox_descriptor": "0x458db0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 444,
+      "name": "cs_enable_looking",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 442,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27400",
+      "mcc_evaluator": "0x180788be0",
+      "xbox_descriptor": "0x458dc4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 445,
+      "name": "cs_enable_moving",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 443,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27460",
+      "mcc_evaluator": "0x180788c10",
+      "xbox_descriptor": "0x458dd8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 446,
+      "name": "cs_enable_dialogue",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 444,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b274c0",
+      "mcc_evaluator": "0x180788c40",
+      "xbox_descriptor": "0x458dec",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 447,
+      "name": "cs_suppress_dialogue_global",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 445,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27520",
+      "mcc_evaluator": "0x180788c70",
+      "xbox_descriptor": "0x458e00",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 449,
+      "name": "cs_force_combat_status",
+      "return_type": 4,
+      "arguments": [
+        7
+      ],
+      "xbox_opcode": 447,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b275f0",
+      "mcc_evaluator": "0x180788cd0",
+      "xbox_descriptor": "0x458e28",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 450,
+      "name": "cs_enable_pathfinding_failsafe",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 448,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27650",
+      "mcc_evaluator": "0x180788d00",
+      "xbox_descriptor": "0x458e3c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 451,
+      "name": "camera_control",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 449,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b276c0",
+      "mcc_evaluator": "0x180788d30",
+      "xbox_descriptor": "0x458e50",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 452,
+      "name": "camera_set",
+      "return_type": 4,
+      "arguments": [
+        15,
+        7
+      ],
+      "xbox_opcode": 450,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27720",
+      "mcc_evaluator": "0x180788d60",
+      "xbox_descriptor": "0x458e64",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        15,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 455,
+      "name": "camera_set_animation_relative",
+      "return_type": 4,
+      "arguments": [
+        36,
+        11,
+        51,
+        14
+      ],
+      "xbox_opcode": 453,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27840",
+      "mcc_evaluator": "0x180788e10",
+      "xbox_descriptor": "0x458ea4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        36,
+        11,
+        51,
+        14
+      ]
+    },
+    {
+      "mcc_opcode": 456,
+      "name": "camera_predict_resources_at_frame",
+      "return_type": 4,
+      "arguments": [
+        36,
+        11,
+        51,
+        14,
+        8
+      ],
+      "xbox_opcode": 454,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b278b0",
+      "mcc_evaluator": "0x180788e50",
+      "xbox_descriptor": "0x458ebc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        36,
+        11,
+        51,
+        14,
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 457,
+      "name": "camera_predict_resources_at_point",
+      "return_type": 4,
+      "arguments": [
+        15
+      ],
+      "xbox_opcode": 455,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27930",
+      "mcc_evaluator": "0x180788e90",
+      "xbox_descriptor": "0x458ed8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        15
+      ]
+    },
+    {
+      "mcc_opcode": 461,
+      "name": "camera_time",
+      "return_type": 7,
+      "arguments": [],
+      "xbox_opcode": 459,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27ac0",
+      "mcc_evaluator": "0x180788ef0",
+      "xbox_descriptor": "0x458f24",
+      "xbox_return_type": 7,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 462,
+      "name": "camera_set_field_of_view",
+      "return_type": 4,
+      "arguments": [
+        6,
+        7
+      ],
+      "xbox_opcode": 460,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27b10",
+      "mcc_evaluator": "0x180788f20",
+      "xbox_descriptor": "0x458f34",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 470,
+      "name": "game_difficulty_get",
+      "return_type": 44,
+      "arguments": [],
+      "xbox_opcode": 468,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27e20",
+      "mcc_evaluator": "0x180789000",
+      "xbox_descriptor": "0x458fd8",
+      "xbox_return_type": 44,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 471,
+      "name": "game_difficulty_get_real",
+      "return_type": 44,
+      "arguments": [],
+      "xbox_opcode": 469,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27e80",
+      "mcc_evaluator": "0x180789030",
+      "xbox_descriptor": "0x458fe8",
+      "xbox_return_type": 44,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 472,
+      "name": "pvs_set_object",
+      "return_type": 4,
+      "arguments": [
+        50
+      ],
+      "xbox_opcode": 470,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27ee0",
+      "mcc_evaluator": "0x180789060",
+      "xbox_descriptor": "0x458ff8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 474,
+      "name": "pvs_clear",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 472,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b27fa0",
+      "mcc_evaluator": "0x1807890c0",
+      "xbox_descriptor": "0x459020",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 476,
+      "name": "player_enable_input",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 474,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28050",
+      "mcc_evaluator": "0x180789100",
+      "xbox_descriptor": "0x459040",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 477,
+      "name": "player_disable_movement",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 475,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b280b0",
+      "mcc_evaluator": "0x180789130",
+      "xbox_descriptor": "0x459054",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 478,
+      "name": "player_flashlight_on",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 476,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28110",
+      "mcc_evaluator": "0x180789160",
+      "xbox_descriptor": "0x459068",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 480,
+      "name": "player_camera_control",
+      "return_type": 5,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 478,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b281d0",
+      "mcc_evaluator": "0x1807891c0",
+      "xbox_descriptor": "0x459088",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 481,
+      "name": "player_action_test_reset",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 479,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28230",
+      "mcc_evaluator": "0x180789200",
+      "xbox_descriptor": "0x45909c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 483,
+      "name": "player_action_test_primary_trigger",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 481,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b282f0",
+      "mcc_evaluator": "0x180789250",
+      "xbox_descriptor": "0x4590bc",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 484,
+      "name": "player_action_test_grenade_trigger",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 482,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28360",
+      "mcc_evaluator": "0x180789280",
+      "xbox_descriptor": "0x4590cc",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 485,
+      "name": "player_action_test_vision_trigger",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 483,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b283d0",
+      "mcc_evaluator": "0x1807892b0",
+      "xbox_descriptor": "0x4590dc",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 489,
+      "name": "player_action_test_melee",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 487,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28580",
+      "mcc_evaluator": "0x180789370",
+      "xbox_descriptor": "0x45911c",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 491,
+      "name": "player_action_test_accept",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 489,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28640",
+      "mcc_evaluator": "0x1807893d0",
+      "xbox_descriptor": "0x45913c",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 492,
+      "name": "player_action_test_cancel",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 490,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b286a0",
+      "mcc_evaluator": "0x180789400",
+      "xbox_descriptor": "0x45914c",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 501,
+      "name": "player0_looking_up",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 499,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28a60",
+      "mcc_evaluator": "0x1807895b0",
+      "xbox_descriptor": "0x4591dc",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 502,
+      "name": "player0_looking_down",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 500,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28ac0",
+      "mcc_evaluator": "0x1807895e0",
+      "xbox_descriptor": "0x4591ec",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 503,
+      "name": "player_action_test_look_up_begin",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 501,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28b20",
+      "mcc_evaluator": "0x180789610",
+      "xbox_descriptor": "0x4591fc",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 504,
+      "name": "player_action_test_look_down_begin",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 502,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28b90",
+      "mcc_evaluator": "0x180789630",
+      "xbox_descriptor": "0x45920c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 505,
+      "name": "player_action_test_look_pitch_end",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 503,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28c00",
+      "mcc_evaluator": "0x180789650",
+      "xbox_descriptor": "0x45921c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 506,
+      "name": "player_action_test_lookstick_forward",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 504,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28c70",
+      "mcc_evaluator": "0x180789670",
+      "xbox_descriptor": "0x45922c",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 507,
+      "name": "player_action_test_lookstick_backward",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 505,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28ce0",
+      "mcc_evaluator": "0x1807896a0",
+      "xbox_descriptor": "0x45923c",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 509,
+      "name": "map_reset",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 507,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28db0",
+      "mcc_evaluator": "0x1806f9e90",
+      "xbox_descriptor": "0x459260",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 510,
+      "name": "switch_bsp",
+      "return_type": 4,
+      "arguments": [
+        7
+      ],
+      "xbox_opcode": 508,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28e00",
+      "mcc_evaluator": "0x1807896d0",
+      "xbox_descriptor": "0x459270",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 511,
+      "name": "switch_bsp_by_name",
+      "return_type": 4,
+      "arguments": [
+        26
+      ],
+      "xbox_opcode": 509,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28e60",
+      "mcc_evaluator": "0x1807896d0",
+      "xbox_descriptor": "0x459284",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        26
+      ]
+    },
+    {
+      "mcc_opcode": 512,
+      "name": "structure_bsp_index",
+      "return_type": 7,
+      "arguments": [],
+      "xbox_opcode": 510,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b28ec0",
+      "mcc_evaluator": "0x180789700",
+      "xbox_descriptor": "0x459298",
+      "xbox_return_type": 7,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 533,
+      "name": "texture_cache_flush",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 531,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29630",
+      "mcc_evaluator": "0x1806f9e90",
+      "xbox_descriptor": "0x459438",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 534,
+      "name": "geometry_cache_flush",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 532,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29690",
+      "mcc_evaluator": "0x1806f9e90",
+      "xbox_descriptor": "0x459448",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 554,
+      "name": "fade_in",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6,
+        7
+      ],
+      "xbox_opcode": 552,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29dd0",
+      "mcc_evaluator": "0x180789770",
+      "xbox_descriptor": "0x4595a8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 555,
+      "name": "fade_out",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6,
+        7
+      ],
+      "xbox_opcode": 553,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29e20",
+      "mcc_evaluator": "0x1807897b0",
+      "xbox_descriptor": "0x4595c0",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 556,
+      "name": "cinematic_start",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 554,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29e80",
+      "mcc_evaluator": "0x1807897f0",
+      "xbox_descriptor": "0x4595d8",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 557,
+      "name": "cinematic_stop",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 555,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29ed0",
+      "mcc_evaluator": "0x180789810",
+      "xbox_descriptor": "0x4595e8",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 558,
+      "name": "cinematic_skip_start_internal",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 556,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29f20",
+      "mcc_evaluator": "0x180789830",
+      "xbox_descriptor": "0x4595f8",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 559,
+      "name": "cinematic_skip_stop_internal",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 557,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29f80",
+      "mcc_evaluator": "0x180789850",
+      "xbox_descriptor": "0x459608",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 560,
+      "name": "cinematic_show_letterbox",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 558,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b29fe0",
+      "mcc_evaluator": "0x180789870",
+      "xbox_descriptor": "0x459618",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 561,
+      "name": "cinematic_show_letterbox_immediate",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 559,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2a050",
+      "mcc_evaluator": "0x1807898a0",
+      "xbox_descriptor": "0x45962c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 562,
+      "name": "cinematic_set_title",
+      "return_type": 4,
+      "arguments": [
+        16
+      ],
+      "xbox_opcode": 560,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2a0c0",
+      "mcc_evaluator": "0x1807898d0",
+      "xbox_descriptor": "0x459640",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        16
+      ]
+    },
+    {
+      "mcc_opcode": 565,
+      "name": "cinematic_subtitle",
+      "return_type": 4,
+      "arguments": [
+        11,
+        6
+      ],
+      "xbox_opcode": 563,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2a200",
+      "mcc_evaluator": "0x180789970",
+      "xbox_descriptor": "0x45967c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        11,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 568,
+      "name": "game_won",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 566,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2a330",
+      "mcc_evaluator": "0x1807899b0",
+      "xbox_descriptor": "0x4596b4",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 570,
+      "name": "game_revert",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 568,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2a3e0",
+      "mcc_evaluator": "0x180789a00",
+      "xbox_descriptor": "0x4596d8",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 571,
+      "name": "game_is_cooperative",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 569,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2a430",
+      "mcc_evaluator": "0x180789a20",
+      "xbox_descriptor": "0x4596e8",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 572,
+      "name": "game_is_playtest",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 570,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2a490",
+      "mcc_evaluator": "0x180789a50",
+      "xbox_descriptor": "0x4596f8",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 573,
+      "name": "game_can_use_flashlights",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 571,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2a4f0",
+      "mcc_evaluator": "0x180789a80",
+      "xbox_descriptor": "0x459708",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 587,
+      "name": "game_safe_to_save",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 585,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2aa20",
+      "mcc_evaluator": "0x180789b70",
+      "xbox_descriptor": "0x459808",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 590,
+      "name": "game_save",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 588,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2ab30",
+      "mcc_evaluator": "0x180789c00",
+      "xbox_descriptor": "0x459838",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 591,
+      "name": "game_save_cancel",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 589,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2ab80",
+      "mcc_evaluator": "0x180789c20",
+      "xbox_descriptor": "0x459848",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 592,
+      "name": "game_save_no_timeout",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 590,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2abe0",
+      "mcc_evaluator": "0x180789c40",
+      "xbox_descriptor": "0x459858",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 593,
+      "name": "game_save_immediate",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 591,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2ac40",
+      "mcc_evaluator": "0x180789c60",
+      "xbox_descriptor": "0x459868",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 594,
+      "name": "game_saving",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 592,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2aca0",
+      "mcc_evaluator": "0x180789c80",
+      "xbox_descriptor": "0x459878",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 595,
+      "name": "game_reverted",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 593,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2acf0",
+      "mcc_evaluator": "0x180789cb0",
+      "xbox_descriptor": "0x459888",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 597,
+      "name": "sound_impulse_predict",
+      "return_type": 4,
+      "arguments": [
+        32
+      ],
+      "xbox_opcode": 595,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2adb0",
+      "mcc_evaluator": "0x180789ce0",
+      "xbox_descriptor": "0x4598b8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        32
+      ]
+    },
+    {
+      "mcc_opcode": 598,
+      "name": "sound_impulse_trigger",
+      "return_type": 4,
+      "arguments": [
+        32,
+        50,
+        6,
+        8
+      ],
+      "xbox_opcode": 596,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2ae10",
+      "mcc_evaluator": "0x180789d10",
+      "xbox_descriptor": "0x4598cc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        32,
+        50,
+        6,
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 599,
+      "name": "sound_impulse_start",
+      "return_type": 4,
+      "arguments": [
+        32,
+        50,
+        6
+      ],
+      "xbox_opcode": 597,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2ae70",
+      "mcc_evaluator": "0x180789d50",
+      "xbox_descriptor": "0x4598e4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        32,
+        50,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 601,
+      "name": "sound_impulse_start_effect",
+      "return_type": 4,
+      "arguments": [
+        32,
+        50,
+        6,
+        11
+      ],
+      "xbox_opcode": 599,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2af40",
+      "mcc_evaluator": "0x180789de0",
+      "xbox_descriptor": "0x459918",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        32,
+        50,
+        6,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 604,
+      "name": "sound_impulse_language_time",
+      "return_type": 8,
+      "arguments": [
+        32
+      ],
+      "xbox_opcode": 602,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2b060",
+      "mcc_evaluator": "0x180789e80",
+      "xbox_descriptor": "0x459958",
+      "xbox_return_type": 8,
+      "xbox_arguments": [
+        32
+      ]
+    },
+    {
+      "mcc_opcode": 605,
+      "name": "sound_impulse_stop",
+      "return_type": 4,
+      "arguments": [
+        32
+      ],
+      "xbox_opcode": 603,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2b0d0",
+      "mcc_evaluator": "0x180789eb0",
+      "xbox_descriptor": "0x45996c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        32
+      ]
+    },
+    {
+      "mcc_opcode": 608,
+      "name": "sound_looping_start",
+      "return_type": 4,
+      "arguments": [
+        35,
+        50,
+        6
+      ],
+      "xbox_opcode": 606,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2b1f0",
+      "mcc_evaluator": "0x180789f50",
+      "xbox_descriptor": "0x4599ac",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        35,
+        50,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 609,
+      "name": "sound_looping_stop",
+      "return_type": 4,
+      "arguments": [
+        35
+      ],
+      "xbox_opcode": 607,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2b250",
+      "mcc_evaluator": "0x180789f90",
+      "xbox_descriptor": "0x4599c4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        35
+      ]
+    },
+    {
+      "mcc_opcode": 612,
+      "name": "sound_looping_set_alternate",
+      "return_type": 4,
+      "arguments": [
+        35,
+        5
+      ],
+      "xbox_opcode": 610,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2b380",
+      "mcc_evaluator": "0x18078a030",
+      "xbox_descriptor": "0x459a00",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        35,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 617,
+      "name": "sound_class_set_gain",
+      "return_type": 4,
+      "arguments": [
+        9,
+        6,
+        7
+      ],
+      "xbox_opcode": 615,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2b580",
+      "mcc_evaluator": "0x18078a070",
+      "xbox_descriptor": "0x459a60",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        9,
+        6,
+        7
+      ]
+    },
+    {
+      "mcc_opcode": 627,
+      "name": "biped_ragdoll",
+      "return_type": 4,
+      "arguments": [
+        51
+      ],
+      "xbox_opcode": 623,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2b990",
+      "mcc_evaluator": "0x18078a270",
+      "xbox_descriptor": "0x459b08",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        51
+      ]
+    },
+    {
+      "mcc_opcode": 628,
+      "name": "hud_cinematic_fade",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6
+      ],
+      "xbox_opcode": 624,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2b9f0",
+      "mcc_evaluator": "0x18078a2a0",
+      "xbox_descriptor": "0x459b1c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 632,
+      "name": "hud_show_training_text",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 630,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2bb70",
+      "mcc_evaluator": "0x18078a3a0",
+      "xbox_descriptor": "0x459b90",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 633,
+      "name": "hud_set_training_text",
+      "return_type": 4,
+      "arguments": [
+        11
+      ],
+      "xbox_opcode": 631,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2bbd0",
+      "mcc_evaluator": "0x18078a3d0",
+      "xbox_descriptor": "0x459ba4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 634,
+      "name": "hud_enable_training",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 632,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2bc30",
+      "mcc_evaluator": "0x18078a400",
+      "xbox_descriptor": "0x459bb8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 635,
+      "name": "player_training_activate_flashlight",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 633,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2bc90",
+      "mcc_evaluator": "0x18078a430",
+      "xbox_descriptor": "0x459bcc",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 637,
+      "name": "player_training_activate_stealth",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 635,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2bd60",
+      "mcc_evaluator": "0x18078a470",
+      "xbox_descriptor": "0x459bec",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 640,
+      "name": "activate_team_nav_point_flag",
+      "return_type": 4,
+      "arguments": [
+        27,
+        45,
+        14,
+        6
+      ],
+      "xbox_opcode": 638,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2bea0",
+      "mcc_evaluator": "0x18078a510",
+      "xbox_descriptor": "0x459c2c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        27,
+        45,
+        14,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 641,
+      "name": "activate_team_nav_point_object",
+      "return_type": 4,
+      "arguments": [
+        27,
+        45,
+        50,
+        6
+      ],
+      "xbox_opcode": 639,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2bf10",
+      "mcc_evaluator": "0x18078a550",
+      "xbox_descriptor": "0x459c44",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        27,
+        45,
+        50,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 644,
+      "name": "deactivate_team_nav_point_flag",
+      "return_type": 4,
+      "arguments": [
+        45,
+        14
+      ],
+      "xbox_opcode": 642,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c060",
+      "mcc_evaluator": "0x18078a600",
+      "xbox_descriptor": "0x459c84",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        45,
+        14
+      ]
+    },
+    {
+      "mcc_opcode": 645,
+      "name": "deactivate_team_nav_point_object",
+      "return_type": 4,
+      "arguments": [
+        45,
+        50
+      ],
+      "xbox_opcode": 643,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c0d0",
+      "mcc_evaluator": "0x18078a640",
+      "xbox_descriptor": "0x459c98",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        45,
+        50
+      ]
+    },
+    {
+      "mcc_opcode": 646,
+      "name": "breadcrumbs_activate_team_nav_point_position",
+      "return_type": 4,
+      "arguments": [
+        27,
+        45,
+        6,
+        6,
+        6,
+        9,
+        6
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c140",
+      "mcc_evaluator": "0x18078a680",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 647,
+      "name": "breadcrumbs_activate_team_nav_point_flag",
+      "return_type": 4,
+      "arguments": [
+        27,
+        45,
+        14,
+        6
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c1c0",
+      "mcc_evaluator": "0x18078a700",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 648,
+      "name": "breadcrumbs_activate_team_nav_point_object",
+      "return_type": 4,
+      "arguments": [
+        27,
+        45,
+        50,
+        6
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c240",
+      "mcc_evaluator": "0x18078a740",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 649,
+      "name": "breadcrumbs_deactivate_team_nav_point",
+      "return_type": 4,
+      "arguments": [
+        45,
+        9
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c2c0",
+      "mcc_evaluator": "0x18078a780",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 650,
+      "name": "breadcrumbs_deactivate_team_nav_point_flag",
+      "return_type": 4,
+      "arguments": [
+        45,
+        14
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c330",
+      "mcc_evaluator": "0x18078a7d0",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 651,
+      "name": "breadcrumbs_deactivate_team_nav_point_object",
+      "return_type": 4,
+      "arguments": [
+        45,
+        50
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c3b0",
+      "mcc_evaluator": "0x18078a810",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 660,
+      "name": "player_effect_set_max_rotation",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 652,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c740",
+      "mcc_evaluator": "0x18078a890",
+      "xbox_descriptor": "0x459d40",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 661,
+      "name": "player_effect_set_max_vibration",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6
+      ],
+      "xbox_opcode": 653,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c7b0",
+      "mcc_evaluator": "0x18078a8d0",
+      "xbox_descriptor": "0x459d58",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6
+      ],
+      "xbox_name": "player_effect_set_max_rumble",
+      "semantic_alias": {
+        "kind": "authenticated_player_effect_rename",
+        "mcc_setter": "0x18073b9d0",
+        "mcc_evaluator": "0x18078a8d0",
+        "xbox_evaluator": "0x2b4a40",
+        "xbox_owner_pointer": "0x50ebf8",
+        "owner_offsets": [
+          "0x220",
+          "0x224"
+        ],
+        "scenario": "05b_deltatowers",
+        "script": "cam_shake",
+        "arguments_bits": [
+          "0x3f800000",
+          "0x3f800000"
+        ]
+      }
+    },
+    {
+      "mcc_opcode": 662,
+      "name": "player_effect_start",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6
+      ],
+      "xbox_opcode": 654,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c820",
+      "mcc_evaluator": "0x18078a910",
+      "xbox_descriptor": "0x459d6c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 663,
+      "name": "player_effect_stop",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 655,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2c880",
+      "mcc_evaluator": "0x18078a950",
+      "xbox_descriptor": "0x459d80",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 668,
+      "name": "time_code_show",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 673,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2ca60",
+      "mcc_evaluator": "0x1806f9e90",
+      "xbox_descriptor": "0x459ee4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 669,
+      "name": "time_code_start",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 674,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2cac0",
+      "mcc_evaluator": "0x1806f9e90",
+      "xbox_descriptor": "0x459ef8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 670,
+      "name": "time_code_reset",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 675,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2cb20",
+      "mcc_evaluator": "0x1806f9e90",
+      "xbox_descriptor": "0x459f0c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 702,
+      "name": "cinematic_screen_effect_start",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 705,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2d840",
+      "mcc_evaluator": "0x18078aa40",
+      "xbox_descriptor": "0x45a188",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 703,
+      "name": "cinematic_screen_effect_set_depth_of_field",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "xbox_opcode": 706,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2d8b0",
+      "mcc_evaluator": "0x18078aa70",
+      "xbox_descriptor": "0x45a19c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 704,
+      "name": "cinematic_screen_effect_set_crossfade",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 707,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2d930",
+      "mcc_evaluator": "0x18078aad0",
+      "xbox_descriptor": "0x45a1bc",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 706,
+      "name": "cinematic_screen_effect_stop",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 709,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2da10",
+      "mcc_evaluator": "0x18078ab40",
+      "xbox_descriptor": "0x45a1e4",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 707,
+      "name": "cinematic_set_near_clip_distance",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 710,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2da70",
+      "mcc_evaluator": "0x18078ab60",
+      "xbox_descriptor": "0x45a1f4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 708,
+      "name": "cinematic_set_far_clip_distance",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 711,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2dae0",
+      "mcc_evaluator": "0x18078ab90",
+      "xbox_descriptor": "0x45a208",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 720,
+      "name": "controller_set_look_invert",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 726,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2e010",
+      "mcc_evaluator": "0x18078ad60",
+      "xbox_descriptor": "0x45a344",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 721,
+      "name": "controller_get_look_invert",
+      "return_type": 5,
+      "arguments": [],
+      "xbox_opcode": 727,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2e080",
+      "mcc_evaluator": "0x18078ad90",
+      "xbox_descriptor": "0x45a358",
+      "xbox_return_type": 5,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 742,
+      "name": "objectives_clear",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 750,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2e9b0",
+      "mcc_evaluator": "0x18078adf0",
+      "xbox_descriptor": "0x45a51c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 743,
+      "name": "objectives_show_up_to",
+      "return_type": 4,
+      "arguments": [
+        8
+      ],
+      "xbox_opcode": 751,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2ea10",
+      "mcc_evaluator": "0x18078ae10",
+      "xbox_descriptor": "0x45a52c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 744,
+      "name": "objectives_finish_up_to",
+      "return_type": 4,
+      "arguments": [
+        8
+      ],
+      "xbox_opcode": 752,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2ea70",
+      "mcc_evaluator": "0x18078ae40",
+      "xbox_descriptor": "0x45a540",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 772,
+      "name": "data_mine_set_mission_segment",
+      "return_type": 4,
+      "arguments": [
+        9
+      ],
+      "xbox_opcode": 784,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b2f540",
+      "mcc_evaluator": "0x18078aef0",
+      "xbox_descriptor": "0x45a788",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        9
+      ]
+    },
+    {
+      "mcc_opcode": 828,
+      "name": "interpolator_start",
+      "return_type": 8,
+      "arguments": [
+        11,
+        6,
+        6
+      ],
+      "xbox_opcode": 847,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b30ad0",
+      "mcc_evaluator": "0x18078af60",
+      "xbox_descriptor": "0x45ac48",
+      "xbox_return_type": 8,
+      "xbox_arguments": [
+        11,
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 850,
+      "name": "weather_start",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 869,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b313f0",
+      "mcc_evaluator": "0x18078b3e0",
+      "xbox_descriptor": "0x45ae0c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 851,
+      "name": "weather_stop",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 870,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31450",
+      "mcc_evaluator": "0x18078b460",
+      "xbox_descriptor": "0x45ae20",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 852,
+      "name": "weather_change_intensity",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6
+      ],
+      "xbox_opcode": 871,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b314b0",
+      "mcc_evaluator": "0x18078b4e0",
+      "xbox_descriptor": "0x45ae34",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 854,
+      "name": "cinematic_clone_players_weapon",
+      "return_type": 4,
+      "arguments": [
+        50,
+        11,
+        11
+      ],
+      "xbox_opcode": 873,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31580",
+      "mcc_evaluator": "0x18078b580",
+      "xbox_descriptor": "0x45ae58",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        50,
+        11,
+        11
+      ]
+    },
+    {
+      "mcc_opcode": 857,
+      "name": "ice_cream_flavor_stock",
+      "return_type": 4,
+      "arguments": [
+        8
+      ],
+      "xbox_opcode": 876,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b316d0",
+      "mcc_evaluator": "0x18078b630",
+      "xbox_descriptor": "0x45ae9c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 858,
+      "name": "ice_cream_flavor_available",
+      "return_type": 5,
+      "arguments": [
+        8
+      ],
+      "xbox_opcode": 877,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31730",
+      "mcc_evaluator": "0x18078b660",
+      "xbox_descriptor": "0x45aeb0",
+      "xbox_return_type": 5,
+      "xbox_arguments": [
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 859,
+      "name": "set_global_sound_environment",
+      "return_type": 4,
+      "arguments": [
+        6,
+        6,
+        6,
+        6,
+        8,
+        6
+      ],
+      "xbox_opcode": 878,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b317a0",
+      "mcc_evaluator": "0x18078b6a0",
+      "xbox_descriptor": "0x45aec4",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6,
+        6,
+        6,
+        6,
+        8,
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 860,
+      "name": "game_save_cinematic_skip",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 880,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31810",
+      "mcc_evaluator": "0x18078b6f0",
+      "xbox_descriptor": "0x45aef0",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 861,
+      "name": "cinematic_outro_start",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 881,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31870",
+      "mcc_evaluator": "0x18078b710",
+      "xbox_descriptor": "0x45af00",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 862,
+      "name": "cinematic_enable_ambience_details",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 882,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b318d0",
+      "mcc_evaluator": "0x18078b730",
+      "xbox_descriptor": "0x45af10",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 864,
+      "name": "predict_model_section",
+      "return_type": 4,
+      "arguments": [
+        41,
+        8
+      ],
+      "xbox_opcode": 884,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b319a0",
+      "mcc_evaluator": "0x18078b790",
+      "xbox_descriptor": "0x45af38",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        41,
+        8
+      ]
+    },
+    {
+      "mcc_opcode": 865,
+      "name": "predict_structure_section",
+      "return_type": 4,
+      "arguments": [
+        26,
+        8,
+        5
+      ],
+      "xbox_opcode": 885,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31a00",
+      "mcc_evaluator": "0x18078b7c0",
+      "xbox_descriptor": "0x45af4c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        26,
+        8,
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 869,
+      "name": "rasterizer_bloom_override",
+      "return_type": 4,
+      "arguments": [
+        5
+      ],
+      "xbox_opcode": 889,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31b90",
+      "mcc_evaluator": "0x18078b890",
+      "xbox_descriptor": "0x45af9c",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        5
+      ]
+    },
+    {
+      "mcc_opcode": 872,
+      "name": "rasterizer_bloom_override_threshold",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 892,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31ce0",
+      "mcc_evaluator": "0x18078b920",
+      "xbox_descriptor": "0x45afd8",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 873,
+      "name": "rasterizer_bloom_override_brightness",
+      "return_type": 4,
+      "arguments": [
+        6
+      ],
+      "xbox_opcode": 893,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b31d50",
+      "mcc_evaluator": "0x18078b950",
+      "xbox_descriptor": "0x45afec",
+      "xbox_return_type": 4,
+      "xbox_arguments": [
+        6
+      ]
+    },
+    {
+      "mcc_opcode": 881,
+      "name": "cache_block_for_one_frame",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 901,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b320f0",
+      "mcc_evaluator": "0x18078bad0",
+      "xbox_descriptor": "0x45b08c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 882,
+      "name": "sound_suppress_ambience_update_on_revert",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 902,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b32150",
+      "mcc_evaluator": "0x18078baf0",
+      "xbox_descriptor": "0x45b09c",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 886,
+      "name": "cinematic_lightmap_shadow_disable",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 906,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b322e0",
+      "mcc_evaluator": "0x18078bb10",
+      "xbox_descriptor": "0x45b0e8",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 887,
+      "name": "cinematic_lightmap_shadow_enable",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": 907,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b32350",
+      "mcc_evaluator": "0x18078bb30",
+      "xbox_descriptor": "0x45b0f8",
+      "xbox_return_type": 4,
+      "xbox_arguments": []
+    },
+    {
+      "mcc_opcode": 890,
+      "name": "loading_screen_fade_to_white",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b32480",
+      "mcc_evaluator": "0x18078bb50",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 893,
+      "name": "enable_render_light_suppressor",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b325c0",
+      "mcc_evaluator": "0x18078bbd0",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 894,
+      "name": "disable_render_light_suppressor",
+      "return_type": 4,
+      "arguments": [],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b32620",
+      "mcc_evaluator": "0x18078bbf0",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 895,
+      "name": "cinematic_start_movie",
+      "return_type": 4,
+      "arguments": [
+        9
+      ],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b32680",
+      "mcc_evaluator": "0x18078bc10",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    },
+    {
+      "mcc_opcode": 911,
+      "name": "game_tick_rate",
+      "return_type": 8,
+      "arguments": [],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b32d40",
+      "mcc_evaluator": "0x18078bc70",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null,
+      "incompatible_xbox_candidates": [
+        {
+          "opcode": 528,
+          "descriptor": "0x4593f8",
+          "return_type": 4,
+          "flags": 0,
+          "evaluator": "0x2ac980",
+          "arity": 1,
+          "arguments": [
+            8
+          ],
+          "name": "game_tick_rate"
+        }
+      ]
+    },
+    {
+      "mcc_opcode": 912,
+      "name": "game_tick_rate_scalar",
+      "return_type": 8,
+      "arguments": [],
+      "xbox_opcode": null,
+      "xbox_flags": 0,
+      "mcc_descriptor": "0x180b32d80",
+      "mcc_evaluator": "0x18078bc90",
+      "xbox_descriptor": null,
+      "xbox_return_type": null,
+      "xbox_arguments": null
+    }
+  ],
+  "external_globals": [
+    {
+      "name": "ai_current_squad",
+      "mcc_index": 787,
+      "mcc_type": 19,
+      "xbox_index": 797,
+      "xbox_type": 19
+    },
+    {
+      "name": "ai_current_actor",
+      "mcc_index": 788,
+      "mcc_type": 19,
+      "xbox_index": 798,
+      "xbox_type": 19
+    },
+    {
+      "name": "ai_combat_status_idle",
+      "mcc_index": 796,
+      "mcc_type": 7,
+      "xbox_index": 806,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_combat_status_alert",
+      "mcc_index": 797,
+      "mcc_type": 7,
+      "xbox_index": 807,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_combat_status_active",
+      "mcc_index": 798,
+      "mcc_type": 7,
+      "xbox_index": 808,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_combat_status_uninspected",
+      "mcc_index": 799,
+      "mcc_type": 7,
+      "xbox_index": 809,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_combat_status_definite",
+      "mcc_index": 800,
+      "mcc_type": 7,
+      "xbox_index": 810,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_combat_status_certain",
+      "mcc_index": 801,
+      "mcc_type": 7,
+      "xbox_index": 811,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_combat_status_visible",
+      "mcc_index": 802,
+      "mcc_type": 7,
+      "xbox_index": 812,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_combat_status_clear_los",
+      "mcc_index": 803,
+      "mcc_type": 7,
+      "xbox_index": 813,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_combat_status_dangerous",
+      "mcc_index": 804,
+      "mcc_type": 7,
+      "xbox_index": 814,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_movement_patrol",
+      "mcc_index": 805,
+      "mcc_type": 7,
+      "xbox_index": 815,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_movement_combat",
+      "mcc_index": 807,
+      "mcc_type": 7,
+      "xbox_index": 817,
+      "xbox_type": 7
+    },
+    {
+      "name": "ai_movement_flee",
+      "mcc_index": 808,
+      "mcc_type": 7,
+      "xbox_index": 818,
+      "xbox_type": 7
+    },
+    {
+      "name": "cinematic_letterbox_style",
+      "mcc_index": 978,
+      "mcc_type": 8,
+      "xbox_index": 995,
+      "xbox_type": 8
+    }
+  ],
+  "xbox_catalogue_sha256": "4c530af0cafcff892f937e3c7e6046fa463605cd010e6319128672a06ed2103d"
+}

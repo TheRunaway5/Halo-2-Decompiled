@@ -7,6 +7,7 @@
 #include "halo2/source_tag_metadata.hpp"
 #include "halo2/source_shadow.hpp"
 #include "halo2/model.hpp"
+#include "halo2/original_data.hpp"
 #include <algorithm>
 #include <iostream>
 #include <fstream>
@@ -21,13 +22,16 @@ int main(int argc,char**argv) {
     std::cout<<std::unitbuf;
     std::filesystem::path files;
     try {
-        if(argc!=3 && argc!=4)throw std::runtime_error("Supply the owned English TU1.5 executable and Xbox map, optionally a diagnostic directory");
-        if(!std::filesystem::exists(argv[1]) || !std::filesystem::exists(argv[2]))return 77;
-        halo2::Cache cache(argv[2]);
+        if(argc!=3 && argc!=4)throw std::runtime_error("Supply either --native-world MAP or REFERENCE_XBE MAP, optionally a diagnostic directory");
+        const bool native_world=std::string_view(argv[1])=="--native-world";
+        if((!native_world && !std::filesystem::exists(argv[1])) || !std::filesystem::exists(argv[2]))return 77;
+        halo2::Cache cache(argv[2],{},native_world?halo2::OriginalData::native_tu15():nullptr);
         auto name=(std::filesystem::temp_directory_path()/"halo2-live-tu15-XXXXXX").string();
         const auto p=::mkdtemp(name.data());if(!p)throw std::runtime_error("Native temporary directory failed");files=p;
         {
-            halo2::PhysicsLiveWorldTu15 world(cache,argv[1],files);
+            auto world_owner=native_world?std::make_unique<halo2::PhysicsLiveWorldTu15>(cache,files):
+                std::make_unique<halo2::PhysicsLiveWorldTu15>(cache,argv[1],files);
+            auto& world=*world_owner;
             const auto startup_word=[&](std::uint32_t p) {
                 const auto bytes=world.memory().view(p,4);std::uint32_t value{};
                 for(unsigned i=0;i<4;++i)value|=std::to_integer<std::uint32_t>(bytes[i])<<(i*8);

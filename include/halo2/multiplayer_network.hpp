@@ -1,6 +1,9 @@
 #pragma once
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_datagrams.hpp"
+#include "halo2/source_player_admission.hpp"
+#include "halo2/peer_authority_transfer.hpp"
+#include "halo2/native_vehicle_camera.hpp"
 #include <memory>
 #include <chrono>
 namespace halo2 {
@@ -25,6 +28,8 @@ std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,
                                      const std::filesystem::path &gameplay_xbe = {});
 class LanHost {
 public:
+  // TU1.5 peer-table operations run on their native world's executor. The
+  // configuration I/O worker only exchanges immutable configuration/packets.
   LanHost(MultiplayerMatch &, unsigned port, std::uint64_t fingerprint);
   LanHost(MultiplayerMatch &, unsigned port, std::uint64_t fingerprint,const UiVariant &);
   LanHost(MultiplayerMatch &, std::shared_ptr<MultiplayerDatagrams>, std::uint64_t,
@@ -37,7 +42,71 @@ public:
   void broadcast();
   unsigned peers() const;
 
+  class Continuation {
+  public:
+    Continuation()=default;
+  private:
+    friend class LanHost;
+    struct Data;std::shared_ptr<const Data> data_;
+  };
+  // Owning input/connection/camera values at one completed TU1.5 world cut.
+  // Only the authenticated logical-endpoint transport is supported. No socket,
+  // pending transport packet, device, executor or borrowed world is retained.
+  Continuation checkpoint(MultiplayerMatch::AuthorityDigest)const;
+  static std::uint64_t continuation_allocation(const Continuation &);
+  // Restore the complete world first, then pair it with this exact sidecar and
+  // independently accepted full native roster. Recreates the same remote view
+  // mapping without joining/respawning anyone. The caller must quiesce/revoke
+  // the previous host and isolate the new transport generation before use.
+  // This does not elect/promote a host, change membership/local ownership,
+  // authenticate the cut, or import hardware/voice.
+  static std::unique_ptr<LanHost> resume(MultiplayerMatch &,
+      std::shared_ptr<MultiplayerDatagrams>,std::uint64_t,std::vector<OnlineAdmission>,
+      const Continuation &,MultiplayerMatch::AuthorityDigest,
+      std::span<const SourcePlayerAdmission> accepted_roster);
+  struct ContinuationBinding {
+    AuthorityTransferContext context;
+    AuthorityCutSeal world;
+    bool operator==(const ContinuationBinding &)const=default;
+  };
+  // Codec functions live in halo2_authority_codec. Authenticate the outer peer
+  // and supply its independently agreed context, exact content seal and
+  // rosters before decoding. The typed full-world/replay envelopes define
+  // what that seal proves. These bytes are not an election certificate and
+  // do not include sockets, pending transport packets, hardware or voice.
+  static std::vector<std::byte> encode_continuation(const Continuation &,const ContinuationBinding &);
+  static Continuation decode_continuation(std::span<const std::byte>,const ContinuationBinding &,
+      std::uint64_t fingerprint,std::span<const OnlineAdmission>,std::span<const SourcePlayerAdmission>);
+
+  // Owning former-remote view/input state for the newly local couch players.
+  // The controller owner must adopt this bank before accepting fresh hardware
+  // input. Capture does not include a physical controller or microphone.
+  struct LocalContinuation {
+    std::vector<unsigned> slots;
+    std::array<Controls,4> controls{};
+    std::array<std::array<std::uint32_t,10>,4> received_presses{},delivered_presses{};
+    std::array<std::array<std::uint16_t,2>,4> completed{};
+    std::array<std::optional<SourcePlayerActionTarget>,4> completed_vehicle{};
+    std::optional<NativeVehicleCamera::Checkpoint> camera;
+    std::optional<std::uint32_t> camera_tick;
+    std::array<std::optional<NativeDeathCameraView>,4> vehicle_views,death_views;
+    std::array<std::uint32_t,4> camera_jump_serial{};
+  };
+  struct HostLossResume {std::unique_ptr<LanHost> host;LocalContinuation local;};
+  // Invoke only after the session has independently certified this exact cut
+  // and next authority context, and the complete world has been rebound to
+  // next.host's views. The next context removes the failed old host. Preserves
+  // surviving remote cookies, input serials, snapshot sequences and cameras;
+  // returns the promoted peer's whole local input/camera bank. Does not depart
+  // players, elect a host, activate transport or bind hardware/voice.
+  static HostLossResume resume_after_host_loss(MultiplayerMatch &,
+      std::shared_ptr<MultiplayerDatagrams>,std::uint64_t,std::vector<OnlineAdmission>,
+      const Continuation &,const AuthorityTransferContext &previous,
+      const AuthorityTransferContext &next,std::span<const SourcePlayerAdmission> accepted_roster);
+
 private:
+  friend struct SourceHostContinuationAccess;
+  MultiplayerMatch &continuation_match()const;
   struct Impl;
   std::unique_ptr<Impl> impl_;
 };
@@ -61,6 +130,15 @@ public:
   std::span<const MultiplayerState> received_states() const;
   std::span<const unsigned> slots() const;
   std::string error() const;
+  // Bind once from independent session admission after native hello has
+  // completed. A cut or an unauthenticated datagram cannot change this context.
+  void bind_continuity(const AuthorityTransferContext &,unsigned physical_self,
+      std::span<const OnlineAdmission>);
+  // Caller first certifies next/cut and isolates the old transport generation.
+  // Keeps all outgoing input/held/pulse counters and accepted couch IDs. The
+  // first complete new-host snapshot resets only the old receive baseline.
+  void rebind_host(const AuthorityTransferContext &previous,const AuthorityTransferContext &next,
+      const AuthorityCutSeal &accepted_cut);
 
 private:
   struct Impl;

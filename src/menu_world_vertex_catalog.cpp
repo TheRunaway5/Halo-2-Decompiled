@@ -87,25 +87,43 @@ bool equal(std::span<const std::uint16_t> a,std::span<const std::uint16_t> b) {
   return a.size()==b.size() && std::equal(a.begin(),a.end(),b.begin());
 }
 }
-MenuWorldVertexShaderSource menu_world_vertex_shader_source(
-    std::span<const std::byte> bytes,const SourceVertexDeclaration &inputs) {
+namespace {
+MenuWorldVertexShaderSource shader_source(
+    std::span<const std::byte> bytes,const SourceVertexDeclaration &inputs,bool attributes) {
   declaration(inputs);
   const auto program=decode_vertex_program(bytes);
-  const auto source=inputs.class_index<2?menu_world_vertex_source(program):menu_world_skinned_vertex_source(program);
+  const auto source=attributes?menu_world_material_vertex_source(program,inputs.class_index>=2):
+      (inputs.class_index<2?menu_world_vertex_source(program):menu_world_skinned_vertex_source(program));
   for(const auto input:source.consumed_inputs)
-    if(input>=inputs.semantics.size())
+    if(input>=inputs.semantics.size() && !(attributes && (input==10 || input==11)))
       throw UnsupportedVertexProgram("menu raw vertex program consumes an external constant attribute");
-  std::ostringstream text;text<<"#version 450\n// Halo2 raw class0..6 vertex catalog ABI2.\n";
+  std::ostringstream text;text<<"#version 450\n// Halo2 raw class0..6 vertex catalog ABI"<<(attributes?3:2)<<".\n";
   for(unsigned i=0;i<inputs.semantics.size();++i)
     text<<"layout(location="<<i<<") in "<<(packed(inputs.semantics[i])?"int":"vec4")
         <<" v"<<i<<(packed(inputs.semantics[i])?"_cmp":"")<<";\n";
-  text<<interface<<source.helpers<<fetch_helpers<<"void main() {\n";
-  for(const auto input:source.consumed_inputs)
+  std::string uniform_interface=interface;
+  if(attributes)uniform_interface.insert(uniform_interface.find("} source;"),"    vec4 attributes[16];\n");
+  text<<uniform_interface<<source.helpers<<fetch_helpers<<"void main() {\n";
+  for(const auto input:source.consumed_inputs) {
+    if(input>=inputs.semantics.size()) {
+      text<<"    vpInput["<<input<<"]=source.attributes["<<input<<"];\n";
+      continue;
+    }
     text<<"    vpInput["<<input<<"]="
         <<(packed(inputs.semantics[input])?"sourcePackedNormal(v":"v")<<input
         <<(packed(inputs.semantics[input])?"_cmp)":"")<<";\n";
+  }
   text<<source.statements<<epilogue;
   return {text.str(),source.consumed_inputs,source.consumed_constants};
+}
+}
+MenuWorldVertexShaderSource menu_world_vertex_shader_source(
+    std::span<const std::byte> bytes,const SourceVertexDeclaration &inputs) {
+  return shader_source(bytes,inputs,false);
+}
+MenuWorldVertexShaderSource menu_world_material_vertex_shader_source(
+    std::span<const std::byte> bytes,const SourceVertexDeclaration &inputs) {
+  return shader_source(bytes,inputs,true);
 }
 const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
     std::span<const MenuWorldVertexCatalogEntry> catalog,std::span<const std::byte> program,
@@ -124,9 +142,12 @@ const MenuWorldVertexCatalogEntry &menu_world_vertex_catalog_lookup(
     if(entry.class_index!=inputs.class_index || entry.program_bytes!=program.size() ||
        entry.program_sha256!=std::string_view(identity.data(),identity.size()) ||
        !equal(entry.semantics,inputs.semantics))continue;
-    if(entry.abi!=menu_world_vertex_catalog_abi || entry.spirv.size()<5 ||
+    if((entry.abi!=menu_world_vertex_catalog_abi && entry.abi!=menu_world_vertex_attribute_catalog_abi) || entry.spirv.size()<5 ||
        entry.spirv[0]!=0x07230203u || entry.spirv[1]!=0x00010600u || entry.spirv[4]!=0)
       throw FormatError("menu raw vertex catalog entry has an incompatible ABI/SPIR-V header");
+    for(const auto reg:entry.consumed_inputs)if(reg>=inputs.semantics.size() &&
+        (entry.abi!=menu_world_vertex_attribute_catalog_abi || (reg!=10 && reg!=11)))
+      throw FormatError("menu raw vertex catalog has an incompatible constant attribute read");
     if(match)throw FormatError("menu raw vertex catalog identity is ambiguous");
     match=&entry;
   }

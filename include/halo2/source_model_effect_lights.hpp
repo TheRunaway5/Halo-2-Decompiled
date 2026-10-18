@@ -3,6 +3,7 @@
 #include "halo2/effect_light.hpp"
 
 namespace halo2 {
+namespace pstencil {class SharedLightMaterials;}
 struct SourceModelEffectLightDrawInput {
     std::uint32_t object=0xffffffffu,light=0xffffffffu,shader=0xffffffffu;
     unsigned part{},shader_lod{},pass{},vertex_class{};
@@ -24,6 +25,8 @@ class SourceModelEffectLights {
 public:
     SourceModelEffectLights(const Cache&,Mesh&,std::uint32_t render_model,unsigned section,
         std::span<const std::uint32_t> lights);
+    SourceModelEffectLights(const Cache&,Mesh&,std::uint32_t render_model,unsigned section,
+        std::span<const std::uint32_t> lights,std::shared_ptr<pstencil::SharedLightMaterials>);
     ~SourceModelEffectLights();
     SourceModelEffectLights(const SourceModelEffectLights&)=delete;
     SourceModelEffectLights& operator=(const SourceModelEffectLights&)=delete;

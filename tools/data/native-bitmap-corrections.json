@@ -1,0 +1,252 @@
+{
+  "schema": "H2_MCC_BITMAP_DELTA_V1",
+  "donor_rgba_sha256": "e3bf56db0a97306a9a6e7e5efa48a6e050e808464d23e65db3e443bcfdbae915",
+  "delta_sha256": "d4a1cae474e0b1cbb8f330d461697690df7b2c8558bf6d5bd1d06f1c87e6a2a9",
+  "delta_bytes": 565812,
+  "profile": {
+    "schema": "H2_MCC_GRAPHICS_CORRECTIONS_V1",
+    "source_map_sha256": "563bef8cc5f8f8cf28112eff44f4e1377e1f012b69f65e3e2e9a04484c497ca7",
+    "original_map_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+    "tag": "scenarios\\bitmaps\\multi\\zanzibar\\massive_concrete_bump",
+    "rgba_sha256": "e73e664e6b6fa60d5f245ca7b3edac4d00200f38bc8a67ee12330666e30e063c",
+    "rgba_bytes": 1398100,
+    "mips": [
+      {
+        "depth": 1,
+        "height": 512,
+        "offset": 0,
+        "size": 1048576,
+        "width": 512
+      },
+      {
+        "depth": 1,
+        "height": 256,
+        "offset": 1048576,
+        "size": 262144,
+        "width": 256
+      },
+      {
+        "depth": 1,
+        "height": 128,
+        "offset": 1310720,
+        "size": 65536,
+        "width": 128
+      },
+      {
+        "depth": 1,
+        "height": 64,
+        "offset": 1376256,
+        "size": 16384,
+        "width": 64
+      },
+      {
+        "depth": 1,
+        "height": 32,
+        "offset": 1392640,
+        "size": 4096,
+        "width": 32
+      },
+      {
+        "depth": 1,
+        "height": 16,
+        "offset": 1396736,
+        "size": 1024,
+        "width": 16
+      },
+      {
+        "depth": 1,
+        "height": 8,
+        "offset": 1397760,
+        "size": 256,
+        "width": 8
+      },
+      {
+        "depth": 1,
+        "height": 4,
+        "offset": 1398016,
+        "size": 64,
+        "width": 4
+      },
+      {
+        "depth": 1,
+        "height": 2,
+        "offset": 1398080,
+        "size": 16,
+        "width": 2
+      },
+      {
+        "depth": 1,
+        "height": 1,
+        "offset": 1398096,
+        "size": 4,
+        "width": 1
+      }
+    ],
+    "reference_mips": [
+      {
+        "level": 0,
+        "width": 512,
+        "height": 512,
+        "xbox_sha256": "400eea9377ee3ee79b56675fd5e027c2ded253792543b96ce5abcb950dffe7dc",
+        "mcc": {
+          "sha256": "1bef5ef214bd9ff76c06eced42306d771d4ced7a6f9b05f5f8a9126d2af82344",
+          "differing_texels": 258506,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "400eea9377ee3ee79b56675fd5e027c2ded253792543b96ce5abcb950dffe7dc",
+          "differing_texels": 0,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 1,
+        "width": 256,
+        "height": 256,
+        "xbox_sha256": "25c96693bd6a91b7443d5c873a61ba88bcc115f7c9bcfae5e31b2d7ce654697d",
+        "mcc": {
+          "sha256": "65cb8c6a860b64feb75ca5ea6507a6343e8b8e356dda6ef90ed5398614d21046",
+          "differing_texels": 63981,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "d9044507b30d3293556c9fc1e1444cb85bd4c61d20f6c44667ce5d98980a87d4",
+          "differing_texels": 65536,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 2,
+        "width": 128,
+        "height": 128,
+        "xbox_sha256": "d53dcb56848c54ffd578a415fc6ce3379d4a5cfb38a62c8615d32c806f1bd6bc",
+        "mcc": {
+          "sha256": "550bbb2275fc8b5ad2506f6f2a17cd4b7e6607d22653a71d973239373684483c",
+          "differing_texels": 15736,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "0a493ad28b9d76a27a2d6607638b04db9c7e64134831cf045617d605e557c7f5",
+          "differing_texels": 16384,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 3,
+        "width": 64,
+        "height": 64,
+        "xbox_sha256": "973a9af9be226b17f6923eab6a43d4197dba4fdecc96715c67614e7dc5653c5a",
+        "mcc": {
+          "sha256": "8f4887b7c4e29428f43fda209d1fa9856ac016cfce92fa936151eecc4253953f",
+          "differing_texels": 3862,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "ab6adc1d7e48fd66a5daa2d0c539ce3cbf3560b9871e01af08f7cf33d2086b51",
+          "differing_texels": 4096,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 4,
+        "width": 32,
+        "height": 32,
+        "xbox_sha256": "10c6f4d92d834cf3096f94f8aef827083d9a2362cbb8c077fa0aceb073abcfb5",
+        "mcc": {
+          "sha256": "b6e272a3adaa950911e6a9d374e351643165f6714f48649f9ad0965d00843bbb",
+          "differing_texels": 911,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "567bfb09e35c259b109e900dc3edbbda2cea7e3bd56d85c4ec9c7a934498b670",
+          "differing_texels": 1024,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 5,
+        "width": 16,
+        "height": 16,
+        "xbox_sha256": "62bf45575aeeb8822fdf2863c143a4942bd7faaae55bde833f07e2563c290b04",
+        "mcc": {
+          "sha256": "a419c09259b79ccfeb0ad81e0ca266e8b8ee507832c5def1f923554779dafe50",
+          "differing_texels": 214,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "1694e26687c0ab40b4e36caeab964c9e762b336a27dc6cb8b712be8670cdbbfe",
+          "differing_texels": 256,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 6,
+        "width": 8,
+        "height": 8,
+        "xbox_sha256": "12cc47feef34d3fa2ee7175cf75492fb1a24aea967970d34cdf0b04b983f0f23",
+        "mcc": {
+          "sha256": "de7104f491a46ad708d223399bbdd5ba97c4410dabebbcc74cdd3ed481590007",
+          "differing_texels": 34,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "c32ad3c27810b1a4dbdc5b4b8c8770f052406e52f9f985e99a9ae1533b25d4e7",
+          "differing_texels": 64,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 7,
+        "width": 4,
+        "height": 4,
+        "xbox_sha256": "5ce3aa8aceac9b1c3ce8da447d2554ca42e30f77bc4e4b4345374688bf24e528",
+        "mcc": {
+          "sha256": "5ce3aa8aceac9b1c3ce8da447d2554ca42e30f77bc4e4b4345374688bf24e528",
+          "differing_texels": 0,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "4e11481326dc60d0944c9e8c15a004f35fa10f6661a155f42420e5d6005f84b5",
+          "differing_texels": 16,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 8,
+        "width": 2,
+        "height": 2,
+        "xbox_sha256": "d24ef7993b6b2b8365793ad54ef0e0eba80d428c340de27f664fc993f50e90f3",
+        "mcc": {
+          "sha256": "d24ef7993b6b2b8365793ad54ef0e0eba80d428c340de27f664fc993f50e90f3",
+          "differing_texels": 0,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "df1dff14277572a54cbcaccaa90e8f5e3381ab1b655e17022a53558612fecf71",
+          "differing_texels": 4,
+          "dimensions_match": true
+        }
+      },
+      {
+        "level": 9,
+        "width": 1,
+        "height": 1,
+        "xbox_sha256": "7d3637f853b2bd5a74fcb24776369cb407f4588675dcc5a32165bf6994a32c9b",
+        "mcc": {
+          "sha256": "7d3637f853b2bd5a74fcb24776369cb407f4588675dcc5a32165bf6994a32c9b",
+          "differing_texels": 0,
+          "dimensions_match": true
+        },
+        "reformation": {
+          "sha256": "569d3ceabf65e41f93910d2aaa1abfd506101f405ccb0416ec7844c68f91dea8",
+          "differing_texels": 1,
+          "dimensions_match": true
+        }
+      }
+    ],
+    "reformation_base_corroborated": true,
+    "full_graphics_parity": false
+  },
+  "full_graphics_parity": false,
+  "scope": "Zanzibar massive concrete: exact ten original mips; other map and shader bindings unchanged"
+}

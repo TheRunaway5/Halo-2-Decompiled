@@ -66,6 +66,7 @@ void owned() {
     }
     check(target.authority_checkpoint().names==before.names,"Cancellation changed scene");
     auto bad=saved;bad.version=2;rejects([&]{target.prepare_authority(bad);});
+    bad=saved;bad.source_child_factory=!bad.source_child_factory;rejects([&]{target.prepare_authority(bad);});
     bad=saved;bad.content_binding[0]^=std::byte{1};rejects([&]{target.prepare_authority(bad);});
     bad=saved;bad.slots.begin()->second=999;rejects([&]{target.prepare_authority(bad);});
     bad=saved;bad.names[0]=null_datum;rejects([&]{target.prepare_authority(bad);});

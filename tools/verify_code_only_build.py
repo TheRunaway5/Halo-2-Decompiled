@@ -25,7 +25,7 @@ def main():
         source.mkdir()
         for name in ('CMakeLists.txt', 'README.md'):
             shutil.copy2(ROOT / name, source / name)
-        for name in ('src', 'include', 'shaders', 'resources', 'tests', 'tools'):
+        for name in ('src', 'include', 'shaders', 'resources', 'tests', 'tools', 'cmake'):
             shutil.copytree(ROOT / name, source / name,
                             ignore=shutil.ignore_patterns('reference', '__pycache__', '*.bin', '*.vp'))
         forbidden = {'.iso', '.xbe', '.map', '.lvl', '.bik', '.wav', '.zip', '.7z', '.bin', '.vp'}
@@ -38,7 +38,8 @@ def main():
         build = Path(directory) / 'build'
         commands = [
             ('configure', ['cmake', '-S', str(source), '-B', str(build), '-DCMAKE_BUILD_TYPE=RelWithDebInfo']),
-            ('build', ['cmake', '--build', str(build), '-j', '4']),
+            ('build', ['cmake', '--build', str(build), '-j', '2']),
+            ('build-tests', ['cmake', '--build', str(build), '--target', 'halo2_tests', '-j', '2']),
             ('tests', ['ctest', '--test-dir', str(build), '--output-on-failure']),
         ]
         env = os.environ.copy()

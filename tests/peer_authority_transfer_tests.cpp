@@ -32,7 +32,8 @@ struct Link {
     void handshake(){for(unsigned i=0;i<3000&&(!a.supported(4)||!b.supported(0));++i)step();check(a.supported(4)&&b.supported(0),"Capabilities did not survive loss");}
 };
 void concurrent_delivery(){
-    PeerAuthorityTransfer a(0,context(),limits()),b(4,context(),limits());
+    auto configured=limits();configured.features=authority_feature_source_pipeline;
+    PeerAuthorityTransfer a(0,context(),configured),b(4,context(),configured);
     const auto started=std::chrono::steady_clock::now();
     auto now=[&]{return std::uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::steady_clock::now()-started).count());};
@@ -64,16 +65,75 @@ void concurrent_delivery(){
         wait([&]{cut=client.take_completed();return bool(cut);});
         check(cut->context==binding&&cut->seal==seal&&*cut->bytes==bytes,"Concurrent transfer changed the complete cut");
         check(host.validated_cuts().empty(),"Concurrent byte delivery acknowledged a world");
+        wait([&]{return host.delivered_to(binding,seal,target);});
+        const auto successor=host.publish_ahead(binding,seal,124,bytes,target,now());
+        std::optional<ReceivedAuthorityCut> next;
+        wait([&]{next=client.take_completed();return bool(next);});
+        check(next->seal==successor&&*next->bytes==bytes,"Concurrent successor changed complete bytes");
         check(client.acknowledge_validated(binding,seal),"Concurrent executor acknowledgement was rejected");
+        check(client.acknowledge_validated(binding,successor),"Concurrent successor validation was rejected");
         std::vector<ValidatedAuthorityCut> ready;
-        wait([&]{ready=host.validated_cuts();return !ready.empty();});
-        check(ready.size()==1&&ready[0].context==binding&&ready[0].seal==seal,"Concurrent acknowledgement changed context");
+        wait([&]{auto r=host.validated_cuts();ready.insert(ready.end(),r.begin(),r.end());return ready.size()==2;});
+        check(ready[0].context==binding&&ready[0].seal==seal&&ready[1].context==binding&&ready[1].seal==successor,
+            "Concurrent acknowledgement changed context or order");
     };
     transfer(a,b,4,context());
     auto next=context();next.epoch=1;next.host=4;
     check(a.replace_context(context(),next)&&b.replace_context(context(),next),"Concurrent committed context reset failed");
     transfer(b,a,0,next);
     std::cout<<"PASS concurrent bidirectional pumping, publication, executor acknowledgement, observation and authority-context replacement under loss/reorder/duplicates\n";
+}
+void pipeline_delivery(){
+    auto configured=limits();configured.features=authority_feature_source_pipeline;
+    PeerAuthorityTransfer host(0,context(),configured),client(4,context(),configured);
+    std::uint64_t now{};unsigned serial{};
+    auto step=[&](bool drop_ready=false){++now;
+        auto send=[&](auto &from,auto &to,unsigned source){auto packets=from.poll(now,16);std::reverse(packets.begin(),packets.end());
+            for(auto &p:packets){if(drop_ready&&source==4&&p.bytes[8]==std::byte{5})continue;
+                if(++serial%7==0)continue;to.receive(source,p.bytes,now);if(serial%11==0)to.receive(source,p.bytes,now);}};
+        send(host,client,0);send(client,host,4);
+    };
+    auto wait=[&](auto ready,bool drop=false){for(unsigned n=0;n<10'000&&!ready();++n)step(drop);check(ready(),"Two-cut pipeline did not progress under loss");};
+    wait([&]{return host.supported(4)&&client.supported(0);});
+    check(host.feature_supported(4,authority_feature_source_pipeline),"Pipeline feature was not negotiated");
+    const std::array<unsigned,1> targets{4};std::vector<std::byte> first(90'011,std::byte{0x41}),second(80'013,std::byte{0x42});
+    const auto one=host.publish(context(),10,first,targets,now);
+    rejects([&]{host.publish_ahead(context(),one,11,second,4,now);});
+    wait([&]{return host.delivered_to(context(),one,4);});
+    const auto two=host.publish_ahead(context(),one,11,second,4,now);
+    for(unsigned n=0;n<100;++n)step();
+    auto received_one=client.take_completed();
+    check(received_one&&received_one->seal==one&&*received_one->bytes==first&&host.validated_cuts().empty(),
+        "A successor overwrote unconsumed bytes or manufactured native readiness");
+    std::optional<ReceivedAuthorityCut> received_two;
+    wait([&]{if(!received_two)received_two=client.take_completed();return received_two&&host.delivered_to(context(),two,4);});
+    check(received_two->seal==two&&*received_two->bytes==second&&host.validated_cuts().empty(),"Prefetch changed or validated a world");
+    rejects([&]{host.publish_ahead(context(),two,12,first,4,now);});
+    auto wrong=one;++wrong.tick;check(!client.acknowledge_validated(context(),wrong),"Pipeline accepted a different completed world");
+    check(client.acknowledge_validated(context(),one),"Earlier executor validation was lost to prefetch");
+    for(unsigned n=0;n<100;++n)step(true);check(host.validated_cuts().empty(),"Dropped validation still produced readiness");
+    check(client.acknowledge_validated(context(),two),"Successor native validation was rejected");
+    std::vector<ValidatedAuthorityCut> receipts;
+    wait([&]{auto r=host.validated_cuts();receipts.insert(receipts.end(),r.begin(),r.end());return receipts.size()==2;});
+    check(receipts[0].seal==one&&receipts[1].seal==two,"Lost Ready recovery reordered validated cuts");
+    for(unsigned n=0;n<100;++n)step();check(host.validated_cuts().empty(),"Duplicate pipeline Ready created new receipts");
+    const auto three=host.publish_ahead(context(),two,12,first,4,now);
+    check(three.id>two.id,"Pipeline reused a transfer identity");
+    std::optional<ReceivedAuthorityCut> rejected;
+    wait([&]{if(!rejected)rejected=client.take_completed();return bool(rejected);});
+    check(!client.reject_delivered(context(),two)&&client.reject_delivered(context(),three)&&
+        !client.acknowledge_validated(context(),three),"Native rejection retained a valid-world receipt");
+    const auto repaired=host.publish(context(),13,second,targets,now);std::optional<ReceivedAuthorityCut> repair;
+    wait([&]{if(!repair)repair=client.take_completed();return bool(repair);});
+    check(repair->seal==repaired&&*repair->bytes==second&&client.acknowledge_validated(context(),repaired),
+        "Rejected delivered cut blocked complete world repair");
+    auto changed=context();++changed.epoch;check(host.replace_context(context(),changed)&&client.replace_context(context(),changed),"Pipeline context replacement failed");
+    check(!host.delivered_to(context(),two,4)&&!client.acknowledge_validated(context(),two),"Old pipeline receipt survived context replacement");
+    auto old=limits();PeerAuthorityTransfer legacy(4,context(),old),modern(0,context(),configured);
+    for(unsigned t=0;t<100;++t){for(auto p:modern.poll(t,16))legacy.receive(0,p.bytes,t);for(auto p:legacy.poll(t,16))modern.receive(4,p.bytes,t);}
+    const auto single=modern.publish(context(),1,first,targets,100);
+    rejects([&]{modern.publish_ahead(context(),single,2,second,4,100);});
+    std::cout<<"PASS negotiated two-cut delivery, withheld executor readiness, bounded third-cut rejection, earlier/native validation under lost Ready, context reset and legacy refusal\n";
 }
 void run(){
     {
@@ -131,7 +191,7 @@ void run(){
     for(unsigned i=0;i<100;++i)expired.b.receive(0,expired.old_chunk,expired.now+6002+i);
     check(!expired.b.take_completed(),"Timed-out transfer identifier was revived");
     PeerAuthorityTransfer alone(0,AuthorityTransferContext{context().session,0,0,1,0});check(alone.poll(0).empty(),"Couch-only room generated a self route");
-    concurrent_delivery();
+    pipeline_delivery();concurrent_delivery();
     std::cout<<"PASS bounded peer authority delivery under deterministic loss/reorder/duplicates, explicit validated-world acknowledgements, context/source/timeout/corruption guards and couch-only rooms\n";
 }
 }

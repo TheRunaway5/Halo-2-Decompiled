@@ -60,7 +60,7 @@ SceneObjects::SceneObjects(const LevelContent &content, std::size_t bsp,
       names_(content.object_names.size(), null_datum) {
   if(!shared_lifetimes_)local_lifetimes_.emplace();
   if(bool(source_owner_.create)!=bool(source_owner_.destroy) ||
-      (source_owner_.create && !shared_lifetimes_))
+      (source_owner_.create && !shared_lifetimes_) || (source_owner_.adopt_child && !source_owner_.create))
     throw FormatError("Source scene ownership requires paired birth/retirement and its shared pool");
   // D5560 attempts types0..12, then each authored placement ordinal.
   // Native factory admission remains separate from that ordering.
@@ -153,7 +153,8 @@ const NativeObjectLifetimes &SceneObjects::object_lifetimes() const {
   return shared_lifetimes_?*shared_lifetimes_:*local_lifetimes_;
 }
 std::uint32_t SceneObjects::place(std::size_t placement,
-                                  std::uint64_t creation_tick,SourceScenarioBirth birth) {
+                                  std::uint64_t creation_tick,SourceScenarioBirth birth,
+                                  std::uint32_t attachment_parent) {
   AuthorityCalls::Scope call(authority_calls_);
   if(source_replica_)throw FormatError("Source scene replica cannot construct an authoritative object");
   if (placement >= content_.objects.size())
@@ -182,10 +183,23 @@ std::uint32_t SceneObjects::place(std::size_t placement,
     render_attribution_at_birth = source_object_render_flag31_construction_event(
         0, definition).model_attribution_available;
   }
+  if(attachment_parent!=null_datum && !p.model_attachment)
+    throw FormatError("An unattached scene placement cannot adopt a parent generation");
+  if(p.model_attachment && (attachment_parent!=null_datum || source_owner_.adopt_child)) {
+    if(attachment_parent==null_datum) {
+      for(const auto &parent:objects_)if(parent.handle!=null_datum && parent.placement==p.model_attachment->parent) {
+        if(attachment_parent!=null_datum)throw FormatError("Model child has multiple live parent generations; bind the actual parent explicitly");
+        attachment_parent=parent.handle;
+      }
+      if(attachment_parent==null_datum)throw FormatError("Model child has no retained authored parent");
+    }
+    if(get(attachment_parent).placement!=p.model_attachment->parent)
+      throw FormatError("Model child parent generation differs from its authored placement");
+  }
   if(p.type<0 || p.type>12)throw FormatError("scene object has unsupported original type");
   ++authority_calls_.mutations;
-  const auto handle=source_owner_.create ? source_owner_.create(p,birth) :
-      lifetime_owner().reserve(std::uint8_t(p.type));
+  const auto handle=p.model_attachment && source_owner_.adopt_child ? source_owner_.adopt_child(p,attachment_parent) :
+      source_owner_.create ? source_owner_.create(p,birth) : lifetime_owner().reserve(std::uint8_t(p.type));
   if(handle==null_datum)throw FormatError(source_owner_.create ?
       "original source rejected scene placement type="+std::to_string(p.type)+
       " ordinal="+std::to_string(p.placement)+" definition="+std::to_string(p.definition)+
@@ -195,6 +209,7 @@ std::uint32_t SceneObjects::place(std::size_t placement,
   if (slot == objects_.size())objects_.push_back({});
   objects_[slot] = {handle, placement, p.position, p.rotation, p.scale, true, false, false, false, int(bsp_)};
   objects_[slot].created_tick = creation_tick;
+  objects_[slot].attachment_parent=attachment_parent;
   objects_[slot].render_attribution_at_birth = render_attribution_at_birth;
   slots_.emplace(handle,slot);
   if (p.name >= 0) {
@@ -534,6 +549,23 @@ void Presentation::update_camera(float dt) {
 }
 Camera Presentation::camera(const Camera &player, float render_fraction) const {
   auto result = scripted ? camera_ : player;
+  if (scripted && animation_ && camera_elapsed_ < camera_duration_ &&
+      std::isfinite(render_fraction) && render_fraction > 0) {
+    // The script clock remains integral. Sample the same authored track for
+    // presentation between ticks, just as the observer curve below does.
+    const auto pose = sample_animation(*animation_, 0,
+        float(camera_elapsed_) + std::min(render_fraction, 1.f));
+    const glm::quat anchor(glm::vec3(0, -anchor_.pitch, anchor_.yaw));
+    const auto rotation = anchor * glm::quat(pose.rotation[3], pose.rotation[0],
+                                            pose.rotation[1], pose.rotation[2]);
+    const auto position = anchor * glm::vec3(pose.translation.x,
+        pose.translation.y, pose.translation.z);
+    result.position = anchor_.position + Vec3{position.x, position.y, position.z};
+    const auto forward = rotation * glm::vec3(1, 0, 0);
+    const auto up = rotation * glm::vec3(0, 0, 1);
+    result.forward = {forward.x, forward.y, forward.z};
+    result.up = {up.x, up.y, up.z};
+  }
   if (scripted && !animation_ && camera_elapsed_ < camera_duration_ &&
       std::isfinite(render_fraction) && render_fraction > 0) {
     // Sample the same observer curve between simulation ticks, retaining the

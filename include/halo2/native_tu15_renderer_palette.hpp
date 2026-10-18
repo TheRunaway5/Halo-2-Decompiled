@@ -8,6 +8,9 @@ void mount_native_tu15_renderer_palette_data(SourceRuntimeMemory&);
 class NativeTu15RendererPalette final {
 public:
     NativeTu15RendererPalette(SourceRuntimeMemory&,NativeTu15GraphicsDevice&,RendererPaletteFactory);
+    // The ordinary native world already has a live Renderer. Admit its actual
+    // immutable color resource without claiming the Xbox cold device sequence.
+    NativeTu15RendererPalette(SourceRuntimeMemory&,RendererPaletteFactory);
     bool try_call(SourcePhysicsContactMemory&,const SourcePhysicsContactRuntimeCall&,SourcePhysicsWorldRuntimeAbi&);
     bool initialized() const;
     NativeRuntimeAddress native_address() const;
@@ -16,7 +19,7 @@ public:
     unsigned bindings() const noexcept{return bindings_;}
 private:
     SourceRuntimeMemory& memory_;
-    NativeTu15GraphicsDevice& device_;
+    NativeTu15GraphicsDevice* device_;
     RendererPaletteFactory factory_;
     RendererPalette palette_;
     std::thread::id thread_;

@@ -5,7 +5,7 @@
 #include "halo2/menu_world_raster.hpp"
 
 namespace halo2 {
-// One completed original layer12 sphere diffuse pass. The caller supplies
+// One completed original layer12 sphere diffuse or projected-light pass. The caller supplies
 // admitted, culled triangles in original order and retains every bank through
 // Renderer::draw. This seam does not infer light visibility or receivers.
 struct EffectLightDraw {
@@ -39,8 +39,12 @@ struct EffectLightRawDraw {
     // Authored sphere specular companion passes. Original ignores this bank;
     // pStencil submits it inside the same per-light stencil test as diffuse.
     std::shared_ptr<const std::vector<EffectLightDraw>> pstencil_specular;
+    // In the optional recovered response, an explicitly empty bank marks a
+    // later native combined/gel pass already included by an earlier bank.
+    // nullptr retains the ordinary native pass. Original ignores both.
     std::uint32_t pstencil_light_domain{}; // Separate optional direct-light allocator.
     bool pstencil_casts_shadow=true;
+    std::array<std::uint8_t,16> vertex_attribute_components{};
 };
 // The original material upload covers c18..33 and3A550 covers c31..39.
 // Other owner/view constants survive, including compression/palette inputs

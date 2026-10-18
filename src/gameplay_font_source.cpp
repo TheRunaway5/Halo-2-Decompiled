@@ -1,0 +1,158 @@
+#include "halo2/gameplay_font_source.hpp"
+#include "halo2/cache.hpp"
+#include "halo2/frontend.hpp"
+#include <algorithm>
+#include <array>
+#include <bit>
+#include <fstream>
+#include <map>
+#include <openssl/evp.h>
+#include <span>
+#include <string_view>
+
+namespace halo2 {
+namespace {
+struct FontFile { std::string_view name; std::size_t bytes; std::string_view sha256; std::uint64_t fingerprint; };
+struct FontLookup { unsigned character, record; };
+struct FontMetric { unsigned record, character, x, y, width, height, advance; int bearing_x, bearing_y; };
+struct FontKerning { unsigned first, second; int value; };
+struct FontProfile {
+    std::string_view name, source_sha256;
+    std::uint64_t fingerprint;
+    int ascent, descent, leading, horizontal_offset;
+    unsigned default_record;
+    std::span<const FontLookup> lookup;
+    std::span<const FontMetric> metrics;
+    std::span<const FontKerning> kerning;
+};
+#include "gameplay_font_reference.inc"
+
+std::vector<std::string> table_names(const std::filesystem::path& directory) {
+    std::ifstream file(directory/"font_table.txt");
+    if(!file)throw FormatError("Missing gameplay font table: "+directory.string());
+    std::vector<std::string> result;
+    for(std::string name;std::getline(file,name);) {
+        if(!name.empty() && name.back()=='\r')name.pop_back();
+        result.push_back(std::move(name));
+        if(result.size()>12)throw FormatError("Excessive gameplay font selectors");
+    }
+    return result;
+}
+std::vector<std::byte> font_bytes(const std::filesystem::path& path) {
+    std::ifstream file(path,std::ios::binary|std::ios::ate);
+    if(!file || file.tellg()<0x40400 || file.tellg()>16*1024*1024)
+        throw FormatError("Invalid gameplay font resource: "+path.string());
+    std::vector<std::byte> bytes(static_cast<std::size_t>(file.tellg()));
+    file.seekg(0);
+    if(!file.read(reinterpret_cast<char*>(bytes.data()),bytes.size()))
+        throw FormatError("Truncated gameplay font resource");
+    return bytes;
+}
+std::string digest(std::span<const std::byte> bytes) {
+    std::array<unsigned char,32> hash{};unsigned size{};
+    if(EVP_Digest(bytes.data(),bytes.size(),hash.data(),&size,EVP_sha256(),nullptr)!=1 || size!=hash.size())
+        throw FormatError("Cannot authenticate gameplay font resource");
+    constexpr char hex[]="0123456789abcdef";std::string result;
+    for(const auto value:hash){result+=hex[value>>4];result+=hex[value&15];}
+    return result;
+}
+const FontFile& mcc_file(std::string_view name) {
+    const auto found=std::find_if(mcc_files.begin(),mcc_files.end(),[&](const auto& row){return row.name==name;});
+    if(found==mcc_files.end())throw FormatError("Unknown MCC gameplay font owner");
+    return *found;
+}
+void authenticate_mcc_file(const std::filesystem::path& directory,const FontFile& owner) {
+    const auto bytes=font_bytes(directory/owner.name);
+    if(bytes.size()!=owner.bytes || Bytes(bytes).u32(0x200)!=0xf0000001 || digest(bytes)!=owner.sha256)
+        throw FormatError("MCC gameplay font is outside the authenticated layout profile: "+std::string(owner.name));
+}
+const FontProfile* profile(unsigned selector) {
+    const auto found=std::find_if(profiles.begin(),profiles.end(),[&](const auto& row){return row.name==original_names.at(selector);});
+    return found==profiles.end()?nullptr:&*found;
+}
+void validate_source(const GameplayFontSource& source) {
+    const auto current=load_gameplay_font_source(source.directory);
+    if(current.domain!=source.domain || current.directory!=source.directory || current.names!=source.names)
+        throw FormatError("Gameplay font source changed after selection");
+}
+void validate_selector(const GameplayFontSource& source,unsigned selector) {
+    if(selector>=11 || selector>=source.names.size())throw FormatError("Gameplay font selector outside original table");
+}
+} // namespace
+
+std::filesystem::path gameplay_font_directory(const Cache& cache) {
+    return cache.is_mcc()?cache.shared_directory().parent_path()/"h2_fonts":cache.shared_directory()/"fonts";
+}
+GameplayFontSource load_gameplay_font_source(const std::filesystem::path& requested) {
+    auto directory=requested;
+    bool legacy_mcc=false;
+    if(!std::filesystem::exists(directory) && directory.filename()=="fonts" &&
+       directory.parent_path().filename()=="h2_maps_win64_dx11" &&
+       directory.parent_path().parent_path().filename()=="halo2" &&
+       std::filesystem::is_directory(directory.parent_path())) {
+        directory=directory.parent_path().parent_path()/"h2_fonts";
+        legacy_mcc=true;
+    }
+    auto names=table_names(directory);
+    const bool mcc_directory=directory.filename()=="h2_fonts" && directory.parent_path().filename()=="halo2";
+    if(names.size()==11 && !legacy_mcc && !mcc_directory) {
+        for(const auto& name:names)
+            if(name.find_first_of("/\\")!=name.npos || name=="..")throw FormatError("Invalid gameplay font owner");
+        return {GameplayFontDomain::Original,directory,std::move(names)};
+    }
+    if(!mcc_directory ||
+       names.size()!=mcc_names.size() || !std::equal(names.begin(),names.end(),mcc_names.begin()))
+        throw FormatError("Unrecognized MCC gameplay font table");
+    for(const auto& owner:mcc_files)authenticate_mcc_file(directory,owner);
+    return {GameplayFontDomain::Mcc,directory,std::move(names)};
+}
+RetailFont load_gameplay_font(const GameplayFontSource& source,unsigned selector) {
+    validate_selector(source,selector);
+    validate_source(source);
+    auto result=load_retail_font(source.directory/source.names[selector]);
+    if(source.domain==GameplayFontDomain::Original)return result;
+    const auto& owner=mcc_file(source.names[selector]);
+    if(result.file_fingerprint!=owner.fingerprint)
+        throw FormatError("MCC font changed during decoding");
+    const auto* layout=profile(selector);
+    if(!layout)return result; // Fixedsys9 and MSLCD14 are byte-identical.
+    const auto sampled=result;
+    result.ascent=layout->ascent;result.descent=layout->descent;result.leading=layout->leading;
+    result.glyph_record_indices.assign(65536,layout->default_record);
+    for(const auto& row:layout->lookup)result.glyph_record_indices.at(row.character)=row.record;
+    result.kerning.clear();
+    for(const auto& row:layout->kerning)result.kerning[{row.first,row.second}]=row.value;
+    std::map<unsigned,const FontMetric*> metrics;
+    for(const auto& row:layout->metrics)metrics.emplace(row.record,&row);
+    result.glyphs.clear();result.sampled_glyphs.clear();
+    for(unsigned c=32;c<65536;++c) {
+        const auto& logical=*metrics.at(result.glyph_record_indices[c]);
+        const auto& physical=sampled.glyphs.at(logical.character);
+        if(logical.width && logical.height && (!physical.width || !physical.height))
+            throw FormatError("MCC font lacks original glyph raster owner");
+        result.glyphs.emplace(c,FontGlyph{logical.x,logical.y,logical.width,logical.height,
+            int(logical.advance),logical.bearing_x,logical.bearing_y});
+        if(logical.width && logical.height)
+            result.sampled_glyphs.emplace(c,FontGlyphSample{physical.x,physical.y,physical.width,physical.height});
+    }
+    return result;
+}
+int gameplay_font_horizontal_offset(const GameplayFontSource& source,unsigned selector) {
+    validate_selector(source,selector);validate_source(source);
+    if(source.domain==GameplayFontDomain::Mcc)if(const auto* layout=profile(selector))return layout->horizontal_offset;
+    // Preserve the original signed word, independently of atlas placement.
+    std::ifstream file(source.directory/source.names[selector],std::ios::binary);
+    file.seekg(0x20a);std::array<unsigned char,2> bytes{};
+    if(!file.read(reinterpret_cast<char*>(bytes.data()),2))throw FormatError("Missing original font horizontal offset");
+    return std::bit_cast<std::int16_t>(std::uint16_t(bytes[0]|(unsigned(bytes[1])<<8)));
+}
+void require_mcc_gameplay_font_sample(const GameplayFontSource& source,unsigned selector,
+                                     const std::filesystem::path& sample) {
+    validate_selector(source,selector);validate_source(source);
+    if(source.domain!=GameplayFontDomain::Mcc)throw FormatError("MCC font sample has no native source owner");
+    const auto& owner=mcc_file(source.names[selector]);
+    const auto bytes=font_bytes(sample);
+    if(bytes.size()!=owner.bytes || digest(bytes)!=owner.sha256)
+        throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
+}
+} // namespace halo2

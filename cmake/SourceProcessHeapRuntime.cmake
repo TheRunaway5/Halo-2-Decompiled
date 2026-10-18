@@ -18,13 +18,20 @@ add_library(halo2_source_process_heap_platform STATIC src/source_process_heap_pl
 target_include_directories(halo2_source_process_heap_platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_source_process_heap_platform PUBLIC cxx_std_20)
 target_link_libraries(halo2_source_process_heap_platform PUBLIC halo2_source_process_heap_runtime halo2_physics_platform_call)
+# Native process heap memory calls use the systems-owned virtual memory host.
+target_link_libraries(halo2_source_process_heap_platform PRIVATE halo2_systems)
 target_link_libraries(halo2_systems PUBLIC halo2_source_process_heap_platform)
 add_library(halo2_native_tu15_heap_data STATIC src/native_tu15_heap_data.cpp src/native_tu15_heap_bootstrap.cpp)
 target_include_directories(halo2_native_tu15_heap_data PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(halo2_native_tu15_heap_data PUBLIC cxx_std_20)
 target_link_libraries(halo2_native_tu15_heap_data PUBLIC halo2_source_process_heap_platform)
 target_link_libraries(halo2_native_tu15_heap_data PUBLIC halo2_native_synchronization)
+# Heap bootstrap constructs and calls the systems-owned virtual memory host.
+target_link_libraries(halo2_native_tu15_heap_data PRIVATE halo2_systems)
 target_link_libraries(halo2_systems PRIVATE halo2_native_tu15_heap_data)
+# The static cycle reaches startup records through the virtual-memory host.
+# Two archive scans leave its late startup-platform calls unresolved.
+set_property(TARGET halo2_systems PROPERTY LINK_INTERFACE_MULTIPLICITY 3)
 if(BUILD_TESTING)
     add_executable(native_tu15_heap_data_tests tests/native_tu15_heap_data_tests.cpp
         src/source_runtime_memory.cpp src/source_runtime_host_virtual_memory.cpp src/source_runtime_image.cpp)

@@ -1,0 +1,1422 @@
+{
+  "schema": "H2_MCC_TU15_UNIT_SCALAR_PROFILE_V1",
+  "scope": "29 exact named whole scalar tuples after Cache physics packing; no inferred flag meaning, arithmetic conversion, pointer restoration or full unit/gameplay/visual parity claim. Unknown authored tuples and block shapes stay unchanged.",
+  "authority": {
+    "paired_maps": [
+      {
+        "map": "00a_introduction.map",
+        "reference_sha256": "5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28",
+        "donor_sha256": "f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8"
+      },
+      {
+        "map": "01a_tutorial.map",
+        "reference_sha256": "623598449e34a51da6fb131ad66aaf2bb0de57113abe616d4c4009e877398faf",
+        "donor_sha256": "f71460e42eb43ea1d74a67af2589e8bccea645f62d921a430f94e946ac4bf08e"
+      },
+      {
+        "map": "01b_spacestation.map",
+        "reference_sha256": "5f79832ce3ae8035e547c5c673008802a4971fbf60551755fcc0553482843ae0",
+        "donor_sha256": "06fe3555d4301c18a5b0f7379f5ddd6714626a3134462a14ce80a609bc7bf2bb"
+      },
+      {
+        "map": "03a_oldmombasa.map",
+        "reference_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+        "donor_sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475"
+      },
+      {
+        "map": "03b_newmombasa.map",
+        "reference_sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+        "donor_sha256": "9ddd648b3c80aeb0b8823f07d91d88f71c62b53fcbcd93376af0c200075068c2"
+      },
+      {
+        "map": "04a_gasgiant.map",
+        "reference_sha256": "9cb7a3da993bf1314dd9b61874ea2c18636b8114f56253263d35e729a170118e",
+        "donor_sha256": "62a047349a8da01b03b4144ccbc96e9076632d21fbedc276f748080c987e5e7e"
+      },
+      {
+        "map": "04b_floodlab.map",
+        "reference_sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+        "donor_sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af"
+      },
+      {
+        "map": "05a_deltaapproach.map",
+        "reference_sha256": "6b511e815ab8e4200f36df4b25f42e73c9de498e147ec8fbd0b8cfc95f0c565c",
+        "donor_sha256": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44"
+      },
+      {
+        "map": "05b_deltatowers.map",
+        "reference_sha256": "970615d5b75e8e1793ed19e505c3a1267325e51ee4d9abda912f2530a875bac5",
+        "donor_sha256": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb"
+      },
+      {
+        "map": "06a_sentinelwalls.map",
+        "reference_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+        "donor_sha256": "8c992ac2aa7ef60748115c7abdd80062ee8a579cd99bef21f50496556e0bdb68"
+      },
+      {
+        "map": "06b_floodzone.map",
+        "reference_sha256": "f96ccf1ed35a0c6fbef5dd2d51d46a8a4d64468cd79281b7f3339c31b1b4abea",
+        "donor_sha256": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509"
+      },
+      {
+        "map": "07a_highcharity.map",
+        "reference_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+        "donor_sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569"
+      },
+      {
+        "map": "07b_forerunnership.map",
+        "reference_sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+        "donor_sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac"
+      },
+      {
+        "map": "08a_deltacliffs.map",
+        "reference_sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+        "donor_sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594"
+      },
+      {
+        "map": "08b_deltacontrol.map",
+        "reference_sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+        "donor_sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f"
+      },
+      {
+        "map": "ascension.map",
+        "reference_sha256": "84d3164df56ca6ee7de073bd540f24ef6a2e9d2508f143bd94970d66ec5c0bfe",
+        "donor_sha256": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9"
+      },
+      {
+        "map": "backwash.map",
+        "reference_sha256": "5b0b3b77ad7c010d08581430804daab25edd2a94df73ebd5d940a2e88ef63582",
+        "donor_sha256": "3cacc08e60f9004846123841cdfffcf520d9dff5f81dd36fe17f3476b1659cb4"
+      },
+      {
+        "map": "beavercreek.map",
+        "reference_sha256": "35919a4a290911ab7cd11f1d72d07e191b44096e75e79ce3c3eb901703bf5c64",
+        "donor_sha256": "c30bd1e015ad12c66eaa42243aef26245c45aafedfc9cc1caa9a265e727b210e"
+      },
+      {
+        "map": "burial_mounds.map",
+        "reference_sha256": "8b2a7ac4f7b13b9521202a602969e35fece2adc02424bc4f1dc47a7cadf01c67",
+        "donor_sha256": "c222eb7ddedc08f16b7d52889197df81c9b2b2a946b029982b2b97584ed17a24"
+      },
+      {
+        "map": "coagulation.map",
+        "reference_sha256": "1de37727dbb9c51aa08e03bfea86c0641ad67250dba28c5dcb3ba3dadaaf93fa",
+        "donor_sha256": "a94c4fdac2dee6887e83a1f2555e914aa7ed974d5c466ebabcf013b08f2ef17d"
+      },
+      {
+        "map": "colossus.map",
+        "reference_sha256": "f1f9b6de456c43989201331f594e42f717095af51cb9762c0b420e21f9a5f982",
+        "donor_sha256": "83b2e909752c7487c636b2cd17b7673b70bcdac8b5013dcea311a56658dafc35"
+      },
+      {
+        "map": "containment.map",
+        "reference_sha256": "e65de92bb58b7b2bae2979759d4cd6386d58c96f468cd06b0a4558c0bd1cd915",
+        "donor_sha256": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95"
+      },
+      {
+        "map": "cyclotron.map",
+        "reference_sha256": "50a264587112c3dd03e75ec1ac7c31e028383220ac77ac4b8a7e0dd65d6efb00",
+        "donor_sha256": "ad350c598588bce43841a5a03740be978e04fe02b401879844bcb4a9ff7148ee"
+      },
+      {
+        "map": "deltatap.map",
+        "reference_sha256": "adab707164195d10299be971f2096411c5862486abd89b669a7b1783f57a011c",
+        "donor_sha256": "917165194b13758a247b0dcec6609226c5f6fb1ab99c8481bf315ddc7784eb38"
+      },
+      {
+        "map": "derelict.map",
+        "reference_sha256": "85c9d98556a0cd8dd6bcce94992425518f8a5753c0adb0c353fddf83696f7efd",
+        "donor_sha256": "45efa1376a59c19b49945b12235e3d8fa33811582151452098affd0609aae6cc"
+      },
+      {
+        "map": "dune.map",
+        "reference_sha256": "740fff53eb0b0a1eeb80adc33c1c0d08ab9700debb6da59df5d6c23c8e401498",
+        "donor_sha256": "9ca3b5889c21a930b44c075ebf4a7ab7a846a48be551acd7cd9e43f868b3a321"
+      },
+      {
+        "map": "elongation.map",
+        "reference_sha256": "8aa190e424003ce7efaea9e57be9556194b3aefdeccd8a86919f2534f7cf15ea",
+        "donor_sha256": "3780ab18cb5c65a0f23d99ab827671bc85c53c22c5e9a3826e5ab01425cff729"
+      },
+      {
+        "map": "foundation.map",
+        "reference_sha256": "b9ab45535f9929474133c0c5f0f4bc50cbd9e27a5b80fd31e6fa4c0716ed7b86",
+        "donor_sha256": "7ac455c5a7f3655c0bd972e988ec2cb0dcf3e411169f65fab260494e15c2d456"
+      },
+      {
+        "map": "gemini.map",
+        "reference_sha256": "220b42701086a24fc0660041439a72337a3bb7b848d424a4da53ad9e15704095",
+        "donor_sha256": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1"
+      },
+      {
+        "map": "headlong.map",
+        "reference_sha256": "f459e179138ef954298dc52c43e5d400fe89efca44e7eaae1691315a3fad7748",
+        "donor_sha256": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c"
+      },
+      {
+        "map": "highplains.map",
+        "reference_sha256": "b14a0debdb2e279c7bd7c7cda2b3e2a5cf69ca85f457923c1cfb9de6ca0b1bb1",
+        "donor_sha256": "d6ea847433ba564e20100194c027cacc69f1f1ef85697fffe8463c58c6a0f02f"
+      },
+      {
+        "map": "lockout.map",
+        "reference_sha256": "14c54046f259842bdac765526e7fe2d991369502041647f47db409ce845987a9",
+        "donor_sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e"
+      },
+      {
+        "map": "midship.map",
+        "reference_sha256": "4f0c7687711313efce9273e4cabe9f410d08a47a707dbe8354cdede957e5155f",
+        "donor_sha256": "322cb810bfbfe02ab4e24acc8d58b7002a9c7ba1c680484447b64483e0a71156"
+      },
+      {
+        "map": "triplicate.map",
+        "reference_sha256": "f193d05fa824c55cab4d8376a98f31b94a429de3824a8fb75ae356e97fdb05b4",
+        "donor_sha256": "8b12d40ac18e2977662a93204604660f77f30e0112672887c8e0b84543a608cc"
+      },
+      {
+        "map": "turf.map",
+        "reference_sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+        "donor_sha256": "fa0d7255e8db62bc5501f45ebb47aebe2740d640f9292c1847fceae23823a4a6"
+      },
+      {
+        "map": "warlock.map",
+        "reference_sha256": "980bb3b26a00848c420488f5edf11626a789e5b5bc5134722142c7b9730aa65a",
+        "donor_sha256": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d"
+      },
+      {
+        "map": "waterworks.map",
+        "reference_sha256": "c5b81434f3b0d755c1208d8ac525e2a8a601d5f18f6447fc011cac83532fe6c1",
+        "donor_sha256": "ba90e7c53de84dfdbb09c01071f7ca6122fbe1d281ba62b7355ee1be45510bbe"
+      },
+      {
+        "map": "zanzibar.map",
+        "reference_sha256": "2000bfc26fa38929e3ae8792618465ca5a60cc6bbeb753426e9d3a99954bdafb",
+        "donor_sha256": "5a0e596e72e3d01718f9c5d3e49ea907eb8c6f32c85d6887dda2fb247dca585f"
+      }
+    ],
+    "candidate_probe_sha256": "d77f0586aca368bb063e5aea612b5969a6b437e694ee45424f8332ccd093b160",
+    "candidate_summary_sha256": "d0be65023e2a95500e56831cab0bf618b8950a585ee0c9fe3bc3c5ae4e3fa9cf",
+    "target_schema_sha256": "967191e2106ef1a383173a0e51d42dc1cac1984d13fc679c94e7fb431202d3c8",
+    "baseline": "OriginalData::native_tu15 postprocessed Xbox views; exact original map hashes validated against owned extraction/DLC inventories. MCC normalized unit physics uses original0x80 sphere and0xB0 seat record layouts."
+  },
+  "profiles": [
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\brute\\brute",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ee7cbf3e",
+          "target_bits": "ed7cbf3e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ee7cbf3e",
+          "target_bits": "0000000000000000ed7cbf3e"
+        }
+      ],
+      "observed_maps": [
+        "00a_introduction",
+        "01b_spacestation",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "06a_sentinelwalls",
+        "06b_floodzone",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08a_deltacliffs",
+        "08b_deltacontrol"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\elite\\elite",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "00a_introduction",
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "06a_sentinelwalls",
+        "06b_floodzone",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "turf",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\masterchief\\masterchief",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "00a_introduction",
+        "01a_tutorial",
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "06a_sentinelwalls",
+        "06b_floodzone",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\banshee\\banshee",
+      "fields": [
+        {
+          "path": "/Radius@740",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 740,
+          "bytes": 4,
+          "donor_bits": "e01bd73f",
+          "target_bits": "e11bd73f"
+        }
+      ],
+      "observed_maps": [
+        "00a_introduction",
+        "01b_spacestation",
+        "03b_newmombasa",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "08b_deltacontrol",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\cortana\\cortana",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "d34de23d",
+          "target_bits": "d24de23d"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000d34de23d",
+          "target_bits": "0000000000000000d24de23d"
+        }
+      ],
+      "observed_maps": [
+        "01b_spacestation",
+        "05b_deltatowers",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08b_deltacontrol"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\dervish\\dervish",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "01b_spacestation",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "06a_sentinelwalls",
+        "06b_floodzone",
+        "07a_highcharity",
+        "08a_deltacliffs",
+        "08b_deltacontrol"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\elite\\elite_ranger\\elite_ranger",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "01b_spacestation",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "07a_highcharity"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\grunt\\grunt",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[1]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 1,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "2a5c4f3e",
+          "target_bits": "295c4f3e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[1]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 1,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "00000000000000002a5c4f3e",
+          "target_bits": "0000000000000000295c4f3e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "5d8f823e",
+          "target_bits": "5c8f823e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "00000000000000005d8f823e",
+          "target_bits": "00000000000000005c8f823e"
+        }
+      ],
+      "observed_maps": [
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "06a_sentinelwalls",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08a_deltacliffs"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\hunter\\hunter",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[1]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 1,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "3889c13e",
+          "target_bits": "3789c13e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[1]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 1,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "00000000000000003889c13e",
+          "target_bits": "00000000000000003789c13e"
+        }
+      ],
+      "observed_maps": [
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "05b_deltatowers",
+        "07a_highcharity",
+        "08a_deltacliffs",
+        "08b_deltacontrol"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\pelican\\pelican_rear_gun\\pelican_rear_gun",
+      "fields": [
+        {
+          "path": "/Seats@456[0]/Flags@0",
+          "descriptor": 456,
+          "count": 1,
+          "index": 0,
+          "stride": 176,
+          "offset": 0,
+          "bytes": 4,
+          "donor_bits": "98000000",
+          "target_bits": "98010000"
+        }
+      ],
+      "observed_maps": [
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "06b_floodzone",
+        "07b_forerunnership"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\warthog\\turrets\\chaingun\\chaingun",
+      "fields": [
+        {
+          "path": "/Seats@456[0]/Flags@0",
+          "descriptor": 456,
+          "count": 2,
+          "index": 0,
+          "stride": 176,
+          "offset": 0,
+          "bytes": 4,
+          "donor_bits": "98100000",
+          "target_bits": "98110000"
+        }
+      ],
+      "observed_maps": [
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "05a_deltaapproach",
+        "06b_floodzone",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\warthog\\turrets\\gauss\\gauss",
+      "fields": [
+        {
+          "path": "/Radius@740",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 740,
+          "bytes": 4,
+          "donor_bits": "5c38bc3e",
+          "target_bits": "5b38bc3e"
+        },
+        {
+          "path": "/Seats@456[0]/Flags@0",
+          "descriptor": 456,
+          "count": 2,
+          "index": 0,
+          "stride": 176,
+          "offset": 0,
+          "bytes": 4,
+          "donor_bits": "98100000",
+          "target_bits": "98110000"
+        }
+      ],
+      "observed_maps": [
+        "01b_spacestation",
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "05a_deltaapproach",
+        "06b_floodzone",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\ghost\\ghost",
+      "fields": [
+        {
+          "path": "/Radius@740",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 740,
+          "bytes": 4,
+          "donor_bits": "be29953f",
+          "target_bits": "bd29953f"
+        }
+      ],
+      "observed_maps": [
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "05a_deltaapproach",
+        "06b_floodzone",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\phantom\\turrets\\chin_gun\\chin_gun",
+      "fields": [
+        {
+          "path": "/Seats@456[0]/Flags@0",
+          "descriptor": 456,
+          "count": 1,
+          "index": 0,
+          "stride": 176,
+          "offset": 0,
+          "bytes": 4,
+          "donor_bits": "09000000",
+          "target_bits": "0b000000"
+        }
+      ],
+      "observed_maps": [
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "06a_sentinelwalls",
+        "06b_floodzone",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08a_deltacliffs",
+        "08b_deltacontrol"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\phantom\\turrets\\side_gun\\side_gun",
+      "fields": [
+        {
+          "path": "/Seats@456[0]/Flags@0",
+          "descriptor": 456,
+          "count": 1,
+          "index": 0,
+          "stride": 176,
+          "offset": 0,
+          "bytes": 4,
+          "donor_bits": "09000000",
+          "target_bits": "0b000000"
+        }
+      ],
+      "observed_maps": [
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "04a_gasgiant",
+        "04b_floodlab",
+        "05a_deltaapproach",
+        "05b_deltatowers",
+        "06a_sentinelwalls",
+        "06b_floodzone",
+        "07a_highcharity",
+        "07b_forerunnership",
+        "08a_deltacliffs",
+        "08b_deltacontrol"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "scenarios\\objects\\covenant\\military\\scarab\\scarab_rear_gun\\scarab_rear_gun",
+      "fields": [
+        {
+          "path": "/Radius@740",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 740,
+          "bytes": 4,
+          "donor_bits": "38fa653f",
+          "target_bits": "39fa653f"
+        }
+      ],
+      "observed_maps": [
+        "03a_oldmombasa",
+        "03b_newmombasa",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "turf"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\scorpion\\scorpion",
+      "fields": [
+        {
+          "path": "/Ground Maximum Slope 0@704",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 704,
+          "bytes": 4,
+          "donor_bits": "ffffff3e",
+          "target_bits": "0000003f"
+        }
+      ],
+      "observed_maps": [
+        "03b_newmombasa",
+        "05a_deltaapproach",
+        "06b_floodzone",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\wraith\\turrets\\minigun\\minigun",
+      "fields": [
+        {
+          "path": "/Radius@740",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 740,
+          "bytes": 4,
+          "donor_bits": "5665763e",
+          "target_bits": "5565763e"
+        },
+        {
+          "path": "/Seats@456[0]/Flags@0",
+          "descriptor": 456,
+          "count": 1,
+          "index": 0,
+          "stride": 176,
+          "offset": 0,
+          "bytes": 4,
+          "donor_bits": "09000000",
+          "target_bits": "0b000000"
+        }
+      ],
+      "observed_maps": [
+        "03b_newmombasa",
+        "05a_deltaapproach",
+        "06b_floodzone",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\heretic\\heretic",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "04a_gasgiant",
+        "04b_floodlab"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\heretic\\heretic_leader\\heretic_leader",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "04a_gasgiant",
+        "04b_floodlab"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\heretic\\heretic_leader\\heretic_leader_hologram_cinematic",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "04a_gasgiant"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\heretic_grunt\\heretic_grunt",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[1]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 1,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "2a5c4f3e",
+          "target_bits": "295c4f3e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[1]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 1,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "00000000000000002a5c4f3e",
+          "target_bits": "0000000000000000295c4f3e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "5d8f823e",
+          "target_bits": "5c8f823e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "00000000000000005d8f823e",
+          "target_bits": "00000000000000005c8f823e"
+        }
+      ],
+      "observed_maps": [
+        "04a_gasgiant",
+        "04b_floodlab"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\heretic\\heretic_leader\\heretic_leader_hologram",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "9a64643d",
+          "target_bits": "9964643d"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "00000000000000009a64643d",
+          "target_bits": "00000000000000009964643d"
+        }
+      ],
+      "observed_maps": [
+        "04b_floodlab"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "scenarios\\objects\\solo\\sentinelhq\\sentinel_emitter\\sentinel_emitter",
+      "fields": [
+        {
+          "path": "/Radius@740",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 740,
+          "bytes": 4,
+          "donor_bits": "4a16533f",
+          "target_bits": "37ae693f"
+        }
+      ],
+      "observed_maps": [
+        "06a_sentinelwalls"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\h_turret_ap\\h_turret_ap",
+      "fields": [
+        {
+          "path": "/Radius@740",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 740,
+          "bytes": 4,
+          "donor_bits": "e10d243f",
+          "target_bits": "e00d243f"
+        }
+      ],
+      "observed_maps": [
+        "06b_floodzone",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\spectre\\spectre",
+      "fields": [
+        {
+          "path": "/Radius@740",
+          "descriptor": 4294967295,
+          "count": 0,
+          "index": 0,
+          "stride": 0,
+          "offset": 740,
+          "bytes": 4,
+          "donor_bits": "c476d73f",
+          "target_bits": "c576d73f"
+        }
+      ],
+      "observed_maps": [
+        "06b_floodzone",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "vehi",
+      "name": "objects\\vehicles\\spectre\\turrets\\plasma\\plasma_turret",
+      "fields": [
+        {
+          "path": "/Seats@456[0]/Flags@0",
+          "descriptor": 456,
+          "count": 2,
+          "index": 0,
+          "stride": 176,
+          "offset": 0,
+          "bytes": 4,
+          "donor_bits": "98000000",
+          "target_bits": "98010000"
+        }
+      ],
+      "observed_maps": [
+        "06b_floodzone",
+        "08a_deltacliffs",
+        "08b_deltacontrol",
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\elite\\elite_mp",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    },
+    {
+      "group": "bipd",
+      "name": "objects\\characters\\masterchief\\masterchief_mp",
+      "fields": [
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Radius@44",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 44,
+          "bytes": 4,
+          "donor_bits": "ec51983e",
+          "target_bits": "eb51983e"
+        },
+        {
+          "path": "/Dead Sphere Shapes@644[2]/Translation@112",
+          "descriptor": 644,
+          "count": 3,
+          "index": 2,
+          "stride": 128,
+          "offset": 112,
+          "bytes": 12,
+          "donor_bits": "0000000000000000ec51983e",
+          "target_bits": "0000000000000000eb51983e"
+        }
+      ],
+      "observed_maps": [
+        "ascension",
+        "backwash",
+        "beavercreek",
+        "burial_mounds",
+        "coagulation",
+        "colossus",
+        "containment",
+        "cyclotron",
+        "deltatap",
+        "derelict",
+        "dune",
+        "elongation",
+        "foundation",
+        "gemini",
+        "headlong",
+        "highplains",
+        "lockout",
+        "midship",
+        "triplicate",
+        "turf",
+        "warlock",
+        "waterworks",
+        "zanzibar"
+      ]
+    }
+  ],
+  "unconverted_variants": "Gauss flyby and Relic-only CTF stop distance demonstrate map-specific authoring; neither is included. Full damage/material index consumer validation remains open."
+}

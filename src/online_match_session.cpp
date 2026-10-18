@@ -46,6 +46,7 @@ struct OnlineMatchSession::Impl {
   mutable std::mutex mutex;
   Phase phase = Phase::Connecting;
   std::string error, loaded;
+  std::optional<std::uint64_t> native_fingerprint;
   std::string completion, confirmation;
   std::vector<std::byte> report;
   std::deque<Frame> incoming, outgoing;
@@ -154,7 +155,7 @@ struct OnlineMatchSession::Impl {
     if(transport_options.direct_udp&&!authority&&(phase==Phase::Loading||phase==Phase::Running)&&host<16){
       std::uint16_t physical=0;for(const auto &player:roster)if(online_admission_peer(player)==player.slot)physical|=std::uint16_t(1u<<player.slot);
       const AuthorityTransferContext context{authority_session,continuity_state.epoch,0,physical,host};
-      AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts;
+      AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_pipeline|authority_feature_source_host_continuation;
       authority=std::make_shared<PeerAuthorityTransfer>(self,context,limits);
       source_admissions=std::make_shared<PeerSourceAdmissions>(self,context,roster);
     }
@@ -528,6 +529,21 @@ bool OnlineMatchSession::authority_replay_supported(unsigned peer) const {
   return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
       transfer->feature_supported(peer,authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts);
 }
+bool OnlineMatchSession::authority_pipeline_supported(unsigned peer)const{
+  std::shared_ptr<PeerAuthorityTransfer> transfer;
+  {std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
+      transfer->feature_supported(peer,authority_feature_source_pipeline);
+}
+bool OnlineMatchSession::authority_delivered(unsigned peer,const AuthorityTransferContext &context,const AuthorityCutSeal &seal)const{
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return transfer&&transfer->delivered_to(context,seal,peer);
+}
+bool OnlineMatchSession::authority_host_continuation_supported(unsigned peer)const{
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return peer<16&&(impl_->direct_ready.load(std::memory_order_relaxed)&(1u<<peer))&&transfer&&
+      transfer->feature_supported(peer,authority_feature_source_host_continuation);
+}
 std::vector<PeerHostQuality> OnlineMatchSession::host_candidates()const {
   std::shared_ptr<PeerMeshQuality> quality;unsigned host;Phase phase;
   {std::lock_guard lock(impl_->mutex);quality=impl_->mesh_quality;host=impl_->host;phase=impl_->phase;}
@@ -559,9 +575,20 @@ std::optional<ReceivedAuthorityCut> OnlineMatchSession::received_authority() {
   if(!transfer)return std::nullopt;
   return transfer->take_completed();
 }
+AuthorityCutSeal OnlineMatchSession::publish_authority_ahead(const AuthorityTransferContext &context,const AuthorityCutSeal &previous,
+    std::uint64_t tick,std::vector<std::byte> bytes,unsigned target){
+  std::shared_ptr<PeerAuthorityTransfer> transfer;
+  {std::lock_guard lock(impl_->mutex);require(impl_->transport_options.direct_udp&&impl_->phase==Phase::Running&&impl_->host==impl_->self);
+    transfer=impl_->authority;require(bool(transfer));}
+  return transfer->publish_ahead(context,previous,tick,std::move(bytes),target,transfer_time());
+}
 bool OnlineMatchSession::acknowledge_authority(const AuthorityTransferContext &context,const AuthorityCutSeal &seal) {
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
   return transfer&&transfer->acknowledge_validated(context,seal);
+}
+bool OnlineMatchSession::reject_authority(const AuthorityTransferContext &context,const AuthorityCutSeal &seal){
+  std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
+  return transfer&&transfer->reject_delivered(context,seal);
 }
 std::vector<ValidatedAuthorityCut> OnlineMatchSession::validated_authority() {
   std::shared_ptr<PeerAuthorityTransfer> transfer;{std::lock_guard lock(impl_->mutex);transfer=impl_->authority;}
@@ -597,7 +624,10 @@ void OnlineMatchSession::loaded(std::uint64_t fingerprint,const UiVariant& varia
   for(const auto &[id,value]:variant.values)if(id>=native_slayer_ruleset_parameter)
     for(auto word:{id,unsigned(value)})for(unsigned i=0;i<4;++i)admitted.push_back(std::byte(word>>(8*i)));
   std::ostringstream value; value << digest(admitted).substr(0,16) << ':' << std::hex << std::setfill('0') << std::setw(7) << native_multiplayer_protocol;
-  std::lock_guard lock(impl_->mutex); impl_->loaded = value.str();
+  std::lock_guard lock(impl_->mutex); impl_->loaded = value.str();impl_->native_fingerprint=fingerprint;
+}
+std::optional<std::uint64_t> OnlineMatchSession::loaded_fingerprint()const{
+  std::lock_guard lock(impl_->mutex);return impl_->native_fingerprint;
 }
 void OnlineMatchSession::send(std::span<const std::byte> packet, unsigned peer) {
   std::lock_guard lock(impl_->mutex);

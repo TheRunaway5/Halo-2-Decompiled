@@ -4,6 +4,7 @@
 #include "halo2/source_authority_binding.hpp"
 #include "halo2/online_match_session.hpp"
 #include "halo2/source_replay_batch.hpp"
+#include "halo2/source_host_continuation_codec.hpp"
 #include <chrono>
 #include <optional>
 #include <string>
@@ -17,19 +18,23 @@ struct SourceAuthorityPublisherState {
     std::optional<ValidatedAuthorityCut> ready;
     std::string error;
     std::uint64_t recorded_phases{},replay_batches{},acknowledged_phases{},queued_phases{},queued_bytes{};
-    bool tracking_replay{};
+    bool tracking_replay{},host_ready{};
 };
 // One selected physical shadow recipient. The agreed QoS/shadow policy supplies
 // that endpoint; this owner does not elect a host or change session membership.
 // Sole consumer of this session's validated_authority() receipt queue.
-// All public calls belong to the constructing source executor thread. Only an
-// owning captured Checkpoint and immutable canonical base enter the worker.
+// All public calls belong to the constructing source executor thread. Only
+// owning world/replay/host values and immutable bases enter the worker.
 class SourceAuthorityPublisher {
 public:
     SourceAuthorityPublisher(SourceMatchAuthority &,std::shared_ptr<OnlineMatchSession>,unsigned physical_target,
         std::chrono::milliseconds validation_timeout=std::chrono::minutes(5));
     SourceAuthorityPublisher(SourceMatchAuthority &,std::shared_ptr<OnlineMatchSession>,unsigned physical_target,
         SourceAuthorityStreamMode,std::chrono::milliseconds validation_timeout=std::chrono::minutes(5));
+    // The exact same Match must own both arguments and outlive the publisher.
+    // Negotiates paired full/replay cuts; host state is captured per frame.
+    SourceAuthorityPublisher(SourceMatchAuthority &,LanHost &,std::shared_ptr<OnlineMatchSession>,unsigned physical_target,
+        std::chrono::milliseconds validation_timeout=std::chrono::minutes(5));
     ~SourceAuthorityPublisher();
     SourceAuthorityPublisher(const SourceAuthorityPublisher &)=delete;
     SourceAuthorityPublisher &operator=(const SourceAuthorityPublisher &)=delete;
@@ -67,6 +72,11 @@ public:
     // Does not stop a source world or revoke its authority generation.
     void cancel();
     SourceAuthorityPublisherState state()const;
+    // Bounded delivery/validation slots, not a count of promotable worlds.
+    unsigned in_flight_cuts()const;
+    // Only the exact last natively acknowledged cut, never the current live
+    // host table. This is recovery data, not authority to promote that peer.
+    LanHost::Continuation host_checkpoint(const ValidatedAuthorityCut &)const;
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

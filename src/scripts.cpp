@@ -1,5 +1,6 @@
 #include "halo2/scripts.hpp"
 #include "halo2/kernels.hpp"
+#include "halo2/mcc_script_layout.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -163,6 +164,9 @@ ScriptVm::ScriptVm(const ScriptProgram &p, Host host, ObjectResolver resolver,
     : ScriptVm(p,std::move(host),std::move(resolver),std::move(external),{}) {}
 ScriptVm::ScriptVm(const ScriptProgram &p, Host host, ObjectResolver resolver,
                    ExternalGlobals external,SourceHsObjectListServices object_lists)
+    : ScriptVm(p,std::move(host),std::move(resolver),std::move(external),std::move(object_lists),{}) {}
+ScriptVm::ScriptVm(const ScriptProgram &p, Host host, ObjectResolver resolver,
+                   ExternalGlobals external,SourceHsObjectListServices object_lists,InitialBuiltin initial_builtin)
     : program_(p), host_(std::move(host)),
       object_resolver_(std::move(resolver)), external_globals_(std::move(external)),
       object_lists_(std::move(object_lists)) {
@@ -195,9 +199,13 @@ ScriptVm::ScriptVm(const ScriptProgram &p, Host host, ObjectResolver resolver,
     if (n.flags & 2)
       throw FormatError("static script global initializer unsupported");
     const auto &fn = node(n.value);
+    if(!(fn.flags&1) || fn.type!=2)
+      throw FormatError("global initializer call lacks a function-name node");
     const auto name = string(fn.string_offset);
-    if (name != "+" && name != "-" && name != "*" && name != "/" &&
-        name != "min" && name != "max")
+    const bool arithmetic=name=="+" || name=="-" || name=="*" || name=="/" || name=="min" || name=="max";
+    const bool clock=(name=="game_tick_rate" && n.opcode==0x38f) ||
+        (name=="game_tick_rate_scalar" && n.opcode==0x390);
+    if(!arithmetic && !clock)
       throw FormatError("unsupported global initializer builtin: " + name);
     std::vector<ScriptValue> args;
     std::set<std::uint32_t> seen;
@@ -205,6 +213,13 @@ ScriptVm::ScriptVm(const ScriptProgram &p, Host host, ObjectResolver resolver,
       if (!seen.insert(child).second || args.size() > 1024)
         throw FormatError("cyclic global initializer arguments");
       args.push_back(evaluate(child, depth + 1));
+    }
+    if(clock) {
+      if(!args.empty())throw FormatError("invalid MCC clock getter initializer arity");
+      const auto value=initial_builtin?initial_builtin(name,args):std::optional<ScriptValue>{};
+      if(!value)throw FormatError("MCC clock getter initializer requires a live game-clock owner");
+      if(value->type!=8)throw FormatError("MCC clock getter initializer did not return its declared LONG");
+      return convert(*value,n.type);
     }
     if (args.empty())
       throw FormatError("empty global initializer expression");
@@ -287,6 +302,7 @@ ScriptVm::Thread &ScriptVm::activate(std::size_t index, std::uint64_t wake) {
       ++authority_.mutations;t.wake = wake;
       t.dormant = false;
       t.stopped = false;
+      t.external_sleep.reset(); //Explicit diagnostic restart, separate from HS wake.
       if (t.stack.empty())
         t.stack.push_back(Frame{script.root});
       return t;
@@ -349,6 +365,7 @@ std::size_t ScriptVm::running() const {
                        [](const auto &t) { return !t.stopped && !t.dormant; });
 }
 void ScriptVm::update(Thread &thread, std::uint64_t tick) {
+  thread.wake = 0; //TU1.5 211B60: active-thread wake before any evaluator.
   auto finish = [&](ScriptValue value) {
     value = convert(std::move(value), node(thread.stack.back().id).type);
     thread.stack.pop_back();
@@ -568,18 +585,27 @@ void ScriptVm::update(Thread &thread, std::uint64_t tick) {
     } else if (name == "sleep") {
       if (args.empty() || args.size() > 2)
         throw FormatError("invalid sleep arity");
-      // Retail2087E0 reads a signed short and ignores negative delays and
-      // nonpositive converted tick counts. These are not sleep_forever.
+      // TU1.5 210BE9..210C22 ignores negative short delays and nonpositive
+      // converted tick counts. 210C44..210C54 saves the first externally
+      // interrupted wake, including dormant -2, until 211F7B restores it.
       const auto delay = std::int16_t(scalar_cast_bits(args[0].bits,args[0].type,7));
       const auto duration = delay < 0 ? 0 : wait_ticks(delay);
       if (args.size() == 2) {
-        const auto target = args[1].bits & 65535u;
-        if (target >= program_.scripts.size())
-          throw FormatError("sleep target outside scripts");
-        if (duration > 0)
+        const auto target = std::int16_t(args[1].bits);
+        //210BD5 treats script NONE (-1) as this thread, without lookup.
+        if (duration > 0 && target == -1)
+          thread.wake = tick + std::uint64_t(duration);
+        else if (duration > 0)
           for (auto &t : threads_)
-            if (t.script == target && !t.stopped)
-              t.wake = tick + std::uint64_t(duration);
+            if (target >= 0 && t.script == std::size_t(target)) {
+              if (!t.stopped) {
+                if (&t != &thread && !t.external_sleep)
+                  t.external_sleep = AuthorityWakeState{t.dormant ? 0 : t.wake, t.dormant};
+                t.wake = tick + std::uint64_t(duration);
+                t.dormant = false;
+              }
+              break; //212130 returns the first existing matching thread.
+            }
       } else if (duration > 0)
         thread.wake = tick + std::uint64_t(duration);
       finish({});
@@ -605,11 +631,42 @@ void ScriptVm::update(Thread &thread, std::uint64_t tick) {
       continue;
     } else if (name == "wake") {
       arity(1);
-      activate(args[0].bits & 65535u, tick + 1);
+      const auto target = std::int16_t(args[0].bits);
+      // TU1.5 210F53/211F40 never allocates an absent thread or restarts a
+      // completed (-1) thread. The ordinal dispatcher reads a later target's
+      // new wake immediately; already visited targets wait for the next pass.
+      for (auto &t : threads_)
+        if (target >= 0 && t.script == std::size_t(target)) {
+          if (!t.stopped) {
+            if (t.external_sleep) {
+              t.wake = t.external_sleep->wake;
+              t.dormant = t.external_sleep->dormant;
+              t.external_sleep.reset();
+            } else {
+              t.wake = 0;
+              t.dormant = false;
+              //211FAB..211FFB aborts the current sleep_until frame, or its
+              //queued predicate plus that immediate parent. Other enclosing
+              //continuations retain their already evaluated arguments.
+              auto count = t.stack.size();
+              if (count && t.stack[count-1].entered && t.stack[count-1].name == "sleep_until")
+                --count;
+              else if (count > 1 && t.stack[count-2].entered && t.stack[count-2].name == "sleep_until")
+                count -= 2;
+              if (count != t.stack.size()) {
+                const auto result = convert({}, node(t.stack[count].id).type);
+                t.stack.resize(count);
+                if (!t.stack.empty())t.stack.back().values.push_back(result);
+              }
+            }
+          }
+          break;
+        }
     } else {
       current_thread_=&thread;current_actor_=thread.actor;
       try {
-        value=host_(name,args);
+        const auto projected=mcc_script_projected_builtin_name(n.opcode,name);
+        value=host_(projected?std::string(*projected):name,args);
       } catch(const std::exception &error) {
         current_thread_=nullptr;
         current_actor_.reset();

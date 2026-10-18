@@ -3,6 +3,7 @@
 #include <optional>
 
 namespace halo2 {
+struct SourceAuthorityRetainedWorld;
 // Native runtime termination observations, not original session/lifecycle
 // states. Finishing a match does not itself terminate the current runtime.
 enum class MultiplayerExitReason {
@@ -52,4 +53,10 @@ MultiplayerRuntimeOutcome retain_multiplayer_outcome(MultiplayerExitReason,
 // request teardown through MultiplayerOptions::session_world_update. The
 // runtime does not select a report or interpret game-over as permission.
 int run_multiplayer(const MultiplayerOptions&,MultiplayerRuntimeOutcome&);
+// Application-owned recovery handoff on an ONLINE client disconnect. Drain
+// the already admitted native replay before teardown, keeping this complete
+// validated world separate from the client's display/PCR outcome. No host is
+// elected or promoted. The output is cleared before starting a new runtime.
+int run_multiplayer(const MultiplayerOptions&,MultiplayerRuntimeOutcome&,
+    std::shared_ptr<const SourceAuthorityRetainedWorld>&);
 } // namespace halo2

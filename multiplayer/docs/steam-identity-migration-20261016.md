@@ -73,21 +73,42 @@ Evidence lives in `.local/steam-migration-20261016/`:
 
 ## Outstanding acceptance
 
-Chrome returns `ERR_BLOCKED_BY_CLIENT` for every path on the new hostname,
-including health and the clean confirmation URL. The initial signed callback
-nevertheless reached the server and the real native login passed. The blocking
-Chrome component is not identified. The browser tool's security policy rejects
-`chrome://extensions/`, so no protection was disabled or bypassed. A local user
-check is required to finish the visible browser-return verification. The user
-reports AdBlock disabled; a controlled-tab reload still blocks. A comparison
-with a normal Chrome tab opened by the user is pending.
+The browser confirmation issue was isolated on October 16. A fresh native probe
+passed real Steam authorization and the ONLINE account/clan read, while its
+controlled Chrome tab reported `ERR_BLOCKED_BY_CLIENT` on the clean completion
+page. Both master hostnames served that page with HTTP 200. The user then opened
+the exact completion URL in a normal Chrome tab and saw the confirmation text.
+Finally, the installed native frontend was launched on the user's desktop with
+the imported Vista UI bank. The user completed its real sign-in flow and reported
+"Game connects and browser confirms." This is operator-confirmed interactive
+acceptance; it does not establish live match or Steam-linked Discord acceptance.
 
-The native candidate is linked against a complete matched, frozen source graph
-with fresh identity/UI/service objects and the official Discord Social SDK.
-It is not a full build of the concurrently changing campaign/rendering checkout.
-The installed launchers still select `build-multiplayer/halo2_native`; they were
-not redirected to an older engine snapshot. Delivery of a current complete
-native runtime and live Steam-linked Discord friend/invite checks remain open.
+The game's existing `SDL_OpenURL` path opens the default browser normally. Future
+interactive login checks should use that path and leave the resulting tab under
+the user's control. Controlled-tab failure alone is not a server/authentication
+failure. The exact browser component responsible remains unidentified; no browser
+protection was disabled or bypassed, and no server change was needed for this
+confirmation result. Evidence is in `live-retest-20261016/` and
+`interactive-login-verification.json` under the evidence root. The unused manual
+probe was stopped before launching the real frontend.
+
+The earlier frozen candidate has now been followed by a full build of the
+current engine in `build-multiplayer`, starting from clean commit `56d8fe3a`.
+All 2,445 recorded source inputs retained the same contents during the build.
+Both launcher binaries were installed and their `--launcher-info` output confirms
+they select this updated runtime. The official Discord SDK library and notices
+are bundled beside it; the dynamic loader selects that bundled library.
+Six focused CTests passed: Steam identity, native Steam/account HTTP, Discord
+PKCE, Discord social consent, and both launcher first-run checks. The SDK-enabled
+consent test now also proves a rejected dual-identity link does not enable SDK
+friends or sign out the primary Steam user. The actual current renderer passed
+the Vista bank/bounds checks and Steam account captures at all nine aspect ratios.
+Evidence is in `.local/steam-migration-20261016/main-delivery/`.
+
+The existing launcher MCC gameplay-readiness gate is still false and remains
+enforced. This build does not establish complete MCC gameplay conversion or
+physical gameplay acceptance. Live Steam-linked Discord friend/invite checks
+remain open.
 Steam-only public profile search on the future website also needs its own design:
 Steam persona names are mutable and nonunique, and must never become account keys.
 The full host-migration, gameplay, voice, and WAN acceptance goal is not complete.

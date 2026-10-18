@@ -18,6 +18,9 @@ public:
         Vec3 position,Vec3 forward,Vec3 up,float angle,
         const SourceViewProjectionBank &,std::array<std::int16_t,4> rectangle,
         unsigned logical_width,unsigned logical_height);
+    std::vector<SourceLensDraw> view(PhysicsLiveWorldTu15 &,unsigned,
+        Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &,
+        std::array<std::int16_t,4> rectangle,unsigned logical_width,unsigned logical_height,Vec2 clip_planes);
     void finish(bool submitted);
 private:
     struct Impl;std::unique_ptr<Impl> impl_;

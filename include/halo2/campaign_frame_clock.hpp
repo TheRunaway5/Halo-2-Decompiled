@@ -18,6 +18,10 @@ public:
 private:
   float leftover_{};
 };
+//12DBF0 scalar boundary after the counter ratio is rounded tobinary32:
+// keep signedzero/subnormals, replace negative intervals with+0 and cap10s.
+// Native wallcounter selection/frequency are external inputs, not sampled here.
+float source_campaign_frame_interval_tu15(float binary32_seconds);
 //13AA50 shortens149160's elapsed value if the ordinary game-update owner
 // stops before consuming the requested tick budget. Render clock13A9B0 adds
 // this accepted float interval to its independent double accumulator.

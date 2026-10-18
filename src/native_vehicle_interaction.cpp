@@ -200,8 +200,11 @@ void Simulation::step_unit_interactions(const Controls &input) {
   for(const auto &o:scene_.objects())if(o.handle!=null_datum && o.placement==attachment->parent)parents.push_back(o.handle);
   for(const auto handle:parents) {
    auto child=std::find_if(scene_.objects().begin(),scene_.objects().end(),[&](const auto &o){return o.handle!=null_datum && o.placement==placement && o.attachment_parent==handle;});
-   const auto child_handle=child==scene_.objects().end()?scene_.create_placement(placement,ticks_):child->handle;
+   const auto child_handle=child==scene_.objects().end()?scene_.create_attached_placement(placement,handle,ticks_):child->handle;
    auto &co=scene_.get(child_handle);co.attachment_parent=handle;
+   // The original source body/WORLD bank owns the attached frame. Native
+   // marker composition must not replace it or clear its completed nodes.
+   if(source_physics_movement_)continue;
    const auto &parent=scene_.get(handle);const auto &pd=assets.units.at(content_.objects[parent.placement].definition);
    const auto &cd=assets.units.at(content_.objects[placement].definition);
    const auto pm=marker(pd,parent,attachment->parent_marker);auto cm=marker(cd,co,attachment->child_marker);

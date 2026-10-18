@@ -13,6 +13,47 @@ from export_vista_menu_ui import dds_image, safe_asset_path
 
 CUSTOM = Path("assets/native-loading-custom/authored-rings-20261013")
 
+# Source-owner roles are distinct from a complete runtime presentation. The
+# existing normal-mode renderer also samples a separate logo/vignette mask
+# (slot 11); neither a same-name logo nor an unfinished ring is that image.
+DRAW_INPUTS = (
+    (0, "background", "globals\\loading_screen\\loading_screen", 0),
+    (1, "logo", "globals\\loading_screen\\loading_screen_logos", 0),
+    (3, "spinner_outer", "globals\\loading_screen\\loading_screen_spinners", 0),
+    (4, "spinner_inner", "globals\\loading_screen\\loading_screen_spinners", 1),
+    (5, "sweep", "globals\\loading_screen\\loading_screen_sweep", 0),
+)
+
+
+def presentation_inputs(banks):
+    owners = {}
+    for bank in banks:
+        key = (bank["cache"], bank["tag"])
+        if key in owners:
+            raise FormatError("Duplicate MCC loading bitmap owner")
+        owners[key] = bank
+    present, missing = [], []
+    for slot, role, name, ordinal in DRAW_INPUTS:
+        owner = owners.get(("mainmenu.map", name))
+        frames = owner["frames"] if owner else []
+        matches = [frame for frame in frames if frame["frame"] == ordinal]
+        if len(matches) > 1:
+            raise FormatError("Duplicate MCC loading bitmap frame")
+        if not matches:
+            missing.append(dict(role=role, texture_slot=slot, tag=name, frame=ordinal))
+            continue
+        frame = matches[0]
+        present.append(dict(role=role, texture_slot=slot, tag=name, frame=ordinal,
+            datum=owner["datum"], cache=owner["cache"], path=frame["path"],
+            width=frame["width"], height=frame["height"],
+            dds_sha256=frame["dds_sha256"], source_record_hex=frame["source_record_hex"]))
+    return dict(schema="H2_MCC_LOADING_BITMAP_INPUTS_V1", inputs=present,
+        missing_bitmap_inputs=missing,
+        separate_consumers=[dict(role="logo_vignette_mask", texture_slot=11,
+            state="producer-unresolved"), dict(role="loading_ambience", state="producer-unresolved")],
+        runtime_factory="halo2::load_mcc_loading_bitmap_inputs",
+        readiness_signal=False, exact_vista_bank=False)
+
 
 def preserve_custom(root, destination):
     source = Path(root) / CUSTOM
@@ -84,7 +125,8 @@ def prepare(root, pack):
         source="MCC mainmenu.map/textures.dat plus authored port textures",
         banks=exported, frames=sum(len(b["frames"]) for b in exported), custom=custom,
         vista_executable_bank_imported=False, external_vista_or_xbox_required=False,
-        native_presentation_mapping_complete=False)
+        native_presentation_mapping_complete=False,
+        presentation_inputs=presentation_inputs(exported))
     target = pack / "loading/mcc-loading-assets.json"
     target.write_text(json.dumps(result, indent=2) + "\n")
     return result

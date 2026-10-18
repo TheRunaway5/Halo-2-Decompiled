@@ -1,0 +1,3596 @@
+{
+  "schema": "H2_MCC_TU15_FINITE_SOUND_FLAG_AUTHORING_V1",
+  "authority": "Original TU1.5 per-map authenticated sound headers; original/MCC compiler-bit proof in sound metadata V3",
+  "payload_authority": ".local/mcc-sound-duration-boundary-20261017/v3-lowflag-payload/frozen-sha256.json",
+  "source_XML_commit": "fd14ef3c46135e9422966c6a64cd926fb0bd23fb",
+  "owners": [
+    {
+      "metadata_sha256": "910c4aabe03dcb9ce2da634820183a760061c413ae6b461a247a5d1fc32ffd3e",
+      "owner": 2249925582,
+      "path": "i've got a lovely bunch of coconuts",
+      "root": 37917984,
+      "map": "03a_oldmombasa",
+      "source_map_sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+      "original_map_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4",
+      "sounds": [
+        {
+          "handle": 4238285418,
+          "root": 20803564,
+          "path": "sound\\ambience\\device_machines\\scarab\\scarab_engine_loop\\scarab_engine_loop\\loop",
+          "header_hex": "23441d00ffffee00a80e0100ffffffffc212000000000000ffff00ff",
+          "before": 4131,
+          "after": 4099,
+          "original_full_sound": 4216068376,
+          "original_header_hex": "03101d0100016200870b0100ffffffffc2120000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 3752,
+              "global_permutation": 15905,
+              "range_import": 727,
+              "permutation_import": 3898,
+              "range_sid": 150997944,
+              "permutation_sid": 318779393,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop1",
+              "payload": {
+                "sha256": "7441fb244975bd193b15d11a6c687ad2cc17fcaf026c886a7a6f5435a2737c9e",
+                "encoded_bytes": 64008,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 113792,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 64008,
+                    "pcm_bytes": 227584,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 3752,
+              "global_permutation": 15906,
+              "range_import": 727,
+              "permutation_import": 3899,
+              "range_sid": 150997944,
+              "permutation_sid": 318779394,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop2",
+              "payload": {
+                "sha256": "6b3c13d8a86e66d2e5a33aefc8366af9af8155342c3cd52572a720fb331f3fa5",
+                "encoded_bytes": 93276,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 165824,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 93276,
+                    "pcm_bytes": 331648,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 3752,
+              "global_permutation": 15907,
+              "range_import": 727,
+              "permutation_import": 3900,
+              "range_sid": 150997944,
+              "permutation_sid": 318779395,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop3",
+              "payload": {
+                "sha256": "8567684a28e372fb4a4232c73377469cbec575f2d1a5d2044e8067743c8789db",
+                "encoded_bytes": 38448,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 68352,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 38448,
+                    "pcm_bytes": 136704,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 3,
+              "global_range": 3752,
+              "global_permutation": 15908,
+              "range_import": 727,
+              "permutation_import": 3901,
+              "range_sid": 150997944,
+              "permutation_sid": 318779396,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop4",
+              "payload": {
+                "sha256": "ae267f3af2bc7d47d8274320991a3bd34bf6d8d54eade3da428d446daed74afb",
+                "encoded_bytes": 119124,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 211776,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 119124,
+                    "pcm_bytes": 423552,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "f3c0787e5cbc4f73b39978363931d72948ef7150a61cf138babee582a756b0a4"
+    },
+    {
+      "metadata_sha256": "37fede348a97c04628b70397a7db3f3d955d4862e3603661ae1d5ac18561ebb9",
+      "owner": 2277189089,
+      "path": "i've got a lovely bunch of coconuts",
+      "root": 33974840,
+      "map": "03b_newmombasa",
+      "source_map_sha256": "9ddd648b3c80aeb0b8823f07d91d88f71c62b53fcbcd93376af0c200075068c2",
+      "original_map_sha256": "d04e3445bafffd621b279482c23d21d91b37db098af0e1b977a04ce0f65ecfa7",
+      "sounds": [
+        {
+          "handle": 4285668784,
+          "root": 21152888,
+          "path": "sound\\ambience\\device_machines\\scarab\\scarab_engine_loop\\scarab_engine_loop\\loop",
+          "header_hex": "23441d00fffff600cc0f0100ffffffffc212000000000000ffff00ff",
+          "before": 4131,
+          "after": 4099,
+          "original_full_sound": 4253621192,
+          "original_header_hex": "03101d0100016800890c0100ffffffffc2120000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4044,
+              "global_permutation": 16488,
+              "range_import": 603,
+              "permutation_import": 3776,
+              "range_sid": 150998080,
+              "permutation_sid": 318779718,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop1",
+              "payload": {
+                "sha256": "7441fb244975bd193b15d11a6c687ad2cc17fcaf026c886a7a6f5435a2737c9e",
+                "encoded_bytes": 64008,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 113792,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 64008,
+                    "pcm_bytes": 227584,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 4044,
+              "global_permutation": 16489,
+              "range_import": 603,
+              "permutation_import": 3777,
+              "range_sid": 150998080,
+              "permutation_sid": 318779719,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop2",
+              "payload": {
+                "sha256": "6b3c13d8a86e66d2e5a33aefc8366af9af8155342c3cd52572a720fb331f3fa5",
+                "encoded_bytes": 93276,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 165824,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 93276,
+                    "pcm_bytes": 331648,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 4044,
+              "global_permutation": 16490,
+              "range_import": 603,
+              "permutation_import": 3778,
+              "range_sid": 150998080,
+              "permutation_sid": 318779720,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop3",
+              "payload": {
+                "sha256": "8567684a28e372fb4a4232c73377469cbec575f2d1a5d2044e8067743c8789db",
+                "encoded_bytes": 38448,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 68352,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 38448,
+                    "pcm_bytes": 136704,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 3,
+              "global_range": 4044,
+              "global_permutation": 16491,
+              "range_import": 603,
+              "permutation_import": 3779,
+              "range_sid": 150998080,
+              "permutation_sid": 318779721,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop4",
+              "payload": {
+                "sha256": "ae267f3af2bc7d47d8274320991a3bd34bf6d8d54eade3da428d446daed74afb",
+                "encoded_bytes": 119124,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 211776,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 119124,
+                    "pcm_bytes": 423552,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "c3e66e1e8a0b5d9918b91e1b77d636b64ba6f58e780d8f4f2ee6fb857492bd7b"
+    },
+    {
+      "metadata_sha256": "2d68ee69cce2a5520cac5cef43d6ea05250d5de411f0788fb99f6e92fbfdbcba",
+      "owner": 4242938522,
+      "path": "i've got a lovely bunch of coconuts",
+      "root": 38142756,
+      "map": "04b_floodlab",
+      "source_map_sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af",
+      "original_map_sha256": "b4634a44ae6be16171d4c09837c0100e0052abcdaffb7160716912b7b0c2338c",
+      "sounds": [
+        {
+          "handle": 3923970156,
+          "root": 12344420,
+          "path": "sound\\vehicles\\monitor\\monitor_amb\\track1\\loop",
+          "header_hex": "0b702200ffff0000d1040115ff00ffff3819000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 3980004291,
+          "original_header_hex": "031c2201000100009a04010fff00ffff38190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 1233,
+              "global_permutation": 5149,
+              "range_import": 783,
+              "permutation_import": 2126,
+              "range_sid": 150998010,
+              "permutation_sid": 218111761,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp1",
+              "payload": {
+                "sha256": "3b5f9c1aeb2ad4b2d0b58eddf9090d3ba455e4750c8cc12accc0667308ddb737",
+                "encoded_bytes": 102312,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 181888,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 102312,
+                    "pcm_bytes": 363776,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 1233,
+              "global_permutation": 5150,
+              "range_import": 783,
+              "permutation_import": 2127,
+              "range_sid": 150998010,
+              "permutation_sid": 218111762,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp2",
+              "payload": {
+                "sha256": "9f493de58e3d90ccf1da54d5e995f5d77bf0d5becc3aa35ec51dece7f04f2e1d",
+                "encoded_bytes": 160164,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 284736,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 160164,
+                    "pcm_bytes": 569472,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 1233,
+              "global_permutation": 5151,
+              "range_import": 783,
+              "permutation_import": 2128,
+              "range_sid": 150998010,
+              "permutation_sid": 218111763,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp3",
+              "payload": {
+                "sha256": "cde6edf6ffd98b7b54595b0b0da90c767275cb04b3f430c0f0f6323cfbe11dc3",
+                "encoded_bytes": 146628,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 260672,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 146628,
+                    "pcm_bytes": 521344,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 3924101230,
+          "root": 12344588,
+          "path": "sound\\vehicles\\monitor\\monitor_move\\track1\\loop",
+          "header_hex": "0b701700ffff6300d2040135ffffffff3720000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 3980135365,
+          "original_header_hex": "031c170100013b009b040126ffffffff37200000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 1234,
+              "global_permutation": 5152,
+              "range_import": 783,
+              "permutation_import": 1274,
+              "range_sid": 150998010,
+              "permutation_sid": 184557332,
+              "range_name": "|default|",
+              "permutation_name": "monitor_amb",
+              "payload": {
+                "sha256": "b52f52fadda1fee772912e86f764d2b1275a3e571036eb5c53310a4ae764fa8e",
+                "encoded_bytes": 121644,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 216256,
+                "sound_class": 23,
+                "packets": [
+                  {
+                    "bytes": 121644,
+                    "pcm_bytes": 432512,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "3742b444f8cab8499abe6aff4264c973632990f9d9906e0a35227c98415409ab"
+    },
+    {
+      "metadata_sha256": "62da5f930306a70c951b0b8d308c043bac3a06afcb8bb6ec47a17b7069b6900b",
+      "owner": 2240947012,
+      "path": "i've got a lovely bunch of coconuts",
+      "root": 44382424,
+      "map": "06a_sentinelwalls",
+      "source_map_sha256": "8c992ac2aa7ef60748115c7abdd80062ee8a579cd99bef21f50496556e0bdb68",
+      "original_map_sha256": "710e0944c2e4f081e6a7dd5af83db0356242cd275bdb45d29a38489edb249904",
+      "sounds": [
+        {
+          "handle": 4038922053,
+          "root": 13749276,
+          "path": "sound\\vehicles\\monitor\\monitor_amb\\track1\\loop",
+          "header_hex": "0b702200ffff00009c0a0114ff00ffff3819000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 4102034185,
+          "original_header_hex": "031c220100010000460a0111ff00ffff38190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2716,
+              "global_permutation": 11333,
+              "range_import": 875,
+              "permutation_import": 2245,
+              "range_sid": 150997844,
+              "permutation_sid": 218112480,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp1",
+              "payload": {
+                "sha256": "3b5f9c1aeb2ad4b2d0b58eddf9090d3ba455e4750c8cc12accc0667308ddb737",
+                "encoded_bytes": 102312,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 181888,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 102312,
+                    "pcm_bytes": 363776,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 2716,
+              "global_permutation": 11334,
+              "range_import": 875,
+              "permutation_import": 2246,
+              "range_sid": 150997844,
+              "permutation_sid": 218112481,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp2",
+              "payload": {
+                "sha256": "9f493de58e3d90ccf1da54d5e995f5d77bf0d5becc3aa35ec51dece7f04f2e1d",
+                "encoded_bytes": 160164,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 284736,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 160164,
+                    "pcm_bytes": 569472,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 2716,
+              "global_permutation": 11335,
+              "range_import": 875,
+              "permutation_import": 2247,
+              "range_sid": 150997844,
+              "permutation_sid": 218112482,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp3",
+              "payload": {
+                "sha256": "cde6edf6ffd98b7b54595b0b0da90c767275cb04b3f430c0f0f6323cfbe11dc3",
+                "encoded_bytes": 146628,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 260672,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 146628,
+                    "pcm_bytes": 521344,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4039053127,
+          "root": 13749444,
+          "path": "sound\\vehicles\\monitor\\monitor_move\\track1\\loop",
+          "header_hex": "0b701700ffff66009d0a0133ffffffff3720000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 4102165259,
+          "original_header_hex": "031c170100013f00470a012affffffff37200000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2717,
+              "global_permutation": 11336,
+              "range_import": 875,
+              "permutation_import": 1419,
+              "range_sid": 150997844,
+              "permutation_sid": 184558051,
+              "range_name": "|default|",
+              "permutation_name": "monitor_amb",
+              "payload": {
+                "sha256": "b52f52fadda1fee772912e86f764d2b1275a3e571036eb5c53310a4ae764fa8e",
+                "encoded_bytes": 121644,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 216256,
+                "sound_class": 23,
+                "packets": [
+                  {
+                    "bytes": 121644,
+                    "pcm_bytes": 432512,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "5d105484138ea6c44365d4a39bff39712064ecaa4e5b111e9aa488c38acb7a16"
+    },
+    {
+      "metadata_sha256": "f18a3f08ca9de574d26f4d3002f80ac6cce79d5af00710b085efe93e6bc35cb3",
+      "owner": 2223776436,
+      "path": "i've got a lovely bunch of coconuts",
+      "root": 74701908,
+      "map": "07a_highcharity",
+      "source_map_sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569",
+      "original_map_sha256": "770426d5182d47d31ce870fcbc9ed346988175690a3dc1c58ca8a7c1ef1dbd45",
+      "sounds": [
+        {
+          "handle": 4067037357,
+          "root": 17187476,
+          "path": "sound\\vehicles\\monitor\\monitor_amb\\track1\\loop",
+          "header_hex": "0b702200ffff0000040b0114ff00ffff3819000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 4105442040,
+          "original_header_hex": "031c220100010000fb090111ff00ffff38190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2820,
+              "global_permutation": 13527,
+              "range_import": 733,
+              "permutation_import": 2173,
+              "range_sid": 150998139,
+              "permutation_sid": 218113760,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp1",
+              "payload": {
+                "sha256": "3b5f9c1aeb2ad4b2d0b58eddf9090d3ba455e4750c8cc12accc0667308ddb737",
+                "encoded_bytes": 102312,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 181888,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 102312,
+                    "pcm_bytes": 363776,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 2820,
+              "global_permutation": 13528,
+              "range_import": 733,
+              "permutation_import": 2174,
+              "range_sid": 150998139,
+              "permutation_sid": 218113761,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp2",
+              "payload": {
+                "sha256": "9f493de58e3d90ccf1da54d5e995f5d77bf0d5becc3aa35ec51dece7f04f2e1d",
+                "encoded_bytes": 160164,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 284736,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 160164,
+                    "pcm_bytes": 569472,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 2820,
+              "global_permutation": 13529,
+              "range_import": 733,
+              "permutation_import": 2175,
+              "range_sid": 150998139,
+              "permutation_sid": 218113762,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp3",
+              "payload": {
+                "sha256": "cde6edf6ffd98b7b54595b0b0da90c767275cb04b3f430c0f0f6323cfbe11dc3",
+                "encoded_bytes": 146628,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 260672,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 146628,
+                    "pcm_bytes": 521344,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4067168431,
+          "root": 17187644,
+          "path": "sound\\vehicles\\monitor\\monitor_move\\track1\\loop",
+          "header_hex": "0b701700ffff5e00050b012cffffffff3720000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 4105573114,
+          "original_header_hex": "031c170100013b00fc090126ffffffff37200000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2821,
+              "global_permutation": 13530,
+              "range_import": 733,
+              "permutation_import": 1278,
+              "range_sid": 150998139,
+              "permutation_sid": 184559331,
+              "range_name": "|default|",
+              "permutation_name": "monitor_amb",
+              "payload": {
+                "sha256": "b52f52fadda1fee772912e86f764d2b1275a3e571036eb5c53310a4ae764fa8e",
+                "encoded_bytes": 121644,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 216256,
+                "sound_class": 23,
+                "packets": [
+                  {
+                    "bytes": 121644,
+                    "pcm_bytes": 432512,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4251851697,
+          "root": 23495448,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1000_bth",
+          "header_hex": "06412f07ffff270118100100ffff6809840d000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205320428,
+          "original_header_hex": "02112f0200018900e60c0100ffff9a09800d0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4120,
+              "global_permutation": 18035,
+              "range_import": 733,
+              "permutation_import": 1743,
+              "range_sid": 150998139,
+              "permutation_sid": 201339865,
+              "range_name": "|default|",
+              "permutation_name": "l07_1000_bth",
+              "payload": {
+                "sha256": "65dde4380f52f35bdb61ea6b89ac852f5a7de0ff3ea2ee6055d6b1dcae1aee48",
+                "encoded_bytes": 27930,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 166080,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 27930,
+                    "pcm_bytes": 332160,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4251917234,
+          "root": 23495476,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1010_bth",
+          "header_hex": "06412f07ffff270119100100ffff6909ea0b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205385965,
+          "original_header_hex": "02112f0200018900e70c0100ffff9b09e60b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4121,
+              "global_permutation": 18036,
+              "range_import": 733,
+              "permutation_import": 1744,
+              "range_sid": 150998139,
+              "permutation_sid": 201339866,
+              "range_name": "|default|",
+              "permutation_name": "l07_1010_bth",
+              "payload": {
+                "sha256": "424bd6f8e94733f71a44f93ea49b16fbc56bb9f01ae6dbb4874470673c95a499",
+                "encoded_bytes": 24606,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 146400,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 24606,
+                    "pcm_bytes": 292800,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4251982771,
+          "root": 23495504,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1020_bth",
+          "header_hex": "06412f07ffff28011a100100ffff6a09ea0b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205451502,
+          "original_header_hex": "02112f0200018700e80c0100ffff9c09e60b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4122,
+              "global_permutation": 18037,
+              "range_import": 733,
+              "permutation_import": 1745,
+              "range_sid": 150998139,
+              "permutation_sid": 201339867,
+              "range_name": "|default|",
+              "permutation_name": "l07_1020_bth",
+              "payload": {
+                "sha256": "09e606574380bd59cfbf93ee503ff4dc74d46d5a0607bc9b4b468a7646ca8395",
+                "encoded_bytes": 24608,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 146400,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 24608,
+                    "pcm_bytes": 292800,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252048308,
+          "root": 23495532,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1030_bth",
+          "header_hex": "06412f07ffff28011b100100ffff6b09b608000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205517039,
+          "original_header_hex": "02112f0200018700e90c0100ffff9d09b4080000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4123,
+              "global_permutation": 18038,
+              "range_import": 733,
+              "permutation_import": 1746,
+              "range_sid": 150998139,
+              "permutation_sid": 201339868,
+              "range_name": "|default|",
+              "permutation_name": "l07_1030_bth",
+              "payload": {
+                "sha256": "f2a9561431267b3e06578f1101960ebb7b7bdfc642fb0008f835ab53659b748f",
+                "encoded_bytes": 18006,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 107040,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 18006,
+                    "pcm_bytes": 214080,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252113845,
+          "root": 23495560,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0140_pot",
+          "header_hex": "06412f07ffff28011c100100ffff6c09dc0f000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204009688,
+          "original_header_hex": "02112f0200018700d20c0100ffff8609dc0f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4124,
+              "global_permutation": 18039,
+              "range_import": 733,
+              "permutation_import": 1747,
+              "range_sid": 150998139,
+              "permutation_sid": 201339869,
+              "range_name": "|default|",
+              "permutation_name": "l07_0140_pot",
+              "payload": {
+                "sha256": "27a27ecd5d4da58fb38dd9e5161ba01fb58d2b0f6c4eced53de64572406af2ed",
+                "encoded_bytes": 32555,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 194880,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 32555,
+                    "pcm_bytes": 389760,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252179382,
+          "root": 23495588,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0150_pot",
+          "header_hex": "06412f07ffff28011d100100ffff6d09241d000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204075225,
+          "original_header_hex": "02112f0200018700d30c0100ffff8709201d0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4125,
+              "global_permutation": 18040,
+              "range_import": 733,
+              "permutation_import": 1748,
+              "range_sid": 150998139,
+              "permutation_sid": 201339870,
+              "range_name": "|default|",
+              "permutation_name": "l07_0150_pot",
+              "payload": {
+                "sha256": "cf1c538e7bd4f50e830bd0eab29f1bb2a822d84e55ffd493ba03687583368da4",
+                "encoded_bytes": 59995,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 358080,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21981,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 38014,
+                    "pcm_bytes": 454080,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252244919,
+          "root": 23495616,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0220_pot",
+          "header_hex": "06412f07ffff29011e100100ffff6e09da1b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204533984,
+          "original_header_hex": "02112f0200018800da0c0100ffff8e09d41b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4126,
+              "global_permutation": 18041,
+              "range_import": 733,
+              "permutation_import": 1749,
+              "range_sid": 150998139,
+              "permutation_sid": 201339871,
+              "range_name": "|default|",
+              "permutation_name": "l07_0220_pot",
+              "payload": {
+                "sha256": "ba5f9bf6e54eb3bc4817edc35966b7538486fce9a39622d845d3e12933376dda",
+                "encoded_bytes": 57218,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 342240,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21911,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 35307,
+                    "pcm_bytes": 422400,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252310456,
+          "root": 23495644,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0240_pot",
+          "header_hex": "06412f07ffff28011f100100ffff6f09bc20000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204665058,
+          "original_header_hex": "02112f0200018700dc0c0100ffff9009bc200000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4127,
+              "global_permutation": 18042,
+              "range_import": 733,
+              "permutation_import": 1750,
+              "range_sid": 150998139,
+              "permutation_sid": 201339872,
+              "range_name": "|default|",
+              "permutation_name": "l07_0240_pot",
+              "payload": {
+                "sha256": "b85b0943b888503c481542f80d660ef22e66111b7b02e9bb81ab6790d7aae0c3",
+                "encoded_bytes": 67330,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 402240,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21911,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 22027,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 23392,
+                    "pcm_bytes": 280320,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252441530,
+          "root": 23495700,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0180_pot",
+          "header_hex": "06412f07ffff280121100100ffff71099a1a000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204271836,
+          "original_header_hex": "02112f0200018700d60c0100ffff8a09901a0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4129,
+              "global_permutation": 18044,
+              "range_import": 733,
+              "permutation_import": 1752,
+              "range_sid": 150998139,
+              "permutation_sid": 201339874,
+              "range_name": "|default|",
+              "permutation_name": "l07_0180_pot",
+              "payload": {
+                "sha256": "7b58f0394c5a6ffdee5b731813ce89963278e63c9c0647579e0ab248bb56f378",
+                "encoded_bytes": 54674,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 326880,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21921,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 32753,
+                    "pcm_bytes": 391680,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252572604,
+          "root": 23495756,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0160_pot",
+          "header_hex": "06412f07ffff280123100100ffff73093219000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204140762,
+          "original_header_hex": "02112f0200018700d40c0100ffff880932190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4131,
+              "global_permutation": 18046,
+              "range_import": 733,
+              "permutation_import": 1754,
+              "range_sid": 150998139,
+              "permutation_sid": 201339876,
+              "range_name": "|default|",
+              "permutation_name": "l07_0160_pot",
+              "payload": {
+                "sha256": "5df786ec014faac664a048844f607ecfcfc41bbb20a1d0bc968a3f6c933b4ac1",
+                "encoded_bytes": 51778,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 309600,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21993,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 29785,
+                    "pcm_bytes": 357120,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252638141,
+          "root": 23495784,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1040_bth",
+          "header_hex": "06412f07ffff270124100100ffff74090410000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205582576,
+          "original_header_hex": "02112f0200018900ea0c0100ffff9e09fc0f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4132,
+              "global_permutation": 18047,
+              "range_import": 733,
+              "permutation_import": 1755,
+              "range_sid": 150998139,
+              "permutation_sid": 201339877,
+              "range_name": "|default|",
+              "permutation_name": "l07_1040_bth",
+              "payload": {
+                "sha256": "f76608b6e7feb5c4f65958183d2f8d5ce3cce0bb4994b5c74c20565318bc0bda",
+                "encoded_bytes": 33064,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 196800,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 33064,
+                    "pcm_bytes": 393600,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252703678,
+          "root": 23495812,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0310_pot",
+          "header_hex": "06412f07ffff270125100100ffff7509861f000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205123817,
+          "original_header_hex": "02112f0200018900e30c0100ffff97097e1f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4133,
+              "global_permutation": 18048,
+              "range_import": 733,
+              "permutation_import": 1756,
+              "range_sid": 150998139,
+              "permutation_sid": 201339878,
+              "range_name": "|default|",
+              "permutation_name": "l07_0310_pot",
+              "payload": {
+                "sha256": "293364e4ad7263ee558324cd559a3cdae1ef5090d55016b26588e202ee234fc3",
+                "encoded_bytes": 64632,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 387360,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21891,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 42741,
+                    "pcm_bytes": 512640,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252769215,
+          "root": 23495840,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1050_bth",
+          "header_hex": "06412f07ffff270126100100ffff7609780f000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205648113,
+          "original_header_hex": "02112f0200018900eb0c0100ffff9f09740f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4134,
+              "global_permutation": 18049,
+              "range_import": 733,
+              "permutation_import": 1757,
+              "range_sid": 150998139,
+              "permutation_sid": 201339879,
+              "range_name": "|default|",
+              "permutation_name": "l07_1050_bth",
+              "payload": {
+                "sha256": "d205d89a50a85f71046d1a7b73aafe261fac8bd93bec11ba36ba99610b204da4",
+                "encoded_bytes": 31960,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 190080,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 31960,
+                    "pcm_bytes": 380160,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252834752,
+          "root": 23495868,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0290_pot",
+          "header_hex": "06412f07ffff280127100100ffff77094826000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204992743,
+          "original_header_hex": "02112f0200018700e10c0100ffff950942260000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4135,
+              "global_permutation": 18050,
+              "range_import": 733,
+              "permutation_import": 1758,
+              "range_sid": 150998139,
+              "permutation_sid": 201339880,
+              "range_name": "|default|",
+              "permutation_name": "l07_0290_pot",
+              "payload": {
+                "sha256": "28fe3463d1141af633c5be6a60b19f8f7176edbe75a6cc2923f5d159b062b317",
+                "encoded_bytes": 78651,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 470400,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21918,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 22007,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 34726,
+                    "pcm_bytes": 416640,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252900289,
+          "root": 23495896,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1060_bth",
+          "header_hex": "06412f07ffff280128100100ffff78095e0b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205713650,
+          "original_header_hex": "02112f0200018700ec0c0100ffffa0095e0b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4136,
+              "global_permutation": 18051,
+              "range_import": 733,
+              "permutation_import": 1759,
+              "range_sid": 150998139,
+              "permutation_sid": 201339881,
+              "range_name": "|default|",
+              "permutation_name": "l07_1060_bth",
+              "payload": {
+                "sha256": "10970a7106a2e2968bb55a03c1136d1f34ad3d9c395b8ca2e146612c6c082194",
+                "encoded_bytes": 23479,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 139680,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 23479,
+                    "pcm_bytes": 279360,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4252965826,
+          "root": 23495924,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1070_bth",
+          "header_hex": "06412f07ffff260129100100ffff79092a0d000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205779187,
+          "original_header_hex": "02112f0200018600ed0c0100ffffa109240d0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4137,
+              "global_permutation": 18052,
+              "range_import": 733,
+              "permutation_import": 1760,
+              "range_sid": 150998139,
+              "permutation_sid": 201339882,
+              "range_name": "|default|",
+              "permutation_name": "l07_1070_bth",
+              "payload": {
+                "sha256": "81877a7e448ee53950be56141015d2de6d5b86efdce8adffaab0be1b9bae40ff",
+                "encoded_bytes": 27195,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 161760,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 27195,
+                    "pcm_bytes": 323520,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4253031363,
+          "root": 23495952,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0300_pot",
+          "header_hex": "06412f07ffff28012a100100ffff7a09e41b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205058280,
+          "original_header_hex": "02112f0200018700e20c0100ffff9609e21b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4138,
+              "global_permutation": 18053,
+              "range_import": 733,
+              "permutation_import": 1761,
+              "range_sid": 150998139,
+              "permutation_sid": 201339883,
+              "range_name": "|default|",
+              "permutation_name": "l07_0300_pot",
+              "payload": {
+                "sha256": "a77f445f9ee83df0d1d36d6477ace1f8a75842f3f084f8e84c1154cc469af858",
+                "encoded_bytes": 56966,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 342720,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21973,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 34993,
+                    "pcm_bytes": 423360,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269350076,
+          "root": 23657816,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0170_pot",
+          "header_hex": "06412f07ffff280170100100ffff88090e24000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204206299,
+          "original_header_hex": "02112f0200018700d50c0100ffff890908240000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4208,
+              "global_permutation": 18323,
+              "range_import": 733,
+              "permutation_import": 1829,
+              "range_sid": 150998139,
+              "permutation_sid": 201340389,
+              "range_name": "|default|",
+              "permutation_name": "l07_0170_pot",
+              "payload": {
+                "sha256": "293073aa0caa01740ed92e5db3ebba9c09b0decf966e121dd9b982d334f6d68b",
+                "encoded_bytes": 74090,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 443040,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21915,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 21989,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 30186,
+                    "pcm_bytes": 361920,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269415613,
+          "root": 23657844,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0190_pot",
+          "header_hex": "06412f07ffff280171100100ffff89098417000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204337373,
+          "original_header_hex": "02112f0200018700d70c0100ffff8b0980170000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4209,
+              "global_permutation": 18324,
+              "range_import": 733,
+              "permutation_import": 1830,
+              "range_sid": 150998139,
+              "permutation_sid": 201340390,
+              "range_name": "|default|",
+              "permutation_name": "l07_0190_pot",
+              "payload": {
+                "sha256": "2d7fc51d0c49ec4d7796cfda3339f0ff370522a6faf42596d76f1eaf17bd17c0",
+                "encoded_bytes": 48466,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 288960,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21963,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 26503,
+                    "pcm_bytes": 315840,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269481150,
+          "root": 23657872,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0200_pot",
+          "header_hex": "06412f07ffff280172100100ffff8a09aa19000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204402910,
+          "original_header_hex": "02112f0200018700d80c0100ffff8c09a6190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4210,
+              "global_permutation": 18325,
+              "range_import": 733,
+              "permutation_import": 1831,
+              "range_sid": 150998139,
+              "permutation_sid": 201340391,
+              "range_name": "|default|",
+              "permutation_name": "l07_0200_pot",
+              "payload": {
+                "sha256": "ad565d23ad23bc6e9841cc871d10fc23fd6aec4a461696fa47df42ff4483648e",
+                "encoded_bytes": 52787,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 315360,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21908,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 30879,
+                    "pcm_bytes": 368640,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269546687,
+          "root": 23657900,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0210_pot",
+          "header_hex": "06412f07ffff280173100100ffff8b096e1e000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204468447,
+          "original_header_hex": "02112f0200018700d90c0100ffff8d096e1e0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4211,
+              "global_permutation": 18326,
+              "range_import": 733,
+              "permutation_import": 1832,
+              "range_sid": 150998139,
+              "permutation_sid": 201340392,
+              "range_name": "|default|",
+              "permutation_name": "l07_0210_pot",
+              "payload": {
+                "sha256": "c452c39bca47eb364acac02326cb094a030a8e3b106d7aefb34f50a7c22818f0",
+                "encoded_bytes": 62543,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 373920,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21945,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 40598,
+                    "pcm_bytes": 485760,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269612224,
+          "root": 23657928,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0250_pot",
+          "header_hex": "06412f07ffff280174100100ffff8c09cc1f000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204730595,
+          "original_header_hex": "02112f0200018700dd0c0100ffff9109cc1f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4212,
+              "global_permutation": 18327,
+              "range_import": 733,
+              "permutation_import": 1833,
+              "range_sid": 150998139,
+              "permutation_sid": 201340393,
+              "range_name": "|default|",
+              "permutation_name": "l07_0250_pot",
+              "payload": {
+                "sha256": "af4b6a402e310f311ee3da6feae5b50d8a0198ac55188a39db7c65cfa5a3bd90",
+                "encoded_bytes": 65364,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 390720,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21957,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 43407,
+                    "pcm_bytes": 519360,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269677761,
+          "root": 23657956,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0260_pot",
+          "header_hex": "06412f07ffff280175100100ffff8d09001e000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204796132,
+          "original_header_hex": "02112f0200018700de0c0100ffff9209001e0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4213,
+              "global_permutation": 18328,
+              "range_import": 733,
+              "permutation_import": 1834,
+              "range_sid": 150998139,
+              "permutation_sid": 201340394,
+              "range_name": "|default|",
+              "permutation_name": "l07_0260_pot",
+              "payload": {
+                "sha256": "c1d016a28a20fbf195100b32714c50b2666748788a493ec13eb87f6b6f3f181e",
+                "encoded_bytes": 61574,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 368640,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21943,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 39631,
+                    "pcm_bytes": 475200,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269743298,
+          "root": 23657984,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0270_pot",
+          "header_hex": "06412f07ffff280176100100ffff8e096e1e000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204861669,
+          "original_header_hex": "02112f0200018700df0c0100ffff93096c1e0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4214,
+              "global_permutation": 18329,
+              "range_import": 733,
+              "permutation_import": 1835,
+              "range_sid": 150998139,
+              "permutation_sid": 201340395,
+              "range_name": "|default|",
+              "permutation_name": "l07_0270_pot",
+              "payload": {
+                "sha256": "a1a59e3e4c30d4390ff995b4a60bd58da61aaafb1a239a91ea32bc8b0a09ac4a",
+                "encoded_bytes": 62361,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 373920,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21955,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 40406,
+                    "pcm_bytes": 485760,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269808835,
+          "root": 23658012,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0280_pot",
+          "header_hex": "06412f07ffff280177100100ffff8f097224000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4204927206,
+          "original_header_hex": "02112f0200018700e00c0100ffff94096a240000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4215,
+              "global_permutation": 18330,
+              "range_import": 733,
+              "permutation_import": 1836,
+              "range_sid": 150998139,
+              "permutation_sid": 201340396,
+              "range_name": "|default|",
+              "permutation_name": "l07_0280_pot",
+              "payload": {
+                "sha256": "b8995951b66399a1971ebd551f12f6987a7757e6171e009db6221947394db6d7",
+                "encoded_bytes": 74679,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 447840,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21909,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 21943,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 30827,
+                    "pcm_bytes": 371520,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4269874372,
+          "root": 23658040,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0330_pot",
+          "header_hex": "06412f07ffff280178100100ffff90096022000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4205254891,
+          "original_header_hex": "02112f0200018700e50c0100ffff99095c220000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 4216,
+              "global_permutation": 18331,
+              "range_import": 733,
+              "permutation_import": 1837,
+              "range_sid": 150998139,
+              "permutation_sid": 201340397,
+              "range_name": "|default|",
+              "permutation_name": "l07_0330_pot",
+              "payload": {
+                "sha256": "07375edc12e8479efd9b538a3a2ce22d157677003b8a0e820073020f00bb4b28",
+                "encoded_bytes": 70459,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 422400,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21918,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 22011,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 26530,
+                    "pcm_bytes": 320640,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "36af990a8a2dc49e03cb0843b8f95edb021264726a0641022a65617488515cad"
+    },
+    {
+      "metadata_sha256": "a1da5168ef7a646fede3b600472119d793ddfa41bb71ce4c1130037114896515",
+      "owner": 4273413229,
+      "path": "i've got a lovely bunch of coconuts",
+      "root": 42766548,
+      "map": "07b_forerunnership",
+      "source_map_sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac",
+      "original_map_sha256": "90453a9e631875d271c67b60f96bd02a96b5b0e80fa74f295fff35576ab7de8a",
+      "sounds": [
+        {
+          "handle": 4179433194,
+          "root": 24136620,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0280_pot",
+          "header_hex": "06412f07ffff5c01dd0a0100ffffb1037224000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125168558,
+          "original_header_hex": "02112f0200018b004b070100ffffca036a240000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2781,
+              "global_permutation": 12422,
+              "range_import": 760,
+              "permutation_import": 1755,
+              "range_sid": 150997935,
+              "permutation_sid": 201339809,
+              "range_name": "|default|",
+              "permutation_name": "l07_0280_pot",
+              "payload": {
+                "sha256": "b8995951b66399a1971ebd551f12f6987a7757e6171e009db6221947394db6d7",
+                "encoded_bytes": 74679,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 447840,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21909,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 21943,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 30827,
+                    "pcm_bytes": 371520,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4179498731,
+          "root": 24136648,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0200_pot",
+          "header_hex": "06412f07ffff5c01de0a0100ffffb203aa19000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124644262,
+          "original_header_hex": "02112f0200018b0043070100ffffc203a6190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2782,
+              "global_permutation": 12423,
+              "range_import": 760,
+              "permutation_import": 1756,
+              "range_sid": 150997935,
+              "permutation_sid": 201339810,
+              "range_name": "|default|",
+              "permutation_name": "l07_0200_pot",
+              "payload": {
+                "sha256": "ad565d23ad23bc6e9841cc871d10fc23fd6aec4a461696fa47df42ff4483648e",
+                "encoded_bytes": 52787,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 315360,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21908,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 30879,
+                    "pcm_bytes": 368640,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4179629805,
+          "root": 24136704,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0330_pot",
+          "header_hex": "06412f07ffff5c01e00a0100ffffb4036022000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125496243,
+          "original_header_hex": "02112f0200018b0050070100ffffcf035c220000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2784,
+              "global_permutation": 12425,
+              "range_import": 760,
+              "permutation_import": 1758,
+              "range_sid": 150997935,
+              "permutation_sid": 201339812,
+              "range_name": "|default|",
+              "permutation_name": "l07_0330_pot",
+              "payload": {
+                "sha256": "07375edc12e8479efd9b538a3a2ce22d157677003b8a0e820073020f00bb4b28",
+                "encoded_bytes": 70459,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 422400,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21918,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 22011,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 26530,
+                    "pcm_bytes": 320640,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4179695342,
+          "root": 24136732,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0260_pot",
+          "header_hex": "06412f07ffff5c01e10a0100ffffb503001e000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125037484,
+          "original_header_hex": "02112f0200018b0049070100ffffc803001e0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2785,
+              "global_permutation": 12426,
+              "range_import": 760,
+              "permutation_import": 1759,
+              "range_sid": 150997935,
+              "permutation_sid": 201339813,
+              "range_name": "|default|",
+              "permutation_name": "l07_0260_pot",
+              "payload": {
+                "sha256": "c1d016a28a20fbf195100b32714c50b2666748788a493ec13eb87f6b6f3f181e",
+                "encoded_bytes": 61574,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 368640,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21943,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 39631,
+                    "pcm_bytes": 475200,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4179957490,
+          "root": 24136844,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0170_pot",
+          "header_hex": "06412f07ffff5c01e50a0100ffffb9030e24000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124447651,
+          "original_header_hex": "02112f0200018b0040070100ffffbf0308240000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2789,
+              "global_permutation": 12433,
+              "range_import": 760,
+              "permutation_import": 1762,
+              "range_sid": 150997935,
+              "permutation_sid": 201339820,
+              "range_name": "|default|",
+              "permutation_name": "l07_0170_pot",
+              "payload": {
+                "sha256": "293073aa0caa01740ed92e5db3ebba9c09b0decf966e121dd9b982d334f6d68b",
+                "encoded_bytes": 74090,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 443040,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21915,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 21989,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 30186,
+                    "pcm_bytes": 361920,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4180023027,
+          "root": 24136872,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0210_pot",
+          "header_hex": "06412f07ffff5c01e60a0100ffffba036e1e000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124709799,
+          "original_header_hex": "02112f0200018b0044070100ffffc3036e1e0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2790,
+              "global_permutation": 12434,
+              "range_import": 760,
+              "permutation_import": 1763,
+              "range_sid": 150997935,
+              "permutation_sid": 201339821,
+              "range_name": "|default|",
+              "permutation_name": "l07_0210_pot",
+              "payload": {
+                "sha256": "c452c39bca47eb364acac02326cb094a030a8e3b106d7aefb34f50a7c22818f0",
+                "encoded_bytes": 62543,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 373920,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21945,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 40598,
+                    "pcm_bytes": 485760,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4180088564,
+          "root": 24136900,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0270_pot",
+          "header_hex": "06412f07ffff5c01e70a0100ffffbb036e1e000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125103021,
+          "original_header_hex": "02112f0200018b004a070100ffffc9036c1e0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2791,
+              "global_permutation": 12435,
+              "range_import": 760,
+              "permutation_import": 1764,
+              "range_sid": 150997935,
+              "permutation_sid": 201339822,
+              "range_name": "|default|",
+              "permutation_name": "l07_0270_pot",
+              "payload": {
+                "sha256": "a1a59e3e4c30d4390ff995b4a60bd58da61aaafb1a239a91ea32bc8b0a09ac4a",
+                "encoded_bytes": 62361,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 373920,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21955,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 40406,
+                    "pcm_bytes": 485760,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4180350712,
+          "root": 24137012,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0190_pot",
+          "header_hex": "06412f07ffff5c01eb0a0100ffffbf038417000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124578725,
+          "original_header_hex": "02112f0200018b0042070100ffffc10380170000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2795,
+              "global_permutation": 12439,
+              "range_import": 760,
+              "permutation_import": 1768,
+              "range_sid": 150997935,
+              "permutation_sid": 201339826,
+              "range_name": "|default|",
+              "permutation_name": "l07_0190_pot",
+              "payload": {
+                "sha256": "2d7fc51d0c49ec4d7796cfda3339f0ff370522a6faf42596d76f1eaf17bd17c0",
+                "encoded_bytes": 48466,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 288960,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21963,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 26503,
+                    "pcm_bytes": 315840,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4195751907,
+          "root": 24295408,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0140_pot",
+          "header_hex": "06412f07ffff5c012a0b0100ffffce03dc0f000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124251040,
+          "original_header_hex": "02112f0200018b003d070100ffffbc03dc0f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2858,
+              "global_permutation": 12705,
+              "range_import": 760,
+              "permutation_import": 1792,
+              "range_sid": 150997935,
+              "permutation_sid": 201340299,
+              "range_name": "|default|",
+              "permutation_name": "l07_0140_pot",
+              "payload": {
+                "sha256": "27a27ecd5d4da58fb38dd9e5161ba01fb58d2b0f6c4eced53de64572406af2ed",
+                "encoded_bytes": 32555,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 194880,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 32555,
+                    "pcm_bytes": 389760,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4195817444,
+          "root": 24295436,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0150_pot",
+          "header_hex": "06412f07ffff5c012b0b0100ffffcf03241d000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124316577,
+          "original_header_hex": "02112f0200018b003e070100ffffbd03201d0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2859,
+              "global_permutation": 12706,
+              "range_import": 760,
+              "permutation_import": 1793,
+              "range_sid": 150997935,
+              "permutation_sid": 201340300,
+              "range_name": "|default|",
+              "permutation_name": "l07_0150_pot",
+              "payload": {
+                "sha256": "cf1c538e7bd4f50e830bd0eab29f1bb2a822d84e55ffd493ba03687583368da4",
+                "encoded_bytes": 59995,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 358080,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21981,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 38014,
+                    "pcm_bytes": 454080,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4195882981,
+          "root": 24295464,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0160_pot",
+          "header_hex": "06412f07ffff5c012c0b0100ffffd0033219000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124382114,
+          "original_header_hex": "02112f0200018b003f070100ffffbe0332190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2860,
+              "global_permutation": 12707,
+              "range_import": 760,
+              "permutation_import": 1794,
+              "range_sid": 150997935,
+              "permutation_sid": 201340301,
+              "range_name": "|default|",
+              "permutation_name": "l07_0160_pot",
+              "payload": {
+                "sha256": "5df786ec014faac664a048844f607ecfcfc41bbb20a1d0bc968a3f6c933b4ac1",
+                "encoded_bytes": 51778,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 309600,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21993,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 29785,
+                    "pcm_bytes": 357120,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4195948518,
+          "root": 24295492,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0180_pot",
+          "header_hex": "06412f07ffff5c012d0b0100ffffd1039a1a000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124513188,
+          "original_header_hex": "02112f0200018b0041070100ffffc003901a0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2861,
+              "global_permutation": 12708,
+              "range_import": 760,
+              "permutation_import": 1795,
+              "range_sid": 150997935,
+              "permutation_sid": 201340302,
+              "range_name": "|default|",
+              "permutation_name": "l07_0180_pot",
+              "payload": {
+                "sha256": "7b58f0394c5a6ffdee5b731813ce89963278e63c9c0647579e0ab248bb56f378",
+                "encoded_bytes": 54674,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 326880,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21921,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 32753,
+                    "pcm_bytes": 391680,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196014055,
+          "root": 24295520,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0220_pot",
+          "header_hex": "06412f07ffff5d012e0b0100ffffd203da1b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124775336,
+          "original_header_hex": "02112f0200018c0045070100ffffc403d41b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2862,
+              "global_permutation": 12709,
+              "range_import": 760,
+              "permutation_import": 1796,
+              "range_sid": 150997935,
+              "permutation_sid": 201340303,
+              "range_name": "|default|",
+              "permutation_name": "l07_0220_pot",
+              "payload": {
+                "sha256": "ba5f9bf6e54eb3bc4817edc35966b7538486fce9a39622d845d3e12933376dda",
+                "encoded_bytes": 57218,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 342240,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21911,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 35307,
+                    "pcm_bytes": 422400,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196145129,
+          "root": 24295576,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0240_pot",
+          "header_hex": "06412f07ffff5c01300b0100ffffd403bc20000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124906410,
+          "original_header_hex": "02112f0200018b0047070100ffffc603bc200000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2864,
+              "global_permutation": 12711,
+              "range_import": 760,
+              "permutation_import": 1798,
+              "range_sid": 150997935,
+              "permutation_sid": 201340305,
+              "range_name": "|default|",
+              "permutation_name": "l07_0240_pot",
+              "payload": {
+                "sha256": "b85b0943b888503c481542f80d660ef22e66111b7b02e9bb81ab6790d7aae0c3",
+                "encoded_bytes": 67330,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 402240,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21911,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 22027,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 23392,
+                    "pcm_bytes": 280320,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196210666,
+          "root": 24295604,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0250_pot",
+          "header_hex": "06412f07ffff5c01310b0100ffffd503cc1f000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4124971947,
+          "original_header_hex": "02112f0200018b0048070100ffffc703cc1f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2865,
+              "global_permutation": 12712,
+              "range_import": 760,
+              "permutation_import": 1799,
+              "range_sid": 150997935,
+              "permutation_sid": 201340306,
+              "range_name": "|default|",
+              "permutation_name": "l07_0250_pot",
+              "payload": {
+                "sha256": "af4b6a402e310f311ee3da6feae5b50d8a0198ac55188a39db7c65cfa5a3bd90",
+                "encoded_bytes": 65364,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 390720,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21957,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 43407,
+                    "pcm_bytes": 519360,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196276203,
+          "root": 24295632,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0290_pot",
+          "header_hex": "06412f07ffff5c01320b0100ffffd6034826000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125234095,
+          "original_header_hex": "02112f0200018b004c070100ffffcb0342260000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2866,
+              "global_permutation": 12713,
+              "range_import": 760,
+              "permutation_import": 1800,
+              "range_sid": 150997935,
+              "permutation_sid": 201340307,
+              "range_name": "|default|",
+              "permutation_name": "l07_0290_pot",
+              "payload": {
+                "sha256": "28fe3463d1141af633c5be6a60b19f8f7176edbe75a6cc2923f5d159b062b317",
+                "encoded_bytes": 78651,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 470400,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21918,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 22007,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 34726,
+                    "pcm_bytes": 416640,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196341740,
+          "root": 24295660,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0300_pot",
+          "header_hex": "06412f07ffff5c01330b0100ffffd703e41b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125299632,
+          "original_header_hex": "02112f0200018b004d070100ffffcc03e21b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2867,
+              "global_permutation": 12714,
+              "range_import": 760,
+              "permutation_import": 1801,
+              "range_sid": 150997935,
+              "permutation_sid": 201340308,
+              "range_name": "|default|",
+              "permutation_name": "l07_0300_pot",
+              "payload": {
+                "sha256": "a77f445f9ee83df0d1d36d6477ace1f8a75842f3f084f8e84c1154cc469af858",
+                "encoded_bytes": 56966,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 342720,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21973,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 34993,
+                    "pcm_bytes": 423360,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196407277,
+          "root": 24295688,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_0310_pot",
+          "header_hex": "06412f07ffff5b01340b0100ffffd803861f000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125365169,
+          "original_header_hex": "02112f0200018d004e070100ffffcd037e1f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2868,
+              "global_permutation": 12715,
+              "range_import": 760,
+              "permutation_import": 1802,
+              "range_sid": 150997935,
+              "permutation_sid": 201340309,
+              "range_name": "|default|",
+              "permutation_name": "l07_0310_pot",
+              "payload": {
+                "sha256": "293364e4ad7263ee558324cd559a3cdae1ef5090d55016b26588e202ee234fc3",
+                "encoded_bytes": 64632,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 387360,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 21891,
+                    "pcm_bytes": 262080,
+                    "reset_after": false
+                  },
+                  {
+                    "bytes": 42741,
+                    "pcm_bytes": 512640,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196538351,
+          "root": 24295744,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1000_bth",
+          "header_hex": "06412f07ffff5b01360b0100ffffda03840d000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125561780,
+          "original_header_hex": "02112f0200018d0051070100ffffd003800d0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2870,
+              "global_permutation": 12717,
+              "range_import": 760,
+              "permutation_import": 1804,
+              "range_sid": 150997935,
+              "permutation_sid": 201340311,
+              "range_name": "|default|",
+              "permutation_name": "l07_1000_bth",
+              "payload": {
+                "sha256": "65dde4380f52f35bdb61ea6b89ac852f5a7de0ff3ea2ee6055d6b1dcae1aee48",
+                "encoded_bytes": 27930,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 166080,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 27930,
+                    "pcm_bytes": 332160,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196603888,
+          "root": 24295772,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1010_bth",
+          "header_hex": "06412f07ffff5b01370b0100ffffdb03ea0b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125627317,
+          "original_header_hex": "02112f0200018d0052070100ffffd103e60b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2871,
+              "global_permutation": 12718,
+              "range_import": 760,
+              "permutation_import": 1805,
+              "range_sid": 150997935,
+              "permutation_sid": 201340312,
+              "range_name": "|default|",
+              "permutation_name": "l07_1010_bth",
+              "payload": {
+                "sha256": "424bd6f8e94733f71a44f93ea49b16fbc56bb9f01ae6dbb4874470673c95a499",
+                "encoded_bytes": 24606,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 146400,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 24606,
+                    "pcm_bytes": 292800,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196669425,
+          "root": 24295800,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1020_bth",
+          "header_hex": "06412f07ffff5c01380b0100ffffdc03ea0b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125692854,
+          "original_header_hex": "02112f0200018b0053070100ffffd203e60b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2872,
+              "global_permutation": 12719,
+              "range_import": 760,
+              "permutation_import": 1806,
+              "range_sid": 150997935,
+              "permutation_sid": 201340313,
+              "range_name": "|default|",
+              "permutation_name": "l07_1020_bth",
+              "payload": {
+                "sha256": "09e606574380bd59cfbf93ee503ff4dc74d46d5a0607bc9b4b468a7646ca8395",
+                "encoded_bytes": 24608,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 146400,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 24608,
+                    "pcm_bytes": 292800,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196734962,
+          "root": 24295828,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1030_bth",
+          "header_hex": "06412f07ffff5c01390b0100ffffdd03b608000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125758391,
+          "original_header_hex": "02112f0200018b0054070100ffffd303b4080000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2873,
+              "global_permutation": 12720,
+              "range_import": 760,
+              "permutation_import": 1807,
+              "range_sid": 150997935,
+              "permutation_sid": 201340314,
+              "range_name": "|default|",
+              "permutation_name": "l07_1030_bth",
+              "payload": {
+                "sha256": "f2a9561431267b3e06578f1101960ebb7b7bdfc642fb0008f835ab53659b748f",
+                "encoded_bytes": 18006,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 107040,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 18006,
+                    "pcm_bytes": 214080,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196800499,
+          "root": 24295856,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1040_bth",
+          "header_hex": "06412f07ffff5b013a0b0100ffffde030410000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125823928,
+          "original_header_hex": "02112f0200018d0055070100ffffd403fc0f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2874,
+              "global_permutation": 12721,
+              "range_import": 760,
+              "permutation_import": 1808,
+              "range_sid": 150997935,
+              "permutation_sid": 201340315,
+              "range_name": "|default|",
+              "permutation_name": "l07_1040_bth",
+              "payload": {
+                "sha256": "f76608b6e7feb5c4f65958183d2f8d5ce3cce0bb4994b5c74c20565318bc0bda",
+                "encoded_bytes": 33064,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 196800,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 33064,
+                    "pcm_bytes": 393600,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196866036,
+          "root": 24295884,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1050_bth",
+          "header_hex": "06412f07ffff5b013b0b0100ffffdf03780f000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125889465,
+          "original_header_hex": "02112f0200018d0056070100ffffd503740f0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2875,
+              "global_permutation": 12722,
+              "range_import": 760,
+              "permutation_import": 1809,
+              "range_sid": 150997935,
+              "permutation_sid": 201340316,
+              "range_name": "|default|",
+              "permutation_name": "l07_1050_bth",
+              "payload": {
+                "sha256": "d205d89a50a85f71046d1a7b73aafe261fac8bd93bec11ba36ba99610b204da4",
+                "encoded_bytes": 31960,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 190080,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 31960,
+                    "pcm_bytes": 380160,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196931573,
+          "root": 24295912,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1060_bth",
+          "header_hex": "06412f07ffff5c013c0b0100ffffe0035e0b000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4125955002,
+          "original_header_hex": "02112f0200018b0057070100ffffd6035e0b0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2876,
+              "global_permutation": 12723,
+              "range_import": 760,
+              "permutation_import": 1810,
+              "range_sid": 150997935,
+              "permutation_sid": 201340317,
+              "range_name": "|default|",
+              "permutation_name": "l07_1060_bth",
+              "payload": {
+                "sha256": "10970a7106a2e2968bb55a03c1136d1f34ad3d9c395b8ca2e146612c6c082194",
+                "encoded_bytes": 23479,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 139680,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 23479,
+                    "pcm_bytes": 279360,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4196997110,
+          "root": 24295940,
+          "path": "sound\\dialog\\levels\\07_highcharity\\mission\\l07_1070_bth",
+          "header_hex": "06412f07ffff5a013d0b0100ffffe1032a0d000000000000ffff00ff",
+          "before": 4358,
+          "after": 4354,
+          "original_full_sound": 4126020539,
+          "original_header_hex": "02112f0200018a0058070100ffffd703240d0000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2877,
+              "global_permutation": 12724,
+              "range_import": 760,
+              "permutation_import": 1811,
+              "range_sid": 150997935,
+              "permutation_sid": 201340318,
+              "range_name": "|default|",
+              "permutation_name": "l07_1070_bth",
+              "payload": {
+                "sha256": "81877a7e448ee53950be56141015d2de6d5b86efdce8adffaab0be1b9bae40ff",
+                "encoded_bytes": 27195,
+                "codec": 5,
+                "sample_rate": 48000,
+                "channels": 1,
+                "samples": 161760,
+                "sound_class": 47,
+                "packets": [
+                  {
+                    "bytes": 27195,
+                    "pcm_bytes": 323520,
+                    "reset_after": false
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "8af9bfdc09492cd402a8d5d002abd1dddb139a7583adb7c254505da9568693c2"
+    },
+    {
+      "metadata_sha256": "df8f53c37235920aede6f499225817b16c391698f758efa5530513650940fa7d",
+      "owner": 4293533087,
+      "path": "i've got a lovely bunch of coconuts",
+      "root": 33968852,
+      "map": "08a_deltacliffs",
+      "source_map_sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594",
+      "original_map_sha256": "69e633bfa7454172aa4f081f72f3719922b0152d5a77ab8409176ccd8b8301d4",
+      "sounds": [
+        {
+          "handle": 4045475565,
+          "root": 17998596,
+          "path": "sound\\vehicles\\monitor\\monitor_amb\\track1\\loop",
+          "header_hex": "0b702200ffff0000740a0116ff00ffff3819000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 4075950271,
+          "original_header_hex": "031c220100010000eb080111ff00ffff38190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2676,
+              "global_permutation": 11625,
+              "range_import": 790,
+              "permutation_import": 2200,
+              "range_sid": 150997997,
+              "permutation_sid": 218114056,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp1",
+              "payload": {
+                "sha256": "3b5f9c1aeb2ad4b2d0b58eddf9090d3ba455e4750c8cc12accc0667308ddb737",
+                "encoded_bytes": 102312,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 181888,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 102312,
+                    "pcm_bytes": 363776,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 2676,
+              "global_permutation": 11626,
+              "range_import": 790,
+              "permutation_import": 2201,
+              "range_sid": 150997997,
+              "permutation_sid": 218114057,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp2",
+              "payload": {
+                "sha256": "9f493de58e3d90ccf1da54d5e995f5d77bf0d5becc3aa35ec51dece7f04f2e1d",
+                "encoded_bytes": 160164,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 284736,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 160164,
+                    "pcm_bytes": 569472,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 2676,
+              "global_permutation": 11627,
+              "range_import": 790,
+              "permutation_import": 2202,
+              "range_sid": 150997997,
+              "permutation_sid": 218114058,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp3",
+              "payload": {
+                "sha256": "cde6edf6ffd98b7b54595b0b0da90c767275cb04b3f430c0f0f6323cfbe11dc3",
+                "encoded_bytes": 146628,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 260672,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 146628,
+                    "pcm_bytes": 521344,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4045606639,
+          "root": 17998764,
+          "path": "sound\\vehicles\\monitor\\monitor_move\\track1\\loop",
+          "header_hex": "0b701700ffff5f00750a0130ffffffff3720000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 4076081345,
+          "original_header_hex": "031c170100013900ec080127ffffffff37200000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 2677,
+              "global_permutation": 11628,
+              "range_import": 790,
+              "permutation_import": 1337,
+              "range_sid": 150997997,
+              "permutation_sid": 184559627,
+              "range_name": "|default|",
+              "permutation_name": "monitor_amb",
+              "payload": {
+                "sha256": "b52f52fadda1fee772912e86f764d2b1275a3e571036eb5c53310a4ae764fa8e",
+                "encoded_bytes": 121644,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 216256,
+                "sound_class": 23,
+                "packets": [
+                  {
+                    "bytes": 121644,
+                    "pcm_bytes": 432512,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "d4ecfd485d1c111abc0100a3a537b7c5eedb7e238c65339f27694807fdf8e8e1"
+    },
+    {
+      "metadata_sha256": "1640d5604b9df7ca769c1513fd038e665a609aeb6f39184e9f9636587a10df39",
+      "owner": 2221286102,
+      "path": "i've got a lovely bunch of coconuts",
+      "root": 49539624,
+      "map": "08b_deltacontrol",
+      "source_map_sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f",
+      "original_map_sha256": "2b71293c775ad33a73025b7a640ba45e88fc4c01c7783d79cf0cce8862cc2828",
+      "sounds": [
+        {
+          "handle": 4021227065,
+          "root": 16162176,
+          "path": "sound\\vehicles\\monitor\\monitor_amb\\track1\\loop",
+          "header_hex": "0b702200ffff0000ce070118ff00ffff3819000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 4085191178,
+          "original_header_hex": "031c22010001000079070112ff00ffff38190000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 1998,
+              "global_permutation": 9440,
+              "range_import": 755,
+              "permutation_import": 2205,
+              "range_sid": 150998012,
+              "permutation_sid": 218113132,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp1",
+              "payload": {
+                "sha256": "3b5f9c1aeb2ad4b2d0b58eddf9090d3ba455e4750c8cc12accc0667308ddb737",
+                "encoded_bytes": 102312,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 181888,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 102312,
+                    "pcm_bytes": 363776,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 1998,
+              "global_permutation": 9441,
+              "range_import": 755,
+              "permutation_import": 2206,
+              "range_sid": 150998012,
+              "permutation_sid": 218113133,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp2",
+              "payload": {
+                "sha256": "9f493de58e3d90ccf1da54d5e995f5d77bf0d5becc3aa35ec51dece7f04f2e1d",
+                "encoded_bytes": 160164,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 284736,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 160164,
+                    "pcm_bytes": 569472,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 1998,
+              "global_permutation": 9442,
+              "range_import": 755,
+              "permutation_import": 2207,
+              "range_sid": 150998012,
+              "permutation_sid": 218113134,
+              "range_name": "|default|",
+              "permutation_name": "newmon_amblp3",
+              "payload": {
+                "sha256": "cde6edf6ffd98b7b54595b0b0da90c767275cb04b3f430c0f0f6323cfbe11dc3",
+                "encoded_bytes": 146628,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 260672,
+                "sound_class": 34,
+                "packets": [
+                  {
+                    "bytes": 146628,
+                    "pcm_bytes": 521344,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4021358139,
+          "root": 16162344,
+          "path": "sound\\vehicles\\monitor\\monitor_move\\track1\\loop",
+          "header_hex": "0b701700ffff5e00cf070135ffffffff3720000000000000ffff00ff",
+          "before": 7179,
+          "after": 7171,
+          "original_full_sound": 4085322252,
+          "original_header_hex": "031c170100013a007a070128ffffffff37200000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 1999,
+              "global_permutation": 9443,
+              "range_import": 755,
+              "permutation_import": 1304,
+              "range_sid": 150998012,
+              "permutation_sid": 184558703,
+              "range_name": "|default|",
+              "permutation_name": "monitor_amb",
+              "payload": {
+                "sha256": "b52f52fadda1fee772912e86f764d2b1275a3e571036eb5c53310a4ae764fa8e",
+                "encoded_bytes": 121644,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 216256,
+                "sound_class": 23,
+                "packets": [
+                  {
+                    "bytes": 121644,
+                    "pcm_bytes": 432512,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "handle": 4231535297,
+          "root": 22221316,
+          "path": "sound\\ambience\\device_machines\\scarab\\scarab_engine_loop\\scarab_engine_loop\\loop",
+          "header_hex": "23441d00ffffd800490e0100ffffffffc212000000000000ffff00ff",
+          "before": 4131,
+          "after": 4099,
+          "original_full_sound": 4200143075,
+          "original_header_hex": "03101d01000161004d0b0100ffffffffc2120000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 3657,
+              "global_permutation": 15876,
+              "range_import": 755,
+              "permutation_import": 3786,
+              "range_sid": 150998012,
+              "permutation_sid": 318779885,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop1",
+              "payload": {
+                "sha256": "7441fb244975bd193b15d11a6c687ad2cc17fcaf026c886a7a6f5435a2737c9e",
+                "encoded_bytes": 64008,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 113792,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 64008,
+                    "pcm_bytes": 227584,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 3657,
+              "global_permutation": 15877,
+              "range_import": 755,
+              "permutation_import": 3787,
+              "range_sid": 150998012,
+              "permutation_sid": 318779886,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop2",
+              "payload": {
+                "sha256": "6b3c13d8a86e66d2e5a33aefc8366af9af8155342c3cd52572a720fb331f3fa5",
+                "encoded_bytes": 93276,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 165824,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 93276,
+                    "pcm_bytes": 331648,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 3657,
+              "global_permutation": 15878,
+              "range_import": 755,
+              "permutation_import": 3788,
+              "range_sid": 150998012,
+              "permutation_sid": 318779887,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop3",
+              "payload": {
+                "sha256": "8567684a28e372fb4a4232c73377469cbec575f2d1a5d2044e8067743c8789db",
+                "encoded_bytes": 38448,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 68352,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 38448,
+                    "pcm_bytes": 136704,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 3,
+              "global_range": 3657,
+              "global_permutation": 15879,
+              "range_import": 755,
+              "permutation_import": 3789,
+              "range_sid": 150998012,
+              "permutation_sid": 318779888,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop4",
+              "payload": {
+                "sha256": "ae267f3af2bc7d47d8274320991a3bd34bf6d8d54eade3da428d446daed74afb",
+                "encoded_bytes": 119124,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 211776,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 119124,
+                    "pcm_bytes": 423552,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "6d6e93580bf463bfd1f6fda48db2f0aac8eb1166e5c89a24db0927d442047d75"
+    },
+    {
+      "metadata_sha256": "c1ed3f56146af3325be5bdee90fe1122796ed75c9b92c1b3a501fa0377107b7c",
+      "owner": 4197057091,
+      "path": "i've got custom multiplayer coconuts, and i don't know why!",
+      "root": 56173096,
+      "map": "turf",
+      "source_map_sha256": "fa0d7255e8db62bc5501f45ebb47aebe2740d640f9292c1847fceae23823a4a6",
+      "original_map_sha256": "3000571be44bde1a62e2738b3a34b482c192772956631d555d8142e7a6d0e446",
+      "sounds": [
+        {
+          "handle": 3857318160,
+          "root": 54604444,
+          "path": "sound\\ambience\\device_machines\\scarab\\scarab_engine_loop\\scarab_engine_loop\\loop",
+          "header_hex": "23441d00ffff0d0019000100ffffffffc212000000000000ffff00ff",
+          "before": 4131,
+          "after": 4099,
+          "original_full_sound": 3951299087,
+          "original_header_hex": "03101d0100015e00d1010100ffffffffc2120000",
+          "permutations": [
+            {
+              "range": 0,
+              "permutation": 0,
+              "global_range": 25,
+              "global_permutation": 115,
+              "range_import": 42,
+              "permutation_import": 175,
+              "range_sid": 150997688,
+              "permutation_sid": 318780381,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop1",
+              "payload": {
+                "sha256": "7441fb244975bd193b15d11a6c687ad2cc17fcaf026c886a7a6f5435a2737c9e",
+                "encoded_bytes": 64008,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 113792,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 64008,
+                    "pcm_bytes": 227584,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 1,
+              "global_range": 25,
+              "global_permutation": 116,
+              "range_import": 42,
+              "permutation_import": 176,
+              "range_sid": 150997688,
+              "permutation_sid": 318780382,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop2",
+              "payload": {
+                "sha256": "6b3c13d8a86e66d2e5a33aefc8366af9af8155342c3cd52572a720fb331f3fa5",
+                "encoded_bytes": 93276,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 165824,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 93276,
+                    "pcm_bytes": 331648,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 2,
+              "global_range": 25,
+              "global_permutation": 117,
+              "range_import": 42,
+              "permutation_import": 177,
+              "range_sid": 150997688,
+              "permutation_sid": 318780383,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop3",
+              "payload": {
+                "sha256": "8567684a28e372fb4a4232c73377469cbec575f2d1a5d2044e8067743c8789db",
+                "encoded_bytes": 38448,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 68352,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 38448,
+                    "pcm_bytes": 136704,
+                    "reset_after": true
+                  }
+                ]
+              }
+            },
+            {
+              "range": 0,
+              "permutation": 3,
+              "global_range": 25,
+              "global_permutation": 118,
+              "range_import": 42,
+              "permutation_import": 178,
+              "range_sid": 150997688,
+              "permutation_sid": 318780384,
+              "range_name": "|default|",
+              "permutation_name": "scarab_engine_loop4",
+              "payload": {
+                "sha256": "ae267f3af2bc7d47d8274320991a3bd34bf6d8d54eade3da428d446daed74afb",
+                "encoded_bytes": 119124,
+                "codec": 1,
+                "sample_rate": 44100,
+                "channels": 1,
+                "samples": 211776,
+                "sound_class": 29,
+                "packets": [
+                  {
+                    "bytes": 119124,
+                    "pcm_bytes": 423552,
+                    "reset_after": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "raw_globals_metadata_sha256": "75a71114a930936cf160d620847615dbd3e15ee282f16a1ee1002e4c360c60e8"
+    }
+  ],
+  "controls": {
+    "backwash_monitor_loops": "No correction: actual original per-map flags1C0B equal normalizedMCC700B; payload identity does not authorize using another map flag tuple."
+  },
+  "raw_globals_metadata_authority": "All nine complete serialized sound-owner graphs are exact across both shader-allocation cohorts after unique retained raw matg identity/descriptor projection and byte-exact active/retained SoundGlobals row validation. Other serialized inputs remain unchanged."
+}

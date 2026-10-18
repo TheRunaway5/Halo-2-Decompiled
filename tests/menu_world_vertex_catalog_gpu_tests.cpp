@@ -175,8 +175,8 @@ public:
     VkPhysicalDeviceProperties properties;vkGetPhysicalDeviceProperties(physical,&properties);
     std::cout<<"Compact raw vertex catalog device: "<<properties.deviceName<<'\n';return true;
   }
-  Bytes run(const MenuWorldSourceStoredDraw &draw,const MenuWorldVertexCatalogEntry &entry,
-      const MenuWorldVertexUniforms &values) {
+  template<class Uniform> Bytes run(const MenuWorldSourceStoredDraw &draw,const MenuWorldVertexCatalogEntry &entry,
+      const Uniform &values) {
     require(draw.index_count && draw.index_count%3==0,"catalog GPU requires original ordered triangle list");
     const auto uniform=buffer(sizeof(values),VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);
     const auto output=buffer(VkDeviceSize(draw.index_count)*204,VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);

@@ -34,7 +34,7 @@ const Material* combined(const Material& material) {
 }
 }
 int main(int argc,char** argv){try {
-    require(argc==3,"supply current Cairo Station map and GPU compute shader");
+    require(argc==4,"supply current Cairo Station map, GPU compute shader and Coagulation map");
     Cache cache(argv[1]);Mesh mesh;pstencil::MaterialBank bank(cache,mesh);
     EffectLightUniformInput input;input.position={1,2,3};input.forward={1,0,0};
     input.up={0,0,1};input.left={0,1,0};input.radius=2;
@@ -153,6 +153,37 @@ int main(int argc,char** argv){try {
     }
     require(polished==2 && ordinary==5 && combined_count>=3,"current material coverage is incomplete");
     require(color_diffuse>0 && cube_live>0,"combined input discrimination has no positive controls");
+    Cache vehicles(argv[3]);auto banshee=find(vehicles,"objects\\vehicles\\banshee\\shaders\\banshee");
+    std::vector<Material> lods;
+    for(unsigned n=0;n<banshee.lods.size();++n) {
+        auto m=banshee;m.selected_shader_lod=n;
+        require(prepare_dynamic_material(vehicles,m,{},true,0.f),"Banshee native LOD could not bind");
+        lods.push_back(std::move(m));
+    }
+    require(lods.size()==4 && !lods[2].environment_pass,"Banshee combined LOD control changed");
+    const auto masks=pstencil::texture_mask_materials(lods);
+    for(unsigned n=0;n<lods.size();++n)
+        require(masks[n]<lods.size() && pstencil::texture_mask_pass(lods[masks[n]]) &&
+            lods[masks[n]].source_shader_datum==lods[n].source_shader_datum,
+            "Combined LOD lost its authored texture mask");
+    auto foreign=lods[2];foreign.source_shader_datum^=1;
+    const std::array negative{lods[0],foreign};
+    require(pstencil::texture_mask_materials(negative)[1]==~0u,"Mask crossed shader identity");
+    Mesh vehicle_mesh;pstencil::MaterialBank vehicle_bank(vehicles,vehicle_mesh);
+    vehicle_bank.preload(banshee,0,{});
+    const auto vehicle_spec=vehicle_bank.complete(banshee.source_shader_datum,0,0,uniforms);
+    require(vehicle_spec && !vehicle_spec->empty() &&
+        pstencil::texture_masked_specular_material(vehicle_mesh.materials.at(vehicle_spec->front().material_slot)),
+        "Banshee specular did not bind the separate material mask");
+    const auto spectre=find(vehicles,"objects\\vehicles\\spectre\\shaders\\spectre");
+    vehicle_bank.preload(spectre,0,{});
+    const auto fallback=vehicle_bank.complete(spectre.source_shader_datum,0,0,uniforms);
+    require(fallback && !fallback->empty(),"Spectre fallback lost authored specular");
+    const auto& fallback_material=vehicle_mesh.materials.at(fallback->front().material_slot);
+    require(!pstencil::texture_masked_specular_material(fallback_material) &&
+        fallback_material.forward_blend==8 && !fallback_material.accumulation_texture,
+        "Unsupported combined Spectre material received an empty texture mask");
+    std::cout<<"PASS: four authored Banshee shader LOD masks; foreign shader rejected\n";
     halo2_test::Compute<Fixture,1> gpu(argv[2]);const auto actual=gpu.run(fixtures);float maximum{};
     for(unsigned n=0;n<actual.size();++n)for(unsigned c=0;c<4;++c) {
         const auto error=std::abs(actual[n][c]-expected[n][c]);maximum=std::max(maximum,error);

@@ -36,6 +36,7 @@ struct SourceSceneryScene::Impl {
         SourceInitialModelSelection selection;
         SourceInitialModelDefinition initial;
         bool region_union{};
+        std::optional<std::string> resource_error;
         SourceGeometryLodDefinition lod_definition;
         std::array<Lod,6> lods;
         std::array<std::int8_t,4> previous_lod{-1,-1,-1,-1};
@@ -61,6 +62,7 @@ struct SourceSceneryScene::Impl {
     std::map<std::uint32_t,SourceShaderLodDefinition> shader_definitions;
     std::map<unsigned,std::string> unresolved_materials;
     std::vector<std::size_t> unresolved_owners;
+    std::vector<SourceSceneryResourceBoundary> deferred_resources;
     std::set<std::size_t> source_placements,nonrendered_placements;
     SourceScenerySceneStats counts;
     LightingQueryState query_state;
@@ -84,6 +86,8 @@ struct SourceSceneryScene::Impl {
             if(object.type!=6 || object.definition==0xffffffffu)continue;
             ++counts.placements;
             Scenery s;s.source_object=index;s.authored=object;
+            const auto material_base=mesh.materials.size();const auto before=counts;
+            try {
             const auto definition=cache.load_scenery_definition(object.definition);
             if(!definition)throw FormatError("SCEN source definition missing");
             s.definition=*definition;
@@ -205,6 +209,18 @@ struct SourceSceneryScene::Impl {
             }
             s.material_count=unsigned(mesh.materials.size())-s.first_material;
             pose(s,0);scenery.push_back(std::move(s));++counts.render_models;
+            } catch(const FormatError &error) {
+                if(!region_union)throw;
+                // An inactive authored placement is not a current resource
+                // request. Retain its failure and identity, roll back every
+                // partial material slot, and reject if it is actually shown.
+                mesh.materials.resize(material_base);counts=before;
+                unresolved_materials.erase(unresolved_materials.lower_bound(unsigned(material_base)),unresolved_materials.end());
+                s.lods={};s.shader_slots.clear();s.first_material=0;s.material_count=0;
+                s.resource_error=error.what();
+                deferred_resources.push_back({index,*s.resource_error});++counts.deferred_resources;
+                scenery.push_back(std::move(s));
+            }
         }
     }
     static void pose(Scenery &s,float phase,bool controller_frame=false,
@@ -260,6 +276,25 @@ struct SourceSceneryScene::Impl {
             if(found==live.end()){s.active=false;s.visible=false;continue;}
             const auto &object=*found->second;
             const bool born=s.handle!=object.handle;
+            if(s.resource_error) {
+                if(object.visible)throw FormatError("Visible SCEN placement "+std::to_string(s.source_object)+
+                    " requires source resources: "+*s.resource_error);
+                if(!selected || !object.solved_nodes)
+                    throw FormatError("Deferred SCEN lifetime requires its actual source regions and WORLD bank");
+                if(!born && s.created_tick!=object.created_tick)
+                    throw FormatError("Deferred SCEN full handle changed creation tick");
+                s.handle=object.handle;s.created_tick=object.created_tick;
+                s.selection=selected(s.source_object,object.handle,object.created_tick);
+                s.root=scene_object_transform(object);s.scale=s.root.scale;
+                s.solved_nodes=object.solved_nodes;s.world_nodes=*object.solved_nodes;
+                s.active=true;s.visible=false;
+                if(!s.world_nodes.empty()) {
+                    s.node0=s.world_nodes.front();
+                    if(born && birth_capture)birth_capture(s.source_object,s.handle,s.created_tick,
+                        s.authored.definition,s.node0,s.scale);
+                }
+                continue;
+            }
             if(s.region_union) {
                 if(!selected)throw FormatError("SCEN source union requires actual current region bytes");
                 auto actual=selected(s.source_object,object.handle,object.created_tick);
@@ -435,4 +470,5 @@ void SourceSceneryScene::append_view(std::vector<Vertex>&vertices,std::vector<Ob
 }
 const SourceScenerySceneStats&SourceSceneryScene::stats()const{return impl_->counts;}
 std::span<const std::size_t>SourceSceneryScene::unresolved_selection_owners()const{return impl_->unresolved_owners;}
+std::span<const SourceSceneryResourceBoundary>SourceSceneryScene::deferred_resource_owners()const{return impl_->deferred_resources;}
 }

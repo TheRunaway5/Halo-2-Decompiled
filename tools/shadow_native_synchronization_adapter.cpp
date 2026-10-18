@@ -69,4 +69,18 @@ int shadow_sync_release_semaphore(void* token,std::uint32_t handle,std::int32_t 
     return 0;
 }
 void shadow_sync_destroy(void* token){delete static_cast<Owner*>(token);}
+int shadow_sync_checkpoint(void* token,std::uint32_t* first,std::uint64_t* next,std::uint64_t* limit,
+    std::uint32_t* rows,std::uint32_t capacity,std::uint32_t* count) {
+    error.clear();
+    try {
+        const auto saved=static_cast<Owner*>(token)->synchronization.checkpoint();
+        if(saved.objects.size()>capacity)throw std::runtime_error("Native synchronization checkpoint output capacity differs");
+        *first=saved.first;*next=saved.next;*limit=saved.limit;*count=saved.objects.size();
+        for(std::size_t n=0;n<saved.objects.size();++n) {
+            const auto &object=saved.objects[n];rows[n*4]=object.handle;rows[n*4+1]=unsigned(object.kind);
+            rows[n*4+2]=std::bit_cast<std::uint32_t>(object.count);rows[n*4+3]=std::bit_cast<std::uint32_t>(object.limit);
+        }
+        return 1;
+    }catch(const std::exception &e){error=e.what();return 0;}
+}
 }

@@ -101,6 +101,14 @@ int main(int argc,char **argv){try {
       anisotropic|=states[stage].min_filter==3 || states[stage].mag_filter==3;
     }
     validate_menu_world_fragment(input);families.insert(fields[1]);events.insert(number(fields[0]));++rows;
+    {
+      auto fog_program=program;fog_program.words[8]=(fog_program.words[8]&~0x00ff0000u)|0x00330000u;
+      auto fog_input=input;fog_input.program=&fog_program;
+      rejects([&]{validate_menu_world_fragment(fog_input);},rejections);
+      fog_input.fog_alpha_bound=true;validate_menu_world_fragment(fog_input);
+      fog_program.words[8]=(fog_program.words[8]&~0x00ff0000u)|0x00230000u;
+      rejects([&]{validate_menu_world_fragment(fog_input);},rejections);
+    }
     auto unbound=input;unbound.uniforms=&missing_constants;
     rejects([&]{validate_menu_world_fragment(unbound);},rejections);
     const auto valid_constants=packet.combiner_constants;

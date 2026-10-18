@@ -1,0 +1,405 @@
+{
+  "schema": "H2_MCC_BSP_INSTANCE_BOUNDS_V1",
+  "reference": {
+    "mcc_map_sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475",
+    "original_map_sha256": "7ea355ef79f13be83fe78546c0fd3b1009ef71c0dd2257b24996420d856f78f4"
+  },
+  "owner": {
+    "datum": 2243175271,
+    "group": "sbsp",
+    "name": "scenarios\\solo\\03a_oldmombasa\\earthcity_3",
+    "address": 34215616,
+    "size": 2489464
+  },
+  "root_sha256": "d5aeb6b7b679382468b0d55772a77f65872e30d38f836e8e3966c175f440031a",
+  "root_checksum": 303238913,
+  "definition_count": 43,
+  "definition_stride": 200,
+  "definition_address": 36228336,
+  "definition_bank_sha256": "a3c29b757c3013741ef6fa959ee9a4165faa5d528c68e6d3878100cfa5c79a0a",
+  "definition0_checksum": 907250582,
+  "instance_count": 243,
+  "instance_stride": 88,
+  "instance_address": 36458072,
+  "instance_preimage_sha256": "b2b97bf24f33680533a6349abacbd4f77b9c94943da222527d0d394316a0c1fe",
+  "instance_postimage_sha256": "ca6a3e3866a5f4fd842a8c731b5d207b74b3a0ba9f90cddda3b780b98d772641",
+  "instance0_transform_before": [
+    1065353216,
+    3043997345,
+    1065353216,
+    0,
+    3212836864,
+    3043997345,
+    0,
+    0,
+    0,
+    1065353216,
+    3290364019,
+    1131374117,
+    3245058451
+  ],
+  "instance0_transform_after": [
+    1065353216,
+    3043997351,
+    1065353215,
+    0,
+    3212836863,
+    3043997351,
+    0,
+    0,
+    0,
+    1065353216,
+    3290364011,
+    1131374102,
+    3245058468
+  ],
+  "fields": [
+    {
+      "instance": 0,
+      "definition": 0,
+      "component": 0,
+      "before": 3290365401,
+      "after": 3290365393
+    },
+    {
+      "instance": 0,
+      "definition": 0,
+      "component": 1,
+      "before": 1131388381,
+      "after": 1131388366
+    },
+    {
+      "instance": 0,
+      "definition": 0,
+      "component": 2,
+      "before": 3243820303,
+      "after": 3243820322
+    },
+    {
+      "instance": 0,
+      "definition": 0,
+      "component": 3,
+      "before": 1076463801,
+      "after": 1076463817
+    },
+    {
+      "instance": 1,
+      "definition": 0,
+      "component": 2,
+      "before": 3243820322,
+      "after": 3243820324
+    },
+    {
+      "instance": 1,
+      "definition": 0,
+      "component": 3,
+      "before": 1076463801,
+      "after": 1076463817
+    },
+    {
+      "instance": 2,
+      "definition": 0,
+      "component": 2,
+      "before": 3239626020,
+      "after": 3239626022
+    },
+    {
+      "instance": 2,
+      "definition": 0,
+      "component": 3,
+      "before": 1076463801,
+      "after": 1076463817
+    },
+    {
+      "instance": 3,
+      "definition": 0,
+      "component": 2,
+      "before": 3232860730,
+      "after": 3232860733
+    },
+    {
+      "instance": 3,
+      "definition": 0,
+      "component": 3,
+      "before": 1076463801,
+      "after": 1076463817
+    },
+    {
+      "instance": 7,
+      "definition": 1,
+      "component": 2,
+      "before": 3232721832,
+      "after": 3232721831
+    },
+    {
+      "instance": 49,
+      "definition": 1,
+      "component": 1,
+      "before": 1129631552,
+      "after": 1129631551
+    },
+    {
+      "instance": 51,
+      "definition": 1,
+      "component": 1,
+      "before": 1129631552,
+      "after": 1129631551
+    },
+    {
+      "instance": 53,
+      "definition": 1,
+      "component": 1,
+      "before": 1129631552,
+      "after": 1129631551
+    },
+    {
+      "instance": 68,
+      "definition": 1,
+      "component": 1,
+      "before": 1129631552,
+      "after": 1129631551
+    },
+    {
+      "instance": 69,
+      "definition": 1,
+      "component": 1,
+      "before": 1129631552,
+      "after": 1129631551
+    },
+    {
+      "instance": 71,
+      "definition": 1,
+      "component": 1,
+      "before": 1128491466,
+      "after": 1128491467
+    },
+    {
+      "instance": 73,
+      "definition": 1,
+      "component": 1,
+      "before": 1129631552,
+      "after": 1129631551
+    },
+    {
+      "instance": 94,
+      "definition": 2,
+      "component": 2,
+      "before": 3234573567,
+      "after": 3234573566
+    },
+    {
+      "instance": 98,
+      "definition": 3,
+      "component": 2,
+      "before": 3237386592,
+      "after": 3237386591
+    },
+    {
+      "instance": 103,
+      "definition": 5,
+      "component": 1,
+      "before": 3217547520,
+      "after": 3217547417
+    },
+    {
+      "instance": 105,
+      "definition": 5,
+      "component": 0,
+      "before": 3289384598,
+      "after": 3289384599
+    },
+    {
+      "instance": 105,
+      "definition": 5,
+      "component": 1,
+      "before": 1119233508,
+      "after": 1119233506
+    },
+    {
+      "instance": 106,
+      "definition": 5,
+      "component": 1,
+      "before": 1133438550,
+      "after": 1133438549
+    },
+    {
+      "instance": 106,
+      "definition": 5,
+      "component": 2,
+      "before": 3243311704,
+      "after": 3243311703
+    },
+    {
+      "instance": 107,
+      "definition": 5,
+      "component": 1,
+      "before": 1133716594,
+      "after": 1133716593
+    },
+    {
+      "instance": 107,
+      "definition": 5,
+      "component": 2,
+      "before": 3243311704,
+      "after": 3243311703
+    },
+    {
+      "instance": 108,
+      "definition": 5,
+      "component": 1,
+      "before": 1072243968,
+      "after": 1072244135
+    },
+    {
+      "instance": 108,
+      "definition": 5,
+      "component": 2,
+      "before": 3231843516,
+      "after": 3231843517
+    },
+    {
+      "instance": 109,
+      "definition": 5,
+      "component": 1,
+      "before": 3239329216,
+      "after": 3239329203
+    },
+    {
+      "instance": 110,
+      "definition": 5,
+      "component": 0,
+      "before": 3289264154,
+      "after": 3289264153
+    },
+    {
+      "instance": 110,
+      "definition": 5,
+      "component": 1,
+      "before": 1118729536,
+      "after": 1118729535
+    },
+    {
+      "instance": 110,
+      "definition": 5,
+      "component": 2,
+      "before": 3231843496,
+      "after": 3231843498
+    },
+    {
+      "instance": 111,
+      "definition": 5,
+      "component": 0,
+      "before": 3289339392,
+      "after": 3289339391
+    },
+    {
+      "instance": 111,
+      "definition": 5,
+      "component": 1,
+      "before": 1120182672,
+      "after": 1120182671
+    },
+    {
+      "instance": 111,
+      "definition": 5,
+      "component": 2,
+      "before": 3231843512,
+      "after": 3231843514
+    },
+    {
+      "instance": 144,
+      "definition": 11,
+      "component": 2,
+      "before": 3212949819,
+      "after": 3212949818
+    },
+    {
+      "instance": 145,
+      "definition": 11,
+      "component": 2,
+      "before": 3212949813,
+      "after": 3212949812
+    },
+    {
+      "instance": 155,
+      "definition": 13,
+      "component": 2,
+      "before": 3241352100,
+      "after": 3241352099
+    },
+    {
+      "instance": 157,
+      "definition": 13,
+      "component": 2,
+      "before": 3241352100,
+      "after": 3241352099
+    },
+    {
+      "instance": 164,
+      "definition": 16,
+      "component": 2,
+      "before": 3242040218,
+      "after": 3242040217
+    },
+    {
+      "instance": 176,
+      "definition": 23,
+      "component": 2,
+      "before": 3226612906,
+      "after": 3226612907
+    },
+    {
+      "instance": 177,
+      "definition": 23,
+      "component": 2,
+      "before": 3235666888,
+      "after": 3235666887
+    },
+    {
+      "instance": 178,
+      "definition": 23,
+      "component": 2,
+      "before": 3236126213,
+      "after": 3236126212
+    },
+    {
+      "instance": 191,
+      "definition": 27,
+      "component": 2,
+      "before": 3228776993,
+      "after": 3228776995
+    },
+    {
+      "instance": 195,
+      "definition": 28,
+      "component": 2,
+      "before": 3228086548,
+      "after": 3228086547
+    },
+    {
+      "instance": 197,
+      "definition": 28,
+      "component": 2,
+      "before": 3223817858,
+      "after": 3223817857
+    },
+    {
+      "instance": 203,
+      "definition": 29,
+      "component": 2,
+      "before": 3228885716,
+      "after": 3228885717
+    },
+    {
+      "instance": 206,
+      "definition": 29,
+      "component": 2,
+      "before": 3225375210,
+      "after": 3225375211
+    }
+  ],
+  "write_word_count": 49,
+  "write_byte_difference_count": 51,
+  "sphere_count": 35,
+  "definition_used_count": 12
+}

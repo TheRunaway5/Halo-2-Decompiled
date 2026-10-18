@@ -156,6 +156,57 @@ def preview_maps(root):
     return result
 
 
+def missing_shader_scalar_tables(destination, catalog):
+    """Read an authenticated existing LUT for an older cache's common owner."""
+    from native_shader_bundle import TABLE_SHA, digest, identity
+
+    def read_tables(path):
+        if path.is_symlink() or not path.is_file():
+            raise FormatError('Retained scalar function tables require a private file owner')
+        if path.stat().st_size != 28 * 1024:
+            raise FormatError('Retained scalar function tables have changed; existing files were retained')
+        tables = path.read_bytes()
+        if digest(tables) != TABLE_SHA:
+            raise FormatError('Retained scalar function tables have changed; existing files were retained')
+        return tables
+
+    common = destination / 'function-tables.bin'
+    if common.exists() or common.is_symlink():
+        read_tables(common)
+        return None
+    rows = catalog.get('maps')
+    if not isinstance(rows, list):
+        raise FormatError('Invalid cached native shader catalog records')
+    for row in rows:
+        if not isinstance(row, dict):
+            raise FormatError('Invalid cached native shader catalog record')
+        identity(row.get('map'))
+    for row in sorted(rows, key=lambda row: row['map']):
+        if row.get('complete') is not True:
+            continue
+        owner = destination / row['map']
+        if owner.is_symlink():
+            raise FormatError('Retained scalar function tables require a private directory owner')
+        candidate = owner / 'function-tables.bin'
+        if candidate.exists() or candidate.is_symlink():
+            return read_tables(candidate)
+    raise FormatError('Retained scalar function tables are unavailable; repair this port installation')
+
+
+def publish_shader_scalar_tables(destination, tables):
+    """Publish one complete absent common file without replacing any bank."""
+    temporary = destination / ('.function-tables-' + uuid.uuid4().hex)
+    try:
+        temporary.write_bytes(tables)
+        # A same-directory hard link atomically publishes the complete bytes
+        # and refuses to replace a file created by another repair meanwhile.
+        os.link(temporary, destination / 'function-tables.bin')
+    except FileExistsError as error:
+        raise FormatError('Common scalar function tables changed during repair; retry setup') from error
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def repair_cache_shaders(root, cache, report, *, progress=print):
     """Add the port's retained materials to an older import, atomically.
 
@@ -167,14 +218,24 @@ def repair_cache_shaders(root, cache, report, *, progress=print):
     if destination.is_symlink():
         raise FormatError('The native shader library must be an owned directory')
     if destination.exists():
-        catalog = json.loads((destination / 'catalog.json').read_bytes())
+        catalog_path = destination / 'catalog.json'
+        if catalog_path.is_symlink():
+            raise FormatError('The native shader catalog must have a private owner')
+        catalog_bytes = catalog_path.read_bytes()
+        catalog = json.loads(catalog_bytes)
         if catalog.get('schema') != 'H2_PRESERVED_NATIVE_SHADER_CATALOG_V1':
             raise FormatError('Invalid cached native shader catalog')
-        return cache, report
+        tables = missing_shader_scalar_tables(destination, catalog)
+        result = repair_shader_closure(root, cache, report, catalog, catalog_bytes, progress=progress)
+        if tables is not None:
+            publish_shader_scalar_tables(destination, tables)
+            progress('Retained scalar function tables are ready. Existing native programs were retained.')
+        return result
     from preserve_native_shaders import copy_selected
     temporary = cache / ('.native-shaders-' + uuid.uuid4().hex)
     pending = cache / ('.shader-provenance-' + uuid.uuid4().hex)
     temporary.mkdir()
+    installed = committed = False
     try:
         progress('Preparing the retained native material library for this MCC cache…')
         shaders = copy_selected(root, temporary)
@@ -183,9 +244,123 @@ def repair_cache_shaders(root, cache, report, *, progress=print):
         updated = {**report, 'native_shader_library': shaders}
         pending.write_text(json.dumps(updated, indent=2) + '\n')
         (temporary / 'native-shaders').rename(destination)
+        installed = True
         os.replace(pending, cache / 'provenance.json')
+        committed = True
         progress('Retained native materials are ready. The MCC data import was reused.')
         return cache, updated
+    except BaseException:
+        if installed and not committed:
+            destination.rename(temporary / 'native-shaders')
+        raise
+    finally:
+        shutil.rmtree(temporary)
+        pending.unlink(missing_ok=True)
+
+
+def repair_shader_closure(root, cache, report, catalog, catalog_bytes, *, progress=print):
+    """Append only an absent, authenticated native dependency; never a bank replacement."""
+    from native_shader_bundle import canonical_digest, closure_policy, require_closure_source
+    from preserve_native_shaders import copy_selected, read_selected_library
+    destination = cache / 'native-shaders'
+    policy = closure_policy()
+    source_name = policy['source_map']
+    expected = {row['map']: row for row in policy['libraries'] if row['missing']}
+    rows = catalog.get('maps')
+    if not isinstance(rows, list):
+        raise FormatError('Invalid cached native shader catalog records')
+    by_name = {}
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get('map'), str) or row['map'] in by_name:
+            raise FormatError('Ambiguous cached native shader catalog')
+        by_name[row['map']] = row
+    dependencies = []
+    for name, row in by_name.items():
+        if name not in expected or row.get('complete') is not True:
+            continue
+        bank = destination / name
+        manifest_path = bank / 'library.json'
+        if bank.is_symlink() or manifest_path.is_symlink():
+            raise FormatError('Cached native shader dependency must have a private owner')
+        try:
+            manifest = json.loads(manifest_path.read_bytes())
+        except (OSError, ValueError) as error:
+            raise FormatError('Cached native bank is incomplete; automatic closure repair cannot replace it: ' + name) from error
+        # Unknown/custom banks retain their authored namespace and selection.
+        if canonical_digest(manifest) == expected[name]['canonical_sha256']:
+            dependencies.append(name)
+    if not dependencies:
+        return cache, report
+    source = destination / source_name
+    if source.is_symlink():
+        raise FormatError('Canonical retained Cairo native library must have a private owner')
+    source_exists = source.exists()
+    if source_exists:
+        try:
+            source_manifest, _ = read_selected_library(source, source_name)
+            require_closure_source(source_manifest)
+        except (OSError, ValueError, KeyError) as error:
+            raise FormatError('Existing Cairo native library is customized or incomplete; automatic repair retained it unchanged') from error
+        if source_name in by_name and by_name[source_name].get('complete') is True:
+            return cache, report
+    # A canonical recipient with changed payload files is not an authenticated
+    # old import. Leave it intact rather than making its report look repaired.
+    for name in dependencies:
+        try:
+            read_selected_library(destination / name, name)
+        except (OSError, ValueError, KeyError) as error:
+            raise FormatError('Cached native bank has changed payloads; automatic closure repair retained it unchanged: ' + name) from error
+    temporary = cache / ('.native-shaders-' + uuid.uuid4().hex)
+    pending = cache / ('.shader-provenance-' + uuid.uuid4().hex)
+    temporary.mkdir()
+    installed = catalog_published = committed = False
+    try:
+        progress('Preparing the missing retained Cairo native library; the MCC data import is reused…')
+        if not source_exists:
+            shaders = copy_selected(root, temporary, maps={source_name})
+            if source_name not in shaders.get('maps', {}):
+                raise FormatError(shaders.get('blocker', 'Canonical retained Cairo native library is unavailable'))
+            staged_source = temporary / 'native-shaders' / source_name
+            source_manifest, _ = read_selected_library(staged_source, source_name)
+            require_closure_source(source_manifest)
+        else:
+            staged_source = source
+        new_row = dict(map=source_name, complete=True, tags=len(source_manifest['shader_tags']))
+        if source_name in by_name:
+            previous = by_name[source_name]
+            if previous.get('complete') is not True or previous.get('tags', new_row['tags']) != new_row['tags']:
+                raise FormatError('Existing Cairo native catalog entry is customized; automatic repair retained it unchanged')
+            updated_catalog = catalog
+        else:
+            updated_catalog = {**catalog, 'maps': [*rows, new_row]}
+        previous_shaders = report.get('native_shader_library', {})
+        updated_shaders = {**previous_shaders,
+            'maps': {**previous_shaders.get('maps', {}), source_name: file_sha(staged_source / 'library.json')},
+            'closure_repair': dict(complete=True, source_map=source_name, dependent_maps=dependencies,
+                source_canonical_sha256=policy['source_canonical_sha256'], existing_programs_replaced=False)}
+        updated = {**report, 'native_shader_library': updated_shaders}
+        pending.write_text(json.dumps(updated, indent=2) + '\n')
+        replacement = temporary / 'catalog.next'
+        replacement.write_text(json.dumps(updated_catalog, indent=2) + '\n')
+        backup = temporary / 'catalog.previous'
+        backup.write_bytes(catalog_bytes)
+        if (destination / 'catalog.json').read_bytes() != catalog_bytes or source.exists() != source_exists:
+            raise FormatError('Cached native library changed during closure repair; retry setup')
+        if not source_exists:
+            staged_source.rename(source)
+            installed = True
+        os.replace(replacement, destination / 'catalog.json')
+        catalog_published = True
+        os.replace(pending, cache / 'provenance.json')
+        committed = True
+        progress('Retained Cairo native materials are ready. Existing native programs and MCC files were retained.')
+        return cache, updated
+    except BaseException:
+        if catalog_published and not committed:
+            os.replace(temporary / 'catalog.previous', destination / 'catalog.json')
+        if installed and not committed:
+            source.rename(temporary / source_name)
+        raise
     finally:
         shutil.rmtree(temporary)
         pending.unlink(missing_ok=True)

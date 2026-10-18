@@ -35,6 +35,8 @@ struct SourceMachineScene::Impl {
         std::uint32_t initial_device_flags{};
         ShadowCasterDefinition bounds;
         SourceObjectGeometry geometry;
+        std::optional<std::string> resource_error;
+        std::optional<std::vector<Transform>> solved_nodes;
         Transform object;
         float position{},power{},scale{},group_position{};
         struct Presentation {Transform root;float position{},power{};};
@@ -55,11 +57,12 @@ struct SourceMachineScene::Impl {
     SourceMachineSceneStats counts;
     std::uint64_t last_tick{};
     std::int32_t render_frame{};
-    bool reference_bound{};
+    bool reference_bound{},lifetimes_bound{};
     std::vector<Machine> machines;
+    std::vector<SourceMachineResourceBoundary> deferred_resources;
     std::set<std::size_t> machine_placements,nonrendered_placements;
 
-    Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld &cw)
+    Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld &cw,bool source_resource_defer)
         :cache(c),collision(cw),lighting(c.load_bsp_lighting(bsp)),surface(c.load_bsp_surface_lighting(bsp)),
          conversion(c.load_object_lighting_definition()),sh(c.load_source_prt_lighting(bsp)) {
         for(std::size_t source_object=0;source_object<objects.size();++source_object){
@@ -102,27 +105,42 @@ struct SourceMachineScene::Impl {
             m.geometry.load(cache,object,initial_definition,initial_selection,m.definition.render_model);
             pose(m);
             const auto colors=cache.load_object_colors(object.definition,object.variant);
-            const auto resident=m.geometry.prepare(cache,colors,m.world_nodes,sh,mesh);
-            counts.dynamic_materials+=resident.dynamic_materials;counts.prt_materials+=resident.prt_materials;
-            counts.union_dynamic_materials+=resident.union_dynamic_materials;
-            counts.union_prt_materials+=resident.union_prt_materials;
-            counts.union_section_banks+=resident.union_section_banks;
-            machines.push_back(std::move(m));++counts.render_models;
+            const auto material_base=mesh.materials.size();
+            try {
+                const auto resident=m.geometry.prepare(cache,colors,m.world_nodes,sh,mesh);
+                counts.dynamic_materials+=resident.dynamic_materials;counts.prt_materials+=resident.prt_materials;
+                counts.union_dynamic_materials+=resident.union_dynamic_materials;
+                counts.union_prt_materials+=resident.union_prt_materials;
+                counts.union_section_banks+=resident.union_section_banks;
+                ++counts.render_models;
+            } catch(const FormatError &error) {
+                if(!source_resource_defer)throw;
+                mesh.materials.resize(material_base);
+                m.resource_error=error.what();
+                deferred_resources.push_back({source_object,*m.resource_error});++counts.deferred_resources;
+            }
+            machines.push_back(std::move(m));
         }
+    }
+    static void require_resources(const Machine &m) {
+        if(m.resource_error)throw FormatError("Visible machine placement "+std::to_string(m.source_object)+
+            " requires original source resources: "+*m.resource_error);
     }
     static void pose(Machine &m){
         const auto&model=m.geometry.model();
         const auto position=m.presentation?m.presentation->position:m.position;
         const auto power=m.presentation?m.presentation->power:m.power;
         const auto &root=m.presentation?m.presentation->root:m.object;
-        const auto locals=source_machine_local_pose(model,m.definition,position,power);
-        m.world_nodes=pose_model_locals_nodes_world(model,root,locals);
+        const auto locals=m.solved_nodes?std::vector<BonePose>{}:source_machine_local_pose(model,m.definition,position,power);
+        m.world_nodes=m.solved_nodes?*m.solved_nodes:pose_model_locals_nodes_world(model,root,locals);
         if(m.world_nodes.empty())throw FormatError("machine model has no query node0: "+m.definition.name);
         m.sphere=source_shadow_sphere(m.bounds,m.world_nodes.front(),root.scale);
-        m.geometry.pose_world([&](const RenderModel&resident){return pose_model_locals_world(resident,root,locals);});
+        if(!m.resource_error)m.geometry.pose_world([&](const RenderModel&resident){return m.solved_nodes?
+            skin_model_world_nodes(resident,m.world_nodes):pose_model_locals_world(resident,root,locals);});
     }
     void bind_banks(Machine &m,Mesh &mesh){m.geometry.update_banks(cache,m.world_nodes,sh,mesh);}
     static void reference_pose(Machine &m) {
+        m.solved_nodes.reset();
         const auto&r=*m.reference;m.position=r.position;m.power=r.power;m.scale=r.root_scale;
         m.object=source_object_transform(r.root_position,r.root_forward,r.root_up,r.root_scale,
             bool(r.source_object_flags&0x400));
@@ -142,13 +160,14 @@ struct SourceMachineScene::Impl {
                 !std::isfinite(r.root_scale) || r.root_scale<=0 || !finite(r.root_position) ||
                 !finite(r.root_forward) || !finite(r.root_up) || length(cross(r.root_forward,r.root_up))<.01f)
                 throw FormatError("reference device has no unique admitted source machine");
-            matched.push_back({&*m,&r});
+            require_resources(*m);matched.push_back({&*m,&r});
         }
         for(const auto [m,r]:matched){m->reference=*r;reference_pose(*m);pose(*m);bind_banks(*m,mesh);}
         reference_bound=true;
     }
     void synchronize(const SceneObjects &scene,const SourceDeviceWorld *devices){
-        struct Live {std::uint32_t handle;std::uint64_t created_tick;Transform root;bool visible;const SourceDeviceWorldOwner*device;};
+        lifetimes_bound=false;
+        struct Live {std::uint32_t handle;std::uint64_t created_tick;Transform root;bool visible;const SourceDeviceWorldOwner*device;const std::optional<std::vector<Transform>>*nodes{};};
         std::map<std::size_t,Live> live;
         const auto insert=[&](std::size_t placement,Live object){
             if(!machine_placements.contains(placement))return;
@@ -159,17 +178,22 @@ struct SourceMachineScene::Impl {
                 throw FormatError("live machine placement requires unprepared source geometry");
         };
         if(devices){
-            for(const auto&[handle,o]:devices->owners())
-                insert(o.placement,{handle,o.created_tick,o.root,o.visible,&o});
+            for(const auto&[handle,o]:devices->owners()) {
+                const auto at=std::find_if(scene.objects().begin(),scene.objects().end(),[&](const auto &p){return p.handle==handle && p.placement==o.placement;});
+                insert(o.placement,{handle,o.created_tick,o.root,o.visible,&o,
+                    at==scene.objects().end()?nullptr:&at->solved_nodes});
+            }
         }else for(const auto&object:scene.objects())if(object.handle!=0xffffffffu){
             insert(object.placement,{object.handle,object.created_tick,
-                scene_object_transform(object),object.visible,nullptr});
+                scene_object_transform(object),object.visible,nullptr,&object.solved_nodes});
         }
         for(auto&m:machines){
             m.presentation.reset();
             const auto at=live.find(m.source_object);
             if(at==live.end()){m.active=false;m.visible=false;continue;}
             const auto&object=at->second;
+            if(object.visible)require_resources(m);
+            m.solved_nodes=object.nodes?*object.nodes:std::optional<std::vector<Transform>>{};
             if(m.handle!=object.handle){
                 if(!devices && (m.handle!=0xffffffffu || object.created_tick!=0) &&
                     (m.placement.power_group!=-1 || m.placement.position_group!=-1))
@@ -191,14 +215,16 @@ struct SourceMachineScene::Impl {
             if(m.reference)reference_pose(m);
             m.active=true;m.visible=object.visible;
         }
+        lifetimes_bound=true;
     }
     void update_pose(std::uint64_t tick,std::int32_t frame,Mesh&mesh){
         if(tick<last_tick)throw FormatError("machine scene tick moved backwards");
         render_frame=frame;
         for(auto&m:machines){
             if(!m.active)continue;
+            if(m.visible)require_resources(m);
             if(tick<m.advanced_tick)throw FormatError("machine creation tick exceeds source simulation clock");
-            for(auto step=m.advanced_tick;step<tick;++step)if(!m.reference && !m.simulation_owned && m.definition.type==2)
+            for(auto step=m.advanced_tick;step<tick;++step)if(!m.reference && !m.simulation_owned && !m.solved_nodes && m.definition.type==2)
                 m.position=source_machine_gear_step(m.definition,m.position,m.power,1.f/30.f).position;
             m.advanced_tick=tick;pose(m);
             //1152E0 progression continues while hidden; B9CE0 independently
@@ -228,7 +254,7 @@ struct SourceMachineScene::Impl {
 
 };
 SourceMachineScene::SourceMachineScene(const Cache&c,std::span<const ScenarioObject>objects,std::size_t bsp,
-    Mesh&mesh,const CollisionWorld&collision):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision)){}
+    Mesh&mesh,const CollisionWorld&collision,bool source_resource_defer):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision,source_resource_defer)){}
 SourceMachineScene::~SourceMachineScene()=default;
 SourceMachineScene::SourceMachineScene(SourceMachineScene&&) noexcept=default;
 SourceMachineScene&SourceMachineScene::operator=(SourceMachineScene&&) noexcept=default;
@@ -240,7 +266,7 @@ void SourceMachineScene::interpolate(const SourceDeviceWorldSnapshot &previous,f
     validate_render_fraction(fraction);
     for(auto &m:impl_->machines) {
         m.presentation.reset();
-        if(!m.active || !m.visible || m.reference || !m.simulation_owned)continue;
+        if(!m.active || !m.visible || m.reference || !m.simulation_owned || m.solved_nodes)continue;
         const auto at=std::find_if(previous.owners.begin(),previous.owners.end(),[&](const auto &p){
             const auto &o=p.state;
             return p.definition==m.definition_datum && o.handle==m.handle &&
@@ -260,18 +286,28 @@ void SourceMachineScene::interpolate(const SourceDeviceWorldSnapshot &previous,f
             position,std::lerp(old.motion.power,m.power,fraction)};
     }
 }
+void SourceMachineScene::interpolate(const SceneObjects &scene,const SceneInterpolation &history,float fraction) {
+    validate_render_fraction(fraction);
+    for(auto &m:impl_->machines)if(m.active && m.solved_nodes && !m.reference) {
+        const auto &object=scene.get(m.handle);
+        if(!object.solved_nodes)throw FormatError("Machine source WORLD endpoint became unavailable");
+        m.object=history.sample(object,fraction);m.scale=m.object.scale;
+        m.solved_nodes=history.sample_nodes(object,fraction);
+    }
+}
 void SourceMachineScene::synchronize(const SceneObjects&scene,const SourceDeviceWorld*devices){impl_->synchronize(scene,devices);}
 void SourceMachineScene::set_reference_devices(std::span<const ReferenceDeviceState> devices,Mesh&mesh){
     impl_->set_reference_devices(devices,mesh);
 }
 void SourceMachineScene::append(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings)const{
-    for(const auto&m:impl_->machines)if(m.active && m.visible){const auto&g=m.geometry.at(5);
+    for(const auto&m:impl_->machines)if(m.active && m.visible){Impl::require_resources(m);const auto&g=m.geometry.at(5);
         out.insert(out.end(),g.vertices.begin(),g.vertices.end());
         bindings.push_back({m.geometry.first_material,m.geometry.material_count,m.light.lighting});}
 }
 void SourceMachineScene::append_view(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings,
     const SourceObjectViewLod&view,std::vector<SourceObjectViewSelection>*selections){
     for(auto&m:impl_->machines)if(m.active && m.visible){
+        Impl::require_resources(m);
         const auto selected=m.geometry.select(m.source_object,m.handle,m.sphere.center,m.sphere.radius,view);
         const auto&g=m.geometry.view(view.view_index);
         //4B5D0's owner lighting-cache call precedes part shader selection.
@@ -283,7 +319,9 @@ void SourceMachineScene::append_view(std::vector<Vertex>&out,std::vector<ObjectL
     }
 }
 const SourceMachineSceneStats&SourceMachineScene::stats()const{return impl_->counts;}
+std::span<const SourceMachineResourceBoundary>SourceMachineScene::deferred_resource_owners()const{return impl_->deferred_resources;}
 std::vector<SourceMachinePortalState> SourceMachineScene::portal_owners()const{
+    if(!impl_->lifetimes_bound)throw FormatError("Machine portal snapshot requires synchronized source lifetimes");
     std::vector<SourceMachinePortalState> out;
     for(const auto&m:impl_->machines)if(m.active){
         if(m.handle==0xffffffffu)throw FormatError("portal owner snapshot requires synchronized machine lifetimes");

@@ -1,10 +1,55 @@
 # pStencil graphics mode
 
+The installed gameplay runtime is **surface-alignment-live-v1**, via
+`./Halo2-pStencil`. It retains the live-v14 source/ABI and materials, with the
+[shadow-cap transform fix](SURFACE_CAP_ALIGNMENT.md). The actual TU1.5 Lockout
+captures pass in Original, pStencil and third person without script/validation
+errors. Original is byte-identical to live-v14. Its manifest verifies 65 SPVs,
+including the unchanged resident environment compute shader omitted from the
+older 64-file manifest; only the volume vertex shader changes.
+
+`./Halo2-pStencil-Campaign` selects **campaign-v8**. It adds the recovered
+[normal accumulation and world-space light response](NORMAL_ACCUMULATION_2003.md)
+to the existing [combined Chief visor response](COMBINED_VISOR.md),
+[utility/dependent-light passes](LIGHT_RESPONSE_2003.md) and
+[projected gels/specular masks](PROJECTED_LIGHT_RESPONSE_2003.md). The normal
+target is generated once per view and consumed by the actual lights. Compatible
+Elite, Arbiter and other current assets retain their own bump maps/material values.
+The complete native opening passes 20 exact Original roundtrips, 20 material
+restores and 14 positive light/shadow pairs with no shadow brightening. Script
+and Vulkan validation errors are zero. The earlier actual F1 selector proof is
+retained from v6. Fresh group and visor photos use 5120×3840 internal targets;
+Original is byte-identical to v5. See [opening presentation](OPENING_CAMPAIGN.md)
+for evidence and remaining presentation limits.
+
+The latest actual opening recording is
+`analysis/pstencil/campaign-live-v8/recording-window-native/opening-presentation.mp4`
+(1920×1080,200.47 seconds, actual game audio). The explicit recording-only
+presentation option removes the measured one-second FIFO wait; default game
+presentation remains unchanged. No shaders, simulation or assets change in
+this update. Native hitches, final audio synchronization and full original
+full material/scheduling parity remains open. See [capture evidence](CAPTURE_PRESENTATION.md).
+
+Campaign-v3 updates the actual submitted material roots and their shared-pass
+closure. All 20 same-frame images match the previous full-bank upload exactly.
+A matched local run lowers median native interval from 44.06 to 31.09 ms;
+the actual F1 selector passes. Large stalls remain. See
+[recording pacing](CAMPAIGN_PACING.md) for measurements and limits.
+
+The [2003 light-response component](LIGHT_RESPONSE_2003.md) passes
+all 560 original constructor rows, 1,023 original RGB packing cases and 4,480
+two-stage GPU arithmetic fixtures. Its actual sphere input/lookup crosswalk
+passes in Cairo and the opening cache. Campaign-v4 uses an actual RGBA8 utility
+target and the full current texture-mapping target under the existing stencil
+test. Its fresh high-resolution group and visor images remain pixel-identical
+to the sphere integration candidate; Original also remains exact. The general
+gameplay launcher retains its separate live-v14 source cohort with the cap fix.
+
 A working hybrid graphics mode is connected to the native game renderer.
 **Original** uses the existing rendering path. **pStencil** adds the May 2003
 build's capped stencil-volume point-light shadows, separate baked-light shadow darkening, authored direct specular,
 and retained environment reflectivity to the current levels, textures and posed
-models. Direct constant sphere lights include moving grenade glow attachments. Original is the default without a saved
+models. Direct sphere lights include moving grenade glow and native function-driven attachments. Original is the default without a saved
 preference. Switching requires no level reload.
 
 ## Run and switch
@@ -28,10 +73,20 @@ in the existing `menu.cfg`; Reset restores Original. F1 changes session state.
 ```
 
 The launch route verifies the tested runtime, TU1.5 gameplay XBE and all 64
-shader files against `analysis/pstencil/live-v10/runtime.json`. It preserves the
+shader files against `analysis/pstencil/live-v13/runtime.json`. It preserves the
 other launchers and their separately retained runtimes. The new route retains
-its executable and shaders in `analysis/pstencil/live-v10/build/`; keep that
+its executable and shaders in `analysis/pstencil/live-v13/build/`; keep that
 folder. It reads current maps directly from `assets/disc/maps/`.
+
+Live-v13 reads completed native attachment functions, colors and transforms.
+It also restores the complete original global light tick at `13AB4E -> C3430`;
+normal-tick activation and timed explosion retirement pass. All ten focused
+checks pass. Fresh game, three-character and visor captures restore exact
+Original pixels; isolated stencil controls only darken output. The64 runtime
+shaders remain byte-identical to live-v11. See [native attachment evidence](ATTACHED_LIGHTS.md).
+Full original presentation parity remains open. Work on the complete opening
+campaign cinematic is tracked [separately](OPENING_CAMPAIGN.md); its first
+full pStencil recording is a diagnostic with remaining visual defects.
 
 ## Rendering and organization
 
@@ -44,7 +99,10 @@ folder. It reads current maps directly from `assets/disc/maps/`.
 | `tests/pstencil/` | Original-code, posed-position, GPU, renderer and live-UI checks |
 | `cmake/PStencil.cmake` | Separate libraries, shaders and tests |
 | `analysis/pstencil/2003/` | Local disassembly, pseudocode, shaders and provenance |
-| `analysis/pstencil/live-v5/` | Current tested frozen runtime with the default 2003 resident environment response and fresh armor/game controls |
+| `analysis/pstencil/live-v13/` | Current tested runtime, native light tick/readback, fresh game/group/visor controls |
+| `analysis/pstencil/live-v11/` | Retained material masks and rank/armor/vehicle/weapon controls |
+| `analysis/pstencil/live-v10/` | Retained standard Elite neutral-detail delivery |
+| `analysis/pstencil/live-v5/` | Retained frozen runtime with the default 2003 resident environment response and fresh armor/game controls |
 | `analysis/pstencil/live-v4/` | Retained independent caster/opacity delivery and comparison baseline |
 | `analysis/pstencil/live-v3/` | Retained high-detail/darkening delivery and comparison history |
 | `analysis/pstencil/live-v2/` | Retained direct specular and plasma-light delivery |
@@ -77,8 +135,9 @@ The matching current independent tangent-space environment family now uses
 those exact control words: quartic Fresnel, separate facing/glancing RGB and
 brightness, midrange tint, and environment powers through eight. Completed
 current material constants, maps, poses and destination-alpha ownership remain
-its input adapter. Combined visor/lightmap families retain their current path;
-this does not establish the full original accumulation pipeline or asset values.
+its input adapter. The campaign-v2 Chief visor now has a separate recovered
+response; other combined families retain their current path. This does not
+establish the full original accumulation pipeline or asset values.
 
 The 4,096 default-response scalar/GPU cases pass against the resident program
 and source formula. A separate older callback program remains reference-only;
@@ -97,7 +156,39 @@ not 129 rendered certifications: the live implementation must also match the
 supported pass/control shape and destination-alpha blend. Current values are
 retained for later equipment; no faction preset is substituted.
 
-## Current delivery: regular Elite material response (live-v10)
+## Current delivery: separate material masks (live-v11)
+
+pStencil now retains an independent authored texture mask for direct specular,
+including combined current shader LODs that leave scene alpha zero. This fixes
+the Banshee's missing highlights while preserving its authored normal map,
+seven-combiner lobe, textures, light inputs and stencil test. Materials without
+an admitted independent mask, including Spectre, keep their existing current
+accumulation behavior. See [mask evidence and boundaries](MATERIAL_MASK_ADAPTATION.md).
+
+The cleaned standard Elite response is retained across eight native ranks.
+Fresh Chief, Arbiter and Elite photos in Cairo use 2560x1920 output with
+5120x3840 internal sampling. All eight ranks, five canonical photos, two front
+photos and Original gameplay restore/match live-v10 exactly in Original mode.
+Isolated highlights only brighten and isolated shadows only darken. Visor
+bitmap removal changes the measured image. Gameplay RNG and detonation inputs
+remain equal across the Original/pStencil/control captures.
+
+Six native vehicle controls pass: Banshee, Warthog, Ghost, Spectre, Scorpion and
+Wraith. Four 1920x1440 native weapon controls pass: Battle Rifle, Plasma Rifle,
+Needler and Brute Shot. They exercise current-asset material adaptation and
+independent dynamic self-shadowing, not matched 2003 framebuffer parity.
+Nine focused checks pass, including 9,216 armor/mask GPU cases and 5,120 Elite
+detail GPU cases. Receipts are in `analysis/pstencil/live-v11/validation.json`,
+`verification.json`, `variant-verification.json`, `front-verification.json` and
+`dynamic-verification.json`.
+
+Full original MRT/utility scheduling, other combined material families,
+animated object-function light attachments, ISQ/manifold compatibility and
+original object admission remain open. The
+current delivery is a working source-backed hybrid; it is not a complete
+one-to-one reproduction of the original presentation.
+
+## Retained Elite response delivery (live-v10)
 
 Eight native Elite variants were compared in the same Cairo scene. The shared
 standard body shaders use a dark charred detail texture in current assets,
@@ -489,3 +580,10 @@ final source manifest identifies the exact retained build inputs.
 `wire_surfaces.py` and `wire_point_lights.py` retain the small shared renderer and
 match-loop seams. Both retained source directories must remain available while
 their shared-resource symlinks are in use.
+
+
+The campaign delivery is tracked in [opening acceptance](OPENING_CAMPAIGN.md).
+Its current-engine source cohort includes the native projected-light and
+scenario-light bridge; the dedicated campaign launcher pins the tested
+campaign-v2 visor overrides. The general gameplay launcher retains its live-v14 source cohort with the cap fix.
+Complete original presentation and a finished recording remain active work.

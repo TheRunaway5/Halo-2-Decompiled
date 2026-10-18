@@ -1,0 +1,1479 @@
+{
+  "schema": "H2_MCC_NAMED_SOUND_CLASS_REFERENCE_V1",
+  "original_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "original_class_name_table": 4704168,
+  "class_count": 54,
+  "source_stride": 120,
+  "native_stride": 92,
+  "unsupported_class_indices": [
+    15,
+    16,
+    17,
+    39,
+    40,
+    41
+  ],
+  "deltas": [
+    {
+      "class_index": 0,
+      "name": "projectile_impact",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3233808384,
+      "after_bits": 0
+    },
+    {
+      "class_index": 0,
+      "name": "projectile_impact",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3240099840,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 1,
+      "name": "projectile_detonation",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3233808384,
+      "after_bits": 0
+    },
+    {
+      "class_index": 1,
+      "name": "projectile_detonation",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3240099840,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 2,
+      "name": "projectile_flyby",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3233808384,
+      "after_bits": 0
+    },
+    {
+      "class_index": 2,
+      "name": "projectile_flyby",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3240099840,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 4,
+      "name": "weapon_fire",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 4,
+      "name": "weapon_fire",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 5,
+      "name": "weapon_ready",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 5,
+      "name": "weapon_ready",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 6,
+      "name": "weapon_reload",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 6,
+      "name": "weapon_reload",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 7,
+      "name": "weapon_empty",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 7,
+      "name": "weapon_empty",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 8,
+      "name": "weapon_charge",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 8,
+      "name": "weapon_charge",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 9,
+      "name": "weapon_overheat",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 9,
+      "name": "weapon_overheat",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 10,
+      "name": "weapon_idle",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 10,
+      "name": "weapon_idle",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 11,
+      "name": "weapon_melee",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 11,
+      "name": "weapon_melee",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 12,
+      "name": "weapon_animation",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3221225472,
+      "after_bits": 0
+    },
+    {
+      "class_index": 12,
+      "name": "weapon_animation",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3233808384,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 13,
+      "name": "object_impacts",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3235381248,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 14,
+      "name": "particle_impacts",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3246915584,
+      "after_bits": 3242196992
+    },
+    {
+      "class_index": 14,
+      "name": "particle_impacts",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3239051264,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 18,
+      "name": "unit_footsteps",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3256090624,
+      "after_bits": 3254779904
+    },
+    {
+      "class_index": 18,
+      "name": "unit_footsteps",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3244294144,
+      "after_bits": 3239051264
+    },
+    {
+      "class_index": 19,
+      "name": "unit_dialog",
+      "offset": 24,
+      "kind": "Float32",
+      "field": "distance_min",
+      "before_bits": 1069547520,
+      "after_bits": 1077936128
+    },
+    {
+      "class_index": 19,
+      "name": "unit_dialog",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3225419776,
+      "after_bits": 0
+    },
+    {
+      "class_index": 20,
+      "name": "unit_animation",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3231711232,
+      "after_bits": 0
+    },
+    {
+      "class_index": 20,
+      "name": "unit_animation",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3235905536,
+      "after_bits": 3221225472
+    },
+    {
+      "class_index": 22,
+      "name": "vehicle_collision",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3235905536,
+      "after_bits": 0
+    },
+    {
+      "class_index": 22,
+      "name": "vehicle_collision",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3241148416,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 23,
+      "name": "vehicle_engine",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3235905536,
+      "after_bits": 0
+    },
+    {
+      "class_index": 23,
+      "name": "vehicle_engine",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3241148416,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 24,
+      "name": "vehicle_animation",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3235905536,
+      "after_bits": 0
+    },
+    {
+      "class_index": 24,
+      "name": "vehicle_animation",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3241148416,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 28,
+      "name": "device_machinery",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3231711232,
+      "after_bits": 0
+    },
+    {
+      "class_index": 28,
+      "name": "device_machinery",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3239051264,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 29,
+      "name": "device_stationary",
+      "offset": 0,
+      "kind": "TwoUnsigned16",
+      "field": "max_per_tag_and_object",
+      "before_bits": 131076,
+      "after_bits": 65540
+    },
+    {
+      "class_index": 33,
+      "name": "ambient_nature",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 2147483648,
+      "after_bits": 0
+    },
+    {
+      "class_index": 34,
+      "name": "ambient_machinery",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 3231711232,
+      "after_bits": 0
+    },
+    {
+      "class_index": 34,
+      "name": "ambient_machinery",
+      "offset": 36,
+      "kind": "Float32",
+      "field": "gain_max",
+      "before_bits": 3239051264,
+      "after_bits": 3229614080
+    },
+    {
+      "class_index": 45,
+      "name": "cortana_mission",
+      "offset": 8,
+      "kind": "TwoFlags16",
+      "field": "internal_and_public_flags",
+      "before_bits": 46924007,
+      "after_bits": 42467559
+    },
+    {
+      "class_index": 45,
+      "name": "cortana_mission",
+      "offset": 20,
+      "kind": "Float32",
+      "field": "override_speaker_gain",
+      "before_bits": 0,
+      "after_bits": 3233808384
+    },
+    {
+      "class_index": 45,
+      "name": "cortana_mission",
+      "offset": 32,
+      "kind": "Float32",
+      "field": "gain_min",
+      "before_bits": 0,
+      "after_bits": 3248488448
+    }
+  ],
+  "contexts": [
+    {
+      "class_root": "36000000184d0100",
+      "globals": {
+        "address": 31136480,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 17264
+      },
+      "legacy": {
+        "address": 85264,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000b41ddb01",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673ff0a8eec786d6e732a0ba3ec216b7073030078e1960e10f0",
+      "source_bank_sha256": "4fcaa17e18acffdeb5c3d80922d82a8c364aafbdd2a1df684517a88ed93bd0e4",
+      "source_maps": [
+        {
+          "map": "00a_introduction",
+          "sha256": "f6916833eedc5efba6250ff2bfd0d0547318572901776069ca043c0c8b4329b8"
+        }
+      ]
+    },
+    {
+      "class_root": "3600000010cd0100",
+      "globals": {
+        "address": 23431280,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 118024,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000448b6501",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b7866738408fae9786d6e7399080fea216b7073030078e1f20d69ef",
+      "source_bank_sha256": "3daa64e129ed6c78e9a2a943c3f97e26aa460030e98b368358bd93b2b8f1f5fb",
+      "source_maps": [
+        {
+          "map": "01a_tutorial",
+          "sha256": "f71460e42eb43ea1d74a67af2589e8bccea645f62d921a430f94e946ac4bf08e"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000105d0300",
+      "globals": {
+        "address": 71439584,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 220424,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000b4174204",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673dc236186786d6e7326247686216b7073030078e19327e489",
+      "source_bank_sha256": "f395ee7e3ad09b0a10a511a4b671a7f213d1a6070dabe4dafb6bca7784a2b5e4",
+      "source_maps": [
+        {
+          "map": "01b_spacestation",
+          "sha256": "06fe3555d4301c18a5b0f7379f5ddd6714626a3134462a14ce80a609bc7bf2bb"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000102d0300",
+      "globals": {
+        "address": 61986480,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 208136,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "0100000084d9b103",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673a91ff581786d6e73be1f0a82216b7073030078e1ce231b86",
+      "source_bank_sha256": "a3763502e8e6ba876622f2cb562f6123360b7344e3452944cb78278334b37fc4",
+      "source_maps": [
+        {
+          "map": "03a_oldmombasa",
+          "sha256": "395ad7bccefdb3d50950dc911e8adeee770a75e6ad109c3979d6a641fd648475"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000104d0300",
+      "globals": {
+        "address": 57151968,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 216328,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000b4146803",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673be219783786d6e73d321ac83216b7073030078e1e125bb87",
+      "source_bank_sha256": "600a9a3850f70c54775cbd5127007e74b921f42f4fbe666c1d467f7824d6824e",
+      "source_maps": [
+        {
+          "map": "03b_newmombasa",
+          "sha256": "9ddd648b3c80aeb0b8823f07d91d88f71c62b53fcbcd93376af0c200075068c2"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000109d0200",
+      "globals": {
+        "address": 65211984,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 171272,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "010000002411e303",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673c91514f8786d6e73de1529f8216b7073030078e1b81a04fd",
+      "source_bank_sha256": "fbe8c30bcf6f49c94f5918b874a61f72cbd29aa1c9e69807f57f118a92843d5a",
+      "source_maps": [
+        {
+          "map": "04a_gasgiant",
+          "sha256": "62a047349a8da01b03b4144ccbc96e9076632d21fbedc276f748080c987e5e7e"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000108d0200",
+      "globals": {
+        "address": 56658592,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 167176,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000748d6003",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b78667334167ff8786d6e73491694f8216b7073030078e19a1ae6fc",
+      "source_bank_sha256": "07d88414b566df69e0dc56083fc23b1171417bb6f7cf60096008af74f3a5d0a7",
+      "source_maps": [
+        {
+          "map": "04b_floodlab",
+          "sha256": "e4a052be795e35619a34c9e0db7a783f57b89ac3b22e46ca6127244cbd63e9af"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000103d0300",
+      "globals": {
+        "address": 58159808,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 212232,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "0100000094757703",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b78667313226084786d6e7328227584216b7073030078e16325b187",
+      "source_bank_sha256": "a87471cc746b857e2321c04da97e8e65dfbf107e53441e81a907712b7692939a",
+      "source_maps": [
+        {
+          "map": "05a_deltaapproach",
+          "sha256": "deaf1236c75e36ed69e81b0d7ffc6ed6d987f35ce1cab4c517e0785310a47b44"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000102d0300",
+      "globals": {
+        "address": 59171696,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 208136,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "0100000044e68603",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673fc204d83786d6e7311216283216b7073030078e15f24b186",
+      "source_bank_sha256": "a3763502e8e6ba876622f2cb562f6123360b7344e3452944cb78278334b37fc4",
+      "source_maps": [
+        {
+          "map": "05b_deltatowers",
+          "sha256": "63f709fa8e1790e673dba14380ed2814aff35d88af60d66b53e1262b337780fb"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000101d0300",
+      "globals": {
+        "address": 70858016,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 204040,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000f4373904",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673a31ef080786d6e73b81e0581216b7073030078e144239285",
+      "source_bank_sha256": "3e09fa4b04851d195957b017ce9f41e45379e8516e4b0207e3454793c7b14fd6",
+      "source_maps": [
+        {
+          "map": "06a_sentinelwalls",
+          "sha256": "8c992ac2aa7ef60748115c7abdd80062ee8a579cd99bef21f50496556e0bdb68"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000100d0300",
+      "globals": {
+        "address": 70864592,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 199944,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000a4513904",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673d01d5fff786d6e73e51d74ff216b7073030078e104229583",
+      "source_bank_sha256": "7d6f7324c9287b65e37bb798f47624b2a582121db5fb7dd0ccf150f8ee947e03",
+      "source_maps": [
+        {
+          "map": "06b_floodzone",
+          "sha256": "a598d04b3197e884c392e3552f90ebfbb25d3ac7391ad2ebeaada2751355d509"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000101d0300",
+      "globals": {
+        "address": 117111056,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 204040,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000e4fbfa06",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673c01e9780786d6e73d51eac80216b7073030078e1b4228c84",
+      "source_bank_sha256": "3e09fa4b04851d195957b017ce9f41e45379e8516e4b0207e3454793c7b14fd6",
+      "source_maps": [
+        {
+          "map": "07a_highcharity",
+          "sha256": "f883bc4592839329f5e12618413e202298f139d01a6758764d28ded95e4b0569"
+        }
+      ]
+    },
+    {
+      "class_root": "3600000010ad0200",
+      "globals": {
+        "address": 65569136,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 175368,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "010000004484e803",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673fe1847fb786d6e7313195cfb216b7073030078e16d1cb7fe",
+      "source_bank_sha256": "7c667d69cd670147d75ef431e224c66cbd0382c2da39108fdf14c5bf0d42f4b6",
+      "source_maps": [
+        {
+          "map": "07b_forerunnership",
+          "sha256": "3a0e239e4aa9fbceec4af05098e737f206abc58b6cef5151fd4f49adec12b2ac"
+        }
+      ]
+    },
+    {
+      "class_root": "3600000010bd0200",
+      "globals": {
+        "address": 56641456,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 179464,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000844a6003",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673341a7efc786d6e73491a93fc216b7073030078e19f1deaff",
+      "source_bank_sha256": "e284168a69933e4f9ec9064ac91512f1a158966128ba7fc8b7f4cb94428aef05",
+      "source_maps": [
+        {
+          "map": "08a_deltacliffs",
+          "sha256": "7d72d4858d40c953744621c6ce0fffe3449fba2a920b50a80b5bdcbeb9e80594"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000101d0300",
+      "globals": {
+        "address": 80673056,
+        "datum": 3782541312,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50016
+      },
+      "legacy": {
+        "address": 204040,
+        "datum": 3782672386,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000f4fbce04",
+      "sound_globals": "6c636e73010076e16c636e73020077e12b786673f01e7f80786d6e73051f9480216b7073030078e1d6226684",
+      "source_bank_sha256": "3e09fa4b04851d195957b017ce9f41e45379e8516e4b0207e3454793c7b14fd6",
+      "source_maps": [
+        {
+          "map": "08b_deltacontrol",
+          "sha256": "4844a2ea86949fe33b051d86f7410e83f4f3c63d58b5e4aac140b8f7b55c680f"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 66428128,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000b49ff503",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "ascension",
+          "sha256": "04cb69156ed247e12e55e46cbf2364ce4dfdde8b1d7bf29c902f5ed0839464e9"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67064608,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000f455ff03",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "backwash",
+          "sha256": "3cacc08e60f9004846123841cdfffcf520d9dff5f81dd36fe17f3476b1659cb4"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 66261088,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "010000003413f303",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "beavercreek",
+          "sha256": "c30bd1e015ad12c66eaa42243aef26245c45aafedfc9cc1caa9a265e727b210e"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 66396208,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "010000000423f503",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "burial_mounds",
+          "sha256": "c222eb7ddedc08f16b7d52889197df81c9b2b2a946b029982b2b97584ed17a24"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 66531984,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "010000006435f703",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "coagulation",
+          "sha256": "a94c4fdac2dee6887e83a1f2555e914aa7ed974d5c466ebabcf013b08f2ef17d"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 66217456,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000c468f203",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "colossus",
+          "sha256": "83b2e909752c7487c636b2cd17b7673b70bcdac8b5013dcea311a56658dafc35"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67392048,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "0100000004550404",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "containment",
+          "sha256": "7d27e2443a8467f89cd3714f07bfe161d5d543b1255823f8649dcf24c293dc95"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 66549040,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "010000000478f703",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "cyclotron",
+          "sha256": "ad350c598588bce43841a5a03740be978e04fe02b401879844bcb4a9ff7148ee"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67629776,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000a4f50704",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "deltatap",
+          "sha256": "917165194b13758a247b0dcec6609226c5f6fb1ab99c8481bf315ddc7784eb38"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67387024,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "0100000064410404",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "derelict",
+          "sha256": "45efa1376a59c19b49945b12235e3d8fa33811582151452098affd0609aae6cc"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67012736,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000548bfe03",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "dune",
+          "sha256": "9ca3b5889c21a930b44c075ebf4a7ab7a846a48be551acd7cd9e43f868b3a321"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 65791328,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "0100000034e8eb03",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "elongation",
+          "sha256": "3780ab18cb5c65a0f23d99ab827671bc85c53c22c5e9a3826e5ab01425cff729"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 66221552,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000c478f203",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "foundation",
+          "sha256": "7ac455c5a7f3655c0bd972e988ec2cb0dcf3e411169f65fab260494e15c2d456"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 68101376,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000d4270f04",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "gemini",
+          "sha256": "e6cfd824cbebe87d39cd74fbd5ace2637dbcdd6687f67d30134858b817a0dfc1"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67594864,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000446d0704",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "headlong",
+          "sha256": "dba62b65f25146f492258d21beac93d8f97f142a59a4c4ef18f48803f46b9a5c"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 68445312,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "0100000054671404",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "highplains",
+          "sha256": "d6ea847433ba564e20100194c027cacc69f1f1ef85697fffe8463c58c6a0f02f"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 65982160,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000a4d1ee03",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "lockout",
+          "sha256": "97d034dca2109adde65e56c0ab78ee56f72045b56bf9b3200f304d5e1ff4c61e"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 66521520,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000840cf703",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "midship",
+          "sha256": "322cb810bfbfe02ab4e24acc8d58b7002a9c7ba1c680484447b64483e0a71156"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 372736,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 49732
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000d4b20500",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "needle",
+          "sha256": "27d428e34a06ea84932fe8dd86a8e35f560d3ea1579727e7dde56555b08b2a90"
+        },
+        {
+          "map": "street_sweeper",
+          "sha256": "a607587a4d4cf64a5fc52471810d292fbefaff06cd1aae09ee7fc24cacab67e6"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67793184,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000f4730a04",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "triplicate",
+          "sha256": "8b12d40ac18e2977662a93204604660f77f30e0112672887c8e0b84543a608cc"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 69581344,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000f4bc2504",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "turf",
+          "sha256": "fa0d7255e8db62bc5501f45ebb47aebe2740d640f9292c1847fceae23823a4a6"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67381424,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000842b0404",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "warlock",
+          "sha256": "27f5a813db80776fc2e135101f1c43c9ab20a3ab7d4e132e05f20a183d79171d"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 67976352,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "01000000743f0d04",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "waterworks",
+          "sha256": "ba90e7c53de84dfdbb09c01071f7ca6122fbe1d281ba62b7355ee1be45510bbe"
+        }
+      ]
+    },
+    {
+      "class_root": "36000000c88d0600",
+      "globals": {
+        "address": 68100416,
+        "datum": 3782492776,
+        "group": "matg",
+        "name": "globals\\globals",
+        "size": 50208
+      },
+      "legacy": {
+        "address": 429504,
+        "datum": 3782623850,
+        "group": "sncl",
+        "name": "sound\\sound_classes",
+        "size": 6528
+      },
+      "sound_block": "0100000014240f04",
+      "sound_globals": "6c636e73694275e16c636e736a4276e12b786673d354e0f3786d6e73e854f5f3216b70736b4277e15a5a68f9",
+      "source_bank_sha256": "b5ffd3a12f2bd14fad598a55f50f22abe5c6e11bbbe12566ba7b55947663b803",
+      "source_maps": [
+        {
+          "map": "zanzibar",
+          "sha256": "5a0e596e72e3d01718f9c5d3e49ea907eb8c6f32c85d6887dda2fb247dca585f"
+        }
+      ]
+    }
+  ],
+  "evidence": {
+    "inventory": "09f3a08763d5cb3b21136eca8c5cb78c9d92323ca2578376766f7b9f37ac8ccf",
+    "differences": "b37da92d4a8340a963a91d959f32c1861b2896f22b1657bc4aee25968f07ac24",
+    "class_names": "96600c7bb262812a4a2acbc89369a9ebb17fbcc5dbb8d459bf5063381ae27708",
+    "contexts": "51fa02b5b755c628af99c6b6bbcc154d64ffa40f23688e63d74d5fcd732b404f",
+    "original_schema": "83001bf7fd4cf1d8a2c5bf267e7b412484e3cb60f693fd476a7d96614956c1a0",
+    "mcc_schema": "069128ca594ee5fa0cd85f682839a1d1630533068b59fb4d83e12f862841eacb"
+  },
+  "scope": "48 exact functional words in25 primary-named class rows only; six repurposed/unproved slots stay complete MCC rows. No full54-class semantic equivalence claim; no pixel/audio payload or runtime Original dependency."
+}

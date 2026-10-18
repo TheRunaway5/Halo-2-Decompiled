@@ -171,9 +171,9 @@ int main(int argc,char**argv){try {
     record.identity=1;record.flags=2;record.spatial_radius=record.overall_fade=1;record.state.diffuse={1,1,1};
     record.attached_node=0;bool rejected=false;try{(void)source_effect_light_render_admission(definition,record,context);}catch(const FormatError&){rejected=true;}
     require(rejected,"Missing original local-priority service admitted");
-    record.attached_node=-1;record.animation_index=0;context.renderer_enabled=1;rejected=false;
+    record.attached_node=-1;record.scenario_placement=0;context.renderer_enabled=1;rejected=false;
     try{(void)source_effect_light_render_admission(definition,record,context);}catch(const FormatError&){rejected=true;}
-    require(rejected,"Missing original animated shape service admitted");
+    require(rejected,"Missing original scenario placement shape service admitted");
     std::cout<<"PASS "<<cases<<" whole original31590 calls, "<<admitted<<" admitted, "<<shapes<<" exact 31-word shapes, "<<priority_calls<<" owner-priority calls\n";
     return 0;
 }catch(const std::exception&error){std::cerr<<error.what()<<'\n';return 1;}}

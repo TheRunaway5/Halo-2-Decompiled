@@ -23,9 +23,38 @@ WeaponTriggerDefinition definition(const std::array<std::uint8_t,64> &data) {
   return {u32(data,0),i16(data,4),i16(data,6),i16(data,8),i16(data,10),real(0x10),real(0x14),
       i16(data,0x18),i16(data,0x1a),real(0x1c),real(0x20),i16(data,0x24),real(0x2c),u32(data,0x34),u32(data,0x3c)};
 }
+void none_barrel_tests() {
+  const auto check=[](bool value,const char* message){if(!value)throw std::runtime_error(message);};
+  constexpr std::array<std::array<std::int16_t,2>,3> indices{{{-1,-1},{-1,0},{0,-1}}};
+  for(const auto behavior:{0,1,4})for(const auto pair:indices)for(bool alternate:{false,true}) {
+    WeaponTriggerDefinition d{};d.behavior=std::int16_t(behavior);
+    d.primary_barrel=pair[0];d.secondary_barrel=pair[1];
+    WeaponTriggerState state{};state.ticks=2;state.flags=1;
+    std::array<SmgBarrelState,2> barrels{};barrels[0].flags=0x40;barrels[1].flags=0x80;
+    WeaponTriggerInputState analog{};WeaponTriggerTarget target{};
+    WeaponTriggerPhaseContext context{};context.held=true;context.pressed=true;
+    context.alternate=alternate;context.tick_rate=30;context.barrel_count=1;
+    std::vector<std::int16_t> requests;
+    WeaponTriggerPhaseServices services;
+    services.barrel_admitted=[&](auto index){requests.push_back(index);return true;};
+    (void)weapon_trigger_step(state,d,barrels,analog,target,0,context,services);
+    const bool selected=(behavior==4 && alternate?pair[1]:pair[0])==0;
+    check(requests==(selected?std::vector<std::int16_t>{0}:std::vector<std::int16_t>{}),
+        "NONE barrel requested admission or replaced the actual secondary selection");
+    // Automatic primary firing also clears the barrel's0x40 recovery latch
+    // on a pressed input. NONE never reaches that actual-barrel clear.
+    const auto expected=selected?(behavior==0?1u:0x41u):0x40u;
+    check(barrels[0].flags==expected&&barrels[1].flags==0x80u,
+        "NONE barrel changed retained barrel storage");
+    check(state.ticks==1,"NONE barrel skipped trigger clock update");
+    check((state.flags&1u)==(selected&&behavior!=0?0u:1u),"NONE barrel consumed the firing latch");
+    check(d.primary_barrel==pair[0]&&d.secondary_barrel==pair[1],"Authored trigger indices changed");
+  }
+}
 }
 int main(int argc,char **argv)try {
   if(argc!=2 && argc!=3)throw std::runtime_error("Supply original trigger fixtures");
+  none_barrel_tests();
   std::string line;unsigned cases=0,events=0,phases=0;
   for(int file=1;file<argc;++file) {
   std::ifstream input(argv[file]);if(!input)return 77;

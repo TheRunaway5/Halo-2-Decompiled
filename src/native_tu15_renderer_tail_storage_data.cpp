@@ -24,6 +24,10 @@ void mount_native_tu15_renderer_tail_storage_data(SourceRuntimeMemory& memory) {
             "source12560 tail arena binding");
     memory.mount(0x52dfd8,std::vector<std::byte>(0x40c0),SourceRuntimeMemory::Access::ReadWrite,
         "source12560 query records and three mask banks");
+    // Actual3803B0 writes the authored46A0C4 operand here. This separate
+    // loader-zero owner begins at the query bank exclusive end; no result preset.
+    memory.mount(0x532098u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 loader-zeroed 3803B0 lens normalization scalar");
     const auto negative_one=encode(0xbf800000);bool present=false;
     try {
         const auto old=memory.view(0x46a0dc,4);present=true;

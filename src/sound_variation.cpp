@@ -31,6 +31,11 @@ SoundVariationDefinition Cache::load_sound_variation(std::uint32_t datum,unsigne
     const auto input=data.slice(offset,target.size());std::copy(input.begin(),input.end(),target.begin());
   };
   copy(out.sound,so);
+  out.sample_rate_index=std::to_integer<unsigned>(out.sound[3]);
+  if(mcc_) {
+    out.sample_rate_index=std::to_integer<unsigned>(data.slice(entry(go,3,out.sample_rate_index),1)[0]);
+    if(out.sample_rate_index>=4)throw FormatError("Invalid MCC sound sample-rate category");
+  }
   const Bytes sound(out.sound);
   const auto cls=signed_byte(out.sound[2]);
   if(cls<0 || pitch>=std::to_integer<unsigned>(out.sound[10]))throw FormatError("Invalid sound class/pitch range");
@@ -52,9 +57,9 @@ SoundVariationDefinition Cache::load_sound_variation(std::uint32_t datum,unsigne
   copy(out.range,entry(tables+0x20,12,unsigned(first_range)+pitch));
   const Bytes range(out.range);const auto first=signed_short(range,8),count=signed_short(range,10);
   // The recovered helper copies into a 32-bit local and uses x86 SHL masks.
-  // Only the bounded 1..31 domain is supported here; larger/invalid ranges
-  // are unresolved instead of inventing a different bitset algorithm.
-  if(first<0 || count<1 || count>31)throw FormatError("Unrecovered sound permutation count");
+  // The bounded 1..32 domain preserves the original count32 shift-by-zero
+  // exhaustion behavior. Larger/invalid ranges remain unresolved.
+  if(first<0 || count<1 || count>32)throw FormatError("Unrecovered sound permutation count");
   out.permutations.resize(unsigned(count));
   for(unsigned n=0;n<out.permutations.size();++n)copy(out.permutations[n],entry(tables+0x28,16,unsigned(first)+n));
   if(count>1 && !(std::to_integer<unsigned>(out.sound_class[10])&0x20)) {
@@ -130,14 +135,15 @@ std::int16_t source_sound_pitch_range(std::span<const SoundPitchRange> ranges,
 }
 std::int16_t source_sound_permutation(const SoundVariationDefinition &d,SoundRangeState &state,SoundLocalRandom &random) {
   const Bytes range(d.range);const int count=signed_short(range,10);
-  if(count<1 || count>31 || d.permutations.size()!=unsigned(count))throw FormatError("Unrecovered sound permutation domain");
+  if(count<1 || count>32 || d.permutations.size()!=unsigned(count))throw FormatError("Unrecovered sound permutation domain");
   const bool persistent=!(std::to_integer<unsigned>(d.sound_class[10])&0x20);
   if(persistent && state.forced!=-1) {
     const auto selected=state.forced;state.forced=-1;state.last=selected;return selected;
   }
   auto used=persistent && count>1?state.used:0u;
   int last=persistent?state.last:-1,retries=0,selected;
-  const auto mask=(1u<<unsigned(count))-1;
+  // TU1.5 21FB98 masks CL to five bits: count32 has a zero mask.
+  const auto mask=(1u<<(unsigned(count)&31u))-1;
   for(;;) {
     selected=(unsigned(random.advance(0x21b281))*unsigned(count))>>16;
     if(((~used)&mask)==0) {

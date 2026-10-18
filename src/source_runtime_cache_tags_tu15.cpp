@@ -15,8 +15,18 @@ void put(SourceRuntimeMemory &m,std::uint32_t p,std::uint32_t v) {
 }
 }
 namespace {
+std::uint32_t native_cache_base(SourceRuntimeMemory& memory,SourceRuntimeNativeCacheRange range) {
+  if(!range.bytes || range.bytes%4096 || range.allocation.is_null())
+    throw FormatError("Native cache range requires a complete aligned allocation");
+  const auto base=memory.source_address(range.allocation,range.bytes);
+  if(base<0x90000000u || base%4096 || std::uint64_t(base)+range.bytes>0x100000000ull)
+    throw FormatError("Native cache range escapes its separate logical allocation domain");
+  memory.validate_mutable_view(base,range.bytes);
+  return base;
+}
 template<class Image>
-void bind_cache_tags_tu15(SourceRuntimeMemory &m,const Image &image,bool independent_source) {
+void bind_cache_tags_tu15(SourceRuntimeMemory &m,const Image &image,bool independent_source,
+    const SourceRuntimeNativeCacheRange* native=nullptr) {
   if(image.regions.size()!=2 || !image.count || image.count>65536 || image.scenario==0xffffffffu || image.globals==0xffffffffu)
     throw FormatError("Native source cache tag delivery shape is unavailable");
   const auto read=[&](std::uint32_t p,std::size_t bytes)->std::span<const std::byte> {
@@ -37,14 +47,20 @@ void bind_cache_tags_tu15(SourceRuntimeMemory &m,const Image &image,bool indepen
     read(address,size);return address;
   };
   const auto scenario=tag(image.scenario,0x73636e72u),globals=tag(image.globals,0x6d617467u);
-  // Require the original physical allocation/arena owners. Cache delivery
-  // cannot overwrite the source-created game arena or mount a parallel bank.
+  // Require original physical/arena startup in both paths. The physical API
+  // cannot overwrite the source-created game arena; the explicit native proof
+  // admits a separate metadata allocation without replacing that arena owner.
   const auto arena=word(m.view(0x4f2950,4),0);
   if(!arena)throw FormatError("Native cache delivery precedes original physical/arena startup");
+  const auto native_base=native?native_cache_base(m,*native):0;
+  if(native && (image.index!=native_base || image.reservation_bytes!=native->bytes))
+    throw FormatError("Native cache image differs from its complete allocation owner");
   std::array<std::span<std::byte>,2> destinations{};
   for(std::size_t i=0;i<image.regions.size();++i) {
     const auto&r=image.regions[i];const auto end=std::uint64_t(r.address)+r.bytes.size();
-    if(r.bytes.empty() || r.address<0x80061000u || end>arena)
+    if(r.bytes.empty() || (native?
+        (r.address<native_base || end>std::uint64_t(native_base)+native->bytes):
+        (r.address<0x80061000u || end>arena)))
       throw FormatError("Native cache delivery overlaps the source-created game arena");
     destinations[i]=m.mutable_view(r.address,r.bytes.size());
     for(std::size_t j=0;j<i;++j) {
@@ -87,6 +103,10 @@ void bind_cache_tags_tu15(SourceRuntimeMemory &m,const Image &image,bool indepen
 void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheTagImage &image) {
   bind_cache_tags_tu15(m,image,false);
 }
+void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheTagImage &image,
+    SourceRuntimeNativeCacheRange native) {
+  bind_cache_tags_tu15(m,image,true,&native);
+}
 void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheTagView &image) {
   bind_cache_tags_tu15(m,image,true);
 }
@@ -105,7 +125,9 @@ void source_bind_runtime_cache_sound_gestalt_tu15(SourceRuntimeMemory &m) {
   const auto address=get(row+8u);m.view(address,get(row+12u));
   m.mutable_view(0x52d664u,4);put(m,0x52d664u,address);
 }
-void source_deliver_runtime_cache_bsp_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheBspImage &image) {
+namespace {
+void deliver_cache_bsp_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheBspImage &image,
+    const SourceRuntimeNativeCacheRange* native) {
   const auto &r=image.region;const auto raw=std::span(r.bytes);
   const auto scenario=word(m.view(0x4ecc20,4),0);
   if(!scenario || image.index>=word(m.view(scenario+0x210,4),0) ||
@@ -128,11 +150,24 @@ void source_deliver_runtime_cache_bsp_tu15(SourceRuntimeMemory &m,const SourceRu
   const auto end=std::uint64_t(r.address)+r.bytes.size();
   const auto table_bytes=std::uint64_t(count)*16;
   const auto meta=word(m.view(table+8,4),0),arena=word(m.view(0x4f2950,4),0);
-  if(r.address<std::uint64_t(table)+table_bytes || end>meta || end>arena ||
+  const auto native_base=native?native_cache_base(m,*native):0;
+  if(native && (index!=native_base || r.address<native_base ||
+      end>std::uint64_t(native_base)+native->bytes || meta<native_base ||
+      meta>=std::uint64_t(native_base)+native->bytes))
+    throw FormatError("Native BSP resource escapes its complete allocation owner");
+  if(r.address<std::uint64_t(table)+table_bytes || end>meta || (!native && end>arena) ||
       word(raw,4)<r.address+16u || word(raw,4)>=end ||
       (image.lightmap!=0xffffffffu && (word(raw,8)<r.address+16u || word(raw,8)>=end)))
     throw FormatError("Native BSP resource escapes its physical cache reservation");
   m.mutable_view(r.address,r.bytes.size());m.write(r.address,r.bytes);
+}
+} // namespace
+void source_deliver_runtime_cache_bsp_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheBspImage &image) {
+  deliver_cache_bsp_tu15(m,image,nullptr);
+}
+void source_deliver_runtime_cache_bsp_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheBspImage &image,
+    SourceRuntimeNativeCacheRange native) {
+  deliver_cache_bsp_tu15(m,image,&native);
 }
 // Actual TU1.5 selected-BSP operands11EA1D..11EA69.
 void source_bind_runtime_cache_bsp_tu15(SourceRuntimeMemory &m,const SourceRuntimeCacheBspImage &image) {

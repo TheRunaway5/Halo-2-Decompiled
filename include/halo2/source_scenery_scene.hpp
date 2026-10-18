@@ -23,6 +23,11 @@ struct SourceScenerySceneStats {
     unsigned placements{},render_models{},baked_models{},dynamic_models{},direct_probes{};
     unsigned union_baked_materials{},union_dynamic_materials{};
     unsigned unresolved_selections{}; // Explicitly omitted owners only.
+    unsigned deferred_resources{}; // Catalogued failures, fatal on a visible source lifetime.
+};
+struct SourceSceneryResourceBoundary {
+    std::size_t source_object{};
+    std::string error;
 };
 // Resolved original SCEN region bytes, exact resident collectors and baked
 // section offsets. No RNG choice or current cached sphere is synthesized.
@@ -74,6 +79,7 @@ public:
                      const SourceObjectViewLod &,std::vector<SourceObjectViewSelection> * = nullptr);
     const SourceScenerySceneStats &stats() const;
     std::span<const std::size_t> unresolved_selection_owners() const;
+    std::span<const SourceSceneryResourceBoundary> deferred_resource_owners() const;
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

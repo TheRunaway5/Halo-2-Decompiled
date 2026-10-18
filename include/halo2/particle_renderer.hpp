@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/particle_draw.hpp"
 #include "halo2/renderer_particle_program.hpp"
+#include "halo2/renderer_particle_view.hpp"
 #include <vulkan/vulkan.h>
 
 namespace halo2 {
@@ -9,6 +10,7 @@ namespace halo2 {
 struct ParticleSceneTexture {
   VkImageView view{};
 };
+struct ParticlePreparedViewBounds {VkViewport viewport;VkRect2D scissor;};
 // Internal Vulkan subrenderer. The owner waits for its previous frame before
 // prepare(), and records the supplied ordered draws inside a compatible pass.
 class ParticleRenderer {
@@ -18,8 +20,13 @@ public:
   ~ParticleRenderer();
   ParticleRenderer(const ParticleRenderer&)=delete;
   ParticleRenderer &operator=(const ParticleRenderer&)=delete;
-  void prepare(std::span<const ParticleDraw>,ParticleSceneTexture = {});
+  void prepare(std::span<const ParticleDraw>,ParticleSceneTexture = {},
+    std::span<const std::optional<ParticlePreparedViewBounds>> = {});
+  void prepare_views(std::span<const RendererParticleViewInput>,unsigned,unsigned);
+  void publish_view(std::size_t,std::span<const ShaderVector,12>,ShaderVector);
   RendererParticleProgramConfiguration program(std::shared_ptr<const ParticleMaterial>);
+  RendererParticleViewState view_inputs(std::size_t) const;
+  std::uint64_t view_revision() const;
   bool reads_scene_texture(std::size_t index) const;
   void resolve_scene_lookup(std::size_t index,const ParticleBumpTextureState &);
   void record(VkCommandBuffer,VkViewport,VkRect2D,std::size_t first,std::size_t count) const;

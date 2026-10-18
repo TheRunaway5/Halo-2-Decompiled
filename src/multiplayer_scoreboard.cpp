@@ -4,6 +4,7 @@
 #include "halo2/source_game_variant.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/frontend_font_sampling.hpp"
+#include "halo2/gameplay_font_source.hpp"
 #include "halo2/frontend_ui_assets.hpp"
 #include "halo2/frontend_emblem.hpp"
 #include "halo2/shader_animation.hpp"
@@ -105,27 +106,24 @@ MultiplayerScoreboard::MultiplayerScoreboard(const Cache &cache,
     emblem_materials_[view][slot]=unsigned(mesh.materials.size());mesh.materials.push_back(emblem);
     dead_materials_[view][slot]=unsigned(mesh.materials.size());mesh.materials.push_back(dead);
   }
-  std::ifstream table(directory/"font_table.txt");std::vector<std::string> names;
-  for(std::string name;std::getline(table,name);) {
-    if(!name.empty() && name.back()=='\r')name.pop_back();
-    if(name.find_first_of("/\\")!=std::string::npos || name=="..")throw FormatError("Invalid scoreboard font name");
-    names.push_back(name);
-  }
-  if(names.size()!=11)throw FormatError("Missing original scoreboard font table");
-  const auto path=directory/names[6];font_=load_retail_font(path);
-  std::ifstream file(path,std::ios::binary);file.seekg(0x20a);unsigned char offset[2]{};
-  if(!file.read(reinterpret_cast<char *>(offset),2))throw FormatError("Missing original font horizontal offset");
-  font_horizontal_offset_=std::bit_cast<std::int16_t>(std::uint16_t(offset[0]|(unsigned(offset[1])<<8)));
+  const auto font_source=load_gameplay_font_source(directory);
+  const auto& names=font_source.names;
+  font_=load_gameplay_font(font_source,6);
+  font_horizontal_offset_=gameplay_font_horizontal_offset(font_source,6);
   if(!ui_assets.empty()) {
     const auto sampled=hud_sampled_font_path(ui_assets,6,names[6]);
     const auto donor=ui_assets/"fonts-source"/names[6];
     if(!std::filesystem::is_regular_file(sampled) ||
-        !(is_mcc_classic_hud_pack(ui_assets)?
+        (font_source.domain==GameplayFontDomain::Original && !(is_mcc_classic_hud_pack(ui_assets)?
           apply_mcc_classic_font_sampling(font_,load_retail_font(sampled)):
           std::filesystem::exists(ui_assets/"hud-reconstruction.tsv")?
           apply_retail_font_sampling(font_,load_retail_font(sampled),load_retail_font(donor)):
-          apply_retail_font_sampling(font_,load_retail_font(sampled))))
+          apply_retail_font_sampling(font_,load_retail_font(sampled)))))
       throw FormatError("Vista scoreboard font artwork is missing; rerun asset setup");
+    if(font_source.domain==GameplayFontDomain::Mcc) {
+      if(!is_mcc_classic_hud_pack(ui_assets))throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
+      require_mcc_gameplay_font_sample(font_source,6,sampled);
+    }
     apply_vista_prompt_sampling(font_,ui_assets,6);
   }
   const auto solid=unsigned(mesh.materials.size());mesh.materials.push_back({});

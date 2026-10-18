@@ -145,8 +145,14 @@ void MultiplayerMatch::step_weapon_pickups(const std::array<Controls,multiplayer
     if(transfer.depleted)simulation_.object_lifetimes_.release(transfer.object);
     begin_ready();
   }
-  // Refresh bindings before firing/reload activities on newly selected items.
-  update_first_person_views();update_replicated_first_person_views();
+  // C++ inventory actions above publish their new hands before firing/reload.
+  // TU1.5 owns hand selection and cleanup in the upcoming native world phase;
+  // step() reads those bindings after that completed phase. A native death
+  // between frames may already detach FP while the CPP player still awaits
+  // that readback, so this pre-world consumer must not publish native views.
+  if(!source_object_world_||!source_object_world_->owns_physics()){
+    update_first_person_views();update_replicated_first_person_views();
+  }
   // The actual ready consumer above owns this action. Publish after rebuilding
   // the new hand's binding, so the event cannot target the old selected item.
   for(const auto &[unit,datum]:ready_animations)for(unsigned h=0;h<2;++h)

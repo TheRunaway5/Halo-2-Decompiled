@@ -13,6 +13,7 @@ from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 from validate_ai_hardware_step_reference_tu15 import validate as validate_hardware_step
+from mcc_script_builtin_hooks import add_hooks
 
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
@@ -25,9 +26,9 @@ def main():
     for reference in references:
         r=json.loads((reference/'report.json').read_text())
         hardware=json.loads((reference/'hardware/report.json').read_text())
-        assert NEW_PIN==r['original_xbe_sha256'] and r['completed'] and r['entry'] in (0x1d0670,0x266d30,0x2658b0,0x1d1880,0x26f260,0x1d63c0,0x218020)
-        if r['entry'] in (0x266d30,0x2658b0,0x1d1880,0x26f260,0x1d63c0,0x218020):
-            assert r['source_context']['actual_nested_caller']=={0x266d30:0x204553,0x2658b0:0x204589,0x1d1880:0xcc9cd,0x26f260:0x26e5e4,0x1d63c0:0x1d5897,0x218020:0x11750d}[r['entry']]
+        assert NEW_PIN==r['original_xbe_sha256'] and r['completed'] and r['entry'] in (0x1d0670,0x266d30,0x2658b0,0x1d1880,0x26f260,0x1d63c0,0x218020,0x2afa50,0x27fa20)
+        if r['entry'] in (0x266d30,0x2658b0,0x1d1880,0x26f260,0x1d63c0,0x218020,0x2afa50,0x27fa20):
+            assert r['source_context']['actual_nested_caller']=={0x266d30:0x204553,0x2658b0:0x204589,0x1d1880:0xcc9cd,0x26f260:0x26e5e4,0x1d63c0:0x1d5897,0x218020:0x11750d,0x2afa50:0x211c1b,0x27fa20:0x2afa89}[r['entry']]
             assert r['source_context']['public_campaign_placement']
         assert not r['instruction_patches'] and not r['supplied_game_services']
         assert hardware['original_report_sha256']==sha(reference/'report.json')
@@ -111,16 +112,19 @@ def main():
     generate(SimpleNamespace(output=a.output,manifest=a.directory/'generation.json',correspondence=correspondence,additional_entries=Path(__file__)),paired)
     source=a.output.read_text().replace('tools/generate_physics_live_support_tu15.py','tools/generate_ai_frame_tu15.py').replace('halo2/physics_live_support_tu15.hpp','halo2/source_ai_frame_tu15.hpp').replace('source_run_physics_live_support_tu15','source_run_ai_frame_tu15').replace('source_physics_live_support_tu15_owns_entry','source_ai_frame_tu15_owns_entry')
     exported_helpers=[0x20b620,0x20a160,0x272550,0x2063e0,0x1ed450]
+    if 0x211da0 in entries:exported_helpers.append(0x211da0)
     if 0x266d30 in entries:exported_helpers.append(0x266d30)
     if 0x2658b0 in entries:exported_helpers.append(0x2658b0)
     if 0x1d1880 in entries:exported_helpers.append(0x1d1880)
     if 0x26f260 in entries:exported_helpers.append(0x26f260)
     if 0x1d63c0 in entries:exported_helpers.append(0x1d63c0)
     if 0x218020 in entries:exported_helpers.append(0x218020)
+    if 0x2afa50 in entries:exported_helpers.append(0x2afa50)
+    if 0x27fa20 in entries:exported_helpers.append(0x27fa20)
     source,n=re.subn(r'bool source_ai_frame_tu15_owns_entry\(std::uint32_t p\) \{[^\n]+',
         'bool source_ai_frame_tu15_owns_entry(std::uint32_t p) {return '+
         ' || '.join(f'p==0x{p:x}u' for p in [0x1d0670,*exported_helpers])+';}',source);assert n==1
-    a.output.write_text(source)
+    a.output.write_text(add_hooks(source))
     report=json.loads((a.directory/'generation.json').read_text())
     report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),
         original_reference_report_sha256=sha(references[0]/'report.json'),hardware_report_sha256=sha(references[0]/'hardware/report.json'),
@@ -128,6 +132,7 @@ def main():
         observed_indirect_tails=[dict(instruction=pc,target=target) for pc,target in sorted(indirect_tails)],
         observed_original_hardware_references=hardware_steps,
         authenticated_descriptor_entries=descriptor_entries,
+        native_mcc_script_hook_generator_sha256=sha(Path(__file__).with_name('mcc_script_builtin_hooks.py')),
         exported_entry=0x1d0670,exported_helpers=exported_helpers,scope=__doc__)
     (a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
     print('Complete original AI frame bodies',len(entries),'instructions',len(instructions))

@@ -39,6 +39,7 @@ const SourceRuntimeSoundDmaResources::Allocation& SourceRuntimeSoundDmaResources
 }
 bool SourceRuntimeSoundDmaResources::dispatch(SourcePhysicsContactMemory& bank,const SourcePhysicsContactRuntimeCall& call,
     SourcePhysicsWorldRuntimeAbi& abi) {
+    if(dispatch_gp_scratch_translation(bank,call,abi)||dispatch_gp_pool(bank,call,abi))return true;
     const bool allocate=call.instruction==0x3879dc,capacity=call.instruction==0x3879e9,address=call.instruction==0x38e74b;
     if(!allocate&&!capacity&&!address)return false;
     const auto import=allocate?0x41b640u:capacity?0x41b644u:0x41b7bcu;
@@ -96,18 +97,21 @@ std::vector<SourceRuntimeSoundDmaResources::Allocation> SourceRuntimeSoundDmaRes
 NativeRuntimeAddress SourceRuntimeSoundDmaResources::native_address(std::uint32_t source)const{return resolve(source).native;}
 std::uint32_t SourceRuntimeSoundDmaResources::capacity(std::uint32_t source)const{return resolve(source).capacity;}
 std::uint32_t SourceRuntimeSoundDmaResources::device_id()const{require_owner();return output_->device_id();}
-bool SourceRuntimeSoundDmaResources::quiescent()const noexcept{return std::this_thread::get_id()==thread_&&!fault_&&allocations_.empty();}
+bool SourceRuntimeSoundDmaResources::quiescent()const noexcept{return std::this_thread::get_id()==thread_&&!fault_&&allocations_.empty()&&gp_pools_.empty();}
 SourceRuntimeSoundDmaResources::CallScope::CallScope(SourceRuntimeSoundDmaResources* owner)
     :owner_(owner),count_(0),exceptions_(std::uncaught_exceptions()) {
-    if(owner_){owner_->require_owner();count_=owner_->allocations_.size();}
+    if(owner_){owner_->require_owner();count_=owner_->allocations_.size()+owner_->gp_pools_.size();gp_epoch_=owner_->gp_pool_epoch_;}
 }
 SourceRuntimeSoundDmaResources::CallScope::~CallScope() {
     // Partial original descriptor/statistics writes are diagnostic. Retain
     // their actual pages until owner teardown and reject reuse; no fabricated
     // SDK rollback, release result or hardware readiness is supplied.
-    if(owner_&&std::uncaught_exceptions()>exceptions_&&owner_->allocations_.size()!=count_)owner_->fault_=true;
+    if(owner_&&std::uncaught_exceptions()>exceptions_&&
+       (owner_->allocations_.size()+owner_->gp_pools_.size()!=count_||owner_->gp_pool_epoch_!=gp_epoch_))owner_->fault_=true;
 }
 void mount_native_tu15_sound_dma_imports(SourceRuntimeMemory& memory) {
     constant(memory,0x41b644,0x800000b4);constant(memory,0x41b7bc,0x800000ad);
 }
+#include "source_runtime_sound_gp_pool.inc"
+#include "source_runtime_sound_gp_scratch.inc"
 }

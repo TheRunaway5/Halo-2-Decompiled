@@ -1,0 +1,4465 @@
+{
+  "schema": "H2_MCC_GREY_WIDGET_FLASH_METADATA_V1",
+  "source_profiles": [
+    {
+      "owner": "shared",
+      "source_file_sha256": "fafaceef449ec05fcf7a1e35a9164788813a41eb082ff5353932c94a9bbf888f",
+      "source_root": 18072100,
+      "source_size": 524,
+      "normalized_allocation_sha256": "18dbfb19b25acef25093d084e6212b2375fd8606cb53949f8e6e074523e1d8a2",
+      "logical": {
+        "root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff000000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+        "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+        "definitions": [
+          {
+            "hex": "00000000000000000000000003000000000000000000000000000000010000000000000019000000000000000100000000000000010000000000000002000000000000000200000000000000020000000000000002000000000000000500000000000000020000000000000006000000000000000000000000000000",
+            "banks": [
+              {
+                "field": 4,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 12,
+                "count": 3,
+                "stride": 4,
+                "hex": "ffba750000000000c0c0c000",
+                "curves": []
+              },
+              {
+                "field": 20,
+                "count": 0,
+                "stride": 16,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 28,
+                "count": 1,
+                "stride": 6,
+                "hex": "020000000032",
+                "curves": []
+              },
+              {
+                "field": 36,
+                "count": 25,
+                "stride": 2,
+                "hex": "0000000201000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "curves": []
+              },
+              {
+                "field": 44,
+                "count": 1,
+                "stride": 2,
+                "hex": "0002",
+                "curves": []
+              },
+              {
+                "field": 52,
+                "count": 1,
+                "stride": 10,
+                "hex": "02000200020000040200",
+                "curves": []
+              },
+              {
+                "field": 60,
+                "count": 2,
+                "stride": 20,
+                "hex": "00000000000000000000803f140000000000000000000000000000000000803f1400000000000000",
+                "curves": [
+                  {
+                    "input": "hud_elite",
+                    "range": "",
+                    "hex": "00200000ffba75000000000000000000ffa6ed00"
+                  },
+                  {
+                    "input": "hud_input1",
+                    "range": "",
+                    "hex": "00000200000000000000803f0000000000000000"
+                  }
+                ]
+              },
+              {
+                "field": 68,
+                "count": 2,
+                "stride": 4,
+                "hex": "0000ffff0100ffff",
+                "curves": []
+              },
+              {
+                "field": 76,
+                "count": 2,
+                "stride": 2,
+                "hex": "00020102",
+                "curves": []
+              },
+              {
+                "field": 84,
+                "count": 2,
+                "stride": 4,
+                "hex": "8100000061000001",
+                "curves": []
+              },
+              {
+                "field": 92,
+                "count": 5,
+                "stride": 4,
+                "hex": "ffffffffffffffffffffffffffffffffffffffff",
+                "curves": []
+              },
+              {
+                "field": 100,
+                "count": 2,
+                "stride": 12,
+                "hex": "000000000000000000000000000000000000000000000000",
+                "curves": []
+              },
+              {
+                "field": 108,
+                "count": 6,
+                "stride": 4,
+                "hex": "000000000000000000000000000000000000000000000000",
+                "curves": []
+              }
+            ]
+          },
+          {
+            "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "banks": [
+              {
+                "field": 4,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 12,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 20,
+                "count": 0,
+                "stride": 16,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 28,
+                "count": 0,
+                "stride": 6,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 36,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 44,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 52,
+                "count": 0,
+                "stride": 10,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 60,
+                "count": 0,
+                "stride": 20,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 68,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 76,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 84,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 92,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 100,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 108,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              }
+            ]
+          },
+          {
+            "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "banks": [
+              {
+                "field": 4,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 12,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 20,
+                "count": 0,
+                "stride": 16,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 28,
+                "count": 0,
+                "stride": 6,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 36,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 44,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 52,
+                "count": 0,
+                "stride": 10,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 60,
+                "count": 0,
+                "stride": 20,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 68,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 76,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 84,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 92,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 100,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 108,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "owner": "single_player_shared",
+      "source_file_sha256": "2c412dd6b8cf025ee82132216347a52ed1d3877b023b8317eef46eb6de6b4573",
+      "source_root": 30283812,
+      "source_size": 524,
+      "normalized_allocation_sha256": "18dbfb19b25acef25093d084e6212b2375fd8606cb53949f8e6e074523e1d8a2",
+      "logical": {
+        "root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff000000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+        "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+        "definitions": [
+          {
+            "hex": "00000000000000000000000003000000000000000000000000000000010000000000000019000000000000000100000000000000010000000000000002000000000000000200000000000000020000000000000002000000000000000500000000000000020000000000000006000000000000000000000000000000",
+            "banks": [
+              {
+                "field": 4,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 12,
+                "count": 3,
+                "stride": 4,
+                "hex": "ffba750000000000c0c0c000",
+                "curves": []
+              },
+              {
+                "field": 20,
+                "count": 0,
+                "stride": 16,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 28,
+                "count": 1,
+                "stride": 6,
+                "hex": "020000000032",
+                "curves": []
+              },
+              {
+                "field": 36,
+                "count": 25,
+                "stride": 2,
+                "hex": "0000000201000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+                "curves": []
+              },
+              {
+                "field": 44,
+                "count": 1,
+                "stride": 2,
+                "hex": "0002",
+                "curves": []
+              },
+              {
+                "field": 52,
+                "count": 1,
+                "stride": 10,
+                "hex": "02000200020000040200",
+                "curves": []
+              },
+              {
+                "field": 60,
+                "count": 2,
+                "stride": 20,
+                "hex": "00000000000000000000803f140000000000000000000000000000000000803f1400000000000000",
+                "curves": [
+                  {
+                    "input": "hud_elite",
+                    "range": "",
+                    "hex": "00200000ffba75000000000000000000ffa6ed00"
+                  },
+                  {
+                    "input": "hud_input1",
+                    "range": "",
+                    "hex": "00000200000000000000803f0000000000000000"
+                  }
+                ]
+              },
+              {
+                "field": 68,
+                "count": 2,
+                "stride": 4,
+                "hex": "0000ffff0100ffff",
+                "curves": []
+              },
+              {
+                "field": 76,
+                "count": 2,
+                "stride": 2,
+                "hex": "00020102",
+                "curves": []
+              },
+              {
+                "field": 84,
+                "count": 2,
+                "stride": 4,
+                "hex": "8100000061000001",
+                "curves": []
+              },
+              {
+                "field": 92,
+                "count": 5,
+                "stride": 4,
+                "hex": "ffffffffffffffffffffffffffffffffffffffff",
+                "curves": []
+              },
+              {
+                "field": 100,
+                "count": 2,
+                "stride": 12,
+                "hex": "000000000000000000000000000000000000000000000000",
+                "curves": []
+              },
+              {
+                "field": 108,
+                "count": 6,
+                "stride": 4,
+                "hex": "000000000000000000000000000000000000000000000000",
+                "curves": []
+              }
+            ]
+          },
+          {
+            "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "banks": [
+              {
+                "field": 4,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 12,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 20,
+                "count": 0,
+                "stride": 16,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 28,
+                "count": 0,
+                "stride": 6,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 36,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 44,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 52,
+                "count": 0,
+                "stride": 10,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 60,
+                "count": 0,
+                "stride": 20,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 68,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 76,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 84,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 92,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 100,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 108,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              }
+            ]
+          },
+          {
+            "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "banks": [
+              {
+                "field": 4,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 12,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 20,
+                "count": 0,
+                "stride": 16,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 28,
+                "count": 0,
+                "stride": 6,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 36,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 44,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 52,
+                "count": 0,
+                "stride": 10,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 60,
+                "count": 0,
+                "stride": 20,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 68,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 76,
+                "count": 0,
+                "stride": 2,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 84,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 92,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 100,
+                "count": 0,
+                "stride": 12,
+                "hex": "",
+                "curves": []
+              },
+              {
+                "field": 108,
+                "count": 0,
+                "stride": 4,
+                "hex": "",
+                "curves": []
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "canonical_source": {
+    "root_hex": "6d657473000000000000000001000000000000000100000000000000000000000300000000000000ffffffff000000000000000074696c73ffffffff000000000000000000000000000000000000000000000000",
+    "runtime_hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000",
+    "definitions": [
+      {
+        "hex": "00000000000000000000000003000000000000000000000000000000010000000000000019000000000000000100000000000000010000000000000002000000000000000200000000000000020000000000000002000000000000000500000000000000020000000000000006000000000000000000000000000000",
+        "banks": [
+          {
+            "field": 4,
+            "count": 0,
+            "stride": 12,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 12,
+            "count": 3,
+            "stride": 4,
+            "hex": "ffba750000000000c0c0c000",
+            "curves": []
+          },
+          {
+            "field": 20,
+            "count": 0,
+            "stride": 16,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 28,
+            "count": 1,
+            "stride": 6,
+            "hex": "020000000032",
+            "curves": []
+          },
+          {
+            "field": 36,
+            "count": 25,
+            "stride": 2,
+            "hex": "0000000201000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100",
+            "curves": []
+          },
+          {
+            "field": 44,
+            "count": 1,
+            "stride": 2,
+            "hex": "0002",
+            "curves": []
+          },
+          {
+            "field": 52,
+            "count": 1,
+            "stride": 10,
+            "hex": "02000200020000040200",
+            "curves": []
+          },
+          {
+            "field": 60,
+            "count": 2,
+            "stride": 20,
+            "hex": "00000000000000000000803f140000000000000000000000000000000000803f1400000000000000",
+            "curves": [
+              {
+                "input": "hud_elite",
+                "range": "",
+                "hex": "00200000ffba75000000000000000000ffa6ed00"
+              },
+              {
+                "input": "hud_input1",
+                "range": "",
+                "hex": "00000200000000000000803f0000000000000000"
+              }
+            ]
+          },
+          {
+            "field": 68,
+            "count": 2,
+            "stride": 4,
+            "hex": "0000ffff0100ffff",
+            "curves": []
+          },
+          {
+            "field": 76,
+            "count": 2,
+            "stride": 2,
+            "hex": "00020102",
+            "curves": []
+          },
+          {
+            "field": 84,
+            "count": 2,
+            "stride": 4,
+            "hex": "8100000061000001",
+            "curves": []
+          },
+          {
+            "field": 92,
+            "count": 5,
+            "stride": 4,
+            "hex": "ffffffffffffffffffffffffffffffffffffffff",
+            "curves": []
+          },
+          {
+            "field": 100,
+            "count": 2,
+            "stride": 12,
+            "hex": "000000000000000000000000000000000000000000000000",
+            "curves": []
+          },
+          {
+            "field": 108,
+            "count": 6,
+            "stride": 4,
+            "hex": "000000000000000000000000000000000000000000000000",
+            "curves": []
+          }
+        ]
+      },
+      {
+        "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "banks": [
+          {
+            "field": 4,
+            "count": 0,
+            "stride": 12,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 12,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 20,
+            "count": 0,
+            "stride": 16,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 28,
+            "count": 0,
+            "stride": 6,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 36,
+            "count": 0,
+            "stride": 2,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 44,
+            "count": 0,
+            "stride": 2,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 52,
+            "count": 0,
+            "stride": 10,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 60,
+            "count": 0,
+            "stride": 20,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 68,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 76,
+            "count": 0,
+            "stride": 2,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 84,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 92,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 100,
+            "count": 0,
+            "stride": 12,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 108,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          }
+        ]
+      },
+      {
+        "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "banks": [
+          {
+            "field": 4,
+            "count": 0,
+            "stride": 12,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 12,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 20,
+            "count": 0,
+            "stride": 16,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 28,
+            "count": 0,
+            "stride": 6,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 36,
+            "count": 0,
+            "stride": 2,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 44,
+            "count": 0,
+            "stride": 2,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 52,
+            "count": 0,
+            "stride": 10,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 60,
+            "count": 0,
+            "stride": 20,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 68,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 76,
+            "count": 0,
+            "stride": 2,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 84,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 92,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 100,
+            "count": 0,
+            "stride": 12,
+            "hex": "",
+            "curves": []
+          },
+          {
+            "field": 108,
+            "count": 0,
+            "stride": 4,
+            "hex": "",
+            "curves": []
+          }
+        ]
+      }
+    ]
+  },
+  "native_closures": [
+    {
+      "maps": [
+        "01a_tutorial"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "66cb52f99f176039250ae9e098604a3c61c7d6db38598c41bcaf2181939c7ec3.bin",
+        "fnv64": "a95d05ee5e00852f",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "66cb52f99f176039250ae9e098604a3c61c7d6db38598c41bcaf2181939c7ec3"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 512,
+        "payload": "24381af7e73a52752db1f71befddc807fd817fa63aea91fc54a2f40de821309f.bin",
+        "fnv64": "78ae4ab4934e2fda",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            432
+          ],
+          [
+            56,
+            436
+          ],
+          [
+            64,
+            484
+          ],
+          [
+            96,
+            508
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "24381af7e73a52752db1f71befddc807fd817fa63aea91fc54a2f40de821309f"
+      }
+    },
+    {
+      "maps": [
+        "01b_spacestation"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "afd24141fd7d94e73a516881a75e92a2e2155a2ac26f812c93080a13b740274e.bin",
+        "fnv64": "2b6ae9100bffc7b9",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "afd24141fd7d94e73a516881a75e92a2e2155a2ac26f812c93080a13b740274e"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "b469da7b2659d18996f5a114696df5ea6431b7a1d5de4bdd0cdf77372d3963d9.bin",
+        "fnv64": "d73ab98a0c2212eb",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "b469da7b2659d18996f5a114696df5ea6431b7a1d5de4bdd0cdf77372d3963d9"
+      }
+    },
+    {
+      "maps": [
+        "03a_oldmombasa"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "38caa2fc69341b6e0cd211b0549e8eb0af192f6fb7d2af362bad7ee21efa209e.bin",
+        "fnv64": "9c1dd006c755bdd7",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "38caa2fc69341b6e0cd211b0549e8eb0af192f6fb7d2af362bad7ee21efa209e"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "c8fc31dc8725d69ed9d4fe159202069974b7841bebe2b25ff911145a71a2f73a.bin",
+        "fnv64": "eb519dafaa53b56c",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "c8fc31dc8725d69ed9d4fe159202069974b7841bebe2b25ff911145a71a2f73a"
+      }
+    },
+    {
+      "maps": [
+        "03b_newmombasa"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "f05ffb9a61edc4443d97f5b351f854a46caeea0d59cd71576c6fca37908edd54.bin",
+        "fnv64": "55f5afaacd30305b",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "f05ffb9a61edc4443d97f5b351f854a46caeea0d59cd71576c6fca37908edd54"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "5e23c27fe1309cd4824cd1ffa94bec2e9c8e83c668ba69d2daabb602786765f0.bin",
+        "fnv64": "7dfad1023fe34ce0",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "5e23c27fe1309cd4824cd1ffa94bec2e9c8e83c668ba69d2daabb602786765f0"
+      }
+    },
+    {
+      "maps": [
+        "04a_gasgiant"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 232,
+        "payload": "4cb6c1c8ae425e2ebd326b5bdbb7e82f3fd35cd77e3a00ca3c6a2086cb77de80.bin",
+        "fnv64": "f05cdf57d0d95487",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "4cb6c1c8ae425e2ebd326b5bdbb7e82f3fd35cd77e3a00ca3c6a2086cb77de80"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "0a919ab8c59f5bd561d1547f4b879fe89297c9021abb439f55984e93adaf1293.bin",
+        "fnv64": "6d6c7306f402d374",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "0a919ab8c59f5bd561d1547f4b879fe89297c9021abb439f55984e93adaf1293"
+      }
+    },
+    {
+      "maps": [
+        "04b_floodlab"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 232,
+        "payload": "a96951f3b34ff33141e9d15fae989927ed6ed7d734a7522287a1a18927370675.bin",
+        "fnv64": "9ca5c838a5b382b8",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "a96951f3b34ff33141e9d15fae989927ed6ed7d734a7522287a1a18927370675"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "10092096397c545615484f8b1672dcb6c22ec296d2958e3bda963c5ce716ffce.bin",
+        "fnv64": "41b311a267de028e",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "10092096397c545615484f8b1672dcb6c22ec296d2958e3bda963c5ce716ffce"
+      }
+    },
+    {
+      "maps": [
+        "05a_deltaapproach"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 232,
+        "payload": "d5c02f84c8a8c053a0aea2eb7e7922419479ea2c2406b8ca12e0cce5c7adcc62.bin",
+        "fnv64": "c6090f17185e9c48",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "d5c02f84c8a8c053a0aea2eb7e7922419479ea2c2406b8ca12e0cce5c7adcc62"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "6cb964c08d016c3251728a2fdeba7cb7fac22270c647e3af7e3310908a334cf4.bin",
+        "fnv64": "2fd65b25b5eeabd9",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "6cb964c08d016c3251728a2fdeba7cb7fac22270c647e3af7e3310908a334cf4"
+      }
+    },
+    {
+      "maps": [
+        "05b_deltatowers"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 232,
+        "payload": "df90de09da739f588ee50bc158b1fdf4fea0180a16d3c40f9a9086452b0940a3.bin",
+        "fnv64": "c466f1b8ba88af86",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "df90de09da739f588ee50bc158b1fdf4fea0180a16d3c40f9a9086452b0940a3"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "396dc9cdd9e5761319f4272c1f89f24f6c2decc851db920c1998fba1e72e4a12.bin",
+        "fnv64": "98d8773235d2aaf8",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "396dc9cdd9e5761319f4272c1f89f24f6c2decc851db920c1998fba1e72e4a12"
+      }
+    },
+    {
+      "maps": [
+        "06a_sentinelwalls"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "cbe3393c9f79f31312b2be1e35e17c42c7b85995e4ee60a39122f54212718700.bin",
+        "fnv64": "05a9b4f2501e5ec1",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "cbe3393c9f79f31312b2be1e35e17c42c7b85995e4ee60a39122f54212718700"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "3e21611451520b148458574b352aabc5dac821038a3ad523e9de8eb1d36660e2.bin",
+        "fnv64": "8238bc45ffb43269",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "3e21611451520b148458574b352aabc5dac821038a3ad523e9de8eb1d36660e2"
+      }
+    },
+    {
+      "maps": [
+        "06b_floodzone"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 232,
+        "payload": "4fcb793420dae7bc0d8284914924b771f8903e012d1f71b60d85b3cac3c71e22.bin",
+        "fnv64": "e5541ed968e09ea0",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "4fcb793420dae7bc0d8284914924b771f8903e012d1f71b60d85b3cac3c71e22"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "ce874c6d7f7c91996cff966bfa07fedf3dd15cb3231def02663f7b830315a491.bin",
+        "fnv64": "86b2fbdcd8f06c53",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "ce874c6d7f7c91996cff966bfa07fedf3dd15cb3231def02663f7b830315a491"
+      }
+    },
+    {
+      "maps": [
+        "07a_highcharity"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "badd24f3539a80087f802acee99caad2e288d961ec8da7b9166b3c5597258d71.bin",
+        "fnv64": "609dfeea57b5439d",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "badd24f3539a80087f802acee99caad2e288d961ec8da7b9166b3c5597258d71"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "6b7093589fae8a6167da541d4d4f3756c294b9a0f376a92b5e7e8cc0d5bda598.bin",
+        "fnv64": "a3800f9fcd40c49f",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "6b7093589fae8a6167da541d4d4f3756c294b9a0f376a92b5e7e8cc0d5bda598"
+      }
+    },
+    {
+      "maps": [
+        "07b_forerunnership"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "5f4cfc8781a3070561f3b338342305c8c8a2b8b78de4bcaf739ddaf6984b2c02.bin",
+        "fnv64": "7f9ca47fad4d86c9",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "5f4cfc8781a3070561f3b338342305c8c8a2b8b78de4bcaf739ddaf6984b2c02"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "e43e61325c86dded6bd234cc224b4636aa4ffb105f21199d1d8e4ae5de7bcf15.bin",
+        "fnv64": "a8257e7a1ca56a44",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "e43e61325c86dded6bd234cc224b4636aa4ffb105f21199d1d8e4ae5de7bcf15"
+      }
+    },
+    {
+      "maps": [
+        "08a_deltacliffs"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "0445d3aba49ecf1dd9956b3557f5e24ef58a93345b274d0aef6e57ea7c50cd7c.bin",
+        "fnv64": "21e85b38d37395a0",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "0445d3aba49ecf1dd9956b3557f5e24ef58a93345b274d0aef6e57ea7c50cd7c"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "59e8954242f742c1310bb00683272e3d394b72b0d62a089045e1e45061c0bdde.bin",
+        "fnv64": "a5324c608bef6b8c",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "59e8954242f742c1310bb00683272e3d394b72b0d62a089045e1e45061c0bdde"
+      }
+    },
+    {
+      "maps": [
+        "08b_deltacontrol"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "59ce62d6de8ec2271775b82d86f002bcbd78689e8106e7424c04bd3f006636f6.bin",
+        "fnv64": "3e279e84c24cd416",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "59ce62d6de8ec2271775b82d86f002bcbd78689e8106e7424c04bd3f006636f6"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "706e914e9663cba72deebb153e11954d49d1a2413848faac91035d7bf1acffc7.bin",
+        "fnv64": "4cfc5fd63845d4d7",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "706e914e9663cba72deebb153e11954d49d1a2413848faac91035d7bf1acffc7"
+      }
+    },
+    {
+      "maps": [
+        "ascension"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "136feedd5b43f677d99880188bd11141d76e32bd57d7d1ae53b1414789b3a0d8.bin",
+        "fnv64": "bcb0d48b45bfa5c9",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "136feedd5b43f677d99880188bd11141d76e32bd57d7d1ae53b1414789b3a0d8"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "32f149ecd5955aa5fdd724440e1c0cd1dea9563cb1a8ef7fc4e48beecc5e8e39.bin",
+        "fnv64": "cfe91a060475ed75",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "32f149ecd5955aa5fdd724440e1c0cd1dea9563cb1a8ef7fc4e48beecc5e8e39"
+      }
+    },
+    {
+      "maps": [
+        "backwash"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "d2515e663735ff48606b3c180127ee9933cdc546e387f91d312dec9b953af2a2.bin",
+        "fnv64": "0eaf14bfa920ab0d",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "d2515e663735ff48606b3c180127ee9933cdc546e387f91d312dec9b953af2a2"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "745092bbf1c3d316ded65b3f868f5f4a44f70371a14dd60e5af79de32ac8ebe7.bin",
+        "fnv64": "fd2f53a5761283e9",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "745092bbf1c3d316ded65b3f868f5f4a44f70371a14dd60e5af79de32ac8ebe7"
+      }
+    },
+    {
+      "maps": [
+        "beavercreek"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "3d9952b6767567fbf168ed23244e5b55a795bd7d26821b303584037d8a105eef.bin",
+        "fnv64": "9847c9b9b47e3236",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "3d9952b6767567fbf168ed23244e5b55a795bd7d26821b303584037d8a105eef"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "1f055e2fb8d67b135001d35c55ef5600710dd8862b94dc29196641c5f808f765.bin",
+        "fnv64": "1e0d3e03cfdfa592",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "1f055e2fb8d67b135001d35c55ef5600710dd8862b94dc29196641c5f808f765"
+      }
+    },
+    {
+      "maps": [
+        "burial_mounds"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "584e8505319641ae21421a0d797c244c8da90fb8fb6150da5a89a610792c2ade.bin",
+        "fnv64": "93012c00d9fcdd71",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "584e8505319641ae21421a0d797c244c8da90fb8fb6150da5a89a610792c2ade"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "8f4c473dc4005ca93d3528ab2157885877f0e4ea224cc262902d350acce51831.bin",
+        "fnv64": "56527c109703469d",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "8f4c473dc4005ca93d3528ab2157885877f0e4ea224cc262902d350acce51831"
+      }
+    },
+    {
+      "maps": [
+        "coagulation"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "5bd02a6a4f42290363e9f554e1aed4e1e6ef9643745fabd2687406134974e857.bin",
+        "fnv64": "67f88c9da86c346e",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "5bd02a6a4f42290363e9f554e1aed4e1e6ef9643745fabd2687406134974e857"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "3c5e428ae2653f8fa59131bce35453b23ab1936f91b4d46c43f92f82d2b434c5.bin",
+        "fnv64": "9a946fc46351987c",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "3c5e428ae2653f8fa59131bce35453b23ab1936f91b4d46c43f92f82d2b434c5"
+      }
+    },
+    {
+      "maps": [
+        "colossus"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "f2a8f511136a30633ae2a826e029d87c8fdd30295d7729874a016b52d89b5886.bin",
+        "fnv64": "12d7d05afc5fb238",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "f2a8f511136a30633ae2a826e029d87c8fdd30295d7729874a016b52d89b5886"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 512,
+        "payload": "e6155a76f147096f676f9fc4212c76fb57cf4a14f5d118c588f2949d0242d3d9.bin",
+        "fnv64": "fcd6f2c348674ffa",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            432
+          ],
+          [
+            56,
+            436
+          ],
+          [
+            64,
+            484
+          ],
+          [
+            96,
+            508
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "e6155a76f147096f676f9fc4212c76fb57cf4a14f5d118c588f2949d0242d3d9"
+      }
+    },
+    {
+      "maps": [
+        "containment"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "93ae65e7f142feb745947b0754e3b028007cd75851d6d310076f2499bfde81f8.bin",
+        "fnv64": "77e44bc6b02f1d69",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "93ae65e7f142feb745947b0754e3b028007cd75851d6d310076f2499bfde81f8"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "e19d681d5ed6bfa64c8544ebe5a5d321c10d1354076b7ad1ca1c1179a9061580.bin",
+        "fnv64": "259a136d50016d09",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "e19d681d5ed6bfa64c8544ebe5a5d321c10d1354076b7ad1ca1c1179a9061580"
+      }
+    },
+    {
+      "maps": [
+        "cyclotron"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "c912263f4d15d3f285502b38c6aa16d4a750311806a4e814daf9dd8a5ced6fbc.bin",
+        "fnv64": "c6f988b7bfe46351",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "c912263f4d15d3f285502b38c6aa16d4a750311806a4e814daf9dd8a5ced6fbc"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "1f48263d1915edcf3f98f74e042efbb64028566d78d2db5be6640ece1868a291.bin",
+        "fnv64": "0e2fa06cb86590e1",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "1f48263d1915edcf3f98f74e042efbb64028566d78d2db5be6640ece1868a291"
+      }
+    },
+    {
+      "maps": [
+        "deltatap"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "506a416a4abbe0f036370799da5b8f8c95d633048e70610e85d84f77e5c905eb.bin",
+        "fnv64": "10e948074a0576bb",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "506a416a4abbe0f036370799da5b8f8c95d633048e70610e85d84f77e5c905eb"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "33b3d1d3b22f6fe83d9f4f664793d868c06dcc1a3fdf471e488860ee38c25516.bin",
+        "fnv64": "85521a0c9b411c1d",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "33b3d1d3b22f6fe83d9f4f664793d868c06dcc1a3fdf471e488860ee38c25516"
+      }
+    },
+    {
+      "maps": [
+        "derelict"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "560f7045fdd620dc42a5f5ff2d7f247804db27105f827d10a17cf535444c9f85.bin",
+        "fnv64": "a18f766c0ba2b4d1",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "560f7045fdd620dc42a5f5ff2d7f247804db27105f827d10a17cf535444c9f85"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "fe55ce2fc987df604a1efebb6bef8d2bf06baf05a00f848ae6002121eff4b58c.bin",
+        "fnv64": "c6c9f6cce1ba2b6a",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "fe55ce2fc987df604a1efebb6bef8d2bf06baf05a00f848ae6002121eff4b58c"
+      }
+    },
+    {
+      "maps": [
+        "dune"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "eab8373b3f6b6d6de81a1e6f83848c0ada7ba4173c1015688ee3eae9617b06ea.bin",
+        "fnv64": "21c40667b1140419",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "eab8373b3f6b6d6de81a1e6f83848c0ada7ba4173c1015688ee3eae9617b06ea"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "d941833fe70858b0254da51d70d5957f9be13681c00938e56daf7f8d7487bbca.bin",
+        "fnv64": "ea37aa620b81c96b",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "d941833fe70858b0254da51d70d5957f9be13681c00938e56daf7f8d7487bbca"
+      }
+    },
+    {
+      "maps": [
+        "elongation"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "a0a1fe009175c6036790c271b9ef08f1a59c91e59a36aae31489f8d01311273c.bin",
+        "fnv64": "56554dd65005926f",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "a0a1fe009175c6036790c271b9ef08f1a59c91e59a36aae31489f8d01311273c"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "441ab3b9ef951b0c44b233268e3d91f05d4a263770251084c8f2be1c2644b978.bin",
+        "fnv64": "91505c6026cd61d8",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "441ab3b9ef951b0c44b233268e3d91f05d4a263770251084c8f2be1c2644b978"
+      }
+    },
+    {
+      "maps": [
+        "foundation"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "85001251ecad66dbaa4e80bb2ffccc5d834a5954901c88b607cf20bbfe027d2a.bin",
+        "fnv64": "9846e8f9dde463cb",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "85001251ecad66dbaa4e80bb2ffccc5d834a5954901c88b607cf20bbfe027d2a"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "93bcfc74521ab12831729de3a0cdd36d25fbace0b9bee86eebc63061bc21df2b.bin",
+        "fnv64": "24e42e265b559f9f",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "93bcfc74521ab12831729de3a0cdd36d25fbace0b9bee86eebc63061bc21df2b"
+      }
+    },
+    {
+      "maps": [
+        "gemini"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "6cf6cf4a68debe7b659af48bc9d9fab7fe1befb53f79fb8f118779bc4bbab298.bin",
+        "fnv64": "33e1090e79937609",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "6cf6cf4a68debe7b659af48bc9d9fab7fe1befb53f79fb8f118779bc4bbab298"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "cbbed0920c07773fb5c3d4730084113f0d67f5d137a1002ca4ad295a1a68acb3.bin",
+        "fnv64": "834d92ca9cd2af3a",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "cbbed0920c07773fb5c3d4730084113f0d67f5d137a1002ca4ad295a1a68acb3"
+      }
+    },
+    {
+      "maps": [
+        "headlong"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "a58ebb067909992f39e387a8b989d18e87365d91adbd7a97df25c2f0ef2e391f.bin",
+        "fnv64": "fd6536c6ad7782ac",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            148
+          ],
+          [
+            124,
+            160
+          ],
+          [
+            132,
+            168
+          ]
+        ],
+        "references": [
+          [
+            152,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "a58ebb067909992f39e387a8b989d18e87365d91adbd7a97df25c2f0ef2e391f"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "ef72e09d3822f69fc85bec79a21fddf7ae5f44efec4dcd04178b7f7e7230c2d8.bin",
+        "fnv64": "f8b69d197628f7b4",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "ef72e09d3822f69fc85bec79a21fddf7ae5f44efec4dcd04178b7f7e7230c2d8"
+      }
+    },
+    {
+      "maps": [
+        "highplains"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "96665b221ec18a2e64b56b88e72d1c60ff1a25b4c3085819af9840d5e17b1994.bin",
+        "fnv64": "d3bbc2bd1779eec4",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "96665b221ec18a2e64b56b88e72d1c60ff1a25b4c3085819af9840d5e17b1994"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "1b85b81ef1dac30e568aa8d072228bf0a223c47ecef90c849849c90546662812.bin",
+        "fnv64": "b7f6f475d928f384",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "1b85b81ef1dac30e568aa8d072228bf0a223c47ecef90c849849c90546662812"
+      }
+    },
+    {
+      "maps": [
+        "lockout"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "eab8373b3f6b6d6de81a1e6f83848c0ada7ba4173c1015688ee3eae9617b06ea.bin",
+        "fnv64": "21c40667b1140419",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "eab8373b3f6b6d6de81a1e6f83848c0ada7ba4173c1015688ee3eae9617b06ea"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "98237aeb5daaf0317e3a4bbc78ceee45f5ba213e2f0bee12eb7073855fcc4116.bin",
+        "fnv64": "1650e59da484d379",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "98237aeb5daaf0317e3a4bbc78ceee45f5ba213e2f0bee12eb7073855fcc4116"
+      }
+    },
+    {
+      "maps": [
+        "midship"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 234,
+        "payload": "4a0bd1bd84c05ca23be7182397353208b5e1ab0cc9744b065a0c3a4a0576b5d4.bin",
+        "fnv64": "236d6713fd06c746",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            224
+          ],
+          [
+            108,
+            136
+          ],
+          [
+            116,
+            188
+          ],
+          [
+            124,
+            200
+          ],
+          [
+            132,
+            208
+          ]
+        ],
+        "references": [
+          [
+            192,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "4a0bd1bd84c05ca23be7182397353208b5e1ab0cc9744b065a0c3a4a0576b5d4"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "aa374c8b4e961f708f3636cd8cb656d3fb3136a742a3f6bb9346e1ae3c65741f.bin",
+        "fnv64": "f18285d76b7206b9",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "aa374c8b4e961f708f3636cd8cb656d3fb3136a742a3f6bb9346e1ae3c65741f"
+      }
+    },
+    {
+      "maps": [
+        "triplicate"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 232,
+        "payload": "f9f1154270ab0e547c157b37a66b6a498fff19b22b4c88474ecf06e0cca9f182.bin",
+        "fnv64": "54009077a17bec8c",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "f9f1154270ab0e547c157b37a66b6a498fff19b22b4c88474ecf06e0cca9f182"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "83605cb9aeb96c5bf3481d86a3cbc1ea9c7833a5e5d78522fc1467739c09ddbe.bin",
+        "fnv64": "2161dd9be96ce23f",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "83605cb9aeb96c5bf3481d86a3cbc1ea9c7833a5e5d78522fc1467739c09ddbe"
+      }
+    },
+    {
+      "maps": [
+        "turf"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "3beb2cdcb9f8c3c02a913da14f16b3c427f88107694976de636bdecb0cdff07b.bin",
+        "fnv64": "67047bf09bb1d1ef",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "3beb2cdcb9f8c3c02a913da14f16b3c427f88107694976de636bdecb0cdff07b"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "9432d4256a41cd0ce66fc4c842a2c3de89a8cf5c203670981c6d080a3f1c9e5b.bin",
+        "fnv64": "0344a4bae3e8ea3b",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "9432d4256a41cd0ce66fc4c842a2c3de89a8cf5c203670981c6d080a3f1c9e5b"
+      }
+    },
+    {
+      "maps": [
+        "warlock"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 232,
+        "payload": "2550f239899b3f291232d875c56888d44063ba96671519ba5e201ef3e09ae63e.bin",
+        "fnv64": "f7d3797bd7693dfc",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            136
+          ],
+          [
+            108,
+            148
+          ],
+          [
+            116,
+            200
+          ],
+          [
+            124,
+            212
+          ],
+          [
+            132,
+            220
+          ]
+        ],
+        "references": [
+          [
+            204,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "2550f239899b3f291232d875c56888d44063ba96671519ba5e201ef3e09ae63e"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "2d1253b09bec6e1be1c548aa8e7198666c09cd5a75ea5eed79aea3627ba1eff7.bin",
+        "fnv64": "f71b7799a92d28a7",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            496
+          ],
+          [
+            56,
+            432
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            480
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "2d1253b09bec6e1be1c548aa8e7198666c09cd5a75ea5eed79aea3627ba1eff7"
+      }
+    },
+    {
+      "maps": [
+        "waterworks",
+        "zanzibar"
+      ],
+      "template": {
+        "group": "stem",
+        "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+        "bytes": 242,
+        "payload": "584e8505319641ae21421a0d797c244c8da90fb8fb6150da5a89a610792c2ade.bin",
+        "fnv64": "93012c00d9fcdd71",
+        "pointers": [
+          [
+            92,
+            96
+          ],
+          [
+            100,
+            176
+          ],
+          [
+            108,
+            192
+          ],
+          [
+            116,
+            136
+          ],
+          [
+            124,
+            148
+          ],
+          [
+            132,
+            156
+          ]
+        ],
+        "references": [
+          [
+            140,
+            [
+              "spas",
+              "shaders\\shader_passes\\hud\\widget_simple_flash"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "584e8505319641ae21421a0d797c244c8da90fb8fb6150da5a89a610792c2ade"
+      },
+      "pass": {
+        "group": "spas",
+        "name": "shaders\\shader_passes\\hud\\widget_simple_flash",
+        "bytes": 536,
+        "payload": "053ac25e0ebb50d07d667936069a37c7fdf60444ccf25dab5f69fb09b7727c58.bin",
+        "fnv64": "55feebe6f93b4231",
+        "pointers": [
+          [
+            32,
+            36
+          ],
+          [
+            40,
+            124
+          ],
+          [
+            48,
+            448
+          ],
+          [
+            56,
+            464
+          ],
+          [
+            64,
+            512
+          ],
+          [
+            96,
+            432
+          ]
+        ],
+        "references": [
+          [
+            380,
+            [
+              "vrtx",
+              "rasterizer\\vertex_shaders_xbox\\screen"
+            ]
+          ]
+        ],
+        "strings": [],
+        "sha256": "053ac25e0ebb50d07d667936069a37c7fdf60444ccf25dab5f69fb09b7727c58"
+      }
+    }
+  ],
+  "portable_metadata_fixture": {
+    "source_tag": {
+      "datum": 4068692854,
+      "group": "shad",
+      "name": "ui\\hud\\shaders\\widget_simple_flash_grey",
+      "address": 18072100,
+      "size": 524
+    },
+    "regions": [
+      {
+        "address": 18072100,
+        "hex": "6d657473b644c3e3000000000100000030f738000100000000000000000000000300000080c21301ffffffff000000000000000074696c73ffffffff0000000000000000000000000000000000000000000000000000000000000000b644c3e3000000000000000003000000f4c31301000000000000000001000000e8cd6c0019000000f0cd6c000100000004f96c000100000008f96c000200000000c413010200000064f96c00020000006cf96c000200000028c41301050000001cfb3800020000005c171c00060000005c171c0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000ffba750000000000c0c0c000da050009000000000000803f14000000941c6d00db05000a000000000000803f1400000098a2b5008100000061000001"
+      },
+      {
+        "address": 3733296,
+        "hex": "6d746962ffffffff6d746962ffffffff000000000000000000000000000000000000000000000000000000006d746962ffffffff6d746962ffffffff0000000000000000000000000000000000000000"
+      },
+      {
+        "address": 18072192,
+        "hex": "b644c3e3000000000000000003000000f4c31301000000000000000001000000e8cd6c0019000000f0cd6c000100000004f96c000100000008f96c000200000000c413010200000064f96c00020000006cf96c000200000028c41301050000001cfb3800020000005c171c00060000005c171c000000000000000000"
+      },
+      {
+        "address": 18072316,
+        "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "address": 18072440,
+        "hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+      },
+      {
+        "address": 18072564,
+        "hex": "ffba750000000000c0c0c000"
+      },
+      {
+        "address": 7130600,
+        "hex": "020000000032"
+      },
+      {
+        "address": 7130608,
+        "hex": "0000000201000100010001000100010001000100010001000100010001000100010001000100010001000100010001000100"
+      },
+      {
+        "address": 7141636,
+        "hex": "0002"
+      },
+      {
+        "address": 7141640,
+        "hex": "02000200020000040200"
+      },
+      {
+        "address": 18072576,
+        "hex": "da050009000000000000803f14000000941c6d00db05000a000000000000803f1400000098a2b500"
+      },
+      {
+        "address": 7150740,
+        "hex": "00200000ffba75000000000000000000ffa6ed00"
+      },
+      {
+        "address": 11903640,
+        "hex": "00000200000000000000803f0000000000000000"
+      },
+      {
+        "address": 7141732,
+        "hex": "0000ffff0100ffff"
+      },
+      {
+        "address": 7141740,
+        "hex": "00020102"
+      },
+      {
+        "address": 18072616,
+        "hex": "8100000061000001"
+      },
+      {
+        "address": 3734300,
+        "hex": "ffffffffffffffffffffffffffffffffffffffff"
+      },
+      {
+        "address": 1840988,
+        "hex": "000000000000000000000000000000000000000000000000"
+      }
+    ],
+    "source_template_tag": {
+      "datum": 3821225142,
+      "group": "stem",
+      "name": "shaders\\shader_templates\\hud\\widget_simple_flash",
+      "address": 7150844,
+      "size": 248
+    },
+    "strings": {
+      "150996442": "hud_elite",
+      "0": "",
+      "167773659": "hud_input1"
+    }
+  },
+  "converted_pixel_constant_order": [
+    1,
+    0,
+    2
+  ],
+  "converted_grey_mappings": [
+    [
+      0,
+      3,
+      1
+    ],
+    [
+      0,
+      4,
+      0
+    ]
+  ],
+  "proof_controls": {
+    "complete_paired_red_green_graphs": 74,
+    "maps": 37,
+    "no_program_or_pixel_data": true
+  }
+}

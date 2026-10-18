@@ -3,11 +3,14 @@
 #include "halo2/bsp_atmosphere.hpp"
 #include "halo2/fp_registration.hpp"
 #include "halo2/sdl_sound_platform.hpp"
+#include "halo2/source_script_sound_clock_native64_tu15.hpp"
 #include <cstdint>
 #include <functional>
 #include <optional>
 
 namespace halo2 {
+class MccSoundVariationProvider;
+class MccScriptSoundWorldAccess;
 // Literal BSP sound palette/paths, not an initialized Xbox sound system.
 struct MultiplayerAudioBsp {
   struct Palette {std::uint32_t sound=0xffffffffu,inside_sound=0xffffffffu,flags{};
@@ -46,6 +49,27 @@ struct MultiplayerAudioSubmission {
 };
 using MultiplayerAudioObserver=std::function<void(const MultiplayerAudioSubmission &)>;
 
+// One pending actual-Audio/clock admission. Destruction only requests
+// cancellation, including on a foreign thread; the Audio producer drains it.
+// Moving transfers that request lifetime. Copies/numeric reconstructions are
+// unavailable. Captured sound/selection are immutable, not a playback result.
+class MultiplayerPreparedScriptImpulseTu15 {
+public:
+  ~MultiplayerPreparedScriptImpulseTu15();
+  MultiplayerPreparedScriptImpulseTu15(MultiplayerPreparedScriptImpulseTu15&&) noexcept;
+  MultiplayerPreparedScriptImpulseTu15&operator=(MultiplayerPreparedScriptImpulseTu15&&) noexcept;
+  MultiplayerPreparedScriptImpulseTu15(const MultiplayerPreparedScriptImpulseTu15&)=delete;
+  MultiplayerPreparedScriptImpulseTu15&operator=(const MultiplayerPreparedScriptImpulseTu15&)=delete;
+  std::uint32_t sound() const;
+  SourceScriptSoundClockSelectionTu15 selection() const;
+private:
+  struct Impl;
+  std::shared_ptr<Impl> impl_;
+  explicit MultiplayerPreparedScriptImpulseTu15(std::shared_ptr<Impl>);
+  void request_cancel() noexcept;
+  friend class MultiplayerAudio;
+};
+
 // Native playback adapter. Original authored tags, selection kernels and FP
 // clock events feed a genuine SDL device. No Xbox driver, admission flag,
 // object header, listener record, or successful source handle is fabricated.
@@ -61,6 +85,12 @@ public:
       std::uint32_t *shared_variation_random=nullptr);
   ~MultiplayerAudio();
   MultiplayerAudio(const MultiplayerAudio &)=delete;
+  // Bind converted native metadata before playback, or explicitly rebind
+  // after all playback, pending admissions and completion dispatch quiesce.
+  // Rebinding clears cached definitions and invalidates old script clocks;
+  // callers create a fresh clock afterward. Stop Audio before World restore.
+  // The raw Cache continues to own DAT/PCM. A stale provider never falls back.
+  void bind_native_sound_metadata(const MccSoundVariationProvider&);
   void prepare(std::uint32_t sound);
   void first_person(unsigned view,const FirstPersonViewBinding &,
                     const FirstPersonAnimationEvent &);
@@ -81,11 +111,61 @@ public:
   std::optional<Voice> play_impulse(std::uint32_t sound,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
       std::uint32_t owner=0xffffffffu,unsigned view=0,Completion={});
+  // Native output deadline only: selection and shared RNG still occur at
+  // this call, exactly as for play_impulse. This does not evaluate a future
+  // script request or create/reserve an Xbox sound handle.
+  std::optional<Voice> schedule_impulse(std::uint32_t sound,
+      std::uint64_t presentation_frame,float control=1,
+      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
+      std::uint32_t owner=0xffffffffu,unsigned view=0,Completion={});
+  // Additive script handoff. All producer operations use the creating thread;
+  // callbacks are qualified original policy providers, not PCM clocks. The
+  // stop request remains explicit: current immediate stop_voice is not an
+  // implicit128E70 adapter. No-slot/NONE requests create no native voice.
+  // Once a script clock is bound, ordinary Audio operations and destruction
+  // also use its creating thread. Prepared destruction alone is transferable.
+  std::shared_ptr<SourceScriptSoundClockNative64Tu15> make_script_sound_clock();
+  // Restore qualified metadata read from the actual World clock table. This
+  // needs quiescent Audio and a fresh script epoch (normally after metadata
+  // rebind). No serialized source voice is imported or converted to a host ID.
+  std::shared_ptr<SourceScriptSoundClockNative64Tu15> make_script_sound_clock(
+      const SourceScriptSoundClockRowsTu15& qualified_restored_metadata);
+  std::optional<MultiplayerPreparedScriptImpulseTu15> prepare_script_impulse(
+      const std::shared_ptr<SourceScriptSoundClockNative64Tu15>&,
+      std::uint32_t sound,const SourceScriptSoundClockPolicyTu15&,
+      const SourceScriptSoundClockNative64Tu15::StopRequest&,
+      const SoundDriverFloatingPointContext&);
+  std::optional<Voice> play_prepared_script_impulse(
+      MultiplayerPreparedScriptImpulseTu15&,float control=1,
+      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
+      std::uint32_t owner=0xffffffffu,unsigned view=0,
+      std::optional<Vec3> position={},
+      std::optional<std::uint64_t> presentation_frame={},Completion={});
+  // Initial FF selection uses the actual World's shared range/used/RNG
+  // owners. The valid forced-selector path retains its existing bypass.
+  // The capability is retained for this call. After a phase failure, quiesce
+  // and restore World/Audio; do not overwrite partial World RNG publication
+  // with a caller's earlier local seed. Later packets remain separate.
+  std::optional<Voice> play_prepared_script_impulse(
+      MultiplayerPreparedScriptImpulseTu15&,const MccScriptSoundWorldAccess&,
+      float control=1,MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
+      std::uint32_t owner=0xffffffffu,unsigned view=0,
+      std::optional<Vec3> position={},
+      std::optional<std::uint64_t> presentation_frame={},Completion={});
+  void cancel_prepared_script_impulse(MultiplayerPreparedScriptImpulseTu15&);
+  // Genuine128E70 playback-state request on this published script voice.
+  // Uses the existing native Audio millisecond clock and300ms fade. Retired
+  // receipts return false; foreign Audio owners reject before backend reads.
+  bool request_script_stop(const SourceScriptSoundClockVoice64Tu15&);
   // Explicit world emitter and current local listener positions. A missing
   // listener makes a world voice silent; it never becomes a centered UI sound.
   // Uses authored class/playback distance bounds and original distance gain.
   // This handoff does not provide Xbox HRTF/DSP, portal or PVS processing.
   void listeners(std::span<const Vec3>);
+  // Refresh a live spatial voice from its owning source object's completed
+  // WORLD point. This changes only spatial parameters, never PCM or selection.
+  // Centered voices and retired identities cannot acquire an emitter here.
+  void emitter(Voice,Vec3);
   void impulse_at(std::uint32_t sound,Vec3 position,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,
       std::uint32_t owner=0xffffffffu);
@@ -95,8 +175,14 @@ public:
   bool voice_active(Voice) const;
   std::optional<Voice> play_impulse_at(std::uint32_t sound,Vec3 position,float control=1,
       MultiplayerAudioKind=MultiplayerAudioKind::Impulse,std::uint32_t owner=0xffffffffu);
+  std::optional<Voice> schedule_impulse_at(std::uint32_t sound,Vec3 position,
+      std::uint64_t presentation_frame,float control=1,
+      MultiplayerAudioKind=MultiplayerAudioKind::Impulse,std::uint32_t owner=0xffffffffu);
   void ambient(std::span<const MultiplayerAmbientTarget>,float elapsed);
   void master_volume(float);
+  void paused(bool);
+  SdlSoundVoiceParameters voice_parameters(Voice) const;
+  SdlSoundPlaybackPosition playback_position(Voice) const; // Live native voice only.
   std::string speaker_layout(unsigned);
   void class_gains(const std::array<float,sound_class_count> &);
   void update();
@@ -104,7 +190,12 @@ public:
   std::size_t voices() const;
   std::vector<float> render(std::size_t frames); // Explicit manual SDL provider.
   std::uint64_t mixed_frames() const;
+  std::uint64_t presentation_frames() const;
 private:
+  std::optional<Voice> play_prepared_script_impulse_impl(
+      MultiplayerPreparedScriptImpulseTu15&,const MccScriptSoundWorldAccess*,
+      float,MultiplayerAudioKind,std::uint32_t,unsigned,std::optional<Vec3>,
+      std::optional<std::uint64_t>,Completion);
   struct State;
   std::unique_ptr<State> state_;
 };

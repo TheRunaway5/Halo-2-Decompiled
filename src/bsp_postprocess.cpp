@@ -1,5 +1,6 @@
 #include "halo2/bsp_postprocess.hpp"
 #include "halo2/math.hpp"
+#include "halo2/source_bloom_sampling.hpp"
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -286,8 +287,12 @@ struct BspPostprocess::Impl {
             view.bloom.threshold=parameters.threshold;view.bloom.strength=parameters.strength;
             view.bloom.programs=menu_bloom(parameters.threshold,parameters.strength);
             for(unsigned pass=0;pass<6;++pass) {
+                const auto physical=pass==5?view.size:view.quarter;
+                const auto controls=source_bloom_filter_controls(pass<5?view.bloom.programs.radii[pass]:0,
+                    {float(physical.width),float(physical.height)},
+                    pass<5?view.input.source_bloom_filter_extent:std::nullopt);
                 const BloomUniform uniform{(pass==0?view.bloom.programs.threshold:pass==5?view.bloom.programs.composite:view.bloom.programs.blur).words,
-                    {pass<5?view.bloom.programs.radii[pass]:0,float(pass==5?view.size.width:view.quarter.width),float(pass==5?view.size.height:view.quarter.height),0},{0,0,1,1}};
+                    controls,{0,0,1,1}};
                 write_uniform(view.uniforms[pass+2],uniform);
             }
         }

@@ -1,0 +1,12 @@
+fill 00a50d 03157e 00c3a9 2b0c99 0000a0 0000c0
+case fault_illegal 0100 010d 400
+case fault_trap 010d 011a 400
+case fault_trapcc_taken 011a 0128 400
+case fault_trapcc_nottaken 0128 0134 400
+case fault_ill_fastvec 0134 0140 400
+case fault_se_fastvec 0140 0150 400
+case fault_do_overflow 0150 0161 400
+case fault_enddo_underflow 0161 0171 400
+case fault_sp_bset_se 0171 0181 400
+case fault_sp_bset_uf 0181 018c 400
+case fault_jsr_ovf_slot0 018c 01a5 400

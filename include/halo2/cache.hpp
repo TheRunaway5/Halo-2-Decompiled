@@ -327,6 +327,14 @@ struct SourceRuntimeCacheTagImage;
 struct SourceRuntimeCacheTagView;
 struct SourceRuntimeCacheBspImage;
 struct SourceRuntimeCacheAnimationImage;
+// Exact relocation fields already verified/applied by the preserved native
+// library importer. Offsets belong to this allocation; file/resource offsets
+// are not included. owner retains the full salted directory identity.
+struct PreservedNativePointerMap {
+    TagHandle owner;
+    std::uint32_t address{}, bytes{};
+    std::vector<std::pair<std::uint32_t,std::uint32_t>> pointers;
+};
 class Cache {
 public:
     using AnimationResourceReader=std::function<std::vector<std::byte>(std::uint32_t,std::uint32_t)>;
@@ -353,6 +361,24 @@ public:
     const std::filesystem::path& shared_directory() const { return shared_directory_; }
     const std::filesystem::path& path() const { return path_; }
     const std::vector<Tag>& tags() const { return tags_; }
+    // A moved definition can leave authored forwarding references into its
+    // previous allocation. Retain that allocation's full typed identity for
+    // delivery; it is not a second tag-directory row or an anonymous bank.
+    std::span<const Tag> retained_tag_allocations() const { return retained_tag_allocations_; }
+    // True only for a salted directory identity restored by the verified
+    // preserved native library. Other MCC definitions keep their MCC schema.
+    bool is_preserved_native_shader(TagHandle handle) const {
+        return find_tag(handle) && handle.index()<mcc_native_shaders_.size() &&
+               mcc_native_shaders_[handle.index()];
+    }
+    bool is_preserved_native_shader(const Tag& tag) const {
+        const auto* current=find_tag(tag.handle());
+        return current && current->address==tag.address && current->size==tag.size &&
+               is_preserved_native_shader(tag.handle());
+    }
+    std::span<const PreservedNativePointerMap> preserved_native_pointer_maps() const {
+        return preserved_native_pointer_maps_;
+    }
     const std::vector<TagGroupDefinition>& tag_groups() const { return tag_groups_; }
     const TagGroupDefinition* tag_group(TagGroup) const;
     const Tag* find_tag(TagHandle, std::optional<TagGroup> expected = {}) const;
@@ -434,6 +460,12 @@ public:
     std::vector<PredictedResource> structure_resources(std::size_t bsp,int section,
                                                        bool definition) const;
     EncodedSound load_sound(std::uint32_t datum, unsigned pitch = 0, unsigned permutation = 0) const;
+    // Exact salted MCC directory owner used by load_mcc_sound. Local and
+    // shared sound indices must never be resolved against a guessed gestalt.
+    const Tag& mcc_sound_gestalt_owner(TagHandle sound) const {
+        if(!mcc_)throw FormatError("Sound gestalt ownership requires an MCC cache");
+        return mcc_sound_gestalt(sound.value);
+    }
     // Retail125F10's first-pitch/first-permutation compressed chunk request.
     // Xbox cache only; this performs no PCM decode or playback admission.
     std::optional<std::vector<std::byte>> load_sound_prediction_chunk(std::uint32_t datum) const;
@@ -527,6 +559,7 @@ public:
     std::vector<PredictedResource> object_resources(std::uint32_t datum) const;
     std::vector<std::vector<std::byte>> load_bsp_resources(std::size_t index) const;
     AnimationClip load_animation(std::uint32_t datum, unsigned animation) const;
+    AnimationClip load_animation_identifier(std::uint32_t graph,std::uint32_t packed) const;
     // Complete animation lookup can read from an admitted immutable resource
     // owner. Resident metadata and authored fallback order remain this Cache's.
     AnimationClip load_animation(std::uint32_t datum,unsigned animation,const AnimationResourceReader &) const;
@@ -653,5 +686,7 @@ private:
     std::vector<std::size_t> metadata_block_offsets(std::size_t descriptor, std::size_t stride, std::size_t limit = 4096) const;
     std::vector<std::byte> raw_data(std::uint32_t pointer, std::uint32_t size) const;
     BspLighting load_bsp_lighting(const Bytes& metadata, std::int64_t magic) const;
+    std::vector<Tag> retained_tag_allocations_;
+    std::vector<PreservedNativePointerMap> preserved_native_pointer_maps_;
 };
 } // namespace halo2

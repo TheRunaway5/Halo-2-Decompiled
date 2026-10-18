@@ -3562,3 +3562,603 @@ weapon/ability/vehicle/projectile/damage/world/objective/animation/render/audio,
 local/split/LAN, independent original evidence and launcher delivery scope.
 Historical missing capture inputs are a validation limitation, not permission
 to recreate original state. No whole-element or full-game acceptance is claimed.
+
+
+## v422 — whole source APU reset and exact original composition (PROGRESS)
+
+Previous v406 was PROGRESS. Its160 source/49 executable/13 installed fingerprints
+were revalidated before edits. Full goal remains ACTIVE,0/102 accepted elements.
+The private snapshot now compiles the complete38EC0E APU reset graph:22 new whole
+routines,594 static original instructions, sharing existing owners. TU1.5 XBE
+bytes authenticate every instruction and the actual38EC8F caller. Generation
+replays byte-identically. No initialized APU MMIO bank, device-ready bit, captured
+kernel context or positive hardware/kernel result is supplied to the live world.
+World dispatch now reaches this complete source graph rather than stopping at
+its missing first callee. Native APU/DSP ownership is still mandatory.
+
+Read-only original captures use hardware breakpoints, single stepping and the
+existing GDB monitor connection, with isolated HDD/EEPROM and unchanged owned
+inputs. The capture tool now bulk-authenticates original SDK instructions and
+uses the existing debugger connection for FS state; opening a second QMP client
+had stalled the first attempt. Stack capture follows the mapped current page.
+Intermediate captures with incomplete FP or unrelated kernel-entry observations
+were rejected by the comparisons and retained. Finalv420 conditions hardware
+breakpoints on the exact audio caller's ESP and actual return address, and
+asserts unchanged CALL registers; graphics IRQ callers cannot satisfy them.
+
+The whole observed original reset matches377 source instructions,122 actual
+source stack stores,20 original MMIO accesses,12 kernel calls, full defined GP/
+flags/XMM/raw-x87 ABI and all59,428 retained stack/object/SDK bytes. Original
+kernel and interrupted-step stack effects (880 bytes) and actual I/O/kernel
+results are declared external inputs ONLY to this offline composition test.
+Source stack outputs are checked separately before those external effects,
+with their before-byte dependencies checked. Seven interrupted nonbranch step
+observations are retained separately; no completed source instruction is
+removed. No original patch, injected original callee return, native expected
+data or result-masking byte normalization is used. This conditional composition
+proof does not implement native IRQ/DSP/DMA/voices/PCM or physical hardware.
+
+The reference caught a real lowering boundary defect: the shared arithmetic
+executor normalizes host x87 precision even at integer-only external callbacks.
+The APU graph now retains the actual untouched FP bundle at every callback and
+final/exceptional exit, while accepting actual returned owner bundles. This
+fix is local to the authenticated integer graph and replayed generator.
+Ordinary missing native IRQL ownership still rejects before any fake MMIO.
+
+Fresh SDK before/call/settings inputs restore three formerly unavailable checks:
+SDK resources, pool capacity and actual audio settings all pass again. The
+configured SDK capture is work/sandbox-primary-v15/original-apu-reset-v420/original-sdk.
+Original output-driver before/create and environment-before inputs remain absent;
+their two checks fail before verification, not accepted or reconstructed.
+
+Coherent50-target build passes. Selected regressions are53/58 in51.25seconds,
+no skips. Three full campaign cases reach127EE0 ->224EC0 ->SDK/APU ->38EC8B ->
+38EC0E ->38EB16 ->383D70 and fail at383D88 ->encoded800000A0, ordinal160,
+KfRaiseIrql, import41B7AC. Actual original export80014338 is four instructions;
+lowering80014368 is25. Owned kernel code and reached bindings are retained in
+apu-irql-frontier-v422.json. Actual original80035C00 IRQL and pending IRQ/PIC/
+dispatch globals are not copied into native state. The native passive thread's
+60200024 policy is not a completed interrupt domain. Native serialization,
+current-level/IRQ/PIC/dispatch and APU control/FIFO/DSP/DMA/notification/lifetime
+owners are next; a successful empty callback is not permitted.
+
+Current166 source/50 executable/13 installed fingerprints and the exact
+comparison/capture/failure records are in work/sandbox-primary-v15/apu-reset-native-progress-v422.json.
+The launcher still selects r6 SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No candidate was accepted or installed. Dirty root/concurrent work is preserved.
+All complete map/BSP, scripts/full frame, campaign frontend/Simulation/player/
+objects, all maps/missions/menus, asynchronous animation/cache/worker, later GPU,
+all102 sandbox elements and local/split/LAN/original render/PCM/full-game gates
+remain required. A component comparison or compiled routine is not whole parity.
+
+
+## v432 — native audio reset and complete storage composition (PROGRESS)
+
+Previous v422 was PROGRESS. Its166 source/50 executable/13 installed fingerprints
+were revalidated. Full goal remains ACTIVE,0/102 accepted whole elements. The
+shared checkout now contained source-led native audio resources, so this turn
+adopted their retained callback output/control/PCM reset and page resources into
+the private snapshot, preserving the dirty root. Exact copy/adaptation hashes
+are retained. The original owned TU1.5 executable remains authority; no MCC or
+Vista gameplay source/visual reference is used by this adoption.
+
+An explicit new world constructor retains a real SdlSoundPlatform shared owner
+with actual UserSettings and the transaction-produced boot mode. It executes
+the original SDK factory and constructors, preserving their COM object outputs;
+an SDL ID is never substituted for an Xbox object pointer. Source38EC8F now
+executes the complete original38EC0E graph against actual native control jobs,
+recursive exclusion, live voice lists and PCM cancellation/receipt lifetimes.
+The scoped original raise/lower callsites map to a named native serialization
+policy. They do not execute the complete original kernel IRQ/PIC/scheduler or
+copy its captured state. Processor contexts remain explicitly unconfigured.
+
+Three independent unchanged-original CPU cases under those declared native
+platform inputs match379/379/377 instructions and137 ordered source stores each,
+GP and defined-maskCC5 flags, full tested APU/stack bytes. Native tests include
+actual retained PCM, two-slot backpressure, warm reset, voice dispatch cutover,
+Flushed receipt accounting/handoff and real DeviceCallback consumption. Their
+backend is PipeWire, not dummy/disk. This proves native resource operations and
+conditional source CPU composition, not DSP/physical IRQ/retail PCM parity.
+The earlier actual-original-boot377-instruction comparison also still passes.
+
+World construction exposed a real unwind bug: an interrupted audio transaction
+faulted, then unrelated registered CRT exits tried to start that audio scope
+again and aborted. Source exit retirement now permits those non-audio source
+callbacks to release their own resources without re-entering the faulted audio
+guard. Audio requests still reject faults. Retained audio output/control
+ownership is explicitly rejected by checkpoint export, prepare and commit;
+live resources cannot be silently dropped or imported from a byte checkpoint.
+
+The complete next38E996 storage owner and direct closure add7 whole original
+routines/257 static instructions. Existing owners remain shared. Both the new
+storage and prior reset modules replay byte-identically. Source38E71C/3879CB
+performs descriptor clears, real capacity accounting and logical physical
+address publication using genuine native64 retained storage. The older snapshot
+allocator lacked the source's FFFFFFFF unrestricted-high request. That sentinel
+is now admitted while retaining the bounded token namespace; last-page,
+exhaustion/no-wrap, malformed bound/extent/alignment, protection and retirement
+guards pass. These addresses are logical resource identities, never truncated
+host pointers or a claim of physical host PCI/DMA addressability.
+
+Four unchanged-original DMA cases under explicit native resource inputs match
+2100/8244/2100/19508 instructions and2070/8214/2070/19478 source stores, actual
+capacity clears/descriptors/statistics, source GP/defined flags and complete
+tested memory. Native failure/foreign/ownership guards and teardown also pass.
+No successful empty hardware, initialized MMIO bank or original game result is
+supplied. The actual campaign path now completes1 reset,16 retired control
+commands,0 queued commands and16 allocations totaling339,968 bytes. GP/EP program
+loaded flags remain false. All three campaign modes reach38ECA3 ->38E8C9,
+the still-required original39-instruction interrupt/configuration method.
+Its first IEN store is D8 atFE801004; full routes/frontend/codec/event producers
+and correct global delivery must be owned before it can return successfully.
+
+Coherent53-target build and61 distinct checks:56 pass,3 campaign cases fail at
+that actual configuration dependency, and2 historical output-driver/environment
+checks fail before verification for missing original capture inputs. No skips.
+The main60-check run took47.37seconds; the additional physical namespace guard
+passes. Earlier aborted runs and boundary failures remain retained, not relabeled.
+Current179 source/53 executable/13 installed fingerprints and all evidence
+are in work/sandbox-primary-v15/native-audio-storage-progress-v432.json. Launcher
+r6 remains SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No new candidate is accepted/installed. No owned build/test jobs remain.
+
+Continue complete38E8C9 with actual native frontend/interrupt/event/codec resource
+owners; the shared checkout contains later related owners worth inspecting and
+validating before reuse. No D8-ready routes, global-enable success or DSP program
+may be invented. Then complete SDK/device lifetime and PCM, whole map/BSP,
+script/full frame, campaign frontend/Simulation/player/object, all maps/missions/
+menus, asynchronous animation/cache/worker and later GPU owners. All102 sandbox
+elements, local/split/LAN and independent original rendered/audio/full-game
+acceptance remain required. Native component tests do not accept a whole element.
+
+
+## v452 — native cold audio graph and exact configuration boundary (PROGRESS)
+
+Revalidated v432's179 source/53 executable/13 installed fingerprints before work.
+Goal remains ACTIVE,0/102 accepted whole elements. All menus/maps/missions,
+local/split/LAN and independent original visual/audio acceptance remain required.
+Changes stay in the private v15 source tree; shared root source/MCC/shader work
+is preserved. Shared native audio components were copied with exact hashes and
+adapted to the snapshot's already authenticated reset and combined storage APIs.
+
+The complete configuration/recovery CPU module has3 routines/100 static
+instructions. Native event processing adds9 routines/249 instructions, and
+deferred processing adds23/787. Existing source helpers retain their original
+owner; a stable generation precedence prevents duplicate entry ownership. All
+three new modules plus the existing22-routine reset and7-routine storage graphs
+replay byte-identically. Integer configuration/event work retains actual caller
+FP state across native helper calls; the deferred module retains its genuine
+original floating-point instructions. Device action-store observation never
+adds an MMIO preimage read. Fresh independent unchanged-XBE references include
+12 complete conditional configuration cases and three deferred/registered cases.
+The536-byte SDK fixture literal export also replays exactly. These are declared
+boundary CPU comparisons, not observed physical hardware/default IRQ results.
+
+The world now constructs a retained native graph after actual SDK/reset/storage:
+shared callback output/control generation, all16 real DMA allocations, native EP
+byte transports/prepared leases, five actual table ranges and physical windows,
+completion-derived frontend events/source ISR/DPC, actual epoll/eventfd/timerfd
+resources, and a disabled source-delivery policy. Lifetimes retain native64
+backings; exception scopes cancel/fence callbacks before outer DMA/reset unwind.
+Checkpoint rejection for live audio remains explicit. Native preference and
+small SDK-data helpers are test fixtures, not substitute world EEPROM/boot data.
+
+All three actual campaign modes now execute38E8C9's first IEN=D8 request against
+the genuine disabled dispatcher, then stop at38E8D3 / FE801100=88. This request
+contains unverified FECTL bit3 in addition to known method halt. No inert field,
+ready value, emulator shortcut or successful configuration return is supplied.
+Each mode retains1 reset,16 completed/0 queued control commands and16 allocations
+totaling339,968 bytes; GP/EP programs remain unloaded, delivery=false and
+configuration_returned=false. Requested routesC8 remain unresolved. The complete
+source configuration/helper return and initializer45/full map admission are
+not accepted. Physical or authenticated primary field evidence is still required.
+
+Final61-target coherent build includes halo2_native. The71-check selected suite
+passes66: all ten new component/graph checks pass; three campaign checks fail
+at the required original policy, and two historical output/environment checks
+fail before verification for missing original capture inputs. No skips/aborts;
+49.55seconds. Real output is PipeWire, never dummy/disk. Exact traces, callbacks,
+queue backpressure/retirement, table/native64/physical bounds, foreign ownership
+and failed partial transaction behavior pass. Earlier failed adoption/replay
+steps remain retained. Whole SDK/DSP/physical IRQ/retail PCM/full-game proof is open.
+
+Current230 source/61 executable/13 installed fingerprints and evidence are in
+work/sandbox-primary-v15/native-sound-configuration-progress-v452.json. Launcher
+r6 is unchanged at SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No candidate is accepted or installed. No owned build/test/display processes remain.
+
+Continue verified full configuration semantics and actual requested IRQ/codec/EP
+providers, source processing and resource lifetime, then whole original map/BSP,
+AI/scripts/full frame and frontend/Simulation/player integration. Other retained
+source-led prerequisites may advance while the specific FECTL field is unresolved;
+none may force that operation to succeed. All102 elements and full-game gates
+remain required, including missing historical references and async/GPU work.
+
+
+## v460 — native DSP algorithms and actual numeric PCM delivery (PROGRESS)
+
+Previous v452 was PROGRESS and its230 source/61 executable/13 installed
+fingerprints were revalidated before work. Full goal remains ACTIVE,0/102
+accepted whole elements. The specific cold38E8D3 device-policy boundary stays
+unresolved while independently necessary source-led DSP processing advances.
+No shared root implementation, launcher, shader, original asset or memory was
+edited. Root goal documentation is append-only.
+
+Copied120 independently source-led files into the private v15 tree, preserving
+all copy/adaptation hashes. Sixteen CMake components cover typed Word24 storage,
+gain fanout, distortion, two-product accumulation, chorus, two circular-history
+effects, crosstalk, controller arithmetic/retained sinks, status provenance, GP
+value output,15-record literal storage and numeric EP mono/stereo/module0.
+The compiler builds ordinary native C++; no original program/interpreter/core,
+source bank or captured-ready payload is a new runtime dependency. Unsupported
+mode/address/alias domains still reject. This is available processing within
+those admitted domains, not an authenticated complete native processing graph.
+The numeric FP proposal component retains the original contract; its unrelated
+MCC cache definition provider was not adopted.
+
+All37 new numeric/ownership checks pass. Evidence includes80 gain frames,105
+distortion frames,40 accumulation frames,116 controller arithmetic calls,
+retained chorus and sink/packet cases, and441 original reverb frames/882 calls
+with871,392 ordered arithmetic values and every retained ring/workspace field.
+The distortion proof keeps its57 unchanged-core/corrected-limiter-agree cases
+separate from48 manufacturer-corrected-limiter stress frames; corrected DSP-core
+tiers are not physical DSP evidence. Corrected crosstalk compares39 calls and
+retains withdrawal of the legacy nonzero upstream-route claim. Explicit input
+fixtures do not establish source voice production, PCM scale or full status/clock.
+
+Verified124 direct numeric provenance reference pins. Independently reran the
+unchanged owned TU1.5 x86 seed/key/data transformation and compared the current
+native constructor's462 typed fields across all15 original records, retaining
+774,144 real scratch bytes. This proves the literal pre-effect phase, not an
+installation, supervisor/mailbox/clock, whole frame or source acknowledgement.
+
+Added an actual native format bridge from all three numeric EP result types
+through their original format1 S16 packing into independently owned float48k
+SdlSoundPackets. The bridge preserves64-bit context and owns PCM after temporary
+results/history disappear. Exhaustive65,536 S16 bit patterns match the real SDL
+converter exactly. Calculated nonzero stereo/mono/module0 outputs enter the
+existing native mixer and real PipeWire callback; exact manual values, three
+callback completions, two-slot backpressure and retention until acknowledgement
+pass. No source producer, cursor/clock advance, frame/factory/installation ready
+result, hardware FIFO receipt or physical speaker claim is supplied by this API.
+
+Final96-target coherent build includes halo2_native. The109-check selected run
+passes104 in61.27seconds. All38 new checks pass; three campaign checks still
+reject the required38E8D3 / FE801100=88 FECTL bit3 request, and two historical
+checks fail before verification for missing original capture inputs. No skips
+or aborts. Each actual campaign mode still reports1 reset,16 completed/0 queued
+commands,16 allocations/339,968 bytes, unloaded GP/EP programs, pendingD8 and
+delivery=false/configuration_returned=false. The native libraries and format
+bridge do not substitute for this original operation or complete initializer45.
+
+Current354 source/96 executable/13 installed fingerprints, direct original
+proofs and test reports are in
+work/sandbox-primary-v15/native-sound-algorithms-progress-v460.json. Launcher r6
+remains SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No candidate is accepted or installed; no owned build/test/display jobs remain.
+
+Next work remains actual verified configuration/IRQ effects and full source
+voice/mix acquisition (including the six-prefix producer), cross-record status,
+GP/EP supervisor/clock/transport, installation/update and lifecycle. Continue
+real codec/AC97/PCM providers and recover fresh genuine missing device/environment
+captures without copying successful state. Then complete whole map/BSP, AI/scripts/
+full frame and frontend/Simulation/player/object integration, all maps/missions/
+menus, all102 sandbox elements and local/split/LAN/original rendering/audio/full
+game gates. Native arithmetic/format/component evidence cannot accept a whole
+element or full DSP. Async/cache/animation and later original kernel/GPU work
+remain required as before.
+
+
+## v468 — original audio references and full factory routing (PROGRESS)
+
+Previous v460 was PROGRESS. Revalidated its354 tracked source/96 executable/13
+installed fingerprints before work. Goal stays ACTIVE,0/102 accepted elements.
+Source edits remain in the private v15 tree; shared root implementation/shader/
+MCC work is preserved and root goal documentation is append-only.
+
+A new single isolated cold-boot wrapper captured actual original224EC0 driver
+input, complete387877 creation and38568E capabilities, then complete1972C0
+environment and1973E0 mapping with7 and9 real I/O calls. Paired DSP section
+loads naturally follow1->2->1 references with owned immutable bytes. Hardware
+breakpoints/reads/normal continuation only; no guest code/data/register write
+or supplied callee return. Dense logical x87 occupancy and actual FS are read
+from the stopped CPU using the existing GDB connection. The original title/
+disc and backing assets remain unchanged; the private EEPROM/HDD overlay and
+owned processes retire. This is original code under pinned xemu/modified BIOS,
+not physical console/PCM proof. Actual stopped code matches the owned executable
+at3,826 instruction sites across seven native audio CPU modules. All state is
+offline reference input, never a native initialized kernel/IRQ/device image.
+
+Fresh artifacts are work/sandbox-primary-v15/original-sound-boot-resources-v461/
+(original-driver,original-environment,original-dsp-section.json). Resource CTests
+now select these genuine paths. A separate environment-reference setting keeps
+historical CPU oracle/capture pairs unchanged. Missing old historical files
+were not reconstructed, overwritten or mislabeled as restored originals.
+
+This investigation also exposed a legacy output-adapter defect. It intercepted
+whole387877, opened SDL, stored the SDL ID in the source COM output, then manually
+returned success/consumed the stack. Its header claim that no COM substitution
+occurred was wrong. A fresh actual-caller regression reproduced that exact red
+condition before replacement (v462). Production world had already used the full
+SDK/resource route; the obsolete adapter could still reintroduce a bypass.
+
+SourceRuntimeSoundOutput now retains an actual shared stereo output and executes
+the whole unchanged387877 CPU body reached by224F26. Original constructors own
+COM objects/refcounts/output publication; native imports/control/configuration
+still require their real providers. It supplies no source store, HRESULT, stack
+return, singleton/AddRef or factory readiness. The world routes its factory
+through this same corrected owner. Old source-binding close/CallScope logic is
+removed; actual backend/control/SDK owners retain their own lifetimes. Bank,
+source frame, actual FP state and creating-executor guards reject malformed or
+foreign calls before mutation. The native diagnostic SDL ID remains separate.
+
+The first replacement fixture correctly rejected its missing captured kernel FS
+backing. The final test binds the same actual native passive-user executor policy
+as the world, rather than importing/zeroing captured kernel state. It executes
+11 original source instructions and stops at the mandatory383F92 import while
+source device outputs remain zero. This is a factory-ownership/import-boundary
+proof, not whole SDK, capabilities, DSP or PCM success. The fresh DSP resource
+test also passes real retain/release, nesting/abort, restore and quiescence.
+
+Final96-target build and109-check composed run:106 pass in52.53seconds; only
+three campaign modes fail at the required38E8D3 / FE801100=88 FECTL bit3 policy.
+Missing-reference failures fall from2 to0; no skips or aborts. All prior38 DSP/
+PCM checks remain green with real PipeWire. Each actual campaign mode still has
+1 reset,16 completed/0 queued commands,16 allocations/339,968 bytes, unloaded
+GP/EP programs, pendingD8, delivery=false and configuration_returned=false.
+No factory/configuration/device-ready result was invented to pass this boundary.
+
+Current358 tracked source/96 executable/13 installed fingerprints and evidence
+are in work/sandbox-primary-v15/native-sound-reference-recovery-progress-v468.json.
+The former354-file subset had omitted the three existing legacy output files;
+those are tracked from their corrected versions now, alongside the new capture
+wrapper. Do not claim their original bytes were covered by the old subset.
+Launcher r6 remains SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No candidate accepted/installed; no owned capture/build/test/display jobs remain.
+
+Continue actual configuration/IRQ effects and complete source SDK/DSP download/
+installation/update, native voice/mix/status/supervisor/clock/GP-EP transport and
+real codec/AC97/PCM lifetime. The newly recovered original environment/mapping
+inputs and real I/O can support further whole-graph source comparisons. Unknown
+FECTL semantics remain unresolved. Whole map/BSP, AI/scripts/frame and frontend/
+Simulation/player/object integration, all menus/maps/missions, all102 elements
+and local/split/LAN/original visual/audio/full-game gates stay required. Async/
+cache/animation, other missing historical evidence and later kernel/GPU work
+remain open. Component/reference checks do not accept a whole element.
+
+
+## v477 — whole DSP download CPU closure and actual GP pool resources (PROGRESS)
+
+Previous v468 was PROGRESS; its358 source/96 executable/13 installed fingerprints
+were revalidated before edits. Goal remains ACTIVE,0/102 whole elements accepted.
+All implementation edits stay in the private v15 source. Shared root code, MCC/
+shader work and installed launcher remain preserved; root goal edits append only.
+
+The genuine197364 ->38594D DSP download call now has its whole previously missing
+CPU closure:16 routines/756 static instruction sites. Direct and tail dependencies
+are followed against the authenticated TU1.5 XBE; existing SDK owners are reused.
+The native world routes this module, including original resource wrappers, effect
+description relocation, byte transforms and GP scratch allocation requests. CPU
+source keeps actual call frames and FP state, and store observation adds no MMIO
+read. Generated output replays byte-identically. New plus previous audio modules
+match stopped actual original bytes and owned XBE at4,582 sites across8 modules.
+This is code-integrity/CPU implementation evidence, not a completed DSP download.
+
+SourceRuntimeSoundDmaResources now owns the reached large DSad pool requests from
+actual38DE81. Their allocation/capacity/lock/unlock/physical/release imports require
+exact source/parent frames, bank, creating thread and actual36-byte context read
+footprint. Real native64 bank storage and lock lifetime remain retained. Pools use
+the same allocator namespace as the existing16 DMA descriptors. Synchronous reads/
+writes alias those exact locked resources; foreign/unaligned/unlocked/cross-range
+requests reject. Native physical release checks unchanged owned backing and rejects
+staged/protected release. Checkpoint publication rebinds current native bank identity;
+teardown now preserves foreign replacement banks. This private bank owns a vector
+copy of page bytes: no page-aligned host pointer, Xbox pinning, host PCI DMA or native
+DSP scheduling equivalence is claimed. Smaller unreached GP pool requests remain
+unsupported. Source execution still owns clears/counters/context/SGE publication.
+
+The GP provider identifies its genuine parent before generic SDK allocation, so
+existing SDK users retain their owner. Three authenticated SDK lock-release sites
+now support whole source download failure branches through the actual native mutex.
+No HRESULT/stack/device success is supplied at a whole download/factory boundary.
+
+Independent offline original x86 experiments supply declared synthetic input and
+no callee returns.32 cases match143,601 executed instructions,29,028 ordered stores,
+returned registers/defined flags/full final storage, and unchanged caller FP state.
+All15 native CPU effect-data transforms also match independent original hashes.
+The original825-site installation research replays with identical owned metadata/
+contracts/hashes; transformed executable programs are discarded, never exported,
+packaged or interpreted as a native DSP. Whole original missing-device/disabled
+failure routes execute and release the actual mutex correctly (3 cases).
+
+The native GP composition executes89 source instruction addresses,193,536 original
+zero stores and writes189 data SGEs for the original774,144-byte request. Its7
+declared prefix entries remain explicitly unconfigured; it stops before38DF31
+table-limit MMIO publication. Resource checks cover growth/release, partial pages,
+namespace collisions, exact context, bank/thread/lock/range guards, fault lifetime
+and foreign replacement teardown. This is a declared resource composition, not
+original device initialization or source command acknowledgement.11 actual import/
+indirect boundaries and literal ordinals were reauthenticated against the XBE.
+
+Final coherent98-target build and111-check run:108 pass in52.85seconds; only the
+same3 campaign modes fail at38E8D3 / FE801100=88, unverified FECTL bit3. No skips,
+aborts or additional regression failures; existing physical checkpoint/byte-range
+and DSP/PCM checks remain green. Actual backend is PipeWire. Each campaign mode
+still has1 reset,16 completed/0 queued commands,16 DMA allocations/339,968 bytes,
+GP/EP programs unloaded, pendingD8, delivery=false and configuration_returned=false.
+No opaque bit acceptance, GP ACK0, empty successful installer or ready bit was added.
+
+Current365 source/98 executable/13 installed fingerprints and evidence are retained
+in work/sandbox-primary-v15/native-sound-download-progress-v477.json. Launcher r6
+still selects SHA5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No candidate accepted/installed; owned build/test/capture/display processes retired.
+
+Continue actual DSP resource lookup/import composition, GP prefix/table publication,
+complete installation/command/ACK and native processing/status/clock/voice/GP-EP
+ownership, alongside verified configuration/IRQ semantics and actual codec/PCM.
+Whole map/BSP, AI/scripts/frame, Simulation/player/object/frontend integration,
+all menus/maps/missions, all102 whole sandbox elements, local/split/LAN and original
+rendered/audio/full-game acceptance remain required. No component pass accepts
+a whole element. Async/cache/animation and later kernel/GPU obligations remain.
+
+
+## v490 — original section lookup and real DSP retention (PROGRESS)
+
+Previous v477 was PROGRESS. Revalidated all365 tracked source/98 executable/13
+installed fingerprints before edits. Goal stays ACTIVE,0/102 whole elements.
+Implementation remains private v15; shared root code/shader/MCC work is preserved.
+Root goal changes append only. No launcher/runtime installation was performed.
+
+The complete owned4627 RtlInitAnsiString/RtlEqualString/RtlUpperChar now run as
+compiled native CPU functions:3 whole bodies/98 static instructions. Their116
+immutable NLS table bytes come only from authenticated read-only PE code/data.
+Every byte input0..255 was independently executed; observed original data reads
+equal exactly those116 retained bytes. No captured mutable kernel/thread state,
+TLS array, section counter, VM image, or ready word is used as native initialization.
+All four actual original title imports agree with the owned loaded-kernel entries:
+41B620/289 ->8002342C,41B6E4/279 ->80022678,41B6E8/327 ->8002EB0F,
+41B6EC/328 ->8002EB7E. Authority is the pinned owned modified4627 under xemu;
+this does not certify every retail kernel or physical Xbox operation.
+
+SourceRuntimeDspSection now routes the reached original section search imports
+through those whole CPU functions. Original2DF7AB resolves the authenticated
+DSPImage header, including case variants. Original2DF887/2DF812/2DF833 retain
+their actual bodies. The reached XeLoadSection/XeUnloadSection imports operate
+the actual retained preloaded DSP resource with exact call/import/frame/bank/
+executor/header-metadata guards. They map only a completed native retain/release
+to its import status; no whole wrapper/factory/download result is supplied.
+Original Xbox page mapping, mutable header/page counters and volatile Xe import
+clobbers are not emulated. Other section/VM domains remain unsupported.
+
+The native world passes actual source ABI, instruction/store observers and
+required services through this path. Creating-executor guards cover retention
+and scope creation. Shared resource nesting runs1->2->3->2->1; a completed native
+load followed by caller failure unwinds to real residency1 with0 active requests.
+Unmatched unload, foreign header/bank/target/thread/scope and forged constants
+reject without returning success. Missing/altered NLS data rejects checkpoint
+admission; read-only validation never creates an absent original data region.
+
+Independent original CPU experiments cover289 cases and match284,069 instruction
+steps,3,925 ordered stores, GP/defined flags/full final storage and caller FP state.
+They cover all256 character inputs, null/empty/large ANSI length overflow, binary
+strings/case folding, and7 title lookup cases.5 lookups return naturally;2 missing-
+name fixtures stop before CRT last-error setup. Their minimal fixture does not
+construct a captured TLS/CRT state or supply a last-error result. The production
+world retains its existing complete2DBC56/CRT owner. Source-side resource tests
+also use the actual native ordinal import policy, not only reference-resolved
+kernel pointers. The generated kernel CPU/data replay byte-identically.
+
+Final coherent99-target build and112 selected regressions:109 pass in54.17seconds.
+Only the same3 campaign modes fail at required38E8D3 / FE801100=88 FECTL bit3.
+No skips/aborts/additional failures. Existing original DSP section, download CPU,
+GP pool, physical checkpoint/byte-range and DSP/PCM checks remain green, with
+actual PipeWire. Each campaign mode still has1 reset,16 completed/0 queued commands,
+16 DMA allocations/339,968 bytes, unloaded GP/EP programs, pendingD8, delivery=false
+and configuration_returned=false. No empty installer, opaque bit accept, GP ACK0
+or device-ready signal was added. New lookup/resource code is wired but has not
+been reached by a successfully completed whole live audio initialization.
+
+Current373 tracked source/99 executable/13 installed fingerprints and evidence are in
+work/sandbox-primary-v15/native-dsp-lookup-progress-v490.json. Launcher r6 still
+selects5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884.
+No candidate accepted/installed; owned build/test/capture/display jobs retired.
+The previous365-file source subset omitted the existing DSP resource header,
+implementation and legacy test. Those were read live and are fingerprinted from
+their current versions now, alongside the5 new kernel/lookup files. Do not claim
+their previous bytes were covered by the old source subset.
+
+Continue GP prefix/table publication, complete DSP installation/command/ACK and
+native processing/status/supervisor/clock/voice/GP-EP ownership, plus actual MCPX
+configuration/IRQ/codec/PCM. All map/BSP/AI/scripts/frame, Simulation/player/object/
+frontend integration, menus/maps/missions, all102 elements, local/split/LAN and
+original rendered/audio/full-game gates remain. Async/cache/animation and later
+kernel/GPU obligations stay open. No component check accepts a whole element.
+
+
+## v504 — GP scratch ownership and whole CPU upload preparation (PROGRESS)
+
+Previous v490 was PROGRESS. Revalidated373 tracked source/99 executable/13 installed
+fingerprints before edits. Goal remains ACTIVE,0/102 whole elements. Implementation
+stays in private v15; shared root code/MCC/shaders are preserved and root goal
+documentation is append-only. Installed launcher remains the preserved r6 build.
+
+Added9 whole authenticated GP CPU routines/266 static instructions:388275,388294,
+38850A,38DD0C,38DD26,38DD54,38DE07,38E668,38E6DF. Shared SDK/reset/storage/download
+owners are reused without duplicate entry ownership. Actual FP state is retained.
+The GP module and existing download module now route only the actual table stores
+38DDE3/38DDED/38DE4D/38DF31 through a typed native resource publication. This does
+not add an MMIO preimage read or a byte-backed device register/status bank. Both
+modules replay byte-identically; stopped actual original code and owned XBE agree
+at4,848 unique static sites across9 audio CPU modules. Kernel string authority
+remains the separately authenticated owned4627 module from v490.
+
+The DMA owner now retains the actual source-produced GP table base/count and walks
+its source SGE bytes into existing native64 prefix/descriptor/locked pool storage.
+There is no parallel scratch buffer. Bank identity, creating executor, descriptors,
+context, physical-page identity, limits, high words and locks are checked. Cross-
+resource writes preflight the whole range before any mutation. Real growth frees
+the old pool; source destruction unlocks/frees the current pool, clears its source
+pointer and decrements source statistics. Retired pool access rejects. Native page
+tokens remain an explicit host namespace, not Xbox MMU/pinning/peripheral DMA.
+
+SourceRuntimeSoundGpScratch composes these CPU/resource paths and is wired into
+the native world. It derives context only from actual original caller/object fields,
+retains the matching DMA bank, forwards shared services with actual ABI and handles
+synchronous nested GP/download bodies through the same memory view. Unowned MMIO
+reads/writes reject. The actual38846E command store is explicitly rejected before
+commit until a real native GP command consumer exists; no request3/ACK0 or ready
+word is supplied. A failed upload cannot reuse this graph owner.
+
+The composed native test now allocates the manager/control descriptor/context
+through the real SDK owner, then runs whole388275/388294, including the original
+copy of its5CC-byte control input from the already-owned XBE. No DSP interpreter,
+prepared opaque program loader or newly packaged processor payload was imported.
+This is CPU data preparation; those bytes are not executed as a native DSP.
+Original38E996's C000/1060 GP requests are actual native allocations. Original
+initializer derives524 total/reserve516/8 prefix entries. Four extra actual page
+descriptors are explicitly declared upstream inputs for whole38850A, producing12
+prefix entries; their complete upstream factory is not claimed. The original data
+allocator adds189 pages/count201, grows to190/count202, and the source destructor
+retires them.433 original instruction addresses execute in this resource case.
+
+The first test exposed a fixture accounting error: using whole SDK construction
+adds136 actual pool bytes for its live manager/control/context. The earlier fixed-
+context root fixture had no such allocation. Growth/destruction now compare the
+actual source GP allocation delta while preserving that136-byte baseline; the
+production allocator/counter logic was unchanged by this correction.
+
+Whole388576 now runs native resource copying, original38DFFF decoding, actual pool
+allocation and all15 source effect-description relocations before reaching38846E.
+All15 records match original raw maps plus the exact source relocation arithmetic;
+all15 transformed effect-data hashes match independent original CPU evidence.
+The command word stays at its pre-publication0 because the actual store is rejected,
+not because a consumer cleared a request. No transformed processor program is
+exported or packaged. This comparison is post-initialization resource composition,
+not a completed ordinary SDK/APU factory, live DSP execution or audio parity.
+
+Independent original scratch CPU experiments add27 cases/881 exact instructions/
+349 ordered stores and11 stops before unsupplied external imports/helpers. Source
+registers/defined flags/final storage/FP state match. MMIO in those offline cases
+is a declared write sink only; no device read/result is supplied. Native composition
+also validates SGE aliasing, transfer preflight, high words/bounds, foreign bank/
+executor, invalid counts and retired storage, with real PipeWire output retained.
+
+Final coherent101-target build and114-check run:111 pass in56.36seconds. The same
+3 campaign modes stop at38E8D3 / FE801100=88 FECTL bit3; no skips/aborts/additional
+failures. Each retains1 reset,16 completed/0 queued commands,16 DMA allocations/
+339,968 bytes, unloaded GP/EP programs, pendingD8, delivery=false and configuration_
+returned=false. Ordinary live audio startup has not reached the newly wired GP
+upload path. No opaque bit acceptance, empty installer or synthetic ACK was added.
+
+Current382 tracked source/101 executable/13 installed fingerprints and evidence:
+work/sandbox-primary-v15/native-gp-scratch-progress-v504.json. Launcher r6 remains
+5900bf2c7902976132a4eb17a709dd999f8ecaaa1f6904e0bc64b9c1c70b3884. No candidate
+accepted/installed; owned build/test/capture/display jobs retired.
+
+Continue actual GP command/installation/ACK and native processing/status/supervisor/
+clock/voice/GP-EP ownership, plus verified MCPX configuration/IRQ and codec/PCM.
+Complete upstream descriptor/factory producers and asynchronous GP lifetime remain.
+All map/BSP/AI/scripts/frame, Simulation/player/object/frontend, menus/maps/missions,
+all102 elements, local/split/LAN and original rendered/audio/full-game gates remain.
+Async/cache/animation and later kernel/GPU work stay open. Component passes do not
+accept a whole element or replace the full requested goal.

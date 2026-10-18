@@ -48,6 +48,17 @@ std::uint64_t end(std::uint32_t p, std::size_t n) {
           << p;
   throw std::out_of_range(message.str());
 }
+template<class Position>
+void validate_committed(Position found,std::uint64_t current,std::uint64_t limit) {
+  const auto &region=found->second;
+  if(region.page_bytes && current<limit) {
+    const auto first=(current-found->first)/region.page_bytes;
+    const auto last=(limit-1-found->first)/region.page_bytes;
+    for(auto page=first;page<=last;++page)
+      if(!region.committed[page])
+        missing(found->first+std::uint32_t(page*region.page_bytes));
+  }
+}
 } // namespace
 void SourceRuntimeMemory::mount(std::uint32_t p,
                                 std::span<const std::byte> initial,
@@ -285,13 +296,7 @@ void SourceRuntimeMemory::validate(std::uint32_t p,std::size_t n,bool writable,b
     const auto &region = found->second;
     const auto region_end = std::min(limit, std::uint64_t(found->first) +
                                                region.storage().size());
-    if (region.page_bytes) {
-      const auto first = (current - found->first) / region.page_bytes;
-      const auto last = (region_end - 1 - found->first) / region.page_bytes;
-      for (auto page = first; page <= last; ++page)
-        if (!region.committed[page])
-          missing(found->first + std::uint32_t(page * region.page_bytes));
-    }
+    validate_committed(found,current,region_end);
     if(writable && region.shared && region.shared->write_guard_)
       region.shared->write_guard_(std::uint32_t(current),std::size_t(region_end-current));
     current = region_end;
@@ -305,15 +310,17 @@ bool SourceRuntimeMemory::is_read_only(std::uint32_t p,std::size_t n) const {
 }
 void SourceRuntimeMemory::read(std::uint32_t p,
                                std::span<std::byte> output) const {
-  validate(p, output.size(), false);
+  const auto limit=end(p,output.size());
   if (output.empty()) return;
   const auto first = locate(p);
   const auto &region = first->second;
   const auto offset = std::size_t(p - first->first);
   if (output.size() <= region.storage().size() - offset) {
+    validate_committed(first,p,limit);
     std::memmove(output.data(), region.storage().data() + offset, output.size());
     return;
   }
+  validate(p,output.size(),false);
   // Cross-owner transfers stage before publishing to preserve aliases.
   // Whole-extent validation above also keeps rejected output untouched.
   std::vector<std::byte> staged(output.size());
@@ -355,12 +362,12 @@ void SourceRuntimeMemory::write(std::uint32_t p,
 }
 std::span<const std::byte> SourceRuntimeMemory::view(std::uint32_t p,
                                                      std::size_t n) const {
-  end(p, n);
+  const auto limit=end(p,n);
   const auto found = locate(p);
   const auto offset = std::size_t(p - found->first);
   if (n > found->second.storage().size() - offset)
     throw std::out_of_range("Original runtime view crosses its region owner");
-  validate(p, n, false);
+  validate_committed(found,p,limit);
   return found->second.storage().subspan(offset, n);
 }
 std::span<std::byte> SourceRuntimeMemory::mutable_view(std::uint32_t p,

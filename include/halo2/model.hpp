@@ -71,6 +71,9 @@ struct AnimationClip {
   // Literal20E440 movement records, separate from animated node channels.
   std::vector<Vec3> movement;
   std::vector<float> movement_yaw;
+  // Literal action/channel word, relative to the requested manager graph.
+  // Low signed16 is its inherited graph selector; high signed16 is the clip.
+  std::uint32_t source_identifier=0xffffffffu;
 };
 // 16A06A selector1 / 1DE7A0: first type4 event before the clip end,
 // otherwise the clip length. Conversion uses the recorded nearest-even

@@ -47,7 +47,7 @@ public:
     using LightingQueryState=std::function<SourcePropQueryState(std::size_t source_object,
         std::uint32_t full_handle,const Transform &actual_world_node0,float object_scale)>;
     SourcePropScene(const Cache &,std::span<const ScenarioObject>,std::size_t bsp,
-                    Mesh &,const CollisionWorld &);
+                    Mesh &,const CollisionWorld &,bool source_region_union = false);
     ~SourcePropScene();
     SourcePropScene(SourcePropScene &&) noexcept;
     SourcePropScene &operator=(SourcePropScene &&) noexcept;

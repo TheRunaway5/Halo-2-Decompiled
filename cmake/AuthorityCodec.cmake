@@ -3,7 +3,11 @@ add_library(halo2_authority_delta STATIC src/source_authority_delta.cpp)
 target_include_directories(halo2_authority_delta PUBLIC include)
 target_compile_features(halo2_authority_delta PUBLIC cxx_std_20)
 target_link_libraries(halo2_authority_delta PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
-add_library(halo2_authority_codec STATIC src/source_authority_codec.cpp src/source_authority_binding.cpp src/source_execution_codec.cpp src/source_replay_batch.cpp)
+target_sources(halo2_systems PRIVATE src/source_authority_binding.cpp)
+target_link_libraries(halo2_systems PRIVATE OpenSSL::Crypto)
+add_library(halo2_authority_codec STATIC src/source_authority_codec.cpp src/source_execution_codec.cpp src/source_replay_batch.cpp)
+target_sources(halo2_authority_codec PRIVATE src/native_vehicle_camera_codec.cpp src/source_host_continuation_codec.cpp)
+target_sources(halo2_authority_codec PRIVATE src/source_host_continuation_bundle.cpp)
 target_compile_features(halo2_authority_codec PUBLIC cxx_std_20)
 target_include_directories(halo2_authority_codec PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/third_party/boost-pfr/include")
 target_link_libraries(halo2_authority_codec PUBLIC halo2_systems PRIVATE OpenSSL::Crypto ZLIB::ZLIB)
@@ -22,6 +26,14 @@ if(BUILD_TESTING)
     add_test(NAME source_replay_batch COMMAND source_replay_batch_tests)
     add_executable(source_authority_replay_tests tests/source_authority_replay_tests.cpp)
     target_link_libraries(source_authority_replay_tests PRIVATE halo2_authority_receiver halo2_authority_publisher LibDataChannel::LibDataChannelStatic)
+    add_test(NAME source_host_continuation_http COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_publisher_http_test.py" $<TARGET_FILE:source_authority_replay_tests>)
+    set_tests_properties(source_host_continuation_http PROPERTIES TIMEOUT 330
+        ENVIRONMENT "HALO2_HOST_CONTINUATION_CODEC=1;HALO2_PUBLISHER_TEST_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/source-host-continuation")
+    add_test(NAME source_host_continuation_stream_http COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_publisher_http_test.py" $<TARGET_FILE:source_authority_replay_tests>)
+    set_tests_properties(source_host_continuation_stream_http PROPERTIES TIMEOUT 330
+        ENVIRONMENT "HALO2_HOST_CONTINUATION_STREAM=1;HALO2_RECEIVER_ASYNC=1;HALO2_PUBLISHER_TEST_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/source-host-stream")
     add_test(NAME source_authority_replay_http COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_publisher_http_test.py" $<TARGET_FILE:source_authority_replay_tests>)
     set_tests_properties(source_authority_replay_http PROPERTIES TIMEOUT 330
@@ -29,11 +41,15 @@ if(BUILD_TESTING)
     add_test(NAME source_authority_replay_cold_http COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_publisher_http_test.py" $<TARGET_FILE:source_authority_replay_tests>)
     set_tests_properties(source_authority_replay_cold_http PROPERTIES TIMEOUT 330
-        ENVIRONMENT "HALO2_RECEIVER_COLD_FROM_CUT=1;HALO2_PUBLISHER_TEST_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/source-authority-replay-cold")
+        ENVIRONMENT "HALO2_RECEIVER_COLD_FROM_CUT=1;HALO2_RECEIVER_REJECT_PREFETCH=1;HALO2_PUBLISHER_TEST_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/source-authority-replay-cold")
     add_test(NAME source_authority_replay_background_http COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_publisher_http_test.py" $<TARGET_FILE:source_authority_replay_tests>)
     set_tests_properties(source_authority_replay_background_http PROPERTIES TIMEOUT 330
         ENVIRONMENT "HALO2_RECEIVER_ASYNC=1;HALO2_PUBLISHER_TEST_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/source-authority-replay-background")
+    add_test(NAME source_authority_replay_retention COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_authority_publisher_http_test.py" $<TARGET_FILE:source_authority_replay_tests>)
+    set_tests_properties(source_authority_replay_retention PROPERTIES TIMEOUT 330
+        ENVIRONMENT "HALO2_RECEIVER_ASYNC=1;HALO2_RECEIVER_RETAIN_INFLIGHT=1;HALO2_RECEIVER_REJECT_PREFETCH=1;HALO2_PUBLISHER_TEST_OUTPUT=${CMAKE_CURRENT_BINARY_DIR}/test-artifacts/source-authority-replay-retention")
     add_executable(source_execution_codec_tests tests/source_execution_codec_tests.cpp)
     target_link_libraries(source_execution_codec_tests PRIVATE halo2_authority_codec OpenSSL::Crypto ZLIB::ZLIB)
     add_test(NAME source_execution_codec COMMAND source_execution_codec_tests)

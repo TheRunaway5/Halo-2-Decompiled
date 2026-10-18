@@ -64,9 +64,9 @@ void rebuild(FirstPersonHandBinding &hand,const FirstPersonViewBinding &view,
   if((hand.flags & 6)==6)hand.weapon=weapon;
   // The recovered SMG calls idle selection even when its arms map is absent.
   if(definition->idle_index!=0xffffffffu) {
-    auto idle=definition->idle_index;
-    for(const auto &clip:first_person_clips(hand,*definition))if(clip.activity==0x0400000c)idle=clip.index;
-    hand.animation_identifier=(idle<<16)|0xffffu;
+    auto idle=definition->idle_identifier==0xffffffffu ? (definition->idle_index<<16)|0xffffu : definition->idle_identifier;
+    for(const auto &clip:first_person_clips(hand,*definition))if(clip.activity==0x0400000c)idle=first_person_clip_identifier(clip);
+    hand.animation_identifier=idle;
     hand.channel_options=hand.dual_wield?(hand.secondary_hand?0x203f:0x103f):0x3f;
     hand.activity=0x0400000c;
   }
@@ -142,13 +142,9 @@ FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weap
   for(std::size_t i=0;i<graph_node_count;++i)
     result.graph_node_flags.push_back(std::uint8_t(data.u16(graph_node_base+i*0x20+10)));
   const auto idle=load_action(result.graph,"any","any","any","idle",resources);
-  if(idle.source_graph!=result.graph)throw FormatError("Inherited first-person idle is outside recovered binding scope");
   result.idle_index=idle.source_index;
+  result.idle_identifier=idle.source_identifier;
   result.continuous_fire_animation=(data.u32(root(weapon,"weap",0x130)+0x12c)&(1u<<17))!=0;
-  const auto graph_root=root(result.graph,"jmad",0x64);
-  const auto [clip_count,clip_base]=records(graph_root+0x2c,0x6c,10000);
-  const auto [sound_count,sound_base]=records(graph_root+0x14,12,10000);
-  const auto [effect_count,effect_base]=records(graph_root+0x1c,12,10000);
   for(bool dual:{false,true})
   for(const auto activity:std::array<std::uint32_t,36>{
       0x0400000c,0x06000006,0x05000024,0x0c000064,0x0b000065,0x0d000021,
@@ -165,11 +161,18 @@ FirstPersonBindingDefinition Cache::load_first_person_binding(std::uint32_t weap
     try {selected=load_unit_weapon_action(result.graph,0x030000d9,
         dual?0x0400054b:0x030000d9,0x030000d9,activity,false,resources);}
     catch(const FormatError &) {if(activity==0x0400000c && !dual)throw;continue;}
-    if(selected.source_graph!=result.graph || selected.source_index>=clip_count)
-      throw FormatError("Inherited first-person clock is outside recovered scope");
+    // The source channel retains the manager graph plus its packed selector.
+    // Definitions and event references belong to the selected inherited graph.
+    const auto graph_root=root(selected.source_graph,"jmad",0x64);
+    const auto [clip_count,clip_base]=records(graph_root+0x2c,0x6c,10000);
+    const auto [sound_count,sound_base]=records(graph_root+0x14,12,10000);
+    const auto [effect_count,effect_base]=records(graph_root+0x1c,12,10000);
+    if(selected.source_index>=clip_count || selected.source_identifier==0xffffffffu)
+      throw FormatError("First-person clock has no valid original packed definition");
     const auto at=clip_base+selected.source_index*0x6c;
     FirstPersonClockClip clip;
     clip.index=selected.source_index;clip.activity=activity;
+    clip.inheritance=std::uint16_t(selected.source_identifier);
     clip.frames=std::bit_cast<std::int16_t>(data.u16(at+0x14));
     clip.loop_frame=std::bit_cast<std::int16_t>(data.u16(at+0x2e));
     for(unsigned type=0;type<3;++type) {

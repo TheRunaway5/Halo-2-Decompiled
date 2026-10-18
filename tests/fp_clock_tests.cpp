@@ -67,7 +67,7 @@ int main(int argc,char **argv) {
       render_arms=cache.load_model(definition.arms_model,false);
       render_ik=cache.load_first_person_ik(definition.graph,definition.weapon_model,definition.arms_model);
       for(const auto &clip:definition.clock_clips)
-        render_clips.emplace(clip.activity,cache.load_animation(definition.graph,clip.index));
+        render_clips.emplace(clip.activity,cache.load_animation_identifier(definition.graph,first_person_clip_identifier(clip)));
     }
     for(std::string line;std::getline(file,line);) {
       std::istringstream row(line);char kind;row>>kind;

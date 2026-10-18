@@ -19,6 +19,7 @@ public:
   SourceMatchAuthority(MultiplayerMatch &,MultiplayerObjectRuntime &);
   SourceMatchAuthority(const SourceMatchAuthority &)=delete;
   SourceMatchAuthority &operator=(const SourceMatchAuthority &)=delete;
+  bool for_match(const MultiplayerMatch &match)const noexcept{return &match_==&match;}
   Checkpoint checkpoint(AuthorityDigest)const;
   std::uint64_t execution_tick()const;
   struct ExecutionBoundary {

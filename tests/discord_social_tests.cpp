@@ -1,5 +1,6 @@
 #include "halo2/discord_social.hpp"
 #include "halo2/discord_voice_blocks.hpp"
+#include "halo2/online_service.hpp"
 #include <nlohmann/json.hpp>
 #include <atomic>
 #include <mutex>
@@ -102,6 +103,47 @@ int main() {
     check(!friends.party_recipient("friend-0-1"),"Stale friend retained a private invitation target");
     friends.disconnect();
     check(!friends.snapshot().ready && friends.snapshot().friends.empty(),"Disconnect retained private state");
+    if(available) {
+      identity->cancel();
+      const std::string device(43,'d'),steam_token="h2s_"+std::string(43,'t');
+      auto escape=[](const std::string &value) {
+        auto *p=curl_easy_escape(nullptr,value.c_str(),int(value.size()));
+        std::string out(p);curl_free(p);return out;
+      };
+      const std::string ns="http://specs.openid.net/auth/2.0";
+      const auto steam_url="https://steamcommunity.com/openid/login?openid.ns="+escape(ns)+
+        "&openid.mode=checkid_setup&openid.realm="+escape(std::string(default_online_origin)+"/")+
+        "&openid.return_to="+escape(std::string(default_online_origin)+"/v1/auth/steam/callback/"+device)+
+        "&openid.identity="+escape(ns+"/identifier_select")+"&openid.claimed_id="+escape(ns+"/identifier_select");
+      std::atomic<unsigned> link_calls{};
+      auto steam=DiscordLogin::steam([](const auto &){return true;},
+        [&](const DiscordHttpRequest &request,std::stop_token)->DiscordHttpResponse {
+          using Json=nlohmann::json;
+          if(request.url.ends_with("/start"))return {201,Json{{"device",device},{"url",steam_url},{"expires_in",300},{"interval",1}}.dump()};
+          if(request.url.ends_with("/poll"))return {200,Json{{"state","signed_in"},{"token",steam_token},{"expires_in",28800},
+            {"identity",{{"id","76561197960287930"},{"username","Steam Pilot"},{"display_name","Steam Pilot"}}}}.dump()};
+          check(request.url==std::string(default_online_origin)+"/v1/account/link-discord" &&
+                request.bearer==steam_token && Json::parse(request.form)==Json{{"discord_token","friends-only"}},
+                "Steam social linking lost one private identity proof");
+          ++link_calls;
+          return {409,R"({"error":"Account already has independent history"})"};
+        });
+      steam->start();wait([&]{return steam->snapshot().identity.has_value();});
+      DiscordSocial linked(steam,browser,options,
+        [](const DiscordHttpRequest &request,std::stop_token)->DiscordHttpResponse {
+          if(request.url.ends_with("/token"))return {200,R"({"access_token":"friends-only","token_type":"Bearer","scope":"identify openid sdk.social_layer","expires_in":3600})"};
+          return {200,R"({"id":"987654321098765432","username":"other_user"})"};
+        });
+      linked.enable();callback(url,"code=link-conflict");
+      wait([&]{linked.pump();return !linked.snapshot().enabled;});
+      check(link_calls==1 && !linked.snapshot().ready && linked.snapshot().friends.empty(),
+            "Rejected account link reached Discord SDK or Steam was mistaken for a Discord identity");
+      check(steam->authorization()==steam_token && steam->snapshot().identity.has_value(),
+            "Discord link conflict signed out the primary Steam identity");
+      check(linked.snapshot().message.find("Account link")!=std::string::npos,
+            "Account link conflict did not explain the failure");
+      linked.disconnect();steam->cancel();
+    }
     std::cout<<"PASS Discord friends consent isolation, account binding, stale commands and sign-out cleanup"<<std::endl;
     return 0;
   } catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

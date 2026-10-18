@@ -18,6 +18,8 @@ BUNDLE = "tools/data/native-materials.json.zlib"
 TABLE_SHA = "1261274f49fbf8f8fd36e9a56f9b7a701a2bad1c5d84be168c69826a62484118"
 GROUPS = {"shad", "stem", "spas", "vrtx"}
 LIMIT = 192 * 1024 * 1024
+CATALOG_SCHEMA = "H2_PRESERVED_NATIVE_SHADER_CATALOG_V1"
+CLOSURE_POLICY = Path(__file__).resolve().parent / "data/mcc-native-library-closure.json"
 
 
 def digest(data):
@@ -26,6 +28,49 @@ def digest(data):
 
 def encoded(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":")).encode() + b"\n"
+
+
+def canonical_digest(value):
+    # Match the production helper's nlohmann::json::dump(), without a newline.
+    return digest(json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode())
+
+
+def closure_policy():
+    # This is a shipped, generator-checked mirror; setup never opens reference/.
+    policy = json.loads(CLOSURE_POLICY.read_bytes())
+    if (policy.get("schema") != "H2_MCC_RETAINED_NATIVE_LIBRARY_CLOSURE_V1" or
+            policy.get("source_map") != "01b_spacestation" or
+            not fingerprint(policy.get("source_canonical_sha256"))):
+        raise FormatError("Invalid retained native closure policy")
+    return policy
+
+
+def closure_dependency(library):
+    policy = closure_policy()
+    row = next((row for row in policy["libraries"] if row["map"] == library.get("map")), None)
+    if row and row["missing"] and canonical_digest(library) == row["canonical_sha256"]:
+        return policy["source_map"]
+    return None
+
+
+def require_closure_source(library):
+    policy = closure_policy()
+    if library.get("map") != policy["source_map"] or canonical_digest(library) != policy["source_canonical_sha256"]:
+        raise FormatError("Canonical retained Cairo native library is unavailable or customized; existing programs were retained")
+
+
+def selected_libraries(libraries, maps=None):
+    selected = set(libraries) if maps is None else set(maps)
+    for name in selected:
+        identity(name)
+    if selected - set(libraries):
+        raise FormatError("Selected retained native library is unavailable")
+    needed = {dependency for name in selected if (dependency := closure_dependency(libraries[name]))}
+    for name in needed:
+        if name not in libraries:
+            raise FormatError("Canonical retained Cairo native library is missing; update this port installation")
+        require_closure_source(libraries[name])
+    return selected | needed
 
 
 def identity(name):
@@ -121,10 +166,10 @@ def create(source, target):
     return report
 
 
-def copy_bundled(root, output):
+def load_bundled(root):
     path = Path(root) / BUNDLE
     if not path.is_file():
-        return dict(complete=False, blocker="Bundled native material library is missing; update this port installation")
+        return None
     report = json.loads(path.with_suffix("").read_bytes())
     if report["schema"] != SCHEMA or report["bytes"] > LIMIT or report["decoded_bytes"] > LIMIT:
         raise FormatError("Invalid native material bundle extent")
@@ -155,23 +200,41 @@ def copy_bundled(root, output):
     used = {name: validate_library(name, library, payloads) for name, library in bundle["maps"].items()}
     if set().union(*used.values()) != set(payloads):
         raise FormatError("Unreferenced payload in native material bundle")
+    return report, bundle["maps"], payloads, tables, used
+
+
+def install_bundled_library(destination, name, package):
+    report, libraries, payloads, tables, used = package
+    library = libraries[name]
+    directory = Path(destination) / name
+    directory.mkdir()
+    (directory / "payloads").mkdir()
+    for sha in used[name]:
+        target = directory / "payloads" / (sha + ".bin")
+        target.write_bytes(payloads[sha])
+        if digest(target.read_bytes()) != sha:
+            raise FormatError("Native shader installation readback differs")
+    (directory / "function-tables.bin").write_bytes(tables)
+    manifest = encoded(library)
+    (directory / "library.json").write_bytes(manifest)
+    return digest(manifest), dict(map=name, complete=True, tags=len(library["shader_tags"]))
+
+
+def copy_bundled(root, output, *, maps=None):
+    package = load_bundled(root)
+    if package is None:
+        return dict(complete=False, blocker="Bundled native material library is missing; update this port installation")
+    report, libraries, payloads, tables, used = package
+    selected = selected_libraries(libraries, maps)
     destination = Path(output) / "native-shaders"
     destination.mkdir()
     (destination / "function-tables.bin").write_bytes(tables)
     copied, rows = {}, []
-    for name, library in bundle["maps"].items():
-        directory = destination / name
-        (directory / "payloads").mkdir(parents=True)
-        for sha in used[name]:
-            target = directory / "payloads" / (sha + ".bin")
-            target.write_bytes(payloads[sha])
-            if digest(target.read_bytes()) != sha:
-                raise FormatError("Native shader installation readback differs")
-        (directory / "function-tables.bin").write_bytes(tables)
-        manifest = encoded(library)
-        (directory / "library.json").write_bytes(manifest)
-        copied[name] = digest(manifest)
-        rows.append(dict(map=name, complete=True, tags=len(library["shader_tags"])))
+    for name in libraries:
+        if name not in selected:
+            continue
+        copied[name], row = install_bundled_library(destination, name, package)
+        rows.append(row)
     (destination / "catalog.json").write_bytes(encoded(dict(
         schema="H2_PRESERVED_NATIVE_SHADER_CATALOG_V1", maps=rows, bundle_sha256=report["sha256"])))
     return dict(complete=True, source="bundled native material library", bundle_sha256=report["sha256"], maps=copied,

@@ -422,6 +422,14 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
     if(pc_geometry() && ((incident.found && incident.size!=std::size_t(count)*12) ||
                   (radiance.found && radiance.size!=std::size_t(count)*4)))
       throw FormatError("invalid Vista model auxiliary lighting stream size");
+    // TU1.5 type1 at4494DD binds POSITION format2 (FLOAT3/0x32),
+    // size12 via35780/35840. Reach's authored XYZ compression bounds are
+    // zero: these literal float positions must not use the SHORT expansion.
+    const bool xbox_float_positions = !pc_geometry() && buffers.found &&
+        buffers.size >= 32 && u8(b, buffers.offset) == 1;
+    if (xbox_float_positions &&
+        (u8(b, buffers.offset + 1) != 12 || stride != 12 || classification > 1))
+      throw FormatError("unsupported Xbox FLOAT3 model position declaration");
     std::vector<Vertex> vertices(count);
     std::vector<SkinBinding> bindings(count);
     for (std::size_t i = 0; i < count; ++i) {
@@ -446,7 +454,15 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
         vertices[i].binormal=point(b,basis.offset+i*36+12);
         vertices[i].tangent=point(b,basis.offset+i*36+24);
       } else {
-        vertices[i].position={decompress(i16(b,p),0),decompress(i16(b,p+2),1),decompress(i16(b,p+4),2)};
+        vertices[i].position=xbox_float_positions?point(b,p):
+            Vec3{decompress(i16(b,p),0),decompress(i16(b,p+2),1),decompress(i16(b,p+4),2)};
+        // 1CDB0 leaves XYZ identity when bit1 is clear (Reach flags2).
+        // FLOAT3 normalized inputs still use the authored expansion if set.
+        if(xbox_float_positions && (data.u16(s+0x1a)&1)) {
+          const auto input=vertices[i].position;
+          vertices[i].position={expand_normalized(input.x,0),
+              expand_normalized(input.y,1),expand_normalized(input.z,2)};
+        }
         vertices[i].uv={decompress(i16(b,uvs.offset+i*4),3),decompress(i16(b,uvs.offset+i*4+2),4)};
         vertices[i].normal = unpack_normal(b.u32(basis.offset + i * 12));
         vertices[i].tangent = unpack_normal(b.u32(basis.offset + i * 12 + 4));
@@ -686,6 +702,23 @@ UnitAnimationDefinition Cache::load_source_unit_animation_definition(
   references(0x1c, out.effect_references);
   return out;
 }
+AnimationClip Cache::load_animation_identifier(std::uint32_t graph,std::uint32_t packed) const {
+  const auto index=std::bit_cast<std::int16_t>(std::uint16_t(packed>>16));
+  if(index<0)throw FormatError("Packed animation has no valid original clip");
+  const auto inheritance=std::bit_cast<std::int16_t>(std::uint16_t(packed));
+  if(inheritance!=-1) {
+    const auto *tag=find_tag({graph},tag_groups::model_animation_graph);
+    if(!tag || !tag->address)throw FormatError("Packed animation manager graph is missing");
+    const Bytes data(cache_bytes());const auto root=metadata_offset(tag->address,0x54);
+    const auto graphs=TagAddressSpace(data,metadata_magic_).block(root+0x4c,32,64);
+    if(inheritance<0 || std::size_t(inheritance)>=graphs.count)
+      throw FormatError("Packed animation inherited graph outside list");
+    graph=data.u32(graphs.offset+std::size_t(inheritance)*32+4);
+  }
+  auto clip=load_animation(graph,unsigned(index));
+  clip.source_identifier=packed;
+  return clip;
+}
 AnimationClip Cache::load_animation(std::uint32_t datum,
                                     unsigned animation) const {
   return load_animation(datum,animation,[this](auto pointer,auto bytes){return raw_data(pointer,bytes);});
@@ -747,6 +780,7 @@ AnimationClip Cache::load_animation(std::uint32_t datum,unsigned animation,
                                      static_flags + animated_flags);
   AnimationClip out;
   out.source_graph=datum;out.source_index=animation;
+  out.source_identifier=(std::uint32_t(animation)<<16)|0xffffu;
   out.name = tag->name + ":" + std::to_string(animation);
   out.frame_count = unsigned(frames);
   out.frame_event_count = data.u32(p + 0x4c-shift);
@@ -971,6 +1005,7 @@ AnimationClip Cache::load_action(std::uint32_t datum,const std::string &mode,
   if (animation < 0)
     throw FormatError("action has no animation");
   auto clip = load_animation(graph, unsigned(animation),resources);
+  clip.source_identifier=data.u32(a+4);
   clip.name = mode + ":" + weapon_class + ":" + weapon_type + ":" + action;
   return clip;
 }

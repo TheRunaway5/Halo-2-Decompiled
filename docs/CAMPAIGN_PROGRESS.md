@@ -96,14 +96,195 @@ completion remain open. The
 [continuation evidence](../analysis/tags/campaign-memory-20261015/RESULTS.md)
 distinguishes the completed asset checks from those remaining requirements.
 
-The pending callback now has eight complete statically audited original bodies
-(968 instructions total). Two deeper dependencies, FF170 and 1213F0, remain
-outside the AI inventory; shared ownership is being checked. Real Support
-virtual callbacks and conditional arena routes still require qualification. Existing Damage and Support owners
+The pending callback now has ten complete statically audited original bodies
+(1,289 instructions total), with no unresolved direct owners in that new-body
+graph. Existing transitive shared owners, real Support virtual callbacks and
+conditional arena routes still require qualification. Existing Damage and Support owners
 will be reused through their real routes. The current hit-region implementation
 and ordinary navigation-adjacency fix are present; stale host-only fixtures do
 not establish a new source-runtime regression. Fresh source-backed campaign
 navigation/hit checks remain pending after AI placement/getter integration.
+
+Fresh capture runs reproduce a warmer startup residency failure despite the
+earlier 59.6 MB pass. Unchanged phase diagnostics locate it at tag delivery.
+Private content-preserving code/cache paging probes are being tested under the
+same 64 MiB total-residency ceiling; none is applied to the engine. The latest
+probe completes its pending-call input capture at 58,294,272 aggregate RSS bytes,
+passing World/Simulation construction, NONE getters and all five noncreating
+placements before the original 1B7240 failure. Complete input transport and RSS
+verify independently; the interrupted outer controller's final kernel accounting
+file is missing and is explicitly unclaimed. The callback itself remains untested.
+
+Both private and current-root ten-body generation proofs now pass while
+preserving all prior whole bodies, helpers, FP semantics, API ownership and
+order. The private636 candidate has646 definitions; the current686 candidate
+has696. Neither is activated. Exact input inspection reaches the genuine unit
+predicate, and the bounded original-code catalog is prepared (645 complete AI
+functions plus three real shared owners). The next strict serial run executes
+the captured original call; hardware/native/finite-case parity and complete
+campaign integration remain open.
+
+The exact captured1B7240 call now passes original discovery/formal execution
+and a complete646-body native component comparison:223 original instructions,
+69 real reads,21 stores/snapshots, all180 ABI/FP return bytes and all67 final
+bank runs. Original formal peak aggregate RAM is36.9MiB; native is12.6MiB,
+with zero swap and complete persistent controller reports. Independent original
+ledger/final-bank verification passes. Native raw-ledger partition, hardware CPU
+qualification, wider finite branches and isolated query integration remain open;
+the candidate is not applied to root.
+
+The callback's independent raw-ledger verification now passes, retaining all
+69 genuine operand reads and 21 immediate writer snapshots separately. The
+exact captured call also passes on the host CPU under KVM: actual XSAVE
+readback preserves all 180 entry/exit ABI/FP bytes and all 67 final accessible
+runs (60,092,502 payload bytes). Aggregate RSS is 13,201,408 bytes with zero
+swap; the persistent controller and separate full-bank verifier pass. This is
+one captured call, not console or full-campaign parity.
+
+All eight sealed original sparse cases now pass discovery and fixed-page formal
+execution serially, at most 39,059,456 aggregate RSS bytes with zero swap. Seven
+are explicit diagnostic inputs. Independent case-ledger verification and native
+case comparisons remain pending; case names are not assertions of a predicate
+result. The private query still exceeds RAM before birth/getter assertions.
+Twenty phase markers reach the end of private World::Impl construction, which
+precedes map/session initialization and does not prove campaign construction
+returned. A 40-phase successor builds successfully to locate that later peak.
+No new callback/public API/paging proposal is applied to root; the goal remains
+active and cleanup was canceled without deleting files.
+
+Independent reconstruction of all eight originals now passes: 651 total trace
+instructions, 220 genuine reads, 69 stores, every complete ABI/final bank and
+both strict controllers per case. The measured writer union retains 21 pairs
+and 32 source emissions. The captured seed takes JNE1B72CB's real fallthrough
+1B72D1; a separate erratum corrects its misleading sealed name. Native finite
+comparisons are next. Forty-phase diagnostics locate the later query RAM stop
+after map initialization and191CA0, before125D40 returns, with unchanged
+anonymous/live heap usage and higher file residency. A private existing-helper
+code-page advice candidate is being prepared; no source change is activated.
+
+The three-handoff marker-free candidate now passes the actual query's RAM check
+at56,123,392 bytes with zero swap and complete controller evidence. World and
+Simulation construction, NONE getters and five noncreating placement overloads
+pass. Counted placement gets beyond1B7240 and reaches the next missing original
+owner1B7000; counted birth and the targeted getter RED remain open. All eight
+native component cases also pass their independent full trace/ABI/bank and raw
+read/store/snapshot checks serially at13,201,408 bytes each with zero swap.
+Measured new-closure coverage is54 of1,289 sites,13 of234 conditional edges and
+3 of38 calls; this does not certify the other branches or campaign completion.
+The fresh original1B7000 audit passes:146 instructions,10 existing direct
+callees, complete decoded control flow and RET8. Original row20 resolves to the
+actual48A5FC descriptor, without relying on the different base-retail row.
+Private647 generation preparation found a missing consumed historical reference
+bank; exact chunk-backed restoration is required before generation can proceed.
+The narrow root memory application now passes current-project World compilation,
+Linux helper link and independent dependency/source qualification. Its three-file
+application preserves the concurrent MCC source/CMake changes through exact
+before/after and inverse checks. The private query's RAM result does not certify
+the complete root runtime. Fresh root697 generation also passes, preserving all
+current686 bodies/helpers/FP/API/MCC/order with11 pending audited additions and
+1435 new instructions; that AI candidate remains unadopted. The captured
+descriptor mismatch is only+4 changing0 to7F0. The original MOV/MOV/RET0
+initializer is now authenticated against TU1.5, and fresh complete input
+qualification passes with the exact whole descriptor after that single4-byte
+store. All other bytes, full ABI/FP/banks and strict RAM/controller gates remain
+intact. Original/native execution of1B7000 is the next component check.
+The original caller's131 admitted descriptor slots are now inventoried with
+authenticated signed-index and kind0 dispatch guards. Forty-four are kind0
+callbacks;35 lack a qualified AI-frame body in the three current source
+cohorts and require cross-module ownership checks before being called missing
+engine implementations. Other kinds/layouts remain uninterpreted. This is a
+static inventory, with no callback activation or campaign completion claim.
+Its bounded successor also connects the table-loaded EDI to the kind0 load
+across every reached forward branch, preserving all register aliases and the
+exact early-exit epilogue. The original1B7000 discovery and formal replays now
+complete198 instructions with exact full180-byte entry state, real RET8 and
+matching full final-bank hashes; the formal ledger records60 reads/19 stores.
+Both pass complete serial memory evidence below40.2MB aggregate RSS with zero
+swap. The captured native647 comparison is the next component check.
+Independent original reconstruction now passes: every198 trace instruction,
+60 reads/19 stores, full180-byte entry/exit and all67 final bank headers/payloads
+are verified. Nineteen measured writer pairs have30 exact AI/Support emissions.
+Native647 comparison and counted actor placement remain open; this does not
+activate root AI ownership or close the campaign goal.
+The complete647 isolated build and independent native comparison now pass:
+all198 PCs,60 reads/19 stores/19 snapshots,180 ABI/FP bytes and every67-run
+final bank byte match the original. Native aggregate RSS is13,201,408 bytes
+with zero swap and complete controller evidence. This qualifies one captured
+component input. The actual-query647 successor and counted actor placement
+remain open; root AI ownership is unchanged.
+The actual private647 query now passes counted original actor birth, NONE
+getters and all five noncreating placement overloads at61,657,088 aggregate
+RSS/HWM bytes with zero swap and complete controller evidence. Its next failure
+is ai_get_object rejecting the actor reference. Prequery source binding and
+the exact packed reference still need a narrow diagnostic before any getter
+API change; no main-engine AI owner is activated by this private test.
+The closed36 source candidates now pass private683/root733 generation while
+preserving every prior body, helper, FP/API/MCC path and public owner list.
+Four existing external owners are reused. Both candidates remain uncompiled
+and unadopted; the main AI module remains at its current686 definitions.
+A bounded diagnostic now proves the getter regression: valid AI19 reference
+C0010000 is rejected while the original full actor/unit/SID binding remains
+stable across all20 sampled prequery/dispatch/exit points. Its complete native
+run uses60,354,560 aggregate RSS/HWM bytes and zero swap. Original getter types
+and code bytes have fresh full-image authentication. The source-backed API
+fix is being refreshed against private647 and the current root; it has not
+been applied yet.
+The isolated clean API build passes all five compile/link stages, but its
+runtime attempt is stopped before getter assertions at68,444,160 aggregate
+RSS/HWM bytes. The64MiB guard and zero-swap policy remain unchanged. A phase
+memory diagnostic is being prepared; the root API patch remains unapplied.
+The full goal remains active.
+
+The fixed-buffer phase diagnostic measured file-backed residency growth during
+player creation; both NONE getters entered/exited without sampled heap or
+anonymous growth. That diagnostic still failed the unchanged64MiB limit. A
+fresh observer-free candidate reuses the existing code-only paging helper after
+completed initial source respawn. Its two-stage isolated build passes; native
+behavior and memory qualification are pending. Root API remains unapplied.
+
+The observer-free post-respawn candidate now passes the unchanged memory gate:
+59,596,800 aggregateRSS/HWM bytes and zero swap with complete evidence. Actual
+actor birth and all typed squad/direct/location/empty getter assertions pass,
+preserving the full unit datum. Final authored packed placement reaches a
+distinct original2039C3 backing fault at address38. That failure still blocks
+full query success, root API application and the checkpoint successor.
+
+The isolated recorded-animation startup backport passes fresh original11-body/
+377-instruction authentication and its exact three-stage build. Its runtime
+attempt stops safely during player creation at67,112,960 aggregateRSS/HWM,
+one4KiBpage above the unchanged64MiB limit, with zero swap. It produces no
+semantic assertion result. A minimal additional code-only handoff before initial
+respawn is being prepared; existing post-respawn paging stays. Root API/birth
+application and full campaign completion remain open.
+
+The additional pre-respawn handoff builds, but its native attempt still stops
+during construction at67,395,584 aggregateRSS/HWM bytes (286,720B over64MiB),
+zero swap. Both hints run after member initialization, so this result does not
+locate the peak. Fresh fixed-buffer phase instrumentation will measure those
+initializers and actual respawn/player creation before another memory change.
+No semantic assertions or root application qualify from either failed run.
+
+The completed startup diagnostic stops inside actual player biped creation:
+26 complete records end at Campaign-create-biped-pre. Its aggregate67,334,144B
+exceeds64MiB by225,280B; swap remains zero. The pre-respawn hint drops1,425,408B
+of sampled file residency without changing sampled heap/anonymous memory.
+The biped's unobserved tail has no measured anonymous/file split. A separate
+1,048,656B eager native-adapter arena lies in the member-initialization interval;
+actual campaign birth uses the retained original World allocator. Source review
+is preparing explicit deferred adapter initialization while preserving public
+eager constructors, logical capacity, const access, copies and archive bytes.
+No root patch or memory/runtime success is claimed; the goal remains active.
+
+The standalone deferred-storage component now passes its actual old-owner
+comparison at20,267,008B aggregateRSS/HWM (19.33MiB), zero swap. Exact arena,
+scratch, handles and logical capacity agree; allocation counts, eager capacity
+reuse, deferred copy/restore, salted allocator reuse, ordered store observers,
+concurrent const reads/copies and extracted codec-field branches pass. Actual
+member-offset syntax checks and all11 retained old-member dependency exclusions
+also pass. This qualifies the host adapter optimization only. The private main
+successor must rebuild the31TU union of actual storage/API class consumers,
+retain original startup order and pass the unchanged full campaign query before
+root API/birth application. Full production codec and campaign parity stay open.
 
 ## Opening cinematic audit — 2026-10-15
 

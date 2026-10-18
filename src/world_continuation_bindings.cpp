@@ -103,7 +103,7 @@ BIND(CutsceneFlag,v.name,v.position,v.yaw,v.pitch)
 BIND(AnimationClip::FrameEvent,v.type,v.frame)
 BIND(AnimationClip::Channel,v.times,v.keys)
 BIND(AnimationClip,v.source_graph,v.source_index,v.name,v.frame_count,v.loop_frame,v.animation_type,v.frame_event_count,
-    v.frame_events,v.nodes,v.parents,v.node_flags,v.frames,v.components,v.channels,v.authored_flags,v.movement,v.movement_yaw)
+    v.frame_events,v.nodes,v.parents,v.node_flags,v.frames,v.components,v.channels,v.authored_flags,v.movement,v.movement_yaw,v.source_identifier)
 BIND(NativeVehicleSeatDefinition,v.flags,v.mode,v.marker,v.entry_marker,v.grenade_marker,v.entry_message,
     v.grenade_message,v.melee_message,v.boarding_seat,v.radius,v.facing,v.aim,v.maximum_velocity)
 BIND(NativeUnitSeatAnimations::Entry,v.clip,v.initial)
@@ -130,10 +130,10 @@ BIND(SourceWorldWeaponDefinition,v.name,v.definition,v.model,v.render_model,v.an
 BIND(SourceNetgameWeaponBirth,v.descriptor,v.definition,v.variant,v.position,v.forward,v.up,v.object_scale,v.levitated)
 BIND(SourceNetgameWeaponRegistration,v.row,v.definition,v.birth,v.sphere_center,v.sphere_radius)
 BIND(FirstPersonAnimationEvent,v.type,v.frame,v.tag,v.id,v.reference_flags,v.marker)
-BIND(FirstPersonClockClip,v.activity,v.index,v.frames,v.loop_frame,v.events)
+BIND(FirstPersonClockClip,v.activity,v.index,v.frames,v.loop_frame,v.events,v.inheritance)
 BIND(FirstPersonBindingDefinition,v.representation,v.weapon_definition,v.arms_model,v.weapon_model,v.graph,
     v.arms_nodes,v.weapon_nodes,v.graph_nodes,v.graph_node_flags,v.idle_index,v.record_present,
-    v.continuous_fire_animation,v.clock_clips,v.dual_clock_clips,v.ammunition)
+    v.continuous_fire_animation,v.clock_clips,v.dual_clock_clips,v.ammunition,v.idle_identifier)
 BIND(SourceGameOverConstants,v.seconds,v.fade_threshold_seconds,v.ambient_linear_gain,v.fade_seconds)
 BIND(SourceResultStatDescriptor,v.minimum,v.maximum,v.remaining)
 BIND(SourceDeviceGroup,v.value,v.flags)

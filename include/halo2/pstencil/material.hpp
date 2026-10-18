@@ -11,17 +11,21 @@ namespace halo2::pstencil {
 // are explicitly scoped in adaptation.hpp.
 std::optional<Material> bind_light_pass(const Cache&,const Material&,unsigned,
     const EffectLightUniforms&);
+std::optional<Material> complete_light_pass(const Cache&,const Material&,unsigned,
+    const EffectLightUniforms&);
+std::optional<Material> bind_texture_mapping_pass(const Cache&,const Material&);
+bool supports_projected_light_response_2003(const EffectLightDefinition&);
 class MaterialBank {
 public:
-    MaterialBank(const Cache& cache,Mesh& mesh):cache_(cache),mesh_(mesh){}
+    MaterialBank(const Cache&,Mesh&);
+    ~MaterialBank();
+    MaterialBank(const MaterialBank&)=delete;
+    MaterialBank& operator=(const MaterialBank&)=delete;
     void preload(const Material&,std::uint32_t light,const EffectLightDefinition&);
     std::shared_ptr<const std::vector<EffectLightDraw>> complete(
         std::uint32_t shader,unsigned lod,std::uint32_t light,const EffectLightUniforms&) const;
 private:
-    struct Pass {unsigned slot,index;Material authored;};
-    const Cache& cache_;Mesh& mesh_;
-    // Specular texture/pass residency is independent of a sphere light's
-    // identity. Only its completed uniforms vary per draw.
-    std::map<std::pair<std::uint32_t,unsigned>,std::vector<Pass>> passes_;
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 }

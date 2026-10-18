@@ -34,4 +34,15 @@ if(BUILD_TESTING)
         --native-prefix)
     set_tests_properties(original_tu15_renderer_cache_pools_constructor
         original_tu15_renderer_tail_storage_constructor PROPERTIES TIMEOUT 60)
+    add_executable(native_lens_query_scalar_tests tests/native_lens_query_scalar_tests.cpp)
+    target_link_libraries(native_lens_query_scalar_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    target_compile_options(native_lens_query_scalar_tests PRIVATE
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-fno-fast-math;-ffp-contract=off;-frounding-math>)
+    add_test(NAME native_tu15_lens_query_scalar_ownership COMMAND native_lens_query_scalar_tests)
+    set(HALO2_TU15_GAMEPLAY_XBE "" CACHE FILEPATH "Owned original English TU1.5 gameplay executable for acceptance tests")
+    add_test(NAME original_tu15_lens_query_scalar COMMAND native_lens_query_scalar_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}"
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/native_lens_query_scalar_tu15_original.json")
+    set_tests_properties(native_tu15_lens_query_scalar_ownership original_tu15_lens_query_scalar
+        PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
 endif()

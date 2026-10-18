@@ -620,3 +620,93 @@ The [projection continuation](SOURCE_PARTICLE_PROJECTION_TU15.md) adds whole
 seven-draw GPU images remain exact. The module has64 whole bodies. Live view
 initialization, complete queued drawing and combined launcher delivery remain
 open; this is no new all-map or Xbox framebuffer acceptance.
+
+## Native particle view and camera continuation, October18
+
+The [native view continuation](SOURCE_PARTICLE_NATIVE_VIEW_TU15.md) binds actual
+recorded descriptor inputs, viewport/scissor and original initializer packets.
+Whole`12D30` brings the module to65 original bodies, preserving all prior64.
+The native two-view resource/packet check passes, and40 ordered CPU calls cover
+the complete scaled/unscaled camera routine. A corrected world diagnostic still
+requires the original scaled camera handoff; its failure is retained. Complete
+live queue/stream/parent integration, all-map acceptance and combined launcher
+delivery remain open. This stage preserves the shared normal runtime and the
+accepted7501144f world/shader bank.
+
+## Complete camera publisher continuation, October18
+
+The [camera publisher stage](SOURCE_PARTICLE_CAMERA_PUBLISHER_TU15.md) adds
+whole`12F80`, retaining all65 preceding bodies. Its complete c0..11 packet bank
+is checked against actual recorded GPU camera inputs, with atomic mismatch
+rejection. Seven retained source draws now pass that publisher with exact
+same-scissor images and five positive pixels on cleared depth. The explicit
+native submitting-camera interface is not original startup or same-frame live
+collection history. The full parent, ordinary scene-depth/map acceptance and
+combined normal-launcher delivery remain open.
+
+## Particle view resources before collection, October18
+
+The [prepared-view stage](SOURCE_PARTICLE_PREPARED_VIEW_TU15.md) allocates real
+camera bindings before particle recording, publishes the original camera into
+them and consumes those bytes in the actual draw arena. Resource/rectangle
+and lifetime guards pass, alongside the seven-draw same-scissor GPU check and
+allocation-growth stress. Source RNG and all four retained pools remain exact.
+The live World frame/queue handoff, complete parent/stream ownership, full map
+acceptance and combined normal-launcher delivery are still required.
+
+## Original per-view packet producer, October18
+
+The [view-pass packet stage](SOURCE_PARTICLE_VIEW_PASS_TU15.md) adds complete
+`2BCB0` to the kernel and connects its authenticated counter/packet value
+boundary to the native initializer. Thirty original prefix comparisons, two
+complete camera calls, the existing prepared-resource regression and the
+seven-draw GPU check pass; five images remain exact and all retained RNG/pool
+bytes survive. Six affected normal-source objects compile. Complete original
+pass scheduling, prior-queue consumption, live map verification and combined
+normal-launcher delivery remain open; the goal stays active.
+
+## Original view-pass selection and finish, October18
+
+The [view-pass selection stage](SOURCE_PARTICLE_VIEW_GATES_TU15.md) adds the
+three authenticated original selection/finish owners, bringing the module to
+70 whole bodies. Nine predicates and eight complete early-exit passes match
+unchanged TU1.5 execution and all retained memory. The seven-draw GPU and
+77-packet growth regressions retain exact images and RNG/pools; two normal
+objects compile. The drawing branch, actual queue retirement/live frame
+integration, full map acceptance and combined launcher delivery remain open.
+
+## Shared particle and World execution, October18
+
+The [World execution handoff](SOURCE_PARTICLE_WORLD_EXECUTION_TU15.md) composes
+the existing original collection, particle and attached lens-request owners
+over one memory/service context. A complete retained live `40E80` call matches
+unchanged TU1.5 execution across 157,502 instruction callbacks and all 60.3 MB
+of source memory. GPU images and retained RNG/pools remain exact, and the
+queue-reset root guard passes. Four normal objects compile. Actual per-view
+initialization/retirement, complete draw-parent and live-map acceptance, and
+combined normal-launcher delivery remain required.
+
+## Original camera-before-reset order, October18
+
+The [camera-order correction](SOURCE_PARTICLE_CAMERA_ORDER_TU15.md) authenticates
+the ordinary World call chain, stages the real camera before the reset, defers
+GPU publication until both producers finish, and consumes the bounds written
+last. Five complete original calls and one required-target prefix match TU1.5.
+The ordinary multiplayer World particle clip is now unscaled with its camera.
+Seven source draws remain intact in a paired four-view live prototype, with
+exact other geometry/RNG/pools and frame image; the empty one-view spawn is a
+negative control. GPU regressions pass. Full per-view lifecycle/draw-parent,
+all-map/network acceptance and combined normal-launcher delivery remain open.
+
+### Original view-context and stencil owners, October 18
+
+The particle module now includes the complete original `132B0` view-context
+copy/camera publisher, `15350` stencil selector and `3FF670` SDK method producer
+(73 bodies, 6,310 original instruction sites). All 47 declared-input cases match
+unchanged TU1.5 execution: 35 complete calls and 12 prefixes that retain their
+required downstream owners. The original target/clear owner remains unresolved;
+this context is not yet used as a completed live view publication. Camera-order
+and seven-draw/77-packet GPU regressions pass with unchanged images and retained
+particle state. Normal-source objects compile, but normal-launcher delivery and
+the full all-map goal remain open. See
+[`SOURCE_PARTICLE_VIEW_CONTEXT_TU15.md`](SOURCE_PARTICLE_VIEW_CONTEXT_TU15.md).

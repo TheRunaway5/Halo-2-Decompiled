@@ -1,0 +1,6 @@
+fill 00a50d 03157e 00c3a9 2b0c99 0000a0 0000c0
+case fault_jsr_overflow 0100 0116 400
+case fault_sp_write_se 0116 0126 200
+case fault_sp_write_se_2w 0126 0137 200
+case fault_rts_underflow 0137 0158 400
+case fault_rti_underflow 0158 017b 400

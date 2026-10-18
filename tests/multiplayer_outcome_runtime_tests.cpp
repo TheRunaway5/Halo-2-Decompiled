@@ -1,6 +1,7 @@
 #include "halo2/multiplayer_outcome.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/original_data.hpp"
+#include "halo2/source_authority_receiver.hpp"
 #include <iostream>
 
 int main(int argc,char **argv) try {
@@ -12,7 +13,8 @@ int main(int argc,char **argv) try {
   options.ticks=2;
   options.mute=true;
   MultiplayerRuntimeOutcome outcome;
-  if(run_multiplayer(options,outcome)!=0)
+  std::shared_ptr<const SourceAuthorityRetainedWorld> recovery=std::make_shared<SourceAuthorityRetainedWorld>();
+  if(run_multiplayer(options,outcome,recovery)!=0 || recovery)
     throw FormatError("Native headless runtime did not finish its declared limit");
   // The runtime and its Cache/Match have been destroyed. Read the actual
   // retained result, rather than constructing an expected PCR/session bank.

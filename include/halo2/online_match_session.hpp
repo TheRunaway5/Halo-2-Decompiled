@@ -55,6 +55,10 @@ public:
   std::optional<AuthorityTransferContext> authority_context() const;
   bool authority_supported(unsigned physical_peer) const;
   bool authority_replay_supported(unsigned physical_peer) const;
+  bool authority_pipeline_supported(unsigned physical_peer) const;
+  bool authority_host_continuation_supported(unsigned physical_peer) const;
+  std::optional<std::uint64_t> loaded_fingerprint()const;
+  bool authority_delivered(unsigned physical_peer,const AuthorityTransferContext &,const AuthorityCutSeal &)const;
   // Fresh inter-player measurements, never a promotion certificate. The
   // caller must separately retain a validated native continuation and agree
   // the authority generation before using a replacement host.
@@ -66,8 +70,11 @@ public:
   bool source_players_confirmed(unsigned physical_peer)const;
   AuthorityCutSeal publish_authority(const AuthorityTransferContext &,std::uint64_t tick,
       std::vector<std::byte>,std::span<const unsigned> physical_targets);
+  AuthorityCutSeal publish_authority_ahead(const AuthorityTransferContext &,const AuthorityCutSeal &previous,
+      std::uint64_t tick,std::vector<std::byte>,unsigned physical_target);
   std::optional<ReceivedAuthorityCut> received_authority();
   bool acknowledge_authority(const AuthorityTransferContext &,const AuthorityCutSeal &);
+  bool reject_authority(const AuthorityTransferContext &,const AuthorityCutSeal &);
   std::vector<ValidatedAuthorityCut> validated_authority();
   // These controls certify the complete authoritative continuation owner,
   // never MultiplayerState. The caller must capture/validate that owner before

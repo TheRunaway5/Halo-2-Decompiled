@@ -1,8 +1,13 @@
 #version 450
+#extension GL_GOOGLE_include_directive : require
 layout(location=0) in vec4 point;
 layout(push_constant) uniform Camera {mat4 matrix;vec4 color;vec4 viewport;} camera;
 layout(location=0) out float sourceDepth;
+#include "captured_surface.glsl"
 void main(){
+    if(abs(camera.color.w)>1.5) {
+        capturedSurface();return;
+    }
     gl_Position=camera.matrix*vec4(point.xyz,1);sourceDepth=abs(camera.color.w)>1.5?gl_Position.w:gl_Position.w*(16777215.0/1024.0);
     if(abs(camera.color.w)>1.5) {
         vec2 window=(gl_Position.xy/gl_Position.w)*camera.viewport.zw*.5+

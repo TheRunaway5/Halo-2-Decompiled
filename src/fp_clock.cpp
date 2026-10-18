@@ -59,7 +59,7 @@ void first_person_activity(FirstPersonHandBinding &hand,const FirstPersonBinding
   if(std::none_of(clips.begin(),clips.end(),
       [&](const auto &clip){return clip.activity==activity;}))return;
   const auto &clip=clip_for(hand,definition,activity);
-  hand.animation_identifier=(clip.index<<16)|0xffffu;hand.activity=activity;
+  hand.animation_identifier=first_person_clip_identifier(clip);hand.activity=activity;
   hand.channel_delay=0;hand.channel_flags=0;
   hand.channel_options=hand.dual_wield?(hand.secondary_hand?0x203f:0x103f):0x3f;
   hand.rate=1;hand.frame=0;hand.events=0;future_events(hand,clip);
@@ -69,7 +69,7 @@ void first_person_animation_clock(FirstPersonHandBinding &hand,const FirstPerson
   if(hand.fire_ticks>0)--hand.fire_ticks; // Original168866 before channel update.
   if(hand.weapon==0xffffffffu || hand.graph==0xffffffffu || hand.animation_identifier==0xffffffffu)return;
   const auto &clip=clip_for(hand,definition,hand.activity);
-  if((hand.animation_identifier>>16)!=clip.index || hand.graph!=definition.graph)
+  if(hand.animation_identifier!=first_person_clip_identifier(clip) || hand.graph!=definition.graph)
     throw FormatError("First-person primary clock graph/clip mismatch");
   hand.events=hand.future_events=0; // Original1CA2B0 also clears these during delay.
   if(hand.channel_delay) {--hand.channel_delay;return;}

@@ -11,6 +11,14 @@ void source_object_function_set_tu15(PhysicsLiveWorldTu15 &w,std::uint32_t objec
 void source_object_function_clear_tu15(PhysicsLiveWorldTu15 &w,std::uint32_t object,std::uint32_t name) {
     auto a=w.prepare_source_call();a.gp[7]=object;a.gp[6]=name;w.run_actual(0x10fd50u,a);
 }
+void source_object_set_permutation_tu15(PhysicsLiveWorldTu15 &w,std::uint32_t object,
+    std::uint32_t region,std::uint32_t permutation) {
+    //2AC3FB..2AC40E skips NONE, otherwise passes all three DWORD arguments
+    //unchanged to BC440. That owner performs authored selection and callbacks.
+    if(object==null_datum)return;
+    auto a=w.prepare_source_call(std::array{object,region,permutation});
+    w.run_actual(0xbc440u,a);
+}
 std::optional<float> source_object_function_value_tu15(PhysicsLiveWorldTu15 &w,
     std::uint32_t object,std::uint32_t name) {
     const auto scratch=w.prepare_source_call().gp[4]+0x100u;

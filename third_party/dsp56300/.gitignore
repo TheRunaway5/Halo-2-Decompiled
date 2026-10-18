@@ -1,0 +1,4 @@
+/target/
+*.gcov
+tools/difftest/out/
+__pycache__/

@@ -10,6 +10,10 @@ struct SourceRuntimeCacheTagImage {
   struct Region {std::uint32_t address;std::vector<std::byte> bytes;};
   std::vector<Region> regions;
   std::uint32_t index{},table{},count{},scenario{},globals{};
+  // Required physical cache reservation, supplied by the owning delivery.
+  // Xbox v8 delivery retains header+1C; canonical imports compute their own
+  // extent. This is never read from an unrelated donor-format header.
+  std::uint32_t reservation_bytes{};
 };
 // Synchronous native I/O view of the Cache owner's immutable bytes. The
 // Cache must outlive this view and remain immutable during delivery. This is
@@ -18,6 +22,7 @@ struct SourceRuntimeCacheTagView {
   struct Region {std::uint32_t address;std::span<const std::byte> bytes;};
   std::array<Region,2> regions;
   std::uint32_t index{},table{},count{},scenario{},globals{};
+  std::uint32_t reservation_bytes{};
 };
 struct SourceRuntimeCacheBspImage {
   SourceRuntimeCacheTagImage::Region region;
@@ -27,6 +32,14 @@ struct SourceRuntimeCacheBspImage {
 struct SourceRuntimeCacheAnimationImage {
   std::array<std::byte,20> descriptor;
   std::vector<std::byte> bytes;
+};
+// Explicit native allocation proof for converted metadata that does not fit
+// the original physical cache partition. The address retains its memory
+// owner and bounds are resolved through the current memory bank. Obtain a
+// fresh proof from that bank after restoring a checkpoint.
+struct SourceRuntimeNativeCacheRange {
+  NativeRuntimeAddress allocation;
+  std::uint32_t bytes{};
 };
 
 // Delivers actual cache bytes into the existing physical bank and binds the
@@ -48,6 +61,9 @@ void source_bind_runtime_cache_bsp_1_1(SourceRuntimeMemory &,
 // and11EA1D..11EA69. Complete1255C0 retains BSP tag-table publication.
 void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &,
                                         const SourceRuntimeCacheTagImage &);
+void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &,
+                                        const SourceRuntimeCacheTagImage &,
+                                        SourceRuntimeNativeCacheRange);
 // Same admission, two whole-region copies, and five publication stores.
 // Borrowed source bytes must be independent of every destination/output span.
 void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &,
@@ -57,6 +73,9 @@ void source_bind_runtime_cache_tags_tu15(SourceRuntimeMemory &,
 void source_bind_runtime_cache_sound_gestalt_tu15(SourceRuntimeMemory &);
 void source_deliver_runtime_cache_bsp_tu15(SourceRuntimeMemory &,
                                          const SourceRuntimeCacheBspImage &);
+void source_deliver_runtime_cache_bsp_tu15(SourceRuntimeMemory &,
+                                         const SourceRuntimeCacheBspImage &,
+                                         SourceRuntimeNativeCacheRange);
 void source_bind_runtime_cache_bsp_tu15(SourceRuntimeMemory &,
                                       const SourceRuntimeCacheBspImage &);
 } // namespace halo2

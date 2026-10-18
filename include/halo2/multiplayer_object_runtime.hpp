@@ -48,6 +48,12 @@ struct MultiplayerSourceVitality {
 class MultiplayerObjectRuntime {
 public:
   // Cache owns resource I/O and must outlive this runtime.
+  MultiplayerObjectRuntime(const Cache &,std::size_t bsp,
+      const std::filesystem::path &savegame_directory);
+  MultiplayerObjectRuntime(const Cache &,std::size_t bsp,
+      const std::filesystem::path &savegame_directory,
+      std::shared_ptr<PhysicsLiveClockSource>);
+  // Explicit executable input is retained for offline reference comparisons.
   MultiplayerObjectRuntime(const std::filesystem::path &source_image,
       const Cache &,std::size_t bsp,const std::filesystem::path &savegame_directory);
   MultiplayerObjectRuntime(const std::filesystem::path &source_image,
@@ -165,6 +171,8 @@ public:
   std::uint32_t create_netgame_object(unsigned row);
   std::uint32_t netgame_object(unsigned row) const;
   std::uint32_t child_object(std::uint32_t parent,std::uint32_t definition) const;
+  std::uint32_t model_child_object(std::uint32_t parent,std::uint32_t definition,
+      std::uint32_t parent_marker,std::uint32_t child_marker) const;
   void destroy_object(std::uint32_t full_datum);
   // Actual source clock increment followed by the five complete object/world
   // phases. Retains the same bank; does not supply contacts or death admission.
@@ -182,6 +190,10 @@ public:
   void preload_render_model(std::uint32_t render_model);
   void begin_model_frame();
   void publish_render_visibility(const SourcePortalVisibilitySet&);
+  // Once per native outer frame after its accepted game ticks. Contrails and
+  // decals run only for positive accepted elapsed; the particle frame always runs.
+  void advance_effect_frame(float,const SourceFirstPersonPhaseObserverTu15& observer={});
+  // Low-level original179DF0 API retained for isolated source callers/oracles.
   void advance_effect_particles(float,const SourceFirstPersonPhaseObserverTu15& observer={});
   // Keep native presentation and all its readbacks within one public-call
   // lifetime. The callback must not retain a world/memory reference.
@@ -245,6 +257,10 @@ public:
   std::array<std::uint64_t,2> execution_mutations()const;
   bool authority_executor_thread() const noexcept;
   PreparedAuthority prepare_authority(const AuthorityCheckpoint &);
+  // Only a bound campaign renderer opts in. Generic authority imports
+  // retain their complete saved RAM; this local flag has no wire field.
+  void live_campaign_lens_renderer(bool active);
+  PreparedAuthority prepare_campaign_authority(const AuthorityCheckpoint &);
   // Owner must outlive preparation; commit/cancel on its retained executor.
   // Native observers/services stay local. Publication performs no allocation.
   bool commit_authority(PreparedAuthority &&) noexcept;

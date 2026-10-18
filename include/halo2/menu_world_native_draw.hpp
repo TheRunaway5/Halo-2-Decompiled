@@ -29,12 +29,16 @@ struct MenuWorldNativeDrawInput {
   MenuWorldFragmentUniforms fragment;
   MenuWorldRasterPacket raster;
   ForwardRasterState forward;
-  // Only0(disabled),5(planar CONSTANT_COLOR),9(shadow DST_COLOR/ZERO),
-  // and10(sphere diffuse) admitted. Pass/receiver admission is caller owned.
+  //0(disabled),3(projected ONE/ONE),5(planar CONSTANT_COLOR),
+  //8(projected DST_ALPHA/ONE),9(shadow DST_COLOR/ZERO), and10(sphere
+  //diffuse). Pass/receiver admission is caller owned.
   unsigned forward_blend{};
   VkDescriptorSet material_set{};
   std::uint32_t material_offset{}; // Existing set0/binding4 dynamic offset.
   MenuWorldWClipMode w_clip_mode=MenuWorldWClipMode::cull;
+  std::array<ShaderVector,16> vertex_attributes{};
+  std::array<std::uint8_t,16> vertex_attribute_components{};
+  bool fog_alpha_bound{};
 };
 
 // Standalone Vulkan resource/submission seam; selects no owners, visibility,
@@ -44,7 +48,7 @@ struct MenuWorldNativeDrawInput {
 //
 // prepare() may be called ONLY after all GPU/command-buffer uses of the previous
 // preparation have completed (normally the renderer frame fence). It retains
-// binding ownership, uploads independent per-draw3104B/448B set1 slices, and
+// binding ownership, uploads independent per-draw ABI2/ABI3 and448B set1 slices, and
 // stores raw immutable geometry. Failure invalidates the prepared draw list.
 // record() is legal inside compatible subpass0; the caller establishes a
 // positive-height viewport and matching scissor. It binds both sets (only the

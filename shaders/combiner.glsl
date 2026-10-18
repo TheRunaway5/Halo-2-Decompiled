@@ -68,6 +68,9 @@ void commit(uint operation,bool alpha,vec3 ab,vec3 cd,vec3 sum) {
 }
 vec4 runCombiners(vec4 textures[4],vec4 v0,vec4 v1) {
     H2_FIXED_STAGE_UNROLL for(int i=0;i<16;++i)registers[i]=vec4(0);
+#ifdef H2_COMBINER_FOG
+    registers[3]=H2_COMBINER_FOG();
+#endif
     registers[4]=v0;registers[5]=v1;
     H2_FIXED_STAGE_UNROLL for(int i=0;i<4;++i)registers[8+i]=textures[i];
     registers[12].a=(word(54u)&31u)!=0u?textures[0].a:1.0;

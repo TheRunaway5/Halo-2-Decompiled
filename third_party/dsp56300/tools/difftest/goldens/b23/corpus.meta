@@ -1,0 +1,18 @@
+fill 00c97b 0713e9 00e1a7 35a4d1 000070 0000b0
+case fault_rep_after_budget 0100 0116 200
+case fault_rep_shadow_mid 0116 012c 200
+case fault_rep_shadow_edge 012c 0144 200
+case fault_rep_shadow_big 0144 0158 200
+case fault_rep_shadow_zero 0158 016e 200
+case fault_rep_probe_base 016e 0187 300
+case fault_rep_probe_d0 0187 019e 300
+case fault_rep_probe_d1 019e 01b6 300
+case fault_rep_probe_d2 01b6 01cf 300
+case fault_rep_probe_d3 01cf 01e9 300
+case fault_rep_probe_d4 01e9 0204 300
+case fault_rep_probe_d5 0204 0220 300
+case fault_rep_probe_d6 0220 023d 300
+case fault_rep_probe_d7 023d 025b 300
+case fault_rep_probe_d1c1 025b 0273 300
+case fault_rep_probe_d1c0 0273 028b 300
+case fault_rep_reader 028b 02a4 300

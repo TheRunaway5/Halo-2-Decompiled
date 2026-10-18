@@ -4,6 +4,8 @@
 #include "frame_vertex_upload_plan.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "halo2/renderer.hpp"
+#include "halo2/pstencil/light_response_material.hpp"
+#include "halo2/pstencil/texture_accumulation_2003.hpp"
 #include "halo2/debug_panel.hpp"
 #include "imgui.h"
 #include "backends/imgui_impl_vulkan.h"
@@ -14,6 +16,7 @@
 #include "halo2/vertex_program.hpp"
 #include "halo2/world_material_uniform.hpp"
 #include "halo2/presentation_format.hpp"
+#include "halo2/pstencil/capture_presentation.hpp"
 #include "halo2/sampler.hpp"
 #include "halo2/texture_program.hpp"
 #include "halo2/water.hpp"
@@ -36,9 +39,9 @@
 #include "halo2/source_shadow_render.hpp"
 #include "halo2/pstencil/frame.hpp"
 #include "halo2/pstencil/environment.hpp"
+#include "halo2/pstencil/combined_environment.hpp"
 #include "halo2/pstencil/adaptation.hpp"
 #include "halo2/pstencil/detail.hpp"
-#include "halo2/pstencil/lighting.hpp"
 #include "halo2/pstencil/specular_mask.hpp"
 #include "halo2/source_shadow_draw_storage.hpp"
 #include "resident_draw_storage.hpp"
@@ -288,6 +291,11 @@ struct Renderer::Impl {
     bool water_scene_initialized{};
     std::size_t material_count{};
     std::vector<unsigned> environment_materials;
+    std::vector<unsigned> pstencil_texture_mask_materials;
+    std::vector<unsigned> pstencil_environment_companions;
+    std::vector<std::unique_ptr<Material>> pstencil_environment_owned;
+    std::set<unsigned> pstencil_environment_companion_slots;
+    std::optional<unsigned> pstencil_environment_carrier_layer;
     std::vector<std::optional<unsigned>> source_material_layers;
     std::vector<std::array<unsigned,2>> source_material_identities;
     std::vector<std::vector<unsigned>> source_layer15_passes;
@@ -332,6 +340,7 @@ struct Renderer::Impl {
     }();
     std::vector<unsigned> specialized_pipeline_indices,active_forward_pipeline_indices;
     std::vector<ForwardPipeline> forward_pipelines;
+    std::vector<unsigned> pstencil_response_phases;
     std::vector<unsigned> forward_pipeline_indices;
     VkPipelineLayout overlay_layout{};
     VkCommandPool command_pool{};
@@ -351,6 +360,8 @@ struct Renderer::Impl {
     std::vector<ParticleDraw> particle_draws;
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
     std::unique_ptr<ParticleRenderer> particle_renderer;
+    std::vector<RendererParticleView::Use> prepared_particle_views;
+    const std::thread::id particle_view_thread=std::this_thread::get_id();
 #endif
 #if HALO2_SOURCE_DECALS_AVAILABLE
     std::unique_ptr<SourceDecalRenderer> decal_renderer;
@@ -507,6 +518,7 @@ struct Renderer::Impl {
     std::unique_ptr<SourceWorldDrawStorage> raw_shadow_storage;
     std::unique_ptr<SourceWorldDrawStorage> effect_light_storage;
     std::vector<bool> effect_light_materials;
+    std::vector<unsigned> effect_light_blends;
     std::vector<ForwardRasterState> material_forward_states;
     std::vector<bool> accumulation_materials;
     std::unique_ptr<ResidentDrawStorage> object_draw_storage;
@@ -593,6 +605,7 @@ struct Renderer::Impl {
     using MaterialUniform=WorldMaterialUniform;
     std::vector<MaterialUniform> material_uniforms;
     std::vector<bool> pstencil_environment_materials;
+    std::vector<bool> pstencil_combined_visors;
     std::vector<std::optional<unsigned>> pstencil_neutral_detail_stages;
     std::vector<bool> pstencil_combined_environment_strengths,pstencil_polished_armor;
     std::vector<const pstencil::EnvironmentParameters*> pstencil_environment_parameters;
@@ -803,11 +816,17 @@ struct Renderer::Impl {
         }
     }
 
-    std::uint32_t memory_type(std::uint32_t bits, VkMemoryPropertyFlags flags) const {
+    std::uint32_t memory_type(std::uint32_t bits, VkMemoryPropertyFlags flags,
+                              VkMemoryPropertyFlags preferred=0) const {
         VkPhysicalDeviceMemoryProperties properties;
         vkGetPhysicalDeviceMemoryProperties(physical, &properties);
-        for (std::uint32_t i = 0; i < properties.memoryTypeCount; ++i)
-            if ((bits & (1u << i)) && (properties.memoryTypes[i].propertyFlags & flags) == flags) return i;
+        std::uint32_t fallback=properties.memoryTypeCount;
+        for (std::uint32_t i = 0; i < properties.memoryTypeCount; ++i) {
+            if (!(bits & (1u << i)) || (properties.memoryTypes[i].propertyFlags & flags) != flags)continue;
+            if((properties.memoryTypes[i].propertyFlags&preferred)==preferred)return i;
+            if(fallback==properties.memoryTypeCount)fallback=i;
+        }
+        if(fallback!=properties.memoryTypeCount)return fallback;
         throw std::runtime_error("no compatible Vulkan memory type");
     }
 
@@ -821,7 +840,11 @@ struct Renderer::Impl {
         vkGetBufferMemoryRequirements(device, buffer, &requirements);
         VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};
         allocation.allocationSize = requirements.size;
-        allocation.memoryTypeIndex = memory_type(requirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+        // CPU-read capture buffers benefit from cached host memory. Upload
+        // buffers retain their first compatible coherent memory type.
+        allocation.memoryTypeIndex = memory_type(requirements.memoryTypeBits,
+            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+            usage==VK_BUFFER_USAGE_TRANSFER_DST_BIT?VK_MEMORY_PROPERTY_HOST_CACHED_BIT:0);
         const auto allocation_result=vkAllocateMemory(device, &allocation, nullptr, &memory);
         if(allocation_result!=VK_SUCCESS) {
             VkPhysicalDeviceMemoryProperties properties;
@@ -1045,7 +1068,7 @@ struct Renderer::Impl {
         texture_bindings[4]={4,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,1,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,nullptr};
         texture_bindings[5]={5,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,4,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr};
         texture_bindings[6]={6,VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,4,VK_SHADER_STAGE_FRAGMENT_BIT,nullptr};
-        texture_bindings[7]={7,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_VERTEX_BIT,nullptr};
+        texture_bindings[7]={7,VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,1,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,nullptr};
         VkDescriptorSetLayoutCreateInfo texture_info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO};
         texture_info.bindingCount = 8;
         texture_info.pBindings = texture_bindings;
@@ -1648,6 +1671,7 @@ struct Renderer::Impl {
         std::vector<const Material*> materials;
         for(const auto &m:mesh.materials) materials.push_back(&m);
         environment_materials.resize(material_count,~0u);
+        pstencil_texture_mask_materials=pstencil::texture_mask_materials(mesh.materials);
         for(std::size_t i=0;i<material_count;++i) if(mesh.materials[i].environment_pass) {
             environment_materials[i]=unsigned(materials.size());
             materials.push_back(mesh.materials[i].environment_pass.get());
@@ -1664,6 +1688,27 @@ struct Renderer::Impl {
             for(const auto &pass:mesh.materials[i].world_bloom_passes) {
                 world_bloom[i].push_back(unsigned(materials.size()));materials.push_back(pass.get());
             }
+        }
+        pstencil_environment_companions.assign(material_count,~0u);
+        pstencil_environment_owned.clear();pstencil_environment_companion_slots.clear();
+        const auto carrier=std::find_if(materials.begin(),materials.end(),[](const auto* m) {
+            return m->name=="objects\\characters\\masterchief\\shaders\\masterchief" &&
+                pstencil::supports_environment_response(*m);
+        });
+        const Material* visor_carrier=carrier==materials.end()?nullptr:*carrier;
+        pstencil_environment_carrier_layer=visor_carrier?source_material_layer(*visor_carrier):std::nullopt;
+        for(unsigned root=0;root<material_count;++root)if(pstencil::combined_visor_environment(mesh.materials[root])) {
+            const auto* current=pstencil::combined_visor_environment(mesh.materials[root]);
+            // Missing/animated interfaces retain the existing material owner.
+            // Preparing optional pStencil residency must preserve Original.
+            if(!visor_carrier || pstencil_texture_mask_materials[root]==~0u ||
+               mesh.materials[root].world_vertex_input_transform!=visor_carrier->world_vertex_input_transform ||
+               current->bump.layers!=1 || current->detail.layers!=6 || current->auxiliary.layers!=6 ||
+               !current->animation.overlays.empty())continue;
+            auto extra=std::make_unique<Material>(pstencil::separate_visor_environment(mesh.materials[root],*visor_carrier));
+            const auto slot=unsigned(materials.size());
+            pstencil_environment_companions[root]=slot;pstencil_environment_companion_slots.insert(slot);
+            materials.push_back(extra.get());pstencil_environment_owned.push_back(std::move(extra));
         }
         planar_materials.resize(material_count,~0u);
         for(std::size_t i=0;i<material_count;++i) if(mesh.materials[i].planar_fog_pass) {
@@ -1685,7 +1730,8 @@ struct Renderer::Impl {
         }
         source_material_layers.reserve(materials.size());
         for(const auto *material:materials)
-            source_material_layers.push_back(source_material_layer(*material));
+            source_material_layers.push_back(pstencil_environment_companion_slots.contains(unsigned(source_material_layers.size()))?
+                pstencil_environment_carrier_layer:source_material_layer(*material));
         for(const auto *material:materials)
             source_material_identities.push_back({material->source_shader_datum,material->selected_shader_lod});
         pstencil_caster_materials.clear();
@@ -1742,6 +1788,7 @@ struct Renderer::Impl {
         for(unsigned i=0;i<material_count;++i) {
             material_roots[i]=i;
             if(environment_materials[i]!=~0u)material_roots[environment_materials[i]]=i;
+            if(pstencil_environment_companions[i]!=~0u)material_roots[pstencil_environment_companions[i]]=i;
             for(const auto m:world_before[i])material_roots[m]=i;
             for(const auto m:world_after[i])material_roots[m]=i;
             for(const auto m:world_bloom[i])material_roots[m]=i;
@@ -1768,6 +1815,7 @@ struct Renderer::Impl {
                     geometry_pairs.emplace(material,lightmap);
             };
             add(root);
+            if(pstencil_texture_mask_materials[root]!=~0u)add(pstencil_texture_mask_materials[root]);
             if(environment_materials[root]!=~0u)add(environment_materials[root]);
             for(const auto material:world_before[root])add(material);
             for(const auto material:world_after[root])add(material);
@@ -1810,7 +1858,9 @@ struct Renderer::Impl {
         material_stride=stride;
         vertex_bank_stride=(sizeof(VertexBankUniform)+alignment-1)/alignment*alignment;
         material_uniforms.resize(count);
+        pstencil_response_phases.resize(count);
         pstencil_environment_materials.resize(count);
+        pstencil_combined_visors.resize(count);
         pstencil_neutral_detail_stages.resize(count);
         pstencil_combined_environment_strengths.resize(count);pstencil_polished_armor.resize(count);
         pstencil_environment_parameters.resize(count);
@@ -1819,6 +1869,7 @@ struct Renderer::Impl {
         material_pending.resize(count);vertex_bank_pending.resize(count);
         extended_vertex_banks.resize(count);
         effect_light_materials.resize(count);
+        effect_light_blends.resize(count);
         material_forward_states.resize(count);
         accumulation_materials.resize(count);
         material_fragment_offsets.resize(count);
@@ -1837,18 +1888,28 @@ struct Renderer::Impl {
         check(vkMapMemory(device,vertex_bank_memory,0,vertex_bank_stride*count,0,&bank_mapped),"map draw vertex globals");
         for(std::size_t i=0;i<count;++i) {
             const auto& material=*materials[i];
-            pstencil_environment_materials[i]=pstencil::supports_environment_response(material);
+            pstencil_environment_materials[i]=pstencil::supports_environment_response(material) ||
+                pstencil_environment_companion_slots.contains(unsigned(i));
+            pstencil_combined_visors[i]=pstencil::supports_combined_visor_environment(material);
             pstencil_neutral_detail_stages[i]=pstencil::reference_neutral_detail_stage(material);
             pstencil_combined_environment_strengths[i]=pstencil::supports_combined_environment_strength(material);
             pstencil_polished_armor[i]=pstencil::arbiter_metal(material.name);
             if(pstencil_environment_materials[i] || pstencil_combined_environment_strengths[i])
                 pstencil_environment_parameters[i]=pstencil::reference_environment_parameters(material.name);
             material_blend_colors[i]=material.forward_blend_color;
+            pstencil_response_phases[i]=pstencil::light_utility_material_2003(material)?1u:
+                pstencil::dependent_light_material_2003(material)?2u:
+                pstencil::normal_accumulation_material_2003(material)?3u:
+                pstencil::normal_light_utility_material_2003(material)?4u:0u;
             material_forward_states[i]=material.forward_raster;
             accumulation_materials[i]=material.accumulation_texture;
-            if(material.forward_blend==10) {
+            const bool projected_light=material.forward_vertex==6 && material.forward_pass &&
+                material.forward_pass_index<material.passes.size() &&
+                material.passes[material.forward_pass_index].vertex_shader.find("\\lightaccum_frustum")!=std::string::npos;
+            if(material.forward_blend==10 || projected_light) {
                 source_effect_light_draw(unsigned(i),material,{});
                 effect_light_materials[i]=true;
+                effect_light_blends[i]=material.forward_blend;
             }
             scope_materials[i]=material.scope_texture;
             water_material_definitions[i]=material.water_definition;
@@ -1996,8 +2057,8 @@ struct Renderer::Impl {
             projected_decal_layers.push_back(material.forward_vertex==11?material.forward_pass_index:~0u);
             if(!material.hud_pass && !material.light_volume_pass &&
                 (material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass)) {
-                const bool emblem_w_depth=material.template_name.ends_with("\\emblem_overlay_simple");
-                const bool pstencil_mask=source_material_layers[i]==13;
+                const bool emblem_w_depth=!pstencil_response_phases[i] && material.template_name.ends_with("\\emblem_overlay_simple");
+                const bool pstencil_mask=pstencil_response_phases[i]!=3 && (source_material_layers[i]==13 || pstencil_response_phases[i]!=0);
                 const auto found=std::find_if(forward_pipelines.begin(),forward_pipelines.end(),
                     [&](const auto &p){return p.blend==material.forward_blend && p.state==material.forward_raster &&
                         p.extended_vertex_bank==bool(material.vertex_bank) && !p.controls && p.emblem_w_depth==emblem_w_depth && p.pstencil_mask==pstencil_mask;});
@@ -2006,7 +2067,7 @@ struct Renderer::Impl {
                     forward_pipelines.push_back({material.forward_blend,material.forward_raster,{},{},bool(material.vertex_bank),{},emblem_w_depth,pstencil_mask});
                 forward_pipeline_indices.push_back(index);
                 unsigned specialized=~0u;
-                if(specialize_combiners) {
+                if(specialize_combiners && !pstencil_response_phases[i]) {
                     const auto controls=combiner_controls(material_uniforms[i].program);
                     const auto found_specialized=std::find_if(forward_pipelines.begin(),forward_pipelines.end(),
                         [&](const auto &p){return p.blend==material.forward_blend && p.state==material.forward_raster &&
@@ -2441,7 +2502,7 @@ struct Renderer::Impl {
         info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
         info.preTransform = capabilities.currentTransform;
         info.compositeAlpha = alpha;
-        info.presentMode = VK_PRESENT_MODE_FIFO_KHR;
+        info.presentMode = pstencil::capture_present_mode(physical,surface);
         info.clipped = VK_TRUE;
         check(vkCreateSwapchainKHR(device, &info, nullptr, &swapchain), "create swapchain");
         check(vkGetSwapchainImagesKHR(device, swapchain, &count, nullptr), "get swapchain images");
@@ -2678,7 +2739,8 @@ struct Renderer::Impl {
             write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
             {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
         }
-        if(std::any_of(accumulation_materials.begin(),accumulation_materials.end(),[](bool present){return present;})) {
+        if(!pstencil_environment_companion_slots.empty() ||
+           std::any_of(accumulation_materials.begin(),accumulation_materials.end(),[](bool present){return present;})) {
             auto accumulation_attachments=std::array{attachments[0],attachments[1]};
             accumulation_attachments[0].finalLayout=VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
             auto target_pass=render;target_pass.pAttachments=accumulation_attachments.data();
@@ -2735,6 +2797,16 @@ struct Renderer::Impl {
                     {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
                 }
             }
+            // Independent visor reflection retains bump at0 and cube at3.
+            // Its otherwise unfetched stage1 samples the same current material
+            // alpha used by the existing separate pStencil specular path.
+            for(const auto material:pstencil_environment_companion_slots) {
+                const VkDescriptorImageInfo target{stage_samplers[material][1],accumulation_view,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+                VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                write.dstSet=textures[material].descriptor;write.dstBinding=1;write.descriptorCount=1;
+                write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&target;
+                {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
+            }
         }
         if(std::any_of(water_texture_bindings.begin(),water_texture_bindings.end(),[](const auto &b){return b[0]||b[1];})) {
             if(!can_capture)throw FormatError("water refraction requires a readable color surface");
@@ -2768,6 +2840,26 @@ struct Renderer::Impl {
                     write.dstSet=textures[m].descriptor;write.dstBinding=target+1;write.pImageInfo=&image;
                     {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
                     for(const auto &[key,descriptor]:geometry_descriptors)if(key.first==m) {
+                        write.dstSet=descriptor;{vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
+                    }
+                }
+        }
+        if(std::any_of(pstencil_response_phases.begin(),pstencil_response_phases.end(),[](auto phase){return phase!=0;})) {
+            if(depth_format!=VK_FORMAT_D24_UNORM_S8_UINT)
+                throw FormatError("pStencil utility requires the native D24S8 depth/stencil");
+            if(!pstencil_render)pstencil_render=std::make_unique<pstencil::Render>(pstencil::RenderContext{
+                device,physical,extent,continuation_pass,depth,this->views,shader_directory});
+            for(unsigned material=0;material<pstencil_response_phases.size();++material)
+                if(pstencil_response_phases[material]==2 || pstencil_response_phases[material]==4) {
+                    const bool normals=pstencil_response_phases[material]==4;
+                    const unsigned binding=normals?0u:1u;
+                    const VkDescriptorImageInfo image{stage_samplers[material][binding],
+                        normals?pstencil_render->normal_view():pstencil_render->utility_view(),VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+                    VkWriteDescriptorSet write{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET};
+                    write.dstSet=textures[material].descriptor;write.dstBinding=binding;write.descriptorCount=1;
+                    write.descriptorType=VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;write.pImageInfo=&image;
+                    {vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
+                    for(const auto& [key,descriptor]:geometry_descriptors)if(key.first==material) {
                         write.dstSet=descriptor;{vkUpdateDescriptorSets(device,1,&write,0,nullptr);observe_descriptor_writes(&write,1);}
                     }
                 }
@@ -2882,6 +2974,34 @@ struct Renderer::Impl {
             module.codeSize=extended.size()*4;module.pCode=extended.data();
             check(vkCreateShaderModule(device,&module,nullptr,&extended_vert),"create extended source vertex shader");observe_shader(extended_vert,extended);
         }
+        VkShaderModule utility_fragment{},dependent_fragment{};
+        Modules response_modules{device,utility_fragment,dependent_fragment};
+        if(pstencil_render && std::any_of(pstencil_response_phases.begin(),pstencil_response_phases.end(),[](auto phase){return phase!=0;})) {
+            const auto utility=shader("pstencil/light_utility.frag.spv"),dependent=shader("pstencil/dependent_light.frag.spv");
+            module.codeSize=utility.size()*4;module.pCode=utility.data();
+            check(vkCreateShaderModule(device,&module,nullptr,&utility_fragment),"create pStencil utility shader");observe_shader(utility_fragment,utility);
+            module.codeSize=dependent.size()*4;module.pCode=dependent.data();
+            check(vkCreateShaderModule(device,&module,nullptr,&dependent_fragment),"create pStencil dependent-light shader");observe_shader(dependent_fragment,dependent);
+        }
+        VkShaderModule normal_vertex{},normal_fragment{},normal_utility_vertex{},normal_utility_fragment{};
+        Modules normal_modules{device,normal_vertex,normal_fragment};
+        Modules normal_utility_modules{device,normal_utility_vertex,normal_utility_fragment};
+        if(std::any_of(pstencil_response_phases.begin(),pstencil_response_phases.end(),[](auto phase){return phase==3;})) {
+            const auto load_normal=[&](const char* name,VkShaderModule& target) {
+                const auto words=shader(name);module.codeSize=words.size()*4;module.pCode=words.data();
+                check(vkCreateShaderModule(device,&module,nullptr,&target),"create pStencil normal shader");observe_shader(target,words);
+            };
+            load_normal("pstencil/normal_accumulation.vert.spv",normal_vertex);
+            load_normal("pstencil/normal_accumulation.frag.spv",normal_fragment);
+            load_normal("pstencil/normal_light_utility.vert.spv",normal_utility_vertex);
+            load_normal("pstencil/normal_light_utility.frag.spv",normal_utility_fragment);
+        }
+        VkShaderModule texture_accumulation_fragment{};
+        ExtendedModule texture_accumulation_module{device,texture_accumulation_fragment};
+        if(std::any_of(forward_pipelines.begin(),forward_pipelines.end(),[](const auto& p){return p.blend==pstencil::texture_accumulation_blend_2003;})) {
+            const auto words=shader("pstencil/texture_accumulation.frag.spv");module.codeSize=words.size()*4;module.pCode=words.data();
+            check(vkCreateShaderModule(device,&module,nullptr,&texture_accumulation_fragment),"create pStencil texture accumulation shader");observe_shader(texture_accumulation_fragment,words);
+        }
         for(auto &p:forward_pipelines) {
             std::array<std::uint32_t,61> constants{};
             std::array<VkSpecializationMapEntry,61> entries{};
@@ -2893,14 +3013,20 @@ struct Renderer::Impl {
                 specialization={unsigned(entries.size()),entries.data(),sizeof(constants),constants.data()};
             }
             stages[1].pSpecializationInfo=p.controls?&specialization:nullptr;
-            stages[1].module=p.emblem_w_depth?emblem_fragment:frag;
+            const bool normal_producer=p.blend==pstencil::normal_accumulation_blend_2003;
+            const bool normal_utility=p.blend==pstencil::normal_light_utility_blend_2003;
+            const bool texture_accumulation=p.blend==pstencil::texture_accumulation_blend_2003;
+            stages[1].module=texture_accumulation?texture_accumulation_fragment:normal_producer?normal_fragment:normal_utility?normal_utility_fragment:
+                p.blend==pstencil::light_utility_blend_2003?utility_fragment:
+                p.blend==pstencil::dependent_light_blend_2003?dependent_fragment:p.emblem_w_depth?emblem_fragment:frag;
             info.stageCount=p.emblem_w_depth?3:2;
-            stages[0].module=p.extended_vertex_bank?extended_vert:vert;
+            stages[0].module=normal_producer?normal_vertex:normal_utility?normal_utility_vertex:
+                p.extended_vertex_bank?extended_vert:vert;
             input.vertexAttributeDescriptionCount=p.extended_vertex_bank?14:12;
-            blend.blendEnable=p.blend!=0;
+            blend.blendEnable=p.blend!=0 && p.blend!=pstencil::light_utility_blend_2003 && !normal_producer && !normal_utility && !texture_accumulation;
             blend.colorBlendOp=blend.alphaBlendOp=p.blend==12?VK_BLEND_OP_MAX:VK_BLEND_OP_ADD;
             blend.srcColorBlendFactor=p.blend==9?VK_BLEND_FACTOR_DST_COLOR:p.blend==8?VK_BLEND_FACTOR_DST_ALPHA:p.blend==7?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_DST_COLOR:p.blend==1?VK_BLEND_FACTOR_SRC_ALPHA:VK_BLEND_FACTOR_ONE;
-            blend.dstColorBlendFactor=p.blend==11?VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:p.blend==9?VK_BLEND_FACTOR_ZERO:p.blend==10?VK_BLEND_FACTOR_ONE:p.blend==8?VK_BLEND_FACTOR_ONE:p.blend==7?VK_BLEND_FACTOR_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_SRC_COLOR:p.blend==3?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+            blend.dstColorBlendFactor=p.blend==11?VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR:p.blend==9?VK_BLEND_FACTOR_ZERO:p.blend==10?VK_BLEND_FACTOR_ONE:p.blend==8?VK_BLEND_FACTOR_ONE:p.blend==7?VK_BLEND_FACTOR_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_SRC_COLOR:(p.blend==3 || p.blend==pstencil::dependent_light_blend_2003)?VK_BLEND_FACTOR_ONE:VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
             // Planar fog's CONSTANT_COLOR is packed 00FFFFFF: source RGB
             // factor one, source alpha factor zero (59/62/63/74/75 states).
             blend.srcAlphaBlendFactor=p.blend==8?VK_BLEND_FACTOR_DST_ALPHA:p.blend==7?VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA:p.blend==6?VK_BLEND_FACTOR_DST_ALPHA:p.blend==5?VK_BLEND_FACTOR_ZERO:VK_BLEND_FACTOR_ONE;
@@ -2922,12 +3048,15 @@ struct Renderer::Impl {
                 throw FormatError("unsupported retail forward cull state");
             raster.cullMode=p.state.cull==0x901?VK_CULL_MODE_FRONT_BIT:
                 p.state.cull==0x900?VK_CULL_MODE_BACK_BIT:VK_CULL_MODE_NONE;
+            info.renderPass=normal_producer?pstencil_render->normal_pass():
+                (p.blend==pstencil::light_utility_blend_2003 || normal_utility)?pstencil_render->utility_pass():render_pass;
             check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&info,nullptr,&p.handle),"create forward material pipeline");observe_pipeline(p.handle,info);
             raster.depthClampEnable=VK_TRUE;raster.cullMode=VK_CULL_MODE_NONE;
             check(vkCreateGraphicsPipelines(device,VK_NULL_HANDLE,1,&info,nullptr,&p.sky_handle),"create original sky material pipeline");observe_pipeline(p.sky_handle,info);
             raster.depthClampEnable=VK_FALSE;
         }
         stages[1].pSpecializationInfo=nullptr;
+        info.renderPass=render_pass;
         stages[1].module=frag;
         info.stageCount=2;
         stages[0].module=vert;
@@ -3656,6 +3785,7 @@ struct Renderer::Impl {
         frame_timing={};campaign_capture_completed=false;
         if (SDL_GetWindowFlags(window) & SDL_WINDOW_MINIMIZED) return false;
         const auto display=debug_panel?debug_panel->display_settings():DisplaySettings{};
+        const bool pstencil_enabled=display.graphics_mode==pstencil::GraphicsMode::pStencil;
         if(display.internal_width!=active_internal_width || display.internal_height!=active_internal_height ||
            display.anti_aliasing!=active_aa || display.detail!=active_detail)dirty=true;
         if ((dirty || !swapchain) && !create_swapchain()) return false;
@@ -4101,7 +4231,8 @@ struct Renderer::Impl {
                     if(phase || !light->draw || !view.full_surface)
                         throw FormatError("Light-volume draw requires its actual ordinary gameplay view");
                     auto &draw=projected_lights[i].emplace_back(*light->draw);
-                    if(!draw.volume || !draw.tables || draw.actual_w_distance!=1024.f ||
+                    const float camera_w=view.projection_clip_planes ? view.projection_clip_planes->y : 1024.f;
+                    if(!draw.volume || !draw.tables || draw.actual_w_distance!=camera_w ||
                        !(draw.viewport.width>0 && draw.viewport.height>0))
                         throw FormatError("Light-volume draw lost its completed projection/definition inputs");
                     const auto physical=full_surface_viewport({view.left,view.top,view.width,view.height},extent.width,extent.height);
@@ -4157,7 +4288,11 @@ struct Renderer::Impl {
         // Match the command recorder's global scene admission. Model views
         // prepare their own direction/combiner banks independently below.
         std::vector<bool> global_material_roots(material_count);
-        const auto use_global=[&](unsigned material) {global_material_roots[material_roots.at(material)]=true;};
+        const auto use_global=[&](unsigned material) {
+            global_material_roots[material_roots.at(material)]=true;
+            if(pstencil_enabled && pstencil_texture_mask_materials.at(material)!=~0u)
+                global_material_roots[pstencil_texture_mask_materials[material]]=true;
+        };
         if(!full_surface_scene)for(const auto &draw:draws)use_global(draw.material);
         for(const auto *bank:{&background_draws,&dynamic_draws,&foreground_draws})
             for(const auto &draw:*bank)use_global(draw.material);
@@ -4327,7 +4462,49 @@ struct Renderer::Impl {
             if(!can_capture)throw FormatError("particle external23 requires a readable current scene surface");
             make_post_image(particle_scene,extent,format,VK_IMAGE_USAGE_TRANSFER_DST_BIT);
         }
-        if(particle_renderer)particle_renderer->prepare(prepared_particles,{particle_scene.view});
+        std::vector<std::optional<ParticlePreparedViewBounds>> prepared_bounds;
+        if(!prepared_particle_views.empty())prepared_bounds.resize(prepared_particles.size());
+        for(const auto &use:prepared_particle_views) {
+            if(use.device_address()!=NativeRuntimeAddress{reinterpret_cast<std::uintptr_t>(device)})
+                throw FormatError("Particle prepared view belongs to another native renderer");
+            const auto state=use.published_state();
+            const auto &input=use.state();
+            if(!particle_renderer || state.generation!=target_generation || state.local_view>=views.size() ||
+               !views[state.local_view].full_surface)
+                throw FormatError("Prepared particle view lacks its actual full-surface local view");
+            const auto &target_view=views[state.local_view];
+            auto physical=full_surface_viewport({target_view.left,target_view.top,target_view.width,target_view.height},extent.width,extent.height);
+            if(target_view.source_ui_viewport) {
+                const auto&r=*target_view.source_ui_viewport;
+                physical={float(r[1]),float(r[0]),float(r[3]-r[1]),float(r[2]-r[0])};
+            }
+            const int left=std::max(0,int(physical.left)),top=std::max(0,int(physical.top));
+            const int right=std::min(int(extent.width),int(physical.left+physical.width));
+            const int bottom=std::min(int(extent.height),int(physical.top+physical.height));
+            if(state.scissor!=std::array<std::int32_t,4>{left,top,right-left,bottom-top})
+                throw FormatError("Prepared particle view differs from the actual submitting view rectangle");
+            const auto &range=view_particle_ranges[state.local_view];
+            const auto first=state.foreground?range.foreground:range.world;
+            const auto count=state.foreground?range.foreground_count:range.world_count;
+            const auto &v=state.viewport;const auto&s=state.scissor;
+            for(std::size_t n=first;n<first+count;++n) {
+                auto &draw=prepared_particles[n];const auto program=particle_renderer->program(draw.material);
+                if(program.layout!=state.layout || program.classification<7 || program.classification>9 ||
+                   std::memcmp(draw.vertex.constants.data(),state.camera_constants.data(),12*sizeof(ShaderVector)) ||
+                   (draw.vertex.clip_range!=input.vertex_clip && draw.vertex.clip_range!=state.vertex_clip) ||
+                   (draw.depth.clip_range!=input.depth_clip && draw.depth.clip_range!=state.depth_clip) ||
+                   draw.depth.parameters!=state.depth_parameters)
+                    throw FormatError("Particle draw differs from its original prepared camera publication");
+                // Read the published allocation before prepare replaces its
+                // arena. These bytes become each actual draw's GPU inputs.
+                std::copy(state.camera_constants.begin(),state.camera_constants.end(),draw.vertex.constants.begin());
+                draw.vertex.clip_range=state.vertex_clip;draw.depth.clip_range=state.depth_clip;
+                prepared_bounds[n]=ParticlePreparedViewBounds{{v[0],v[1],v[2],v[3],v[4],v[5]},
+                    {{s[0],s[1]},{unsigned(s[2]),unsigned(s[3])}}};
+            }
+        }
+        prepared_particle_views.clear();
+        if(particle_renderer)particle_renderer->prepare(prepared_particles,{particle_scene.view},prepared_bounds);
 #endif
         std::vector<std::pair<std::size_t,std::size_t>> decal_ranges(views.size());
 #if HALO2_SOURCE_DECALS_AVAILABLE
@@ -4691,6 +4868,13 @@ struct Renderer::Impl {
                 post_views.push_back({view.camera,*view.atmosphere,rectangle,
                     source_player_bloom_screen_context(std::int16_t(post_views.size())),
                     view.projection_clip_planes.value_or(Vec2{.015625f,1024.f})});
+                // TU1.5 targets7/8 retain160x120 logical filter taps when the
+                // native single-view4:3 allocation scales with resolution.
+                if(!title_scene && !active_detail && views.size()==1 && view.full_surface &&
+                    !view.source_ui_viewport && view.left==0 && view.top==0 &&
+                    view.width==640 && view.height==480 &&
+                    std::uint64_t(rectangle.extent.width)*3==std::uint64_t(rectangle.extent.height)*4)
+                    post_views.back().source_bloom_filter_extent=Vec2{160,120};
             }
             bsp_postprocess->cinematic_bloom(campaign_cinematic,campaign_bloom);
             bsp_postprocess->prepare(post_views,views.front().effect_time);
@@ -4832,6 +5016,12 @@ struct Renderer::Impl {
                     uniform.diffuse=reference->facing;uniform.specular=reference->glancing;
                 }
                 uniform.program=response.words;
+                if(pstencil_environment_companion_slots.contains(unsigned(m)))uniform.texture_effects[1][1]|=32u;
+            } else if(display.graphics_mode==pstencil::GraphicsMode::pStencil &&
+                      pstencil_environment_companions[material_roots[m]]!=~0u &&
+                      pstencil_combined_visors[m]) {
+                PixelProgram response{uniform.program,material_fragment_offsets[m]};
+                pstencil::suppress_combined_visor_environment(response);uniform.program=response.words;
             } else if(display.graphics_mode==pstencil::GraphicsMode::pStencil && pstencil_combined_environment_strengths[m]) {
                 PixelProgram response{uniform.program,material_fragment_offsets[m]};
                 pstencil::adapt_combined_environment_strength(response,pstencil_environment_parameters[m],pstencil_polished_armor[m]);
@@ -4845,7 +5035,8 @@ struct Renderer::Impl {
             void *mapped{};
             for(std::size_t i=0;i<views.size();++i) if(views[i].atmosphere) {
                 if(!bsp_atmosphere)throw FormatError("viewport atmosphere gradient is unbound");
-                const auto selected=bsp_fog_draw(*views[i].atmosphere,1024.f,fog_draw_controls);
+                const float camera_w=views[i].projection_clip_planes ? views[i].projection_clip_planes->y : 1024.f;
+                const auto selected=bsp_fog_draw(*views[i].atmosphere,camera_w,fog_draw_controls);
                 if(!selected)continue;
                 view_fog_enabled[i]=true;const auto &composite=*selected;
                 check(vkMapMemory(device,view_fog_memories[i],0,272,0,&mapped),"map viewport fog composite");
@@ -4921,6 +5112,8 @@ struct Renderer::Impl {
             };
             for(auto &draw:list) {
                 draw.object_alias=owner;add(draw.material,draw.lightmap);
+                if(pstencil_enabled)add(pstencil_texture_mask_materials[draw.material],draw.lightmap);
+                if(pstencil_enabled)add(pstencil_environment_companions[draw.material],draw.lightmap);
                 add(environment_materials[draw.material],draw.lightmap);
                 for(auto m:world_before[draw.material])add(m,draw.lightmap);
                 for(auto m:world_after[draw.material])add(m,draw.lightmap);
@@ -4960,6 +5153,8 @@ struct Renderer::Impl {
                     for(const auto &draw:draws) {
                         const auto m=draw.material;
                         add(m);add(environment_materials[m]);add(planar_materials[m]);
+                        if(pstencil_enabled)add(pstencil_texture_mask_materials[m]);
+                        if(pstencil_enabled)add(pstencil_environment_companions[m]);
                         for(const auto child:world_before[m])add(child);
                         for(const auto child:world_after[m])add(child);
                         for(const auto child:world_bloom[m])add(child);
@@ -5190,7 +5385,6 @@ struct Renderer::Impl {
 #endif
         struct EffectLightRecord {unsigned material{},first{},count{},binding{};};
         std::vector<std::vector<EffectLightRecord>> light_views(views.size());
-        const bool pstencil_enabled=display.graphics_mode==pstencil::GraphicsMode::pStencil;
         std::size_t pstencil_specular_count{};
         if(pstencil_enabled)for(const auto& view:views)for(const auto& draw:view.raw_effect_lights)
             if(draw.pstencil_specular)pstencil_specular_count+=draw.pstencil_specular->size();
@@ -5212,6 +5406,7 @@ struct Renderer::Impl {
         }
         pstencil::Frame pstencil_frame(views.size());
         std::vector<std::vector<std::size_t>> raw_light_views(views.size());
+        std::set<std::size_t> pstencil_response_receivers;
         for(std::size_t i=0;i<views.size();++i)for(const auto &draw:views[i].raw_effect_lights) {
             auto &uniform=light_uniforms.emplace_back(view_material_uniform(views[i],draw.material_slot));
             uniform.program=draw.program.words;
@@ -5220,15 +5415,20 @@ struct Renderer::Impl {
             light_uploads.push_back({textures.at(draw.material_slot).descriptor,
                 {reinterpret_cast<const std::byte*>(&uniform),sizeof(uniform)},draw.vertex_bank});
             auto& specular_indices=pstencil_specular_indices[i].emplace_back();
-            if(pstencil_enabled && draw.pstencil_specular)for(const auto& specular:*draw.pstencil_specular) {
-                auto& vertices=pstencil_specular_vertices.emplace_back(pstencil::posed_triangles(draw.source,specular.material_slot));
-                const auto first=unsigned(vertex_count());append_raw_frame(vertices);
+            // All companion phases use this receiver's identical posed stream.
+            // Material is descriptor-selected, not a vertex input attribute.
+            unsigned response_first{},response_count{};
+            if(pstencil_enabled && draw.pstencil_specular && !draw.pstencil_specular->empty()) {
+                auto& vertices=pstencil_specular_vertices.emplace_back(pstencil::posed_triangles(draw.source,draw.pstencil_specular->front().material_slot));
+                response_first=unsigned(vertex_count());response_count=unsigned(vertices.size());append_raw_frame(vertices);
                 if(vertex_count()>dynamic_limit)throw FormatError("pStencil specular geometry exceeds frame capacity");
+            }
+            if(pstencil_enabled && draw.pstencil_specular)for(const auto& specular:*draw.pstencil_specular) {
                 auto& specular_uniform=light_uniforms.emplace_back(view_material_uniform(views[i],specular.material_slot));
                 specular_uniform.program=specular.program.words;
                 specular_uniform.vertex_attributes=specular.constants[0];specular_uniform.vertex_constants=specular.constants[1];
                 specular_indices.push_back(pstencil_specular_views[i].size());
-                pstencil_specular_views[i].push_back({specular.material_slot,first,unsigned(vertices.size()),unsigned(light_uploads.size())});
+                pstencil_specular_views[i].push_back({specular.material_slot,response_first,response_count,unsigned(light_uploads.size())});
                 light_uploads.push_back({textures.at(specular.material_slot).descriptor,
                     {reinterpret_cast<const std::byte*>(&specular_uniform),sizeof(specular_uniform)},specular.vertex_bank});
             }
@@ -5258,8 +5458,9 @@ struct Renderer::Impl {
                 MenuWorldNativePacketInput input{scaled_source,generated_menu_world_vertex_catalog::entries,
                     light_uniforms[upload]};
                 input.fragment_offsets=draw.program.fragment_offsets;
-                input.forward=material_forward_states.at(slot);input.forward_blend=10;
-                if(pstencil_enabled)input.forward=pstencil::light_accumulation_state(input.forward);
+                input.forward=material_forward_states.at(slot);input.forward_blend=effect_light_blends.at(slot);
+                input.vertex_attribute_components=draw.vertex_attribute_components;
+                input.fog_alpha_bound=draw.pstencil_light_domain==2;
                 input.texture_states=stage_sampler_states.at(slot);
                 input.sampler_limits={enabled.maximum_lod_bias,enabled.maximum_anisotropy,
                     enabled.anisotropy_enabled,enabled.custom_border_colors_enabled};
@@ -5291,6 +5492,10 @@ struct Renderer::Impl {
                     if(image.source_image && (image.view || image.cube_view))input.images[stage]=&image.source_shape;
                 }
                 raw_light_views[i][j]=raw_light_inputs.size();
+                if(pstencil_enabled && draw.pstencil_specular && (draw.pstencil_specular->empty() ||
+                    std::any_of(pstencil_specular_indices[i][j].begin(),pstencil_specular_indices[i][j].end(),[&](auto index) {
+                    return pstencil_response_phases.at(pstencil_specular_views[i].at(index).material)==2;
+                })))pstencil_response_receivers.insert(raw_light_inputs.size());
                 if(pstencil_enabled)pstencil_frame.add(i,draw,raw_light_inputs.size(),pstencil_specular_indices[i][j],
                     !views[i].pstencil_native_point_casters);
                 if(pstencil_enabled)input.raster=pstencil::receiver_raster(input.raster);
@@ -5669,15 +5874,26 @@ struct Renderer::Impl {
                 if(!layer_enabled(material))continue;
                 emit_bsp_draw(draw,material,debug_buffer,RendererBspDrawPhase::environment);
             }
+            if(pstencil_enabled)for(const auto& draw:list)if(draw.count && draw_visible(draw)) {
+                const auto material=pstencil_environment_companions[draw.material];
+                if(material!=~0u && layer_enabled(material)) {
+                    emit_bsp_draw(draw,material,debug_buffer,RendererBspDrawPhase::environment);
+                    pstencil::trace_visor_environment(source_frames_submitted,
+                        source_material_identities[material][1],draw.count);
+                }
+            }
             draw_overlays(list,false,debug_buffer);
             draw_texture_mapping_overlays(list,debug_buffer);
             draw_overlays(list,true,debug_buffer);
         };
         auto base_dynamic=[&](const std::vector<Draw>& list) {
             vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
-            for(const auto &draw:list)if(draw.count && draw_visible(draw) && environment_materials[draw.material]!=~0u) {
-                if(!layer_enabled(draw.material))continue;
-                emit_bsp_draw(draw,draw.material,debug_buffer,RendererBspDrawPhase::accumulation_base);
+            for(const auto &draw:list)if(draw.count && draw_visible(draw)) {
+                const auto material=pstencil_enabled && pstencil_texture_mask_materials[draw.material]!=~0u?
+                    pstencil_texture_mask_materials[draw.material]:environment_materials[draw.material]!=~0u?draw.material:
+                    pstencil_enabled?pstencil_texture_mask_materials[draw.material]:~0u;
+                if(material==~0u || !layer_enabled(draw.material))continue;
+                emit_bsp_draw(draw,material,debug_buffer,RendererBspDrawPhase::accumulation_base);
             }
         };
         auto composite_view_fog=[&](VkDescriptorSet descriptor) {
@@ -5720,10 +5936,12 @@ struct Renderer::Impl {
             {vkCmdBeginRenderPass(command,&target,VK_SUBPASS_CONTENTS_INLINE);capture_target(target);}
             sky_raster=true;base_dynamic(background_draws);sky_raster=false;
             vkCmdBindVertexBuffers(command,0,1,&vertex_buffer,&offset);
-            for(const auto &draw:draws) if(!full_surface_scene && environment_materials[draw.material]!=~0u) {
-                material_pipeline(draw.material);
-                vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&draw.descriptor,1,&material_bank_offset);
-                vkCmdDraw(command,draw.count,1,draw.first,0);
+            for(const auto &draw:draws) if(!full_surface_scene) {
+                const auto material=pstencil_enabled && pstencil_texture_mask_materials[draw.material]!=~0u?
+                    pstencil_texture_mask_materials[draw.material]:environment_materials[draw.material]!=~0u?draw.material:
+                    pstencil_enabled?pstencil_texture_mask_materials[draw.material]:~0u;
+                if(material==~0u)continue;
+                emit_bsp_draw(draw,material,vertex_buffer,RendererBspDrawPhase::accumulation_base);
             }
             base_dynamic(dynamic_draws);
             VkClearAttachment depth_clear{};depth_clear.aspectMask=VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -6323,6 +6541,28 @@ struct Renderer::Impl {
                 if(!raw_light_views[i].empty()){vkCmdSetViewport(command,0,1,&raw_light_viewport);capture_viewport(raw_light_viewport);}
                 if(pstencil_enabled && !pstencil_frame.lights(i).empty()) {
                     capture_unknown();pstencil_render->begin(command,index);
+                    const auto draw_response=[&](std::size_t receiver) {
+                        const auto& draw=pstencil_specular_views[i].at(receiver);material_pipeline(draw.material);
+                        const auto descriptor=light_descriptors[draw.binding];constexpr std::uint32_t dynamic_offset=0;
+                        vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&dynamic_offset);
+                        vkCmdDraw(command,draw.count,1,draw.first,0);
+                    };
+                    const auto phase=[&](auto receiver) {
+                        return pstencil_response_phases.at(pstencil_specular_views[i].at(receiver).material);
+                    };
+                    const bool normals=std::any_of(pstencil_specular_views[i].begin(),pstencil_specular_views[i].end(),[&](const auto& draw){return pstencil_response_phases.at(draw.material)==3;});
+                    if(normals) {
+                        vkCmdSetViewport(command,0,1,&model_view);vkCmdSetScissor(command,0,1,&clip);
+                        vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
+                        vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
+                        // Build target9 once per view. Only depth-matched source
+                        // receivers write it; each light subsequently reads the
+                        // same normal/alpha while its own stencil gates target10.
+                        pstencil_render->normals(command,[&] {
+                            for(const auto& light:pstencil_frame.lights(i))
+                                for(const auto receiver:light.specular_receivers)if(phase(receiver)==3)draw_response(receiver);
+                        });
+                    }
                     for(const auto& light:pstencil_frame.lights(i)) {
                         if(!v.source_view_shader_constants)
                             throw FormatError("pStencil requires the current source camera bank");
@@ -6335,16 +6575,16 @@ struct Renderer::Impl {
                         volume_camera.control={model_uniform.eye.w,1,1,0};
                         pstencil_render->light(command,light.upload,volume_camera,model_view,clip,[&] {
                             vkCmdSetViewport(command,0,1,&raw_light_viewport);vkCmdSetScissor(command,0,1,&clip);
-                            for(const auto draw:light.receivers)effect_light_native->record(command,draw);
+                            for(const auto draw:light.receivers)if(!pstencil_response_receivers.contains(draw))effect_light_native->record(command,draw);
                             vkCmdSetViewport(command,0,1,&model_view);vkCmdSetScissor(command,0,1,&clip);
                             vkCmdPushConstants(command,pipeline_layout,VK_SHADER_STAGE_VERTEX_BIT,0,sizeof(model_uniform),&model_uniform);
                             vkCmdBindVertexBuffers(command,0,1,&debug_buffer,&offset);
-                            for(const auto receiver:light.specular_receivers) {
-                                const auto& draw=pstencil_specular_views[i].at(receiver);material_pipeline(draw.material);
-                                const auto descriptor=light_descriptors[draw.binding];constexpr std::uint32_t dynamic_offset=0;
-                                vkCmdBindDescriptorSets(command,VK_PIPELINE_BIND_POINT_GRAPHICS,pipeline_layout,0,1,&descriptor,1,&dynamic_offset);
-                                vkCmdDraw(command,draw.count,1,draw.first,0);
-                            }
+                            const bool utility=std::any_of(light.specular_receivers.begin(),light.specular_receivers.end(),[&](auto receiver){return phase(receiver)==1 || phase(receiver)==4;});
+                            if(utility)pstencil_render->utility(command,[&] {
+                                for(const auto receiver:light.specular_receivers)if(phase(receiver)==1 || phase(receiver)==4)draw_response(receiver);
+                            });
+                            for(const auto receiver:light.specular_receivers)
+                                if(phase(receiver)==0 || phase(receiver)==2)draw_response(receiver);
                         });
                     }
                     pstencil_render->end(command,framebuffers[index]);
@@ -6871,10 +7111,14 @@ struct Renderer::Impl {
             file << "P6\n" << presentation_extent.width << ' ' << presentation_extent.height << "\n255\n";
             const auto pixels = static_cast<const unsigned char*>(mapped);
             const bool bgra = format == VK_FORMAT_B8G8R8A8_SRGB || format == VK_FORMAT_B8G8R8A8_UNORM;
-            for (std::size_t i = 0; i < std::size_t(presentation_extent.width) * presentation_extent.height; ++i) {
-                const char rgb[]{char(pixels[i * 4 + (bgra ? 2 : 0)]), char(pixels[i * 4 + 1]), char(pixels[i * 4 + (bgra ? 0 : 2)])};
-                file.write(rgb, 3);
+            const auto pixel_count=std::size_t(presentation_extent.width)*presentation_extent.height;
+            std::vector<char> rgb(pixel_count*3);
+            for (std::size_t i = 0; i < pixel_count; ++i) {
+                rgb[i*3]=char(pixels[i*4+(bgra?2:0)]);
+                rgb[i*3+1]=char(pixels[i*4+1]);
+                rgb[i*3+2]=char(pixels[i*4+(bgra?0:2)]);
             }
+            file.write(rgb.data(),std::streamsize(rgb.size()));
             if (!file) throw std::runtime_error("failed writing screenshot");
             std::cout << "Captured " << screenshot.string() << " (" << presentation_extent.width << 'x' << presentation_extent.height << ")\n";
             if(depth_capture) {
@@ -7016,6 +7260,64 @@ void Renderer::require_lens_bitmap(unsigned material,const Texture &source)const
        image.source_pixel_fingerprint!=Impl::texture_pixel_fingerprint(source) || image.source_mutated ||
        !image.source_image || !image.view || source.layers!=1 || source.depth || source.mips.empty())
         throw FormatError("Native lens bitmap publication lacks its actual uploaded source image");
+}
+RendererParticleView Renderer::prepare_particle_views(std::span<const RendererParticleViewInput> views) {
+    const auto owner=device_lease().acquire();
+#ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
+    if(std::this_thread::get_id()!=impl_->particle_view_thread)
+        throw FormatError("Particle view preparation requires the renderer's owning thread");
+    if(impl_->dirty)throw FormatError("Particle view preparation requires current realized render targets");
+    std::array<bool,8> used{};
+    for(const auto &v:views) {
+        if(v.local_view>=4 || used[v.local_view*2+v.foreground])
+            throw FormatError("Particle view preparation requires unique actual local-view/foreground contexts");
+        used[v.local_view*2+v.foreground]=true;
+    }
+    check(vkWaitForFences(impl_->device,1,&impl_->fence,VK_TRUE,UINT64_MAX),"wait prepared particle view resources");
+    if(!impl_->particle_renderer)impl_->particle_renderer=std::make_unique<ParticleRenderer>(
+        impl_->physical,impl_->device,impl_->queue,impl_->queue_family,impl_->render_pass,impl_->shader_directory);
+    impl_->particle_renderer->prepare_views(views,impl_->extent.width,impl_->extent.height);
+    auto control=particle_view_inputs();impl_->prepared_particle_views.clear();
+    for(std::size_t n=0;n<views.size();++n)impl_->prepared_particle_views.push_back(control.acquire(n));
+    return control;
+#else
+    (void)views;throw FormatError("Particle view preparation requires compiled original shaders");
+#endif
+}
+RendererParticleView Renderer::particle_view_inputs() {
+#ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
+    if(std::this_thread::get_id()!=impl_->particle_view_thread)
+        throw FormatError("Particle view observation requires the renderer's owning thread");
+#endif
+    const std::weak_ptr<Impl> owner=impl_;
+    return RendererParticleView::issue(device_lease(),[owner](std::size_t draw) {
+        auto impl=owner.lock();if(!impl)throw FormatError("Particle view renderer has retired");
+#ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
+        if(!impl->particle_renderer)throw FormatError("Particle view has no prepared native subrenderer");
+        auto state=impl->particle_renderer->view_inputs(draw);
+        state.generation=impl->target_generation;state.surface_width=impl->extent.width;state.surface_height=impl->extent.height;
+        return state;
+#else
+        (void)draw;throw FormatError("Particle view requires compiled original source shaders");
+        return RendererParticleViewState{};
+#endif
+    },[owner](std::uint64_t generation,std::uint64_t revision) {
+        auto impl=owner.lock();
+#ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
+        return impl && impl->target_generation==generation && impl->particle_renderer &&
+            impl->particle_renderer->view_revision()==revision;
+#else
+        (void)generation;(void)revision;return false;
+#endif
+    },[owner](std::size_t draw,std::span<const ShaderVector,12> camera,ShaderVector clip) {
+        auto impl=owner.lock();if(!impl)throw FormatError("Prepared particle view renderer has retired");
+#ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
+        if(!impl->particle_renderer)throw FormatError("Prepared particle view allocation has retired");
+        impl->particle_renderer->publish_view(draw,camera,clip);
+#else
+        (void)draw;(void)camera;(void)clip;throw FormatError("Prepared particle view has no original shaders");
+#endif
+    });
 }
 RendererParticleProgram Renderer::particle_program_control() {
     const std::weak_ptr<Impl> owner=impl_;

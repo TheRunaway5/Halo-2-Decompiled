@@ -12,6 +12,8 @@ class CinematicAnimationAssets {
 public:
   explicit CinematicAnimationAssets(const Cache &);
   ~CinematicAnimationAssets();
+  // Resolve MCC emotion names to the original111080 namespace; OG IDs pass through.
+  std::uint32_t unit_emotion_name_tu15(std::uint32_t)const;
   std::shared_ptr<const AnimationClip> animation(std::uint32_t graph,std::uint32_t name);
   UnitAnimationDefinition definition(const AnimationClip &)const;
   const RenderModel &hierarchy(std::uint32_t object_definition);

@@ -1,0 +1,3294 @@
+{
+  "schema": 1,
+  "scenario_path": "scenarios\\solo\\01b_spacestation\\01b_spacestation",
+  "reference": "Exact OG Xbox scenario control-flow compared against installed MCC; TU1.5 16E510 defines free-node representation. Executable/reference maps are never read at runtime.",
+  "mcc_dll_sha256": "de65b4f4fdbf3f0a5eab7431fe530da17dd815599182dfd6ae9b7e21cf171946",
+  "xbox_tu15_xbe_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "retired_row_hex": "0000babababababababababababababababababa",
+  "subtrees": [
+    {
+      "name": "x02_scene_01",
+      "type": 3,
+      "root": 3936356141,
+      "rows": [
+        {
+          "datum": 3928098479,
+          "raw": "22ea2b0204000800b50628ea594c0000b00623ea"
+        },
+        {
+          "datum": 3928164016,
+          "raw": "23ea2b0202000900b10624ea6500000000000000"
+        },
+        {
+          "datum": 3928229553,
+          "raw": "24ea060006000900b20625ea634c00000000803f"
+        },
+        {
+          "datum": 3928295090,
+          "raw": "25ea060006000900b30626ea654c00000000803f"
+        },
+        {
+          "datum": 3928360627,
+          "raw": "26ea060006000900b40627ea674c00000000803f"
+        },
+        {
+          "datum": 3928426164,
+          "raw": "27ea070007000900ffffffff694c00000000ffff"
+        },
+        {
+          "datum": 3928491701,
+          "raw": "28eac30104000800b8062bea704c0000b60629ea"
+        },
+        {
+          "datum": 3928557238,
+          "raw": "29eac30102000900b7062aea4600000000000000"
+        },
+        {
+          "datum": 3928622775,
+          "raw": "2aea050005000900ffffffff804c000001ffffff"
+        },
+        {
+          "datum": 3928688312,
+          "raw": "2bea7f0304000800bb062eea864c0000b9062cea"
+        },
+        {
+          "datum": 3928753849,
+          "raw": "2cea7f0302000900ba062dea0c0d000000000000"
+        },
+        {
+          "datum": 3928819386,
+          "raw": "2dea090009000900ffffffff220d0000220d0000"
+        },
+        {
+          "datum": 3928884923,
+          "raw": "2eea2c0204000800bd0630eab14c0000bc062fea"
+        },
+        {
+          "datum": 3928950460,
+          "raw": "2fea2c0202000900ffffffff5500000000000000"
+        },
+        {
+          "datum": 3929015997,
+          "raw": "30ea040004000800c10634eac54c0000be0631ea"
+        },
+        {
+          "datum": 3929081534,
+          "raw": "31ea040002000900bf0632ea310d000000000000"
+        },
+        {
+          "datum": 3929147071,
+          "raw": "32eaffff08000d00c00633ea350d0000d283ffff"
+        },
+        {
+          "datum": 3929212608,
+          "raw": "33ea080008000900ffffffffe44c000001000000"
+        },
+        {
+          "datum": 3929278145,
+          "raw": "34eace0104000800c50638eae94c0000c20635ea"
+        },
+        {
+          "datum": 3929343682,
+          "raw": "35eace0102000900c30636ea4f0d000000000000"
+        },
+        {
+          "datum": 3929409219,
+          "raw": "36ea060006000900c40637ea034d000000007042"
+        },
+        {
+          "datum": 3929474756,
+          "raw": "37ea070007000900ffffffff064d00000000ffff"
+        },
+        {
+          "datum": 3929540293,
+          "raw": "38ea180004000a00c7063aea544d0000c60639ea"
+        },
+        {
+          "datum": 3929605830,
+          "raw": "39ea180002000900ffffffff680d000000000000"
+        },
+        {
+          "datum": 3929671367,
+          "raw": "3aea550204000800ca063dea6c4d0000c8063bea"
+        },
+        {
+          "datum": 3929736904,
+          "raw": "3bea550202000900c9063cea7c0d000000000000"
+        },
+        {
+          "datum": 3929802441,
+          "raw": "3cea200020000900ffffffffce050000cd210884"
+        },
+        {
+          "datum": 3929867978,
+          "raw": "3dea550204000800cd0640eabc4d0000cb063eea"
+        },
+        {
+          "datum": 3929933515,
+          "raw": "3eea550202000900cc063fea7c0d000000000000"
+        },
+        {
+          "datum": 3929999052,
+          "raw": "3fea200020000900ffffffff920d0000d6211184"
+        },
+        {
+          "datum": 3930064589,
+          "raw": "40ea130004000800d00643ea0d4e0000ce0641ea"
+        },
+        {
+          "datum": 3930130126,
+          "raw": "41ea130002000900cf0642ea6e00000000000000"
+        },
+        {
+          "datum": 3930195663,
+          "raw": "42ea070007000d00ffffffffc90d000011000000"
+        },
+        {
+          "datum": 3930261200,
+          "raw": "43ea3a0004000a00d20645ea2b4e0000d10644ea"
+        },
+        {
+          "datum": 3930326737,
+          "raw": "44ea3a0002000900ffffffffdb0d000000000000"
+        },
+        {
+          "datum": 3930392274,
+          "raw": "45eac70104000800d8064bea3e4e0000d30646ea"
+        },
+        {
+          "datum": 3930457811,
+          "raw": "46eac70102000900d40647eae80d000000000000"
+        },
+        {
+          "datum": 3930523348,
+          "raw": "47ea240024000900d50648ea060e0000d7211284"
+        },
+        {
+          "datum": 3930588885,
+          "raw": "48ea0b000b000900d60649ea320e0000e2360006"
+        },
+        {
+          "datum": 3930654422,
+          "raw": "49ea330033000900d7064aea04060000ffffffff"
+        },
+        {
+          "datum": 3930719959,
+          "raw": "4aea0e000e000900ffffffff390e000011000000"
+        },
+        {
+          "datum": 3930785496,
+          "raw": "4beacc0004000800df0652eab14e0000d9064cea"
+        },
+        {
+          "datum": 3930851033,
+          "raw": "4ceacc0002000900da064dea4c0e000000000000"
+        },
+        {
+          "datum": 3930916570,
+          "raw": "4dea390033000900db064eeaa00600005601ffff"
+        },
+        {
+          "datum": 3930982107,
+          "raw": "4eea240024000900dc064fea660e0000d8211384"
+        },
+        {
+          "datum": 3931047644,
+          "raw": "4fea0b000b000900dd0650ea8d0e0000ed360008"
+        },
+        {
+          "datum": 3931113181,
+          "raw": "50ea050005000900de0651ea0b4f000000ffffff"
+        },
+        {
+          "datum": 3931178718,
+          "raw": "51ea380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 3931244255,
+          "raw": "52eacc0004000800e60659ea224f0000e00653ea"
+        },
+        {
+          "datum": 3931309792,
+          "raw": "53eacc0002000900e10654ea4c0e000000000000"
+        },
+        {
+          "datum": 3931375329,
+          "raw": "54ea390033000900e20655ea080700005501ffff"
+        },
+        {
+          "datum": 3931440866,
+          "raw": "55ea240024000900e30656ea1d0b0000d4210f84"
+        },
+        {
+          "datum": 3931506403,
+          "raw": "56ea0b000b000900e40657eaa40e0000c036000a"
+        },
+        {
+          "datum": 3931571940,
+          "raw": "57ea050005000900e50658ea7b4f000000ffffff"
+        },
+        {
+          "datum": 3931637477,
+          "raw": "58ea380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 3931703014,
+          "raw": "59eacc0004000800ed0660ea944f0000e7065aea"
+        },
+        {
+          "datum": 3931768551,
+          "raw": "5aeacc0002000900e8065bea4c0e000000000000"
+        },
+        {
+          "datum": 3931834088,
+          "raw": "5bea390033000900e9065ceaf30900006401ffff"
+        },
+        {
+          "datum": 3931899625,
+          "raw": "5cea240024000900ea065dea1d0b0000d4210f84"
+        },
+        {
+          "datum": 3931965162,
+          "raw": "5dea0b000b000900eb065eeaaf0e0000cd36000b"
+        },
+        {
+          "datum": 3932030699,
+          "raw": "5eea050005000900ec065feaee4f000000ffffff"
+        },
+        {
+          "datum": 3932096236,
+          "raw": "5fea380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 3932161773,
+          "raw": "60eacc0004000800f40667ea05500000ee0661ea"
+        },
+        {
+          "datum": 3932227310,
+          "raw": "61eacc0002000900ef0662ea4c0e000000000000"
+        },
+        {
+          "datum": 3932292847,
+          "raw": "62ea390033000900f00663ea020a00006501ffff"
+        },
+        {
+          "datum": 3932358384,
+          "raw": "63ea240024000900f10664ea1d0b0000d4210f84"
+        },
+        {
+          "datum": 3932423921,
+          "raw": "64ea0b000b000900f20665eabb0e0000d536000b"
+        },
+        {
+          "datum": 3932489458,
+          "raw": "65ea050005000900f30666ea5f50000000ffffff"
+        },
+        {
+          "datum": 3932554995,
+          "raw": "66ea380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 3932620532,
+          "raw": "67eabb0004000800fa066dea78500000f50668ea"
+        },
+        {
+          "datum": 3932686069,
+          "raw": "68eabb0002000900f60669eac70e000000000000"
+        },
+        {
+          "datum": 3932751606,
+          "raw": "69ea3d0037000900f7066aea110a00004000ffff"
+        },
+        {
+          "datum": 3932817143,
+          "raw": "6aea240024000900f8066beae80e0000d9211484"
+        },
+        {
+          "datum": 3932882680,
+          "raw": "6bea0b000b000900f9066cea140f0000f436000c"
+        },
+        {
+          "datum": 3932948217,
+          "raw": "6cea380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 3933013754,
+          "raw": "6deabb0004000800000773eaf2500000fb066eea"
+        },
+        {
+          "datum": 3933079291,
+          "raw": "6eeabb0002000900fc066feac70e000000000000"
+        },
+        {
+          "datum": 3933144828,
+          "raw": "6fea3d0037000900fd0670ea1d0a00003e00ffff"
+        },
+        {
+          "datum": 3933210365,
+          "raw": "70ea240024000900fe0671ea210f0000da211584"
+        },
+        {
+          "datum": 3933275902,
+          "raw": "71ea0b000b000900ff0672ea470f0000f536000f"
+        },
+        {
+          "datum": 3933341439,
+          "raw": "72ea380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 3933406976,
+          "raw": "73eabb0004000800060779ea6a510000010774ea"
+        },
+        {
+          "datum": 3933472513,
+          "raw": "74eabb0002000900020775eac70e000000000000"
+        },
+        {
+          "datum": 3933538050,
+          "raw": "75ea3d0037000900030776ea2a0a00003f00ffff"
+        },
+        {
+          "datum": 3933603587,
+          "raw": "76ea240024000900040777ea210f0000da211584"
+        },
+        {
+          "datum": 3933669124,
+          "raw": "77ea0b000b000900050778ea570f0000f636000f"
+        },
+        {
+          "datum": 3933734661,
+          "raw": "78ea380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 3933800198,
+          "raw": "79ea13000400080009077ceaf551000007077aea"
+        },
+        {
+          "datum": 3933865735,
+          "raw": "7aea13000200090008077bea6e00000000000000"
+        },
+        {
+          "datum": 3933931272,
+          "raw": "7bea070007000900fffffffffc5100001400ffff"
+        },
+        {
+          "datum": 3933996809,
+          "raw": "7cea2a02040008000f0782ea045200000a077dea"
+        },
+        {
+          "datum": 3934062346,
+          "raw": "7dea2a02020009000b077eea4102000000000000"
+        },
+        {
+          "datum": 3934127883,
+          "raw": "7eea0600060009000c077fea0d5200000000803f"
+        },
+        {
+          "datum": 3934193420,
+          "raw": "7fea0600060009000d0780ea0f5200000000803f"
+        },
+        {
+          "datum": 3934258957,
+          "raw": "80ea0600060009000e0781ea115200000000803f"
+        },
+        {
+          "datum": 3934324494,
+          "raw": "81ea070007000900ffffffff135200000f00ffff"
+        },
+        {
+          "datum": 3934390031,
+          "raw": "82ea130004000800160789ea62520000100783ea"
+        },
+        {
+          "datum": 3934455568,
+          "raw": "83ea130002000900110784ea6e00000000000000"
+        },
+        {
+          "datum": 3934521105,
+          "raw": "84ea080007000800ffffffff69520000120785ea"
+        },
+        {
+          "datum": 3934586642,
+          "raw": "85ea080002000900130786ea670f000000000000"
+        },
+        {
+          "datum": 3934652179,
+          "raw": "86eacd0106000800150788ea6c520000140787ea"
+        },
+        {
+          "datum": 3934717716,
+          "raw": "87eacd0102000900ffffffff690f000000000000"
+        },
+        {
+          "datum": 3934783253,
+          "raw": "88ea060006000d00ffffffff750f000010000000"
+        },
+        {
+          "datum": 3934848790,
+          "raw": "89ea55020400080019078cea8b52000017078aea"
+        },
+        {
+          "datum": 3934914327,
+          "raw": "8aea55020200090018078bea7c0d000000000000"
+        },
+        {
+          "datum": 3934979864,
+          "raw": "8bea200020000900ffffffff920d0000d6211184"
+        },
+        {
+          "datum": 3935045401,
+          "raw": "8cea130004000800200793eade5200001a078dea"
+        },
+        {
+          "datum": 3935110938,
+          "raw": "8dea1300020009001b078eea6e00000000000000"
+        },
+        {
+          "datum": 3935176475,
+          "raw": "8eea080007000800ffffffffe55200001c078fea"
+        },
+        {
+          "datum": 3935242012,
+          "raw": "8fea0800020009001d0790ea670f000000000000"
+        },
+        {
+          "datum": 3935307549,
+          "raw": "90eacd01060008001f0792eae85200001e0791ea"
+        },
+        {
+          "datum": 3935373086,
+          "raw": "91eacd0102000900ffffffff690f000000000000"
+        },
+        {
+          "datum": 3935438623,
+          "raw": "92ea060006000900fffffffff652000000007041"
+        },
+        {
+          "datum": 3935504160,
+          "raw": "93ea360004000a00220795eafd520000210794ea"
+        },
+        {
+          "datum": 3935569697,
+          "raw": "94ea360002000900ffffffff820f000000000000"
+        },
+        {
+          "datum": 3935635234,
+          "raw": "95ea2b020400080028079bea19530000230796ea"
+        },
+        {
+          "datum": 3935700771,
+          "raw": "96ea2b0202000900240797ea6500000000000000"
+        },
+        {
+          "datum": 3935766308,
+          "raw": "97ea060006000900250798ea235300000000803f"
+        },
+        {
+          "datum": 3935831845,
+          "raw": "98ea060006000900260799ea255300000000803f"
+        },
+        {
+          "datum": 3935897382,
+          "raw": "99ea06000600090027079aea275300000000803f"
+        },
+        {
+          "datum": 3935962919,
+          "raw": "9aea070007000900ffffffff295300000f00ffff"
+        },
+        {
+          "datum": 3936028456,
+          "raw": "9bea1300040008002b079eea2f53000029079cea"
+        },
+        {
+          "datum": 3936093993,
+          "raw": "9cea1300020009002a079dea6e00000000000000"
+        },
+        {
+          "datum": 3936159530,
+          "raw": "9dea070007000900ffffffff365300000f00ffff"
+        },
+        {
+          "datum": 3936225067,
+          "raw": "9eea3b0004000a00ffffffff3e5300002c079fea"
+        },
+        {
+          "datum": 3936290604,
+          "raw": "9fea3b0002000900ffffffff980f000000000000"
+        },
+        {
+          "datum": 3936356141,
+          "raw": "a0ea000004000800ffffffff344c00002e07a1ea"
+        },
+        {
+          "datum": 3936421678,
+          "raw": "a1ea000002000900af0622ea1f00000000000000"
+        }
+      ],
+      "strings": [
+        {
+          "offset": 31,
+          "text": "begin"
+        },
+        {
+          "offset": 70,
+          "text": "camera_control"
+        },
+        {
+          "offset": 85,
+          "text": "cinematic_start"
+        },
+        {
+          "offset": 101,
+          "text": "fade_out"
+        },
+        {
+          "offset": 110,
+          "text": "sleep"
+        },
+        {
+          "offset": 577,
+          "text": "fade_in"
+        },
+        {
+          "offset": 1486,
+          "text": "sound\\cinematics\\01_spacestation\\x02\\music\\x02_01_mus"
+        },
+        {
+          "offset": 1696,
+          "text": "chief_x02_01"
+        },
+        {
+          "offset": 1800,
+          "text": "johnson_x02_01"
+        },
+        {
+          "offset": 2547,
+          "text": "marine_door_01"
+        },
+        {
+          "offset": 2562,
+          "text": "marine_door_02"
+        },
+        {
+          "offset": 2577,
+          "text": "johnson_hat"
+        },
+        {
+          "offset": 2589,
+          "text": "x02_drone_01"
+        },
+        {
+          "offset": 2602,
+          "text": "x02_drone_02"
+        },
+        {
+          "offset": 2845,
+          "text": "objects\\characters\\marine\\x02\\x02"
+        },
+        {
+          "offset": 3340,
+          "text": "cinematic_start_movie"
+        },
+        {
+          "offset": 3362,
+          "text": "spacestation_1"
+        },
+        {
+          "offset": 3377,
+          "text": "set"
+        },
+        {
+          "offset": 3381,
+          "text": "cinematic_letterbox_style"
+        },
+        {
+          "offset": 3407,
+          "text": "camera_set_field_of_view"
+        },
+        {
+          "offset": 3432,
+          "text": "x02_01_predict_stub"
+        },
+        {
+          "offset": 3452,
+          "text": "sound_impulse_predict"
+        },
+        {
+          "offset": 3474,
+          "text": "sound\\cinematics\\01_spacestation\\x02\\foley\\x02_01b_fol"
+        },
+        {
+          "offset": 3529,
+          "text": "prediction_offset"
+        },
+        {
+          "offset": 3547,
+          "text": "x02_01_setup"
+        },
+        {
+          "offset": 3560,
+          "text": "camera_set_animation_relative"
+        },
+        {
+          "offset": 3590,
+          "text": "objects\\characters\\cinematic_camera\\x02\\x02"
+        },
+        {
+          "offset": 3634,
+          "text": "x02_01"
+        },
+        {
+          "offset": 3641,
+          "text": "anchor_flag_x02_01"
+        },
+        {
+          "offset": 3660,
+          "text": "custom_animation_relative"
+        },
+        {
+          "offset": 3686,
+          "text": "objects\\characters\\masterchief\\x02\\x02"
+        },
+        {
+          "offset": 3725,
+          "text": "chief_01"
+        },
+        {
+          "offset": 3734,
+          "text": "anchor_x02_01"
+        },
+        {
+          "offset": 3748,
+          "text": "johnson_01"
+        },
+        {
+          "offset": 3759,
+          "text": "marine02_01"
+        },
+        {
+          "offset": 3771,
+          "text": "marine04_01"
+        },
+        {
+          "offset": 3783,
+          "text": "scenery_animation_start_relative"
+        },
+        {
+          "offset": 3816,
+          "text": "objects\\characters\\marine\\dress_cap\\x02\\x02"
+        },
+        {
+          "offset": 3860,
+          "text": "dress_cap_01"
+        },
+        {
+          "offset": 3873,
+          "text": "objects\\cinematics\\news_drone\\x02\\x02"
+        },
+        {
+          "offset": 3911,
+          "text": "news_drone01_01"
+        },
+        {
+          "offset": 3927,
+          "text": "news_drone02_01"
+        },
+        {
+          "offset": 3943,
+          "text": "-"
+        },
+        {
+          "offset": 3945,
+          "text": "camera_time"
+        },
+        {
+          "offset": 3957,
+          "text": "sound_offset"
+        },
+        {
+          "offset": 3970,
+          "text": "x02_02_problem_actors"
+        },
+        {
+          "offset": 3992,
+          "text": "x02_01_cleanup"
+        }
+      ],
+      "bindings": [
+        {
+          "datum": 3929147071,
+          "value": 4294935506,
+          "binding": {
+            "external_global": "cinematic_letterbox_style",
+            "index": 978
+          }
+        },
+        {
+          "datum": 3929802441,
+          "value": 2215125453,
+          "binding": {
+            "group": "snd!",
+            "path": "sound\\cinematics\\01_spacestation\\x02\\music\\x02_01_mus"
+          }
+        },
+        {
+          "datum": 3929999052,
+          "value": 2215715286,
+          "binding": {
+            "group": "snd!",
+            "path": "sound\\cinematics\\01_spacestation\\x02\\foley\\x02_01b_fol"
+          }
+        },
+        {
+          "datum": 3930195663,
+          "value": 17,
+          "binding": {
+            "declared_type": 7,
+            "global": "prediction_offset"
+          }
+        },
+        {
+          "datum": 3930523348,
+          "value": 2215780823,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\cinematic_camera\\x02\\x02"
+          }
+        },
+        {
+          "datum": 3930588885,
+          "value": 100677346,
+          "binding": {
+            "string_id": "x02_01"
+          }
+        },
+        {
+          "datum": 3930719959,
+          "value": 17,
+          "binding": {
+            "cutscene_flag": "anchor_flag_x02_01"
+          }
+        },
+        {
+          "datum": 3930916570,
+          "value": 4294902102,
+          "binding": {
+            "object_name": "chief_x02_01",
+            "object_type": 0,
+            "placement": 37
+          }
+        },
+        {
+          "datum": 3930982107,
+          "value": 2215846360,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\masterchief\\x02\\x02"
+          }
+        },
+        {
+          "datum": 3931047644,
+          "value": 134231789,
+          "binding": {
+            "string_id": "chief_01"
+          }
+        },
+        {
+          "datum": 3931178718,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 3931375329,
+          "value": 4294902101,
+          "binding": {
+            "object_name": "johnson_x02_01",
+            "object_type": 0,
+            "placement": 38
+          }
+        },
+        {
+          "datum": 3931440866,
+          "value": 2215584212,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\x02\\x02"
+          }
+        },
+        {
+          "datum": 3931506403,
+          "value": 167786176,
+          "binding": {
+            "string_id": "johnson_01"
+          }
+        },
+        {
+          "datum": 3931637477,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 3931834088,
+          "value": 4294902116,
+          "binding": {
+            "object_name": "marine_door_01",
+            "object_type": 0,
+            "placement": 81
+          }
+        },
+        {
+          "datum": 3931899625,
+          "value": 2215584212,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\x02\\x02"
+          }
+        },
+        {
+          "datum": 3931965162,
+          "value": 184563405,
+          "binding": {
+            "string_id": "marine02_01"
+          }
+        },
+        {
+          "datum": 3932096236,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 3932292847,
+          "value": 4294902117,
+          "binding": {
+            "object_name": "marine_door_02",
+            "object_type": 0,
+            "placement": 82
+          }
+        },
+        {
+          "datum": 3932358384,
+          "value": 2215584212,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\x02\\x02"
+          }
+        },
+        {
+          "datum": 3932423921,
+          "value": 184563413,
+          "binding": {
+            "string_id": "marine04_01"
+          }
+        },
+        {
+          "datum": 3932554995,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 3932751606,
+          "value": 4294901824,
+          "binding": {
+            "object_name": "johnson_hat",
+            "object_type": 6,
+            "placement": 152
+          }
+        },
+        {
+          "datum": 3932817143,
+          "value": 2215911897,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\dress_cap\\x02\\x02"
+          }
+        },
+        {
+          "datum": 3932882680,
+          "value": 201340660,
+          "binding": {
+            "string_id": "dress_cap_01"
+          }
+        },
+        {
+          "datum": 3932948217,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 3933144828,
+          "value": 4294901822,
+          "binding": {
+            "object_name": "x02_drone_01",
+            "object_type": 6,
+            "placement": 150
+          }
+        },
+        {
+          "datum": 3933210365,
+          "value": 2215977434,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\cinematics\\news_drone\\x02\\x02"
+          }
+        },
+        {
+          "datum": 3933275902,
+          "value": 251672309,
+          "binding": {
+            "string_id": "news_drone01_01"
+          }
+        },
+        {
+          "datum": 3933341439,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 3933538050,
+          "value": 4294901823,
+          "binding": {
+            "object_name": "x02_drone_02",
+            "object_type": 6,
+            "placement": 151
+          }
+        },
+        {
+          "datum": 3933603587,
+          "value": 2215977434,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\cinematics\\news_drone\\x02\\x02"
+          }
+        },
+        {
+          "datum": 3933669124,
+          "value": 251672310,
+          "binding": {
+            "string_id": "news_drone02_01"
+          }
+        },
+        {
+          "datum": 3933734661,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 3934783253,
+          "value": 16,
+          "binding": {
+            "declared_type": 7,
+            "global": "sound_offset"
+          }
+        },
+        {
+          "datum": 3934979864,
+          "value": 2215715286,
+          "binding": {
+            "group": "snd!",
+            "path": "sound\\cinematics\\01_spacestation\\x02\\foley\\x02_01b_fol"
+          }
+        }
+      ],
+      "static_calls": [
+        {
+          "index": 24,
+          "name": "x02_01_predict_stub"
+        },
+        {
+          "index": 58,
+          "name": "x02_01_setup"
+        },
+        {
+          "index": 54,
+          "name": "x02_02_problem_actors"
+        },
+        {
+          "index": 59,
+          "name": "x02_01_cleanup"
+        }
+      ],
+      "patches": [
+        {
+          "predecessor": 3928491701,
+          "removed_call": 3928688312,
+          "next": 3928884923,
+          "retired": [
+            3928688312,
+            3928753849,
+            3928819386
+          ]
+        }
+      ],
+      "return_type": 4
+    },
+    {
+      "name": "c01_outro_scene_01",
+      "type": 3,
+      "root": 2183732917,
+      "rows": [
+        {
+          "datum": 2176720458,
+          "raw": "be812b0204000800501ec481c96f01004b1ebf81"
+        },
+        {
+          "datum": 2176785995,
+          "raw": "bf812b02020009004c1ec0816500000000000000"
+        },
+        {
+          "datum": 2176851532,
+          "raw": "c0810600060009004d1ec181d36f01000000803f"
+        },
+        {
+          "datum": 2176917069,
+          "raw": "c1810600060009004e1ec281d56f01000000803f"
+        },
+        {
+          "datum": 2176982606,
+          "raw": "c2810600060009004f1ec381d76f01000000803f"
+        },
+        {
+          "datum": 2177048143,
+          "raw": "c381070007000900ffffffffd96f01000000ffff"
+        },
+        {
+          "datum": 2177113680,
+          "raw": "c481c30104000800531ec781e06f0100511ec581"
+        },
+        {
+          "datum": 2177179217,
+          "raw": "c581c30102000900521ec6814600000000000000"
+        },
+        {
+          "datum": 2177244754,
+          "raw": "c681050005000900fffffffff06f010001ffffff"
+        },
+        {
+          "datum": 2177310291,
+          "raw": "c7817f0304000800561eca81f66f0100541ec881"
+        },
+        {
+          "datum": 2177375828,
+          "raw": "c8817f0302000900551ec9810c0d000000000000"
+        },
+        {
+          "datum": 2177441365,
+          "raw": "c981090009000900ffffffffb9480000b9480000"
+        },
+        {
+          "datum": 2177506902,
+          "raw": "ca812c0204000800581ecc8125700100571ecb81"
+        },
+        {
+          "datum": 2177572439,
+          "raw": "cb812c0202000900ffffffff5500000000000000"
+        },
+        {
+          "datum": 2177637976,
+          "raw": "cc815d03040008005a1ece8139700100591ecd81"
+        },
+        {
+          "datum": 2177703513,
+          "raw": "cd815d0302000900ffffffffcc48000000000000"
+        },
+        {
+          "datum": 2177769050,
+          "raw": "ce810400040008005e1ed281537001005b1ecf81"
+        },
+        {
+          "datum": 2177834587,
+          "raw": "cf810400020009005c1ed081310d000000000000"
+        },
+        {
+          "datum": 2177900124,
+          "raw": "d081ffff08000d005d1ed181350d0000d283ffff"
+        },
+        {
+          "datum": 2177965661,
+          "raw": "d181080008000900ffffffff7270010001000000"
+        },
+        {
+          "datum": 2178031198,
+          "raw": "d281ce0104000800621ed681777001005f1ed381"
+        },
+        {
+          "datum": 2178096735,
+          "raw": "d381ce0102000900601ed4814f0d000000000000"
+        },
+        {
+          "datum": 2178162272,
+          "raw": "d481060006000900611ed5819170010000007042"
+        },
+        {
+          "datum": 2178227809,
+          "raw": "d581070007000900ffffffff947001000000ffff"
+        },
+        {
+          "datum": 2178293346,
+          "raw": "d681180004000a00641ed881e2700100631ed781"
+        },
+        {
+          "datum": 2178358883,
+          "raw": "d781180002000900ffffffff680d000000000000"
+        },
+        {
+          "datum": 2178424420,
+          "raw": "d881550204000800671edb81fa700100651ed981"
+        },
+        {
+          "datum": 2178489957,
+          "raw": "d981550202000900661eda817c0d000000000000"
+        },
+        {
+          "datum": 2178555494,
+          "raw": "da81200020000900ffffffff914500002d226884"
+        },
+        {
+          "datum": 2178621031,
+          "raw": "db815502040008006a1ede8156710100681edc81"
+        },
+        {
+          "datum": 2178686568,
+          "raw": "dc81550202000900691edd817c0d000000000000"
+        },
+        {
+          "datum": 2178752105,
+          "raw": "dd81200020000900ffffffffec4500002e226984"
+        },
+        {
+          "datum": 2178817642,
+          "raw": "de811300040008006d1ee181b27101006b1edf81"
+        },
+        {
+          "datum": 2178883179,
+          "raw": "df811300020009006c1ee0816e00000000000000"
+        },
+        {
+          "datum": 2178948716,
+          "raw": "e081070007000d00ffffffffc90d000011000000"
+        },
+        {
+          "datum": 2179014253,
+          "raw": "e181c30004000a006f1ee381d07101006e1ee281"
+        },
+        {
+          "datum": 2179079790,
+          "raw": "e281c30002000900ffffffffe248000000000000"
+        },
+        {
+          "datum": 2179145327,
+          "raw": "e381c70104000800751ee981e9710100701ee481"
+        },
+        {
+          "datum": 2179210864,
+          "raw": "e481c70102000900711ee581e80d000000000000"
+        },
+        {
+          "datum": 2179276401,
+          "raw": "e581240024000900721ee681f548000034226f84"
+        },
+        {
+          "datum": 2179341938,
+          "raw": "e6810b000b000900731ee7812b4900007f37000b"
+        },
+        {
+          "datum": 2179407475,
+          "raw": "e781330033000900741ee88104060000ffffffff"
+        },
+        {
+          "datum": 2179473012,
+          "raw": "e8810e000e000900ffffffff3749000000000000"
+        },
+        {
+          "datum": 2179538549,
+          "raw": "e981cc00040008007c1ef0816b720100761eea81"
+        },
+        {
+          "datum": 2179604086,
+          "raw": "ea81cc0002000900771eeb814c0e000000000000"
+        },
+        {
+          "datum": 2179669623,
+          "raw": "eb81390033000900781eec81d24600003601ffff"
+        },
+        {
+          "datum": 2179735160,
+          "raw": "ec81240024000900791eed814a49000035227084"
+        },
+        {
+          "datum": 2179800697,
+          "raw": "ed810b000b0009007a1eee818d0e0000ed360008"
+        },
+        {
+          "datum": 2179866234,
+          "raw": "ee810500050009007b1eef81c872010000ffffff"
+        },
+        {
+          "datum": 2179931771,
+          "raw": "ef81380032000900ffffffff7b4900001d00ffff"
+        },
+        {
+          "datum": 2179997308,
+          "raw": "f081cc0004000800831ef781df7201007d1ef181"
+        },
+        {
+          "datum": 2180062845,
+          "raw": "f181cc00020009007e1ef2814c0e000000000000"
+        },
+        {
+          "datum": 2180128382,
+          "raw": "f2813900330009007f1ef381824600003701ffff"
+        },
+        {
+          "datum": 2180193919,
+          "raw": "f381240024000900801ef4818949000036227184"
+        },
+        {
+          "datum": 2180259456,
+          "raw": "f4810b000b000900811ef581b64900008d37000a"
+        },
+        {
+          "datum": 2180324993,
+          "raw": "f581050005000900821ef6813c73010000ffffff"
+        },
+        {
+          "datum": 2180390530,
+          "raw": "f681380032000900ffffffff7b4900001d00ffff"
+        },
+        {
+          "datum": 2180456067,
+          "raw": "f781bb0004000800891efd8155730100841ef881"
+        },
+        {
+          "datum": 2180521604,
+          "raw": "f881bb0002000900851ef981c70e000000000000"
+        },
+        {
+          "datum": 2180587141,
+          "raw": "f9813d0037000900861efa81754700000500ffff"
+        },
+        {
+          "datum": 2180652678,
+          "raw": "fa81240024000900871efb81c149000037227284"
+        },
+        {
+          "datum": 2180718215,
+          "raw": "fb810b000b000900881efc81fe4900008e370009"
+        },
+        {
+          "datum": 2180783752,
+          "raw": "fc81380032000900ffffffff7b4900001d00ffff"
+        },
+        {
+          "datum": 2180849289,
+          "raw": "fd81bb00040008008f1e0382d87301008a1efe81"
+        },
+        {
+          "datum": 2180914826,
+          "raw": "fe81bb00020009008b1eff81c70e000000000000"
+        },
+        {
+          "datum": 2180980363,
+          "raw": "ff813d00370009008c1e00827c4700002800ffff"
+        },
+        {
+          "datum": 2181045900,
+          "raw": "00822400240009008d1e0182084a000038227384"
+        },
+        {
+          "datum": 2181111437,
+          "raw": "01820b000b0009008e1e02824f4a000097370010"
+        },
+        {
+          "datum": 2181176974,
+          "raw": "0282380032000900ffffffff7b4900001d00ffff"
+        },
+        {
+          "datum": 2181242511,
+          "raw": "0382290004000800941e08827b740100901e0482"
+        },
+        {
+          "datum": 2181308048,
+          "raw": "0482290002000900911e0582f11e000000000000"
+        },
+        {
+          "datum": 2181373585,
+          "raw": "0582210021000900921e06820d1f0000ec212784"
+        },
+        {
+          "datum": 2181439122,
+          "raw": "0682380032000900931e0782904700003501ffff"
+        },
+        {
+          "datum": 2181504659,
+          "raw": "07820b000b000900ffffffffa34700001c0c0006"
+        },
+        {
+          "datum": 2181570196,
+          "raw": "08822a02040008009a1e0e82eb740100951e0982"
+        },
+        {
+          "datum": 2181635733,
+          "raw": "09822a0202000900961e0a824102000000000000"
+        },
+        {
+          "datum": 2181701270,
+          "raw": "0a82060006000900971e0b82f47401000000803f"
+        },
+        {
+          "datum": 2181766807,
+          "raw": "0b82060006000900981e0c82f67401000000803f"
+        },
+        {
+          "datum": 2181832344,
+          "raw": "0c82060006000900991e0d82f87401000000803f"
+        },
+        {
+          "datum": 2181897881,
+          "raw": "0d82070007000900fffffffffa7401000f00ffff"
+        },
+        {
+          "datum": 2181963418,
+          "raw": "0e82130004000800a11e1582497501009b1e0f82"
+        },
+        {
+          "datum": 2182028955,
+          "raw": "0f821300020009009c1e10826e00000000000000"
+        },
+        {
+          "datum": 2182094492,
+          "raw": "1082080007000800ffffffff507501009d1e1182"
+        },
+        {
+          "datum": 2182160029,
+          "raw": "11820800020009009e1e1282670f000000000000"
+        },
+        {
+          "datum": 2182225566,
+          "raw": "1282cd0106000800a01e1482537501009f1e1382"
+        },
+        {
+          "datum": 2182291103,
+          "raw": "1382cd0102000900ffffffff690f000000000000"
+        },
+        {
+          "datum": 2182356640,
+          "raw": "1482060006000d00ffffffffc90d000011000000"
+        },
+        {
+          "datum": 2182422177,
+          "raw": "1582240004000a00a31e178277750100a21e1682"
+        },
+        {
+          "datum": 2182487714,
+          "raw": "1682240002000900ffffffff604a000000000000"
+        },
+        {
+          "datum": 2182553251,
+          "raw": "1782c10004000a00a51e198294750100a41e1882"
+        },
+        {
+          "datum": 2182618788,
+          "raw": "1882c10002000900ffffffff794a000000000000"
+        },
+        {
+          "datum": 2182684325,
+          "raw": "1982130004000800ac1e2082b6750100a61e1a82"
+        },
+        {
+          "datum": 2182749862,
+          "raw": "1a82130002000900a71e1b826e00000000000000"
+        },
+        {
+          "datum": 2182815399,
+          "raw": "1b82080007000800ffffffffbd750100a81e1c82"
+        },
+        {
+          "datum": 2182880936,
+          "raw": "1c82080002000900a91e1d82670f000000000000"
+        },
+        {
+          "datum": 2182946473,
+          "raw": "1d82cd0106000800ab1e1f82c0750100aa1e1e82"
+        },
+        {
+          "datum": 2183012010,
+          "raw": "1e82cd0102000900ffffffff690f000000000000"
+        },
+        {
+          "datum": 2183077547,
+          "raw": "1f82060006000d00ffffffff750f000010000000"
+        },
+        {
+          "datum": 2183143084,
+          "raw": "2082550204000800af1e2382df750100ad1e2182"
+        },
+        {
+          "datum": 2183208621,
+          "raw": "2182550202000900ae1e22827c0d000000000000"
+        },
+        {
+          "datum": 2183274158,
+          "raw": "2282200020000900ffffffff954a000039227484"
+        },
+        {
+          "datum": 2183339695,
+          "raw": "2382130004000800b31e27823d760100b01e2482"
+        },
+        {
+          "datum": 2183405232,
+          "raw": "2482130002000900b11e25826e00000000000000"
+        },
+        {
+          "datum": 2183470769,
+          "raw": "2582cd0107000800ffffffff44760100b21e2682"
+        },
+        {
+          "datum": 2183536306,
+          "raw": "2682cd0102000900ffffffff690f000000000000"
+        },
+        {
+          "datum": 2183601843,
+          "raw": "2782c40004000a00ffffffff57760100b41e2882"
+        },
+        {
+          "datum": 2183667380,
+          "raw": "2882c40002000900ffffffffd74a000000000000"
+        },
+        {
+          "datum": 2183732917,
+          "raw": "2982000004000800ffffffff9e6f0100b61e2a82"
+        },
+        {
+          "datum": 2183798454,
+          "raw": "2a820000020009004a1ebe811f00000000000000"
+        }
+      ],
+      "strings": [
+        {
+          "offset": 31,
+          "text": "begin"
+        },
+        {
+          "offset": 70,
+          "text": "camera_control"
+        },
+        {
+          "offset": 85,
+          "text": "cinematic_start"
+        },
+        {
+          "offset": 101,
+          "text": "fade_out"
+        },
+        {
+          "offset": 110,
+          "text": "sleep"
+        },
+        {
+          "offset": 577,
+          "text": "fade_in"
+        },
+        {
+          "offset": 3340,
+          "text": "cinematic_start_movie"
+        },
+        {
+          "offset": 3377,
+          "text": "set"
+        },
+        {
+          "offset": 3381,
+          "text": "cinematic_letterbox_style"
+        },
+        {
+          "offset": 3407,
+          "text": "camera_set_field_of_view"
+        },
+        {
+          "offset": 3432,
+          "text": "x02_01_predict_stub"
+        },
+        {
+          "offset": 3452,
+          "text": "sound_impulse_predict"
+        },
+        {
+          "offset": 3529,
+          "text": "prediction_offset"
+        },
+        {
+          "offset": 3560,
+          "text": "camera_set_animation_relative"
+        },
+        {
+          "offset": 3660,
+          "text": "custom_animation_relative"
+        },
+        {
+          "offset": 3725,
+          "text": "chief_01"
+        },
+        {
+          "offset": 3783,
+          "text": "scenery_animation_start_relative"
+        },
+        {
+          "offset": 3943,
+          "text": "-"
+        },
+        {
+          "offset": 3945,
+          "text": "camera_time"
+        },
+        {
+          "offset": 3957,
+          "text": "sound_offset"
+        },
+        {
+          "offset": 7921,
+          "text": "effect_new_on_object_marker"
+        },
+        {
+          "offset": 7949,
+          "text": "effects\\objects\\characters\\cortana\\cortana_on_off"
+        },
+        {
+          "offset": 17809,
+          "text": "sound\\cinematics\\01_spacestation\\c01_outro\\music\\c01_outro_01_mus"
+        },
+        {
+          "offset": 17900,
+          "text": "sound\\cinematics\\01_spacestation\\c01_outro\\foley\\c01_outro_01_fol"
+        },
+        {
+          "offset": 18050,
+          "text": "cortana"
+        },
+        {
+          "offset": 18130,
+          "text": "chief"
+        },
+        {
+          "offset": 18293,
+          "text": "pickle"
+        },
+        {
+          "offset": 18300,
+          "text": "outro_cortana_stand"
+        },
+        {
+          "offset": 18320,
+          "text": "outro_cortana_base"
+        },
+        {
+          "offset": 18339,
+          "text": "marker"
+        },
+        {
+          "offset": 18617,
+          "text": "spacestation_outro"
+        },
+        {
+          "offset": 18636,
+          "text": "cinematic_outro_start"
+        },
+        {
+          "offset": 18658,
+          "text": "c01_outro_01_setup"
+        },
+        {
+          "offset": 18677,
+          "text": "objects\\characters\\cinematic_camera\\01_outro\\01_outro"
+        },
+        {
+          "offset": 18731,
+          "text": "01_outro_01"
+        },
+        {
+          "offset": 18743,
+          "text": "anchor_flag_outro1"
+        },
+        {
+          "offset": 18762,
+          "text": "objects\\characters\\masterchief\\01_outro\\01_outro"
+        },
+        {
+          "offset": 18811,
+          "text": "anchor_outro1"
+        },
+        {
+          "offset": 18825,
+          "text": "objects\\characters\\cortana\\01_outro\\01_outro"
+        },
+        {
+          "offset": 18870,
+          "text": "cortana_01"
+        },
+        {
+          "offset": 18881,
+          "text": "scenarios\\objects\\solo\\spacestation\\pickle\\01_outro\\01_outro"
+        },
+        {
+          "offset": 18942,
+          "text": "pickle_01"
+        },
+        {
+          "offset": 18952,
+          "text": "scenarios\\objects\\solo\\spacestation\\ss_stand_cortana\\01_outro\\01_outro"
+        },
+        {
+          "offset": 19023,
+          "text": "cortana_stand_01"
+        },
+        {
+          "offset": 19040,
+          "text": "01_outro_02_predict_stub"
+        },
+        {
+          "offset": 19065,
+          "text": "c01_outro_02_problem_actors"
+        },
+        {
+          "offset": 19093,
+          "text": "sound\\cinematics\\01_spacestation\\c01_outro\\foley\\c01_outro_02_fol"
+        },
+        {
+          "offset": 19159,
+          "text": "c01_outro_01_cleanup"
+        }
+      ],
+      "bindings": [
+        {
+          "datum": 2177900124,
+          "value": 4294935506,
+          "binding": {
+            "external_global": "cinematic_letterbox_style",
+            "index": 978
+          }
+        },
+        {
+          "datum": 2178555494,
+          "value": 2221417005,
+          "binding": {
+            "group": "snd!",
+            "path": "sound\\cinematics\\01_spacestation\\c01_outro\\music\\c01_outro_01_mus"
+          }
+        },
+        {
+          "datum": 2178752105,
+          "value": 2221482542,
+          "binding": {
+            "group": "snd!",
+            "path": "sound\\cinematics\\01_spacestation\\c01_outro\\foley\\c01_outro_01_fol"
+          }
+        },
+        {
+          "datum": 2178948716,
+          "value": 17,
+          "binding": {
+            "declared_type": 7,
+            "global": "prediction_offset"
+          }
+        },
+        {
+          "datum": 2179276401,
+          "value": 2221875764,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\cinematic_camera\\01_outro\\01_outro"
+          }
+        },
+        {
+          "datum": 2179341938,
+          "value": 184563583,
+          "binding": {
+            "string_id": "01_outro_01"
+          }
+        },
+        {
+          "datum": 2179473012,
+          "value": 0,
+          "binding": {
+            "cutscene_flag": "anchor_flag_outro1"
+          }
+        },
+        {
+          "datum": 2179669623,
+          "value": 4294902070,
+          "binding": {
+            "object_name": "chief",
+            "object_type": 0,
+            "placement": 0
+          }
+        },
+        {
+          "datum": 2179735160,
+          "value": 2221941301,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\masterchief\\01_outro\\01_outro"
+          }
+        },
+        {
+          "datum": 2179800697,
+          "value": 134231789,
+          "binding": {
+            "string_id": "chief_01"
+          }
+        },
+        {
+          "datum": 2179931771,
+          "value": 4294901789,
+          "binding": {
+            "object_name": "anchor_outro1",
+            "object_type": 6,
+            "placement": 22
+          }
+        },
+        {
+          "datum": 2180128382,
+          "value": 4294902071,
+          "binding": {
+            "object_name": "cortana",
+            "object_type": 0,
+            "placement": 1
+          }
+        },
+        {
+          "datum": 2180193919,
+          "value": 2222006838,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\cortana\\01_outro\\01_outro"
+          }
+        },
+        {
+          "datum": 2180259456,
+          "value": 167786381,
+          "binding": {
+            "string_id": "cortana_01"
+          }
+        },
+        {
+          "datum": 2180390530,
+          "value": 4294901789,
+          "binding": {
+            "object_name": "anchor_outro1",
+            "object_type": 6,
+            "placement": 22
+          }
+        },
+        {
+          "datum": 2180587141,
+          "value": 4294901765,
+          "binding": {
+            "object_name": "pickle",
+            "object_type": 6,
+            "placement": 0
+          }
+        },
+        {
+          "datum": 2180652678,
+          "value": 2222072375,
+          "binding": {
+            "group": "jmad",
+            "path": "scenarios\\objects\\solo\\spacestation\\pickle\\01_outro\\01_outro"
+          }
+        },
+        {
+          "datum": 2180718215,
+          "value": 151009166,
+          "binding": {
+            "string_id": "pickle_01"
+          }
+        },
+        {
+          "datum": 2180783752,
+          "value": 4294901789,
+          "binding": {
+            "object_name": "anchor_outro1",
+            "object_type": 6,
+            "placement": 22
+          }
+        },
+        {
+          "datum": 2180980363,
+          "value": 4294901800,
+          "binding": {
+            "object_name": "outro_cortana_stand",
+            "object_type": 6,
+            "placement": 102
+          }
+        },
+        {
+          "datum": 2181045900,
+          "value": 2222137912,
+          "binding": {
+            "group": "jmad",
+            "path": "scenarios\\objects\\solo\\spacestation\\ss_stand_cortana\\01_outro\\01_outro"
+          }
+        },
+        {
+          "datum": 2181111437,
+          "value": 268449687,
+          "binding": {
+            "string_id": "cortana_stand_01"
+          }
+        },
+        {
+          "datum": 2181176974,
+          "value": 4294901789,
+          "binding": {
+            "object_name": "anchor_outro1",
+            "object_type": 6,
+            "placement": 22
+          }
+        },
+        {
+          "datum": 2181373585,
+          "value": 2217157100,
+          "binding": {
+            "group": "effe",
+            "path": "effects\\objects\\characters\\cortana\\cortana_on_off"
+          }
+        },
+        {
+          "datum": 2181439122,
+          "value": 4294902069,
+          "binding": {
+            "object_name": "outro_cortana_base",
+            "object_type": 6,
+            "placement": 590
+          }
+        },
+        {
+          "datum": 2181504659,
+          "value": 100666396,
+          "binding": {
+            "string_id": "marker"
+          }
+        },
+        {
+          "datum": 2182356640,
+          "value": 17,
+          "binding": {
+            "declared_type": 7,
+            "global": "prediction_offset"
+          }
+        },
+        {
+          "datum": 2183077547,
+          "value": 16,
+          "binding": {
+            "declared_type": 7,
+            "global": "sound_offset"
+          }
+        },
+        {
+          "datum": 2183274158,
+          "value": 2222203449,
+          "binding": {
+            "group": "snd!",
+            "path": "sound\\cinematics\\01_spacestation\\c01_outro\\foley\\c01_outro_02_fol"
+          }
+        }
+      ],
+      "static_calls": [
+        {
+          "index": 24,
+          "name": "x02_01_predict_stub"
+        },
+        {
+          "index": 195,
+          "name": "c01_outro_01_setup"
+        },
+        {
+          "index": 36,
+          "name": "01_outro_02_predict_stub"
+        },
+        {
+          "index": 193,
+          "name": "c01_outro_02_problem_actors"
+        },
+        {
+          "index": 196,
+          "name": "c01_outro_01_cleanup"
+        }
+      ],
+      "patches": [
+        {
+          "predecessor": 2177113680,
+          "removed_call": 2177310291,
+          "next": 2177506902,
+          "retired": [
+            2177310291,
+            2177375828,
+            2177441365
+          ]
+        }
+      ],
+      "return_type": 4
+    },
+    {
+      "name": "x02_scene_06",
+      "type": 3,
+      "root": 4166194400,
+      "rows": [
+        {
+          "datum": 4156822609,
+          "raw": "c4f77703040008005314c6f7e8f800005214c5f7"
+        },
+        {
+          "datum": 4156888146,
+          "raw": "c5f7770302000900ffffffffa025000000000000"
+        },
+        {
+          "datum": 4156953683,
+          "raw": "c6f71e0004000a005514c8f756f900005414c7f7"
+        },
+        {
+          "datum": 4157019220,
+          "raw": "c7f71e0002000900fffffffffd33000000000000"
+        },
+        {
+          "datum": 4157084757,
+          "raw": "c8f77d0004000a005714caf770f900005614c9f7"
+        },
+        {
+          "datum": 4157150294,
+          "raw": "c9f77d0002000900ffffffff1134000000000000"
+        },
+        {
+          "datum": 4157215831,
+          "raw": "caf77e03040008005914ccf781f900005814cbf7"
+        },
+        {
+          "datum": 4157281368,
+          "raw": "cbf77e0302000900ffffffff1e34000000000000"
+        },
+        {
+          "datum": 4157346905,
+          "raw": "ccf7c701040008005f14d2f7a7f900005a14cdf7"
+        },
+        {
+          "datum": 4157412442,
+          "raw": "cdf7c701020009005b14cef7e80d000000000000"
+        },
+        {
+          "datum": 4157477979,
+          "raw": "cef72400240009005c14cff7060e0000d7211284"
+        },
+        {
+          "datum": 4157543516,
+          "raw": "cff70b000b0009005d14d0f73e340000e8360006"
+        },
+        {
+          "datum": 4157609053,
+          "raw": "d0f73300330009005e14d1f704060000ffffffff"
+        },
+        {
+          "datum": 4157674590,
+          "raw": "d1f70e000e000900ffffffff390e000011000000"
+        },
+        {
+          "datum": 4157740127,
+          "raw": "d2f7cc00040008006614d9f71afa00006014d3f7"
+        },
+        {
+          "datum": 4157805664,
+          "raw": "d3f7cc00020009006114d4f74c0e000000000000"
+        },
+        {
+          "datum": 4157871201,
+          "raw": "d4f73900330009006214d5f75d1f00003f01ffff"
+        },
+        {
+          "datum": 4157936738,
+          "raw": "d5f72400240009006314d6f7660e0000d8211384"
+        },
+        {
+          "datum": 4158002275,
+          "raw": "d6f70b000b0009006414d7f745340000f0360008"
+        },
+        {
+          "datum": 4158067812,
+          "raw": "d7f70500050009006514d8f771fa000000ffffff"
+        },
+        {
+          "datum": 4158133349,
+          "raw": "d8f7380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4158198886,
+          "raw": "d9f7cc00040008006d14e0f788fa00006714daf7"
+        },
+        {
+          "datum": 4158264423,
+          "raw": "daf7cc00020009006814dbf74c0e000000000000"
+        },
+        {
+          "datum": 4158329960,
+          "raw": "dbf73900330009006914dcf7671f00003e01ffff"
+        },
+        {
+          "datum": 4158395497,
+          "raw": "dcf72400240009006a14ddf71d0b0000d4210f84"
+        },
+        {
+          "datum": 4158461034,
+          "raw": "ddf70b000b0009006b14def74e340000c336000a"
+        },
+        {
+          "datum": 4158526571,
+          "raw": "def70500050009006c14dff7defa000000ffffff"
+        },
+        {
+          "datum": 4158592108,
+          "raw": "dff7380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4158657645,
+          "raw": "e0f7cc00040008007414e7f7f7fa00006e14e1f7"
+        },
+        {
+          "datum": 4158723182,
+          "raw": "e1f7cc00020009006f14e2f74c0e000000000000"
+        },
+        {
+          "datum": 4158788719,
+          "raw": "e2f73900330009007014e3f77b1d00003b01ffff"
+        },
+        {
+          "datum": 4158854256,
+          "raw": "e3f72400240009007114e4f702260000f3212e84"
+        },
+        {
+          "datum": 4158919793,
+          "raw": "e4f70b000b0009007214e5f75934000025370007"
+        },
+        {
+          "datum": 4158985330,
+          "raw": "e5f70500050009007314e6f74afb000000ffffff"
+        },
+        {
+          "datum": 4159050867,
+          "raw": "e6f7380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4159116404,
+          "raw": "e7f7cc00040008007b14eef761fb00007514e8f7"
+        },
+        {
+          "datum": 4159181941,
+          "raw": "e8f7cc00020009007614e9f74c0e000000000000"
+        },
+        {
+          "datum": 4159247478,
+          "raw": "e9f73900330009007714eaf7731f00003c01ffff"
+        },
+        {
+          "datum": 4159313015,
+          "raw": "eaf72400240009007814ebf730260000f4212f84"
+        },
+        {
+          "datum": 4159378552,
+          "raw": "ebf70b000b0009007914ecf7613400002a37000a"
+        },
+        {
+          "datum": 4159444089,
+          "raw": "ecf70500050009007a14edf7b8fb000000ffffff"
+        },
+        {
+          "datum": 4159509626,
+          "raw": "edf7380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4159575163,
+          "raw": "eef7cc00040008008214f5f7cffb00007c14eff7"
+        },
+        {
+          "datum": 4159640700,
+          "raw": "eff7cc00020009007d14f0f74c0e000000000000"
+        },
+        {
+          "datum": 4159706237,
+          "raw": "f0f73900330009007e14f1f77c1e00003d01ffff"
+        },
+        {
+          "datum": 4159771774,
+          "raw": "f1f72400240009007f14f2f75f260000f5213084"
+        },
+        {
+          "datum": 4159837311,
+          "raw": "f2f70b000b0009008014f3f76c3400002e37000a"
+        },
+        {
+          "datum": 4159902848,
+          "raw": "f3f70500050009008114f4f726fc000000ffffff"
+        },
+        {
+          "datum": 4159968385,
+          "raw": "f4f7380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4160033922,
+          "raw": "f5f7cc00040008008914fcf73ffc00008314f6f7"
+        },
+        {
+          "datum": 4160099459,
+          "raw": "f6f7cc00020009008414f7f74c0e000000000000"
+        },
+        {
+          "datum": 4160164996,
+          "raw": "f7f73900330009008514f8f7101e00004d01ffff"
+        },
+        {
+          "datum": 4160230533,
+          "raw": "f8f72400240009008614f9f71d0b0000d4210f84"
+        },
+        {
+          "datum": 4160296070,
+          "raw": "f9f70b000b0009008714faf777340000ca36000b"
+        },
+        {
+          "datum": 4160361607,
+          "raw": "faf70500050009008814fbf794fc000000ffffff"
+        },
+        {
+          "datum": 4160427144,
+          "raw": "fbf7380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4160492681,
+          "raw": "fcf7cc0004000800901403f8abfc00008a14fdf7"
+        },
+        {
+          "datum": 4160558218,
+          "raw": "fdf7cc00020009008b14fef74c0e000000000000"
+        },
+        {
+          "datum": 4160623755,
+          "raw": "fef73900330009008c14fff77f1f00004e01ffff"
+        },
+        {
+          "datum": 4160689292,
+          "raw": "fff72400240009008d1400f81d0b0000d4210f84"
+        },
+        {
+          "datum": 4160754829,
+          "raw": "00f80b000b0009008e1401f883340000cf36000b"
+        },
+        {
+          "datum": 4160820366,
+          "raw": "01f80500050009008f1402f800fd000000ffffff"
+        },
+        {
+          "datum": 4160885903,
+          "raw": "02f8380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4160951440,
+          "raw": "03f8cc000400080097140af817fd0000911404f8"
+        },
+        {
+          "datum": 4161016977,
+          "raw": "04f8cc0002000900921405f84c0e000000000000"
+        },
+        {
+          "datum": 4161082514,
+          "raw": "05f8390033000900931406f8891f00004f01ffff"
+        },
+        {
+          "datum": 4161148051,
+          "raw": "06f8240024000900941407f81d0b0000d4210f84"
+        },
+        {
+          "datum": 4161213588,
+          "raw": "07f80b000b000900951408f88f340000d336000b"
+        },
+        {
+          "datum": 4161279125,
+          "raw": "08f8050005000900961409f86cfd000000ffffff"
+        },
+        {
+          "datum": 4161344662,
+          "raw": "09f8380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4161410199,
+          "raw": "0af8cc00040008009e1411f883fd000098140bf8"
+        },
+        {
+          "datum": 4161475736,
+          "raw": "0bf8cc000200090099140cf84c0e000000000000"
+        },
+        {
+          "datum": 4161541273,
+          "raw": "0cf83900330009009a140df8931f00005001ffff"
+        },
+        {
+          "datum": 4161606810,
+          "raw": "0df82400240009009b140ef81d0b0000d4210f84"
+        },
+        {
+          "datum": 4161672347,
+          "raw": "0ef80b000b0009009c140ff89b340000d736000b"
+        },
+        {
+          "datum": 4161737884,
+          "raw": "0ff80500050009009d1410f8d8fd000000ffffff"
+        },
+        {
+          "datum": 4161803421,
+          "raw": "10f8380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4161868958,
+          "raw": "11f8bb0004000800a41417f8f1fd00009f1412f8"
+        },
+        {
+          "datum": 4161934495,
+          "raw": "12f8bb0002000900a01413f8c70e000000000000"
+        },
+        {
+          "datum": 4162000032,
+          "raw": "13f83d0037000900a11414f83f1f00009200ffff"
+        },
+        {
+          "datum": 4162065569,
+          "raw": "14f8240024000900a21415f8c2260000f6213184"
+        },
+        {
+          "datum": 4162131106,
+          "raw": "15f80b000b000900a31416f8a734000032370010"
+        },
+        {
+          "datum": 4162196643,
+          "raw": "16f8380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4162262180,
+          "raw": "17f8bb0004000800aa141df886fe0000a51418f8"
+        },
+        {
+          "datum": 4162327717,
+          "raw": "18f8bb0002000900a61419f8c70e000000000000"
+        },
+        {
+          "datum": 4162393254,
+          "raw": "19f83d0037000900a7141af80d2000009300ffff"
+        },
+        {
+          "datum": 4162458791,
+          "raw": "1af8240024000900a8141bf811270000f7213284"
+        },
+        {
+          "datum": 4162524328,
+          "raw": "1bf80b000b000900a9141cf8b83400003737000d"
+        },
+        {
+          "datum": 4162589865,
+          "raw": "1cf8380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4162655402,
+          "raw": "1df8bb0004000800b01423f80bff0000ab141ef8"
+        },
+        {
+          "datum": 4162720939,
+          "raw": "1ef8bb0002000900ac141ff8c70e000000000000"
+        },
+        {
+          "datum": 4162786476,
+          "raw": "1ff83d0037000900ad1420f8832a0000b600ffff"
+        },
+        {
+          "datum": 4162852013,
+          "raw": "20f8240024000900ae1421f8652b000001223c84"
+        },
+        {
+          "datum": 4162917550,
+          "raw": "21f80b000b000900af1422f8c634000044370009"
+        },
+        {
+          "datum": 4162983087,
+          "raw": "22f8380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4163048624,
+          "raw": "23f8bb0004000800b61429f88aff0000b11424f8"
+        },
+        {
+          "datum": 4163114161,
+          "raw": "24f8bb0002000900b21425f8c70e000000000000"
+        },
+        {
+          "datum": 4163179698,
+          "raw": "25f83d0037000900b31426f8c52400003c00ffff"
+        },
+        {
+          "datum": 4163245235,
+          "raw": "26f8240024000900b41427f853270000f8213384"
+        },
+        {
+          "datum": 4163310772,
+          "raw": "27f80b000b000900b51428f8d03400003937000c"
+        },
+        {
+          "datum": 4163376309,
+          "raw": "28f8380032000900ffffffff960e0000b900ffff"
+        },
+        {
+          "datum": 4163441846,
+          "raw": "29f8130004000800b9142cf83d000100b7142af8"
+        },
+        {
+          "datum": 4163507383,
+          "raw": "2af8130002000900b8142bf86e00000000000000"
+        },
+        {
+          "datum": 4163572920,
+          "raw": "2bf8070007000900ffffffff440001001e00ffff"
+        },
+        {
+          "datum": 4163638457,
+          "raw": "2cf82a0204000800bf1432f84c000100ba142df8"
+        },
+        {
+          "datum": 4163703994,
+          "raw": "2df82a0202000900bb142ef84102000000000000"
+        },
+        {
+          "datum": 4163769531,
+          "raw": "2ef8060006000900bc142ff8550001000000803f"
+        },
+        {
+          "datum": 4163835068,
+          "raw": "2ff8060006000900bd1430f8570001000000803f"
+        },
+        {
+          "datum": 4163900605,
+          "raw": "30f8060006000900be1431f8590001000000803f"
+        },
+        {
+          "datum": 4163966142,
+          "raw": "31f8070007000900ffffffff5b0001000f00ffff"
+        },
+        {
+          "datum": 4164031679,
+          "raw": "32f8130004000800c61439f8aa000100c01433f8"
+        },
+        {
+          "datum": 4164097216,
+          "raw": "33f8130002000900c11434f86e00000000000000"
+        },
+        {
+          "datum": 4164162753,
+          "raw": "34f8080007000800ffffffffb1000100c21435f8"
+        },
+        {
+          "datum": 4164228290,
+          "raw": "35f8080002000900c31436f8670f000000000000"
+        },
+        {
+          "datum": 4164293827,
+          "raw": "36f8cd0106000800c51438f8b4000100c41437f8"
+        },
+        {
+          "datum": 4164359364,
+          "raw": "37f8cd0102000900ffffffff690f000000000000"
+        },
+        {
+          "datum": 4164424901,
+          "raw": "38f8060006000d00ffffffff750f000010000000"
+        },
+        {
+          "datum": 4164490438,
+          "raw": "39f8550204000800c9143cf8d3000100c7143af8"
+        },
+        {
+          "datum": 4164555975,
+          "raw": "3af8550202000900c8143bf87c0d000000000000"
+        },
+        {
+          "datum": 4164621512,
+          "raw": "3bf8200020000900ffffffffdd3400000e224984"
+        },
+        {
+          "datum": 4164687049,
+          "raw": "3cf8550204000800cc143ff823010100ca143df8"
+        },
+        {
+          "datum": 4164752586,
+          "raw": "3df8550202000900cb143ef87c0d000000000000"
+        },
+        {
+          "datum": 4164818123,
+          "raw": "3ef8200020000900ffffffff133500000f224a84"
+        },
+        {
+          "datum": 4164883660,
+          "raw": "3ff8130004000800d31446f875010100cd1440f8"
+        },
+        {
+          "datum": 4164949197,
+          "raw": "40f8130002000900ce1441f86e00000000000000"
+        },
+        {
+          "datum": 4165014734,
+          "raw": "41f8080007000800ffffffff7c010100cf1442f8"
+        },
+        {
+          "datum": 4165080271,
+          "raw": "42f8080002000900d01443f8670f000000000000"
+        },
+        {
+          "datum": 4165145808,
+          "raw": "43f8cd0106000800d21445f87f010100d11444f8"
+        },
+        {
+          "datum": 4165211345,
+          "raw": "44f8cd0102000900ffffffff690f000000000000"
+        },
+        {
+          "datum": 4165276882,
+          "raw": "45f8060006000900ffffffff8d01010000007041"
+        },
+        {
+          "datum": 4165342419,
+          "raw": "46f82b0204000800d9144cf896010100d41447f8"
+        },
+        {
+          "datum": 4165407956,
+          "raw": "47f82b0202000900d51448f86500000000000000"
+        },
+        {
+          "datum": 4165473493,
+          "raw": "48f8060006000900d61449f8a00101000000803f"
+        },
+        {
+          "datum": 4165539030,
+          "raw": "49f8060006000900d7144af8a20101000000803f"
+        },
+        {
+          "datum": 4165604567,
+          "raw": "4af8060006000900d8144bf8a40101000000803f"
+        },
+        {
+          "datum": 4165670104,
+          "raw": "4bf8070007000900ffffffffa60101000f00ffff"
+        },
+        {
+          "datum": 4165735641,
+          "raw": "4cf8130004000800dc144ff8ac010100da144df8"
+        },
+        {
+          "datum": 4165801178,
+          "raw": "4df8130002000900db144ef86e00000000000000"
+        },
+        {
+          "datum": 4165866715,
+          "raw": "4ef8070007000900ffffffffb30101000f00ffff"
+        },
+        {
+          "datum": 4165932252,
+          "raw": "4ff87d0304000800de1451f8bb010100dd1450f8"
+        },
+        {
+          "datum": 4165997789,
+          "raw": "50f87d0302000900ffffffff4935000000000000"
+        },
+        {
+          "datum": 4166063326,
+          "raw": "51f87e0004000a00ffffffffde010100df1452f8"
+        },
+        {
+          "datum": 4166128863,
+          "raw": "52f87e0002000900ffffffff6835000000000000"
+        },
+        {
+          "datum": 4166194400,
+          "raw": "53f8000004000800ffffffffc3f80000e11454f8"
+        },
+        {
+          "datum": 4166259937,
+          "raw": "54f80000020009005114c4f71f00000000000000"
+        }
+      ],
+      "strings": [
+        {
+          "offset": 31,
+          "text": "begin"
+        },
+        {
+          "offset": 101,
+          "text": "fade_out"
+        },
+        {
+          "offset": 110,
+          "text": "sleep"
+        },
+        {
+          "offset": 577,
+          "text": "fade_in"
+        },
+        {
+          "offset": 2845,
+          "text": "objects\\characters\\marine\\x02\\x02"
+        },
+        {
+          "offset": 3452,
+          "text": "sound_impulse_predict"
+        },
+        {
+          "offset": 3560,
+          "text": "camera_set_animation_relative"
+        },
+        {
+          "offset": 3590,
+          "text": "objects\\characters\\cinematic_camera\\x02\\x02"
+        },
+        {
+          "offset": 3641,
+          "text": "anchor_flag_x02_01"
+        },
+        {
+          "offset": 3660,
+          "text": "custom_animation_relative"
+        },
+        {
+          "offset": 3686,
+          "text": "objects\\characters\\masterchief\\x02\\x02"
+        },
+        {
+          "offset": 3734,
+          "text": "anchor_x02_01"
+        },
+        {
+          "offset": 3783,
+          "text": "scenery_animation_start_relative"
+        },
+        {
+          "offset": 3943,
+          "text": "-"
+        },
+        {
+          "offset": 3945,
+          "text": "camera_time"
+        },
+        {
+          "offset": 3957,
+          "text": "sound_offset"
+        },
+        {
+          "offset": 7547,
+          "text": "hood_x02"
+        },
+        {
+          "offset": 7696,
+          "text": "marine_01"
+        },
+        {
+          "offset": 7804,
+          "text": "cortana_x02"
+        },
+        {
+          "offset": 7999,
+          "text": "x02_cortana_stand"
+        },
+        {
+          "offset": 8029,
+          "text": "chief_x02"
+        },
+        {
+          "offset": 8039,
+          "text": "johnson_x02"
+        },
+        {
+          "offset": 8051,
+          "text": "miranda_x02"
+        },
+        {
+          "offset": 8063,
+          "text": "marine_02"
+        },
+        {
+          "offset": 8073,
+          "text": "marine_03"
+        },
+        {
+          "offset": 8083,
+          "text": "marine_04"
+        },
+        {
+          "offset": 8205,
+          "text": "x02_medal_tray"
+        },
+        {
+          "offset": 9413,
+          "text": "x02_unsc_logo"
+        },
+        {
+          "offset": 9632,
+          "text": "cinematic_lightmap_shadow_enable"
+        },
+        {
+          "offset": 9730,
+          "text": "objects\\characters\\lord_hood\\x02\\x02"
+        },
+        {
+          "offset": 9776,
+          "text": "objects\\characters\\miranda\\x02\\x02"
+        },
+        {
+          "offset": 9823,
+          "text": "objects\\characters\\cortana\\x02\\x02"
+        },
+        {
+          "offset": 9922,
+          "text": "scenarios\\objects\\solo\\spacestation\\ss_stand_cortana\\x02\\x02"
+        },
+        {
+          "offset": 10001,
+          "text": "objects\\cinematics\\human\\medals\\medal_tray\\x02\\x02"
+        },
+        {
+          "offset": 10067,
+          "text": "objects\\cinematics\\human\\cairo_bridge_holoscreens\\holo_display_unsc_logo\\x02\\x02"
+        },
+        {
+          "offset": 10883,
+          "text": "medal_01"
+        },
+        {
+          "offset": 11109,
+          "text": "objects\\cinematics\\human\\medals\\colonial_cross\\x02\\x02"
+        },
+        {
+          "offset": 13309,
+          "text": "x02_06_predict_stub"
+        },
+        {
+          "offset": 13329,
+          "text": "x02_06_setup"
+        },
+        {
+          "offset": 13342,
+          "text": "disable_render_light_suppressor"
+        },
+        {
+          "offset": 13374,
+          "text": "x02_06"
+        },
+        {
+          "offset": 13381,
+          "text": "chief_06"
+        },
+        {
+          "offset": 13390,
+          "text": "johnson_06"
+        },
+        {
+          "offset": 13401,
+          "text": "hood_06"
+        },
+        {
+          "offset": 13409,
+          "text": "miranda_06"
+        },
+        {
+          "offset": 13420,
+          "text": "cortana_06"
+        },
+        {
+          "offset": 13431,
+          "text": "marine01_06"
+        },
+        {
+          "offset": 13443,
+          "text": "marine02_06"
+        },
+        {
+          "offset": 13455,
+          "text": "marine03_06"
+        },
+        {
+          "offset": 13467,
+          "text": "marine04_06"
+        },
+        {
+          "offset": 13479,
+          "text": "cortana_stand_06"
+        },
+        {
+          "offset": 13496,
+          "text": "medal_tray_06"
+        },
+        {
+          "offset": 13510,
+          "text": "cross1_06"
+        },
+        {
+          "offset": 13520,
+          "text": "unsc_logo_06"
+        },
+        {
+          "offset": 13533,
+          "text": "sound\\cinematics\\01_spacestation\\x02\\music\\x02_08_mus"
+        },
+        {
+          "offset": 13587,
+          "text": "sound\\cinematics\\01_spacestation\\x02\\foley\\x02_07_fol"
+        },
+        {
+          "offset": 13641,
+          "text": "enable_render_light_suppressor"
+        },
+        {
+          "offset": 13672,
+          "text": "x02_06_cleanup"
+        }
+      ],
+      "bindings": [
+        {
+          "datum": 4157477979,
+          "value": 2215780823,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\cinematic_camera\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4157543516,
+          "value": 100677352,
+          "binding": {
+            "string_id": "x02_06"
+          }
+        },
+        {
+          "datum": 4157674590,
+          "value": 17,
+          "binding": {
+            "cutscene_flag": "anchor_flag_x02_01"
+          }
+        },
+        {
+          "datum": 4157871201,
+          "value": 4294902079,
+          "binding": {
+            "object_name": "chief_x02",
+            "object_type": 0,
+            "placement": 23
+          }
+        },
+        {
+          "datum": 4157936738,
+          "value": 2215846360,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\masterchief\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4158002275,
+          "value": 134231792,
+          "binding": {
+            "string_id": "chief_06"
+          }
+        },
+        {
+          "datum": 4158133349,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4158329960,
+          "value": 4294902078,
+          "binding": {
+            "object_name": "johnson_x02",
+            "object_type": 0,
+            "placement": 22
+          }
+        },
+        {
+          "datum": 4158395497,
+          "value": 2215584212,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4158461034,
+          "value": 167786179,
+          "binding": {
+            "string_id": "johnson_06"
+          }
+        },
+        {
+          "datum": 4158592108,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4158788719,
+          "value": 4294902075,
+          "binding": {
+            "object_name": "hood_x02",
+            "object_type": 0,
+            "placement": 19
+          }
+        },
+        {
+          "datum": 4158854256,
+          "value": 2217615859,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\lord_hood\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4158919793,
+          "value": 117454629,
+          "binding": {
+            "string_id": "hood_06"
+          }
+        },
+        {
+          "datum": 4159050867,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4159247478,
+          "value": 4294902076,
+          "binding": {
+            "object_name": "miranda_x02",
+            "object_type": 0,
+            "placement": 20
+          }
+        },
+        {
+          "datum": 4159313015,
+          "value": 2217681396,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\miranda\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4159378552,
+          "value": 167786282,
+          "binding": {
+            "string_id": "miranda_06"
+          }
+        },
+        {
+          "datum": 4159509626,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4159706237,
+          "value": 4294902077,
+          "binding": {
+            "object_name": "cortana_x02",
+            "object_type": 0,
+            "placement": 21
+          }
+        },
+        {
+          "datum": 4159771774,
+          "value": 2217746933,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\cortana\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4159837311,
+          "value": 167786286,
+          "binding": {
+            "string_id": "cortana_06"
+          }
+        },
+        {
+          "datum": 4159968385,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4160164996,
+          "value": 4294902093,
+          "binding": {
+            "object_name": "marine_01",
+            "object_type": 0,
+            "placement": 11
+          }
+        },
+        {
+          "datum": 4160230533,
+          "value": 2215584212,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4160296070,
+          "value": 184563402,
+          "binding": {
+            "string_id": "marine01_06"
+          }
+        },
+        {
+          "datum": 4160427144,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4160623755,
+          "value": 4294902094,
+          "binding": {
+            "object_name": "marine_02",
+            "object_type": 0,
+            "placement": 12
+          }
+        },
+        {
+          "datum": 4160689292,
+          "value": 2215584212,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4160754829,
+          "value": 184563407,
+          "binding": {
+            "string_id": "marine02_06"
+          }
+        },
+        {
+          "datum": 4160885903,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4161082514,
+          "value": 4294902095,
+          "binding": {
+            "object_name": "marine_03",
+            "object_type": 0,
+            "placement": 13
+          }
+        },
+        {
+          "datum": 4161148051,
+          "value": 2215584212,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4161213588,
+          "value": 184563411,
+          "binding": {
+            "string_id": "marine03_06"
+          }
+        },
+        {
+          "datum": 4161344662,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4161541273,
+          "value": 4294902096,
+          "binding": {
+            "object_name": "marine_04",
+            "object_type": 0,
+            "placement": 14
+          }
+        },
+        {
+          "datum": 4161606810,
+          "value": 2215584212,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\characters\\marine\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4161672347,
+          "value": 184563415,
+          "binding": {
+            "string_id": "marine04_06"
+          }
+        },
+        {
+          "datum": 4161803421,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4162000032,
+          "value": 4294901906,
+          "binding": {
+            "object_name": "x02_cortana_stand",
+            "object_type": 6,
+            "placement": 235
+          }
+        },
+        {
+          "datum": 4162065569,
+          "value": 2217812470,
+          "binding": {
+            "group": "jmad",
+            "path": "scenarios\\objects\\solo\\spacestation\\ss_stand_cortana\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4162131106,
+          "value": 268449586,
+          "binding": {
+            "string_id": "cortana_stand_06"
+          }
+        },
+        {
+          "datum": 4162196643,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4162393254,
+          "value": 4294901907,
+          "binding": {
+            "object_name": "x02_medal_tray",
+            "object_type": 6,
+            "placement": 236
+          }
+        },
+        {
+          "datum": 4162458791,
+          "value": 2217878007,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\cinematics\\human\\medals\\medal_tray\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4162524328,
+          "value": 218117943,
+          "binding": {
+            "string_id": "medal_tray_06"
+          }
+        },
+        {
+          "datum": 4162589865,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4162786476,
+          "value": 4294901942,
+          "binding": {
+            "object_name": "medal_01",
+            "object_type": 6,
+            "placement": 272
+          }
+        },
+        {
+          "datum": 4162852013,
+          "value": 2218533377,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\cinematics\\human\\medals\\colonial_cross\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4162917550,
+          "value": 151009092,
+          "binding": {
+            "string_id": "cross1_06"
+          }
+        },
+        {
+          "datum": 4162983087,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4163179698,
+          "value": 4294901820,
+          "binding": {
+            "object_name": "x02_unsc_logo",
+            "object_type": 6,
+            "placement": 148
+          }
+        },
+        {
+          "datum": 4163245235,
+          "value": 2217943544,
+          "binding": {
+            "group": "jmad",
+            "path": "objects\\cinematics\\human\\cairo_bridge_holoscreens\\holo_display_unsc_logo\\x02\\x02"
+          }
+        },
+        {
+          "datum": 4163310772,
+          "value": 201340729,
+          "binding": {
+            "string_id": "unsc_logo_06"
+          }
+        },
+        {
+          "datum": 4163376309,
+          "value": 4294901945,
+          "binding": {
+            "object_name": "anchor_x02_01",
+            "object_type": 6,
+            "placement": 271
+          }
+        },
+        {
+          "datum": 4164424901,
+          "value": 16,
+          "binding": {
+            "declared_type": 7,
+            "global": "sound_offset"
+          }
+        },
+        {
+          "datum": 4164621512,
+          "value": 2219385358,
+          "binding": {
+            "group": "snd!",
+            "path": "sound\\cinematics\\01_spacestation\\x02\\music\\x02_08_mus"
+          }
+        },
+        {
+          "datum": 4164818123,
+          "value": 2219450895,
+          "binding": {
+            "group": "snd!",
+            "path": "sound\\cinematics\\01_spacestation\\x02\\foley\\x02_07_fol"
+          }
+        }
+      ],
+      "static_calls": [
+        {
+          "index": 30,
+          "name": "x02_06_predict_stub"
+        },
+        {
+          "index": 125,
+          "name": "x02_06_setup"
+        },
+        {
+          "index": 126,
+          "name": "x02_06_cleanup"
+        }
+      ],
+      "patches": [
+        {
+          "predecessor": 4157084757,
+          "removed_call": 4157215831,
+          "next": 4157346905,
+          "retired": [
+            4157215831,
+            4157281368
+          ]
+        },
+        {
+          "predecessor": 4165735641,
+          "removed_call": 4165932252,
+          "next": 4166063326,
+          "retired": [
+            4165932252,
+            4165997789
+          ]
+        }
+      ],
+      "return_type": 4
+    }
+  ]
+}

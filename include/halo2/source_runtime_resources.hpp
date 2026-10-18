@@ -16,6 +16,11 @@ public:
     // original shared-resource snapshots. Filesystem paths stay local. The
     // Cache must outlive this owner and remain immutable after construction.
     explicit SourceRuntimeResources(const Cache &);
+    // Canonical runtime descriptor addresses can differ from the Cache's
+    // donor-normalized metadata addresses. Translate only that typed field
+    // domain; encoded file/resource offsets retain their serialized meaning.
+    using DescriptorAddress=std::function<std::uint32_t(std::uint32_t,std::size_t)>;
+    SourceRuntimeResources(const Cache &,DescriptorAddress);
     ~SourceRuntimeResources();
     const Identity &identity() const noexcept;
     std::vector<std::byte> load(std::uint32_t encoded_offset,std::uint32_t bytes) const;

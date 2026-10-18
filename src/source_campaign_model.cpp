@@ -4,12 +4,16 @@
 #include "halo2/appearance.hpp"
 #include "halo2/world_material.hpp"
 #include "halo2/object_lighting.hpp"
+#include "halo2/source_live_model_geometry_tu15.hpp"
 #include <algorithm>
 #include <bit>
+#include <map>
 
 namespace halo2 {
 SourceCampaignModel::SourceCampaignModel(const Cache &cache,const ScenarioObject &object)
-    :definition_(object.definition),variant_(object.variant) {
+    :SourceCampaignModel(cache,object.definition,object.variant) {}
+SourceCampaignModel::SourceCampaignModel(const Cache &cache,std::uint32_t definition,std::uint32_t variant)
+    :definition_(definition),variant_(variant) {
     const auto initial=cache.load_initial_model_definition(definition_);
     render_model_=initial.render_model;
     if(render_model_==null_datum)throw FormatError("Campaign source model has no render-model definition");
@@ -82,32 +86,38 @@ std::vector<Vertex> SourceCampaignModel::vertices(std::uint32_t owner,
     if(!count)return {};
     const auto lod=c.u16(0x168);
     if(lod>=6)throw FormatError("Campaign source collector LOD exceeds its six resource banks");
+    std::vector<unsigned> sections;
+    for(unsigned row=0;row<unsigned(count);++row) {
+        if(c.u32(0x34+row*4)!=owner)
+            throw FormatError("Campaign collector requires another live model owner");
+        if(c.u32(0x5c+row*4)!=render_model_)
+            throw FormatError("Campaign collector requires another resident render-model owner");
+        const auto regions=c.u32(0x18+row*4);
+        if(regions>16)throw FormatError("Campaign source collector exceeds its sixteen regions");
+        for(unsigned region=0;region<regions;++region) {
+            const auto section=std::to_integer<unsigned>(c.slice(0x75+row*16+region,1).front());
+            if(section==255)continue;
+            sections.push_back(section);
+        }
+    }
+    return vertices(lod,sections,nodes);
+}
+std::vector<Vertex> SourceCampaignModel::vertices(unsigned lod,std::span<const unsigned> sections,
+    std::span<const Transform> nodes)const {
+    if(lod>=6)throw FormatError("Campaign source selected a LOD outside its six resource banks");
     if(nodes.size()!=lods_[lod]->bones.size())throw FormatError("Campaign model requires its complete rendered WORLD pose");
     // Original submission skins only the selected sections. Keep the full
     // palette, but do not pose every unselected permutation in the resource
     // union. Ordered duplicate section requests remain duplicate vertices.
     const auto &resource=*lods_[lod];RenderModel selected;
     selected.bones=resource.bones;selected.compound_nodes=resource.compound_nodes;
-    bool found=false;
-    for(unsigned row=0;row<unsigned(count);++row) {
-        if(c.u32(0x34+row*4)!=owner)
-            throw FormatError("Campaign collector requires another live model owner");
-        if(c.u32(0x5c+row*4)!=render_model_)
-            throw FormatError("Campaign collector requires another resident render-model owner");
-        found=true;
-        const auto regions=c.u32(0x18+row*4);
-        if(regions>16)throw FormatError("Campaign source collector exceeds its sixteen regions");
-        for(unsigned region=0;region<regions;++region) {
-            const auto section=std::to_integer<unsigned>(c.slice(0x75+row*16+region,1).front());
-            if(section==255)continue;
-            if(std::ranges::find(sections_[lod],section)==sections_[lod].end())
-                throw FormatError("Campaign source selected an unprepared section");
-            for(unsigned i=0;i<resource.mesh.vertices.size();++i)if(resource.mesh.vertices[i].source_section==section) {
-                selected.mesh.vertices.push_back(resource.mesh.vertices[i]);selected.skin.push_back(resource.skin.at(i));
-            }
+    for(auto section:sections) {
+        if(std::ranges::find(sections_[lod],section)==sections_[lod].end())
+            throw FormatError("Campaign source selected an unprepared section");
+        for(unsigned i=0;i<resource.mesh.vertices.size();++i)if(resource.mesh.vertices[i].source_section==section) {
+            selected.mesh.vertices.push_back(resource.mesh.vertices[i]);selected.skin.push_back(resource.skin.at(i));
         }
     }
-    if(!found)throw FormatError("Campaign source collector did not retain the requested model owner");
     return skin_model_world_nodes(selected,nodes);
 }
 std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
@@ -116,6 +126,33 @@ std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
     if(!shaders_)throw FormatError("Campaign source model has no resident shader bank");
     auto result=vertices(owner,collector,nodes);shaders_->select(result,shader,view);
     for(auto &vertex:result)vertex.material+=material_base_;
+    return result;
+}
+std::vector<Vertex> SourceCampaignModel::draw(std::uint32_t owner,
+    std::span<const SourceLiveModelBaseDrawTu15> draws,std::span<const Transform> nodes,
+    const SourceModelShaderView &view)const {
+    if(!shaders_)throw FormatError("Campaign source model has no resident shader bank");
+    std::map<unsigned,std::vector<Vertex>> posed;
+    std::vector<Vertex> result;
+    for(const auto &draw:draws) {
+        if(draw.object!=owner || draw.definition!=definition_ || draw.unit.words[1]!=render_model_)
+            throw FormatError("Campaign main unit lost its full owner/definition/render-model identity");
+        if(draw.lighting_class!=2 || draw.override_slot!=255 || !(draw.unit.words[0]&1u))
+            throw FormatError("Campaign ordinary draw received an unsupported class or override unit");
+        if(draw.lod>=6 || draw.lod!=draws.front().lod)
+            throw FormatError("Campaign main units lost their single selected geometry LOD");
+        // Original449D0 returns before consuming a palette or emitting parts
+        // when the current source section has no resident resource.
+        if(!draw.geometry.geometry.resident)continue;
+        const auto section=draw.unit.words[3]>>9&511u;
+        auto at=posed.find(section);
+        if(at==posed.end()) {
+            const std::array sections{section};
+            at=posed.emplace(section,vertices(draw.lod,sections,nodes)).first;
+        }
+        if(at->second.empty())throw FormatError("Campaign main unit has no selected resident vertices");
+        shaders_->append_selected(result,at->second,{0,draw.coverage},view,material_base_);
+    }
     return result;
 }
 }

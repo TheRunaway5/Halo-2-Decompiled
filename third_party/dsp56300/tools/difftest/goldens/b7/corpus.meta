@@ -1,0 +1,7 @@
+case pm_y_store_ea 0100 0113 100
+case pm_xy_dual_read 0113 0125 100
+case pm_xy_ab_write 0125 0137 100
+case pm1_ab_transfer 0137 014a 100
+case pm1_ab_store 014a 015d 100
+case pm1_ab_load 015d 0174 100
+case pm8_cross_pairs 0174 018b 100

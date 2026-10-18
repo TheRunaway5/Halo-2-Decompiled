@@ -9,6 +9,8 @@
 #include "halo2/frontend_session.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/desktop_session.hpp"
+#include "halo2/source_authority_receiver.hpp"
+#include "halo2/source_authority_binding.hpp"
 #include <SDL.h>
 #include <curl/curl.h>
 #include <atomic>
@@ -261,16 +263,65 @@ int main(int argc,char **argv)try {
     std::array<std::uint8_t,9> appearance{};
     for(auto slot:session->local_slots())runtime.selected_profiles.push_back(native_selected_player_configuration(session->roster()[slot].name,appearance,-1));
     runtime.screenshot=output/(owner+"-source-online.ppm");
-    std::optional<std::chrono::steady_clock::time_point> started;unsigned ticks{},players{},frames{};bool quit{};
+    const bool retention_test=std::getenv("HALO2_RUNTIME_RETENTION");
+    const bool stalled_host_test=retention_test&&std::getenv("HALO2_RUNTIME_STALLED_HOST");
+    const bool source_host=session->self()==session->host();
+    std::optional<std::chrono::steady_clock::time_point> started;unsigned ticks{},players{},frames{};bool quit{},stalled{};
     runtime.input_observer=[&](auto step,auto,const auto &state){ticks=step;
       if(!started)started=std::chrono::steady_clock::now();
       players=std::max(players,unsigned(std::count_if(state.players.begin(),state.players.end(),[](const auto &p){return p.connected;})));
-      if(!quit&&std::chrono::steady_clock::now()-*started>45s){SDL_Event e{};e.type=SDL_QUIT;check(SDL_PushEvent(&e)==1,"Source capture could not end its actual game loop");quit=true;}};
+      if(stalled_host_test&&source_host&&!stalled&&std::chrono::steady_clock::now()-*started>25s){
+        stalled=true;std::this_thread::sleep_for(12s); // Game loop stalls; authenticated peer/control workers stay alive.
+      }
+      if(!quit&&std::chrono::steady_clock::now()-*started>(retention_test&&!source_host?120s:45s)){
+        SDL_Event e{};e.type=SDL_QUIT;check(SDL_PushEvent(&e)==1,"Source capture could not end its actual game loop");quit=true;}};
     runtime.frame_observer=[&](const auto &timing){frames+=timing.submitted;};
-    MultiplayerRuntimeOutcome outcome;run_multiplayer(runtime,outcome);
+    MultiplayerRuntimeOutcome outcome;std::shared_ptr<const SourceAuthorityRetainedWorld> recovery;
+    if(retention_test)run_multiplayer(runtime,outcome,recovery);
+    else run_multiplayer(runtime,outcome);
     std::cout<<"Rendered source capture: ticks="<<ticks<<" players="<<players<<" frames="<<frames<<"\n";
     check(ticks>30&&players==8&&frames>10&&outcome.state.has_value(),"Rendered TU1.5 source session did not advance all couch players");
     check(session->self()!=session->host()||native_world,"Rendered host silently omitted its actual TU1.5 source owner");
+    if(retention_test){
+      if(source_host)check(outcome.reason==MultiplayerExitReason::window_quit&&!recovery,
+          "An intentional host quit manufactured a recovery value");
+      else {
+        check(outcome.reason==MultiplayerExitReason::online_disconnected&&recovery&&
+            outcome.authority==MultiplayerOutcomeAuthority::client_snapshot&&!outcome.authoritative_banks,
+            "Real runtime disconnect discarded its source recovery or promoted display/PCR state");
+        if(stalled_host_test)check(session->phase()==OnlineMatchSession::Phase::Running,
+            "Stalled game-loop test did not preserve its still-live direct/control session");
+        check(recovery->cut.context==*session->authority_context()&&recovery->admissions==*session->source_players()&&
+            recovery->local_views==session->local_slots()&&recovery->checkpoint.match.simulation.ticks==recovery->cut.seal.tick,
+            "Runtime recovery changed its admitted context, source identities, local views or completed tick");
+        std::cout<<"Runtime recovery cut: validated_tick="<<recovery->cut.seal.tick
+            <<" displayed_tick="<<outcome.state->tick<<" local_views="<<recovery->local_views.size()<<'\n';
+        // Runtime renderer, source replay worker and native display world have
+        // all been destroyed. Import only the owning recovery value on this
+        // separate executor; no old pointer or fixture supplies world input.
+        MultiplayerOptions continuation;continuation.online_match=runtime.online_match;
+        continuation.map=runtime.map;continuation.shared_maps=runtime.shared_maps;continuation.gameplay_xbe=runtime.gameplay_xbe;
+        continuation.bsp=runtime.bsp;continuation.variant=runtime.variant;continuation.starting_weapon=runtime.starting_weapon;
+        continuation.session_random_seed=runtime.session_random_seed;continuation.local_players=runtime.local_players;
+        continuation.selected_teams=runtime.selected_teams;continuation.selected_profiles=runtime.selected_profiles;
+        auto recipient=MultiplayerPreparedWorld::source_shadow(continuation,MultiplayerPreparedWorld::SourceShadowViews::LocalPeer);
+        auto staging=MultiplayerPreparedWorld::source_shadow(continuation,MultiplayerPreparedWorld::SourceShadowViews::IncomingHost);
+        SourceMatchAuthority target(recipient->match,*recipient->source_objects),producer(staging->match,*staging->source_objects);
+        std::vector<SourcePlayerAdmission> locals;for(auto slot:recovery->local_views)locals.push_back(recovery->admissions.players.at(slot));
+        auto prepared=target.prepare_with_local_views(recovery->checkpoint,source_authority_binding(recovery->cut.context),
+            locals,producer,recovery->admissions.players,recovery->producer_views);
+        check(target.commit(std::move(prepared)),"Real rendered runtime recovery did not import/rebind");
+        for(const auto &p:session->roster())if(online_admission_peer(p)==session->host()){
+          const auto deaths=recipient->match.player(p.slot).deaths;recipient->match.depart(p.slot);
+          check(recipient->match.player(p.slot).deaths==deaths,"Runtime recovery departure manufactured deaths");
+        }
+        const auto tick=recipient->match.simulation().ticks();std::array<Controls,16> inputs{};
+        for(unsigned i=0;i<10;++i){for(unsigned slot=0;slot<8;++slot)inputs[slot].yaw=recipient->match.unit(slot).yaw;recipient->match.step(inputs);}
+        check(recipient->match.simulation().ticks()==tick+10&&!recipient->match.finished(),
+            "Actual rendered recovery could not continue the native simulation");
+        std::cout<<"PASS real rendered runtime disconnect handoff survives teardown, imports/rebinds four local views, retains original departure results and continues ten native ticks\n";
+      }
+    }
     session.reset();std::cout<<"PASS actual rendered TU1.5 ONLINE source capture workload with eight admitted couch seats\n";return 0;
   }
   if(mode=="render" || mode=="team-render") {

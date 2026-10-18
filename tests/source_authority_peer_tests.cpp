@@ -78,7 +78,7 @@ void run_peer(const char *xbe,const char *map){
         // This actual source per-frame owner runs outside Match::step. A
         // complete canonical delta retains its bytes without inventing a
         // control replay that omitted that phase.
-        a.world->advance_effect_particles(1.f/60.f);
+        a.world->advance_effect_frame(1.f/60.f);
         const auto capture_started=ClockTime::now();
         const auto next_encoded=encode_source_authority(a.authority->checkpoint(binding));
         const auto next_image=AuthorityArchiveImage::read(next_encoded);

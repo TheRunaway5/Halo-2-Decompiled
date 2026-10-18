@@ -30,6 +30,11 @@ public:
   };
   using Host = std::function<ScriptValue(const std::string &,
                                          const std::vector<ScriptValue> &)>;
+  // Used only during global construction; never invokes the general host on
+  // a partially constructed Simulation. The two MCC clock getters declare
+  // LONG(), independently of their expression's requested coercion.
+  using InitialBuiltin = std::function<std::optional<ScriptValue>(
+      const std::string &,const std::vector<ScriptValue> &)>;
   using ObjectResolver = std::function<std::uint32_t(int, unsigned)>;
   // Writes return the value converted to the declaration's actual type.
   // Compiled expression types can differ from external declaration types.
@@ -42,6 +47,8 @@ public:
                     ExternalGlobals = {});
   ScriptVm(const ScriptProgram &, Host, ObjectResolver, ExternalGlobals,
            SourceHsObjectListServices);
+  ScriptVm(const ScriptProgram &, Host, ObjectResolver, ExternalGlobals,
+           SourceHsObjectListServices,InitialBuiltin);
   ScriptAudit audit() const;
   void start(const std::string &name);
   void start_command(unsigned script,std::uint32_t actor);
@@ -75,6 +82,11 @@ public:
     std::uint32_t random_visited{};
     bool operator==(const AuthorityFrame &)const=default;
   };
+  struct AuthorityWakeState {
+    std::uint64_t wake{};
+    bool dormant{};
+    bool operator==(const AuthorityWakeState &)const=default;
+  };
   struct AuthorityThread {
     std::size_t script{};
     std::uint64_t wake{};
@@ -82,6 +94,8 @@ public:
     std::vector<AuthorityFrame> stack;
     std::optional<std::uint32_t> actor;
     bool command_wait{};
+    //TU1.5 thread flag2/+0xC: first schedule interrupted by external sleep.
+    std::optional<AuthorityWakeState> external_sleep;
     bool operator==(const AuthorityThread &)const=default;
   };
   struct AuthorityCheckpoint {

@@ -1,0 +1,17 @@
+case srm_sm_add_up 0100 0110 100
+case srm_sm_sub_down 0110 0120 100
+case srm_sm_abs_neg 0120 0130 100
+case srm_sm_asl 0130 0144 100
+case srm_sm_mac 0144 0159 100
+case srm_sm_rnd 0159 0167 100
+case srm_sm_noclamp 0167 017a 100
+case srm_sm_scale_dn 017a 0190 100
+case srm_sm_scale_up 0190 01a6 100
+case srm_scl_tst_dn 01a6 01bd 100
+case srm_scl_tst_up 01bd 01d4 100
+case srm_scl_rnd_dn 01d4 01eb 100
+case srm_scl_rnd_up 01eb 0204 100
+case srm_scl_jcc 0204 021a 100
+case srm_cc_ge_lt 021a 022e 100
+case srm_cc_gt_le 022e 0248 100
+case srm_cc_nn_nr 0248 0261 100

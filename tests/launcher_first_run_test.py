@@ -177,15 +177,20 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertIn('Native MCC gameplay ready: no', result.stdout)
         self.assertNotIn('Default gameplay XBE:', result.stdout)
 
-    def test_both_readiness_flags_are_required(self):
+    def test_incomplete_readiness_flags_launch_only_test_build(self):
         self.ready_assets()
         self.runtime()
         for active, parity in ((True, False), (False, True), ('true', True)):
             report = json.loads((self.cache / 'provenance.json').read_text())
             report.update(runtime_active=active, full_tu15_parity=parity)
             (self.cache / 'provenance.json').write_text(json.dumps(report))
-            self.assertEqual(self.run_launcher('--launch-game').returncode, 1)
-        self.assertFalse((self.root / 'runtime-call.json').exists())
+            result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+            self.assertEqual(result.returncode, 0, result.stderr)
+            args = self.call('runtime')['argv']
+            self.assertIn('--mcc-preview', args)
+            self.assertNotIn('--menu-screen', args)
+            self.assertNotIn('--multiplayer', args)
+        self.assertIn('Native MCC gameplay ready: no', self.run_launcher('--launcher-info').stdout)
 
     def test_incomplete_selected_cache_reopens_mcc_setup(self):
         self.ready_assets()
@@ -250,6 +255,21 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         result = self.run_launcher('--preview-mcc', '--hidden', '--frames', '1')
         self.assertEqual(result.returncode, 17, result.stderr)
         self.assertFalse((self.root / 'runtime-call.json').exists())
+
+    def test_precompiled_play_never_uses_the_automatic_build(self):
+        self.ready_assets()
+        binary = self.runtime()
+        source = binary.read_text()
+        binary.write_text(source.replace('import json, os, pathlib, sys\n',
+            'import json, os, pathlib, sys\nif "--help" in sys.argv: raise SystemExit(1)\n'))
+        (self.root / 'PRECOMPILED_TEST_BUILD.json').write_text('{}')
+        result = self.run_launcher('--launch-game', '--frames', '1', '--hidden')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--mcc-preview', self.call('runtime')['argv'])
+        self.assertNotIn('Updating the runtime', result.stdout)
+        result = self.run_launcher('--update')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('precompiled test package', result.stderr)
 
     def test_preview_rebuilds_a_runtime_that_rejects_the_preview_option(self):
         self.ready_assets()

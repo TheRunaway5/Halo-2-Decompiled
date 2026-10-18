@@ -6,6 +6,7 @@
 #include "halo2/renderer_constant_mode.hpp"
 #include "halo2/renderer_depth_mode.hpp"
 #include "halo2/renderer_particle_program.hpp"
+#include "halo2/renderer_particle_view.hpp"
 #include "halo2/renderer_output_state.hpp"
 #include "halo2/renderer_texture_coordinates.hpp"
 #include "halo2/renderer_targets.hpp"
@@ -269,6 +270,9 @@ struct ModelView {
     std::span<const pstencil::LightmapCaster> pstencil_lightmap_casters;
     std::span<const pstencil::PointCaster> pstencil_point_casters;
     bool pstencil_native_point_casters=false;
+    // Exact configured4922F8 clip/effect distance, independent of the
+    // submitted camera far in projection_clip_planes (491E7C).
+    std::optional<float> source_w_distance;
 };
 // SDL owns the platform window/input; only this module knows Vulkan handles.
 class Renderer {
@@ -328,6 +332,8 @@ public:
     RendererConstantMode constant_mode_control();
     RendererDepthMode depth_mode_control();
     RendererParticleProgram particle_program_control();
+    RendererParticleView particle_view_inputs();
+    RendererParticleView prepare_particle_views(std::span<const RendererParticleViewInput>);
     RendererOutputState output_state_control();
     RendererTextureCoordinates texture_coordinate_control();
     RendererTargets target_resources();

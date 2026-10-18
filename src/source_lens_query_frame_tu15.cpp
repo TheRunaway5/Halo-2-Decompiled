@@ -1,4 +1,5 @@
 #include "halo2/source_lens_query_frame_tu15.hpp"
+#include "halo2/source_lens_frame_camera_tu15.hpp"
 #include "halo2/source_lens_query_geometry_tu15.hpp"
 #include "halo2/source_lens_query_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
@@ -120,26 +121,20 @@ void SourceLensQueryFrameTu15::prepare_view(PhysicsLiveWorldTu15 &world,unsigned
 std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
     Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
     std::array<std::int16_t,4> rectangle,unsigned logical_width,unsigned logical_height) {
+    return this->view(world,view,position,forward,up,angle,projection,rectangle,
+        logical_width,logical_height,Vec2{.015625f,1024.f});
+}
+std::vector<SourceLensQueryDraw> SourceLensQueryFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
+    Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
+    std::array<std::int16_t,4> rectangle,unsigned logical_width,unsigned logical_height,Vec2 clip_planes) {
     auto &s=*impl_;s.check(world);
     if(!s.active || view>=4 || s.active_view!=view || !(s.prepared_views&(1u<<view)) ||
        (s.views&(1u<<view)) || !logical_width || !logical_height)
         throw FormatError("Original lens query view lacks a unique active frame/surface");
-    s.views|=1u<<view;s.projection=projection;s.camera.fill(std::byte{});
-    const auto copy=[&](unsigned offset,const auto &value){std::memcpy(s.camera.data()+offset,&value,sizeof(value));};
-    copy(0,position);copy(12,forward);copy(24,up);copy(0x28,angle);
-    // The producer receives actual attachment pixels, including internal
-    // resolution and supersampling. Its original sample area and GPU query
-    // therefore count the same target pixels; no result normalization is invented.
+    s.views|=1u<<view;s.projection=projection;
     const auto targets=s.renderer.target_resources().acquire();const auto &depth=targets.bank().depth_stencil;
-    for(unsigned n=0;n<4;++n) {
-        const auto dimension=n%2?depth.width:depth.height;
-        const auto logical=n%2?logical_width:logical_height;
-        const auto scaled=std::int64_t(rectangle[n])*dimension/logical;
-        if(scaled<0 || scaled>32767)throw FormatError("Original query rectangle exceeds signed-short hardware coordinates");
-        rectangle[n]=std::int16_t(scaled);
-    }
-    std::memcpy(s.camera.data()+0x30,rectangle.data(),8);std::memcpy(s.camera.data()+0x38,rectangle.data(),8);
-    const float near=.015625f,far=1024.f;copy(0x40,near);copy(0x44,far);
+    s.camera=source_lens_frame_camera_tu15(position,forward,up,angle,rectangle,
+        logical_width,logical_height,depth.width,depth.height,clip_planes);
     // Retain only query-issue fields for a declined submission. Subsequent
     // views' actual requests and completed prior queries must survive rollback.
     const auto records=s.source->view(0x52dfdc,511*32);

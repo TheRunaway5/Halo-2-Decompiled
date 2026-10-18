@@ -11,10 +11,78 @@ The active goal covers the full shader, texture and lighting scope requested on
 that scope. A passing material admission or isolated shader fixture is not a
 completed live rendering path.
 
-## Ordered completion checklist — updated 2026-10-15
+## Current focus — campaign characters and cutscene lifecycle, October18
 
-One item is active at a time. Follow the user's order below; preserve later
-items' existing work and evidence without starting another implementation pass.
+The campaign follow-ups now include missing fleet/Halo backdrops and sound
+stalls. Track the direct OG Xbox TU1.5 engine comparison and its ordered work in
+[CUTSCENE_TU15_COMPARISON_20261016.md](CUTSCENE_TU15_COMPARISON_20261016.md).
+Reviewed source now restores Reach's authored FLOAT3 backdrop, cinematic safe
+framing and ordinary point-camera source adoption. The missing cinematic
+lightmap-shadow enable/disable hosts now preserve the original one-byte state,
+reset and consumer gating, with native ordering/checkpoint/replay regressions.
+Visible shadow submission remains open. Reviewed source now also includes
+the original environment producer/mixer/publication, once-per-frame completed
+camera updates, the Flood Zone far-distance override and separate configured
+clip/effect distance versus clamped shader/fog/light normalization, plus the
+complete native cold object-type flag array.
+Original/state/replay controls pass within their recorded scopes; native-cold
+player camera and combined environment/particle rendering still require the
+fresh coherent graph. The reviewed depth-of-field state host and two-pass depth
+recipe now cover all64 authored calls. The filter value recipe matches238
+original cases and5,984 ordered commands; its Vulkan scene/filter/composite
+remains unfinished. Separate frozen-ABI Vulkan
+captures verify Reach/Halo appearance and removal of the measured multi-second
+script-sound submission backlog. These results leave exact camera orientation,
+environment/particle composition, original final-frame joins and current-root
+runtime delivery open; they do not close a full shader checklist item.
+
+The user's latest instruction is to work on campaign now and make every
+campaign character render from OG Xbox code in Vulkan. This supersedes the
+earlier dynamic-shadow-only implementation order without closing or discarding
+its remaining gates. The full goal remains active.
+
+The campaign clock investigation has now recovered the original failed-map
+cleanup owner `13A7E0` in native C++. Fourteen original/native comparisons pass,
+including 150 declared callback executions, four missing-owner stops and 96
+ordered source writes. These tests use explicit external callback fixtures;
+full map startup and clock readiness remain open. The original eight-row
+resource-stage owner `191CF0` is now recovered in native C++ and registered as
+a standalone regression. Twenty-four observed/unobserved comparisons match
+the unchanged original owner, including 22 declared selector calls, 102 declared
+resource callbacks, six missing-owner stops and 150 ordered source writes.
+All five baseline/candidate/missing/corrupt controls pass. The prior 48 complete
+generated bodies remain byte-identical; the module now contains 49 bodies and
+3,138 instructions. These external callback fixtures do not implement the real
+resource allocation/free owners. Ordinary current-root CMake execution, those
+real resources, cache loading and the outer activation lifecycle remain open.
+The coherent frozen build has 90 qualified units;
+the combined current-root runtime is still unbuilt. Original final-output
+capture and matched visual acceptance remain required before checking any
+shader item below.
+
+The latest ordinary two-target configure stopped before project compilation
+when foreign compiler bursts exhausted its scratch-probe slots. Its apparent
+header error does not establish a missing header; inherited working-directory
+tracing also needs repair before the build can qualify. The latest original
+display attempt retained all four tick-2800 phase banks but selected an old
+nested profile and failed before final output. That failure is preserved.
+The corrected route/profile now passes 24 isolated route/FIFO/cache controls;
+a fresh original capture and matched framebuffer comparison remain required.
+Private cache-load and resource-release recoveries do not yet change the
+ordinary module or close a shader item.
+
+Campaign work starts with actual original visibility, selected sections/LODs
+and completed WORLD poses for actors; the ordinary actor loop previously used
+an asset-preview model and cached idle/action pose. Next are live character
+types/lifetimes, original per-owner lighting/functions/colors/PRT, shields and
+camouflage, held weapons/attachments, then matched TU1.5 composed frames and
+resolution/delivery checks. Asset admission alone cannot complete a character.
+Detailed scope and evidence: [campaign character work](CAMPAIGN_CHARACTER_SHADERS_20261013.md).
+
+## Retained shader completion checklist
+
+The original eight-item order and its evidence remain below. Campaign work is
+the current priority; preserve each other item's existing work and evidence.
 An item is checked only after its actual live path and matched original TU1.5
 rendering pass, including the affected resolution and split-screen cases.
 CPU fixtures, resource admission and native on/off images are intermediate
@@ -22,7 +90,7 @@ evidence and cannot check a full item. Share genuine captures as visible fixes
 are verified. A blocker must identify the missing original owner/input and the
 attempted reproduction; it does not silently narrow the requirement.
 
-- [ ] **1. Dynamic shadows — ACTIVE.** Complete original live caster/receiver
+- [ ] **1. Dynamic shadows — CHECKPOINTED.** Complete original live caster/receiver
   selection, priority, history, fading and Generate/Filter/Apply chronology;
   verify matched TU1.5 gameplay shadows and affected view layouts.
   Verified checkpoint: the guarded v33 live640×480 captures retain exact v30
@@ -109,9 +177,49 @@ attempted reproduction; it does not silently narrow the requirement.
 - [ ] **6. Weapon effects — QUEUED.** Complete authored contrail/beam/casing/blade
   attachments, birth/sampling/detachment/retirement, lighting and blend/depth
   submission; verify each relevant weapon/material/state against TU1.5.
-- [ ] **7. Lens flares — QUEUED.** Complete request-pool/frame lifecycle,
+- [ ] **7. Lens flares — IN PROGRESS for campaign.** Complete request-pool/frame lifecycle,
   completed occlusion results, visible geometry, graphics state and GPU
   consumption; verify matched visible and occluded original frames.
+  The private complete campaign integration now submits original requests through
+  the existing Vulkan query and final-draw consumers. Genuine opening readbacks
+  restore the destruction effect's bright core and blue-purple streak; the
+  traced run opens all four canonical lens shaders and records real GPU query
+  completions. Actual1559/1770/2801 frames submit33/5/2 queries and3/0/1 final
+  geometries. Public campaign restore controls pass the exact renderer-static
+  retention prerequisite; its six current-root translation units compile.
+  The13-file flare integration is promoted, and all seven complete flare
+  translation units pass a separate fresh current-root configure/compile check.
+  A separate live Vulkan trial preserves the exact16,588 renderer bytes and
+  eight owners/device across the ordinary1583→1 checkpoint rewind; all33 pending
+  query generations complete afterward, with a closed trace and clean exit.
+  Its tick2 readback is black and does not establish resumed visible appearance.
+  An unchanged-binary1280×960 run also shows fleet/Reach and the destruction
+  flare, with exact1558/2800 and retained1771 overshoot, genuine query results,
+  authenticated lens shader opens and clean exit. This adds bounded4:3 coverage;
+  unmatched effect phase and camera-basis differences prevent pixel/scale parity.
+  The separate timing probe now joins literal2800's native screenshot to the
+  actual effect argument and four complete particle-bank stages, with clean
+  exit and unchanged inputs. It measures49.74ms against the retained original
+  frame's33.33ms and exposes a host/source fractional-clock difference.
+  The successor clock-input probe passes exact2800/frame1824 with both actual
+  admission boundaries: source game+1120 is0 while host time advances. It also
+  retains an exact1770 camera endpoint, a1559 overshoot and the known2800 basis
+  difference. This qualifies observations from the frozen preview cohort only;
+  original activation/clock integration and final GPU-frame joins remain open.
+  Unchanged original149160 now replays those captured inactive inputs through
+  31 actual instructions and returns zero elapsed/ticks, versus the host's
+  49.97ms/one tick. This confirms the lifecycle prerequisite; it is not a
+  production clock fix.
+  The complete native clock helper separately matches all474 retained original
+  observations across1,422 elapsed/tick/remainder words, with zero actual
+  network/stop/tick services and passed missing77/corrupt1 controls. The current
+  campaign caller/activation is still unqualified. The new original debug
+  profile passes its first three effect-call/return hardware stops and stable
+  reconnect at tick765; that setup check is not a2800 or final-frame result.
+  A combined current-root link/runtime and installed delivery remain open.
+  Evidence: `analysis/opening-cinematic-20261015/campaign-lens-integration-v1/appearance-review-v1/`.
+  One-tick target overshoots, original final-frame joins, complete color parity,
+  broader original post-restore callbacks and resolution coverage remain open.
 - [ ] **8. Scene composition — QUEUED.** Complete transparency/occlusion ordering,
   patchy-fog branches, conditional clears and original render-pass scheduling;
   verify matched composed frames.
@@ -131,14 +239,14 @@ and installed launcher checks before marking the goal complete.
 | Vehicle/character shader functions | Ordinary lighting and bounded damage feedback exist | Damage/camouflage/engine/weapon inputs; moving-body root/velocity/freeze ownership; original permutations, poses and held weapons | Queued (item 5) |
 | Weather | Live Lockout snow, Warlock/Backwash rain and Lockout/Warlock background-layer GPU consumers; source constructors, per-view simulation and clipped cluster admission; bounded native on/off/repeat and local/split/LAN checks | Original platform elapsed/RNG and async-cache chronology, complete current depth/stencil/sky/clear ownership and matched original frames; combined delivery | Open final coverage gate |
 | Weapon effects | Selected authored particles and impacts run; original lens request paths have a bounded 72-case CPU checkpoint | Remaining trails, beams, casings, blade/lens attachments, lighting inputs and original lifecycle/blend/depth submission; visible lens geometry, occlusion results and GPU consumption | Queued (item 6) |
-| Lens flares | Original request continuation and bounded 72-case CPU comparison | Request-pool/frame scheduling, completed occlusion results, visible geometry and GPU consumption, matched original frames | Queued (item 7) |
+| Lens flares | Original request controls, public campaign restore controls, genuine Vulkan query/final-geometry/destruction readbacks and33 real query generations across ordinary live checkpoint reversion | Broader original restore callbacks, resumed visible appearance, matched original final frames and resolution coverage | In progress (item 7) |
 | Scene composition | Admitted map lighting, environment, water, transparency, fog and bloom paths; Cairo authored `stencil_env` environment admission repaired | Remaining transparent/occlusion sorting, patchy-fog branches, conditional clears and original render-pass scheduling | Queued (item 8) |
 | Existing shader pixel differences | Retained first-person, vehicle and grenade comparisons | Normal filtering differs across GL/Vulkan host backends with identical mip bytes and fixed gradients; source-derived constant-W specialization closes both matched Mesa GL/Lavapipe model illumination draws exactly, while the NVIDIA module gate still fails2,616 pixels; resolve with original evidence, plus remaining depth/arithmetic/compositing differences; preserve exact acceptance gates | Open acceptance gate |
 | Coverage and delivery | Bounded campaign/map/vehicle/resolution captures exist | Matched frames for every admitted authored family and requested map/entity scope; resolutions, resize and split screen; freshly built combined runtime and launcher checks | Open final gate |
 
-Work order: the ordered checklist above supersedes the earlier receiver-first
-sequence. Dynamic shadows are the sole active item; the remaining seven items
-and final coverage/delivery gates stay queued.
+Work order: campaign character work is active under the user's October16
+instruction. The eight shader items and final coverage/delivery gates retain
+their unresolved requirements; none is completed by this change of focus.
 Each source fix must retain its failing reproduction, original evidence,
 focused validation and resulting screenshot when it changes visible output.
 

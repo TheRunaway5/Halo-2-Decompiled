@@ -43,6 +43,7 @@ int main(int argc,char **argv) {
     unsigned imports=0,permutations=0,selections=0,creations=0,draws=0;
     for(const auto &m:metadata) {
       const auto d=cache.load_sound_variation(word(m.at(1)),word(m.at(2),10));
+      check(d.sample_rate_index==std::to_integer<unsigned>(d.sound[3]),"Xbox sample-rate category changed");
       same_bytes(d.sound,m.at(3),"snd definition");same_bytes(d.playback,m.at(4),"playback parameters");
       same_bytes(d.sound_class,m.at(5),"source sound class");same_bytes(d.range,m.at(6),"resident pitch range");
       std::istringstream p(m.at(7));unsigned i=0;

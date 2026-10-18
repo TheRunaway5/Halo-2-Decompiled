@@ -9,6 +9,7 @@
 #include "halo2/source_shadow.hpp"
 #include "halo2/effect_light.hpp"
 #include "halo2/pstencil/material.hpp"
+#include "halo2/pstencil/projected_light_material.hpp"
 #include <algorithm>
 #include <cmath>
 
@@ -62,7 +63,9 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
                                   bool volume_textures=false,
                                   const float *shadow_opacity=nullptr,
                                   const float *camouflage=nullptr,
-                                  const EffectLightUniforms *effect_light=nullptr) {
+                                  const EffectLightUniforms *effect_light=nullptr,
+                                  const EffectLightDefinition *projected_definition=nullptr,
+                                  bool load_images=true) {
   const auto &p = m.passes.at(selected);
   // No unresolved uniform is silently substituted. Pixel brightness externs
   // 21/22 were resolved from the shader by Cache::load_material (1BBF0).
@@ -126,9 +129,9 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
   std::copy_n(p.constants[1].begin(), 8, pass->forward_transforms.begin());
   std::copy(p.texture_states.begin(), p.texture_states.end(), pass->texture_states.begin());
   const Texture zero{1, 1, 11, std::vector<std::byte>(4), {}};
-  pass->diffuse = pass->detail = pass->bump = pass->auxiliary = zero;
+  if(load_images)pass->diffuse = pass->detail = pass->bump = pass->auxiliary = zero;
   Texture *stages[]{&pass->diffuse, &pass->detail, &pass->bump, &pass->auxiliary};
-  for (const auto &binding : p.textures) {
+  if(load_images)for (const auto &binding : p.textures) {
     if (binding.stage >= 4) throw FormatError("world texture stage outside NV2A slots");
     if (binding.external == 3 && binding.stage == 0) {
       pass->accumulation_texture = true;
@@ -156,6 +159,17 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     if(shadow_opacity && binding.external==8 && binding.stage==0)continue;
     if(effect_light && binding.external==9) {
       *stages[binding.stage]=cache.load_effect_light_attenuation_bitmap();
+      continue;
+    }
+    if(effect_light && binding.external==10) {
+      //19533/19671/19699 ->144D0. The ordinary non-animated gel reads
+      //ligh+7C, with the original rasterizer's default2D bitmap for NONE.
+      //The runtime-shader and shadow-target branches need separate owners.
+      //The projected binder validates those before this binding is admitted.
+      if(!projected_definition)return {};
+      const Bytes light(projected_definition->bytes);
+      *stages[binding.stage]=light.u32(0x7c)==0xffffffffu?
+          cache.load_scope_default_bitmap():cache.load_bitmap(light.u32(0x7c),0);
       continue;
     }
     if (binding.external == 1) {
@@ -259,8 +273,8 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     bank->constants.assign(effect_light->constants.begin()+3,effect_light->constants.end());
     pass->vertex_bank=std::move(bank);
   }
-  prepare_bitmap_animation(cache, *pass);
-  for(unsigned stage=0;stage<4;++stage) {
+  if(load_images)prepare_bitmap_animation(cache, *pass);
+  if(load_images)for(unsigned stage=0;stage<4;++stage) {
     // Animated frame selections retain the same image dimensionality
     // requirements as the initially bound bitmap.
     for(const auto &frame:pass->animated_textures[stage]) {
@@ -284,6 +298,17 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
 std::optional<Material> pstencil::bind_light_pass(const Cache& cache,const Material& authored,
     unsigned index,const EffectLightUniforms& uniforms) {
   auto result=bind_pass(cache,authored,index,6,false,nullptr,true,nullptr,nullptr,&uniforms);
+  if(!result)return {};return std::move(*result);
+}
+std::optional<Material> pstencil::complete_light_pass(const Cache& cache,const Material& authored,
+    unsigned index,const EffectLightUniforms& uniforms) {
+  auto result=bind_pass(cache,authored,index,6,false,nullptr,true,nullptr,nullptr,&uniforms,nullptr,false);
+  if(!result)return {};return std::move(*result);
+}
+std::optional<Material> pstencil::bind_texture_mapping_pass(const Cache& cache,const Material& authored) {
+  const auto selected=layer_passes(authored,1,0);
+  if(selected.size()!=1 || !authored.passes[selected[0]].vertex_shader.ends_with("\\stencil_texture"))return {};
+  auto result=bind_pass(cache,authored,selected[0],3,false,nullptr,true);
   if(!result)return {};return std::move(*result);
 }
 
@@ -415,6 +440,55 @@ std::vector<Material> prepare_effect_light_diffuse_material(const Cache &cache,
     result.push_back(std::move(*material));
   }
   return result;
+}
+
+static std::vector<Material> projected_light_material(const Cache &cache,
+    const Material &authored,const EffectLightDefinition &definition,
+    const EffectLightUniforms &uniforms,unsigned implementation,std::uint32_t feature_mask,bool load_images) {
+  const Bytes light(definition.bytes);
+  // Only the literal projected/static-gel branches are admitted here. The
+  // caller supplies whole49790 constants and the original31150 feature mask.
+  if(light.u16(4)==0 || implementation>4 || implementation==1 ||
+      bool(definition.flags&0x20u)!=(implementation==4) ||
+      (definition.flags&0x80000u) || light.u32(0xe0)!=0xffffffffu ||
+      light.u32(0xc4) || light.u32(0xcc) || light.u32(0xd4))
+    throw FormatError("Projected light material requires its static original shape/gel branch");
+  if(implementation!=pstencil::projected_light_implementation(definition.flags,
+      feature_mask,authored.shader_switches[4]!=0))
+    throw FormatError("Projected light implementation differs from original30D80 selection");
+  if(uniforms.color_shift>2)throw FormatError("Invalid source effect-light color shift");
+  const auto selected=layer_passes(authored,12,implementation);
+  std::vector<Material> result;
+  for(auto index:selected) {
+    auto context=authored;auto &source=context.passes[index];
+    context.shader_switches[0]=context.shader_switches[1]=std::int32_t(uniforms.color_shift);
+    context.shader_switches[2]=light.u16(0x8a);context.shader_switches[3]=light.u16(0x80);
+    context.shader_switches[7]=!(definition.flags&2);
+    context.shader_switches[6]=pstencil::projected_light_specular_mask(definition.flags,
+        feature_mask,context.lods.at(context.selected_shader_lod).available_layers);
+    source.program=assemble_pixel_program(source.definition,source.fragments,source.permutations,
+        source.combiners,context.shader_switches);
+    remap_pixel_constants(source.program,context.pixel_constants,source.pixel_remaps,
+        source.fragments,context.shader_switches);
+    std::array<float,256> scalars{};scalars[21]=context.specular_brightness;
+    scalars[22]=context.ambient_brightness;std::vector<ShaderRemap> brightness;
+    for(const auto&r:source.pixel_externs)if(r.source==21 || r.source==22)brightness.push_back(r);
+    remap_pixel_externs(source.program,scalars,{},brightness,source.fragments,context.shader_switches);
+    auto material=bind_pass(cache,context,index,6,false,nullptr,true,nullptr,nullptr,&uniforms,&definition,load_images);
+    if(!material)throw FormatError("Unresolved effect-light diffuse material binding");
+    result.push_back(std::move(*material));
+  }
+  return result;
+}
+std::vector<Material> pstencil::prepare_projected_light_material(const Cache& cache,
+    const Material& authored,const EffectLightDefinition& definition,
+    const EffectLightUniforms& uniforms,unsigned implementation,std::uint32_t features) {
+  return projected_light_material(cache,authored,definition,uniforms,implementation,features,true);
+}
+std::vector<Material> pstencil::complete_projected_light_constants(const Cache& cache,
+    const Material& authored,const EffectLightDefinition& definition,
+    const EffectLightUniforms& uniforms,unsigned implementation,std::uint32_t features) {
+  return projected_light_material(cache,authored,definition,uniforms,implementation,features,false);
 }
 
 static bool prepare_world_lighting(const Cache &,Material &,unsigned,const float * = nullptr,
@@ -656,6 +730,15 @@ bool prepare_default_object_material(const Cache &cache,Material &material,
   if(camouflage && (!std::isfinite(*camouflage) || *camouflage<0 || *camouflage>1))
     throw FormatError("object camouflage context must be source-clamped");
   return prepare_world_lighting(cache,material,3,camouflage ? &*camouflage : nullptr);
+}
+bool prepare_independent_object_material(const Cache &cache,Material &material) {
+  constexpr auto supported=(1u<<2)|(1u<<7)|(1u<<15)|(1u<<17);
+  if(material.selected_shader_lod>=material.lods.size() ||
+      (material.lods[material.selected_shader_lod].available_layers&~supported))return false;
+  const auto colors=material.object_render_colors;
+  if(!prepare_world_lighting(cache,material,3))return false;
+  if(colors)apply_object_render_colors(material,*colors);
+  return true;
 }
 bool prepare_water_material(const Cache &cache,Material &material,bool infinite) {
   const auto passes=layer_passes(material,infinite?3u:15u,0);

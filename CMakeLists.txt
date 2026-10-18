@@ -14,6 +14,7 @@ find_package(Vulkan REQUIRED)
 find_package(SDL2 REQUIRED CONFIG)
 find_package(glm REQUIRED CONFIG)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+include(cmake/TestStorage.cmake)
 find_package(Threads REQUIRED)
 find_package(CURL 7.86 REQUIRED)
 find_package(OpenSSL REQUIRED COMPONENTS Crypto)
@@ -39,6 +40,7 @@ add_library(halo2_renderer_palette src/renderer_palette.cpp)
 target_sources(halo2_renderer_palette PRIVATE src/renderer_constant_mode.cpp)
 target_sources(halo2_renderer_palette PRIVATE src/renderer_depth_mode.cpp)
 target_sources(halo2_renderer_palette PRIVATE src/renderer_particle_program.cpp)
+target_sources(halo2_renderer_palette PRIVATE src/renderer_particle_view.cpp)
 target_sources(halo2_renderer_palette PRIVATE src/renderer_output_state.cpp)
 target_sources(halo2_renderer_palette PRIVATE src/renderer_texture_coordinates.cpp)
 target_sources(halo2_renderer_palette PRIVATE src/renderer_targets.cpp)
@@ -106,6 +108,9 @@ endif()
 target_sources(halo2_cache PRIVATE src/frontend_text_style.cpp)
 target_sources(halo2_cache PRIVATE src/frontend_typewriter.cpp)
 target_sources(halo2_cache PRIVATE src/frontend_ui_assets.cpp src/frontend_font_sampling.cpp)
+target_sources(halo2_cache PRIVATE src/gameplay_font_source.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_hud_reference.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_hud_shader_reference.cpp)
 target_sources(halo2_cache PRIVATE src/frontend_extension_catalog.cpp)
 target_sources(halo2_cache PRIVATE src/frontend_vista.cpp src/vista_lobby_metadata.cpp)
 target_link_libraries(halo2_cache PRIVATE ZLIB::ZLIB)
@@ -261,6 +266,10 @@ endif()
 target_sources(halo2_cache PRIVATE src/source_shadow_filter.cpp)
 target_sources(halo2_cache PRIVATE src/source_vertex_declaration.cpp)
 target_sources(halo2_cache PRIVATE src/menu_world_source_geometry.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_bsp_vertex_layout.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_model_vertex_layout.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_skinned_model_vertex_layout.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_resource_reader.cpp)
 target_sources(halo2_cache PRIVATE src/menu_world_source_binding.cpp)
 target_sources(halo2_cache PRIVATE src/menu_world_source_pass.cpp)
 target_sources(halo2_cache PRIVATE src/menu_world_vertex_source.cpp)
@@ -269,9 +278,11 @@ target_sources(halo2_cache PRIVATE src/menu_world_fragment.cpp)
 target_sources(halo2_cache PRIVATE src/menu_world_raster.cpp)
 target_sources(halo2_cache PRIVATE src/menu_world_entry_stencil.cpp)
 if(MSVC)
-    set_source_files_properties(src/menu_world_source_geometry.cpp src/menu_world_source_binding.cpp src/menu_world_fragment.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+    set_source_files_properties(src/menu_world_source_geometry.cpp src/menu_world_source_binding.cpp src/menu_world_fragment.cpp
+        src/mcc_bsp_vertex_layout.cpp src/mcc_model_vertex_layout.cpp src/mcc_skinned_model_vertex_layout.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
-    set_source_files_properties(src/menu_world_source_geometry.cpp src/menu_world_source_binding.cpp src/menu_world_fragment.cpp PROPERTIES
+    set_source_files_properties(src/menu_world_source_geometry.cpp src/menu_world_source_binding.cpp src/menu_world_fragment.cpp
+        src/mcc_bsp_vertex_layout.cpp src/mcc_model_vertex_layout.cpp src/mcc_skinned_model_vertex_layout.cpp PROPERTIES
         COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off")
 endif()
 target_sources(halo2_cache PRIVATE src/source_cpu_skin_inputs.cpp)
@@ -440,6 +451,14 @@ elseif(MSVC)
 endif()
 target_sources(halo2_cache PRIVATE src/sound_object_request.cpp)
 target_sources(halo2_cache PRIVATE src/sound_driver_parameters.cpp)
+add_library(halo2_sound_dsp_encoder_stereo_tu15 STATIC src/sound_dsp_encoder_stereo_tu15.cpp)
+target_include_directories(halo2_sound_dsp_encoder_stereo_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(halo2_cache PUBLIC halo2_sound_dsp_encoder_stereo_tu15)
+add_library(halo2_sound_gp_image_tu15 STATIC src/sound_gp_image_tu15.cpp)
+target_include_directories(halo2_sound_gp_image_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(halo2_sound_gp_image_tu15 PUBLIC OpenSSL::Crypto)
+target_link_libraries(halo2_cache PUBLIC halo2_sound_gp_image_tu15)
+include(cmake/SoundGpCpuTu15.cmake)
 if(MSVC)
     set_source_files_properties(src/sound_object_request.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
     set_source_files_properties(src/sound_driver_parameters.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
@@ -449,7 +468,25 @@ else()
 endif()
 target_sources(halo2_cache PRIVATE src/multiplayer_balance.cpp)
 target_sources(halo2_cache PRIVATE src/vista_cache.cpp)
-target_sources(halo2_cache PRIVATE src/mcc_cache.cpp src/mcc_animation.cpp src/mcc_physics.cpp src/mcc_audio.cpp src/mcc_native_shaders.cpp src/source_cache_resources.cpp)
+add_library(halo2_mcc_sound_tag_layout STATIC src/mcc_sound_tag_layout.cpp)
+target_include_directories(halo2_mcc_sound_tag_layout PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(halo2_cache PUBLIC halo2_mcc_sound_tag_layout)
+target_sources(halo2_cache PRIVATE src/mcc_cache.cpp src/mcc_animation.cpp src/mcc_physics.cpp src/mcc_audio.cpp src/mcc_native_shaders.cpp src/mcc_native_library.cpp src/source_cache_resources.cpp src/mcc_runtime_delivery.cpp src/mcc_loading_inputs.cpp src/mcc_ordinary_pointer.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_script_layout.cpp src/native_mcc_script_builtin.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_gameplay_scalar.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_gameplay_reference.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_bsp_collision_reference.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_bsp_instance_bounds.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_sound_runtime_delivery.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_sound_vanilla_reference.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_sound_timing_reference.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_sound_stored_time_reference.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_sound_permutation_time_reference.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_sound_class_reference.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_sound_class_apply.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_gameplay_unit_scalar.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_cairo_vanilla.cpp)
+target_sources(halo2_cache PRIVATE src/mcc_campaign_vanilla.cpp)
 target_link_libraries(halo2_cache PRIVATE PkgConfig::OPUS)
 add_executable(inspect_vista_cache tools/inspect_vista_cache.cpp)
 target_link_libraries(inspect_vista_cache PRIVATE halo2_cache)
@@ -459,6 +496,8 @@ target_sources(inspect_mcc_cache PRIVATE src/audio.cpp src/vista_audio_decode.cp
 target_link_libraries(inspect_mcc_cache PRIVATE halo2_cache PkgConfig::AVCODEC)
 add_executable(inspect_mcc_physics tools/inspect_mcc_physics.cpp)
 target_link_libraries(inspect_mcc_physics PRIVATE halo2_cache)
+add_executable(inspect_mcc_runtime_delivery tools/inspect_mcc_runtime_delivery.cpp)
+target_link_libraries(inspect_mcc_runtime_delivery PRIVATE halo2_cache nlohmann_json::nlohmann_json)
 add_executable(verify_mcc_physics_constructor tools/verify_mcc_physics_constructor.cpp)
 target_link_libraries(verify_mcc_physics_constructor PRIVATE halo2_physics_world_runtime nlohmann_json::nlohmann_json)
 add_executable(inspect_bitmap tools/inspect_bitmap.cpp)
@@ -598,6 +637,7 @@ else()
     target_compile_options(halo2_sound_platform PRIVATE -Wall -Wextra -Wpedantic -fno-fast-math -ffp-contract=off)
 endif()
 add_library(halo2_systems src/collision.cpp src/navigation.cpp src/kernels.cpp src/scripts.cpp src/audio.cpp src/sound_classes.cpp src/residency.cpp src/movie.cpp src/camera_motion.cpp src/scene.cpp src/simulation.cpp src/multiplayer.cpp src/multiplayer_network.cpp src/frontend_state.cpp src/frontend_painter.cpp)
+target_sources(halo2_systems PRIVATE src/presentation_effects.cpp)
 target_sources(halo2_systems PRIVATE src/source_unit_center.cpp)
 target_sources(halo2_systems PRIVATE src/source_character_shaders.cpp)
 target_sources(halo2_systems PRIVATE src/source_scene_device_constructor_tu15_generated.cpp)
@@ -871,9 +911,14 @@ target_sources(halo2_systems PRIVATE src/world_effects.cpp src/source_script_eff
     src/source_renderer_cpu_interface_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_campaign_camera_runtime_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_campaign_screen_runtime_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_campaign_dof_recipe_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_object_functions_runtime_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_unit_cinematic_runtime_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_unit_speech_runtime_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_campaign_model.cpp)
+target_sources(halo2_systems PRIVATE src/source_campaign_view_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_campaign_lighting_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_scripted_sound_point_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/unit_damage_audio.cpp)
 if(BUILD_TESTING)
     add_executable(particle_model_tests tests/particle_model_tests.cpp)
@@ -1270,13 +1315,16 @@ endif()
 set(MENU_WORLD_VERTEX_CATALOG_DIR ${CMAKE_CURRENT_BINARY_DIR}/menu-world-vertex-catalog)
 set(MENU_WORLD_VERTEX_CATALOG_HEADER ${MENU_WORLD_VERTEX_CATALOG_DIR}/menu_world_vertex_catalog.generated.hpp)
 file(GLOB native_menu_vertex_sources CONFIGURE_DEPENDS ${NATIVE_SHADER_SOURCE_DIR}/menu/*.vert)
+file(GLOB pstencil_projected_vertex_sources CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pstencil/native-programs/*.vert)
 add_custom_command(OUTPUT ${MENU_WORLD_VERTEX_CATALOG_HEADER} ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/compile_menu_world_vertex_catalog.py
         --sources ${NATIVE_SHADER_SOURCE_DIR}/menu/sources.json
+        --additional-sources ${CMAKE_CURRENT_SOURCE_DIR}/shaders/pstencil/native-programs/sources.json
         --compiler ${GLSLANG_VALIDATOR} --validator ${SPIRV_VALIDATOR}
         --header ${MENU_WORLD_VERTEX_CATALOG_HEADER}
         --manifest ${MENU_WORLD_VERTEX_CATALOG_DIR}/compiled.json
     DEPENDS ${NATIVE_SHADER_SOURCE_DIR}/menu/sources.json ${native_menu_vertex_sources}
+        shaders/pstencil/native-programs/sources.json ${pstencil_projected_vertex_sources}
         tools/compile_menu_world_vertex_catalog.py ${GLSLANG_VALIDATOR} ${SPIRV_VALIDATOR}
     VERBATIM)
 add_custom_target(menu_world_vertex_catalog
@@ -1457,6 +1505,7 @@ endif()
 target_sources(halo2_systems PRIVATE src/death_camera.cpp)
 target_sources(halo2_systems PRIVATE src/native_death_camera.cpp)
 target_sources(halo2_systems PRIVATE src/native_vehicle_camera.cpp)
+target_sources(halo2_systems PRIVATE src/native_vehicle_camera_continuation.cpp)
 if(MSVC)
     set_source_files_properties(src/death_camera.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
 else()
@@ -1791,6 +1840,12 @@ if(BUILD_TESTING)
     add_test(NAME original_death_animation_request COMMAND unit_animation_request_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/unit_animation_request_original.tsv)
     set_tests_properties(original_death_animation_request PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(campaign_lens_restore_memory_tu15_tests tests/campaign_lens_restore_memory_tu15_tests.cpp src/source_runtime_memory.cpp)
+    target_include_directories(campaign_lens_restore_memory_tu15_tests PRIVATE include)
+    target_link_libraries(campaign_lens_restore_memory_tu15_tests PRIVATE halo2_snapshot_storage Threads::Threads)
+    add_test(NAME campaign_lens_restore_memory_tu15 COMMAND campaign_lens_restore_memory_tu15_tests)
+    add_executable(campaign_lens_restore_runtime_tu15_tests tests/campaign_lens_restore_runtime_tu15_tests.cpp)
+    target_link_libraries(campaign_lens_restore_runtime_tu15_tests PRIVATE halo2_systems)
     add_executable(source_runtime_memory_tests tests/source_runtime_memory_tests.cpp)
     target_link_libraries(source_runtime_memory_tests PRIVATE halo2_systems)
     add_test(NAME source_runtime_retained_memory COMMAND source_runtime_memory_tests)
@@ -1800,7 +1855,7 @@ if(BUILD_TESTING)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         add_test(NAME source_runtime_immutable_comparison COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-            --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-immutable-comparison" --timeout 60
+            --output-root "@HALO2_TEST_SCRATCH@/memory-budget/source-immutable-comparison" --timeout 60
             -- $<TARGET_FILE:source_runtime_immutable_tests>)
         set_tests_properties(source_runtime_immutable_comparison PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
     endif()
@@ -1812,7 +1867,7 @@ if(BUILD_TESTING)
         foreach(snapshot_case checkpoint restore copy contracts storage adoption)
             add_test(NAME source_runtime_snapshot_${snapshot_case} COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-snapshot-${snapshot_case}" --timeout 180
+                --output-root "@HALO2_TEST_SCRATCH@/memory-budget/source-snapshot-${snapshot_case}" --timeout 180
                 -- $<TARGET_FILE:source_runtime_snapshot_memory_tests> ${snapshot_case})
             set_tests_properties(source_runtime_snapshot_${snapshot_case} PROPERTIES RUN_SERIAL TRUE TIMEOUT 210)
         endforeach()
@@ -1829,13 +1884,13 @@ if(BUILD_TESTING)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         add_test(NAME source_runtime_shared_backing COMMAND "${Python3_EXECUTABLE}"
             "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-            --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-shared-backing" --timeout 60
+            --output-root "@HALO2_TEST_SCRATCH@/memory-budget/source-shared-backing" --timeout 60
             -- $<TARGET_FILE:source_runtime_shared_backing_tests>)
         set_tests_properties(source_runtime_shared_backing PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
         foreach(physical_case large protection)
             add_test(NAME source_physical_backing_${physical_case} COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-physical-${physical_case}" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/memory-budget/source-physical-${physical_case}" --timeout 60
                 -- $<TARGET_FILE:source_physical_backing_tests> ${physical_case})
             set_tests_properties(source_physical_backing_${physical_case} PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
         endforeach()
@@ -1851,7 +1906,7 @@ if(BUILD_TESTING)
         foreach(transfer_case read write boundaries)
             add_test(NAME source_runtime_transfer_${transfer_case} COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/memory-budget/source-transfer-${transfer_case}" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/memory-budget/source-transfer-${transfer_case}" --timeout 60
                 -- $<TARGET_FILE:source_runtime_transfer_tests> ${transfer_case})
             set_tests_properties(source_runtime_transfer_${transfer_case} PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
         endforeach()
@@ -2240,6 +2295,11 @@ if(NOT MSVC)
 endif()
 
 include(CTest)
+if(BUILD_TESTING)
+    add_test(NAME test_storage_cleanup COMMAND ${Python3_EXECUTABLE} -B
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_test_storage.py)
+    set_tests_properties(test_storage_cleanup PROPERTIES TIMEOUT 90)
+endif()
 include(cmake/CampaignKillVolumes.cmake)
 include(cmake/CampaignAiPlacement.cmake)
 if(BUILD_TESTING)
@@ -2403,6 +2463,12 @@ if(BUILD_TESTING)
     target_link_libraries(sdl_sound_platform_tests PRIVATE halo2_sound_platform)
     add_test(NAME native_sdl_sound_platform COMMAND sdl_sound_platform_tests)
     add_test(NAME native_sdl_sound_platform_device_failure COMMAND sdl_sound_platform_tests --device-failure)
+    add_executable(sdl_sound_timeline_tests tests/sdl_sound_timeline_tests.cpp)
+    target_link_libraries(sdl_sound_timeline_tests PRIVATE halo2_sound_platform)
+    add_test(NAME native_sdl_sound_timeline COMMAND sdl_sound_timeline_tests)
+    add_test(NAME original_opening_sdl_sound_timeline COMMAND sdl_sound_timeline_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/opening_dialogue_timing_tu15.tsv)
+    set_tests_properties(original_opening_sdl_sound_timeline PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(sdl_sound_cache_packet_tests tests/sdl_sound_cache_packet_tests.cpp)
     target_link_libraries(sdl_sound_cache_packet_tests PRIVATE halo2_systems)
     add_test(NAME owned_sdl_sound_reload_packets COMMAND sdl_sound_cache_packet_tests
@@ -2851,6 +2917,13 @@ if(BUILD_TESTING)
     add_test(NAME retail_sound_variation COMMAND sound_variation_tests
         ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/integration/sound-variation-fixtures.tsv)
     set_tests_properties(retail_sound_variation PROPERTIES SKIP_RETURN_CODE 77)
+    if(NOT MSVC AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i.86)$")
+        add_executable(sound_variation_count32_tu15_tests tests/sound_variation_count32_tu15_tests.cpp)
+        target_link_libraries(sound_variation_count32_tu15_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+        add_test(NAME sound_variation_count32_tu15_contract COMMAND sound_variation_count32_tu15_tests
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_variation_count32_tu15.json")
+        set_tests_properties(sound_variation_count32_tu15_contract PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+    endif()
     add_executable(sound_control_tests tests/sound_control_tests.cpp)
     target_link_libraries(sound_control_tests PRIVATE halo2_cache)
     add_executable(sound_packet_pitch_tests tests/sound_packet_pitch_tests.cpp)
@@ -2987,6 +3060,19 @@ if(BUILD_TESTING)
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
     set_tests_properties(original_unit_constructor_constants PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(sound_driver_parameters_tests tests/sound_driver_parameters_tests.cpp)
+    add_executable(sound_dsp_encoder_stereo_tu15_tests tests/sound_dsp_encoder_stereo_tu15_tests.cpp)
+    target_link_libraries(sound_dsp_encoder_stereo_tu15_tests PRIVATE halo2_sound_dsp_encoder_stereo_tu15)
+    add_test(NAME original_sound_dsp_encoder_stereo_tu15 COMMAND sound_dsp_encoder_stereo_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_dsp_encoder_stereo_tu15)
+    set_tests_properties(original_sound_dsp_encoder_stereo_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(sound_gp_image_tu15_tests tests/sound_gp_image_tu15_tests.cpp)
+    target_link_libraries(sound_gp_image_tu15_tests PRIVATE halo2_sound_gp_image_tu15)
+    add_executable(export_sound_gp_boot_inputs_tu15 tools/export_sound_gp_boot_inputs_tu15.cpp)
+    target_link_libraries(export_sound_gp_boot_inputs_tu15 PRIVATE halo2_sound_gp_image_tu15)
+    add_test(NAME original_sound_gp_image_tu15 COMMAND sound_gp_image_tu15_tests
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_gp_image_tu15)
+    set_tests_properties(original_sound_gp_image_tu15 PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(sound_startup_constants_tests tests/sound_startup_constants_tests.cpp)
     add_executable(sound_map_metadata_tests tests/sound_map_metadata_tests.cpp)
     add_executable(sound_mix_metadata_tests tests/sound_mix_metadata_tests.cpp)
@@ -4360,6 +4446,14 @@ if(BUILD_TESTING)
     add_test(NAME online_source_rendered_workload COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/online_match_launch_http_test.py $<TARGET_FILE:online_match_launch_tests> source-render casual)
     set_tests_properties(online_source_rendered_workload PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77)
+    add_test(NAME online_source_runtime_recovery COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/online_match_launch_http_test.py $<TARGET_FILE:online_match_launch_tests> source-render casual)
+    set_tests_properties(online_source_runtime_recovery PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77
+        ENVIRONMENT "HALO2_RUNTIME_RETENTION=1")
+    add_test(NAME online_source_runtime_stalled_host COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/online_match_launch_http_test.py $<TARGET_FILE:online_match_launch_tests> source-render casual)
+    set_tests_properties(online_source_runtime_stalled_host PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77
+        ENVIRONMENT "HALO2_RUNTIME_RETENTION=1;HALO2_RUNTIME_STALLED_HOST=1")
     foreach(couch_mode core mixed)
         add_test(NAME online_couch_${couch_mode} COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/online_couch_launch_http_test.py $<TARGET_FILE:online_couch_launch_tests> ${couch_mode})
         set_tests_properties(online_couch_${couch_mode} PROPERTIES TIMEOUT 260 SKIP_RETURN_CODE 77)
@@ -4708,6 +4802,13 @@ if(BUILD_TESTING)
             ${CMAKE_CURRENT_SOURCE_DIR}/assets/multiplayer-map-pack/demos/update/Updates/default.xbe.03
             ${CMAKE_CURRENT_SOURCE_DIR}/analysis/multiplayer/title-update-1.5/scoreboard-painter/measured/report.json)
         set_tests_properties(original_full_scoreboard_assets PROPERTIES SKIP_RETURN_CODE 77)
+        add_executable(mcc_scoreboard_locale_tests tests/mcc_scoreboard_locale_tests.cpp)
+        target_link_libraries(mcc_scoreboard_locale_tests PRIVATE halo2_cache)
+        set(HALO2_MCC_SCOREBOARD_DONOR "" CACHE FILEPATH "Optional owned MCC map for scoreboard locale validation")
+        set(HALO2_MCC_SCOREBOARD_REFERENCE "" CACHE FILEPATH "Optional matching original Xbox map for offline scoreboard validation")
+        add_test(NAME mcc_scoreboard_locale COMMAND mcc_scoreboard_locale_tests
+            "${HALO2_MCC_SCOREBOARD_DONOR}" "${HALO2_MCC_SCOREBOARD_REFERENCE}")
+        set_tests_properties(mcc_scoreboard_locale PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
         add_executable(unit_scope_camera_data_tests tests/unit_scope_camera_data_tests.cpp)
         target_include_directories(unit_scope_camera_data_tests PRIVATE ${HALO2_TEST_JSON_INCLUDE})
         target_link_libraries(unit_scope_camera_data_tests PRIVATE halo2_cache)
@@ -5598,6 +5699,10 @@ if(BUILD_TESTING)
             target_link_libraries(menu_world_vertex_catalog_gpu_tests PRIVATE halo2_menu_world_storage halo2_systems Vulkan::Vulkan)
             target_include_directories(menu_world_vertex_catalog_gpu_tests PRIVATE ${MENU_WORLD_VERTEX_CATALOG_DIR})
             add_dependencies(menu_world_vertex_catalog_gpu_tests menu_world_vertex_catalog menu_world_vertex_catalog_capture_shader)
+            add_executable(pstencil_projected_vertex_attributes_gpu_tests tests/pstencil/projected_vertex_attributes_gpu_tests.cpp)
+            target_link_libraries(pstencil_projected_vertex_attributes_gpu_tests PRIVATE halo2_menu_world_storage halo2_systems Vulkan::Vulkan)
+            target_include_directories(pstencil_projected_vertex_attributes_gpu_tests PRIVATE ${MENU_WORLD_VERTEX_CATALOG_DIR})
+            add_dependencies(pstencil_projected_vertex_attributes_gpu_tests menu_world_vertex_catalog menu_world_vertex_catalog_capture_shader)
             add_test(NAME retail_menu_world_vertex_catalog_gpu COMMAND ${CMAKE_COMMAND}
                 -DTEST_BINARY=$<TARGET_FILE:menu_world_vertex_catalog_gpu_tests>
                 -DMAP=${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/mainmenu.map
@@ -5888,6 +5993,31 @@ if(BUILD_TESTING)
     target_link_libraries(systems_tests PRIVATE halo2_systems)
     add_test(NAME native_systems COMMAND systems_tests)
     add_executable(campaign_tests tests/campaign_tests.cpp)
+    add_test(NAME native_scripted_sound_location_kind COMMAND campaign_tests --scripted-sound-location)
+    add_executable(campaign_cinematic_lighting_bridge_tu15_tests tests/campaign_cinematic_lighting_bridge_tu15_tests.cpp)
+    target_link_libraries(campaign_cinematic_lighting_bridge_tu15_tests PRIVATE halo2_systems)
+    add_executable(campaign_scripted_sound_point_tu15_tests tests/campaign_scripted_sound_point_tu15_tests.cpp)
+    target_link_libraries(campaign_scripted_sound_point_tu15_tests PRIVATE halo2_systems)
+    add_executable(campaign_scripted_audio_volume_tests tests/campaign_scripted_audio_volume_tests.cpp)
+    target_link_libraries(campaign_scripted_audio_volume_tests PRIVATE halo2_systems)
+    add_executable(campaign_scripted_audio_emitter_tests tests/campaign_scripted_audio_emitter_tests.cpp)
+    target_link_libraries(campaign_scripted_audio_emitter_tests PRIVATE halo2_systems)
+    add_executable(campaign_scripted_audio_timeline_tests tests/campaign_scripted_audio_timeline_tests.cpp)
+    target_link_libraries(campaign_scripted_audio_timeline_tests PRIVATE halo2_systems)
+    add_executable(script_sound_admission_tu15_tests tests/script_sound_admission_tu15_tests.cpp)
+    target_link_libraries(script_sound_admission_tu15_tests PRIVATE halo2_systems)
+    add_executable(campaign_scripted_audio_timing_tests tests/campaign_scripted_audio_timing_tests.cpp)
+    target_link_libraries(campaign_scripted_audio_timing_tests PRIVATE halo2_systems)
+    add_executable(campaign_scripted_audio_gain_tests tests/campaign_scripted_audio_gain_tests.cpp)
+    target_link_libraries(campaign_scripted_audio_gain_tests PRIVATE halo2_systems)
+    add_executable(campaign_camera_interpolation_tests tests/campaign_camera_interpolation_tests.cpp)
+    target_link_libraries(campaign_camera_interpolation_tests PRIVATE halo2_systems)
+    add_executable(campaign_screen_interpolation_tests tests/campaign_screen_interpolation_tests.cpp)
+    target_link_libraries(campaign_screen_interpolation_tests PRIVATE halo2_systems)
+    add_executable(campaign_camera_frame_tu15_tests tests/campaign_camera_frame_tu15_tests.cpp)
+    target_link_libraries(campaign_camera_frame_tu15_tests PRIVATE halo2_systems)
+    add_executable(campaign_independent_material_tests tests/campaign_independent_material_tests.cpp)
+    target_link_libraries(campaign_independent_material_tests PRIVATE halo2_systems)
     add_executable(cinematic_animation_tests tests/cinematic_animation_tests.cpp)
     target_link_libraries(cinematic_animation_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME original_cinematic_animation_channels COMMAND cinematic_animation_tests
@@ -5950,6 +6080,8 @@ if(BUILD_TESTING)
     set_tests_properties(original_campaign_camera_time_tu15 PROPERTIES SKIP_RETURN_CODE 77)
     add_executable(campaign_cinematic_camera_runtime_tu15_tests tests/campaign_cinematic_camera_runtime_tu15_tests.cpp)
     target_link_libraries(campaign_cinematic_camera_runtime_tu15_tests PRIVATE halo2_systems)
+    add_executable(campaign_point_camera_adoption_tu15_tests tests/campaign_point_camera_adoption_tu15_tests.cpp)
+    target_link_libraries(campaign_point_camera_adoption_tu15_tests PRIVATE halo2_systems)
     add_executable(source_campaign_screen_bank_tests tests/source_campaign_screen_bank_tests.cpp)
     target_link_libraries(source_campaign_screen_bank_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_executable(campaign_cinematic_screen_runtime_tu15_tests tests/campaign_cinematic_screen_runtime_tu15_tests.cpp)
@@ -5964,6 +6096,84 @@ if(BUILD_TESTING)
     target_link_libraries(source_unit_emotion_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_executable(campaign_unit_cinematic_runtime_tu15_tests tests/campaign_unit_cinematic_runtime_tu15_tests.cpp)
     target_link_libraries(campaign_unit_cinematic_runtime_tu15_tests PRIVATE halo2_systems)
+    add_executable(campaign_scripted_speech_tu15_tests tests/campaign_scripted_speech_tu15_tests.cpp)
+    target_link_libraries(campaign_scripted_speech_tu15_tests PRIVATE halo2_systems)
+    add_executable(campaign_session_identity_tu15_tests tests/campaign_session_identity_tu15_tests.cpp)
+    target_link_libraries(campaign_session_identity_tu15_tests PRIVATE halo2_systems)
+    add_executable(physics_scalar_store_tests tests/physics_scalar_store_tests.cpp)
+    target_include_directories(physics_scalar_store_tests PRIVATE include src)
+    add_test(NAME native_physics_scalar_store COMMAND physics_scalar_store_tests)
+    add_executable(unit_speech_curves_tu15_tests tests/unit_speech_curves_tu15_tests.cpp)
+    target_link_libraries(unit_speech_curves_tu15_tests PRIVATE halo2_physics_world_runtime)
+    add_test(NAME original_unit_speech_curves_tu15 COMMAND unit_speech_curves_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/unit_speech_curves_tu15.json)
+    set_tests_properties(original_unit_speech_curves_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(campaign_completion_tu15_tests tests/campaign_completion_tu15_tests.cpp)
+    target_link_libraries(campaign_completion_tu15_tests PRIVATE halo2_physics_world_runtime nlohmann_json::nlohmann_json)
+    add_test(NAME original_campaign_completion_tu15 COMMAND campaign_completion_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_completion_tu15)
+    set_tests_properties(original_campaign_completion_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_campaign_activation_tu15 COMMAND campaign_completion_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_activation_tu15)
+    set_tests_properties(original_campaign_activation_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    # Standalone bounded cleanup owner; no World or Halo archive dependency.
+    # The retained x87 caller/runtime backend currently requires GNU-style x86.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang" AND NOT MSVC AND
+       CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64|i[3-6]86)$")
+        add_executable(campaign_cleanup_tu15_tests tests/campaign_cleanup_tu15_tests.cpp
+            src/source_campaign_activation_tu15_generated.cpp)
+        target_include_directories(campaign_cleanup_tu15_tests PRIVATE include src)
+        target_link_libraries(campaign_cleanup_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+        target_compile_options(campaign_cleanup_tu15_tests PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+        add_test(NAME original_campaign_cleanup_tu15 COMMAND campaign_cleanup_tu15_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_cleanup_tu15)
+        set_tests_properties(original_campaign_cleanup_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+        # Standalone original resource-stage owner; external callbacks are declared fixtures.
+        add_executable(campaign_resource_stage_tu15_tests tests/campaign_resource_stage_tu15_tests.cpp
+            src/source_campaign_activation_tu15_generated.cpp)
+        target_include_directories(campaign_resource_stage_tu15_tests PRIVATE include src)
+        target_link_libraries(campaign_resource_stage_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+        target_compile_options(campaign_resource_stage_tu15_tests PRIVATE -fno-fast-math -ffp-contract=off -frounding-math)
+        add_test(NAME original_campaign_resource_stage_tu15 COMMAND campaign_resource_stage_tu15_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_resource_stage_tu15)
+        set_tests_properties(original_campaign_resource_stage_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+    endif()
+    add_executable(campaign_audio_tu15_tests tests/campaign_audio_tu15_tests.cpp)
+    target_link_libraries(campaign_audio_tu15_tests PRIVATE halo2_physics_world_runtime
+        halo2_input_startup_tu15 nlohmann_json::nlohmann_json OpenSSL::Crypto)
+    add_test(NAME original_campaign_audio_tu15 COMMAND campaign_audio_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_audio_tu15)
+    set_tests_properties(original_campaign_audio_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_campaign_audio_routing_tu15 COMMAND campaign_audio_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_audio_routing_tu15)
+    set_tests_properties(original_campaign_audio_routing_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_campaign_sound_dsp_image_tu15 COMMAND campaign_audio_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_dsp_image_tu15)
+    set_tests_properties(original_campaign_sound_dsp_image_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    # Standalone build of the same original image CPU module. This permits
+    # its bounded allocation/upload fixtures without rebuilding the full world.
+    add_executable(campaign_dsp_image_tu15_tests tests/campaign_audio_tu15_tests.cpp
+        src/source_sound_dsp_image_tu15_generated.cpp)
+    target_compile_definitions(campaign_dsp_image_tu15_tests PRIVATE HALO2_DSP_IMAGE_ONLY_TEST=1)
+    target_include_directories(campaign_dsp_image_tu15_tests PRIVATE include src)
+    target_link_libraries(campaign_dsp_image_tu15_tests PRIVATE nlohmann_json::nlohmann_json OpenSSL::Crypto)
+    add_test(NAME original_sound_gp_upload_tu15 COMMAND campaign_dsp_image_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_gp_upload_tu15)
+    set_tests_properties(original_sound_gp_upload_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_sound_gp_scratch_tu15 COMMAND campaign_dsp_image_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_gp_scratch_tu15)
+    set_tests_properties(original_sound_gp_scratch_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_sound_gp_scratch_release_tu15 COMMAND campaign_dsp_image_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_gp_scratch_release_tu15)
+    set_tests_properties(original_sound_gp_scratch_release_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_sound_gp_upload_callers_tu15 COMMAND campaign_dsp_image_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_gp_upload_callers_tu15)
+    set_tests_properties(original_sound_gp_upload_callers_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_sound_gp_ep_append_bridge_tu15 COMMAND campaign_dsp_image_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sound_gp_ep_append_bridge_tu15)
+    set_tests_properties(original_sound_gp_ep_append_bridge_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_executable(export_opening_facial_curves tools/export_opening_facial_curves.cpp)
+    target_link_libraries(export_opening_facial_curves PRIVATE halo2_systems)
     add_executable(campaign_model_geometry_runtime_tu15_tests tests/campaign_model_geometry_runtime_tu15_tests.cpp)
     target_link_libraries(campaign_model_geometry_runtime_tu15_tests PRIVATE halo2_systems)
     add_executable(campaign_cloth_construction_tu15_tests tests/campaign_cloth_construction_tu15_tests.cpp)
@@ -5972,6 +6182,18 @@ if(BUILD_TESTING)
     target_link_libraries(campaign_scene_retirement_tu15_tests PRIVATE halo2_systems)
     add_executable(campaign_cinematic_environment_material_tests tests/campaign_cinematic_environment_material_tests.cpp)
     target_link_libraries(campaign_cinematic_environment_material_tests PRIVATE halo2_cache)
+    add_executable(reach_model_float_positions_tests tests/reach_model_float_positions_tests.cpp)
+    target_link_libraries(reach_model_float_positions_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    add_executable(campaign_cinematic_matte_material_tests tests/campaign_cinematic_matte_material_tests.cpp)
+    target_link_libraries(campaign_cinematic_matte_material_tests PRIVATE halo2_cache)
+    add_executable(campaign_lightmap_shadow_tu15_tests tests/campaign_lightmap_shadow_tu15_tests.cpp)
+    target_link_libraries(campaign_lightmap_shadow_tu15_tests PRIVATE halo2_systems)
+    add_executable(campaign_dof_recipe_tu15_tests tests/campaign_dof_recipe_tu15_tests.cpp)
+    target_link_libraries(campaign_dof_recipe_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_executable(campaign_depth_of_field_tu15_tests tests/campaign_depth_of_field_tu15_tests.cpp)
+    target_link_libraries(campaign_depth_of_field_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_executable(campaign_far_clip_tu15_tests tests/campaign_far_clip_tu15_tests.cpp)
+    target_link_libraries(campaign_far_clip_tu15_tests PRIVATE halo2_systems)
     add_executable(source_cinematic_shadow_control_tu15_tests tests/source_cinematic_shadow_control_tu15_tests.cpp)
     target_link_libraries(source_cinematic_shadow_control_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     target_link_libraries(campaign_tests PRIVATE halo2_systems halo2_renderer)
@@ -6008,12 +6230,260 @@ if(BUILD_TESTING)
     add_test(NAME bundled_ui_assets COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p test_bundle_ui_assets.py)
     add_test(NAME vista_tag_conversion_boundaries COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p test_vista_tag_conversion.py)
     add_test(NAME mcc_gameplay_preparation COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p test_mcc_gameplay_preparation.py)
+    add_test(NAME mcc_bitmap_correction_bundle COMMAND ${Python3_EXECUTABLE} -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p test_mcc_bitmap_correction_bundle.py)
     add_executable(mcc_cache_tests tests/mcc_cache_tests.cpp)
     target_link_libraries(mcc_cache_tests PRIVATE halo2_cache ZLIB::ZLIB)
     add_test(NAME native_mcc_cache COMMAND mcc_cache_tests)
+    add_executable(mcc_resource_reader_tests tests/mcc_resource_reader_tests.cpp)
+    target_link_libraries(mcc_resource_reader_tests PRIVATE halo2_cache ZLIB::ZLIB Threads::Threads)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        target_link_options(mcc_resource_reader_tests PRIVATE
+            "-Wl,--wrap=_ZN5halo216decode_mcc_cacheESt4spanIKSt4byteLm18446744073709551615EE"
+            "-Wl,--wrap=pread" "-Wl,--wrap=fstat")
+    endif()
+    add_test(NAME mcc_resource_reader_contract COMMAND mcc_resource_reader_tests)
+    set(HALO2_MCC_RESOURCE_CONTAINER "" CACHE FILEPATH "Optional owned MCC shared.map for resource range validation")
+    add_test(NAME mcc_resource_reader_mcc_only COMMAND mcc_resource_reader_tests
+        "${HALO2_MCC_RESOURCE_CONTAINER}")
+    set_tests_properties(mcc_resource_reader_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(mcc_native_tex_bump_tests tests/mcc_native_tex_bump_tests.cpp)
+    target_link_libraries(mcc_native_tex_bump_tests PRIVATE halo2_cache)
+    set(HALO2_MCC_TEX_BUMP_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional owned paired tex_bump conversion fixture")
+    set(HALO2_MCC_TEX_BUMP_DONOR "" CACHE FILEPATH "Optional owned MCC map for native tex_bump material validation")
+    add_test(NAME mcc_native_tex_bump_profiles COMMAND mcc_native_tex_bump_tests
+        "${HALO2_MCC_TEX_BUMP_REFERENCE_FIXTURE}" "${HALO2_MCC_TEX_BUMP_DONOR}")
+    set_tests_properties(mcc_native_tex_bump_profiles PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    set(HALO2_MCC_TEX_BUMP_ACTIVE_CAMO_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional owned paired tex_bump_active_camo conversion fixture")
+    add_test(NAME mcc_native_tex_bump_active_camo_profiles COMMAND mcc_native_tex_bump_tests
+        "${HALO2_MCC_TEX_BUMP_ACTIVE_CAMO_REFERENCE_FIXTURE}" "${HALO2_MCC_TEX_BUMP_DONOR}")
+    set_tests_properties(mcc_native_tex_bump_active_camo_profiles PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    foreach(profile IN ITEMS DPRS_ENV ENV ENV_NO_DETAIL ILLUM_BLOOM)
+        string(TOLOWER "${profile}" profile_name)
+        set(HALO2_MCC_TEX_BUMP_${profile}_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional owned paired tex_bump_${profile_name} conversion fixture")
+        add_test(NAME mcc_native_tex_bump_${profile_name}_profiles COMMAND mcc_native_tex_bump_tests
+            "${HALO2_MCC_TEX_BUMP_${profile}_REFERENCE_FIXTURE}" "${HALO2_MCC_TEX_BUMP_DONOR}")
+        set_tests_properties(mcc_native_tex_bump_${profile_name}_profiles PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    endforeach()
+    set(HALO2_MCC_NATIVE_TEMPLATE_VARIANTS_FIXTURE "" CACHE FILEPATH "Optional owned native-template variant fixture")
+    set(HALO2_MCC_NATIVE_TEMPLATE_VARIANTS_MAPS "" CACHE PATH "Optional owned MCC maps for native-template variant validation")
+    add_test(NAME mcc_native_template_variants COMMAND mcc_native_tex_bump_tests
+        "${HALO2_MCC_NATIVE_TEMPLATE_VARIANTS_FIXTURE}" "${HALO2_MCC_NATIVE_TEMPLATE_VARIANTS_MAPS}")
+    set_tests_properties(mcc_native_template_variants PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME mcc_native_template_variants_generator COMMAND ${Python3_EXECUTABLE} -m unittest discover
+        -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p mcc_native_template_variants_generator_tests.py)
+    add_executable(mcc_native_library_tests tests/mcc_native_library_tests.cpp)
+    target_link_libraries(mcc_native_library_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_native_library_customization COMMAND mcc_native_library_tests)
+    set(HALO2_MCC_NATIVE_LIBRARY_DIRECTORY "" CACHE PATH "Optional owned retained native libraries for closure validation")
+    add_test(NAME mcc_native_library_closure COMMAND mcc_native_library_tests "${HALO2_MCC_NATIVE_LIBRARY_DIRECTORY}")
+    set_tests_properties(mcc_native_library_closure PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_test(NAME mcc_native_library_closure_generator COMMAND ${Python3_EXECUTABLE} -m unittest discover
+        -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p mcc_native_library_closure_generator_tests.py)
+    add_test(NAME mcc_native_library_onboarding COMMAND ${Python3_EXECUTABLE} -m unittest discover
+        -s ${CMAKE_CURRENT_SOURCE_DIR}/tests -p test_native_shader_closure_onboarding.py)
     add_executable(mcc_physics_tests tests/mcc_physics_tests.cpp)
     target_link_libraries(mcc_physics_tests PRIVATE halo2_cache)
     add_test(NAME native_mcc_physics COMMAND mcc_physics_tests)
+    add_executable(mcc_runtime_delivery_tests tests/mcc_runtime_delivery_tests.cpp)
+    target_link_libraries(mcc_runtime_delivery_tests PRIVATE halo2_systems)
+    add_test(NAME mcc_runtime_delivery_contract COMMAND mcc_runtime_delivery_tests)
+    add_executable(mcc_normalized_pointer_tests tests/mcc_normalized_pointer_tests.cpp)
+    target_link_libraries(mcc_normalized_pointer_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_normalized_pointer_graphs COMMAND mcc_normalized_pointer_tests)
+    add_executable(mcc_ordinary_pointer_tests tests/mcc_ordinary_pointer_tests.cpp)
+    target_link_libraries(mcc_ordinary_pointer_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_ordinary_pointer_graphs COMMAND mcc_ordinary_pointer_tests)
+    add_executable(mcc_sound_tag_layout_tests tests/mcc_sound_tag_layout_tests.cpp)
+    target_link_libraries(mcc_sound_tag_layout_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_sound_tag_layouts COMMAND mcc_sound_tag_layout_tests)
+    add_executable(mcc_sound_runtime_delivery_tests tests/mcc_sound_runtime_delivery_tests.cpp)
+    target_link_libraries(mcc_sound_runtime_delivery_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_sound_runtime_delivery_contract COMMAND mcc_sound_runtime_delivery_tests)
+    add_executable(mcc_sound_pipeline_coherence_tests tests/mcc_sound_pipeline_coherence_tests.cpp)
+    target_link_libraries(mcc_sound_pipeline_coherence_tests PRIVATE halo2_cache OpenSSL::Crypto nlohmann_json::nlohmann_json)
+    set(HALO2_MCC_SOUND_PIPELINE_MAP "" CACHE FILEPATH "Optional owned MCC Lockout, Cairo or Old Mombasa map for complete sound conversion validation")
+    add_test(NAME mcc_sound_pipeline_coherence_mcc_only COMMAND mcc_sound_pipeline_coherence_tests
+        "${HALO2_MCC_SOUND_PIPELINE_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-sound-pipeline-coherence.json")
+    set_tests_properties(mcc_sound_pipeline_coherence_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 360)
+    add_executable(mcc_sound_vanilla_reference_tests tests/mcc_sound_vanilla_reference_tests.cpp)
+    target_link_libraries(mcc_sound_vanilla_reference_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_sound_vanilla_reference_contract COMMAND mcc_sound_vanilla_reference_tests)
+    add_test(NAME mcc_sound_vanilla_reference_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_sound_vanilla_reference.py --check)
+    add_executable(mcc_sound_timing_reference_tests tests/mcc_sound_timing_reference_tests.cpp)
+    target_link_libraries(mcc_sound_timing_reference_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_sound_timing_reference_contract COMMAND mcc_sound_timing_reference_tests)
+    add_test(NAME mcc_sound_timing_reference_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_sound_timing_reference.py --check)
+    add_test(NAME mcc_sound_timing_reference_generator COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/mcc_sound_timing_reference_generator_tests.py)
+    add_executable(mcc_sound_stored_time_reference_tests tests/mcc_sound_stored_time_reference_tests.cpp)
+    target_link_libraries(mcc_sound_stored_time_reference_tests PRIVATE halo2_cache Threads::Threads)
+    add_test(NAME mcc_sound_stored_time_reference_contract COMMAND mcc_sound_stored_time_reference_tests)
+    add_test(NAME mcc_sound_stored_time_reference_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_sound_stored_time_reference.py --check)
+    add_test(NAME mcc_sound_stored_time_reference_generator COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/mcc_sound_stored_time_generator_tests.py)
+    add_executable(mcc_sound_permutation_time_reference_tests tests/mcc_sound_permutation_time_reference_tests.cpp)
+    target_link_libraries(mcc_sound_permutation_time_reference_tests PRIVATE halo2_cache Threads::Threads)
+    add_test(NAME mcc_sound_permutation_time_reference_contract COMMAND mcc_sound_permutation_time_reference_tests)
+    add_test(NAME mcc_sound_permutation_time_reference_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_sound_permutation_time_reference.py --check)
+    add_test(NAME mcc_sound_permutation_time_reference_generator COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/mcc_sound_permutation_time_generator_tests.py)
+    add_executable(mcc_sound_class_reference_tests tests/mcc_sound_class_reference_tests.cpp)
+    target_link_libraries(mcc_sound_class_reference_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_sound_class_reference_contract COMMAND mcc_sound_class_reference_tests)
+    add_test(NAME mcc_sound_class_reference_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_sound_class_reference.py --check)
+    add_test(NAME mcc_sound_class_reference_generator COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/generate_mcc_sound_class_reference_tests.py)
+    set(HALO2_MCC_SOUND_DELIVERY_DONOR "" CACHE FILEPATH "Optional owned MCC map for native sound metadata validation")
+    if(HALO2_MCC_SOUND_DELIVERY_DONOR)
+        add_test(NAME mcc_sound_runtime_delivery_mcc_only COMMAND mcc_sound_runtime_delivery_tests
+            "${HALO2_MCC_SOUND_DELIVERY_DONOR}")
+        set_tests_properties(mcc_sound_runtime_delivery_mcc_only PROPERTIES TIMEOUT 360)
+        add_test(NAME mcc_sound_vanilla_reference_mcc_only COMMAND mcc_sound_vanilla_reference_tests
+            "${HALO2_MCC_SOUND_DELIVERY_DONOR}")
+        set_tests_properties(mcc_sound_vanilla_reference_mcc_only PROPERTIES TIMEOUT 120)
+    endif()
+    add_executable(mcc_sound_native_readiness_tests tests/mcc_sound_native_readiness_tests.cpp)
+    target_link_libraries(mcc_sound_native_readiness_tests PRIVATE halo2_physics_world_runtime)
+    set(HALO2_MCC_SOUND_READINESS_FIXTURE "" CACHE FILEPATH "Optional original CPU sound readiness fixture")
+    add_test(NAME mcc_sound_native_readiness COMMAND mcc_sound_native_readiness_tests
+        "${HALO2_MCC_SOUND_READINESS_FIXTURE}")
+    set_tests_properties(mcc_sound_native_readiness PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
+    add_executable(mcc_gameplay_scalar_tests tests/mcc_gameplay_scalar_tests.cpp)
+    target_link_libraries(mcc_gameplay_scalar_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_gameplay_scalar_profiles COMMAND mcc_gameplay_scalar_tests)
+    add_test(NAME mcc_gameplay_scalar_profile_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_gameplay_scalar_profiles.py --check)
+    add_executable(mcc_gameplay_reference_tests tests/mcc_gameplay_reference_tests.cpp)
+    target_link_libraries(mcc_gameplay_reference_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_gameplay_reference_profiles COMMAND mcc_gameplay_reference_tests)
+    add_executable(mcc_multiplayer_weapon_table_tests tests/mcc_multiplayer_weapon_table_tests.cpp)
+    target_link_libraries(mcc_multiplayer_weapon_table_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_multiplayer_weapon_table COMMAND mcc_multiplayer_weapon_table_tests)
+    set(HALO2_MCC_MULTIPLAYER_WEAPON_DONOR "" CACHE FILEPATH "Optional owned MCC multiplayer map for vanilla weapon table validation")
+    add_test(NAME mcc_multiplayer_weapon_table_mcc_only COMMAND mcc_multiplayer_weapon_table_tests
+        --mcc-only "${HALO2_MCC_MULTIPLAYER_WEAPON_DONOR}")
+    set_tests_properties(mcc_multiplayer_weapon_table_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(mcc_bsp_instance_transform_tests tests/mcc_bsp_instance_transform_tests.cpp)
+    target_link_libraries(mcc_bsp_instance_transform_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_bsp_instance_transform COMMAND mcc_bsp_instance_transform_tests)
+    add_executable(mcc_hud_content_tests tests/mcc_hud_content_tests.cpp)
+    target_link_libraries(mcc_hud_content_tests PRIVATE halo2_cache OpenSSL::Crypto nlohmann_json::nlohmann_json)
+    set(HALO2_MCC_HUD_DONOR "" CACHE FILEPATH "Optional owned MCC map for complete HUD/resource validation")
+    add_test(NAME mcc_hud_content_resources COMMAND mcc_hud_content_tests "${HALO2_MCC_HUD_DONOR}" --negative)
+    set_tests_properties(mcc_hud_content_resources PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(mcc_hud_reference_tests tests/mcc_hud_reference_tests.cpp)
+    target_link_libraries(mcc_hud_reference_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_hud_reference_contract COMMAND mcc_hud_reference_tests)
+    add_test(NAME mcc_hud_reference_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_hud_reference.py --check)
+    add_test(NAME mcc_hud_reference_generator COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/mcc_hud_reference_generator_tests.py)
+    set(HALO2_XBOX_HUD_REFERENCE "" CACHE FILEPATH "Optional offline Xbox Lockout map for HUD reference validation")
+    add_test(NAME mcc_hud_reference_paired COMMAND mcc_hud_reference_tests
+        "${HALO2_MCC_HUD_DONOR}" "${HALO2_XBOX_HUD_REFERENCE}")
+    set_tests_properties(mcc_hud_reference_paired PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME mcc_hud_reference_constructors COMMAND mcc_hud_reference_tests
+        "${HALO2_MCC_HUD_DONOR}" "${HALO2_XBOX_HUD_REFERENCE}" --constructors)
+    set_tests_properties(mcc_hud_reference_constructors PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(mcc_hud_shader_reference_tests tests/mcc_hud_shader_reference_tests.cpp)
+    target_link_libraries(mcc_hud_shader_reference_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_hud_shader_reference_contract COMMAND mcc_hud_shader_reference_tests)
+    add_test(NAME mcc_hud_shader_reference_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_hud_shader_reference.py --check)
+    add_test(NAME mcc_hud_shader_reference_generator COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/mcc_hud_shader_reference_generator_tests.py)
+    add_test(NAME mcc_hud_shader_reference_mcc_only COMMAND mcc_hud_shader_reference_tests
+        "${HALO2_MCC_HUD_DONOR}")
+    set_tests_properties(mcc_hud_shader_reference_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(mcc_native_hud_bootstrap_tests tests/mcc_native_hud_bootstrap_tests.cpp)
+    target_link_libraries(mcc_native_hud_bootstrap_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_native_hud_bootstrap_contract COMMAND mcc_native_hud_bootstrap_tests)
+    add_test(NAME mcc_native_hud_bootstrap_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_native_hud_bootstrap.py --check)
+    add_test(NAME mcc_native_hud_bootstrap_generator COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/mcc_native_hud_bootstrap_generator_tests.py)
+    add_test(NAME mcc_native_hud_bootstrap_mcc_only COMMAND mcc_native_hud_bootstrap_tests
+        "${HALO2_MCC_HUD_DONOR}")
+    set_tests_properties(mcc_native_hud_bootstrap_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(mcc_bsp_vertex_layout_tests tests/mcc_bsp_vertex_layout_tests.cpp)
+    target_link_libraries(mcc_bsp_vertex_layout_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_bsp_vertex_layout_contract COMMAND mcc_bsp_vertex_layout_tests)
+    set(HALO2_MCC_GEOMETRY_DONOR "" CACHE FILEPATH "Optional owned MCC map for raw BSP vertex conversion")
+    set(HALO2_XBOX_GEOMETRY_REFERENCE "" CACHE FILEPATH "Optional offline original map for paired BSP vertex validation")
+    add_test(NAME mcc_bsp_vertex_layout_mcc_only COMMAND mcc_bsp_vertex_layout_tests
+        "${HALO2_MCC_GEOMETRY_DONOR}")
+    set_tests_properties(mcc_bsp_vertex_layout_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME mcc_bsp_vertex_layout_paired COMMAND mcc_bsp_vertex_layout_tests
+        "${HALO2_MCC_GEOMETRY_DONOR}" "${HALO2_XBOX_GEOMETRY_REFERENCE}")
+    set_tests_properties(mcc_bsp_vertex_layout_paired PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(mcc_model_vertex_layout_tests tests/mcc_model_vertex_layout_tests.cpp)
+    target_link_libraries(mcc_model_vertex_layout_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_model_vertex_layout_contract COMMAND mcc_model_vertex_layout_tests)
+    set(HALO2_MCC_MODEL_DONOR "" CACHE FILEPATH "Optional owned MCC Lockout map for model stream conversion")
+    add_test(NAME mcc_model_vertex_layout_mcc_only COMMAND mcc_model_vertex_layout_tests
+        "${HALO2_MCC_MODEL_DONOR}")
+    set_tests_properties(mcc_model_vertex_layout_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(mcc_skinned_model_vertex_layout_tests tests/mcc_skinned_model_vertex_layout_tests.cpp)
+    target_link_libraries(mcc_skinned_model_vertex_layout_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_skinned_model_vertex_layout_contract COMMAND mcc_skinned_model_vertex_layout_tests)
+    add_test(NAME mcc_skinned_model_vertex_layout_mcc_only COMMAND mcc_skinned_model_vertex_layout_tests
+        "${HALO2_MCC_MODEL_DONOR}")
+    set_tests_properties(mcc_skinned_model_vertex_layout_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(gameplay_font_source_tests tests/gameplay_font_source_tests.cpp)
+    target_link_libraries(gameplay_font_source_tests PRIVATE halo2_cache)
+    add_test(NAME gameplay_font_source_contract COMMAND gameplay_font_source_tests)
+    add_test(NAME gameplay_font_reference_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_gameplay_font_reference.py --check)
+    add_test(NAME gameplay_font_reference_generator COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/gameplay_font_reference_generator_tests.py)
+    set(HALO2_MCC_GAMEPLAY_FONTS "" CACHE PATH "Optional owned MCC halo2/h2_fonts directory")
+    set(HALO2_XBOX_GAMEPLAY_FONTS "" CACHE PATH "Optional offline Xbox font reference directory")
+    add_test(NAME gameplay_font_source_paired COMMAND gameplay_font_source_tests
+        "${HALO2_MCC_GAMEPLAY_FONTS}" "${HALO2_XBOX_GAMEPLAY_FONTS}")
+    set_tests_properties(gameplay_font_source_paired PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(mcc_bsp_instance_bounds_tests tests/mcc_bsp_instance_bounds_tests.cpp)
+    target_link_libraries(mcc_bsp_instance_bounds_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_bsp_instance_bounds COMMAND mcc_bsp_instance_bounds_tests)
+    add_test(NAME mcc_bsp_instance_bounds_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_bsp_instance_bounds.py --check)
+    set(HALO2_MCC_BSP_BOUNDS_MAP "" CACHE FILEPATH "Owned MCC Old Mombasa map for stored bounds validation")
+    set(HALO2_XBOX_BSP_BOUNDS_MAP "" CACHE FILEPATH "Optional offline Xbox Old Mombasa reference for stored bounds validation")
+    add_test(NAME mcc_bsp_instance_bounds_paired COMMAND mcc_bsp_instance_bounds_tests
+        "${HALO2_MCC_BSP_BOUNDS_MAP}" "${HALO2_XBOX_BSP_BOUNDS_MAP}")
+    set_tests_properties(mcc_bsp_instance_bounds_paired PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_test(NAME mcc_bsp_instance_bounds_mcc_only COMMAND mcc_bsp_instance_bounds_tests
+        --mcc-only "${HALO2_MCC_BSP_BOUNDS_MAP}")
+    set_tests_properties(mcc_bsp_instance_bounds_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(mcc_bsp_collision_reference_tests tests/mcc_bsp_collision_reference_tests.cpp)
+    target_link_libraries(mcc_bsp_collision_reference_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_bsp_collision_reference COMMAND mcc_bsp_collision_reference_tests)
+    set(HALO2_MCC_BSP_COLLISION_DONOR "" CACHE FILEPATH "Optional owned MCC Old Mombasa map for collision validation")
+    set(HALO2_MCC_BSP_COLLISION_REFERENCE "" CACHE FILEPATH "Optional owned original Old Mombasa reference map")
+    add_test(NAME mcc_bsp_collision_reference_paired COMMAND mcc_bsp_collision_reference_tests
+        "${HALO2_MCC_BSP_COLLISION_DONOR}" "${HALO2_MCC_BSP_COLLISION_REFERENCE}")
+    set_tests_properties(mcc_bsp_collision_reference_paired PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_test(NAME mcc_bsp_collision_reference_mcc_only COMMAND mcc_bsp_collision_reference_tests
+        --mcc-only "${HALO2_MCC_BSP_COLLISION_DONOR}")
+    set_tests_properties(mcc_bsp_collision_reference_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(mcc_gameplay_unit_scalar_tests tests/mcc_gameplay_unit_scalar_tests.cpp)
+    target_link_libraries(mcc_gameplay_unit_scalar_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_gameplay_unit_scalar_profiles COMMAND mcc_gameplay_unit_scalar_tests)
+    add_test(NAME mcc_gameplay_unit_scalar_manifest COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_gameplay_unit_scalar_profiles.py --check)
+    add_test(NAME mcc_script_signature_profile COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_script_layout.py --check)
+    add_executable(mcc_loading_inputs_tests tests/mcc_loading_inputs_tests.cpp)
+    target_link_libraries(mcc_loading_inputs_tests PRIVATE halo2_cache)
+    add_test(NAME mcc_loading_inputs COMMAND mcc_loading_inputs_tests)
+    add_executable(mcc_gameplay_content_tests tests/mcc_gameplay_content_tests.cpp)
+    target_link_libraries(mcc_gameplay_content_tests PRIVATE halo2_systems)
+    add_executable(mcc_campaign_text_tests tests/mcc_campaign_text_tests.cpp)
+    target_link_libraries(mcc_campaign_text_tests PRIVATE halo2_systems halo2_renderer)
     add_test(NAME mcc_source_distribution COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mcc_source_distribution.py)
     add_test(NAME native_shader_source_distribution COMMAND ${Python3_EXECUTABLE}
@@ -6173,19 +6643,19 @@ if(BUILD_TESTING)
         if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND Python3_Interpreter_FOUND)
             add_test(NAME retail_source_ai_actor COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActor" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActor" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_ctor_base.md")
             set_tests_properties(retail_source_ai_actor PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_references COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiReferences" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiReferences" --timeout 60
                 -- $<TARGET_FILE:source_ai_reference_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_references_base.md")
             set_tests_properties(retail_source_ai_references PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_import COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiImport" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiImport" --timeout 60
                 -- $<TARGET_FILE:source_ai_import_tests>
                 "${CMAKE_SOURCE_DIR}/assets/disc/maps/01a_tutorial.map"
                 "${CMAKE_SOURCE_DIR}/assets/disc/maps"
@@ -6193,80 +6663,80 @@ if(BUILD_TESTING)
             set_tests_properties(retail_source_ai_import PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_unit_control COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceUnitControl" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceUnitControl" --timeout 60
                 -- $<TARGET_FILE:source_unit_control_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_unit_control_base.md"
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_unit_seats_base.md")
             set_tests_properties(retail_source_unit_control PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_binding COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorBinding" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorBinding" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_binding_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_binding_base.md")
             set_tests_properties(retail_source_ai_actor_binding PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_binding_lifecycle COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorBindingLifecycle" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorBindingLifecycle" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_binding_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_binding_lifecycle_base.md")
             set_tests_properties(retail_source_ai_actor_binding_lifecycle PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_lifecycle COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorLifecycle" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorLifecycle" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_lifecycle_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_lifecycle_base.md")
             set_tests_properties(retail_source_ai_actor_lifecycle PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_commands_lifecycle COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorCommandsLifecycle" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorCommandsLifecycle" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_lifecycle_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_commands_lifecycle_base.md")
             set_tests_properties(retail_source_ai_actor_commands_lifecycle PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_lifecycle_source_owned COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorLifecycleSourceOwned" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorLifecycleSourceOwned" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_lifecycle_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_lifecycle_base.md" source-owned)
             set_tests_properties(retail_source_ai_actor_lifecycle_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_commands_lifecycle_source_owned COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorCommandsLifecycleSourceOwned" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorCommandsLifecycleSourceOwned" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_lifecycle_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_commands_lifecycle_base.md" source-owned)
             set_tests_properties(retail_source_ai_actor_commands_lifecycle_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_control COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorControl" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorControl" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_control_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_control_base.md")
             set_tests_properties(retail_source_ai_actor_control PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_control_source_owned COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorControlSourceOwned" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorControlSourceOwned" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_control_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_control_base.md" source-owned)
             set_tests_properties(retail_source_ai_actor_control_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_membership COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorMembership" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorMembership" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_membership_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_membership_base.md")
             set_tests_properties(retail_source_ai_actor_membership PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_membership_source_owned COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorMembershipSourceOwned" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorMembershipSourceOwned" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_membership_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_membership_base.md" source-owned)
             set_tests_properties(retail_source_ai_actor_membership_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_binding_source_owned COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorBindingSourceOwned" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorBindingSourceOwned" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_binding_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_binding_base.md" source-owned)
             set_tests_properties(retail_source_ai_actor_binding_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
             add_test(NAME retail_source_ai_actor_binding_lifecycle_source_owned COMMAND "${Python3_EXECUTABLE}"
                 "${CMAKE_SOURCE_DIR}/tools/tag_match_memory_budget.py"
-                --output-root "${CMAKE_BINARY_DIR}/Testing/SourceAiActorBindingLifecycleSourceOwned" --timeout 60
+                --output-root "@HALO2_TEST_SCRATCH@/Testing/SourceAiActorBindingLifecycleSourceOwned" --timeout 60
                 -- $<TARGET_FILE:source_ai_actor_binding_tests>
                 "${CMAKE_SOURCE_DIR}/tests/fixtures/source_ai_actor_binding_lifecycle_base.md" source-owned)
             set_tests_properties(retail_source_ai_actor_binding_lifecycle_source_owned PROPERTIES RUN_SERIAL TRUE TIMEOUT 90)
@@ -6274,6 +6744,21 @@ if(BUILD_TESTING)
         add_executable(source_script_tests tests/source_script_tests.cpp)
         target_link_libraries(source_script_tests PRIVATE halo2_systems)
         add_test(NAME retail_source_script COMMAND source_script_tests)
+        set(HALO2_SOURCE_SCRIPT_WAKE_FIXTURES "${CMAKE_CURRENT_SOURCE_DIR}/tests/data/source_script_wake_tu15")
+        add_executable(source_script_wake_tests tests/source_script_wake_tests.cpp)
+        target_link_libraries(source_script_wake_tests PRIVATE halo2_systems)
+        add_test(NAME original_tu15_script_wake_dispatch COMMAND source_script_wake_tests
+            "${HALO2_SOURCE_SCRIPT_WAKE_FIXTURES}")
+        add_executable(source_script_wake_codec_tests tests/source_script_wake_codec_tests.cpp)
+        target_link_libraries(source_script_wake_codec_tests PRIVATE halo2_authority_codec OpenSSL::Crypto ZLIB::ZLIB)
+        add_test(NAME native_script_external_sleep_codec COMMAND source_script_wake_codec_tests
+            "${HALO2_SOURCE_SCRIPT_WAKE_FIXTURES}")
+        add_executable(source_script_opening_cues_tu15_tests tests/source_script_opening_cues_tu15_tests.cpp)
+        target_link_libraries(source_script_opening_cues_tu15_tests PRIVATE halo2_systems)
+        add_test(NAME native_opening_script_cue_relative_ticks COMMAND source_script_opening_cues_tu15_tests
+            "${HALO2_SOURCE_SCRIPT_WAKE_FIXTURES}"
+            "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map")
+        set_tests_properties(native_opening_script_cue_relative_ticks PROPERTIES SKIP_RETURN_CODE 77)
         add_executable(source_script_list_tests tests/source_script_list_tests.cpp)
         target_link_libraries(source_script_list_tests PRIVATE halo2_systems)
         add_test(NAME retail_source_script_lists COMMAND source_script_list_tests)
@@ -6341,6 +6826,20 @@ if(BUILD_TESTING)
         add_executable(bsp_surface_lighting_tests tests/bsp_surface_lighting_tests.cpp)
         target_link_libraries(bsp_surface_lighting_tests PRIVATE halo2_systems)
         add_test(NAME retail_multiplayer_surface_lighting COMMAND bsp_surface_lighting_tests ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps)
+        add_executable(mcc_bsp_surface_lighting_tests tests/mcc_bsp_surface_lighting_tests.cpp)
+        target_link_libraries(mcc_bsp_surface_lighting_tests PRIVATE halo2_cache)
+        set(HALO2_MCC_SURFACE_LIGHTING_DONOR "" CACHE FILEPATH "Optional owned MCC map for CPU geometry conversion validation")
+        set(HALO2_MCC_SURFACE_LIGHTING_REFERENCE "" CACHE FILEPATH "Optional matching original Xbox map for offline CPU geometry validation")
+        add_test(NAME mcc_bsp_surface_lighting COMMAND mcc_bsp_surface_lighting_tests
+            "${HALO2_MCC_SURFACE_LIGHTING_DONOR}" "${HALO2_MCC_SURFACE_LIGHTING_REFERENCE}")
+        set_tests_properties(mcc_bsp_surface_lighting PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+        add_executable(bsp_representation_tu15_tests tests/bsp_representation_tu15_tests.cpp)
+        target_link_libraries(bsp_representation_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+        target_include_directories(bsp_representation_tu15_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+        set(HALO2_BSP_REPRESENTATION_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original CPU BSP packing and SHORT2 decoder fixture")
+        add_test(NAME bsp_representation_tu15 COMMAND bsp_representation_tu15_tests
+            "${HALO2_BSP_REPRESENTATION_REFERENCE_FIXTURE}")
+        set_tests_properties(bsp_representation_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
         add_executable(instance_contact_tie_tests tests/instance_contact_tie_tests.cpp)
         target_link_libraries(instance_contact_tie_tests PRIVATE halo2_cache)
         target_compile_definitions(instance_contact_tie_tests PRIVATE HALO2_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
@@ -6689,6 +7188,8 @@ if(BUILD_TESTING)
         target_link_libraries(source_portal_mask_tests PRIVATE halo2_cache)
         add_test(NAME retail_source_portal_mask COMMAND source_portal_mask_tests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/retail_source_portal_mask.tsv)
+        add_test(NAME original_campaign_portal_mask_tu15 COMMAND source_portal_mask_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_portal_mask_tu15.txt)
         add_test(NAME retail_source_portal_mask_assets COMMAND source_portal_mask_tests --assets)
         set_tests_properties(retail_source_portal_mask_assets PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
         target_link_libraries(source_portal_visibility_tests PRIVATE halo2_cache)
@@ -6731,6 +7232,10 @@ if(BUILD_TESTING)
         add_executable(source_view_projection_tests tests/source_view_projection_tests.cpp)
         target_link_libraries(source_view_projection_tests PRIVATE halo2_cache)
         add_test(NAME retail_source_view_projection COMMAND source_view_projection_tests)
+
+        add_executable(campaign_cinematic_camera_lens_tu15_tests tests/campaign_cinematic_camera_lens_tu15_tests.cpp)
+        target_link_libraries(campaign_cinematic_camera_lens_tu15_tests PRIVATE halo2_cache)
+        add_test(NAME campaign_cinematic_camera_lens_tu15 COMMAND campaign_cinematic_camera_lens_tu15_tests)
         add_executable(source_view_shader_bank_tests tests/source_view_shader_bank_tests.cpp)
         target_link_libraries(source_view_shader_bank_tests PRIVATE halo2_cache)
         add_test(NAME retail_source_view_shader_bank COMMAND source_view_shader_bank_tests
@@ -6743,6 +7248,10 @@ if(BUILD_TESTING)
         target_link_libraries(object_sky_lighting_tests PRIVATE halo2_systems)
         add_test(NAME retail_multiplayer_object_sky_lighting COMMAND object_sky_lighting_tests)
         set_tests_properties(retail_multiplayer_object_sky_lighting PROPERTIES WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+        add_executable(bsp_sky_models_tests tests/bsp_sky_models_tests.cpp)
+        target_link_libraries(bsp_sky_models_tests PRIVATE halo2_systems)
+        add_test(NAME retail_campaign_per_view_skies COMMAND bsp_sky_models_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps)
         add_executable(bsp_atmosphere_tests tests/bsp_atmosphere_tests.cpp)
         target_link_libraries(bsp_atmosphere_tests PRIVATE halo2_cache)
         add_executable(bsp_clear_color_tests tests/bsp_clear_color_tests.cpp)
@@ -6826,6 +7335,10 @@ if(BUILD_TESTING)
 endif()
 
 if(BUILD_TESTING)
+  add_executable(mcc_sound_rate_tests tests/mcc_sound_rate_tests.cpp)
+  target_link_libraries(mcc_sound_rate_tests PRIVATE halo2_systems)
+  add_test(NAME mcc_sound_codec_rates COMMAND mcc_sound_rate_tests)
+  set_tests_properties(mcc_sound_codec_rates PROPERTIES ENVIRONMENT "SDL_AUDIODRIVER=dummy")
   add_executable(multiplayer_audio_tests tests/multiplayer_audio_tests.cpp)
   target_link_libraries(multiplayer_audio_tests PRIVATE halo2_systems)
   add_test(NAME multiplayer_authored_audio COMMAND multiplayer_audio_tests
@@ -8410,6 +8923,17 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/map-world-features/graphics-owner-20261013/cache-fixture.json)
     set_tests_properties(native_source_decal_vertex_cache PROPERTIES SKIP_RETURN_CODE 77)
     set(HALO2_TU15_GAMEPLAY_XBE "" CACHE FILEPATH "Owned original English TU1.5 gameplay executable for acceptance tests")
+    add_test(NAME native_campaign_lens_restore_adoption_tu15 COMMAND campaign_lens_restore_runtime_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(native_campaign_lens_restore_adoption_tu15 PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
+    add_test(NAME native_campaign_camera_outer_frame_tu15 COMMAND campaign_camera_frame_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/03b_newmombasa.map)
+    set_tests_properties(native_campaign_camera_outer_frame_tu15 PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
+    add_test(NAME native_campaign_camera_cold_outer_frame_tu15 COMMAND campaign_camera_frame_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/03b_newmombasa.map --native-cold)
+    set_tests_properties(native_campaign_camera_cold_outer_frame_tu15 PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
     add_test(NAME original_script_marker_effect_kernel_tu15 COMMAND source_script_effect_kernel_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/script_marker_effect_tu15.json "${HALO2_TU15_GAMEPLAY_XBE}")
     set_tests_properties(original_script_marker_effect_kernel_tu15 PROPERTIES SKIP_RETURN_CODE 77)
@@ -8422,6 +8946,9 @@ if(BUILD_TESTING)
     add_test(NAME native_opening_source_cinematic_camera COMMAND campaign_cinematic_camera_runtime_tu15_tests
         "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
     set_tests_properties(native_opening_source_cinematic_camera PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_campaign_point_camera_adoption COMMAND campaign_point_camera_adoption_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/03b_newmombasa.map)
+    set_tests_properties(native_campaign_point_camera_adoption PROPERTIES SKIP_RETURN_CODE 77)
     add_test(NAME original_campaign_screen_bank_tu15 COMMAND source_campaign_screen_bank_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/campaign_screen_bank_tu15.json "${HALO2_TU15_GAMEPLAY_XBE}")
     set_tests_properties(original_campaign_screen_bank_tu15 PROPERTIES SKIP_RETURN_CODE 77)
@@ -8449,9 +8976,82 @@ if(BUILD_TESTING)
     add_test(NAME native_opening_source_scene_retirement COMMAND campaign_scene_retirement_tu15_tests
         "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
     set_tests_properties(native_opening_source_scene_retirement PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_scripted_sound_points_tu15 COMMAND campaign_scripted_sound_point_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(native_opening_scripted_sound_points_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_cinematic_lighting_bridge_tu15 COMMAND campaign_cinematic_lighting_bridge_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" "${CMAKE_SOURCE_DIR}/assets/disc/maps/00a_introduction.map")
+    set_tests_properties(native_opening_cinematic_lighting_bridge_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_scripted_audio_volumes COMMAND campaign_scripted_audio_volume_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(native_opening_scripted_audio_volumes PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_scripted_audio_emitters COMMAND campaign_scripted_audio_emitter_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(native_opening_scripted_audio_emitters PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_scripted_speech_tu15 COMMAND campaign_scripted_speech_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(native_opening_scripted_speech_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_scripted_speech_armorer_tu15 COMMAND campaign_scripted_speech_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map --armorer)
+    set_tests_properties(native_opening_scripted_speech_armorer_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_scripted_speech_chief_tu15 COMMAND campaign_scripted_speech_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map --chief)
+    set_tests_properties(native_opening_scripted_speech_chief_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_campaign_session_identity_tu15 COMMAND campaign_session_identity_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(native_opening_campaign_session_identity_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_scripted_audio_timeline COMMAND campaign_scripted_audio_timeline_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/opening_dialogue_timing_tu15.tsv)
+    set_tests_properties(native_opening_scripted_audio_timeline PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_script_sound_admission_phase COMMAND script_sound_admission_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map native)
+    add_test(NAME native_source_script_sound_admission_guards COMMAND script_sound_admission_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map source)
+    set_tests_properties(native_script_sound_admission_phase native_source_script_sound_admission_guards
+        PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
+    add_test(NAME original_opening_scripted_audio_timing COMMAND campaign_scripted_audio_timing_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/opening_dialogue_timing_tu15.tsv)
+    set_tests_properties(original_opening_scripted_audio_timing PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_opening_scripted_audio_gains COMMAND campaign_scripted_audio_gain_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/opening_audio_gains_tu15.tsv)
+    set_tests_properties(original_opening_scripted_audio_gains PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_opening_camera_interpolation COMMAND campaign_camera_interpolation_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(native_opening_camera_interpolation PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_campaign_screen_interpolation COMMAND campaign_screen_interpolation_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}")
+    set_tests_properties(native_campaign_screen_interpolation PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME original_opening_independent_materials COMMAND campaign_independent_material_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(original_opening_independent_materials PROPERTIES SKIP_RETURN_CODE 77)
     add_test(NAME original_opening_cinematic_environment_materials COMMAND campaign_cinematic_environment_material_tests
         "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
     set_tests_properties(original_opening_cinematic_environment_materials PROPERTIES SKIP_RETURN_CODE 77)
+    if(EXISTS "${HALO2_TU15_GAMEPLAY_XBE}" AND
+            EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map")
+        add_test(NAME original_reach_float3_model_positions COMMAND reach_model_float_positions_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map "${HALO2_TU15_GAMEPLAY_XBE}"
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/retail_reach_model_streams_tu15.json)
+    endif()
+    add_test(NAME original_opening_cinematic_matte_materials COMMAND campaign_cinematic_matte_material_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(original_opening_cinematic_matte_materials PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_campaign_lightmap_shadow_hosts_tu15 COMMAND campaign_lightmap_shadow_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map)
+    set_tests_properties(native_campaign_lightmap_shadow_hosts_tu15 PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
+    add_test(NAME original_campaign_dof_filter_recipe_tu15 COMMAND campaign_dof_recipe_tu15_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/retail_cinematic_dof_filter_tu15.json)
+    set_tests_properties(original_campaign_dof_filter_recipe_tu15 PROPERTIES SKIP_RETURN_CODE 77)
+    add_test(NAME native_campaign_authored_depth_of_field_tu15 COMMAND campaign_depth_of_field_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/00a_introduction.map
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/retail_cinematic_dof_tu15.json)
+    set_tests_properties(native_campaign_authored_depth_of_field_tu15 PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
+    add_test(NAME native_campaign_authored_far_clip_tu15 COMMAND campaign_far_clip_tu15_tests
+        "${HALO2_TU15_GAMEPLAY_XBE}" ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/06b_floodzone.map)
+    set_tests_properties(native_campaign_authored_far_clip_tu15 PROPERTIES SKIP_RETURN_CODE 77 RUN_SERIAL TRUE)
     add_test(NAME original_opening_cinematic_shadow_control COMMAND source_cinematic_shadow_control_tu15_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/cinematic_shadow_control_tu15.json "${HALO2_TU15_GAMEPLAY_XBE}")
     set_tests_properties(original_opening_cinematic_shadow_control PROPERTIES SKIP_RETURN_CODE 77)
@@ -8651,3 +9251,6 @@ endif()
 
 include(cmake/AnimationInterpolation.cmake)
 include(cmake/PStencil.cmake)
+
+include(cmake/CampaignEnvironmentTu15.cmake)
+include(cmake/NativeTu15ObserverData.cmake)

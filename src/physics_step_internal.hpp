@@ -22,6 +22,17 @@ inline float f(std::uint32_t x) { return std::bit_cast<float>(x); }
 inline std::uint32_t u(float x) { return std::bit_cast<std::uint32_t>(x); }
 inline void w(M &m, const O &o, std::uint32_t site, std::uint32_t a,
               unsigned n, std::uint64_t x) {
+    // Unobserved scalar stores still perform the same read before writing.
+    // Retain observer records only when a caller consumes them; allocating two
+    // vectors for every native byte/word store stalls the live game timeline.
+    if (!o && n <= 8u) {
+        std::array<std::byte, 8> before{}, written{};
+        m.read(a, std::span(before).first(n));
+        for (unsigned i = 0; i < n; ++i)
+            written[i] = std::byte((x >> (i * 8)) & 255);
+        m.write(a, std::span<const std::byte>(written).first(n));
+        return;
+    }
     SourcePhysicsContactRecordStore s{site, a, {}, {}};
     s.before.resize(n); s.written.resize(n); m.read(a, s.before);
     for (unsigned i = 0; i < n; ++i) s.written[i] = std::byte((x >> (i * 8)) & 255);

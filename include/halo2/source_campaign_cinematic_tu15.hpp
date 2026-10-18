@@ -10,6 +10,9 @@ void source_run_campaign_cinematic_tu15(SourcePhysicsContactMemory &,std::uint32
     const SourcePhysicsContactRecordObserver & = {});
 class PhysicsLiveWorldTu15;
 void source_campaign_cinematic_control_tu15(PhysicsLiveWorldTu15 &,bool active);
+// Exact zero-argument cinematic_lightmap_shadow_enable/disable HS stores.
+// Uses the existing checked/journaled writer on the same retained source bank.
+void source_campaign_lightmap_shadow_tu15(PhysicsLiveWorldTu15 &,bool enabled);
 void source_campaign_cinematic_lod_tu15(PhysicsLiveWorldTu15 &,std::uint32_t object,bool active);
 // Native callers of the original HS actions on the same retained world.
 // Source routines own binding, resources, event channels, parenting and poses.

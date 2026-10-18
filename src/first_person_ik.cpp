@@ -197,7 +197,9 @@ AnimationClip Cache::load_unit_weapon_action(std::uint32_t graph,std::uint32_t m
             if(inheritance<0 || std::size_t(inheritance)>=inherited.count)throw FormatError("unit action inherited graph outside list");
             resolved_graph=data.u32(inherited.offset+std::size_t(inheritance)*32+4);
         }
-        return load_animation(resolved_graph,unsigned(index),resources);
+        auto clip=load_animation(resolved_graph,unsigned(index),resources);
+        clip.source_identifier=data.u32(a+4);
+        return clip;
      }
     }
     throw FormatError("authored unit weapon action missing: "+string_id(action));

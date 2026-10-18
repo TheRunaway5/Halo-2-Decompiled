@@ -66,3 +66,7 @@ initialization before queue construction, stream/parent/method consumption and
 combined launcher delivery remain required. All21 Xbox plus2 Vista maps,
 network/latejoin/reset, original resource/scheduling/RNG histories, native MCC
 entry and Xbox framebuffer acceptance remain active requirements.
+
+The [native view continuation](SOURCE_PARTICLE_NATIVE_VIEW_TU15.md) adds actual
+recorded descriptor/viewport ownership, the original initializer's bounds
+consumer and whole`12D30`. Its scaled world-camera handoff remains open.

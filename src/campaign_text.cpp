@@ -1,6 +1,8 @@
 #include "halo2/campaign_text.hpp"
 #include "halo2/frontend_font_sampling.hpp"
+#include "halo2/gameplay_font_source.hpp"
 #include "halo2/frontend_ui_assets.hpp"
+#include "halo2/mcc_cache.hpp"
 #include "halo2/source_tag_metadata.hpp"
 #include <algorithm>
 #include <cmath>
@@ -27,20 +29,38 @@ CampaignTextContent load_campaign_text(const Cache &cache,
   const auto count = globals.u32(0x190), size = globals.u32(0x194);
   if (count > 65536 || size > 16 * 1024 * 1024)
     throw FormatError("Excessive campaign locale");
-  std::ifstream file(map, std::ios::binary | std::ios::ate);
-  const auto length = file.tellg();
-  const auto read = [&](unsigned offset, std::size_t bytes) {
-    if (length < 0 || offset > std::uint64_t(length) ||
-        bytes > std::uint64_t(length) - offset)
-      throw FormatError("Campaign locale outside map");
-    std::vector<std::byte> result(bytes);
-    file.seekg(offset);
-    if (!file.read(reinterpret_cast<char *>(result.data()), bytes))
-      throw FormatError("Incomplete campaign locale");
-    return result;
-  };
-  const auto indices = read(globals.u32(0x198), count * 8),
-             text = read(globals.u32(0x19c), size);
+  std::vector<std::byte> indices,text;
+  if(cache.is_mcc()) {
+    // Version13 keeps these offsets in the logical decoded file. Shared
+    // globals additionally mark their shared.map locale offsets with bit31;
+    // they cannot be read from the compressed local multiplayer map.
+    const auto index_offset=globals.u32(0x198),text_offset=globals.u32(0x19c);
+    const bool shared=(index_offset&0x80000000u)!=0;
+    const auto shared_bytes=shared?read_mcc_cache(cache.shared_directory()/"shared.map"):
+        std::vector<std::byte>{};
+    const auto owned=shared?std::span<const std::byte>(shared_bytes):cache.source_runtime_cache_bytes();
+    // Cache appends normalized metadata after the decoded source file. Locale
+    // file offsets must stay in the original logical file, not those owners.
+    const Bytes logical(Bytes(owned).slice(0,Bytes(owned).u32(8)));
+    const auto rows=logical.slice(shared?index_offset&0x7fffffffu:index_offset,std::size_t(count)*8);
+    const auto strings=logical.slice(shared?text_offset&0x7fffffffu:text_offset,size);
+    indices.assign(rows.begin(),rows.end());text.assign(strings.begin(),strings.end());
+  } else {
+    std::ifstream file(map, std::ios::binary | std::ios::ate);
+    const auto length = file.tellg();
+    const auto read = [&](unsigned offset, std::size_t bytes) {
+      if (length < 0 || offset > std::uint64_t(length) ||
+          bytes > std::uint64_t(length) - offset)
+        throw FormatError("Campaign locale outside map");
+      std::vector<std::byte> result(bytes);
+      file.seekg(offset);
+      if (!file.read(reinterpret_cast<char *>(result.data()), bytes))
+        throw FormatError("Incomplete campaign locale");
+      return result;
+    };
+    indices=read(globals.u32(0x198),std::size_t(count)*8);
+    text=read(globals.u32(0x19c),size);
+  }
   const Bytes rows(indices), locale(text);
   const auto strings = [&](std::uint32_t datum) {
     UiStrings result;
@@ -205,18 +225,8 @@ CampaignTextRenderer::CampaignTextRenderer(
     CampaignTextContent content, const std::filesystem::path &directory,
     const std::filesystem::path &vista_assets, Mesh &mesh)
     : content_(std::move(content)) {
-  std::ifstream file(directory / "font_table.txt");
-  std::vector<std::string> names;
+  const auto font_source=load_gameplay_font_source(directory);
   std::string name;
-  while (std::getline(file, name)) {
-    if (!name.empty() && name.back() == '\r')
-      name.pop_back();
-    if (name.find_first_of("/\\") != std::string::npos || name == "..")
-      throw FormatError("Invalid campaign font path");
-    names.push_back(name);
-  }
-  if (names.size() != 11)
-    throw FormatError("Missing campaign font table");
   const auto assets = hud_menu_asset_directory(vista_assets);
   std::vector<std::string> sampled_names;
   if (!assets.empty()) {
@@ -233,7 +243,7 @@ CampaignTextRenderer::CampaignTextRenderer(
       throw FormatError("Missing Vista campaign font table");
   }
   const auto font = [&](unsigned selector) {
-    auto result = load_retail_font(directory / names[selector]);
+    auto result = load_gameplay_font(font_source,selector);
     if (!assets.empty()) {
       // Select the same ordinal from the sampled platform's actual table.
       // Xbox subtitle font9 is conduit-16; Vista font9 is conduit-13.
@@ -254,7 +264,13 @@ CampaignTextRenderer::CampaignTextRenderer(
             break;
           }
       }
-      apply_retail_font_sampling(result, load_retail_font(path));
+      if(font_source.domain==GameplayFontDomain::Original)
+        apply_retail_font_sampling(result, load_retail_font(path));
+      else {
+        if(!is_mcc_classic_hud_pack(assets) && !is_mcc_classic_menu_pack(assets))
+          throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
+        require_mcc_gameplay_font_sample(font_source,selector,path);
+      }
     }
     return result;
   };

@@ -18,15 +18,18 @@ template<class T>T read(const SourceRuntimeMemory &memory,NativeRuntimeAddress b
   T value;memory.read(body+offset,std::as_writable_bytes(std::span(&value,1)));return value;
 }
 }
+CampaignSourceRuntime::CampaignSourceRuntime(const Cache &cache,std::size_t bsp,
+    unsigned difficulty,std::uint32_t seed):CampaignSourceRuntime(cache,{},bsp,difficulty,seed) {}
 CampaignSourceRuntime::CampaignSourceRuntime(const Cache &cache,const std::filesystem::path &xbe,
     std::size_t bsp,unsigned difficulty,std::uint32_t seed) {
-  if(cache.is_mcc() || cache.original_data()->image!=OriginalData::Image::TitleUpdate15 || difficulty>3)
-    throw FormatError("Campaign source ownership requires an authenticated TU1.5 Xbox cache/session");
+  if(!cache.original_data() || cache.original_data()->image!=OriginalData::Image::TitleUpdate15 || difficulty>3)
+    throw FormatError("Campaign source ownership requires TU1.5 gameplay constants and difficulty 0..3");
   auto name=(std::filesystem::temp_directory_path()/"halo2-campaign-XXXXXX").string();
   if(!::mkdtemp(name.data()))throw FormatError("Campaign source storage unavailable");
   files_=name;
   try {
-    objects_=std::make_unique<MultiplayerObjectRuntime>(xbe,cache,bsp,files_);
+    objects_=xbe.empty()?std::make_unique<MultiplayerObjectRuntime>(cache,bsp,files_):
+        std::make_unique<MultiplayerObjectRuntime>(xbe,cache,bsp,files_);
     auto &world=objects_->tu15_world();world.initialize_map();
     world.configure_campaign_session(std::int16_t(difficulty),1,30,seed);
   } catch(...) {std::error_code ec;std::filesystem::remove_all(files_,ec);throw;}
@@ -71,11 +74,14 @@ CampaignSourceRuntime::Checkpoint CampaignSourceRuntime::checkpoint(const Native
 }
 void CampaignSourceRuntime::restore(const Checkpoint &saved,NativeObjectLifetimes &lifetimes) {
   auto placements=saved.placements;
-  auto world=objects_->prepare_authority(saved.objects);
+  auto world=objects_->prepare_campaign_authority(saved.objects);
   auto pool=lifetimes.prepare_source_authority(saved.lifetimes,world.replacement_memory());
   if(!objects_->commit_authority(std::move(world)) || !lifetimes.commit_source_authority(std::move(pool)))
     throw FormatError("Campaign source checkpoint did not publish its coupled world/pool backing");
   player_=saved.player;placements_.swap(placements);
+}
+void CampaignSourceRuntime::live_lens_renderer(bool active) {
+  objects_->live_campaign_lens_renderer(active);
 }
 SourceSceneObjectOwner CampaignSourceRuntime::scene_owner(const LevelContent &content) {
   return {[this,&content](const ScenarioObject &placement,SourceScenarioBirth birth) {
@@ -87,13 +93,13 @@ SourceSceneObjectOwner CampaignSourceRuntime::scene_owner(const LevelContent &co
     const auto resolve=[&](auto &&self,std::size_t index,unsigned depth)->std::uint32_t {
       if(depth>8)throw FormatError("Campaign vehicle child hierarchy is cyclic");
       const auto &p=content.objects.at(index);
-      if(p.model_attachment)return objects_->child_object(self(self,p.model_attachment->parent,depth+1),p.definition);
+      if(p.model_attachment)return objects_->model_child_object(self(self,p.model_attachment->parent,depth+1),p.definition,p.model_attachment->parent_marker,p.model_attachment->child_marker);
       const auto found=placements_.find({p.type,p.placement});
       if(found!=placements_.end())return found->second;
       throw FormatError("Campaign model child has no retained authored parent");
     };
     const auto parent=resolve(resolve,placement.model_attachment->parent,0);
-    const auto child=objects_->child_object(parent,placement.definition);
+    const auto child=objects_->model_child_object(parent,placement.definition,placement.model_attachment->parent_marker,placement.model_attachment->child_marker);
     if(child==null_datum)throw FormatError("Campaign source constructor did not publish its model child");
     return child;
   },[this](auto object){objects_->destroy_object(object);}};

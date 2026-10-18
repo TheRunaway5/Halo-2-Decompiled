@@ -37,6 +37,16 @@ bool same(const MultiplayerState &a,const MultiplayerState &b) {
   const auto &x=a.world_vehicles[n],&y=b.world_vehicles[n];
   if(x.handle!=y.handle || x.placement!=y.placement || std::memcmp(&x.transform,&y.transform,sizeof(Transform)) || std::memcmp(&x.lighting_velocity,&y.lighting_velocity,sizeof(Vec3)))return false;
  }
+ if(a.prop_regions.size()!=b.prop_regions.size())return false;
+ for(unsigned n=0;n<a.prop_regions.size();++n) {
+  const auto &x=a.prop_regions[n],&y=b.prop_regions[n];
+  if(x.handle!=y.handle || x.placement!=y.placement || x.definition!=y.definition ||
+      x.regions.selection.variant_index!=y.regions.selection.variant_index ||
+      x.regions.selection.permutations!=y.regions.selection.permutations ||
+      x.regions.selection.states!=y.regions.selection.states ||
+      x.regions.selection.unresolved_rng_regions!=y.regions.selection.unresolved_rng_regions ||
+      x.regions.looping_effects!=y.regions.looping_effects)return false;
+ }
  if(a.source_scene_roots.size()!=b.source_scene_roots.size())return false;
  for(unsigned n=0;n<a.source_scene_roots.size();++n) {
   const auto &x=a.source_scene_roots[n],&y=b.source_scene_roots[n];
@@ -87,8 +97,9 @@ struct Authority {
       }
     LanHost transport(world.match,0,multiplayer_fingerprint(options.map,world.cache->shared_directory(),options.bsp,world.rules.weapon,options.gameplay_xbe),options.variant);
     port=transport.port();
-    test::LivePhysicsEntryCaptureTu15 controller(output/"original-live-unit-input-capture"),object_frame(output/"original-live-object-capture"),solve(output/"original-live-world-capture"),look_animation(output/"original-live-look-animation-capture"),look_rotation(output/"original-live-look-rotation-capture"),body_phase(output/"original-live-body-capture");
+    test::LivePhysicsEntryCaptureTu15 controller(output/"original-live-unit-input-capture"),object_frame(output/"original-live-object-capture"),solve(output/"original-live-world-capture"),look_animation(output/"original-live-look-animation-capture"),look_rotation(output/"original-live-look-rotation-capture"),body_phase(output/"original-live-body-capture"),unit_view_reset(output/"original-unit-view-reset-capture");
     SourcePhysicsEntryObserverBinding observation(world.source_objects->memory(),[&](bool entering,std::uint32_t entry,const auto &abi) {
+      if(entry==0x158690u && std::getenv("HALO2_TU15_UNIT_VIEW_RESET_CAPTURE")) {unit_view_reset.observe(entering,abi,world.source_objects->memory(),entry);return;}
       if(entry==0x290030u) {look_animation.observe(entering,abi,world.source_objects->memory(),entry);return;}
       if(entry==0x28c2c0u) {look_rotation.observe(entering,abi,world.source_objects->memory(),entry);return;}
       if(world.match.simulation().ticks()<35)return;

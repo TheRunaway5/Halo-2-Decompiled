@@ -239,7 +239,7 @@ def prepare(root, mcc_source=None, progress=print):
         progress("Preserving the selected existing native shader library…")
         shaders = preserve_shaders(root, stage)
         from mcc_graphics_corrections import apply_selected as restore_graphics
-        progress("Applying the selected verified graphics correction profile…")
+        progress("Applying verified graphics corrections…")
         graphics = restore_graphics(root, stage)
         # Refuse to publish an inconsistent mixed-version snapshot after a Steam
         # update changes the set, size or timestamp of any selected source file.

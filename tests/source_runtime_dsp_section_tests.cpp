@@ -29,6 +29,13 @@ int main(int argc,char**argv)try{
  auto original=load(argv[2]);check(original.at("original_sha256")=="21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd","Wrong DSP reference version");
  const auto va=original.at("section_va").get<std::uint32_t>(),size=original.at("section_bytes").get<unsigned>();
  auto image=load_source_runtime_image(argv[1],SourcePhysicsContactImage::TitleUpdate15);SourceRuntimeDspSection section(image,argv[1]);
+ {
+  SourceRuntimeDspSection deferred(image,argv[1],SourceRuntimeDspSection::LoadPolicy::on_demand);
+  check(deferred.address()==0&&deferred.resident_references()==0,"Deferred DSP adapter loaded an unrequested reference image");deferred.require_quiescent();
+  try{SourceRuntimeDspSection::CallScope scope(&deferred);check(deferred.retain()==va,"Deferred actual DSP resource has a different address");check(std::ranges::equal(deferred.retained_bytes(),image.view(va,size)),"Deferred actual DSP bytes differ");throw DspBoundary{};}catch(const DspBoundary&){}
+  check(deferred.active_references()==0&&deferred.resident_references()==1,"Aborted first deferred request leaked ownership");deferred.require_quiescent();
+  check(deferred.retain()==va&&deferred.resident_references()==2,"Deferred DSP adapter lost normal subsequent retention");deferred.release();
+ }
  check(section.address()==va&&section.resident_references()==1&&section.active_references()==0,"Native preloaded DSP ownership is not real/quiescent");
  const auto &load_row=original.at("rows")[0];const auto &free_row=original.at("rows")[1];check(load_row.at("before").at("references")==1&&load_row.at("after").at("references")==2&&free_row.at("after").at("references")==1,"Original paired DSP reference protocol changed");
  check(section.retain()==load_row.at("result")&&section.resident_references()==2&&std::ranges::equal(section.retained_bytes(),image.view(va,size)),"Actual native DSP retain differs from original resource/result");

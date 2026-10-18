@@ -8,6 +8,7 @@ namespace halo2 {
 // Version the complete fetch/output/UBO/epilogue contract, not a source datum.
 // Changing that contract requires a new version and original-input GPU proof.
 inline constexpr std::uint32_t menu_world_vertex_catalog_abi = 2;
+inline constexpr std::uint32_t menu_world_vertex_attribute_catalog_abi = 3;
 inline constexpr unsigned menu_world_vertex_descriptor_set = 1;
 inline constexpr unsigned menu_world_vertex_descriptor_binding = 0;
 
@@ -24,6 +25,15 @@ static_assert(offsetof(MenuWorldVertexUniforms,fog_parameters)==3088);
 static_assert(offsetof(MenuWorldVertexUniforms,surface_size)==3096);
 static_assert(sizeof(MenuWorldVertexUniforms)==3104);
 
+// ABI3 preserves the complete ABI2 prefix. Only its explicitly admitted
+// material programs read this tail; ABI2 modules continue to use 3104 bytes.
+struct alignas(16) MenuWorldVertexAttributeUniforms {
+  MenuWorldVertexUniforms view;
+  std::array<ShaderVector,16> attributes{};
+};
+static_assert(offsetof(MenuWorldVertexAttributeUniforms,attributes)==3104);
+static_assert(sizeof(MenuWorldVertexAttributeUniforms)==3360);
+
 struct MenuWorldVertexShaderSource {
   std::string glsl;
   std::vector<unsigned> consumed_inputs, consumed_constants;
@@ -34,6 +44,8 @@ struct MenuWorldVertexShaderSource {
 // Missing consumed constant attributes and other semantics are explicit errors.
 // The ordinary GS interface is locations0..12. No shader compiler runs here.
 MenuWorldVertexShaderSource menu_world_vertex_shader_source(
+    std::span<const std::byte> program,const SourceVertexDeclaration &);
+MenuWorldVertexShaderSource menu_world_material_vertex_shader_source(
     std::span<const std::byte> program,const SourceVertexDeclaration &);
 
 // Generated immutable storage owns these spans for the binary's lifetime.

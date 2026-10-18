@@ -31,6 +31,10 @@ bool prepare_authored_lighting_material(const Cache &, Material &);
 // Optional extern37 is the object's resolved parent camouflage context.
 bool prepare_default_object_material(const Cache &,Material &,
                                      std::optional<float> camouflage = {});
+// Transparent/overlay/emissive-only materials (layers2/7/15/17) have no object
+// lighting implementation to select. Retain those authored independent passes
+// when an ordinary scene model reaches the shared world renderer.
+bool prepare_independent_object_material(const Cache &,Material &);
 // Original plasma_shield layer15/implementation0. Binding its authored pass
 // does not establish CPU-posed geometry equivalence: the local/skinned program
 // uses local position for noise coordinates and posed position for projection.

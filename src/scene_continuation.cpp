@@ -20,10 +20,12 @@ struct Binding {
     void string(const std::string &value){integer(value.size());bytes.insert(bytes.end(),value.begin(),value.end());}
 };
 std::array<std::byte,32> content_binding(const LevelContent &content,
-    const std::optional<SourceSceneGameContext> &context,bool factory,bool resolver) {
+    const std::optional<SourceSceneGameContext> &context,bool factory,bool resolver,bool child_factory=false) {
     Binding h;h.string("halo2-native-scene-authority-v1");h.integer(content.bsp_count);
     h.integer(context.has_value());if(context){h.integer(context->game_type);h.integer(context->engine);}
-    h.integer(factory);h.integer(resolver);h.integer(content.objects.size());
+    h.integer(factory);h.integer(resolver);
+    if(child_factory)h.string("original-model-child-parent-generation-v1");
+    h.integer(content.objects.size());
     for(const auto &p:content.objects) {
         h.integer(p.netgame_row);h.integer(p.model_attachment.has_value());
         if(p.model_attachment){h.integer(p.model_attachment->parent);h.integer(p.model_attachment->parent_marker);h.integer(p.model_attachment->child_marker);}
@@ -126,7 +128,8 @@ SceneObjects::AuthorityCheckpoint SceneObjects::authority_checkpoint() const {
         throw FormatError("Scene continuation requires a completed unfaulted authority boundary");
     AuthorityCheckpoint saved;
     saved.source_factory=bool(source_owner_.create);saved.render_attribution_resolver=bool(render_attribution_definition_);
-    saved.content_binding=content_binding(content_,game_context_,saved.source_factory,saved.render_attribution_resolver);
+    saved.source_child_factory=bool(source_owner_.adopt_child);
+    saved.content_binding=content_binding(content_,game_context_,saved.source_factory,saved.render_attribution_resolver,saved.source_child_factory);
     saved.bsp=bsp_;saved.objects=objects_;saved.slots=slots_;saved.names=names_;saved.functions=functions_;
     saved.pool=shared_lifetimes_?(shared_lifetimes_->pool().source_memory()?AuthorityPool::SharedSource:AuthorityPool::SharedOwned):AuthorityPool::LocalOwned;
     if(!shared_lifetimes_)saved.local_lifetimes=local_lifetimes_;
@@ -139,8 +142,9 @@ SceneObjects::PreparedAuthority SceneObjects::prepare_authority_values(const Aut
     const auto pool=shared_lifetimes_?(shared_lifetimes_->pool().source_memory()?AuthorityPool::SharedSource:AuthorityPool::SharedOwned):AuthorityPool::LocalOwned;
     if(source_replica_ || authority_calls_.depth || authority_calls_.staging || saved.version!=1 || saved.bsp>=content_.bsp_count ||
         saved.pool!=pool || saved.source_factory!=bool(source_owner_.create) ||
+        saved.source_child_factory!=bool(source_owner_.adopt_child) ||
         saved.render_attribution_resolver!=bool(render_attribution_definition_) ||
-        saved.content_binding!=content_binding(content_,game_context_,bool(source_owner_.create),bool(render_attribution_definition_)) ||
+        saved.content_binding!=content_binding(content_,game_context_,bool(source_owner_.create),bool(render_attribution_definition_),bool(source_owner_.adopt_child)) ||
         saved.local_lifetimes.has_value()!=(pool==AuthorityPool::LocalOwned))
         throw FormatError("Scene continuation is incompatible with its local content or owner");
     PreparedAuthority result;result.impl_=std::make_unique<PreparedAuthority::Impl>();

@@ -1,4 +1,6 @@
 target_sources(halo2_systems PRIVATE src/native_tu15_renderer_depth.cpp src/native_tu15_renderer_depth_state_data.cpp src/native_tu15_renderer_output.cpp src/native_tu15_renderer_coordinates.cpp src/native_tu15_renderer_resource_storage_data.cpp src/source_renderer_resource_storage_tu15_generated.cpp src/native_tu15_framebuffer_aliases.cpp src/native_tu15_framebuffer_startup.cpp)
+# The systems-owned framebuffer aliases call the prepared depth producer.
+target_link_libraries(halo2_systems PRIVATE halo2_weather_depth_alias)
 if(BUILD_TESTING)
     add_executable(renderer_framebuffer_alias_tests tests/renderer_framebuffer_alias_tests.cpp src/native_tu15_framebuffer_aliases.cpp)
     target_link_libraries(renderer_framebuffer_alias_tests PRIVATE halo2_renderer)

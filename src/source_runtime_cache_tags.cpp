@@ -28,6 +28,7 @@ SourceRuntimeCacheTagView Cache::view_source_runtime_cache_tags() const {
   SourceRuntimeCacheTagView out;
   out.index=std::uint32_t(index_address);out.table=bytes.u32(index+8);out.count=bytes.u32(index+24);
   out.scenario=bytes.u32(index+12);out.globals=bytes.u32(index+16);
+  out.reservation_bytes=bytes.u32(0x1c);
   out.regions={SourceRuntimeCacheTagView::Region{out.index,bytes.slice(index,index_bytes)},
                SourceRuntimeCacheTagView::Region{std::uint32_t(metadata_address),
                  bytes.slice(std::size_t(index)+index_bytes,metadata_bytes)}};
@@ -38,6 +39,7 @@ SourceRuntimeCacheTagImage Cache::load_source_runtime_cache_tag_image() const {
   SourceRuntimeCacheTagImage out;
   out.index=view.index;out.table=view.table;out.count=view.count;
   out.scenario=view.scenario;out.globals=view.globals;
+  out.reservation_bytes=view.reservation_bytes;
   for(const auto &region:view.regions)
     out.regions.push_back({region.address,{region.bytes.begin(),region.bytes.end()}});
   return out;

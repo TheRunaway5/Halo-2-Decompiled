@@ -20,9 +20,10 @@ std::array<ShaderVector,18> completed_constants(const PixelProgram &program) {
   }
   return result;
 }
-void operand(unsigned value,bool final,bool product_input=false) {
+void operand(unsigned value,bool final,bool product_input=false,bool fog_alpha_bound=false) {
   const auto source=value&15u;
-  if(source==3)throw FormatError("raw menu fragment consumes an unbound fog register");
+  if(source==3 && (!fog_alpha_bound || !(value&16u)))
+    throw FormatError("raw menu fragment consumes an unbound fog register");
   if(source==6 || source==7)throw FormatError("raw menu fragment consumes an unsupported combiner register");
   if(!final && source>=14)
     throw FormatError("raw menu fragment consumes a final-only register in a general stage");
@@ -31,8 +32,8 @@ void operand(unsigned value,bool final,bool product_input=false) {
   if(product_input && source==15)
     throw FormatError("raw menu fragment final product recursively reads itself");
 }
-void inputs(std::uint32_t word,bool final=false) {
-  for(unsigned shift=0;shift<32;shift+=8)operand(word>>shift,final);
+void inputs(std::uint32_t word,bool final=false,bool fog_alpha_bound=false) {
+  for(unsigned shift=0;shift<32;shift+=8)operand(word>>shift,final,false,fog_alpha_bound);
 }
 void output(std::uint32_t word,bool alpha) {
   if(word&~0xfffffu)
@@ -124,16 +125,16 @@ void validate_menu_world_fragment(const MenuWorldFragmentInput &input) {
   if(words[53]&~0x111ffu)
     throw FormatError("raw menu fragment has reserved combiner count flags");
   for(unsigned i=0;i<count;++i) {
-    inputs(words[i]);inputs(words[34+i]);output(words[26+i],true);output(words[45+i],false);
+    inputs(words[i],false,input.fog_alpha_bound);inputs(words[34+i],false,input.fog_alpha_bound);output(words[26+i],true);output(words[45+i],false);
   }
   if(!words[8] && !words[9])
     throw FormatError("raw menu fragment requires an explicit final combiner");
   if(words[9]&0x1fu)
     throw FormatError("raw menu fragment has reserved final combiner flags");
-  inputs(words[8],true);
+  inputs(words[8],true,input.fog_alpha_bound);
   // E/F are product inputs; G selects final alpha. The low byte is flags.
-  operand(words[9]>>24,true,true);operand(words[9]>>16,true,true);
-  operand(words[9]>>8,true);
+  operand(words[9]>>24,true,true,input.fog_alpha_bound);operand(words[9]>>16,true,true,input.fog_alpha_bound);
+  operand(words[9]>>8,true,false,input.fog_alpha_bound);
   for(unsigned stage=0;stage<4;++stage) {
     const auto mode=(words[54]>>(5*stage))&31u;
     if(mode!=0 && mode!=1 && mode!=2 && mode!=3 && mode!=5)

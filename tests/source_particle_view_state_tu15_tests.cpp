@@ -22,9 +22,10 @@ int main(int argc,char **argv)try {
  const auto layout=source_particle_d24s8_layout_tu15(640,480);
  for(unsigned row=0;row<8;++row) {
   SourceRuntimeMemory memory;mount_source_particle_graphics_layout_data_tu15(memory);
-  for(const auto [p,n]:std::array<std::pair<unsigned,unsigned>,13>{{
+  for(const auto [p,n]:std::array<std::pair<unsigned,unsigned>,17>{{
    {device+8,0x2498},{0x411568,4},{0x411570,4},{0x4116c0,4},{0x4117b4,4},{0x4117d8,4},
-   {0x4918e4,12},{0x492294,1},{0x4922f4,16},{0x4c2aa0,32},{0x4c4b64,4},{0x4c515c,4},{0x4116ec,4}}})
+   {0x4918e4,12},{0x492294,1},{0x4922f4,16},{0x4c2aa0,32},{0x4c4b64,4},{0x4c515c,4},{0x4116ec,4},
+   {0x491e7c,4},{0x491eac,0xb8},{0x515edc,1},{0x473628,4}}})
    memory.mount(p,std::vector<std::byte>(n,std::byte{0xa5}),SourceRuntimeMemory::Access::ReadWrite,
     "declared CPU viewport/target/current-FVF inputs; no GPU or original boot history");
   memory.mount(scratch,std::vector<std::byte>(65536,std::byte{0xa5}),SourceRuntimeMemory::Access::ReadWrite,"declared CPU viewport sequence stack and inputs");
@@ -66,15 +67,31 @@ int main(int argc,char **argv)try {
   const std::array<unsigned,6> retained_viewport{4,6,632,468,0,0x3f800000};memory.write(device+0xee0,std::as_bytes(std::span(retained_viewport)));
   put(0x4922f4,0x3c800000);put(0x4922f8,0x44800000);put(0x4c2aa0,17);put(0x4c2aa4,19);
   const std::array<unsigned,3> frame{101+row,0,0};memory.write(scratch+0x80,std::as_bytes(std::span(frame)));
+  // Declared CPU camera inputs to the complete12D30 matrix producer. These
+  // finite records cover both actual caller interfaces; they are not a claim
+  // of original camera/resource history or live native projection ownership.
+  std::array<float,46> context{};for(unsigned n=0;n<context.size();++n)context[n]=float(int(n%11)-5)*.125f;
+  context[1]=1;context[2]=.25f;context[3]=-.5f;
+  memory.write(0x491eac,std::as_bytes(std::span(context)));context[1]=.75f;
+  memory.write(scratch+0x1400,std::as_bytes(std::span(context)));put(0x491e7c,std::bit_cast<unsigned>(row%2?2.f:1.f));
+  const Vec3 submitting_eye{3,-2,1};memory.write(scratch+0x1600,std::as_bytes(std::span(&submitting_eye,1)));
+  const std::array<std::int16_t,4> submitting_rect{std::int16_t(viewport[1]),std::int16_t(viewport[0]),
+      std::int16_t(viewport[1]+viewport[3]),std::int16_t(viewport[0]+viewport[2])};
+  memory.write(scratch+0x1630,std::as_bytes(std::span(submitting_rect)));
+  const std::byte scaling_disabled{std::uint8_t(row==7)};memory.write(0x515edc,std::span(&scaling_disabled,1));
+  put(0x473628,std::bit_cast<unsigned>(row==1?.01f:row==3?.25f:row==5?2.f:.75f));
+  if(row==6)put(device+8,word(device+8)|0x10); // Declared pure-device CPU shadow policy.
   SourceParticleConstantStorageTu15 storage;std::array<ShaderVector,192> inherited{};storage.begin(memory,inherited);
   SourcePhysicsWorldRuntimeAbi header{};header.gp[0]=scratch+0x400;header.gp[1]=(row%2)?4:2;header.gp[4]=sp;header.eflags=0x202;header.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};put(sp,stop);
   source_run_effect_particle_draw_tu15(storage,0x400a60,header,*header.floating_point,{});
-  for(unsigned phase=0;phase<4;++phase) {
-   const unsigned entry=phase==0?0x4020d0:phase==1?0x4021e0:phase==2?0x13430:0x15700;
-   const std::vector<unsigned> args=phase==1?std::vector<unsigned>{stop,row==7?0:scratch+0x100}:phase==3?std::vector<unsigned>{stop,0,0}:std::vector<unsigned>{stop};
+  for(unsigned phase=0;phase<6;++phase) {
+   const unsigned entry=phase==0?0x4020d0:phase==1?0x4021e0:phase==2?0x13430:phase==3?0x12f80:phase==4?0x12d30:0x15700;
+   const std::vector<unsigned> args=phase==1?std::vector<unsigned>{stop,row==7?0:scratch+0x100}:phase==3?std::vector<unsigned>{stop,row%2,row==3?2u:0u}:phase==4?std::vector<unsigned>{stop,scratch+0x1200}:phase==5?std::vector<unsigned>{stop,0,0}:std::vector<unsigned>{stop};
    memory.write(sp,std::as_bytes(std::span(args)));SourcePhysicsWorldRuntimeAbi a{};
    a.gp={0x12345678,scratch+0x80,0xabcdef01,0x89abcdef,sp,0x76543210,0x13572468,0x24681357};
    if(phase==0){a.gp[0]=1;a.gp[2]=scratch+0x1000;}
+   if(phase==3){a.gp[0]=scratch+0x1400;a.gp[1]=scratch+0x1600;}
+   if(phase==4){a.gp[0]=row&2?scratch+0x1400:0;a.gp[3]=(a.gp[3]&~255u)|(row&1);}
    a.eflags=0x202;a.floating_point=SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80};const auto before=a;
    std::vector<unsigned> trace;SourcePhysicsWorldRuntimeServices services;services.instruction=[&](auto p){trace.push_back(p);};services.required_owner=[](auto &,const auto &,auto &,const auto &){throw FormatError("Viewport sequence requires an unowned source/SDK service");};
    const auto path=out/std::to_string(cases++);if(!out.empty()){std::filesystem::create_directory(path);export_bank(path/"before.bin",memory,storage);}
@@ -94,5 +111,5 @@ int main(int argc,char **argv)try {
    if(!out.empty()){export_bank(path/"after.bin",memory,storage);std::ofstream(path/"case.json")<<Json{{"entry",entry},{"before",state(before)},{"after",state(a)},{"instructions",trace},{"return_address",stop},{"completed",true},{"missing_owner",0},{"row",row},{"phase",phase},{"command_bytes",storage.commands().size()},{"original_boot_or_gpu_history_claimed",false},{"game_returns_supplied",Json::array()},{"gpu_returns_supplied",Json::array()}}.dump(2)<<'\n';}
   }
  }
- std::cout<<"PASS32 complete original projection/viewport/reset/restore calls: actual CA0 input and980 output, perspective/default/oblique-like matrices, split/clamp/null/W modes and retained queue/ABI contracts\n";
+ std::cout<<"PASS48 complete original projection/viewport/reset/camera-publisher/camera/restore calls: whole12F80 dynamic viewport scaling/clamps/fixed128 and pure-device CPU-shadow policy; whole12D30 scaled/unscaled explicit/default camera contexts and retained queue/ABI contracts\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

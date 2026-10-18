@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lower complete original TU1.5 object shader-function set/get/clear owners.
+"""Lower complete original TU1.5 object shader-function and permutation owners.
 
 The original32-slot bank, game clock, slot selection/eviction, interpolation
 and object flag remain source owned. Renderer sampling is read-only native
@@ -11,7 +11,8 @@ from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
-ENTRIES=(0x10fa30,0x10fa80,0x10fa90,0x10fb60,0x10fc30,0x10fb70,0x10fd50)
+ENTRIES=(0x10fa30,0x10fa80,0x10fa90,0x10fb60,0x10fc30,0x10fb70,0x10fd50,
+         0xbc440,0x170030,0x170080)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -19,13 +20,16 @@ def main():
     a=p.parse_args()
     if a.output.exists()or a.directory.exists():raise ValueError('Preserve generated evidence')
     if sha(NEW_DEFAULT)!=NEW_PIN:raise ValueError('Expected English TU1.5')
-    x=Xbe(NEW_DEFAULT);c=_Code(x,'.text');calls={0x2ab469:0x10fc30,0x10fc70:0x10fb70,0x2ab4b0:0x10fd50}
+    x=Xbe(NEW_DEFAULT);c=_Code(x,'.text');calls={0x2ab469:0x10fc30,0x10fc70:0x10fb70,0x2ab4b0:0x10fd50,
+        0x2ac409:0xbc440,0xbc48f:0x170030,0xbc51d:0x170080}
     import struct
     if struct.unpack('<9I',x.read(0x44b2e4,36))!=(0x10fa30,0x10fa80,0x10fa90,0x10fb60,0,0,0,0,0):
         raise ValueError('Original shader-function lifecycle registration differs')
     for pc,target in calls.items():
         i=c.at(pc)
         if i.mnemonic!='call'or i.operands[0].imm!=target:raise ValueError('Original call differs')
+    if struct.unpack('<I',x.read(0x457374,4))[0]!=0x2ac3d0:
+        raise ValueError('Original object_set_permutation evaluator differs')
     sites,instructions,addresses,routines={},{},{},[]
     for entry in ENTRIES:
         b=_trace(c,entry,set(ENTRIES))

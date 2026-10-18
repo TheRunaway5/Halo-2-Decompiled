@@ -24,6 +24,7 @@ layout(constant_id=0) const uint defaultTextureWMask=0u;
 // Literal admitted source ZMIN_MAX_CONTROL values: ordinary cull0, shadow
 // clamp16. The caller owns the mode; target size does not select it.
 layout(constant_id=1) const uint sourceWClipMode=0u;
+layout(constant_id=2) const uint sourceFogAlphaBound=0u;
 layout(set=0,binding=0) uniform sampler2D diffuse;
 layout(set=0,binding=1) uniform sampler2D detail;
 layout(set=0,binding=2) uniform sampler2D bump;
@@ -102,6 +103,9 @@ vec4 fetchStage3D(uint stage,vec3 p) {
 // Original float bank, expanded on the CPU after all completed-program
 // producers. GPU packed-byte division was measured one ULP wrong in13 lanes.
 #define H2_COMBINER_CONSTANT(i) menuWorldDepth.combinerConstants[(i)==43u?16u:(i)==44u?17u:(i)>=18u?2u*((i)-18u)+1u:2u*((i)-10u)]
+// Retained psh.c pFog alpha is clamp(vtxFog,0,1). RGB is deliberately
+// unavailable: packet admission rejects every attempt to consume it.
+#define H2_COMBINER_FOG() (sourceFogAlphaBound!=0u?vec4(0.0,0.0,0.0,clamp(v_vtxFog,0.0,1.0)):vec4(0.0))
 #include "menu_world_fragment.glsl"
 void main() {
     stageCoordinates[0]=v_vtxT0;stageCoordinates[1]=v_vtxT1;

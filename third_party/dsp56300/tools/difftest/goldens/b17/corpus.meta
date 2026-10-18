@@ -1,0 +1,8 @@
+fill 00a50d 03157e 00c3a9 2b0c99 0000a0 0000c0
+case fault_btst_ssh_sp0 0100 0110 200
+case fault_read_ssh_sp0 0110 0120 200
+case fault_bset_ssh_sp0 0120 0130 200
+case fault_sr_mask 0130 0144 200
+case fault_straddle 0144 0156 200
+case fault_push_overflow 0156 016c 200
+case fault_pop_mem 016c 017f 200

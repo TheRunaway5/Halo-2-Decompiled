@@ -1,4 +1,5 @@
 #include "halo2/simulation.hpp"
+#include "halo2/source_script_sound_admission_tu15.hpp"
 #include "halo2/frontend_model_lighting.hpp"
 #include "halo2/render_interpolation.hpp"
 #include "halo2/inventory.hpp"
@@ -10,7 +11,11 @@
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/weapon_hand_feedback.hpp"
 #include "halo2/campaign_source_runtime.hpp"
+#include "halo2/script_clock_builtin.hpp"
+#include "halo2/source_script_rumble_tu15.hpp"
 #include "halo2/source_campaign_cinematic_tu15.hpp"
+#include "halo2/source_scripted_sound_point_tu15.hpp"
+#include "halo2/source_campaign_lighting_tu15.hpp"
 #include "halo2/source_campaign_camera_tu15.hpp"
 #include "halo2/source_campaign_screen_tu15.hpp"
 #include "halo2/source_cinematic_shadow_control_tu15.hpp"
@@ -24,6 +29,10 @@
 #include <sstream>
 #include <set>
 namespace halo2 {
+std::uint32_t source_cinematic_emotion_name_tu15(const CinematicAnimationLoader* assets,std::uint32_t id) {
+  if(!assets || !assets->assets)throw FormatError("Native emotion names require the retained cinematic Cache owner");
+  return assets->assets->unit_emotion_name_tu15(id);
+}
 namespace {
 Vec3 center(const Unit &);
 float direct_damage_amount(const WeaponDefinition &weapon) {
@@ -215,7 +224,9 @@ void Simulation::cinematic_screen_consumer(bool ready) {
 void Simulation::advance_cinematic_render_time(float seconds,int requested,int completed) {
   NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
   auto &state=mutable_cinematic_state();
-  state.render_clock+=double(accepted_campaign_frame_elapsed(seconds,requested,completed));
+  const auto accepted=accepted_campaign_frame_elapsed(seconds,requested,completed);
+  if(source_campaign_)source_campaign_->objects().advance_effect_frame(accepted);
+  state.render_clock+=double(accepted);
   if(source_campaign_) {
     auto &world=source_campaign_->objects().tu15_world();
     source_campaign_screen_clock_tu15(world.memory(),state.render_clock);
@@ -223,6 +234,11 @@ void Simulation::advance_cinematic_render_time(float seconds,int requested,int c
     scene_.publish_source_function_samples(source_object_function_samples_tu15(world));
     state.crossfade=source_campaign_crossfade_state_tu15(world.memory());
   } else state.crossfade.update(state.render_clock);
+}
+void Simulation::advance_cinematic_camera(float raw_seconds) {
+  if(!source_campaign_ || !presentation_.scripted)return;
+  NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;
+  source_campaign_camera_frame_tu15(source_campaign_->objects().tu15_world(),raw_seconds);
 }
 CinematicCrossfadeFrame Simulation::cinematic_crossfade_frame()const {
   if(source_campaign_)return source_campaign_crossfade_frame_tu15(source_campaign_->objects().memory());
@@ -344,6 +360,7 @@ void Simulation::restore_checkpoint() {
   // compares it to the current tick, rather than latching a boolean.
   reverted_tick_ = ticks_;
   ++checkpoint_restores_;
+  source_admit_queued_script_sounds_tu15(*this,sounds_);
 }
 void Simulation::debug_save_snapshot(const std::string& name) {
   NativeAuthorityBoundary::Call active(authority_calls_);
@@ -439,15 +456,55 @@ Simulation::Simulation(const LevelContent &content, std::size_t bsp,
                        std::optional<SourceSceneGameContext> scene_game_context,
                        std::optional<NativeObjectLifetimes> object_lifetimes,
                        SourceSceneObjectOwner source_scene_owner,std::shared_ptr<CampaignSourceRuntime> source_campaign)
+    : Simulation(content,bsp,spawn,std::move(loader),std::move(bsp_loader),
+        std::move(predictor),scene_game_context,std::move(object_lifetimes),
+        std::move(source_scene_owner),std::move(source_campaign),{}) {}
+Simulation::Simulation(const LevelContent &content, std::size_t bsp,
+                       Spawn spawn, Presentation::AnimationLoader loader,
+                       BspLoader bsp_loader, Predictor predictor,
+                       std::optional<SourceSceneGameContext> scene_game_context,
+                       std::optional<NativeObjectLifetimes> object_lifetimes,
+                       SourceSceneObjectOwner source_scene_owner,std::shared_ptr<CampaignSourceRuntime> source_campaign,
+                       ScriptTickRate script_tick_rate)
+    : Simulation(content,bsp,spawn,std::move(loader),std::move(bsp_loader),
+        std::move(predictor),scene_game_context,std::move(object_lifetimes),
+        std::move(source_scene_owner),std::move(source_campaign),std::move(script_tick_rate),{}) {}
+Simulation::Simulation(const LevelContent &content, std::size_t bsp,
+                       Spawn spawn, Presentation::AnimationLoader loader,
+                       BspLoader bsp_loader, Predictor predictor,
+                       std::optional<SourceSceneGameContext> scene_game_context,
+                       std::optional<NativeObjectLifetimes> object_lifetimes,
+                       SourceSceneObjectOwner source_scene_owner,std::shared_ptr<CampaignSourceRuntime> source_campaign,
+                       ScriptTickRate script_tick_rate,ScriptSetMaxRumble script_set_max_rumble)
     : Simulation(content,BspContent{content.collision,content.navigation},bsp,spawn,
         std::move(loader),std::move(bsp_loader),std::move(predictor),scene_game_context,
-        std::move(object_lifetimes),std::move(source_scene_owner),std::move(source_campaign)) {}
+        std::move(object_lifetimes),std::move(source_scene_owner),std::move(source_campaign),std::move(script_tick_rate),std::move(script_set_max_rumble)) {}
 Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
                        std::size_t bsp, Spawn spawn, Presentation::AnimationLoader loader,
                        BspLoader bsp_loader, Predictor predictor,
                        std::optional<SourceSceneGameContext> scene_game_context,
                        std::optional<NativeObjectLifetimes> object_lifetimes,
                        SourceSceneObjectOwner source_scene_owner,std::shared_ptr<CampaignSourceRuntime> source_campaign)
+    : Simulation(content,std::move(initial_geometry),bsp,spawn,std::move(loader),
+        std::move(bsp_loader),std::move(predictor),scene_game_context,
+        std::move(object_lifetimes),std::move(source_scene_owner),std::move(source_campaign),{}) {}
+Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
+                       std::size_t bsp, Spawn spawn, Presentation::AnimationLoader loader,
+                       BspLoader bsp_loader, Predictor predictor,
+                       std::optional<SourceSceneGameContext> scene_game_context,
+                       std::optional<NativeObjectLifetimes> object_lifetimes,
+                       SourceSceneObjectOwner source_scene_owner,std::shared_ptr<CampaignSourceRuntime> source_campaign,
+                       ScriptTickRate script_tick_rate)
+    : Simulation(content,std::move(initial_geometry),bsp,spawn,std::move(loader),
+        std::move(bsp_loader),std::move(predictor),scene_game_context,
+        std::move(object_lifetimes),std::move(source_scene_owner),std::move(source_campaign),std::move(script_tick_rate),{}) {}
+Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
+                       std::size_t bsp, Spawn spawn, Presentation::AnimationLoader loader,
+                       BspLoader bsp_loader, Predictor predictor,
+                       std::optional<SourceSceneGameContext> scene_game_context,
+                       std::optional<NativeObjectLifetimes> object_lifetimes,
+                       SourceSceneObjectOwner source_scene_owner,std::shared_ptr<CampaignSourceRuntime> source_campaign,
+                       ScriptTickRate script_tick_rate,ScriptSetMaxRumble script_set_max_rumble)
     : content_(content), bsp_(bsp),
       world_(std::make_shared<BspWorld>(std::move(initial_geometry))),
       bsp_loader_(std::move(bsp_loader)), predictor_(std::move(predictor)),
@@ -472,13 +529,40 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
       content.player.height < 2 * content.player.radius)
     throw FormatError("selected map has no supported player biped");
   vehicle_rows_.resize(content.netgame_equipment.size());
-  respawn(spawn);
+  // An attached source world constructs the real player/equipment later.
+  // A legacy respawn here would reserve and publish a bodyless weapon in
+  // that same original pool before the source player birth consumes it.
+  if(scene_.source_factory_bound() && !source_campaign_) {
+    player_={};player_.definition=content_.player;
+    player_.exists=false;player_.vitality.dead=true;
+    player_.body.height=content_.player.height;player_.body.radius=content_.player.radius;
+    player_.body.maximum_slope_cosine=content_.player.maximum_slope_cosine;
+  } else respawn(spawn);
   devices_.synchronize(scene_);
   synchronize_props(true);
   synchronize_weapon_pickups();
+  if(!script_tick_rate && source_campaign_)
+    script_tick_rate=[owner=source_campaign_]{return source_script_tick_rate(owner->objects().memory());};
+  if(!script_set_max_rumble && source_campaign_)
+    script_set_max_rumble=[owner=source_campaign_](float left,float right) {
+      auto &world=owner->objects().tu15_world();
+      source_script_max_rumble_tu15(world.memory(),[&](auto address,auto bytes){
+        world.write_source_call_input(address,bytes);},left,right);
+    };
+  const auto clock_builtins=mcc_script_clock_builtins(std::move(script_tick_rate));
   scripts_ = std::make_unique<ScriptVm>(
       content.scripts,
-      [this](const auto &name, const auto &args) { return host(name, args); },
+      [this,clock_builtins,script_set_max_rumble=std::move(script_set_max_rumble)](const auto &name, const auto &args) {
+        if(clock_builtins)if(auto value=clock_builtins(name,args))return *value;
+        if(name=="player_effect_set_max_rumble") {
+          if(args.size()!=2 || !script_set_max_rumble)
+            throw FormatError("Script rumble requires two REAL arguments and its original effect owner");
+          script_set_max_rumble(std::bit_cast<float>(scalar_cast_bits(args[0].bits,args[0].type,6)),
+              std::bit_cast<float>(scalar_cast_bits(args[1].bits,args[1].type,6)));
+          return ScriptValue{};
+        }
+        return host(name,args);
+      },
       [this](int name, unsigned type) {
         const auto id = scene_.resolve(name);
         if (id != null_datum) {
@@ -503,7 +587,7 @@ Simulation::Simulation(const LevelContent &content, BspContent initial_geometry,
         return ScriptValue::numeric(0, 7);
       },SourceHsObjectListServices{
         [this]{if(multiplayer_script_lists_){auto roots=scripts_->object_list_roots();std::erase(roots,0x80000000u);multiplayer_script_lists_->roots(roots);return multiplayer_script_lists_->allocate();}if(script_lists_.size()>=65536 || next_script_list_==null_datum)throw FormatError("Native script list bank exhausted");const auto id=next_script_list_++;script_lists_.emplace(id,std::vector<std::uint32_t>{});return id;},
-        [this](std::uint32_t list,std::uint32_t object){if(multiplayer_script_lists_)multiplayer_script_lists_->append(list,object);else{(void)object_center(object);script_lists_.at(list).push_back(object);}}});
+        [this](std::uint32_t list,std::uint32_t object){if(multiplayer_script_lists_)multiplayer_script_lists_->append(list,object);else{(void)object_center(object);script_lists_.at(list).push_back(object);}}},clock_builtins);
   scripts_->set_random_choice([this](unsigned count,std::uint32_t visited) {
     if(source_campaign_)return source_campaign_->random_choice(count,visited);
     return source_hs_begin_random(random_state_,count,visited);
@@ -1537,6 +1621,17 @@ void Simulation::update_weapon(Unit &u, bool fire, bool reload, int owner,
     if(first_person_activity_hook_)first_person_activity_hook_(u,state,state.reload_empty?0x0c000064:0x0b000065);
     return;
   }
+  // This ordinary input adapter supplies no alternate trigger selection.
+  // Original1037FD and the latched firing helper check the selected NONE
+  // before admission; a retained secondary barrel does not replace it.
+  // Preserve ready/recovery/reload work above for these inactive triggers.
+  if(!w.triggers.empty() && std::all_of(w.triggers.begin(),w.triggers.end(),
+      [](const auto& trigger){
+        if(trigger.behavior==0 || trigger.behavior==1 || trigger.behavior==4)
+          return trigger.primary_barrel==-1;
+        return trigger.primary_barrel==-1 && trigger.secondary_barrel==-1;
+      }))
+    return;
   bool dry_shot=false;
   if(source_timing) {
     auto &barrel=state.smg.barrel;
@@ -2096,8 +2191,21 @@ ScriptValue Simulation::host(const std::string &name,
     if (args.size() != count)
       throw FormatError("invalid " + name + " arity");
   };
+  if(name=="object_set_permutation") {
+    arity(3);
+    if(args[0].bits==null_datum)return {};
+    if(!source_campaign_)throw FormatError("Object permutation requires its retained TU1.5 world");
+    source_object_set_permutation_tu15(source_campaign_->objects().tu15_world(),
+        args[0].bits==0?player_.source_datum:args[0].bits,args[1].bits,args[2].bits);
+    return {};
+  }
   if(name=="cinematic_lighting_set_primary_light" || name=="cinematic_lighting_set_secondary_light") {
     arity(5);const Vec3 color{float(args[2].number()),float(args[3].number()),float(args[4].number())};
+    if(source_campaign_) {
+      auto &world=source_campaign_->objects().tu15_world();
+      if(name=="cinematic_lighting_set_primary_light")source_campaign_primary_light_tu15(world,float(args[0].number()),float(args[1].number()),color);
+      else source_campaign_secondary_light_tu15(world,float(args[0].number()),float(args[1].number()),color);
+    }
     auto &lighting=mutable_cinematic_state().lighting;
     if(name=="cinematic_lighting_set_primary_light")
       frontend_cinematic_primary(lighting,float(args[0].number()),float(args[1].number()),color);
@@ -2105,8 +2213,18 @@ ScriptValue Simulation::host(const std::string &name,
     return {};
   }
   if(name=="cinematic_lighting_set_ambient_light") {
-    arity(3);frontend_cinematic_ambient(mutable_cinematic_state().lighting,
+    arity(3);
+    if(source_campaign_)source_campaign_ambient_light_tu15(source_campaign_->objects().tu15_world(),
+        {float(args[0].number()),float(args[1].number()),float(args[2].number())});
+    frontend_cinematic_ambient(mutable_cinematic_state().lighting,
         {float(args[0].number()),float(args[1].number()),float(args[2].number())});return {};
+  }
+  if(name=="cinematic_lightmap_shadow_enable" || name=="cinematic_lightmap_shadow_disable") {
+    arity(0);
+    if(!source_campaign_)throw FormatError("Cinematic lightmap shadow control requires its retained TU1.5 world");
+    source_campaign_lightmap_shadow_tu15(source_campaign_->objects().tu15_world(),
+        name=="cinematic_lightmap_shadow_enable");
+    return {};
   }
   if(name=="render_lights_enable_cinematic_shadow") {
     arity(4);
@@ -2120,6 +2238,8 @@ ScriptValue Simulation::host(const std::string &name,
     // The source selector changes bit24 on an actual live object. Validate
     // the full handle before retaining the equivalent per-object admission.
     (void)object_center(args[0].bits);
+    if(source_campaign_)source_campaign_object_lighting_tu15(source_campaign_->objects().tu15_world(),
+        args[0].bits==0?player_.source_datum:args[0].bits,args[1].truth());
     auto &objects=mutable_cinematic_state().lit_objects;
     if(args[1].truth())objects.insert(args[0].bits);else objects.erase(args[0].bits);
     return {};
@@ -2145,6 +2265,21 @@ ScriptValue Simulation::host(const std::string &name,
     if(name=="rasterizer_bloom_override")bloom.enabled=args[0].truth();
     else if(name=="rasterizer_bloom_override_threshold")bloom.threshold=float(args[0].number());
     else bloom.brightness=float(args[0].number());
+    return {};
+  }
+  if(name=="cinematic_screen_effect_set_depth_of_field") {
+    arity(7);
+    if(!source_campaign_)throw FormatError("Cinematic depth of field requires its retained TU1.5 world");
+    std::array<std::uint32_t,7> words;
+    for(unsigned i=0;i<words.size();++i)words[i]=scalar_cast_bits(args[i].bits,args[i].type,6);
+    source_campaign_depth_of_field_tu15(source_campaign_->objects().tu15_world(),words);
+    return {};
+  }
+  if(name=="cinematic_set_far_clip_distance") {
+    arity(1);
+    if(!source_campaign_)throw FormatError("Cinematic far clip control requires its retained TU1.5 world");
+    source_campaign_far_clip_tu15(source_campaign_->objects().tu15_world(),
+        std::bit_cast<float>(scalar_cast_bits(args[0].bits,args[0].type,6)));
     return {};
   }
   if(name=="cinematic_screen_effect_start") {
@@ -2295,8 +2430,10 @@ ScriptValue Simulation::host(const std::string &name,
   if(name=="unit_set_emotional_state") {
     arity(4);if(args[0].bits==null_datum)return {};
     if(source_campaign_) {
+      const auto emotion=source_cinematic_emotion_name_tu15(
+          animation_loader_.target<CinematicAnimationLoader>(),args[1].bits);
       source_unit_cinematic_emotion_tu15(source_campaign_->objects().tu15_world(),
-          args[0].bits==0?player_.source_datum:args[0].bits,args[1].bits,
+          args[0].bits==0?player_.source_datum:args[0].bits,emotion,
           float(args[2].number()),std::int16_t(args[3].bits));return {};
     }
     auto &unit=script_unit(args[0].bits);
@@ -2386,6 +2523,22 @@ ScriptValue Simulation::host(const std::string &name,
     return {};
   }
   if(name=="sound_impulse_language_time" || name=="sound_impulse_time") {
+    // TU1.5 descriptors459930/459944/459958 return LONG. The VM applies
+    // the enclosing expression's conversion after this declared return.
+    if(name=="sound_impulse_time" && args.size()==2) {
+      if(args[0].type!=32)throw FormatError("Invalid sound time arguments");
+      const auto ticks=std::bit_cast<std::int32_t>(scalar_cast_bits(args[1].bits,args[1].type,8));
+      if(const auto result=source_query_script_sound_explicit_time_tu15(*this,args[0].bits,ticks))
+        return ScriptValue{8,std::bit_cast<std::uint32_t>(*result),{}};
+    } else {
+      arity(1);if(args[0].type!=32)throw FormatError("Invalid sound time arguments");
+      const auto result=name=="sound_impulse_time"?
+          source_query_script_sound_stored_time_tu15(*this,args[0].bits):
+          source_query_script_sound_language_time_tu15(*this,args[0].bits);
+      if(result)return ScriptValue{8,std::bit_cast<std::uint32_t>(*result),{}};
+    }
+    // Preserve the unbound development path, including its one-argument
+    // contract. Bound failures never use PCM or approximate impulse clocks.
     arity(1);if(args[0].type!=32 || !sound_duration_)throw FormatError("Sound duration owner unavailable");
     if(name=="sound_impulse_time")return ScriptValue::numeric(std::nearbyint(sound_duration_(args[0].bits)*30.f),8);
     for(const auto &clock:impulse_clocks_)if(clock.datum==args[0].bits)
@@ -2640,6 +2793,8 @@ ScriptValue Simulation::host(const std::string &name,
     arity(2);
     presentation_.camera_point(std::int16_t(args[0].bits),
                                int(args[1].number()));
+    if(source_campaign_)source_campaign_camera_point_tu15(
+        source_campaign_->objects().tu15_world(),std::int16_t(args[0].bits),std::int16_t(args[1].bits));
     return {};
   }
   if (name == "camera_set_animation_relative" ||
@@ -2864,14 +3019,19 @@ ScriptValue Simulation::host(const std::string &name,
   if (name == "sound_impulse_start") {
     if (args.size() != 3 || args[0].type != 32)
       throw FormatError("invalid sound_impulse_start");
-    const auto position = args[1].bits == null_datum || args[1].bits == 0
-                              ? eye(player_)
-                              : object_center(args[1].bits);
-    sounds_.push_back({args[0].bits, position, float(args[2].number())});
+    const auto object=args[1].bits;
+    const auto position=object==null_datum?Vec3{}:
+        source_campaign_?source_scripted_sound_point_tu15(source_campaign_->objects().tu15_world(),
+            object==0?player_.source_datum:object):
+        object==0?eye(player_):object_center(object);
+    sounds_.push_back({args[0].bits,position,float(args[2].number()),
+        object==null_datum?SoundEvent::NonSpatialImpulse:SoundEvent::Impulse,false,
+        object==0?player_.source_datum:object});
     if(sound_duration_) {
       auto at=std::find_if(impulse_clocks_.begin(),impulse_clocks_.end(),[&](const auto &clock){return clock.datum==args[0].bits || clock.datum==null_datum || clock.start+clock.duration<=ticks_;});
       if(at!=impulse_clocks_.end())*at={args[0].bits,ticks_,std::uint64_t(std::max(0.f,std::nearbyint(sound_duration_(args[0].bits)*30.f)))};
     }
+    source_admit_queued_script_sounds_tu15(*this,sounds_);
     return {};
   }
   if (name == "sound_looping_start") {
@@ -2884,6 +3044,7 @@ ScriptValue Simulation::host(const std::string &name,
                            SoundEvent::LoopStart};
     sounds_.push_back(event);
     active_loops_[event.datum] = event;
+    source_admit_queued_script_sounds_tu15(*this,sounds_);
     return {};
   }
   if (name == "sound_looping_stop" || name == "sound_looping_set_alternate" ||
@@ -2906,6 +3067,7 @@ ScriptValue Simulation::host(const std::string &name,
       if (loop != active_loops_.end())
         loop->second.alternate = args[1].truth();
     }
+    source_admit_queued_script_sounds_tu15(*this,sounds_);
     return {};
   }
   if (name == "print") {

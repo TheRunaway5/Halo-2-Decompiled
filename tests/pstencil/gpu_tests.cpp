@@ -65,8 +65,9 @@ struct Fixture {
     VkPipeline base{},original_light{},stencil_light{};std::unique_ptr<pstencil::Render> stencil;
     std::vector<pstencil::ShadowVertex> scene;std::vector<Vec3> points;
     std::vector<std::array<std::uint16_t,3>> faces;
+    unsigned captured_geometry{};
     struct Push {glm::mat4 matrix;glm::vec4 color,viewport;};
-    Fixture(GPU& g,VkExtent2D extent):gpu(g),size(extent) {
+    Fixture(GPU& g,VkExtent2D extent,unsigned captured=0):gpu(g),size(extent),captured_geometry(captured) {
         color=target(VK_FORMAT_R8G8B8A8_UNORM,VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,VK_IMAGE_ASPECT_COLOR_BIT);
         depth=target(VK_FORMAT_D24_UNORM_S8_UINT,VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT|VK_IMAGE_USAGE_TRANSFER_SRC_BIT,VK_IMAGE_ASPECT_DEPTH_BIT|VK_IMAGE_ASPECT_STENCIL_BIT);
         make_pass();
@@ -79,7 +80,17 @@ struct Fixture {
         base=pipeline(false,false);original_light=pipeline(true,false);stencil_light=pipeline(true,true);
         points={{-.4f,-.4f,0},{.4f,-.4f,0},{.4f,.4f,0},{-.4f,.4f,0},{-.4f,-.4f,1},{.4f,-.4f,1},{.4f,.4f,1},{-.4f,.4f,1}};
         faces={{{0,2,1}},{{0,3,2}},{{4,5,6}},{{4,6,7}},{{0,1,5}},{{0,5,4}},{{3,7,6}},{{3,6,2}},{{0,4,7}},{{0,7,3}},{{1,2,6}},{{1,6,5}}};
-        for(const auto p:std::array<Vec3,6>{{{-5,-5,0},{5,-5,0},{5,5,0},{-5,-5,0},{5,5,0},{-5,5,0}}})scene.push_back({p,0});
+        if(captured) {
+            // Actual posed collar triangle221, event860, native tick3404.
+            points={{-216.50811767578125f,-150.96031188964844f,23.170528411865234f},
+                    {-216.4766387939453f,-150.95748901367188f,23.133760452270508f},
+                    {-216.50570678710938f,-150.9589385986328f,23.130210876464844f}};
+            faces={{{0,1,2}}};
+            if(captured==2)points={
+                {-216.3207550048828f,-150.84397888183594f,23.148845672607422f},
+                {-216.3152313232422f,-150.84744262695312f,23.13818359375f},
+                {-216.3319091796875f,-150.84317016601562f,23.153352737426758f}};
+        } else for(const auto p:std::array<Vec3,6>{{{-5,-5,0},{5,-5,0},{5,5,0},{-5,-5,0},{5,5,0},{-5,5,0}}})scene.push_back({p,0});
         for(const auto& face:faces)for(auto index:face)scene.push_back({points[index],0});
         vertices=buffer(scene.size()*sizeof(pstencil::ShadowVertex),VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
         std::memcpy(vertices.mapped,scene.data(),scene.size()*sizeof(pstencil::ShadowVertex));
@@ -136,7 +147,9 @@ struct Fixture {
         VkPipeline result;check(vkCreateGraphicsPipelines(gpu.device,VK_NULL_HANDLE,1,&info,nullptr,&result),"fixture pipeline");vkDestroyShaderModule(gpu.device,v,nullptr);vkDestroyShaderModule(gpu.device,f,nullptr);return result;
     }
     std::vector<unsigned char> capture(const glm::mat4& matrix,bool enabled,bool split,unsigned lights,bool wdepth,bool lightmap=false,bool source_camera=false,unsigned stipple=16) {
-        const std::array<Vec3,2> positions{{{-2,-2,3},{2,-2,3}}};std::array<std::vector<pstencil::ShadowVertex>,2> volumes;
+        const std::array<Vec3,2> positions=captured_geometry?
+            std::array<Vec3,2>{{{-215.60494995117188f,-148.60107421875f,21.80544090270996f},{2,-2,3}}}:
+            std::array<Vec3,2>{{{-2,-2,3},{2,-2,3}}};std::array<std::vector<pstencil::ShadowVertex>,2> volumes;
         std::vector<pstencil::VolumeBatch> batches;
         for(unsigned i=0;i<lights;++i){pstencil::append_volume(volumes[i],points,faces,positions[i],stipple);batches.push_back({volumes[i]});}
         stencil->prepare(batches);gpu.begin();
@@ -146,8 +159,9 @@ struct Fixture {
         vkCmdBeginRenderPass(gpu.command,&begin,VK_SUBPASS_CONTENTS_INLINE);vkCmdSetViewport(gpu.command,0,1,&viewport);vkCmdSetScissor(gpu.command,0,1,&full);
         constexpr VkDeviceSize offset=0;vkCmdBindVertexBuffers(gpu.command,0,1,&vertices.buffer,&offset);vkCmdBindPipeline(gpu.command,VK_PIPELINE_BIND_POINT_GRAPHICS,base);
         const glm::vec4 surface{0,0,size.width,size.height};
-        const auto projected=source_camera?matrix*(16777215.f/1024.f):matrix;
-        const float depth_control=(wdepth?-1.f:1.f)*(source_camera?2.f:1.f);
+        auto projected=source_camera && !captured_geometry?matrix*(16777215.f/1024.f):matrix;
+        if(source_camera && !captured_geometry)for(unsigned column=0;column<4;++column)projected[column][1]*=-1;
+        const float depth_control=(wdepth?-1.f:1.f)*(captured_geometry?float(2+captured_geometry):source_camera?2.f:1.f);
         const Push ambient{projected,{.2f,.2f,.2f,depth_control},surface};vkCmdPushConstants(gpu.command,layout,VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(ambient),&ambient);vkCmdDraw(gpu.command,unsigned(scene.size()),1,0,0);
         const auto camera_for=[&](unsigned i) {
             pstencil::VolumeCamera camera{};std::memcpy(camera.matrix.data(),&matrix,64);
@@ -158,6 +172,10 @@ struct Fixture {
                 for(unsigned column=0;column<4;++column)for(unsigned row=0;row<4;++row)
                     camera.matrix[column*4+row]=matrix[column][row]*(16777215.f/1024.f)*(row==1?-1.f:1.f);
                 camera.viewport={surface.x,surface.y,surface.z,surface.w};camera.control[2]=1;
+            }
+            if(captured_geometry) {
+                std::memcpy(camera.matrix.data(),&matrix,64);
+                for(unsigned axis=0;axis<4;++axis)camera.depth_row[axis]=matrix[axis][3];
             }
             return camera;
         };
@@ -243,6 +261,31 @@ void ppm(const std::filesystem::path& path,VkExtent2D size,const std::vector<uns
 int main(int argc,char** argv){try {
     require(argc==2,"provide a new GPU evidence directory");const std::filesystem::path output=argv[1];require(!std::filesystem::exists(output),"evidence directory already exists");std::filesystem::create_directories(output);
     GPU gpu;unsigned cases{};std::ofstream report(output/"measurements.tsv");report<<"case\tw_depth\tshadow_pixels\tdepth_stencil_changed_bytes\toriginal_restore_changed_bytes\n";
+    {
+        // Captured c0..3 are rows. Keep their exact float values, including
+        // the large translation/cancellation absent from the analytic box.
+        const glm::mat4 source=glm::transpose(glm::mat4(
+            -22247.78125f,-7804.3740234375f,51.170249938964844f,-5993960.f,
+            -2955.285888671875f,8692.7216796875f,40896.71875f,-276993.78125f,
+            5299.1171875f,-15082.564453125f,3588.770751953125f,-1205589.f,
+            5299.0361328125f,-15082.333984375f,3588.716064453125f,-1205314.625f));
+        for(unsigned captured=1;captured<=2;++captured) {
+        const VkExtent2D size{1920,1080};Fixture fixture(gpu,size,captured);
+        const auto original=fixture.capture(source,false,false,1,true,false,true);
+        const auto shadowed=fixture.capture(source,true,false,1,true,false,true);
+        const auto name=captured==1?"collar":"hand";
+        ppm(output/(std::string("captured-")+name+"-original.ppm"),size,original);
+        ppm(output/(std::string("captured-")+name+"-pstencil.ppm"),size,shadowed);
+        unsigned visible{},false_shadows{};
+        for(std::size_t i=0;i<std::size_t(size.width)*size.height;++i) {
+            if(original[i*4]<=50)continue;
+            ++visible;false_shadows+=original[i*4]!=shadowed[i*4];
+        }
+        std::cout<<"Captured "<<name<<": visible="<<visible<<" false self-shadows="<<false_shadows<<'\n';
+        require(visible>100,"captured fixture has no visible surface");
+        require(!false_shadows,"actual campaign near-cap falsely self-shadows");
+        }
+    }
     for(const auto size:{VkExtent2D{320,240},VkExtent2D{255,191},VkExtent2D{320,240}}) {
         Fixture fixture(gpu,size);
         for(unsigned view=0;view<3;++view)for(unsigned lights=1;lights<=2;++lights)for(bool wdepth:{false,true})for(bool source_camera:{false,true}) {

@@ -10,4 +10,8 @@ struct SoundPlaybackFade {
   bool fading = true;
 };
 float source_sound_playback_fade(SoundPlaybackFade &, std::int32_t time_ms);
+// TU1.5 128E70: sample the current fade through12D320, then start the
+// original linear300ms stop request. The next update resolves relative times.
+// This only authors playback state; the actual voice owner retires playback.
+void source_sound_request_stop_tu15(SoundPlaybackFade &, std::int32_t time_ms);
 } // namespace halo2

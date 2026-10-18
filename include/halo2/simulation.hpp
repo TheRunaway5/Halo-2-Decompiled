@@ -181,9 +181,15 @@ struct SoundEvent {
     LoopStop,
     LoopAlternate,
     ImpulseStop,
-    Reset
+    Reset,
+    // An HSC NONE object is a centered impulse, independent of the current
+    // gameplay/cinematic camera. Keep it distinct through queued delivery.
+    NonSpatialImpulse
   } action = Impulse;
   bool alternate{};
+  // Full, salted speaker identity from the actual HSC object argument.
+  // A position alone cannot bind a voice to its original facial controller.
+  std::uint32_t owner = null_datum;
 };
 class Simulation {
 public:
@@ -195,11 +201,23 @@ public:
     bool instances{};
   };
   using Predictor = std::function<void(const Prediction &)>;
+  using ScriptTickRate = std::function<std::int16_t()>;
+  using ScriptSetMaxRumble = std::function<void(float,float)>;
   Simulation(const LevelContent &, std::size_t bsp, Spawn,
              Presentation::AnimationLoader = {}, BspLoader = {}, Predictor = {},
              std::optional<SourceSceneGameContext> = {},
              std::optional<NativeObjectLifetimes> = {},
              SourceSceneObjectOwner = {},std::shared_ptr<CampaignSourceRuntime> = {});
+  Simulation(const LevelContent &, std::size_t bsp, Spawn,
+             Presentation::AnimationLoader, BspLoader, Predictor,
+             std::optional<SourceSceneGameContext>,
+             std::optional<NativeObjectLifetimes>, SourceSceneObjectOwner,
+             std::shared_ptr<CampaignSourceRuntime>,ScriptTickRate);
+  Simulation(const LevelContent &, std::size_t bsp, Spawn,
+             Presentation::AnimationLoader, BspLoader, Predictor,
+             std::optional<SourceSceneGameContext>,
+             std::optional<NativeObjectLifetimes>, SourceSceneObjectOwner,
+             std::shared_ptr<CampaignSourceRuntime>,ScriptTickRate,ScriptSetMaxRumble);
   // Transfer an already loaded BSP without retaining a second collision bank.
   // Metadata and navigation in LevelContent remain available to their owners.
   Simulation(const LevelContent &, BspContent initial_geometry, std::size_t bsp, Spawn,
@@ -207,6 +225,16 @@ public:
              std::optional<SourceSceneGameContext> = {},
              std::optional<NativeObjectLifetimes> = {},
              SourceSceneObjectOwner = {},std::shared_ptr<CampaignSourceRuntime> = {});
+  Simulation(const LevelContent &, BspContent initial_geometry, std::size_t bsp, Spawn,
+             Presentation::AnimationLoader, BspLoader, Predictor,
+             std::optional<SourceSceneGameContext>,
+             std::optional<NativeObjectLifetimes>, SourceSceneObjectOwner,
+             std::shared_ptr<CampaignSourceRuntime>,ScriptTickRate);
+  Simulation(const LevelContent &, BspContent initial_geometry, std::size_t bsp, Spawn,
+             Presentation::AnimationLoader, BspLoader, Predictor,
+             std::optional<SourceSceneGameContext>,
+             std::optional<NativeObjectLifetimes>, SourceSceneObjectOwner,
+             std::shared_ptr<CampaignSourceRuntime>,ScriptTickRate,ScriptSetMaxRumble);
   Simulation(const Simulation &)=delete;
   Simulation &operator=(const Simulation &)=delete;
   Simulation(Simulation &&)=delete;
@@ -324,6 +352,9 @@ public:
   float frame_fraction()const;
   void cinematic_screen_consumer(bool);
   void advance_cinematic_render_time(float seconds,int requested,int completed);
+  // Once per outer source frame, after effects, using the caller delta.
+  // Headless callers own the same explicit phase; no render borrow advances it.
+  void advance_cinematic_camera(float raw_seconds);
   CinematicCrossfadeFrame cinematic_crossfade_frame()const;
   void cinematic_crossfade_capture_complete();
   struct VehicleFlip {std::uint32_t object;std::uint8_t direction{},ticks{};Vec3 velocity;};

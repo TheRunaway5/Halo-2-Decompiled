@@ -18,6 +18,11 @@ struct Render::Impl {
     VkDeviceSize capacity{};
     VkPipelineLayout layout{};VkPipeline pipeline{};
     VkPipelineLayout lightmap_layout{};VkPipeline lightmap_pipeline{};
+    VkImage utility_image{};VkDeviceMemory utility_memory{};VkImageView utility_view{};
+    VkRenderPass utility_pass{};VkFramebuffer utility_framebuffer{};
+    VkImage normal_image{};VkDeviceMemory normal_memory{};VkImageView normal_view{};
+    VkRenderPass normal_pass{};VkFramebuffer normal_framebuffer{};
+    unsigned current_image{};
     std::vector<VkFramebuffer> framebuffers;
     std::vector<std::pair<std::uint32_t,std::uint32_t>> batches;
     ~Impl() {
@@ -30,6 +35,16 @@ struct Render::Impl {
         if(lightmap_pipeline)vkDestroyPipeline(device,lightmap_pipeline,nullptr);
         if(lightmap_layout)vkDestroyPipelineLayout(device,lightmap_layout,nullptr);
         for(auto framebuffer:framebuffers)vkDestroyFramebuffer(device,framebuffer,nullptr);
+        if(normal_framebuffer)vkDestroyFramebuffer(device,normal_framebuffer,nullptr);
+        if(normal_pass)vkDestroyRenderPass(device,normal_pass,nullptr);
+        if(normal_view)vkDestroyImageView(device,normal_view,nullptr);
+        if(normal_image)vkDestroyImage(device,normal_image,nullptr);
+        if(normal_memory)vkFreeMemory(device,normal_memory,nullptr);
+        if(utility_framebuffer)vkDestroyFramebuffer(device,utility_framebuffer,nullptr);
+        if(utility_pass)vkDestroyRenderPass(device,utility_pass,nullptr);
+        if(utility_view)vkDestroyImageView(device,utility_view,nullptr);
+        if(utility_image)vkDestroyImage(device,utility_image,nullptr);
+        if(utility_memory)vkFreeMemory(device,utility_memory,nullptr);
         if(depth_view)vkDestroyImageView(device,depth_view,nullptr);
         if(depth)vkDestroyImage(device,depth,nullptr);
         if(depth_memory)vkFreeMemory(device,depth_memory,nullptr);
@@ -49,6 +64,55 @@ struct Render::Impl {
         if(!input.read(reinterpret_cast<char*>(words.data()),length))throw FormatError("pStencil shader truncated");
         VkShaderModuleCreateInfo info{VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO};info.codeSize=std::size_t(length);info.pCode=words.data();
         VkShaderModule result{};check(vkCreateShaderModule(context.device,&info,nullptr,&result),"create shader");return result;
+    }
+    void create_accumulation(VkImage& utility_image,VkDeviceMemory& utility_memory,VkImageView& utility_view,
+                             VkRenderPass& utility_pass,VkFramebuffer& utility_framebuffer) {
+        const auto device=context.device;
+        VkImageCreateInfo image{VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO};
+        image.imageType=VK_IMAGE_TYPE_2D;image.format=VK_FORMAT_R8G8B8A8_UNORM;
+        image.extent={context.extent.width,context.extent.height,1};image.mipLevels=image.arrayLayers=1;
+        image.samples=VK_SAMPLE_COUNT_1_BIT;image.tiling=VK_IMAGE_TILING_OPTIMAL;
+        image.usage=VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|VK_IMAGE_USAGE_SAMPLED_BIT;
+        check(vkCreateImage(device,&image,nullptr,&utility_image),"create utility target");
+        VkMemoryRequirements requirements;vkGetImageMemoryRequirements(device,utility_image,&requirements);
+        VkMemoryAllocateInfo allocation{VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO};allocation.allocationSize=requirements.size;
+        allocation.memoryTypeIndex=memory_type(requirements.memoryTypeBits,VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+        check(vkAllocateMemory(device,&allocation,nullptr,&utility_memory),"allocate utility target");
+        check(vkBindImageMemory(device,utility_image,utility_memory,0),"bind utility target");
+        VkImageViewCreateInfo view{VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO};view.image=utility_image;
+        view.viewType=VK_IMAGE_VIEW_TYPE_2D;view.format=image.format;
+        view.subresourceRange={VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,1};
+        check(vkCreateImageView(device,&view,nullptr,&utility_view),"create utility view");
+        const VkAttachmentDescription attachments[]{
+            {0,image.format,VK_SAMPLE_COUNT_1_BIT,VK_ATTACHMENT_LOAD_OP_CLEAR,VK_ATTACHMENT_STORE_OP_STORE,
+             VK_ATTACHMENT_LOAD_OP_DONT_CARE,VK_ATTACHMENT_STORE_OP_DONT_CARE,
+             VK_IMAGE_LAYOUT_UNDEFINED,VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL},
+            {0,VK_FORMAT_D24_UNORM_S8_UINT,VK_SAMPLE_COUNT_1_BIT,VK_ATTACHMENT_LOAD_OP_LOAD,VK_ATTACHMENT_STORE_OP_STORE,
+             VK_ATTACHMENT_LOAD_OP_LOAD,VK_ATTACHMENT_STORE_OP_STORE,
+             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+        const VkAttachmentReference color{0,VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
+            depth{1,VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+        VkSubpassDescription subpass{};subpass.pipelineBindPoint=VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount=1;subpass.pColorAttachments=&color;subpass.pDepthStencilAttachment=&depth;
+        const auto tests=VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT|VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        const VkSubpassDependency dependencies[]{
+            {VK_SUBPASS_EXTERNAL,0,VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|tests,
+             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|tests,
+             VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,VK_DEPENDENCY_BY_REGION_BIT},
+            {0,VK_SUBPASS_EXTERNAL,VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT|tests,
+             VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT|tests,
+             VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+             VK_ACCESS_SHADER_READ_BIT|VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,VK_DEPENDENCY_BY_REGION_BIT}};
+        VkRenderPassCreateInfo pass{VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO};pass.attachmentCount=2;
+        pass.pAttachments=attachments;pass.subpassCount=1;pass.pSubpasses=&subpass;
+        pass.dependencyCount=2;pass.pDependencies=dependencies;
+        check(vkCreateRenderPass(device,&pass,nullptr,&utility_pass),"create utility pass");
+        const VkImageView views[]{utility_view,depth_view};
+        VkFramebufferCreateInfo framebuffer{VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO};framebuffer.renderPass=utility_pass;
+        framebuffer.attachmentCount=2;framebuffer.pAttachments=views;framebuffer.width=context.extent.width;
+        framebuffer.height=context.extent.height;framebuffer.layers=1;
+        check(vkCreateFramebuffer(device,&framebuffer,nullptr,&utility_framebuffer),"create utility framebuffer");
     }
     void create_lightmap() {
         const auto device=context.device;
@@ -109,6 +173,8 @@ struct Render::Impl {
             info.height=context.extent.height;info.layers=1;VkFramebuffer framebuffer{};
             check(vkCreateFramebuffer(device,&info,nullptr,&framebuffer),"create private framebuffer");framebuffers.push_back(framebuffer);
         }
+        create_accumulation(utility_image,utility_memory,utility_view,utility_pass,utility_framebuffer);
+        create_accumulation(normal_image,normal_memory,normal_view,normal_pass,normal_framebuffer);
         VkPushConstantRange range{VK_SHADER_STAGE_VERTEX_BIT|VK_SHADER_STAGE_FRAGMENT_BIT,0,sizeof(VolumeCamera)};
         VkPipelineLayoutCreateInfo layout_info{VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO};
         layout_info.pushConstantRangeCount=1;layout_info.pPushConstantRanges=&range;
@@ -185,7 +251,7 @@ void Render::prepare(std::span<const VolumeBatch> input) {
             input[i].vertices.data(),input[i].vertices.size_bytes());
 }
 void Render::begin(VkCommandBuffer command,unsigned image) {
-    auto& p=*impl_;vkCmdEndRenderPass(command);
+    auto& p=*impl_;p.current_image=image;vkCmdEndRenderPass(command);
     std::array<VkImageMemoryBarrier,2> barriers{};
     for(auto& barrier:barriers) {
         barrier.sType=VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -230,6 +296,32 @@ void Render::light(VkCommandBuffer command,std::size_t batch,const VolumeCamera&
         vkCmdDraw(command,count,1,first,0);
     }
     receivers();
+}
+VkRenderPass Render::normal_pass()const {return impl_->normal_pass;}
+VkImageView Render::normal_view()const {return impl_->normal_view;}
+void Render::normals(VkCommandBuffer command,const std::function<void()>& receivers) {
+    const auto& p=*impl_;vkCmdEndRenderPass(command);
+    std::array<VkClearValue,2> clears{};
+    VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};begin.renderPass=p.normal_pass;
+    begin.framebuffer=p.normal_framebuffer;begin.renderArea={{0,0},p.context.extent};
+    begin.clearValueCount=unsigned(clears.size());begin.pClearValues=clears.data();
+    vkCmdBeginRenderPass(command,&begin,VK_SUBPASS_CONTENTS_INLINE);receivers();vkCmdEndRenderPass(command);
+    begin.renderPass=p.context.continuation;begin.framebuffer=p.framebuffers.at(p.current_image);
+    begin.clearValueCount=0;begin.pClearValues=nullptr;
+    vkCmdBeginRenderPass(command,&begin,VK_SUBPASS_CONTENTS_INLINE);
+}
+VkRenderPass Render::utility_pass()const {return impl_->utility_pass;}
+VkImageView Render::utility_view()const {return impl_->utility_view;}
+void Render::utility(VkCommandBuffer command,const std::function<void()>& receivers) {
+    const auto& p=*impl_;vkCmdEndRenderPass(command);
+    std::array<VkClearValue,2> clears{};
+    VkRenderPassBeginInfo begin{VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO};begin.renderPass=p.utility_pass;
+    begin.framebuffer=p.utility_framebuffer;begin.renderArea={{0,0},p.context.extent};
+    begin.clearValueCount=unsigned(clears.size());begin.pClearValues=clears.data();
+    vkCmdBeginRenderPass(command,&begin,VK_SUBPASS_CONTENTS_INLINE);receivers();vkCmdEndRenderPass(command);
+    begin.renderPass=p.context.continuation;begin.framebuffer=p.framebuffers.at(p.current_image);
+    begin.clearValueCount=0;begin.pClearValues=nullptr;
+    vkCmdBeginRenderPass(command,&begin,VK_SUBPASS_CONTENTS_INLINE);
 }
 void Render::lightmap(VkCommandBuffer command,std::span<const VolumeDraw> draws,VkViewport viewport,VkRect2D clip) {
     const auto& p=*impl_;

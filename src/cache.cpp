@@ -1,6 +1,7 @@
 #include "halo2/cache.hpp"
 #include "halo2/cache_file_snapshot.hpp"
 #include "halo2/mcc_cache.hpp"
+#include "halo2/mcc_resource_reader.hpp"
 #include "halo2/texture.hpp"
 #include "halo2/bsp_lighting.hpp"
 #include "halo2/world_material.hpp"
@@ -221,9 +222,7 @@ std::vector<std::byte> Cache::raw_data(std::uint32_t pointer, std::uint32_t size
     }
     constexpr std::array<const char*, 4> names{"", "mainmenu.map", "shared.map", "single_player_shared.map"};
     if(mcc_) {
-        const auto decoded=read_mcc_cache(shared_directory_/names[location]);
-        const auto span=Bytes(decoded).slice(offset,size);
-        return {span.begin(),span.end()};
+        return read_mcc_resource_range(shared_directory_/names[location],offset,size);
     }
     return read_file(shared_directory_ / names[location], offset, size, false);
 }
@@ -342,7 +341,15 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
         auto make_vertex=[&](unsigned v,Vec3 color,std::uint32_t material) {
             Vertex out{vertices[v],color,coordinates[v],material};
             if(basis.found) {
-                if(pc_geometry()) {
+                if(is_mcc()) {
+                    // Restore the original authored physical slots and
+                    // precision before feeding the existing Xbox shaders.
+                    // PC FLOAT3 slot1/2 must not exchange the original
+                    // tangent/binormal banks during this conversion.
+                    out.normal=decode_bsp_incident(pack_bsp_incident_tu15(position(data,basis.offset+v*36)));
+                    out.tangent=decode_bsp_incident(pack_bsp_incident_tu15(position(data,basis.offset+v*36+12)));
+                    out.binormal=decode_bsp_incident(pack_bsp_incident_tu15(position(data,basis.offset+v*36+24)));
+                } else if(pc_geometry()) {
                     out.normal=position(data,basis.offset+v*36);
                     out.binormal=position(data,basis.offset+v*36+12);
                     out.tangent=position(data,basis.offset+v*36+24);
@@ -353,7 +360,13 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
                 }
             }
             if(lightmap_uvs.found) {
-                if(pc_geometry()) {
+                if(is_mcc()) {
+                    const auto normalized=[](float value) {
+                        return std::max(-1.f,float(pack_bsp_lightmap_uv_tu15(value))/32767.f);
+                    };
+                    out.lightmap_uv={normalized(data.f32(lightmap_uvs.offset+v*8)),
+                        normalized(data.f32(lightmap_uvs.offset+v*8+4))};
+                } else if(pc_geometry()) {
                     out.lightmap_uv={data.f32(lightmap_uvs.offset+v*8),data.f32(lightmap_uvs.offset+v*8+4)};
                     if(!std::isfinite(out.lightmap_uv.x) || !std::isfinite(out.lightmap_uv.y))
                         throw FormatError("invalid Vista lightmap UV");
@@ -362,7 +375,10 @@ Mesh Cache::load_bsp(std::size_t index, bool textures) const {
                     out.lightmap_uv={normalized(data.u16(lightmap_uvs.offset+v*4)),normalized(data.u16(lightmap_uvs.offset+v*4+2))};
                 }
             }
-            if(incident.found) out.incident=pc_geometry()?position(data,incident.offset+v*12):decode_bsp_incident(data.u32(incident.offset+v*4));
+            if(incident.found) {
+                if(is_mcc())out.incident=decode_bsp_incident(pack_bsp_incident_tu15(position(data,incident.offset+v*12)));
+                else out.incident=pc_geometry()?position(data,incident.offset+v*12):decode_bsp_incident(data.u32(incident.offset+v*4));
+            }
             return out;
         };
         bool list = std::size_t(face_count) * 3 == index_count;

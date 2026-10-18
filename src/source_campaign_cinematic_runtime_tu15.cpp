@@ -6,6 +6,13 @@ namespace halo2 {
 void source_campaign_cinematic_control_tu15(PhysicsLiveWorldTu15 &world,bool active) {
     world.call_actual(active?0x13ead0u:0x13f560u);
 }
+void source_campaign_lightmap_shadow_tu15(PhysicsLiveWorldTu15 &world,bool enabled) {
+    // TU1.5 HS evaluators2B6720/2B6740 publish exactly this byte before
+    // returning to the script evaluator. Start/stop and335B0 retain ownership
+    // of the cinematic reset and consumer admission; no host flag is cached.
+    const std::array value{std::byte(enabled?1:0)};
+    world.write_source_call_input(0x515ef5u,value);
+}
 void source_campaign_cinematic_lod_tu15(PhysicsLiveWorldTu15 &world,std::uint32_t object,bool active) {
     auto abi=world.prepare_source_call(std::array{std::uint32_t(active)});
     abi.gp[0]=object;world.run_actual(0xbdf70u,abi);

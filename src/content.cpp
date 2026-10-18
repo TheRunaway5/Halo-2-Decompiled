@@ -5,6 +5,7 @@
 #include "halo2/fp_registration.hpp"
 #include "halo2/math.hpp"
 #include "halo2/model.hpp"
+#include "halo2/mcc_script_layout.hpp"
 #include "halo2/prop_sandbox.hpp"
 #include "halo2/static_scenery_collision.hpp"
 #include "halo2/source_device_world.hpp"
@@ -543,10 +544,12 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
           // Retain that actual data reference; their trigger manager remains
           // separate from the ordinary firing path admitted below.
           if(primary_barrel==-1)primary_barrel=i16(data,native_triggers.offset+0xa);
-          if(primary_barrel<0 || std::size_t(primary_barrel)>=barrels.count)
+          // NONE is a valid inactive trigger, including definitions which
+          // retain a real barrel (the MCC Falcon RPG shares the objective
+          // items' NONE/NONE trigger). 1037FD skips barrel admission for NONE.
+          if(primary_barrel!=-1 && (primary_barrel<0 || std::size_t(primary_barrel)>=barrels.count))
             throw FormatError("Weapon primary trigger has no authored barrel");
         }
-        const auto b = barrels.offset+std::size_t(primary_barrel)*0xec;
         for(std::size_t index=0;index<barrels.count;++index) {
           const auto at=barrels.offset+index*0xec;
           w.barrel_ammunition.push_back({data.u32(at),std::int16_t(i16(data,at+0x28)),
@@ -558,6 +561,14 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
                 real(data,at+0x58),real(data,at+0x5c),real(data,at+0x60)},
               real(data,at+0xd4),real(data,at+0xd8),real(data,at+0xcc)});
         }
+        if(primary_barrel==-1) {
+          // Preserve the tag, every trigger and the actual barrel data. No
+          // selected barrel means no projectile/rate projection, rather than
+          // an invented barrel0 or a missing definition in the loaded world.
+          out.weapons.emplace(w.datum,std::move(w));
+          continue;
+        }
+        const auto b = barrels.offset+std::size_t(primary_barrel)*0xec;
         const auto mag = i16(data, b + 0x28);
         if (mag >= 0 && std::size_t(mag) < mags.count) {
           const auto m = mags.offset + std::size_t(mag) * 0x5c;
@@ -1259,9 +1270,10 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     title.fade_in=real(data,p+0x18);title.up_time=real(data,p+0x1c);title.fade_out=real(data,p+0x20);
     out.cinematic_titles.push_back(title);
   }
-  // MCC Floodlab owns 37,509 expressions (Xbox: 36,670). Inspection retains
-  // the donor bank within its 16-bit datum index space; this does not admit
-  // those additional expressions as converted Xbox gameplay scripts.
+  // Retain the complete donor syntax bank within its serialized16-bit datum
+  // space. Signature-compatible builtins and external globals use the same
+  // original indices as native gameplay. Inspection can retain additional
+  // semantics; native publication separately requires their actual owners.
   const auto nodes = TagAddressSpace(data, metadata_magic_).block(s + 0x238, 20, mcc_ ? 0x10000 : 0x9000),
              scripts = TagAddressSpace(data, metadata_magic_).block(s + 0x1b8, 0x28),
              globals = TagAddressSpace(data, metadata_magic_).block(s + 0x1c0, 0x28);
@@ -1272,11 +1284,16 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     out.scripts.strings.assign(reinterpret_cast<const char *>(bytes.data()),
                                bytes.size());
   }
+  std::optional<MccScriptLayout> converted_syntax;
+  if(mcc_)converted_syntax=project_mcc_script_layout(*this,data.slice(nodes.offset,nodes.count*20),
+      data.slice(strings.offset,strings.count),data.slice(scripts.offset,scripts.count*0x28),{true});
+  const Bytes syntax(converted_syntax?std::span<const std::byte>(converted_syntax->nodes):
+      data.slice(nodes.offset,nodes.count*20));
   for (std::size_t n = 0; n < nodes.count; ++n) {
-    const auto p = nodes.offset + n * 20;
-    out.scripts.nodes.push_back({data.u16(p), data.u16(p + 2), data.u16(p + 4),
-                                 data.u16(p + 6), data.u32(p + 8),
-                                 data.u32(p + 12), data.u32(p + 16)});
+    const auto p = n * 20;
+    out.scripts.nodes.push_back({syntax.u16(p), syntax.u16(p + 2), syntax.u16(p + 4),
+                                 syntax.u16(p + 6), syntax.u32(p + 8),
+                                 syntax.u32(p + 12), syntax.u32(p + 16)});
   }
   for (std::size_t n = 0; n < scripts.count; ++n) {
     const auto p = scripts.offset + n * 0x28;

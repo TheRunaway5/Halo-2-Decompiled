@@ -40,11 +40,13 @@ struct Rejected {Tag tag;unsigned vertex_class;std::string kind,reason;};
 }
 int main(int argc,char **argv) {try {
   std::filesystem::path map,output;
-  for(int i=1;i<argc;i+=2) {
-    if(i+1>=argc)throw FormatError("menu vertex catalog option has no value");
+  bool attributes=false;
+  for(int i=1;i<argc;++i) {
     const std::string option=argv[i];
-    if(option=="--map" && map.empty())map=argv[i+1];
-    else if(option=="--output" && output.empty())output=argv[i+1];
+    if(option=="--constant-attributes" && !attributes){attributes=true;continue;}
+    if(i+1>=argc)throw FormatError("menu vertex catalog option has no value");
+    if(option=="--map" && map.empty())map=argv[++i];
+    else if(option=="--output" && output.empty())output=argv[++i];
     else throw FormatError("unknown or duplicate menu vertex catalog option");
   }
   if(map.empty() || output.empty())
@@ -61,7 +63,8 @@ int main(int argc,char **argv) {try {
         return entry.program==program && entry.declaration==declaration;
       });
       if(existing!=entries.end()){existing->aliases.push_back(tag);continue;}
-      auto source=menu_world_vertex_shader_source(program,declaration);
+      auto source=attributes?menu_world_material_vertex_shader_source(program,declaration):
+          menu_world_vertex_shader_source(program,declaration);
       entries.push_back({std::move(program),std::move(declaration),std::move(source),{tag}});
     } catch(const UnsupportedVertexProgram &error) {
       rejected.push_back({tag,vertex_class,"unsupported",error.what()});
@@ -74,7 +77,7 @@ int main(int argc,char **argv) {try {
   std::filesystem::create_directories(output);
   std::ostringstream manifest;
   manifest<<"{\n  \"schema\":\"halo2-menu-world-vertex-source-v1\",\n  \"abi\":"
-      <<menu_world_vertex_catalog_abi<<",\n  \"target\":\"vulkan1.3\",\n  \"cache\":"
+      <<(attributes?menu_world_vertex_attribute_catalog_abi:menu_world_vertex_catalog_abi)<<",\n  \"target\":\"vulkan1.3\",\n  \"cache\":"
       <<json_string(std::filesystem::absolute(map).string())<<",\n  \"vrtx_count\":"<<tags.size()
       <<",\n  \"entries\":[\n";
   for(std::size_t i=0;i<entries.size();++i) {

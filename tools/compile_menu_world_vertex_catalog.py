@@ -57,7 +57,7 @@ def run(argv):
     return result.stdout + result.stderr
 
 
-def spirv_contract(data, semantics):
+def spirv_contract(data, semantics, abi=ABI):
     if len(data) < 20 or len(data) % 4:
         raise ValueError('compiled catalog SPIR-V has invalid extent')
     words = struct.unpack('<' + 'I' * (len(data) // 4), data)
@@ -97,21 +97,27 @@ def spirv_contract(data, semantics):
     if pointer not in pointers or pointers[pointer][0] != 2:
         raise ValueError('compiled catalog uniform pointer type is invalid')
     block = pointers[pointer][1]
-    if decorations.get((block, 2)) != () or [offsets.get((block, i)) for i in range(4)] != [0, 3072, 3088, 3096]:
+    expected_offsets = [0, 3072, 3088, 3096] + ([3104] if abi == 3 else [])
+    if decorations.get((block, 2)) != () or [offsets.get((block, i)) for i in range(len(expected_offsets))] != expected_offsets:
         raise ValueError('compiled catalog changed compact std140 member offsets')
     def vector(type_id, size):
         item = types.get(type_id)
         return bool(item and item[0] == 23 and item[1][1] == size and
                     types.get(item[1][0]) == (22, (32,)))
     members = types.get(block)
-    if not members or members[0] != 30 or len(members[1]) != 4:
+    if not members or members[0] != 30 or len(members[1]) != len(expected_offsets):
         raise ValueError('compiled catalog uniform member count/type differs')
-    bank, clip, fog, surface = members[1]
+    bank, clip, fog, surface = members[1][:4]
     bank_type = types.get(bank)
     if not bank_type or bank_type[0] != 28 or not vector(bank_type[1][0], 4) or constants.get(bank_type[1][1]) != 192 or decorations.get((bank, 6)) != (16,):
         raise ValueError('compiled catalog c192 bank type/stride differs')
     if not vector(clip, 4) or not vector(fog, 2) or not vector(surface, 2):
         raise ValueError('compiled catalog compact clip/fog/surface types differ')
+    if abi == 3:
+        attributes = members[1][4]
+        attribute_type = types.get(attributes)
+        if not attribute_type or attribute_type[0] != 28 or not vector(attribute_type[1][0], 4) or constants.get(attribute_type[1][1]) != 16 or decorations.get((attributes, 6)) != (16,):
+            raise ValueError('compiled catalog constant attribute bank type/stride differs')
     locations = {1: {}, 3: {}}
     for pointer, variable, storage, *_ in variables:
         location = decorations.get((variable, 30))
@@ -149,6 +155,8 @@ def array(name, type_name, values, literal):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--sources', type=Path, required=True, help='native generator sources.json')
+    parser.add_argument('--additional-sources', type=Path, action='append', default=[],
+                        help='extra immutable programs, retaining each manifest ABI; duplicate identities fail')
     parser.add_argument('--compiler', type=Path, required=True, help='build glslangValidator executable')
     parser.add_argument('--validator', type=Path, required=True, help='build spirv-val executable')
     parser.add_argument('--header', type=Path, required=True)
@@ -156,16 +164,24 @@ def main():
     args = parser.parse_args()
     raw_manifest = args.sources.read_bytes()
     source_manifest = json.loads(raw_manifest)
-    if source_manifest.get('schema') not in (SCHEMA, PORT_SCHEMA) or source_manifest.get('abi') != ABI or source_manifest.get('target') != 'vulkan1.3':
-        raise ValueError('native catalog generator schema/ABI/target differs')
-    entries = source_manifest.get('entries')
-    if not isinstance(entries, list) or not entries:
-        raise ValueError('native catalog contains no generated entries')
+    manifests = [(args.sources, raw_manifest, source_manifest)]
+    for path in args.additional_sources:
+        raw = path.read_bytes()
+        manifests.append((path, raw, json.loads(raw)))
+    entries, abis = [], set()
+    for path, _, manifest in manifests:
+        abi = manifest.get('abi')
+        if manifest.get('schema') not in (SCHEMA, PORT_SCHEMA) or abi not in (ABI, 3) or manifest.get('target') != 'vulkan1.3':
+            raise ValueError('native catalog generator schema/ABI/target differs')
+        rows = manifest.get('entries')
+        if not isinstance(rows, list) or not rows:
+            raise ValueError('native catalog contains no generated entries')
+        abis.add(abi)
+        entries.extend((entry, manifest, path.parent, abi) for entry in rows)
     compiler = args.compiler.resolve(strict=True)
     validator = args.validator.resolve(strict=True)
     compiler_version = run([compiler, '--version'])
     validator_version = run([validator, '--version'])
-    directory = args.sources.parent
     # Source-owned GLSL may be in a read-only checkout. All build outputs
     # belong beside the requested generated header.
     compiled = args.header.parent / 'compiled'
@@ -173,14 +189,17 @@ def main():
     records, seen = [], set()
     header = ['#pragma once', '#include "halo2/menu_world_vertex_catalog.hpp"', '#include <array>',
               'namespace halo2::generated_menu_world_vertex_catalog {',
-              'static_assert(menu_world_vertex_catalog_abi==2);']
-    for index, entry in enumerate(entries):
+              'static_assert(menu_world_vertex_catalog_abi==2);',
+              *(['static_assert(menu_world_vertex_attribute_catalog_abi==3);'] if 3 in abis else [])]
+    for index, (entry, source_manifest, directory, abi) in enumerate(entries):
         if entry.get('class_index') not in range(7):
             raise ValueError('catalog entry is not actual class0..6')
         semantics = integers(entry['semantics'], 0, 65535, 'declaration')
         if not semantics or len(semantics) > 16 or any(x not in (0, 1, 2, 3, 4, 5, 6) for x in semantics):
             raise ValueError('catalog declaration has unsupported raw semantic')
-        inputs = integers(entry['consumed_inputs'], 0, len(semantics) - 1, 'consumed inputs')
+        inputs = integers(entry['consumed_inputs'], 0, 15 if abi == 3 else len(semantics) - 1, 'consumed inputs')
+        if any(x >= len(semantics) and x not in (10, 11) for x in inputs):
+            raise ValueError('catalog constant attribute input is outside the admitted V10/V11 corridor')
         constants = integers(entry['consumed_constants'], 0, 191, 'consumed constants')
         if inputs != sorted(set(inputs)) or constants != sorted(set(constants)):
             raise ValueError('catalog consumed sets are not canonical')
@@ -206,25 +225,30 @@ def main():
         build_log = run(command)
         validate_log = run([validator, '--target-env', 'vulkan1.3', output])
         spirv = output.read_bytes()
-        words = spirv_contract(spirv, semantics)
+        words = spirv_contract(spirv, semantics, abi)
         prefix = f'entry_{index}'
         header.append(array(prefix + '_semantics', 'std::uint16_t', semantics, str))
         header.append(array(prefix + '_spirv', 'std::uint32_t', words, lambda x: f'0x{x:08x}u'))
         header.append(array(prefix + '_inputs', 'unsigned', inputs, lambda x: f'{x}u'))
         header.append(array(prefix + '_constants', 'unsigned', constants, lambda x: f'{x}u'))
-        records.append({**entry, 'source_sha256': sha(source), 'program_sha256': program_sha, 'program_bytes': program_bytes,
+        records.append({**entry, 'abi': abi, 'source_sha256': sha(source), 'program_sha256': program_sha, 'program_bytes': program_bytes,
                         'spirv_sha256': sha(spirv), 'spirv_bytes': len(spirv),
                         'spirv': str(output.resolve()), 'command': [str(x) for x in command],
                         'compiler_log': build_log, 'validator_log': validate_log})
     header.append(f'inline constexpr std::array<MenuWorldVertexCatalogEntry,{len(records)}> entries{{{{')
     for i, record in enumerate(records):
         p = f'entry_{i}'
-        header.append(f'  {{{ABI},{record["class_index"]},"{record["program_sha256"]}",{record["program_bytes"]},{p}_semantics,{p}_spirv,{p}_inputs,{p}_constants,'
+        header.append(f'  {{{record["abi"]},{record["class_index"]},"{record["program_sha256"]}",{record["program_bytes"]},{p}_semantics,{p}_spirv,{p}_inputs,{p}_constants,'
                       f'"{record["source_sha256"]}","{record["spirv_sha256"]}"}},')
     header += ['}};', '} // namespace halo2::generated_menu_world_vertex_catalog', '']
     header_bytes = '\n'.join(header).encode()
-    report = {'schema': 'halo2-menu-world-vertex-compiled-v1', 'abi': ABI, 'target': 'vulkan1.3',
+    source_manifest = manifests[0][2]
+    report = {'schema': 'halo2-menu-world-vertex-compiled-v1', 'abi': next(iter(abis)) if len(abis) == 1 else 'mixed',
+              'abi_versions': sorted(abis), 'target': 'vulkan1.3',
               'sources_manifest_sha256': sha(raw_manifest),
+              'additional_sources': [{'path': str(path), 'sha256': sha(raw), 'abi': manifest['abi'],
+                                      'cache_sha256': manifest.get('cache_sha256'), 'entry_count': len(manifest['entries'])}
+                                     for path, raw, manifest in manifests[1:]],
               'cache_sha256': (sha(Path(source_manifest['cache']).read_bytes()) if source_manifest['schema'] == SCHEMA
                                else digest(source_manifest['cache_sha256'])),
               'original_asset_files_read': source_manifest['schema'] == SCHEMA,

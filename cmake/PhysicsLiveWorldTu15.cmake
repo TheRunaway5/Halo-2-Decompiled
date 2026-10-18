@@ -1,5 +1,10 @@
 # Same retained bank and native resource owners for the TU1.5 live world.
 target_sources(halo2_systems PRIVATE src/physics_live_world_tu15.cpp src/source_runtime_cache_tags_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/mcc_script_sound_world_access.cpp src/mcc_script_sound_query_service_tu15.cpp)
+# Native startup residency hints use the Linux program-header iterator.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(halo2_systems PRIVATE ${CMAKE_DL_LIBS})
+endif()
 target_sources(halo2_systems PRIVATE src/source_contrail_snapshot.cpp)
 target_sources(halo2_systems PRIVATE src/source_live_shadow_selection_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_live_shadow_roots_tu15.cpp)
@@ -18,12 +23,226 @@ target_sources(halo2_systems PRIVATE src/source_execution_inputs.cpp)
 target_sources(halo2_systems PRIVATE src/source_runtime_resources.cpp)
 target_sources(halo2_systems PRIVATE src/multiplayer_source_devices_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_boot_smc_video_mode.cpp)
+target_sources(halo2_systems PRIVATE src/source_boot_smc_video_mode_input.cpp)
 target_sources(halo2_systems PRIVATE src/source_object_velocity_read_only_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_runtime_dsp_section.cpp src/source_runtime_sound_output.cpp src/source_runtime_sound_sdk_resources.cpp src/source_sound_sdk_pool.cpp)
+target_sources(halo2_systems PRIVATE src/native_tu15_world_memory.cpp)
+target_sources(halo2_systems PRIVATE src/native_tu15_camera_packet_data.cpp)
+target_sources(halo2_systems PRIVATE src/native_tu15_prt_cache_data.cpp)
+target_sources(halo2_systems PRIVATE src/native_tu15_main_view_data.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/native_mcc_script_builtin.cpp)
+add_executable(verify_mcc_native_world tools/verify_mcc_native_world.cpp)
+target_link_libraries(verify_mcc_native_world PRIVATE halo2_systems)
+add_executable(verify_campaign_activation_tu15 tools/verify_campaign_activation_tu15.cpp)
+target_link_libraries(verify_campaign_activation_tu15 PRIVATE halo2_renderer)
+if(BUILD_TESTING)
+  add_executable(mcc_script_layout_tests tests/mcc_script_layout_tests.cpp)
+  target_link_libraries(mcc_script_layout_tests PRIVATE halo2_cache)
+  add_test(NAME mcc_script_signature_layout COMMAND mcc_script_layout_tests)
+  add_executable(mcc_cairo_vanilla_script_tests tests/mcc_cairo_vanilla_script_tests.cpp)
+  target_link_libraries(mcc_cairo_vanilla_script_tests PRIVATE halo2_systems)
+  set(HALO2_MCC_CAIRO_SCRIPT_REFERENCE "" CACHE FILEPATH "Optional original Cairo map for the offline script differential")
+  set(HALO2_MCC_CAIRO_SCRIPT_DONOR "" CACHE FILEPATH "Owned MCC Cairo map for the script projection differential")
+  add_test(NAME mcc_cairo_vanilla_script_projection COMMAND mcc_cairo_vanilla_script_tests
+      "${HALO2_MCC_CAIRO_SCRIPT_DONOR}" "${HALO2_MCC_CAIRO_SCRIPT_REFERENCE}")
+  set_tests_properties(mcc_cairo_vanilla_script_projection PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+  add_test(NAME mcc_cairo_vanilla_script_profile COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_cairo_vanilla_scripts.py --check)
+  add_executable(mcc_cairo_vanilla_plan_tests tests/mcc_cairo_vanilla_plan_tests.cpp)
+  target_link_libraries(mcc_cairo_vanilla_plan_tests PRIVATE halo2_systems)
+  set(HALO2_MCC_CAIRO_SCRIPT_RAW_DONOR "" CACHE PATH "Optional authenticated raw Cairo script banks for offline conversion validation")
+  add_test(NAME mcc_cairo_vanilla_internal_data COMMAND mcc_cairo_vanilla_plan_tests
+      "${HALO2_MCC_CAIRO_SCRIPT_DONOR}" "${HALO2_MCC_CAIRO_SCRIPT_REFERENCE}"
+      "${HALO2_MCC_CAIRO_SCRIPT_RAW_DONOR}")
+  set_tests_properties(mcc_cairo_vanilla_internal_data PROPERTIES
+      SKIP_RETURN_CODE 77 TIMEOUT 120 WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+  add_test(NAME mcc_cairo_vanilla_authoring_profile COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_cairo_vanilla_authoring.py --check)
+  add_executable(mcc_cairo_vanilla_global_count_tests tests/mcc_cairo_vanilla_global_count_tests.cpp)
+  target_link_libraries(mcc_cairo_vanilla_global_count_tests PRIVATE halo2_systems)
+  add_test(NAME mcc_cairo_vanilla_global_namespace COMMAND mcc_cairo_vanilla_global_count_tests
+      "${HALO2_MCC_CAIRO_SCRIPT_DONOR}" "${HALO2_MCC_CAIRO_SCRIPT_REFERENCE}")
+  set_tests_properties(mcc_cairo_vanilla_global_namespace PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+  add_executable(source_map_world_crt_tu15_tests tests/source_map_world_crt_tu15_tests.cpp)
+  target_link_libraries(source_map_world_crt_tu15_tests PRIVATE halo2_systems)
+  set(HALO2_MAP_WORLD_CRT_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original CPU fixture for reached TU1.5 CRT callback")
+  add_test(NAME source_map_world_crt_tu15 COMMAND source_map_world_crt_tu15_tests
+      "${HALO2_MAP_WORLD_CRT_REFERENCE_FIXTURE}")
+  set_tests_properties(source_map_world_crt_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+  add_executable(source_object_permutation_tu15_tests tests/source_object_permutation_tu15_tests.cpp)
+  target_link_libraries(source_object_permutation_tu15_tests PRIVATE halo2_systems)
+  set(HALO2_OBJECT_PERMUTATION_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original CPU fixture for TU1.5 model permutation owners")
+  add_test(NAME source_object_permutation_tu15 COMMAND source_object_permutation_tu15_tests
+      "${HALO2_OBJECT_PERMUTATION_REFERENCE_FIXTURE}")
+  set_tests_properties(source_object_permutation_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+  add_executable(mcc_campaign_vanilla_tests tests/mcc_campaign_vanilla_tests.cpp)
+  target_link_libraries(mcc_campaign_vanilla_tests PRIVATE halo2_cache)
+  set(HALO2_MCC_CAMPAIGN_RAW_FIXTURES "" CACHE PATH "Optional owned MCC campaign metadata fixtures for authoring conversion validation")
+  add_test(NAME mcc_campaign_vanilla_authoring COMMAND mcc_campaign_vanilla_tests
+      "${HALO2_MCC_CAMPAIGN_RAW_FIXTURES}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/tools/mcc-campaign-vanilla-authoring.json")
+  set_tests_properties(mcc_campaign_vanilla_authoring PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+  add_test(NAME mcc_campaign_vanilla_authoring_profile COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_mcc_campaign_vanilla.py --check)
+  add_executable(native_mcc_script_builtin_tests tests/native_mcc_script_builtin_tests.cpp)
+  target_link_libraries(native_mcc_script_builtin_tests PRIVATE halo2_systems)
+  add_test(NAME native_mcc_script_clock_getters COMMAND native_mcc_script_builtin_tests)
+  add_executable(script_clock_builtin_tests tests/script_clock_builtin_tests.cpp)
+  target_link_libraries(script_clock_builtin_tests PRIVATE halo2_systems)
+  add_test(NAME mcc_script_clock_initializer_runtime COMMAND script_clock_builtin_tests)
+  add_executable(mcc_rumble_alias_tests tests/mcc_rumble_alias_tests.cpp)
+  target_link_libraries(mcc_rumble_alias_tests PRIVATE halo2_systems)
+  add_test(NAME mcc_script_rumble_original_dispatch COMMAND mcc_rumble_alias_tests)
+  # This integration target consumes the caller's imported MCC map. It has
+  # no dependency on an executable/reference asset or checkout-local map.
+  add_executable(mcc_native_gameplay_startup_tests tests/mcc_native_gameplay_startup_tests.cpp)
+  target_link_libraries(mcc_native_gameplay_startup_tests PRIVATE halo2_systems)
+  add_executable(source_runtime_native_cache_tests tests/source_runtime_native_cache_tests.cpp)
+  target_link_libraries(source_runtime_native_cache_tests PRIVATE halo2_systems)
+  add_test(NAME source_runtime_native_cache_ownership COMMAND source_runtime_native_cache_tests)
+  add_executable(native_cache_authority_tu15_tests tests/native_cache_authority_tu15_tests.cpp)
+  target_link_libraries(native_cache_authority_tu15_tests PRIVATE halo2_systems)
+  set(HALO2_MCC_AUTHORITY_CACHE "" CACHE FILEPATH "Owned MCC multiplayer cache for native authority admission")
+  set(HALO2_MCC_AUTHORITY_REFERENCE_XBE "" CACHE FILEPATH "Optional offline TU1.5 startup reference for native authority admission")
+  add_test(NAME native_mcc_cache_authority_tu15 COMMAND native_cache_authority_tu15_tests
+      "${HALO2_MCC_AUTHORITY_CACHE}" "${CMAKE_CURRENT_BINARY_DIR}/native-mcc-cache-authority"
+      "${HALO2_MCC_AUTHORITY_REFERENCE_XBE}")
+  set_tests_properties(native_mcc_cache_authority_tu15 PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+  add_executable(mcc_sound_duration_world_tests tests/mcc_sound_duration_world_tests.cpp)
+  target_link_libraries(mcc_sound_duration_world_tests PRIVATE halo2_systems)
+  add_test(NAME mcc_sound_duration_world_native COMMAND mcc_sound_duration_world_tests
+      "${HALO2_MCC_AUTHORITY_CACHE}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-sound-duration-world")
+  set_tests_properties(mcc_sound_duration_world_native PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+  add_executable(mcc_resident_cache_address_tests tests/mcc_resident_cache_address_tests.cpp)
+  target_link_libraries(mcc_resident_cache_address_tests PRIVATE halo2_systems)
+  add_test(NAME mcc_resident_cache_address_ownership COMMAND mcc_resident_cache_address_tests
+      "${HALO2_MCC_AUTHORITY_CACHE}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-resident-cache-address")
+  set_tests_properties(mcc_resident_cache_address_ownership PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+endif()
 target_link_libraries(halo2_systems PRIVATE OpenSSL::Crypto)
 target_sources(halo2_physics_world_runtime PRIVATE src/physics_live_support_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_unit_view_reset_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_sound_duration_tu15.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/mcc_sound_duration_tu15.cpp)
+add_library(halo2_script_sound_clock_tu15 STATIC src/source_script_sound_clock_tu15.cpp)
+target_sources(halo2_script_sound_clock_tu15 PRIVATE src/source_script_sound_clock_native64_tu15.cpp)
+target_include_directories(halo2_script_sound_clock_tu15 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(halo2_script_sound_clock_tu15 PUBLIC cxx_std_20)
+if(MSVC)
+  target_compile_options(halo2_script_sound_clock_tu15 PRIVATE /fp:strict)
+else()
+  target_compile_options(halo2_script_sound_clock_tu15 PRIVATE
+      -ffp-contract=off -fno-fast-math -frounding-math)
+endif()
+target_link_libraries(halo2_systems PRIVATE halo2_script_sound_clock_tu15)
+target_sources(halo2_systems PRIVATE src/mcc_sound_variation_provider.cpp)
+if(BUILD_TESTING)
+  add_executable(source_script_sound_clock_tu15_tests tests/source_script_sound_clock_tu15_tests.cpp)
+  target_link_libraries(source_script_sound_clock_tu15_tests PRIVATE halo2_script_sound_clock_tu15)
+  add_test(NAME source_script_sound_clock_tu15_contract COMMAND source_script_sound_clock_tu15_tests)
+  add_executable(source_script_sound_clock_hs_tail_tu15_tests tests/source_script_sound_clock_hs_tail_tu15_tests.cpp)
+  target_link_libraries(source_script_sound_clock_hs_tail_tu15_tests PRIVATE halo2_script_sound_clock_tu15)
+  add_test(NAME source_script_sound_clock_hs_tail_tu15_contract COMMAND source_script_sound_clock_hs_tail_tu15_tests)
+  add_executable(source_script_sound_clock_native64_tu15_tests tests/source_script_sound_clock_native64_tu15_tests.cpp)
+  target_link_libraries(source_script_sound_clock_native64_tu15_tests PRIVATE halo2_script_sound_clock_tu15)
+  add_test(NAME source_script_sound_clock_native64_tu15_contract COMMAND source_script_sound_clock_native64_tu15_tests)
+  add_executable(multiplayer_prepared_script_sound_tu15_tests tests/multiplayer_prepared_script_sound_tu15_tests.cpp)
+  target_link_libraries(multiplayer_prepared_script_sound_tu15_tests PRIVATE halo2_systems)
+  set(HALO2_MCC_PREPARED_SOUND_MAP "" CACHE FILEPATH "Optional owned MCC Lockout map for native prepared Audio validation")
+  add_test(NAME multiplayer_prepared_script_sound_tu15_mcc_only
+      COMMAND multiplayer_prepared_script_sound_tu15_tests "${HALO2_MCC_PREPARED_SOUND_MAP}")
+  set_tests_properties(multiplayer_prepared_script_sound_tu15_mcc_only PROPERTIES
+      SKIP_RETURN_CODE 77 TIMEOUT 120 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+  add_executable(mcc_sound_variation_provider_tests tests/mcc_sound_variation_provider_tests.cpp)
+  target_link_libraries(mcc_sound_variation_provider_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+  set(HALO2_MCC_NATIVE_SOUND_MAP "" CACHE FILEPATH "Optional owned MCC map for converted native sound metadata validation")
+  add_test(NAME mcc_sound_variation_provider_mcc_only
+      COMMAND mcc_sound_variation_provider_tests "${HALO2_MCC_NATIVE_SOUND_MAP}")
+  set_tests_properties(mcc_sound_variation_provider_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+  add_executable(mcc_native_audio_metadata_tests tests/mcc_native_audio_metadata_tests.cpp)
+  target_link_libraries(mcc_native_audio_metadata_tests PRIVATE halo2_systems)
+  set(HALO2_MCC_NATIVE_AUDIO_MAP "" CACHE FILEPATH "Optional owned MCC map for converted metadata to Audio validation")
+  add_test(NAME mcc_native_audio_metadata_mcc_only
+      COMMAND mcc_native_audio_metadata_tests "${HALO2_MCC_NATIVE_AUDIO_MAP}"
+      "${CMAKE_CURRENT_BINARY_DIR}/mcc-native-audio-metadata-fixture")
+  set_tests_properties(mcc_native_audio_metadata_mcc_only PROPERTIES
+      SKIP_RETURN_CODE 77 TIMEOUT 300 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+  add_executable(mcc_native_audio_first_permutation_tests tests/mcc_native_audio_first_permutation_tests.cpp)
+  target_link_libraries(mcc_native_audio_first_permutation_tests PRIVATE halo2_systems)
+  set(HALO2_MCC_NATIVE_AUDIO_FIRST_PERMUTATION_MAP "" CACHE FILEPATH "Optional owned MCC map for shared initial selection to native PCM validation")
+  add_test(NAME mcc_native_audio_first_permutation_mcc_only
+      COMMAND mcc_native_audio_first_permutation_tests "${HALO2_MCC_NATIVE_AUDIO_FIRST_PERMUTATION_MAP}"
+      "${CMAKE_CURRENT_BINARY_DIR}/mcc-native-audio-first-permutation-fixture")
+  set_tests_properties(mcc_native_audio_first_permutation_mcc_only PROPERTIES
+      SKIP_RETURN_CODE 77 TIMEOUT 300 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+  add_executable(mcc_native_audio_owner_pairing_tests tests/mcc_native_audio_owner_pairing_tests.cpp)
+  target_link_libraries(mcc_native_audio_owner_pairing_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+  add_test(NAME mcc_native_audio_owner_pairing_mcc_only
+      COMMAND mcc_native_audio_owner_pairing_tests "${HALO2_MCC_NATIVE_AUDIO_MAP}"
+      "${CMAKE_CURRENT_BINARY_DIR}/mcc-native-audio-owner-pairing-fixture")
+  set_tests_properties(mcc_native_audio_owner_pairing_mcc_only PROPERTIES
+      SKIP_RETURN_CODE 77 TIMEOUT 300 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+  add_executable(mcc_script_sound_world_access_tests tests/mcc_script_sound_world_access_tests.cpp)
+  target_link_libraries(mcc_script_sound_world_access_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+  set(HALO2_MCC_SCRIPT_SOUND_WORLD_MAP "" CACHE FILEPATH "Optional owned MCC map for actual World script sound policy validation")
+  add_test(NAME mcc_script_sound_world_access_mcc_only
+      COMMAND mcc_script_sound_world_access_tests "${HALO2_MCC_SCRIPT_SOUND_WORLD_MAP}"
+      "${CMAKE_CURRENT_BINARY_DIR}/mcc-script-sound-world-fixture")
+  set_tests_properties(mcc_script_sound_world_access_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+  add_executable(mcc_script_sound_selected_seconds_tests tests/mcc_script_sound_selected_seconds_tests.cpp)
+  target_link_libraries(mcc_script_sound_selected_seconds_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+  add_test(NAME mcc_script_sound_selected_seconds_mcc_only
+      COMMAND mcc_script_sound_selected_seconds_tests "${HALO2_MCC_SCRIPT_SOUND_WORLD_MAP}"
+      "${CMAKE_CURRENT_BINARY_DIR}/mcc-script-sound-selected-seconds-fixture")
+  set_tests_properties(mcc_script_sound_selected_seconds_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 360)
+  add_executable(mcc_script_sound_first_permutation_tests tests/mcc_script_sound_first_permutation_tests.cpp)
+  target_link_libraries(mcc_script_sound_first_permutation_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+  set(HALO2_MCC_SCRIPT_SOUND_FIRST_PERMUTATION_MAP "" CACHE FILEPATH "Optional owned MCC map for native shared first-permutation validation")
+  add_test(NAME mcc_script_sound_first_permutation_mcc_only
+      COMMAND mcc_script_sound_first_permutation_tests "${HALO2_MCC_SCRIPT_SOUND_FIRST_PERMUTATION_MAP}"
+      "${CMAKE_CURRENT_BINARY_DIR}/mcc-script-sound-first-permutation-fixture")
+  set_tests_properties(mcc_script_sound_first_permutation_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 300)
+  add_executable(script_sound_query_tu15_tests tests/script_sound_query_tu15_tests.cpp)
+  target_link_libraries(script_sound_query_tu15_tests PRIVATE halo2_systems)
+  add_test(NAME script_sound_query_tu15_contract COMMAND script_sound_query_tu15_tests)
+  add_executable(script_sound_query_world_tu15_tests tests/script_sound_query_world_tu15_tests.cpp)
+  target_link_libraries(script_sound_query_world_tu15_tests PRIVATE halo2_systems)
+  set(HALO2_MCC_SCRIPT_SOUND_QUERY_MAP "" CACHE FILEPATH "Optional owned MCC map for World-backed HS sound query validation")
+  add_test(NAME script_sound_query_world_tu15_mcc_only
+      COMMAND script_sound_query_world_tu15_tests "${HALO2_MCC_SCRIPT_SOUND_QUERY_MAP}"
+      "${CMAKE_CURRENT_BINARY_DIR}/script-sound-query-world-fixture")
+  set_tests_properties(script_sound_query_world_tu15_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
+  add_executable(mcc_script_sound_query_service_tu15_tests tests/mcc_script_sound_query_service_tu15_tests.cpp)
+  target_link_libraries(mcc_script_sound_query_service_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+  add_test(NAME mcc_script_sound_query_service_tu15_mcc_only
+      COMMAND mcc_script_sound_query_service_tu15_tests "${HALO2_MCC_SCRIPT_SOUND_QUERY_MAP}"
+      "${CMAKE_CURRENT_BINARY_DIR}/mcc-script-sound-query-service-fixture")
+  set_tests_properties(mcc_script_sound_query_service_tu15_mcc_only PROPERTIES
+      SKIP_RETURN_CODE 77 TIMEOUT 360 ENVIRONMENT "SDL_AUDIODRIVER=dummy")
+  add_executable(native_tu15_submitted_lens_inputs_tests tests/native_tu15_submitted_lens_inputs_tests.cpp)
+  target_link_libraries(native_tu15_submitted_lens_inputs_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+  add_test(NAME native_tu15_submitted_lens_inputs_contract COMMAND native_tu15_submitted_lens_inputs_tests)
+  set(HALO2_TU15_SUBMITTED_LENS_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original CPU lens input fixture")
+  add_test(NAME native_tu15_submitted_lens_inputs_reference
+      COMMAND native_tu15_submitted_lens_inputs_tests "${HALO2_TU15_SUBMITTED_LENS_REFERENCE_FIXTURE}")
+  set_tests_properties(native_tu15_submitted_lens_inputs_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+  add_executable(native_tu15_renderer_resource_factory_tests tests/native_tu15_renderer_resource_factory_tests.cpp)
+  target_link_libraries(native_tu15_renderer_resource_factory_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+  add_test(NAME native_tu15_renderer_resource_factory_contract COMMAND native_tu15_renderer_resource_factory_tests)
+  set(HALO2_TU15_RESOURCE_RESET_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original CPU resource reset fixture")
+  add_test(NAME native_tu15_renderer_resource_factory_reference
+      COMMAND native_tu15_renderer_resource_factory_tests "${HALO2_TU15_RESOURCE_RESET_REFERENCE_FIXTURE}")
+  set_tests_properties(native_tu15_renderer_resource_factory_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+  add_executable(source_sound_duration_tu15_tests tests/source_sound_duration_tu15_tests.cpp)
+  target_link_libraries(source_sound_duration_tu15_tests PRIVATE halo2_physics_world_runtime halo2_mcc_sound_tag_layout)
+  add_test(NAME source_sound_duration_tu15_admission COMMAND source_sound_duration_tu15_tests)
+  add_test(NAME source_sound_duration_tu15_manifest COMMAND ${Python3_EXECUTABLE}
+      ${CMAKE_CURRENT_SOURCE_DIR}/tools/generate_source_sound_duration_tu15.py --check)
+endif()
 target_sources(halo2_physics_world_runtime PRIVATE src/source_object_material_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_damage_feedback_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_recorded_animation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_level_handles_new_map_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_havok_static_lifetime_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_shadow_frame_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_cinematic_shadow_control_tu15_generated.cpp)
@@ -54,11 +273,26 @@ target_sources(halo2_physics_world_runtime PRIVATE src/source_contrail_geometry_
 target_sources(halo2_physics_world_runtime PRIVATE src/source_lens_flare_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_script_effect_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_cinematic_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_completion_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_activation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_audio_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_sound_dsp_image_tu15_generated.cpp)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    set_source_files_properties(src/source_campaign_completion_tu15_generated.cpp
+        src/source_level_handles_new_map_tu15_generated.cpp
+        src/source_campaign_activation_tu15_generated.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+    set_source_files_properties(src/source_campaign_audio_tu15_generated.cpp
+        src/source_sound_dsp_image_tu15_generated.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
 target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_camera_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_screen_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_dof_recipe_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_animation_composition_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_object_functions_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_unit_cinematic_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_unit_speech_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_resource_cache_pressure_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_sandbox_special_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_sound_startup_tu15_generated.cpp src/source_sound_sdk_tu15_generated.cpp)
@@ -71,12 +305,27 @@ if(BUILD_TESTING)
     target_link_libraries(source_live_shadow_phase_inputs_tu15_tests PRIVATE
         halo2_renderer nlohmann_json::nlohmann_json)
     add_executable(native_vehicle_camera_tu15_tests tests/native_vehicle_camera_tu15_tests.cpp)
-    target_link_libraries(native_vehicle_camera_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    target_link_libraries(native_vehicle_camera_tu15_tests PRIVATE halo2_systems halo2_authority_codec nlohmann_json::nlohmann_json)
     add_test(NAME native_vehicle_camera_tu15 COMMAND native_vehicle_camera_tu15_tests
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
     set_tests_properties(native_vehicle_camera_tu15 PROPERTIES TIMEOUT 600 SKIP_RETURN_CODE 77)
+    foreach(camera_case ghost-driver warthog-passenger)
+      add_test(NAME native_vehicle_camera_continuation_${camera_case}_tu15 COMMAND native_vehicle_camera_tu15_tests
+          "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
+          "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+          "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
+      set_tests_properties(native_vehicle_camera_continuation_${camera_case}_tu15 PROPERTIES
+          TIMEOUT 240 SKIP_RETURN_CODE 77
+          ENVIRONMENT "HALO2_VEHICLE_CAMERA_CASE=${camera_case};HALO2_VEHICLE_CAMERA_CONTINUATION=1;HALO2_CAMERA_CONTINUATION_OUTPUT=@HALO2_TEST_SCRATCH@/camera-continuation-${camera_case}")
+    endforeach()
+    add_test(NAME native_vehicle_camera_continuation_death_tu15 COMMAND native_vehicle_camera_tu15_tests
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
+        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
+    set_tests_properties(native_vehicle_camera_continuation_death_tu15 PROPERTIES TIMEOUT 240 SKIP_RETURN_CODE 77
+        ENVIRONMENT "HALO2_VEHICLE_CAMERA_CASE=ghost-driver;HALO2_TU15_TEST_SEATED_DEATH=1;HALO2_VEHICLE_CAMERA_CONTINUATION=1;HALO2_CAMERA_CONTINUATION_OUTPUT=@HALO2_TEST_SCRATCH@/camera-continuation-death")
     foreach(input_context local remote)
       add_test(NAME native_vehicle_camera_${input_context}_driver_reset_tu15 COMMAND native_vehicle_camera_tu15_tests
           "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/coagulation.map"
@@ -149,14 +398,47 @@ if(BUILD_TESTING)
         "${HALO2_TU15_AI_FRAME_CAPTURE_DIRECTORY}" 0x1d0670
         "${CMAKE_CURRENT_BINARY_DIR}/original-ai-frame-native")
     set_tests_properties(original_tu15_ai_frame PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    set(HALO2_TU15_DAMAGE_FEEDBACK_CAPTURE_DIRECTORY "" CACHE PATH "Owned same-input original damage-feedback replay and host i386 evidence")
+    add_executable(damage_feedback_tu15_tests tools/replay_native_ai_frame_tu15.cpp)
+    target_compile_definitions(damage_feedback_tu15_tests PRIVATE
+        HALO2_REPLAY_DAMAGE_FEEDBACK_TU15=1 HALO2_REPLAY_DAMAGE_FEEDBACK_SUPPORT_TU15=1)
+    target_include_directories(damage_feedback_tu15_tests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    target_link_libraries(damage_feedback_tu15_tests PRIVATE halo2_systems)
+    add_test(NAME original_tu15_damage_feedback COMMAND damage_feedback_tu15_tests
+        "${HALO2_TU15_DAMAGE_FEEDBACK_CAPTURE_DIRECTORY}" 0x1f5620
+        "${CMAKE_CURRENT_BINARY_DIR}/original-damage-feedback-native")
+    set_tests_properties(original_tu15_damage_feedback PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    set(HALO2_TU15_UNIT_REACTION_CAPTURE_DIRECTORY "" CACHE PATH "Owned same-input original unit-reaction replay and host i386 evidence")
+    add_test(NAME original_tu15_unit_reaction COMMAND damage_feedback_tu15_tests
+        "${HALO2_TU15_UNIT_REACTION_CAPTURE_DIRECTORY}" 0xe3e20
+        "${CMAKE_CURRENT_BINARY_DIR}/original-unit-reaction-native")
+    set_tests_properties(original_tu15_unit_reaction PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    set(HALO2_TU15_PROJECTILE_CONTACT_EFFECT_CAPTURE_DIRECTORY "" CACHE PATH "Owned same-input original projectile contact-effect replay and host i386 evidence")
+    add_executable(projectile_contact_effect_tu15_tests tools/replay_native_ai_frame_tu15.cpp)
+    target_compile_definitions(projectile_contact_effect_tu15_tests PRIVATE
+        HALO2_REPLAY_EFFECT_PARTICLE_FRAME_TU15=1 HALO2_REPLAY_EFFECT_PARTICLE_SUPPORT_TU15=1)
+    target_link_libraries(projectile_contact_effect_tu15_tests PRIVATE halo2_systems)
+    add_test(NAME original_tu15_projectile_contact_effect COMMAND projectile_contact_effect_tu15_tests
+        "${HALO2_TU15_PROJECTILE_CONTACT_EFFECT_CAPTURE_DIRECTORY}" 0x178e30
+        "${CMAKE_CURRENT_BINARY_DIR}/original-projectile-contact-effect-native")
+    set_tests_properties(original_tu15_projectile_contact_effect PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
     set(HALO2_TU15_BOOT_SMC_CAPTURE_DIRECTORY "" CACHE PATH "Observed owned original boot SMC transaction")
     add_executable(source_sound_audio_mode_tu15_tests tests/source_sound_audio_mode_tu15_tests.cpp)
     target_link_libraries(source_sound_audio_mode_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_sound_audio_mode COMMAND source_sound_audio_mode_tu15_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
         "${HALO2_TU15_BOOT_SMC_CAPTURE_DIRECTORY}" "${HALO2_TU15_SOUND_USER_EEPROM}"
-        "${CMAKE_CURRENT_BINARY_DIR}/native-sound-audio-mode")
+        "@HALO2_TEST_SCRATCH@/native-sound-audio-mode")
     set_tests_properties(native_tu15_sound_audio_mode PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    set(HALO2_TU15_BOOT_SMC_INPUT "" CACHE FILEPATH "Owned H2SMCR1 boot SMC transaction input resource")
+    set(HALO2_TU15_BOOT_SMC_INPUT_REPORT "" CACHE FILEPATH "Independent observed boot SMC transaction report")
+    add_executable(source_boot_smc_video_mode_input_tests tests/source_boot_smc_video_mode_input_tests.cpp)
+    target_link_libraries(source_boot_smc_video_mode_input_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_boot_smc_input COMMAND source_boot_smc_video_mode_input_tests
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
+        "${HALO2_TU15_BOOT_SMC_INPUT}" "${HALO2_TU15_BOOT_SMC_INPUT_REPORT}"
+        "${CMAKE_CURRENT_BINARY_DIR}/native-boot-smc-input")
+    set_tests_properties(native_tu15_boot_smc_input PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 30)
     add_executable(contrail_geometry_tu15_tests tests/contrail_geometry_tu15_tests.cpp)
     target_link_libraries(contrail_geometry_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME original_tu15_contrail_geometry COMMAND contrail_geometry_tu15_tests
@@ -194,24 +476,165 @@ if(BUILD_TESTING)
     target_link_libraries(source_runtime_sound_audio_settings_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_sound_audio_settings COMMAND source_runtime_sound_audio_settings_tests
         "${HALO2_TU15_SOUND_SDK_CAPTURE_DIRECTORY}" "${HALO2_TU15_SOUND_AUDIO_CAPTURE_DIRECTORY}"
-        "${HALO2_TU15_SOUND_USER_EEPROM}" "${CMAKE_CURRENT_BINARY_DIR}/native-sound-audio-settings")
+        "${HALO2_TU15_SOUND_USER_EEPROM}" "@HALO2_TEST_SCRATCH@/native-sound-audio-settings")
     set_tests_properties(native_tu15_sound_audio_settings PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     add_executable(source_sound_sdk_pool_tests tests/source_sound_sdk_pool_tests.cpp)
     target_link_libraries(source_sound_sdk_pool_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_sound_sdk_pool_capacity COMMAND source_sound_sdk_pool_tests
         "${HALO2_TU15_SOUND_SDK_CAPTURE_DIRECTORY}" "${HALO2_TU15_SOUND_POOL_RULES_CAPTURE_DIRECTORY}"
-        "${CMAKE_CURRENT_BINARY_DIR}/native-sound-sdk-pool")
+        "@HALO2_TEST_SCRATCH@/native-sound-sdk-pool")
     set_tests_properties(native_tu15_sound_sdk_pool_capacity PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     add_executable(source_runtime_sound_sdk_tests tests/source_runtime_sound_sdk_tests.cpp)
     target_link_libraries(source_runtime_sound_sdk_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_sound_sdk_resources COMMAND source_runtime_sound_sdk_tests
-        "${HALO2_TU15_SOUND_SDK_CAPTURE_DIRECTORY}" "${CMAKE_CURRENT_BINARY_DIR}/native-sound-sdk-prefix")
+        "${HALO2_TU15_SOUND_SDK_CAPTURE_DIRECTORY}" "@HALO2_TEST_SCRATCH@/native-sound-sdk-prefix")
     set_tests_properties(native_tu15_sound_sdk_resources PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     add_executable(source_runtime_sound_output_tests tests/source_runtime_sound_output_tests.cpp)
     target_link_libraries(source_runtime_sound_output_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_sound_output_resources COMMAND source_runtime_sound_output_tests
-        "${HALO2_TU15_SOUND_DEVICE_CAPTURE_DIRECTORY}" "${CMAKE_CURRENT_BINARY_DIR}/native-sound-output-prefix")
+        "${HALO2_TU15_SOUND_DEVICE_CAPTURE_DIRECTORY}" "@HALO2_TEST_SCRATCH@/native-sound-output-prefix")
     set_tests_properties(native_tu15_sound_output_resources PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
+    add_executable(source_runtime_dsp_demand_tests tests/source_runtime_dsp_demand_tests.cpp)
+    add_executable(source_runtime_mcc_resources_tests tests/source_runtime_mcc_resources_tests.cpp)
+    target_link_libraries(source_runtime_mcc_resources_tests PRIVATE halo2_systems)
+    add_test(NAME native_mcc_resource_ownership COMMAND source_runtime_mcc_resources_tests)
+    add_executable(native_tu15_world_memory_tests tests/native_tu15_world_memory_tests.cpp)
+    target_link_libraries(native_tu15_world_memory_tests PRIVATE halo2_systems)
+    add_test(NAME native_tu15_world_memory_ownership COMMAND native_tu15_world_memory_tests)
+    add_executable(native_tu15_renderer_context_data_tests tests/native_tu15_renderer_context_data_tests.cpp)
+    target_link_libraries(native_tu15_renderer_context_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_renderer_context_data_contract COMMAND native_tu15_renderer_context_data_tests)
+    add_executable(native_tu15_model_animation_gate_data_tests tests/native_tu15_model_animation_gate_data_tests.cpp)
+    target_link_libraries(native_tu15_model_animation_gate_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_model_animation_gate_data_contract COMMAND native_tu15_model_animation_gate_data_tests)
+    set(HALO2_TU15_MODEL_ANIMATION_GATE_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original model animation predicate comparison fixture")
+    add_test(NAME native_tu15_model_animation_gate_data_reference COMMAND native_tu15_model_animation_gate_data_tests
+        "${HALO2_TU15_MODEL_ANIMATION_GATE_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_model_animation_gate_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_MODEL_ANIMATION_GATE_MAP "" CACHE FILEPATH "Optional owned MCC map for model animation predicate data validation")
+    add_test(NAME native_tu15_model_animation_gate_data_mcc_only COMMAND native_tu15_model_animation_gate_data_tests
+        --mcc "${HALO2_MCC_MODEL_ANIMATION_GATE_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-model-animation-gate-fixture")
+    set_tests_properties(native_tu15_model_animation_gate_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(native_tu15_model_probe_vectors_data_tests tests/native_tu15_model_probe_vectors_data_tests.cpp)
+    target_link_libraries(native_tu15_model_probe_vectors_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_model_probe_vectors_data_contract COMMAND native_tu15_model_probe_vectors_data_tests)
+    set(HALO2_TU15_MODEL_PROBE_VECTORS_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original model vectors comparison fixture")
+    add_test(NAME native_tu15_model_probe_vectors_data_reference COMMAND native_tu15_model_probe_vectors_data_tests "${HALO2_TU15_MODEL_PROBE_VECTORS_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_model_probe_vectors_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_MODEL_PROBE_VECTORS_MAP "" CACHE FILEPATH "Optional owned MCC map for model vectors data validation")
+    add_test(NAME native_tu15_model_probe_vectors_data_mcc_only COMMAND native_tu15_model_probe_vectors_data_tests
+        --mcc "${HALO2_MCC_MODEL_PROBE_VECTORS_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-model-vectors-fixture")
+    set_tests_properties(native_tu15_model_probe_vectors_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(native_tu15_model_probe_selector_data_tests tests/native_tu15_model_probe_selector_data_tests.cpp)
+    target_link_libraries(native_tu15_model_probe_selector_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_model_probe_selector_data_contract COMMAND native_tu15_model_probe_selector_data_tests)
+    set(HALO2_TU15_MODEL_PROBE_SELECTOR_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original model selector comparison fixture")
+    add_test(NAME native_tu15_model_probe_selector_data_reference COMMAND native_tu15_model_probe_selector_data_tests "${HALO2_TU15_MODEL_PROBE_SELECTOR_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_model_probe_selector_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_MODEL_PROBE_SELECTOR_MAP "" CACHE FILEPATH "Optional owned MCC map for model selector data validation")
+    add_test(NAME native_tu15_model_probe_selector_data_mcc_only COMMAND native_tu15_model_probe_selector_data_tests
+        --mcc "${HALO2_MCC_MODEL_PROBE_SELECTOR_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-model-selector-fixture")
+    set_tests_properties(native_tu15_model_probe_selector_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(native_tu15_model_probe_colors_data_tests tests/native_tu15_model_probe_colors_data_tests.cpp)
+    target_link_libraries(native_tu15_model_probe_colors_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_model_probe_colors_data_contract COMMAND native_tu15_model_probe_colors_data_tests)
+    set(HALO2_TU15_MODEL_PROBE_COLORS_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original model colors comparison fixture")
+    add_test(NAME native_tu15_model_probe_colors_data_reference COMMAND native_tu15_model_probe_colors_data_tests "${HALO2_TU15_MODEL_PROBE_COLORS_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_model_probe_colors_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_MODEL_PROBE_COLORS_MAP "" CACHE FILEPATH "Optional owned MCC map for model colors data validation")
+    add_test(NAME native_tu15_model_probe_colors_data_mcc_only COMMAND native_tu15_model_probe_colors_data_tests
+        --mcc "${HALO2_MCC_MODEL_PROBE_COLORS_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-model-colors-fixture")
+    set_tests_properties(native_tu15_model_probe_colors_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(native_tu15_model_probe_clamp_data_tests tests/native_tu15_model_probe_clamp_data_tests.cpp)
+    target_link_libraries(native_tu15_model_probe_clamp_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_model_probe_clamp_data_contract COMMAND native_tu15_model_probe_clamp_data_tests)
+    set(HALO2_TU15_MODEL_PROBE_CLAMP_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original model clamp comparison fixture")
+    add_test(NAME native_tu15_model_probe_clamp_data_reference COMMAND native_tu15_model_probe_clamp_data_tests
+        "${HALO2_TU15_MODEL_PROBE_CLAMP_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_model_probe_clamp_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_MODEL_PROBE_CLAMP_MAP "" CACHE FILEPATH "Optional owned MCC map for model clamp data validation")
+    add_test(NAME native_tu15_model_probe_clamp_data_mcc_only COMMAND native_tu15_model_probe_clamp_data_tests
+        --mcc "${HALO2_MCC_MODEL_PROBE_CLAMP_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-model-clamp-fixture")
+    set_tests_properties(native_tu15_model_probe_clamp_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(native_tu15_first_person_model_count_data_tests tests/native_tu15_first_person_model_count_data_tests.cpp)
+    target_link_libraries(native_tu15_first_person_model_count_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_first_person_model_count_data_contract COMMAND native_tu15_first_person_model_count_data_tests)
+    set(HALO2_TU15_FP_MODEL_COUNT_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original first-person count comparison fixture")
+    add_test(NAME native_tu15_first_person_model_count_data_reference COMMAND native_tu15_first_person_model_count_data_tests
+        "${HALO2_TU15_FP_MODEL_COUNT_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_first_person_model_count_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_FP_MODEL_COUNT_MAP "" CACHE FILEPATH "Optional owned MCC map for first-person count storage validation")
+    add_test(NAME native_tu15_first_person_model_count_data_mcc_only COMMAND native_tu15_first_person_model_count_data_tests
+        --mcc "${HALO2_MCC_FP_MODEL_COUNT_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-fp-model-count-fixture")
+    set_tests_properties(native_tu15_first_person_model_count_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(native_tu15_rasterizer_globals_pointer_data_tests tests/native_tu15_rasterizer_globals_pointer_data_tests.cpp)
+    target_link_libraries(native_tu15_rasterizer_globals_pointer_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_rasterizer_globals_pointer_data_contract COMMAND native_tu15_rasterizer_globals_pointer_data_tests)
+    set(HALO2_TU15_RASTERIZER_POINTER_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original rasterizer globals pointer comparison fixture")
+    add_test(NAME native_tu15_rasterizer_globals_pointer_data_reference COMMAND native_tu15_rasterizer_globals_pointer_data_tests
+        "${HALO2_TU15_RASTERIZER_POINTER_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_rasterizer_globals_pointer_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_RASTERIZER_POINTER_MAP "" CACHE FILEPATH "Optional owned MCC map for rasterizer globals pointer storage validation")
+    add_test(NAME native_tu15_rasterizer_globals_pointer_data_mcc_only COMMAND native_tu15_rasterizer_globals_pointer_data_tests
+        --mcc "${HALO2_MCC_RASTERIZER_POINTER_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-rasterizer-pointer-fixture")
+    set_tests_properties(native_tu15_rasterizer_globals_pointer_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(native_tu15_viewport_coordinate_data_tests tests/native_tu15_viewport_coordinate_data_tests.cpp)
+    target_link_libraries(native_tu15_viewport_coordinate_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_viewport_coordinate_data_contract COMMAND native_tu15_viewport_coordinate_data_tests)
+    set(HALO2_TU15_VIEWPORT_COORDINATE_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original viewport CPU comparison fixture")
+    add_test(NAME native_tu15_viewport_coordinate_data_reference COMMAND native_tu15_viewport_coordinate_data_tests
+        "${HALO2_TU15_VIEWPORT_COORDINATE_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_viewport_coordinate_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_VIEWPORT_COORDINATE_MAP "" CACHE FILEPATH "Optional owned MCC map for viewport output storage validation")
+    add_test(NAME native_tu15_viewport_coordinate_data_mcc_only COMMAND native_tu15_viewport_coordinate_data_tests
+        --mcc "${HALO2_MCC_VIEWPORT_COORDINATE_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-viewport-coordinate-fixture")
+    set_tests_properties(native_tu15_viewport_coordinate_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    set(HALO2_TU15_RENDERER_CONTEXT_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original renderer-context CPU comparison fixture")
+    add_test(NAME native_tu15_renderer_context_data_reference COMMAND native_tu15_renderer_context_data_tests
+        "${HALO2_TU15_RENDERER_CONTEXT_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_renderer_context_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    set(HALO2_MCC_RENDERER_CONTEXT_MAP "" CACHE FILEPATH "Optional owned MCC map for current renderer-context storage validation")
+    add_test(NAME native_tu15_renderer_context_data_mcc_only COMMAND native_tu15_renderer_context_data_tests
+        --mcc "${HALO2_MCC_RENDERER_CONTEXT_MAP}" "${CMAKE_CURRENT_BINARY_DIR}/mcc-renderer-context-fixture")
+    set_tests_properties(native_tu15_renderer_context_data_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_executable(native_tu15_camera_packet_data_tests tests/native_tu15_camera_packet_data_tests.cpp)
+    target_link_libraries(native_tu15_camera_packet_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_camera_packet_data_contract COMMAND native_tu15_camera_packet_data_tests)
+    set(HALO2_TU15_CAMERA_PACKET_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original camera CRT CPU comparison fixture")
+    add_test(NAME native_tu15_camera_packet_data_reference COMMAND native_tu15_camera_packet_data_tests
+        "${HALO2_TU15_CAMERA_PACKET_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_camera_packet_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    add_executable(native_tu15_camera_dispatch_table_tests tests/native_tu15_camera_dispatch_table_tests.cpp)
+    target_link_libraries(native_tu15_camera_dispatch_table_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_camera_dispatch_table_contract COMMAND native_tu15_camera_dispatch_table_tests)
+    set(HALO2_TU15_CAMERA_DISPATCH_REFERENCE_XBE "" CACHE FILEPATH "Optional offline original camera mode table comparison image")
+    add_test(NAME native_tu15_camera_dispatch_table_reference COMMAND native_tu15_camera_dispatch_table_tests
+        "${HALO2_TU15_CAMERA_DISPATCH_REFERENCE_XBE}")
+    set_tests_properties(native_tu15_camera_dispatch_table_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    add_executable(native_tu15_prt_cache_data_tests tests/native_tu15_prt_cache_data_tests.cpp)
+    target_link_libraries(native_tu15_prt_cache_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_prt_cache_data_contract COMMAND native_tu15_prt_cache_data_tests)
+    set(HALO2_TU15_PRT_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original PRT CPU comparison fixture")
+    add_test(NAME native_tu15_prt_cache_data_reference COMMAND native_tu15_prt_cache_data_tests
+        "${HALO2_TU15_PRT_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_prt_cache_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    add_executable(native_tu15_main_view_data_tests tests/native_tu15_main_view_data_tests.cpp)
+    target_link_libraries(native_tu15_main_view_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_main_view_data_contract COMMAND native_tu15_main_view_data_tests)
+    set(HALO2_TU15_MAIN_VIEW_REFERENCE_FIXTURE "" CACHE FILEPATH "Optional offline original main-view CPU comparison fixture")
+    add_test(NAME native_tu15_main_view_data_reference COMMAND native_tu15_main_view_data_tests
+        "${HALO2_TU15_MAIN_VIEW_REFERENCE_FIXTURE}")
+    set_tests_properties(native_tu15_main_view_data_reference PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 60)
+    add_executable(native_tu15_renderer_transparent_factory_tests tests/native_tu15_renderer_transparent_factory_tests.cpp)
+    target_link_libraries(native_tu15_renderer_transparent_factory_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_renderer_transparent_factory_contract COMMAND native_tu15_renderer_transparent_factory_tests)
+    set(HALO2_MCC_TRANSPARENT_MAP "" CACHE FILEPATH "Optional owned MCC map for native transparent storage constructor validation")
+    add_test(NAME native_tu15_renderer_transparent_factory_mcc_only
+        COMMAND native_tu15_renderer_transparent_factory_tests "${HALO2_MCC_TRANSPARENT_MAP}"
+        "${CMAKE_CURRENT_BINARY_DIR}/mcc-transparent-factory-fixture")
+    set_tests_properties(native_tu15_renderer_transparent_factory_mcc_only PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    target_link_libraries(source_runtime_dsp_demand_tests PRIVATE halo2_systems)
+    add_test(NAME native_pcm_dsp_demand COMMAND source_runtime_dsp_demand_tests)
     add_executable(source_runtime_dsp_section_tests tests/source_runtime_dsp_section_tests.cpp)
     target_link_libraries(source_runtime_dsp_section_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_dsp_section_resources COMMAND source_runtime_dsp_section_tests
@@ -455,7 +878,7 @@ endif()
 
 target_sources(halo2_physics_world_runtime PRIVATE src/source_projectile_effect_observer.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_world_locations.cpp)
-target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_raw_datum_pool_identity)
+target_link_libraries(halo2_physics_world_runtime PUBLIC halo2_raw_datum_pool_identity halo2_mcc_sound_tag_layout)
 target_sources(halo2_systems PRIVATE src/source_projectile_presentation.cpp)
 target_sources(halo2_systems PRIVATE src/source_combat_attachments.cpp)
 
@@ -480,6 +903,10 @@ endif()
 target_sources(halo2_systems PRIVATE src/source_effect_light_birth_tu15.cpp)
 
 if(BUILD_TESTING)
+    add_executable(source_machine_world_tu15_tests EXCLUDE_FROM_ALL tests/source_machine_world_tu15_tests.cpp)
+    target_link_libraries(source_machine_world_tu15_tests PRIVATE halo2_renderer nlohmann_json::nlohmann_json)
+    add_executable(fp_inherited_binding_tu15_tests EXCLUDE_FROM_ALL tests/fp_inherited_binding_tu15_tests.cpp)
+    target_link_libraries(fp_inherited_binding_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_executable(campaign_multiplayer_world_tu15_tests EXCLUDE_FROM_ALL tests/campaign_multiplayer_world_tu15_tests.cpp)
     target_link_libraries(campaign_multiplayer_world_tu15_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
 endif()

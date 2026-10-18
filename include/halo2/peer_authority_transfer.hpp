@@ -42,6 +42,9 @@ inline constexpr std::uint32_t authority_feature_source_lens_query=8u;
 inline constexpr std::uint32_t authority_feature_source_lens_draw=16u;
 inline constexpr std::uint32_t authority_feature_source_particle_collision=32u;
 inline constexpr std::uint32_t authority_feature_source_projectile_contacts=64u;
+// Bounded two-cut delivery; byte receipt is still not native validation.
+inline constexpr std::uint32_t authority_feature_source_pipeline=128u;
+inline constexpr std::uint32_t authority_feature_source_host_continuation=256u;
 struct AuthorityTransferLimits {
     std::uint64_t maximum_bytes=64ull*1024*1024;
     std::uint64_t bytes_per_second=512ull*1024;
@@ -68,6 +71,12 @@ public:
     bool feature_supported(unsigned peer,std::uint32_t feature)const;
     AuthorityCutSeal publish(const AuthorityTransferContext &expected,std::uint64_t tick,
         std::vector<std::byte> archive,std::span<const unsigned> targets,std::uint64_t now_ms);
+    bool delivered_to(const AuthorityTransferContext &,const AuthorityCutSeal &,unsigned peer)const;
+    // Append one cut only after all previous bytes were acknowledged. Requires
+    // both endpoints' pipeline capability; preserves the earlier validation
+    // receipt and permits at most two unvalidated cuts per physical peer.
+    AuthorityCutSeal publish_ahead(const AuthorityTransferContext &,const AuthorityCutSeal &previous,
+        std::uint64_t tick,std::vector<std::byte>,unsigned peer,std::uint64_t now_ms);
     std::vector<AuthorityTransferPacket> poll(std::uint64_t now_ms,unsigned packet_budget=4);
     // True means an authority packet was consumed, including a rejected one.
     bool receive(unsigned authenticated_peer,std::span<const std::byte>,std::uint64_t now_ms);
@@ -75,6 +84,9 @@ public:
     // Only the owning executor may call this, after decoding and complete world
     // preparation. Byte receipt/checksum completion never acknowledges a world.
     bool acknowledge_validated(const AuthorityTransferContext &,const AuthorityCutSeal &);
+    // Discard a delivered cut which failed native preflight/execution. This
+    // frees its bounded receive slot and never acknowledges a world.
+    bool reject_delivered(const AuthorityTransferContext &,const AuthorityCutSeal &);
     std::vector<ValidatedAuthorityCut> validated_cuts();
     static bool is_packet(std::span<const std::byte>);
 private:

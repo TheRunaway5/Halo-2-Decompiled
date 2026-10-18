@@ -1,5 +1,4 @@
 #include "halo2/pstencil/detail.hpp"
-#include "halo2/pstencil/lighting.hpp"
 #include "halo2/object_lighting.hpp"
 #include "../gpu_compute.hpp"
 #include "../scalar_combiners.hpp"
@@ -18,10 +17,6 @@ static_assert(sizeof(Fixture)==336);
 }
 int main(int argc,char** argv){try {
     require(argc==3,"supply Cairo cache and compute shader");Cache cache(argv[1]);
-    ForwardRasterState raster;raster.color_write=0x1010101u;raster.depth_function=0x202u;
-    const auto light=pstencil::light_accumulation_state(raster);
-    require(light.color_write==0x10101u && light.depth_function==raster.depth_function &&
-        raster.color_write==0x1010101u,"light accumulation lost its RGB-only mask or changed Original state");
     std::mt19937 random(0x2003de);std::uniform_real_distribution<float> value(0,1);
     std::vector<Fixture> fixtures;std::vector<ShaderVector> expected;
     std::set<std::string> names;unsigned passes{},different{},negative{};

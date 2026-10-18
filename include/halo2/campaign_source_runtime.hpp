@@ -6,6 +6,7 @@ namespace halo2 {
 // Simulation retains script/presentation values and borrows this owner's pool.
 class CampaignSourceRuntime {
 public:
+  CampaignSourceRuntime(const Cache &,std::size_t bsp,unsigned difficulty,std::uint32_t seed);
   CampaignSourceRuntime(const Cache &,const std::filesystem::path &xbe,
       std::size_t bsp,unsigned difficulty,std::uint32_t seed);
   ~CampaignSourceRuntime();
@@ -36,6 +37,8 @@ public:
   };
   Checkpoint checkpoint(const NativeObjectLifetimes &)const;
   void restore(const Checkpoint &,NativeObjectLifetimes &);
+  // Local actual-renderer registration; never checkpointed or serialized.
+  void live_lens_renderer(bool active);
 private:
   std::filesystem::path files_;
   std::unique_ptr<MultiplayerObjectRuntime> objects_;

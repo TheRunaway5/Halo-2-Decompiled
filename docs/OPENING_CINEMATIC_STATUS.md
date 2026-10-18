@@ -1,38 +1,888 @@
 # Opening campaign cinematic — 2026-10-15
 
-**The goal is active and the opening is not fixed yet.** The live source model
-candidate passes the former scene08 variant failure and reaches scene09/tick3760.
-Whole original resource-pressure owner125FB0 and its two eviction callbacks now
-execute in playback and return four valid salted allocations. The latest run
-then passed Brute guard flag creation (`D6F1D ->119060`) after the existing cloth
-module was linked. Two actual guard births and unchanged original constructor
-replays pass; their declared variants take the original no-marker/free branch.
-The stale handle was `throne_regret`: original parent deletion had already
-retired it before the containing-name cleanup. Shared scene retirement now
-observes all actual removed identities immediately. The two-generation original
-Regret/throne regression passes, and playback passes all three throne names.
-The latest graphics probe enters `c01_intro_scene_01` (scene12), then exits on
-the ship-panel cinematic material admission. Both affected materials use the
-existing original `stencil_env` program; its dynamic guard now admits that
-independent environment pass. Four actual material/LOD binding checks pass,
-retaining original programs, declarations and sampler states. The next complete
-playback retry is still required; no full opening acceptance is inferred.
-The model handoff consumes original selected sections and
-deferred poses, and passes four actual-world geometry and emotional-vertex checks.
-The graphics observation uses a separately declared3GiB cap after2GiB host-pressure
-failures. Complete playback
-and facial pixels remain unaccepted. Cinematic-shadow control remains unsupported.
-The shader bank
-now executes original construction, interpolation, replacement and clear; rendering
-borrows its actual sampled values. Original shader pixels and complete playback
-remain unverified. The Pillar
-of Autumn's model-node binding has been repaired using the original model-order
-sampler/matrix path. The earlier native base route reaches tick3462/scene07 and
-retains five faults: cinematic shadows,
-two emotional-state requests, and two marker effects. The marker failures stop
-the main script and concurrent Halo explosion. Actual GPU captures still expose incorrect visibility
-and transparency. The initial spawn-room flash and the fade/letterbox submission
-order have been repaired. A successful script probe is not cinematic parity.
+**2026-10-18 EP scratch bridge and strict source refresh: still active.**
+Original38F5F3 is now recovered from41 authenticated instructions/119 bytes.
+It writes EP metadata and derives three GP descriptors from the last three
+pages of the real19-page EP allocation. The separate391410 page completes the
+original12-page GP prefix. The native test now executes that source producer
+against actual allocations, preserving the existing823296-byte image, growth
+and destructor checks; it reaches403 original instruction addresses. Complete
+upstream EP/GP software contexts and device/PIO startup remain open.
+
+The original-data suite preserves67 earlier cases and adds three bridge cases:
+140 observed/unobserved comparisons and196590 ordered stores. Current-root
+Clang/GCC v528 builds and nine registered checks per compiler v529/v530 pass.
+Omitted metadata and wrong descriptor stride are rejected by both the original
+comparison and native resource test (v535); strict provenance rejects the wrong
+stride at38F64E (v539). Full module regeneration v537 passes all eleven selected
+modules with186 complete bodies/17350 instructions/62898 original bytes. This
+also includes the shared activation module's newly selected191CF0 body; the
+inventory does not certify behavior beyond tested callers. Ten generated files
+needed the current generator's header include; all emitted instruction lines
+and other helper text remain compared without a broader normalization rule.
+All eleven selected translation units also compile independently with both
+Clang and GCC under the strict FP flags (22 successful commands, v538).
+
+Reproduction and declared input boundaries are in
+`tests/fixtures/sound_gp_ep_append_bridge_tu15.md`. Full engine recovery, original
+hardware/device timing, final mix, audiovisual parity, handoff, installation,
+corrected visible playback and the finished video remain open. The live guard
+before38846E remains; no request clear or readiness result is supplied.
+
+**2026-10-18 original CPU upload wait and return: still active.** The native
+upload now has a complete declared-context return comparison. At its actual
+first poll, a cooperative audit dispatch runs the original GP against the
+real201-SGE native pages. Its own header transfer clears request3; the original
+CPU then evaluates its actual wait, publishes the output descriptor, copies
+the six-word header and performs its original RET12 cleanup. The dispatch is
+an explicit audit interleaving, not a recovered hardware scheduler or clock.
+
+Independent execution is split into original-x86 prefix, original GP with
+unchanged reference DMA, and original-x86 continuation. Every CPU opcode is
+authenticated against the owned XBE; committed-range and payload hashes are
+checked. The GP bus write is actual recorded output, not a supplied request
+clear or callee result. Original prefix v506 retains the same187654 ordered
+stores as before. Original continuation v508 executes24 additional addresses
+and eight ordered stores. Native complete composition executes687 unique CPU
+addresses and matches return memory, GP/XMM, defined flags, floating-point/
+executor state and ordered stores. All860160 GP P/X/Y/scratch output bytes and
+99 processor-state words match the independent composition (v511).
+
+Current-root Clang/GCC v510/v512 and six registered tests per compiler v513
+pass. Their complete CPU-return reports, GP state and output bytes match.
+Omitted descriptor, omitted header copy and wrong RET12 cleanup controls fail
+after the real GP has cleared the real request (v514/v515). Builds retain
+serial1GiB/zero swap; validation retains60/64MiB/zero swap. Reproduction and
+the declared-input boundary are in
+`tests/fixtures/sound_gp_upload_return_tu15.md`.
+
+This closes selected CPU return behavior under the declared GP startup/frame/
+timer context. It does not recover the complete parent APU factory or physical
+reset/format2/register/IRQ/timer/FIFO/clock behavior. The source body inventory
+remains184, with no new original instructions emitted this turn. The live
+guard before38846E remains. Final mix/sample timing, audiovisual parity,
+handoff, installation, corrected visible playback and the finished video
+remain open; the full engine is not certified byte-for-byte recovered.
+
+**2026-10-18 native scratch DMA and actual GP upload consumption: still
+active.** The new native transfer owner executes the original program's
+observed scratch packet domain against actual GP RAM and caller-owned scratch.
+Source STOP/FREEZE/UNFREEZE/START, linked transfers, circular cursors, completion
+and ownership/fault rejection are explicit. It supplies no request clear or
+processor-ready result. The unchanged reference implementation stays
+analysis-only and is not linked into the game.
+
+The actual native CPU constructors/upload still match the original suffix's
+187654 ordered stores at the first poll. The composed GP now consumes those
+real201-SGE native pages. Its12495 original instructions/12974 core cycles
+clear the actual request3 themselves through the original P11C header transfer,
+stopping the host audit at P11E. Exactly one scratch byte changes. Initial
+processor state and one frame/timer event remain explicitly declared
+reference-model inputs; source upload return and physical timing are not
+claimed. No frame event means the original wait does not complete (v491).
+
+Independent v498 comparison matches all860160 actual retained P/X/Y/scratch
+bytes and all99 captured processor-state words, plus cycles/instruction counts.
+The offline upload pair v495 also matches74 peripheral events. The separate
+1024-frame all-bus experiment matches5054464 output bytes/406296 state bytes
+only under an explicitly declared reference format2 layout. The first v484
+comparison instead retains2590 differing scratch bytes: public hardware notes
+and the pinned reference model disagree on24-bit format2 byte placement.
+The default native owner rejects that format; no layout is silently selected.
+The prior reference-core ISA-state discrepancies v367 also remain unresolved.
+
+Current-root Clang/CMake v492/v497 and its three registered tests v500 pass.
+GCC v499 and four registered tests v502 pass; its complete actual GP output and
+state match Clang. Private omitted scratch-output and omitted EOL controls
+fail both the owner test and the real SGE/GP composition (v501/v502). Builds
+retain serial1GiB/zero swap; validation retains60/64MiB/zero swap.
+Reproduction and the remaining evidence boundaries are in
+`tests/fixtures/sound_gp_dma_tu15.md`.
+
+This explicit owner is not connected to live audio. Complete parent/device
+startup, authenticated format2/reset/register/IRQ/timer/FIFO semantics, GP/EP/
+output clocks, source upload return, final routing/mix/sample timing, audiovisual
+acceptance, handoff, installation, corrected visible playback and the finished
+video remain open. The live guard before38846E remains in place. The complete
+cutscene engine is not certified as byte-for-byte recovered.
+
+**2026-10-18 original CPU image upload through its first GP poll: still
+active.** The module now owns the actual388275/388294/38850A/388576 object,
+bootstrap, append and resource-preparation callers:114 additional original
+instructions/321 bytes, with all576 previous instruction lines unchanged.
+Actual native SDK allocations, the retained original DSPImage and original
+constructors now reach388309's decoder/relocation/request publication path.
+The caller-provided root extent and four upstream page descriptors remain
+declared resource inputs; the complete parent APU factory is not established.
+
+The original constructor copies1484 bootstrap bytes, including eight bytes
+beyond the1476-byte control-program extent. Source preparation clears the
+header before decoding; the upload writes request3 itself. The native prefix
+exports its actual388383 caller/resources as declared inputs to unchanged
+Xbox instructions. That independent suffix executes189 original instruction
+addresses and187654 ordered stores before the first poll. Clang and GCC native
+composition match its complete retained ranges, GP/XMM, defined flags and store
+digest. The native path executes663 original instruction addresses and retains
+its actual descriptor table,201 SGEs and request3; no acknowledgement is supplied.
+
+The prior module fails the missing initializer (v460). Shortened bootstrap,
+wrong relocation and omitted request-publication controls fail (v471–v473).
+The extended ordinary oracle adds five caller cases; all67 cases pass134 native
+comparisons/196479 ordered stores. Current-root Clang/CMake v474 and seven
+registered source/resource tests v475 pass. Frozen GCC v469/v470 passes the
+full upload comparison. Fresh strict regeneration v467 reproduces all eleven
+selections:184 complete bodies/17264 instructions/62633 original bytes.
+Reproduction and declared-input boundaries are in
+`tests/fixtures/sound_gp_upload_cpu_tu15.md`.
+
+The native core still requires an MCPX peripheral/transfer owner and the real
+GP consumer, device/IRQ/timer/GP/EP/output clocks. The live world retains its
+guard before38846E. Upload acknowledgement/return, complete parent factory,
+final routing/mix/reference sample timing, audiovisual parity, handoff,
+installation, corrected visible playback and the finished video remain open.
+
+**2026-10-18 native GP table publication and retained scratch view: still
+active.** The original GP table constructors now publish into a real native
+resource owner. Original factory requests are C000 prefix bytes and1060 table
+bytes; the516-entry reservation initially leaves eight prefix SGEs. The
+composed probe appends four actual native page descriptors through38DE07,
+then allocates/locks189 data pages and publishes201 entries through38DF31.
+Those four upstream descriptors remain declared resource inputs, not the
+complete device/factory producer.
+
+The source-produced SGE view matches all823296 bytes of the prepared immutable
+Xbox boot image after original38DE59 copies. The request word remains3.
+Original growth publishes190 new pages and unlocks/frees the old allocation;
+original38DD26 also retires the current pool and clears its pointer/statistics.
+The final native composition executes356 original instruction addresses and
+uses actual retained pages on PipeWire. It supplies no processor acknowledgement.
+
+Native probe v435/v436 rejected an extra MMIO preimage read made by the generic
+store helper. Exactly four GP table stores now use a typed native resource
+transition. Ordinary-memory byte observers retain their existing behavior;
+no unknown MMIO preimage or synthetic register bank is supplied. The complete
+original3879B3 release wrapper adds five instructions/24 bytes. Fresh v445
+regeneration passes all eleven current selections:180 complete bodies,17150
+instructions and62312 original bytes. The62-case CPU suite passes124 native
+comparisons/189731 ordered stores/34 external stops (v440/v442).
+
+Current-root Clang/CMake v450 and all five registered tests v451 pass. Frozen
+GCC v444/v446 also passes including the destructor. Wrong prefix translation,
+discarded publication and ignored SGE high-word controls fail (v447–v449).
+The recompiled existing descriptor-DMA regression also passes (v452/v453).
+Serial builds retain1GiB/zero swap; tests retain60/64MiB/zero swap. See
+`tests/fixtures/sound_gp_scratch_resources_tu15.md` for reproduction and scope.
+
+The live world is not connected to this scratch view. The complete upstream
+factory, actual388309 decode/descriptor-relocation/GP acknowledgement, GP
+peripheral DMA execution, device/IRQ/timer/GP/EP/output clocks, final mix and
+reference sample timing remain open. Visuals/interpolation, handoff,
+installation, visible corrected playback and the finished video remain required.
+The existing world guard before38846E remains in place.
+
+**2026-10-18 native GP pages and scratch-table recovery: still active.** The
+actual sound DMA resource owner now retains GP pool pages in the same native
+allocation namespace. It owns the authenticated allocation/capacity,
+lock/unlock, physical-address and release ABI, with strict bank/frame/thread
+and lifetime checks. These are real native64-backed resources and logical
+physical tokens, not Xbox kernel or host PCI/DMA equivalence.
+
+Original38DE81 composes with the real owner:193536 original zero stores and
+189 data-SGE pairs reach the real retained pages. It stops before38DF31's
+table-limit MMIO write; its seven prefix entries remain explicitly
+unconfigured. GCC and Clang pass; four private owner faults fail (v404–v411).
+The existing original descriptor-DMA regression also passes (v412/v413).
+The required36-byte caller footprint includes four original MOVSD reads;
+intermediate32-byte fixture experiments are superseded, not a production fix.
+
+The DSP module additionally recovers seven complete original scratch
+constructor/release/table/copy/translation bodies:225 instructions/553 bytes.
+All346 prior instruction lines remain unchanged. The new independent oracle
+adds31 cases to the existing30; Clang/CMake v422/v423 and frozen GCC v425/v426
+pass122 native comparisons and189729 ordered stores, with32 external stops.
+Actual kernel calls stop before execution; MMIO is a declared write-only store
+sink. No kernel return, device read, ready flag or GP acknowledgement is supplied.
+The earlier module fails the new cases (v420), and wrong descriptor stride and
+omitted trailing-copy controls fail retained-byte checks (v427/v428).
+
+Fresh strict provenance v424 reproduces all eleven tracked modules at their
+current shared-checkout state:179 unique complete bodies,17145 instructions,
+62288 original bytes. This is selected recovery scope, not the full engine.
+The complete prefix/resource factory, real GP table publication, device/IRQ/
+DMA/GP/EP/output-clock composition, final mix, reference volume/sample timing,
+visuals/interpolation, level handoff, installation, visible corrected playback
+and the finished video remain open. Reproduction is in
+`tests/fixtures/sound_gp_pool_tu15.md` and
+`tests/fixtures/sound_dsp_image_tu15.md`.
+
+**2026-10-18 original GP image upload CPU recovery: still active.** The existing
+DSP image module now includes complete original388309 and38DE81, another204
+instructions/589 original bytes. These preserve allocation/release requests,
+descriptor relocation, the request3 publication and the original wait for the
+GP to clear it. Native world dispatch recognizes the complete bodies through
+the existing module. Its unowned GP producer remains explicit: execution stops
+before38846E's request publication until a real scratch/DMA execution owner can
+consume it. No request clear, platform success or source readiness is supplied.
+
+The new standalone CMake target compiles the same production module and fixture
+reader. Current-root Clang/CMake v382/v383 and frozen GCC v385/v387 pass60
+native comparisons,188347 ordered stores and12 external stops. Thirty original
+cases comprise the existing18 decoder cases and12 new declared-context
+upload/allocation cases. The new cases execute68 instruction addresses and
+cover retained storage, reservation failure and the first real allocation/free
+boundaries. Descriptor relocation, physical translation and the later GP wait
+are recovered source but are not behaviorally verified by these prefix tests.
+
+The actual prior decoder-only owner fails the new fixture (v386/v390). Private
+descriptor-size and page-shift errors also fail retained-byte comparisons
+(v388/v389). Fresh strict provenance v384 reproduces all eleven selected
+modules:171 unique complete bodies,16905 instructions and61686 original bytes.
+These counts certify the named recovery scope, not the entire engine. Tests
+retain60/64MiB and zero swap; serial builds retain1GiB and zero swap.
+The actual current world-owner object also compiles with its CMake flags
+(v391,666.7MiB peak/zero swap); this is not a full game link or live startup.
+Reproduction and limits are in `tests/fixtures/sound_dsp_image_tu15.md`.
+
+The real GP scratch/SGE allocation owner, SDK physical translation, completed
+transfers, native GP/EP/output-clock lifecycle and final direct/spatial mix still
+need composition. The live stereo adapter remains unchanged. Full reference
+state, original volume/timing, visuals/interpolation, level handoff, coherent
+installation, visible corrected playback and the finished video remain open.
+
+**2026-10-17 expanded GP state audit: full state equality is not established.**
+The owner now exposes read-only actual PC/counter, its complete64-slot core
+bank,32 return-stack words and repeat fields. The bank includes emulator
+bookkeeping; it is not a physical MCPX register dump or device checkpoint.
+Both comparison tools can retain every idle's raw state as explicit LE32
+words, including bootstrap, without comparing C struct padding.
+
+The expanded unchanged-program reference audit v367 still matches every
+output/final PRAM/X/Y/scratch byte in all three retained cases. It **fails**
+full raw state equality. Silent/direct return stacks and repeat fields agree;
+the all-bus case differs in SR.L and its saved stack copies for40 early frames.
+The complete differing values remain in the report, with no masks, expected
+byte substitutions or normalization. Native single-step and compiled-block
+traces agree with each other, including these differences from the reference.
+
+The actual original instructions identify two model boundaries. At P70,
+`05F420 FFFFFF` writes M0 with SR15. The pinned reference truncates modifier
+writes to16 bits; the native core retains24. At P1C2, `0C1D08` shifts
+FF:FE6418:000000 left four without sign overflow; the reference helper sets L
+from shifted-out sign bits, while native retains the prior L. The
+[manufacturer manual](https://www.nxp.com/docs/en/reference-manual/DSP56300FM.pdf)
+sections4.2/4.3.4 and5.4.1.2/ASL support the native ISA interpretation for these
+declared cases. This is not independent proof of MCPX hardware behavior.
+The other raw-slot difference is REP bookkeeping: the reference uses slot48
+for LCSAVE, while the pinned native core uses slot43 for TEMP. These are
+implementation layouts, not interchangeable physical-register indices.
+
+Instruction probes v365/v366/v368 retain the exact sites, inputs and results.
+Neither the original program nor either upstream core was changed to force
+agreement. The new JSR stack regression rejects a private zero-stack observer
+(v370/v374); owner tests pass in v369/v372. Final current-root CMake v373 and
+both tests v375 pass, including the original MOVEC/ASL ISA cases and callback
+upload/resume. Those checks use declared contexts. Exact MCPX
+register/status/timing evidence remains required before a whole-engine claim.
+
+**2026-10-17 authenticated native GP block execution: still active.** The native
+owner now runs compiled blocks of the complete, authenticated original GP
+program. Peripheral owners can yield immediately after an actual peripheral
+instruction. Program uploads from a callback also yield before invalidating
+translated code. Unknown programs and callback faults remain rejected; this
+host scheduling mechanism supplies no source readiness or guest state.
+
+Final comparison v358 matches the original interpreter's output and final
+PRAM/X/Y/scratch bytes for16 silent,1024 direct-bus and1024 all-bus frames.
+Compiled and single-step paths additionally match all64 scalar registers and
+the actual DSP cycle counter at every completed idle, including bootstrap.
+Current-root CMake v359 and both tests v360 pass, including callback program
+upload/reload and exact continuation. Wrong-state, authentication-bypass and
+ignored-stop controls v351–v353 fail. All241 upstream files remain byte equal
+to the pinned MIT archive after the optimized dependency build (v361).
+
+With the runtime core packages optimized separately from the large compiler
+dependencies, warmed direct/all-bus processing averages90.2/91.2 microseconds
+per32-sample frame; p99 is122.9/120.4 microseconds. Both are within the modeled
+666.7-microsecond audio interval. The first compiled frame still costs630–665
+milliseconds of CPU. These measured cold costs are retained, not trimmed or
+hidden by rebasing a clock. Correct native startup must handle compilation
+before device playback. Timings exclude16 explicitly declared warmup frames
+and do not establish physical Xbox timing or real device deadlines.
+
+The component is not connected to the live mixer. Native peripheral/device
+ownership, original bus routing, EP/output-clock coupling and GP checkpoint
+lifetime remain open. Complete visuals/interpolation, full source integration,
+level handoff, installation, visible corrected playback and the finished video
+also remain required. The older single-step performance limitation below is
+historical; this checkpoint closes only warmed GP compute in the shared model.
+
+**2026-10-17 persistent native GP instruction owner: still active.** The new
+`SoundGpCpuTu15` owns actual X/Y/mix/program RAM and runs the original uploaded
+words with the pinned MIT DSP56300 core. A private C bridge handles its C-only
+ABI without changing upstream source. The native owner is now tested against
+the original interpreter using the same XBE-derived boot input and declared
+reference peripheral/DMA model. Every retained output and final PRAM/X/Y/scratch
+byte matches for16 silent,1024 direct-bus and1024 all-bus frames. All15 effects
+initialize;48910966 instructions,130868 scratch reads and80816 writes match.
+No captured RAM, source callee return or readiness flag is supplied.
+
+Current-root Clang/CMake and frozen GCC owner tests pass. A deliberately broken
+C-bridge mix alias fails an actual DSP instruction read; ignoring a peripheral
+fault also fails. The first alias test exercised only the host API and missed
+the private mutation; that coverage gap is corrected, and its result remains
+preserved. The native comparison is v317; final dependency/CMake/comparison
+evidence is v319/v324/v329. Unit negative controls and CTest are v325–v327/v330.
+All source validations retain60/64MiB and zero swap. The unmodified241-file
+MIT archive comparison passes again after the dependency build in v331.
+
+The separate Cargo stage builds within1GiB/zero swap. Nested CMake Cargo builds
+exceed that limit, so the committed dependency helper and explicit prebuilt
+CMake binding provide the validated workflow. The GP target is excluded from
+ordinary builds until a real consumer links it. It requires actual peripheral
+owners and an explicit initial register context; it supplies no MCPX reset,
+timer, IRQ, DMA, FIFO or device-ready implementation. The GPL reference model
+still links only into analysis executables. See
+`tests/fixtures/sound_gp_cpu_tu15.md` for reproduction and remaining limits.
+
+The live stereo adapter remains unchanged. Native device/peripheral ownership,
+bus routing, EP/output-clock coupling, GP checkpoint lifetime and a faster frame
+execution path remain required. Single-step processing is slower than real-time
+audio on this host. Complete visuals/interpolation, full source integration,
+level handoff, installation, visible corrected playback and the finished video
+remain open. This is progress toward the full engine, not whole-engine parity.
+
+**2026-10-17 executable-derived GP initialization: still active.** The native
+`sound_gp_image_tu15` loader now authenticates the owned TU1.5 executable,
+retains its original control program and initial data, and decodes the actual
+seed table/all15 effects. Its28768 resource bytes match unchanged original CPU
+execution; its15684 loaded program bytes match the authenticated live upload.
+GCC and Clang comparisons pass, a private79-versus80 warmup error fails, and
+the current-root CMake/CTest pair passes. The original resource request word
+is3, not0; the loader preserves the source value and supplies no readiness.
+See `tests/fixtures/sound_gp_image_tu15.md` for reproduction and scope.
+The final current-root build/export/CTest check is v300/v301. Fresh strict
+source regeneration v302 still matches all11 selected modules,169 complete
+CPU bodies and16701 instructions; full-engine verification remains false.
+
+The separate original-program boot probe now starts at reset PC0 with inputs
+produced by that native loader. Captured X/Y/mix/scratch memory is no longer an
+input. With declared zero-backed offline scratch and the existing pinned
+emulator peripheral model, the original instructions clear X/Y, load their
+program/data, initialize all15 effects and clear the request themselves.
+Two instruction cores match every retained mix output and final PRAM/X/Y/scratch
+byte across16 silent,1024 direct-bus and1024 all-bus frames, including their
+three boots:48910966 instructions per core. Omitting only the original GP P98
+request-clear instruction in a private input fails the post-execution request
+check. Evidence is in `dsp-gp-original-bootstrap-comparison-v297` and
+`dsp-gp-omit-clear-guard-v299`, under the unchanged60/64MiB/zero-swap bound.
+
+This removes a capture dependency from image preparation and proves the tested
+boot interval within the declared model. It does not implement the native
+SDK allocation/relocation, IRQ/APU/device lifecycle, real peripheral timing,
+voice routing, output clock or playback. The reference interpreters remain
+analysis tools. The game gains only the C++ image loader. All existing audio,
+visual, interpolation, handoff, installation, visible playback and finished
+video gates remain open; the whole engine is not yet verified byte for byte.
+
+**2026-10-17 native encoder stereo calculation: still active.** The new
+`sound_dsp_encoder_stereo_tu15` helper implements the original stereo overlay's
+coefficient setup, optional coefficient scale, five-channel multiply/accumulate,
+convergent rounding, 24-bit limiting and FIFO 16-bit conversion. It matches100
+original-program reference cases/102400 raw output and PCM values. A private
+version that omits rounding fails by one raw bit on the isolated FL case.
+The original EP boot, not a separately written expected mixer, produces each
+fixture's first real FIFO0 emission. Silence, all six physical input rings,
+signed scale values, clipping rails, rounding boundaries and random input are
+covered. The helper is pure C++; no reference emulator or Rust dependency has
+been added to the game.
+
+The current-root CMake configuration and the actual new library/test target
+build pass in `dsp-encoder-cmake-v278`. The configured test executable passes
+under the60/64MiB/zero-swap guard in
+`dsp-encoder-cmake-native-guard-v281`. Earlier frozen GCC comparisons and the
+rounding control are in `dsp-encoder-native-guard-v276` and
+`dsp-encoder-negative-guard-v277`; original fixture generation is in
+`dsp-encoder-fixtures-v274`. Reproduction is documented in
+`tests/fixtures/sound_dsp_encoder_stereo_tu15.md`.
+
+The new original cold boot `dsp-live-original-v266` also retains the enabled
+encoder's bootstrap program and77824-byte scratch image. Its19 populated
+physical pages include the three actual GP/EP shared output pages. The next
+entry permitted by the emulator's inclusive limit is unpopulated and is
+recorded without dereferencing it. The current observer and
+`dsp-encoder-capture-v280` authenticate these bytes, the immutable original EP
+boot instructions and the shared page identities. Current PRAM contains
+runtime counters, descriptors and loaded overlays; those are retained as read,
+not silently normalized to immutable code.
+
+In the captured default stereo path, separate original-program channel tests
+establish the actual coefficient setup and show that the sixth/LFE ring is
+not read by this overlay (`dsp-encoder-channel-sweep-v271`). These measurements
+are not an excuse to replace the stateful GP effects by a stereo matrix. The
+new helper covers a numerical interval, not the entire EP processor or its
+metering/command state. Native audio routing, GP processing and output-clock
+integration remain required before using it in cutscene playback. Full-runtime
+volume/timing, visuals, installation, visible corrected playback and the
+finished video remain unverified and unfinished.
+
+**2026-10-17 complete GP-loop follow-up: still active.** The original1476-byte
+GP control program is also present verbatim in the pinned TU1.5 executable.
+The upload audit now authenticates all15684 loaded GP bytes: that control
+program, all15 decoded effects, and the original final return. The latest
+unchanged cold boot is `dsp-live-original-v258`; its upload/native-decoder
+comparison passes in `dsp-sg-native-v261`.
+
+The observer now captures the **actual APU scratch address space**, following
+GPSADDR/GPSMAXSGE and201 physical scatter/gather entries. The819392 retained
+bytes match the GP header and uploaded programs, and each effect's CPU-visible
+delay allocation agrees with its actual mapped scratch interval. Reads are
+stable. Physical reads use the debugger's
+[documented memory mode](https://www.qemu.org/docs/master/system/gdb.html#examining-physical-memory),
+which is restored afterward; no guest state is written. The earlier v249
+scratch prefix was invalid: effect-allocation relocation does not describe
+the separately allocated control/image area below scratch offset C000. A full
+GP-loop probe exposed that mistake before integration. Its failure remains in
+`dsp-full-frame-comparison-guard-v257`; v249 is explicitly annotated, and the
+current audit rejects that mapping in `dsp-sg-negative-v262`. Its uploaded
+program/X/Y/mix capture remains valid.
+
+Two independent DSP instruction interpreters now run the unchanged control
+loop continuously from idle PC2B back to PC2B, including the actual start-frame
+interrupt consumer, all15 effects, reverb transfers and six-channel output
+transfers. With declared offline initial registers and the same pinned xemu
+DMA/peripheral model,1024 direct-bus frames and1024 all-bus frames match every
+retained output and final X/Y/scratch byte. This covers48415064 instructions,
+129648 scratch reads and80076 writes per interpreter, including output-buffer
+wraparound. Evidence is in `dsp-full-frame-v255` and
+`dsp-full-frame-comparison-v260`; the aggregate60/64MiB/zero-swap guard passes.
+An earlier effect-call sweep covers every one of32 buses plus two2048-block
+history cases, matching102461876 instructions per interpreter in
+`dsp-full-comparison-v253`. That earlier interval does not read the invalid
+scratch prefix; its shared peripheral model remains an explicit fixture bound.
+
+The reference interpreter/DMA files are unchanged pinned xemu sources, used
+only in analysis executables. They introduce no GPL game dependency. The
+second interpreter is the pinned MIT DSP56300 toolkit, also still analysis
+only. Their agreement does **not** verify the shared emulator DMA timing,
+EP/host output, native PCM integration, cutscene sample timing or physical
+Xbox audio. The native SDL adapter's direct/spatial routing discrepancy is
+still open. No speculative gain adjustment has been applied. The remaining
+visual, interpolation, installation, handoff and finished-video gates remain
+unchanged.
+
+**2026-10-17 live DSP upload verification: still active.** An isolated,
+unchanged Xbox TU1.5 cold boot now confirms every recovered DSP effect payload
+against actual GP program memory. All15 payloads/14204 bytes match, together
+with the original unencrypted four-byte final `RTS` (14208 bytes for the
+complete uploaded effect program). The original environment constructor returns
+naturally; no original instruction, register, memory, readiness flag or callee
+return is supplied. All15 effects initialize and repeated X/Y/mix-memory reads
+remain identical while stopped. This is xemu0.8.136 at revision
+`fc24584ce88f0915ad7f04775bb7712c2e3f49ee`, not a physical Xbox capture.
+
+The reusable observer is `tools/capture_live_sound_dsp_tu15.py`. It locates
+the effect program through the actual GP control program's `JSR` operand;
+the CPU effect descriptors point eight bytes beyond each two-word `R5`
+prologue. Those descriptor pointers must not be treated as program entries.
+The capture retains the entire loaded control/effect program through the
+original final return, instead of reading unallocated program RAM. The private
+reference configuration enables `audio.use_dsp` so the installed emulator
+finishes its DSP execution for each frame. This behavior is established by its
+pinned [GP/EP execution source](https://github.com/xemu-project/xemu/blob/fc24584ce88f0915ad7f04775bb7712c2e3f49ee/hw/xbox/mcpx/apu/dsp/gp_ep.c).
+
+`tools/audit_uploaded_sound_dsp_tu15.py` authenticates the original image,
+observer, decoder fixtures, live regions, every effect and the original return
+word. The combined v241 audit also passes36 native decoder comparisons and
+188232 ordered stores. A deliberate uploaded-opcode bit change, with dependent
+capture hashes refreshed, is rejected at the exact original GP byte address
+(`FE83A5CC`, expected94/observed95). Evidence is in
+`dsp-live-original-v237`, `dsp-upload-native-v241` and
+`dsp-upload-negative-v240`. The fresh v242 eleven-module source audit still
+reproduces169 unique complete CPU bodies/16701 instructions/61097 original
+bytes. Both audits explicitly retain full-engine verification as false.
+
+The analysis-only DSP56300 probe executes the unchanged direct-channel
+intervals with declared inputs and retained live effect parameters. Across128
+32-sample blocks/526952 instructions, all8192 direct input-to-scratch sample
+comparisons match. The later output filter changes the signal over time;
+its bus levels cannot be substituted directly for final audible levels.
+This probe skips the reverb/DMA intervals and uses a declared bootstrap-derived
+register ABI. It is **not** a complete original DSP frame or native PCM proof.
+Its source, executable and output are in `dsp-direct-probe-v234`, with the
+60/64MiB/zero-swap result in `dsp-direct-execution-guard-v236`. The pinned MIT
+toolkit's emulator builds under Rust1.99 in `dsp-emulator-build-v229`, at
+optimization0 inside the unchanged1GiB/zero-swap build bound. It remains an
+analysis tool, not a new game dependency.
+
+These changes strengthen byte-level verification; they do not fix or close
+the outstanding audible-volume/timing, complete DSP/platform ownership,
+shader/visual/interpolation, full current-source integration, handoff,
+installation or finished visible playback/video gates. No runtime from this
+task has been installed and no finished video has been delivered.
+
+**2026-10-17 DSP decoder follow-up: still active.** Three complete original
+DSOUND decoder bodies are now available through source-world dispatch. The
+strict eleven-module audit reproduces169 bodies/16701 instructions/61097
+original bytes. Unchanged original CPU execution decodes all15 embedded DSP
+effect payloads (14204 bytes).18 declared calls, including an intermediate
+instruction boundary, match36 native comparisons and188232 ordered stores.
+The store digest retains every instruction/address/extent/before/written byte
+in execution order; it avoids retaining a large Python trace in memory.
+
+The intermediate boundary exposed a real translator defect: single-operand
+`IMUL BL` used32-bit EAX/EDX multiplication instead of signed AL-to-AX semantics.
+The returned decoded bytes alone passed because subsequent code consumes AL.
+The original intermediate register comparison fails before the fix and passes
+after it, including preserved upper EAX and EDX. Existing32-bit lowering stays
+unchanged. Original routing and frame regressions still pass. Evidence is in
+`dsp-decode-prefix-original-v201`, `dsp-prefix-native-before-guard-v203`,
+`dsp-promoted-native-guard-v211`, `dsp-audio-routing-regression-guard-v212`,
+`dsp-audio-frame-regression-guard-v213` and `cutscene-provenance-dsp-v208`.
+The promoted decoder, reader and snapshot of current-root world dispatch
+compile in `owned-overlay-v122-dsp-promoted`.
+
+These are byte-buffer CPU calls. They supply no device, original allocation,
+DMA, address relocation, DSP execution or platform return. Decoding the effect
+programs opens their analysis; it does not prove final audio composition or
+authorize substituting bus gains for audible gains. Full playback, shader/
+visual parity, remaining interpolation, handoff, installation and the finished
+visible cutscene/video are still open.
+
+All15 decoded payloads and their original unrelocated parameter blocks are
+retained in `dsp-effects-disasm-v215`. Static assembly uses the analysis-only
+[DSP56300 toolkit](https://github.com/mborgerson/dsp56300) pinned to revision
+`82fb25a6917a36ac66212ae31f02aab62211f979`; archive, executable, payload and
+parameter hashes are recorded. That tool is not a game dependency. Static
+address/data-flow observations do not establish live DSP state or audible
+gains. The corresponding original SDK upload, parameter and bus-setter CFGs
+are retained in `dsp-output-v186` through `dsp-output-v193`.
+
+**2026-10-17 byte recovery follow-up: still active.** The strict source audit
+now reproduces166 complete TU1.5 bodies/16559 instructions/60724 original bytes
+across the ten selected modules. The audio module has40 complete bodies/6092
+instructions, including the spatial-gain, channel-routing, stream-parameter and
+mixer-control bodies. These source bodies are available through the existing
+source-world audio dispatch. This remains selected CPU recovery, not complete
+cutscene-engine or final audible/visual parity.
+
+The new original-execution oracle uses the actual38 opening cinematic-dialogue
+tags at three explicitly declared world distances. It executes unchanged
+18CDD0 request construction to the submit boundary, complete12C5B0 spatial
+gain,12CCC0 packing to its effect boundary, and complete2B92E0 channel routing.
+It retains the map's actual snmx controls copied by the original constructor
+before its first SDK call. No source availability, startup or SDK return is
+supplied.685 original caller states match1370 native comparisons and44474
+ordered stores, including all retained bytes, GP/XMM state and defined flags.
+Omitting the cinematic routing write fails. The prior262 cases still pass524
+comparisons/9053 ordered stores. Evidence is retained under
+`scripted-routing-fixture-v175`, `scripted-routing-native-guard-v178`,
+`scripted-routing-negative-guard-v179` and `audio-baseline-regression-guard-v180`.
+
+This confirms an unresolved adapter discrepancy: cinematic dialogue retains
+separate direct and spatial/effect gains, whereas the SDL adapter currently
+applies distance gain to its single output volume. Original bins6/7 are stable
+across these declared distances. Their final DSP/output composition is still
+unverified; the bus values have not been substituted for audible output gains.
+The native comparison build uses unchanged selected existing helper bodies
+with narrowed test dispatch after the full live-support compile reached its
+1GiB memory limit and was stopped. The complete current-source runtime build,
+original DSP ownership, timing failures, remaining visuals/interpolation,
+installation and finished visible playback/video remain open.
+
+**2026-10-16 follow-up: still active; no finished video.** The visible v27
+replay reached all13 scenes with zero script faults, but the user reported
+missing/quiet dialogue, incorrect transitions, missing mouth motion, white
+chamber surroundings and a dark obstructed-looking Halo shot. These are explicit
+acceptance failures. The user also requests interpolation of every capped
+presentation element, a shader sweep of every character, and byte-level audio
+presence/volume/timing comparison with OG Xbox/TU1.5. The Pillar of Autumn line
+is the Arbiter's `x01_0030_der`; the Prophet timing pair is `x01_0220_por` /
+`x01_0230_pot`. All remain audio acceptance gates.
+
+The latest v161 strict source audit passes150 complete TU1.5 bodies/13855
+instructions across ten selected modules. The audio module now has24 complete
+frame/listener/voice/class-gain/driver-wrapper bodies.262 unchanged-original
+caller cases match524 native comparisons,9053 ordered stores and68 external
+stops. Original director queries, stack probes, clock-data readers and pause
+queries execute; no platform return or active-game flag is supplied. The actual
+elapsed-time/gain ramp and54-class fades are covered; holding either fails.
+The new FIADD32 helper matches1092 actual original-host32 instruction cases
+for normal finite inputs across precision/rounding modes. This is not a full
+caller/x87/SDK or physical Xbox proof.
+The actual cold-world dispatch preserves game-active0. The original writer sets
+listener scale1, so this supplies no justification for a volume/scale adjustment.
+Held listener output and a wrong-register scale mutation fail their comparisons.
+Generator dependency drift is corrected without relaxing source equality; the
+actual duration body retains its required helper/declaration. These are bounded
+CPU/source checks. Final mix, sample timing, complete engine coverage, rendering,
+current-source installation and the finished visible playback/video remain open.
+
+The v122 full diagnostic replay now includes fractional screen transitions.
+Fade opacity samples the same original Xbox curve between game ticks; letterbox
+and HUD opacity sample their existing transition intervals. Fraction0 preserves
+the completed tick value, fraction1 meets the next completed tick, and immediate
+commands/cuts remain immediate. Sampling is read-only and does not advance HS,
+source animation, sound selection or any game clock. Main disables the extra
+fraction at restore/BSP/reset discontinuities through its existing pairing gate.
+This is native render presentation, not additional original screen-body recovery.
+
+The new original-table regression passes1862 fractional samples and266 exact
+boundaries, plus command replacement, end hold, immediate cuts, invalid fractions
+and checkpoint restore. Both the actual old path and the explicit held-render
+control fail. The matching helper/Main and a snapshot of current-root Main compile.
+Full v122 playback returns all13 scenes, admits49 sounds, consumes47 PCM voices,
+retains2 authored silent cues, and has no script/audio errors. Its136 sampled
+screen outputs contain129 fractional differences and6 render changes at the same
+unchanged game tick/tick-level values. These diagnostics precede explicit native
+bootstrap/awaiting-camera/end masks; they do not establish final Xbox pixels.
+The Prophet gap remains339968 rather than337600 samples (+2368/49.333ms).
+
+An authenticated static TU1.5 frame-order check confirms2B5B0 calls13B70 after
+its completed-view loop. Existing native crossfade placement is consistent with
+that order; this does not execute all outer-frame branches or establish matched
+captures. The original opening's DoF helper remains dormant and is not activated.
+The new diagnostic recording is not a finished deliverable. Full visual/audio,
+remaining capped elements, source activation and installed-runtime gates stay open.
+
+The latest full v113b/v114 diagnostic runs return all13 scenes with zero
+script/audio faults. Both admit49 requests at the original tick, consume47 PCM
+voices and retain2 authored silent cues. Main now schedules original30Hz ticks
+against the observed pause-preserving48kHz output epoch. It adds no lookahead,
+changes no HSC sleeps and never trims late PCM. All49 requests are still late
+at submission. The Prophet gap is338944 /340992 samples instead of337600:
+28 /70.667ms too long. This remains a failed timing acceptance gate.
+
+Moving spatial emitters are now refreshed from the full salted speaker's actual
+WORLD marker while preserving its playing PCM/pitch/RNG/progress. Across the
+full runs,21 spatial voices have138 /134 snapshots,19 speaker points move,
+and9 /8 gains change. The actual Arbiter PCM regression passes and the frozen
+emitter control fails. Exact original listener lifecycle, DSP and final volume
+still require comparison. Nonzero timeline epochs, pause, restore, late PCM,
+cancellation and overflow pass; immediate playback fails. These tests do not
+supply missing source readiness or audio-driver success.
+
+The original speech resource owner now loads38 actual facial curves. Unchanged
+TU1.5 CPU execution supplies2166 sampler cases; the native module matches every
+48-byte result. Real Prophet PCM progress drives original facial controls and
+changes source-selected rendered vertices. The production bridge retains the
+full salted speaker and actual sound/permutation, advances smoothing on game
+ticks, and retires only the matching sound. It does not fabricate Xbox voices
+or resource readiness. A missing original animation lookup exposed by the
+final Armorer section is now compiled from its complete TU1.5 body.
+
+Full v69/v71 playback observes nonzero controls for20 of21 bound speech cues.
+The initially misidentified final cue (`ea2d08b8`, owner `e37e0037`, request5644)
+is Chief's `c01_1050_mas`, object-name52. The original script assigns the three
+preceding `qtm` cues to Armorer/master_guns, object-name53, and all three produce
+controls. Live v71 records a valid Chief lifetime and PCM, with the original
+facial channel remaining NONE. The separate actual Chief placement/graph/cue
+test confirms that absent channel; the corrected Armorer test uses his actual
+`ea2c08b7` cue after173 authored ticks and changes rendered WORLD nodes. The
+Prophet still changes rendered vertices. All20 facial-capable bound cues are
+therefore observed producing controls. This does not establish every character's
+GPU mouth pixels, interpolation, final spatial volume/DSP or transitions.
+
+The v71 phase profile near the Prophet pair measures a median29.908ms per
+source simulation tick,7.150ms model preparation and2.310ms draw. Batching can
+therefore delay immediate sound admission in wall time despite correct authored
+tick spacing. No timing policy or original sleeps have been changed to conceal
+this. The recorded v71 X11 surface is blank: SDL selected a different display
+surface. The saved native PPM captures remain valid, but that video is invalid
+as visual evidence. Explicit SDL_VIDEODRIVER=x11 corrects capture routing in
+v74/v75. Actual captured v74 frames show the restored chamber and visible
+Prophet mouth motion. This remains diagnostic evidence; no finished video or
+installed current-source runtime is claimed. The fixed unobserved scalar-store
+path preserves original reads/writes/exceptions and observer behavior while
+removing per-store vector allocations. Its contract, all2166 original facial
+curve cases and live Prophet vertex test pass. The v75 replay renders2786
+frames; the prior v74 renders2164. A single replay's faster frame count and92ms
+remaining pair error do not establish complete pacing or audio timing parity.
+
+The new [source coverage ledger](CUTSCENE_TU15_SOURCE_COVERAGE.md) records150
+complete recovered TU1.5 bodies /13855 instructions across ten selected
+modules. The reproducible source audit passes and identifies a deliberate speech
+constant mutation at instruction110752. The added object-sound module was
+regenerated after80 normal finite instruction-fragment comparisons on actual
+host x86 resolved emulator x87 flag drift; this is no complete sound-driver
+or physical Xbox proof. New completion/progress/options/transition-request recovery
+matches47 original caller cases in both native store paths:94 comparisons,
+10252 ordered stores and16 explicit external-owner stops. The original path
+search is also recovered. Campaign setup previously delivered0/0 instead of the
+opening's authored campaign/map1/1; it now resolves the admitted scenario through
+original1A5B60/32C0A0. The regression fails before and passes after, including the
+unsorted705/801 successor-table boundary and final-level NONE. These checks do not
+close every engine path. The native HS game_won producer still exits playback;
+actual profile progress and next-scenario loader integration remain unfinished.
+
+The upstream original map-active gate is also unfinished: native leaves0;
+original191DF0 writes1 only after complete11E8E0 success. Newly recovered
+activation/variant/BSP/simulation callbacks match70 original caller cases in140
+native comparisons,29939 ordered stores and70 explicit external stops. All21
+original BSP-start callbacks now return with a live renderer, including authored
+object placement and actual allocator compaction. The native palette API at
+15B68->4025B0 binds four real stage resources using the exact1024 authored bytes;
+cold API regression,11 rejection controls, actual GPU image checks and retirement
+rejection pass on RTX5080. This is a declared native SDK boundary; original
+driver instruction and final framebuffer parity remain open. Vulkan validation
+is disabled because its layer is not installed. Headless execution still stops
+before the GPU owner. Full map startup now runs the original level-handle
+constructor/reset, physical-arena callback, simulation/statistics reset, seeded
+vector generation and renderer handle reset. Original171E10/228260 constructors
+now fix the row36/43 missing-storage failures through real arena/CRC operations.
+Sound-environment CPU128900/197230/2260E0 callers are recovered; startup now stops
+at2260E8 writing through the absent52D674 driver binding. The live sound-storage
+prefix omits complete224EC0 DirectSound activation, so real driver/device/plugin
+ownership remains necessary. Game-active remains0. No ready flag or external success is
+supplied. Ordinary campaign construction has not been switched to an incomplete
+startup sequence.
+
+A separate complete sound-driver probe now reaches the actual boot-SMC data
+dependency after consuming the existing EEPROM's non-key audio settings. It
+stops at33C2A2/unbound import356; no current AV/SMBus producer or native sound
+readiness is asserted. Failed native exit callbacks now report their errors
+without throwing from teardown, preserving the initiating driver failure
+(failure exit1 replaces SIGABRT6). A successful real-renderer BSP run still
+passes all21 callbacks with no teardown errors. Full source cleanup, skip/restart,
+driver/device/DSP activation and final audio remain acceptance gates.
+
+The earlier v58 full run measures actual first PCM consumption for all47 admitted
+cues, including leading silence; the other2 are authored silent. It reaches
+all13 scenes with zero script/audio faults. The Prophet requests still differ
+by211 ticks, but their consumed gap is333824 samples instead of337600:
+78.667ms too short in this run. The largest request-to-drain delay is41 ticks;
+submission-to-consumption is at most1024 samples. This confirms variable native
+producer/delivery jitter; the earlier v54 submission gap was156ms too long.
+Neither measurement authorizes changing the original sleeps.
+
+The shared SDL service now accepts explicit sample deadlines, records actual
+first consumption and decoded-input progress, and has a pause-preserving48kHz
+presentation clock. `MultiplayerAudio` exposes this same contract without
+fabricating an Xbox voice/readiness record or moving RNG selection to a future
+time. All49 explicit deadlines pass across three mixer partitions, and actual
+Prophet PCM preserves the337600-sample gap through a separate pause. The old
+immediate-start path fails these tests. Existing SDL stream/volume regressions
+pass. The current-root adapter compiles, but the full graphics probe still uses
+the immutable engine cohort. The request producer is now wired to these deadlines in v112; the live
+requests still arrive late. Live timing parity remains a failed gate. Mouth motion,
+live spatial volume and remaining GPU/transition gates remain open.
+
+The unchanged TU1.5 HS runner/wake/sleep now supplies a reproducible fixture for
+all49 authored cue threads. Native ScriptVm matches their wake-relative request
+ticks. Arbiter's Pillar cue is100; the Prophet pair is279/490, a211-tick gap.
+This does not measure scene wake ordering or audio-device delivery. A second
+unchanged control/packet/driver oracle verifies all49 literal sound/playback/
+class/scale banks, caller-gain bits and centered gain kernels with neutral class
+fades.47 are above the admission floor and2 are authored silent. It does not
+establish live spatial gain, Xbox DSP, decoded PCM equality or final mix parity.
+The new reproducible tools are `oracle_opening_dialogue_timing_tu15.py` and
+`oracle_opening_audio_gains_tu15.py`; their native comparisons run within the
+unchanged60/64MiB source-test guard. An initial all-PCM adapter test exceeded that
+budget and was replaced by the bounded CPU comparison, without increasing it.
+
+Animated camera tracks previously ignored the render fraction. The shared
+Presentation camera now samples the authored track between ticks without
+advancing its script clock. A regression fails before the change, then passes
+all269 boundaries of the moving01b shot, final hold, repeated sampling and a
+cut to07. The four original camera position/direction samples still pass with
+the fixed module. Other capped presentation elements remain open.
+
+The v28 runtime material audit records13 character placements,157 part/LOD
+bindings and54 shaders with no reported unresolved material binding. This is
+selected-resource evidence, not pixel parity. A v29 comparison finds the script
+renderer and retained original model contexts had different lighting: the HSC
+lighting commands and bit24 object selector only updated native presentation.
+The shared TU1.5 lighting bridge now updates the actual80-byte source bank and
+metadata/selector bits. The regression first fails on the old simulation and
+then passes all13 actual authored lighting scripts under the unchanged60/64MiB
+RAM guard. In the v31 full playback, all11 observed character placements have
+matching lighting and packed tint inputs; the two background Prophet councilors
+seen in v28 still need follow-up coverage. This does not establish shader pixels,
+shadow pass completeness, or per-part override equivalence.
+The newer v54 run covers all13 character placements again,157 bindings and54
+shaders, with zero reported lighting or packed-color mismatches and no binding
+gaps. This includes both background Prophet councilors and15 Arbiter bindings.
+
+The tick972 white-area screenshot was reproduced exactly. Passing computed BSP
+admission to ModelView leaves this failure unchanged, so this pointer alone is
+not its fix and has not been promoted to production. Original/native camera
+position and direction agree at four samples across scenes01b/07 with their
+actual authored anchors. The supplied chamber reference is retained as a layout
+reference with platform/update unspecified. The private per-cluster sky v32
+run finished all13 scenes, but its exact972 capture retains the white failure;
+sky selection alone is ruled out. A bounded frozen972 GPU comparison now shows
+that omitting all dynamic model submissions restores the tall walls and lower
+stairs, while including them reproduces the white obstruction. The underlying
+BSP is present. Group isolation identifies ordinary scenery's independent
+volume/overlay/emissive materials reaching the generic opaque path. The shared
+independent-material binder now retains those authored programs, declarations,
+colors and blend states for ordinary model submissions. At exact972, the full
+model render restores the chamber walls, lower stairs and light shafts:
+476452 white obstruction pixels become0 with the same camera,FOV,5 character
+draws,10224 dynamic vertices and113658 BSP vertices. Three literal material
+bindings and the full-frame symptom regression pass. No model was omitted.
+Other shots and complete TU1.5 framebuffer parity remain acceptance gates.
+
+Audio v27 fixes the previous parked gameplay listener and placement-root emitter,
+and consumes authored playback/scale/class/permutation gain through the shared
+native SDL adapter. All49 cue requests were logged in v31,47 admitted, with no
+native audio faults. Two authored silent cues are rejected. This is not proof of
+all dialogue being audible or byte-exact Xbox mix/scheduling. The Arbiter's Pillar
+line remains approximately33dB attenuated; queued and post-tick mouth-marker
+points agree for that cue. Original source admission, attenuation, packet gain,
+callback, speech-controller and listener paths are still under investigation.
+Renderer-end event logs are not original request ticks: multiple game phases can
+complete before native audio delivery. A timing differential must retain both.
+The current diagnostic candidate records those separately. Authored sound
+prediction now warms the actual scripted playback adapter rather than only the
+separate legacy audio cache; prediction consumes neither RNG nor a packet/voice
+or manual playback clock. The six real SDL volume checks still pass after
+prediction. Full playback/delivery and remaining spatial volume are being checked.
+The v54 pass reaches all13 scenes with0 script/audio faults in198.29 seconds
+including startup,2624 rendered frames and9186304 native audioframes. It logs49
+requests and47 admissions. The live Prophet request gap is exactly211ticks;
+submission counters differ345088frames instead of337600, an extra156ms in
+this run. Frame-end delivery remains a measured failure, despite correct HSC
+requests. This recording is diagnostic and is not the requested finished video.
+
+Current evidence and live job handles are in
+[the latest continuation](../analysis/opening-cinematic-20261015/CONTINUATION_20261016_CAST_AUDIO.md).
+
+**The goal is active and the opening is not finished.** The coherent current
+source candidate now enters and returns from all13 authored scenes in order,
+with zero script faults. It reaches the authored revert and `game_won` exit.
+The original cinematic-shadow command, cascaded scene retirement and intro-panel
+material fixes are included. The separate optimized graphics/audio run renders
+1,482 frames in230.85 wall seconds including startup, and mixes9,187,328 native
+audio frames. This proves sequence execution and an active audio consumer, not
+smooth playback, synchronization, visible shadows, visual parity or next-level
+handoff. No finished video has been delivered.
+
+A diagnostic recording exposes opaque backdrop rectangles and a separate bright
+cross-shaped artifact. Four actual matte paintings use only layer15 /
+implementation0 `alpha_detail_masked`; stardust uses the independent
+`sky_clouds_simple_transparent` pass. Those unlit scenery models previously used
+the generic material path. Layer15-only scenery now consumes the existing source
+collector, deferred WORLD pose, shader-LOD selection, original vertex/pixel
+programs and authored RGBA blend. The four black matte boundaries disappear in
+the first new GPU observation; the bright artifact remains. The full new run also enters/returns all13 scenes, with zero script faults,
+1,491 rendered frames and9,185,280 mixed audio frames. Remaining rendering
+owners still require acceptance. The separate tick450 diagnostic retains the
+bright cross even when only static BSP vertices are omitted; that geometry span
+is ruled out as its owner. Production BSP visibility was not changed. Further isolation rules out
+stardust, the invisible fleet, named anchors and device machines as individual
+omitted groups; retaining only the five principal shot objects removes the
+artifact. Actual source admission for camera cluster27 (a zero-portal cluster)
+returns21 objects. A new private probe uses that complete admission result,
+restores all BSP/scenery and removes all tag-name omission rules: the cross is
+absent. This is first-shot diagnostic evidence. Production integration still
+needs the connected-room portal-mask producer and source parent/child render
+presentation; no whole-opening visibility acceptance is inferred. Five actual material
+bindings pass in both lighting classifications under the unchanged60/64MiB guard.
+
+The authored `c01_intro_dof_01` script (147) is dormant and has no wake or static
+call reference in this cache's165-script inventory. Its DOF command is therefore
+not reached by normal opening playback. This is evidence about these original
+tags; it does not implement DOF for other cutscenes or converted MCC tags.
 
 The intended pipeline imports MCC data/tags and converts them to TU1.5
 equivalents later. TU1.5 remains the behavior and visual authority. Current
@@ -684,16 +1534,19 @@ rebuilt here, so this does not establish a complete shader-bank rebuild.
 
 The map is build `02.09.27.09809`, SHA-256
 `5093e2f8ef7f0df41c11c6621bac5785a36f78a1cff3b8b2bc6c14b561c02a28`.
-Native diagnostic playback currently uses the base XBE, SHA-256
+Earlier native diagnostic playback used the base XBE, SHA-256
 `03215919bb7163259257d361f4c7bf802a7ab12aa85e2689436369b5c427935d`.
 TU1.5 CPU captures use SHA-256
 `21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd`.
+The latest v69 complete playback also uses that TU1.5 executable.
 
 Headless simulations run serially with 60 MiB RAM, a 64 MiB measured ceiling and
 zero swap. Builds use 1 GiB and zero swap; selected source compiles use Clang
 because GCC's main compile exceeded that budget. Separate graphics probes use
 2 GiB and zero swap after 1 GiB graphics attempts failed. The successful graphics
 runs peak at 1.5–1.8 GiB. These bounds do not establish production performance.
+Later combined native graphics, private Xvfb/Pulse and video recording jobs use
+a separate3GiB,zero-swap aggregate bound. Source tests retain60/64MiB unchanged.
 
 Use a fresh output directory:
 

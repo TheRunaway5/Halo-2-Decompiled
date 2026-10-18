@@ -48,6 +48,18 @@ int main(int argc,char **argv)try {
         if(!binding->configured() || configure.gp[0]!=1 || configure.gp[1]!=0x200 || configure.gp[4]!=0x60008004 ||
            binding->device_address()!=lease.acquire().native_address())throw FormatError("Whole400EF0/native renderer configuration differs");
         binding->read(0x411568,data);if(Bytes(data).u32(0)!=0x40f0c0)throw FormatError("Original source device alias differs");
+        // A collection root must enter through its actual World/pass caller.
+        // Adding shared downstream owners must not expose a queue-reset path.
+        auto forbidden=caller(0,0,0x60008000);const auto untouched=forbidden;
+        const std::array<unsigned,2> queue_canary{17,19};memory.write(0x4c2aa0,std::as_bytes(std::span(queue_canary)));
+        unsigned root_instructions=0;SourcePhysicsWorldRuntimeServices root_services;
+        root_services.instruction=[&](auto){++root_instructions;};
+        const auto prior_commands=binding->commands().size();
+        rejected([&]{binding->run(0x40e80,forbidden,root_services);},"A collection root bypassed its actual pass admission");
+        if(root_instructions || forbidden.gp!=untouched.gp || forbidden.xmm!=untouched.xmm ||
+           forbidden.eflags!=untouched.eflags || binding->commands().size()!=prior_commands ||
+           std::memcmp(memory.view(0x4c2aa0,8).data(),queue_canary.data(),8))
+            throw FormatError("Rejected collection root changed its queue, ABI or command bank");
         auto upload=caller(0,0x60000100,0x60008000);binding->run(0x401410,upload);binding->consume_constants(output);
         if(std::memcmp(input.data(),output.data(),sizeof(input)))throw FormatError("Original packets did not reach the renderer-owned constant consumer");
         rejected([&]{(void)binding->depth_configuration();},"Unconfigured depth became visible");

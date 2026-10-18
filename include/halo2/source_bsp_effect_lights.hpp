@@ -8,7 +8,9 @@
 #include "halo2/pstencil/point_caster.hpp"
 
 namespace halo2 {
+namespace pstencil {class SharedLightMaterials;}
 struct SourceEffectLightGeometryFrameContext;
+struct SourceCampaignViewFrameTu15;
 enum class SourceEffectLightCommandPhaseTu15 {before_seed,before_collection,collected,culled};
 struct SourceEffectLightCommandObservationTu15 {
     SourceEffectLightCommandPhaseTu15 phase;
@@ -49,6 +51,9 @@ struct SourceEffectLightModelViewTu15 {
     // Synchronous borrowed inputs, before attachment/command-bank writes.
     // Copy retained state during the call; do not retain these references.
     std::function<void(const SourceEffectLightCommandObservationTu15&)> light_command_observer;
+    // Borrowed for this draw only. A completed campaign frame already owns
+    // main collection, environment, queues, cull and command completion.
+    const SourceCampaignViewFrameTu15* completed_campaign_main=nullptr;
 };
 // Shared BSP/model part of31C80. Immutable cache resources are loaded before
 // renderer creation; tick state, selection and receiver queries come from the
@@ -59,6 +64,9 @@ public:
     SourceBspEffectLights(const Cache&,Mesh&,std::size_t bsp,
         std::span<const std::uint32_t> light_definitions,
         std::span<const std::uint32_t> render_models={});
+    SourceBspEffectLights(const Cache&,Mesh&,std::size_t bsp,
+        std::span<const std::uint32_t> light_definitions,
+        std::span<const std::uint32_t> render_models,std::shared_ptr<pstencil::SharedLightMaterials>);
     ~SourceBspEffectLights();
     SourceBspEffectLights(const SourceBspEffectLights&)=delete;
     SourceBspEffectLights& operator=(const SourceBspEffectLights&)=delete;

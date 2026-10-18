@@ -163,11 +163,10 @@ These service components do not remove the MCC gameplay blocker.
 
 ## Validation and source recovery
 
-Build the test targets before running CTest:
+Run validation in a temporary build that cleans up afterward:
 
 ```bash
-cmake --build build -j
-ctest --test-dir build --output-on-failure
+python3 tools/run_tests.py
 ```
 
 The full suite needs local reference data: some asset-dependent checks skip
@@ -178,13 +177,17 @@ the Khronos Vulkan validation layer; use `VK_LAYER_VALIDATE_SYNC=1` for
 synchronization checks. Render sweeps, source differential commands and measured
 results are linked from [port status](docs/PORT_STATUS.md).
 
-For sanitizer builds:
+For a focused sanitizer check:
 
 ```bash
-cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DHALO2_SANITIZERS=ON
-cmake --build build-asan -j
-ASAN_OPTIONS=detect_leaks=1 ctest --test-dir build-asan --output-on-failure
+ASAN_OPTIONS=detect_leaks=1 python3 tools/run_tests.py --sanitizers \
+  --target movie_tests --filter '^frontend_movie_routing$'
 ```
+
+Normal game builds omit test executables. For a persistent test build, use
+`cmake --build build --target halo2_tests -j2` before CTest. See
+[test storage](docs/TEST_STORAGE.md) for scratch cleanup, bounded failure logs,
+and explicit artifact retention.
 
 Developer reference extraction and decompilation remain separate from MCC
 onboarding. With a user-supplied Xbox disc:

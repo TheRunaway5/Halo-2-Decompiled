@@ -16,7 +16,7 @@ CANCELLED = 20
 class LauncherHome(LauncherCanvas):
     def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, preview_maps_function=None, preview_launch_function=None, launcher_executable=None, sandbox_launch_function=None):
         from update_runtime import update_runtime
-        from mcc_onboarding import runtime_status, preview_maps
+        from mcc_onboarding import NOT_PLAYABLE, runtime_status, preview_maps
 
         super().__init__(window, root, "Halo 2 — Launcher")
         self.build = build
@@ -24,6 +24,9 @@ class LauncherHome(LauncherCanvas):
         self.availability = availability_function or (lambda: runtime_status(root))
         self.unavailable = runtime_unavailable or self.availability()
         self.preview_maps = (preview_maps_function or (lambda: preview_maps(root)))()
+        self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps)
+        self.test_message = "Play opens the MCC content test build. Native gameplay and Xbox TU1.5 conversion are still in progress."
+        self.precompiled = (Path(root) / "PRECOMPILED_TEST_BUILD.json").is_file()
         self.launcher_executable = Path(launcher_executable) if launcher_executable else Path(root) / "Halo2-Launcher"
         self.preview_launch = preview_launch_function or (lambda argv: subprocess.Popen(argv, cwd=root, start_new_session=True))
         self.sandbox_launcher = Path(root) / "Halo2-Sandbox-Test"
@@ -80,9 +83,13 @@ class LauncherHome(LauncherCanvas):
         if not choices:
             self.preview_selector.configure(state="disabled")
             self.preview_button.configure(state="disabled")
-        if self.unavailable:
+        if self.test_build:
+            self.status.configure(text=self.test_message, foreground="#ffd29b")
+        elif self.unavailable:
             self.play_button.configure(state="disabled")
             self.status.configure(text=self.unavailable, foreground="#ffd29b")
+        if self.precompiled:
+            self.update_button.configure(state="disabled")
         if (Path(root) / "launcher-update.pending").exists():
             self.play_button.configure(state="disabled")
             self.status.configure(text="An update needs to finish. Select Update to retry the build.", foreground="#ffd29b")
@@ -95,7 +102,7 @@ class LauncherHome(LauncherCanvas):
         (self.update_button if str(self.play_button.cget("state")) == "disabled" else self.play_button).focus_set()
 
     def start_update(self):
-        if self.working:
+        if self.working or self.precompiled:
             return
         self.working = True
         for button in self.actions():
@@ -134,9 +141,12 @@ class LauncherHome(LauncherCanvas):
                     # A failed update can leave source and runtime at different
                     # revisions. Require a successful retry before playing.
                     self.unavailable = self.availability() if kind == "done" else "Update stopped. Check the output below, then try Update again."
-                    ready = kind == "done" and not self.unavailable
+                    from mcc_onboarding import NOT_PLAYABLE
+                    self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps)
+                    ready = kind == "done" and (not self.unavailable or self.test_build)
                     self.play_button.configure(state="normal" if ready else "disabled")
-                    self.status.configure(text=self.unavailable or message, foreground=CYAN if ready else "#ffd29b")
+                    self.status.configure(text=self.test_message if self.test_build else self.unavailable or message,
+                                          foreground="#ffd29b" if self.test_build or not ready else CYAN)
                     (self.play_button if ready else self.update_button).focus_set()
                 else:
                     self.status.configure(text=message[:130])
@@ -147,6 +157,9 @@ class LauncherHome(LauncherCanvas):
 
     def play(self):
         if not self.working and str(self.play_button.cget("state")) != "disabled":
+            if self.test_build:
+                self.play_preview()
+                return
             self.result = 0
             self.close()
 

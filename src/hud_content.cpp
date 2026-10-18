@@ -1,5 +1,6 @@
 #include "halo2/hud.hpp"
 #include "halo2/texture.hpp"
+#include "halo2/mcc_hud_reference.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -47,6 +48,9 @@ HudContent Cache::load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_
   auto point = [&](std::size_t p) {
     return Vec2{float(std::int16_t(data.u16(p))),
                 float(std::int16_t(data.u16(p + 2)))};
+  };
+  const auto hud_operand = [&](std::uint32_t id) {
+    return mcc_ ? normalize_mcc_hud_function_operand(id, string_id(id)) : id;
   };
   std::vector<std::pair<std::uint32_t, unsigned>> interfaces;
   if(hud_definition!=null_datum)interfaces.emplace_back(hud_definition,5);
@@ -135,8 +139,29 @@ HudContent Cache::load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_
     const auto size=std::int16_t(data.u16(root(unit,"bipd",0x196)+0x194));
     out.sensor.blip_sizes[n]=std::uint8_t(std::clamp(int(size),0,3));
   }
+  const auto mcc_bitmap=[&](std::uint32_t id,unsigned frame) {
+    const auto images=bitmap_count(id);
+    if(!images || images>256 || frame>=images)
+      throw FormatError("MCC HUD bitmap frame escapes its bounded image bank");
+    const auto resource=load_bitmap_resource(id,frame);
+    if(resource.type!=0 || resource.depth!=1 || resource.levels[0].empty())
+      throw FormatError("MCC HUD bitmap requires its actual 2D texture resource");
+    auto image=load_bitmap(id,frame);
+    if(image.width!=resource.width || image.height!=resource.height ||
+       image.layers!=1 || image.depth || image.mips.empty() ||
+       image.mips[0].width!=image.width || image.mips[0].height!=image.height ||
+       image.mips[0].depth!=1 || image.mips[0].offset ||
+       !image.mips[0].size || image.mips[0].size>image.pixels.size())
+      throw FormatError("MCC HUD bitmap differs from its decoded texture owner");
+    return image;
+  };
   auto sensor_bitmap=[&](unsigned offset) {
     const auto id=data.u32(interface_tags[0]+offset+4);
+    if(mcc_) {
+      auto image=mcc_bitmap(id,0);
+      return image.format>=14 && image.format<=16?
+          prepare_xemu_bc_texture(image):image;
+    }
     const auto rows=metadata_block_offsets(root(id,"bitm",76)+68, 116, 256);
     if(rows.empty())throw FormatError("Missing authored motion-sensor image");
     const auto q=rows[0];
@@ -152,24 +177,35 @@ HudContent Cache::load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_
              indices = data.u32(lp + 8), strings = data.u32(lp + 12);
   if (count > 65536 || size > 16 * 1024 * 1024)
     throw FormatError("Excessive HUD locale table");
-  data.require(indices, std::size_t(count) * 8);
-  const Bytes table(data.slice(strings, size));
+  std::vector<std::byte> mcc_indices,mcc_strings;
+  if(mcc_) {
+    // The serialized English cache offsets keep their actual local/shared
+    // file route. Runtime locale pointers and loaded flags remain untouched.
+    const auto location=indices>>30;
+    if(location!=(strings>>30) || (location!=0 && location!=2))
+      throw FormatError("MCC HUD locale has an unowned local/shared route");
+    if(count)mcc_indices=raw_data(indices,count*8);
+    if(size)mcc_strings=raw_data(strings,size);
+  }else data.require(indices, std::size_t(count) * 8);
+  const Bytes references=mcc_?Bytes(mcc_indices):data;
+  const auto reference_base=mcc_?0u:indices;
+  const Bytes table=mcc_?Bytes(mcc_strings):Bytes(data.slice(strings, size));
   const auto up = root(data.u32(hp + 0x3fc), "unic", 52);
   const auto start = data.u16(up + 16), length = data.u16(up + 18);
   if (start > count || length > count - start)
     throw FormatError("HUD locale range outside table");
   for (unsigned i = start; i < start + length; ++i) {
-    const auto at = indices + i * 8, s = data.u32(at + 4);
+    const auto at = reference_base + i * 8, s = references.u32(at + 4);
     if (s >= size)
       throw FormatError("HUD string outside locale table");
-    out.strings.emplace(data.u32(at), table.string(s, size - s));
+    out.strings.emplace(references.u32(at), table.string(s, size - s));
   }
   // Action strings belong to each item/control's unic range, outside the
   // global nhdt text range. Resolve the same IDs from the current map locale.
   for(unsigned i=0;i<count;++i){
-    const auto at=indices+i*8,s=data.u32(at+4);
+    const auto at=reference_base+i*8,s=references.u32(at+4);
     if(s>=size)throw FormatError("Action string outside locale table");
-    out.strings.emplace(data.u32(at),table.string(s,size-s));
+    out.strings.emplace(references.u32(at),table.string(s,size-s));
   }
   std::set<std::uint32_t> visited, requested;
   for (std::size_t i = 0; i < interfaces.size(); ++i) {
@@ -206,6 +242,10 @@ HudContent Cache::load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_
           requested.insert(w.bitmap);
         } else {
           w.text = data.u32(at + 0x28);
+          // Original numeric text dispatches through the same HUD callback;
+          // ordinary localized text retains its real MCC locale StringID.
+          if (mcc_ && (w.flags & 1))
+            w.text = hud_operand(w.text);
           w.justification = data.u16(at + 0x2c);
         }
         for (unsigned k = 0; k < 3; ++k) {
@@ -223,8 +263,8 @@ HudContent Cache::load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_
           for (unsigned k = 0; k < 5; ++k) {
             const auto f = effect + 4 + k * 20;
             auto &v = e.functions[k];
-            v.input = data.u32(f);
-            v.range = data.u32(f + 4);
+            v.input = hud_operand(data.u32(f));
+            v.range = hud_operand(data.u32(f + 4));
             v.period = real(f + 8);
             const auto n = data.u32(f + 12);
             if (n > 4096)
@@ -241,15 +281,34 @@ HudContent Cache::load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_
       }
   }
   for (const auto &w : out.widgets)
-    if (w.shader != null_datum && !out.shaders.contains(w.shader))
-      out.shaders.emplace(w.shader, load_material(w.shader, true));
+    if (w.shader != null_datum && !out.shaders.contains(w.shader)) {
+      auto material = load_material(w.shader, true);
+      if (mcc_)
+        for (auto &overlay : material.animation.overlays) {
+          overlay.input = hud_operand(overlay.input);
+          overlay.range = hud_operand(overlay.range);
+        }
+      out.shaders.emplace(w.shader, std::move(material));
+    }
   for (auto id : requested)
     if (id != null_datum) {
       const auto p = root(id, "bitm", 76);
       UiImage image;
       const auto t = query_tag({.handle=TagHandle{id}});
       image.name = t->name;
-      for (auto q : metadata_block_offsets(p + 68, 116, 256)) {
+      if(mcc_) {
+        const auto count=bitmap_count(id);
+        if(count>256)throw FormatError("Excessive MCC HUD bitmap images");
+        for(unsigned frame=0;frame<count;++frame) {
+          auto texture=mcc_bitmap(id,frame);
+          // The existing UI path uses the highest-detail image only. MCC's
+          // loader already owns its packed DAT layout and mip extents; Xbox
+          // linear row pitch must not be applied to that resource.
+          texture.pixels.resize(texture.mips[0].size);texture.mips.resize(1);
+          if(texture.format==16)texture=prepare_xemu_bc3_texture(texture);
+          image.images.push_back(std::move(texture));
+        }
+      }else for (auto q : metadata_block_offsets(p + 68, 116, 256)) {
         if (data.u16(q + 10) != 0)
           throw FormatError("HUD bitmap must be 2D");
         const auto raw = raw_data(data.u32(q + 28), data.u32(q + 52));

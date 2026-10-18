@@ -26,7 +26,7 @@ void restore(FirstPersonHandBinding &hand,const FirstPersonChannelState &state,
   const auto clip=std::find_if(clips.begin(),clips.end(),
       [&](const auto &c){return c.activity==state.activity;});
   if(state.graph!=definition.graph || clip==clips.end() || clip->frames<=0 ||
-      state.animation_identifier!=((clip->index<<16)|0xffffu) ||
+      state.animation_identifier!=first_person_clip_identifier(*clip) ||
       !std::isfinite(state.rate) || !std::isfinite(state.frame) || state.frame<0 ||
       state.frame>float(clip->frames)-std::bit_cast<float>(0x38d1b717u))
     throw FormatError("Replicated first-person clock disagrees with authored SMG channel");

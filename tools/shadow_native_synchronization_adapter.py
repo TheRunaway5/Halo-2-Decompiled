@@ -42,6 +42,21 @@ class NativeShadowSynchronization:
     def close(self):
         if self.owner:self.native.shadow_sync_destroy(self.owner);self.owner=None
 
+    def export_checkpoint(self):
+        """Export actual released ownership; acquired objects still reject it."""
+        assert self.owner and hasattr(self.native,'shadow_sync_checkpoint')
+        u32=ctypes.c_uint32;u64=ctypes.c_uint64;pointer=ctypes.POINTER
+        query=self.native.shadow_sync_checkpoint
+        query.argtypes=[ctypes.c_void_p,pointer(u32),pointer(u64),pointer(u64),pointer(u32),u32,pointer(u32)]
+        query.restype=ctypes.c_int
+        first,next_value,limit,count=u32(),u64(),u64(),u32()
+        rows=(u32*(len(self.handles)*4))()
+        if not query(self.owner,ctypes.byref(first),ctypes.byref(next_value),ctypes.byref(limit),rows,len(self.handles),ctypes.byref(count)):
+            raise RuntimeError(self.native.shadow_sync_error().decode())
+        return dict(version=1,first=first.value,next=next_value.value,limit=limit.value,
+            objects=[dict(handle=rows[n*4],kind=rows[n*4+1],count=ctypes.c_int32(rows[n*4+2]).value,
+                          limit=ctypes.c_int32(rows[n*4+3]).value) for n in range(count.value)])
+
     def kernel(self,cpu,pc):
         sp=cpu.reg_read(R.UC_X86_REG_ESP)
         u=lambda p:int.from_bytes(cpu.mem_read(p,4),'little')

@@ -19,7 +19,8 @@ void ScriptVm::validate_authority(const AuthorityCheckpoint &saved)const {
         if(thread.script>=program_.scripts.size() || thread.stack.size()>129 ||
             (thread.faulted && !thread.stopped) ||
             ((program_.scripts[thread.script].type==5)!=thread.actor.has_value()) ||
-            (thread.actor && *thread.actor==null_datum) || (thread.command_wait && (!thread.actor || !command_ready_)))
+            (thread.actor && *thread.actor==null_datum) || (thread.command_wait && (!thread.actor || !command_ready_)) ||
+            (thread.external_sleep && thread.external_sleep->dormant && thread.external_sleep->wake != 0))
             throw FormatError("Script continuation has an invalid thread or command actor");
         // Handled script faults retain their original partial stack and report.
         // They are stopped and cannot be awakened; do not erase that evidence

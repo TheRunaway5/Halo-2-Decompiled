@@ -1,4 +1,5 @@
 #include "halo2/source_lens_draw_frame_tu15.hpp"
+#include "halo2/source_lens_frame_camera_tu15.hpp"
 #include "halo2/source_lens_draw_tu15.hpp"
 #include "halo2/source_lens_query_tu15.hpp"
 #include "halo2/source_lens_program_tu15.hpp"
@@ -7,6 +8,7 @@
 #include "halo2/physics_live_world_tu15.hpp"
 #include "halo2/renderer.hpp"
 #include "halo2/source_execution_lens.hpp"
+#include "halo2/mcc_lens_bitmap_layout.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -14,6 +16,7 @@
 #include <set>
 #include <thread>
 #include <sstream>
+#include <type_traits>
 
 namespace halo2 {
 namespace {
@@ -35,9 +38,12 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
         unsigned bitmap,index,row,header,alias,material;
         std::array<std::byte,0x74> metadata;
         std::shared_ptr<const Texture> texture;
+        unsigned source_row{};
     };
+    struct BitmapBank {unsigned bitmap,count,source_first,first;};
     const Cache &cache;
     std::vector<Resource> resources;
+    std::vector<BitmapBank> bitmap_banks;
     std::map<unsigned,std::size_t> domains;
     std::map<unsigned,unsigned> header_material;
     std::map<unsigned,unsigned> alias_header;
@@ -49,11 +55,11 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
     std::array<std::byte,0x74> camera{};
     SourceViewProjectionBank projection{};
     std::vector<SourceLensDraw> draws;
-    bool active{},planning{};
+    bool active{},planning{},initialized{};
     unsigned views{},fence{};
 
     Impl(const Cache &c,Mesh &mesh):cache(c) {
-        if(c.is_vista() || c.is_mcc())throw FormatError("Original lens draw owner requires the admitted Xbox cache");
+        if(c.is_vista())throw FormatError("Original lens draw owner requires Xbox or converted MCC bitmap ownership");
         const Bytes globals(c.tag_payload(c.globals_tag()));
         if(globals.u32(0x108)!=1)throw FormatError("Original lens rasterizer globals are unavailable");
         const Bytes raster(c.read_tag_bytes(globals.u32(0x10c),0x68));
@@ -65,6 +71,7 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
         for(unsigned n=0;n<program.size();++n)if(std::to_integer<unsigned char>(program[n])!=source_lens_vertex_bytes[n])
             throw FormatError("Original lens vertex MOV program differs from the compiled owner");
         std::set<unsigned> bitmaps;std::map<unsigned,std::array<std::byte,0x74>> rows;
+        std::vector<Material> pending_materials;
         bitmaps.insert(raster.u32(0x64)); // Original14540/14460 type0 default.
         for(const auto &lens:c.select_tags({.group=TagGroup::from_string("lens"),.require_address=true})) {
             const Bytes definition(c.tag_payload(lens.handle()));const auto bitmap=definition.u32(0x24);
@@ -76,29 +83,66 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
             if(!tag)throw FormatError("Original lens bitmap definition is absent");
             const Bytes root(c.tag_payload(tag->handle()));const auto count=root.u32(0x44),first=root.u32(0x48);
             if(count!=c.bitmap_count(bitmap) || count>65536)throw FormatError("Original lens bitmap row count differs");
-            const auto data=c.read_tag_bytes(first,std::size_t(count)*0x74);
+            const unsigned stride=c.is_mcc()?0xa8u:0x74u;
+            if(std::uint64_t(first)+std::uint64_t(count)*stride>0x100000000ull)
+                throw FormatError("Lens bitmap source bank wraps its logical address domain");
+            const auto data=c.read_tag_bytes(first,std::size_t(count)*stride);
+            bitmap_banks.push_back({bitmap,count,first,first});
             for(unsigned image=0;image<count;++image) {
-                Resource resource{bitmap,image,first+image*0x74,headers+unsigned(resources.size())*32,
-                    images+unsigned(resources.size())*4096,unsigned(mesh.materials.size()),{}, {}};
-                std::copy_n(data.begin()+image*0x74,0x74,resource.metadata.begin());
+                if(resources.size()>=(0x100000000ull-images)/4096 ||
+                   resources.size()>=(images-headers)/32 ||
+                   mesh.materials.size()+pending_materials.size()>=0xffffffffull)
+                    throw FormatError("Lens image/header logical aliases exceed their disjoint domains");
+                Resource resource{bitmap,image,first+image*stride,headers+unsigned(resources.size())*32,
+                    images+unsigned(resources.size())*4096,unsigned(mesh.materials.size()+pending_materials.size()),{}, {}};
+                resource.source_row=resource.row;
+                if(!c.is_mcc())std::copy_n(data.begin()+image*stride,0x74,resource.metadata.begin());
+                resource.texture=std::make_shared<const Texture>(c.load_bitmap(bitmap,image));
+                if(c.is_mcc()) {
+                    const auto projected=project_mcc_lens_bitmap_layout(tag->handle(),image,
+                        data.subspan(image*stride,stride),c.load_bitmap_resource(bitmap,image),*resource.texture);
+                    std::copy(projected.common.begin(),projected.common.end(),resource.metadata.begin());
+                }
                 if(const auto found=rows.find(resource.row);found!=rows.end()) {
                     if(found->second!=resource.metadata)throw FormatError("Aliased lens bitmap rows disagree");
                     continue;
                 }
                 if(Bytes(resource.metadata).u16(0xa)!=0)throw FormatError("Original lens bitmap requires its non-2D resource owner");
-                resource.texture=std::make_shared<const Texture>(c.load_bitmap(bitmap,image));
                 if(resource.texture->layers!=1 || resource.texture->depth || resource.texture->mips.empty())
                     throw FormatError("Original lens bitmap has no complete native 2D mip image");
                 Material material;material.name="source lens bitmap "+std::to_string(bitmap)+":"+std::to_string(image);
-                material.diffuse=*resource.texture;mesh.materials.push_back(std::move(material));
+                material.diffuse=*resource.texture;pending_materials.push_back(std::move(material));
                 rows.emplace(resource.row,resource.metadata);header_material.emplace(resource.header,resource.material);
                 alias_header.emplace(resource.alias&0x0fffffffu,resource.header);
                 resources.push_back(std::move(resource));
             }
         }
+        if(c.is_mcc()) {
+            // These are logical row locations in the lens device adapter.
+            // Only the authenticated common prefix and actual resident
+            // runtime fields receive backing; unknown MCC/Xbox fields do not.
+            const auto start=(std::uint64_t(images)+resources.size()*4096+4095)&~std::uint64_t(4095);
+            if(start+resources.size()*0x74>0x100000000ull)
+                throw FormatError("Converted lens bitmap views exceed logical address space");
+            std::map<unsigned,unsigned> projected;
+            for(std::size_t n=0;n<resources.size();++n) {
+                auto& resource=resources[n];resource.row=unsigned(start+n*0x74);
+                projected.emplace(resource.source_row,resource.row);
+            }
+            for(auto& bank:bitmap_banks)if(bank.count) {
+                bank.first=projected.at(bank.source_first);
+                for(unsigned n=0;n<bank.count;++n)
+                    if(projected.at(bank.source_first+n*0xa8)!=bank.first+n*0x74)
+                        throw FormatError("Aliased MCC lens bitmap bank lacks one contiguous original row view");
+            }
+        }
+        static_assert(std::is_nothrow_move_constructible_v<Material>);
+        mesh.materials.reserve(mesh.materials.size()+pending_materials.size());
+        for(auto& material:pending_materials)mesh.materials.push_back(std::move(material));
     }
-    void mount(unsigned p,std::span<const std::byte> bytes,const char *owner) {
-        graphics.mount(p,bytes,SourceRuntimeMemory::Access::ReadWrite,owner);domains.emplace(p,bytes.size());
+    void mount(unsigned p,std::span<const std::byte> bytes,const char *owner,
+        SourceRuntimeMemory::Access access=SourceRuntimeMemory::Access::ReadWrite) {
+        graphics.mount(p,bytes,access,owner);domains.emplace(p,bytes.size());
     }
     bool owned(unsigned p,std::size_t n)const {
         auto i=domains.upper_bound(p);if(i==domains.begin())return false;--i;
@@ -161,8 +205,54 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
     }
     void initialize(PhysicsLiveWorldTu15 &world) {
         if(source && source!=&world.memory())throw FormatError("Original lens draw owner cannot cross source worlds");
-        if(source)return;
+        if(initialized)return;
+        if(source)throw FormatError("Original lens initialization previously failed before publication");
         source=&world.memory();
+        std::vector<std::pair<unsigned,std::array<std::byte,8>>> bitmap_roots;
+        if(cache.is_mcc()) {
+            // Verify every canonical owner and every unchanged common-prefix
+            // preimage before exposing any converted device metadata.
+            const auto table=word(*source,0x4f0414);
+            for(const auto& bank:bitmap_banks) {
+                if((bank.bitmap&0xffffu)>=cache.tags().size())
+                    throw FormatError("MCC lens bitmap index escapes its complete cache directory");
+                const auto* tag=cache.query_tag({.handle=TagHandle{bank.bitmap},.group=tag_groups::bitmap,.require_address=true});
+                if(!tag || tag->size<0x4c || std::uint64_t(table)+(bank.bitmap&0xffffu)*16+16>0x100000000ull)
+                    throw FormatError("MCC lens bitmap lacks its complete typed Cache owner");
+                const auto entry=table+(bank.bitmap&0xffffu)*16;
+                const auto expected_root=source->source_address(world.resident_cache_address(cache,tag->address,tag->size),tag->size);
+                if(word(*source,entry)!=tag_groups::bitmap.value || word(*source,entry+4)!=bank.bitmap ||
+                   word(*source,entry+12)!=tag->size || word(*source,entry+8)!=expected_root)
+                    throw FormatError("MCC lens bitmap lost its canonical typed full-salt allocation owner");
+                const auto root=expected_root;
+                if(std::uint64_t(root)+0x4c>0x100000000ull)
+                    throw FormatError("MCC lens bitmap root wraps its logical address domain");
+                const auto count=word(*source,root+0x44),first=word(*source,root+0x48);
+                if(count!=bank.count || (count&&(!first || first==0xffffffffu)) ||
+                   std::uint64_t(first)+std::uint64_t(count)*0xa8>0x100000000ull)
+                    throw FormatError("MCC lens canonical image descriptor differs from its owned source bank");
+                if(count) {
+                    const auto extent=std::size_t(count)*0xa8;
+                    const auto expected_first=source->source_address(
+                        world.resident_cache_address(cache,bank.source_first,extent),extent);
+                    if(first!=expected_first)
+                        throw FormatError("MCC lens image descriptor redirects another canonical allocation");
+                }
+                for(const auto& resource:resources)if(resource.source_row>=bank.source_first &&
+                    std::uint64_t(resource.source_row)-bank.source_first<std::uint64_t(count)*0xa8) {
+                    const auto offset=resource.source_row-bank.source_first;
+                    if(offset%0xa8 || !std::ranges::equal(source->view(first+offset,0x18),
+                        std::span(resource.metadata).first(0x18)))
+                        throw FormatError("MCC lens canonical common header differs from its complete source preimage");
+                    renderer->require_lens_bitmap(resource.material,*resource.texture);
+                }
+                std::array<std::byte,8> descriptor{};
+                for(unsigned n=0;n<4;++n) {
+                    descriptor[n]=std::byte(count>>(n*8));descriptor[n+4]=std::byte(bank.first>>(n*8));
+                }
+                bitmap_roots.emplace_back(root+0x44,descriptor);
+            }
+        }
         mount(0x40eeb0,source->view(0x40eeb0,0x411800-0x40eeb0),"native lens SDK state with actual source tables");
         mount(0x491788,std::as_bytes(std::span(source_lens_pixel_words)),"original final lens pixel definition");
         mount(0x4c4b00,source->view(0x4c4b00,0x200),"native lens raster state");
@@ -172,6 +262,8 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
         mount(fifo,std::vector<std::byte>(fifo_bytes),"original lens primitive emission storage");
         mount(headers,std::vector<std::byte>(std::max<std::size_t>(32,resources.size()*32)),"genuine resident lens texture headers");
         put(graphics,0x411568,driver);put(graphics,0x411570,0);put(graphics,driver,fifo);put(graphics,driver+4,fifo+fifo_bytes);
+        for(const auto& [at,descriptor]:bitmap_roots)
+            mount(at,descriptor,"converted MCC lens bitmap original row descriptor",SourceRuntimeMemory::Access::ReadOnly);
         for(unsigned stage=0;stage<4;++stage) {
             const std::array<unsigned,6> sampler{1,1,1,2,2,2};
             graphics.write(0x40eeb0+stage*128,std::as_bytes(std::span(sampler)));
@@ -182,12 +274,19 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
             renderer->require_lens_bitmap(r.material,*r.texture);
             if(word(*source,table+(r.bitmap&65535)*16+4)!=r.bitmap)
                 throw FormatError("Lens bitmap source tag identity differs from its native resident owner");
-            mount(r.row,source->view(r.row,0x74),"native resident lens bitmap metadata view");
+            if(cache.is_mcc()) {
+                mount(r.row,std::span(r.metadata).first(0x18),"authenticated MCC lens bitmap common fields",SourceRuntimeMemory::Access::ReadOnly);
+                const std::array<std::byte,4> empty{};
+                mount(r.row+0x40,empty,"actual resident lens bitmap alias field");
+                mount(r.row+0x50,empty,"actual resident lens bitmap header field");
+                mount(r.row+0x70,empty,"actual resident lens bitmap frame stamp");
+            }else mount(r.row,source->view(r.row,0x74),"native resident lens bitmap metadata view");
             put(graphics,r.row+0x40,r.alias);
             auto abi=world.prepare_source_call(std::array<unsigned,2>{0,r.header});abi.gp[0]=r.row;
             execute(world,0x1301e0,abi);
             if(word(graphics,r.header+4)!=(r.alias&0x0fffffffu))throw FormatError("Original lens header lost its resident native alias");
         }
+        initialized=true;
     }
 };
 SourceLensDrawFrameTu15::SourceLensDrawFrameTu15(const Cache &c,Mesh &m):impl_(std::make_unique<Impl>(c,m)){}
@@ -201,19 +300,18 @@ void SourceLensDrawFrameTu15::begin(){auto &s=*impl_;s.check();if(s.active)throw
 std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
     Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
     std::array<std::int16_t,4> rectangle,unsigned width,unsigned height) {
+    return this->view(world,view,position,forward,up,angle,projection,rectangle,
+        width,height,Vec2{.015625f,1024.f});
+}
+std::vector<SourceLensDraw> SourceLensDrawFrameTu15::view(PhysicsLiveWorldTu15 &world,unsigned view,
+    Vec3 position,Vec3 forward,Vec3 up,float angle,const SourceViewProjectionBank &projection,
+    std::array<std::int16_t,4> rectangle,unsigned width,unsigned height,Vec2 clip_planes) {
     auto &s=*impl_;s.check();const auto use=s.lease.acquire();
     if(!s.active || view>=4 || (s.views&(1u<<view)) || !width || !height)throw FormatError("Original lens draw view is not uniquely active");
-    s.views|=1u<<view;s.initialize(world);s.draws.clear();s.camera.fill(std::byte{});s.projection=projection;
-    const auto copy=[&](unsigned p,const auto &v){std::memcpy(s.camera.data()+p,&v,sizeof(v));};
-    copy(0,position);copy(12,forward);copy(24,up);copy(0x28,angle);
+    s.views|=1u<<view;s.initialize(world);s.draws.clear();s.projection=projection;
     const auto targets=s.renderer->target_resources().acquire();const auto &surface=targets.bank().depth_stencil;
-    for(unsigned n=0;n<4;++n) {
-        const auto scaled=std::int64_t(rectangle[n])*(n%2?surface.width:surface.height)/(n%2?width:height);
-        if(scaled<0 || scaled>32767)throw FormatError("Original flare rectangle exceeds signed-short hardware coordinates");
-        rectangle[n]=std::int16_t(scaled);
-    }
-    std::memcpy(s.camera.data()+0x30,rectangle.data(),8);std::memcpy(s.camera.data()+0x38,rectangle.data(),8);
-    const float near=.015625f,far=1024.f;copy(0x40,near);copy(0x44,far);
+    s.camera=source_lens_frame_camera_tu15(position,forward,up,angle,rectangle,
+        width,height,surface.width,surface.height,clip_planes);
     // Whole13660 reads the actual published view type/mode and BL copied by
     //132B0 from the view record. Stop at its actual world-pass call, with all
     // arguments retained; no original2BCB0 result is invented.

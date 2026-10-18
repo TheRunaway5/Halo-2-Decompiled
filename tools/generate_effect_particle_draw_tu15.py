@@ -15,7 +15,8 @@ ENTRIES=(0xbcdf0,0x1e0f0,0x1e4c0,0x140c80,0x140cf0,0x135970,0x136ea0,0x1373f0,0x
          0x4021e0,0x402840,0x400920,0x407160,0x406fe0,0x15700,0x401020,
          0x1c2c0,0x1c570,0x400d40,0x400c50,
          0x1c310,0x1c690,0x1c6f0,0x35780,0x35840,0x401520,0x400dd0,0x400e30,
-         0x4020d0)
+         0x4020d0,0x12d30,0x12f80,0x2bcb0,0x289c0,0x15c030,0x13610,
+         0x132b0,0x15350,0x3ff670)
 def main():
     ap=argparse.ArgumentParser(description=__doc__);ap.add_argument('--output',type=Path,default=Path('src/source_effect_particle_draw_tu15_generated.cpp'));ap.add_argument('--directory',type=Path,required=True);a=ap.parse_args();assert sha(NEW_DEFAULT)==NEW_PIN
     image=Xbe(NEW_DEFAULT);code=QueryCode(image);sites,instructions,addresses,routines={},{},{},[]
@@ -39,7 +40,10 @@ def main():
            0x247f74:0x1c690,0x247f99:0x1c6f0,0x247fa3:0x1c6f0,
            0x1c70a:0x1c310,0x1c416:0x35780,0x1c428:0x35840,
            0x1c762:0x401520,0x1c76e:0x401520,0x1c79f:0x400dd0,0x400def:0x400e30,
-           0x405b27:0x4020d0,0x4021ce:0x400920,0x4021d5:0x401020}
+           0x405b27:0x4020d0,0x4021ce:0x400920,0x4021d5:0x401020,
+           0x13315:0x12f80,0x13075:0x12d30,0x12da8:0x400270,0x1329b:0x401410,
+           0x13768:0x2bcb0,0x2bcef:0x289c0,0x2bcfc:0x15c030,0x2c307:0x13610,
+           0x2bbfb:0x132b0,0x132e8:0x15350,0x1536e:0x3ff670}
     for site,target in calls.items():
         instruction=code.at(site)
         assert instruction.mnemonic=='call' and instruction.operands[0].imm==target
@@ -58,7 +62,11 @@ def main():
         (0x1c6f0,0x1c762,0x401520),(0x1c6f0,0x1c79f,0x400dd0),
         (0x400dd0,0x400def,0x400e30),(0x405cf0,0x406542,0x405b10),
         (0x405b10,0x405b27,0x4020d0),(0x4020d0,0x4021ce,0x400920),
-        (0x4020d0,0x4021d5,0x401020))
+        (0x4020d0,0x4021d5,0x401020),(0x132b0,0x13315,0x12f80),
+        (0x12f80,0x13075,0x12d30),(0x12d30,0x12da8,0x400270),
+        (0x12f80,0x1329b,0x401410),(0x13660,0x13768,0x2bcb0),(0x2bcb0,0x2bcef,0x289c0),
+        (0x2bcb0,0x2bcfc,0x15c030),(0x2b9f0,0x2bbfb,0x132b0),
+        (0x132b0,0x132e8,0x15350),(0x15350,0x1536e,0x3ff670))
     for owner,site,target in caller_chain:
         assert site in _trace(code,owner,{owner}).code
         instruction=code.at(site);assert instruction.mnemonic=='call' and instruction.operands[0].imm==target
@@ -91,7 +99,9 @@ def main():
     generate(SimpleNamespace(output=a.output,manifest=a.directory/'generation.json',correspondence=correspondence,additional_entries=Path(__file__)),paired,code_override=code)
     source=a.output.read_text().replace('tools/generate_physics_live_support_tu15.py','tools/generate_effect_particle_draw_tu15.py').replace('halo2/physics_live_support_tu15.hpp','halo2/source_effect_particle_draw_tu15.hpp').replace('source_run_physics_live_support_tu15','source_run_effect_particle_draw_tu15').replace('source_physics_live_support_tu15_owns_entry','source_effect_particle_draw_tu15_owns_entry')
     data_regions=((0x40dac8,26*4),(0x40db30,64),(0x40dfe0,16),(0x4078d4,44),(0x4078ac,40),(0x407a7c,32),(0x46a0c8,0x24),(0x46a250,4),
-                  (0x40db78,64),(0x40dff0,40),(0x40ddb0,560))
+                  (0x40db78,64),(0x40dff0,40),(0x40ddb0,560),(0x44a8a0,4),
+                  (0x46a4b0,4),(0x46a388,4),(0x46a270,4),(0x46a11c,4),(0x46a9b8,4),
+                  (0x15638,7*4))
     source+='\nnamespace halo2 {\nvoid mount_source_particle_graphics_layout_data_tu15(SourceRuntimeMemory &memory) {\n'
     for address,size in data_regions:
         raw=image.read(address,size)

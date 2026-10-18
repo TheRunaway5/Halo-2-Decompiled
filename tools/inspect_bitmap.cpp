@@ -1,4 +1,5 @@
 #include "halo2/cache.hpp"
+#include "halo2/texture.hpp"
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -6,7 +7,8 @@
 
 int main(int argc,char** argv) {
     try {
-        if(argc!=4)throw halo2::FormatError("usage: inspect_bitmap CACHE TAG NEW_OUTPUT_DIRECTORY");
+        if((argc!=4 && argc!=5) || (argc==5 && std::string_view(argv[4])!="--rgba"))
+            throw halo2::FormatError("usage: inspect_bitmap CACHE TAG NEW_OUTPUT_DIRECTORY [--rgba]");
         const halo2::Cache cache(argv[1]);
         const auto output=std::filesystem::absolute(argv[3]);
         if(!std::filesystem::create_directories(output))throw halo2::FormatError("Output directory must be new");
@@ -18,7 +20,9 @@ int main(int argc,char** argv) {
         if(!selected)throw halo2::FormatError("Missing bitmap path identity");
         nlohmann::json frames=nlohmann::json::array();
         for(unsigned frame=0;frame<cache.bitmap_count(selected->datum);++frame) {
-            const auto bitmap=cache.load_bitmap(selected->datum,frame);
+            auto bitmap=cache.load_bitmap(selected->datum,frame);
+            if(argc==5 && bitmap.format>=14 && bitmap.format<=16)
+                bitmap=halo2::prepare_xemu_bc_texture(bitmap);
             const auto filename="frame-"+std::to_string(frame)+".pixels";
             std::ofstream pixels(output/filename,std::ios::binary);
             pixels.write(reinterpret_cast<const char*>(bitmap.pixels.data()),std::streamsize(bitmap.pixels.size()));

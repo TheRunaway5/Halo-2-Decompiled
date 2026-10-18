@@ -31,6 +31,10 @@ manifest = json.loads((library / 'library.json').read_bytes())
 assert manifest['map'] == 'lockout'
 assert len((library / 'function-tables.bin').read_bytes()) == 28 * 1024
 assert any(t['name'].endswith('composite_block') for t in manifest['shader_tags'])
+policy = json.loads((root / 'tools/data/mcc-native-library-closure.json').read_bytes())
+from native_shader_bundle import canonical_digest
+cairo = out / 'native-shaders' / policy['source_map'] / 'library.json'
+assert canonical_digest(json.loads(cairo.read_bytes())) == policy['source_canonical_sha256']
 assert not list(root.rglob('*.xbe')) and not list(root.rglob('*.map'))
 print(json.dumps(result))
 '''

@@ -84,6 +84,8 @@ struct SdlSoundPlatform::State {
     std::size_t retained = 0;
     double cursor = 0;
     std::uint64_t next_submission = 1;
+    SdlSoundPlaybackPosition playback;
+    std::optional<std::uint64_t> start_frame;
 
     Packet *pending(std::size_t start = 0) noexcept {
       for (auto i = start; i < retained; ++i)
@@ -106,6 +108,12 @@ struct SdlSoundPlatform::State {
         cursor -= double(packet->pcm.frame_count);
         packet->completed = SdlSoundCompletionStatus::Success;
       }
+    }
+    double remaining_frames() const noexcept {
+      double frames = -cursor;
+      for (std::size_t i = 0; i < retained; ++i)
+        if (!packets[i]->completed) frames += double(packets[i]->pcm.frame_count);
+      return std::max(0.0,frames);
     }
     std::array<double, pcm_channels> sample() const noexcept {
       const auto index = pending_index();
@@ -141,6 +149,8 @@ struct SdlSoundPlatform::State {
   bool removed = false;
   std::uint64_t next_voice = 1;
   std::uint64_t frames = 0;
+  std::uint64_t presentation_frames = 0;
+  bool paused = false;
   std::map<Voice, Stream> streams;
 
   explicit State(const SdlSoundPlatformConfiguration &configuration)
@@ -207,12 +217,20 @@ struct SdlSoundPlatform::State {
     std::fill(output,output+count*channels,0.f);
     for (std::size_t frame = 0; frame < count; ++frame) {
       std::array<double, pcm_channels> accumulated{};
-      if (!removed) for (auto &[id, stream] : streams) {
+      if (!removed && !paused) for (auto &[id, stream] : streams) {
         (void)id;
         if (stream.parameters.paused) continue;
+        if (stream.start_frame && presentation_frames < *stream.start_frame) continue;
         stream.advance();
         if (!stream.pending()) continue;
         const auto sample = stream.sample();
+        if (!stream.playback.first_device_frame) {
+          stream.playback.first_device_frame = frames + frame;
+          stream.playback.first_presentation_frame = presentation_frames;
+        }
+        ++stream.playback.output_frames;
+        stream.playback.source_frames += std::min(stream.remaining_frames(),
+            stream.parameters.relative_rate);
         const auto &matrix = stream.parameters.matrix;
         accumulated[0] += sample[0] * matrix[0] + sample[1] * matrix[1];
         accumulated[1] += sample[0] * matrix[2] + sample[1] * matrix[3];
@@ -221,6 +239,7 @@ struct SdlSoundPlatform::State {
       }
       for (unsigned channel = 0; channel < pcm_channels; ++channel)
         output[frame * channels + channel] = float(std::clamp(accumulated[channel], -1.0, 1.0));
+      if (!paused) ++presentation_frames;
     }
     frames += count;
   }
@@ -263,13 +282,26 @@ std::string SdlSoundPlatform::speaker_layout(unsigned layout) {
 
 SdlSoundPlatform::Voice SdlSoundPlatform::create_voice(
     std::uint64_t context, const SdlSoundVoiceParameters &parameters) {
+  return create_voice_impl(context,parameters,{});
+}
+
+SdlSoundPlatform::Voice SdlSoundPlatform::create_voice_at(
+    std::uint64_t context,const SdlSoundVoiceParameters &parameters,std::uint64_t frame) {
+  return create_voice_impl(context,parameters,frame);
+}
+
+SdlSoundPlatform::Voice SdlSoundPlatform::create_voice_impl(
+    std::uint64_t context,const SdlSoundVoiceParameters &parameters,
+    std::optional<std::uint64_t> frame) {
   auto native = native_parameters(parameters);
   DeviceLock lock(state_->device);
   if (state_->removed) throw std::runtime_error("SDL sound device is unavailable");
   if (state_->next_voice == std::numeric_limits<Voice>::max())
     throw std::overflow_error("Native SDL sound voice identity exhausted");
   const auto voice = state_->next_voice;
-  state_->streams.emplace(voice, State::Stream{context, std::move(native), {}});
+  State::Stream stream{context,std::move(native),{}};
+  stream.start_frame=frame;
+  state_->streams.emplace(voice,std::move(stream));
   ++state_->next_voice;
   return voice;
 }
@@ -303,7 +335,13 @@ SdlSoundVoiceStatus SdlSoundPlatform::status(Voice voice) const {
   for (std::size_t i = 0; i < stream.retained; ++i)
     completed += bool(stream.packets[i]->completed);
   return {!state_->removed && stream.retained < attached_packets,
-          stream.parameters.paused, state_->removed, stream.retained - completed, completed};
+          state_->paused || stream.parameters.paused, state_->removed,
+          stream.retained - completed, completed};
+}
+
+SdlSoundPlaybackPosition SdlSoundPlatform::playback_position(Voice voice) const {
+  DeviceLock lock(state_->device);
+  return state_->stream(voice).playback;
 }
 
 std::optional<SdlSoundCompletion> SdlSoundPlatform::completion(Voice voice) const {
@@ -365,6 +403,16 @@ std::vector<float> SdlSoundPlatform::render(std::size_t frames) {
 std::uint64_t SdlSoundPlatform::rendered_frames() const {
   DeviceLock lock(state_->device);
   return state_->frames;
+}
+
+void SdlSoundPlatform::paused(bool paused) {
+  DeviceLock lock(state_->device);
+  state_->paused=paused;
+}
+
+std::uint64_t SdlSoundPlatform::presentation_frames() const {
+  DeviceLock lock(state_->device);
+  return state_->presentation_frames;
 }
 
 } // namespace halo2

@@ -351,7 +351,10 @@ static void run_10fb60(WorldState &);
 static void run_10fb70(WorldState &);
 static void run_10fc30(WorldState &);
 static void run_10fd50(WorldState &);
-static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){if(target==selected(0x10fa30u,s.image)){run_10fa30(s);return;}if(target==selected(0x10fa80u,s.image)){run_10fa80(s);return;}if(target==selected(0x10fa90u,s.image)){run_10fa90(s);return;}if(target==selected(0x10fb60u,s.image)){run_10fb60(s);return;}if(target==selected(0x10fb70u,s.image)){run_10fb70(s);return;}if(target==selected(0x10fc30u,s.image)){run_10fc30(s);return;}if(target==selected(0x10fd50u,s.image)){run_10fd50(s);return;}s.required(site,target,tail);}
+static void run_170030(WorldState &);
+static void run_170080(WorldState &);
+static void run_bc440(WorldState &);
+static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){if(target==0x170030u){run_170030(s);return;}if(target==0x170080u){run_170080(s);return;}if(target==0xbc440u){run_bc440(s);return;}if(target==selected(0x10fa30u,s.image)){run_10fa30(s);return;}if(target==selected(0x10fa80u,s.image)){run_10fa80(s);return;}if(target==selected(0x10fa90u,s.image)){run_10fa90(s);return;}if(target==selected(0x10fb60u,s.image)){run_10fb60(s);return;}if(target==selected(0x10fb70u,s.image)){run_10fb70(s);return;}if(target==selected(0x10fc30u,s.image)){run_10fc30(s);return;}if(target==selected(0x10fd50u,s.image)){run_10fd50(s);return;}s.required(site,target,tail);}
 static void run_10fa30(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0x10fa30u);} s.push(0x10fa30u,s.reg(1,4,0));
 if(s.services.instruction){s.services.instruction(0x10fa31u);} s.set(0,r(s.memory,(selected(0x4f2954u,s.image)),4),4,0);
@@ -609,6 +612,167 @@ if(s.services.instruction){s.services.instruction(0x10fd85u);} if(!s.flags.zf)go
 L10fd87: if(s.services.instruction){s.services.instruction(0x10fd87u);} s.pop();s.gp[4]+=0u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
+static void run_170030(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x170030u);} s.set(0,s.flags.logic((s.reg(0,4,0))|(0xffffffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x170033u);} s.flags.minus(s.reg(1,4,0),0xffffffffu,4);
+if(s.services.instruction){s.services.instruction(0x170036u);} if(s.flags.zf)goto L170071;
+if(s.services.instruction){s.services.instruction(0x170038u);} s.flags.logic((s.reg(7,4,0))&(s.reg(7,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x17003au);} if(s.flags.zf)goto L170071;
+if(s.services.instruction){s.services.instruction(0x17003cu);} s.set(2,r(s.memory,(0x4f0414u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x170042u);} s.set(1,s.flags.logic((s.reg(1,4,0))&(0xffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x170048u);} s.set(1,s.flags.shift(s.reg(1,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x17004bu);} s.set(1,r(s.memory,(0x8u+s.gp[1]+s.gp[2]*1u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x17004fu);} s.push(0x17004fu,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x170050u);} s.set(6,r(s.memory,(0x70u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x170053u);} s.set(2,s.flags.logic((s.reg(2,4,0))^(s.reg(2,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x170055u);} s.flags.logic((s.reg(6,4,0))&(s.reg(6,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x170057u);} if(s.flags.zf||(s.flags.sf!=s.flags.of))goto L170070;
+if(s.services.instruction){s.services.instruction(0x170059u);} s.set(1,r(s.memory,(0x74u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x17005cu);} s.set(4,(0x0u+s.gp[4]),4,0);
+L170060: if(s.services.instruction){s.services.instruction(0x170060u);} s.flags.minus(r(s.memory,(0x0u+s.gp[1]),4),s.reg(7,4,0),4);
+if(s.services.instruction){s.services.instruction(0x170062u);} if(s.flags.zf)goto L17006e;
+if(s.services.instruction){s.services.instruction(0x170064u);} s.set(2,s.flags.increment(s.reg(2,4,0),4,false),4,0);
+if(s.services.instruction){s.services.instruction(0x170065u);} s.set(1,s.flags.plus(s.reg(1,4,0),0x10u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x170068u);} s.flags.minus(s.reg(2,4,0),s.reg(6,4,0),4);
+if(s.services.instruction){s.services.instruction(0x17006au);} if(s.flags.sf!=s.flags.of)goto L170060;
+if(s.services.instruction){s.services.instruction(0x17006cu);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x17006du);} s.pop();s.gp[4]+=0u;return;
+L17006e: if(s.services.instruction){s.services.instruction(0x17006eu);} s.set(0,s.reg(2,4,0),4,0);
+L170070: if(s.services.instruction){s.services.instruction(0x170070u);} s.set(6,s.pop(),4,0);
+L170071: if(s.services.instruction){s.services.instruction(0x170071u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+static void run_170080(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x170080u);} s.set(0,s.flags.logic((s.reg(0,4,0))|(0xffffffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x170083u);} s.flags.minus(s.reg(2,4,0),0xffffffffu,4);
+if(s.services.instruction){s.services.instruction(0x170086u);} if(s.flags.zf)goto L1700d1;
+if(s.services.instruction){s.services.instruction(0x170088u);} s.flags.minus(s.reg(1,4,0),0xffffffffu,4);
+if(s.services.instruction){s.services.instruction(0x17008bu);} if(s.flags.zf)goto L1700d1;
+if(s.services.instruction){s.services.instruction(0x17008du);} s.flags.logic((s.reg(7,4,0))&(s.reg(7,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x17008fu);} if(s.flags.zf)goto L1700d1;
+if(s.services.instruction){s.services.instruction(0x170091u);} s.set(2,s.flags.logic((s.reg(2,4,0))&(0xffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0x170097u);} s.push(0x170097u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0x170098u);} s.set(6,r(s.memory,(0x4f0414u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x17009eu);} s.set(2,s.flags.shift(s.reg(2,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700a1u);} s.set(2,r(s.memory,(0x8u+s.gp[2]+s.gp[6]*1u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700a5u);} s.set(6,r(s.memory,(0x74u+s.gp[2]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700a8u);} s.set(1,s.flags.shift(s.reg(1,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700abu);} s.set(1,s.flags.plus(s.reg(1,4,0),s.reg(6,4,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700adu);} s.set(6,r(s.memory,(0x8u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700b0u);} s.set(2,s.flags.logic((s.reg(2,4,0))^(s.reg(2,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700b2u);} s.flags.logic((s.reg(6,4,0))&(s.reg(6,4,0)),4);
+if(s.services.instruction){s.services.instruction(0x1700b4u);} if(s.flags.zf||(s.flags.sf!=s.flags.of))goto L1700d0;
+if(s.services.instruction){s.services.instruction(0x1700b6u);} s.set(1,r(s.memory,(0xcu+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700b9u);} s.set(4,(0x0u+s.gp[4]),4,0);
+L1700c0: if(s.services.instruction){s.services.instruction(0x1700c0u);} s.flags.minus(r(s.memory,(0x0u+s.gp[1]),4),s.reg(7,4,0),4);
+if(s.services.instruction){s.services.instruction(0x1700c2u);} if(s.flags.zf)goto L1700ce;
+if(s.services.instruction){s.services.instruction(0x1700c4u);} s.set(2,s.flags.increment(s.reg(2,4,0),4,false),4,0);
+if(s.services.instruction){s.services.instruction(0x1700c5u);} s.set(1,s.flags.plus(s.reg(1,4,0),0x8u,4),4,0);
+if(s.services.instruction){s.services.instruction(0x1700c8u);} s.flags.minus(s.reg(2,4,0),s.reg(6,4,0),4);
+if(s.services.instruction){s.services.instruction(0x1700cau);} if(s.flags.sf!=s.flags.of)goto L1700c0;
+if(s.services.instruction){s.services.instruction(0x1700ccu);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0x1700cdu);} s.pop();s.gp[4]+=0u;return;
+L1700ce: if(s.services.instruction){s.services.instruction(0x1700ceu);} s.set(0,s.reg(2,4,0),4,0);
+L1700d0: if(s.services.instruction){s.services.instruction(0x1700d0u);} s.set(6,s.pop(),4,0);
+L1700d1: if(s.services.instruction){s.services.instruction(0x1700d1u);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+static void run_bc440(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0xbc440u);} s.set(4,s.flags.minus(s.reg(4,4,0),0x20u,4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc443u);} s.set(0,r(s.memory,(0x24u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc447u);} s.set(1,r(s.memory,(0x4ecbd0u),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc44du);} s.set(2,r(s.memory,(0x44u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc450u);} s.set(1,r(s.memory,(0x4f0414u),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc456u);} s.set(0,s.flags.logic((s.reg(0,4,0))&(0xffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc45bu);} s.set(0,(0x0u+s.gp[0]+s.gp[0]*2u),4,0);
+if(s.services.instruction){s.services.instruction(0xbc45eu);} s.set(0,(0x0u+s.gp[2]+s.gp[0]*4u),4,0);
+if(s.services.instruction){s.services.instruction(0xbc461u);} w(s.memory,s.observe,0xbc461u,(0x4u+s.gp[4]),4,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0xbc465u);} s.push(0xbc465u,s.reg(5,4,0));
+if(s.services.instruction){s.services.instruction(0xbc466u);} s.set(5,r(s.memory,(0x8u+s.gp[0]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc469u);} s.set(0,r(s.memory,(0x0u+s.gp[5]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc46cu);} s.set(0,s.flags.logic((s.reg(0,4,0))&(0xffffu),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc471u);} s.set(0,s.flags.shift(s.reg(0,4,0),0x4u,4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc474u);} s.set(0,r(s.memory,(0x8u+s.gp[0]+s.gp[1]*1u),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc478u);} s.set(1,r(s.memory,(0x38u+s.gp[0]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc47bu);} s.flags.minus(s.reg(1,4,0),0xffffffffu,4);
+if(s.services.instruction){s.services.instruction(0xbc47eu);} w(s.memory,s.observe,0xbc47eu,(0x10u+s.gp[4]),4,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0xbc482u);} if(s.flags.zf)goto Lbc564;
+if(s.services.instruction){s.services.instruction(0xbc488u);} s.push(0xbc488u,s.reg(3,4,0));
+if(s.services.instruction){s.services.instruction(0xbc489u);} s.push(0xbc489u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0xbc48au);} s.push(0xbc48au,s.reg(7,4,0));
+if(s.services.instruction){s.services.instruction(0xbc48bu);} s.set(7,r(s.memory,(0x38u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc48fu);} s.push(0xbc48fu,0xbc494u);run_170030(s);
+if(s.services.instruction){s.services.instruction(0xbc494u);} s.set(1,sign_extend(r(s.memory,(0x118u+s.gp[5]),2),2),4,0);
+if(s.services.instruction){s.services.instruction(0xbc49bu);} s.set(6,sign_extend(r(s.memory,(0x11au+s.gp[5]),2),2),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4a2u);} w(s.memory,s.observe,0xbc4a2u,(0x18u+s.gp[4]),4,s.reg(0,4,0));
+if(s.services.instruction){s.services.instruction(0xbc4a6u);} s.set(0,0x66666667u,4,0);
+if(s.services.instruction){s.services.instruction(0xbc4abu);} {const auto x=std::int64_t(si(s.gp[0]))*si(s.reg(1,4,0));s.gp[0]=std::uint32_t(x);s.gp[2]=std::uint32_t(std::uint64_t(x)>>32u);s.flags.cf=s.flags.of=x!=std::int64_t(si(s.gp[0]));}
+if(s.services.instruction){s.services.instruction(0xbc4adu);} s.set(0,r(s.memory,(0x14u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4b1u);} s.set(2,s.flags.right(s.reg(2,4,0),0x2u,4,true),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4b4u);} s.set(3,s.reg(2,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4b6u);} s.set(3,s.flags.right(s.reg(3,4,0),0x1fu,4,false),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4b9u);} s.set(3,s.flags.plus(s.reg(3,4,0),s.reg(2,4,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4bbu);} s.set(6,s.flags.plus(s.reg(6,4,0),s.reg(5,4,0),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4bdu);} s.set(1,s.reg(3,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4bfu);} s.set(2,s.reg(1,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4c1u);} s.set(1,s.flags.right(s.reg(1,4,0),0x2u,4,false),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4c4u);} w(s.memory,s.observe,0xbc4c4u,(0x10u+s.gp[4]),4,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0xbc4c8u);} s.set(7,(0x20u+s.gp[4]),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4ccu);} while(s.gp[1]){const auto x=r(s.memory,s.gp[6],4);w(s.memory,s.observe,0xbc4ccu,s.gp[7],4,x);const auto delta=(s.other_flags&1024u)?4294967292u:4u;s.gp[6]+=delta;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0xbc4ccu);}
+if(s.services.instruction){s.services.instruction(0xbc4ceu);} s.set(1,s.reg(2,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4d0u);} s.set(1,s.flags.logic((s.reg(1,4,0))&(0x3u),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4d3u);} while(s.gp[1]){const auto x=r(s.memory,s.gp[6],1);w(s.memory,s.observe,0xbc4d3u,s.gp[7],1,x);const auto delta=(s.other_flags&1024u)?4294967295u:1u;s.gp[6]+=delta;s.gp[7]+=delta;--s.gp[1];if(s.services.instruction)s.services.instruction(0xbc4d3u);}
+if(s.services.instruction){s.services.instruction(0xbc4d5u);} s.flags.minus(r(s.memory,(0x3u+s.gp[0]),1),0x6u,1);
+if(s.services.instruction){s.services.instruction(0xbc4d9u);} if(!s.flags.zf)goto Lbc4f4;
+if(s.services.instruction){s.services.instruction(0xbc4dbu);} s.flags.minus(r(s.memory,(0x1au+s.gp[5]),2),0xffffffffu,2);
+if(s.services.instruction){s.services.instruction(0xbc4e0u);} if(s.flags.zf)goto Lbc4f4;
+if(s.services.instruction){s.services.instruction(0xbc4e2u);} s.flags.logic((r(s.memory,(0x12cu+s.gp[5]),1))&(0x2u),1);
+if(s.services.instruction){s.services.instruction(0xbc4e9u);} if(!s.flags.zf)goto Lbc4f4;
+if(s.services.instruction){s.services.instruction(0xbc4ebu);} s.set(0,r(s.memory,(0x34u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4efu);} {const auto target=0x1ce340u;s.push(0xbc4efu,0xbc4f4u);dispatch(s,target,0xbc4efu,false);}
+Lbc4f4: if(s.services.instruction){s.services.instruction(0xbc4f4u);} s.set(5,s.flags.logic((s.reg(5,4,0))^(s.reg(5,4,0)),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4f6u);} s.flags.logic((s.reg(3,4,0))&(s.reg(3,4,0)),4);
+if(s.services.instruction){s.services.instruction(0xbc4f8u);} if(s.flags.zf||(s.flags.sf!=s.flags.of))goto Lbc54c;
+if(s.services.instruction){s.services.instruction(0xbc4fau);} s.set(1,r(s.memory,(0x10u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc4feu);} s.set(6,(0x2u+s.gp[1]+s.gp[3]*2u),4,0);
+Lbc502: if(s.services.instruction){s.services.instruction(0xbc502u);} s.flags.minus(s.reg(5,4,0),r(s.memory,(0x18u+s.gp[4]),4),4);
+if(s.services.instruction){s.services.instruction(0xbc506u);} if(s.flags.zf)goto Lbc510;
+if(s.services.instruction){s.services.instruction(0xbc508u);} s.set(0,r(s.memory,(0x38u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc50cu);} s.flags.logic((s.reg(0,4,0))&(s.reg(0,4,0)),4);
+if(s.services.instruction){s.services.instruction(0xbc50eu);} if(!s.flags.zf)goto Lbc544;
+Lbc510: if(s.services.instruction){s.services.instruction(0xbc510u);} s.set(2,r(s.memory,(0x1cu+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc514u);} s.set(7,r(s.memory,(0x3cu+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc518u);} s.set(2,r(s.memory,(0x38u+s.gp[2]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc51bu);} s.set(1,s.reg(5,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0xbc51du);} s.push(0xbc51du,0xbc522u);run_170080(s);
+if(s.services.instruction){s.services.instruction(0xbc522u);} s.flags.minus(s.reg(0,4,0),0xffffffffu,4);
+if(s.services.instruction){s.services.instruction(0xbc525u);} if(!s.flags.zf)goto Lbc52b;
+if(s.services.instruction){s.services.instruction(0xbc527u);} s.flags.logic((s.reg(7,4,0))&(s.reg(7,4,0)),4);
+if(s.services.instruction){s.services.instruction(0xbc529u);} if(!s.flags.zf)goto Lbc544;
+Lbc52b: if(s.services.instruction){s.services.instruction(0xbc52bu);} s.set(1,r(s.memory,(0x10u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc52fu);} w(s.memory,s.observe,0xbc52fu,(0x0u+s.gp[1]+s.gp[5]*1u),1,s.reg(0,1,0));
+if(s.services.instruction){s.services.instruction(0xbc532u);} w(s.memory,s.observe,0xbc532u,(0xfffffffeu+s.gp[6]),1,0xffu);
+if(s.services.instruction){s.services.instruction(0xbc536u);} w(s.memory,s.observe,0xbc536u,(0xffffffffu+s.gp[6]),1,0x0u);
+if(s.services.instruction){s.services.instruction(0xbc53au);} w(s.memory,s.observe,0xbc53au,(0x0u+s.gp[6]),1,0x0u);
+if(s.services.instruction){s.services.instruction(0xbc53du);} w(s.memory,s.observe,0xbc53du,(0x2u+s.gp[6]),4,0xffffffffu);
+Lbc544: if(s.services.instruction){s.services.instruction(0xbc544u);} s.set(5,s.flags.increment(s.reg(5,4,0),4,false),4,0);
+if(s.services.instruction){s.services.instruction(0xbc545u);} s.set(6,s.flags.plus(s.reg(6,4,0),0x8u,4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc548u);} s.flags.minus(s.reg(5,4,0),s.reg(3,4,0),4);
+if(s.services.instruction){s.services.instruction(0xbc54au);} if(s.flags.sf!=s.flags.of)goto Lbc502;
+Lbc54c: if(s.services.instruction){s.services.instruction(0xbc54cu);} s.set(6,r(s.memory,(0x34u+s.gp[4]),4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc550u);} s.set(0,s.reg(6,4,0),4,0);
+if(s.services.instruction){s.services.instruction(0xbc552u);} {const auto target=0x17e060u;s.push(0xbc552u,0xbc557u);dispatch(s,target,0xbc552u,false);}
+if(s.services.instruction){s.services.instruction(0xbc557u);} s.push(0xbc557u,s.reg(6,4,0));
+if(s.services.instruction){s.services.instruction(0xbc558u);} s.set(0,(0x24u+s.gp[4]),4,0);
+if(s.services.instruction){s.services.instruction(0xbc55cu);} {const auto target=0x1ce0e0u;s.push(0xbc55cu,0xbc561u);dispatch(s,target,0xbc55cu,false);}
+if(s.services.instruction){s.services.instruction(0xbc561u);} s.set(7,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0xbc562u);} s.set(6,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0xbc563u);} s.set(3,s.pop(),4,0);
+Lbc564: if(s.services.instruction){s.services.instruction(0xbc564u);} s.set(5,s.pop(),4,0);
+if(s.services.instruction){s.services.instruction(0xbc565u);} s.set(4,s.flags.plus(s.reg(4,4,0),0x20u,4),4,0);
+if(s.services.instruction){s.services.instruction(0xbc568u);} s.pop();s.gp[4]+=12u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
 } // namespace
 void source_run_object_functions_tu15(M &m,std::uint32_t entry,
     SourcePhysicsContactRuntimeAbi &abi,FP fp,
@@ -617,6 +781,9 @@ void source_run_object_functions_tu15(M &m,std::uint32_t entry,
     FpScope scope(fp);LiveState s{m,observe,services,image};s.load(abi);
     try {
         switch(entry) {
+case 0x170030u:run_170030(s);break;
+case 0x170080u:run_170080(s);break;
+case 0xbc440u:run_bc440(s);break;
 case 0x10fa30u:run_10fa30(s);break;
 case 0x10fa80u:run_10fa80(s);break;
 case 0x10fa90u:run_10fa90(s);break;
@@ -630,5 +797,5 @@ case 0x10fd50u:run_10fd50(s);break;
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_object_functions_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x10fa30u:case 0x10fa80u:case 0x10fa90u:case 0x10fb60u:case 0x10fb70u:case 0x10fc30u:case 0x10fd50u:return true;default:return false;}}
+bool source_object_functions_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x170030u:case 0x170080u:case 0xbc440u:case 0x10fa30u:case 0x10fa80u:case 0x10fa90u:case 0x10fb60u:case 0x10fb70u:case 0x10fc30u:case 0x10fd50u:return true;default:return false;}}
 } // namespace halo2

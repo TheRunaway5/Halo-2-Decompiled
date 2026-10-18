@@ -1,6 +1,12 @@
 # 2003 presentation pipeline: primary reference
 
-The recovered implementable stage is the **resident six-combiner environment response selected by the default layered submission path**. The older five-combiner callback is a separate historical fallback. The current independent environment adapter preserves current authored inputs; this does not establish complete 2003 accumulation, asset-parameter or framebuffer parity.
+The **resident six-combiner environment response is selected by the default layered submission path**. The older five-combiner callback is a separate historical fallback. The current independent environment adapter preserves current authored inputs; this does not establish complete 2003 accumulation, asset-parameter or framebuffer parity.
+
+Campaign-v8 also executes the recovered target9 normal producer and normal-space
+light utility, with explicit current-target/asset adaptations. See
+[normal accumulation evidence and limits](NORMAL_ACCUMULATION_2003.md). This does
+not establish original live lighting-model selection or a matched May 2003 frame.
+
 
 Primary inputs: supplied `halo2debug.xbe`, SHA-256 `5a9edb4c874a782594c86020db49b0086f44ae38f53ff2276b3192a2c2383d18`; matching Windows `tool.exe` schemas; and `game/maps/ec_interior_test.map`, build **02.05.03.1968**. All **62 game / 13 tool function spans** were compared byte-for-byte with their primary images. [Export verification](../../analysis/pstencil/2003-presentation/build.json), [cache/schema provenance](../../analysis/pstencil/2003-presentation/resident-environment.json).
 
@@ -73,7 +79,7 @@ Current independent `default_environment_map_tangent_space` supplies local bump 
 
 The adapter now uses the exact resident six-combiner control words, including **64621**, preserves completed current V10/V11, maps, vertex program and destination alpha, and maps current **word10 unchanged**, `word12 & FF000000` → original **word13**, `word13 & 00FFFFFF` → original **word14**. Current texture interpretation forms the same T3 reflection products with stage 2 DOTPRODUCT; the discarded T2 normalization-cube sample is unnecessary. Admission is restricted to the recognized independent tangent-space pass/control-word family. This preserves current authored vehicle/weapon/prop values without imposing 2003 Chief presets. [Adapter/admission predicate](../../src/pstencil/environment.cpp), [interface](../../include/halo2/pstencil/environment.hpp), [texture stages](../../shaders/texture_program.glsl).
 
-**Covered:** recovered environment response within that current interface. **Additional bounded support:** live-v6 applies unanimous static original values on exact supported paths; live-v7 maps original visor strengths into the recognized combined consumer. **Still open:** full combined lightmap/dynamic/environment response math, other original asset families, full original vertex/NV2A precision, intermediate targets and complete scheduling. Renderer integration and live capture validation are tracked by the main task separately.
+**Covered:** recovered environment response within that current interface. **Additional bounded support:** live-v6 applies unanimous static original values on exact supported paths; live-v7 maps original visor strengths into the recognized combined consumer. Campaign-v2 now gives the [Chief visor its own recovered-response companion](COMBINED_VISOR.md), retaining current bump/cube inputs and current texture alpha. **Still open:** other combined lightmap/dynamic/environment families, complete original alpha ownership, other original asset families, full original vertex/NV2A precision, intermediate targets and complete scheduling. Renderer integration and live capture validation are tracked by the main task separately.
 
 ## Target, blend and alpha ownership
 

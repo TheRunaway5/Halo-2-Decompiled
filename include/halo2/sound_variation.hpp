@@ -18,6 +18,9 @@ struct SoundVariationDefinition {
   std::vector<SoundPitchRange> pitch_ranges;
   std::vector<std::array<std::byte,16>> permutations;
   std::vector<std::byte> used;
+  // Xbox snd! stores this category directly; MCC snd! stores an index into
+  // the owning gestalt's three-byte codec rows instead. Keep sound intact.
+  std::uint32_t sample_rate_index{};
 };
 struct SoundRangeState {
   std::int8_t last{}, forced{};

@@ -5,9 +5,11 @@
 namespace halo2_test {
 inline halo2::ShaderVector scalar_combiners(const std::array<std::uint32_t,60> &w,
     const std::array<halo2::ShaderVector,4> &samples,
-    halo2::ShaderVector v0={0,0,0,1},halo2::ShaderVector v1={0,0,0,1}) {
+    halo2::ShaderVector v0={0,0,0,1},halo2::ShaderVector v1={0,0,0,1},
+    halo2::ShaderVector fog={0,0,0,0}) {
     using halo2::ShaderVector;using V=std::array<float,3>;
     std::array<ShaderVector,16> r{};
+    r[3]=fog;
     const auto unorm=[](std::uint32_t v){return ShaderVector{float((v>>16)&255)/255,float((v>>8)&255)/255,float(v&255)/255,float(v>>24)/255};};
     for(unsigned i=0;i<4;++i)r[8+i]=samples[i];
     r[4]=v0;r[5]=v1;r[12][3]=(w[54]&31)?r[8][3]:1.f;

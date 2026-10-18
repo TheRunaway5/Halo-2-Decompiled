@@ -1,24 +1,151 @@
 # TU1.5 tested physics runtime delivery
 
-## October16 current delivery
+## October 18: machine WORLD integration and original attachment identity (WIP)
 
-`Halo2-Physics-TU15` now pins `tested-runtime-v566/halo2_native`, SHA256
-`a36dc424f5a464508dd0088e393e19f54ced99b033ba22d7ef99f70dc842dbf0`.
-`normal-runtime-delivery-v570/execution.json` passes ordinary authored-spawn
-startup with two players,120 rendered frames and322 source ticks,without
-physics fixture/spawn overrides. `vehicle-camera-unarmed-regression-v569`
-passes actual Warthog entry,drive,steering,look and exit with902 exact UDP states,
-480 original seated-camera frames,0.6000000238-radian look turn and447 frames
-after exit. The seated8s/exited25s frames were inspected; actual game window and
-continuous desktop mirror are verified. Root/frozen launcher receipts are
-`launcher-v566-verified-*.json`. Source-owned NONE equipment and unarmed body/
-unit-HUD presentation,original cinematic RGBA blending and late water binding
-are included. No-flare Thronev565 visibly passes382 frames in each view and242
-exact UDP states without a replacement weapon. See
-[shared campaign integration](MP_CAMPAIGN_SHARED_PHYSICS_TU15_20261015.md).
-Full all-player,vehicle and object physics parity remains incomplete. Pelican
-SCEN RNG-choice wiring,remaining placements/lifts and all wider gates stay open;
-older checkpoints retain their original bounded scope.
+The v692 source regression matches **1,095 original WORLD nodes and 131,700
+skinned vertices** across Floodlab BSP0/5 and Ivory Tower. Machinery adopts the
+completed source node bank and its render interpolation endpoints; it does not
+run a second gear controller. Hidden machine resource failures retain their
+exact owner/error and reject when that owner becomes visible. This does not
+resolve the original NONE cable texture or other future visible-resource owners.
+The unbound portal-lifetime regression and three existing machine/LOD checks pass.
+
+Immutable candidate v694 reaches live multiplayer in all four affected Floodlab
+contexts: placements0/1/2 pass native two-view/controller/UDP acceptance;
+placement8/BSP5 reaches the repeated-child identity gate. The p0 1s/12s footage
+was inspected. A fresh actual Warthog drive/look/exit passes 902 exact UDP states,
+580 seated-camera frames and 0.5999999642-radian look; inspected 8s/25s frames show
+the vehicle camera and return to first person. Ordinary authored startup passes
+120 rendered frames/345 source ticks/two players, with gameplay reviewed at
+72.10s/78.10s. The 65.10s loading frame is black and excluded from gameplay proof.
+The current launcher remains v678 pending the next candidate's delivery gates.
+
+`elevator-source-contact-v696.json` keeps the upper ride green (65 moving
+support ticks, 2.596529 units carried, 244 exact UDP states) and the lower ride red
+(zero moving support ticks, 243 exact UDP states). Original cache audit v703 maps
+bodies 0/1/2/3 to `platform`/`lowest`/`platform2`/`platform3`; names alone do not
+prove gameplay roles. Additional platform2/platform3 live tests are queued.
+No carrier/contact/velocity or solved output was supplied.
+
+Read-only original BAF10/C0790 observation v693 verifies 24 completed attachment
+calls, 19 literal original model records and nine duplicate-definition groups
+with distinct authored markers. Exact marker adoption and checkpoint retention
+are wired into both available source paths; v698 source/continuation/live
+validation is still running and is not claimed passed. Source archive v699
+retains 6,590 reconstructable files (14 deltas, 232 inherited archived fixtures).
+`class3-latest-context-matrix-v705.json` records 18 bounded native passes/29 red
+contexts across retained runtimes; it is not one-current-runtime certification.
+Lower/train rides, resource/PRT owners, activation/AI/HS, remaining physics,
+all required live contexts and Xbox trajectory/pixel evidence remain open.
+
+## October 18: verified v678 production delivery
+
+`Halo2-Physics-TU15` now selects immutable `tested-runtime-v678/halo2_native`,
+SHA256 `618392372d993e38c01cb948f5b19ceff57fb6f9f2c376b2724478fe4da1577d`.
+This delivery includes actual parent-generation child adoption and the inherited
+first-person packed graph/event/clock/render-key changes. The source regression
+matches six packed activities and four original event packets; actual Gasgiant
+world/UDP and six existing regressions pass. Two affected Gasgiant placements
+pass native visible multiplayer; the p3 recording was manually inspected.
+
+`fp-packed-production-integration-v678.json` passes a fresh Pelican p7 two-view
+run (341 exact UDP states), actual Warthog driver/camera run (902 exact UDP
+states, 551 seated-camera frames, 0.6000000238-radian look, 36.845570 horizontal
+travel, then on-foot camera), and ordinary authored startup (120 frames,
+357 source ticks, two local players). Actual 1s/12s Pelican, 8s/25s Warthog and
+80s ordinary-startup recording samples were inspected. The 95s ordinary sample
+is black after the visible interval and is retained, not used as visual proof.
+Some camera-edge occlusion/cropping is visible; full framing and Xbox parity
+remain open. Exact root/frozen launcher receipts and reviews are linked by
+`physics-production-delivery-v684.json`.
+
+`class3-latest-context-matrix-v677.json` retains the latest bounded native
+attempt for all 47 authored class3 identities: 15 passes and 32 failures,
+combining explicitly identified immutable runtimes. It does not claim a full
+single-current-runtime sweep or complete manual review. Remaining contexts are
+13 unavailable observer/activation starts, eight ambiguous authored child
+identities, four bitmap-resource failures and seven original PRT caller-state
+failures. The bitmap trace now distinguishes three caught/deferred SCEN catalog
+exceptions from the later terminal SourceMachineScene placement29 exception;
+no replacement texture is supplied. Original attachment caller research remains
+read-only, without guessed child ordering or marker identity.
+
+The lower lift/train approaches, broader players/vehicles/objects, original
+campaign/AI/HS/session integration, remaining contact/solver/lifetime branches,
+and quantitative Xbox acceptance remain required. Full TU1.5 physics parity
+is incomplete and the full goal remains active. Earlier delivery records follow.
+
+## Earlier v656 vehicle-child delivery
+
+`Halo2-Physics-TU15` now selects immutable `tested-runtime-v656/halo2_native`,
+SHA256 `f6300e1ad19dac8fc00d91210eedd6a84cb7cc7fd843671fb3e28622b44d49b1`.
+`launcher-v656-verified-root.json` and `launcher-v656-verified-frozen.json`
+verify this exact executable and the owned English TU1.5 reference.
+`normal-runtime-delivery-v656/execution.json` passes ordinary authored-spawn
+startup: 120 frames, 356 source ticks, two local players, no fixture spawn
+overrides. The 95-second recording frame was inspected.
+
+Actual model children now bind the retained parent generation and the original
+constructed child. Source-owned child WORLD nodes are no longer replaced by
+native marker composition. The actual 03b New Mombasa placement 7 world test
+checks its child identity, parent, four exact WORLD nodes, UDP/client adoption,
+and three continuation/placement-order regressions. The visible p7 rerun passes
+400 exact UDP comparisons, 175 frames per view and 17.167505 units of source
+controller travel; inspected 1s/12s images show the Pelican in both road views
+and then moving above/out of view. Reports and review are in
+`campaign-vehicle-parent-live-v656/lan-campaign/`.
+
+`vehicle-camera-parent-integration-v656/lan-vehicle/report.json` passes actual
+Warthog driver entry, steering, look, travel and exit: 902 exact UDP states,
+504 original seated-camera frames, 0.5999999642-radian look, 39.115387 horizontal
+travel and 543 on-foot camera frames after exit. Its 8s/25s frames were inspected.
+This confirms actual use of the vehicle camera in this case. Pelican player
+seating/camera and full contact/solver or Xbox trajectory/pixel parity remain open.
+
+The complete 47-placement v644 matrix finished with 11 passes and 36 failures.
+Original reports remain red. The other six parent-identity cases have finished
+in `class3-parent-visible-cohort-v661/`: Delta Towers Pelican p1 passes 1,572
+exact UDP comparisons and both views; its recording was inspected. Five Phantom
+placements now fail explicitly because multiple children share a definition and
+need the original authored attachment identity. No first-child selection is used.
+
+The Flak Cannon inherited-graph admission failure is reproduced from original
+metadata in `fp-inherited-owner-v659/`. The source now retains the full packed
+identifier, uses the selected graph for event references, and keys clocks and
+render caches by that identifier. `fp-packed-build-v666.json` passes six packed
+activities, four original event packets, the actual Gasgiant world/UDP test and
+six existing regressions. Renderer v671 and the nine affected visible cases v672
+are pending. These changes are not yet included in delivered v656. The lower
+lift, source PRT caller context, cinematic observer contexts and broader physics
+acceptance gates remain open. Full TU1.5 physics parity remains incomplete.
+
+## Earlier v614 delivery
+
+`Halo2-Physics-TU15` now pins `tested-runtime-v614/halo2_native`, SHA256
+`8d5b36b8130cfd3bc98feb2f0f96ec4a498a5caa9e8996a60f009e88d9ea5076`.
+`normal-runtime-delivery-v617/execution.json` passes ordinary authored-spawn
+startup with two players,120 frames and352 source ticks,without physics
+fixture/spawn overrides. The actual95s recording frame was inspected.
+`vehicle-camera-region-integration-v616/lan-vehicle/report.json` passes actual
+Warthog driver entry,drive,steering,look and exit with902 exact UDP states,
+475 original seated-camera frames,a0.5999999642-radian look turn,34.086475
+horizontal travel and486 on-foot camera frames after exit. The8s driving and
+25s exited frames were inspected; actual game window and continuous desktop
+mirror are verified. Root/frozen `launcher-v614-verified-*.json` receipts prove
+the exact runtime/reference hashes and normal authored-spawn CLI.
+
+Actual SCEN/BLOC model regions now reach source publication,UDP client adoption
+and renderer catalogs without rerolling RNG. Three unavailable inactive
+cinematic resources retain explicit visible-request rejection. Borrowed original
+projectile attachment metadata resolves through its actual retained cache owner.
+The actual Pelicanv612 passes143 frames per view,360 exact UDP states and source
+controller motion; four sampled complete calls match268,399 original TU1.5
+instructions. Pelican player seating/camera and the older inactive intro context
+remain open. See [shared campaign integration](MP_CAMPAIGN_SHARED_PHYSICS_TU15_20261015.md).
+All-player,vehicle and object physics parity remains incomplete. All47 authored
+class3 placements,remaining lift/train rider contexts,broader physics branches,
+canonical launcher integration and quantitative Xbox reference gates remain open.
+Older checkpoints below retain their original bounded scope.
 
 Earlier v451 delivery: `Halo2-Physics-TU15` selected immutable production v451,
 SHA-256 `c3d25c01fad7dbf63d34076168bac78c5bae27bc4714de8b275d3d2de23e5a6f`.

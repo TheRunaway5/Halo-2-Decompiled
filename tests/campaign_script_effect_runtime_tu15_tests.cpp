@@ -3,6 +3,7 @@
 #include "halo2/multiplayer_object_runtime.hpp"
 #include "halo2/original_data.hpp"
 #include "halo2/cache.hpp"
+#include "halo2/source_world_particle_draws_tu15.hpp"
 #include <iostream>
 #include <unistd.h>
 using namespace halo2;
@@ -60,6 +61,15 @@ int main(int argc,char **argv)try {
         if(after!=before+1u)throw FormatError("Original script effect did not retain one actual allocation");
         std::cout<<"ALLOCATED "<<std::hex<<effect<<std::dec<<" count="<<after<<'\n';
     }
+    // Explicit authored native campaign admission, separate from production
+    // campaign ownership and from Xbox framebuffer/particle appearance proof.
+    SourceWorldParticleDrawsTu15 graphics(cache,content.objects);
+    if(!graphics.preload_world(0xea03088eu) || !graphics.active())
+        throw FormatError("Actual opening particle resource census did not admit its script effect");
+    const auto storage_before=word(0x4c2aa8u);
+    objects.render_model_view([&](auto &source){graphics.prepare_storage(source);});
+    if(!word(0x4c2aa8u))throw FormatError("Actual opening transparent particle storage is absent");
+    std::cout<<"STORAGE before="<<std::hex<<storage_before<<" after="<<word(0x4c2aa8u)<<std::dec<<'\n';
     const auto saved=objects.authority_checkpoint();
     const auto copy=[&](std::uint32_t at,unsigned count) {
         const auto bytes=memory.view(at,count);return std::vector<std::byte>(bytes.begin(),bytes.end());
@@ -84,9 +94,31 @@ int main(int argc,char **argv)try {
              word(effect+0xfcu)==null_datum))
             throw FormatError("Original particle effect did not detach and retain its retiring chain");
     }
+    unsigned entered{},completed{};
+    const SourceFirstPersonPhaseObserverTu15 observe=[&](bool before,const auto &,const auto &bank,auto trace,auto) {
+        if(before)++entered;else ++completed;
+        const auto data=word(effect_pool+0x44u),bitmap=word(effect_pool+0x48u),high=word(effect_pool+0x38u);
+        unsigned active{},chains{};
+        std::cout<<"CAMPAIGN_FRAME "<<(before?"before":"completed")<<" trace_pcs="<<trace.size()<<" rows=";
+        for(unsigned i=0;i<high;++i)if(word(bitmap+i/32u*4u)&(1u<<(i%32u))) {
+            ++active;const auto row=data+i*400u;
+            chains+=word(row+0xfcu)!=null_datum;
+            std::cout<<std::hex<<row<<':';
+            constexpr char digits[]="0123456789abcdef";
+            for(auto byte:bank.view(row,400u)) {
+                const auto value=std::to_integer<unsigned>(byte);std::cout<<digits[value>>4]<<digits[value&15u];
+            }
+            std::cout<<';'<<std::dec;
+        }
+        std::cout<<" active="<<active<<" chains="<<chains<<'\n'<<std::flush;
+        if(before && (!active || !chains))throw FormatError("Campaign particle frame did not enter with an actual live script chain");
+        if(!before && trace.empty())throw FormatError("Actual campaign particle frame completed without source execution evidence");
+    };
     for(unsigned tick=0;tick<240;++tick) {
-        world.step_objects();world.advance_effect_particles(1.f/30.f);
+        world.step_objects();
+        objects.advance_effect_frame(1.f/30.f,tick==0?observe:SourceFirstPersonPhaseObserverTu15{});
     }
+    if(entered!=1 || completed!=1)throw FormatError("Actual campaign179DF0 did not complete exactly once under observation");
     if(definitions()[0xea070892u] || definitions()[0xea03088eu])
         throw FormatError("Original opening particle lifetime did not release its retired effect");
     source_campaign_cinematic_control_tu15(world,false);
@@ -101,6 +133,6 @@ int main(int argc,char **argv)try {
         !(word(objects.source_object_body(object)+4u)&0x80000u))
         throw FormatError("Original cinematic/effect checkpoint lost retained control, identity or effect bytes");
     retire();
-    std::cout<<"PASS actual opening scenery birth, marker lookup, LOD set/clear, two original script-effect allocations, 480 source game/particle phases, retirement, cinematic stop and source checkpoint restoration\n";
+    std::cout<<"PASS actual opening scenery birth, marker lookup, LOD set/clear, two original script-effect allocations, authored transparent storage, 480 source game/effect-frame phases, two observed active-chain179DF0 completions, retirement, cinematic stop and source checkpoint restoration\n";
     std::cout<<"LIMIT no custom-animation bridge, per-view collection, lens queries/draws, full movie or Xbox pixels/audio\n";
 }catch(const std::exception &error){std::cerr<<error.what()<<'\n';return 1;}

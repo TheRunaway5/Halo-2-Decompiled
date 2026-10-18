@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lower whole original TU1.5 timed-screen update/stop/capture acknowledgement.
+"""Lower whole original TU1.5 DoF command and timed-screen update/stop/ack.
 
 The existing original constructor owns storage. All branches and all other
 screen-control calculations remain in1FD00. Native command/clock and Vulkan
@@ -11,7 +11,7 @@ from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
-ENTRIES=(0x1fcb0,0x1fce0,0x1fd00)
+ENTRIES=(0x1fc10,0x1fcb0,0x1fce0,0x1fd00)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)

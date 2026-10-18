@@ -28,6 +28,9 @@ struct BspPostprocessView {
     // a missing source screen context preserves 13870's null-pointer branch.
     std::optional<SourceBloomScreenContext> bloom_screen_context;
     Vec2 clip_planes{.015625f,1024.f};
+    // Original7/8 target dimensions own filter taps independently of the
+    // native allocation. Unset retains existing split/title/detail behavior.
+    std::optional<Vec2> source_bloom_filter_extent;
 };
 struct BspPostprocessTarget {
     VkCommandBuffer command{};

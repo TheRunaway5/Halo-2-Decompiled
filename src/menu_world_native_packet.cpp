@@ -6,15 +6,21 @@ namespace halo2 {
 MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInput &input) {
   if(!input.material_set)
     throw FormatError("raw world packet has no actual material descriptor");
-  if(input.forward_blend!=0 && input.forward_blend!=5 && input.forward_blend!=9 && input.forward_blend!=10)
+  if(input.forward_blend!=0 && input.forward_blend!=3 && input.forward_blend!=5 && input.forward_blend!=8 && input.forward_blend!=9 && input.forward_blend!=10)
     throw FormatError("raw world packet has an unsupported source blend mapping");
   if(input.source.draw().topology!=MenuWorldSourceTopology::triangle_list &&
      input.source.draw().topology!=MenuWorldSourceTopology::triangle_strip)
     throw FormatError("raw world packet requires an original triangle topology");
-  if(!input.source.external_attribute_registers().empty())
-    throw FormatError("raw world packet consumes unbound external vertex attributes");
   const auto &vertex_shader=menu_world_vertex_catalog_lookup(input.catalog,
       input.source.program_bytes(),input.source.declaration());
+  if(!input.source.external_attribute_registers().empty()) {
+    if(vertex_shader.abi!=menu_world_vertex_attribute_catalog_abi)
+      throw FormatError("raw world packet constant attributes require ABI3");
+    const auto reads=menu_world_vertex_input_components(input.source.program(),input.source.declaration().class_index>=2);
+    for(const auto reg:input.source.external_attribute_registers())
+      if((input.vertex_attribute_components[reg]&reads[reg])!=reads[reg])
+        throw FormatError("raw world packet consumes unbound external vertex attribute components");
+  }
   if(!std::ranges::equal(vertex_shader.consumed_inputs,input.source.consumed_registers()) ||
       !std::ranges::equal(vertex_shader.consumed_constants,input.source.consumed_constants()))
     throw FormatError("raw world packet catalog read set differs from its source binding");
@@ -55,6 +61,7 @@ MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInp
   validation.colors=MenuWorldFragmentColors::front;
   validation.primitive=MenuWorldFragmentPrimitive::ordinary_triangles;
   validation.demote_to_helper_enabled=input.demote_to_helper_enabled;
+  validation.fog_alpha_bound=input.fog_alpha_bound;
   for(unsigned stage=0;stage<4;++stage) {
     const auto mode=(program.words[54]>>(5*stage))&31u;
     // NONE/CLIPPLANE do not sample an image; their unused descriptor slots
@@ -70,7 +77,11 @@ MenuWorldNativeDrawInput menu_world_native_packet(const MenuWorldNativePacketInp
         MenuWorldTextureSemantics::ordinary_rgba};
   }
   validate_menu_world_fragment(validation);
-  return {input.source,&vertex_shader,vertex,fragment,input.raster,input.forward,
+  MenuWorldNativeDrawInput result{input.source,&vertex_shader,vertex,fragment,input.raster,input.forward,
       input.forward_blend,input.material_set,input.material_offset,input.w_clip_mode};
+  result.vertex_attributes=input.material.vertex_attributes;
+  result.vertex_attribute_components=input.vertex_attribute_components;
+  result.fog_alpha_bound=input.fog_alpha_bound;
+  return result;
 }
 } // namespace halo2

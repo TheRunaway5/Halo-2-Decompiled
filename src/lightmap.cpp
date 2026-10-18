@@ -113,7 +113,8 @@ BspLighting Cache::load_bsp_lighting(const Bytes &metadata,
           Vec3 value{bytes.f32(source+k),bytes.f32(source+k+4),bytes.f32(source+k+8)};
           if(!std::isfinite(value.x) || !std::isfinite(value.y) || !std::isfinite(value.z))
             throw FormatError("nonfinite Vista incident-light vector");
-          bucket.incident_vectors.push_back(value);
+          if(is_mcc())bucket.incident.push_back(pack_bsp_incident_tu15(value));
+          else bucket.incident_vectors.push_back(value);
         } else {
           bucket.incident.reserve(size/4);
           for(std::size_t k=0;k<size;k+=4)bucket.incident.push_back(bytes.u32(source+k));

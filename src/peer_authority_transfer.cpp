@@ -53,6 +53,8 @@ struct PeerAuthorityTransfer::Impl {
         bool offered{},validated{},failed{};
     };
     std::array<std::optional<Sender>,16> senders;
+    struct Retired {AuthorityCutSeal seal;std::uint64_t started{},progress{};bool failed{};};
+    std::array<std::optional<Retired>,16> retiring;
     struct Incoming {
         AuthorityCutSeal seal;Bytes bytes;std::vector<std::uint8_t> received;
         std::set<unsigned> dirty;unsigned count{};
@@ -62,7 +64,8 @@ struct PeerAuthorityTransfer::Impl {
     std::optional<Incoming> incoming;
     std::uint64_t highest_id{},highest_tick{},offer_at{};bool accepted_offer{};
     std::optional<ReceivedAuthorityCut> completed;
-    std::optional<AuthorityCutSeal> delivered,validated;
+    std::deque<AuthorityCutSeal> delivered;
+    std::optional<AuthorityCutSeal> validated;
     bool ready_sent{};std::uint64_t ready_at{};
     std::optional<std::uint64_t> rejected;
     std::deque<ValidatedAuthorityCut> receipts;
@@ -74,13 +77,14 @@ struct PeerAuthorityTransfer::Impl {
             l.window_chunks&&l.window_chunks<=256);
     }
     void reset(AuthorityTransferContext c){binding=c;capabilities.fill(0);features.fill(0);hello_sent.fill(false);hello_reply.fill(false);
-        for(auto &s:senders)s.reset();incoming.reset();completed.reset();delivered.reset();validated.reset();rejected.reset();receipts.clear();
+        for(auto &s:senders)s.reset();for(auto &s:retiring)s.reset();incoming.reset();completed.reset();delivered.clear();validated.reset();rejected.reset();receipts.clear();
         next_id=1;last_tick=highest_id=highest_tick=0;accepted_offer=ready_sent=credit_started=false;credit=double(limits.burst_bytes);}
     void expire(std::uint64_t now){
         if(incoming&&!incoming->complete&&!incoming->hashing&&
             (elapsed(now,incoming->progress)>limits.idle_ms||elapsed(now,incoming->started)>limits.lifetime_ms))incoming.reset();
         for(auto &s:senders)if(s&&!s->validated&&!s->failed&&
             (elapsed(now,s->progress)>limits.idle_ms||elapsed(now,s->started)>limits.lifetime_ms)){s->failed=true;s->bytes.reset();}
+        for(auto &s:retiring)if(s&&(elapsed(now,s->progress)>limits.idle_ms||elapsed(now,s->started)>limits.lifetime_ms))s->failed=true;
     }
 };
 PeerAuthorityTransfer::PeerAuthorityTransfer(unsigned self,AuthorityTransferContext c,AuthorityTransferLimits limits)
@@ -107,10 +111,30 @@ AuthorityCutSeal PeerAuthorityTransfer::publish(const AuthorityTransferContext &
     std::uint16_t selected=0;
     for(auto peer:targets){need(peer!=s.self&&member(s.binding,peer)&&s.capabilities[peer]>=owned->size()&&!(selected&(1u<<peer)));selected|=std::uint16_t(1u<<peer);}
     AuthorityCutSeal seal{s.next_id++,tick,owned->size(),digest};s.last_tick=tick;
-    for(auto &sender:s.senders)sender.reset();
+    for(auto &sender:s.senders)sender.reset();for(auto &sender:s.retiring)sender.reset();
     for(auto peer:targets){Impl::Sender sender;sender.seal=seal;sender.bytes=owned;const auto count=chunks(seal.bytes);
         sender.sent.resize(count);sender.acked.resize(count);sender.sent_at.resize(count);sender.started=sender.progress=now;s.senders[peer]=std::move(sender);}
     return seal;
+}
+bool PeerAuthorityTransfer::delivered_to(const AuthorityTransferContext &context,const AuthorityCutSeal &seal,unsigned peer)const{
+    std::lock_guard lock(impl_->mutex);const auto &s=*impl_;
+    if(s.binding!=context||s.self!=context.host||peer>=16)return false;
+    const auto &v=s.senders[peer];return v&&!v->failed&&v->seal==seal&&v->begin==v->acked.size();
+}
+AuthorityCutSeal PeerAuthorityTransfer::publish_ahead(const AuthorityTransferContext &context,const AuthorityCutSeal &previous,
+    std::uint64_t tick,Bytes bytes,unsigned peer,std::uint64_t now){
+    need(!bytes.empty()&&bytes.size()<=impl_->limits.maximum_bytes);
+    const auto digest=hash(bytes);auto owned=std::make_shared<const Bytes>(std::move(bytes));
+    Impl::Sender next;next.bytes=owned;const auto count=chunks(owned->size());
+    next.sent.resize(count);next.acked.resize(count);next.sent_at.resize(count);next.started=next.progress=now;
+    std::lock_guard lock(impl_->mutex);auto &s=*impl_;s.expire(now);
+    need(s.binding==context&&s.self==context.host&&peer<16&&peer!=s.self&&member(context,peer)&&
+        (s.limits.features&authority_feature_source_pipeline)&&(s.features[peer]&authority_feature_source_pipeline)&&
+        s.capabilities[peer]>=owned->size()&&tick>=s.last_tick&&s.next_id!=UINT64_MAX&&!s.retiring[peer]);
+    const auto &old=s.senders[peer];need(old&&!old->failed&&old->seal==previous&&old->begin==old->acked.size());
+    next.seal={s.next_id++,tick,owned->size(),digest};s.last_tick=tick;
+    if(!old->validated)s.retiring[peer]=Impl::Retired{old->seal,old->started,old->progress};
+    const auto seal=next.seal;s.senders[peer]=std::move(next);return seal;
 }
 bool PeerAuthorityTransfer::is_packet(std::span<const std::byte> bytes){
     if(bytes.size()<7)return false;Reader r{bytes};return r.get(4)==0x324e3248&&r.get(2)>0&&r.get(1)==7;
@@ -179,6 +203,9 @@ bool PeerAuthorityTransfer::receive(unsigned peer,std::span<const std::byte> byt
                 need(r.done()&&seal.bytes&&seal.bytes<=s.limits.maximum_bytes&&count==chunks(seal.bytes));
                 if(s.incoming&&s.incoming->seal.id==id){need(s.incoming->seal==seal);
                     if(s.incoming->complete)s.incoming->ack_all=true;return true;}
+                // Never overwrite bytes still waiting for their executor. The
+                // host will retry its offer after this bounded queue drains.
+                if(s.completed||((s.limits.features&authority_feature_source_pipeline)&&s.delivered.size()>=2))return true;
                 if(id<=s.highest_id||seal.tick<s.highest_tick||(s.accepted_offer&&elapsed(now,s.offer_at)<250))return true;
                 Impl::Incoming incoming;incoming.seal=seal;incoming.bytes.resize(std::size_t(seal.bytes));incoming.received.resize(std::size_t(count));
                 incoming.started=incoming.progress=now;s.incoming=std::move(incoming);s.highest_id=id;s.highest_tick=seal.tick;s.offer_at=now;s.accepted_offer=true;
@@ -204,10 +231,18 @@ bool PeerAuthorityTransfer::receive(unsigned peer,std::span<const std::byte> byt
                 const auto before=sender->begin;while(sender->begin<sender->acked.size()&&sender->acked[sender->begin])++sender->begin;
                 if(sender->begin!=before)sender->progress=now;
             }else if(type==Ready){
-                need(s.self==context.host);const auto seal=get_seal(r,id);need(r.done());auto &sender=s.senders[peer];
+                need(s.self==context.host);const auto seal=get_seal(r,id);need(r.done());auto &sender=s.senders[peer];auto &retiring=s.retiring[peer];
+                if(retiring&&retiring->seal.id==id){need(retiring->seal==seal);
+                    if(!retiring->failed){if(s.receipts.size()==32)s.receipts.pop_front();s.receipts.push_back({peer,context,seal});retiring.reset();}return true;}
                 if(!sender||sender->seal.id!=id)return true;need(sender->seal==seal&&sender->sent_count==sender->sent.size());
-                if(!sender->validated&&!sender->failed){sender->validated=true;sender->bytes.reset();if(s.receipts.size()==32)s.receipts.pop_front();s.receipts.push_back({peer,context,seal});}
+                if(!sender->validated&&!sender->failed){
+                    // The source executor validates the chain in order. A
+                    // newer validation also recovers a lost earlier Ready.
+                    if(retiring){need(!retiring->failed);if(s.receipts.size()==32)s.receipts.pop_front();
+                        s.receipts.push_back({peer,context,retiring->seal});retiring.reset();}
+                    sender->validated=true;sender->bytes.reset();if(s.receipts.size()==32)s.receipts.pop_front();s.receipts.push_back({peer,context,seal});}
             }else if(type==Reject){need(s.self==context.host&&r.done());auto &sender=s.senders[peer];
+                auto &retiring=s.retiring[peer];if(retiring&&retiring->seal.id==id)retiring->failed=true;
                 if(sender&&sender->seal.id==id){sender->failed=true;sender->bytes.reset();}}
         }
         if(finished){const auto actual=hash(*finished);std::lock_guard lock(impl_->mutex);auto &s=*impl_;
@@ -220,12 +255,22 @@ bool PeerAuthorityTransfer::receive(unsigned peer,std::span<const std::byte> byt
     return true;
 }
 std::optional<ReceivedAuthorityCut> PeerAuthorityTransfer::take_completed(){
-    std::lock_guard lock(impl_->mutex);auto &s=*impl_;auto value=std::move(s.completed);s.completed.reset();if(value)s.delivered=value->seal;return value;
+    std::lock_guard lock(impl_->mutex);auto &s=*impl_;auto value=std::move(s.completed);s.completed.reset();
+    if(value){if(!(s.limits.features&authority_feature_source_pipeline))s.delivered.clear();s.delivered.push_back(value->seal);}return value;
 }
 bool PeerAuthorityTransfer::acknowledge_validated(const AuthorityTransferContext &context,const AuthorityCutSeal &seal){
     std::lock_guard lock(impl_->mutex);auto &s=*impl_;
-    if(s.binding!=context||s.self==context.host||!s.delivered||*s.delivered!=seal||(s.validated&&s.validated->id>seal.id))return false;
+    if(s.binding!=context||s.self==context.host||(s.validated&&s.validated->id>seal.id))return false;
+    if(s.validated&&*s.validated==seal)return true;
+    const auto at=std::find(s.delivered.begin(),s.delivered.end(),seal);if(at==s.delivered.end())return false;
+    s.delivered.erase(s.delivered.begin(),std::next(at));
     s.validated=seal;s.ready_sent=false;return true;
+}
+bool PeerAuthorityTransfer::reject_delivered(const AuthorityTransferContext &context,const AuthorityCutSeal &seal){
+    std::lock_guard lock(impl_->mutex);auto &s=*impl_;
+    if(s.binding!=context||s.self==context.host||(s.validated&&s.validated->id>=seal.id))return false;
+    const auto at=std::find(s.delivered.begin(),s.delivered.end(),seal);if(at==s.delivered.end())return false;
+    s.delivered.erase(at);s.rejected=seal.id;return true;
 }
 std::vector<ValidatedAuthorityCut> PeerAuthorityTransfer::validated_cuts(){
     std::lock_guard lock(impl_->mutex);std::vector<ValidatedAuthorityCut> result(impl_->receipts.begin(),impl_->receipts.end());impl_->receipts.clear();return result;

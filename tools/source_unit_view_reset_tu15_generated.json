@@ -1,0 +1,1627 @@
+{
+  "additional_entries_sha256": "4e86a37d14b77c0829bf6d9503c85738fdbba8e989eb4edba102c6cdf3fc9f78",
+  "complete_native_entries": [
+    "000bcdf0",
+    "00158690",
+    "00246cf0",
+    "00246e90",
+    "00246f30",
+    "00247090"
+  ],
+  "correspondence_sha256": "5f95fe8f0d26100ac1d4a8eca280ccc82a5fbc76317993e731587a753175e872",
+  "dispatch_targets": {},
+  "external_owners": {},
+  "full_x87_environment_required": {},
+  "generated_cpp_sha256": "11ec9607985b3b2c0248376483ad3cde8b28e38aac4ce41e80fd0c0ddfa7ded7",
+  "generator_sha256": "0dd69a24c6e3938accc23ddedf38ebc9876a99c16ea94b9d8fd5d19a4aa68ff5",
+  "later_original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "lowered_instructions": {
+    "000bcdf0": {
+      "mnemonic": "push",
+      "source_bytes": "56"
+    },
+    "000bcdf1": {
+      "mnemonic": "push",
+      "source_bytes": "57"
+    },
+    "000bcdf2": {
+      "mnemonic": "mov",
+      "source_bytes": "8bf0"
+    },
+    "000bcdf4": {
+      "mnemonic": "xor",
+      "source_bytes": "33ff"
+    },
+    "000bcdf6": {
+      "mnemonic": "cmp",
+      "source_bytes": "83feff"
+    },
+    "000bcdf9": {
+      "mnemonic": "je",
+      "source_bytes": "7432"
+    },
+    "000bcdfb": {
+      "mnemonic": "mov",
+      "source_bytes": "8b15d0cb4e00"
+    },
+    "000bce01": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4238"
+    },
+    "000bce04": {
+      "mnemonic": "mov",
+      "source_bytes": "8bce"
+    },
+    "000bce06": {
+      "mnemonic": "and",
+      "source_bytes": "81e1ffff0000"
+    },
+    "000bce0c": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bc8"
+    },
+    "000bce0e": {
+      "mnemonic": "jge",
+      "source_bytes": "7d1d"
+    },
+    "000bce10": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4224"
+    },
+    "000bce13": {
+      "mnemonic": "imul",
+      "source_bytes": "0fafc1"
+    },
+    "000bce16": {
+      "mnemonic": "add",
+      "source_bytes": "034244"
+    },
+    "000bce19": {
+      "mnemonic": "mov",
+      "source_bytes": "668b08"
+    },
+    "000bce1c": {
+      "mnemonic": "test",
+      "source_bytes": "6685c9"
+    },
+    "000bce1f": {
+      "mnemonic": "je",
+      "source_bytes": "740c"
+    },
+    "000bce21": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbfc9"
+    },
+    "000bce24": {
+      "mnemonic": "sar",
+      "source_bytes": "c1fe10"
+    },
+    "000bce27": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bce"
+    },
+    "000bce29": {
+      "mnemonic": "jne",
+      "source_bytes": "7502"
+    },
+    "000bce2b": {
+      "mnemonic": "mov",
+      "source_bytes": "8bf8"
+    },
+    "000bce2d": {
+      "mnemonic": "xor",
+      "source_bytes": "33c0"
+    },
+    "000bce2f": {
+      "mnemonic": "test",
+      "source_bytes": "85ff"
+    },
+    "000bce31": {
+      "mnemonic": "je",
+      "source_bytes": "7413"
+    },
+    "000bce33": {
+      "mnemonic": "mov",
+      "source_bytes": "8a4f03"
+    },
+    "000bce36": {
+      "mnemonic": "mov",
+      "source_bytes": "ba01000000"
+    },
+    "000bce3b": {
+      "mnemonic": "shl",
+      "source_bytes": "d3e2"
+    },
+    "000bce3d": {
+      "mnemonic": "test",
+      "source_bytes": "8554240c"
+    },
+    "000bce41": {
+      "mnemonic": "je",
+      "source_bytes": "7403"
+    },
+    "000bce43": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4708"
+    },
+    "000bce46": {
+      "mnemonic": "pop",
+      "source_bytes": "5f"
+    },
+    "000bce47": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "000bce48": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "00158690": {
+      "mnemonic": "push",
+      "source_bytes": "56"
+    },
+    "00158691": {
+      "mnemonic": "push",
+      "source_bytes": "6a03"
+    },
+    "00158693": {
+      "mnemonic": "mov",
+      "source_bytes": "8bf0"
+    },
+    "00158695": {
+      "mnemonic": "call",
+      "source_bytes": "e85647f6ff"
+    },
+    "0015869a": {
+      "mnemonic": "test",
+      "source_bytes": "85c0"
+    },
+    "0015869c": {
+      "mnemonic": "je",
+      "source_bytes": "0f84e2000000"
+    },
+    "001586a2": {
+      "mnemonic": "mov",
+      "source_bytes": "8b803c010000"
+    },
+    "001586a8": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f8ff"
+    },
+    "001586ab": {
+      "mnemonic": "je",
+      "source_bytes": "0f84d3000000"
+    },
+    "001586b1": {
+      "mnemonic": "push",
+      "source_bytes": "6a03"
+    },
+    "001586b3": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc6"
+    },
+    "001586b5": {
+      "mnemonic": "call",
+      "source_bytes": "e83647f6ff"
+    },
+    "001586ba": {
+      "mnemonic": "or",
+      "source_bytes": "83c9ff"
+    },
+    "001586bd": {
+      "mnemonic": "test",
+      "source_bytes": "85c0"
+    },
+    "001586bf": {
+      "mnemonic": "je",
+      "source_bytes": "7406"
+    },
+    "001586c1": {
+      "mnemonic": "mov",
+      "source_bytes": "8b883c010000"
+    },
+    "001586c7": {
+      "mnemonic": "mov",
+      "source_bytes": "a1f4544f00"
+    },
+    "001586cc": {
+      "mnemonic": "mov",
+      "source_bytes": "8b5044"
+    },
+    "001586cf": {
+      "mnemonic": "and",
+      "source_bytes": "81e1ffff0000"
+    },
+    "001586d5": {
+      "mnemonic": "imul",
+      "source_bytes": "69c91c020000"
+    },
+    "001586db": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbf541128"
+    },
+    "001586e0": {
+      "mnemonic": "cmp",
+      "source_bytes": "83faff"
+    },
+    "001586e3": {
+      "mnemonic": "je",
+      "source_bytes": "0f849b000000"
+    },
+    "001586e9": {
+      "mnemonic": "lea",
+      "source_bytes": "8d3492"
+    },
+    "001586ec": {
+      "mnemonic": "push",
+      "source_bytes": "57"
+    },
+    "001586ed": {
+      "mnemonic": "shl",
+      "source_bytes": "c1e606"
+    },
+    "001586f0": {
+      "mnemonic": "lea",
+      "source_bytes": "8dbe24554f00"
+    },
+    "001586f6": {
+      "mnemonic": "push",
+      "source_bytes": "6aff"
+    },
+    "001586f8": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc7"
+    },
+    "001586fa": {
+      "mnemonic": "call",
+      "source_bytes": "e8f1e50e00"
+    },
+    "001586ff": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f10051ca14600"
+    },
+    "00158707": {
+      "mnemonic": "mov",
+      "source_bytes": "a120cc4e00"
+    },
+    "0015870c": {
+      "mnemonic": "test",
+      "source_bytes": "85c0"
+    },
+    "0015870e": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f114738"
+    },
+    "00158713": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1005d0a04600"
+    },
+    "0015871b": {
+      "mnemonic": "mov",
+      "source_bytes": "c78620554f0040712400"
+    },
+    "00158725": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f118620564f00"
+    },
+    "0015872d": {
+      "mnemonic": "mov",
+      "source_bytes": "c6861c564f0000"
+    },
+    "00158734": {
+      "mnemonic": "pop",
+      "source_bytes": "5f"
+    },
+    "00158735": {
+      "mnemonic": "je",
+      "source_bytes": "744d"
+    },
+    "00158737": {
+      "mnemonic": "mov",
+      "source_bytes": "a11ccc4e00"
+    },
+    "0015873c": {
+      "mnemonic": "mov",
+      "source_bytes": "8b80ec000000"
+    },
+    "00158742": {
+      "mnemonic": "mov",
+      "source_bytes": "b940712400"
+    },
+    "00158747": {
+      "mnemonic": "cmp",
+      "source_bytes": "81f9a05e2400"
+    },
+    "0015874d": {
+      "mnemonic": "jne",
+      "source_bytes": "7507"
+    },
+    "0015874f": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f104010"
+    },
+    "00158754": {
+      "mnemonic": "jmp",
+      "source_bytes": "eb19"
+    },
+    "00158756": {
+      "mnemonic": "mov",
+      "source_bytes": "ba40712400"
+    },
+    "0015875b": {
+      "mnemonic": "cmp",
+      "source_bytes": "81fa00542400"
+    },
+    "00158761": {
+      "mnemonic": "jne",
+      "source_bytes": "7507"
+    },
+    "00158763": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f10400c"
+    },
+    "00158768": {
+      "mnemonic": "jmp",
+      "source_bytes": "eb05"
+    },
+    "0015876a": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f104008"
+    },
+    "0015876f": {
+      "mnemonic": "ucomiss",
+      "source_bytes": "0f2e05e8a04600"
+    },
+    "00158776": {
+      "mnemonic": "lahf",
+      "source_bytes": "9f"
+    },
+    "00158777": {
+      "mnemonic": "test",
+      "source_bytes": "f6c444"
+    },
+    "0015877a": {
+      "mnemonic": "jnp",
+      "source_bytes": "7b08"
+    },
+    "0015877c": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f118618554f00"
+    },
+    "00158784": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00158785": {
+      "mnemonic": "ret",
+      "source_bytes": "c3"
+    },
+    "00246cf0": {
+      "mnemonic": "push",
+      "source_bytes": "51"
+    },
+    "00246cf1": {
+      "mnemonic": "push",
+      "source_bytes": "53"
+    },
+    "00246cf2": {
+      "mnemonic": "push",
+      "source_bytes": "56"
+    },
+    "00246cf3": {
+      "mnemonic": "mov",
+      "source_bytes": "8bf0"
+    },
+    "00246cf5": {
+      "mnemonic": "xor",
+      "source_bytes": "33c0"
+    },
+    "00246cf7": {
+      "mnemonic": "cmp",
+      "source_bytes": "83faff"
+    },
+    "00246cfa": {
+      "mnemonic": "je",
+      "source_bytes": "7417"
+    },
+    "00246cfc": {
+      "mnemonic": "cmp",
+      "source_bytes": "66833d244c4700ff"
+    },
+    "00246d04": {
+      "mnemonic": "je",
+      "source_bytes": "740d"
+    },
+    "00246d06": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc2"
+    },
+    "00246d08": {
+      "mnemonic": "imul",
+      "source_bytes": "69c058030000"
+    },
+    "00246d0e": {
+      "mnemonic": "add",
+      "source_bytes": "055c654f00"
+    },
+    "00246d13": {
+      "mnemonic": "mov",
+      "source_bytes": "8b18"
+    },
+    "00246d15": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1005e4d65500"
+    },
+    "00246d1d": {
+      "mnemonic": "mov",
+      "source_bytes": "8bce"
+    },
+    "00246d1f": {
+      "mnemonic": "mov",
+      "source_bytes": "8919"
+    },
+    "00246d21": {
+      "mnemonic": "mov",
+      "source_bytes": "8b5804"
+    },
+    "00246d24": {
+      "mnemonic": "mov",
+      "source_bytes": "895904"
+    },
+    "00246d27": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4008"
+    },
+    "00246d2a": {
+      "mnemonic": "mov",
+      "source_bytes": "894108"
+    },
+    "00246d2d": {
+      "mnemonic": "mov",
+      "source_bytes": "a1d83c4f00"
+    },
+    "00246d32": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f114624"
+    },
+    "00246d37": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4804"
+    },
+    "00246d3a": {
+      "mnemonic": "imul",
+      "source_bytes": "69c90d661900"
+    },
+    "00246d40": {
+      "mnemonic": "add",
+      "source_bytes": "81c15ff36e3c"
+    },
+    "00246d46": {
+      "mnemonic": "mov",
+      "source_bytes": "894804"
+    },
+    "00246d49": {
+      "mnemonic": "shr",
+      "source_bytes": "c1e910"
+    },
+    "00246d4c": {
+      "mnemonic": "test",
+      "source_bytes": "85c9"
+    },
+    "00246d4e": {
+      "mnemonic": "mov",
+      "source_bytes": "894c2408"
+    },
+    "00246d52": {
+      "mnemonic": "fild",
+      "source_bytes": "db442408"
+    },
+    "00246d56": {
+      "mnemonic": "jge",
+      "source_bytes": "7d06"
+    },
+    "00246d58": {
+      "mnemonic": "fadd",
+      "source_bytes": "d805c8a04600"
+    },
+    "00246d5e": {
+      "mnemonic": "fmul",
+      "source_bytes": "d80d60a14600"
+    },
+    "00246d64": {
+      "mnemonic": "fmul",
+      "source_bytes": "d80d20a14600"
+    },
+    "00246d6a": {
+      "mnemonic": "fadd",
+      "source_bytes": "d8051ca14600"
+    },
+    "00246d70": {
+      "mnemonic": "fstp",
+      "source_bytes": "d95e20"
+    },
+    "00246d73": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4804"
+    },
+    "00246d76": {
+      "mnemonic": "imul",
+      "source_bytes": "69c90d661900"
+    },
+    "00246d7c": {
+      "mnemonic": "add",
+      "source_bytes": "81c15ff36e3c"
+    },
+    "00246d82": {
+      "mnemonic": "mov",
+      "source_bytes": "894804"
+    },
+    "00246d85": {
+      "mnemonic": "shr",
+      "source_bytes": "c1e910"
+    },
+    "00246d88": {
+      "mnemonic": "test",
+      "source_bytes": "85c9"
+    },
+    "00246d8a": {
+      "mnemonic": "mov",
+      "source_bytes": "894c2408"
+    },
+    "00246d8e": {
+      "mnemonic": "fild",
+      "source_bytes": "db442408"
+    },
+    "00246d92": {
+      "mnemonic": "jge",
+      "source_bytes": "7d06"
+    },
+    "00246d94": {
+      "mnemonic": "fadd",
+      "source_bytes": "d805c8a04600"
+    },
+    "00246d9a": {
+      "mnemonic": "fmul",
+      "source_bytes": "d80d60a14600"
+    },
+    "00246da0": {
+      "mnemonic": "fmul",
+      "source_bytes": "d80d3c924400"
+    },
+    "00246da6": {
+      "mnemonic": "fstp",
+      "source_bytes": "d95e18"
+    },
+    "00246da9": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4804"
+    },
+    "00246dac": {
+      "mnemonic": "imul",
+      "source_bytes": "69c90d661900"
+    },
+    "00246db2": {
+      "mnemonic": "add",
+      "source_bytes": "81c15ff36e3c"
+    },
+    "00246db8": {
+      "mnemonic": "mov",
+      "source_bytes": "894804"
+    },
+    "00246dbb": {
+      "mnemonic": "shr",
+      "source_bytes": "c1e910"
+    },
+    "00246dbe": {
+      "mnemonic": "test",
+      "source_bytes": "85c9"
+    },
+    "00246dc0": {
+      "mnemonic": "mov",
+      "source_bytes": "894c2408"
+    },
+    "00246dc4": {
+      "mnemonic": "fild",
+      "source_bytes": "db442408"
+    },
+    "00246dc8": {
+      "mnemonic": "jge",
+      "source_bytes": "7d06"
+    },
+    "00246dca": {
+      "mnemonic": "fadd",
+      "source_bytes": "d805c8a04600"
+    },
+    "00246dd0": {
+      "mnemonic": "fmul",
+      "source_bytes": "d80d60a14600"
+    },
+    "00246dd6": {
+      "mnemonic": "mov",
+      "source_bytes": "8b442410"
+    },
+    "00246dda": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f8ff"
+    },
+    "00246ddd": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1005e4a04600"
+    },
+    "00246de5": {
+      "mnemonic": "fmul",
+      "source_bytes": "d80df8a64600"
+    },
+    "00246deb": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f114628"
+    },
+    "00246df0": {
+      "mnemonic": "fadd",
+      "source_bytes": "d805f4a64600"
+    },
+    "00246df6": {
+      "mnemonic": "fchs",
+      "source_bytes": "d9e0"
+    },
+    "00246df8": {
+      "mnemonic": "fstp",
+      "source_bytes": "d95e1c"
+    },
+    "00246dfb": {
+      "mnemonic": "je",
+      "source_bytes": "740a"
+    },
+    "00246dfd": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f10055c694500"
+    },
+    "00246e05": {
+      "mnemonic": "jmp",
+      "source_bytes": "eb14"
+    },
+    "00246e07": {
+      "mnemonic": "mov",
+      "source_bytes": "8b0d18324f00"
+    },
+    "00246e0d": {
+      "mnemonic": "cmp",
+      "source_bytes": "83790802"
+    },
+    "00246e11": {
+      "mnemonic": "jne",
+      "source_bytes": "7508"
+    },
+    "00246e13": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f100508a14600"
+    },
+    "00246e1b": {
+      "mnemonic": "or",
+      "source_bytes": "83c8ff"
+    },
+    "00246e1e": {
+      "mnemonic": "cmp",
+      "source_bytes": "83faff"
+    },
+    "00246e21": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f114638"
+    },
+    "00246e26": {
+      "mnemonic": "je",
+      "source_bytes": "7409"
+    },
+    "00246e28": {
+      "mnemonic": "mov",
+      "source_bytes": "a1f0544f00"
+    },
+    "00246e2d": {
+      "mnemonic": "mov",
+      "source_bytes": "8b44900c"
+    },
+    "00246e31": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f8ff"
+    },
+    "00246e34": {
+      "mnemonic": "mov",
+      "source_bytes": "89462c"
+    },
+    "00246e37": {
+      "mnemonic": "mov",
+      "source_bytes": "894630"
+    },
+    "00246e3a": {
+      "mnemonic": "mov",
+      "source_bytes": "c74634ffffffff"
+    },
+    "00246e41": {
+      "mnemonic": "mov",
+      "source_bytes": "c6463c00"
+    },
+    "00246e45": {
+      "mnemonic": "mov",
+      "source_bytes": "88563d"
+    },
+    "00246e48": {
+      "mnemonic": "je",
+      "source_bytes": "743e"
+    },
+    "00246e4a": {
+      "mnemonic": "mov",
+      "source_bytes": "8b0df4544f00"
+    },
+    "00246e50": {
+      "mnemonic": "mov",
+      "source_bytes": "8b5944"
+    },
+    "00246e53": {
+      "mnemonic": "and",
+      "source_bytes": "25ffff0000"
+    },
+    "00246e58": {
+      "mnemonic": "imul",
+      "source_bytes": "69c01c020000"
+    },
+    "00246e5e": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4c182c"
+    },
+    "00246e62": {
+      "mnemonic": "add",
+      "source_bytes": "03c3"
+    },
+    "00246e64": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f9ff"
+    },
+    "00246e67": {
+      "mnemonic": "je",
+      "source_bytes": "7409"
+    },
+    "00246e69": {
+      "mnemonic": "mov",
+      "source_bytes": "894e34"
+    },
+    "00246e6c": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00246e6d": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "00246e6e": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "00246e6f": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "00246e72": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4030"
+    },
+    "00246e75": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f8ff"
+    },
+    "00246e78": {
+      "mnemonic": "je",
+      "source_bytes": "7409"
+    },
+    "00246e7a": {
+      "mnemonic": "mov",
+      "source_bytes": "894634"
+    },
+    "00246e7d": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00246e7e": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "00246e7f": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "00246e80": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "00246e83": {
+      "mnemonic": "call",
+      "source_bytes": "e808020000"
+    },
+    "00246e88": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00246e89": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "00246e8a": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "00246e8b": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "00246e90": {
+      "mnemonic": "push",
+      "source_bytes": "53"
+    },
+    "00246e91": {
+      "mnemonic": "push",
+      "source_bytes": "55"
+    },
+    "00246e92": {
+      "mnemonic": "mov",
+      "source_bytes": "8b6c240c"
+    },
+    "00246e96": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc5"
+    },
+    "00246e98": {
+      "mnemonic": "and",
+      "source_bytes": "25ffff0000"
+    },
+    "00246e9d": {
+      "mnemonic": "imul",
+      "source_bytes": "69c01c020000"
+    },
+    "00246ea3": {
+      "mnemonic": "push",
+      "source_bytes": "56"
+    },
+    "00246ea4": {
+      "mnemonic": "push",
+      "source_bytes": "57"
+    },
+    "00246ea5": {
+      "mnemonic": "mov",
+      "source_bytes": "8b3df4544f00"
+    },
+    "00246eab": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4f44"
+    },
+    "00246eae": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbe9408c0000000"
+    },
+    "00246eb6": {
+      "mnemonic": "mov",
+      "source_bytes": "89542414"
+    },
+    "00246eba": {
+      "mnemonic": "or",
+      "source_bytes": "83caff"
+    },
+    "00246ebd": {
+      "mnemonic": "lea",
+      "source_bytes": "8d4900"
+    },
+    "00246ec0": {
+      "mnemonic": "inc",
+      "source_bytes": "42"
+    },
+    "00246ec1": {
+      "mnemonic": "js",
+      "source_bytes": "7828"
+    },
+    "00246ec3": {
+      "mnemonic": "mov",
+      "source_bytes": "8b5f38"
+    },
+    "00246ec6": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bd3"
+    },
+    "00246ec8": {
+      "mnemonic": "jge",
+      "source_bytes": "7d21"
+    },
+    "00246eca": {
+      "mnemonic": "mov",
+      "source_bytes": "8b7748"
+    },
+    "00246ecd": {
+      "mnemonic": "lea",
+      "source_bytes": "8d4900"
+    },
+    "00246ed0": {
+      "mnemonic": "mov",
+      "source_bytes": "8bca"
+    },
+    "00246ed2": {
+      "mnemonic": "and",
+      "source_bytes": "83e11f"
+    },
+    "00246ed5": {
+      "mnemonic": "mov",
+      "source_bytes": "b801000000"
+    },
+    "00246eda": {
+      "mnemonic": "shl",
+      "source_bytes": "d3e0"
+    },
+    "00246edc": {
+      "mnemonic": "mov",
+      "source_bytes": "8bca"
+    },
+    "00246ede": {
+      "mnemonic": "sar",
+      "source_bytes": "c1f905"
+    },
+    "00246ee1": {
+      "mnemonic": "test",
+      "source_bytes": "85048e"
+    },
+    "00246ee4": {
+      "mnemonic": "jne",
+      "source_bytes": "750e"
+    },
+    "00246ee6": {
+      "mnemonic": "inc",
+      "source_bytes": "42"
+    },
+    "00246ee7": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bd3"
+    },
+    "00246ee9": {
+      "mnemonic": "jl",
+      "source_bytes": "7ce5"
+    },
+    "00246eeb": {
+      "mnemonic": "pop",
+      "source_bytes": "5f"
+    },
+    "00246eec": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00246eed": {
+      "mnemonic": "pop",
+      "source_bytes": "5d"
+    },
+    "00246eee": {
+      "mnemonic": "xor",
+      "source_bytes": "32c0"
+    },
+    "00246ef0": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "00246ef1": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "00246ef4": {
+      "mnemonic": "cmp",
+      "source_bytes": "83faff"
+    },
+    "00246ef7": {
+      "mnemonic": "je",
+      "source_bytes": "74f2"
+    },
+    "00246ef9": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4f24"
+    },
+    "00246efc": {
+      "mnemonic": "mov",
+      "source_bytes": "8b7744"
+    },
+    "00246eff": {
+      "mnemonic": "imul",
+      "source_bytes": "0fafca"
+    },
+    "00246f02": {
+      "mnemonic": "add",
+      "source_bytes": "03ce"
+    },
+    "00246f04": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbf31"
+    },
+    "00246f07": {
+      "mnemonic": "shl",
+      "source_bytes": "c1e610"
+    },
+    "00246f0a": {
+      "mnemonic": "or",
+      "source_bytes": "0bf2"
+    },
+    "00246f0c": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bf5"
+    },
+    "00246f0e": {
+      "mnemonic": "je",
+      "source_bytes": "74b0"
+    },
+    "00246f10": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbe81c0000000"
+    },
+    "00246f17": {
+      "mnemonic": "cmp",
+      "source_bytes": "3b442414"
+    },
+    "00246f1b": {
+      "mnemonic": "jne",
+      "source_bytes": "75a3"
+    },
+    "00246f1d": {
+      "mnemonic": "pop",
+      "source_bytes": "5f"
+    },
+    "00246f1e": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00246f1f": {
+      "mnemonic": "pop",
+      "source_bytes": "5d"
+    },
+    "00246f20": {
+      "mnemonic": "mov",
+      "source_bytes": "b001"
+    },
+    "00246f22": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "00246f23": {
+      "mnemonic": "ret",
+      "source_bytes": "c20400"
+    },
+    "00246f30": {
+      "mnemonic": "push",
+      "source_bytes": "51"
+    },
+    "00246f31": {
+      "mnemonic": "mov",
+      "source_bytes": "8a442410"
+    },
+    "00246f35": {
+      "mnemonic": "push",
+      "source_bytes": "53"
+    },
+    "00246f36": {
+      "mnemonic": "push",
+      "source_bytes": "55"
+    },
+    "00246f37": {
+      "mnemonic": "mov",
+      "source_bytes": "8b2df4544f00"
+    },
+    "00246f3d": {
+      "mnemonic": "push",
+      "source_bytes": "56"
+    },
+    "00246f3e": {
+      "mnemonic": "or",
+      "source_bytes": "83caff"
+    },
+    "00246f41": {
+      "mnemonic": "test",
+      "source_bytes": "84c0"
+    },
+    "00246f43": {
+      "mnemonic": "push",
+      "source_bytes": "57"
+    },
+    "00246f44": {
+      "mnemonic": "je",
+      "source_bytes": "7420"
+    },
+    "00246f46": {
+      "mnemonic": "mov",
+      "source_bytes": "8b442418"
+    },
+    "00246f4a": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4d44"
+    },
+    "00246f4d": {
+      "mnemonic": "and",
+      "source_bytes": "25ffff0000"
+    },
+    "00246f52": {
+      "mnemonic": "imul",
+      "source_bytes": "69c01c020000"
+    },
+    "00246f58": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbe8408c0000000"
+    },
+    "00246f60": {
+      "mnemonic": "mov",
+      "source_bytes": "89442410"
+    },
+    "00246f64": {
+      "mnemonic": "jmp",
+      "source_bytes": "eb04"
+    },
+    "00246f66": {
+      "mnemonic": "mov",
+      "source_bytes": "89542410"
+    },
+    "00246f6a": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc2"
+    },
+    "00246f6c": {
+      "mnemonic": "lea",
+      "source_bytes": "8d642400"
+    },
+    "00246f70": {
+      "mnemonic": "inc",
+      "source_bytes": "42"
+    },
+    "00246f71": {
+      "mnemonic": "js",
+      "source_bytes": "0f888c000000"
+    },
+    "00246f77": {
+      "mnemonic": "mov",
+      "source_bytes": "8b7d38"
+    },
+    "00246f7a": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bd7"
+    },
+    "00246f7c": {
+      "mnemonic": "jge",
+      "source_bytes": "0f8d81000000"
+    },
+    "00246f82": {
+      "mnemonic": "mov",
+      "source_bytes": "8b7548"
+    },
+    "00246f85": {
+      "mnemonic": "mov",
+      "source_bytes": "8bca"
+    },
+    "00246f87": {
+      "mnemonic": "and",
+      "source_bytes": "83e11f"
+    },
+    "00246f8a": {
+      "mnemonic": "mov",
+      "source_bytes": "bb01000000"
+    },
+    "00246f8f": {
+      "mnemonic": "shl",
+      "source_bytes": "d3e3"
+    },
+    "00246f91": {
+      "mnemonic": "mov",
+      "source_bytes": "8bca"
+    },
+    "00246f93": {
+      "mnemonic": "sar",
+      "source_bytes": "c1f905"
+    },
+    "00246f96": {
+      "mnemonic": "test",
+      "source_bytes": "851c8e"
+    },
+    "00246f99": {
+      "mnemonic": "jne",
+      "source_bytes": "7507"
+    },
+    "00246f9b": {
+      "mnemonic": "inc",
+      "source_bytes": "42"
+    },
+    "00246f9c": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bd7"
+    },
+    "00246f9e": {
+      "mnemonic": "jl",
+      "source_bytes": "7ce5"
+    },
+    "00246fa0": {
+      "mnemonic": "jmp",
+      "source_bytes": "eb61"
+    },
+    "00246fa2": {
+      "mnemonic": "cmp",
+      "source_bytes": "83faff"
+    },
+    "00246fa5": {
+      "mnemonic": "je",
+      "source_bytes": "745c"
+    },
+    "00246fa7": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4d24"
+    },
+    "00246faa": {
+      "mnemonic": "mov",
+      "source_bytes": "8b5d44"
+    },
+    "00246fad": {
+      "mnemonic": "imul",
+      "source_bytes": "0fafca"
+    },
+    "00246fb0": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbf3419"
+    },
+    "00246fb4": {
+      "mnemonic": "mov",
+      "source_bytes": "8b7c2418"
+    },
+    "00246fb8": {
+      "mnemonic": "add",
+      "source_bytes": "03cb"
+    },
+    "00246fba": {
+      "mnemonic": "shl",
+      "source_bytes": "c1e610"
+    },
+    "00246fbd": {
+      "mnemonic": "or",
+      "source_bytes": "0bf2"
+    },
+    "00246fbf": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bf7"
+    },
+    "00246fc1": {
+      "mnemonic": "je",
+      "source_bytes": "74ad"
+    },
+    "00246fc3": {
+      "mnemonic": "cmp",
+      "source_bytes": "83792cff"
+    },
+    "00246fc7": {
+      "mnemonic": "je",
+      "source_bytes": "74a7"
+    },
+    "00246fc9": {
+      "mnemonic": "mov",
+      "source_bytes": "8a5c2420"
+    },
+    "00246fcd": {
+      "mnemonic": "test",
+      "source_bytes": "84db"
+    },
+    "00246fcf": {
+      "mnemonic": "je",
+      "source_bytes": "740d"
+    },
+    "00246fd1": {
+      "mnemonic": "movsx",
+      "source_bytes": "0fbe89c0000000"
+    },
+    "00246fd8": {
+      "mnemonic": "cmp",
+      "source_bytes": "3b4c2410"
+    },
+    "00246fdc": {
+      "mnemonic": "jne",
+      "source_bytes": "7592"
+    },
+    "00246fde": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f8ff"
+    },
+    "00246fe1": {
+      "mnemonic": "jne",
+      "source_bytes": "7504"
+    },
+    "00246fe3": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc6"
+    },
+    "00246fe5": {
+      "mnemonic": "jmp",
+      "source_bytes": "eb89"
+    },
+    "00246fe7": {
+      "mnemonic": "mov",
+      "source_bytes": "8b7c241c"
+    },
+    "00246feb": {
+      "mnemonic": "mov",
+      "source_bytes": "8bce"
+    },
+    "00246fed": {
+      "mnemonic": "and",
+      "source_bytes": "81e1ffff0000"
+    },
+    "00246ff3": {
+      "mnemonic": "and",
+      "source_bytes": "81e7ffff0000"
+    },
+    "00246ff9": {
+      "mnemonic": "cmp",
+      "source_bytes": "3bcf"
+    },
+    "00246ffb": {
+      "mnemonic": "jle",
+      "source_bytes": "0f8e6fffffff"
+    },
+    "00247001": {
+      "mnemonic": "mov",
+      "source_bytes": "8bc6"
+    },
+    "00247003": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f8ff"
+    },
+    "00247006": {
+      "mnemonic": "pop",
+      "source_bytes": "5f"
+    },
+    "00247007": {
+      "mnemonic": "pop",
+      "source_bytes": "5e"
+    },
+    "00247008": {
+      "mnemonic": "pop",
+      "source_bytes": "5d"
+    },
+    "00247009": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "0024700a": {
+      "mnemonic": "jne",
+      "source_bytes": "7504"
+    },
+    "0024700c": {
+      "mnemonic": "mov",
+      "source_bytes": "8b44240c"
+    },
+    "00247010": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "00247011": {
+      "mnemonic": "ret",
+      "source_bytes": "c20c00"
+    },
+    "00247090": {
+      "mnemonic": "push",
+      "source_bytes": "51"
+    },
+    "00247091": {
+      "mnemonic": "push",
+      "source_bytes": "53"
+    },
+    "00247092": {
+      "mnemonic": "mov",
+      "source_bytes": "8b1d18324f00"
+    },
+    "00247098": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4308"
+    },
+    "0024709b": {
+      "mnemonic": "push",
+      "source_bytes": "57"
+    },
+    "0024709c": {
+      "mnemonic": "or",
+      "source_bytes": "83cfff"
+    },
+    "0024709f": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f802"
+    },
+    "002470a2": {
+      "mnemonic": "jne",
+      "source_bytes": "7523"
+    },
+    "002470a4": {
+      "mnemonic": "mov",
+      "source_bytes": "8b0db8634f00"
+    },
+    "002470aa": {
+      "mnemonic": "mov",
+      "source_bytes": "8b91140c0000"
+    },
+    "002470b0": {
+      "mnemonic": "mov",
+      "source_bytes": "8b0c95a0df5600"
+    },
+    "002470b7": {
+      "mnemonic": "xor",
+      "source_bytes": "32c0"
+    },
+    "002470b9": {
+      "mnemonic": "test",
+      "source_bytes": "85c9"
+    },
+    "002470bb": {
+      "mnemonic": "je",
+      "source_bytes": "7413"
+    },
+    "002470bd": {
+      "mnemonic": "mov",
+      "source_bytes": "8a8384010000"
+    },
+    "002470c3": {
+      "mnemonic": "and",
+      "source_bytes": "2401"
+    },
+    "002470c5": {
+      "mnemonic": "jmp",
+      "source_bytes": "eb09"
+    },
+    "002470c7": {
+      "mnemonic": "mov",
+      "source_bytes": "8b462c"
+    },
+    "002470ca": {
+      "mnemonic": "push",
+      "source_bytes": "50"
+    },
+    "002470cb": {
+      "mnemonic": "call",
+      "source_bytes": "e8c0fdffff"
+    },
+    "002470d0": {
+      "mnemonic": "mov",
+      "source_bytes": "8b5630"
+    },
+    "002470d3": {
+      "mnemonic": "mov",
+      "source_bytes": "88442408"
+    },
+    "002470d7": {
+      "mnemonic": "mov",
+      "source_bytes": "8b4c2408"
+    },
+    "002470db": {
+      "mnemonic": "mov",
+      "source_bytes": "8b462c"
+    },
+    "002470de": {
+      "mnemonic": "push",
+      "source_bytes": "51"
+    },
+    "002470df": {
+      "mnemonic": "push",
+      "source_bytes": "52"
+    },
+    "002470e0": {
+      "mnemonic": "push",
+      "source_bytes": "50"
+    },
+    "002470e1": {
+      "mnemonic": "call",
+      "source_bytes": "e84afeffff"
+    },
+    "002470e6": {
+      "mnemonic": "cmp",
+      "source_bytes": "83f8ff"
+    },
+    "002470e9": {
+      "mnemonic": "mov",
+      "source_bytes": "894630"
+    },
+    "002470ec": {
+      "mnemonic": "je",
+      "source_bytes": "7418"
+    },
+    "002470ee": {
+      "mnemonic": "mov",
+      "source_bytes": "8b0df4544f00"
+    },
+    "002470f4": {
+      "mnemonic": "mov",
+      "source_bytes": "8b5144"
+    },
+    "002470f7": {
+      "mnemonic": "and",
+      "source_bytes": "25ffff0000"
+    },
+    "002470fc": {
+      "mnemonic": "imul",
+      "source_bytes": "69c01c020000"
+    },
+    "00247102": {
+      "mnemonic": "mov",
+      "source_bytes": "8b7c102c"
+    },
+    "00247106": {
+      "mnemonic": "cmp",
+      "source_bytes": "3b7e34"
+    },
+    "00247109": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f1005e4a04600"
+    },
+    "00247111": {
+      "mnemonic": "je",
+      "source_bytes": "7411"
+    },
+    "00247113": {
+      "mnemonic": "cmp",
+      "source_bytes": "83ffff"
+    },
+    "00247116": {
+      "mnemonic": "je",
+      "source_bytes": "740c"
+    },
+    "00247118": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f114628"
+    },
+    "0024711d": {
+      "mnemonic": "mov",
+      "source_bytes": "897e34"
+    },
+    "00247120": {
+      "mnemonic": "mov",
+      "source_bytes": "c6463c00"
+    },
+    "00247124": {
+      "mnemonic": "cmp",
+      "source_bytes": "837b0802"
+    },
+    "00247128": {
+      "mnemonic": "pop",
+      "source_bytes": "5f"
+    },
+    "00247129": {
+      "mnemonic": "pop",
+      "source_bytes": "5b"
+    },
+    "0024712a": {
+      "mnemonic": "jne",
+      "source_bytes": "7508"
+    },
+    "0024712c": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f100508a14600"
+    },
+    "00247134": {
+      "mnemonic": "movss",
+      "source_bytes": "f30f114638"
+    },
+    "00247139": {
+      "mnemonic": "pop",
+      "source_bytes": "59"
+    },
+    "0024713a": {
+      "mnemonic": "ret",
+      "source_bytes": "c3"
+    }
+  },
+  "original_sha256": "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd",
+  "production_opcode_decoder": false,
+  "production_original_code_execution": false,
+  "schema": 1,
+  "selected_addresses": {
+    "000bcdf0": 773616,
+    "00158690": 1410704,
+    "0015869a": 1410714,
+    "001586ba": 1410746,
+    "001586ff": 1410815,
+    "00246cf0": 2387184,
+    "00246e88": 2387592,
+    "00246e90": 2387600,
+    "00246f30": 2387760,
+    "00247090": 2388112,
+    "002470d0": 2388176,
+    "002470e6": 2388198
+  },
+  "boundary": "Actual English TU1.5 reachable scalar/SSE/x87 bodies; no production opcode decoder. External owners preserve the full source ABI."
+}

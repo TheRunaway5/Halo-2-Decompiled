@@ -172,6 +172,8 @@ void main() {
     }
     if((material.textureEffects[0].y&32u)!=0u)
         pixel=pstencilSpecularMask(pixel,texture(diffuse,gl_FragCoord.xy/vec2(textureSize(diffuse,0))).a);
+    if((material.textureEffects[1].y&32u)!=0u)
+        pixel=pstencilSpecularMask(pixel,texture(detail,gl_FragCoord.xy/vec2(textureSize(detail,0))).a);
     if(material.alphaTest.x!=0u) {
         if(!sourceAlphaTestPass(pixel.a,material.alphaTest.y,material.alphaTest.z&255u))discard;
     }

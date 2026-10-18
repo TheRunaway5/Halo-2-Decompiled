@@ -1,9 +1,11 @@
 #include "halo2/source_particle_graphics_binding_tu15.hpp"
+#include "halo2/source_particle_world_execution_tu15.hpp"
 #include "halo2/source_effect_particle_draw_tu15.hpp"
 #include "halo2/source_particle_program_header_tu15.hpp"
 #include "halo2/vertex_program.hpp"
 #include <algorithm>
 #include <cmath>
+#include <cstring>
 #include <sstream>
 
 namespace halo2 {
@@ -105,7 +107,7 @@ SourceParticleGraphicsBindingTu15::SourceParticleGraphicsBindingTu15(
 }
 void SourceParticleGraphicsBindingTu15::check(bool require_configuration) const {
     if(std::this_thread::get_id()!=thread_ || !renderer_.valid() || !control_.valid() || !targets_.valid() ||
-       (depth_configured_ && !depth_control_.valid()) ||
+       (depth_configured_ && !depth_control_.valid()) || (view_ && !view_->valid()) ||
        (program_staged_ && (!program_control_.valid() || program_configuration_.target_generation!=targets_.bank().generation)) ||
        control_.device_address()!=use_.native_address() || !begun_ ||
        (require_configuration && !configured_ && !configuring_))
@@ -231,17 +233,117 @@ void SourceParticleGraphicsBindingTu15::load_program(RendererParticleProgram con
     }catch(...) {program_loading_=false;throw;}
 }
 bool SourceParticleGraphicsBindingTu15::configured() const {
-    return configured_ && renderer_.valid() && control_.valid() && targets_.valid() && std::this_thread::get_id()==thread_;
+    return configured_ && renderer_.valid() && control_.valid() && targets_.valid() &&
+        (!view_ || view_->valid()) && std::this_thread::get_id()==thread_;
 }
 NativeRuntimeAddress SourceParticleGraphicsBindingTu15::device_address() const {
     check();return use_.native_address();
 }
 void SourceParticleGraphicsBindingTu15::begin(SourcePhysicsContactMemory &source,
     std::span<const ShaderVector,192> inherited) {
-    if(&source==this || std::this_thread::get_id()!=thread_ || !renderer_.valid() || !control_.valid() || !targets_.valid())
+    if(view_ || &source==this || std::this_thread::get_id()!=thread_ || !renderer_.valid() || !control_.valid() || !targets_.valid())
         throw FormatError("Particle graphics begin has no live renderer/thread");
     constants_.begin(source,inherited);program_packet_begin_=program_packet_end_=0;
     declaration_packet_begin_=declaration_packet_end_=0;begun_=true;
+}
+void SourceParticleGraphicsBindingTu15::stage_view(RendererParticleView::Use view) {
+    check();
+    if(view_ || !depth_configured_ || !program_staged_ || !view.valid() ||
+       view.device_address()!=use_.native_address())
+        throw FormatError("Particle view requires one actual same-renderer depth/program/view owner");
+    const auto &v=view.state();const auto &c=v.viewport_constants;
+    if(v.prepared && view.current_state().published)
+        throw FormatError("Prepared particle view already has its original camera publication");
+    const bool compatible=v.prepared? v.layout==program_configuration_.layout &&
+        program_configuration_.classification>=7 && program_configuration_.classification<=9:
+        v.pipeline==program_configuration_.pipeline;
+    if(v.generation!=targets_.bank().generation || !compatible ||
+       v.viewport!=std::array<float,6>{0,0,float(v.surface_width),float(v.surface_height),0,1} ||
+       v.depth_parameters[2]!=1 || v.depth_parameters[3]!=1)
+        throw FormatError("Particle view is outside the admitted full-surface programmable W path");
+    const float width=c[0][0]*2,height=-c[1][1]*2;
+    const float left=c[3][0]-width*.5f-.5f,top=c[3][1]-height*.5f-.5f;
+    if(!std::isfinite(width) || !std::isfinite(height) || !std::isfinite(left) || !std::isfinite(top) ||
+       width<=0 || height<=0 || left<0 || top<0 || left+width>v.surface_width || top+height>v.surface_height ||
+       std::trunc(width)!=width || std::trunc(height)!=height || std::trunc(left)!=left || std::trunc(top)!=top ||
+       v.scissor!=std::array<std::int32_t,4>{std::int32_t(left),std::int32_t(top),std::int32_t(width),std::int32_t(height)} ||
+       c!=std::array<ShaderVector,4>{{{width*.5f,0,0,left+(width+1)*.5f+.03125f},
+           {0,-height*.5f,0,top+(height+1)*.5f+.03125f},{width*.5f,-height*.5f,16777215,0},
+           {left+width*.5f+.5f,top+height*.5f+.5f,0,0}}})
+        throw FormatError("Particle recorded scissor and source viewport constants disagree");
+    std::array<float,2> planes;constants_.read(0x4922f4,std::as_writable_bytes(std::span(planes)));
+    if(v.vertex_clip[0]!=0 || v.vertex_clip[1]!=16777215.f ||
+       v.depth_clip[0]!=0 || v.depth_clip[1]!=16777215.f || !std::isfinite(planes[0]) ||
+       !std::isfinite(planes[1]) || planes[0]<=0 || planes[1]<=planes[0])
+        throw FormatError("Particle native view does not match its original169D0 near/far inputs");
+    // A reset after collection would erase already authored work. Do not
+    // restore those counters later or call the initializer on a captured queue.
+    require_empty_view_queues();
+    const auto mount=[&](unsigned p,auto value){fields_.mount(p,std::as_bytes(std::span(&value,1)),
+        SourceRuntimeMemory::Access::ReadWrite,"recorded native programmable particle view ABI fragment");};
+    const std::array<unsigned,6> viewport{unsigned(left),unsigned(top),unsigned(width),unsigned(height),0,0x3f800000};
+    fields_.mount(device+0xee0,std::as_bytes(std::span(viewport)),SourceRuntimeMemory::Access::ReadWrite,
+        "recorded native particle view rectangle and viewport depth interval");
+    mount(device+0x95c,1.f);mount(device+0x960,1.f);
+    // Original405B10's literal raster offsets agree with actual c8/c9 above.
+    mount(device+0xef8,.53125f);mount(device+0xefc,.53125f);
+    mount(device+0x948,depth_layout_.depth_scale_bits);
+    mount(device+0x1c10,v.depth_clip[2]);mount(device+0x1c14,v.depth_clip[3]);
+    // Native shader inputs always supply explicit programmable clip bounds.
+    // This narrow ABI flag represents that fact; no Xbox SDK prior flags or
+    // fixed-function bit0 history is inferred or exposed to other readers.
+    mount(device+0x1c18,2u);mount(control_cache,0u);
+    view_=std::move(view);
+}
+void SourceParticleGraphicsBindingTu15::require_empty_view_queues() const {
+    std::array<std::byte,4> count;
+    for(auto p:{0x4c2aa0u,0x4c2aa4u}){constants_.read(p,count);if(Bytes(count).u32(0))
+        throw FormatError("Original particle view must initialize before queue construction");}
+}
+void SourceParticleGraphicsBindingTu15::check_view_initialization() const {
+    check();
+    if(!view_ || view_attempted_ || view_initialized_ || view_initializing_ || (camera_attempted_ && !camera_configured_))
+        throw FormatError("Particle view requires one complete pending initializer");
+    if(view_->state().prepared && view_->current_state().published)
+        throw FormatError("Prepared particle view already has its original camera publication");
+    require_empty_view_queues();
+}
+void SourceParticleGraphicsBindingTu15::prepare_view(RendererParticleView::Use view) {
+    stage_view(std::move(view));
+}
+void SourceParticleGraphicsBindingTu15::initialize_staged_view(SourcePhysicsWorldRuntimeAbi &abi,
+    const SourcePhysicsWorldRuntimeServices &services) {
+    check_view_initialization();
+    view_attempted_=true;view_initializing_=true;view_packet_begin_=constants_.commands().size();
+    try {
+        run(0x13430,abi,services);view_packet_end_=constants_.commands().size();view_initializing_=false;
+        const auto packet=constants_.commands().subspan(view_packet_begin_,view_packet_end_-view_packet_begin_);
+        if(packet.size()!=20 || Bytes(packet).u32(0)!=0x80394 || Bytes(packet).u32(12)!=0x41d78 ||
+           Bytes(packet).u32(16)!=0 || !control_cache_owned_)
+            throw FormatError("Original particle view did not publish its complete bounds/control methods");
+        view_initialized_=true;publish_view_resource();
+    }catch(...) {view_initializing_=false;throw;}
+}
+void SourceParticleGraphicsBindingTu15::initialize_view(RendererParticleView::Use view,
+    SourcePhysicsWorldRuntimeAbi &abi,const SourcePhysicsWorldRuntimeServices &services) {
+    stage_view(std::move(view));initialize_staged_view(abi,services);
+}
+SourceParticleViewPassTu15 SourceParticleGraphicsBindingTu15::initialize_view_pass(RendererParticleView::Use view,
+    std::uint32_t mode,std::uint32_t distance_bits,SourcePhysicsWorldRuntimeAbi &abi,
+    const SourcePhysicsWorldRuntimeServices &services) {
+    stage_view(std::move(view));
+    return initialize_prepared_view_pass(mode,distance_bits,abi,services);
+}
+SourceParticleViewPassTu15 SourceParticleGraphicsBindingTu15::initialize_prepared_view_pass(
+    std::uint32_t mode,std::uint32_t distance_bits,SourcePhysicsWorldRuntimeAbi &abi,
+    const SourcePhysicsWorldRuntimeServices &services) {
+    check_view_initialization();
+    try {
+        std::array<std::byte,12> caller_packet;read(abi.gp[1],caller_packet);
+        const auto packet=source_particle_view_pass_tu15(*this,mode,distance_bits);
+        write(abi.gp[1],std::as_bytes(std::span(packet.words)));
+        initialize_staged_view(abi,services);return packet;
+    }catch(...) {view_attempted_=true;throw;}
 }
 void SourceParticleGraphicsBindingTu15::configure(SourcePhysicsWorldRuntimeAbi &abi,
     const std::function<void(std::uint32_t)> &instruction) {
@@ -261,12 +363,31 @@ void SourceParticleGraphicsBindingTu15::configure(SourcePhysicsWorldRuntimeAbi &
         configuring_=false;configured_=true;
     }catch(...) {configuring_=false;throw;}
 }
+void SourceParticleGraphicsBindingTu15::publish_camera(SourcePhysicsWorldRuntimeAbi &abi,
+    const SourcePhysicsWorldRuntimeServices &services) {
+    check();if(!view_ || (view_attempted_ && !view_initialized_) || camera_attempted_ || !abi.gp[0] || !abi.gp[1])
+        throw FormatError("Particle camera requires its actual staged view and one complete native caller");
+    camera_attempted_=true;camera_initializing_=true;camera_bounds_begin_=constants_.commands().size();
+    try {
+        run(0x12f80,abi,services);camera_bounds_end_=camera_bounds_begin_+12;
+        const auto packets=constants_.commands();
+        if(packets.size()<camera_bounds_end_ || Bytes(packets).u32(camera_bounds_begin_)!=0x80394)
+            throw FormatError("Original camera omitted its complete depth-bounds method");
+        std::array<ShaderVector,192> produced;decode_constants(produced,true);
+        if(std::memcmp(produced.data(),view_->state().camera_constants.data(),12*sizeof(ShaderVector)))
+            throw FormatError("Original camera publisher differs from the actual native descriptor camera bank");
+        camera_configured_=true;camera_initializing_=false;publish_view_resource();
+    }catch(...) {camera_initializing_=false;throw;}
+}
 void SourceParticleGraphicsBindingTu15::run(std::uint32_t entry,SourcePhysicsWorldRuntimeAbi &abi,
     const SourcePhysicsWorldRuntimeServices &services) {
-    check();const auto previous=instruction_;auto wrapped=services;
+    check();
+    if(!source_effect_particle_draw_tu15_owns_entry(entry))
+        throw FormatError("Particle graphics root requires its owned particle entry");
+    const auto previous=instruction_;auto wrapped=services;
     wrapped.instruction=[&](auto p) {instruction_=p;if(services.instruction)services.instruction(p);};
     try {
-        source_run_effect_particle_draw_tu15(*this,entry,abi,
+        source_run_particle_world_execution_tu15(*this,entry,abi,
             abi.floating_point.value_or(SourcePhysicsFactoryFloatingPoint{0x27f,0x1f80}),wrapped);
     }catch(...) {instruction_=previous;throw;}
     instruction_=previous;
@@ -277,7 +398,10 @@ bool SourceParticleGraphicsBindingTu15::owns_field(std::uint32_t p,std::size_t n
         (program_staged_ && (within(p,n,program_cell,12) || within(p,n,program_token+4,4) ||
             within(p,n,program_header+4,4) || within(p,n,program_header+20,declaration_bytes))) ||
         (declaration_configuring_ && (within(p,n,dirty,4) || within(p,n,declaration_input,declaration_bytes))) ||
-        (program_load_attempted_ && within(p,n,program_shadow,program_shadow_bytes));
+        (program_load_attempted_ && within(p,n,program_shadow,program_shadow_bytes)) ||
+        (view_ && (within(p,n,device+0xee0,24) || within(p,n,device+0x95c,8) ||
+            within(p,n,device+0xef8,8) || within(p,n,device+0x948,4) ||
+            within(p,n,device+0x1c10,12) || within(p,n,control_cache,4)));
 }
 void SourceParticleGraphicsBindingTu15::reject_unknown_device_field(std::uint32_t p,std::size_t n) const {
     if(n>0x100000000ull-p)throw FormatError("Particle graphics ABI access wraps source storage");
@@ -324,7 +448,13 @@ void SourceParticleGraphicsBindingTu15::read(std::uint32_t p,std::span<std::byte
         if(!std::isfinite(planes[0]) || !std::isfinite(planes[1]) || planes[1]<=0)
             throw FormatError("Original particle view lacks configured near/far producer169D0");
     }
-    if(p<std::uint64_t(control_cache)+4 && std::uint64_t(p)+out.size()>control_cache)
+    if(view_ && (within(p,out.size(),device+0xee0,24) || within(p,out.size(),device+0x95c,8) ||
+        within(p,out.size(),device+0xef8,8) || within(p,out.size(),device+0x948,4) ||
+        within(p,out.size(),device+0x1c10,12)) && !view_initializing_ && !camera_initializing_)
+        throw FormatError("Particle view cache has no admitted original reader outside its initializer");
+    if(p<std::uint64_t(control_cache)+4 && std::uint64_t(p)+out.size()>control_cache &&
+       !(view_ && p==control_cache && out.size()==4 &&
+         ((view_initializing_ && instruction_==0x135de) || (control_cache_owned_ && instruction_==0x3ff611))))
         throw FormatError("Original particle depth control cache requires its13430 per-view owner");
     if(p<std::uint64_t(depth_token)+0x20 && std::uint64_t(p)+out.size()>depth_token &&
        !(depth_configured_ && instruction_==0x4004a0 && p==depth_token+0xd && out.size()==1))
@@ -338,7 +468,9 @@ void SourceParticleGraphicsBindingTu15::read(std::uint32_t p,std::span<std::byte
     // admitted bits; another flag reader requires its real device owner.
     if(within(p,out.size(),flags,4) &&
        !((configuring_ && (instruction_==0x400ef9 || instruction_==0x400f0f) && p==flags && out.size()==4) ||
-         ((instruction_==0x247e32 || (program_loading_ && instruction_==0x400d50)) && p==flags && out.size()==1)))
+         ((instruction_==0x247e32 || (program_loading_ && instruction_==0x400d50)) && p==flags && out.size()==1) ||
+         ((view_initializing_ || camera_initializing_) && (instruction_==0x400188 || instruction_==0x400293) && p==flags && out.size()==4) ||
+         (camera_initializing_ && instruction_==0x13256 && p==flags && out.size()==1)))
     {
         //400F0F's read is the native store observer's before-image, not an
         // additional original CPU load.
@@ -350,6 +482,19 @@ void SourceParticleGraphicsBindingTu15::read(std::uint32_t p,std::span<std::byte
 }
 void SourceParticleGraphicsBindingTu15::write(std::uint32_t p,std::span<const std::byte> in) {
     check();
+    if(view_ && (within(p,in.size(),device+0xee0,24) || within(p,in.size(),device+0x95c,8) ||
+        within(p,in.size(),device+0xef8,8) || within(p,in.size(),device+0x948,4) ||
+        within(p,in.size(),device+0x1c10,12) || within(p,in.size(),control_cache,4))) {
+        if(in.size()!=4 || !((view_initializing_ &&
+           ((p==device+0x1c10 && instruction_==0x1359a) || (p==device+0x1c14 && instruction_==0x135a2) ||
+             (p==device+0x1c18 && instruction_==0x135aa && Bytes(in).u32(0)==2) ||
+             (p==control_cache && instruction_==0x135de && Bytes(in).u32(0)==0))) ||
+           (camera_initializing_ && ((p==device+0x1c10 && instruction_==0x12d79) ||
+             (p==device+0x1c14 && instruction_==0x12d81) ||
+             (p==device+0x1c18 && instruction_==0x12d89 && Bytes(in).u32(0)==2)))))
+            throw FormatError("Particle view field lacks its whole original initializer producer");
+        fields_.write(p,in);if(p==control_cache)control_cache_owned_=true;return;
+    }
     if((p<std::uint64_t(dirty)+4 && std::uint64_t(p)+in.size()>dirty) ||
        (p<std::uint64_t(program_header)+280 && std::uint64_t(p)+in.size()>program_header) ||
        (p<std::uint64_t(program_cell)+12 && std::uint64_t(p)+in.size()>program_cell)) {
@@ -390,10 +535,16 @@ std::span<const std::byte> SourceParticleGraphicsBindingTu15::commands() const {
     check();return constants_.commands();
 }
 void SourceParticleGraphicsBindingTu15::consume_constants(std::span<ShaderVector,192> destination) const {
+    decode_constants(destination,false);
+}
+void SourceParticleGraphicsBindingTu15::decode_constants(std::span<ShaderVector,192> destination,
+    bool pending_camera) const {
     check();std::array<ShaderVector,192> staged;
-    if((program_load_attempted_ && !program_staged_) || (declaration_attempted_ && !declaration_configured_))
+    if((program_load_attempted_ && !program_staged_) || (declaration_attempted_ && !declaration_configured_) ||
+       (view_ && !view_initialized_ && !(pending_camera && camera_initializing_)) ||
+       (camera_attempted_ && !camera_configured_ && !camera_initializing_))
         throw FormatError("Particle program packets have no realized native pipeline owner");
-    if(program_packet_end_ || declaration_packet_end_) {
+    if(program_packet_end_ || declaration_packet_end_ || view_packet_end_ || camera_bounds_end_) {
         const auto packets=constants_.commands();
         if(program_packet_begin_>program_packet_end_ || program_packet_end_>packets.size())
             throw FormatError("Particle program packet range has no complete emission owner");
@@ -404,10 +555,23 @@ void SourceParticleGraphicsBindingTu15::consume_constants(std::span<ShaderVector
                Bytes(packets).u32(declaration_packet_begin_+4)!=0)
                 throw FormatError("Particle declaration packet has no matching instruction0 owner");
         }
+        if(view_packet_end_ && (view_packet_begin_<std::max(program_packet_end_,declaration_packet_end_) ||
+           view_packet_end_>packets.size() || view_packet_end_-view_packet_begin_!=20 ||
+           Bytes(packets).u32(view_packet_begin_)!=0x80394 || Bytes(packets).u32(view_packet_begin_+12)!=0x41d78 ||
+           Bytes(packets).u32(view_packet_begin_+16)!=0))
+            throw FormatError("Particle view packet has no complete original bounds/control owner");
+        if(camera_bounds_end_ && (camera_bounds_begin_<std::max(program_packet_end_,declaration_packet_end_) || camera_bounds_end_>packets.size() ||
+           camera_bounds_end_-camera_bounds_begin_!=12 || Bytes(packets).u32(camera_bounds_begin_)!=0x80394))
+            throw FormatError("Particle camera bounds method has no complete original publication owner");
+        std::array<std::pair<std::size_t,std::size_t>,4> ranges{{
+            {program_packet_begin_,program_packet_end_},{declaration_packet_begin_,declaration_packet_end_},
+            {view_packet_begin_,view_packet_end_},{camera_bounds_begin_,camera_bounds_end_}}};
+        std::sort(ranges.begin(),ranges.end());
         std::vector<std::byte> constants;std::size_t at=0;
-        for(const auto [first,last]:std::array<std::pair<std::size_t,std::size_t>,2>{{
-            {program_packet_begin_,program_packet_end_},{declaration_packet_begin_,declaration_packet_end_}}}) {
+        for(const auto [first,last]:ranges) {
             if(!last)continue;
+            if(first<at || first>last || last>packets.size())
+                throw FormatError("Particle method owners overlap or escape their emitted stream");
             constants.insert(constants.end(),packets.begin()+at,packets.begin()+first);at=last;
         }
         constants.insert(constants.end(),packets.begin()+at,packets.end());
@@ -415,6 +579,39 @@ void SourceParticleGraphicsBindingTu15::consume_constants(std::span<ShaderVector
     }else constants_.consume(staged);
     check();
     std::copy(staged.begin(),staged.end(),destination.begin());
+}
+std::size_t SourceParticleGraphicsBindingTu15::last_bounds_packet() const {
+    return camera_bounds_end_>view_packet_end_?camera_bounds_begin_:view_packet_begin_;
+}
+void SourceParticleGraphicsBindingTu15::publish_view_resource() {
+    if(!view_initialized_ || !camera_configured_ || !view_->state().prepared)return;
+    std::array<ShaderVector,192> produced;consume_constants(produced);
+    auto clip=view_->state().vertex_clip;const Bytes packets(constants_.commands());
+    const auto bounds=last_bounds_packet();clip[2]=packets.f32(bounds+4);clip[3]=packets.f32(bounds+8);
+    if(!std::isfinite(clip[2]) || !std::isfinite(clip[3]) || clip[2]<0 || clip[3]<clip[2] || clip[3]>16777215.f)
+        throw FormatError("Original particle clip packet exceeds its native W-depth domain");
+    view_->publish(std::span<const ShaderVector,12>(produced.data(),12),clip);
+}
+void SourceParticleGraphicsBindingTu15::consume_draw(ParticleDraw &draw) const {
+    check();if(!view_initialized_ || !view_ || !draw.material ||
+       draw.material->vertex.classification!=selected_vertex_.classification ||
+       draw.material->vertex.program!=selected_vertex_.program)
+        throw FormatError("Particle draw lacks its native view and selected source program");
+    const auto &v=view_->state();
+    if(v.prepared && !camera_configured_)throw FormatError("Prepared particle view lacks its complete original camera publisher");
+    if(!std::equal(v.viewport_constants.begin(),v.viewport_constants.end(),draw.vertex.constants.begin()+8) ||
+       draw.vertex.clip_range!=v.vertex_clip || draw.depth.clip_range!=v.depth_clip ||
+       draw.depth.parameters!=v.depth_parameters)
+        throw FormatError("Particle draw differs from the recorded native view inputs");
+    auto produced=draw;consume_constants(produced.vertex.constants);
+    const auto packet=Bytes(constants_.commands());
+    const auto bounds=last_bounds_packet();
+    const auto minimum=packet.f32(bounds+4),maximum=packet.f32(bounds+8);
+    if(!std::isfinite(minimum) || !std::isfinite(maximum) || minimum<0 || maximum<minimum || maximum>16777215.f)
+        throw FormatError("Original particle clip packet exceeds its native W-depth domain");
+    produced.vertex.clip_range[2]=produced.depth.clip_range[2]=minimum;
+    produced.vertex.clip_range[3]=produced.depth.clip_range[3]=maximum;
+    check();draw=std::move(produced);
 }
 void SourceParticleGraphicsBindingTu15::visit_committed(const std::function<void(
     std::uint32_t,std::span<const std::byte>)> &visitor) const {

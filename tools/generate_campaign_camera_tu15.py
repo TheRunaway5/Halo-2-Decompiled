@@ -10,7 +10,7 @@ from types import SimpleNamespace
 from oracle_smg_firing_1_1 import Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
-ENTRIES=(0x158560,0x158340,0x158900,0x16edd0,0x16f5a0,0x16f6a0,0x16fd40,0x16fe00,0x16f110,0x11e720)
+ENTRIES=(0x3f440,0x11e720,0x144ff0,0x157010,0x157220,0x158340,0x158560,0x158900,0x16edd0,0x16f110,0x16f150,0x16f550,0x16f5a0,0x16f6a0,0x16fd40,0x16fe00,0x171a50,0x1720e0,0x1723d0,0x172cf0,0x172d70,0x173050,0x173250,0x173490,0x173a10,0x173a60,0x173bd0,0x173e30,0x174690,0x174b60)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -19,7 +19,7 @@ def main():
     if a.output.exists()or a.directory.exists():raise ValueError('Preserve generated evidence')
     if sha(NEW_DEFAULT)!=NEW_PIN:raise ValueError('Expected original English TU1.5')
     x=Xbe(NEW_DEFAULT);c=_Code(x,'.text')
-    calls={0x2b26fe:0x158560,0x2b283a:0x16edd0,0x16fbfc:0x16fe00,0x13b6c0:0x16fd40}
+    calls={0x2b2745:0x16f150,0x2b26fe:0x158560,0x2b283a:0x16edd0,0x16fbfc:0x16fe00,0x13b6c0:0x16fd40}
     for pc,target in calls.items():
         i=c.at(pc)
         if i.mnemonic!='call'or i.operands[0].imm!=target:raise ValueError('Original call correspondence differs')

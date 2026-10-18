@@ -7,6 +7,11 @@ from generate_physics_live_support_tu15 import generate
 from oracle_smg_firing_1_1 import _Code,_trace,Xbe
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 ENTRIES=(0x10b5c0,0x117870,0x10c0b0,0x1888a0,0x381710,0x381730,0x381750,0x381770,0x158340,0x166a80,0x166ae0,0x323730,0x323430,0x37c5d0,0x1e6e80,0xc3ab0,0xc55d0,0xc3820,0xc3a20,0xc3960,0xc39b0,0x1e7330,0x181cb0,0x183c10,0x181da0,0x182bb0,0x144e90,0x17f990,0x180830,0x180c10,0x180790,0x1800b0,0x43880,0x11f910,0x2439e0,0x123150,0x17fe30,0x17fcf0,0x17fc90,0x1839f0,0x17ff90,0x183af0,0x439c0,0x180170,0xd6d10,0x14d790,0xd3c10,0xd42b0,0xd5130)
+# Authenticated CRT initializer46DC64 computes the scalar consumed by2296D5.
+# Retain its FLD qword / FCOS / FSTP dword instructions and current FP controls.
+ENTRIES+=(0x382230,)
+# Authenticated CRT row46DA84 initializes the ratio threshold read at184D46.
+ENTRIES+=(0x3817f0,)
 LIGHTING_ENTRIES=(1511440, 1184192, 873680, 74592, 89264, 118672, 119504, 119952, 147872, 148592, 219328, 867104, 867184, 867264, 873216, 874000, 874240, 874720, 875232, 875376, 1263968, 1278816, 1279248, 1279440, 1279712, 1279872, 1281056, 1281424, 1281904, 1281984, 1311952, 1312016, 1511664, 2271360, 2271456, 2271824, 2271888, 2375456)
 RENDER_MAP_ENTRIES=(0x3ddc0,0x3dd00,0x2c390,0x323560,0xc5b00,0x2f3670,0x2f1cc0,0x2b480,0x2b520,0x3d260,0x3b890,0x16780,0x50680,0x3235f0,0x11e490,0x1db800,0x2e1110,0x10b730,0x2fa6f0)
 RENDER_MAP_ENTRIES+= (0x2e9610,0x30a960,0x30a320,0x2e3080,0x2e30e0,0x2e2d10,0x2e2e00)
@@ -33,6 +38,10 @@ RENDER_MAP_ENTRIES+=(0x1a9d90,0x11f440,0x1a9f60,0x1a9ee0,0x142f40,
 NATIVE_REACHED_CALLS={0x3ddc0:0x17e4aa,0x2fa6f0:0x2fac7a,0x136e10:0x1372c5,
                      0x1a9d90:0x1a84f5,0x1a7c10:0x1a850b,
                      0x25aaf1:0x1a857b,0x1a8290:0x1a85e6,0x31e1f0:0x1dffbb,0x31e3b0:0x1e0012,0x1e0690:0x1e0507,0x18c1f0:0x18b0ab,0x148de0:0x25267f,0x1f7330:0x1f7d4a}
+# Actual C13B0 pressure recovery first calls C11F0, then table44A664
+# selects C1390, whose complete body calls the existing191260 compactor.
+RENDER_MAP_ENTRIES+=(0xc11f0,0xc1390,0x191260)
+NATIVE_REACHED_CALLS.update({0xc11f0:0xc1474,0x191260:0xc1397})
 BASE_ENTRIES=(*ENTRIES,*RENDER_MAP_ENTRIES,0x43810,0x43840,0x1806a0,0x1806f0,0x130d20,0x22a790)
 ENTRIES=tuple(dict.fromkeys((*BASE_ENTRIES,*LIGHTING_ENTRIES)))
 def main():
@@ -40,6 +49,16 @@ def main():
  a=argparse.ArgumentParser(description=__doc__);a.add_argument('--output',type=Path,required=True);a.add_argument('--manifest',type=Path,required=True);a=a.parse_args()
  assert hashlib.sha256(NEW_DEFAULT.read_bytes()).hexdigest()==NEW_PIN
  x=Xbe(NEW_DEFAULT);code=_Code(x,'.text')
+ assert x.read(0xc1474,5)==bytes.fromhex('e877fdffff')
+ assert x.read(0xc14de,3)==bytes.fromhex('ff5704')
+ assert x.read(0x44a664,4)==struct.pack('<I',0xc1390)
+ assert x.read(0xc1397,5)==bytes.fromhex('e8c4fe0c00')
+ assert x.read(0x382230,15)==bytes.fromhex('dd05a0ab4600d9ffd91d70b15600c3')
+ assert x.read(0x46dc64,4)==struct.pack('<I',0x382230)
+ assert x.read(0x46aba0,8)==bytes.fromhex('0000000000804640')
+ assert x.read(0x3817f0,17)==bytes.fromhex('f30f1005b0a44600f30f110500d75500c3')
+ assert x.read(0x46da84,4)==struct.pack('<I',0x3817f0)
+ assert x.read(0x46a4b0,4)==struct.pack('<I',0x3d800000)
  assert x.read(0x10db94,2)==bytes.fromhex('ffd1')
  assert x.read(0x10e155,2)==bytes.fromhex('ffd0')
  assert x.read(0x10e142,3)==bytes.fromhex('8b406c')
@@ -75,7 +94,7 @@ def main():
       offset=0x6c if entry==0x10c0b0 else 0x2c
       row.update(kind='type-callback',descriptor=f'{address-offset:08x}',source_call='0010e155'if entry==0x10c0b0 else'0010db94',callback_offset=offset)
      elif entry in (0x180170,0x2b520):row.update(kind='new-map-function-pointer',native_request='PhysicsLiveWorldTu15 new-map lifecycle; original whole map scheduling remains separate')
-     elif entry in [0x1888a0,0x381710,0x381730,0x381750,0x381770,0x1800b0,0x180170,0x2b480]:row.update(kind='startup-function-pointer',native_request='PhysicsLiveWorldTu15 constructor; original whole startup scheduling remains separate')
+     elif entry in [0x1888a0,0x381710,0x381730,0x381750,0x381770,0x3817f0,0x382230,0x1800b0,0x180170,0x2b480]:row.update(kind='startup-function-pointer',native_request='PhysicsLiveWorldTu15 constructor; original whole startup scheduling remains separate')
      else:row.update(kind='original-function-pointer',native_request='Reached retained original world routine; whole scheduling remains separate')
      found.append(row)
     start=index+1

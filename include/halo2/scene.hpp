@@ -39,6 +39,9 @@ struct SourceSceneGameContext {
 struct SourceSceneObjectOwner {
   std::function<std::uint32_t(const ScenarioObject &,SourceScenarioBirth)> create;
   std::function<void(std::uint32_t)> destroy;
+  // Original construction owns child allocation. Presentation binds the
+  // already constructed child to this exact retained parent generation.
+  std::function<std::uint32_t(const ScenarioObject &,std::uint32_t)> adopt_child;
 };
 class SceneObjects {
 public:
@@ -82,6 +85,10 @@ public:
   std::uint32_t create(int name, bool replace = false,
                        std::uint64_t creation_tick = 0);
   std::uint32_t create_placement(std::size_t placement,std::uint64_t tick=0){return place(placement,tick);}
+  std::uint32_t create_attached_placement(std::size_t placement,std::uint32_t parent,std::uint64_t tick=0) {
+    if(parent==null_datum)throw FormatError("Model child requires an actual parent generation");
+    return place(placement,tick,SourceScenarioBirth::runtime,parent);
+  }
   void destroy(std::uint32_t handle);
   // Source deletion has already retired this full generation. Remove only
   // its presentation and lifetime sidecar; never invoke the destructor again.
@@ -91,6 +98,7 @@ public:
   // Vehicles are presented by the separate authoritative vehicle bank.
   void adopt_source_replicas(std::span<const SourceSceneRoot>,std::span<const SourceWorldPose>);
   bool source_replica()const{return source_replica_;}
+  bool source_factory_bound()const{return bool(source_owner_.create);}
   void destroy_all();
   void destroy_type_mask(std::uint32_t);
   Object &get(std::uint32_t);
@@ -117,7 +125,7 @@ public:
     std::array<std::byte,32> content_binding{};
     std::size_t bsp{};
     AuthorityPool pool=AuthorityPool::LocalOwned;
-    bool source_factory{},render_attribution_resolver{};
+    bool source_factory{},render_attribution_resolver{},source_child_factory{};
     std::vector<Object> objects;
     std::map<std::uint32_t,std::size_t> slots;
     std::vector<std::uint32_t> names;
@@ -185,7 +193,8 @@ private:
   using FunctionVariable=AuthorityFunction;
   std::map<std::pair<std::uint32_t,std::uint32_t>,FunctionVariable> functions_;
   std::uint32_t place(std::size_t, std::uint64_t creation_tick = 0,
-                      SourceScenarioBirth = SourceScenarioBirth::runtime);
+                      SourceScenarioBirth = SourceScenarioBirth::runtime,
+                      std::uint32_t attachment_parent = null_datum);
 };
 class Presentation {
 public:
@@ -204,6 +213,10 @@ public:
   void camera_animation(std::uint32_t graph, std::uint32_t name, int flag);
   Camera camera(const Camera &player, float render_fraction = 0) const;
   ScreenEffects effects() const;
+  // Sample the current authored transition interval without ticking it.
+  // Zero is the completed game state; one meets the next tick endpoint.
+  // Immediate commands retain their current value at every render fraction.
+  ScreenEffects effects(float render_fraction) const;
   int camera_time() const;
   bool cinematic{}, scripted{}, player_camera_enabled = true;
   bool cinematic_outro{}; // Retail HUD/cinematic globals+22; retained until level teardown.

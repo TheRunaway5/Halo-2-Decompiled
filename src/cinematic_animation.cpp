@@ -22,6 +22,31 @@ struct CinematicAnimationAssets::State {
 };
 CinematicAnimationAssets::CinematicAnimationAssets(const Cache &cache):state_(std::make_unique<State>(cache)){}
 CinematicAnimationAssets::~CinematicAnimationAssets()=default;
+// The original111080 table uses TU1.5 engine StringIds. MCC retains
+// authored names in its own namespace, so resolve through this Cache owner.
+std::uint32_t CinematicAnimationAssets::unit_emotion_name_tu15(std::uint32_t id)const {
+  if(!state_->cache.is_mcc())return id;
+  const auto name=state_->cache.string_id(id);
+  static constexpr std::array<std::pair<std::string_view,std::uint32_t>,13> original{{
+    {"asleep",0x06000084u},
+    {"amorous",0x070001a4u},
+    {"happy",0x050001a5u},
+    {"inquisitive",0x0b0001a6u},
+    {"repulsed",0x080001a7u},
+    {"disappointed",0x0c0001a8u},
+    {"shocked",0x070001a9u},
+    {"scared",0x060001aau},
+    {"arrogant",0x080001abu},
+    {"annoyed",0x070001acu},
+    {"angry",0x050001adu},
+    {"pensive",0x070001aeu},
+    {"pain",0x040001afu},
+  }};
+  for(const auto& [text,original_id]:original)if(name==text)return original_id;
+  // Original111080 treats07000001 as an explicit reset, before table lookup.
+  // Unknown MCC names must not select an unrelated numerically colliding ID.
+  return 0x07000001u;
+}
 std::shared_ptr<const AnimationClip> CinematicAnimationAssets::animation(std::uint32_t graph,std::uint32_t name) {
   auto &saved=state_->clips[{graph,name}];if(auto resident=saved.lock())return resident;
   const auto index=state_->cache.find_local_animation_index(graph,name);if(!index)return {};

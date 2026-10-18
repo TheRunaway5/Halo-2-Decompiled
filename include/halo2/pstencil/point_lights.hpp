@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/world_effects.hpp"
 #include "halo2/model_markers.hpp"
+#include "halo2/pstencil/attached_lights.hpp"
 
 namespace halo2::pstencil {
 struct PointLightOwner {
@@ -8,6 +9,9 @@ struct PointLightOwner {
     Transform root;
     std::span<const Transform> nodes;
     std::span<const std::uint8_t> permutations;
+    // Present even for zero native attachments. No snapshot means only
+    // constant, untimed attachments can use the existing fallback producer.
+    std::optional<std::span<const AttachedLight>> native_lights;
 };
 // Direct ligh attachments supplement the existing effe light producer only
 // in pStencil. Current authored colors/radii and actual object WORLD poses

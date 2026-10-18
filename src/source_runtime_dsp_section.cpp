@@ -20,10 +20,16 @@ std::uint32_t source_word(const SourcePhysicsContactMemory &m,std::uint32_t p){s
 struct SourceRuntimeDspSection::Impl {
  SourceRuntimeMemory &bank;
  struct Backing {std::uint32_t address{};std::vector<std::byte> bytes;};
+ std::filesystem::path image_path;
  std::shared_ptr<const Backing> resident;
  std::vector<std::shared_ptr<const Backing>> retained;
- Impl(SourceRuntimeMemory &memory,const std::filesystem::path &path):bank(memory){
-  std::ifstream f(path,std::ios::binary|std::ios::ate);if(!f||f.tellg()<0||f.tellg()>16*1024*1024)throw FormatError("Owned TU1.5 DSP image file is unavailable");
+ Impl(SourceRuntimeMemory &memory,const std::filesystem::path &path,LoadPolicy policy):bank(memory),image_path(path){
+  if(policy!=LoadPolicy::eager&&policy!=LoadPolicy::on_demand)throw FormatError("Unknown DSP resource load policy");
+  if(policy==LoadPolicy::eager)load();
+ }
+ void load(){
+  if(resident){validate();return;}
+  std::ifstream f(image_path,std::ios::binary|std::ios::ate);if(!f||f.tellg()<0||f.tellg()>16*1024*1024)throw FormatError("Owned TU1.5 DSP image file is unavailable");
   std::vector<std::byte> file(std::size_t(f.tellg()));f.seekg(0);if(!f.read(reinterpret_cast<char*>(file.data()),file.size()))throw FormatError("Truncated owned TU1.5 DSP image");
   std::array<unsigned char,32> digest;unsigned size{};
   if(EVP_Digest(file.data(),file.size(),digest.data(),&size,EVP_sha256(),nullptr)!=1||size!=digest.size())throw FormatError("Cannot authenticate native DSP resource");
@@ -33,28 +39,32 @@ struct SourceRuntimeDspSection::Impl {
   for(unsigned i=0;i<digest.size();++i)if(digest[i]!=((digit(hex[i*2])<<4)|digit(hex[i*2+1])))throw FormatError("Native DSP ownership requires the authenticated TU1.5 executable");
   if(word(file,0)!=0x48454258u)throw FormatError("Invalid owned DSP image header");
   const auto base=word(file,0x104),count=word(file,0x11c),table=word(file,0x120);if(table<base||count>128)throw FormatError("Invalid owned DSP section table");
+  std::shared_ptr<const Backing> candidate;
   for(unsigned i=0;i<count;++i){const auto p=std::uint64_t(table)-base+std::uint64_t(i)*56;
    if(header_string(file,base,word(file,p+20))!="DSPImage")continue;
-   if(resident)throw FormatError("Ambiguous owned DSPImage resource");
+   if(candidate)throw FormatError("Ambiguous owned DSPImage resource");
    const auto flags=word(file,p),va=word(file,p+4),extent=word(file,p+8),raw=word(file,p+12),length=word(file,p+16);
    if(!(flags&2u)||(flags&1u)||!extent||length>extent||raw>file.size()||length>file.size()-raw)throw FormatError("Owned DSPImage does not have its authenticated preload/read-only layout");
-   auto backing=std::make_shared<Backing>();backing->address=va;backing->bytes.resize(extent);std::copy_n(file.begin()+raw,length,backing->bytes.begin());resident=std::move(backing);
+   auto backing=std::make_shared<Backing>();backing->address=va;backing->bytes.resize(extent);std::copy_n(file.begin()+raw,length,backing->bytes.begin());candidate=std::move(backing);
   }
-  if(!resident)throw FormatError("Owned TU1.5 DSPImage is unavailable");validate();
+  if(!candidate)throw FormatError("Owned TU1.5 DSPImage is unavailable");
+  validate(*candidate);resident=std::move(candidate);
  }
- void validate()const{
-  if(!bank.is_read_only(resident->address,resident->bytes.size())||!std::ranges::equal(bank.view(resident->address,resident->bytes.size()),resident->bytes))throw FormatError("Native DSP resource lost its authenticated read-only source binding");
+ void validate(const Backing& backing)const{
+  if(!bank.is_read_only(backing.address,backing.bytes.size())||!std::ranges::equal(bank.view(backing.address,backing.bytes.size()),backing.bytes))throw FormatError("Native DSP resource lost its authenticated read-only source binding");
  }
+ void validate()const{if(!resident)throw FormatError("Native DSP resource has not been requested");validate(*resident);}
 };
-SourceRuntimeDspSection::SourceRuntimeDspSection(SourceRuntimeMemory &m,const std::filesystem::path&p):impl_(std::make_unique<Impl>(m,p)){}
+SourceRuntimeDspSection::SourceRuntimeDspSection(SourceRuntimeMemory &m,const std::filesystem::path&p):SourceRuntimeDspSection(m,p,LoadPolicy::eager){}
+SourceRuntimeDspSection::SourceRuntimeDspSection(SourceRuntimeMemory &m,const std::filesystem::path&p,LoadPolicy policy):impl_(std::make_unique<Impl>(m,p,policy)){}
 SourceRuntimeDspSection::~SourceRuntimeDspSection()=default;
-std::uint32_t SourceRuntimeDspSection::retain(){impl_->validate();impl_->retained.push_back(impl_->resident);return impl_->resident->address;}
-void SourceRuntimeDspSection::release(){impl_->validate();if(impl_->retained.empty())throw FormatError("Native DSP unload has no matching retained request");impl_->retained.pop_back();}
-std::span<const std::byte> SourceRuntimeDspSection::retained_bytes()const{impl_->validate();if(impl_->retained.empty())throw FormatError("Native DSP data requires its real retained request");return impl_->retained.back()->bytes;}
-std::uint32_t SourceRuntimeDspSection::address()const noexcept{return impl_->resident->address;}
+std::uint32_t SourceRuntimeDspSection::retain(){impl_->load();impl_->retained.push_back(impl_->resident);return impl_->resident->address;}
+void SourceRuntimeDspSection::release(){if(impl_->resident)impl_->validate();if(impl_->retained.empty())throw FormatError("Native DSP unload has no matching retained request");impl_->retained.pop_back();}
+std::span<const std::byte> SourceRuntimeDspSection::retained_bytes()const{if(impl_->resident)impl_->validate();if(impl_->retained.empty())throw FormatError("Native DSP data requires its real retained request");return impl_->retained.back()->bytes;}
+std::uint32_t SourceRuntimeDspSection::address()const noexcept{return impl_->resident?impl_->resident->address:0;}
 std::size_t SourceRuntimeDspSection::active_references()const noexcept{return impl_->retained.size();}
 std::size_t SourceRuntimeDspSection::resident_references()const noexcept{return std::size_t(impl_->resident.use_count());}
-void SourceRuntimeDspSection::require_quiescent()const{impl_->validate();if(!impl_->retained.empty())throw FormatError("Outstanding native DSP section requests cannot cross a world checkpoint");}
+void SourceRuntimeDspSection::require_quiescent()const{if(impl_->resident)impl_->validate();if(!impl_->retained.empty())throw FormatError("Outstanding native DSP section requests cannot cross a world checkpoint");}
 void SourceRuntimeDspSection::discard_new_references(std::size_t n)noexcept{if(impl_->retained.size()>n)impl_->retained.resize(n);}
 SourceRuntimeDspSection::CallScope::CallScope(SourceRuntimeDspSection *owner):owner_(owner),references_(owner?owner->active_references():0),exceptions_(std::uncaught_exceptions()){}
 SourceRuntimeDspSection::CallScope::~CallScope(){if(owner_&&std::uncaught_exceptions()>exceptions_)owner_->discard_new_references(references_);}

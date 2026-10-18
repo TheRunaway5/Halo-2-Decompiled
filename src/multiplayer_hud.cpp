@@ -5,6 +5,7 @@
 #include "halo2/full_scoreboard_providers.hpp"
 #include "halo2/frontend_ui_assets.hpp"
 #include "halo2/frontend_font_sampling.hpp"
+#include "halo2/gameplay_font_source.hpp"
 #include "halo2/texture.hpp"
 #include <algorithm>
 #include <bit>
@@ -410,25 +411,14 @@ MultiplayerHud::MultiplayerHud(HudContent content,
   if(hand_>2)throw FormatError("Invalid HUD weapon owner");
   if(hand_)std::erase_if(content_.widgets,[&](const auto &widget){return widget.weapon_type!=(hand_==2?4u:1u);});
   hud_viewport(local_players, 0);
-  std::ifstream table(directory / "font_table.txt");
-  if (!table)
-    throw FormatError("Missing original HUD font table");
-  std::vector<std::string> names;
-  std::string name;
-  while (std::getline(table, name)) {
-    if (!name.empty() && name.back() == '\r')
-      name.pop_back();
-    if (name.find_first_of("/\\") != std::string::npos || name == "..")
-      throw FormatError("Invalid HUD font name");
-    names.push_back(name);
-  }
-  if (names.size() != 11)
-    throw FormatError("Incomplete original HUD font table");
-  fonts_[0] = load_retail_font(directory / names[6]);
-  fonts_[1] = load_retail_font(directory / names[8]);
+  const auto font_source=load_gameplay_font_source(directory);
+  const auto& names=font_source.names;
+  const bool native_mcc_fonts=font_source.domain==GameplayFontDomain::Mcc;
+  fonts_[0] = load_gameplay_font(font_source,6);
+  fonts_[1] = load_gameplay_font(font_source,8);
   if(content_.action_messages.enabled && !hand_)for(unsigned i=0;i<2;++i){
     const auto selector=i?5:6;
-    action_fonts_[i]=load_retail_font(directory/names[selector]);
+    action_fonts_[i]=load_gameplay_font(font_source,selector);
     const auto sampled_font=hud_sampled_font_path(ui_assets,selector,names[selector]);
     if(!ui_assets.empty() && std::filesystem::is_regular_file(sampled_font)) {
       const auto sampled=load_retail_font(sampled_font);
@@ -450,8 +440,13 @@ MultiplayerHud::MultiplayerHud(HudContent content,
                 buttons.glyph_record_indices.at(c))!=1 || !buttons.glyphs.at(c).width)
           throw FormatError("Selected UI fonts lack authored Vista action button artwork");
       }
-      if(is_mcc_classic_hud_pack(ui_assets))apply_mcc_classic_font_sampling(action_fonts_[i],sampled);
-      else apply_retail_font_sampling(action_fonts_[i],sampled);
+      if(!native_mcc_fonts) {
+        if(is_mcc_classic_hud_pack(ui_assets))apply_mcc_classic_font_sampling(action_fonts_[i],sampled);
+        else apply_retail_font_sampling(action_fonts_[i],sampled);
+      } else {
+        if(!is_mcc_classic_hud_pack(ui_assets))throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
+        require_mcc_gameplay_font_sample(font_source,selector,sampled_font);
+      }
       apply_vista_prompt_sampling(action_fonts_[i],ui_assets,selector);
       action_button_materials_[i]=unsigned(mesh_.materials.size());
       mesh_.materials.push_back({"action-message/vista-buttons/font"+std::to_string(selector),buttons.atlas});
@@ -507,10 +502,15 @@ MultiplayerHud::MultiplayerHud(HudContent content,
     const auto path=hud_sampled_font_path(ui_assets,i==0?6:8,names[i==0?6:8]);
     if(std::filesystem::is_regular_file(path)) {
       const auto donor=ui_assets/"fonts-source"/names[i==0?6:8];
-      if(mcc)apply_mcc_classic_font_sampling(fonts_[i],load_retail_font(path));
-      else if(std::filesystem::exists(ui_assets/"hud-reconstruction.tsv"))
-        apply_retail_font_sampling(fonts_[i],load_retail_font(path),load_retail_font(donor));
-      else apply_retail_font_sampling(fonts_[i],load_retail_font(path));
+      if(!native_mcc_fonts) {
+        if(mcc)apply_mcc_classic_font_sampling(fonts_[i],load_retail_font(path));
+        else if(std::filesystem::exists(ui_assets/"hud-reconstruction.tsv"))
+          apply_retail_font_sampling(fonts_[i],load_retail_font(path),load_retail_font(donor));
+        else apply_retail_font_sampling(fonts_[i],load_retail_font(path));
+      } else {
+        if(!mcc)throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
+        require_mcc_gameplay_font_sample(font_source,i==0?6:8,path);
+      }
     }
     apply_vista_prompt_sampling(fonts_[i],ui_assets,i==0?6:8);
   }

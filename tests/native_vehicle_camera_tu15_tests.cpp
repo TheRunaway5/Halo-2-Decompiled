@@ -6,6 +6,7 @@
 #include "halo2/math.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
 #include "helpers/live_physics_entry_capture_tu15.hpp"
+#include "helpers/native_vehicle_camera_continuation.hpp"
 #include <algorithm>
 #include <iostream>
 using namespace halo2;
@@ -125,7 +126,9 @@ int main(int argc,char **argv)try {
     const auto occupied_child=selected.boarding && selected.child && requested.boarding_seat>=0;
     const auto driver_approach=selected.boarding?entrance(cache,content,selected.name,occupied_child,occupied_seat,selected.classification):approach;
     options.native_spawn_inputs={approach.spawn,selected.boarding?driver_approach.spawn:cache.spawns().back()};
-    MultiplayerPreparedWorld world(options);world.bind_source_local_views(world.local_slots);
+    std::shared_ptr<PhysicsLiveClockSource> continuation_clock;
+    if(std::getenv("HALO2_VEHICLE_CAMERA_CONTINUATION"))continuation_clock=std::make_shared<test::CameraContinuationClock>();
+    MultiplayerPreparedWorld world(options,std::nullopt,continuation_clock);world.bind_source_local_views(world.local_slots);
     auto &objects=*world.source_objects;const auto &original=*world.cache->original_data();
     NativeVehicleCamera camera(objects,original);
     std::array<Controls,multiplayer_capacity> controls{};const auto slot=world.local_slots[0];
@@ -269,6 +272,11 @@ int main(int argc,char **argv)try {
     }
     check(entered,"Camera case failed original seat entry");
     controls[slot].pickup=false;controls[slot].pickup_milliseconds=0;controls[slot].jump=false;controls[slot].forward=controls[slot].right=0;
+    if(std::getenv("HALO2_VEHICLE_CAMERA_CONTINUATION")&&!std::getenv("HALO2_TU15_TEST_SEATED_DEATH")){
+      test::verify_native_vehicle_camera_continuation(world,camera,controls,options);
+      std::cout<<"PASS "<<selected.label<<" complete private camera continuation, binding/player/tick/executor guards, cancelled/stale preparation, twelve original replayed frames and canonical world equality\n";
+      return 0;
+    }
     if(selected.boarding) {
       std::optional<test::LivePhysicsEntryCaptureTu15> sphere_capture;
       std::optional<SourcePhysicsEntryObserverBinding> sphere_observer;
@@ -418,6 +426,7 @@ int main(int argc,char **argv)try {
       check(third_person,"Death handoff fixture requires a third-person seat");
       const auto prior=camera.update_player(0,player.source_player,player.source_flags,tick_seconds);
       check(prior.has_value(),"Missing actual seated observer before fatal cleanup");
+      const auto deaths_before=world.match.player(slot).deaths;
       const auto auxiliary_address=Bytes(objects.memory().view(0x4f3cd8u,4)).u32(0)+4u;
       objects.kill_biped(player.source_unit);
       const auto auxiliary=Bytes(objects.memory().view(auxiliary_address,4)).u32(0);
@@ -445,6 +454,18 @@ int main(int argc,char **argv)try {
       auto dead_view=present("death-entry",tick_seconds);
       check(dead_view.has_value() && camera.death_view(0),
         "Vehicle death discarded the retained original director and observer");
+      if(std::getenv("HALO2_VEHICLE_CAMERA_CONTINUATION")){
+        world.match.step(controls);const auto dead=world.match.state().players[slot];
+        check(world.match.player(slot).deaths==deaths_before+1 &&
+            world.match.player(slot).source_previous_unit==player.source_unit &&
+            world.match.player(slot).source_current_object==null_datum,
+            "Native fatal readback changed its death count or full retained body identity");
+        camera.update_player(0,dead.source_player,dead.source_flags,tick_seconds);
+        check(camera.death_view(0),"Continuation fixture lost its actual death controller");
+        test::verify_native_vehicle_camera_continuation(world,camera,controls,options);
+        std::cout<<"PASS "<<selected.label<<" retained death observer/controller, cycle RNG, guarded continuation, twelve original replayed frames and canonical world equality\n";
+        return 0;
+      }
       for(unsigned n=0;n<60;++n) {
         dead_view=n==30?present("death-stable",tick_seconds):
           camera.update_player(0,player.source_player,player.source_flags,tick_seconds);

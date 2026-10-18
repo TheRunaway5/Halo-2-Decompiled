@@ -1,5 +1,8 @@
 #include "halo2/sky.hpp"
 #include "halo2/math.hpp"
+#include "halo2/bsp_atmosphere.hpp"
+#include "halo2/appearance.hpp"
+#include <iterator>
 #include <set>
 namespace halo2 {
 std::optional<SkyDefinition> Cache::load_visible_sky(std::size_t index) const {
@@ -99,6 +102,44 @@ std::vector<Vertex> pose_sky(const RenderModel &model, const SkyDefinition &sky,
     v.tangent = rotate(v.tangent);
     v.binormal = rotate(v.binormal);
   }
+  return vertices;
+}
+BspSkyModels::BspSkyModels(const Cache &cache,const BspAtmosphere &atmosphere,
+                           Mesh &destination)
+    :models_(atmosphere.skies.size()),referenced_(atmosphere.skies.size()) {
+  for(const auto &cluster:atmosphere.clusters)if(cluster.visible_sky>=0) {
+    const auto index=unsigned(cluster.visible_sky);
+    if(index>=referenced_.size())throw FormatError("visible sky outside scenario references");
+    referenced_[index]=true;
+  }
+  // Preserve TU1.5 14DE90's existing scenario flag fallback, including its ordinal.
+  if((atmosphere.scenario_flags&2u) && !referenced_.empty())referenced_[0]=true;
+  std::vector<Material> prepared;
+  for(unsigned index=0;index<referenced_.size();++index)if(referenced_[index]) {
+    auto definition=cache.load_sky(index);
+    if(!definition)continue; // Authored NONE/model-less sky, with no replacement.
+    auto model=cache.load_model(definition->model);
+    prepare_forward_materials(cache,model.mesh);
+    const auto base=std::uint64_t(destination.materials.size())+prepared.size();
+    if(base+model.mesh.materials.size()>0xffffffffull)
+      throw FormatError("BSP sky material namespace exhausted");
+    for(auto &material:model.mesh.materials)prepared.push_back(std::move(material));
+    model.mesh.materials.clear();
+    models_[index]=Model{std::move(*definition),std::move(model),std::uint32_t(base)};
+  }
+  // Admission is transactional, and the destination alone owns texture pixels.
+  destination.materials.insert(destination.materials.end(),
+      std::make_move_iterator(prepared.begin()),std::make_move_iterator(prepared.end()));
+}
+std::vector<Vertex> BspSkyModels::pose(const BspFogSample &view,Vec3 eye)const {
+  if(view.visible_sky<0)return {};
+  const auto index=unsigned(view.visible_sky);
+  if(index>=models_.size() || !referenced_[index])
+    throw FormatError("current view selected an unprepared BSP sky ordinal");
+  if(!models_[index])return {};
+  const auto &selected=*models_[index];
+  auto vertices=pose_sky(selected.geometry,selected.definition,eye);
+  for(auto &vertex:vertices)vertex.material+=selected.material_base;
   return vertices;
 }
 } // namespace halo2

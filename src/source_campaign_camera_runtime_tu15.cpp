@@ -13,6 +13,10 @@ void put(SourceRuntimeMemory &m,std::uint32_t at,std::uint32_t value) {
 void source_campaign_camera_control_tu15(PhysicsLiveWorldTu15 &world,bool active) {
     world.call_actual(0x158560u,std::array{std::uint32_t(active)});
 }
+void source_campaign_camera_point_tu15(PhysicsLiveWorldTu15 &world,std::int16_t point,std::int16_t ticks) {
+    auto abi=world.prepare_source_call(std::array{std::uint32_t(std::uint16_t(ticks)),null_datum});
+    abi.gp[2]=std::uint32_t(std::uint16_t(point));world.run_actual(0x16f150u,abi);
+}
 void source_campaign_camera_animation_tu15(PhysicsLiveWorldTu15 &world,
     std::uint32_t graph,std::uint32_t name,std::uint32_t object,std::int16_t flag) {
     auto abi=world.prepare_source_call(std::array{object,std::uint32_t(std::uint16_t(flag))});
@@ -20,6 +24,33 @@ void source_campaign_camera_animation_tu15(PhysicsLiveWorldTu15 &world,
 }
 void source_campaign_camera_field_of_view_tu15(PhysicsLiveWorldTu15 &world,float degrees,std::int16_t ticks) {
     world.call_actual(0x16f5a0u,std::array{std::bit_cast<std::uint32_t>(degrees),std::uint32_t(std::uint16_t(ticks))});
+}
+void source_campaign_camera_frame_tu15(PhysicsLiveWorldTu15 &world,float seconds) {
+    if(!std::isfinite(seconds) || seconds<0)
+        throw FormatError("Source campaign camera frame requires finite nonnegative elapsed time");
+    const std::array argument{std::bit_cast<std::uint32_t>(seconds)};
+    world.call_actual(0x157fe0u,argument);
+    world.call_actual(0x1720e0u,argument);
+}
+std::optional<SourceCampaignCameraViewTu15> source_campaign_camera_view_tu15(
+    const SourceRuntimeMemory &memory,unsigned view) {
+    if(view>=4)throw FormatError("Source campaign camera view exceeds the actual local bank");
+    const auto users=word(memory,0x4f54f0u),control=word(memory,0x4f5504u);
+    if(!users || !control || memory.view(control,1)[0]==std::byte{} ||
+       word(memory,users+12u+view*4u)==null_datum)return {};
+    const auto at=0x4f64a4u+view*0x358u;
+    const Bytes state(memory.view(at,0x358u));
+    const auto vector=[&](unsigned p){return Vec3{state.f32(p),state.f32(p+4u),state.f32(p+8u)};};
+    SourceCampaignCameraViewTu15 result{vector(0xb8u),vector(0xd8u),vector(0xe4u),
+        state.f32(0xf0u),state.f32(0xf4u),state.f32(0x100u)};
+    for(const auto value:std::array{result.position.x,result.position.y,result.position.z,
+        result.forward.x,result.forward.y,result.forward.z,result.up.x,result.up.y,result.up.z,
+        result.horizontal_field_of_view,result.aspect,result.aim_displacement})
+        if(!std::isfinite(value))throw FormatError("Source campaign observer output is not finite");
+    if(result.horizontal_field_of_view<=0 || result.horizontal_field_of_view>=3.14159265358979323846f ||
+       result.aspect<=0 || length(result.forward)==0 || length(result.up)==0)
+        throw FormatError("Source campaign observer output lacks its completed camera");
+    return result;
 }
 std::int16_t source_campaign_camera_time_value_tu15(std::int32_t ticks,float delta) {
     volatile float seconds=float(ticks)*delta;

@@ -33,6 +33,15 @@ public:
     void begin(VkCommandBuffer,unsigned image);
     void light(VkCommandBuffer,std::size_t batch,const VolumeCamera&,VkViewport,VkRect2D,
                const std::function<void()>& receivers);
+    VkRenderPass normal_pass()const;
+    VkImageView normal_view()const;
+    // Target9 retains source RGBA8 normal/alpha before normal-space lighting.
+    void normals(VkCommandBuffer,const std::function<void()>& receivers);
+    VkRenderPass utility_pass()const;
+    VkImageView utility_view()const;
+    // Target10 shares this light's private depth/stencil. Complete utility
+    // writes become sampled inputs before the loaded scene pass resumes.
+    void utility(VkCommandBuffer,const std::function<void()>& receivers);
     // Independent layer6/7 mask and one RGB152/255 destination multiply.
     // Call before environment/emission and before all dynamic lights.
     void lightmap(VkCommandBuffer,std::span<const VolumeDraw>,VkViewport,VkRect2D);
