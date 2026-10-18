@@ -93,6 +93,10 @@ public:
     std::array<std::uint32_t,4> camera_jump_serial{};
   };
   struct HostLossResume {std::unique_ptr<LanHost> host;LocalContinuation local;};
+  // Drain saved held controls and each pending pulse once on the native game
+  // executor, before fresh hardware takes over the promoted local seats.
+  static void receive_local_continuation(LocalContinuation &,
+      std::array<Controls,multiplayer_capacity> &);
   // Invoke only after the session has independently certified this exact cut
   // and next authority context, and the complete world has been rebound to
   // next.host's views. The next context removes the failed old host. Preserves

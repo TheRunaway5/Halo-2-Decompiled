@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <deque>
+#include <cstdio>
 #include <mutex>
 #include <stdexcept>
 
@@ -18,8 +19,29 @@ struct State {
   std::deque<Packet> packets;
   std::array<bool,16> open{},failed{};
 };
+struct RuntimeOwners {std::mutex mutex;std::size_t count{};};
+RuntimeOwners &runtime_owners(){static RuntimeOwners owners;return owners;}
+// The pinned RTC initializer retains a global token and detached cleanup
+// future. Drain it while its crypto providers are still alive, after the last
+// wrapper's channels/connections have released their own tokens. Serialize a
+// new room against final cleanup; closing one of several rooms never unloads
+// the runtime used by the others. RTC callbacks retain only weak State values
+// and never construct or destroy this lease.
+class RuntimeLease {
+public:
+  RuntimeLease(){auto &owners=runtime_owners();std::lock_guard lock(owners.mutex);++owners.count;}
+  ~RuntimeLease()noexcept{
+    auto &owners=runtime_owners();std::lock_guard lock(owners.mutex);
+    if(--owners.count)return;
+    try{rtc::Cleanup().get();}
+    catch(...){std::fputs("Direct peer runtime cleanup failed.\n",stderr);}
+  }
+  RuntimeLease(const RuntimeLease &)=delete;
+  RuntimeLease &operator=(const RuntimeLease &)=delete;
+};
 }
 struct OnlinePeerTransport::Impl {
+  RuntimeLease runtime; // Destroyed last, including failed-constructor unwinding.
   struct Link {
     std::shared_ptr<rtc::PeerConnection> connection;
     std::shared_ptr<rtc::DataChannel> channel;

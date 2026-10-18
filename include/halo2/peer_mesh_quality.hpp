@@ -36,8 +36,14 @@ public:
     // membership. Sort by measured loss, upload bottleneck, mean RTT, peer ID.
     // Callers still require a fully validated native world for promotion.
     std::vector<PeerHostQuality> candidates(std::uint64_t now_ms)const;
+    // Score the fixed successor membership: every admitted PC except this
+    // context's predecessor host. Never remove another peer on a local timeout.
+    // This is measurement only; the host/cut quorum still certifies succession.
+    // A sole survivor has no inter-PC measurement and returns no quality row.
+    std::vector<PeerHostQuality> migration_candidates(std::uint64_t now_ms)const;
     static bool is_packet(std::span<const std::byte>)noexcept;
 private:
+    std::vector<PeerHostQuality> rank(std::uint64_t,std::uint16_t)const;
     struct Impl;std::unique_ptr<Impl> impl_;
 };
 }

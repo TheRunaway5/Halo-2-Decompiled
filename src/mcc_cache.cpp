@@ -477,13 +477,11 @@ void Cache::initialize_mcc() {
         .string_id=[&](std::uint32_t id) {return string_id(id);},
         .directory=tags_
     };
-    for(auto& t:tags_)if(t.group=="nhdt" && t.address && t.size) {
-        auto projection=project_mcc_scoreboard_hud_reference(t,hud_reference_access);
-        if(!projection || projection->status!=MccGameplayReferenceStatus::Converted)continue;
+    const auto publish_hud=[&](Tag& t,MccOwnedHudProjection projection) {
         // A complete authenticated owner is cloned because other definitions
         // can share its source curves. The ordinary directory publishes only
         // the converted owner; its physical layout still uses the nhdt schema.
-        auto& converted=projection->bytes;
+        auto& converted=projection.bytes;
         if(converted.empty() || converted.size()>65536)
             throw FormatError("Invalid canonical MCC HUD allocation extent");
         const auto current=std::uint64_t(std::int64_t(storage_.size())+metadata_magic_);
@@ -493,7 +491,7 @@ void Cache::initialize_mcc() {
             next+converted.size()-first>128ull*1024*1024 ||
             file_offset>maximum_cache || converted.size()>maximum_cache-file_offset)
             throw FormatError("Excessive canonical MCC HUD metadata span");
-        auto pointers=projection->pointers;
+        auto pointers=projection.pointers;
         std::ranges::sort(pointers);
         std::uint64_t previous_end=0;
         for(const auto [field,target]:pointers) {
@@ -509,9 +507,48 @@ void Cache::initialize_mcc() {
         retained_tag_allocations_.push_back(t);
         retained_regions.emplace_back(t.address,t.size);
         t.address=std::uint32_t(next);t.size=std::uint32_t(converted.size());
+    };
+    // Preserve the existing scoreboard allocation before shader globals are
+    // cloned: authenticated sound metadata retains that established namespace.
+    for(auto& t:tags_)if(t.group=="nhdt" && t.name=="ui\\hud\\scoreboard" && t.address && t.size) {
+        auto projection=project_mcc_scoreboard_hud_reference(t,hud_reference_access);
+        if(projection && projection->status==MccGameplayReferenceStatus::Converted)
+            publish_hud(t,std::move(*projection));
+    }
+    struct PendingHud {
+        Tag source;
+        std::vector<std::byte> before;
+        MccOwnedHudProjection projection;
+    };
+    std::vector<PendingHud> pending_huds;
+    // Qualify against retained MCC bitmap metadata before the existing shader
+    // owner can project its bitmap layouts or expand the directory. Only owned
+    // snapshots survive that producer; no borrowed directory view escapes it.
+    for(const auto& t:tags_)if(t.group=="nhdt" && t.name!="ui\\hud\\scoreboard" && t.address && t.size) {
+        auto projection=project_mcc_hud_reference(t,hud_reference_access);
+        if(!projection || projection->status!=MccGameplayReferenceStatus::Converted)continue;
+        const auto before=Bytes(storage_).slice(metadata_offset(t.address,t.size),t.size);
+        pending_huds.push_back({t,{before.begin(),before.end()},std::move(*projection)});
     }
     vista_metadata_regions_=tag_metadata_regions(tags_,retained_regions);
     initialize_mcc_native_shaders();
+    // New geometry owners append after the existing globals/shader producers.
+    // Their names, full salted handles, complete source allocations and live
+    // directory identities must still match the exact admitted beforeimage.
+    for(auto& pending:pending_huds) {
+        const auto index=pending.source.handle().index();
+        if(index>=tags_.size())throw FormatError("Canonical MCC HUD owner disappeared before publication");
+        auto& t=tags_[index];
+        if(t.handle()!=pending.source.handle() || t.group!=pending.source.group ||
+            t.name!=pending.source.name || t.address!=pending.source.address || t.size!=pending.source.size ||
+            !std::ranges::equal(pending.before,Bytes(storage_).slice(metadata_offset(t.address,t.size),t.size)))
+            throw FormatError("Canonical MCC HUD owner changed before publication");
+        publish_hud(t,std::move(pending.projection));
+    }
+    retained_regions.clear();
+    for(const auto& allocation:retained_tag_allocations_)
+        retained_regions.emplace_back(allocation.address,allocation.size);
+    vista_metadata_regions_=tag_metadata_regions(tags_,retained_regions);
     const auto table=storage_.size();storage_.resize(table+tags_.size()*16);
     for(std::size_t i=0;i<tags_.size();++i) {
         word(storage_,table+i*16+4,tags_[i].datum);word(storage_,table+i*16+8,tags_[i].address);word(storage_,table+i*16+12,tags_[i].size);

@@ -1,5 +1,13 @@
 # MCC data import and Xbox TU1.5 conversion
 
+The active scope and completion gates are tracked in
+[MCC_GAMEPLAY_GOAL_CHECKLIST.md](MCC_GAMEPLAY_GOAL_CHECKLIST.md).
+Checklist maintenance is part of the active goal and applies to the primary
+agent and subagents. Whenever a task or acceptance gate is completed and
+verified, immediately update its checkbox and supporting evidence there before
+starting the next task or handing off. Record changed blockers and next steps,
+and leave unverified items unchecked.
+
 The current implementation priority is to reuse the working development-build
 loaders, gameplay, audio, renderer and startup systems. Changes must address a
 verified MCC-only loading or native 64-bit compatibility requirement while
@@ -10,10 +18,23 @@ path demonstrably depends on that behavior. Gameplay admission must be verified
 through the actual MCC-only launcher and game path. Converted definitions remain
 vanilla internal data, and the original Xbox/Vista inputs remain offline references.
 
-The user has also enabled Play for interim testing. While native gameplay is
-unfinished, Play launches the existing MCC content viewer and keeps the conversion
-status visible. Precompiled test packages contain the compiled viewer, retained
-shaders and onboarding runtime; they never enter the source build/update path.
+The final delivery step includes reclaiming storage from confirmed unused,
+reproducible test executables and temporary build outputs. Keep useful test
+source, validation evidence, reference assets, active process inputs, the current
+coherent compiled modules, installed launcher runtimes and delivered releases.
+Record the removal inventory and recovered bytes after the gameplay work.
+
+Play now exposes the separately validated interim native Lockout test through
+both installed launchers and the version8 precompiled ZIP. The actual installed
+and relocated launcher routes pass; full gameplay/conversion/parity flags remain
+false. Missing or stale native-test validation retains the MCC content viewer.
+The class1 world-weapon decompression defect is corrected and verified in
+actual neutral gameplay, including nonzero callback audio. Firing can still
+terminate the interim test; campaign, complete menus/loading and full
+audiovisual parity remain unfinished.
+Precompiled packages contain the runtime, existing shaders and onboarding
+dependencies and never enter the source build/update path. Current delivery
+evidence is linked in the goal checklist above.
 
 October 17 component validation now admits all 40 gameplay maps through actual
 Cache script preflight with zero unowned MCC calls or clock-getter substitutions.
@@ -369,8 +390,43 @@ then passes that constructor after adding its five authenticated data cells
 the separate `D5700` sampler after its three missing constants are supplied;
 its complete 124-instruction leaf and 20 original CPU controls identify all
 five operands. The next `D5D30` lighting dependency has five missing constants
-identified from its complete 566-instruction body. Model run v7 is the next
-integration check; the native model and GPU frame are not yet complete.
+identified from its complete 566-instruction body. Model run v7 completes
+successfully in 31.19 seconds: the actual native player produces a 484-byte
+collector and 33 rendered world nodes, with no original-reference opens,
+unchanged MCC source map and unchanged compiled inputs. The subsequent real
+GPU frame test advances past this texture/model boundary and stops at missing
+`4C6958` draw-array storage; it writes no frame yet. The original development
+path inherited these typed BSS arrays from the reference image. Five exact
+loader-zero arrays now cover the whole typed extent. The follow-up frame v24
+reaches the subsequent `4CD398` counter write; the earlier inference that these
+counter owners were already present was incorrect. The complete nine-bank
+closure adds the four remaining loader-zero counter words while preserving the
+existing current-context binding. Frame v25 passes that complete storage
+closure, then stops in main culling at `2E7A16`, which consumes an absent
+read-only `16777216.0f` constant at `41C4E8`. The complete 201-instruction
+containing function has only three direct read-only operands; the other float
+and its 16-byte absolute-value mask already have exact native owners. The next
+helper adds only that missing four-byte float. Frame v26 passes that float
+and exposes actual native selector/target reads in the recursive collision
+routine. The next helper supplies six exact bounded tables (584 bytes); all
+768 original CPU dispatch controls pass across their complete byte domains.
+Both selector and target reads remain in generated native code; the earlier
+assumption that the switch removed them was incorrect. Frame v27 completes
+main culling and reaches command generation, stopping at absent `515F18`.
+That field is an original signed draw count with authenticated loader-zero
+storage and existing reset/append producers, rather than a resource pointer.
+The next helper supplies only the missing four-byte destination. Frame v28
+passes command generation and reaches the missing four-view shadow history
+bank. Its exact loader-zero `0x1210`-byte shape and eight genuine original
+first-use controls now pass. Frame v29 passes that storage and reaches two
+missing authored basis aliases. The next helper supplies the two original
+writable pointers, one absent immutable vector and two original fixed scalars,
+preserving the already owned first basis and all prior regions. Frame v30
+then reaches a selected object's shadow projection and exposes its missing
+authored `48C5E0` definition field; the complete original render-light template
+is being qualified. No completed native GPU frame is claimed yet.
+The existing main/shadow producers remain responsible for draw counts
+and contents; the new storage does not manufacture completed draws.
 The inline constructor path admits only the proved DXT5
 domain; format11 remains supported by the separate direct `D5506` path.
 The private World derivative explicitly rejects authority export
@@ -410,6 +466,36 @@ The subsequent exact constant closures are
 The independent inline owner review passes 13 checks and nine negative controls,
 including post-stamp mutation rejection and unchanged-bank preallocation failures:
 `.local/mcc-model-cpu-bitmap-20261018/controller-review-v2-inline/review-final.json`.
+Completed public model acceptance is
+`.local/mcc-model-cpu-bitmap-20261018/world-v2-inline/model-cpu-acceptance-v7.json`;
+the later GPU boundary is
+`.local/mcc-lens-bridge-20261017/frame-v23/run-v1-real-mcc/run.json`.
+The exact shadow draw-bank proof is
+`.local/mcc-shadow-draw-bank-20261018/v1/proof.json`; the five-array and final
+four-counter preservation receipts are
+`.local/mcc-model-bitmap-selector-20261018/v6/validation.json` and
+`.local/mcc-model-bitmap-selector-20261018/v7/root-validation.json`.
+The subsequent culling proof is
+`.local/mcc-shadow-collision-20261018/2e79a0-v1/closure.json`; its exact helper
+preservation receipt is `.local/mcc-model-bitmap-selector-20261018/v8/preservation.json`.
+The full selector/target proof is
+`.local/mcc-shadow-collision-20261018/selector-tables-v1/closure.json`, with
+`.local/mcc-model-bitmap-selector-20261018/v9/validation.json` retaining all
+previous owners. Frame v27's later command-generation boundary is recorded in
+`.local/mcc-lens-bridge-20261017/frame-v27/run-v1-real-mcc/run.json`.
+The cold count addition is scoped by
+`.local/mcc-model-bitmap-selector-20261018/v10/preservation.json`; it neither
+invents a positive count nor claims complete query population.
+The subsequent history and basis closures are
+`.local/mcc-shadow-history-20261018/v1/proof.json`,
+`.local/mcc-shadow-basis-20261018/v1/proof.json`, and the exact factory receipts
+`.local/mcc-model-bitmap-selector-20261018/v11/validation.json` and
+`.local/mcc-model-bitmap-selector-20261018/v12/validation.json`.
+Frame v30's selected-object projection boundary is retained in
+`.local/mcc-lens-bridge-20261017/frame-v30/run-v1-real-mcc/run.json`.
+
+All 97 existing shader files remain unchanged. These are private test builds;
+the installed launcher runtime has not been replaced.
 The ordinary compiled client was last exercised at the earlier renderer-context
 frontier, before these helper additions; it also produced no frame. Evidence is
 `.local/mcc-native-client-20261018/client-v5/run-v1-real-mcc/validation.json`.
@@ -3828,3 +3914,81 @@ shorthand. Default first count/route reads are YFC9/YFBC. Identified per-module
 cold/warm allocation paths do not supply these tables. No high-Y values, memory
 extent or initialization lifetime has been invented, and no reference array
 was enlarged. Exact table producers/mapping remain a required EP1..3 dependency.
+
+
+### 2026-10-18: texture-path integration and first-frame continuation
+
+The current remaining scope and acceptance gates are maintained in
+[MCC_GAMEPLAY_GOAL_CHECKLIST.md](MCC_GAMEPLAY_GOAL_CHECKLIST.md). The preceding
+turn made concrete progress: the checklist was added and actual Frame31
+advanced past the authored shadow template to the scoped visibility flag.
+
+The private CPU texture cohort completes the actual public player/model path
+with a 484-byte collector and 33 nodes. Both the ordinary bitmap accessor and
+the inline D5610 reader use authenticated owned rows; canonical MCC metadata
+is unchanged. The original/native DXT5 controls and negative checks pass.
+Actual World export/restore integration and product texture promotion remain
+unfinished; component results do not enable a native gameplay readiness claim.
+
+Frame32 passes the one-byte visibility flag stores and reaches retained root
+2CBA0 at13610E, where original read-only constant46A218 is missing. The complete
+immediate136030 audit identifies three missing constants, now being integrated.
+The run exits1 after103.746s with no image or original-reference opens. All97
+retained shaders and every linked input remain unchanged. Evidence is retained
+under`.local/mcc-lens-bridge-20261017/frame-v32/run-v1-real-mcc`.
+
+The reviewed startup-data helper throughV14 is now in product source, with a
+strict preimage guard and current-header compilation of that small leaf only.
+All2395 typed regions/477635bytes match the frozen validated factory. Twelve
+late-conflict rejection controls, exact neighboring owners and warm remount
+preservation pass. No engine, Main, generated module or shader was rebuilt.
+Receipt:`.local/mcc-model-bitmap-selector-20261018/product-promotion-v1/validation.json`.
+Installed launcher/runtime and the existing content-test ZIP were not replaced.
+The final cleanup remains planned only, after validated delivery.
+
+### 2026-10-18: persistent goal checklist and product texture promotion
+
+The full active goal is tracked in
+[MCC_GAMEPLAY_GOAL_CHECKLIST.md](MCC_GAMEPLAY_GOAL_CHECKLIST.md), including the
+remaining conversion, 64-bit integration, visual/audio, launcher, ZIP, video
+and final cleanup gates. Check marks require the stated acceptance evidence;
+pending work survives handoffs.
+
+The four CPU bitmap compatibility modules, their current-World ownership and
+authority lifecycle hooks, and the two reused CRT leaves are now in ordinary
+product source and CMake. Newly compiled product modules pass the same actual
+current-World suite: 12 groups, 15 rejection controls and nine public model
+calls with 484-byte collectors and 33 nodes. The separate backing suite passes
+12 groups and 15 rejection controls. CMake dependency and strict floating-point
+options are verified; the runs open no original-reference files. Evidence:
+[product texture validation](../.local/mcc-model-cpu-bitmap-20261018/product-promotion-v1/native/validation.json).
+This validates the bounded texture/authority path; it does not certify a full
+gameplay frame or TU1.5 parity.
+
+Actual Frame36 passes selected-object shadow selection and reaches lens
+initialization, which still assumes a broad Xbox SDK state bank. The active
+private fix reuses the real native renderer lease and images with sparse CPU
+state ownership and retained original producers. Frame36 produces no image;
+all 97 shader files and all linked inputs remain unchanged, with no reference
+opens. The ordinary client also requires a coherent refresh of proven layout
+consumers: the selected Main allocates a 17,032-byte Simulation while current
+scene ownership requires 17,064 bytes, and World checkpoint schema3 grows
+824 to 872 bytes. Current public fields are preserved; old and current layouts
+must not be combined for delivery. Installed launcher/runtime and ZIP remain
+unchanged until the new native client is validated.
+
+The subsequent current-header refresh compiles 37 handwritten core consumers.
+Fresh direct layout checks agree across Main, campaign runtime, Simulation
+and multiplayer on a 17,072-byte Simulation with a 576-byte SceneObjects and
+832-byte Presentation. The 17,064-byte value above was an older snapshot;
+there is no demonstrated mismatch between those fresh objects. Main-only
+campaign-view and audio support objects have separate measured layout drift
+and must be refreshed or proved compatible before the coherent client link.
+
+The completed support audit narrows that finding: sky/model/audio layouts
+agree after normalizing debugger enum spelling; no audio layout mismatch was
+demonstrated. Reuse the newer validated frame audio object without adding the
+older client duplicate. SourceCampaignView is incompatible and needs its small
+handwritten refresh. The eight-byte Presentation growth comes from the current
+AnimationClip `source_identifier` field (280 to 288 bytes); its actual producers
+and by-value owners require their own compatibility check before client linking.

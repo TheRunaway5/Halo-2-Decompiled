@@ -30,7 +30,7 @@ def main():
     command = launch['command']
     address = command[command.index('-qmp') + 1]
     assert address.startswith('unix:')
-    socket = Path(address[5:].split(',')[0])
+    socket = Path(launch.get('qmp',address[5:].split(',')[0]))
     # The display was created by this owned launch. Never send keys to :0.
     assert launch['display'] != ':0' and launch['xvfb_pid'] > 0
     window = x11_window(launch['display'])

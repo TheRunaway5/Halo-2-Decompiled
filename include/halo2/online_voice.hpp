@@ -44,6 +44,9 @@ public:
     VoicePcm mono{};for(unsigned i=0;i<voice_frame_samples;++i)mono[i]=(pcm[i*2]+pcm[i*2+1])*.5f;
     playback(mono);
   }
+  // Worker-only: discard queued capture and playback without reopening the
+  // devices. No samples from before this call may remain queued afterward.
+  virtual void discard() = 0;
   virtual void stop() = 0;
 };
 std::unique_ptr<VoiceDevices> sdl_voice_devices();

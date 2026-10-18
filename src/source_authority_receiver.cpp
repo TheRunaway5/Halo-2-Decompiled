@@ -3,6 +3,7 @@
 #include "halo2/source_authority_codec.hpp"
 #include "halo2/source_authority_delta.hpp"
 #include "halo2/source_host_continuation_codec.hpp"
+#include "halo2/source_peer_host_takeover.hpp"
 #include <algorithm>
 #include <condition_variable>
 #include <mutex>
@@ -38,6 +39,7 @@ struct SourceAuthorityReceiver::Impl {
     bool paired{};std::optional<LanHost::Continuation> host;
     std::unique_ptr<MultiplayerPreparedWorld> target,workspace;
     std::unique_ptr<SourceMatchAuthority> authority;
+    std::optional<SourceMatchAuthority::ExecutionBoundary> validated_boundary;
     SourceAuthorityReceiverState stats;
     struct Job {std::uint64_t generation;ReceivedAuthorityCut cut;AcceptedSourcePlayers admitted;std::optional<AuthorityArchiveImage> base;
         std::optional<SourceReplayBinding> replay;};
@@ -170,7 +172,8 @@ void SourceAuthorityReceiver::update(bool advance_replay){
             else if(output->replay)try{
                 need(s.target&&s.authority&&s.replay&&output->replay->binding==*s.replay&&s.admissions()==output->admitted&&!s.active_replay&&
                     s.paired==output->host.has_value());
-                need(s.authority->execution_boundary().tick==s.replay->previous.tick);
+                need(s.validated_boundary&&s.authority->execution_boundary()==*s.validated_boundary&&
+                    s.validated_boundary->tick==s.replay->previous.tick);
                 s.stats.ready.reset();s.stats.host_ready=false;s.host.reset();s.active_replay.emplace(Impl::ActiveReplay{std::move(*output),0,Clock::now()});
             }catch(const std::exception &e){s.stats.error=e.what();s.session->reject_authority(output->cut.context,output->cut.seal);}
             else {bool commit_attempted=false;try {
@@ -190,6 +193,7 @@ void SourceAuthorityReceiver::update(bool advance_replay){
                 need(s.session->authority_context()==s.context&&s.session->acknowledge_authority(output->cut.context,output->cut.seal));
                 s.base=std::move(output->image);s.host=std::move(output->host);s.paired=s.host.has_value();s.stats.host_ready=s.paired;
                 s.stats.ready=ValidatedAuthorityCut{s.session->self(),output->cut.context,output->cut.seal};
+                s.validated_boundary=s.authority->execution_boundary();
                 if(s.mode==SourceAuthorityStreamMode::Replay){s.replay=SourceReplayBinding{output->cut.context,output->cut.seal,output->cut.seal,1};s.stats.replay_sequence=0;}
                 ++s.stats.prepared;s.stats.delta=output->delta;s.stats.error.clear();
             }catch(const std::exception &e){s.stats.error=e.what();s.session->reject_authority(output->cut.context,output->cut.seal);
@@ -213,6 +217,7 @@ void SourceAuthorityReceiver::update(bool advance_replay){
             s.stats.replay_sequence=s.replay->first_sequence-1;s.stats.replay_microseconds=micros(active.started);
             s.host=std::move(active.output.host);s.stats.host_ready=s.host.has_value();
             s.stats.ready=ValidatedAuthorityCut{s.session->self(),active.output.cut.context,active.output.cut.seal};
+            s.validated_boundary=s.authority->execution_boundary();
             ++s.stats.replay_batches;s.stats.error.clear();s.active_replay.reset();
         }
     }catch(const std::exception &e){s.stats.error=e.what();
@@ -236,7 +241,8 @@ SourceAuthorityReceiverState SourceAuthorityReceiver::state()const{auto &s=*impl
 const MultiplayerPreparedWorld *SourceAuthorityReceiver::world()const{impl_->own();return impl_->target.get();}
 SourceMatchAuthority::Checkpoint SourceAuthorityReceiver::checkpoint(const ValidatedAuthorityCut &expected)const {
     auto &s=*impl_;s.own();need(s.stats.ready&&s.stats.ready->peer==expected.peer&&s.stats.ready->context==expected.context&&
-        s.stats.ready->seal==expected.seal&&s.authority&&!s.active_replay);
+        s.stats.ready->seal==expected.seal&&s.authority&&!s.active_replay&&s.validated_boundary&&
+        s.authority->execution_boundary()==*s.validated_boundary);
     return s.authority->checkpoint(source_authority_binding(expected.context));
 }
 std::optional<SourceAuthorityRetainedWorld> SourceAuthorityReceiver::retain_validated_world(){
@@ -253,6 +259,7 @@ std::optional<SourceAuthorityRetainedWorld> SourceAuthorityReceiver::retain_vali
 }
 std::unique_ptr<MultiplayerPreparedWorld> SourceAuthorityReceiver::take_world(const ValidatedAuthorityCut &expected){
     auto &s=*impl_;s.own();if(!s.stats.ready||s.stats.ready->peer!=expected.peer||s.stats.ready->context!=expected.context||s.stats.ready->seal!=expected.seal)return {};
+    need(s.authority&&s.validated_boundary&&s.authority->execution_boundary()==*s.validated_boundary&&!s.active_replay);
     s.enabled=false;s.authority.reset();auto world=std::move(s.target);s.discard();s.context.reset();return world;
 }
 void SourceAuthorityReceiver::cancel(){auto &s=*impl_;s.own();s.enabled=false;s.discard();s.context.reset();}
@@ -268,6 +275,19 @@ std::unique_ptr<MultiplayerPreparedWorld> SourceAuthorityReceiver::take_world_fo
         auto prepared=recipient.prepare_with_local_views(cut,binding,locals,*s.authority,accepted->players,s.target->local_slots);
         need(recipient.commit(std::move(prepared)));s.enabled=false;auto world=std::move(s.workspace);s.discard();s.context.reset();return world;
     }catch(...){s.discard();throw;}
+}
+std::unique_ptr<SourcePeerHostTakeover> SourceAuthorityReceiver::prepare_peer_host_takeover(const PeerMigrationDecision &decision){
+    auto &s=*impl_;s.own();const auto learned=s.session->peer_migration();const auto accepted=s.admissions();
+    need(s.mode==SourceAuthorityStreamMode::Replay&&s.enabled&&s.available()&&s.host&&s.stats.host_ready&&
+        s.stats.ready&&s.stats.ready->peer==s.session->self()&&s.stats.ready->context==decision.previous&&
+        s.stats.ready->seal==decision.value.cut&&decision.value.host==s.session->self()&&
+        s.session->phase()==OnlineMatchSession::Phase::Migrating&&learned&&learned->decision&&
+        *learned->decision==decision&&accepted&&s.session->authority_context()==decision.previous);
+    const auto saved=*s.host;const auto ready=*s.stats.ready;
+    auto world=take_world_for_local_views(ready);need(bool(world));
+    // Failure discards only this private candidate. It cannot reopen media or
+    // mutate the old rendered world; a different cut needs a new receiver.
+    return std::unique_ptr<SourcePeerHostTakeover>(new SourcePeerHostTakeover(s.session,decision,*accepted,std::move(world),saved));
 }
 struct SourceAuthorityReplayWorker::Impl {
     struct Request {
@@ -366,4 +386,5 @@ std::future<SourceAuthorityRetainedWorld> SourceAuthorityReplayWorker::retain_va
     impl_->condition.notify_one();return result;
 }
 void SourceAuthorityReplayWorker::cancel(){impl_->cancel();}
+bool SourceAuthorityReplayWorker::stopped()const{std::lock_guard lock(impl_->mutex);return impl_->stopped;}
 }

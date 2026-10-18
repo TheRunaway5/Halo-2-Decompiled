@@ -14,7 +14,7 @@ CANCELLED = 20
 
 
 class LauncherHome(LauncherCanvas):
-    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, preview_maps_function=None, preview_launch_function=None, launcher_executable=None, sandbox_launch_function=None):
+    def __init__(self, window, root, build=None, update_function=None, availability_function=None, runtime_unavailable=None, preview_maps_function=None, preview_launch_function=None, launcher_executable=None, sandbox_launch_function=None, runtime_executable=None, native_test_function=None):
         from update_runtime import update_runtime
         from mcc_onboarding import NOT_PLAYABLE, runtime_status, preview_maps
 
@@ -23,9 +23,21 @@ class LauncherHome(LauncherCanvas):
         self.update = update_function or update_runtime
         self.availability = availability_function or (lambda: runtime_status(root))
         self.unavailable = runtime_unavailable or self.availability()
+        def validated_native_test():
+            from mcc_onboarding import selected
+            from native_gameplay_test import native_gameplay_test_available
+            try:
+                source = selected(root)
+                return bool(source and native_gameplay_test_available(root, runtime_executable, source[0]))
+            except (OSError, ValueError, KeyError):
+                return False
+        self.native_test_available = native_test_function or validated_native_test
+        self.native_test = self.unavailable == NOT_PLAYABLE and self.native_test_available()
         self.preview_maps = (preview_maps_function or (lambda: preview_maps(root)))()
-        self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps)
+        self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps) and not self.native_test
         self.test_message = "Play opens the MCC content test build. Native gameplay and Xbox TU1.5 conversion are still in progress."
+        from native_gameplay_test import MESSAGE
+        self.native_test_message = MESSAGE
         self.precompiled = (Path(root) / "PRECOMPILED_TEST_BUILD.json").is_file()
         self.launcher_executable = Path(launcher_executable) if launcher_executable else Path(root) / "Halo2-Launcher"
         self.preview_launch = preview_launch_function or (lambda argv: subprocess.Popen(argv, cwd=root, start_new_session=True))
@@ -58,7 +70,10 @@ class LauncherHome(LauncherCanvas):
                                    wrap="word", relief="flat", padx=self.px(12), pady=self.px(12),
                                    width=1, height=1, yscrollcommand=scrollbar.set,
                                    highlightthickness=1, highlightbackground=EDGE, highlightcolor=CYAN)
-        self.output.insert("end", "Preview opens imported MCC map assets. Gameplay remains unavailable until conversion is complete.\n\nUpdate and build progress will appear here.\n")
+        initial_help = ("Play opens the validated local Lockout gameplay test. "
+                        "Full gameplay, visual and audio parity remain incomplete." if self.native_test else
+                        "Preview opens imported MCC map assets. Native gameplay testing requires a validated runtime.")
+        self.output.insert("end", initial_help + "\n\nUpdate and build progress will appear here.\n")
         self.output.configure(state="disabled")
         self.output.pack(fill="both", expand=True)
         scrollbar.configure(command=self.output.yview)
@@ -83,7 +98,10 @@ class LauncherHome(LauncherCanvas):
         if not choices:
             self.preview_selector.configure(state="disabled")
             self.preview_button.configure(state="disabled")
-        if self.test_build:
+        if self.native_test:
+            self.play_button.configure(text="Play native test  ›")
+            self.status.configure(text=self.native_test_message, foreground="#ffd29b")
+        elif self.test_build:
             self.status.configure(text=self.test_message, foreground="#ffd29b")
         elif self.unavailable:
             self.play_button.configure(state="disabled")
@@ -142,11 +160,13 @@ class LauncherHome(LauncherCanvas):
                     # revisions. Require a successful retry before playing.
                     self.unavailable = self.availability() if kind == "done" else "Update stopped. Check the output below, then try Update again."
                     from mcc_onboarding import NOT_PLAYABLE
-                    self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps)
-                    ready = kind == "done" and (not self.unavailable or self.test_build)
+                    self.native_test = kind == "done" and self.unavailable == NOT_PLAYABLE and self.native_test_available()
+                    self.test_build = self.unavailable == NOT_PLAYABLE and bool(self.preview_maps) and not self.native_test
+                    ready = kind == "done" and (not self.unavailable or self.test_build or self.native_test)
+                    self.play_button.configure(text="Play native test  ›" if self.native_test else "Play  ›")
                     self.play_button.configure(state="normal" if ready else "disabled")
-                    self.status.configure(text=self.test_message if self.test_build else self.unavailable or message,
-                                          foreground="#ffd29b" if self.test_build or not ready else CYAN)
+                    self.status.configure(text=self.native_test_message if self.native_test else self.test_message if self.test_build else self.unavailable or message,
+                                          foreground="#ffd29b" if self.test_build or self.native_test or not ready else CYAN)
                     (self.play_button if ready else self.update_button).focus_set()
                 else:
                     self.status.configure(text=message[:130])
@@ -203,6 +223,7 @@ def main():
     parser.add_argument("--build-dir", type=Path)
     parser.add_argument("--runtime-unavailable", help="initial native MCC readiness message")
     parser.add_argument("--launcher-executable", type=Path)
+    parser.add_argument("--runtime-executable", type=Path, help="selected runtime for separate native-test validation")
     args = parser.parse_args()
     try:
         import tkinter as tk
@@ -214,7 +235,7 @@ def main():
               file=sys.stderr)
         return 1
     home = LauncherHome(window, args.root, args.build_dir, runtime_unavailable=args.runtime_unavailable,
-                        launcher_executable=args.launcher_executable)
+                        launcher_executable=args.launcher_executable, runtime_executable=args.runtime_executable)
     window.mainloop()
     return home.result
 

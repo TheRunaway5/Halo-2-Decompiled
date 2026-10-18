@@ -277,6 +277,34 @@ void animation_input() {
         previous=std::move(vertices);
     }
     require(paired_calls==10,"SCEN loop pose did not sample both real owners at each fraction");
+    const auto resident_materials=mesh.materials.size();
+    scene.animation_frames({});scene.animation_frame({});
+    scene.animation_time([](std::size_t,std::uint32_t,std::uint64_t,std::uint64_t){return 0.f;});
+    rejected=false;try{scene.update_pose(0,0,mesh);}catch(const FormatError &){rejected=true;}
+    require(rejected,"Unannounced SCEN clock rollback was accepted");
+    scene.reset_lifetimes();std::vector<Vertex> retired;std::vector<ObjectLightingBinding> retired_bindings;
+    scene.append_view(retired,retired_bindings,SourceObjectViewLod{0,1,false,[](std::size_t,std::uint32_t,Vec3,float){
+        return SourceObjectLodInput{0,0x80000,0};}});
+    require(retired.empty()&&retired_bindings.empty(),"Retired SCEN still drew stale geometry");
+    scene.synchronize(objects);scene.update_pose(0,0,mesh);
+    scene.append_view(retired,retired_bindings,SourceObjectViewLod{0,1,false,[](std::size_t,std::uint32_t,Vec3,float){
+        return SourceObjectLodInput{0,0x80000,0};}});
+    require(!retired.empty()&&mesh.materials.size()==resident_materials,"SCEN adoption lost geometry or changed uploaded material slots");
+    // Compare the adopted frame against an independently prepared scene at
+    // that cut, rather than deriving expected vertices from the reset code.
+    Mesh fresh_mesh;SourceSceneryScene fresh(cache,content.objects,0,fresh_mesh,collision);
+    fresh.animation_time([](std::size_t,std::uint32_t,std::uint64_t,std::uint64_t){return 0.f;});
+    fresh.lighting_query_state([&](std::size_t index,std::uint32_t,const Transform &node,float scale){
+        const auto sphere=source_shadow_sphere(cache.load_object_shadow_definition(content.objects[index].definition),node,scale);
+        return SourceSceneryQueryState{sphere.center,sphere.radius,{},0,true};});
+    fresh.synchronize(objects);fresh.update_pose(0,0,fresh_mesh);
+    std::vector<Vertex> expected;std::vector<ObjectLightingBinding> expected_bindings;
+    fresh.append_view(expected,expected_bindings,SourceObjectViewLod{0,1,false,[](std::size_t,std::uint32_t,Vec3,float){
+        return SourceObjectLodInput{0,0x80000,0};}});
+    require(retired.size()==expected.size()&&retired_bindings.size()==expected_bindings.size(),"SCEN adoption changed collector coverage");
+    for(unsigned v=0;v<expected.size();++v)require(same(retired[v].position,expected[v].position)&&
+        same(retired[v].normal,expected[v].normal)&&retired[v].material==expected[v].material,"SCEN adoption retained an old pose/LOD/material");
+    std::cout<<"SCEN world adoption: same salted handles, tick100 to tick0, resident resources and fresh-scene geometry equality\n";
     std::cout<<"SCEN presentation: actual Ascension teleporter geometry moves at four fractional samples across source loop wrap\n";
     std::cout<<"SCEN animation: two actual moving initial clips require explicit retained owner/time service\n";
 }

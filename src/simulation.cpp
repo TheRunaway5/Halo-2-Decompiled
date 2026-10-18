@@ -2805,7 +2805,7 @@ ScriptValue Simulation::host(const std::string &name,
     if(source_campaign_)source_campaign_camera_animation_tu15(
         source_campaign_->objects().tu15_world(),args[0].bits,args[1].bits,
         args.size()==4?args[2].bits:null_datum,args.size()==4?std::int16_t(args[3].bits):-1);
-    presentation_.camera_animation(args[0].bits, args[1].bits,
+    else presentation_.camera_animation(args[0].bits, args[1].bits,
                                    args.size() == 4 ? std::int16_t(args[3].bits)
                                                     : -1);
     return {};
@@ -3182,7 +3182,8 @@ std::string Simulation::status() const {
       << " scene_objects="
       << std::count_if(scene_.objects().begin(), scene_.objects().end(),
                        [](const auto &o) { return o.handle != null_datum; })
-      << " camera_time=" << presentation_.camera_time()
+      << " camera_time=" << (source_campaign_?source_campaign_camera_time_tu15(
+          source_campaign_->objects().tu15_world()):presentation_.camera_time())
       << " script_faults=" << scripts_->diagnostics().size();
   out << " checkpoint=" << bool(checkpoint_)
       << " reverts=" << checkpoint_restores_;

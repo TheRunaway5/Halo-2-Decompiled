@@ -6,6 +6,17 @@ otherwise unused authored variants. Passing a component test does not complete
 a weapon. Original executable/disc data and verified original execution remain
 the authority; unresolved owners are not replaced with tuning or artwork.
 
+The goal also requires removing unused test builds, compiler outputs and scratch
+after each completed validation and before declaring the overall work complete.
+Use `tools/run_tests.py` for CMake validation and `tools/run_test.py` with
+`HALO2_TEST_SCRATCH` for one-off probes, emulator and capture work, as described
+in `docs/TEST_STORAGE.md`. Keep small reports, commands, source hashes and
+diagnostics. Retain large outputs only as required reference inputs, with their
+paths, sizes, hashes and restoration/retention reason recorded. Preserve original
+assets, existing reference evidence, frozen source snapshots, launcher-selected
+runtimes and unrelated active work. Verify scratch removal before reporting a
+validation complete. Cleanup is part of completion, not a separate optional task.
+
 ## Scope and completion requirements
 
 `tools/audit_weapon_scope_tu15.py` currently finds **63 distinct weapon paths,
@@ -15,7 +26,7 @@ bytes and original image/cache hashes are retained in
 `analysis/weapons-tu15-goal-20261013/authored-scope.json`. Its per-weapon feature
 and visual status remains unverified for all 63 definitions.
 
-`weapon-completion-matrix-v34.json` expands those same63 rows into630 explicit
+`weapon-completion-matrix-v50.json` expands those same63 rows into630 explicit
 completion gates, including owner/applicability audits and complete reference
 sequences. Bounded Hunter and Needler runtime evidence is attached to their
 tested Old Mombasa and Lockout definitions; it certifies neither a whole gate
@@ -1614,3 +1625,572 @@ The retained positive capture begins at an actual405080 indexed submission whose
 Replay identifies eleven actual GPU draws belonging to five authored geometry parts: Needler luminous needles, dull casing and gun body, plus both Chief hand sections. Every ordered index is re-read from the original geometry resource and compared. All57 consumed non-generic attribute observations match original resource bytes for every referenced vertex, including interleaved positions, bone bytes, weights, UVs and packed basis fields. Relative offsets are checked against the independently matched complete source-stream anchors. Inactive stale buffer bindings are excluded; actual generic shader inputs remain explicit runtime observations. Original part material references are also re-read from the cache, without inferring the active pass or shader from those names. See needler-original-draw-owner-evidence-v2.json and needler-original-graphics-evidence-v1.json.
 
 The authored190-index Needler core part is not observed in this capture. Its expected visibility in other states remains unresolved; no rendering change is inferred from its absence. Active shader/pass selection, original WORLD-node/palette correlation, native poses and shader arithmetic, matched native color/depth output, complete scene composition, audio and physical Xbox precision remain unverified. The source capture, actual uniforms, shader source, ordered index bytes and vertex data are retained for those comparisons. No native graphics parity is claimed from original-only replay. weapon-completion-matrix-v37.json retains all63 paths/1110 authored occurrences/38 maps/630 gates with zero fully certified weapons.
+
+## Original live first-person palettes and required cleanup (October18)
+
+The v6 capture observes eight completed actual13A2E0 palettes and matching168DED
+WORLD-node records at ticks430,432,434 and436: Chief hands and the Needler at each
+tick. The effective WORLD pointer is observed inside the original owner and its
+bytes equal the captured input. The current native `source_model_palette` consumes
+those original inputs, literal inverse binds, selected sections and resident node
+maps. All2640 matrix float words, base counts and defined region ranges match the
+actual original returned palettes exactly. Unused header slots are excluded.
+This verifies native palette generation from original poses; it does not verify
+native animation/pose production. See needler-live-palette-comparison-v2/report.json.
+
+The same capture again authenticates all ordered geometry indices and57 consumed
+attribute observations across eleven GPU draws and five authored parts. Its actual
+shader programs expose rigid and indirect palette addressing, including the
+observed address-register variants. Every one of1536 consumed matrix words matches
+exactly one of the observed original CPU palettes and its native result, at tick434
+or436. The comparison uses the actual reflected uniform capacity and referenced
+vertex bone bytes. Two rejected verifier assumptions about uniform capacity and
+address temporary names are retained as diagnostics; neither was a game or native
+palette mismatch. See needler-original-native-palette-evidence-v1.json. Whole-frame
+boundaries, native poses, shader arithmetic, color/depth output, complete scene and
+audio remain unverified. No weapon or complete gate is certified by this result.
+
+Cleanup is a required part of the goal. The prior pass removed1440 completed test
+files and reduced combined artifact-folder allocation by11.55GB while retaining
+exact required inputs. New probes compile and execute only in runner-owned scratch,
+which is removed afterward. The superseded small palette executable is also
+retired into exact compressed storage. New original GPU JSON observations are
+losslessly reduced from30472827 to1629251 bytes; their original hashes and complete
+reconstruction are retained. Required GPU inputs, small comparison fixtures,
+commands and exact diagnostic sources remain; no new capture container, complete
+source tree or persistent build tree is made. Paths, sizes and cleanup checks are
+recorded with the evidence. See docs/TEST_STORAGE.md and goal-completion-contract-20261018.json.
+
+The subsequent original GPU post-vertex export retains1.8MB of required outputs
+for the same authenticated capture, without another capture container. Two actual
+hand draws provide1530 unique vertices. Current production scalar and SIMD skin
+functions and their effective weights agree, but6541 of18360 compared basis and
+eye-relative position words differ from this OpenGL host replay, with maximum
+absolute difference1.9073486328125e-6. A single retained vertex reproduces four
+differences. Both failed comparisons, exact sources and small fixtures are kept.
+
+Single-variable probes followed by combinations identify reciprocal-multiply
+UNORM weights and right-associated DOT3 as a complete explanation of all13770
+captured basis words. Right-associated DPH explains all4590 eye-relative position
+words. This sample cannot distinguish division from reciprocal multiplication
+for its SNORM position fetch. These are captured-host arithmetic observations,
+not physical NV2A rules or corrected production skinning. The production kernel
+is unchanged and its original-GPU precision comparison remains failing. See
+needler-live-skin-comparison-v1/report.json, needler-skin-rounding-diagnostic-v1.json
+and needler-skin-position-diagnostic-v1.json. Matrixv39 retains all630 gates and
+zero fully certified weapons. Native poses/import, full frames and physical Xbox
+precision remain separate requirements.
+
+## Original live first-person calls and CPU precision boundary (October18)
+
+The original TU1.5 software now supplies actual entry/exit CPU state and physical
+RAM for complete `168DED` model-preparation calls. Hardware breakpoints observe
+the naturally reached call and return. The real CR3 page tables, virtual aliases,
+segments, raw floating-point registers and complete executable text are retained
+and authenticated. The pinned xemu debugger hardcodes its tag-word reply to zero;
+the independently observed monitor FTW and physical registers establish the empty
+x87 stack. Raw debugger observations remain unchanged in the evidence.
+
+The idle call at tick435 and a separate call after normal right-trigger input
+both return the actual37-node Chief hands and17-node Needler. A hardware
+ammunition watchpoint observes the real30-to29 decrement, with60 reserve rounds,
+before the firing case is selected. Each original call independently replays
+exactly through5722 instructions and935 ordered stores. The existing compiled
+native owners, given only the captured entry state and memory, match all54 nodes,
+model identities, the complete instruction sequence and4608 written bytes in
+each case. No expected pose or gameplay service return is supplied. This checks
+model preparation from original cached animation state; it does not certify the
+entire native animation history or current-root application.
+
+The only raw CPU difference for those two calls is x87 control-word bit6:
+original emulation023F versus the host's027F. Intel253665-021 Volume1 Figure8-6
+identifies this bit as reserved. A real FLDCW/FNSTCW probe verifies the host's
+normalization, and negative controls reject changes to all sampled nonreserved
+fields. The raw discrepancy remains in the failed strict reports; separate
+evidence compares the checked defined fields while recording that exception.
+See first-person-original-call-v1-native-evidence-v1.json and
+first-person-original-fire-call-v2-native-evidence-v1.json.
+
+An earlier complete `168CA1` update is captured after another normal first shot,
+at tick438. It executes the actual169C46 and16A4DD registered update owners and
+changes1897 bytes of the33584-byte first-person state bank. Independent unchanged
+original execution matches its27216 instructions,5029 store records, CPU state,
+owned outputs and entire state bank. The native adapter initially lacked a route
+to121890; adding the already compiled scene-device owner follows the production
+dispatch and supplies no fabricated result. The completed native call follows
+the same instruction sequence but differs from the emulator's transforms.
+
+The unchanged original bytes also run independently on the host i386 CPU under
+strict retained-memory and single-step observation. Native execution matches all
+27216 instruction observations,21748 written bytes,148 reciprocal-square-root
+estimate lanes, checked CPU/FP fields and the entire33584-byte state bank. Native
+records5030 stores versus5029 original host records because one store is split;
+ordered byte writes match exactly. Original source instructions and data are
+unchanged. Linux segment/stop routing is a declared test boundary.
+
+All148 estimate inputs and instruction identities agree between original
+emulation and host/native execution, while every estimate output differs. The
+pinned xemu source computes single-precision square root followed by division;
+that expression reproduces every observed emulator estimate. The first is
+input4E7FFC00: emulator38000100 versus host38000000. The first differing store
+follows at2961E1. This leaves604 differing state bytes and raw x87 status4200
+versus4000. Those failures remain explicit. The production arithmetic is
+unchanged; neither this AMD host nor the emulator establishes the original Xbox
+CPU's estimate/FP rules. See first-person-original-update-fire-v1-host-v1/report.json
+and first-person-original-update-fire-v1-cpu-boundary-v1/report.json.
+
+All private binaries, compiler objects, working disks and raw RAM dumps from
+these runs are removed, including failed attempts. Six required original64MiB
+RAM observations are retained as authenticated shared compressed contents with
+exact reconstruction checks. Small reports, traces, commands, source snapshots,
+raw CPU observations and node/state outputs remain. Identical immutable evidence
+copies share storage without changing their paths or bytes. The original disc,
+read-only session template, launcher-selected runtime and unrelated active tests
+are preserved. See original-pose-reference-retention-v1.json and
+post-original-pose-storage-audit-v1.json for exact retained paths and sizes.
+
+Matrixv40 retains all63 paths,1110 occurrences,38 maps and630 gates, with zero
+fully certified weapons. Physical Xbox precision, complete native state origin,
+all transitions/species/hands/regions, current-root runtime integration, final
+frames/audio and the remaining weapon scope are still required. Removal of unused
+test artifacts remains mandatory after validation and before goal completion.
+
+## Original plasma-pistol input and SMG firing observations (October18)
+
+Normal controller input and the original menus supply a solo Lockout plasma
+pistol. The live object/tag census authenticates its identity rather than
+inferring it from the image. At tick97, a complete original `1030F0` call routes
+the initial primary input into the weapon's secondary input state. Independent
+original execution matches705 instructions,92 ordered stores,303 written bytes,
+the complete5750-byte unit,774-byte weapon and33584-byte first-person state bank.
+This is initial input routing; it does not prove full charge, charge effects,
+charged-bolt allocation or release. The full-charge capture attempts produced no
+valid case and remain recorded as failed observations.
+
+The existing compiled native owners match those instructions, stores and object
+outputs. Their strict comparison against original emulation fails on raw x87
+control027F versus023F and status4020 versus4000. Unchanged original bytes executed
+independently on the host CPU match the native instructions, all303 written
+bytes and all checked CPU/FP fields. The emulator's precision-status difference
+remains open. No production arithmetic or expected gameplay return was supplied.
+See plasma-original-charge-start-v1-replay-v1/report.json,
+plasma-original-charge-start-v1-native-v1/report.json and
+plasma-original-charge-start-v1-host-v1/report.json.
+
+A separate normally played solo Lockout session supplies an SMG. Its actual
+definition is3850044422, not the battle rifle originally inferred from a menu
+image. The complete original `1030F0` firing call at tick166 consumes60 to59
+loaded rounds and returns normally. Independent replay executes43941 original
+XBE instructions and7915 stores, then stops at the real kernel entry80020F5A.
+The actual PE export table identifies ordinal234; the pinned primary NXDK export
+declaration names NtWaitForSingleObjectEx. The source call at2E037F uses the
+original import41B738, encoded800000EA and resolved live to80020F5A. No wait result
+is supplied. Full native comparison was not executed because independent
+original full-call verification did not pass.
+
+A diagnostic reconstructs that independent prefix from actual entry RAM and all
+7915 ordered writes, checking every overwritten byte. The original mapped kernel
+code is authenticated against both live entry/exit RAM observations. It executes
+59 additional kernel instructions and27 stores, then stops before CLI at8001436F
+inside80014368. This is a reconstructed independent prefix, not an actual live
+kernel-entry capture or a native interrupt owner. It leaves interrupt, pending
+IRQ/PIC, scheduler and wait-object ownership unresolved. Earlier diagnostic
+harness failures remain separate from this successful boundary identification.
+See smg-original-fire-v1-replay-v1/report.json,
+smg-original-fire-v1-kernel-boundary-v2/kernel-api-name.json and
+smg-original-fire-v1-kernel-prefix-v3/report.json.
+
+All working emulator disks, raw RAM dumps, compiler products and scratch from
+these observations are removed, including failures. Four required original64MiB
+RAM observations remain as exact shared compressed inputs. The new normally
+played reference VM is also retained as authenticated compressed contents:
+355336542 logical disk bytes reference139123180 compressed chunk bytes. A
+compressed-only restore authenticates the entire TU1.5 executable text and the
+same live SMG before the redundant raw disk is removed. The snapshot identifier
+`tu15-plasma-reference` is a legacy label; its actual held weapon is the SMG.
+Restoration creates working disks only under owned test scratch. The unused
+4113088-byte OCR download is removed while its exact public download recipe,
+hash and menu diagnostics remain. Shared chunk sizes overlap other retained
+references and do not imply exclusive physical space reclaimed.
+
+Matrixv41 preserves all63 paths,1110 occurrences,38 maps and630 gates with zero
+fully certified weapons. The two new trigger/resource gates are partial, with
+the complete native lifecycles, current-root runtime integration and full
+original visual/audio sequences still required. The completion contract still
+requires cleanup after each validation and before the overall goal can finish.
+See original-weapon-reference-retention-v1.json,
+post-original-weapon-storage-audit-v1.json and
+checkpoint-original-weapon-20261018.json for hashes, retained paths and sizes.
+
+## SMG kernel continuation and next ownership boundary (October18)
+
+Further diagnostic execution explicitly admits guest CLI/POPFD flag changes,
+using the captured CPU flags. It supplies no device, IRQ/PIC, asynchronous
+interrupt, scheduler, kernel or gameplay result. The authenticated original
+NtWaitForSingleObjectEx path returns through282 instructions and80 stores.
+The next original NtReleaseMutant path returns through182 instructions and63
+stores. These are uninterrupted independent executions from reconstructed
+prefix state, not actual live kernel-entry/exit observations or native kernel
+implementations. The original kernel bytes remain unchanged and are checked
+against both original full-call RAM observations before execution.
+
+The complete weapon replay with those checked kernel sites proceeds to
+NtReleaseSemaphore at80013C0B, ordinal222. It remains a failed full-call
+comparison. A separate independent prefix then executes312 original kernel
+instructions and98 stores, reaching80018DD1, `mov ebp, cr0`, inside80018DC0.
+Control-register/context-switch ownership remains unavailable; execution stops
+before the read. The dispatch path receives no fabricated return, worker
+completion, clock value or interrupt state. No complete native firing comparison
+was executed. The original actual firing60-to59 observation remains valid,
+while its independent full-call verification remains open.
+
+The later runs reuse the same retained original RAM. They add small reports,
+source copies and traces, with no new large reference inputs or retained test
+builds. Matrixv42 keeps all63 paths,1110 occurrences,38 maps and630 gates and
+zero fully certified weapons. The audited24 owned scratch paths and the prior
+publisher's scratch are removed. This boundary refinement completes no weapon
+or gate and preserves the mandatory cleanup completion requirement. See
+original-smg-kernel-continuation-v1.json,
+post-original-kernel-storage-audit-v1.json and
+checkpoint-original-kernel-20261018.json.
+
+## Original worker handoff and actual native resource read (October18)
+
+Independent execution now supports the captured physical64MiB RAM together with
+the actual CR0/CR3/CR4 paging state. This uses architectural page translation
+rather than preinstalled virtual aliases. Against the earlier original alias
+replays, the plasma-pistol call matches705 instructions,92 stores and303 ordered
+source-write bytes. The Needler firing model-preparation call matches5722
+instructions,935 stores and4608 bytes. Checked CPU/FP fields and control
+registers match. Physical addresses are normalized explicitly for this
+comparison; the ordinary native comparison rejects unnormalized physical
+traces. Source instructions and source inputs remain unchanged.
+
+The original SMG semaphore-release continuation executes408 kernel instructions
+and120 stores using its actual control-register state. It switches the source
+stack and resumes another waiting continuation at2E0385, rather than returning
+to the semaphore caller at2E02D6. No thread context or scheduler return is
+invented. The resumed original worker reaches NtSetInformationFile, ordinal226;
+its153-instruction original path returns normally. The subsequent NtReadFile,
+ordinal219, executes902 kernel instructions and341 stores, then stops before
+OUT8002400D, port01F6, byteA0. No port output, device input, IRQ delivery or
+successful I/O result is supplied. This does not establish native dispatch or a
+complete independent firing call.
+
+The actual read requests47616 bytes at offset79681536, using observed file
+handle64 and buffer82953000. The original full-call exit buffer matches that
+exact range of owned assets/disc/maps/shared.map. Its complete file SHA256 is
+084c817fa82bb9bc416d9ba847cec05be431abc419e3a1087cdf211fbf47f5af;
+the range SHA256 is3aa31d135f406b2197b5049d59be3b843b5183b85b36e093ec652273ce05405b.
+The raw buffer changes47383 bytes from the independently reconstructed request
+entry. Two identical ten-word task candidates are observed; their content alone
+does not identify the originating queue node or original handle registration.
+
+The current production source_async_jobs.cpp/source_bitmap_async_read.cpp read
+owner is freshly compiled in disposable scratch, with its headers authenticated.
+It receives the observed ten-word task, original entry buffer, an explicit
+shared.map file binding and a declared chunk limit equal to the observed
+request size. Native execution receives no expected output bytes or original
+kernel result. Its real file seek/read produces all47616 original exit-buffer
+bytes exactly. Its ten-word task update also matches one original full-call
+exit observation: cursor79729152 and processed47616. The second original task
+copy remains unchanged, and is retained as a separate observation. This proves
+the bounded read/update with declared procedure bindings; it does not install
+native queue/worker/device ownership or establish the original I/O timeline.
+
+These runs reuse retained RAM and original assets. No new large reference
+inputs are retained. Compiler products, raw buffers and all known41 scratch
+paths are removed, including failure runs; the checkpoint publisher's scratch
+is checked separately after exit. Exact duplicate immutable evidence copies
+share storage while retaining every historical pathname and hash. The small
+primary ABI declarations, commands, failures and source snapshots remain.
+Matrixv43 preserves63 paths,1110 occurrences,38 maps and630 gates, with zero
+fully certified weapons. Real native dispatch/worker binding, resource
+allocation/readiness, device/IRQ completion, full firing sequences and the
+remaining visual/audio scope remain open. See original-weapon-io-progress-v1.json,
+original-weapon-cpu-paging-equivalence-v1/report.json,
+smg-original-file-read-native-v2/report.json and
+post-original-io-storage-audit-v1.json.
+
+## Original sound worker and production cache-read boundary (October18)
+
+The original SMG request now has a verified queue identity: node4ECE38,
+job156808, task4ECE40, callback1AAA80 and actual chunk limit40000. Its free/work
+mutex slots and semaphore slot contain4,8 and16. Original entry RAM plus the
+checked producer prefix establishes the queued input before the real semaphore
+notification; the consumer prefix identifies the current node directly. This
+does not infer queue identity from matching task contents.
+
+The current native worker runs that input on a real native thread with actual
+mutexes, semaphore acquisition, file seek/read, done publication, unlink and
+free-list return. Original source handle tokens are explicitly bound to actual
+native synchronization objects. The native synchronization initialization is a
+declared adaptation, not a copy of original kernel objects or scheduling state.
+Native teardown requests stop and joins before borrowed bank/file lifetimes end.
+Its9632-byte queue bank, current-node slot, complete40-byte task,47616-byte
+resource buffer and caller completion byte match the actual original full-call
+exit exactly. Eight source stores are recorded with authenticated TU1.5 site
+correspondence. Constructor priority, Xbox TLS/scheduler/device behavior and the
+full firing call are not certified by this component.
+
+The main-thread original instruction trace identifies the request caller as
+21F4BD in the sound-cache load owner21F420. Its complete call/return trace has no
+unmatched returns. This call is outside the existing texture/geometry/animation
+native read handlers. The generated support owner deliberately dispatches1A3B70
+to an external owner at that exact site.
+
+The playable world's dispatch now includes source_sound_cache_io_tu15 for this
+sound request. It checks the source return frame, sound chunk, occupied and
+salted cache/page records, allocated destination, encoded resource offset,
+rounded byte count, caller done address, category5 and priority4. The already
+allocated source block receives real bytes from the world's bound resource
+snapshots. An actual retained native completed-read receipt precedes the done
+byte. Missing/failing I/O or receipt ownership cannot publish completion. This
+uses the world's existing synchronous native resource policy; it does not install
+the experimental thread composition into the world or claim original async
+queue/job timing. Zero-size/unsupported resource requests remain unavailable.
+
+A separately declared original prefix stops at the actual1A3B70 entry after
+43849 instructions and7866 stores. It remains a failed full-call comparison;
+only the declared entry boundary is reached and used as the input. The new
+production I/O owner independently matches all47616 original resource bytes and
+the original done byte. Nine invalid-call, missing-owner and failed-I/O controls
+reject without completion. The focused CMake Release and ASAN/UBSAN checks pass.
+The current live-world translation unit also compiles with its recorded build
+flags. A complete application relink, installed-runtime firing capture, original
+audio/PCM output and final frames remain unverified.
+
+Compiler products, CMake builds, full RAM copies and working buffers are removed
+after these checks. No new large reference inputs are retained. Small reports,
+commands, failures and source snapshots remain; duplicate immutable source
+copies share storage. Matrixv44 keeps63 weapon paths,1110 authored occurrences,
+38 maps and630 gates with zero fully certified weapons. The mandatory cleanup
+requirement remains in effect. See original-sound-worker-production-progress-v1.json,
+smg-original-worker-native-v1/report.json, smg-native-sound-cache-io-v2/report.json,
+smg-sound-cache-io-sanitizers-v2/report.json and
+post-original-sound-worker-storage-audit-v1.json.
+
+## Full application link and sound resource scope (October18)
+
+A private Release build links the complete application and the normal source
+weapon-cycle probe. All three selected CTests pass: original sound-cache I/O,
+primary weapon cycle and original sound submission events. The actual linked
+application also completes120 headless ticks with one and four local players.
+The executable, local runtime dependencies and all build products are removed
+after validation. This is finite headless integration, not input-driven rendering,
+installed-runtime delivery, full firing parity or audible output.
+
+The retained submission report reveals an unresolved admission boundary:
+all18 observed sound requests returnFFFFFFFF while their driver is0. Observing
+those request boundaries does not establish driver acceptance, exercise the new
+sound-cache I/O handler in that world history, or produce PCM. The bounded I/O
+owner retains its separate actual-original-entry comparison. The whole checkout
+also changes during compilation because unrelated frontend, launcher, model and
+HUD work is active. Before/after hashes and source observations record this;
+the build is not described as one immutable source snapshot.
+
+A read-only audit covers all347922 nonempty sound chunk records across the38
+scoped maps,73842 unique file ranges. Every raw and512-byte rounded request fits
+its bound file; no zero sizes, unaligned offsets or requests over the native
+size limit occur. This covers literal gestalt metadata, not weapon dependency
+closure, permutation selection, runtime admission, decoding or playback. See
+sound-cache-sector-scope-v1/report.json,
+weapon-current-runtime-and-sound-sector-progress-v1.json and
+checkpoint-weapon-runtime-20261018.json.
+
+## Original sound metadata query (October18)
+
+Native execution from the unchanged captured SMG1030F0 entry exposes a missing
+129833->1296E0 query. Independent original execution reaches that exact entry
+after34777 instructions and6767 stores, without a supplied game-service result.
+This is a separately declared prefix; its full-call comparison remains failed.
+The complete1296E0 CFG contains27 instructions and no source writes or external
+calls. A directly compiled port now retains those instructions and the actual
+caller ABI. The playable world routes the original query to this owner.
+
+The original captured input and48 explicitly modified branch inputs produce
+identical GP values, defined flags, instruction traces, XMM state, x87 status,
+MXCSR and nonreserved control bits in original/native execution. Together they
+execute all27 original instructions. The initial strict comparison remains as
+failed evidence: native FLDCW normalizes reserved x87 control bit6, producing
+027F instead of the independent emulator's023F. The existing real host
+FLDCW/FNSTCW probe documents that exact normalization; the corrected comparison
+preserves both raw values and compares every other control bit. No production
+arithmetic or original input is adjusted to remove that representation difference.
+
+Release and ASAN/UBSAN component CTests pass; the current world translation unit
+compiles with the added dispatcher. A diagnostic using existing build-multiplayer
+archives plus freshly compiled query and I/O owners advances to the next missing
+129846->127B20 function. It does not finish firing, reach the I/O owner in that
+composition, or certify the current whole application. The complete application
+build above predates this additional query port; relink/runtime validation of
+the updated composition remains required.
+
+All owned scratch for passing and failed checks is removed. No new large
+artifacts are retained; original reference inputs remain preserved. Matrixv46
+keeps63 paths,1110 occurrences,38 maps and630 gates, with zero fully certified
+weapons. See sound-query-original-native-progress-v1.json,
+smg-sound-query-differential-v2/report.json,
+checkpoint-sound-query-20261018.json and
+post-sound-query-storage-audit-v1.json.
+
+## Original scalar sound query and class getter (October18)
+
+The next original firing call,129846->127B20, selects a scalar from the actual
+request, sound parameter record or sound class. Its complete23-instruction body
+calls the complete17-instruction228220 class getter. Both bodies now compile
+directly from the unchanged authenticated TU1.5 instructions. The world admits
+the127B20 root; the class getter remains inside that composition, with existing
+other class-getter routing preserved.
+
+Independent original execution reaches127B20 after34802 instructions and6768
+stores. This deliberately stopped prefix remains a failed full-firing comparison.
+The new native composition matches31 cases: the unchanged actual input plus30
+explicit byte controls. All40 original instructions execute across those cases.
+Every GP/XMM value, defined arithmetic flag, ordered source write and instruction
+trace matches. The controls include signed class/parameter indices, positive and
+negative zero, infinity, quiet and signaling NaN payloads. They do not represent
+additional authored gameplay observations. The actual absent-context branch
+faults at228239 in both executions; no successful scalar or context is supplied.
+Raw undefined flag bits and the previously measured reserved x87 control-bit
+normalization remain visible in the comparison evidence.
+
+All three sound component CTests pass in both Release and ASAN/UBSAN builds:
+scalar/class query, cache metadata query and actual cache-resource I/O. The
+current world translation unit also compiles with the new dispatcher. The
+existing-library firing composition advances to12985C->12A810. At that boundary
+its reported GP, XMM and defined arithmetic flags equal independent original
+execution; raw x87 status differs by0020 and raw control by0040. These differences
+are retained, not masked into a whole-CPU pass. Native trace observations also
+include canonical damage-module PCs that need a qualified address mapping.
+Neither complete firing nor audio admission/playback is established.
+
+A fresh full application build with all three sound components and the primary
+weapon/sound-submission checks is live at checkpointv47. Its specific CMake
+process, execution sessions, private build and two waiting follow-ups are recorded
+in checkpoint-sound-scalar-20261018.json. The follow-ups use the newly linked
+application and libraries; their temporary executable/link-input/RAM copies are
+owned by cleanup wrappers. No kept-artifacts option is used. This running work
+is not reported as passed or deleted. All eight completed validation scratch
+paths and the checkpoint publisher's scratch are removed; no new large evidence
+artifacts are retained. Matrixv47 preserves63 paths,1110 rows,38 maps and630
+gates, with zero fully certified weapons. See
+sound-scalar-original-native-progress-v1.json,
+smg-sound-scalar-differential-v1/report.json and
+post-sound-scalar-storage-audit-v1.json.
+
+## Original sound listener selection (October18)
+
+The complete12A810 listener selector and its12A930,2287B0,253070 and2531E0
+callees now compile from the authenticated TU1.5 image. This closed composition
+contains312 original instructions and supplies no external service outcomes.
+The world routes the measured12A810 root while preserving other existing owners.
+
+Across55 cases,54 successful native executions match unchanged original i386
+instructions executed on the host CPU: every GP/XMM value, defined arithmetic
+flag, raw x87 status/control, MXCSR, instruction trace and ordered source write.
+All312 instructions execute. The actual absent uncached-pointer fault is also
+preserved independently in the native and emulator adapters. Declared listener,
+distance, range and pair-byte controls include a separately identified pointer
+rebinding fixture; they are not additional captured gameplay or resource binding.
+Nine raw emulator precision-flag disagreements remain in a failed comparison
+report. Original host execution agrees with the native status in those cases;
+the emulator failure is not relabeled as a pass.
+
+All four focused sound CTests pass in Release and ASAN/UBSAN, and the current
+world translation unit compiles. The existing-library firing diagnostic advances
+to129888->127CF0 after35015 native instruction observations. Its GP, XMM, flags
+and MXCSR equal an independent35029-instruction original prefix at that boundary.
+Raw x87 status/control and canonical damage observer PC differences remain
+explicit; this is not a full firing or whole-CPU comparison.
+
+The previous full application build terminated with unresolved
+MultiplayerRuntimeAuthority definitions. Its failure log is preserved, and its
+build plus both waiting follow-ups have been removed. Current CMake source
+registration has since changed. A fresh application build including listener
+selection is live at checkpointv48, with actual process/session identities in
+checkpoint-sound-listener-20261018.json. It is not yet a successful link or runtime
+proof. Completed validation scratch and the checkpoint publisher's scratch are
+removed. No new large binaries, raw RAM or captures are retained.
+
+Matrixv48 retains63 paths,1110 rows,38 maps and630 gates, with zero fully
+certified weapons. See sound-listener-original-native-progress-v1.json,
+smg-sound-listener-production-v1/report.json,
+current-root-sound-metadata-runtime-build-v1/terminal-cleanup-observation.json
+and post-sound-listener-storage-audit-v1.json. The next sound-gain composition
+is under separate investigation and has not been admitted to production.
+
+## Original gain interpolation and RNG scalar (October18)
+
+The127CF0 gain composition and127D70 random scalar are now wired into the
+world. Eight complete original bodies contain386 instructions. Actual host CPU
+execution verifies127 successful cases and five real unmapped-read faults.
+The gain composition exercises all353 instructions, including three faulting
+instructions. The random scalar exercises32 of33: SHR ECX,16 bounds ECX to65535,
+then TEST clears OF and leaves SF zero, so JGE always bypasses127DAA. That
+original instruction remains in the port; no input or branch is fabricated.
+The RNG update writes the original retained bank and uses its actual seed.
+
+The independent emulator's failed raw-state comparisons remain preserved.
+In particular, a faulting ADD reports different flags there; the actual host CPU
+fault context agrees with the native state. Successful calls match original
+host GP/XMM values, defined flags, raw x87 status/control, MXCSR, traces and
+ordered writes. Faults compare the last retired instruction's defined flags.
+Two declared readonly-data controls exercise redundant gain clamps; they are
+diagnostic input overlays and are never supplied to production.
+
+All six sound component CTests pass in Release and ASAN/UBSAN. The current world
+translation unit also compiles, and its source hashes are rechecked after the
+checkpoint. The native existing-library composition reaches128B9A->2290C0 after
+35622 instruction observations; GP, XMM, flags and MXCSR equal the independent
+35636-instruction original prefix. This is still a failed full firing call,
+with raw FP-status and canonical observer-PC differences recorded.
+
+The previous listener application build completed successfully, passed all six
+selected checks and ran120 ticks with both one and four local players. Fifteen
+source files changed across that shared-checkout build; its before/after hashes
+are retained rather than claiming an immutable snapshot. That build predates
+these two additional ports, which still require a full application relink.
+All18 retained sound submissions have driver0 and resultFFFFFFFF; successful
+submission checks do not establish admission or PCM playback.
+
+All completed build, probe and application scratch is removed. Small reports,
+commands and source snapshots remain; no new large binaries, raw RAM or frames
+are retained. Matrixv49 preserves63 paths,1110 rows,38 maps and630 gates, with
+zero fully certified weapons. See sound-parameters-original-native-progress-v1.json,
+checkpoint-sound-parameters-20261018.json and
+post-sound-parameters-storage-audit-v1.json. The next2290C0 composition has been
+recovered and syntax checked separately; its behavior is not yet verified.
+
+## Original sound properties and direct distance call (October18)
+
+The2290C0 sound-property composition is now wired into the world. Its five
+complete bodies contain189 instructions, including the original18FF57->21FEB0
+tail call. Sixty-one cases match unchanged original host execution across188
+instructions: GP/XMM values, defined flags, raw FP state, traces and ordered
+writes all agree. The remaining229110 count-recheck guard stays in the port.
+It is not forced with an invented asynchronous memory change. Controlled tag,
+extra-info and context records reuse retained stack pages and are never supplied
+as production data. Reference entry state comes from uninterrupted original
+execution starting at the retained live SMG call.
+
+The next caller,128BD3->12A930, uses the already verified distance body directly.
+The world now admits that measured entry as well as12A810. Original replay can
+select this later invocation by its actual stack return address; it changes no
+instruction, return value or input bank. Firing then advances to128C21->127E00:
+35846 native instruction observations versus a35860-instruction original prefix,
+with equal GP, XMM, flags and MXCSR. Raw FP and canonical observer PC differences
+remain explicit. Neither execution is a verified full firing call.
+
+All seven sound component CTests pass in Release and ASAN/UBSAN. Current world
+syntax and source hashes pass, and completed build/probe scratch plus publisher
+scratch are removed. No new large artifacts are retained. A full application
+relink with the gain, random-scalar and property ports remains required; the
+previous passing application build predates them. Sound admission, PCM playback,
+rendered output and whole-weapon certification remain open.
+
+Matrixv50 retains63 paths,1110 rows,38 maps and630 gates, with zero fully
+certified weapons. See sound-properties-original-native-progress-v1.json,
+checkpoint-sound-properties-20261018.json and
+post-sound-properties-storage-audit-v1.json. The next127E00 body is recovered
+separately; it returns a live x87 value and still needs behavioral validation.

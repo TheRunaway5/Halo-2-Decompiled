@@ -76,6 +76,36 @@ void run(){
     }
     std::cout<<"PASS bounded source admission exchange: eight couch slots, offer/ack loss and duplicates, immutable identities, authenticated endpoints, room/epoch/membership/roster/handle validation and committed host replacement\n";
 }
+void continuity(){
+    auto before=context();before.peers=0x1111;const auto r=roster(16);
+    const auto rows=sources(16);PeerSourceAdmissions original(0,before,r);
+    check(original.publish(before,rows),"Continuity fixture admission refused");const auto accepted=*original.accepted();
+    auto next=before;++next.epoch;++next.membership_revision;next.host=4;next.peers=0x1110;
+    auto host=PeerSourceAdmissions::resume_after_host_loss(4,next,r,accepted);
+    auto client=PeerSourceAdmissions::resume_after_host_loss(8,next,r,accepted);
+    auto delayed=PeerSourceAdmissions::resume_after_host_loss(12,next,r,accepted);
+    check(host->accepted()->players==rows&&client->accepted()->players==rows&&delayed->accepted()->players==rows,
+        "Host loss changed original native/PCR allocation rows");
+    check(client->poll(0).empty()&&!host->confirmed(8),"Context carry fabricated receipt of a successor offer");
+    auto changed=rows;changed[0].identity.front()^=0x80;check(!host->publish(next,changed),"Replacement publication changed a retained original identity");
+    PeerSourceAdmissions conflicting(4,next,r);check(conflicting.publish(next,changed),"Conflicting successor fixture refused");
+    for(auto &packet:conflicting.poll(0,16))if(packet.peer==8)client->receive(4,packet.bytes);
+    check(client->accepted()->players==rows&&client->poll(1).empty(),"Successor replaced or acknowledged a different original allocation roster");
+    for(auto &packet:host->poll(0,16))if(packet.peer==8)client->receive(4,packet.bytes);
+    for(auto &packet:client->poll(1))host->receive(8,packet.bytes);
+    check(host->confirmed(8)&&!host->confirmed(12),"Successor offer receipt confused a delayed endpoint");
+    // PC12 can carry its independently retained original identities through
+    // the next certified epoch even if the intermediate host dies before its
+    // offer arrives. A timeout itself does not call this factory.
+    auto last=next;++last.epoch;++last.membership_revision;last.peers=0x1100;last.host=8;
+    auto survivor=PeerSourceAdmissions::resume_after_host_loss(12,last,r,*delayed->accepted());
+    check(survivor->accepted()->context==last&&survivor->accepted()->players==rows,"Delayed survivor lost the original allocation chain");
+    auto forged=accepted;forged.digest.front()^=std::byte{1};rejects([&]{PeerSourceAdmissions::resume_after_host_loss(4,next,r,forged);});
+    auto invalid=next;invalid.peers=before.peers;rejects([&]{PeerSourceAdmissions::resume_after_host_loss(4,invalid,r,accepted);});
+    invalid=next;invalid.epoch=before.epoch;rejects([&]{PeerSourceAdmissions::resume_after_host_loss(4,invalid,r,accepted);});
+    rejects([&]{PeerSourceAdmissions::resume_after_host_loss(0,next,r,accepted);});
+    std::cout<<"PASS certified host-loss identity carry: retained sixteen native/PCR rows, no fabricated offer receipt, immutable successor identities, delayed learner across two epochs and invalid certificate context/digest rejection\n";
+}
 void concurrent(){
     const auto r=roster();const auto rows=sources();PeerSourceAdmissions a(0,context(),r),b(4,context(),r);
     const auto began=std::chrono::steady_clock::now();auto now=[&]{return std::uint64_t(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now()-began).count());};
@@ -96,4 +126,4 @@ void concurrent(){
     std::cout<<"PASS concurrent peer pumping, admission publication, observation and committed generation replacement\n";
 }
 }
-int main(){try{run();concurrent();return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}
+int main(){try{run();continuity();concurrent();return 0;}catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}}

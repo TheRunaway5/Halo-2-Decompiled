@@ -1,5 +1,6 @@
 #include "halo2/action_prompt_bindings.hpp"
 #include "halo2/hud.hpp"
+#include "halo2/mcc_hud_bitmap_geometry.hpp"
 #include "halo2/slayer.hpp"
 #include "halo2/source_camera.hpp"
 #include "halo2/full_scoreboard_providers.hpp"
@@ -864,8 +865,10 @@ std::vector<Vertex> MultiplayerHud::draw(const MultiplayerState &s, unsigned id,
           //22AFF1 rounds the near and far terms independently. Rounding a
           //size after rounding its registration can shift a meter edge away
           //from the authored outline when sprite bounds are fractional.
+          const auto logical=mcc_hud_bitmap_logical_extent(image,sprite.image)
+              .value_or(std::array<unsigned,2>{texture.width,texture.height});
           const auto geometry=source_hud_bitmap_geometry({{p.x,p.y},{ax.x,ax.y},{ay.x,ay.y},
-              float(texture.width),float(texture.height),{sprite.left,sprite.right,sprite.top,sprite.bottom},
+              float(logical[0]),float(logical[1]),{sprite.left,sprite.right,sprite.top,sprite.bottom},
               {w.registration[mode].x,w.registration[mode].y},std::uint16_t(w.flags)},
               geometry_.value_or(HudBitmapGeometryConstants{}));
           for(unsigned n=0;n<geometry.count;++n) {

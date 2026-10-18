@@ -54,6 +54,17 @@ public:
     // descriptors, context, backing and locks are checked on every operation.
     void read_gp_scratch(std::uint32_t offset,std::span<std::byte>) const;
     void write_gp_scratch(std::uint32_t offset,std::span<const std::byte>);
+    struct EpScratchBinding {
+        std::uint32_t context{},table_source{},table_physical{},table_bytes{};
+        std::optional<std::uint32_t> entries;
+    };
+    // Original type0 EP table publication and synchronous native resources.
+    // No EP processor, register/status read, scheduler or clock is supplied.
+    void publish_ep_scratch(std::uint32_t context,std::uint32_t instruction,
+        std::uint32_t address,std::uint32_t value);
+    std::optional<EpScratchBinding> ep_scratch_binding() const;
+    void read_ep_scratch(std::uint32_t offset,std::span<std::byte>) const;
+    void write_ep_scratch(std::uint32_t offset,std::span<const std::byte>);
     NativeRuntimeAddress native_address(std::uint32_t source) const;
     std::uint32_t capacity(std::uint32_t source) const;
     std::uint32_t device_id() const;
@@ -77,6 +88,7 @@ private:
     std::map<std::uint32_t,Allocation> allocations_;
     std::map<std::uint32_t,GpPoolAllocation> gp_pools_;
     std::optional<GpScratchBinding> gp_scratch_;
+    std::optional<EpScratchBinding> ep_scratch_;
     std::uint64_t gp_pool_epoch_{};
     std::thread::id thread_=std::this_thread::get_id();
     bool fault_{};
@@ -89,6 +101,8 @@ private:
     std::uint32_t gp_page_source(std::uint32_t context,std::uint32_t physical) const;
     struct GpScratchSpan {std::uint32_t source;std::size_t bytes;};
     std::vector<GpScratchSpan> gp_scratch_spans(const GpScratchBinding&,
+        std::uint32_t offset,std::size_t bytes) const;
+    std::vector<GpScratchSpan> ep_scratch_spans(const EpScratchBinding&,
         std::uint32_t offset,std::size_t bytes) const;
 };
 void mount_native_tu15_sound_dma_imports(SourceRuntimeMemory&);

@@ -57,8 +57,24 @@ int main()try {
         count_allocations=false;
         require(observed || allocations==allocated,"Unobserved scalar store allocated byte buffers");
         require(memory.bytes==expected,"Scalar store changed bytes outside its width");
-        require(memory.calls==(observed?3u:2u) && memory.order[0]=='r' && memory.order[1]=='w' &&
-            (!observed || memory.order[2]=='o'),"Store read/write/observer order changed");
+        if(observed)require(memory.calls==3 && memory.order==std::array<char,3>{'r','w','o'},
+            "Observed store read/write/observer order changed");
+        else require(memory.calls==1 && memory.order[0]=='w',
+            "Unobserved original MOV performed a synthetic destination read");
+    }
+    // The original store never reads its destination. A memory owner may
+    // reject reads while accepting an authenticated write-only operation.
+    for(const unsigned width:{1u,2u,4u,8u}) {
+        Memory memory;memory.reject_read=true;
+        physics_step_detail::w(memory,{},0x1234,0x100,width,value);
+        require(memory.calls==1 && memory.order[0]=='w',"Write-only original store consumed a destination preimage");
+        for(unsigned i=0;i<width;++i)require(memory.bytes[i]==std::byte(value>>(8*i)),"Write-only store changed source bytes");
+    }
+    {
+        Memory memory;memory.reject_write=true;const auto before=memory.bytes;bool threw=false;
+        try {physics_step_detail::w(memory,{},0x1234,0x100,4,value);}catch(const std::runtime_error&){threw=true;}
+        require(threw && memory.calls==1 && memory.order[0]=='w' && memory.bytes==before,
+            "Unobserved store bypassed write validation or changed rejected bytes");
     }
     for(unsigned failure=0;failure<3;++failure) {
         Memory memory;const auto before=memory.bytes;

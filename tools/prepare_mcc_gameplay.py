@@ -232,6 +232,9 @@ def prepare(root, mcc_source=None, progress=print):
         from mcc_menu_inventory import verify as verify_menu_inventory
         menu_inventory = verify_menu_inventory(stage / "halo2", progress=progress)
         write_json(stage / "vista-menu-inventory.json", menu_inventory)
+        from mcc_menu_assets import prepare as prepare_menu_assets
+        progress("Assembling verified MCC menu images and font ownership…")
+        menu_assets = prepare_menu_assets(stage, menu_inventory)
         from mcc_loading_assets import prepare as prepare_loading
         progress("Preparing MCC loading resources and retaining authored custom loading textures…")
         loading = prepare_loading(root, stage)
@@ -255,6 +258,9 @@ def prepare(root, mcc_source=None, progress=print):
             reference_only_inputs=["OG Xbox Halo 2 ISO", "Xbox TU1.5 patch", "Vista executable loading bank"],
             runtime_active=False, full_tu15_parity=False, summary=summary, blockers=BLOCKERS,
             match_loading=loading,
+            menu_resources=dict(path="ui/mcc-menu-assets.json", complete=menu_assets["complete"],
+                frame_owners=menu_assets["frame_owners"], unique_dds_pages=menu_assets["unique_dds_pages"],
+                fonts=len(menu_assets["fonts"]), runtime_activation=False),
             vista_menu_inventory=dict(path="vista-menu-inventory.json", complete=menu_inventory["complete"],
                 banks=menu_inventory["banks"], frame_owners=menu_inventory["frame_owners"],
                 unique_dds_pages=menu_inventory["unique_dds_pages"], fonts=len(menu_inventory["fonts"])),

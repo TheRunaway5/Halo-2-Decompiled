@@ -23,9 +23,21 @@ bool SourceRuntimeSoundDmaResources::dispatch_gp_scratch_translation(SourcePhysi
     if(call.tail||call.target!=0x800000ad||word(memory_,sp)!=0x38e675||
        !memory_.is_read_only(0x41b7bc,4)||word(memory_,0x41b7bc)!=call.target)
         throw std::invalid_argument("Native GP prefix translation lost its original import/frame");
-    const auto& row=gp_descriptor(0x391420);const auto pointer=word(memory_,sp+4);
+    // Original38E6DF saves its caller's ESI (38DD54's scratch context) at
+    // sp+40 in this exact nested import frame. Original38DD54 has already
+    // selected its real type1 GP or type0 EP descriptor pair in that context.
+    const auto context=word(memory_,sp+40);
+    memory_.validate_mutable_view(context,0x24);
+    const auto mode=word(memory_,context+8);
+    if(mode>1)throw std::invalid_argument("Native scratch translation has an unowned context mode");
+    const auto data_descriptor=mode==1?0x391420u:0x391440u;
+    const auto table_descriptor=data_descriptor+0x10;
+    if(word(memory_,context+0x10)!=data_descriptor||word(memory_,context+0xc)!=table_descriptor)
+        throw std::invalid_argument("Native scratch translation lost its original context descriptors");
+    (void)gp_descriptor(table_descriptor);
+    const auto& row=gp_descriptor(data_descriptor);const auto pointer=word(memory_,sp+4);
     if(pointer<row.source||std::uint64_t(pointer)-row.source>=row.requested)
-        throw std::invalid_argument("Native GP prefix translation is outside its actual descriptor");
+        throw std::invalid_argument("Native scratch translation is outside its actual descriptor");
     abi.gp[0]=row.physical+(pointer-row.source);abi.gp[4]+=8;return true;
 }
 std::uint32_t SourceRuntimeSoundDmaResources::gp_page_source(std::uint32_t context,std::uint32_t physical)const{

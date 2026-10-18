@@ -24,13 +24,15 @@ struct Mesh {
     std::array<unsigned,16> rate{};
     std::uint64_t now=1000,order{},packets{},probes{},reports{};
     bool drop{},duplicate{};
+    std::uint16_t active=context().peers;
     Mesh(){unsigned n=0;for(auto p:peers){nodes[p]=std::make_unique<PeerMeshQuality>(p,context());rate[p]=1'200'000-n++*250'000;}}
     void step(){
         while(!events.empty()&&events.top().at<=now){auto e=events.top();events.pop();
             check(nodes[e.to]->receive(e.from,e.bytes,now),"QoS packet fell through as gameplay");}
-        for(auto from:peers){auto out=nodes[from]->poll(context().peers&~(1u<<from),now,16);
+        for(auto from:peers)if(active&(1u<<from)){auto out=nodes[from]->poll(active&~(1u<<from),now,16);
             check(out.size()<=16,"Packet budget exceeded");
             for(auto &p:out){check(p.bytes.size()<=1200&&p.peer!=from,"Datagram bound or physical destination invalid");++packets;
+                if(!(active&(1u<<p.peer)))continue;
                 if(kind(p.bytes)==3){++probes;if(drop&&from==12&&(std::to_integer<unsigned>(p.bytes[60])%8==0))continue;}
                 if(kind(p.bytes)==5)++reports;
                 next[from]=std::max(next[from],now)+std::max<std::uint64_t>(1,(p.bytes.size()*1000+rate[from]-1)/rate[from]);
@@ -79,6 +81,29 @@ void duplicate_receipts(){
     check(drive(false)==drive(true)&&drive(false)>0,"Duplicate receipt changed measured upload");
     std::cout<<"PASS duplicate receipt cannot change upload duration\n";
 }
+void survivor_measurements(){
+    Mesh mesh;mesh.run(8000);mesh.active&=~1u;mesh.run(6000);
+    for(auto p:{4u,8u,12u}){
+        check(!mesh.nodes[p]->matrix(mesh.now)[0]&&mesh.nodes[p]->candidates(mesh.now).empty(),
+            "Failed predecessor still supplied a fresh full-membership host row");
+        const auto ranked=mesh.nodes[p]->migration_candidates(mesh.now);
+        if(ranked.size()!=3||ranked.front().peer!=8||ranked.back().peer!=12)
+            for(const auto &q:ranked)std::cerr<<"survivor observer="<<p<<" peer="<<q.peer<<" upload="<<q.minimum_upload_bytes_per_second<<" rtt="<<q.mean_rtt_ms<<" loss="<<q.worst_loss_per_mille<<'\n';
+        // With the predecessor path removed, PC8 has the best observed
+        // bottleneck under this bounded offered load. PC4's nominal link rate
+        // is higher, but its acknowledged inter-PC delivery is lower.
+        check(ranked.size()==3&&ranked.front().peer==8&&ranked.back().peer==12,
+            "Survivor ordering did not use actual reciprocal upload/latency measurements");
+        check(mesh.nodes[p]->context()==context(),"Scoring rewrote the agreed physical membership");
+        check(mesh.nodes[p]->migration_candidates(mesh.now+5001).empty(),"Stale survivor measurements qualified a replacement");
+    }
+    mesh.active&=~(1u<<12);mesh.run(6000);
+    for(auto p:{4u,8u})check(mesh.nodes[p]->migration_candidates(mesh.now).empty(),
+        "A second local timeout silently shrank the fixed successor membership");
+    auto two=context();two.peers=0x11;PeerMeshQuality only(4,two);
+    check(only.migration_candidates(10000).empty(),"A sole survivor fabricated inter-PC performance measurements");
+    std::cout<<"PASS expired predecessor row excluded from fixed survivor scoring, retained measured order, stale and second-disconnect rejection, sole-survivor unknown metrics\n";
+}
 void loss_and_context(){
     Mesh mesh;mesh.drop=true;mesh.run(8000);
     const auto row=mesh.nodes[12]->local(mesh.now);check(row&&row->links[0].loss_per_mille==125,"Dropped upload chunks not counted exactly");
@@ -125,10 +150,10 @@ void rejected_metadata(){
 }
 void concurrent_snapshots(){
     Mesh mesh;mesh.run(8000);std::atomic<bool> stop=false;
-    std::jthread reader([&]{while(!stop.load()){for(auto p:peers){mesh.nodes[p]->matrix(9000);mesh.nodes[p]->candidates(9000);}}});
+    std::jthread reader([&]{while(!stop.load()){for(auto p:peers){mesh.nodes[p]->matrix(9000);mesh.nodes[p]->candidates(9000);mesh.nodes[p]->migration_candidates(9000);}}});
     mesh.run(2000);stop=true;reader.join();
     std::cout<<"PASS concurrent matrix/candidate reads with poll/receive writes\n";
 }
 }
-int main()try{measured_mesh();duplicate_receipts();loss_and_context();rejected_metadata();concurrent_snapshots();return 0;}
+int main()try{measured_mesh();duplicate_receipts();survivor_measurements();loss_and_context();rejected_metadata();concurrent_snapshots();return 0;}
 catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

@@ -26,6 +26,7 @@ struct Synthetic final:VoiceDevices {
   }
   void playback(const VoicePcm &pcm)override{float sum=0;for(auto v:pcm)sum+=v*v;if(sum>.001f)++audible;}
   void stop()override{transmitting=false;++stops;}
+  void discard()override{} // Immediate synthetic device has no queued samples.
 };
 }
 int main(int argc,char **argv){try{

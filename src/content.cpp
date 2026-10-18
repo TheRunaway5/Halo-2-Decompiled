@@ -1553,11 +1553,15 @@ LoopingSound Cache::load_looping_sound(std::uint32_t datum) const {
   const auto tag = query_tag({.handle=TagHandle{datum}, .group=tag_groups::sound_looping, .require_address=true});
   if (!tag)
     throw FormatError("missing looping sound tag");
-  const auto p = metadata_offset(tag->address, 0x2c);
+  // MCC lsnd adds an eight-byte Remastered Looping Sound reference before
+  // the original root fields. Track rows retain the original 0x58 layout.
+  const auto prefix = mcc_ ? 8u : 0u;
+  const auto p = metadata_offset(tag->address, 0x2c + prefix);
   LoopingSound out;
   out.name = tag->name;
-  out.flags = data.u32(p);
-  const auto tracks = TagAddressSpace(data, metadata_magic_).block(p + 0x1c, 0x58, 32);
+  out.flags = data.u32(p + prefix);
+  const auto tracks = mcc_ ? metadata_block(p + 0x24, 0x58, 32)
+                           : TagAddressSpace(data, metadata_magic_).block(p + 0x1c, 0x58, 32);
   for (std::size_t i = 0; i < tracks.count; ++i) {
     const auto t = tracks.offset + i * 0x58;
     out.tracks.push_back(

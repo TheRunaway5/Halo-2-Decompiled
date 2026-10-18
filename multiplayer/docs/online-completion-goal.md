@@ -9,6 +9,14 @@ The full scope is registered as the active app goal. This document is its
 tracked acceptance checklist; source changes and bounded test passes do not
 close requirements that still need integration or physical validation.
 
+Cleanup is part of completion, including each intermediate validation run:
+delete unused generated test executables, object/archive copies, private build
+trees and scratch captures after retaining bounded diagnostics. Verify their
+removal before reporting a step finished. Test source and required original
+reference evidence remain part of the project; do not delete them to reclaim
+storage. Audit older generated artifacts before removing them so active builds,
+installed runtimes and concurrent work remain intact.
+
 ## Required architecture
 
 - **Xbox TU1.5 is the sole gameplay and networking parity target** (user confirmation,
@@ -46,15 +54,144 @@ close requirements that still need integration or physical validation.
 | Match voice | Direct peer proximity, team/FFA radio, dead-player audiences, muting and postgame voice; complete source-supported lobby/loading, LAN and device coverage | Match/postgame voice now uses direct UDP; party/clan menu voice still uses its relay and remains to convert; LAN voice, all-participant loading voice, independent couch headsets/mics, masking and original radio audio remain open |
 | Master outage | Peer simulation and voice continue through temporary signaling loss; reports retry safely afterward | Temporary master-socket outage acceptance passed:89 simulation ticks and86/88 audible frames continued, then reports uploaded; master-process-restart admission persistence remains open |
 | Disconnect survival | A nonhost departure does not end the room; a graceful or abrupt host loss preserves and resumes the actual world | TU1.5 native Match and localhost UDP graceful/silent-peer departures retain roster/profile/result rows and original deferred corpse/equipment without added numeric deaths. The master explicit nonhost-leave and result-review paths preserve remaining peers and store complete admitted rows with survivor-confirmation metadata. A real native nonhost DTLS/signaling shutdown now leaves the host session running. Custom native-owned worlds, complete source admission cancellation, unannounced missing-peer result arbitration, production delivery, physical/WAN checks and host migration remain open |
-| Migration | Preserve complete player/unit/weapon/inventory, allocation identities, RNG, timers, projectiles/grenades, props, devices, physics, recording/results, local profiles and voice; promote/rebind a validated survivor | Coupled TU1.5 checkpoints and the 29-operation source journal retain complete native/CPP state, typed inputs, actual returns, clocks, identities and local-view bindings. A negotiated two-cut direct-peer pipeline overlaps transfer/decode with ordered native validation. Matched cold/background fixtures validate 82 phases, reject wrong chains and forged identities with a prefetched successor, repair from full cuts and compare four complete worlds. The background retention case validates 122 phases, drains both admitted batches across actual host loss, survives worker teardown, imports/rebinds four recipient views and continues ten native ticks after old-host departure without fabricated deaths or unfinished reports. Transport normal/ASan/UBSan/TSan and selected native-owner sanitizer checks pass; current-root syntax checks pass. Normal runtime disconnect and stalled-host timeout paths retain a validated recovery world before teardown. Extended rendered scheduling shows reduced backlog but was interrupted by OS memory pressure; sustained catch-up remains unqualified. Owning private camera checkpoints also reproduce driver, passenger and death trajectories across independent native executors in the retained cohort, with complete-world equality and selected owner sanitizers. Native fatal readback now avoids premature FP publication and stale-unit command delivery. Owning host connection/input/camera sidecars also resume the same six-player world across native executors, retaining four remote couch views, queued/consumed action serials and exact complete snapshots without rebirth; normal and selected network-owner sanitizers pass against a freshly built immutable current-source cohort. A private replay pause now admits both pipeline cuts before controlled native execution; repaired current-cohort cold/background cases validate 82/122 accepted phases, with selected receiver-owner ASan/UBSan/leak checks and real UDP graceful/silent-peer departure regression. Explicit camera/host and paired complete-world wire codecs now bind the entire connection/input/camera state to room/generation/membership/world content. A real two-process direct-UDP case imports the paired state, reproduces four native phases and exact snapshots, and retains ten private ticks after old-host shutdown; normal and selected owner sanitizers pass. These fixtures retain producer view mapping, do not elect/promote a host and are not current full runtime delivery. Runtime publisher/receiver integration now negotiates paired full/replay cuts and retains validated host/input/camera state at the exact accepted native boundary. A production two-process stream verifies 70 native phases, two-cut prefetch, complete world/host equality, downgrade rejection, owning retention and ten ticks after actual old-host shutdown; normal and selected owner sanitizers pass. Private hardware continuity, broader mode/caller/combat/PCR and scenery lifecycle coverage, generation-bound identity continuity, agreed membership/cut/epoch certification, actual host/transport/profile/controller/voice promotion, memory qualification, delivery and physical/WAN acceptance remain open. See [continuity evidence](player-host-continuity-progress-20261013.md). |
+| Migration | Preserve complete player/unit/weapon/inventory, allocation identities, RNG, timers, projectiles/grenades, props, devices, physics, recording/results, local profiles and voice; promote/rebind a validated survivor | Coupled TU1.5 checkpoints and the 29-operation source journal retain complete native/CPP state, typed inputs, actual returns, clocks, identities and local-view bindings. A negotiated two-cut direct-peer pipeline overlaps transfer/decode with ordered native validation. Matched cold/background fixtures validate 82 phases, reject wrong chains and forged identities with a prefetched successor, repair from full cuts and compare four complete worlds. The background retention case validates 122 phases, drains both admitted batches across actual host loss, survives worker teardown, imports/rebinds four recipient views and continues ten native ticks after old-host departure without fabricated deaths or unfinished reports. Transport normal/ASan/UBSan/TSan and selected native-owner sanitizer checks pass; current-root syntax checks pass. Normal runtime disconnect and stalled-host timeout paths retain a validated recovery world before teardown. Extended rendered scheduling shows reduced backlog but was interrupted by OS memory pressure; sustained catch-up remains unqualified. Owning private camera checkpoints also reproduce driver, passenger and death trajectories across independent native executors in the retained cohort, with complete-world equality and selected owner sanitizers. Native fatal readback now avoids premature FP publication and stale-unit command delivery. Owning host connection/input/camera sidecars also resume the same six-player world across native executors, retaining four remote couch views, queued/consumed action serials and exact complete snapshots without rebirth; normal and selected network-owner sanitizers pass against a freshly built immutable current-source cohort. A private replay pause now admits both pipeline cuts before controlled native execution; repaired current-cohort cold/background cases validate 82/122 accepted phases, with selected receiver-owner ASan/UBSan/leak checks and real UDP graceful/silent-peer departure regression. Explicit camera/host and paired complete-world wire codecs now bind the entire connection/input/camera state to room/generation/membership/world content. A real two-process direct-UDP case imports the paired state, reproduces four native phases and exact snapshots, and retains ten private ticks after old-host shutdown; normal and selected owner sanitizers pass. These fixtures retain producer view mapping, do not elect/promote a host and are not current full runtime delivery. Runtime publisher/receiver integration now negotiates paired full/replay cuts and retains validated host/input/camera state at the exact accepted native boundary. A production two-process stream verifies 70 native phases, two-cut prefetch, complete world/host equality, downgrade rejection, owning retention and ten ticks after actual old-host shutdown; normal and selected owner sanitizers pass. A fresh matched-source native rebuild also passes host-loss role rebinding: four promoted couch seats retain pending/consumed input and camera state while an existing three-seat client follows the replacement endpoint for twelve native ticks, rejecting old-host traffic and retaining native allocation/result identities. Selected owner sanitizers, paired stream and real UDP departure regressions pass; this role test supplies its generation decision and logical transport explicitly. Private hardware continuity, broader mode/caller/combat/PCR and scenery lifecycle coverage, generation-bound identity continuity, agreed membership/cut/epoch certification, actual host/transport/profile/controller/voice promotion, memory qualification, delivery and physical/WAN acceptance remain open. See [continuity evidence](player-host-continuity-progress-20261013.md). |
 | Historical playlists | Final-2010 target with the fullest evidence-supported rotations/game coverage; casual/ranked matching follows recovered/public Halo 2 logic, including Max Hoberman's explanations | Final downloaded catalog not recovered; full objective engines/rotations remain open |
 | Custom modes | Finish and bundle authored Fiesta Slayer and Halo-3-inspired Infection Slayer, including green zombies, under data/tags and release packaging; include Action Sack | Existing authored variants/packaging must survive transport/build changes |
 | Tombstone | Include the installed map in sensible supported Slayer, Team Slayer, CTF, Fiesta and other suitable pools | Fiesta active; staged Slayer/Team Slayer and unfinished objective coverage need their native engine acceptance |
 | Competitive policy | Finish supported quit penalties, later ranking behavior and original clan-rank display without inventing missing historical values | Remaining policies/evidence gates stay open |
 | Post-carnage history | Upload after the match, validate admission/results/confirmations, store organized persistent report details, support later website lookup by verified Discord username, exclude guest personal history | Existing DB/history and guest tests; preserve across peer migration and master recovery |
 | Delivery | Rebuild/install both native launchers, safely deploy backend with state backup/restore verification, package authored data and dependency notices | Every changed delivery needs fresh recorded verification; source presence alone is insufficient |
+| Test storage cleanup | After validation, delete unused generated test binaries, objects, private build trees and scratch captures; keep small reports, commands, source hashes and failure diagnostics. Preserve test source, original assets/reference evidence, frozen source snapshots, launcher-selected runtimes and unrelated active work | User addition, 2026-10-18. Use `tools/run_tests.py` for CMake validation and `tools/run_test.py` with `HALO2_TEST_SCRATCH` for one-off probes. Verified on this migration step: 105 unused generated files and two private configure trees removed, reclaiming 5,300,504,655 bytes; new native/transfer build trees, per-test scratch and temporary snapshot caches are absent. No new large test artifacts retained. Preserve this lifecycle for subsequent validation |
 
 ## Modern mesh extension requirements
+
+Component progress, 2026-10-18: [peer host/cut agreement](peer-host-agreement.md)
+now implements generation-bound two-phase majority agreement on the replacement
+PC and its exact retained cut. Partition, healthy-majority, interrupted-proposer,
+duplicate/authentication, parser and concurrency cases pass, as does an actual
+four-endpoint direct-UDP host-shutdown case beside player payloads. Normal,
+ASan/UBSan/leak and owner TSan checks pass. Native readiness in the direct test
+is declared fixture metadata; production session integration, native/controller/
+voice promotion and full generation fencing remain outstanding. Disposable
+test builds and compiler scratch are removed; small receipts remain under
+`.local/peer-host-agreement-20261018`. The full goal stays active.
+
+Follow-on session progress, 2026-10-18: an internal direct-session gate now
+exchanges these votes over real admitted DTLS links, fences gameplay/encoded
+voice until each native owner acknowledges its exact learned decision, advances
+the host/epoch/physical and couch membership together, and preserves the
+original native/PCR allocation roster across generations. Four real session
+workers pass two host socket/signaling teardowns with 16/12/8 couch seats and
+resumed payloads. Ready native worlds and role completion are declared fixtures.
+Normal and selected owner ASan/UBSan/leak checks pass. Broader C-stack TSan
+found an atomic/non-atomic global free-chunk counter conflict in the pinned SCTP
+dependency; its live reads are now patched. A subsequent repeated run completed
+one two-handoff process, then found a separate global tick read/write conflict.
+Dependency-wide race qualification remains open, including the system OpenSSL
+diagnostic and an intermittent ICE setup error. Ordinary matchmaking keeps the
+new gate disabled until actual native/controller/device promotion, candidate
+selection, negotiated compatibility, after-match admission/results and full
+runtime delivery are verified. Receipts are under
+`.local/peer-session-migration-20261018`; continue disposable test cleanup.
+The latest broader seven-case selected-owner sanitizer run passes six cases;
+the ordinary measured-host fixture reports OpenSSL allocations at child-process
+exit. Its cleanup diagnosis remains open alongside the SCTP tick race. The new
+two-handoff session and both old continuation transport modes pass in that run.
+
+Subsequent teardown progress: the earlier “tick” race is now narrowed to callout
+pending/active flags crossing queue and association lock domains. A real
+two-thread dependency regression fails before the new timer-flag lock patch and
+passes afterward. Shared last-owner RTC cleanup also resolves the reproduced
+ordinary-session OpenSSL exit leak; independent rooms, rejected construction,
+fresh restart and concurrent lifetimes pass. Compiled C/C++ TSan passes those
+owners and three independent two-handoff session processes with uninstrumented
+system libraries explicitly excluded. Actual native world/controller/headset
+promotion, crypto-internal race qualification and production/default migration
+remain outstanding. See `.local/peer-teardown-20261018` and the
+[transport integration contract](peer-host-agreement.md).
+
+The final broader teardown run passes all nine focused CTests with compiled
+C/C++ ASan/UBSan and leak checking, including the previously leaking ordinary
+session and both old transport modes. C/C++ TSan passes three focused CTests,
+with the host-loss fixture repeated across three independent processes. Its
+system-library exclusion stays explicit. Native world/device handoff, default
+migration and delivery remain open; these checks do not close the full goal.
+
+Native takeover progress: the receiver now consumes its exact paired native cut
+only after its own session learns the replacement decision, restores the new
+host's couch views/input/cameras, applies original deferred departures and keeps
+media fenced until explicit activation. An owning retained-worker export can
+also reconstruct that host on a different executor after the worker is destroyed.
+Two actual twelve-player/three-session cases pass with complete native state,
+old native world/session teardown, two-survivor agreement, four promoted seats,
+an existing four-seat client, twelve subsequent connected native ticks and direct
+encoded voice packets. A same-tick unrecorded native write is rejected and repaired
+before readiness. The new case also found and fixed the continuation codec's
+incorrect eight-group limit for FFA admission rows. Four focused CTests pass with
+selected owner ASan/UBSan and leak checking, including paired replay and prior
+role/session regressions. These are internally gated, in-process native/transport
+checks with explicit candidate selection and activation; rendered adoption,
+controller/headset and decoded-audio handoff, automatic compatibility/candidate
+policy, after-match recovery and WAN/delivery acceptance remain open. See
+`.local/native-peer-takeover-20261018/verification.json` and the
+[native handoff contract](peer-host-agreement.md). All owned generated trees are
+removed, including the final 2,662,993,859-byte supervised workspace; bounded
+diagnostics and source manifests remain, with no new retained large artifacts.
+
+Audio handoff progress: retained voice now retires its old decoder/talker,
+microphone and device queues asynchronously, rejects held old-generation
+microphone/receive batches and acknowledges retirement before native completion
+opens the successor epoch. Real four-session/two-host-loss checks resume fresh
+gameplay, voice packets and decoded synthetic stereo after each handoff without
+reopening devices. Five ASan/UBSan/leak CTests and three TSan CTests pass; both
+session cases repeat across three fresh processes in TSan. System shared-library
+internals are excluded from that TSan run. Runtime callers now suspend source
+frame work during fenced handoff phases and keep OS events responsive; those
+changes have current-source syntax checks, not delivered rendered acceptance.
+The complete goal remains active for renderer adoption, physical input/headsets,
+automatic compatibility/candidate policy, after-match recovery, memory/WAN and
+delivery. See `.local/voice-handoff-20261018/verification.json` and the
+[audio retirement contract](peer-host-agreement.md). All generated test
+build/scratch trees are removed; no new large artifacts are retained.
+
+Runtime ownership progress, 2026-10-18: both runtime loops now resolve the live
+Match/world/transport through `MultiplayerRuntimeAuthority`, which retains the
+initial immutable map resources and owns publication/recovery lifetimes. A frame
+scope rejects nested frames and role replacement, even without a recording
+publisher. Private staging leaves the original role visible until the exact
+native takeover activates. Two actual twelve-player native cases pass the
+foreground/background-retention paths, active-frame rejection without ownership
+loss, exception unwinding, resident cache lifetime, four-seat host adoption and
+twelve connected native ticks/encoded voice packets. Five selected-owner
+ASan/UBSan/leak CTests pass, including role, paired-stream and synthetic decoded
+voice regressions. The current-root renderer passes warning-clean syntax checks;
+its automatic camera/input/presentation adoption handler, default migration,
+hardware/WAN, memory and delivery acceptance remain open. Receipts are under
+`.local/runtime-authority-20261018/verification.json`. The owned 2,711,637,063-byte
+validation workspace and compiler scratch are removed; only bounded reports,
+commands and source hashes remain, with no new retained large artifacts. The
+complete goal stays active.
+
+Measured survivor progress, 2026-10-18: replacement preference now requires
+native-ready cuts and fresh reciprocal measurements among the fixed survivors,
+excluding only the agreed predecessor host. The gated path binds QoS, native
+admissions/cuts and votes to the same membership revision. The selector does not
+locally drop a second missing PC or invent speed/NAT metrics for a sole survivor.
+Four root C/C++ ASan/UBSan/leak CTests pass, including normal measured-host setup
+and decoded voice regression. Two root C/C++ TSan CTests pass; measured migration
+runs in three independent processes, with system-library internals excluded.
+Seven selected native-owner ASan/UBSan/leak CTests also pass. Both actual native
+takeover paths now choose their ready PC from measurements; foreground recovery
+polls until replay-worker/native-world destruction completes before releasing
+the wrapper. Transport cases cover 16/12/8/4 seats across three host losses, with
+native readiness declared there and actual twelve-player native worlds tested
+separately. Receipts: `.local/survivor-selection-20261018/verification.json`.
+The 2,731,636,383-byte native validation workspace, three other private builds
+and compiler scratch are removed; bounded diagnostics remain without new large
+artifacts. Automatic scheduling/retry and false-alarm/readiness lifecycle,
+additional agreed membership changes, rendered/input/camera/cache adoption,
+default compatibility, memory/hardware/WAN, after-match recovery and delivery
+remain open. The full goal stays active.
 
 Implement as modular C++20 owners over the existing physical peer table, with
 thread-safe telemetry and vote snapshots using bounded queues, lightweight

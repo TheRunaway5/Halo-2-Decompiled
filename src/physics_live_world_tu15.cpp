@@ -1,5 +1,9 @@
 #include "halo2/mcc_sound_duration_tu15.hpp"
 #include "halo2/physics_live_world_tu15.hpp"
+#include "halo2/mcc_cpu_bitmap_projection.hpp"
+#include "source_model_inline_cpu_bitmap_tu15.hpp"
+#include "halo2/source_ratio_threshold_crt_tu15.hpp"
+#include "halo2/source_environment_crt_pair_tu15.hpp"
 #include "mcc_sound_variation_provider_internal.hpp"
 #include "mcc_script_sound_world_access_internal.hpp"
 #include "halo2/source_campaign_lens_restore_tu15.hpp"
@@ -107,6 +111,14 @@
 #include "halo2/source_static_registration_tu15.hpp"
 #include "halo2/source_runtime_dsp_section.hpp"
 #include "halo2/source_runtime_sound_sdk_resources.hpp"
+#include "halo2/source_sound_cache_io_tu15.hpp"
+#include "halo2/source_sound_cache_query_tu15.hpp"
+#include "halo2/source_sound_scalar_tu15.hpp"
+#include "halo2/source_sound_listener_selection_tu15.hpp"
+#include "halo2/source_sound_gain_tu15.hpp"
+#include "halo2/source_sound_random_scalar_tu15.hpp"
+#include "halo2/source_sound_properties_tu15.hpp"
+#include "halo2/source_sound_random_short_tu15.hpp"
 #include "halo2/source_boot_smc_video_mode_input.hpp"
 #include "halo2/source_sound_sdk_tu15.hpp"
 #include "halo2/weapon_effect.hpp"
@@ -330,6 +342,7 @@ struct PhysicsLiveWorldTu15::Impl {
     };
     std::shared_ptr<SourceRuntimeMemory> bank_storage;
     SourceRuntimeMemory &bank;
+    std::unique_ptr<private_cpu_bitmap::WorldProjection> cpu_bitmap_projection;
     std::unique_ptr<SourceRuntimeDspSection> dsp_section;
     std::unique_ptr<SourceRuntimeSoundSdkResources> sound_sdk_resources;
     std::unique_ptr<NativeTu15RendererPalette> renderer_palette;
@@ -553,6 +566,9 @@ struct PhysicsLiveWorldTu15::Impl {
         // clamp every normal camera packet to zero before observer repair.
         for(auto entry:{0x382360u,0x382380u})call_actual(entry);
         call_actual(0x3825d0u); // Actual CRT game-engine class registration.
+        // Original forward _cinit rows46D944/46D948 initialize angular wrap.
+        call_actual(0x380d50u); // Two-pi source operand into actual5564C4.
+        call_actual(0x380d30u); // Pi source operand into actual5564C8.
         call_actual(0x381010u); // Actual _cinit46D98C directional math scalar.
         call_actual(0x3811b0u); // Actual _cinit46D9C4 environment spread scalar.
         call_actual(0x3817f0u); // Actual _cinit46DA84 ratio threshold.
@@ -920,6 +936,12 @@ struct PhysicsLiveWorldTu15::Impl {
     void required(SourcePhysicsContactMemory&m,const SourcePhysicsContactRuntimeCall&c,
         SourcePhysicsWorldRuntimeAbi&a,const SourcePhysicsContactRecordObserver&o) {
         if(&m!=&bank)throw std::runtime_error("TU1.5 live world bank owner differs");
+        if(canonical_cache && c.instruction==0xd5506u && c.target==0x13a030u && !c.tail) {
+            if(word(bank,a.gp[4])!=0xd550bu)
+                throw FormatError("MCC CPU bitmap lookup lost its exact original caller");
+            if(!cpu_bitmap_projection)cpu_bitmap_projection=std::make_unique<private_cpu_bitmap::WorldProjection>(cache_owner,bank,*canonical_cache);
+            cpu_bitmap_projection->lookup(a,fp,services(),o);return;
+        }
         if(c.target==0x21f590u && canonical_cache){run_sound_duration(c,a,o);return;}
         if(c.target==0x1d9080u && c.instruction!=c.target && !c.tail && body_velocity_input_observer)
             body_velocity_input_observer(c.instruction,a,bank);
@@ -1182,6 +1204,13 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(pool_storage.try_call(m,c,a))return;
         if(renderer_palette && renderer_palette->try_call(m,c,a))return;
+        if(c.instruction==0x21f4bdu) {
+            require_executor();
+            const SourceSoundCacheIoTu15Services io{
+                [this](auto encoded,auto bytes){return resources.load(encoded,bytes);},
+                [this](auto descriptor,auto destination,auto bytes){return retain_resource_read({descriptor,destination,bytes});}};
+            if(source_try_sound_cache_io_tu15(m,c,a,io))return;
+        }
         if(c.instruction==0x1301b0u && c.target==0x1a3b70u && !c.tail) {
             // Actual1300B0 has allocated the original texture cache block and
             // produced its hardware descriptor. Native file I/O fills that
@@ -1269,6 +1298,27 @@ struct PhysicsLiveWorldTu15::Impl {
         if(source_sound_sdk_tu15_owns_entry(c.target)) {
             source_run_sound_sdk_tu15(m,c.target,a,fp,services(),o);return;
         }
+        if(source_sound_cache_query_tu15_owns_entry(c.target)) {
+            source_run_sound_cache_query_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x127b20u) {
+            source_run_sound_scalar_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x12a810u || c.target==0x12a930u) {
+            source_run_sound_listener_selection_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x127cf0u) {
+            source_run_sound_gain_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x127d70u) {
+            source_run_sound_random_scalar_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x2290c0u) {
+            source_run_sound_properties_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x127e00u) {
+            source_run_sound_random_short_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(source_sound_startup_tu15_owns_entry(c.target)) {
             source_run_sound_startup_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -1325,6 +1375,14 @@ struct PhysicsLiveWorldTu15::Impl {
         if(source_death_cycle_runtime_tu15_owns_entry(c.target)) {
             source_run_death_cycle_runtime_tu15(m,c.target,a,fp,services(),o);return;
         }
+        // Reuse the already-verified compiled CRT leaves used by native startup.
+        if(c.target==0x3817f0u) {
+            source_run_ratio_threshold_crt_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x380d50u || c.target==0x380d30u ||
+           c.target==0x381010u || c.target==0x3811b0u) {
+            source_run_environment_crt_pair_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(source_map_world_support_tu15_owns_entry(c.target)) {
             source_run_map_world_support_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -1336,6 +1394,12 @@ struct PhysicsLiveWorldTu15::Impl {
             source_run_scene_device_constructor_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_model_render_tu15_owns_entry(c.target)) {
+            if(canonical_cache && c.target==0x3daf0u) {
+                if(!cpu_bitmap_projection)cpu_bitmap_projection=std::make_unique<private_cpu_bitmap::WorldProjection>(cache_owner,bank,*canonical_cache);
+                private_cpu_bitmap::run_model_3daf0_with_inline_cpu_bitmaps(bank,a,fp,services(),o,
+                    [this](TagHandle requested,unsigned root){return cpu_bitmap_projection->first_row_for_canonical_root(requested,root);});
+                return;
+            }
             source_run_model_render_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_collision_instance_storage_tu15_owns_entry(c.target)) {
@@ -3210,7 +3274,10 @@ PhysicsLiveWorldTu15::AuthorityCheckpoint PhysicsLiveWorldTu15::authority_checkp
     saved.resources=impl_->resources.identity();saved.bsp=impl_->bsp.index;
     saved.arena=impl_->arena->ownership_checkpoint();saved.locks=impl_->locks.ownership_checkpoint(impl_->bank);
     saved.virtual_memory=impl_->virtual_memory.ownership_checkpoint();saved.pool_storage=impl_->pool_storage.ownership_checkpoint();
-    saved.events=impl_->events.checkpoint();saved.bank=impl_->bank.checkpoint();
+    saved.events=impl_->events.checkpoint();
+    if(impl_->cpu_bitmap_projection && impl_->render_read_borrows)
+        throw FormatError("MCC CPU bitmap export requires an unborrowed completed world");
+    saved.bank=impl_->cpu_bitmap_projection?impl_->cpu_bitmap_projection->checkpoint_without_resources():impl_->bank.checkpoint();
     {
         std::lock_guard lock(impl_->mutex);
         const auto main=impl_->thread_ids.find(impl_->main_thread);
@@ -3276,6 +3343,9 @@ struct PhysicsLiveWorldTu15::PreparedAuthority::Impl {
     explicit Impl(PhysicsLiveWorldTu15::Impl &owner,const AuthorityCheckpoint &saved)
         :owner(owner),gate(owner.call_gate,std::try_to_lock) {
         owner.require_executor();
+        if(owner.cpu_bitmap_projection && owner.cpu_bitmap_projection->has_resources() &&
+            owner.render_read_borrows)
+            throw FormatError("MCC CPU bitmap restore requires an unborrowed source call");
         if(owner.sound_timing_plan)prepared_sound_timing=std::make_shared<MccSoundTimingMemoryOwner>(owner.bank_storage);
         if(!gate.owns_lock() || owner.public_calls || owner.execution_depth || saved.version!=3 ||
             !saved.session_configured || saved.resources!=owner.resources.identity())
@@ -3389,7 +3459,9 @@ struct PhysicsLiveWorldTu15::PreparedAuthority::Impl {
             throw FormatError("Campaign checkpoint BSP binding differs from its admitted cache");
         // Immutable declared operands (or the explicit offline reference
         // image) must remain exactly those of the locally admitted owner.
-        if(!owner.bank.matches_read_only_checkpoint(saved.bank))
+        if(owner.cpu_bitmap_projection?
+            !owner.cpu_bitmap_projection->matches_read_only_checkpoint_for_restore(saved.bank):
+            !owner.bank.matches_read_only_checkpoint(saved.bank))
             throw FormatError("TU1.5 authority changed immutable image bytes or topology");
         if(!saved.main_thread_token || saved.main_thread_token>=saved.next_thread_token || saved.next_thread_token>0x100000000ull ||
             word(replacement,native_thread_context+0x12cu)!=saved.main_thread_token ||
@@ -3514,6 +3586,9 @@ bool PhysicsLiveWorldTu15::commit_authority(PreparedAuthority &&prepared) noexce
     // Denied topology admission must leave both current owners and receipts intact.
     // Checked swap has no throwing operations after both permission gates pass.
     try{impl_->bank.swap_backing(state.replacement);}catch(...){return false;}
+    // A successful real bank swap stales only the outgoing derived owner.
+    // Keep it through every failed/cancelled prepare and denied swap.
+    impl_->cpu_bitmap_projection.reset();
     if(impl_->sound_timing_plan)impl_->sound_timing_memory.swap(state.prepared_sound_timing);
     impl_->main_receipts.retire();
     if(state.campaign_bsp)std::swap(impl_->bsp,*state.campaign_bsp);

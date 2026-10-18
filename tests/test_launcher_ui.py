@@ -123,6 +123,35 @@ class LauncherHomeTests(unittest.TestCase):
         self.assertEqual(self.home.result, CANCELLED)
         self.assertEqual(self.calls, [])
 
+    def test_validated_native_test_play_hands_back_to_launcher_without_preview_or_parity_claim(self):
+        from mcc_onboarding import NOT_PLAYABLE
+        self.home.availability = lambda: NOT_PLAYABLE
+        self.home.native_test_available = lambda: True
+        self.release.set()
+        self.home.update_button.invoke()
+        self.wait_until(lambda: not self.home.working)
+        self.assertEqual(str(self.home.play_button.cget('state')), 'normal')
+        self.assertIn('native test', self.home.play_button.cget('text'))
+        self.assertIn('parity remain incomplete', self.home.status.cget('text'))
+        self.home.play_button.invoke()
+        self.assertTrue(self.home.closed)
+        self.assertEqual(self.home.result, 0)
+        self.assertEqual(self.preview_calls, [])
+
+    def test_stale_native_validation_after_update_falls_back_to_existing_preview(self):
+        from mcc_onboarding import NOT_PLAYABLE
+        self.home.availability = lambda: NOT_PLAYABLE
+        self.home.native_test = True
+        self.home.native_test_available = lambda: False
+        self.release.set()
+        self.home.update_button.invoke()
+        self.wait_until(lambda: not self.home.working)
+        self.assertFalse(self.home.native_test)
+        self.assertTrue(self.home.test_build)
+        self.home.play_button.invoke()
+        self.assertEqual(self.home.result, CANCELLED)
+        self.assertEqual(len(self.preview_calls), 1)
+
     def test_pointer_click_on_play_starts_game(self):
         button = self.home.play_button
         button.event_generate("<Enter>", x=10, y=10)

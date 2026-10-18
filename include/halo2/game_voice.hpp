@@ -35,6 +35,9 @@ struct GameVoiceFrame {
   bool radio{};
   GameVoiceGains gains{1,1};
   std::vector<std::uint8_t> opus;
+  // Local delivery stamp, never serialized on the peer wire. A session tags
+  // decoded incoming frames; the microphone worker tags outgoing frames.
+  std::uint64_t delivery_generation{};
 };
 struct GameVoiceSnapshot {
   bool enabled{},microphone_muted{},transmitting{},radio{};
@@ -56,6 +59,13 @@ public:
   void radio(bool pressed,bool active);
   void mute(unsigned,bool);
   void blocks(std::uint16_t);
+  // Close delivery immediately and request worker-owned codec/talker/device
+  // queue retirement. The returned stamp is unique within this process.
+  // No device I/O or worker join occurs on the requesting simulation/network
+  // thread. ready() acknowledges retirement before a new native role opens.
+  std::uint64_t fence();
+  bool ready(std::uint64_t)const;
+  bool resume(std::uint64_t);
   GameVoiceSnapshot snapshot()const;
   std::vector<GameVoiceFrame> outgoing();
   void receive(GameVoiceFrame);

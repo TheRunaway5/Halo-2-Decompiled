@@ -10,11 +10,19 @@ class ModelNodeInterpolation {
 public:
     void capture(std::uint64_t tick,std::span<const Transform> nodes,
         std::optional<Transform> reference_frame={});
+    // A render collector can run less often than the simulation. Its two
+    // completed endpoints retain their actual tick spacing; the caller clears
+    // history at lifetime/visibility/timeline discontinuities.
+    void capture_render(std::uint64_t tick,std::span<const Transform> nodes,
+        std::optional<Transform> reference_frame={});
+    std::vector<Transform> sample_render(const RenderModel &,float fraction,
+        std::optional<Transform> reference_frame={})const;
     std::vector<Transform> sample(const RenderModel &,float fraction,
         std::optional<Transform> reference_frame={})const;
     bool paired()const{return paired_;}
 private:
-    std::uint64_t tick_{};
+    void capture(std::uint64_t,std::span<const Transform>,std::optional<Transform>,bool render);
+    std::uint64_t tick_{},previous_tick_{};
     bool initialized_{},paired_{};
     std::vector<Transform> previous_,current_;
     std::optional<Transform> previous_frame_,current_frame_;

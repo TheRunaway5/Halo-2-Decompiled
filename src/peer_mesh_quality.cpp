@@ -131,10 +131,17 @@ std::array<std::optional<PeerQualityRow>,16> PeerMeshQuality::matrix(std::uint64
 }
 std::optional<PeerQualityRow> PeerMeshQuality::local(std::uint64_t now)const{return matrix(now)[impl_->self];}
 std::vector<PeerHostQuality> PeerMeshQuality::candidates(std::uint64_t now)const{
-    auto &s=*impl_;const auto rows=matrix(now);std::vector<PeerHostQuality> result;
-    for(unsigned p=0;p<16;++p)if(member(s.context,p)&&rows[p]){
+    return rank(now,impl_->context.peers);
+}
+std::vector<PeerHostQuality> PeerMeshQuality::migration_candidates(std::uint64_t now)const{
+    const auto &c=impl_->context;if(c.host>=16)return {};
+    return rank(now,std::uint16_t(c.peers&~(1u<<c.host)));
+}
+std::vector<PeerHostQuality> PeerMeshQuality::rank(std::uint64_t now,std::uint16_t members)const{
+    const auto rows=matrix(now);std::vector<PeerHostQuality> result;
+    for(unsigned p=0;p<16;++p)if((members&(1u<<p))&&rows[p]){
         PeerHostQuality quality;quality.peer=p;quality.minimum_upload_bytes_per_second=UINT32_MAX;std::uint64_t total{};unsigned count{};bool eligible=true;
-        for(unsigned other=0;other<16;++other)if(other!=p&&member(s.context,other)){
+        for(unsigned other=0;other<16;++other)if(other!=p&&(members&(1u<<other))){
             if(!rows[other]){eligible=false;break;}const auto &a=rows[p]->links[other],&b=rows[other]->links[p];
             if(!a.measured||!b.measured||!a.upload_bytes_per_second||!b.upload_bytes_per_second||a.rtt_ms==UINT32_MAX||b.rtt_ms==UINT32_MAX){eligible=false;break;}
             total+=std::max(a.rtt_ms,b.rtt_ms);++count;quality.minimum_upload_bytes_per_second=std::min(quality.minimum_upload_bytes_per_second,a.upload_bytes_per_second);

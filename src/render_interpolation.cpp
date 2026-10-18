@@ -80,15 +80,32 @@ std::vector<Transform> interpolate_model_nodes(const RenderModel &model,
 }
 void ModelNodeInterpolation::capture(std::uint64_t tick,std::span<const Transform> nodes,
     std::optional<Transform> reference_frame) {
+    capture(tick,nodes,reference_frame,false);
+}
+void ModelNodeInterpolation::capture(std::uint64_t tick,std::span<const Transform> nodes,
+    std::optional<Transform> reference_frame,bool render) {
     if(nodes.empty())throw FormatError("Completed model interpolation requires nodes");
     if(!initialized_ || nodes.size()!=current_.size() ||
-       reference_frame.has_value()!=current_frame_.has_value() || tick<tick_ || tick-tick_>1) {
+       reference_frame.has_value()!=current_frame_.has_value() || tick<tick_ || (!render && tick-tick_>1)) {
         previous_.clear();previous_frame_.reset();paired_=false;
     } else if(tick!=tick_) {
-        previous_=std::move(current_);previous_frame_=current_frame_;paired_=true;
+        previous_=std::move(current_);previous_frame_=current_frame_;previous_tick_=tick_;paired_=true;
     }
     current_.assign(nodes.begin(),nodes.end());current_frame_=reference_frame;
     tick_=tick;initialized_=true;
+}
+void ModelNodeInterpolation::capture_render(std::uint64_t tick,std::span<const Transform> nodes,
+    std::optional<Transform> frame) {
+    capture(tick,nodes,frame,true);
+}
+std::vector<Transform> ModelNodeInterpolation::sample_render(const RenderModel &model,float f,
+    std::optional<Transform> frame)const {
+    validate_render_fraction(f);
+    // The presentation clock is one simulation tick behind its current
+    // completed endpoint. A slow draw may span several ticks; using f alone
+    // would replay that entire interval and then jump at the next endpoint.
+    if(paired_ && f!=1)f=float(1.0-(1.0-double(f))/double(tick_-previous_tick_));
+    return sample(model,f,frame);
 }
 std::vector<Transform> ModelNodeInterpolation::sample(const RenderModel &model,float f,
     std::optional<Transform> frame)const {

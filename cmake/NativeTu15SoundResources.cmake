@@ -40,6 +40,22 @@ if(BUILD_TESTING)
     add_test(NAME native_tu15_sound_gp_scratch_publication COMMAND native_tu15_sound_gp_scratch_tests
         "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
     set_tests_properties(native_tu15_sound_gp_scratch_publication PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+    add_executable(native_tu15_sound_ep_scratch_tests tests/native_tu15_sound_ep_scratch_tests.cpp
+        src/source_runtime_sound_dma_resources.cpp src/source_runtime_host_physical_memory.cpp
+        src/source_runtime_sound_sdk_resources.cpp src/source_sound_sdk_pool.cpp
+        src/source_runtime_image.cpp src/source_runtime_memory.cpp src/source_tu15_settings.cpp
+        src/source_sound_dma_storage_tu15_generated.cpp src/source_sound_sdk_tu15_generated.cpp
+        src/source_sound_dsp_image_tu15_generated.cpp src/source_sound_ac97_output_tu15_generated.cpp)
+    target_include_directories(native_tu15_sound_ep_scratch_tests PRIVATE include src)
+    target_link_libraries(native_tu15_sound_ep_scratch_tests PRIVATE halo2_sound_platform halo2_snapshot_storage)
+    target_compile_options(native_tu15_sound_ep_scratch_tests PRIVATE
+        $<$<CXX_COMPILER_ID:GNU,Clang>:-fno-fast-math;-ffp-contract=off;-frounding-math>)
+    add_test(NAME native_tu15_sound_ep_scratch_initializer
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/tag_match_memory_budget.py
+        --output-root @HALO2_TEST_SCRATCH@/guard --timeout 60 --
+        $<TARGET_FILE:native_tu15_sound_ep_scratch_tests>
+        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe")
+    set_tests_properties(native_tu15_sound_ep_scratch_initializer PROPERTIES TIMEOUT 90 SKIP_RETURN_CODE 77)
     add_executable(native_tu15_sound_gp_upload_tests tests/native_tu15_sound_gp_upload_tests.cpp
         src/source_runtime_sound_dma_resources.cpp src/source_runtime_host_physical_memory.cpp
         src/source_runtime_sound_sdk_resources.cpp src/source_sound_sdk_pool.cpp

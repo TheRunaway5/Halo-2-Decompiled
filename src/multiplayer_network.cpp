@@ -1761,7 +1761,8 @@ void host_loss_contexts(const AuthorityTransferContext &previous,const Authority
       !(previous.peers&(1u<<previous.host))||!(next.peers&(1u<<next.host))||
       next.session!=previous.session||previous.epoch==UINT32_MAX||next.epoch!=previous.epoch+1||
       next.membership_revision<=previous.membership_revision||
-      next.peers!=std::uint16_t(previous.peers&~(1u<<previous.host)))
+      next.peers!=std::uint16_t(previous.peers&~(1u<<previous.host))||
+      std::ranges::all_of(previous.session,[](auto b){return b==std::byte{};}))
     throw FormatError("Host loss requires an independently agreed next generation and survivor membership");
 }
 }
@@ -1872,9 +1873,15 @@ LanHost::HostLossResume LanHost::resume_after_host_loss(MultiplayerMatch &match,
   for(const auto &p:admissions)if(online_admission_peer(p)==next.host)local_slots.push_back(p.slot);
   if(local_slots.empty()||local_slots!=promoted->ids||local_slots.size()>4)
     throw FormatError("Replacement host has a different admitted couch roster");
+  if(promoted->profiles.size()!=local_slots.size()||promoted->selected_teams.size()!=local_slots.size())
+    throw FormatError("Replacement host has an incomplete original profile request bank");
   std::array<std::uint32_t,4> local_players;local_players.fill(null_datum);
   for(unsigned i=0;i<local_slots.size();++i){const auto found=std::ranges::find(accepted,local_slots[i],&SourcePlayerAdmission::slot);
     if(found==accepted.end())throw FormatError("Replacement host omitted an independently admitted local player");
+    const auto &player=match.player(local_slots[i]);const auto &admission=admissions.at(local_slots[i]);
+    if(promoted->profiles[i]!=player.source_profile_request||
+        promoted->selected_teams[i]!=(match.team_mode()?admission.team:-1))
+      throw FormatError("Replacement host changed a local profile request or join team");
     local_players[i]=found->player;
   }
   if(host_local_players(*world)!=local_players)
@@ -1897,6 +1904,27 @@ LanHost::HostLossResume LanHost::resume_after_host_loss(MultiplayerMatch &match,
   auto host=resume(match,std::move(transport),fingerprint,std::move(admissions),incoming,after_binding,accepted);
   if(authority.execution_boundary()!=before)throw FormatError("Host role transition changed its native world");
   return {std::move(host),std::move(local)};
+}
+void LanHost::receive_local_continuation(LocalContinuation &saved,std::array<Controls,multiplayer_capacity> &input){
+  if(saved.slots.empty()||saved.slots.size()>4)throw FormatError("Local continuation has no admitted couch seats");
+  std::uint16_t seen{};for(auto slot:saved.slots){
+    if(slot>=multiplayer_capacity||(seen&(1u<<slot)))throw FormatError("Local continuation repeats an invalid couch slot");
+    seen|=std::uint16_t(1u<<slot);
+  }
+  for(unsigned j=0;j<saved.slots.size();++j){auto c=saved.controls[j];
+    c.grenade=c.switch_weapon=c.melee=c.switch_grenade=false;
+    std::array<bool *,10> actions{&c.jump,&c.fire,&c.reload,&c.grenade,&c.pickup,&c.dual_wield,&c.switch_weapon,&c.fire_secondary,&c.melee,&c.switch_grenade};
+    for(unsigned action=0;action<actions.size();++action)
+      if(newer(saved.received_presses[j][action],saved.delivered_presses[j][action])){
+        *actions[action]=true;
+        if(action==4||action==5){auto &duration=action==4?c.pickup_milliseconds:c.dual_wield_milliseconds;
+          if(action==4){duration=saved.completed[j][0];c.vehicle_interaction_target=saved.completed_vehicle[j];}
+          else duration=std::max(duration,saved.completed[j][1]);
+          saved.delivered_presses[j][action]=saved.received_presses[j][action];
+        }else ++saved.delivered_presses[j][action];
+      }
+    input[saved.slots[j]]=c;
+  }
 }
 void LanHost::receive(std::array<Controls, multiplayer_capacity> &controls) {
   auto &h = *impl_;
@@ -2321,16 +2349,22 @@ void LanClient::bind_continuity(const AuthorityTransferContext &context,unsigned
       ntohl(v.host.sin_addr.s_addr)!=context.host+1||v.host.sin_port||
       std::ranges::all_of(context.session,[](auto b){return b==std::byte{};}))
     throw FormatError("Client continuity requires its independently admitted native peer context");
-  std::vector<unsigned> slots;std::uint16_t seen{};
-  for(const auto &p:roster){if(p.slot>=16||(seen&(1u<<p.slot)))throw FormatError("Client continuity has a duplicate admitted slot");
-    seen|=std::uint16_t(1u<<p.slot);if(online_admission_peer(p)==self)slots.push_back(p.slot);}
-  if(slots!=v.ids)throw FormatError("Client continuity differs from its accepted couch slots");
+  if(roster.size()<2||roster.size()>16||self>=roster.size()||online_admission_peer(roster[self])!=self||roster[self].guest)
+    throw FormatError("Client continuity omitted its physical connection owner");
+  std::vector<unsigned> slots;std::uint16_t seen{},physical{};
+  for(const auto &p:roster){if(p.slot>=roster.size()||(seen&(1u<<p.slot)))throw FormatError("Client continuity has a duplicate admitted slot");
+    const auto owner=online_admission_peer(p);
+    if(owner>=roster.size()||online_admission_peer(roster[owner])!=owner||roster[owner].guest||roster[p.slot].slot!=p.slot||
+        std::ranges::count_if(roster,[&](const auto &a){return online_admission_peer(a)==owner;})>4)
+      throw FormatError("Client continuity has a different physical couch-owner table");
+    seen|=std::uint16_t(1u<<p.slot);physical|=std::uint16_t(1u<<owner);if(owner==self)slots.push_back(p.slot);}
+  if(slots!=v.ids||(context.peers&~physical))throw FormatError("Client continuity differs from its accepted couch slots");
   v.continuity=context;v.physical_self=self;
 }
 void LanClient::rebind_host(const AuthorityTransferContext &previous,const AuthorityTransferContext &next,const AuthorityCutSeal &cut){
   auto &v=*impl_;host_loss_contexts(previous,next);
   if(!v.udp.relay||!v.connected||!v.continuity||*v.continuity!=previous||v.physical_self==next.host||
-      !(next.peers&(1u<<v.physical_self))||!cut.id||!cut.bytes||cut.tick>UINT32_MAX||
+      !(next.peers&(1u<<v.physical_self))||!cut.id||!cut.bytes||
       std::ranges::all_of(cut.digest,[](auto b){return b==std::byte{};}))
     throw FormatError("Client host rebind has a stale context, unadmitted role or missing accepted cut");
   v.host.sin_addr.s_addr=htonl(next.host+1);v.continuity=next;v.assemblies.clear();v.received_states.clear();

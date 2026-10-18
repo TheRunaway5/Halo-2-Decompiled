@@ -21,6 +21,110 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
 endif()
 target_sources(halo2_systems PRIVATE src/source_execution_inputs.cpp)
 target_sources(halo2_systems PRIVATE src/source_runtime_resources.cpp)
+target_sources(halo2_systems PRIVATE src/source_sound_cache_io_tu15.cpp)
+target_sources(halo2_systems PRIVATE src/source_sound_cache_query_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/source_sound_scalar_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/source_sound_listener_selection_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/source_sound_gain_tu15_generated.cpp
+    src/source_sound_random_scalar_tu15_generated.cpp src/source_sound_properties_tu15_generated.cpp
+    src/source_sound_random_short_tu15_generated.cpp)
+if(MSVC)
+    set_source_files_properties(src/source_sound_listener_selection_tu15_generated.cpp
+        src/source_sound_gain_tu15_generated.cpp src/source_sound_random_scalar_tu15_generated.cpp
+        src/source_sound_properties_tu15_generated.cpp
+        src/source_sound_random_short_tu15_generated.cpp
+        PROPERTIES COMPILE_OPTIONS "/fp:strict")
+else()
+    set_source_files_properties(src/source_sound_listener_selection_tu15_generated.cpp
+        src/source_sound_gain_tu15_generated.cpp src/source_sound_random_scalar_tu15_generated.cpp
+        src/source_sound_properties_tu15_generated.cpp
+        src/source_sound_random_short_tu15_generated.cpp
+        PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
+if(BUILD_TESTING)
+    foreach(sound_owner IN ITEMS gain random_scalar properties random_short)
+        if(sound_owner STREQUAL "random_scalar")
+            set(sound_owner_argument "random-scalar")
+        elseif(sound_owner STREQUAL "random_short")
+            set(sound_owner_argument "random-short")
+        else()
+            set(sound_owner_argument "${sound_owner}")
+        endif()
+        add_executable(source_sound_${sound_owner}_tu15_tests EXCLUDE_FROM_ALL
+            tests/source_sound_${sound_owner}_tu15_tests.cpp
+            src/source_sound_${sound_owner}_tu15_generated.cpp)
+        target_include_directories(source_sound_${sound_owner}_tu15_tests PRIVATE include src)
+        target_link_libraries(source_sound_${sound_owner}_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+        if(HALO2_SANITIZERS AND NOT MSVC)
+            target_compile_options(source_sound_${sound_owner}_tu15_tests PRIVATE
+                -fsanitize=address,undefined -fno-omit-frame-pointer)
+            target_link_options(source_sound_${sound_owner}_tu15_tests PRIVATE -fsanitize=address,undefined)
+        endif()
+        add_test(NAME original_tu15_sound_${sound_owner}
+            COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_sound_parameter_cpu_tu15.py
+                --owner ${sound_owner_argument}
+                --binary $<TARGET_FILE:source_sound_${sound_owner}_tu15_tests>
+                --generated-source ${PROJECT_SOURCE_DIR}/src/source_sound_${sound_owner}_tu15_generated.cpp
+                --output ${CMAKE_BINARY_DIR}/sound-${sound_owner_argument}-acceptance)
+        set_tests_properties(original_tu15_sound_${sound_owner} PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+    endforeach()
+    add_executable(source_sound_listener_selection_tu15_tests EXCLUDE_FROM_ALL
+        tests/source_sound_listener_selection_tu15_tests.cpp src/source_sound_listener_selection_tu15_generated.cpp)
+    target_include_directories(source_sound_listener_selection_tu15_tests PRIVATE include src)
+    target_link_libraries(source_sound_listener_selection_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        target_compile_options(source_sound_listener_selection_tu15_tests PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(source_sound_listener_selection_tu15_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+    add_test(NAME original_tu15_sound_listener_selection
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_sound_listener_selection_tu15.py
+            --binary $<TARGET_FILE:source_sound_listener_selection_tu15_tests>
+            --output ${CMAKE_BINARY_DIR}/sound-listener-selection-acceptance
+            --generated-source ${PROJECT_SOURCE_DIR}/src/source_sound_listener_selection_tu15_generated.cpp)
+    set_tests_properties(original_tu15_sound_listener_selection PROPERTIES TIMEOUT 120 SKIP_RETURN_CODE 77)
+    add_executable(source_sound_scalar_tu15_tests EXCLUDE_FROM_ALL
+        tests/source_sound_scalar_tu15_tests.cpp src/source_sound_scalar_tu15_generated.cpp)
+    target_include_directories(source_sound_scalar_tu15_tests PRIVATE include src)
+    target_link_libraries(source_sound_scalar_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        target_compile_options(source_sound_scalar_tu15_tests PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(source_sound_scalar_tu15_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+    add_test(NAME original_tu15_sound_scalar
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_sound_scalar_tu15.py
+            --binary $<TARGET_FILE:source_sound_scalar_tu15_tests>
+            --generated-source ${PROJECT_SOURCE_DIR}/src/source_sound_scalar_tu15_generated.cpp)
+    set_tests_properties(original_tu15_sound_scalar PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+    add_executable(source_sound_cache_query_tu15_tests EXCLUDE_FROM_ALL
+        tests/source_sound_cache_query_tu15_tests.cpp src/source_sound_cache_query_tu15_generated.cpp)
+    target_include_directories(source_sound_cache_query_tu15_tests PRIVATE include src)
+    target_link_libraries(source_sound_cache_query_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        target_compile_options(source_sound_cache_query_tu15_tests PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(source_sound_cache_query_tu15_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+    add_test(NAME original_tu15_sound_cache_query
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_sound_cache_query_tu15.py
+            --binary $<TARGET_FILE:source_sound_cache_query_tu15_tests>
+            --generated-source ${PROJECT_SOURCE_DIR}/src/source_sound_cache_query_tu15_generated.cpp)
+    set_tests_properties(original_tu15_sound_cache_query PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+    add_executable(source_sound_cache_io_tu15_tests EXCLUDE_FROM_ALL
+        tests/source_sound_cache_io_tu15_tests.cpp src/source_sound_cache_io_tu15.cpp)
+    target_include_directories(source_sound_cache_io_tu15_tests PRIVATE include)
+    target_link_libraries(source_sound_cache_io_tu15_tests PRIVATE nlohmann_json::nlohmann_json)
+    if(HALO2_SANITIZERS AND NOT MSVC)
+        target_compile_options(source_sound_cache_io_tu15_tests PRIVATE
+            -fsanitize=address,undefined -fno-omit-frame-pointer)
+        target_link_options(source_sound_cache_io_tu15_tests PRIVATE -fsanitize=address,undefined)
+    endif()
+    add_test(NAME original_tu15_sound_cache_io
+        COMMAND ${Python3_EXECUTABLE} ${PROJECT_SOURCE_DIR}/tools/validate_original_sound_cache_io_tu15.py
+            --binary $<TARGET_FILE:source_sound_cache_io_tu15_tests>)
+    set_tests_properties(original_tu15_sound_cache_io PROPERTIES TIMEOUT 60 SKIP_RETURN_CODE 77)
+endif()
 target_sources(halo2_systems PRIVATE src/multiplayer_source_devices_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_boot_smc_video_mode.cpp)
 target_sources(halo2_systems PRIVATE src/source_boot_smc_video_mode_input.cpp)
@@ -120,7 +224,8 @@ if(BUILD_TESTING)
   set_tests_properties(mcc_resident_cache_address_ownership PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 240)
 endif()
 target_link_libraries(halo2_systems PRIVATE OpenSSL::Crypto)
-target_sources(halo2_physics_world_runtime PRIVATE src/physics_live_support_tu15_generated.cpp)
+include(cmake/NativeTranslationUnits.cmake)
+halo2_partition_native_translation(halo2_physics_world_runtime src/physics_live_support_tu15_generated.cpp 32)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_unit_view_reset_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_sound_duration_tu15.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/mcc_sound_duration_tu15.cpp)

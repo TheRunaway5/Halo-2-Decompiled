@@ -1,0 +1,40 @@
+--- a/usrsctplib/netinet/sctp_callout.h
++++ b/usrsctplib/netinet/sctp_callout.h
+@@ -99,8 +99,11 @@
+ /* MT FIXME: Is the following correct? */
+ #define SCTP_OS_TIMER_STOP_DRAIN SCTP_OS_TIMER_STOP
+-#define	SCTP_OS_TIMER_PENDING(tmr) ((tmr)->c_flags & SCTP_CALLOUT_PENDING)
+-#define	SCTP_OS_TIMER_ACTIVE(tmr) ((tmr)->c_flags & SCTP_CALLOUT_ACTIVE)
+-#define	SCTP_OS_TIMER_DEACTIVATE(tmr) ((tmr)->c_flags &= ~SCTP_CALLOUT_ACTIVE)
++/* Expiration updates these flags under the timer queue mutex. Association
++ * locks held by observers are a separate lock domain. */
++int sctp_os_timer_flags(sctp_os_timer_t *, int clear_flags);
++#define	SCTP_OS_TIMER_PENDING(tmr) (sctp_os_timer_flags((tmr), 0) & SCTP_CALLOUT_PENDING)
++#define	SCTP_OS_TIMER_ACTIVE(tmr) (sctp_os_timer_flags((tmr), 0) & SCTP_CALLOUT_ACTIVE)
++#define	SCTP_OS_TIMER_DEACTIVATE(tmr) sctp_os_timer_flags((tmr), SCTP_CALLOUT_ACTIVE)
+ 
+ #if defined(__Userspace__)
+ void sctp_start_timer_thread(void);
+--- a/usrsctplib/netinet/sctp_callout.c
++++ b/usrsctplib/netinet/sctp_callout.c
+@@ -74,6 +74,20 @@
+ 	return ret;
+ }
+ 
++int
++sctp_os_timer_flags(sctp_os_timer_t *c, int clear_flags)
++{
++	int flags;
++
++	SCTP_TIMERQ_LOCK();
++	if (clear_flags) {
++		c->c_flags &= ~clear_flags;
++	}
++	flags = c->c_flags;
++	SCTP_TIMERQ_UNLOCK();
++	return flags;
++}
++
+ /*
+  * SCTP_TIMERQ_LOCK protects:
+  * - SCTP_BASE_INFO(callqueue)

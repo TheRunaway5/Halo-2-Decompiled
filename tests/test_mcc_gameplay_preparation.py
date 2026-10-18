@@ -15,6 +15,7 @@ import mcc_content as content
 import prepare_mcc_gameplay as preparation
 import mcc_menu_inventory as menu_inventory
 import mcc_loading_assets as loading_assets
+import mcc_menu_assets as menu_assets
 from export_vista_menu_ui import dds_image
 import csv
 import hashlib
@@ -278,7 +279,7 @@ class TransactionTests(unittest.TestCase):
             root = Path(temp)
             donor = source(root / "donor")
             project = root / "port"
-            with patch.object(preparation, "prepare_maps", return_value={"maps": 43}), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
+            with patch.object(preparation, "prepare_maps", return_value={"maps": 43}), patch.object(menu_assets, "prepare", return_value=dict(complete=True, frame_owners=648, unique_dds_pages=561, fonts={})), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
                     return_value=dict(complete=True, banks=287, frame_owners=648, unique_dds_pages=561, fonts={})):
                 final, report = preparation.prepare(project, donor, lambda _: None)
             self.assertFalse(report["runtime_active"])
@@ -308,7 +309,7 @@ class TransactionTests(unittest.TestCase):
             def update(*_):
                 (donor / "h2_maps_win64_dx11/new.map").write_bytes(b"new update")
                 return {}
-            with patch.object(preparation, "prepare_maps", side_effect=update), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
+            with patch.object(preparation, "prepare_maps", side_effect=update), patch.object(menu_assets, "prepare", return_value=dict(complete=True, frame_owners=648, unique_dds_pages=561, fonts={})), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
                     return_value=dict(complete=True, banks=287, frame_owners=648, unique_dds_pages=561, fonts={})):
                 with self.assertRaisesRegex(FormatError, "installation changed"):
                     preparation.prepare(project, donor, lambda _: None)

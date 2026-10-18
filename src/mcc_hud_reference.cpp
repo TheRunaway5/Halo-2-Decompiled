@@ -1,11 +1,15 @@
 #include "halo2/mcc_hud_reference.hpp"
+#include "halo2/mcc_hud_bitmap_geometry.hpp"
+#include "halo2/frontend.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>
+#include <cmath>
 #include <map>
 #include <nlohmann/json.hpp>
 #include <openssl/evp.h>
 #include <set>
+#include <tuple>
 
 namespace halo2 {
 namespace {
@@ -17,6 +21,7 @@ struct HudPatch {
 // Full allocation guards include all authored bytes, including unused padding;
 // only declared pointers and typed tag handles are normalized to zero.
 #include "mcc_hud_reference_hashes.inc"
+#include "mcc_hud_geometry_reference.inc"
 std::uint32_t add(std::uint32_t address, std::size_t size) {
   if (size > 0xffffffffu - address)
     throw FormatError("HUD metadata address overflow");
@@ -101,6 +106,10 @@ public:
     return value;
   }
   Json reference(const Bytes &bytes, unsigned offset, TagGroup group) {
+    // The complete all-ones TagReference is the authored null form in some
+    // canonical screen widgets. Keep its serialized words intact.
+    if (bytes.u32(offset) == 0xffffffffu && bytes.u32(offset + 4) == 0xffffffffu)
+      return nullptr;
     if (bytes.u32(offset) != group.value)
       throw FormatError("HUD reference group changed");
     const TagHandle handle{bytes.u32(offset + 4)};
@@ -234,6 +243,78 @@ public:
     }
     return out;
   }
+  bool geometry_bitmaps_qualified(const Snapshot &source) {
+    std::set<std::string> names;
+    for (const auto *kind : {"bitmap", "screen"})
+      for (const auto &row : source.logical.at(kind))
+        if (!row.at("bitmap").is_null())
+          names.insert(row.at("bitmap").get<std::string>());
+    for (const auto &name : names) {
+      const Tag *owner{};
+      for (const auto &tag : access_.directory)
+        if (tag.group == "bitm" && tag.name == name) {
+          if (owner)
+            return false;
+          owner = &tag;
+        }
+      if (!owner || !owner->address || owner->size < 76)
+        return false;
+      const auto bound = access_.resolve(owner->handle());
+      if (!bound || !same(*owner, *bound))
+        return false;
+      const auto header = read(owner->address, 76);
+      const Bytes root(header);
+      const auto count = root.u32(68), sequences = root.u32(60);
+      if (!count || count > 256 || sequences > 256)
+        return false;
+      const auto frames = read(root.u32(72), count * 168u);
+      const Bytes records(frames);
+      UiImage image;
+      image.name = name;
+      for (unsigned i = 0; i < count; ++i) {
+        const auto at = i * 168u;
+        if (std::to_integer<unsigned>(frames[at + 8]) != 1 || records.u16(at + 10))
+          return false;
+        Texture texture;
+        texture.width = records.u16(at + 4);
+        texture.height = records.u16(at + 6);
+        texture.layers = 1;
+        image.images.push_back(std::move(texture));
+      }
+      const auto sequence_rows = sequences ? read(root.u32(64), sequences * 60u)
+                                           : std::vector<std::byte>{};
+      const Bytes rows(sequence_rows);
+      for (unsigned i = 0; i < sequences; ++i) {
+        const auto at = i * 60u, sprites = rows.u32(at + 52);
+        if (sprites > 1024)
+          return false;
+        std::vector<UiSprite> sequence;
+        if (sprites) {
+          const auto storage = read(rows.u32(at + 56), sprites * 32u);
+          const Bytes data(storage);
+          for (unsigned n = 0; n < sprites; ++n) {
+            const auto q = n * 32u;
+            if (data.u16(q) >= count)
+              return false;
+            sequence.push_back({data.u16(q), data.f32(q + 8), data.f32(q + 12),
+                data.f32(q + 16), data.f32(q + 20), {data.f32(q + 24), data.f32(q + 28)}});
+          }
+        } else {
+          const auto first = rows.u16(at + 32), size = rows.u16(at + 34);
+          if (first > count || size > count - first)
+            return false;
+          for (unsigned n = 0; n < size; ++n)
+            sequence.push_back({first + n, 0, 1, 0, 1, {}});
+        }
+        image.sequences.push_back(std::move(sequence));
+      }
+      // This metadata-only view never reads resources or creates GPU pixels.
+      // Pixel-only mods can retain their geometry; foreign geometry is declined.
+      if (!mcc_hud_bitmap_logical_extent(image, 0))
+        return false;
+    }
+    return true;
+  }
 };
 MccOwnedHudProjection build(Snapshot source) {
   for (const auto &patch : hud_patches) {
@@ -323,6 +404,103 @@ MccOwnedHudProjection build(Snapshot source) {
   }
   return result;
 }
+MccOwnedHudProjection build_geometry(Snapshot source, const Json &profile) {
+  std::set<std::tuple<unsigned, unsigned, unsigned>> patched;
+  for (const auto &p : profile.at("patches")) {
+    if (p.size() != 8)
+      throw FormatError("Invalid HUD geometry patch");
+    const auto kind = p[0].get<unsigned>(), row = p[1].get<unsigned>(),
+               offset = p[4].get<unsigned>(), width = p[5].get<unsigned>();
+    const bool offsets = width == 2 && offset % 2 == 0 &&
+        ((kind == 0 && offset >= 52 && offset < 64) ||
+         (kind == 1 && offset >= 64 && offset < 76));
+    const bool registration = kind == 0 && width == 4 && offset % 4 == 0 &&
+                              offset >= 64 && offset < 88;
+    if ((!offsets && !registration) || p[2] != 0xffffffffu || p[3] != 0xffffffffu ||
+        kind >= 2 || row >= source.rows[kind].size())
+      throw FormatError("HUD geometry patch escapes its authored fields");
+    for (unsigned byte = offset; byte < offset + width; ++byte)
+      if (!patched.emplace(kind, row, byte).second)
+        throw FormatError("Overlapping HUD geometry patches");
+    auto &bytes = source.rows[kind][row].bytes;
+    const Bytes before(bytes);
+    const auto value = width == 2 ? before.u16(offset) : before.u32(offset);
+    const auto after = p[7].get<std::uint32_t>();
+    if (value != p[6].get<std::uint32_t>() ||
+        (width == 2 && after > 0xffffu) ||
+        (registration && !std::isfinite(std::bit_cast<float>(after))))
+      throw FormatError("HUD geometry patch preimage changed");
+    word(bytes, offset, after, width);
+  }
+  MccOwnedHudProjection result;
+  result.status = MccGameplayReferenceStatus::Converted;
+  result.bytes = source.root;
+  const auto append = [&](std::span<const std::byte> bytes) {
+    const auto at = (result.bytes.size() + 3) & ~std::size_t(3);
+    result.bytes.resize(at);
+    result.bytes.insert(result.bytes.end(), bytes.begin(), bytes.end());
+    return std::uint32_t(at);
+  };
+  const auto pointer = [&](std::uint32_t field, std::uint32_t target) {
+    word(result.bytes, field, target);
+    result.pointers.emplace_back(field, target);
+  };
+  constexpr std::array<unsigned, 3> descriptor{8, 16, 32}, stride{100, 84, 80},
+                                    effect_field{88, 76, 72};
+  std::array<std::uint32_t, 3> banks{};
+  for (unsigned kind = 0; kind < 3; ++kind) {
+    const auto &rows = source.rows[kind];
+    if (rows.empty()) {
+      word(result.bytes, descriptor[kind] + 4, 0);
+      continue;
+    }
+    std::vector<std::byte> bytes;
+    for (const auto &row : rows)
+      bytes.insert(bytes.end(), row.bytes.begin(), row.bytes.end());
+    banks[kind] = append(bytes);
+    pointer(descriptor[kind] + 4, banks[kind]);
+    for (unsigned i = 0; i < rows.size(); ++i)
+      word(result.bytes, banks[kind] + i * stride[kind] + effect_field[kind] + 4, 0);
+  }
+  std::map<std::vector<std::byte>, std::uint32_t> functions;
+  for (unsigned kind = 0; kind < 3; ++kind)
+    for (unsigned i = 0; i < source.rows[kind].size(); ++i) {
+      const auto &row = source.rows[kind][i];
+      if (row.effects.empty())
+        continue;
+      std::vector<std::byte> bytes;
+      for (const auto &effect : row.effects)
+        bytes.insert(bytes.end(), effect.bytes.begin(), effect.bytes.end());
+      const auto address = append(bytes);
+      pointer(banks[kind] + i * stride[kind] + effect_field[kind] + 4, address);
+      for (unsigned e = 0; e < row.effects.size(); ++e)
+        for (unsigned k = 0; k < 5; ++k) {
+          const auto &function = row.effects[e].functions[k].bytes;
+          const auto field = address + e * 104 + 20 + k * 20;
+          if (function.empty()) {
+            word(result.bytes, field, 0);
+            continue;
+          }
+          auto found = functions.find(function);
+          if (found == functions.end())
+            found = functions.emplace(function, append(function)).first;
+          pointer(field, found->second);
+        }
+    }
+  if (result.bytes.size() > 65536)
+    throw FormatError("Excessive projected HUD geometry allocation");
+  std::set<std::uint32_t> fields;
+  for (const auto &[field, target] : result.pointers) {
+    if (field > result.bytes.size() || result.bytes.size() - field < 4 ||
+        target < 40 || target >= result.bytes.size() || target % 4 ||
+        !fields.insert(field).second || Bytes(result.bytes).u32(field) != target)
+      throw FormatError("Invalid HUD geometry relocation");
+    for (const auto prior : fields)
+      if (prior != field && prior < field + 4 && field < prior + 4)
+        throw FormatError("Overlapping HUD geometry relocation fields");
+  }
+  return result;
+}
 } // namespace
 std::optional<MccOwnedHudProjection>
 project_mcc_scoreboard_hud_reference(const Tag &owner,
@@ -358,6 +536,52 @@ project_mcc_scoreboard_hud_reference(const Tag &owner,
             hud_preimages.end())
       return mismatch;
     return build(std::move(snapshot));
+  } catch (const FormatError &) {
+    return mismatch;
+  }
+}
+std::optional<MccOwnedHudProjection>
+project_mcc_hud_reference(const Tag &owner, const MccHudReferenceAccess &access) {
+  if (owner.name == "ui\\hud\\scoreboard")
+    return project_mcc_scoreboard_hud_reference(owner, access);
+  if (owner.group != "nhdt")
+    return {};
+  static const auto profiles = Json::parse(hud_geometry_profiles);
+  const auto profile = std::find_if(profiles.begin(), profiles.end(), [&](const auto &p) {
+    return p.at("name") == owner.name;
+  });
+  if (profile == profiles.end())
+    return {};
+  MccOwnedHudProjection mismatch;
+  if (!access.read || !access.resolve || !access.string_id || owner.handle().is_null() ||
+      !owner.address || owner.size < 40 || owner.size > 65536)
+    return mismatch;
+  try {
+    const auto bound = access.resolve(owner.handle());
+    if (!bound || !same(owner, *bound) ||
+        std::count_if(access.directory.begin(), access.directory.end(), [&](const auto &tag) {
+          return tag.group == owner.group && tag.name == owner.name;
+        }) != 1 ||
+        std::none_of(access.directory.begin(), access.directory.end(), [&](const auto &tag) {
+          return same(tag, owner);
+        }))
+      return mismatch;
+    Reader reader(owner, access);
+    auto source = reader.snapshot();
+    if (!reader.geometry_bitmaps_qualified(source))
+      return mismatch;
+    const auto fingerprint = digest(source.normalized_allocation);
+    if (source.logical == profile->at("after") &&
+        std::find(profile->at("postimages").begin(), profile->at("postimages").end(), fingerprint) !=
+            profile->at("postimages").end()) {
+      mismatch.status = MccGameplayReferenceStatus::AlreadyEquivalent;
+      return mismatch;
+    }
+    if (source.logical != profile->at("before") ||
+        std::find(profile->at("preimages").begin(), profile->at("preimages").end(), fingerprint) ==
+            profile->at("preimages").end())
+      return mismatch;
+    return build_geometry(std::move(source), *profile);
   } catch (const FormatError &) {
     return mismatch;
   }

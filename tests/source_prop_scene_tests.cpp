@@ -14,6 +14,7 @@
 #include <set>
 #include <cstdlib>
 #include <cstring>
+#include <map>
 using namespace halo2;
 namespace {
 void crane_bank(const Mesh &mesh,std::span<const Vertex> submitted){
@@ -225,6 +226,18 @@ int main(int argc,char**argv){try{
    if(expected.size()!=world.size() || (!expected.empty() && std::memcmp(expected.data(),world.data(),expected.size()*sizeof(Vertex))))
     throw FormatError("restored static prop transform changed complete original geometry");
   }
+  const auto resident_materials=mesh.materials.size();
+  std::map<std::size_t,std::vector<std::uint8_t>> retained_permutations;
+  for(const auto &o:scene.effect_owners())retained_permutations[o.placement]={o.permutations.begin(),o.permutations.end()};
+  scene.reset_lifetimes();std::vector<Vertex> reset;std::vector<ObjectLightingBinding> reset_bindings;
+  scene.append(reset,reset_bindings);
+  if(!reset.empty()||!reset_bindings.empty())throw FormatError("Retired prop world retained draw admission");
+  scene.synchronize(before_move);scene.update_pose(0,mesh);scene.append(reset,reset_bindings);
+  if(reset.size()!=world.size() || reset_bindings.size()!=light.size() || mesh.materials.size()!=resident_materials ||
+     (!reset.empty()&&std::memcmp(reset.data(),world.data(),reset.size()*sizeof(Vertex))))
+   throw FormatError("Prop world adoption changed the complete original stream or resident slots");
+  for(const auto &o:scene.effect_owners())if(!std::ranges::equal(o.permutations,retained_permutations.at(o.placement)))
+   throw FormatError("Prop world adoption discarded authored attachment permutation ownership");
   std::cout<<names[i]<<": "<<s.placements<<" props, "<<s.dynamic_materials<<" dynamic, "<<s.prt_materials
    <<" PRT entries, "<<s.resident_dynamic_materials<<" dynamic + "<<s.resident_prt_materials<<" PRT resident slots, "
    <<s.section_banks<<" section banks, "<<world.size()<<" vertices\n";

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Configure, build and run tests in a disposable build tree.
 
-Only bounded logs and report.json remain in --output. Use --target and --filter
+Bounded logs, report.json and selected small reports remain in --output. Use --target and --filter
 for focused work; omit them to build halo2_tests and run the full CTest suite.
 """
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -16,6 +17,50 @@ from run_test import main as run_with_cleanup
 
 ROOT = Path(__file__).resolve().parents[1]
 LOG_LIMIT = 4 * 1024 * 1024
+REPORT_LIMIT = 1024 * 1024
+REPORT_TOTAL_LIMIT = 8 * 1024 * 1024
+REPORT_SUFFIXES = {'.json', '.log', '.txt', '.tsv', '.csv', '.md', '.xml'}
+
+
+def retain_reports(args, build, report):
+    records = []
+    retained_bytes = 0
+    for value in args.retain_report:
+        relative = Path(value)
+        if relative.is_absolute() or '..' in relative.parts:
+            records.append({'path': value, 'status': 'not retained: unsafe relative path'})
+            continue
+        source = build / relative
+        if not source.resolve().is_relative_to(build.resolve()):
+            records.append({'path': value, 'status': 'not retained: outside private build'})
+            continue
+        if relative.suffix.lower() not in REPORT_SUFFIXES:
+            records.append({'path': value, 'status': 'not retained: not a report suffix'})
+            continue
+        if not source.is_file():
+            records.append({'path': value, 'status': 'not produced'})
+            continue
+        size = source.stat().st_size
+        if size > REPORT_LIMIT:
+            records.append({'path': value, 'status': 'not retained: exceeds small-report limit', 'bytes': size})
+            continue
+        data = source.read_bytes()
+        if len(data) > REPORT_LIMIT:
+            records.append({'path': value, 'status': 'not retained: exceeds small-report limit', 'bytes': len(data)})
+            continue
+        if data.startswith((b'\x7fELF', b'MZ')):
+            records.append({'path': value, 'status': 'not retained: executable content'})
+            continue
+        if retained_bytes + len(data) > REPORT_TOTAL_LIMIT:
+            records.append({'path': value, 'status': 'not retained: total small-report limit', 'bytes': len(data)})
+            continue
+        target = args.output / 'evidence' / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        records.append({'path': value, 'status': 'retained', 'bytes': len(data),
+                        'sha256': hashlib.sha256(data).hexdigest(), 'retained_path': str(target)})
+        retained_bytes += len(data)
+    report['retained_small_reports'] = records
 
 
 def run_step(command, log):
@@ -89,6 +134,7 @@ def build_and_test(args):
     finally:
         if report['status'] == 'running':
             report['status'] = 'interrupted'
+        retain_reports(args, build, report)
         save_report()
 
 
@@ -104,11 +150,17 @@ def main():
     parser.add_argument('--config', default='Release', help='Build configuration (default: Release)')
     parser.add_argument('--sanitizers', action='store_true')
     parser.add_argument('--cmake-arg', action='append', default=[])
+    parser.add_argument('--retain-report', action='append', default=[],
+                        help='Copy this explicit relative build report (at most 1 MiB) before cleanup; repeatable')
     parser.add_argument('--keep-artifacts', action='store_true')
     parser.add_argument('--build-worker', action='store_true', help=argparse.SUPPRESS)
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error('--jobs must be positive')
+    for value in args.retain_report:
+        path = Path(value)
+        if path.is_absolute() or '..' in path.parts:
+            parser.error('--retain-report must be relative to the private build')
     args.source = args.source.resolve()
     args.output = args.output.resolve()
     args.scratch_root = args.scratch_root.resolve()

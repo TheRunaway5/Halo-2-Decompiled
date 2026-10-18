@@ -296,6 +296,15 @@ void SourceMachineScene::interpolate(const SceneObjects &scene,const SceneInterp
     }
 }
 void SourceMachineScene::synchronize(const SceneObjects&scene,const SourceDeviceWorld*devices){impl_->synchronize(scene,devices);}
+void SourceMachineScene::reset_lifetimes(){
+    auto &s=*impl_;s.last_tick=0;s.render_frame=0;s.lifetimes_bound=false;
+    for(auto &m:s.machines){
+        m.handle=0xffffffffu;m.created_tick=m.advanced_tick=0;
+        m.active=m.visible=m.simulation_owned=false;m.presentation.reset();
+        m.solved_nodes.reset();m.world_nodes.clear();m.device_flags=0;m.group_position=0;
+        m.light={};m.geometry.reset_history();
+    }
+}
 void SourceMachineScene::set_reference_devices(std::span<const ReferenceDeviceState> devices,Mesh&mesh){
     impl_->set_reference_devices(devices,mesh);
 }

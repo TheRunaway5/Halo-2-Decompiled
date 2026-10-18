@@ -52,6 +52,11 @@ public:
     // allocator has different handles. No replica clock runs in this renderer.
     // Prepared resources remain inactive until actual source lifetimes bind.
     void synchronize(const SceneObjects &,const SourceDeviceWorld * = nullptr);
+    // At a completed frame, retire presentation lifetimes before binding an
+    // imported world. Full salted handles may be unchanged while time rolls
+    // back. Resident geometry/material slots and authored definitions remain.
+    // synchronize/update_pose must run before drawing the new world.
+    void reset_lifetimes();
     // Finite diagnostic image inputs only. Bind once before advancing the
     // scene. Full definition/placement/render-model identity must match an
     // admitted source machine; unmatched/duplicate entries are rejected.

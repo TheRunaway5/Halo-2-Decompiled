@@ -3,6 +3,7 @@
 Synthetic playable metadata tests arguments only, never actual gameplay parity.
 """
 import json
+import hashlib
 import os
 from pathlib import Path
 import re
@@ -11,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 REPO = Path(__file__).resolve().parents[1]
 LAUNCHER = Path(sys.argv.pop(1)).resolve()
@@ -93,6 +95,102 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         (self.root / 'assets').mkdir(exist_ok=True)
         for name in ('asset-sources', 'gameplay-source', 'hud-source', 'menu-source', 'loading-source'):
             (self.root / ('assets/' + name + '.tsv')).write_text('MALFORMED OLD SOURCE\n')
+
+    def native_test_capability(self):
+        # Synthetic argument recorder only. A stored zip entry represents an
+        # authenticated embedded default-path byte sequence without adding a
+        # NUL to Python source. This is not an actual gameplay validation.
+        binary = self.root / 'build/halo2_native'
+        source = binary.read_text().split('\n', 1)[1]
+        binary.write_bytes(('#!' + sys.executable + '\n').encode())
+        shaders = binary.parent / 'shaders'
+        for i in range(97 - len(list(shaders.iterdir()))):
+            (shaders / f'fixture-{i}.spv').write_text('existing shader fixture')
+        with zipfile.ZipFile(binary, 'a', compression=zipfile.ZIP_STORED) as bundle:
+            bundle.writestr('__main__.py', source)
+            bundle.writestr('compiled-default-shader-path', os.fsencode(shaders) + b'\0')
+        digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+        report = dict(schema='H2_NATIVE_GAMEPLAY_TEST_V1', capability='mcc-lockout-source-object-world-test',
+                      runtime=dict(path=str(binary), sha256=digest(binary)),
+                      shaders=dict(binding='compiled-default', directory=str(shaders),
+                                   files={p.name: digest(p) for p in shaders.iterdir()}),
+                      map=dict(path='halo2/h2_maps_win64_dx11/lockout.map', sha256=digest(self.maps / 'lockout.map')),
+                      validation=dict(passed=True, scope='mcc-lockout-native-gameplay-test', report_sha256='1' * 64))
+        binary.with_name(binary.name + '.native-test.json').write_text(json.dumps(report))
+        shutil.copy2(REPO / 'tools/native_gameplay_test.py', self.root / 'tools/native_gameplay_test.py')
+        return binary
+
+    def test_native_test_uses_actual_source_world_route_and_owned_storage_without_parity_claim(self):
+        self.ready_assets()
+        self.runtime()
+        binary = self.native_test_capability()
+        before = (self.cache / 'provenance.json').read_bytes()
+        result = self.run_launcher('--launcher-info')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('Native MCC gameplay ready: no', result.stdout)
+        self.assertIn('Native MCC gameplay test: available', result.stdout)
+        self.assertFalse((self.root / 'saves').exists(), 'Read-only info created storage')
+        result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = self.call('runtime')['argv']
+        self.assertIn('--multiplayer', args)
+        self.assertNotIn('--mcc-preview', args)
+        self.assertNotIn('--menu-screen', args)
+        directory = self.root / 'saves/native-mcc-test'
+        self.assertEqual(args[args.index('--mp-source-object-world') + 1], str(directory))
+        self.assertTrue(directory.is_dir())
+        self.assertEqual(args[args.index('--map') + 1], str(self.maps / 'lockout.map'))
+        self.assertEqual(args[args.index('--shared-maps') + 1], str(self.maps))
+        self.assertEqual(before, (self.cache / 'provenance.json').read_bytes())
+        self.assertIn('parity remain incomplete', result.stdout)
+
+    def test_native_test_stale_hash_or_shader_retains_preview(self):
+        self.ready_assets()
+        self.runtime()
+        binary = self.native_test_capability()
+        sidecar = binary.with_name(binary.name + '.native-test.json')
+        report = json.loads(sidecar.read_text())
+        report['runtime']['sha256'] = '0' * 64
+        sidecar.write_text(json.dumps(report))
+        result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--mcc-preview', self.call('runtime')['argv'])
+        self.assertNotIn('--mp-source-object-world', self.call('runtime')['argv'])
+        self.assertIn('Native MCC gameplay test: unavailable', self.run_launcher('--launcher-info').stdout)
+
+    def test_native_test_missing_cache_never_grants_gameplay(self):
+        self.ready_assets()
+        self.runtime()
+        self.native_test_capability()
+        (self.maps / 'shared.map').unlink()
+        result = self.run_launcher('--launch-game')
+        self.assertEqual(result.returncode, 23)
+        self.assertFalse((self.root / 'runtime-call.json').exists())
+
+    def test_native_test_rejects_unvalidated_modes_foreign_maps_and_storage_override(self):
+        self.ready_assets()
+        self.runtime()
+        self.native_test_capability()
+        for args in (('--campaign',), ('--host', '2000'), ('--play',), ('--map', 'custom.map'),
+                     ('--mp-source-object-world', str(self.root / 'foreign-save'))):
+            with self.subTest(args=args):
+                result = self.run_launcher('--launch-game', *args)
+                self.assertEqual(result.returncode, 1)
+        self.assertFalse((self.root / 'runtime-call.json').exists())
+
+    def test_native_test_rejects_foreign_save_directory_and_keeps_preview_explicit(self):
+        self.ready_assets()
+        self.runtime()
+        self.native_test_capability()
+        foreign = self.root / 'foreign-save'
+        foreign.mkdir()
+        (self.root / 'saves').symlink_to(foreign, target_is_directory=True)
+        result = self.run_launcher('--launch-game')
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('save directory must be owned', result.stderr)
+        result = self.run_launcher('--preview-mcc', '--frames', '1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--mcc-preview', self.call('runtime')['argv'])
 
     def test_info_works_before_setup_without_a_runtime(self):
         result = self.run_launcher('--launcher-info')

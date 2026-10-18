@@ -67,6 +67,10 @@ public:
     SourceSceneryScene &operator=(const SourceSceneryScene &)=delete;
     // Prepared resources remain inactive until actual source lifetimes bind.
     void synchronize(const SceneObjects &,LifetimeSelection = {});
+    // Completed-frame world adoption: invalidate cached lifetimes/clock/LOD,
+    // retaining authored resident resources. New synchronization supplies the
+    // actual current source regions, WORLD nodes and creation ticks.
+    void reset_lifetimes();
     void interpolate(const SceneObjects &,const class SceneInterpolation &,float fraction);
     void lighting_query_state(LightingQueryState);
     void animation_time(AnimationTime);

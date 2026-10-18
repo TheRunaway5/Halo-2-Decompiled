@@ -6,6 +6,8 @@
 #include <map>
 #include <mutex>
 #include <thread>
+#include <atomic>
+#include <condition_variable>
 namespace halo2 {
 bool game_voice_active(bool valid,bool current,bool previous,std::optional<float> age) {
   return valid && (current || !previous || (age && std::isfinite(*age) && *age>=0 && *age<=1));
@@ -61,41 +63,56 @@ struct GameVoice::Impl {
   mutable std::mutex mutex;
   GameVoiceSnapshot state;
   bool focused=true,pressed{},active=true,closed{};
+  std::uint64_t generation{},applied_generation{};
+  bool suspended{},stopped{};
+  std::condition_variable_any condition;
   std::deque<GameVoiceFrame> sent,received;
   std::jthread worker;
   Impl(std::unique_ptr<VoiceDevices> d):devices(std::move(d)),worker([this](std::stop_token stop){run(stop);}){}
-  ~Impl(){worker.request_stop();if(worker.joinable())worker.join();}
+  ~Impl(){worker.request_stop();condition.notify_all();if(worker.joinable())worker.join();}
   void run(std::stop_token stop) {
     using Clock=std::chrono::steady_clock;
     bool started=false;
-    VoiceCodec encoder(true);
+    auto encoder=std::make_unique<VoiceCodec>(true);
     struct Talker {VoiceCodec decoder;std::deque<GameVoiceFrame> frames;unsigned sequence{};bool seen{};Clock::time_point last{};};
     std::map<unsigned,Talker> talkers;
     GameVoiceRadio radio;
     unsigned sequence{};
     while(!stop.stop_requested()) {
       const auto next=Clock::now()+std::chrono::milliseconds(20);
-      GameVoiceSnapshot selected;bool focus,held,eligible;std::deque<GameVoiceFrame> input;
-      {std::lock_guard lock(mutex);selected=state;focus=focused;held=pressed;eligible=active;input.swap(received);}
+      GameVoiceSnapshot selected;bool focus,held,eligible,paused;std::uint64_t stamp,applied;std::deque<GameVoiceFrame> input;
+      {std::lock_guard lock(mutex);selected=state;focus=focused;held=pressed;eligible=active;paused=suspended;
+        stamp=generation;applied=applied_generation;input.swap(received);}
       try {
+        if(stamp!=applied){
+          // All device work stays on this worker. An old in-flight capture,
+          // decode or playback completes before this retirement acknowledgment.
+          if(started)devices->transmit(false);
+          devices->discard();talkers.clear();input.clear();encoder=std::make_unique<VoiceCodec>(true);
+          radio=GameVoiceRadio{};
+          (void)radio.step(std::chrono::duration<double>(Clock::now().time_since_epoch()).count(),held,false,false);
+          std::lock_guard lock(mutex);
+          if(generation==stamp){applied_generation=stamp;state.talking={};state.transmitting=state.radio=false;}
+          continue;
+        }
         if(selected.enabled && !started){devices->start();started=true;}
         if(!selected.enabled && started){devices->stop();started=false;talkers.clear();radio=GameVoiceRadio{};}
         bool speech=false,armed=false;
-        if(started) {
+        if(started && !paused) {
           devices->transmit(focus && !selected.microphone_muted);
           VoicePcm microphone{};
           if(devices->capture(microphone)) {
-            const auto opus=encoder.encode(microphone);speech=encoder.speech();
+            const auto opus=encoder->encode(microphone);speech=encoder->speech();
             armed=radio.step(std::chrono::duration<double>(Clock::now().time_since_epoch()).count(),held,speech,eligible && focus);
             if(speech && focus && !selected.microphone_muted) {
               std::lock_guard lock(mutex);
-              if(state.enabled && focused && !state.microphone_muted) {
+              if(state.enabled && focused && !state.microphone_muted && generation==stamp && !suspended) {
                 if(sent.size()==5)sent.pop_front();
-                sent.push_back({0,++sequence,armed,{1,1},opus});
+                sent.push_back({0,++sequence,armed,{1,1},opus,stamp});
               }
             }
           }else armed=radio.step(std::chrono::duration<double>(Clock::now().time_since_epoch()).count(),held,false,eligible && focus);
-          for(auto &frame:input)if(frame.source<16 && !((selected.muted|selected.blocked)&(1u<<frame.source))) {
+          for(auto &frame:input)if(frame.delivery_generation==stamp&&frame.source<16 && !((selected.muted|selected.blocked)&(1u<<frame.source))) {
             auto &talker=talkers[frame.source];
             if(talker.seen && frame.sequence<=talker.sequence)continue;
             talker.seen=true;talker.sequence=frame.sequence;
@@ -115,22 +132,31 @@ struct GameVoice::Impl {
             talking[id]=Clock::now()-talker.last<std::chrono::milliseconds(250);
           }
           for(auto &v:mix)v=std::clamp(v,-1.f,1.f);
-          devices->playback_stereo(mix);
-          std::lock_guard lock(mutex);state.talking=talking;
+          // A fence can race the device call. Its acknowledgment is emitted
+          // only on the next worker retirement, after this call and discard().
+          bool deliver;{std::lock_guard lock(mutex);deliver=generation==stamp&&!suspended;}
+          if(deliver)devices->playback_stereo(mix);
+          std::lock_guard lock(mutex);if(generation==stamp&&!suspended)state.talking=talking;
         }
-        {std::lock_guard lock(mutex);state.transmitting=selected.enabled && focus && !selected.microphone_muted && speech;state.radio=armed;}
-      }catch(const std::exception &e) {devices->stop();started=false;std::lock_guard lock(mutex);state.enabled=false;state.error=e.what();state.talking={};state.transmitting=false;}
-      std::this_thread::sleep_until(next);
+        {std::lock_guard lock(mutex);if(generation==stamp&&!suspended){state.transmitting=selected.enabled && focus && !selected.microphone_muted && speech;state.radio=armed;}}
+      }catch(const std::exception &e) {devices->stop();started=false;talkers.clear();std::lock_guard lock(mutex);
+        state.enabled=false;state.error=e.what();state.talking={};state.transmitting=state.radio=false;
+        // A closed device has no queued predecessor media. Voice failure must
+        // not keep an otherwise valid native takeover waiting for a microphone.
+        applied_generation=generation;}
+      std::unique_lock lock(mutex);
+      condition.wait_until(lock,stop,next,[&]{return generation!=stamp||suspended!=paused||state.enabled!=selected.enabled;});
     }
     devices->stop();
+    {std::lock_guard lock(mutex);stopped=true;}
   }
 };
 GameVoice::GameVoice(std::unique_ptr<VoiceDevices> d):impl_(std::make_unique<Impl>(std::move(d))){}
 GameVoice::~GameVoice()=default;
-void GameVoice::enable(bool v){std::lock_guard lock(impl_->mutex);impl_->state.enabled=v && !impl_->closed;impl_->state.error.clear();impl_->state.talking={};impl_->state.transmitting=false;impl_->sent.clear();impl_->received.clear();}
+void GameVoice::enable(bool v){std::lock_guard lock(impl_->mutex);impl_->state.enabled=v && !impl_->closed;impl_->state.error.clear();impl_->state.talking={};impl_->state.transmitting=false;impl_->sent.clear();impl_->received.clear();impl_->condition.notify_all();}
 void GameVoice::close(){
   {std::lock_guard lock(impl_->mutex);impl_->closed=true;impl_->state.enabled=false;impl_->state.transmitting=false;impl_->state.talking={};impl_->sent.clear();impl_->received.clear();}
-  impl_->worker.request_stop();if(impl_->worker.joinable())impl_->worker.join();
+  impl_->worker.request_stop();impl_->condition.notify_all();if(impl_->worker.joinable())impl_->worker.join();
   std::lock_guard lock(impl_->mutex);impl_->state.enabled=false;impl_->state.transmitting=false;impl_->state.talking={};
 }
 void GameVoice::microphone_muted(bool v){std::lock_guard lock(impl_->mutex);impl_->state.microphone_muted=v;if(v)impl_->sent.clear();}
@@ -138,7 +164,20 @@ void GameVoice::focus(bool v){std::lock_guard lock(impl_->mutex);impl_->focused=
 void GameVoice::radio(bool p,bool a){std::lock_guard lock(impl_->mutex);impl_->pressed=p;impl_->active=a;}
 void GameVoice::mute(unsigned p,bool v){if(p>=16)return;std::lock_guard lock(impl_->mutex);if(v)impl_->state.muted|=1u<<p;else impl_->state.muted&=~(1u<<p);}
 void GameVoice::blocks(std::uint16_t mask){std::lock_guard lock(impl_->mutex);impl_->state.blocked=mask;for(unsigned i=0;i<16;++i)if(mask&(1u<<i))impl_->state.talking[i]=false;}
+std::uint64_t GameVoice::fence(){
+  static std::atomic<std::uint64_t> next{1};auto stamp=next.load(std::memory_order_relaxed);
+  do{if(!stamp||stamp==UINT64_MAX)throw std::overflow_error("Voice delivery generation exhausted");}
+  while(!next.compare_exchange_weak(stamp,stamp+1,std::memory_order_relaxed));
+  std::lock_guard lock(impl_->mutex);impl_->generation=stamp;impl_->suspended=true;
+  impl_->sent.clear();impl_->received.clear();impl_->state.talking={};impl_->state.transmitting=impl_->state.radio=false;
+  impl_->condition.notify_all();return stamp;
+}
+bool GameVoice::ready(std::uint64_t stamp)const{std::lock_guard lock(impl_->mutex);return stamp&&((impl_->closed&&impl_->stopped)||(impl_->generation==stamp&&impl_->applied_generation==stamp));}
+bool GameVoice::resume(std::uint64_t stamp){std::lock_guard lock(impl_->mutex);
+  if(!stamp||impl_->closed||impl_->generation!=stamp||impl_->applied_generation!=stamp)return false;
+  if(impl_->suspended){impl_->suspended=false;impl_->condition.notify_all();}return true;
+}
 GameVoiceSnapshot GameVoice::snapshot()const{std::lock_guard lock(impl_->mutex);return impl_->state;}
 std::vector<GameVoiceFrame> GameVoice::outgoing(){std::lock_guard lock(impl_->mutex);std::vector<GameVoiceFrame> result(impl_->sent.begin(),impl_->sent.end());impl_->sent.clear();return result;}
-void GameVoice::receive(GameVoiceFrame frame){std::lock_guard lock(impl_->mutex);if(impl_->closed)return;if(impl_->received.size()==80)impl_->received.pop_front();impl_->received.push_back(std::move(frame));}
+void GameVoice::receive(GameVoiceFrame frame){std::lock_guard lock(impl_->mutex);if(impl_->closed||impl_->suspended||frame.delivery_generation!=impl_->generation)return;if(impl_->received.size()==80)impl_->received.pop_front();impl_->received.push_back(std::move(frame));}
 } // namespace halo2

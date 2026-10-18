@@ -1,7 +1,7 @@
 #pragma once
 #include "halo2/physics_world_runtime.hpp"
 namespace halo2 {
-// Optional native owner for the original write-only GP table stores. These
+// Optional native owner for the original write-only GP/EP table stores. These
 // are resource transitions, not byte-backed memory or a synthetic MMIO bank.
 // The owner records its actual transition; the generic before/after byte
 // observer covers ordinary memory and cannot invent an unknown MMIO preimage.
@@ -15,7 +15,7 @@ public:
 // callers,388309/38DE81 image upload/allocation CPU callers,
 //38DD0C/38DD26/38DD54/38DE07/38DE59/38E668/38E6DF scratch-table CPU bodies and
 //38DF59/38DFD2/38DFFF byte-buffer decoder,3879B3 pool release wrapper and
-//38F5F3 EP scratch metadata/three-page GP append bridge.
+//38F5F3 EP scratch metadata/three-page GP append bridge and38F544 EP program selector.
 // Original relocation/request/polling
 // instructions execute against caller-owned memory. Actual allocation/DMA
 // resources and GP acknowledgement remain mandatory; this supplies no

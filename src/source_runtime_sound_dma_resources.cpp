@@ -114,4 +114,5 @@ void mount_native_tu15_sound_dma_imports(SourceRuntimeMemory& memory) {
 }
 #include "source_runtime_sound_gp_pool.inc"
 #include "source_runtime_sound_gp_scratch.inc"
+#include "source_runtime_sound_ep_scratch.inc"
 }

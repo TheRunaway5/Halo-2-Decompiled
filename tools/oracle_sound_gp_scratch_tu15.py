@@ -239,6 +239,11 @@ def main():
             declared=dict(ep_scratch_descriptor=0x391440, gp_object=gp_object,
                           gp_context=gp_context, page_count=3, offset=offset,
                           scope='Declared native-resource caller input; no EP device/clock result'))
+    # Pure original program selector: pointer/count stores only. Invalid
+    # indices retain the original zero/zero result; no EP readiness is read.
+    for program in (*range(8), 0xffffffff):
+        run(f'ep_program_selector_{program:x}', 0x38f544,
+            [program, out, out + 4], lambda: (word(out, 0xa5a5a5a5), word(out + 4, 0xa5a5a5a5)))
     prior.update(scope=__doc__, cases=cases, scratch_cases=added,
                  upload_fixture_report_sha256=hashlib.sha256((args.upload_fixtures / 'report.json').read_bytes()).hexdigest(),
                  executed_scratch_instruction_addresses=sorted(executed),

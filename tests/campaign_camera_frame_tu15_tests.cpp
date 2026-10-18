@@ -25,11 +25,17 @@ struct Program {
  std::uint32_t node(ScriptNode n){const auto i=std::uint32_t(p.nodes.size());n.salt=std::uint16_t(0xe000+i);p.nodes.push_back(n);return(std::uint32_t(n.salt)<<16)|i;}
  std::uint32_t literal(std::uint32_t v,unsigned type){return node({0,std::uint16_t(type),std::uint16_t(type),9,null_datum,0,v});}
  std::uint32_t call(std::string name,std::vector<std::uint32_t>args={}){const auto at=std::uint32_t(p.strings.size());p.strings+=name;p.strings+='\0';for(unsigned i=0;i<args.size();++i)p.nodes[args[i]&65535u].next=i+1<args.size()?args[i+1]:null_datum;const auto f=node({0,0,2,9,args.empty()?null_datum:args[0],at,0});return node({0,0,4,8,null_datum,at,f});}
- Program(){const auto root=call("begin",{call("cinematic_start"),call("camera_control",{literal(1,5)})});p.scripts.push_back({"camera_frame_start",0,4,root});}
+ Program(bool animation=false){
+  std::vector<std::uint32_t> commands{call("cinematic_start"),call("camera_control",{literal(1,5)})};
+  if(animation)commands.push_back(call("camera_set_animation_relative",{
+      literal(0xe9d90864u,36),literal(0x06001c9eu,11),literal(null_datum,45),literal(2,14)}));
+  const auto root=call("begin",std::move(commands));p.scripts.push_back({"camera_frame_start",0,4,root});
+ }
 };
 void run(const char*xbe,const char*map,bool points,bool native_cold){
- Cache cache(map,std::filesystem::path(map).parent_path(),OriginalData::load_xbe(xbe));auto content=cache.load_content(0,false);content.objects.clear();content.scripts=Program{}.p;
- const auto loader=[&](auto g,auto n){return cache.load_named_animation(g,n);};
+ Cache cache(map,std::filesystem::path(map).parent_path(),OriginalData::load_xbe(xbe));auto content=cache.load_content(0,false);content.objects.clear();content.scripts=Program{!points}.p;
+ unsigned legacy_camera_loads{};
+ const auto loader=[&](auto g,auto n){++legacy_camera_loads;return cache.load_named_animation(g,n);};
  auto source=native_cold?std::make_shared<CampaignSourceRuntime>(cache,0,1,0x12345678):
      std::make_shared<CampaignSourceRuntime>(cache,std::filesystem::path(xbe),0,1,0x12345678);
  if(native_cold) {
@@ -83,6 +89,7 @@ void run(const char*xbe,const char*map,bool points,bool native_cold){
  const auto word=[&](auto at){return Bytes(m.view(at,4)).u32(0);};const auto users=word(0x4f54f0u);
  check(users&&word(users+12u)!=null_datum,"Camera frame has no actual registered native player");
  sim.start_level();sim.step({});check(sim.scripts().diagnostics().empty(),"Real camera-control host fixture faulted");check(sim.presentation().scripted&&sim.presentation().cinematic,"Camera host fixture did not admit source presentation");
+ check(legacy_camera_loads==0,"Source camera cut redundantly decoded a second legacy camera clip");
  source_campaign_camera_field_of_view_tu15(w,60,0);
  if(points){source_campaign_camera_point_tu15(w,26,0);}
  else{source_campaign_camera_animation_tu15(w,0xe9d90864,0x06001c9e,null_datum,2);}

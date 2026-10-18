@@ -25,6 +25,10 @@ struct MccOwnedHudProjection {
 std::optional<MccOwnedHudProjection>
 project_mcc_scoreboard_hud_reference(const Tag &,
                                      const MccHudReferenceAccess &);
+// Includes the unchanged scoreboard policy and finite complete canonical HUD
+// geometry owners. Unknown/modded tuples remain unmodified.
+std::optional<MccOwnedHudProjection>
+project_mcc_hud_reference(const Tag &, const MccHudReferenceAccess &);
 // Detached native HUD values use the existing Original callback operands.
 // The actual cache StringID namespace and raw metadata words stay intact.
 std::uint32_t normalize_mcc_hud_function_operand(std::uint32_t,

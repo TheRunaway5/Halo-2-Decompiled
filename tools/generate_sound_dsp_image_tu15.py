@@ -13,7 +13,7 @@ from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate,sha
 ENTRIES=(0x3879b3,0x388275,0x388294,0x388309,0x38850a,0x388576,
          0x38dd0c,0x38dd26,0x38dd54,0x38de07,0x38de59,
-         0x38de81,0x38df59,0x38dfd2,0x38dfff,0x38e668,0x38e6df,0x38f5f3)
+         0x38de81,0x38df59,0x38dfd2,0x38dfff,0x38e668,0x38e6df,0x38f544,0x38f5f3)
 def main():
  p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);p.add_argument('--directory',type=Path,required=True);a=p.parse_args()
  if a.output.exists()or a.directory.exists():raise ValueError('Preserve previous DSP decoder evidence')
@@ -45,7 +45,7 @@ static void dsp_store(M& memory,const O& observe,std::uint32_t site,
 }
 '''
  marker='using namespace physics_world_runtime_detail;';assert s.count(marker)==1;s=s.replace(marker,marker+helper,1)
- for site in (0x38dde3,0x38dded,0x38de4d,0x38df31):
+ for site in (0x38dde3,0x38dded,0x38ddf4,0x38ddfb,0x38de4d,0x38df31):
   old=f'w(s.memory,s.observe,0x{site:x}u,';assert s.count(old)==1;s=s.replace(old,f'dsp_store(s.memory,s.observe,0x{site:x}u,',1)
  a.output.write_text(s)
  report=json.loads((a.directory/'generation.json').read_text());report.update(generated_cpp_sha256=sha(a.output),module_generator_sha256=sha(Path(__file__)),scope=__doc__);(a.directory/'generation.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print(f'{len(ENTRIES)} bodies, {len(instructions)} original instructions')

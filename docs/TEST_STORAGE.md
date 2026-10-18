@@ -27,6 +27,15 @@ The latest `configure.log`, `build.log`, `tests.log`, and `report.json` remain i
 directory for concurrent runs. Failures preserve their real exit status.
 `--keep-artifacts` explicitly retains the private build and prints its path.
 
+Use repeatable `--retain-report relative/path.json` options to keep selected
+small build/test reports before the private build is removed. Each must stay
+inside that build and is limited to 1 MiB, with an 8 MiB total limit. Supported
+report suffixes are JSON, log, text, TSV, CSV, Markdown and XML; executable
+content and links outside the private build are rejected. Exact bytes, SHA-256 hashes, missing
+outputs and size-limit rejections are recorded in the runner report. Copies go
+under the report directory's `evidence` folder. This does not retain binaries,
+raw banks or the build tree.
+
 ## CTest scratch and one-off validation
 
 Every test registered by the main project runs under `tools/run_test.py`. The

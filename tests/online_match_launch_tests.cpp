@@ -41,6 +41,7 @@ struct Synthetic:VoiceDevices {
   }
   void playback(const VoicePcm &pcm)override {float energy{};for(auto v:pcm)energy+=v*v;if(energy>.001f)++audible;}
   void stop()override{transmitting=false;}
+  void discard()override{} // Immediate synthetic device has no queued samples.
 };
 }
 int main(int argc,char **argv)try {

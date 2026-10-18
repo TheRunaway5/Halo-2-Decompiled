@@ -55,6 +55,10 @@ public:
     if(SDL_GetQueuedAudioSize(output)>3*sizeof(pcm)) SDL_ClearQueuedAudio(output);
     require(SDL_QueueAudio(output,pcm.data(),sizeof(pcm))==0,"Voice playback failed.");
   }
+  void discard() override {
+    if(microphone)SDL_ClearQueuedAudio(microphone);
+    if(output)SDL_ClearQueuedAudio(output);
+  }
   void stop() override {
     if(microphone) SDL_CloseAudioDevice(microphone);
     if(output) SDL_CloseAudioDevice(output);

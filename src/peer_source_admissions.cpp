@@ -81,6 +81,18 @@ bool PeerSourceAdmissions::replace_context(const AuthorityTransferContext &expec
         (next.epoch==expected.epoch&&(next.host!=expected.host||next.membership_revision<=expected.membership_revision)))return false;
     s.reset(next);return true;
 }
+std::unique_ptr<PeerSourceAdmissions> PeerSourceAdmissions::resume_after_host_loss(unsigned self,
+    AuthorityTransferContext next,std::span<const OnlineAdmission> roster,const AcceptedSourcePlayers &previous){
+    const auto &before=previous.context;validate_roster(self,before,roster);
+    need(next.session==before.session&&next.epoch==before.epoch+std::uint64_t{1}&&before.membership_revision<UINT64_MAX&&
+        next.membership_revision==before.membership_revision+1&&next.host!=before.host&&
+        next.peers==std::uint16_t(before.peers&~(1u<<before.host)));
+    auto payload=body(previous.players,roster);need(hash(before,payload)==previous.digest);
+    auto out=std::make_unique<PeerSourceAdmissions>(self,next,roster);auto &s=*out->impl_;
+    s.value=AcceptedSourcePlayers{next,hash(next,payload),previous.players};
+    if(self==next.host)s.payload=std::move(payload);
+    return out;
+}
 bool PeerSourceAdmissions::publish(const AuthorityTransferContext &context,std::span<const SourcePlayerAdmission> players){
     auto &s=*impl_;auto bytes=body(players,s.roster);const auto digest=hash(context,bytes);std::lock_guard lock(s.mutex);
     if(context!=s.binding||s.self!=context.host)return false;

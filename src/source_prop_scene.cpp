@@ -247,6 +247,15 @@ struct SourcePropScene::Impl {
 SourcePropScene::SourcePropScene(const Cache&c,std::span<const ScenarioObject>objects,std::size_t bsp,Mesh&mesh,
     const CollisionWorld&collision,bool source_regions):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision,source_regions)){}
 SourcePropScene::~SourcePropScene()=default;
+void SourcePropScene::reset_lifetimes(){
+    auto &s=*impl_;s.render_frame=0;
+    for(auto &p:s.props){
+        p.handle=0xffffffffu;p.created_tick=0;p.active=p.visible=false;
+        p.posed_object.reset();p.posed_nodes.reset();p.solved_nodes.reset();
+        p.world_nodes.clear();if(p.source_regions)p.active_permutations.clear();p.source_views={};
+        p.query_state_valid=false;p.light={};p.geometry.reset_history();
+    }
+}
 SourcePropScene::SourcePropScene(SourcePropScene&&)noexcept=default;
 SourcePropScene&SourcePropScene::operator=(SourcePropScene&&)noexcept=default;
 void SourcePropScene::synchronize(const SceneObjects&scene){impl_->synchronize(scene);}

@@ -1,0 +1,22 @@
+--- a/usrsctplib/netinet/sctp_var.h
++++ b/usrsctplib/netinet/sctp_var.h
+@@ -152,7 +152,7 @@
+ 			(_chk)->whoTo = NULL; \
+ 		} \
+ 		if (((_stcb)->asoc.free_chunk_cnt > SCTP_BASE_SYSCTL(sctp_asoc_free_resc_limit)) || \
+-		    (SCTP_BASE_INFO(ipi_free_chunks) > SCTP_BASE_SYSCTL(sctp_system_free_resc_limit))) { \
++		    (atomic_fetchadd_int(&SCTP_BASE_INFO(ipi_free_chunks), 0) > SCTP_BASE_SYSCTL(sctp_system_free_resc_limit))) { \
+ 			SCTP_ZONE_FREE(SCTP_BASE_INFO(ipi_zone_chunk), (_chk)); \
+ 			SCTP_DECR_CHK_COUNT(); \
+ 		} else { \
+--- a/usrsctplib/netinet/sctp_pcb.c
++++ b/usrsctplib/netinet/sctp_pcb.c
+@@ -148,7 +148,7 @@
+ 	spcb->chk_count = SCTP_BASE_INFO(ipi_count_chunk);
+ 	spcb->readq_count = SCTP_BASE_INFO(ipi_count_readq);
+ 	spcb->stream_oque = SCTP_BASE_INFO(ipi_count_strmoq);
+-	spcb->free_chunks = SCTP_BASE_INFO(ipi_free_chunks);
++	spcb->free_chunks = atomic_fetchadd_int(&SCTP_BASE_INFO(ipi_free_chunks), 0);
+ 	SCTP_INP_INFO_RUNLOCK();
+ }
+ 

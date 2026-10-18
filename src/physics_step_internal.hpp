@@ -22,12 +22,12 @@ inline float f(std::uint32_t x) { return std::bit_cast<float>(x); }
 inline std::uint32_t u(float x) { return std::bit_cast<std::uint32_t>(x); }
 inline void w(M &m, const O &o, std::uint32_t site, std::uint32_t a,
               unsigned n, std::uint64_t x) {
-    // Unobserved scalar stores still perform the same read before writing.
-    // Retain observer records only when a caller consumes them; allocating two
-    // vectors for every native byte/word store stalls the live game timeline.
+    // The original store writes its destination; only the optional trace
+    // needs its preimage. Keep real write validation in the memory owner.
+    // A synthetic read here doubles translated-memory traffic and can also
+    // consume a device read that the original instruction never performed.
     if (!o && n <= 8u) {
-        std::array<std::byte, 8> before{}, written{};
-        m.read(a, std::span(before).first(n));
+        std::array<std::byte, 8> written{};
         for (unsigned i = 0; i < n; ++i)
             written[i] = std::byte((x >> (i * 8)) & 255);
         m.write(a, std::span<const std::byte>(written).first(n));

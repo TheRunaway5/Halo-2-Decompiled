@@ -8,21 +8,24 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 source = Path(sys.argv[1]).resolve() / "deps/usrsctp"
-patch = ROOT / "cmake/patches/usrsctp-freed-window-atomic.patch"
+patches = ("usrsctp-freed-window-atomic.patch", "usrsctp-free-chunks-atomic.patch",
+           "usrsctp-callout-flags-lock.patch")
 
 
-def check(*args):
+def check(patch, *args):
     return subprocess.run(["git", "-C", str(source), "apply", *args, str(patch)],
                           capture_output=True, text=True)
 
 
-if check("--reverse", "--check").returncode == 0:
-    print("Pinned SCTP receive-window atomic patch already applied")
-else:
-    result = check("--check")
+for name in patches:
+    patch = ROOT / "cmake/patches" / name
+    if check(patch, "--reverse", "--check").returncode == 0:
+        print("Pinned SCTP patch already applied:", name)
+        continue
+    result = check(patch, "--check")
     if result.returncode:
         raise SystemExit("Pinned SCTP patch conflicts; dependency changes were preserved.\n" + result.stderr)
-    result = check()
+    result = check(patch)
     if result.returncode:
         raise SystemExit("Could not apply pinned SCTP patch.\n" + result.stderr)
-    print("Applied pinned SCTP receive-window atomic patch")
+    print("Applied pinned SCTP patch:", name)

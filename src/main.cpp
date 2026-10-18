@@ -39,7 +39,7 @@
 #include "halo2/unit_scope_camera.hpp"
 #include "halo2/multiplayer_outcome.hpp"
 #include "halo2/native_vista_flow.hpp"
-#include "halo2/native_vista_loading_audio.hpp"
+#include "halo2/mcc_loading_inputs.hpp"
 #include "halo2/online_postgame.hpp"
 #include "halo2/transform.hpp"
 #include "halo2/render_interpolation.hpp"
@@ -111,7 +111,7 @@ void usage() {
       << "  --menu-ui-assets DIRECTORY optionally replaces sampled 2D art; original layout and backdrop remain.\n"
       << "  --pause-ui-assets DIRECTORY selects imported menu art/fonts for gameplay pause screens.\n"
       << "  --menu-vista-settings PATH imports the reference Vista mainmenu.map settings, icons and keyboard/video menus.\n"
-      << "  --menu-loading-assets DIRECTORY supplies the decoded original Vista loading-screen bank.\n"
+      << "  Loading images use MCC-owned inputs; unavailable presentation roles are reported separately.\n"
       << "  --hud-ui-assets DIRECTORY samples imported Vista/MCC Classic HUD art/fonts with original layout.\n"
       << "  --skip-intro skips boot playback; --menu-movie intro|attract|credits previews a retail movie.\n"
       << "  --movie-frame N previews a movie frame; --menu-tick N advances the authored flythrough before rendering.\n"
@@ -194,7 +194,6 @@ int main(int argc, char **argv) {
         play_sound_name, loop_sound_name, camera_graph, camera_track;
     int camera_anchor = -1;
     std::filesystem::path audio_output;
-    std::filesystem::path loading_assets="assets/menu-ui/vista/loading";
     unsigned simulate = 0;
     std::optional<unsigned> bsp_replay;
     bool play = false, mute = false, campaign = false, debug_panel = false;
@@ -264,8 +263,7 @@ int main(int argc, char **argv) {
         menu = true;
       }
       else if (arg == "--menu-loading-assets") {
-        loading_assets=next();
-        menu=true;
+        throw std::runtime_error("Executable loading banks are offline/reference inputs; production loading uses MCC-owned assets");
       }
       else if (arg == "--skip-intro")
         frontend.skip_intro = menu = true;
@@ -545,16 +543,23 @@ int main(int argc, char **argv) {
     if (!screenshot.empty() && frame_limit == 0 && !multiplayer_options.capture_tick)
       frame_limit = 3;
     if (menu) {
-      desktop->configure_loading(loading_assets);
-      // The original loading ambience has its own device, four loop cursors
-      // and attenuation owner. Keep it alive through both renderer handoffs;
-      // the bridge closes it only after its graphics worker has joined.
-      auto loading_audio=std::make_shared<halo2::NativeVistaLoadingAudio>(
-          loading_assets/"loading-tone.xbox-adpcm");
-      desktop->set_loading_audio_services({
-          [loading_audio,mute]{loading_audio->begin(mute);},
-          [loading_audio](std::uint32_t gain){loading_audio->gain(gain);},
-          [loading_audio]{loading_audio->end();}});
+      // MCC supplies five checked map-owned images. Keep those pixels owned
+      // across the menu/game handoff, without reading a Vista executable bank.
+      // The full existing draw stream also requires a separately authored mask;
+      // do not invent that texture, omit its draw, or substitute loading audio.
+      std::optional<halo2::MccLoadingBitmapInputs> mcc_loading_inputs;
+      {
+        const halo2::Cache loading_menu(frontend.maps / "mainmenu.map");
+        if (loading_menu.is_mcc()) {
+          try {
+            mcc_loading_inputs=halo2::load_mcc_loading_bitmap_inputs(loading_menu);
+            std::cout << "MCC loading: five owned bitmap inputs prepared; full presentation "
+                         "awaits a verified logo mask and ambience producer\n";
+          } catch (const halo2::FormatError& error) {
+            std::cerr << "MCC loading presentation unavailable: " << error.what() << '\n';
+          }
+        }
+      }
       // Retain configuration/content; actual source lifecycle and UI factories
       // own each subsequent screen, never an implicit old-stack resume.
       frontend.session = std::make_shared<halo2::FrontendSession>();
@@ -2287,7 +2292,13 @@ int main(int argc, char **argv) {
         if(source && !diagnostic) {
           if(!source_frame)throw halo2::FormatError("Campaign source objects have no actual view admission");
           std::erase_if(cinematic_render_interpolation,[&](const auto &entry) {
-            return std::ranges::none_of(simulation->scene().objects(),[&](const auto &object){return object.handle==entry.first;});
+            if(!source_frame->drawn.contains(entry.first))return true;
+            return std::ranges::none_of(simulation->scene().objects(),[&](const auto &object){
+                return object.handle==entry.first && object.visible && !object.bsp_hidden;
+              }) && std::ranges::none_of(simulation->actors(),[&](const auto &actor){
+                return actor.source_datum==entry.first && actor.exists && !actor.vitality.dead &&
+                    actor.visible && !actor.bsp_hidden;
+              });
           });
         }
         for (const auto &object : simulation->scene().objects()) {
@@ -2318,9 +2329,9 @@ int main(int argc, char **argv) {
               if(halo2::Bytes(selected.bytes).u16(0x166)) {
                 const auto nodes=source->rendered_world_nodes(object.handle);
                 if(!nodes)throw halo2::FormatError("Campaign source model did not publish its deferred render pose");
-                auto &history=cinematic_render_interpolation[object.handle];history.capture(simulation->ticks(),*nodes);
+                auto &history=cinematic_render_interpolation[object.handle];history.capture_render(simulation->ticks(),*nodes);
                 vertices=v.source_cinematic_model->draw(object.handle,selected,
-                    history.sample(v.source_cinematic_model->hierarchy(),fraction),shader,*character_shader_view);
+                    history.sample_render(v.source_cinematic_model->hierarchy(),fraction),shader,*character_shader_view);
               }
               const auto initial=cache.load_initial_model_definition(placement.definition);
               const auto regions=source->object_model_regions(object.handle);
@@ -2472,9 +2483,10 @@ int main(int argc, char **argv) {
               const auto nodes=source->rendered_world_nodes(actor.source_datum);
               if(!nodes)throw halo2::FormatError("Campaign actor did not publish its deferred rendered WORLD pose");
               sphere=source->object_sphere(actor.source_datum);
-              // Retain the completed original pose directly. Interpolation
-              // requires its own matched chronology; an idle clip is no fallback.
-              vertices=v->second.source_actor_model->draw(actor.source_datum,ordinary,*nodes,*character_shader_view);
+              auto &history=cinematic_render_interpolation[actor.source_datum];
+              history.capture_render(simulation->ticks(),*nodes);
+              vertices=v->second.source_actor_model->draw(actor.source_datum,ordinary,
+                  history.sample_render(v->second.source_actor_model->hierarchy(),fraction),*character_shader_view);
               if(frame_limit) {
                 constexpr char hex[]="0123456789abcdef";
                 std::string clock;

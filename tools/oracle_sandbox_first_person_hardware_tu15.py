@@ -106,6 +106,11 @@ def execute(fixture, paired, directory, *, code_override=None, additional_origin
             data += struct.pack('<II',bank['address'],len(raw))+raw
         limits[str(c['id'])] = dict(boundary=c['exit_entry'],return_address=c['return_address'],fs_base=a['fs_base'],
             retained_ranges=[[b['address'], len(bytes.fromhex(b['hex']))] for b in c['initial_banks']])
+        if 'unmapped_read_fault' in c:
+            fault = c['unmapped_read_fault']
+            assert set(fault) == {'instruction', 'address', 'width'}
+            assert fault['instruction'] == c['exit_entry'] and fault['address'] == 4 and fault['width'] == 4
+            limits[str(c['id'])]['unmapped_read_fault'] = fault
     (directory/'input.bin').write_bytes(data)
     gp = dict(eax=0, ecx=1, edx=2, ebx=3, esp=4, ebp=5, esi=6, edi=7)
     instructions = []
@@ -203,6 +208,9 @@ def execute(fixture, paired, directory, *, code_override=None, additional_origin
         observed = traced[c['id']]
         row.update(exit=e,final_banks=banks,instructions=observed['instructions'],writes=observed['writes'],
             estimates=observed['estimates'],timestamps=observed['timestamps'],packets=observed['packets'])
+        if 'unmapped_read_fault' in c:
+            row['observed_read_fault'] = observed['read_fault']
+            assert row['observed_read_fault']['instruction'] == c['unmapped_read_fault']['instruction']
         output.append(row)
     assert offset == len(raw)
     return dict(fixture, cases=output, oracle_backend='original_i386_hardware_single_step',
@@ -210,7 +218,8 @@ def execute(fixture, paired, directory, *, code_override=None, additional_origin
         bridge_input_tool_sha256=sha(ROOT/'tools/original_i386_game_frame_bridge_20261011.py'),
         trace_observer_sha256=sha(tracer), single_stepped_original_instructions=trace['single_stepped_original_instructions'],
         original_instruction_patches=[],additional_original_code_banks=[dict(address=b['address'],bytes=len(bytes.fromhex(b['hex'])),sha256=b['sha256'])for b in additional_original_code],original_hardware_binary_sha256=sha(directory/'original-hardware'),
-        native_expected_data_used=False,xbox_hardware_proof=False,unretained_data_read_policy='reject',
+        native_expected_data_used=False,xbox_hardware_proof=False,
+        unretained_data_read_policy='reject except an explicitly declared address4 read that must raise real SIGSEGV' if any('unmapped_read_fault' in c for c in cases) else 'reject',
         cpu_estimates='observed before and after unchanged scalar/packed RSQRT on the host CPU',scope=__doc__)
 
 

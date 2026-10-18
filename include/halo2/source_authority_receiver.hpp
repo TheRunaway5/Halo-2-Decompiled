@@ -7,6 +7,7 @@
 #include <future>
 
 namespace halo2 {
+class SourcePeerHostTakeover;
 struct SourceAuthorityReceiverState {
     bool decoding{},warmed{},workspace_warmed{};
     std::uint64_t received{},prepared{},decode_microseconds{},warm_microseconds{},prepare_microseconds{};
@@ -73,6 +74,11 @@ public:
     // certified handoff. This stages the recipient view/profile mapping on a
     // private executor and transfers only the exact validated cut requested.
     std::unique_ptr<MultiplayerPreparedWorld> take_world_for_local_views(const ValidatedAuthorityCut &expected);
+    // Consume the paired candidate only after this session independently
+    // learns the exact replacement decision. Rebinds native couch views,
+    // connection/input state and cameras on this executor; media stays fenced
+    // until the returned owner is explicitly activated. Requires Replay mode.
+    std::unique_ptr<SourcePeerHostTakeover> prepare_peer_host_takeover(const PeerMigrationDecision &);
     // Permanently stop this receiver and discard queued encoder output/cache.
     // Does not revoke an authority generation or stop peer transport/voice.
     void cancel();
@@ -109,6 +115,9 @@ public:
     // Nonblocking permanent cancellation. Destruction joins after any current
     // original native call returns and destroys the world on its own thread.
     void cancel();
+    // True only after the native receiver and both worlds have been destroyed
+    // on the worker executor. Poll after cancel() before foreground retirement.
+    bool stopped()const;
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

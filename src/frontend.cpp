@@ -232,7 +232,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       ?audio_state.desktop:std::make_shared<DesktopSession>();
   audio_state.desktop=desktop;
   auto vista_map=options.vista_settings;
-  if(vista_map.empty())
+  if(vista_map.empty() && !cache.is_mcc())
     vista_map=options.maps.parent_path().parent_path().parent_path()/
         "Halo 2 Vista installer/maps/mainmenu.map";
   if(initial_entry && std::filesystem::is_regular_file(vista_map)) {

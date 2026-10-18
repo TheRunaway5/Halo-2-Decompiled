@@ -9,6 +9,7 @@
 #include "halo2/renderer.hpp"
 #include "halo2/source_execution_lens.hpp"
 #include "halo2/mcc_lens_bitmap_layout.hpp"
+#include "source_lens_cpu_cache_tu15.hpp"
 #include <algorithm>
 #include <bit>
 #include <cstring>
@@ -253,9 +254,21 @@ struct SourceLensDrawFrameTu15::Impl final:SourcePhysicsContactMemory {
                 bitmap_roots.emplace_back(root+0x44,descriptor);
             }
         }
-        mount(0x40eeb0,source->view(0x40eeb0,0x411800-0x40eeb0),"native lens SDK state with actual source tables");
+        if(cache.is_mcc()) {
+            // This frame already owns the actual renderer lease and validates
+            // every uploaded bitmap above. Only private CPU cache inputs are
+            // supplied here; original kernels still publish program/sampler
+            // state and the real renderer owns every GPU image/sampler.
+            check();const auto device_use=lease.acquire();
+            if(!device_use.native_address().value)
+                throw FormatError("Native lens CPU cache lacks its live renderer");
+            for(const auto& region:private_lens_cpu::mcc_cache_plan())
+                mount(region.address,region.bytes,region.role,region.access);
+        }else {
+            mount(0x40eeb0,source->view(0x40eeb0,0x411800-0x40eeb0),"native lens SDK state with actual source tables");
+            mount(0x4c4b00,source->view(0x4c4b00,0x200),"native lens raster state");
+        }
         mount(0x491788,std::as_bytes(std::span(source_lens_pixel_words)),"original final lens pixel definition");
-        mount(0x4c4b00,source->view(0x4c4b00,0x200),"native lens raster state");
         mount(0x4ce1e0,std::vector<std::byte>(0x48),"original final lens secondary output");
         mount(0x52df98,std::vector<std::byte>(32),"native lens actual bitmap bindings");
         mount(driver,std::vector<std::byte>(8192),"native lens device ABI backed by renderer lease");

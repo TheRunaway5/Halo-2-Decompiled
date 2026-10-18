@@ -231,6 +231,43 @@ bool runtime_supports_preview(const fs::path &runtime) {
       " sys.exit(1)\n"
       "sys.exit(result.returncode!=0)\n",runtime.string()})==0;
 }
+bool native_gameplay_test_available(const Installation &installation,const AssetSources &sources) {
+  const auto helper=installation.root/"tools/native_gameplay_test.py";
+  if(installation.runtime.empty() || !sources.ready() || !fs::is_regular_file(helper))return false;
+  return run_tool({HALO2_PYTHON_EXECUTABLE,helper.string(),"--root",installation.root.string(),
+      "--runtime",installation.runtime.string(),"--cache",sources.cache.string()})==0;
+}
+void native_test_arguments(std::vector<std::string> &arguments,const AssetSources &sources) {
+  // This validation covers one local MCC Lockout source-object-world test.
+  // Other gameplay modes/maps remain available through their existing routes
+  // only when full readiness is separately admitted.
+  for(std::size_t i=0;i<arguments.size();++i) {
+    const auto option=arguments[i];
+    if(option=="--multiplayer" || option=="--hidden" || option=="--mute" || option=="--validation")continue;
+    const auto count=option=="--viewport"?2u:
+        (option=="--map" || option=="--shared-maps" || option=="--frames" || option=="--screenshot")?1u:0u;
+    if(!count || arguments.size()-i-1<count)
+      throw std::runtime_error("The native gameplay test supports local MCC Lockout with viewport and capture options. Other gameplay modes remain in progress.");
+    if(option=="--map" || option=="--shared-maps") {
+      const auto expected=option=="--map"?sources.maps()/"lockout.map":sources.maps();
+      auto requested=fs::path(arguments[i+1]);
+      if(requested.is_relative())requested=sources.maps()/requested;
+      if(fs::canonical(requested)!=fs::canonical(expected))
+        throw std::runtime_error("The validated native gameplay test requires the selected MCC Lockout map and shared-resource directory.");
+      arguments[i+1]=expected.string();
+    }
+    i+=count;
+  }
+}
+fs::path native_test_save_directory(const fs::path &root) {
+  const auto parent=root/"saves",directory=parent/"native-mcc-test";
+  if(fs::is_symlink(parent) || fs::is_symlink(directory))
+    throw std::runtime_error("The native gameplay test save directory must be owned by this port.");
+  fs::create_directories(directory);
+  if(fs::canonical(parent).parent_path()!=root || fs::canonical(directory).parent_path()!=fs::canonical(parent))
+    throw std::runtime_error("The native gameplay test save directory escaped its port owner.");
+  return directory;
+}
 fs::path launcher_executable(const fs::path &root) {
   if(fs::is_regular_file(root/"PRECOMPILED_TEST_BUILD.json"))
     return root/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
@@ -279,6 +316,7 @@ int main(int argc, char **argv) {
     if(preview && (update || launch_game || setup_only))
       throw std::runtime_error("Use --preview-mcc [--map NAME] with preview options.");
     auto sources=read_sources(installation.root);
+    bool native_test=native_gameplay_test_available(installation,sources);
     const bool help=has("--help") || has("-h");
     if(has("--launcher-info")) {
       std::cout << "Project: " << installation.root.string() << '\n'
@@ -289,11 +327,12 @@ int main(int argc, char **argv) {
                 << "MCC cache: " << sources.cache.string() << '\n'
                 << "MCC maps: " << (sources.ready()?sources.maps().string():"") << '\n'
                 << "Native MCC gameplay ready: " << (sources.playable?"yes":"no") << '\n'
-                << "Play: " << (sources.playable?"native gameplay":sources.ready()?"MCC content test build":"import MCC first") << '\n'
+                << "Native MCC gameplay test: " << (native_test?"available (Lockout, retained object world)":"unavailable") << '\n'
+                << "Play: " << (sources.playable?"native gameplay":native_test?"native Lockout gameplay test":sources.ready()?"MCC content test build":"import MCC first") << '\n'
                 << "MCC content preview: " << (sources.ready()?"available":"import MCC first") << '\n'
                 << "Status: " << (!sources.problem.empty()?sources.problem:
                     !sources.ready()?"MCC has not been imported yet. Run --setup.":
-                    !sources.playable?not_playable:"MCC detection and private-cache import selected") << '\n'
+                    !sources.playable?(native_test?"Interim native gameplay test; full Xbox TU1.5 gameplay, visual and audio parity remain incomplete.":not_playable):"MCC detection and private-cache import selected") << '\n'
                 << "Shaders: existing native Vulkan shaders\n";
       return 0;
     }
@@ -303,9 +342,10 @@ int main(int argc, char **argv) {
           "Content is copied into the private PC-port cache; existing shaders are preserved.\n"
           "--prepare-mcc-gameplay [--mcc-source PATH] prepares and selects that cache, then exits.\n"
           "--launcher-info reports cache and native-gameplay readiness.\n"
+          "An exact validated native-test build can expose local Lockout testing independently of full TU1.5 parity.\n"
           "--preview-mcc [--map NAME] previews imported map assets with the existing renderer.\n"
           "--update downloads changes and rebuilds; --launch-game skips the launcher home.\n"
-          "While conversion is in progress, Play and --launch-game open the MCC content test build.\n";
+          "Without native-test validation, Play and --launch-game open the MCC content preview.\n";
       return 0;
     }
     if(update) {
@@ -321,6 +361,7 @@ int main(int argc, char **argv) {
       const auto status=prepare_sources(installation,mcc_source,!prepare);
       if(status)return status;
       sources=read_sources(installation.root);
+      native_test=native_gameplay_test_available(installation,sources);
       if(!sources.ready())throw std::runtime_error("MCC setup did not publish a complete private cache. "+sources.problem);
     }
     if(setup_only)return 0;
@@ -331,20 +372,27 @@ int main(int argc, char **argv) {
           installation.root.string(),"--build-dir",installation.build.string(),
           "--launcher-executable",launcher_executable(installation.root).string()};
       if(!sources.playable)arguments.insert(arguments.end(),{"--runtime-unavailable",not_playable});
+      if(!installation.runtime.empty())arguments.insert(arguments.end(),{"--runtime-executable",installation.runtime.string()});
       const auto status=run_tool(std::move(arguments));
       if(status==20)return 0;
       if(status)return status;
       installation=locate();sources=read_sources(installation.root);
+      native_test=native_gameplay_test_available(installation,sources);
     }
     if(!sources.ready())throw std::runtime_error("The MCC cache needs preparation. Run --setup. "+sources.problem);
     if(!sources.playable && !preview) {
-      if((!launch_game && !supplied.empty()) || has("--multiplayer") || has("--play") ||
-          has("--campaign") || has("--simulate") || has("--host") || has("--join") || has("--dedicated"))
-        throw std::runtime_error(not_playable);
-      // Explicit test access requested by the user. Reuse the verified asset
-      // viewer; do not admit unfinished gameplay or change conversion flags.
-      preview=true;
-      std::cout<<"Launching MCC content test build. Native gameplay and Xbox TU1.5 conversion remain in progress.\n";
+      if(native_test) {
+        native_test_arguments(supplied,sources);
+        std::cout<<"Launching interim native MCC Lockout gameplay test. Full Xbox TU1.5 gameplay, visual and audio parity remain incomplete.\n";
+      } else {
+        if((!launch_game && !supplied.empty()) || has("--multiplayer") || has("--play") ||
+            has("--campaign") || has("--simulate") || has("--host") || has("--join") || has("--dedicated"))
+          throw std::runtime_error(not_playable);
+        // Missing or stale native-test validation keeps the existing viewer
+        // fallback without changing import/conversion readiness flags.
+        preview=true;
+        std::cout<<"Launching MCC content test build. Native gameplay and Xbox TU1.5 conversion remain in progress.\n";
+      }
     }
     if(preview) {
       preview_arguments(supplied,installation,sources);
@@ -373,12 +421,19 @@ int main(int argc, char **argv) {
         (installation.build/"launcher-build.log").string());
     if(preview && rebuilt && !runtime_supports_preview(installation.runtime))
       throw std::runtime_error("The built runtime does not support MCC content preview. Update the source and rebuild this installation.");
+    if(native_test && !sources.playable && !preview && !native_gameplay_test_available(installation,sources))
+      throw std::runtime_error("Native gameplay test validation changed. Relaunch to use the MCC content preview or validate the updated build.");
     std::vector<std::string> arguments{installation.runtime.string()};
     if(preview) {
       arguments.push_back("--mcc-preview");
     }
+    const bool native_test_route=native_test && !sources.playable && !preview;
+    if(native_test_route) {
+      if(!has("--multiplayer"))arguments.push_back("--multiplayer");
+      arguments.insert(arguments.end(),{"--mp-source-object-world",native_test_save_directory(installation.root).string()});
+    }
     const bool custom =
-        preview || has("--menu") || has("--menu-screen") || has("--menu-audit") ||
+        preview || native_test_route || has("--menu") || has("--menu-screen") || has("--menu-audit") ||
         has("--menu-sweep") || has("--menu-maps") || has("--menu-movie") || has("--play") ||
         has("--campaign") || has("--simulate") || has("--map") ||
         has("--multiplayer") || has("--custom-slayer") || has("--host") || has("--join") || has("--local-players") || has("--dedicated") ||

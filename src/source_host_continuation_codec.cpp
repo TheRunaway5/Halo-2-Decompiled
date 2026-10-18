@@ -88,7 +88,10 @@ void valid_data(const auto &s,const LanHost::ContinuationBinding &b){
   for(const auto &p:s.admissions){const auto owner=online_admission_peer(p);
     // Admission/PCR rows outlive active transport membership. A departed host
     // remains an independently accepted report identity in the complete cut.
-    need(p.slot<16&&owner<16&&!(seats&(1u<<p.slot))&&p.name.size()<=1024&&p.team>=-1&&p.team<=7);
+    // Matchmaking uses one placement group per player in FFA (0..15).
+    // These admission groups are separate from the native selected-team
+    // requests below, which still require -1 or an actual source team0..7.
+    need(p.slot<16&&owner<16&&!(seats&(1u<<p.slot))&&p.name.size()<=1024&&p.team>=-1&&p.team<=15);
     seats|=std::uint16_t(1u<<p.slot);}
   for(const auto &p:s.roster)need(seats&(1u<<p.slot));
   for(auto player:s.local_players)if(player!=null_datum){

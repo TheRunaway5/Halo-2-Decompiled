@@ -1,5 +1,67 @@
 # Opening campaign cinematic — 2026-10-15
 
+**2026-10-18 NPC interpolation / camera cuts / Arbiter reply follow-up: active.**
+The campaign render collector's previous pose was discarded after any draw
+that spanned multiple simulation ticks. A render-specific history now retains
+the actual endpoint ticks and samples at `current_tick - 1 + fraction`; it
+does not replay an entire multi-tick interval in one fractional tick. The
+separate simulation-tick history still rejects missing authoritative samples.
+Placed cinematic characters and source actors use the render sampler. Removed,
+hidden/unadmitted owners, timeline restore and BSP replacement discard history.
+The focused v562 regression fails before this change and passes afterward,
+covering alternating1/2/3-tick draws, same-tick views, bone lengths and rewind.
+This is a render-only extension, not an additional original Xbox game update.
+
+The actual source observer already supplies scripted campaign rendering.
+`camera_set_animation[_relative]` now avoids also loading/decoding the unused
+legacy presentation camera clip. Source camera calls and authored timing
+remain intact. The actual source-camera fixture now counts legacy loader
+calls. The coherent v563 build and visible acceptance are still pending;
+removing this duplicate work does not prove every reported camera pause gone.
+
+The last visible v543 log requests Arbiter's `x01_0030_der` / `E9E60871` at
+tick1113 and consumes its157850 PCM frames. Its emitter updates apply -3306
+hundredths of a dB at a roughly17.5-unit camera distance, an audible acceptance
+failure. Original request flag0800 affects admission and separate
+direct/spatial routing; it is not by itself a proved final-volume bypass.
+The earlier v175 original routing evidence still applies: one SDL output volume
+cannot represent those separate paths. No guessed gain override is applied.
+Original final DSP/output composition, the missing audible reply, full
+audiovisual parity and the finished video remain open.
+
+**2026-10-18 slideshow report: performance is first priority; unfinished.**
+The visible diagnostic preview completed with status0, and its scratch was
+removed. The user reports severe stutter, fade issues, missing Arbiter “Pillar
+of Autumn” dialogue, flicker and planet/High Charity ordering problems. These
+remain acceptance failures. CPU samples identify translated simulation/memory
+validation, skinning and material work; the RTX5080 is the actual renderer.
+The sampling probes include debugger pauses and do not establish clean FPS.
+
+The native scalar-store helper now omits an unobserved destination-preimage
+read that the original MOV does not perform. Actual write validation remains;
+observed records retain their original before/write/observer sequence. The old
+helper fails the new regression v553. Clang/GCC v557/v558 pass the scalar
+regression, actual EP initializer and158 observed/unobserved comparisons of79
+original caller cases/196617 ordered writes. A clean visible cadence/GPU probe
+is v560. A coherent new runtime and before/after pacing measurements remain
+required; no end-to-end performance improvement is claimed yet. Details are in
+`docs/OPENING_CINEMATIC_PERFORMANCE.md`.
+The clean visible60-second probe has23.45ms median preparation intervals,
+66.49ms at95th percentile and408.45ms maximum. GPU utilization has17.5% median
+and40% maximum; the game uses roughly one CPU core. This supports a CPU-side
+bottleneck in that segment without proving sustained0.5FPS. Preparation logs
+do not measure physical display scanout, and the executable remains unchanged.
+
+The EP context is now constructed by original38F6F4 using actual native SDK
+storage. Its19-page scratch table publishes through the two original EP stores;
+original38F544 selects the six program blocks, and38F5F3 derives the actual
+three-page GP append. Native EP/GP views share those pages, reject invalid
+counts/bases/high words, preflight cross-page writes and reject foreign-thread
+access. This is software/resource composition, not the upstream PIO factory,
+EP processor or device clock. Fresh source regeneration v559 passes all eleven
+selected modules:187 bodies/17401 instructions/63056 original bytes. The full
+engine, audiovisual parity and finished video remain unverified.
+
 **2026-10-18 EP scratch bridge and strict source refresh: still active.**
 Original38F5F3 is now recovered from41 authenticated instructions/119 bytes.
 It writes EP metadata and derives three GP descriptors from the last three

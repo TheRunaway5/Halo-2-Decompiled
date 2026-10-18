@@ -124,7 +124,10 @@ def main():
         clock = read(word(0x51df54), 0x24)
         registers = call('human-monitor-command', {'command-line': 'info registers'})
         status = call('query-status')
-        assert status['status'] == 'paused'
+        # GDB hardware breakpoints leave QEMU in 'debug'; a QMP stop leaves
+        # it in 'paused'. Both are stopped observations, and neither permits
+        # the guest to advance while this census reads its object tables.
+        assert not status['running'] and status['status'] in ('paused', 'debug'), status
     raw = json.dumps(observations, separators=(',', ':')).encode()
     with (args.output / 'observed-memory.json.gz').open('wb') as output:
         output.write(gzip.compress(raw, mtime=0))

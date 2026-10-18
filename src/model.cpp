@@ -370,11 +370,16 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
       if (type == (mcc_?104:100))
         nodemap = r;
     }
-    const auto index_count = b.u16(0x28), map_count = b.u16(0x6c);
+    const auto index_count = b.u16(0x28);
+    // MCC's retained 120-byte model header moves the node-map count one
+    // DWORD after the Xbox field. Reading Xbox +6C silently selects direct
+    // model indices for MCC FP arms, whose local palette must be remapped.
+    const auto map_count = mcc_ ? b.u32(0x70) : b.u16(0x6c);
     if (!parts.found || parts.size % 72 || !indices.found ||
         indices.size < std::size_t(index_count) * 2 || !positions.found ||
         positions.size % count || !uvs.found ||
         uvs.size < std::size_t(count) * (pc_geometry()?8:4) ||
+        map_count > 256 ||
         (map_count && (!nodemap.found || nodemap.size < map_count)))
       throw FormatError("invalid model resource layout");
     const auto stride = positions.size / count;
@@ -438,17 +443,18 @@ RenderModel Cache::load_model_with_initial_selection(std::uint32_t datum, bool t
       if(pc_geometry()) {
         vertices[i].position=point(b,p);
         vertices[i].uv={real(b,uvs.offset+i*8),real(b,uvs.offset+i*8+4)};
-        // Vista6809C4 passes section+1A to66F551; its optional OR1 cannot
-        // change an authored3. The actual class2 progress-symbol shader
-        // expands these FLOAT inputs using c170..172, just like the packed
-        // Xbox input. They are normalized values, not final coordinates.
-        // Other classes/flag combinations retain their independent boundary.
-        if(classification==2 && (data.u16(s+0x1a)&3)==3) {
+        // Original rigid/local/skinned programs expand normalized FLOAT
+        // inputs with c170..172 before applying the node palette. 1CDB0
+        // independently selects XYZ and UV expansion from the low bits.
+        if(classification==1 || classification==2 || classification==3) {
+          const auto flags=data.u16(s+0x1a);
           const auto input=vertices[i].position;
-          vertices[i].position={expand_normalized(input.x,0),
-              expand_normalized(input.y,1),expand_normalized(input.z,2)};
-          vertices[i].uv={expand_normalized(vertices[i].uv.x,3),
-              expand_normalized(vertices[i].uv.y,4)};
+          if(flags&1)
+            vertices[i].position={expand_normalized(input.x,0),
+                expand_normalized(input.y,1),expand_normalized(input.z,2)};
+          if(flags&2)
+            vertices[i].uv={expand_normalized(vertices[i].uv.x,3),
+                expand_normalized(vertices[i].uv.y,4)};
         }
         vertices[i].normal=point(b,basis.offset+i*36);
         vertices[i].binormal=point(b,basis.offset+i*36+12);

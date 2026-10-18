@@ -13,6 +13,7 @@
 #include <filesystem>
 #include <iostream>
 #include <set>
+#include <map>
 using namespace halo2;
 namespace {
 std::vector<Vertex> material_vertices(const std::vector<Vertex>&world,const ObjectLightingBinding &binding){
@@ -48,6 +49,9 @@ void triplicate_lifetimes(){
  Cache cache("assets/map-pack/maps/triplicate.map");const auto content=cache.load_content(0,true);
  CollisionWorld collision(content.collision);Mesh mesh;SourceMachineScene scene(cache,content.objects,0,mesh,collision);
  SceneObjects objects(content,0);scene.synchronize(objects);scene.update(0,0,{},1,mesh);
+ const auto retained=objects;const auto resident_materials=mesh.materials.size();
+ std::map<std::size_t,std::vector<std::uint8_t>> retained_permutations;
+ for(const auto &o:scene.effect_owners())retained_permutations[o.placement]={o.permutations.begin(),o.permutations.end()};
  std::vector<Vertex> initial;std::vector<ObjectLightingBinding> bindings;scene.append(initial,bindings);
  if(bindings.size()!=7)throw FormatError("Triplicate source machine lifetime inventory");
  const auto east=material_vertices(initial,bindings[0]);
@@ -73,6 +77,19 @@ void triplicate_lifetimes(){
  same_pose(east_one,material_vertices(born,bindings[0]));
  objects.visible(replacement,false);scene.synchronize(objects);born.clear();alive.clear();scene.append(born,alive);
  if(alive.size()!=3)throw FormatError("source hidden machine submitted geometry");
+ bool reversed=false;try{scene.update_pose(0,0,mesh);}catch(const FormatError&){reversed=true;}
+ if(!reversed)throw FormatError("Unannounced machine clock rollback was accepted");
+ scene.reset_lifetimes();born.clear();alive.clear();scene.append(born,alive);
+ if(!born.empty()||!alive.empty())throw FormatError("Retired machine lifetimes still submitted geometry");
+ scene.synchronize(retained);scene.update_pose(0,0,mesh);scene.append(born,alive);
+ same_pose(initial,born);
+ if(mesh.materials.size()!=resident_materials || alive.size()!=bindings.size())
+  throw FormatError("Machine world adoption rebuilt resident slots or lost preserved handles");
+ for(unsigned i=0;i<initial.size();++i)if(initial[i].material!=born[i].material)
+  throw FormatError("Machine world adoption changed an uploaded material index");
+ for(const auto &o:scene.effect_owners())if(!std::ranges::equal(o.permutations,retained_permutations.at(o.placement)))
+  throw FormatError("Machine world adoption discarded authored attachment permutation ownership");
+ std::cout<<"Machine world adoption: same salted handles, tick131 to tick0, no stale draws, original geometry/material slots\n";
  std::cout<<"Triplicate lifetime: four source removals, fresh generation/pose, exact tick age and hidden submission\n";
 }
 void reference_devices(){

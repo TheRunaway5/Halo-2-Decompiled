@@ -12,6 +12,9 @@ import sys
 import sysconfig
 import zipfile
 
+from packaged_shader_defaults import (native_runtime_wrapper_body,
+                                     relocate_compiled_shader_default, shader_inventory)
+
 
 def sha(path):
     with Path(path).open("rb") as stream:
@@ -40,9 +43,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runtime", type=Path, required=True)
     parser.add_argument("--launchers", type=Path, required=True)
+    parser.add_argument("--shader-directory", type=Path,
+                        help="actual compiled default shader bank (defaults to RUNTIME_PARENT/shaders)")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     runtime, launchers, output = args.runtime.resolve(), args.launchers.resolve(), args.output.resolve()
+    shader_directory = (args.shader_directory or runtime.parent / "shaders").resolve(strict=True)
+    shaders = shader_inventory(shader_directory)
     if output.exists():
         parser.error("Refusing to replace an existing ZIP")
     stage = output.parent / output.stem
@@ -62,20 +69,12 @@ def main():
     # path constant. Relocate that data constant without changing instructions,
     # field widths or any shader bytes. Redundant ./ segments retain its length.
     packaged_runtime = stage / "bin/halo2_native.real"
-    original_path = str(runtime.parent / "shaders").encode()
-    relative_path = b"bin/shaders"
-    padding = len(original_path) - len(relative_path)
-    if padding < 0:
-        raise RuntimeError("Compiled shader path is too short to relocate")
-    if padding % 2:
-        relative_path = b"bin//shaders"
-        padding -= 1
-    relative_path = b"./" * (padding // 2) + relative_path
     payload = packaged_runtime.read_bytes()
-    if len(relative_path) != len(original_path) or payload.count(original_path) != 1:
-        raise RuntimeError("Compiled shader path is not an unambiguous fixed-length constant")
-    packaged_runtime.write_bytes(payload.replace(original_path, relative_path))
-    shutil.copytree(runtime.parent / "shaders", stage / "bin/shaders")
+    payload, shader_relocation = relocate_compiled_shader_default(payload, shader_directory)
+    packaged_runtime.write_bytes(payload)
+    shutil.copytree(shader_directory, stage / "bin/shaders")
+    if shader_inventory(stage / "bin/shaders") != shaders:
+        raise RuntimeError("Packaged shader bytes differ from the existing bank")
     for source in (root / "tools").glob("*.py"):
         if not source.is_symlink():
             copy(source, stage / "tools" / source.name)
@@ -130,10 +129,7 @@ def main():
                 'root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\n'
                 'export PATH="$root/python/bin:$PATH"\n'
                 'exec "$root/lib/ld-linux-x86-64.so.2" --library-path "$root/lib" "$root/bin/' + name + '.real" "$@"\n')
-    wrapper(stage / "bin/halo2_native",
-            'root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)\n'
-            'cd "$root"\n'
-            'exec "$root/lib/ld-linux-x86-64.so.2" --library-path "$root/lib" "$root/bin/halo2_native.real" "$@"\n')
+    wrapper(stage / "bin/halo2_native", native_runtime_wrapper_body())
     wrapper(stage / "python/bin/python3",
             'root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)\n'
             'export PYTHONHOME="$root/python"\n'
@@ -147,7 +143,9 @@ def main():
         "runtime_input_sha256": sha(runtime), "runtime_packaged_sha256": sha(stage / "bin/halo2_native.real"),
         "runtime_source_changes_rebuilt": False,
         "runtime_shader_directory_relocated": True,
-        "shaders": {p.name: sha(p) for p in sorted((stage / "bin/shaders").glob("*.spv"))},
+        "runtime_shader_relocation": shader_relocation,
+        "runtime_wrapper_sha256": sha(stage / "bin/halo2_native"),
+        "shaders": shaders,
         "shared_libraries": {name: sha(stage / "lib" / name) for name in sorted(library_sources)},
     }
     subprocess.run([str(stage / "bin/halo2_native"), "--mcc-preview", "--help"],

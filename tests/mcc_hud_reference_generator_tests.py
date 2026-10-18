@@ -29,6 +29,16 @@ class HudReferenceGeneratorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "authority"):
             generator.generate(raw[:-1])
 
+    def test_geometry_reviewed_output_and_mutation_rejection(self):
+        raw = (ROOT / "tools/data/mcc-hud-geometry-reference.json").read_bytes()
+        self.assertEqual(generator.generate_geometry(raw), (ROOT / "src/mcc_hud_geometry_reference.inc").read_text())
+        data = json.loads(raw)
+        self.assertEqual(len(data["profiles"]), 17)
+        self.assertTrue(all(p["name"] != "ui\\hud\\scoreboard" for p in data["profiles"]))
+        data["profiles"][0]["patches"][0][-1] ^= 1
+        with self.assertRaisesRegex(ValueError, "authority"):
+            generator.generate_geometry(json.dumps(data).encode())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -211,6 +211,57 @@ set_tests_properties(timeout PROPERTIES TIMEOUT 1)
             time.sleep(.02)
         self.assertFalse(list(build.rglob('timeout-dump.bin')))
 
+    @unittest.skipUnless(shutil.which('cmake'), 'CMake required')
+    def test_selected_reports_survive_pass_and_failure_without_build_or_external_copies(self):
+        import hashlib
+        source = self.directory / 'source'
+        source.mkdir()
+        external = self.directory / 'original-reference.json'
+        external.write_bytes(b'{"original":true}\n')
+        report_bytes = b'{"completed":true}\n'
+        (source / 'probe.py').write_text(
+            'import pathlib,sys\n'
+            'build=pathlib.Path(sys.argv[1]); (build/"selected").mkdir(exist_ok=True)\n'
+            f'(build/"selected/report.json").write_bytes({report_bytes!r})\n'
+            '(build/"large.json").write_bytes(b"x"*(1024*1024+1))\n'
+            '(build/"binary.json").write_bytes(b"\\x7fELFpayload")\n'
+            '(build/"compiled.o").write_bytes(b"temporary object")\n'
+            f'(build/"outside.json").symlink_to({str(external)!r})\n'
+            'sys.exit(int(sys.argv[2]))\n')
+        (source / 'CMakeLists.txt').write_text(f'''
+cmake_minimum_required(VERSION 3.24)
+project(SelectedReportRegression NONE)
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+include("{ROOT / 'cmake/TestStorage.cmake'}")
+enable_testing()
+add_custom_target(selected)
+add_test(NAME probe COMMAND ${{Python3_EXECUTABLE}} "${{CMAKE_CURRENT_SOURCE_DIR}}/probe.py"
+    "${{CMAKE_BINARY_DIR}}" "${{PROBE_EXIT}}")
+''')
+        for exit_code in (0, 1):
+            output = self.directory / f'reports-{exit_code}'
+            command = [sys.executable, str(ROOT / 'tools/run_tests.py'), '--source', str(source),
+                       '--output', str(output), '--scratch-root', str(self.scratch), '--target', 'selected',
+                       '--filter', '^probe$', f'--cmake-arg=-DPROBE_EXIT={exit_code}']
+            for name in ('selected/report.json', 'missing.json', 'large.json', 'binary.json', 'outside.json', 'compiled.o'):
+                command.extend(['--retain-report', name])
+            result = subprocess.run(command, env=self.env, capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0 if exit_code == 0 else 8, result.stdout + result.stderr)
+            report = json.loads((output / 'report.json').read_text())
+            records = {r['path']: r for r in report['retained_small_reports']}
+            retained = output / 'evidence/selected/report.json'
+            self.assertEqual(retained.read_bytes(), report_bytes)
+            self.assertEqual(records['selected/report.json']['sha256'], hashlib.sha256(report_bytes).hexdigest())
+            self.assertEqual(records['missing.json']['status'], 'not produced')
+            self.assertIn('limit', records['large.json']['status'])
+            self.assertIn('executable', records['binary.json']['status'])
+            self.assertIn('outside', records['outside.json']['status'])
+            self.assertIn('suffix', records['compiled.o']['status'])
+            self.assertFalse(Path(report['build']).exists())
+            self.assertEqual(list(self.scratch.iterdir()), [])
+            self.assertEqual(external.read_bytes(), b'{"original":true}\n')
+            self.assertEqual(list((output / 'evidence').rglob('*.json')), [retained])
+
 
 if __name__ == '__main__':
     unittest.main()

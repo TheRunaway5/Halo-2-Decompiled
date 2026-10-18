@@ -4,6 +4,7 @@
 #include "halo2/peer_authority_transfer.hpp"
 #include "halo2/peer_source_admissions.hpp"
 #include "halo2/peer_mesh_quality.hpp"
+#include "halo2/peer_host_agreement.hpp"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -26,6 +27,10 @@ struct OnlineContinuityState {
 struct OnlineMatchTransportOptions {
   bool direct_udp{};
   std::vector<std::string> stun_servers;
+  // Internal native-handoff qualification gate. All admitted endpoints must
+  // use the epoch-prefixed direct protocol. Ordinary matchmaking must leave
+  // this gate disabled until native promotion and compatibility negotiate it.
+  bool peer_host_migration{};
 };
 class OnlineMatchSession final : public MultiplayerDatagrams {
 public:
@@ -63,6 +68,22 @@ public:
   // caller must separately retain a validated native continuation and agree
   // the authority generation before using a replacement host.
   std::vector<PeerHostQuality> host_candidates()const;
+  // The native owner freezes/retains the exact paired world/host before ready.
+  // Agreement does not validate native state or finish a role change itself.
+  std::optional<PeerHostAgreementState> peer_migration()const;
+  bool prepare_peer_migration(const ValidatedAuthorityCut &);
+  bool propose_peer_migration(unsigned physical_peer);
+  // Choose a natively ready PC from fresh reciprocal survivor measurements.
+  // Only the agreed predecessor host is excluded. A sole remaining PC needs
+  // its own retained cut; no fabricated bandwidth/NAT value is substituted.
+  std::optional<unsigned> migration_candidate()const;
+  // Same measured choice and proposal under one session-generation lock.
+  // Preference cannot override an earlier accepted Paxos host/cut value.
+  bool propose_peer_migration();
+  // Call after applying this exact decision to the native world/peer role.
+  // Gameplay and voice stay fenced until then. Certificates supplied without
+  // this endpoint's independently learned decision cannot unlock the channel.
+  bool finish_peer_migration(const PeerMigrationDecision &);
   // Current host's native allocations, exchanged independently of world cuts
   // over direct encrypted peers and bound to the accepted couch roster.
   bool publish_source_players(const AuthorityTransferContext &,std::span<const SourcePlayerAdmission>);
