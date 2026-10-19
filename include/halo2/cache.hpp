@@ -645,6 +645,7 @@ private:
     struct BitmapCache;
     static std::shared_ptr<BitmapCache> make_bitmap_cache();
     void invalidate_bitmap_cache();
+    void publish_mcc_bitmap_cache();
     Texture load_bitmap_uncached(std::uint32_t,std::uint32_t,std::span<const std::byte>)const;
     HudContent load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_t hud_definition) const;
     RenderModel load_model_with_initial_selection(std::uint32_t datum, bool textures,

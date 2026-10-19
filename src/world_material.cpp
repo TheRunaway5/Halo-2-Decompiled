@@ -199,7 +199,11 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
     if (remap == p.bitmap_remaps.end() || remap->source >= m.bitmaps.size())
       throw FormatError("world bitmap remap outside shader");
     const auto &bitmap = m.bitmaps[remap->source];
-    *stages[binding.stage] = cache.load_bitmap(bitmap.datum, bitmap.index);
+    // 16FA8/16FC8..16FD8 resolves an authored NONE parameter to the
+    // rasterizer's actual default2D owner (+64), resetting its frame to0.
+    // Other missing identities remain errors from the ordinary typed loader.
+    *stages[binding.stage] = bitmap.datum==0xffffffffu?
+        cache.load_scope_default_bitmap():cache.load_bitmap(bitmap.datum, bitmap.index);
     if(stages[binding.stage]->depth) {
       if(!volume_textures)throw FormatError("unsupported bitmap dimensionality");
       if(!volume_addressing_supported(p.program,binding.stage))
@@ -297,6 +301,35 @@ std::shared_ptr<Material> bind_pass(const Cache &cache, const Material &m,
       frame=prepare_signed_texture(std::move(frame),sign);
   }
   return pass;
+}
+
+std::shared_ptr<Material> bind_late_pass(const Cache &cache,const Material &material,
+    std::size_t index,const ObjectLightingState *lighting,bool volume_textures,
+    const float *camouflage) {
+  const auto &p=material.passes[index];
+  const auto leaf=p.vertex_shader.substr(p.vertex_shader.find_last_of('\\')+1);
+  if(leaf.starts_with("transparent_generic") &&
+      (p.name.starts_with("shaders\\shader_passes\\transparent\\") ||
+       p.name=="shaders\\shader_passes\\plasma\\plasma_alpha" ||
+       p.name=="shaders\\shader_passes\\plasma\\plasma_shield" ||
+       (camouflage && p.name=="shaders\\shader_passes\\plasma\\plasma_alpha_active_camo")))
+    return bind_pass(cache,material,index,1,false,lighting,volume_textures,nullptr,camouflage);
+  if(p.name.starts_with("shaders\\shader_passes\\transparent\\") && environment_vertex(p))
+    return bind_pass(cache,material,index,4,false,lighting,volume_textures,nullptr,camouflage);
+  if(leaf=="stencil_emissive")return bind_pass(cache,material,index,2,false);
+  return {};
+}
+bool append_late_passes(const Cache &cache,const Material &authored,Material &prepared,
+    const ObjectLightingState *lighting,bool volume_textures,const float *camouflage) {
+  // TU1.5 40F50 iterates every selected layer15 pass in authored ordinal order.
+  // A layer7 base (Cortana) does not consume or replace that independent range.
+  for(const auto index:layer_passes(authored,15,0)) {
+    if(index==prepared.forward_pass_index)continue;
+    auto child=bind_late_pass(cache,authored,index,lighting,volume_textures,camouflage);
+    if(!child)return false;
+    prepared.world_overlays_after.push_back(std::move(child));
+  }
+  return true;
 }
 }
 
@@ -603,6 +636,8 @@ bool prepare_dynamic_material(const Cache &cache,Material &material,
     if(!emissive)return false;
     result->world_overlays_after.push_back(std::move(emissive));
   }
+  if(!append_late_passes(cache,material,*result,&lighting,volume_textures,
+      camouflage ? &*camouflage : nullptr))return false;
   material=std::move(*result);return true;
 }
 
@@ -668,17 +703,8 @@ static bool prepare_world_lighting(const Cache &cache, Material &material, unsig
     // It still needs its original additive/color/depth raster state.
     if (emissives.size() == 1) result = bind_pass(cache, material, emissives[0], 2, false);
     else if (overlays.size() == 1) result = bind_pass(cache, material, overlays[0], 3, false);
-    else if(late.size()==1) {
-      const auto &p=material.passes[late[0]];
-      const auto leaf=p.vertex_shader.substr(p.vertex_shader.find_last_of('\\')+1);
-      if(leaf.starts_with("transparent_generic") &&
-          (p.name.starts_with("shaders\\shader_passes\\transparent\\") ||
-           p.name=="shaders\\shader_passes\\plasma\\plasma_alpha" ||
-           p.name=="shaders\\shader_passes\\plasma\\plasma_shield" ||
-           (camouflage && p.name=="shaders\\shader_passes\\plasma\\plasma_alpha_active_camo")))
-        result=bind_pass(cache,material,late[0],1,false,object_lighting,volume_textures,nullptr,camouflage);
-      else if(leaf=="stencil_emissive")result=bind_pass(cache,material,late[0],2,false);
-    }
+    else if(late.size()==1)
+      result=bind_late_pass(cache,material,late[0],object_lighting,volume_textures,camouflage);
     else return false;
     if (!result) return false;
   } else {
@@ -730,6 +756,7 @@ static bool prepare_world_lighting(const Cache &cache, Material &material, unsig
       result->world_overlays_after.push_back(std::move(emissive));
     else result->rendering_gaps.push_back("world self-illumination requires unresolved externs: " + material.passes[index].name);
   }
+  if(!append_late_passes(cache,material,*result,object_lighting,volume_textures,camouflage))return false;
   for(const auto index:layer_passes(material,17,0)) {
     if(material.passes[index].vertex_shader.ends_with("\\stencil_texture")) {
       if(auto bloom=bind_pass(cache,material,index,3,false)) {

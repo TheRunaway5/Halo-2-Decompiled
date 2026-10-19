@@ -37,10 +37,17 @@ struct Cache::BitmapCache {
   using Key=std::tuple<std::uint32_t,std::uint32_t,std::vector<std::byte>>;
   std::mutex mutex;
   std::map<Key,Texture> entries;
+  bool mcc_published=false;
 };
 std::shared_ptr<Cache::BitmapCache> Cache::make_bitmap_cache(){return std::make_shared<BitmapCache>();}
 void Cache::invalidate_bitmap_cache(){
   std::lock_guard lock(bitmap_cache_->mutex);bitmap_cache_->entries.clear();
+}
+void Cache::publish_mcc_bitmap_cache(){
+  std::lock_guard lock(bitmap_cache_->mutex);
+  // Native-library import itself reads a detail bitmap while its tag owners
+  // are still being published. Memoize only after all MCC postprocessing.
+  bitmap_cache_->entries.clear();bitmap_cache_->mcc_published=true;
 }
 std::uint32_t Cache::bitmap_count(std::uint32_t datum) const {
   const auto* tag = find_tag({datum}, tag_groups::bitmap);
@@ -53,8 +60,10 @@ std::uint32_t Cache::bitmap_count(std::uint32_t datum) const {
 Texture Cache::load_bitmap(std::uint32_t datum, std::uint32_t index,
                            std::span<const std::byte> palette) const {
   // Native cache backing is immutable after construction/postprocessing.
-  // Preserve the separate PC/MCC import paths and their existing validation.
-  if(pc_geometry())return load_bitmap_uncached(datum,index,palette);
+  // Keep MCC import-time reads and Vista's donor route independent. Published
+  // MCC owners use the same full-handle/subresource/palette residency key;
+  // their actual decoder and validation still run on every cache miss.
+  if(vista_ || (mcc_ && !bitmap_cache_->mcc_published))return load_bitmap_uncached(datum,index,palette);
   const BitmapCache::Key key{datum,index,{palette.begin(),palette.end()}};
   {
     std::lock_guard lock(bitmap_cache_->mutex);

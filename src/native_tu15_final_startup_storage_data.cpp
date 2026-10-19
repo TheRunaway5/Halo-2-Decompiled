@@ -34,6 +34,13 @@ template<std::size_t N> void literal(SourceRuntimeMemory& memory, std::uint32_t 
         offset += count;
     }
 }
+template<std::size_t N> void descriptor_cache(SourceRuntimeMemory& memory, std::uint32_t address,
+    const std::array<std::uint8_t, N>& values) {
+    // Original1B07B7/1B07BD and1AFBB4 update these descriptor-local cache
+    // words. Preserve their authored -2/0 inputs, not a completed query result.
+    memory.mount(address, std::as_bytes(std::span(values)), SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 authored AI descriptor cache words");
+}
 std::uint32_t word(const SourceRuntimeMemory& memory, std::uint32_t address) {
     const auto bytes = memory.view(address, 4);
     std::uint32_t value = 0;
@@ -87,6 +94,10 @@ void validate(const SourceRuntimeMemory& memory, std::uint32_t entry) {
 }
 void mount_native_tu15_final_startup_storage_data(SourceRuntimeMemory& memory) {
 #include "native_tu15_final_startup_storage_data.inc"
+    // Startup's header/child reads do not cover the callback fields used by
+    // actual actor activation. Keep the complete typed descriptor interfaces;
+    // the original71 CRT constructors still own their separate writable masks.
+#include "native_tu15_ai_behavior_descriptor_data.inc"
 }
 bool source_final_startup_storage_tu15_is_initializer(std::uint32_t entry) {
     switch (entry) {

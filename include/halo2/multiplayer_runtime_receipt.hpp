@@ -1,8 +1,10 @@
 #pragma once
 #include "halo2/multiplayer.hpp"
 #include "halo2/multiplayer_snapshot_origin.hpp"
+#include "halo2/simulation.hpp"
 #include "halo2/source_device_world.hpp"
 #include "halo2/effect_sound.hpp"
+#include "halo2/multiplayer_pose_continuity.hpp"
 #include <map>
 #include <set>
 
@@ -17,7 +19,7 @@ struct MultiplayerRuntimeFiringOwner {
 // interpolation endpoint, not a caller-supplied same-tick display snapshot.
 // This is one prerequisite of complete adoption, not a renderer/device/playing
 // audio checkpoint or permission to advertise migration readiness.
-struct MultiplayerRuntimeReceiptFrontier {
+struct MultiplayerRuntimeReceiptValues {
     MultiplayerSnapshotOrigin previous;
     std::vector<unsigned> local_slots;
     bool client_state_bound{},joined{};
@@ -37,6 +39,16 @@ struct MultiplayerRuntimeReceiptFrontier {
     // a render frame consumes several received snapshots.
     std::vector<SoundEvent> sounds;
     std::vector<std::pair<std::uint32_t,std::uint32_t>> weapon_sounds;
+};
+struct MultiplayerRuntimeReceiptFrontier : MultiplayerRuntimeReceiptValues {
+    // Captured by the actual display replica after this accepted receipt's
+    // scene/device work completes. The history validates both its stable
+    // Simulation owner and its exact authentic receipt before retaining it.
+    Simulation::ReplicaCheckpoint replica;
+    // Actual local pose/FP history, captured at this receipt rather than
+    // reconstructed from two decoded states. Headless legacy fixtures may
+    // omit it; a complete windowed receipt restore requires its owning token.
+    MultiplayerPoseContinuity::Snapshot pose;
     // Filled by the history's fresh capture of its bound sound owner. Input
     // frontiers leave this empty; stale same-owner checkpoints are rejected.
     NativeEffectSounds::Checkpoint pending_effect_sounds;

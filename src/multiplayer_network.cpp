@@ -8,6 +8,7 @@
 #include "halo2/source_authority_binding.hpp"
 #include "halo2/source_player_departure.hpp"
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <chrono>
 #include <cmath>
@@ -1522,18 +1523,35 @@ std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,
     if (!f.eof())
       throw FormatError("Failed reading LAN game data: " + path.string());
   };
-  text("Halo2NativeMultiplayer-data-v1");
+  const auto mcc_cache = [](const std::filesystem::path &path) {
+    std::ifstream input(path, std::ios::binary);
+    std::array<unsigned char,8> header{};
+    return input.read(reinterpret_cast<char*>(header.data()),header.size()) &&
+        header==std::array<unsigned char,8>{'d','a','e','h',13,0,0,0};
+  };
+  const bool mcc=mcc_cache(map);
+  if(mcc && !gameplay_xbe.empty())
+    throw FormatError("MCC LAN gameplay uses native TU1.5 data, not an injected executable");
+  text(mcc?"Halo2NativeMultiplayer-mcc-native-tu15-data-v1":"Halo2NativeMultiplayer-data-v1");
   integer(bsp);
   integer(starting_weapon);
   file("active-map", map);
-  for (const auto name : {"mainmenu.map", "shared.map", "single_player_shared.map"})
+  for (const auto name : {"mainmenu.map", "shared.map", "single_player_shared.map"}) {
+    if(mcc && !mcc_cache(shared_maps/name))
+      throw FormatError("MCC LAN shared cache is not version 13: "+(shared_maps/name).string());
     file(name, shared_maps / name);
-  file("original-executable", shared_maps.parent_path() / "default.xbe");
+  }
+  if(mcc) {
+    // These are the actual MCC bitmap/sound owners selected by mcc_cache.cpp.
+    // Include their bytes without making an original executable a runtime input.
+    for(const auto name:{"textures.dat","sounds_en.dat","sounds_neutral.dat","sounds_remastered.dat"})
+      file(name,shared_maps/name);
+  } else file("original-executable", shared_maps.parent_path() / "default.xbe");
   // Retain the legacy raw-data identity when no update was explicitly selected.
   // Updated and unprocessed sessions must reject one another rather than mix
   // damage definitions. File bytes, not machine-specific paths, are the identity.
   if (!gameplay_xbe.empty()) file("gameplay-update-executable", gameplay_xbe);
-  const auto fonts = shared_maps / "fonts";
+  const auto fonts = mcc?shared_maps.parent_path()/"h2_fonts":shared_maps/"fonts";
   if (!std::filesystem::is_regular_file(fonts / "font_table.txt"))
     throw FormatError("Missing LAN HUD font table: " + fonts.string());
   std::vector<std::filesystem::path> font_files;
@@ -2515,10 +2533,21 @@ void LanClient::merge_local_input(const LanHost::Continuation &cut,const Authori
 }
 struct LanClient::PreparedRebind::Impl {
   const LanClient::Impl *owner{};
+  std::shared_ptr<const int> owner_identity;
   AuthorityTransferContext previous,next;
   AuthorityCutSeal cut;
   std::uint64_t revision{},nonce{},cookie{};
   std::array<unsigned,4> slots{};unsigned count{};
+  bool consumed{};
+  MultiplayerSnapshotProof proof;
+  std::optional<MultiplayerState> state;
+  // Swap the predecessor's owning storage here. Its destruction belongs to
+  // the caller after session publication, never the locked native callback.
+  std::map<std::uint32_t,LanClient::Impl::Assembly> retired_assemblies;
+  std::vector<MultiplayerState> retired_states;
+  std::vector<MultiplayerSnapshotOrigin> retired_origins;
+  MultiplayerSnapshotOrigin retired_origin;
+  std::string retired_error;
 };
 LanClient::PreparedRebind::PreparedRebind():impl_(std::make_unique<Impl>()){}
 LanClient::PreparedRebind::~PreparedRebind()=default;
@@ -2530,23 +2559,42 @@ std::unique_ptr<LanClient::PreparedRebind> LanClient::prepare_rebind_host(
       std::ranges::all_of(cut.digest,[](auto b){return b==std::byte{};}))
     throw FormatError("Client host rebind has a stale context, unadmitted role or missing accepted cut");
   auto prepared=std::unique_ptr<PreparedRebind>(new PreparedRebind);auto &p=*prepared->impl_;
-  p.owner=&v;p.previous=previous;p.next=next;p.cut=cut;p.revision=v.rebind_revision;p.nonce=v.nonce;p.cookie=v.cookie;
+  p.owner=&v;p.owner_identity=v.snapshot_owner;p.previous=previous;p.next=next;p.cut=cut;
+  p.revision=v.rebind_revision;p.nonce=v.nonce;p.cookie=v.cookie;
   p.count=v.ids.size();std::copy(v.ids.begin(),v.ids.end(),p.slots.begin());return prepared;
+}
+std::unique_ptr<LanClient::PreparedRebind> LanClient::prepare_rebind_host(
+    const AuthorityTransferContext &previous,const AuthorityTransferContext &next,const AuthorityCutSeal &cut,
+    const MultiplayerSnapshotProof &proof)const{
+  auto prepared=prepare_rebind_host(previous,next,cut);const auto &v=*impl_;
+  if(!proof.data_)throw FormatError("Client replica rebind requires its exact authenticated snapshot proof");
+  const auto &origin=proof.data_->origin;
+  if(proof.data_->cut.context!=previous||proof.data_->cut.seal!=cut||!origin.data_||!origin.data_->decoded||
+      origin.data_->owner!=v.snapshot_owner||origin.data_->context!=v.continuity||
+      origin.data_->self!=v.physical_self||origin.data_->revision!=v.rebind_revision||
+      origin.data_->stamp.fingerprint!=v.fingerprint||origin.data_->stamp.nonce!=v.nonce||
+      origin.data_->stamp.cookie!=v.cookie||origin.data_->stamp.tick!=cut.tick||
+      origin.data_->decoded->state.tick!=cut.tick||origin.data_->decoded->slots!=v.ids)
+    throw FormatError("Client replica rebind proof has a different connection, decoded receipt or accepted native cut");
+  prepared->impl_->proof=proof;prepared->impl_->state=origin.data_->decoded->state;
+  return prepared;
 }
 bool LanClient::can_commit_rebind_host(const PreparedRebind &prepared)const noexcept{
   const auto &v=*impl_;const auto &p=*prepared.impl_;
-  return p.owner==&v&&v.udp.relay&&v.connected&&v.continuity&&*v.continuity==p.previous&&
+  return !p.consumed&&p.owner==&v&&p.owner_identity==v.snapshot_owner&&v.udp.relay&&v.connected&&v.continuity&&*v.continuity==p.previous&&
       v.rebind_revision==p.revision&&v.rebind_revision<UINT64_MAX&&v.nonce==p.nonce&&v.cookie==p.cookie&&
       v.ids.size()==p.count&&std::equal(v.ids.begin(),v.ids.end(),p.slots.begin());
 }
 bool LanClient::commit_rebind_host(std::unique_ptr<PreparedRebind> &&prepared)noexcept{
+  static_assert(std::is_nothrow_swappable_v<MultiplayerState>);
   if(!prepared||!can_commit_rebind_host(*prepared))return false;
-  auto &v=*impl_;const auto &p=*prepared->impl_;
-  v.host.sin_addr.s_addr=htonl(p.next.host+1);v.continuity=p.next;v.assemblies.clear();v.received_states.clear();
-  v.received_origins.clear();
-  v.state_origin={};
-  v.rebound_tick=std::uint32_t(p.cut.tick);v.last=Clock::now();v.started.reset();v.attempts=0;v.error.clear();
-  ++v.rebind_revision;prepared.reset();return true;
+  auto &v=*impl_;auto &p=*prepared->impl_;
+  if(p.state)std::swap(v.state,*p.state);
+  v.host.sin_addr.s_addr=htonl(p.next.host+1);v.continuity=p.next;
+  v.assemblies.swap(p.retired_assemblies);v.received_states.swap(p.retired_states);
+  v.received_origins.swap(p.retired_origins);std::swap(v.state_origin,p.retired_origin);
+  v.rebound_tick=std::uint32_t(p.cut.tick);v.last=Clock::now();v.started.reset();v.attempts=0;v.error.swap(p.retired_error);
+  ++v.rebind_revision;p.consumed=true;return true;
 }
 void LanClient::rebind_host(const AuthorityTransferContext &previous,const AuthorityTransferContext &next,const AuthorityCutSeal &cut){
   auto prepared=prepare_rebind_host(previous,next,cut);

@@ -21,6 +21,7 @@
 #include "halo2/pstencil/campaign_capture.hpp"
 #include "halo2/pstencil/campaign_materials.hpp"
 #include "halo2/sky.hpp"
+#include "halo2/source_model_transparent_order.hpp"
 #include "halo2/renderer.hpp"
 #include "halo2/debug_panel.hpp"
 #include "halo2/game_pause_menu.hpp"
@@ -69,6 +70,7 @@
 #include <algorithm>
 #include <chrono>
 #include <charconv>
+#include <bit>
 #include <cmath>
 #include <cstdlib>
 #include <glm/glm.hpp>
@@ -1267,7 +1269,7 @@ int main(int argc, char **argv) {
     reset_campaign_camera();
     // Source bitmap metadata/material identities must precede Renderer upload.
     std::unique_ptr<halo2::SourceLensDrawFrameTu15> campaign_lens_draws;
-    if(source_view && !cache.is_mcc() && !cache.is_vista())
+    if(source_view && !cache.is_vista())
       campaign_lens_draws=std::make_unique<halo2::SourceLensDrawFrameTu15>(cache,mesh);
     if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","timing"},{"stage","renderer_begin"}});
     auto renderer = std::make_unique<halo2::Renderer>(window, mesh, validation);
@@ -1647,7 +1649,7 @@ int main(int argc, char **argv) {
       campaign_text.reset();
       if(play && simulation && campaign_text_content)campaign_text=std::make_unique<halo2::CampaignTextRenderer>(
           *campaign_text_content,halo2::gameplay_font_directory(cache),multiplayer_options.menu_ui_assets.empty()?multiplayer_options.ui_assets:multiplayer_options.menu_ui_assets,mesh);
-      if(source_view && !cache.is_mcc() && !cache.is_vista())
+      if(source_view && !cache.is_vista())
       campaign_lens_draws=std::make_unique<halo2::SourceLensDrawFrameTu15>(cache,mesh);
       renderer = std::make_unique<halo2::Renderer>(window,mesh,validation);
       bind_campaign_lenses();
@@ -1678,6 +1680,7 @@ int main(int argc, char **argv) {
     halo2::SceneInterpolation scene_interpolation;
     halo2::CinematicCameraInterpolation cinematic_camera_interpolation{
         std::getenv("HALO2_REFERENCE_TICK_CAMERA")!=nullptr};
+    const auto *campaign_frame_trace=std::getenv("HALO2_PSTENCIL_CAMPAIGN_TRACE");
     std::map<std::uint32_t,halo2::ModelNodeInterpolation> cinematic_render_interpolation;
     std::vector<halo2::Unit> previous_actors;
     std::vector<halo2::NativeWeaponProjectile> previous_projectiles;
@@ -2051,12 +2054,14 @@ int main(int argc, char **argv) {
       }
       const bool capture = !screenshot.empty() && frames + 1 == frame_limit;
       auto render_camera = camera;
+      std::optional<halo2::SourceCampaignCameraViewTu15> diagnostic_source_camera;
       std::optional<halo2::SourceCameraAngles> campaign_scripted_angles;
       std::optional<float> campaign_scripted_horizontal_angle;
       if(simulation && play && simulation->campaign_source() && simulation->presentation().scripted) {
         auto completed=halo2::source_campaign_camera_view_tu15(
             simulation->campaign_source()->objects().memory(),0);
         if(!completed)throw halo2::FormatError("Scripted source camera lacks a completed registered observer");
+        if(campaign_frame_trace)diagnostic_source_camera=*completed;
         *completed=cinematic_camera_interpolation.sample({simulation->ticks(),simulation->cinematic_camera_discontinuity(),
             simulation->checkpoint_restores(),simulation->bsp_revision(),presentation_paired,
             presentation_paired?std::clamp(simulation->frame_fraction(),0.f,1.f):1.f,*completed});
@@ -2193,6 +2198,7 @@ int main(int argc, char **argv) {
       std::vector<std::vector<halo2::Vertex>> character_poses;
       std::vector<halo2::ModelObjectDraw> character_draws;
       std::map<std::size_t,std::array<std::uint32_t,3>> campaign_weapon_draw_owners;
+      std::vector<halo2::SourceModelTransparentDraw> campaign_transparent_models;
       unsigned campaign_weapon_gpu_draws{};
       const bool pstencil_campaign=renderer->debug_panel().display_settings().graphics_mode==halo2::pstencil::GraphicsMode::pStencil;
       halo2::pstencil::CampaignShadows pstencil_campaign_shadows;
@@ -2469,6 +2475,16 @@ int main(int argc, char **argv) {
                   }).value;
             };
             add_pstencil_campaign_shadow(object.handle,vertices);
+            if(source_frame && v.source_forward_only && !vertices.empty()) {
+              const auto &first=vertices.front();
+              if(first.source_section<=511 && first.source_part<=255 &&
+                 std::ranges::all_of(vertices,[&](const auto &vertex) {
+                   return vertex.source_section==first.source_section && vertex.source_part==first.source_part &&
+                       vertex.material==first.material;
+                 }))campaign_transparent_models.push_back({object.handle,placement.definition,
+                     first.source_section,first.source_part,mesh.materials.at(first.material).source_shader_datum,
+                     character_draws.size()});
+            }
             character_poses.push_back(std::move(vertices));
             character_draws.push_back({character_poses.back(),lighting,colors,input});
             continue;
@@ -2835,6 +2851,15 @@ int main(int argc, char **argv) {
           campaign_world.insert(campaign_world.end(),debug.begin(),debug.end());
           view.vertices=campaign_world;
         }
+        if(source_frame && source_frame->main_commands_completed && !campaign_transparent_models.empty()) {
+          if(const auto order=halo2::source_model_transparent_order_tu15(source_frame->transparent_commands,
+              source_frame->base_draws,campaign_transparent_models,render_camera.position)) {
+            std::vector<halo2::ModelObjectDraw> ordered;ordered.reserve(order->size());
+            for(const auto index:*order)ordered.push_back(std::move(character_draws.at(index)));
+            for(std::size_t i=0;i<ordered.size();++i)
+              character_draws.at(campaign_transparent_models[i].draw)=std::move(ordered[i]);
+          }
+        }
         view.objects=character_draws;
         if(campaign_weapon_gpu_trace.is_open())view.completed_object_draw_observer=[&](const halo2::RendererObservedObjectDraw &draw) {
           const auto owner=campaign_weapon_draw_owners.find(draw.object_index);
@@ -2876,7 +2901,7 @@ int main(int argc, char **argv) {
            campaign_view?std::span<const halo2::Vertex>{}:std::span<const halo2::Vertex>{foreground},
            campaign_view?std::span<const halo2::Vertex>{}:std::span<const halo2::Vertex>{background},pause_draw.vertices,
            campaign_view?std::span<const halo2::ModelView>{&*campaign_view,1}:std::span<const halo2::ModelView>{}},frames);
-      if(const auto* trace=std::getenv("HALO2_PSTENCIL_CAMPAIGN_TRACE")) {
+      if(const auto* trace=campaign_frame_trace) {
         static std::ofstream out(trace);
         out<<"{\"frame\":"<<frames<<",\"tick\":"<<(simulation?simulation->ticks():0)
            <<",\"bsp\":"<<bsp<<",\"pstencil\":"<<pstencil_campaign
@@ -2884,7 +2909,28 @@ int main(int argc, char **argv) {
         bool comma=false;for(const auto& owner:pstencil_campaign_shadows.owners()) {
           if(comma)out<<',';comma=true;out<<"{\"object\":"<<owner.object<<",\"sample_owner\":"<<owner.sample_owner
               <<",\"triangles\":"<<owner.triangles<<",\"incident\":["<<owner.incident.x<<','<<owner.incident.y<<','<<owner.incident.z<<"]}";
-        }out<<"]}\n";out.flush();
+        }out<<']';
+        if(simulation) {
+          const auto crossfade=simulation->cinematic_crossfade_frame();
+          out<<",\"crossfade_capture\":"<<crossfade.capture
+             <<",\"crossfade_composite\":"<<bool(crossfade.composite);
+        }
+        if(diagnostic_source_camera) {
+          out<<",\"camera_command\":"<<simulation->cinematic_camera_discontinuity()
+             <<",\"camera_restores\":"<<simulation->checkpoint_restores()
+             <<",\"camera_paired\":"<<presentation_paired
+             <<",\"camera_fraction\":"<<simulation->frame_fraction();
+          const auto pose_bits=[&](const auto &position,const auto &forward,const auto &up) {
+            out<<'[';bool separator=false;
+            for(const auto &v:{position,forward,up})for(float value:{v.x,v.y,v.z}) {
+              if(separator)out<<',';separator=true;out<<std::bit_cast<std::uint32_t>(value);
+            }out<<']';
+          };
+          out<<",\"source_camera_bits\":";
+          pose_bits(diagnostic_source_camera->position,diagnostic_source_camera->forward,diagnostic_source_camera->up);
+          out<<",\"render_camera_bits\":";pose_bits(render_camera.position,render_camera.forward,render_camera.up);
+        }
+        out<<"}\n";out.flush();
       }
       const auto pstencil_capture=simulation?halo2::pstencil::campaign_capture_path(simulation->ticks()):std::filesystem::path{};
       const bool campaign_controls=campaign_view && !pstencil_capture.empty() &&
@@ -2908,7 +2954,10 @@ int main(int argc, char **argv) {
               campaign_view?std::span<const halo2::Vertex>{}:std::span<const halo2::Vertex>{background},pause_draw.backdrops);
       if(campaign_weapon_gpu_trace.is_open())trace_campaign_weapon({{"event","frame"},{"frame",frames},
           {"submitted",campaign_submitted},{"source_weapon_units",campaign_weapon_draw_owners.size()},
-          {"weapon_gpu_draws",campaign_weapon_gpu_draws}});
+          {"weapon_gpu_draws",campaign_weapon_gpu_draws},
+          {"lens_query_draws",campaign_lens_query_draws.size()},
+          {"lens_final_draws",campaign_lens_final_draws.size()},
+          {"lens_completed_results",campaign_lens_frame&&campaign_lens_queries ? campaign_lens_queries->completed().size():0}});
       if(campaign_lens_frame) {
         auto& world=simulation->campaign_source()->objects().tu15_world();
         campaign_lens_queries->finish(world,campaign_submitted);

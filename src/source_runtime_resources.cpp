@@ -2,6 +2,8 @@
 #include "halo2/cache.hpp"
 #include "halo2/cache_file_snapshot.hpp"
 #include "halo2/mcc_cache.hpp"
+#include "halo2/mcc_model_node_map.hpp"
+#include "halo2/mcc_sound_geometry.hpp"
 #include <openssl/evp.h>
 #include <fstream>
 #include <algorithm>
@@ -72,9 +74,27 @@ struct SourceRuntimeResources::Impl {
     std::array<std::optional<File>,3> shared;
     Identity identity;
     DescriptorAddress descriptor_address;
+    std::vector<MccModelNodeMap> model_node_maps;
+    std::vector<MccSoundGeometryResource> sound_geometry;
     explicit Impl(const Cache &cache,DescriptorAddress address):cache(cache),descriptor_address(std::move(address)) {
         if(cache.is_vista())throw FormatError("Native source resources require Xbox or normalized MCC cache ownership");
+        if(cache.is_mcc())model_node_maps=plan_mcc_model_node_maps(cache);
+        if(cache.is_mcc())sound_geometry=plan_mcc_sound_geometry_resources(cache);
         identity.resident=digest(cache.source_runtime_cache_bytes());
+        if(!sound_geometry.empty()) {
+            // Bind every retained generated resource and its exact source
+            // identity. Checkpoints must reject changed English DAT payloads.
+            std::vector<std::byte> binding(identity.resident.begin(),identity.resident.end());
+            constexpr std::string_view domain="MCC English facial geometry v1";
+            for(auto c:domain)binding.push_back(std::byte(c));
+            for(const auto& resource:sound_geometry) {
+                for(auto value:{resource.gestalt.value,resource.index,resource.source_descriptor,
+                    resource.source_file_offset,resource.encoded_offset,resource.declared_bytes})
+                    for(unsigned n=0;n<4;++n)binding.push_back(std::byte(value>>(8*n)));
+                const auto hash=digest(resource.sector);binding.insert(binding.end(),hash.begin(),hash.end());
+            }
+            identity.resident=digest(binding);
+        }
         const std::array names{"mainmenu.map","shared.map","single_player_shared.map"};
         for(unsigned i=0;i<names.size();++i) {
             const auto path=cache.shared_directory()/names[i];
@@ -99,6 +119,11 @@ const SourceRuntimeResources::Identity &SourceRuntimeResources::identity() const
 std::vector<std::byte> SourceRuntimeResources::load(std::uint32_t encoded,std::uint32_t bytes) const {
     if(!bytes || bytes>128u*1024u*1024u)throw FormatError("Invalid original source resource size");
     const auto location=encoded>>30,offset=encoded&0x3fffffffu;
+    if(!location)for(const auto& resource:impl_->sound_geometry)if(encoded==resource.encoded_offset) {
+        if(bytes!=resource.declared_bytes && bytes!=resource.sector.size())
+            throw FormatError("MCC facial read differs from its exact owned payload/sector extent");
+        return {resource.sector.begin(),resource.sector.begin()+bytes};
+    }
     auto backing=impl_->cache.source_runtime_cache_bytes();
     if(impl_->cache.is_mcc() && !location) {
         const auto logical_end=Bytes(backing).u32(8);
@@ -113,7 +138,10 @@ std::vector<std::byte> SourceRuntimeResources::load(std::uint32_t encoded,std::u
         if(!impl_->shared[location-1])throw FormatError("Required bound source resource file is unavailable");
         backing=impl_->shared[location-1]->bytes();
     }
-    const auto source=Bytes(backing).slice(offset,bytes);return {source.begin(),source.end()};
+    const auto source=Bytes(backing).slice(offset,bytes);
+    std::vector<std::byte> delivered(source.begin(),source.end());
+    if(impl_->cache.is_mcc())project_mcc_model_node_map_range(impl_->model_node_maps,encoded,backing,delivered);
+    return delivered;
 }
 SourceRuntimeCacheAnimationImage SourceRuntimeResources::animation(std::uint32_t descriptor) const {
     if(impl_->descriptor_address)descriptor=impl_->descriptor_address(descriptor,20);

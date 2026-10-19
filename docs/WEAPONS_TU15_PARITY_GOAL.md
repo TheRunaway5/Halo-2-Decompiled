@@ -45,7 +45,7 @@ bytes and original image/cache hashes are retained in
 `analysis/weapons-tu15-goal-20261013/authored-scope.json`. Its per-weapon feature
 and visual status remains unverified for all 63 definitions.
 
-`weapon-completion-matrix-v69.json` expands those same63 rows into630 explicit
+`weapon-completion-matrix-v75.json` expands those same63 rows into630 explicit
 completion gates, including owner/applicability audits and complete reference
 sequences. Bounded Hunter and Needler runtime evidence is attached to their
 tested Old Mombasa and Lockout definitions; it certifies neither a whole gate
@@ -54,8 +54,13 @@ is fully certified.
 
 The separately retained MCC inventory reads all43 prepared caches and finds
 1,479 weapon rows across66 distinct paths. All63 Xbox reference paths are
-present. The additional MCC `smg_silenced`, `gpmg` and Falcon `rpg` paths need
-applicability review; their presence is not a parity claim. Directory identities
+present. The additional MCC `smg_silenced`, `gpmg` and Falcon `rpg` paths have
+now been checked against all 41 owned Xbox map/shared/menu directories: none is
+present. Their definitions belong to both MCC shared banks, with nonresident
+multiplayer aliases. They remain preserved MCC additions outside the original
+63-weapon reference catalog, with gameplay unverified. The ownership and scope
+decision is recorded in `mcc-additional-weapons-original-directory-audit-v1.json`.
+Directory identities
 are recorded in `mcc-authored-weapon-scope-v1.json`. These MCC inputs, rather than
 the original map occurrences, govern new runtime acceptance.
 
@@ -2758,3 +2763,121 @@ All63 paths/630 gates, original matched visual/audio and complete weapon/owner/
 map sequences remain required; zero weapons are fully certified. All recorded
 validation/probe/export/publisher scratch paths are removed and no new large
 artifacts are retained.
+
+## MCC native startup and remaining-work checklist, October19
+
+The operational checklist now owns the resume order, all63 weapon entries,
+ten gates per weapon, MCC-only runtime boundary and cleanup obligations. It is
+linked from the goal contract, current state and matrix; it must be updated at
+each verified milestone. All630 full gates remain incomplete (85 partial,
+545 unverified); no weapon is certified.
+
+The first native MCC Release build succeeds. Cairo's actual source-selected
+HUD address and704 overlapping-copy cases pass without an Xbox executable
+constructor or reference cache metadata. Both one/four-player MCC CLI simulation
+checks pass. Four offline reference checks also pass; two read original ISO
+metadata and are explicitly excluded from MCC acceptance and future snapshot
+selection. Campaign ai_place fails at original1E7F18 because47D6C0 lacks native
+backing. The dependent application has no source report and does not launch.
+A fixture setup requirement now prevents that secondary missing-file attempt.
+
+Pinned original code/data shows47D6C0 is the literalFFFFFFFF read by1E7F18 and
+stored into actor+418 by1E7F1E. Native memory now declares exactly those four
+bytes with the original writable section ownership. The second MCC Release
+run clears that original frontier and next fails at1B0D0F reading descriptor
+48AD60+18 (48AD78). Five checks pass; source submission fails and the dependent
+application is correctly skipped. Authenticated original descriptor metadata
+shows the real slot is zero, with normal source branch ownership; completing
+its descriptor backing remains open. No tag pointer, actor result or return
+value is supplied. See checkpoint-weapon-mcc-actor-operand-20261019.json.
+All owned source/build/probe/publisher scratch is verified removed; no new
+large artifacts are retained.
+
+## MCC actor and held-weapon submission, October19
+
+Complete original descriptor interfaces now supply4,632 immutable bytes and920
+source-writable cache bytes for115 indexed records. The71 real CRT mask
+constructors remain unchanged and own their separate destinations. Their213
+instructions, ABI/stores, original metadata bytes and access controls pass both
+an isolated native probe and the fresh MCC Release fixture. The initial
+readonly-cache probe is superseded by the original write-ownership evidence.
+
+Seven of eight checks pass. Actual MCC actor placement and held turret-item
+CPU submission now pass:2,358 vertices, three shader inputs and seven model
+main-unit rejection controls. The original lighting/section/WORLD and shader
+selection comparisons remain required; this is not a framebuffer result.
+The actual CLI application reaches public HS placement and fails at2098A6 on
+an absent209D04 dispatch word before rendering. Source metadata and branches
+are unchanged; all three original campaign-runtime tables (72 bytes) are now
+declared, with56 unmodified-original selector/bounds cases and syntax passing.
+Actual MCC application revalidation remains open. See
+checkpoint-weapon-mcc-ai-descriptors-20261019.json and the operational checklist.
+
+All63 weapon paths/630 full gates remain incomplete, with zero fully certified.
+All recorded owned source/build/application/probe/publisher scratch is verified
+removed; no new large artifacts are retained. Current root code may differ from
+the hashed validation snapshot; final current-source and delivered-runtime
+acceptance remain separate requirements.
+
+## MCC campaign tables, scope decisions and remaining-work checklist, October19
+
+The operational checklist is attached to the goal contract and current state.
+It contains all 63 weapon entries, all ten aggregate gate names, MCC-only
+runtime boundaries, the immediate validation order and ongoing/final cleanup.
+The matrix still has 85 partial and 545 unverified gates, with zero complete
+weapons. Preparation checkboxes do not certify weapon gates.
+
+The v6 immutable MCC Release run builds and passes seven of eight checks:
+actual actor/held-weapon source submission, descriptor composition, HUD/704
+copies, both player-count CLI simulations and retained arithmetic comparisons.
+The three original bounded campaign dispatch tables now let the real application
+complete public HS actor placement. Cold composition independently verifies all
+18 words and preserves the existing 24-byte arithmetic-table owner. The earlier
+v5 overlap is retained as a failed run; its deleted private source is not
+reconstructed from later shared-root edits.
+
+The actual application then stops before rendering on objective locale loading.
+The pause reader used decoded locale offsets to seek the compressed physical
+MCC file. All five objective offsets and strings are valid in independently
+decoded MCC data; all five physical reads fail. The consumer now uses the
+ordinary MCC resource owner. Its syntax passes, and the production resource
+reader matches all five strings and rejects two invalid extents. A full
+application rerun is still required; no MCC frames or weapon GPU commands have
+passed. See `mcc-pause-objective-locale-frontier-v1.json` and
+`mcc-pause-objective-resource-preflight-v3.json`.
+
+All 41 owned Xbox map/shared/menu directories have also been checked for the
+three additional MCC paths. None is present; their metadata belongs to both MCC
+shared banks, with 25 nonresident multiplayer aliases per path. Preserve those
+MCC additions outside the original 63-weapon reference catalog, with their
+MCC gameplay unverified. All new owned build/source/probe trees are removed;
+small reports, commands, source/input hashes and diagnostics remain.
+
+The following v7 MCC Release validation also passes seven of eight checks and
+clears the objective-locale failure in the actual application. The RTX 5080
+renderer initializes; frame-zero simulation finishes. Before the first frame
+submits, original model-render root `23670` reaches `23644` and dereferences
+address `0x2`. The authenticated `235E0` callee reads a byte from ECX+EDX, with
+actual ECX2/EDX0. Its section/resource pointer chain and imported backing require
+diagnosis; address2 must not receive invented static backing. The corrected
+known-entry instruction evidence is
+`mcc-model-render-23644-original-frontier-v2.json`; the earlier misaligned
+23630 window is explicitly superseded. Source/HUD/descriptor and both MCC CLI
+cases remain positive, with zero submitted application frames and zero full
+weapon gates. The v7 private source/build and both instruction-probe trees
+are removed. The checklist preserves this exact next action.
+
+The v8 MCC Release run passes nine of ten checks. The typed node-map projection
+preserves all 906 authored maps and five paired original headers. Complete
+canonical delivery verifies 112,779 pointer fields and 69,887,237 owned bytes.
+The actual unchanged publisher/render consumer clears `23644`; the application
+then stops at original `22D78` on missing read-only input `46A680`. Its four
+original bytes and 34 further fixed operand extents are restored. A fresh cold
+factory verifies all 95 fixed read-only operands, including exact access and
+ownership, without supplying arithmetic results. The separate 13 indexed read
+sites still require bounded table evidence. The duplicate `48C754` declaration
+now validates its earlier renderer-cache-pool owner and preserves writable
+value1. Actual MCC application revalidation remains next, with four submitted
+frames and full visual/audio gates still open. Checkpoint75 retains the v8
+failure and preparation evidence; all completed owned scratch is removed and
+no new large artifacts are retained.

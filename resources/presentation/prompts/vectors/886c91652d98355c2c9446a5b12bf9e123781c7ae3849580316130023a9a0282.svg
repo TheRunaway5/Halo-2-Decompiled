@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="252" height="108" viewBox="0 0 63 27" version="1.1">
+  <title>Vista conduit-9 U+E106: rebuilt vector artwork</title>
+  <desc>Hand-authored button bodies, bevels, letter outlines and smooth gradients. Original glyphs supply placement and palette measurements only. No embedded image, font, autotrace or pixel-region paths.</desc>
+  <defs>
+    <mask id="triggers-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="63" height="27">
+      <rect width="63" height="27" fill="black" />
+      <g transform="scale(0.7 0.7105263157894737)">
+        <g id="left-trigger" transform="translate(0 0)">
+          <path id="shell" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="#888888" />
+          <path id="stem-panel" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8 L8 36.5 C.5 36.5 -.5 33 1.8 27 Z" fill="#777777" />
+          <path id="outer-edge" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="none" stroke="#ffffff" stroke-width=".85" stroke-linejoin="round" />
+          <path id="fold-highlight" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8" fill="none" stroke="#ffffff" stroke-width=".9" />
+        </g>
+        <g id="right-trigger" transform="translate(90 0) scale(-1 1)">
+          <path id="shell" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="#333333" />
+          <path id="stem-panel" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8 L8 36.5 C.5 36.5 -.5 33 1.8 27 Z" fill="#333333" />
+          <path id="outer-edge" d="M8 .8 C15 -.2 37 5 42.5 13 C47 22 31 37 18 37 L8 36.5 C.5 36.5 -.5 33 1.8 27 L9 9 C10.2 6 7.5 6 6 3.5 C4.5 1.5 6 .8 8 .8 Z" fill="none" stroke="#444444" stroke-width=".85" stroke-linejoin="round" />
+          <path id="fold-highlight" d="M9 7 C14 9 21 12 21 17 C22 24 22 31 20 36.8" fill="none" stroke="#444444" stroke-width=".9" />
+        </g>
+      </g>
+    </mask>
+  </defs>
+  <rect id="triggers-paint" width="63" height="27" fill="white" mask="url(#triggers-opacity)" />
+</svg>

@@ -11,7 +11,42 @@ The active goal covers the full shader, texture and lighting scope requested on
 that scope. A passing material admission or isolated shader fixture is not a
 completed live rendering path.
 
-## Current focus — campaign characters and cutscene lifecycle, October18
+## Current focus — campaign characters and cutscene lifecycle, October19
+
+Native runtime tests now use only the selected MCC private cache. OG Xbox
+TU1.5 remains the reference authority; Xbox/Vista native cache captures do not
+qualify the current lane. The coherent native build and its source refresh
+passed five resource/lens controls, then the first MCC startup failed before
+rendering on a shader metadata pointer. A reduced authentic Cache probe now
+passes that same pointer walk after preserving explicitly owned retained
+shader allocations. The fresh full native build, five resource/lens controls
+and same-build actual-MCC metadata regression now pass. The refresh-8 source
+snapshot supplied no accepted baseline frames: two appended presentation
+metadata records were authenticated, but runtime admission did not complete.
+The real candidate refresh then stopped before configure when concurrent
+frontend edits tripped mutable-checkout/copy equality. Its owned source/build
+tree is removed. The v6 build verifies its immutable copy and records
+checkout drift separately, with latest-root delivery still open. The MCC lens
+construction correction is applied, and the combined native build plus all
+15 controls now pass with zero skips. The separate actual MCC startup smoke
+now renders four frames in Original mode, with exit 0 and no script faults;
+its input/source postchecks and owned scratch cleanup pass. New cutscene
+screenshots and matched original-frame acceptance remain open. Current
+evidence and cleanup are recorded in the cutscene comparison document linked
+below.
+
+The actual MCC cutscene attempt stopped before tick450 on a missing lens
+literal (`0x46A268`), retaining no PNGs. The current source declares all five
+authenticated lens literals; the failed executable predates that change.
+Cortana's separate material defect is now repaired: its layer7 depth pass
+retains all three ordered layer15 children and the independent layer17 bloom
+mask. Eight focused CMake checks pass, including the same caller rejecting the
+old binder, six actual MCC Cortana materials, the authored NONE/default-image
+binding and unchanged input after rejected binds. The entire renderer also
+compiles. The effects checks cover six MCC contrails, 31 decals and 33 original
+immutable contrail words; these data checks do not enable their live campaign
+draw paths. A fresh combined source build and live matched frames remain
+required. See `analysis/current-root-cutscene-20261019/character-late-layer-v1/component-source-v3/`.
 
 The campaign follow-ups now include missing fleet/Halo backdrops and sound
 stalls. Track the direct OG Xbox TU1.5 engine comparison and its ordered work in
@@ -41,6 +76,16 @@ campaign character render from OG Xbox code in Vulkan. This supersedes the
 earlier dynamic-shadow-only implementation order without closing or discarding
 its remaining gates. The full goal remains active.
 
+The missing whole automatic-placement scan `D7AA0` is now recovered from the
+unchanged OG Xbox TU1.5 owner. Its 72 instructions match 34 observed/unobserved
+native comparisons, 208 explicitly declared external test calls, eight exact
+missing-owner stops and 1,110 ordered stack stores. Five standalone CMake controls
+pass and their owned build/source scratch is removed. This supplies the
+containing scan, not its predicate/factory outcomes or a successful map start.
+The ordinary fresh-start resource/audio/BSP integration, source clock and
+matched Vulkan frames remain open. The active v6 render candidate predates
+this source change. See [scenario-scan scope and evidence](../tests/fixtures/campaign_scenario_scan_tu15.md).
+
 The campaign clock investigation has now recovered the original failed-map
 cleanup owner `13A7E0` in native C++. Fourteen original/native comparisons pass,
 including 150 declared callback executions, four missing-owner stops and 96
@@ -55,12 +100,13 @@ generated bodies remain byte-identical; the module now contains 49 bodies and
 3,138 instructions. These external callback fixtures do not implement the real
 resource allocation/free owners. Ordinary current-root CMake execution, those
 real resources, cache loading and the outer activation lifecycle remain open.
-The coherent frozen build has 90 qualified units;
-the combined current-root runtime is still unbuilt. Original final-output
-capture and matched visual acceptance remain required before checking any
-shader item below.
+The earlier coherent frozen build has 90 qualified units. The October19 full
+native build described above now compiles the combined source snapshot, but
+live MCC startup and subsequent latest-root delivery remain open. Original
+final-output capture and matched visual acceptance remain required before
+checking any shader item below.
 
-The latest ordinary two-target configure stopped before project compilation
+The October18 ordinary two-target configure stopped before project compilation
 when foreign compiler bursts exhausted its scratch-probe slots. Its apparent
 header error does not establish a missing header; inherited working-directory
 tracing also needs repair before the build can qualify. The latest original

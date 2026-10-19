@@ -36,6 +36,9 @@ template<class F>void wait(F ready,const char *stage){const auto until=Wall::now
     while(!ready()){check(Wall::now()<until,stage);std::this_thread::sleep_for(5ms);}}
 std::size_t discard(char *,std::size_t a,std::size_t b,void *){return a*b;}
 void put(std::vector<std::byte> &p,std::uint64_t value,unsigned n){for(unsigned i=0;i<n;++i)p.push_back(std::byte(value>>(8*i)));}
+auto seal_bytes(const AuthorityCutSeal &seal){std::vector<std::byte> bytes;
+    put(bytes,seal.id,8);put(bytes,seal.tick,8);put(bytes,seal.bytes,8);
+    bytes.insert(bytes.end(),seal.digest.begin(),seal.digest.end());return bytes;}
 void write(const std::filesystem::path &path,std::span<const std::byte> bytes){const auto temp=path.string()+".tmp";
     {std::ofstream out(temp,std::ios::binary);out.write(reinterpret_cast<const char *>(bytes.data()),bytes.size());check(bool(out),"Receiver fixture write failed");}
     std::filesystem::rename(temp,path);
@@ -117,6 +120,7 @@ void run(int argc,char **argv){
         // the new whole-world/host container before any pipeline integration.
     }else if(std::getenv("HALO2_RECEIVER_ASYNC")) {
         {SourceAuthorityReplayWorker empty(gameplay,target_clock,workspace_clock);
+            rejects([&]{empty.checkpoint_paired({}).get();});
             rejects([&]{empty.retain_validated_world().get();});
             rejects([&]{empty.retain_validated_world().get();});}
         background=std::make_unique<SourceAuthorityReplayWorker>(gameplay,target_clock,workspace_clock);
@@ -135,6 +139,7 @@ void run(int argc,char **argv){
     };
     const auto receive_world_exists=[&]{return background?background->state().warmed:bool(receiver->world());};
     const auto receive_checkpoint=[&](const ValidatedAuthorityCut &cut){return background?background->checkpoint(cut).get():receiver->checkpoint(cut);};
+    const auto receive_paired=[&](const ValidatedAuthorityCut &cut){return background?background->checkpoint_paired(cut).get():receiver->checkpoint_paired(cut);};
     Cache fingerprint_cache(map,map.parent_path(),OriginalData::load_xbe(argv[5]));const auto weapon=fingerprint_cache.slayer_starting_weapon(5);
     const auto fingerprint=custom_slayer_fingerprint(multiplayer_fingerprint(map,map.parent_path(),0,weapon,argv[5]),variant);
     session->loaded(fingerprint,variant);wait([&]{return session->phase()==OnlineMatchSession::Phase::Running;},"Receiver real session loading timeout");
@@ -166,21 +171,32 @@ void run(int argc,char **argv){
                 return state.acknowledged_phases==70&&state.host_ready&&state.ready&&!state.awaiting_validation&&!state.encoding&&state.queued_phases==0;
             },"Paired publisher/worker did not catch up");
             check(overlapped,"Paired source stream never prefetched a successor");
-            const auto world=encode_source_authority(authority->checkpoint(binding));const auto ready=*publisher.state().ready;
-            const LanHost::ContinuationBinding proof{context,{1,authority->execution_tick(),world.size(),body_hash(world)}};
-            write(files/"paired-stream-world",world);write(files/"paired-stream-host",LanHost::encode_continuation(publisher.host_checkpoint(ready),proof));
+            auto world=encode_source_authority(authority->checkpoint(binding));auto ready=*publisher.state().ready;
+            const auto write_paired=[&]{const LanHost::ContinuationBinding proof{context,{1,authority->execution_tick(),world.size(),body_hash(world)}};
+                write(files/"paired-stream-world",world);write(files/"paired-stream-host",LanHost::encode_continuation(publisher.host_checkpoint(ready),proof));};
+            write_paired();
             auto wrong=ready;++wrong.seal.tick;rejects([&]{publisher.host_checkpoint(wrong);});
             marker(files/"paired-stream-complete");
+            wait([&]{return std::filesystem::exists(files/"paired-stream-export-checked");},"Paired worker did not complete its nonterminal exact export");
+            for(unsigned i=0;i<2;++i)check(publisher.execute([&]{
+                std::array<Controls,16> input{};for(unsigned slot=0;slot<8;++slot)input[slot].yaw=host_world->match.unit(slot).yaw;
+                host_world->match.step(input);lan_host->broadcast();}),"Paired publisher did not continue after a nonterminal receiver export");
+            wait([&]{publisher.update();const auto state=publisher.state();check(state.error.empty(),state.error.c_str());
+                return state.acknowledged_phases==72&&state.host_ready&&state.ready&&!state.awaiting_validation&&!state.encoding&&state.queued_phases==0;
+            },"Paired worker stopped accepting replay after its nonterminal export");
+            world=encode_source_authority(authority->checkpoint(binding));ready=*publisher.state().ready;write_paired();
+            marker(files/"paired-stream-next-complete");
             wait([&]{return std::filesystem::exists(files/"paired-stream-downgrade-ready");},"Paired worker did not reach downgrade preflight");
             // An otherwise valid native-only full cut may not replace an
             // already paired stream. Only the real peer path supplies bytes.
-            const std::array<unsigned,1> targets{other};session->publish_authority(context,ready.seal.tick,world,targets);
+            const std::array<unsigned,1> targets{other};const auto stripped=session->publish_authority(context,ready.seal.tick,world,targets);
+            write(files/"paired-stream-rejected-seal",seal_bytes(stripped));
             wait([&]{return std::filesystem::exists(files/"paired-stream-downgrade-rejected");},"Paired worker accepted a stripped host owner");
             check(session->validated_authority().empty(),"A native-only downgrade produced a validated paired receipt");
             wait([&]{return std::filesystem::exists(files/"paired-stream-retained");},"Paired worker did not retain both owners");
             publisher.cancel();check(!publisher.state().host_ready,"Cancelled paired publisher retained host readiness");
             rejects([&]{publisher.host_checkpoint(ready);});
-            std::cout<<"PASS production paired publisher: 70 actual native frames, historical end-of-batch host state, bounded two-cut prefetch and exact validated host checkpoint\n";
+            std::cout<<"PASS production paired publisher: 72 actual native frames, historical end-of-batch host state, bounded two-cut prefetch and exact validated host checkpoint\n";
         }else{
             wait([&]{return session->source_players().has_value();},"Paired stream source admissions did not arrive");
             lan_client->bind_continuity(context,self,session->roster());
@@ -200,28 +216,74 @@ void run(int argc,char **argv){
             wait([&]{pump_receipts();const auto s=background->state();check(s.error.empty(),s.error.c_str());
                 return s.host_ready&&s.ready&&!s.replaying&&s.replayed_phases==70&&std::filesystem::exists(files/"paired-stream-complete");},
                 "Paired worker did not validate all native phases and host owners");
-            const auto good=background->state();marker(files/"paired-stream-downgrade-ready");
+            auto good=background->state();
             check(good.host_proof&&good.host_proof->cut().peer==self&&good.host_proof->cut().context==context&&
                 good.host_proof->cut().seal==good.ready->seal,"Paired replay worker omitted its exact validated host proof");
             wait([&]{if(origin.tick()!=good.ready->seal.tick)pump_receipts();
                 return origin.context()==context&&origin.tick()==good.ready->seal.tick;},"Paired replay snapshot receipt did not reach native client");
             check(good.host_proof->prove_snapshot(*lan_client,origin).matches(origin),"Native replay proof lost its exact received snapshot");
             rejects([&]{good.host_proof->prove_snapshot(*lan_client,MultiplayerSnapshotOrigin{});});
+            const auto original_ready=*good.ready;
+            auto exported=background->checkpoint_paired(original_ready).get();
+            check(exported.host&&exported.cut.peer==self&&exported.cut.context==original_ready.context&&exported.cut.seal==original_ready.seal&&
+                exported.admissions==*session->source_players()&&exported.producer_views==host_locals&&exported.local_views==locals,
+                "Nonterminal paired export lost its independently validated cut, host table, admissions or views");
+            const auto exported_world=encode_source_authority(exported.checkpoint);
+            const auto exported_hash=body_hash(exported_world);
+            const LanHost::ContinuationBinding exported_binding{context,{1,exported.checkpoint.match.simulation.ticks,exported_world.size(),exported_hash}};
+            const auto exported_host=LanHost::encode_continuation(*exported.host,exported_binding);
+            check(exported_world==read(files/"paired-stream-world")&&exported_host==read(files/"paired-stream-host"),
+                "Nonterminal paired export changed the producer's complete world or paired host table");
+            auto wrong=original_ready;wrong.peer=host;rejects([&]{background->checkpoint_paired(wrong).get();});
+            wrong=original_ready;++wrong.context.membership_revision;rejects([&]{background->checkpoint_paired(wrong).get();});
+            wrong=original_ready;wrong.seal.digest[0]^=std::byte{1};rejects([&]{background->checkpoint_paired(wrong).get();});
+            wrong=original_ready;++wrong.seal.tick;rejects([&]{background->checkpoint_paired(wrong).get();});
+            const auto unchanged=background->state();
+            check(!background->stopped()&&!unchanged.replay_paused&&unchanged.ready&&unchanged.ready->seal==original_ready.seal&&
+                unchanged.host_ready&&unchanged.host_proof&&unchanged.replayed_phases==70&&
+                encode_source_authority(background->checkpoint_paired(original_ready).get().checkpoint)==exported_world,
+                "Rejected or repeated paired export stopped replay or changed the validated world");
+            marker(files/"paired-stream-export-checked");
+            wait([&]{pump_receipts();const auto s=background->state();check(s.error.empty(),s.error.c_str());
+                return s.host_ready&&s.ready&&!s.replaying&&s.replayed_phases==72&&std::filesystem::exists(files/"paired-stream-next-complete");},
+                "Nonterminal paired export prevented later authenticated replay validation");
+            good=background->state();
+            check(good.ready->seal!=original_ready.seal&&good.ready->seal.tick==original_ready.seal.tick+2&&good.host_proof,
+                "Paired continuation reused the exported cut instead of validating later native phases");
+            rejects([&]{background->checkpoint_paired(original_ready).get();});
+            auto continued=background->checkpoint_paired(*good.ready).get();
+            check(continued.host&&continued.cut.seal==good.ready->seal&&continued.checkpoint.match.simulation.ticks==original_ready.seal.tick+2&&
+                encode_source_authority(continued.checkpoint)==read(files/"paired-stream-world")&&
+                body_hash(encode_source_authority(exported.checkpoint))==exported_hash&&
+                LanHost::encode_continuation(*exported.host,exported_binding)==exported_host,
+                "Later native replay relabeled an old export or invalidated its owning world/host values");
+            wait([&]{if(origin.tick()!=good.ready->seal.tick)pump_receipts();
+                return origin.context()==context&&origin.tick()==good.ready->seal.tick;},"Later paired snapshot did not reach the existing native client");
+            check(good.host_proof->prove_snapshot(*lan_client,origin).matches(origin),"Later independently validated host proof lost its authentic receipt");
+            marker(files/"paired-stream-downgrade-ready");
             wait([&]{const auto s=background->state();return s.received>good.received&&!s.decoding&&!s.error.empty();},"Paired stream did not reject a stripped host owner");
             const auto rejected=background->state();check(rejected.host_ready&&rejected.ready&&rejected.ready->seal==good.ready->seal&&
-                rejected.ready->context==good.ready->context&&!rejected.replaying&&rejected.replayed_phases==70&&
+                rejected.ready->context==good.ready->context&&!rejected.replaying&&rejected.replayed_phases==72&&
                 rejected.host_proof&&rejected.host_proof->cut().seal==good.host_proof->cut().seal,
                 "Rejected downgrade replaced the last validated paired world");
+            check(rejected.rejected&&rejected.rejected->peer==self&&rejected.rejected->context==context&&
+                seal_bytes(rejected.rejected->seal)==read(files/"paired-stream-rejected-seal"),
+                "Rejected paired downgrade omitted its exact delivered native failure receipt");
             check(encode_source_authority(background->checkpoint(*good.ready).get())==read(files/"paired-stream-world"),
                 "Rejected native-only downgrade mutated the last validated world");
             marker(files/"paired-stream-downgrade-rejected");
             auto retained=background->retain_validated_world().get();check(retained.host.has_value(),"Paired retention dropped its host owner");
+            rejects([&]{background->checkpoint_paired(*good.ready).get();});
             const auto encoded=encode_source_authority(retained.checkpoint);
             check(encoded==read(files/"paired-stream-world"),"Paired retained native world differs from the producer");
             const LanHost::ContinuationBinding proof{context,{1,retained.checkpoint.match.simulation.ticks,encoded.size(),body_hash(encoded)}};
             check(LanHost::encode_continuation(*retained.host,proof)==read(files/"paired-stream-host"),"Paired retention kept a stale or mismatched host table");
-            background->cancel();{const auto s=background->state();check(!s.host_ready&&!s.ready&&!s.host_proof,"Cancelled paired worker retained readiness or proof");}background.reset();
+            background->cancel();{const auto s=background->state();check(!s.host_ready&&!s.ready&&!s.host_proof&&!s.rejected,"Cancelled paired worker retained readiness, proof or rejected-cut state");}background.reset();
             check(good.host_proof->prove_snapshot(*lan_client,origin).matches(origin),"Historical owning proof borrowed the destroyed native worker");
+            check(body_hash(encode_source_authority(exported.checkpoint))==exported_hash&&
+                LanHost::encode_continuation(*exported.host,exported_binding)==exported_host&&
+                encode_source_authority(continued.checkpoint)==encoded,
+                "Nonterminal paired exports retained a borrower into the destroyed native worker");
             std::cout<<"PASS paired stream retains "<<snapshot_receipts<<" accepted gameplay receipts beside native replay; exact host proof survives downgrade rejection and worker destruction\n";
             auto world=MultiplayerPreparedWorld::source_shadow(gameplay,MultiplayerPreparedWorld::SourceShadowViews::IncomingHost,workspace_clock);
             SourceMatchAuthority imported(world->match,*world->source_objects);
@@ -235,7 +297,9 @@ void run(int argc,char **argv){
             const auto tick=world->match.simulation().ticks();for(unsigned i=0;i<10;++i){std::array<Controls,16> input{};
                 for(unsigned slot=0;slot<8;++slot)input[slot].yaw=world->match.unit(slot).yaw;world->match.step(input);resumed->broadcast();}
             check(world->match.simulation().ticks()==tick+10&&!world->match.finished(),"Paired recovery did not survive the original host");
-            std::cout<<"PASS production paired receiver/worker: 70 validated native phases, complete world+host equality, worker destruction, separate executor reconstruction, actual host loss and ten surviving ticks\n";
+            std::cout<<"PASS nonterminal exact paired exports: unchanged 70-phase boundary, continued receipt/replay to72, stale/foreign/seal rejection, owning world/host lifetime and preserved terminal retention\n";
+            std::cout<<"PASS exact rejected native cut receipt: delivered paired downgrade context, physical receiver and complete seal; preserved validated world and retired failure on cancellation\n";
+            std::cout<<"PASS production paired receiver/worker: 72 validated native phases, complete world+host equality, worker destruction, separate executor reconstruction, actual host loss and ten surviving ticks\n";
             std::cout<<"LIMIT producer view mapping and quiet local snapshot endpoint; live election/generation/controller/voice promotion remains external\n";
         }
         return;
@@ -495,6 +559,8 @@ void run(int argc,char **argv){
                 const auto expected=files/("complete-"+std::to_string(stage));if(!std::filesystem::exists(expected))return false;
                 if(receiver)check(receiver->world()->local_slots==host_locals,"Catch-up rebound to recipient views before producer replay completed");
                 check(encode_source_authority(receive_checkpoint(*state.ready))==read(expected),"Actual network replay changed the complete canonical world");
+                check(!state.rejected,"Successful native repair retained an earlier rejected-cut receipt");
+                rejects([&]{receive_paired(*state.ready);});
                 marker(files/("stage-"+std::to_string(stage)+"-checked"));++stage;
             }
             return stage==5;

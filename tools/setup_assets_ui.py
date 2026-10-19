@@ -4,7 +4,13 @@ The backdrop and wordmark are Canvas geometry. No game art, image files,
 external fonts, or generated images are loaded by this window.
 """
 import math
+import codecs
+import contextlib
+import os
 import queue
+import select
+import signal
+import subprocess
 import sys
 import threading
 from pathlib import Path
@@ -17,6 +23,170 @@ CYAN = "#8fe4f5"
 PANEL = "#0b2032"
 FIELD = "#061522"
 EDGE = "#31566c"
+
+
+class SetupProcess:
+    """One main-thread-owned CLI import; its reader never writes game data."""
+
+    def __init__(self, root, events, *, popen=None, cleanup_timeout=30):
+        self.root, self.events = Path(root).resolve(), events
+        self.popen = popen or subprocess.Popen
+        self.cleanup_timeout = cleanup_timeout
+        self.process = self.reader = None
+        self.stop_signal = None
+        self.previous = {}
+        self.lock = threading.Lock()
+        self.reader_stop, self.reader_done = threading.Event(), threading.Event()
+        self.latest = self.tail = self.reader_error = ""
+
+    def _handlers(self, install):
+        if threading.current_thread() is not threading.main_thread():
+            raise RuntimeError("MCC setup process ownership requires the main thread")
+        if install:
+            try:
+                for number in (signal.SIGINT, signal.SIGTERM):
+                    self.previous[number] = signal.signal(number, self._request_stop)
+            except BaseException:
+                self._handlers(False)
+                raise
+        else:
+            for number, handler in self.previous.items():
+                signal.signal(number, handler)
+            self.previous.clear()
+
+    def _request_stop(self, number, _frame):
+        # Never raise between Popen creating a child and publishing its handle.
+        self.stop_signal = self.stop_signal or number
+
+    def _read(self, process):
+        decoder = codecs.getincrementaldecoder("utf-8")("replace")
+        try:
+            fd = process.stdout.fileno()
+            while not self.reader_stop.is_set():
+                if not select.select([fd], [], [], .05)[0]:
+                    continue
+                data = os.read(fd, 4096)
+                text = decoder.decode(data, final=not data)
+                if text:
+                    with self.lock:
+                        self.tail = (self.tail + text)[-8192:]
+                        self.latest = text.rstrip().splitlines()[-1][:250] if text.rstrip() else self.latest
+                if not data:
+                    break
+        except Exception as error:
+            with self.lock:
+                self.reader_error = str(error)[:512]
+        finally:
+            self.reader_done.set()
+
+    def start(self, selected):
+        if self.process is not None:
+            raise RuntimeError("An MCC setup process is already owned")
+        if self.stop_signal is not None:
+            return
+        self._handlers(True)
+        self.latest = self.tail = self.reader_error = ""
+        self.reader_stop.clear(); self.reader_done.clear()
+        bundled = self.root / "python/bin/python3"
+        python = str(bundled) if bundled.is_file() else sys.executable
+        command = [python, "-u", "-B", str(self.root / "tools/setup_assets.py"),
+                   "--root", str(self.root), "--gui-owner"]
+        if selected is not None:
+            command += ["--mcc-root", str(Path(selected).expanduser().resolve())]
+        env = os.environ.copy()
+        env.update(PYTHONUNBUFFERED="1", PYTHONDONTWRITEBYTECODE="1", PYTHONIOENCODING="utf-8")
+        try:
+            self.process = self.popen(command, cwd=self.root, env=env, stdin=subprocess.PIPE,
+                                      stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                      start_new_session=os.name == "posix")
+            self.reader = threading.Thread(target=self._read, args=(self.process,), daemon=True)
+            self.reader.start()
+            if self.stop_signal is not None:
+                self.shutdown()
+        except BaseException:
+            self.shutdown()
+            raise
+
+    def _release(self):
+        process, reader = self.process, self.reader
+        # The bounded reader can retire even if an unexpected descendant holds
+        # a pipe open. Such a stream is reported, never silently called success.
+        drained = self.reader_done.wait(.25) if reader and reader.ident is not None else True
+        self.reader_stop.set()
+        if reader and reader.ident is not None:
+            reader.join()
+        if process is not None:
+            for stream in (process.stdin, process.stdout):
+                if stream is not None:
+                    stream.close()
+        self.process = self.reader = None
+        self._handlers(False)
+        return drained
+
+    def shutdown(self):
+        process = self.process
+        forced = False
+        try:
+            if process is not None:
+                # EOF requests cancellation in the child's main-thread scope;
+                # it also works when the GUI disappears without running finally.
+                if process.stdin is not None:
+                    process.stdin.close()
+                try:
+                    process.wait(timeout=self.cleanup_timeout)
+                except subprocess.TimeoutExpired:
+                    forced = True
+                    if process.poll() is None:
+                        if os.name == "posix":
+                            with contextlib.suppress(ProcessLookupError):
+                                os.killpg(process.pid, signal.SIGTERM)
+                        else:
+                            process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        forced = True
+                        if os.name == "posix":
+                            with contextlib.suppress(ProcessLookupError):
+                                os.killpg(process.pid, signal.SIGKILL)
+                        else:
+                            process.kill()
+                        process.wait()
+                forced |= process.returncode is not None and process.returncode < 0
+        finally:
+            drained = self._release()
+        if forced or not drained or self.reader_error:
+            raise RuntimeError("MCC setup cleanup could not be verified. The child was stopped and reaped; "
+                               "unfinished private files may remain. Existing valid caches were not deleted. "
+                               "Retry setup after checking the import error.")
+
+    def poll(self):
+        process = self.process
+        if process is None:
+            return
+        with self.lock:
+            status, self.latest = self.latest, ""
+            reader_error = self.reader_error
+        if status:
+            self.events.put(("status", status))
+        if reader_error:
+            try:
+                self.shutdown()
+            except RuntimeError as error:
+                self.events.put(("error", str(error)))
+            return
+        code = process.poll()
+        if code is None:
+            return
+        process.wait()
+        drained = self._release()
+        if code == 0 and drained and not self.reader_error:
+            self.events.put(("done", None))
+        else:
+            detail = (self.tail.strip() + "\n" if self.tail.strip() else "") + f"MCC setup stopped (exit {code})."
+            if not drained:
+                detail += "\nSetup output did not close; cleanup could not be verified."
+            self.events.put(("error", detail))
 
 
 def _color(a, b, amount):
@@ -162,14 +332,15 @@ class SourceSelector(LauncherCanvas):
     """Detect MCC in the background and import into an owned local cache."""
 
     def __init__(self, window, root, mcc=None, setup_function=None,
-                 discover_function=None, auto_detect=True):
-        from mcc_onboarding import setup
+                 discover_function=None, auto_detect=True, setup_process=None):
         from mcc_content import discover
 
         super().__init__(window, root, "Halo 2 — MCC setup")
-        self.setup = setup_function or setup
+        self.setup = setup_function
         self.discover = discover_function or discover
-        self.events = queue.Queue()
+        self.events = setup_process.events if setup_process is not None else queue.Queue()
+        self.process = setup_process if setup_process is not None else (
+            SetupProcess(root, self.events) if setup_function is None else None)
         self.result, self.working, self.scanning, self.closed, self.error = 1, False, False, False, False
         self.modal = False
         self.text(51, 158, "G A M E   F I L E   S E T U P", 12, CYAN)
@@ -289,6 +460,12 @@ class SourceSelector(LauncherCanvas):
         self.error = False
         self._busy(True)
         self.status_label.configure(text="Preparing your private MCC cache. This may take a few minutes.", foreground=CYAN)
+        if self.setup is None:
+            try:
+                self.process.start(selected)
+            except Exception as error:
+                self.events.put(("error", str(error)))
+            return
         def work():
             try:
                 self.setup(self.root, selected, progress=lambda message: self.events.put(("status", message)))
@@ -340,6 +517,18 @@ class SourceSelector(LauncherCanvas):
             self.prepare.focus_set()
 
     def poll(self):
+        if self.process is not None:
+            if self.process.stop_signal is not None:
+                self.result = 128 + self.process.stop_signal
+                self.closed = True
+                self.window.quit()
+                return
+            self.process.poll()
+            if self.process.stop_signal is not None:
+                self.result = 128 + self.process.stop_signal
+                self.closed = True
+                self.window.quit()
+                return
         try:
             for _ in range(500):
                 kind, value = self.events.get_nowait()
@@ -393,13 +582,30 @@ def run(root, mcc=None):
     except ImportError as error:
         raise RuntimeError(f"MCC setup requires Python Tk, which could not load in {sys.executable}: {error}\n"
                            f"Install Tk for this Python interpreter and retry.\n{terminal_setup}") from error
+    process = SetupProcess(root, queue.Queue())
+    window = None
     try:
-        window = tk.Tk()
-    except tk.TclError as error:
-        raise RuntimeError(f"Cannot open MCC setup: {error}\n{terminal_setup}") from error
-    selector = SourceSelector(window, root, mcc)
-    window.mainloop()
-    return selector.result
+        try:
+            window = tk.Tk()
+        except tk.TclError as error:
+            raise RuntimeError(f"Cannot open MCC setup: {error}\n{terminal_setup}") from error
+        callback_errors = []
+        def callback_error(kind, value, traceback):
+            callback_errors.append(value.with_traceback(traceback))
+            window.quit()
+        window.report_callback_exception = callback_error
+        selector = SourceSelector(window, root, mcc, setup_process=process)
+        window.mainloop()
+        if callback_errors:
+            raise RuntimeError(f"MCC setup window failed: {callback_errors[0]}") from callback_errors[0]
+        return 128 + process.stop_signal if process.stop_signal is not None else selector.result
+    finally:
+        try:
+            process.shutdown()
+        finally:
+            if window is not None:
+                with contextlib.suppress(tk.TclError):
+                    window.destroy()
 
 
 if __name__ == "__main__":

@@ -33,8 +33,668 @@ records the verified result here before starting dependent work.
 - Treat converted gameplay definitions as normal vanilla internal data.
 - MCC is the only required asset source. Xbox ISO/XBE/TU1.5, Vista banks and
   MCPX material are offline references, never onboarding/runtime dependencies.
+- The user's explicit October19 exception is the repository's bundled intro
+  and credits movies. Import and use those port-supplied files, with recorded
+  hashes/provenance, while preserving the original MCC directory structure.
+- The authored SVG button prompts and their exported bitmap atlases are also
+  required port-supplied artwork. Preserve the existing custom drawings/pixels;
+  use imported MCC logical fonts, metrics and active input bindings. Do not
+  introduce a separate Vista cache/font installation to display those prompts.
 - Reconstruct Xbox hardware or startup initializers only for demonstrated
   dependencies of the reused gameplay path. Preserve unrelated dirty work.
+
+## Current priority: MCC frontend and binary updates (October19)
+
+The next visible milestone is Play opening the title screen and working menus.
+Keep the accepted native Lockout test as a separate action. V19's accepted
+gameplay conversion/build is preserved; its remaining delivery work follows
+this frontend priority.
+
+The user's current sequence is prompt size/placement first, then default Play
+opening the title and menus. Keep the MCC cache and existing shaders selected.
+
+- [x] Measure the menu prompt mismatch against the authenticated custom-art
+  source. Actual profile/main/Settings quads use selector 1 controls at 44x50
+  logical pixels instead of 32x36. At the existing 0.4 canvas scale they render
+  17.6 pixels wide and clip vertically; the authored ink should be 12.8x14.4.
+  Ordinary ASCII metrics and font ascent/descent match. Source tag bounds and
+  text alignment determine placement; the canvas scale needs no adjustment.
+  Actual quads and pointer targets are recorded at 640x480 and 1280x720.
+  [Independent menu expectations](../.local/mcc-frontend-custom-prompts-20261019/menu-expected-geometry-v1/expected.json),
+  [Emitted menu quads](../.local/mcc-frontend-custom-prompts-20261019/native-geometry-v1/menu-quad-validation.json).
+- [x] Correct only the qualified menu control metrics, preserving ordinary
+  text, source anchors, baseline, clipping rules and existing shader samples.
+  Verify complete custom glyphs, expected sizes/positions and matching click
+  targets in profile, main and Settings across standard and widescreen views.
+  The corrected V23 runtime passes actual title/profile/main/Settings/back
+  keyboard and mouse navigation with finite, nonzero menu audio. Both required
+  native reference images were viewed; complete SELECT/BACK artwork and text
+  fit their panes/footer. The bounded Lockout firing/look/movement regression
+  also exits cleanly. All 325 parent inputs and 97 shaders are preserved; the
+  successor substitutes only the two admitted helper/painter leaves. Scratch is removed;
+  retain the requested coherent candidate (118,332,732 bytes) and two required
+  comparison PNGs (180,872 bytes). Full menu-tree and framebuffer parity remain
+  separate. Actual installed Play is the next gate.
+  [V23 native handoff](../.local/mcc-frontend-custom-prompts-20261019/native-menu-metric-v1/handoff.json),
+  [Root review](../.local/mcc-frontend-custom-prompts-20261019/native-menu-metric-v1/root-closure.json).
+- [x] Implement and component-test the menu metric correction for exact
+  selector 1/7 owners. All 80 menu/HUD profile rows and atomic/idempotence guards
+  pass the focused CMake test. Repeated selector 7 independently matches the
+  same source font and samples. The painter applies this only to the default
+  imported authored bank; ordinary text and the 0.4 canvas remain unchanged.
+  The private build is removed. Actual emitted positions and native Play
+  acceptance follow separately.
+  [Menu component checks](../.local/mcc-frontend-custom-prompts-20261019/menu-metric-implementation-v1/regular/report.json).
+- [x] Verify corrected emitted menu geometry against independent source-derived
+  expectations. All 14 foreground controls and 14 shadows at 640x480 and
+  1280x720 retain complete custom samples, baselines, alignment and four-edge
+  Accept/Back click bounds. Maximum comparison error is 0.00011 pixels. The
+  profile caption now fits its 245-unit pane (227 rather than 251 units),
+  restoring the previously clipped BACK text without changing source anchors.
+  CPU and review scratch are removed. Native rendering acceptance follows.
+  [Corrected CPU witness](../.local/mcc-frontend-custom-prompts-20261019/native-menu-metric-v1/cpu-handoff.json),
+  [Independent geometry review](../.local/mcc-frontend-custom-prompts-20261019/menu-expected-geometry-v1/corrected-review.json).
+- [ ] After prompt acceptance, bind the passed native title/menu runtime to
+  the installed Play action and test the actual button-to-title-to-menu route.
+  Preserve the separate native gameplay test and prior runtime for rollback.
+  V2 actual direct-host menu/Lockout and both no-argument Tk Play routes all
+  pass, including cached intro/skip, finite nonzero audio and a real Settings
+  B/BACK click. Actual default-window reference images were viewed. Its final source
+  guard rejected concurrent diagnostic-only C++ and stale-selection UI edits;
+  the original RED receipt is preserved and the owned stage/scratch removed.
+  Source review qualifies the absent-registry context. Adoption will reconstruct
+  the exact tested native bytes, reuse those native results and verify fresh
+  current-UI Play routes; unrelated live source edits must not trigger repeated
+  engine builds. Installed launchers remain pending that final adoption.
+  [Actual V2 routes and cleanup](../.local/mcc-frontend-custom-prompts-20261019/root-play-installation-v2/actual-attempt-closure.json),
+  [Reviewed source deltas](../.local/mcc-frontend-custom-prompts-20261019/root-play-installation-v2/root-drift-review.json).
+- [x] Qualify the final launch-test lifecycle before running that integration.
+  The shared flow inherits the test runner's process group and isolates HOME,
+  XDG, saves, GPU caches and raw audio. Exact descendant cleanup and forced
+  owner SIGKILL controls pass: traced children and Xvfb stop, and all scratch
+  is removed. The source routing review also confirms default title screen 9,
+  normal intro playback, title-first intro skip and separate Lockout admission.
+  These checks prepare actual Play acceptance; they do not claim installation.
+  [Flow lifecycle controls](../.local/mcc-frontend-custom-prompts-20261019/root-play-installation-v1/lifecycle-validation.json),
+  [Independent launcher routing review](../.local/mcc-frontend-custom-prompts-20261019/menu-expected-geometry-v1/root-play-routing-review.json).
+- [x] Recheck concurrent launcher selector changes before installing Play.
+  The current optional frontend selector preserves single-runtime admission
+  when no independent selection exists and rejects invalid explicit owners.
+  Four focused CMake groups pass: frontend capability, selector, compiled
+  launcher routing and Tk home UI. Source hashes remain stable and scratch is
+  removed. An initial validation command included the default engine dependency;
+  it was cancelled and cleaned, then corrected to disable that dependency.
+  Refresh the small compiled launchers to these matching helper semantics;
+  no native engine rebuild or new frontend registry is required.
+  [Current launcher checks](../.local/mcc-frontend-custom-prompts-20261019/concurrent-route-check-v3/root-closure.json).
+- [x] Refresh the small root and portable launcher inputs to the current
+  selector-aware source. All four compile and configuration checks pass with
+  pinned source/compiler/headers; prior inputs and concurrent source edits are
+  preserved. The two root binaries total 7,342,200 bytes. Private compilation
+  scratch is removed. Actual title/menu adoption uses these V2 inputs and the
+  accepted V23 native runtime; it remains the next acceptance gate.
+  [Current root launcher inputs](../.local/mcc-frontend-custom-prompts-20261019/root-play-launchers-v2/handoff.json).
+  The designated Linux output folder now also contains these two current
+  launcher binaries; the V23 native and onboarding output hashes are preserved.
+  All four root/portable launcher inputs total 14,675,568 bytes; compile and
+  restaging scratch are removed.
+  [Current input/output closure](../.local/mcc-frontend-custom-prompts-20261019/root-play-launchers-v2/closure.json).
+- [x] Prepare an isolated local shader-bank binding for that launcher runtime.
+  The existing ELF relocation helper can now bind a canonical absolute owner
+  within the same read-only, fixed-width path field, preserving instructions
+  and shader files. This avoids replacing the active workbench's shader bank.
+  All three focused relocation/gameplay/frontend admission groups pass; both
+  private builds are removed. This is preparation only: no native runtime has
+  been relocated or installed by this helper check.
+  [Local binding checks](../.local/mcc-local-frontend-owner-20261019/checks-v2/report.json).
+  The host's 156 linked libraries also match the accepted native test library
+  bytes exactly; no extra loader bundle is needed for this machine. That
+  read-only check leaves no scratch and does not substitute for actual Play.
+  [Host dependency identities](../.local/mcc-local-frontend-owner-20261019/host-dependencies.json).
+- [x] Compile the two root launcher inputs for that isolated runtime owner.
+  Normal and title-first binaries use the current verified routing source,
+  host Python and `.local/f22`; their configuration checks pass. Retain
+  7,224,640 bytes of requested compiled launcher inputs plus frozen source.
+  Scratch is removed and installed launchers/runtime/selection remain intact.
+  Actual Play adoption still waits for corrected native menu prompt acceptance.
+  [Compiled root launcher inputs](../.local/mcc-frontend-custom-prompts-20261019/root-play-launchers-v1/handoff.json).
+- [x] Refresh the designated local Linux x86_64 outputs with the accepted V23
+  runtime and both root launcher inputs. The existing staging helper publishes
+  exact source hashes in `dist/builds/linux-x86_64/build-output.json`; the three
+  binaries total 112,860,152 bytes. The onboarding entry and other platform
+  outputs are preserved. Scratch is removed. These are local compiled outputs;
+  installed Play adoption and the relocatable ZIP remain separate gates.
+  [V23 local output receipt](../.local/mcc-frontend-custom-prompts-20261019/designated-output-v23/handoff.json).
+
+- [x] Load the title screen, menu graphics, text/fonts and audio from the
+  port-owned imported MCC cache. Reuse existing frontend code and shaders;
+  do not require a separate Vista asset bank or read an Xbox ISO at runtime.
+- [x] Locate and authenticate the existing authored SVG button-prompt masters
+  and exported bitmaps, including their selector/codepoint provenance. The
+  earlier82-master/331-binding/six-atlas pack is described in
+  [VISTA_PROMPTS_4K.md](VISTA_PROMPTS_4K.md). Its preserved relocated resources
+  match the original174 artwork files and175 sealed bundled nonreference
+  files. The reconstruction metadata differs only by the documented bundler
+  path rewrite and matches that sealed bundle. All12 MCC font selector names
+  match the authored selectors exactly. The runtime manifest/six atlases total
+  19,354,278bytes; no original fonts or regeneration are needed. All discovery
+  scratch is removed, with no asset copies made by that audit.
+  [Authenticated custom prompt inventory](../.local/mcc-frontend-custom-prompts-20261019/inventory-v1.json).
+- [x] Restore the exact authored source bundle to portable
+  `resources/presentation/prompts/`. Its91 files retain19,865,846bytes: the
+  seven runtime files,82 SVG masters, reconstruction provenance and the new
+  sealed source manifest4255eceb. All90 payload files authenticate against the
+  delivered bank; no reference fonts are copied or artwork regenerated. These
+  are required retained custom assets. The selected cache is untouched by this
+  source restoration; import and actual display still need separate checks.
+  [Custom artwork restoration](../.local/mcc-frontend-custom-prompts-20261019/source-restoration-v1.json).
+- [ ] Import those custom prompt bitmaps and ownership metadata into the
+  selected cache's port-supplied presentation tree, preserve the MCC tree,
+  and include the required authored pack in the compiled distribution.
+- [x] Repair the actual selected root cache's authored prompt bank. All nine
+  files/19,372,296bytes match their complete source hashes, source manifest
+  4255eceb and self-relative binding. Only `port_authored_prompts` is added to
+  provenance; cached/live MCC tree metadata, both movie identities, selected
+  runtimes/launchers, shaders, registries and saves remain unchanged. Actual
+  traced writes stay in the prompt bank, provenance update and shared lock.
+  No31GB rehash/reimport or P-cache copy occurs. Scratch is removed; these nine
+  required cache assets are explicitly retained. Native rendering follows.
+  [Actual prompt import](../.local/mcc-frontend-custom-prompts-20261019/actual-root-import-v1/validation.json).
+- [x] Implement and verify the fresh/reused prompt import contract. The
+  source bank has82 exact SVG masters plus authored atlases and provenance;
+  only nine runtime files enter `presentation/prompts/`, using a portable
+  self-relative binding. All53 focused prompt/onboarding/preparation controls
+  pass. An actual authenticated bank copy into owned scratch verifies all
+  19,372,296bytes against source/destination hashes. The importer shares the
+  presentation lock, resumes matching partial copies and preserves custom or
+  conflicting data. All four owned scratch trees are removed. Actual selected
+  cache repair, distribution and visible rendering remain separate gates.
+  [Prompt importer handoff](../.local/mcc-frontend-custom-prompts-20261019/handoff-v1.json),
+  [Actual private bank copy](../.local/mcc-frontend-custom-prompts-20261019/validation-real-bank-v1.json).
+- [ ] Apply the custom prompts in the native title/menus and gameplay HUD
+  through the existing sampling path, preserving source glyph metrics and
+  active keyboard/controller bindings. Verify actual selected atlas pixels,
+  then visible menu/gameplay prompts using the MCC cache; record any remaining
+  coverage limits before publishing the frontend capability.
+- [x] Qualify actual MCC glyph ownership before applying the earlier redraws.
+  All331 selector/name/codepoint/source-record bindings match MCC. Of those,
+  178 have different raw dimensions across eight selectors; for example,
+  Conduit12 E100 is44x50 in MCC versus the historical32x36 source and128x144
+  custom raster. The pack's fourfold density is relative to its authenticated
+  historical source, rather than every raw MCC glyph. A too-strict test caught
+  that assumption; no artwork or logical metrics were changed. Revised component
+  checks must verify historical density, exact bitmap samples and unchanged MCC
+  metrics/lookup/clipping. Native display remains an open gate.
+  [Measured prompt dimensions](../.local/mcc-frontend-custom-prompts-20261019/cpp-integration-v1/actual-dimensions.json).
+- [x] Independently review the frozen prompt consumer changes. The default
+  cache bank is selected independently of optional UI/font replacement;
+  relative bindings resolve from their bank, and the sampler retains logical
+  metrics and input bindings. Repeated Conduit selectors share identical
+  atlas hashes, rectangles and vectors, so existing material deduplication
+  remains valid. The new native button branch reads MCC fonts, with no new
+  Vista font dependency. This is source/artifact review, not a rendered proof;
+  its scratch is removed and no additional decoding or compile is performed.
+  [Independent prompt consumer review](../.local/mcc-frontend-custom-prompts-20261019/independent-cpp-review-v1/review.json).
+- [x] Validate the compatible prompt sampler components against actual MCC
+  fonts and the authenticated custom rasters. All331 controls across12 raw
+  selectors and three projected HUD owners preserve metrics, lookup, kerning
+  and34,152,448 ordinary atlas bytes while selecting exact custom bitmap bytes.
+  Relative/absolute bindings, changed CWD, aliases and malformed inputs are
+  covered. Regular and ASan/UBSan probes pass. All five focused CMake groups
+  pass, including the three fresh/reused import registrations. Scratch is
+  removed and no large test outputs are retained. Actual native consumer
+  constructors, button rectangles/X-height and GPU display remain separate.
+  The selected-compatible HUD adoption must exclude only the unrelated
+  pre-existing `reset_lifetimes` method privately, preserving product source.
+  [Prompt component checkpoint](../.local/mcc-frontend-custom-prompts-20261019/cpp-integration-v1/handoff.json).
+- [x] Construct actual selected-compatible MCC prompt consumers on CPU. The
+  default Painter, full41-widget/624-material HUD and Scoreboard select exact
+  custom textures/UVs from a private full056 cache view. Parent/patched menu
+  vertex positions and title/main/Settings pointer/back behavior match; both
+  processes exit0. Four controlled action-renderer inputs use the real
+  `training_reload` row, rather than an actual SMG pickup. The real stock SMG
+  row is exercised separately and has the same pre-existing token gap in both
+  versions. All324 parent inputs and cache metadata remain exact; private
+  compilers/binaries/cache views are removed. GPU display is still unverified.
+  [Native CPU consumer checkpoint](../.local/mcc-frontend-custom-prompts-20261019/selected-consumers-v1/handoff.json).
+- [x] Run the native title/menu path with imported custom prompt atlases and
+  the cached bundled intro. The frozen 325-input candidate exits cleanly after
+  actual X11 focus, intro skip, title/profile/keyboard/main/Settings/back input
+  and 259 rendered frames. Title-only music and overall native mixer samples
+  are finite and nonzero. The 97 shaders and parent inputs stay unchanged;
+  owned runtime scratch is removed. This validates the basic frontend only:
+  dedicated gameplay control metrics, stock pickup tokens, complete menus and
+  Xbox framebuffer/audio parity remain separate. Cold window readiness took
+  80.9 seconds, so this is not a startup-performance fix. Final video review
+  and retention are recorded below; launcher/package adoption remains separate.
+  [Native custom-prompt frontend run](../.local/mcc-frontend-custom-prompts-20261019/native-frontend-v1/validation.json).
+- [x] Seal the basic frontend candidate and requested video with sound. The
+  final cohort pins the immutable passed receipt; independent root checks
+  verify all handoff hashes and that acceptance link. The compatible 20-second
+  H.264/AAC video has 240 frames and finite nonzero stereo audio. Visual review
+  confirms the bundled intro, title, profile chooser and main menu; Settings is
+  proven by the input trace. Retain 125,604,679 bytes of coherent compiled inputs
+  and 3,053,915 bytes of requested video/source visual evidence. Three owned
+  capture/QA scratch trees are removed. No capability, installation or ZIP is
+  published by this checkpoint.
+  [Sealed frontend/video handoff](../.local/mcc-frontend-custom-prompts-20261019/native-frontend-v1/handoff.json),
+  [Independent closure](../.local/mcc-frontend-custom-prompts-20261019/native-frontend-v1/root-closure.json).
+- [x] Build and test the dedicated-control metric helper against actual MCC
+  font inputs. The focused CMake test passes the 40-row profile, selector 5
+  no-op, selector 6 corrections, idempotence and malformed/partial-owner guards,
+  while preserving ordinary metrics, samples, atlas pixels, lookup and kerning.
+  The helper is called only for private dedicated action-button fonts after
+  authored sampling. Its private build is removed. Selected-compatible HUD
+  geometry and native adoption remain unchecked.
+  [Metric component validation](../.local/mcc-frontend-custom-prompts-20261019/geometry-implementation-v1/regular/report.json).
+- [x] Preserve the prior authored dedicated-button geometry with an exact
+  source-qualified logical-metric projection where MCC differs. The helper
+  qualifies all 40 control records and authored samples before changing the
+  16 differing selector 6 tuples; selector 5 and repeated projection are no-ops.
+  Six selected-compatible MCC Cache/HUD cases confirm controller X, F and Space
+  geometry against the independent source profile. Ordinary fonts, uploaded
+  texture bytes, active input policy and shaders remain unchanged; 27 malformed
+  or partial-state controls reject before mutation. No reference fonts ship.
+  All owned scratch is removed, with no probe binaries retained. This is CPU
+  geometry acceptance; native cohort adoption, visible gameplay prompts and
+  Xbox framebuffer parity remain separate gates.
+  [Dedicated HUD metric handoff](../.local/mcc-frontend-custom-prompts-20261019/geometry-implementation-v1/handoff.json).
+- [x] Adopt the exact helper and HUD provider together in a coherent native
+  runtime. V22 passes actual title/profile/main/Settings/back with unmuted audio,
+  and real Lockout focus/click/held-fire/look/movement through 319 frames and
+  366 ticks with a clean exit. All 325 parent inputs, 97 shaders and selected
+  cache are preserved. Retain 114,415,463 bytes of coherent compiled inputs;
+  test scratch is removed. The independently measured menu-control sizing
+  issue still blocks prompt acceptance and Play/capability/package publication.
+  [Native HUD adoption](../.local/mcc-frontend-custom-prompts-20261019/native-geometry-v1/handoff.json).
+- [x] Extract and qualify the dedicated-control metric profile before changing
+  native sizing. All 40 control records match the authenticated artwork
+  owners. Selector 5 needs no metric changes; selector 6 has 16 differing
+  tuples. The 95 printable ASCII glyphs and complete kerning tables match
+  both historical owners, so a control-only projection can preserve the
+  existing keyboard-label sizing policy. This is offline metadata evidence,
+  with no product edits or reference fonts shipped. Implementation and native
+  rendering remain unchecked; owned scratch is removed.
+  [Qualified metric profile](../.local/mcc-frontend-custom-prompts-20261019/geometry-profile-v1/handoff.json).
+- [ ] Normalize actual MCC gameplay action templates into the original
+  native token namespace using verified names/weapon-field roles/raw hashes.
+  The five same-named SMG pickup/dual templates are paired with original
+  Lockout and TU1.5 Backwash. Original primary/secondary use E448/E449; MCC
+  templates use E47C/E45A and E47D/E46A. Original E45A means an animated right
+  thumbstick, so global codepoint replacement would conflate namespaces.
+  General MCC callback semantics and other weapons/languages remain open.
+  Keep this gameplay compatibility gate separate from basic menu availability.
+  [Qualified action-template evidence](../.local/mcc-action-locale-token-audit-20261019/comparison-v1.json).
+- [x] Require the custom prompt bank in frontend capability admission. All
+  nine consumed manifest/binding/atlas inputs and any extra bank files must
+  match the passed inventory under `presentation/prompts/`; omitted, changed,
+  deleted and unqualified extra atlas controls reject. Seven frontend controls,
+  all34 compiled launcher routing controls and22 updater controls pass through
+  three focused CMake groups. Scratch is removed. These metadata checks do not
+  prove actual prompt import or visible rendering.
+  [Custom prompt admission checks](../.local/mcc-frontend-launcher-20261019/custom-prompt-resource-v7/closure.json).
+  An independent current-cache size control also passes unchanged:52 consumed
+  resources plus97 shaders need about15–16KiB, within the64KiB sidecar bound.
+  The copied561 DDS pages remain inactive without `ui/pack.tsv`; the launcher
+  already guards that optional overlay correctly. A hypothetical oversized
+  future pack does not justify changing the current bound. Both audit scratch
+  trees are removed.
+  [Current receipt-size check](../.local/mcc-frontend-custom-prompts-20261019/sidecar-size-review-v2/review.json).
+- [ ] Validate complete fresh and reused-cache imports before changing the
+  final data-path layout. Cover copied MCC files, required converted vanilla
+  gameplay tags, mod `tags`/`data` inputs and bundled custom presentation assets,
+  including interruption/resume and actual native consumption. A helper fixture
+  alone does not pass this import gate.
+- [x] Audit current path preservation before proposing that later change.
+  Raw copying already preserves selected Halo2-relative names, case, nested
+  `tags`/`data`/mod subtrees and empty directories under `cache/halo2`.
+  Current offline map conversion only enumerates top-level `.map` files;
+  copied nested mod maps/loose tags and mod-owned shared-resource contexts need
+  separate conversion/lookup coverage. External Workshop roots are not yet
+  enumerated. Derived hash-named bitmap/UI catalogues are separate port caches,
+  rather than a flattened replacement for the donor tree. This read-only audit
+  changes no data paths and leaves the full import gate open; scratch is removed.
+  [Canonical path audit](../.local/mcc-canonical-path-audit-20261019/read-only-v1/validation.json).
+- [x] Identify the remaining complete-import acceptance boundaries. Current
+  cache metadata covers 883 copied files and 43 maps, with no nested mod maps
+  or loose tag inputs. Small controlled copies preserve nested/case-sensitive
+  paths, but conversion still uses basenames and one standard resource context.
+  Reuse verification authenticates copied outputs without proving a complete
+  required-conversion set. This read-only audit does not rehash the real cache
+  or run gameplay; owned scratch is removed and no data paths change.
+  [Import acceptance audit](../.local/mcc-import-gate-audit-20261019/read-only-v1/review.json).
+- [x] Make the CLI/main-thread fresh-import transaction cancellation-safe,
+  including stage creation, copying, map conversion and nested presentation
+  preparation. Actual SIGTERM controls now remove incomplete stages, preserve
+  source/registries/prior caches and permit a clean retry. A completed published
+  cache survives termination after its rename. All 21 preparation controls and
+  four focused CMake groups pass; source pins remain stable across validation.
+  Seven owned scratch trees are removed and no large artifacts are retained.
+  Concurrent multiplayer-catalog work is preserved but is outside this fix's
+  acceptance scope. The GUI worker lifetime is a separate unchecked gate.
+  [CLI cancellation handoff](../.local/mcc-import-cancellation-20261019/handoff.json).
+- [x] Give Linux GUI onboarding an equivalent cancellation/cleanup owner.
+  Default imports now run in an owned CLI child with bounded streamed progress;
+  its main-thread cancellation covers setup/select, including reuse repairs.
+  Nineteen focused controls pass: real GUI termination and owner-pipe EOF,
+  interruption during process creation, callback/window teardown, clean retry,
+  portable Python paths and exact handler restoration. Existing controls and
+  injected-function tests remain valid. Both owned scratch trees are removed;
+  no real cache, registry or runtime changes occur in these tiny fixtures.
+  Complete fresh/reused import and packaged GUI acceptance remain open.
+  [GUI import lifetime handoff](../.local/mcc-setup-gui-lifetime-20261019/validation-v1/handoff.json).
+- [ ] Qualify relative map identities and each map's shared, texture and audio
+  dependencies before widening conversion enumeration. Cover duplicate mod
+  basenames and nested paths without conflating resource owners. Define required
+  conversion coverage and loose-tag/data producer admission; use that coverage
+  in fresh/reused verification and actual native-consumption acceptance.
+- [ ] After that import gate passes, update importer output and runtime lookup
+  paths to follow Halo2 MCC's relative directory structure. Use MCC's pattern
+  as the canonical layout for this MCC-only port, preserving original internal
+  tag names, relative `tags`/`data` paths, case and mod-folder subtrees. Convert
+  required definitions before publishing them at those normal vanilla paths;
+  keep provenance separate from logical tag ownership. Preserve Xbox-compatible
+  logical tag paths where shared, without adding an ISO import dependency.
+  Compiled maps retain their donor-relative `.map` paths and internal tag
+  names; loose assets retain their donor-relative `tags/` and `data/` paths.
+  Existing working caches need a verified migration or compatibility lookup.
+- [ ] Verify path-equivalent native loading and mod-path resolution after the
+  layout update. Record representative internal tags and loose/mod `tags` and
+  `data` paths, confirming converted definitions are the vanilla baseline.
+  This prepares the data layout for future Steam Workshop overlays; Workshop
+  discovery, downloads and subscription support remain a later implementation.
+- [x] Copy the actual bundled repo intro and credits movies during cache
+  import and bind their verified playback roles. Record them as port-supplied
+  movie inputs, preserve MCC's copied BK2 tree and the bundled originals, and
+  avoid assigning intro/credits roles to unverified MCC video filenames. Verify
+  both fresh import and an existing-cache handoff without repeating31GB import.
+  Fresh/reused importer controls, actual selected-cache copy and current C++
+  cache-role/first-frame decoding now pass as recorded below.
+- [x] Implement the fresh/reused-import and no-reimport movie handoff. The
+  exact two source MP4 hashes verify2,538,778,741bytes. Four focused CMake
+  groups and12 Python controls pass, including interrupted-copy cleanup.
+  Runtime resolution selects the pinned cache manifest, exact roles and file
+  extents; it streams video without a2.5GB startup payload hash. Full payload
+  verification remains in import/repair. The bundled sources are unchanged;
+  test scratch is removed. Actual selected-cache copy/playback follows.
+  The self-contained next package must include the two bundled movies and
+  metadata; the older portable ZIP does not acquire them from a dev checkout.
+  [Bundled movie handoff](../.local/mcc-bundled-movies-20261019/handoff.json).
+- [x] Preserve both required movie metadata paths in CMake build and install
+  outputs. The movie target previously emitted only the bank manifest; it now
+  also emits and installs `resources/movie-manifest.json`. Bounded single- and
+  multi-configuration CMake builds/installations pass, and each installed
+  four-file bundle supports fresh and reused movie preparation. These use tiny
+  fixtures to verify packaging and importer compatibility, rather than claiming
+  movie playback or a complete engine build. All five test/fixture scratch
+  trees are removed; no movie copies or binaries are retained by this check.
+  [Movie install validation](../.local/mcc-movie-cmake-install-20261019/v2/validation.json),
+  [Cleanup](../.local/mcc-movie-cmake-install-20261019/v2/cleanup.json).
+- [x] Prepare the exact successor portable-package input inventory without
+  publishing it. The V18 delta needs the updated six existing Python tools,
+  new movie helper, both MP4s and both metadata files, plus separately accepted
+  runtime/capability evidence. Portable launchers must be compiled with
+  `python3`/`./bin`, rather than copying absolute-path development launchers.
+  ZIP64 is required; movie assets belong in the full ZIP rather than the
+  binaries-only updater feed. This is a pinned preparation, not a new package
+  or native frontend acceptance. No archive or large copy is made.
+  [Portable input preparation](../.local/mcc-bundled-movies-20261019/portable-preparation-v1/preparation.json).
+- [x] Make the public compiled-preview packager carry both bundled movies
+  and both exact metadata files, verify complete source/copied hashes, record
+  provenance and explicitly enable ZIP64. Sixteen focused controls pass,
+  including real tiny archive writing, invalid sources, interruption cleanup
+  and no-replace publication. Only the final requested ZIP persists during
+  real packaging; private stage copies are removed. These were synthetic
+  fixtures, with no new release ZIP or large movie copy. Source pins and all
+  private scratch removal are recorded. Custom prompt packaging follows
+  separately; this does not publish the accepted native frontend.
+  [Public movie packager closure](../.local/mcc-bundled-movies-20261019/public-packager-v1/validation.json),
+  [Packager cleanup](../.local/mcc-bundled-movies-20261019/public-packager-v1/cleanup.json).
+- [x] Extend the public packager to include all91 authored prompt source
+  files alongside both movies and metadata. Full prompt hashes are verified
+  before staging and after copying, with source provenance in package metadata;
+  no reference fonts are bundled for this bank. All21 focused controls pass,
+  including combined synthetic archive contents and existing ZIP64/cancellation
+  behavior. Scratch and fixture ZIPs are removed. This updates the packager,
+  rather than producing the next real compiled distribution.
+  [Prompt package closure](../.local/mcc-bundled-movies-20261019/public-prompt-packager-v1/validation.json),
+  [Prompt packager cleanup](../.local/mcc-bundled-movies-20261019/public-prompt-packager-v1/cleanup.json).
+- [x] Copy both bundled movies into the actual selected
+  `mcc-056309e12f444a3a8992c94f6fe32f0b/presentation/movies/` bank and verify
+  complete source/destination SHA-256 values. The only provenance change is
+  `port_bundled_movies`; MCC tree metadata, selection, current workbench/95
+  shaders and saves remain exact. No MCC tree is recopied. Retained requested
+  data is2,538,778,741bytes plus the721-byte manifest and empty lock. The
+  6.73-second repair's actual writes stay within that bank, lock and provenance;
+  its private scratch is removed. Cached playback decode follows separately.
+  [Actual selected-cache movie import](../.local/mcc-bundled-movies-20261019/cache-copy-v1/validation.json).
+- [x] Resolve both actual cached movie roles through current C++ and decode
+  their video/audio. Each produces a3840x2160 frame; the standalone decoder
+  also checks three frames per role and finite nonzero48kHz stereo audio.
+  Intro/credits report866,624/18,212,224 decoded audio frames. Attract remains
+  unassigned. Private compilers, frames/audio buffers and all four recorded
+  scratch trees are removed. This is bounded decode, not complete playback,
+  speaker output or a displayed full video.
+  [Movie copy/decode closure](../.local/mcc-bundled-movies-20261019/cache-copy-v1/closure.json).
+  The prospective frontend's exact compatible Movie provider also resolves the
+  selected cache bank first and decodes each role through frame3. Its existing
+  audio decoder produces866,624/18,212,224 finite/nonzero frames with peaks
+  0.91483/0.737033. Attract stays empty. This additional provider check runs in
+  the owning frontend test's private hardlink view. That full test now passes
+  and its scratch is removed; custom prompt/launcher admission remain separate.
+  [Prospective provider movie check](../.local/mcc-frontend-runtime-20261019/unmuted-xinput-v2/movie-role-validation.json).
+- [x] Keep the launcher's normal frontend route eligible for the bundled
+  startup intro, while the title-first variant explicitly skips it. The
+  relocated onboarding launcher passes all34 routing tests with this split.
+  Movie import and actual decode/playback acceptance remain separate. Its
+  private build is removed.
+  [Intro/title route check](../.local/mcc-frontend-launcher-20261019/bundled-intro-routing-v5/report.json).
+- [x] Audit the actual imported frontend inputs: both prepared caches retain
+  all40 MCC fonts and their12-selector table; the selected menu contains131
+  screens and275 UI bitmap banks/929 frames. The newer cache also has561
+  decoded DDS assets. All57 copied BK2 files remain available, but classic
+  intro/attract role bindings are not established by their presence. No
+  reimport or separate Vista bank is needed for the title/font inputs.
+  [Imported asset audit](../.local/mcc-frontend-asset-contract-20261019/read-only-v1/validation.json).
+- [x] Get the compatible native frontend through MCC metadata/image decoding
+  and into a real title frame using the full imported-cache hierarchy.
+  Preserve three authored empty hidden MCC lists, use the existing MCC bitmap
+  reader, load the authenticated MCC font path and read animation bytes from
+  their checked owned graph. The original-file raw-data guard remains intact.
+  The640x480 title frame reveals cropped PC-canvas artwork; layout/navigation
+  and unmuted acceptance remain open. Both audited runs open no Xbox/Vista
+  reference files, preserve97 shaders and remove scratch. The153,319-byte PNG
+  is retained as required comparison evidence, not an accepted title image.
+  [Metadata acceptance](../.local/mcc-frontend-runtime-20261019/content-fix-v3/validation.json),
+  [Initial title frame](../.local/mcc-frontend-runtime-20261019/title-frame-v3/validation.json).
+- [ ] Validate title-to-main-menu, submenu navigation and return/back through
+  the selected runtime and launcher using that MCC cache. Record the exact
+  imported cache and opened files, rejecting Xbox/Vista cache dependencies.
+  The first bounded V19 MCC menu audit stopped with
+  `invalid UI list definition`. Metadata, a first title frame and the later
+  CPU navigation stage now pass as recorded below. Corrected muted rendered
+  navigation also passes; the launcher and unmuted/input gates remain open.
+  [Initial MCC-only audit](../.local/mcc-frontend-runtime-20261019/initial-v1/validation.json).
+- [x] Verify the corrected native MCC title/profile/main/Settings/back flow
+  with four actual640x480 rendered cases. Creating the private profile through
+  keyboard167 reaches main6; selecting Settings at319,357 reaches19; Back
+  returns through confirmation7 to title9. All four processes exit0 and open
+  no Xbox/Vista reference files. The existing97 shaders are unchanged. Four
+  required comparison PNGs total550,453bytes; raw frames, linked test binaries
+  and scratch are removed. These muted cases do not prove unmuted startup,
+  physical desktop input, every submenu or Xbox framebuffer parity.
+  The compatible link uses322 physical inputs: the316-input parent, one
+  replaced frontend input and seven explicit overrides; the original archive
+  remains intact with member-ownership witnesses.
+  [Rendered navigation acceptance](../.local/mcc-frontend-runtime-20261019/navigation-v3/acceptance-summary.json).
+- [x] Identify the profile-picker navigation failure by exact identifier names.
+  A bounded offline original name-table reference and the imported MCC table
+  give6,873 unique common names, three explicitly absent names and no ambiguous
+  matches. All requested navigation/keyboard IDs are corroborated by actual
+  MCC locale ID words. Independent reconstruction verifies every generated
+  row; for example, `create_new_profile` maps12000195 to1200019d. Runtime
+  inputs remain MCC-only. Localized text and authored MCC IDs are preserved;
+  only compiled original identifier lookups may use this qualified mapping.
+  Product integration/navigation acceptance remains open; scratch is removed.
+  [Named identifier inventory](../.local/mcc-frontend-string-inventory-20261019/common-unique-v1/validation.json),
+  [Independent mapping review](../.local/mcc-frontend-string-inventory-20261019/common-unique-v1/root-review.json).
+- [ ] Make default Play open the validated MCC frontend, while preserving a
+  separate native gameplay test and honest incomplete full-game readiness.
+- [x] Resolve the actual unmuted frontend failure before publishing that
+  capability. The first eight-leaf/323-input candidate compiles and links but
+  aborts before `Menu ready`, after a wmav2 warning and stack-smashing report.
+  No real OS input, accepted candidate, video or sidecar is produced. Its
+  scratch is removed; muted four-screen acceptance remains valid. Diagnose the
+  exact software decoder/provider contract; no hardware initializer work is
+  required without demonstrated dependency.
+  [Unmuted failure](../.local/mcc-frontend-runtime-20261019/unmuted-xinput-v1/validation.json).
+  The matching-header caller refresh now passes the full actual unmuted native
+  X11 test: title9/profile10/keyboard167/profile38/main6, real pointer selection
+  to Settings19 and Back6,482 rendered frames and exit0 in70.57 seconds.
+  Actual SDL output contains848,384 finite/nonzero stereo frames at48kHz,
+  peak0.362493. The sole opened music/UI bank is imported MCC
+  `sounds_neutral.dat`; no Xbox/Vista runtime inputs are opened. All97 shaders,
+  original316 inputs, user saves and runtime selections remain unchanged.
+  The accepted324-input candidate and required coherent inputs retain
+  150,790,930bytes. Its requested12-second video with native audio is1,647,535
+  bytes. Raw captures/PCM/maps and private scratch are removed. Custom prompt
+  integration, launcher admission and full parity remain separate open gates.
+  [Unmuted/input acceptance](../.local/mcc-frontend-runtime-20261019/unmuted-xinput-v2/validation.json),
+  [Coherent candidate retention](../.local/mcc-frontend-runtime-20261019/unmuted-xinput-v2/retention.json).
+  The video independently decodes as144 H264640x480 frames and576,000 finite,
+  nonzero stereo audio frames. It starts at profile entry, then shows the main
+  menu and Settings transition; it does not include the accepted title frame.
+  A212,855-byte contact image is retained for video QA, whose scratch is removed.
+  The final custom-prompt capture must wait for recording readiness before input.
+  [Video QA](../.local/mcc-frontend-runtime-20261019/unmuted-xinput-v2/video-qa.json).
+- [x] Minimize the unmuted failure to the actual MCC MenuMusic constructor
+  and identify a selected caller/producer layout mismatch. The old music
+  caller allocates280 bytes for `SoundVariationDefinition`; the selected
+  variation producer returns288 bytes, including `sample_rate_index` at280.
+  Actual DWARF and the failing lambda's stack-canary epilogue corroborate the
+  boundary. Both callers agree on88-byte `PcmSound`; the packaged channel-layout
+  functions touch only the expected24 bytes. This diagnoses a concrete ABI
+  mismatch, not a passed fix. Refresh only the unchanged music caller against
+  the accepted header, then repeat the tight CPU and unmuted frontend tests.
+  All three independent ABI probe scratch trees are removed.
+  [Selected sound variation layouts](../.local/mcc-frontend-audio-abi-20261019/sound-variation-types-v1.json),
+  [Actual minimized failure](../.local/mcc-frontend-runtime-20261019/audio-cpu-v3/validation.json).
+- [x] Verify the narrow MenuMusic caller refresh against the actual MCC audio.
+  Compiling the unchanged authenticated source against the selected288-byte
+  header changes the minimized constructor from abort to exit0 in1.285 seconds.
+  All12 UI sounds and four authored WMA loops decode finite/nonzero at48kHz;
+  MenuMusic plays one voice through the existing mixer for48,000 frames, with
+  peak0.047278. The companion debugger also exits normally. No music algorithm,
+  decoder, gameplay, cache, shader or save bytes change; original316 link inputs
+  remain exact. The private compiler, objects and PCM buffers are removed.
+  Actual unmuted native/window acceptance follows as a separate gate.
+  [Caller refresh acceptance](../.local/mcc-frontend-runtime-20261019/audio-cpu-v4/acceptance-summary.json).
+  A later narrow DWARF closure verifies the other selected by-value consumers:
+  multiplayer audio, the native provider, script-world access and Cache all
+  agree on288 bytes, appended field offset280 and the same ten field offsets.
+  Their exact four cohort object hashes match. No additional mismatch or
+  rebuild is needed; audit scratch is removed.
+  [Remaining sound caller layouts](../.local/mcc-frontend-audio-abi-20261019/v20-caller-closure-v1/review.json).
+- [x] Bind frontend admission to the actual classic audio bank as well as
+  mainmenu/shared/textures/fonts. An independent metadata control reproduced
+  admission after an unpinned `sounds_neutral.dat` was changed/deleted. The
+  reader now requires its exact hash; omission, mutation and missing-bank
+  controls reject, while a complete receipt still admits. All34 compiled
+  launcher routing controls, six frontend controls and22 updater controls pass
+  through three focused CMake groups. Its private build is removed; no game
+  binaries or raw data are retained by these checks.
+  [Independent audio-bank finding](../.local/mcc-frontend-launcher-20261019/independent-resource-review-v1/review.json),
+  [Audio-resource admission checks](../.local/mcc-frontend-launcher-20261019/audio-resource-routing-v6/closure.json).
+  The independent exact control also passes: correct bank admits; omitted hash,
+  changed bank and deleted bank reject; full restoration readmits. Its own
+  scratch is removed.
+  [Independent post-fix control](../.local/mcc-frontend-launcher-20261019/independent-resource-review-v2/review.json).
+- [x] Exercise the named-identifier and PC-canvas integration through actual
+  MCC menu state and pointer hit testing: title9 to profile10, keyboard167,
+  profile38 and main6 succeeds; each of the five main entries owns3,840 pixels
+  in its distinct hit region. The actual Settings hit at319,357 opens19.
+  This CPU stage uses the imported MCC cache. Its owning run still has GPU
+  cases in progress; no frontend sidecar or accepted binary is published from
+  this stage alone. Final scratch cleanup follows the owning run's exit.
+  [Actual MCC pointer/navigation stage](../.local/mcc-frontend-runtime-20261019/navigation-v3/hit-result.json).
+- [ ] Make Update fetch the latest published prebuilt binaries for the host
+  platform and replace only files requiring updates. Preserve imported content,
+  shaders, saves, local source changes and the previous working runtime on
+  failure. Do not implement Update as Git pull plus a source rebuild.
+- [x] Compile the relocated onboarding launcher and verify binary-selection
+  precedence, stale/escaping selection fallback and packaged `--update`
+  routing without importing game data or compiling the native engine. The
+  focused launcher routing suite passes; its private build is removed.
+  This does not prove a published release or a frontend frame.
+  [Launcher routing check](../.local/mcc-frontend-launcher-20261019/launcher-routing-v1/report.json).
+- [ ] Verify the real update route against its actual release source and
+  exercise changed/current, wrong-platform, corrupt and interrupted downloads.
+  A local updater fixture alone does not prove a published build is available.
+- [x] Implement official GitHub prebuilt selection, file-hash verification,
+  changed-file downloads, staged activation/rollback and launcher forwarding.
+  The integrated eight focused CTest groups pass, including the real Tk
+  controls, separate frontend/native admission, binary updater and build entry
+  point. The official latest-release endpoint returns404 with no installation
+  writes; no published binary is available to accept end-to-end yet. Existing
+  builds remain playable after a failed download. Both validation build trees
+  are removed; no test binaries are retained.
+  [Integration validation](../.local/mcc-frontend-launcher-20261019/integration-v2/report.json),
+  [Updater receipt](../.local/prebuilt-update-audit-20261019/validation.json).
+- [x] Pin the frontend texture bank as well as menu/shared/font inputs, and
+  reject foreign or duplicate menu-map/UI overrides. The new duplicate control
+  exposed the older first-value-only check before the correction. The stable
+  corrected launcher passes all34 routing tests and frontend admission
+  controls. Safe-path direct release-slot CLI admission also passes; changing
+  its synthetic texture bank expires frontend admission. These are input and
+  routing proofs, not rendered-menu acceptance. Private builds are removed.
+  [Corrected routing](../.local/mcc-frontend-launcher-20261019/frontend-routing-v4/report.json).
+  The independent review and22 updater/release-admission controls also pass;
+  the release-slot CLI is exercised in a fresh safe-path Python process.
+  [Current integration review](../.local/prebuilt-update-audit-20261019/integration-review-v1.json).
+- [x] Stage successful builds into the designated platform output directory.
+  Linux x86 means the current Linux x86_64 target. Reserve Linux arm64,
+  Windows x86_64, Windows arm64 and macOS arm64 platform identifiers, but skip
+  their builds and outputs until their support is implemented. Keep local
+  build staging distinct from publishing downloadable release assets.
+  A real isolated CMake integration builds four genuine ELF targets and
+  verifies their distinct outputs and hashes; a second private build verifies
+  staging defaults off under test scratch. Both trees and all eight binaries
+  are removed. No unsupported-platform output is produced.
+  [CMake staging acceptance](../.local/build-output-staging-20261019/cmake-integration-v1.json).
+- [x] Compile and stage the three actual current launcher binaries into those
+  designated outputs. The regular and title variants preserve the currently
+  selected camera-performance workbench; onboarding keeps its normal relative
+  first-run configuration. The second build includes the bundled-intro/title
+  route split and current source6b55a7ad. Retained outputs total10,830,184bytes plus
+  the1,184-byte manifest. The private compiler/build files are removed. Root
+  launchers, the selected workbench and its95 shaders, caches and selectors
+  remain unchanged. The gameplay binary will be staged after its separate
+  frontend candidate acceptance; this does not install or publish a release.
+  [Actual latest launcher outputs](../.local/launcher-designated-output-20261019/execution-v2/validation.json),
+  [Build cleanup](../.local/launcher-designated-output-20261019/execution-v2/cleanup.json).
+- [x] Compile the two separate portable release launchers from frozen
+  source6b55a7ad using relative `python3`/`./bin` configuration. Both real
+  ELF64 binaries pass bounded relocated configuration checks through the
+  existing packaged loader, libraries and Python. Regular startup retains the
+  intro; the title variant skips it. Required package inputs retain7,253,922
+  bytes, including both ELFs, source and provenance. Root/P/designated builds,
+  caches, saves, selectors and recursive shader inventories remain exact.
+  Private build/fixture scratch is removed. No game, install, package or
+  capability sidecar is produced; full extracted-package acceptance follows.
+  [Portable launcher inputs](../.local/mcc-portable-launchers-20261019/inputs-v1/inputs.json),
+  [Portable build cleanup](../.local/mcc-portable-launchers-20261019/build-v3/cleanup.json).
+- [x] Add executable root `build-linux.sh` with clone-relative paths, quoted
+  directories and configurable Python/build directory/job count. The focused
+  entry-point checks cover another working directory, spaces and overrides.
+  This is script/routing validation, not a fresh-clone full engine build.
+  The bounded clone-input audit confirms the inspected generated renderer
+  inputs have tracked sources and CMake producers, and adds the required
+  `spirv-val` dependency to README. An untracked AI descriptor include belongs
+  to unrelated dirty work and is preserved with its owner; the new source
+  files must accompany their corresponding source changes. No clean-clone
+  full engine compilation is claimed.
+  [Clone input audit](../.local/build-output-staging-20261019/clone-input-audit-v1.json).
+
 
 ## Weapon runtime cache requirement (October19)
 
@@ -50,14 +710,40 @@ checklist and its linked goal state when completing weapon milestones.
   [Input admission](../analysis/weapons-tu15-goal-20261013/mcc-cache-input-admission-v1.json).
 - [x] Inventory the actual prepared MCC directories against the retained Xbox
   weapon scope. All43 cache files decode, with1,479 authored weapon rows and66
-  distinct paths. All63 Xbox scope paths are present; three additional MCC paths
-  require separate applicability review. This is identity coverage, with no
+  distinct paths. All63 Xbox scope paths are present. The three additional MCC
+  paths are absent from all 41 owned original map/shared/menu directories;
+  their resident definitions belong to both MCC shared banks. They remain
+  preserved additions outside the original 63-weapon catalog. This is identity
+  and scope coverage, with no
   conversion, gameplay or visual certification. Scratch is removed.
   [MCC weapon inventory](../analysis/weapons-tu15-goal-20261013/mcc-authored-weapon-scope-v1.json).
 - [ ] Verify the campaign weapon/HUD and application cases against these MCC
   inputs, then complete feature and visual coverage through the real import and
   runtime path. Tag conversion belongs to import; no reference-tag substitution
   may be used to pass validation.
+- [x] Verify the bounded native MCC HUD/map startup and704 shared-copy cases
+  without an Xbox image constructor. The actual selected HUD address belongs to
+  the resident MCC `hudg` directory. One/four-player MCC CLI simulations pass.
+  The original47D6C0 operand restoration clears1E7F18 in the MCC rerun. Actual
+  campaign placement next fails at1B0D0F on descriptor slot48AD78; actor/weapon
+  submission and application acceptance remain open.
+  Both private source/build trees and probe scratch are removed.
+  [MCC startup checkpoint](../analysis/weapons-tu15-goal-20261013/checkpoint-weapon-mcc-native-startup-20261019.json).
+
+The [weapon checklist](WEAPONS_TU15_GOAL_CHECKLIST.md) records nine passing
+checks in the v8 native MCC snapshot:115-descriptor composition, actual
+actor/held-weapon CPU submission, HUD/704 copies, both local-player simulations,
+two retained arithmetic comparisons, node-map projection and complete canonical
+metadata delivery. All three original campaign tables admit public HS placement;
+the objective-locale correction clears actual startup. The RTX 5080 renderer
+initializes and frame-zero simulation finishes. The actual node-map publisher
+and render consumer now clear `23644`/address `0x2`. The application next stops
+at original `22D78` on absent read-only operand `46A680`. Its exact bytes and
+34 further fixed operand extents are restored; a fresh cold factory verifies
+all95 fixed inputs. The separate13 indexed read sites remain open. Actual
+application revalidation follows; no MCC frame has submitted. Completed owned
+source/build/probe scratch is removed, with no new large artifacts retained.
+These component/source results do not close full weapon/visual gates.
 
 ## Account usage instruction during this work
 
@@ -2010,7 +2696,7 @@ Component evidence:
   support preservation tests before separately gated normal Cache execution.
   Full-client rebuild and delivery remain deferred until conversion acceptance.
   [Batch implementation scope](../.local/mcc-foot-table-key-audit-20261019/batch-profiles-v1/root-implementation-checkpoint.json).
-- [ ] Implement and validate the guarded Chief union conversion, then verify
+- [x] Implement and validate the guarded Chief union conversion, then verify
   all selected native Cache and direct selector outputs before runtime delivery.
 - [x] Replace the narrow private foot planner/table with the exact guarded
   union conversion. The existing public hook and Cache component remain
@@ -2022,6 +2708,83 @@ Component evidence:
   sanitizer execution, independent final review and native Cache acceptance
   remain next; no runtime or delivery artifact has been replaced.
   [Batch focused validation](../.local/mcc-foot-table-key-audit-20261019/implementation-batch-v1/validation-regular.json).
+- [x] Freeze the batch after actual instrumented ASan/UBSan compilation,
+  linkage and execution pass. All 81 context/state cases pass: donor-to-union
+  covers 2,345 fields, seed-to-union 2,318, and union has zero writes. Every
+  required support owner/state is exercised for mutation, absence and foreign
+  salt; inactive support and custom/partial controls also pass. Existing Cache
+  hook, public layouts/signatures, Gauss/material/preflight bodies and Gauss
+  include stay exact. All recorded build/fixture/scratch paths are removed;
+  six small seed preimages remain required transition references. Native Cache
+  execution, independent final review and runtime delivery remain separate.
+  [Frozen batch/source-test handoff](../.local/mcc-foot-table-key-audit-20261019/implementation-batch-v1/handoff.json)
+  · [Cleanup](../.local/mcc-foot-table-key-audit-20261019/implementation-batch-v1/cleanup.json).
+- [x] Independently review the final source and parse every generated C++
+  initializer against sealed profiles: 27 contexts, 16 owners, 1,355 physical
+  rows/2,345 context fields and 1,030 unique support records match. Final regular,
+  sanitizer and handoff pins agree. Finite-state admission, shared seed support
+  dependencies, signed-first-key traversal, custom preservation and atomic
+  publication have no actionable findings. Cache/public/Gauss/material/preflight
+  contracts remain exact. Only a bounded metadata/source review runs; its
+  scratch is removed, without raw-map/CPU/native/suite reruns or large outputs.
+  [Final independent product review](../.local/mcc-foot-table-key-audit-20261019/final-product-review-v1/validation.json).
+- [x] Record the independently caught native-Cache harness control defect
+  before execution. Lockout's Chief/support owners live in `shared.map`; the
+  initial control recipe incorrectly patched local `lockout.map` before linking
+  an unchanged shared bank. Preserve the sealed V1 preparation as unexecuted
+  evidence. A minimal V2 must construct private mutation banks by each exact
+  authenticated source owner and verify their beforeimages/physical offsets.
+  Stock comparison design and product sources are unaffected; native execution
+  remains gated until the corrected preparation and final product checks pass.
+- [x] Prepare and root-review the corrected V2 native-Cache comparison. The old
+  Lockout recipe reproduces an out-of-bounds physical offset; all eight corrected
+  recipes authenticate full donor/support owners in their actual selected bank
+  and verify physical beforeimages/readback. Six use private `shared.map` and two
+  use private Floodzone data, with unchanged companions linked for loading.
+  Product regular/ASan/source review and all helper/header/profile pins agree.
+  Root checkpoints only the 43-map/2,345-selector tiny-probe execution; no full
+  client, installation or packaging is authorized by this gate. V1 stays exact
+  and unexecuted; all preparation/checkpoint scratch is removed.
+  [Corrected preparation](../.local/mcc-foot-table-key-audit-20261019/native-cache-preparation-v2/handoff.json)
+  · [Native execution checkpoint](../.local/mcc-foot-table-key-audit-20261019/native-cache-preparation-v2/root-execution-checkpoint.json).
+- [x] Execute the exact selected 43-map normal Cache comparison. All 27
+  qualified contexts admit the full union: 2,345 eight-byte fields occupy 18,760
+  bytes and change 18,759 literal bytes. Actual selected native MaterialEffects
+  reads verify every direct action/key: classic primary identities are retained,
+  secondary results become null, and other audio/visual selector outputs stay
+  exact. All other backing bytes, complete directories and prior Gauss/Floodzone
+  consumers match baseline; the other 16 contexts remain wholly unchanged.
+  All eight source-owner-correct modified/seed/union controls pass. All 316
+  parent inputs/runtime, 43 selected maps and product pins remain exact. Actual
+  exit is zero and its private banks/objects/probes/scratch are removed. This
+  verifies vanilla Cache publication/selection, without all-row original CPU,
+  sample/audible, full-client or delivery claims.
+  [Actual native Cache/selector acceptance](../.local/mcc-foot-table-key-audit-20261019/native-cache-preparation-v2/validation.json)
+  · [Root acceptance checkpoint](../.local/mcc-foot-table-key-audit-20261019/native-cache-preparation-v2/root-acceptance-checkpoint.json)
+  · [Actual-run scratch closure](../.local/mcc-foot-table-key-audit-20261019/native-cache-closure-v1/validation.json).
+- [x] Prepare and root-checkpoint the compatible V19 successor after actual
+  Cache acceptance. Retain 314 accepted V18 inputs and original Main, replacing
+  only Cache/planner with the tested union. Project the exact 106 parent header
+  inputs plus the declaration-only gameplay header/new private include; adopt
+  no unrelated current-feature ABI changes. Root binds concrete successful
+  43-map/2,345-selector/control receipt fields, source tests and final review
+  before build/display creation. Authorize paired fixed-tick acceptance and
+  atomic required candidate retention only; input, installation and ZIP remain
+  separate gates. Preparation/checkpoint scratch is removed.
+  [Successor preparation](../.local/mcc-foot-table-key-audit-20261019/successor-v19-executor-v1/preparation.json)
+  · [Build/acceptance checkpoint](../.local/mcc-foot-table-key-audit-20261019/successor-v19-executor-v1/root-execution-checkpoint.json).
+- [x] Build and accept the coherent V19 client with exactly the two intended
+  provider replacements and 314 unchanged V18 inputs. Actual paired tick60
+  Lockout firing runs pass: decoded 640×480 frame, complete save outputs and
+  capture state are identical; each stream has finite nonzero stereo callback
+  PCM. All 43 maps, 97 shaders, selected headers, previous providers, launcher
+  selections and saves remain pinned. No speed or audio-identity claim follows
+  from the uncontrolled durations/PCM. The required coherent candidate and two
+  small reference PNGs retain 134,141,785 bytes. Actual exit is zero; private
+  compile/link/frame/audio/GPU-cache scratch, its owner parent and the receipt
+  check's scratch are removed. Real input and portable delivery remain next.
+  [Actual V19 build/frame acceptance](../.local/mcc-foot-table-key-audit-20261019/successor-v19-executor-v1/validation.json)
+  · [Actual execution/cleanup closure](../.local/mcc-foot-table-key-audit-20261019/successor-v19-executor-v1/finish.json).
 - [ ] Verify converted definitions load as vanilla internal data, including
   default campaign and multiplayer paths and mod interoperability.
 - [ ] Validate original CTF behavior through its native consumer before calling
@@ -3115,7 +3878,12 @@ logs and requested images; it does not complete the final cleanup gates.
 
 ## Next steps, in order
 
-1. Continue gameplay-tag semantic coverage beyond the now-delivered V16
+1. Complete the MCC-only title screen and menu vertical slice described in the
+   current-priority section, then make it default Play. Keep native Lockout
+   testing separately available. Wire platform binary downloads to Update;
+   the official repository currently has no published release assets, which
+   must remain an explicit availability limit rather than a source rebuild.
+2. Continue gameplay-tag semantic coverage beyond the now-delivered V16
    map-specific Gauss/Relic conversions. All28 authenticated contexts/two
    unqualified MCC maps pass complete Cache comparisons, and the retained
    executable passes firing, real input and relocated package launch. P now
@@ -3124,14 +3892,18 @@ logs and requested images; it does not complete the final cleanup gates.
    normal Cache checks across all43 maps and is delivered in the independently
    reviewed V18 ZIP. Its compatible client passes fixed-tick frame/save checks,
    nine real input stages and relocated launcher gameplay. P remains V17.
-   Review and implement the prepared keyed Chief sound-reference conversion
-   next, then continue the remaining material-effect semantic coverage.
+   The guarded Chief union conversion now passes all 43 selected Cache views,
+   2,345 direct native selector cases and eight private controls. Its compatible
+   V19 successor passes the paired native frame/save/audio acceptance; preserve
+   that private candidate and resume its input/delivery work after the frontend,
+   then continue remaining
+   material-effect semantic coverage.
    Preserve unknown mods, saves,97 bundled shaders, TU1.5 semantics and interim
    Play. Data conversion does not establish native CTF or all other modes.
    Distinguish actual host-pointer/ownership limitations from unrelated current
    feature-body drift before any broader rebuild. Remaining first-launch,
    complete renderer and live parity acceptance stay open.
-2. Continue rendered acceptance of the now-packaged/installed six-image/48-mip
+3. Continue rendered acceptance of the now-packaged/installed six-image/48-mip
    V4 importer. The Sacred Icon gradient's exact descriptor, registration,
    resource and pixel conversion pass; its live sky still needs acceptance.
    The fresh MCC-only preparation, resumed cache, actual native shot/audio,
@@ -3140,7 +3912,7 @@ logs and requested images; it does not complete the final cleanup gates.
    extracted folder retains its working older cache; the updated setup can
    prepare the newer correction set when requested. The ocean texture needs
    no pixel correction. Preserve the current working caches during delivery.
-3. Wire the honest native-test launcher capability and MCC-only loading/menu
+4. Wire the honest native-test launcher capability and MCC-only loading/menu
    asset handoffs beyond the now-published interim Lockout route. Verify a fresh
    MCC-only import, remaining loading/menu roles and mod-folder interoperability.
    The loading-name kernel and actual tag1009 branch/descriptor ingress are
@@ -3151,6 +3923,179 @@ logs and requested images; it does not complete the final cleanup gates.
    open; decoded callback data alone does not establish audible equivalence.
    The V3 product/delta and onboarding delivery are
    verified; wider rendered scene acceptance remains open.
-4. Validate the ordinary client and complete safe product/lifecycle integration.
-5. Continue the remaining onboarding, conversion, parity and delivery gates above.
-6. Perform the final cleanup and record the recovered storage.
+5. Validate the ordinary client and complete safe product/lifecycle integration.
+6. Continue the remaining onboarding, conversion, parity and delivery gates above.
+7. Perform the final cleanup and record the recovered storage.
+
+
+## v530 MCC shortcut admission and runtime-source prerequisites, 2026-10-19
+
+These prerequisite milestones are recorded before the dependent root-shortcut
+installation. Runtime inputs remain imported MCC only. Xbox ISO may be used
+only for offline validation of converted MCC tags; decompiled TU1.5 code remains
+the behavior authority. Xbox/XBE/Vista banks are never runtime dependencies.
+
+- [x] Review all 13 passing synthetic MCC shortcut admission/routing tests.
+  Module `tools/mcc_sandbox_launcher.py` SHA-256
+  `18e71ab5d5e3713db0e1761ee440a4334b4daf2c9694ed70bde2bf7719f4dcda`;
+  test `tests/test_mcc_sandbox_launcher.py` SHA-256
+  `70f2e51f6f3dfd644362d0c0876c3ac12911884b25873d6d9580d25d19ec4b8c`.
+  The legacy regular ELF lacks explicit native-test support. Its `--launch-game`
+  compatibility route requires native capability, no frontend and Play selecting
+  exact Lockout; newer supported runtimes use explicit native selection. These
+  are synthetic admission/routing proofs, not installed-wrapper or actual
+  launcher-through-runtime acceptance. Evidence:
+  [Shortcut admission](../work/sandbox-primary-v15/mcc-shortcut-admission-v530.json).
+- [x] Verify the selected runtime's bounded MCC asset-source check without
+  `--gameplay-xbe`: exit 0, six hidden muted Lockout frames, eight ticks, one
+  player/one connected. Successful-open tracing records 1,696 paths, zero
+  forbidden Xbox/XBE/ISO/Vista paths, zero unknown assets and zero unmatched
+  traces. Owners remain unchanged; scratch `halo2-test-2093lm9c` is removed.
+  Report SHA-256
+  `edc1cc7ec4533950070fbef5036aba26b65dee1ffaf51cb862a21cd0fc0243cb`.
+  This proves the bounded direct runtime asset source only; actual installed
+  shortcut-through-runtime, visible/unmuted/audio, all-map, selected frontend,
+  original presentation and full parity acceptance remain separate and open.
+  [MCC runtime file opens](../work/sandbox-primary-v15/selected-mcc-runtime-file-opens-v530.json).
+- [x] Install and verify the bounded root shortcut delivery. `Halo2-Sandbox-Test`
+  now selects the MCC helper; the actual GUI label is `MCC sandbox test  ›`.
+  Installed `--check` passes with cache v13, native capability true and frontend
+  capability false. All seven installed CLI guard/info cases pass: Xbox/XBE /
+  Vista/map/runtime/installation overrides are rejected and `--menu` refuses the
+  unqualified frontend. Existing real Tk launcher regression tests pass 18/18.
+  Eight protected files, including the regular launcher, original r6, selected
+  MCC runtime and cache provenance, remain exact; test scratch root is empty and
+  no new large artifact is retained. Delivery receipt SHA-256
+  `2725075b6d56d4930b7c7f7ca40f15c95ff7126fed1d3fb54ec84c148f9c9736`
+  (5,270 bytes). The earlier direct six-frame asset-source check retains its
+  limits: this delivery does not prove installed-shortcut-through-runtime,
+  visible/unmuted/audio, all-map, selected-menu or full parity acceptance.
+  All 14 whole-game gates remain open, 0/102 sandbox elements accepted.
+  [MCC shortcut delivery](../work/sandbox-primary-v15/mcc-sandbox-shortcut-delivery-v530.json).
+
+
+### v531 MCC menu catalogue component (2026-10-19)
+
+- [x] Replace the twelve-name menu filter with authored catalogue identity, without changing MenuState layout. The standalone production CMake test passes 12 frozen original metadata rows and 25 literal MCC rows, preserving sort/unlock, preview/launch identity and exact scenario leaves. Two blank-title DLC placeholders remain explicitly unqualified; no alias or full map acceptance is claimed. Private CMake scratch is removed. [Component receipt](../work/sandbox-primary-v15/mcc-menu-catalog-component-v531.json).
+- [x] Verify the changed MenuState through the actual imported MCC Cache and compatible native link; completed by v532 below. Renderer/launcher delivery remains its separate unchecked gate.
+
+
+### v532 actual MCC catalogue/MenuState integration (2026-10-19)
+
+- [x] Verify actual MCC Cache → native profile/sign-in → Split Screen → map list → focused preview → accepted lobby identity → selected-cache launch routing. The native CPU test passes 48 previews and 40 launch/header routes across original and reversed 25-record catalogues; four blank-title and four existing energy-weapon rejections remain explicit. All316 parent link inputs and230 frozen dependency files match before/after. No Xbox/XBE/ISO/Vista assets are opened; owned scratch is removed and no executable or raw trace is retained. [Integration receipt](../work/sandbox-primary-v15/mcc-map-picker-integration-v532.json), SHA-256 `4f983c985d3fba34f833cd04821340e82bd54cfb216dcc0dd340750e8887178c`.
+- [ ] Qualify and deliver the changed frontend through the selected renderer/launcher. CPU map routing does not prove gameplay, displayed frames, audio, pause, source session return or full map parity. The two source identities and native CPU routes are resolved by v544 below; fresh-preparation inventory and selected delivery remain separate. No highplains/highplains2 alias or full-map equivalence is inferred.
+
+
+### v533 MCC source-world weapon composition (2026-10-19)
+
+- [x] Migrate the source weapon-effects fixture and its three active registrations to selected MCC/native construction, rejecting executable arguments and non-MCC headers. Seven Python admission/routing controls, three actual native rejection controls and the focused production CTest pass. Ordinary native MCC SMG input produces60→53 rounds, seven accepted positive effect requests and12 contact effects with no parallel adapter shots. All316 parent providers remain exact, successful-open tracing finds no Xbox/XBE/ISO/Vista inputs, and compiler/native scratch is removed. [Frozen migration receipt](../work/sandbox-primary-v15/mcc-source-weapon-migration-v533.json), SHA-256 `5bd70c61198ad372462c91f23a915d82b1e4d36c8394a2e4ddff3dd2eaffe93b`.
+- [ ] Complete the original plasma-pistol charge/release lifecycle. The first-trigger `104698` failure is resolved by v542. Actual MCC execution reaches release/141 effect frames before missing vtable slot `45F8B4`; its complete method-table owner is now authenticated. Correct the fixture to the original instant damage/player-response effect: positive allocation, event execution and natural retirement before returning NONE. The whole-qualified preparation profile now projects the authenticated flag word2→6 (v550/v552); actual native allocation/event/player-response/retirement acceptance remains pending. Persistent particle-graph acceptance belongs to an actor whose authored charging effect actually has such a graph. Preserve the failed strict receipts; do not supply targets/results or invented effects. [Original effect contract](WEAPONS_TU15_PARITY_GOAL.md), [latest native frontier](../work/sandbox-primary-v15/mcc-weapon-program-tables-progress-v542.json).
+
+
+### v535 complete CTF/Assault initializer closure (2026-10-19)
+
+- [x] Port the complete original initializer and marker/query/region owners (`249460`, `24CE00`, `24CEF0`, `1A8850`). Independent execution of all three original versions passes 879 calls, normalized to 293 cases; optimized native and ASan/UBSan comparisons match the full 520-byte bank and conditional outputs. Five cases use authored marker data from imported MCC maps. The production CMake registration passes through `tools/run_tests.py`; its private build and oracle/compiler scratch are removed. [Milestone receipt](../work/sandbox-primary-v15/ctf-initializer-milestone-v535.json).
+- [ ] Compose the original activation/object-birth, registry and factory owners with the real selected native world, then complete CTF/Assault rules and lifecycle acceptance. The initializer does not admit either mode or establish live gameplay, presentation, LAN or launcher delivery. Three unreachable zero-distance replacement instructions remain outside executed coverage. All 14 whole-game gates and all 102 complete-element acceptances remain open.
+
+
+### v541 physics branch-owner compile fix (2026-10-19)
+
+- [x] Fix three invalid memory-API calls in the new physics branch-data owner, preserving the authenticated table payload. Focused production CMake validation passes installation/idempotence, partial-owner retention and four atomic rejection cases, including an uncommitted reserved owner. Private build scratch is removed. [Adapter receipt](../work/sandbox-primary-v15/physics-branch-owner-adapter-v541.json).
+The dependent actual MCC charge/release lifecycle remains tracked at v533 above. This compile/ownership fix supplies no runtime result, gameplay rule change, selected-runtime installation or full parity acceptance.
+
+
+### v542 complete weapon program tables and MCC charge frontier (2026-10-19)
+
+- [x] Restore all five bounded dispatch tables of the complete original `1030F0` owner: 26 words/104 bytes, including eight newly missing words. All 51 independent original guarded-selector cases and the coherent native cold-factory comparison pass. The original guards, instructions and branch targets are unchanged. The separate current-header cold executable also passes; its aggregate receipt correctly records concurrent source drift and does not qualify the subsequently changed workspace.
+- [x] Verify the coherent source-world build against actual imported MCC inputs. Ordinary SMG firing passes again (60→53 rounds, seven positive effects, 11 contact effects), with all 316 parent providers unchanged and no Xbox/XBE/ISO/Vista runtime reads. The strict plasma-pistol case now passes the former `104698` failure, reaches charge/release and 141 effect frames, then fails at original `2F8B27` reading vtable slot `45F8B4`. No positive charge graph was observed. All owned build/runtime scratch is removed. [Progress receipt](../work/sandbox-primary-v15/mcc-weapon-program-tables-progress-v542.json).
+
+The remaining charge lifecycle is the unchecked task at v533. Its persistent-graph expectation was subsequently disproved by the authenticated original instant-effect contract; that raw flag difference is now covered by the whole-qualified preparation profile in v550/v552, with actual native acceptance still pending. Failed receipts are preserved. No charged-weapon acceptance or runtime installation is claimed.
+
+
+### v544 authored Tombstone/Desolation catalogue and native menu routing (2026-10-19)
+
+- [x] Resolve both inherited blank MCC menu records from their complete authored scenario Level Data: Tombstone1402/order1500 and Desolation1400/order1400. Preserve destination bitmap identity and registration; redirect only their exact owned MCC preview partitions. The six planned stores total6,360 bytes. Eleven focused conversion controls and actual v13 reopen/idempotence/unrelated-byte checks pass. Offline converted-tag validation also finds both authored MCC preview pixel banks identical to the current Xbox LVL reference previews. [Conversion receipt](../work/sandbox-primary-v15/mcc-dlc-catalog-conversion-v533.json).
+- [x] Verify the converted catalogue through actual native MCC Cache/MenuState construction: 48 previews, 44 selected-cache launch/header routes, zero blank-record rejections and four preserved energy-combat gates, including reversed authored ordering. Both new identities, localized metadata, team counts, exact MCC scenario paths and destination preview owners are checked. All316 parent link inputs remain exact, no Xbox/XBE/ISO/Vista runtime inputs are opened, and the scratch mainmenu/object/executable/profile tree is removed. The selected cache remains unchanged. [Native integration](../work/sandbox-primary-v15/mcc-map-picker-converted-integration-v544.json), SHA-256 `5ff9750cbaef09c81669a679cebf54ee20594beb8d45251d9c54099dc71d5745`.
+- [x] Qualify the fresh-preparation hook, strict final DDS inventory and complete menu-asset assembly; completed by v550/v552 below. Coherent selected frontend/launcher delivery remains the separate v532 gate. CPU routing and offline preview-tag validation do not prove displayed native pixels, gameplay, transitions or complete map parity.
+
+
+### v550 strict preparation inventory and original instant-charge profile (2026-10-19)
+
+- [x] Qualify both converted preview pages through the actual full MCC inventory: all648 page owners pass,646 remain exactly unchanged, and the two authored replacements produce563 unique DDS pages. The default stock verifier rejects the changed pages; only the complete authenticated projection admits them. Original stock digests/comparisons remain recorded. [Inventory qualification](../work/sandbox-primary-v15/mcc-catalog-inventory-v534.json).
+- [x] Integrate catalogue projection before private bitmap extraction, preserve all six stores/counters, record the post-serialization mainmenu hash, and pass the projection into strict final menu inventory. Production CMake preparation/conversion/inventory tests pass; a further preparation/instant-charge registration run passes after the new scalar hook. Both private builds are removed. [Catalogue CMake](../work/sandbox-primary-v15/mcc-catalog-preparation-cmake-v547/report.json), [charge-profile CMake](../work/sandbox-primary-v15/mcc-instant-charge-preparation-cmake-v550/report.json).
+- [x] Validate the named instant-charge effect's complete160-byte source tuple, root marker and salted damage reference before projecting only its stored flag word2→6 to the original raw tag value. Eight profile controls and a real selected-MCC memory-only plan/idempotence check pass. Unknown custom definitions stay unchanged; this is no generic effect-bit heuristic. The current-header cold factory also passes the complete reached contact method tables. [Frozen source checkpoint](../work/sandbox-primary-v15/mcc-instant-charge-source-checkpoint-v549.json).
+
+The copied-MCC preparation/bitmap/menu-asset pipeline subsequently passed v552. Actual converted-MCC instant charge remains the v533 gate; the selected cache/runtime remains unchanged. Retained idle-loop graph acceptance stays a separate task for an actor authored to emit that graph.
+
+
+### v551 native CTF/Assault activation and registry owners (2026-10-19)
+
+- [x] Port25 complete TU1.5 initializer/first-activation/registry owners and wire their exact entry predicates into the real World dispatcher source. Independent original/native optimized and ASan/UBSan comparisons pass278 cases:209 complete returns and69 exact unsupplied-owner stops, with1,180/1,459 production instruction sites observed. The isolated production CMake test passes with strict FP. Actual object factories, existing registry services and dirty ownership remain genuine external native owners. [Milestone receipt](../work/sandbox-primary-v15/ctf-activation-milestone-v551.json).
+
+Real same-bank MCC factory birth, remaining CTF/Assault rules and complete lifecycle acceptance remain the unchecked v535 gate. The full World object was not rebuilt or live-qualified by the isolated test; mode admission is unchanged. FP oracle status exclusions are documented. Required text regression fixture `tests/fixtures/ctf_activation_original_tu15.json` is1,097,045 bytes; compiler/test scratch is removed, with no retained executable, raw runtime bank or capture.
+
+
+### v552 actual43-map private preparation and final menu assembly (2026-10-19)
+
+- [x] Run the real preparation path on private copies of all43 selected MCC maps, texture bank and fonts. All25 multiplayer maps are processed;1,045 ordered stores include only20 changed blocks: six complete catalogue/resource stores and14 qualified instant-charge flag words. The distinct Floodlab effect tuple remains unchanged and explicitly unqualified. Strict inventory and final asset assembly pass648 frame owners,563 unique DDS pages and40 font files. All selected assets, registry/provenance, source files and launcher owners remain exact. The4,332,372,016 generated bytes are removed with their owned scratch. [Preparation receipt](../work/sandbox-primary-v15/mcc-private-preparation-milestone-v552.json).
+
+The combined native step did not run: its factory copy caught a concurrent extra-brace syntax error at line361, subsequently corrected in the live source. The aggregate failure remains preserved. Repeat only the native stage against fresh owned MCC copies; do not repeat this passing43-map/bitmap/menu preparation. Actual instant-charge acceptance remains the v533 gate, and selected frontend/renderer delivery remains v532.
+
+
+### v555 actual prepared-MCC instant-charge caller boundary (2026-10-19)
+
+- [x] Compile/link the corrected genuine factory with all316 retained providers unchanged, then test private MCC core copies with the qualified instant-effect conversion. The actual effective flags6/one-event/one-jpt/no-particle contract passes; SMG firing and both native input-open audits pass. No43-map/bitmap/menu preparation is repeated. All selected/frozen input guards pass and owned scratch is removed. [Native caller receipt](../work/sandbox-primary-v15/mcc-instant-charge-caller-frontier-v555.json).
+
+The charge fixture stops at its first input tick80, original108E26 storing NONE, before any required positive damage allocation/player-response observation. Its whole108DB0 caller/control context and observer coverage are now the unresolved boundary; this is not yet a confirmed gameplay defect. Preserve that actual result and compare the complete original caller before changing expectations. The v533 charge gate remains open.
+
+
+### v558 Floodlab conversion and actual CTF constructor frontier (2026-10-19)
+
+- [x] Qualify the separate164-byte Floodlab instant-charge tuple with its authored inline root marker and complete damage graph. Fourteen focused controls, actual MCC scratch projection, production v13 serialization, independent reopen, idempotence and the registered production CMake test pass. Only the authenticated four-byte flags word changes2→6. All selected/source owners remain exact; both private scratch trees are removed. This resolves the distinct tuple preserved by v552 without repeating its passing43-map preparation. [Milestone receipt](../work/sandbox-primary-v15/mcc-floodlab-and-ctf-frontier-v558.json).
+
+The first actual current-World MCC CTF probe compiles/links but stops during the original contrail constructor11E550/11E55D at missing backing505E90, before CTF activation. Its698-path open audit passes with no forbidden, unknown or unmatched inputs. The complete destination already has a genuine current scalar-state owner; the stale archive provider must be refreshed. Preserve the failed run and retry that dependency. No CTF birth, charge lifecycle, selected frontend or full parity gate is accepted; v533/v535/v532 remain open. No large artifact is retained.
+
+
+### v559 reuse the passed corrected-menu native build (2026-10-19)
+
+- [x] Independently review the existing V23 native menu result and preserved compiled owners. The native run exits0 after412 title/profile/keyboard/main/Settings/back frames, with finite nonzero title/menu audio; its real-input Lockout regression also exits0. Root visually inspected the actual640x480 profile and Settings frames: complete SELECT/BACK artwork and captions fit. All retained file and reference hashes match the sealed receipt; prior scratch is removed. No native test or capture is repeated. [Existing native evidence review](../work/sandbox-primary-v15/mcc-preserved-menu-native-review-v559.json).
+
+Prepare the actual ordinary Play handoff using this coherent successor while preserving the selected cameraV3 gameplay action, runtime and shaders. Check whether its menu catalogue needs the already qualified current MenuState/content and converted data. Selected frontend delivery remains v532; native widescreen frames, complete menus/maps, original framebuffer/audio parity and full-game acceptance remain open. The118,332,732-byte compiled/reference input cohort and180,872-byte two-PNG proof are existing required retained inputs, not newly generated test outputs.
+
+
+### v560 actual installed MCC sandbox route (2026-10-19)
+
+- [x] Verify the installed shortcut through the real regular launcher and exact selected cameraV3 native runtime. It exits0 after six hidden muted MCC Lockout frames, seven ticks and one player. The1,974-open/28-trace audit has zero forbidden, unmatched or remaining unknown inputs. Only the two exact save paths are reclassified using the recorded namespace bind and independently verified scratch backing. The original mechanical-red receipt is preserved; no native rerun or broad audit exception is used. [Installed route milestone](../work/sandbox-primary-v15/mcc-installed-shortcut-milestone-v560.json).
+
+Protected file hashes/device/inode/size/mtime, full selected-cache stable metadata, actual selection and installed saves remain unchanged. Concurrent inode ctime changes are explicitly recorded; no unchanged-ctime claim is made. Both owned scratch trees are removed and no large artifact is retained. This closes the earlier shortcut-through-runtime uncertainty only. Visible/unmuted/audio, complete maps, ordinary Play frontend delivery and full parity remain separate open gates.
+
+
+### v566 actual MCC current-World initialization (2026-10-19)
+
+- [x] Compose the genuine current World and complete updated cold-data providers with the compatible native cohort. All26 translation units compile/link; actual MCC Lockout world construction and map initialization return. The698-path input-open audit passes with no forbidden, unknown or unmatched inputs. Frozen source, all316 retained providers, selected cache/runtime and current-workspace guards pass; scratch is removed with no large artifact retained. [Initialization checkpoint](../work/sandbox-primary-v15/ctf-activation-port-20261019/current-world-initialization-checkpoint.json).
+
+CTF session configuration now reaches original159FF0/15A0EA and requires its real static engine object48BFA0/interface466190. Configuration, activation and object birth have not completed. Audit and restore that complete authored object/interface/registration owner before continuing; no ready-state seeding or mode admission. The v535 lifecycle and all whole-game gates remain open.
+
+
+### v573 compiled independent launcher routes and complete CTF static data (2026-10-19)
+
+- [x] Implement and production-test independent frontend selection while keeping the native gameplay runtime unchanged. Six focused CTests pass, including five actual compiled-launcher routing cases, eight selection-admission cases,14 shortcut cases and18 real launcher UI cases. Missing selection preserves prior behavior; stale explicit selection blocks ordinary Play while the native test remains available. Newly compiled normal/title launchers both retain the exact cameraV3 native owner; no selection or installed launcher is changed. [Combined milestone](../work/sandbox-primary-v15/mcc-separated-launcher-and-ctf-milestone-v573.json).
+- [x] Restore the authenticated complete CTF/Assault static object/interface/publication destination:212 bytes, all51 original callback identities, correct original sections/access, duplicate/partial/reserved-owner rejection and adjacent-owner preservation. Optimized and sanitized component comparisons pass69 cases; the registered production CMake test passes. The real factory now mounts this data before imported tags, with existing source activation/callback owners unchanged. Actual configured activation and object birth remain the v535 gate.
+
+The initial launcher target's unnecessary native dependency build was canceled before tests; its229,970,142 generated bytes are removed. The launcher-only configuration builds the actual routing binaries without a native rebuild, preserving normal source-build defaults. Its179,704,999-byte private tree is also removed after retaining552,190 bytes of requested working launcher inputs/frozen source. Source-only reproduction cohorts for the current World and charge test are retained separately; no raw bank or disposable engine binary is retained. Actual ordinary Play publication, expanded native map-picker adoption and full parity remain open.
+
+
+### v574 actual expanded MCC map picker and bounded cold-table correction (2026-10-19)
+
+- [x] Adopt the qualified catalogue MenuState over the preserved V23 client, reusing its identical qualified content producer. The coherent325-provider V24 run exits0 after818 native frontend frames: real title/profile/main/Split Screen/lobby/setup/map-picker input,15 Down inputs and return. Root visually reviewed the actual Backwash selection, authored preview/description and surrounding DLC rows. Selected MCC cache, parent inputs and frozen dependencies stay exact; no forbidden asset input is opened. [Actual native picker](../work/sandbox-primary-v15/mcc-expanded-menu-native-v572/report.json).
+- [x] Correct the cold weapon-table unit's owner-label assumption for the two already-authenticated185111 interface words. The native unit passes26 original words/104 bytes,51 guarded selectors and10 contact methods, retaining exact bytes/read-only/unique-owner/write-rejection checks. All316 providers and frozen inputs remain exact. [Cold unit result](../work/sandbox-primary-v15/test-cold-weapon-ownership-v571.json).
+
+V24 retains111,479,920 bytes of requested executable/object inputs plus its small frozen source/cohort and102,933-byte required picker reference; both native-test scratch and cold-test scratch are removed. The charge diagnostic was stopped after automatic review flagged possible cybersecurity risk; the completed follow-up ran ordinary native unit tests only. Charge remains unaccepted. Two unconverted blank catalogue identities remain gated, as do energy-combat paths; native widescreen, map gameplay, ordinary Play installation and full parity are not accepted by the map-picker run. Reuse this V24 result for staging; do not repeat the passing menu flow.
+
+
+### v576 final launcher consistency and CTF configuration owners (2026-10-19)
+
+- [x] Match launcher status and controls to actual stale-selector behavior. Three focused production CTests pass: five compiled routing cases,22 real Tk UI cases and576 original/native CTF configuration cases. A changed explicit menu build disables only ordinary Play and reports that condition accurately; native test, sandbox and preview remain independent. Full-ready valid frontend selection and missing-selection fallback remain intact. Both newly compiled launchers preserve the exact cameraV3 native owner. [Milestone](../work/sandbox-primary-v15/mcc-frontend-and-ctf-configuration-milestone-v576.json).
+- [x] Port and wire complete original24B390/249440 configuration owners: all18 instruction sites and576 cases compare full defined ABI, FP state and banks with optimized and sanitized native execution. The real MCC session now passes its class dispatch and249460 initializer, then reaches further callback24A6C0. Configuration, objective birth and lifecycle acceptance remain open. The old25-owner activation module stays unchanged.
+
+The successful private CMake tree is removed after retaining the requested small normal/title launcher successors and frozen source. No selector, root launcher, selected cache or runtime is installed by this checkpoint. The2,745,863-byte declared synthetic CTF configuration fixture is a required regression input, not a captured runtime bank. V24's passing native menu proof is reused for the pending frontend staging/delivery.

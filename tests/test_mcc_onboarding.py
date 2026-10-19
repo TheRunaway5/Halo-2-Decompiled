@@ -12,6 +12,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
 import mcc_onboarding as onboarding
 from audit_rendering import FormatError, file_sha
 from prepare_mcc_gameplay import PROFILE, source_directories, source_files
+from test_mcc_movies import bundle_fixture as movie_fixture
+from test_mcc_prompts import prompt_fixture
+
+
+def bundle_fixture(root):
+    movie_fixture(root)
+    prompt_fixture(root)
 
 
 class MccOnboardingTests(unittest.TestCase):
@@ -21,6 +28,7 @@ class MccOnboardingTests(unittest.TestCase):
         self.root = Path(self.temporary.name) / 'port'
         self.source = Path(self.temporary.name) / 'Halo MCC/halo2'
         self.cache = self.root / 'assets/imported/mcc-test'
+        bundle_fixture(self.root)
         for name in onboarding.REQUIRED:
             if name.startswith('halo2/'):
                 p = self.source / name[6:]
@@ -156,6 +164,29 @@ class MccOnboardingTests(unittest.TestCase):
         prepare.assert_not_called()
         self.assertEqual(cache, self.cache)
         self.assertEqual(onboarding.selected(self.root)[0], self.cache)
+        self.assertTrue((self.cache / 'presentation/movies/intro_60.mp4').is_file())
+        self.assertIn('port_bundled_movies', onboarding.selected(self.root)[1])
+        self.assertIn('port_authored_prompts', onboarding.selected(self.root)[1])
+
+    def test_movie_only_repair_does_not_reverify_or_reimport_mcc(self):
+        self.select()
+        before = {p.relative_to(self.cache): p.read_bytes() for p in (self.cache / 'halo2').rglob('*') if p.is_file()}
+        with patch.object(onboarding, 'prepare', side_effect=AssertionError('MCC reimport')), \
+             patch.object(onboarding, 'source_files', side_effect=AssertionError('MCC rehash')):
+            cache, report = onboarding.repair_movies(self.root, progress=self.messages.append)
+        self.assertEqual(cache, self.cache)
+        self.assertTrue(report['port_bundled_movies']['complete'])
+        self.assertEqual(before, {p.relative_to(self.cache): p.read_bytes() for p in (self.cache / 'halo2').rglob('*') if p.is_file()})
+
+    def test_prompt_only_repair_does_not_reverify_or_reimport_mcc(self):
+        self.select()
+        before = {p.relative_to(self.cache): p.read_bytes() for p in (self.cache / 'halo2').rglob('*') if p.is_file()}
+        with patch.object(onboarding, 'prepare', side_effect=AssertionError('MCC reimport')), \
+             patch.object(onboarding, 'source_files', side_effect=AssertionError('MCC rehash')):
+            cache, report = onboarding.repair_prompts(self.root, progress=self.messages.append)
+        self.assertEqual(cache, self.cache)
+        self.assertTrue(report['port_authored_prompts']['complete'])
+        self.assertEqual(before, {p.relative_to(self.cache): p.read_bytes() for p in (self.cache / 'halo2').rglob('*') if p.is_file()})
 
     def enable_current_graphics(self):
         from mcc_bitmap_correction_bundle import BUNDLE_V2, PROFILES_V2

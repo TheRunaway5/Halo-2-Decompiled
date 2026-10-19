@@ -35,8 +35,10 @@
 #include "halo2/source_weapon_shader_input.hpp"
 #include "halo2/native_weapon_projectile.hpp"
 #include <memory>
+#include <thread>
 namespace halo2 {
 class CampaignSourceRuntime;
+class MultiplayerSnapshotOrigin;
 constexpr float tick_seconds = 1.f / 30.f;
 constexpr float retail_gravity =
     4.1712594f; // XBE 0x4455D8, initialized by 0x1EB550.
@@ -394,6 +396,38 @@ public:
   PreparedAuthority prepare_authority(const AuthorityCheckpoint &,AuthorityDigest admitted_binding,
       const SourceRuntimeMemory *replacement_source_world=nullptr);
   bool commit_authority(PreparedAuthority &&) noexcept;
+  // Exact local display-replica values at an authentic accepted CPU boundary.
+  // These same-owner checkpoints contain no source simulation authority and
+  // cannot construct source object lifetimes. They do not checkpoint renderer,
+  // weather, input or playing-audio histories.
+  class ReplicaCheckpoint {
+  public:
+    ReplicaCheckpoint()=default;
+    bool valid()const noexcept;
+    std::optional<std::uint64_t> tick()const noexcept;
+    bool matches(const MultiplayerSnapshotOrigin &)const noexcept;
+  private:
+    friend class Simulation;
+    struct Data;std::shared_ptr<const Data> data_;
+  };
+  class PreparedReplica {
+  public:
+    ~PreparedReplica();
+    PreparedReplica(PreparedReplica &&) noexcept;
+    PreparedReplica &operator=(PreparedReplica &&) noexcept;
+  private:
+    friend class Simulation;
+    PreparedReplica();
+    struct Impl;std::unique_ptr<Impl> impl_;
+  };
+  ReplicaCheckpoint replica_checkpoint(const MultiplayerSnapshotOrigin &)const;
+  bool owns_replica_checkpoint(const ReplicaCheckpoint &)const noexcept;
+  PreparedReplica prepare_replica(const ReplicaCheckpoint &);
+  bool replica_ready(const PreparedReplica &)const noexcept;
+  // Publication swaps prepared values only. Keep this token alive through the
+  // caller's locked publication and destroy it afterward on the same executor;
+  // the token owns the replaced banks, including composed collision layers.
+  bool commit_replica(PreparedReplica &)noexcept;
   const ObjectAnimation *object_animation(std::uint32_t handle) const {
     const auto at=object_animations_.find(handle);return at==object_animations_.end()?nullptr:&at->second;
   }
@@ -431,6 +465,9 @@ public:
 private:
   friend class MultiplayerMatch;
   friend class CampaignSourceRuntime;
+  PreparedReplica prepare_replica(const ReplicaCheckpoint &,NativeAuthorityBoundary *parent);
+  const std::shared_ptr<const int> replica_identity_=std::make_shared<const int>(0);
+  mutable std::optional<std::thread::id> replica_executor_;
   mutable NativeAuthorityBoundary authority_calls_;
   std::uint32_t authority_service_roles()const;
   void step_impl(const Controls &, std::span<const Controls>);

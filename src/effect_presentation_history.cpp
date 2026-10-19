@@ -5,6 +5,26 @@
 #include <bit>
 
 namespace halo2 {
+struct EffectPresentationHistory::RuntimeReservation::Data {
+    std::weak_ptr<const void> owner;
+    std::thread::id executor;
+    AuthorityTransferContext context;
+    AuthorityCutSeal seal;
+    std::vector<Entry> entries;
+    bool active{true},overflow{};
+    void own()const {
+        if(executor!=std::this_thread::get_id())throw FormatError("Runtime reservation crossed its history executor");
+    }
+};
+bool EffectPresentationHistory::RuntimeReservation::valid()const {
+    if(!data_)return false;data_->own();return data_->active&&!data_->owner.expired();
+}
+bool EffectPresentationHistory::RuntimeReservation::overflowed()const {
+    if(!data_)return false;data_->own();return data_->overflow;
+}
+std::size_t EffectPresentationHistory::RuntimeReservation::retained()const {
+    if(!data_)return 0;data_->own();return data_->entries.size();
+}
 EffectPresentationHistory::EffectPresentationHistory(EffectPresentationContinuity &effects,std::size_t capacity)
     :effects_(effects) {
     if(!capacity)throw FormatError("Effect presentation history requires a positive capacity");
@@ -12,11 +32,18 @@ EffectPresentationHistory::EffectPresentationHistory(EffectPresentationContinuit
 }
 EffectPresentationHistory::EffectPresentationHistory(EffectPresentationContinuity &effects,NativeEffectSounds &sounds,std::size_t capacity)
     :EffectPresentationHistory(effects,capacity){sounds_=&sounds;}
+EffectPresentationHistory::EffectPresentationHistory(EffectPresentationContinuity &effects,NativeEffectSounds &sounds,
+    const Simulation &replica,std::size_t capacity)
+    :EffectPresentationHistory(effects,sounds,capacity){replica_=&replica;}
 void EffectPresentationHistory::own()const {
     if(std::this_thread::get_id()!=executor_)throw FormatError("Effect presentation history crossed its executor");
 }
 void EffectPresentationHistory::context(std::optional<AuthorityTransferContext> context) {
     own();if(context==state_.context)return;
+    for(const auto &weak:reservations_)if(const auto reservation=weak.lock()){
+        reservation->active=false;reservation->entries.clear();
+    }
+    reservations_.clear();
     entries_.clear();state_.context=std::move(context);state_.retained=0;state_.newest_tick.reset();state_.newest_sequence.reset();
     runtime_current_.reset();runtime_previous_.reset();
 }
@@ -37,6 +64,12 @@ bool EffectPresentationHistory::remember(const MultiplayerSnapshotOrigin &origin
 bool EffectPresentationHistory::remember_entry(const MultiplayerSnapshotOrigin &origin,const MultiplayerRuntimeReceiptFrontier *frontier) {
     own();const auto admitted=origin.context();
     if(!admitted || admitted!=state_.context)throw FormatError("Effect presentation history requires its independently admitted context");
+    if(frontier && (!replica_ || !frontier->replica.valid() ||
+        !replica_->owns_replica_checkpoint(frontier->replica) ||
+        !frontier->replica.matches(origin) || frontier->replica.tick()!=origin.tick()))
+        throw FormatError("Runtime frontier lacks its exact completed replica");
+    if(frontier && frontier->pose.valid() && !frontier->pose.matches(origin))
+        throw FormatError("Runtime pose history has a different authentic receipt");
     if(std::ranges::any_of(entries_,[&](const auto &entry){return entry.origin.same(origin);}))return false;
     const auto sequence=origin.sequence();
     // Same modulo32 ordering as the native accepted-snapshot transport.
@@ -67,8 +100,20 @@ bool EffectPresentationHistory::remember_entry(const MultiplayerSnapshotOrigin &
         auto owned=std::make_shared<MultiplayerRuntimeReceiptFrontier>(*frontier);
         owned->pending_effect_sounds=sounds_->checkpoint();runtime=std::move(owned);
     }
-    auto snapshot=effects_.capture(origin);
-    entries_.push_back({origin,std::move(snapshot),std::move(runtime)});++state_.captured;
+    Entry entry{origin,effects_.capture(origin),std::move(runtime)};
+    // Allocate all reservation copies before publishing any insertion. A
+    // failed copy leaves the retained entries/counters and every pin intact.
+    struct Pending {std::shared_ptr<RuntimeReservation::Data> data;std::vector<Entry> entries;bool overflow;};
+    std::vector<Pending> pending;
+    for(const auto &weak:reservations_)if(const auto data=weak.lock();data&&data->active&&
+        data->context==*admitted&&data->seal.tick==origin.tick()&&entry.runtime){
+        auto copies=data->entries;const bool overflow=copies.size()>=state_.capacity;
+        if(!overflow)copies.push_back(entry);
+        pending.push_back({data,std::move(copies),data->overflow||overflow});
+    }
+    entries_.push_back(std::move(entry));
+    for(auto &change:pending){change.data->entries.swap(change.entries);change.data->overflow=change.overflow;}
+    ++state_.captured;
     while(entries_.size()>state_.capacity){entries_.pop_front();++state_.evicted;}
     state_.retained=entries_.size();state_.newest_tick=entries_.back().snapshot.tick();state_.newest_sequence=sequence;return true;
 }
@@ -87,6 +132,7 @@ EffectPresentationHistoryState EffectPresentationHistory::state()const {own();re
 struct EffectPresentationHistory::RuntimeCheckpoint::Data {
     EffectPresentationContinuity::Checkpoint effects;
     MultiplayerSnapshotOrigin origin;
+    MultiplayerSnapshotProof proof;
     std::shared_ptr<const MultiplayerRuntimeReceiptFrontier> runtime;
 };
 const EffectPresentationContinuity::Checkpoint &EffectPresentationHistory::RuntimeCheckpoint::effects()const {
@@ -95,6 +141,9 @@ const EffectPresentationContinuity::Checkpoint &EffectPresentationHistory::Runti
 const ValidatedAuthorityCut &EffectPresentationHistory::RuntimeCheckpoint::cut()const {return effects().cut();}
 const MultiplayerSnapshotOrigin &EffectPresentationHistory::RuntimeCheckpoint::origin()const {
     if(!data_)throw FormatError("Missing receipt-bound runtime checkpoint");return data_->origin;
+}
+const MultiplayerSnapshotProof &EffectPresentationHistory::RuntimeCheckpoint::proof()const {
+    if(!data_)throw FormatError("Missing receipt-bound runtime checkpoint");return data_->proof;
 }
 const MultiplayerRuntimeReceiptFrontier &EffectPresentationHistory::RuntimeCheckpoint::frontier()const {
     if(!data_)throw FormatError("Missing receipt-bound runtime checkpoint");return *data_->runtime;
@@ -110,7 +159,37 @@ std::optional<EffectPresentationHistory::RuntimeCheckpoint> EffectPresentationHi
         try{exact=proof.prove_snapshot(client,at->origin);}catch(const FormatError &){continue;}
         RuntimeCheckpoint result;
         result.data_=std::make_shared<RuntimeCheckpoint::Data>(RuntimeCheckpoint::Data{
-            effects_.bind(at->snapshot,*exact),at->origin,at->runtime});
+            effects_.bind(at->snapshot,*exact),at->origin,*exact,at->runtime});
+        return result;
+    }
+    return {};
+}
+EffectPresentationHistory::RuntimeReservation EffectPresentationHistory::reserve_runtime(
+    const AuthorityTransferContext &context,const AuthorityCutSeal &seal) {
+    own();
+    if(!replica_||!sounds_||state_.context!=context)
+        throw FormatError("Runtime reservation requires its independently admitted typed history");
+    std::erase_if(reservations_,[](const auto &weak){const auto data=weak.lock();return !data||!data->active;});
+    for(const auto &weak:reservations_)if(const auto data=weak.lock();data&&data->context==context&&data->seal==seal){
+        RuntimeReservation result;result.data_=data;return result;
+    }
+    if(reservations_.size()>=2)throw FormatError("Runtime history already owns two cut reservations");
+    auto data=std::make_shared<RuntimeReservation::Data>();
+    data->owner=reservation_owner_;data->executor=executor_;data->context=context;data->seal=seal;
+    for(const auto &entry:entries_)if(entry.runtime&&entry.origin.tick()==seal.tick)data->entries.push_back(entry);
+    reservations_.push_back(data);RuntimeReservation result;result.data_=std::move(data);return result;
+}
+std::optional<EffectPresentationHistory::RuntimeCheckpoint> EffectPresentationHistory::bind_runtime(
+    const SourceAuthorityHostProof &proof,const LanClient &client,const RuntimeReservation &reservation)const {
+    own();const auto &cut=proof.cut();const auto &data=reservation.data_;
+    if(!data||!data->active||data->owner.lock()!=reservation_owner_||state_.context!=cut.context||
+        data->context!=cut.context||data->seal!=cut.seal)return {};
+    for(auto at=data->entries.rbegin();at!=data->entries.rend();++at){
+        std::optional<MultiplayerSnapshotProof> exact;
+        try{exact=proof.prove_snapshot(client,at->origin);}catch(const FormatError &){continue;}
+        RuntimeCheckpoint result;
+        result.data_=std::make_shared<RuntimeCheckpoint::Data>(RuntimeCheckpoint::Data{
+            effects_.bind(at->snapshot,*exact),at->origin,*exact,at->runtime});
         return result;
     }
     return {};

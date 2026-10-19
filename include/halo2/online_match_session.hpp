@@ -5,6 +5,7 @@
 #include "halo2/peer_source_admissions.hpp"
 #include "halo2/peer_mesh_quality.hpp"
 #include "halo2/peer_host_agreement.hpp"
+#include "halo2/peer_common_cut.hpp"
 #include <cstdint>
 #include <memory>
 #include <optional>
@@ -107,6 +108,19 @@ public:
   bool acknowledge_authority(const AuthorityTransferContext &,const AuthorityCutSeal &);
   bool reject_authority(const AuthorityTransferContext &,const AuthorityCutSeal &);
   std::vector<ValidatedAuthorityCut> validated_authority();
+  // Negotiated metadata-only association barrier for the full physical group.
+  // Absent until every physical participant advertises common-cut support.
+  // Pins, local recovery-pin publication/retirement and full owner readiness
+  // remain the caller's responsibility; no operation enables migration.
+  std::optional<PeerCommonCutState> common_cut()const;
+  bool offer_common_cut(const PeerCommonCut &);
+  bool confirm_common_cut_native(const PeerCommonCut &);
+  bool associate_common_cut(const PeerCommonCut &);
+  bool apply_common_cut(const PeerCommonCut &);
+  bool release_common_cut(const PeerCommonCut &);
+  bool reject_common_cut(const PeerCommonCut &);
+  bool abort_common_cut(const PeerCommonCut &);
+  bool acknowledge_common_cut_abort(const PeerCommonCut &);
   // These controls certify the complete authoritative continuation owner,
   // never MultiplayerState. The caller must capture/validate that owner before
   // sealing, acknowledging, accepting promotion or rebinding a peer.

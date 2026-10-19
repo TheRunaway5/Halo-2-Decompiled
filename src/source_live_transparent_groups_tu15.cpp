@@ -34,6 +34,15 @@ std::vector<std::array<std::uint32_t,6>> ordered_group_layer(PhysicsLiveWorldTu1
     return result;
 }
 }
+std::vector<SourceTransparentCommand> source_live_transparent_queue_tu15(PhysicsLiveWorldTu15 &world) {
+    const auto &memory=world.memory();
+    const auto count=Bytes(memory.view(0x4c2aa0u,4)).u32(0);
+    const auto pointer=Bytes(memory.view(0x4c2aa8u,4)).u32(0);
+    if(count>1024 || (count&&!pointer))throw FormatError("TU1.5 transparent snapshot lost its actual complete queue");
+    std::vector<SourceTransparentCommand> result(count);
+    if(count)std::memcpy(result.data(),memory.view(pointer,count*sizeof(SourceTransparentCommand)).data(),count*sizeof(SourceTransparentCommand));
+    return result;
+}
 std::vector<SourceLiveTransparentGroupTu15> source_live_transparent_groups_tu15(PhysicsLiveWorldTu15 &world) {
     auto &memory=world.memory();
     const auto word=[&](std::uint32_t p){return Bytes(memory.view(p,4)).u32(0);};

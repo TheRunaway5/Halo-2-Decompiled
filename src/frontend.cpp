@@ -1,4 +1,5 @@
 #include "halo2/frontend.hpp"
+#include "halo2/gameplay_font_source.hpp"
 #include "halo2/tags.hpp"
 #include "halo2/frontend_session.hpp"
 #include "halo2/frontend_audio.hpp"
@@ -585,7 +586,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     }
     return views;
   };
-  FrontendPainter painter(content, options.maps / "fonts", mesh,
+  FrontendPainter painter(content, gameplay_font_directory(cache), mesh,
                           options.maps / "ui/frame_edges", ui_assets,
                           options.ui_assets.empty()?std::filesystem::path{}:options.ui_assets/"fonts");
   prepare_frontend_materials(cache, mesh);
@@ -1047,12 +1048,15 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     ~MovieVoiceScope() { if(engine && voice)engine->stop(voice,true); }
   } movie_voice_scope{audio.get(),movie_voice};
   auto movie_started = previous;
+  bool attract_available = true;
   auto begin_movie = [&](const std::string &name) {
     const std::unique_ptr<char, decltype(&SDL_free)> base(SDL_GetBasePath(), SDL_free);
     auto path = frontend_movie_path(options.maps,
         base ? std::filesystem::path(base.get()) / "resources/movies" : std::filesystem::path{}, name);
-    if (path.extension() == ".bik")
+    if (path.empty() || path.extension() == ".bik")
       path = frontend_movie_path(options.maps, "resources/movies", name);
+    if (path.empty())
+      return false;
     movie = std::make_unique<Movie>(path);
     for (auto voice : music_voices)
       if (audio)
@@ -1069,6 +1073,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     previous = movie_started;
     std::cout << "Frontend movie: " << path << " frames=" << movie->frame_count()
               << " fps=" << movie->frame_rate() << '\n';
+    return true;
   };
   auto end_movie = [&] {
     if (audio && movie_voice)
@@ -1484,9 +1489,9 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
         }
       }
     }
-    if (!movie && !debug_capture && idle.due(now)) {
+    if (!movie && !debug_capture && attract_available && idle.due(now)) {
       std::cout << "Attract idle_ms=" << idle.elapsed(now).count() << '\n';
-      begin_movie("attract");
+      attract_available = begin_movie("attract");
     }
     if (options.resize_test && frames == options.frames / 2) {
       SDL_SetWindowSize(window, 1000, 600);

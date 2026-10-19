@@ -13,6 +13,8 @@
 #include "halo2/source_sound_dsp_image_tu15.hpp"
 #include "halo2/simulation.hpp"
 #include "halo2/physics_live_support_tu15.hpp"
+#include "halo2/source_ctf_activation_tu15.hpp"
+#include "halo2/source_ctf_configuration_tu15.hpp"
 #include "halo2/source_unit_view_reset_tu15.hpp"
 #include "halo2/source_havok_static_lifetime_tu15.hpp"
 #include "halo2/source_shadow_frame_tu15.hpp"
@@ -87,6 +89,7 @@
 #include "halo2/source_campaign_cinematic_tu15.hpp"
 #include "halo2/source_campaign_completion_tu15.hpp"
 #include "halo2/source_campaign_activation_tu15.hpp"
+#include "halo2/source_geometry_cache_frame_tu15.hpp"
 #include "halo2/native_tu15_renderer_palette.hpp"
 #include "halo2/source_campaign_camera_tu15.hpp"
 #include "halo2/source_campaign_screen_tu15.hpp"
@@ -743,6 +746,7 @@ struct PhysicsLiveWorldTu15::Impl {
         // substituted all-visible mask. Complete2190C0 owns initialization,
         // existing object associations and authored noncollidable exclusions.
         call_actual(0x2190c0u);
+        call_actual(0x11e550u); // Actual44B238 row24 constructs the original contrail noise field through219F90.
         call_actual(0x213260u); // Actual44B52C new-map availability reset.
         call_actual(0x10e410u);
         call_actual(0x178ab0u);
@@ -755,6 +759,7 @@ struct PhysicsLiveWorldTu15::Impl {
         call_actual(0x180170u); // Actual44B40C activates/resets the decal pool and per-cluster links.
         call_actual(0x17e700u); // Actual44B454 effect-instance/location new-map reset.
         call_actual(0x186d30u); // Actual44B3A0 activates breakable-surface effect storage.
+        call_actual(0x219300u); // Actual44B4C0 row42 derives contrail scalars from the actual1F3830 state.
         call_actual(0x2b520u); // Actual44B358 activates/resets cached render states.
         call_actual(0x1976feu); // Actual1410B8 resets HUD storage and selects the resident authored HUD globals.
         install_sound_timing();
@@ -1506,6 +1511,9 @@ struct PhysicsLiveWorldTu15::Impl {
         if(c.target==0x171e10u || c.target==0x228260u) {
             source_run_render_object_startup_tu15(m,c.target,a,fp,services(),o);return;
         }
+        if(source_geometry_cache_frame_tu15_owns_entry(c.target)) {
+            source_run_geometry_cache_frame_tu15(m,c.target,a,fp,services(),o);return;
+        }
         if(source_campaign_activation_tu15_owns_entry(c.target)) {
             source_run_campaign_activation_tu15(m,c.target,a,fp,services(),o);return;
         }
@@ -1565,6 +1573,12 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(source_campaign_runtime_tu15_owns_entry(c.target)) {
             source_run_campaign_runtime_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_ctf_activation_tu15_owns_entry(c.target)) {
+            source_run_ctf_activation_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(source_ctf_configuration_tu15_owns_entry(c.target)) {
+            source_run_ctf_configuration_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_ai_actor_tu15_owns_entry(c.target)) {
             source_run_ai_actor_tu15(m,c.target,a,fp,services(),o);return;
@@ -2606,6 +2620,10 @@ struct PhysicsLiveWorldTu15::Impl {
             throw FormatError("TU1.5 complete deletion did not retire its full source identity");
     }
     void begin_model_frame() {
+        // Original render scheduling advances the physical geometry cache
+        // once before this frame's requests. Without130890 all earlier cuts'
+        // blocks remain current and cannot be evicted under cache pressure.
+        call_actual(0x130890u);
         rendered_model_nodes.clear();
         auto frame=word(bank,0x4c6854u),cursor=word(bank,0x494338u);
         source_render_frame_begin(frame,cursor);

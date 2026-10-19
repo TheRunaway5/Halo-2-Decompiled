@@ -36,6 +36,11 @@ std::vector<Region> mcc_cache_plan() {
     writable(0x4116c0,4,"native lens original CPU depth-control cache");
     writable(0x4117b4,4,"native lens original CPU depth-mode cache");
     writable(0x4c4c58,4,"native lens original CPU raster publication cache");
+    // Original1438D/14394 publish the bound bitmap dimensions for each of
+    // the adapter's four real sampler stages. These authenticated zeroed
+    // CPU destinations receive actual14370 outputs, never prepared images.
+    writable(0x492314,16,"native lens original four-stage bitmap width destinations");
+    writable(0x492324,16,"native lens original four-stage bitmap height destinations");
     // Actual lens uses the owned untransformed UV0 program/default sampler.
     // Whole409EE0 reads slot0 when its private TSS index at+70 is zero.
     // Preserve only that authenticated loader-zero entry; other indices and

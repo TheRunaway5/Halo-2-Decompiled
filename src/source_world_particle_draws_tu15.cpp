@@ -34,6 +34,41 @@ std::uint32_t identity(const SourceRuntimeMemory &m,std::uint32_t global,std::ui
     const auto index=(pointer-first)/stride;
     return std::uint32_t(Bytes(m.view(pointer,2)).u16(0))*65536u+index;
 }
+struct LiveParticleCensus {
+    std::set<std::uint32_t> definitions;
+    std::vector<std::tuple<std::uint32_t,std::uint32_t,std::uint16_t>> systems;
+};
+LiveParticleCensus live_particle_census(const SourceRuntimeMemory &m){
+    LiveParticleCensus out;
+    const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return m.view(p,n);}};
+    const auto inspect=[&](std::uint32_t global,unsigned stride,unsigned definition_offset) {
+        const auto pool=word(m,global);
+        if(!pool)throw FormatError("Live particle resource census lacks its original pool owner");
+        const auto capacity=word(m,pool+0x20u),high=word(m,pool+0x38u);
+        const auto rows=word(m,pool+0x44u),bits=word(m,pool+0x48u);
+        if(!capacity || capacity>65536u || high>capacity || word(m,pool+0x24u)!=stride)
+            throw FormatError("Live particle resource census lost its actual pool layout");
+        (void)m.view(rows,std::size_t(capacity)*stride);
+        (void)m.view(bits,((capacity+31u)/32u)*4u);
+        for(unsigned index=0;index<high;++index) {
+            if(!(word(m,bits+(index/32u)*4u)&(1u<<(index%32u))))continue;
+            const auto body=rows+index*stride;
+            const auto salt=Bytes(m.view(body,2)).u16(0);
+            const auto id=(std::uint32_t(salt)<<16)|index;
+            if(!salt || source_raw_datum_lookup(pool,id,storage)!=body)
+                throw FormatError("Live particle resource census lost a full allocation identity");
+            const auto definition=word(m,body+definition_offset);
+            const auto tag=word(m,0x4f0414u)+(definition&65535u)*16u;
+            if(definition==none || word(m,tag)!=0x65666665u || word(m,tag+4u)!=definition)
+                throw FormatError("Live particle resource census lost its full authored effect identity");
+            out.definitions.insert(definition);
+            if(global==0x51df74u)out.systems.emplace_back(definition,word(m,body+0x14u),Bytes(m.view(body+0xeu,2)).u16(0));
+        }
+    };
+    // A retained system can outlive its effect; both original pools remain
+    // authoritative. The same scan serves preload and read-only admission.
+    inspect(0x4f720cu,400u,4u);inspect(0x51df74u,84u,0x10u);return out;
+}
 }
 struct SourceWorldParticleDrawsTu15::Impl {
     struct Resource {
@@ -152,42 +187,35 @@ SourceWorldParticleDrawsTu15::SourceWorldParticleDrawsTu15(const Cache &c,std::s
     :impl_(std::make_unique<Impl>(c,objects)){}
 SourceWorldParticleDrawsTu15::~SourceWorldParticleDrawsTu15()=default;
 bool SourceWorldParticleDrawsTu15::active()const{return impl_->lens_requests || !impl_->effects.empty() || !impl_->first_person_effects.empty();}
+const Cache &SourceWorldParticleDrawsTu15::resident_cache()const noexcept{return impl_->cache;}
+SourceWorldParticleDrawsTu15::ResourceState SourceWorldParticleDrawsTu15::resource_state()const noexcept {
+    return {impl_->resources.size(),impl_->systems.size(),impl_->first_person_systems.size()};
+}
 bool SourceWorldParticleDrawsTu15::preload_first_person(std::uint32_t effect){return impl_->preload(effect,true);}
 bool SourceWorldParticleDrawsTu15::first_person_effect(std::uint32_t effect)const{return impl_->first_person_effects.contains(effect);}
 bool SourceWorldParticleDrawsTu15::preload_world(std::uint32_t effect){return impl_->preload(effect,false);}
 bool SourceWorldParticleDrawsTu15::world_effect(std::uint32_t effect)const{return impl_->preloaded_world_effects.contains(effect);}
 std::vector<std::uint32_t> SourceWorldParticleDrawsTu15::preload_live_world(const SourceRuntimeMemory &m) {
-    std::set<std::uint32_t> definitions;
-    const SourceRawDatumPoolServices storage{.read=[&](auto p,auto n){return m.view(p,n);}};
-    const auto inspect=[&](std::uint32_t global,unsigned stride,unsigned definition_offset) {
-        const auto pool=word(m,global);
-        if(!pool)throw FormatError("Live particle resource census lacks its original pool owner");
-        const auto capacity=word(m,pool+0x20u),high=word(m,pool+0x38u);
-        const auto rows=word(m,pool+0x44u),bits=word(m,pool+0x48u);
-        if(!capacity || capacity>65536u || high>capacity || word(m,pool+0x24u)!=stride)
-            throw FormatError("Live particle resource census lost its actual pool layout");
-        (void)m.view(rows,std::size_t(capacity)*stride);
-        (void)m.view(bits,((capacity+31u)/32u)*4u);
-        for(unsigned index=0;index<high;++index) {
-            if(!(word(m,bits+(index/32u)*4u)&(1u<<(index%32u))))continue;
-            const auto body=rows+index*stride;
-            const auto salt=Bytes(m.view(body,2)).u16(0);
-            const auto id=(std::uint32_t(salt)<<16)|index;
-            if(!salt || source_raw_datum_lookup(pool,id,storage)!=body)
-                throw FormatError("Live particle resource census lost a full allocation identity");
-            const auto definition=word(m,body+definition_offset);
-            const auto tag=word(m,0x4f0414u)+(definition&65535u)*16u;
-            if(definition==none || word(m,tag)!=0x65666665u || word(m,tag+4u)!=definition)
-                throw FormatError("Live particle resource census lost its full authored effect identity");
-            definitions.insert(definition);
-        }
-    };
-    // A retained system can outlive its effect instance. Its own +10 effect
-    // definition remains authoritative, so both real pools are inspected.
-    inspect(0x4f720cu,400u,4u);
-    inspect(0x51df74u,84u,0x10u);
-    for(const auto definition:definitions)(void)impl_->preload(definition,false);
-    return {definitions.begin(),definitions.end()};
+    const auto live=live_particle_census(m);
+    for(const auto definition:live.definitions)(void)impl_->preload(definition,false);
+    return {live.definitions.begin(),live.definitions.end()};
+}
+std::vector<std::uint32_t> SourceWorldParticleDrawsTu15::require_live_world_resident(const SourceRuntimeMemory &m)const {
+    const auto live=live_particle_census(m);
+    for(const auto &[effect,event,system]:live.systems){
+        const auto metadata=impl_->cache.load_source_tag_metadata(effect);
+        const Bytes root(metadata.bytes_at(metadata.source_address(),0x1c));
+        const auto events=block(impl_->cache,root,0x14,0x38);
+        if(event>=root.u32(0x14))throw FormatError("Live particle system has no authored event");
+        const auto rows=block(impl_->cache,events,event*0x38+0x30,0x38);
+        if(system>=events.u32(event*0x38+0x30))throw FormatError("Live particle system has no authored system");
+        const auto camera=rows.u16(system*0x38+0x12);
+        const auto &admitted=camera==1?impl_->first_person_systems:impl_->systems;
+        if(!admitted.contains({effect,event,system}))throw FormatError("Live particle system was not resident before renderer upload");
+        const auto render=impl_->cache.load_particle_system_render_definition(effect,event,system);
+        if(!impl_->resources.contains(render.particle_datum))throw FormatError("Live particle material was not resident before renderer upload");
+    }
+    return {live.definitions.begin(),live.definitions.end()};
 }
 void SourceWorldParticleDrawsTu15::publish_observer(PhysicsLiveWorldTu15 &world,
     unsigned local_view,Vec3 position,Vec3 forward,Vec3 up,float horizontal_angle) {

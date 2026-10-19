@@ -1,14 +1,19 @@
 """MCC discovery, bounded decoding and transactional preparation boundaries."""
 import io
 import json
+import os
 from pathlib import Path
+import selectors
+import signal
 import struct
+import subprocess
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 import zlib
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from audit_rendering import FormatError
 import mcc_content as content
@@ -19,6 +24,13 @@ import mcc_menu_assets as menu_assets
 from export_vista_menu_ui import dds_image
 import csv
 import hashlib
+from test_mcc_movies import bundle_fixture as movie_fixture
+from test_mcc_prompts import prompt_fixture
+
+
+def bundle_fixture(root):
+    movie_fixture(root)
+    prompt_fixture(root)
 
 
 def cache_bytes():
@@ -53,6 +65,71 @@ def source(root):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"donor")
     return halo
+
+
+def import_transaction_worker(project, donor, phase):
+    """Run real copy/conversion/presentation fixtures behind a signal barrier."""
+    import mcc_multiplayer_catalog as catalog
+    def barrier(stage):
+        print(json.dumps(dict(stage=str(stage))), flush=True)
+        while True:
+            signal.pause()
+
+    original_open = Path.open
+    original_mkdir = Path.mkdir
+
+    def make_directory(path, *args, **kwargs):
+        result = original_mkdir(path, *args, **kwargs)
+        if phase == "stage-created" and path.name.startswith(".staging-mcc-"):
+            barrier(path)
+        return result
+
+    def progress(message):
+        if ((phase == "conversion" and message.startswith("Reading MCC Classic tags")) or
+                (phase == "after-presentation" and message.startswith("Preserving the selected existing native shader"))):
+            barrier(next((project / "assets/imported").glob(".staging-mcc-*")))
+        if phase == "published" and message.startswith("Prepared MCC cache: "):
+            barrier(Path(message.removeprefix("Prepared MCC cache: ")))
+
+    class CopyStream:
+        def __init__(self, stream, stage):
+            self.stream, self.stage = stream, stage
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return self.stream.__exit__(*args)
+
+        def write(self, data):
+            size = self.stream.write(data)
+            self.stream.flush()
+            barrier(self.stage)
+            return size
+
+    def open_file(path, mode="r", *args, **kwargs):
+        stream = original_open(path, mode, *args, **kwargs)
+        if phase == "copy" and mode == "xb":
+            stage = next((p for p in path.parents if p.name.startswith(".staging-mcc-")), None)
+            if stage is not None:
+                return CopyStream(stream, stage)
+        return stream
+
+    previous = signal.getsignal(signal.SIGTERM)
+    # This lifecycle fixture has no multiplayer catalog destinations. Keep its
+    # required catalog set empty while executing the real planner/applicator;
+    # catalog content qualification has its own tests and actual MCC receipts.
+    with patch.dict(catalog.TARGETS, {}, clear=True), \
+         patch.object(Path, "open", open_file), patch.object(Path, "mkdir", make_directory), \
+         patch.object(menu_inventory, "verify", return_value=dict(complete=True, banks=0,
+                      frame_owners=0, unique_dds_pages=0, fonts={})), \
+         patch.object(menu_assets, "prepare", return_value=dict(complete=True,
+                      frame_owners=0, unique_dds_pages=0, fonts={})), \
+         patch.object(loading_assets, "prepare", return_value=dict(complete=True,
+                      vista_executable_bank_imported=False)):
+        final, report = preparation.prepare(project, donor, progress)
+    print(json.dumps(dict(final=str(final), report=report,
+                          handler_restored=signal.getsignal(signal.SIGTERM) == previous)), flush=True)
 
 
 class DiscoveryTests(unittest.TestCase):
@@ -201,6 +278,104 @@ class CacheTests(unittest.TestCase):
 
 
 class TransactionTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "posix", "POSIX SIGTERM cancellation")
+    def test_sigterm_during_copy_removes_stage_preserves_inputs_and_allows_retry(self):
+        self.check_sigterm_transaction("copy")
+
+    @unittest.skipUnless(os.name == "posix", "POSIX SIGTERM cancellation")
+    def test_sigterm_during_conversion_removes_stage_and_allows_retry(self):
+        self.check_sigterm_transaction("conversion")
+
+    @unittest.skipUnless(os.name == "posix", "POSIX SIGTERM cancellation")
+    def test_sigterm_after_presentation_helpers_still_removes_stage(self):
+        self.check_sigterm_transaction("after-presentation")
+
+    @unittest.skipUnless(os.name == "posix", "POSIX SIGTERM cancellation")
+    def test_sigterm_at_stage_creation_is_covered_by_cleanup(self):
+        self.check_sigterm_transaction("stage-created")
+
+    @unittest.skipUnless(os.name == "posix", "POSIX SIGTERM cancellation")
+    def test_sigterm_after_publication_preserves_complete_unselected_cache(self):
+        self.check_sigterm_transaction("published")
+
+    def check_sigterm_transaction(self, phase):
+        with tempfile.TemporaryDirectory(prefix="halo2-import-sigterm-") as temp:
+            root = Path(temp)
+            donor, project = source(root / "donor"), root / "port"
+            bundle_fixture(project)
+            # Tiny v13 scenario caches exercise the actual converter without
+            # depending on reference banks or the live MCC installation.
+            data = cache_bytes()
+            for at, value in ((32, 2), (40, 64), (44, 2112), (1036, 0xe1740000),
+                              (1040, 0xe1740001), (1048, 2)):
+                struct.pack_into("<I", data, at, value)
+            struct.pack_into("<4I", data, 1056, int.from_bytes(b"scnr", "big"), 0xe1740000, 2304, 256)
+            struct.pack_into("<4I", data, 1072, int.from_bytes(b"matg", "big"), 0xe1740001, 2560, 512)
+            data[2048:2074] = b"test\\page\0globals\\globals\0"
+            struct.pack_into("<2I", data, 2112, 0, 10)
+            struct.pack_into("<2I", data, 2560 + 0x178, 1, 2944)
+            for name in ("mainmenu.map", "shared.map"):
+                (donor / "h2_maps_win64_dx11" / name).write_bytes(data)
+            prior = project / "assets/imported/mcc-prior"
+            prior.mkdir(parents=True)
+            (prior / "keep.bin").write_bytes(b"previous complete import")
+            (project / "assets/mcc-source.tsv").write_text("H2_MCC_ASSET_SOURCE_V1\ncache\tassets/imported/mcc-prior\n")
+            (project / "assets/asset-sources.tsv").write_bytes(b"previous working selection")
+            protected = [p for base in (donor, project / "resources", prior)
+                         for p in base.rglob("*") if p.is_file()]
+            protected += list((project / "assets").glob("*.tsv"))
+            before = {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in protected}
+            command = [sys.executable, "-B", str(Path(__file__).resolve()),
+                       "--import-transaction-worker", str(project), str(donor)]
+            with subprocess.Popen([*command, phase], stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE, text=True) as child:
+                try:
+                    with selectors.DefaultSelector() as selector:
+                        selector.register(child.stdout, selectors.EVENT_READ)
+                        self.assertTrue(selector.select(10), "import did not reach the cancellation barrier")
+                    line = child.stdout.readline()
+                    if not line:
+                        _, stderr = child.communicate(timeout=10)
+                        self.fail("import exited before cancellation barrier: " + stderr)
+                    ready = json.loads(line)
+                    stage = Path(ready["stage"])
+                    self.assertTrue(stage.is_dir())
+                    if phase != "stage-created":
+                        self.assertTrue(any(p.stat().st_size for p in stage.rglob("*") if p.is_file()))
+                    if phase == "published":
+                        self.assertTrue((stage / "provenance.json").is_file())
+                        for path in stage.rglob("*"):
+                            if path.is_file():
+                                protected.append(path)
+                                before[path] = (path.read_bytes(), path.stat().st_ino, path.stat().st_mtime_ns)
+                    child.send_signal(signal.SIGTERM)
+                    stdout, stderr = child.communicate(timeout=10)
+                    self.assertEqual(stage.exists(), phase == "published", (child.returncode, stdout, stderr))
+                    self.assertEqual(child.returncode, 128 + signal.SIGTERM, stderr)
+                finally:
+                    if child.poll() is None:
+                        child.kill()
+                        child.communicate()
+            retained = {prior, stage} if phase == "published" else {prior}
+            self.assertEqual(set(prior.parent.iterdir()), retained)
+            self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in protected})
+            retry = subprocess.run([*command, "retry"], capture_output=True, text=True, timeout=20)
+            self.assertEqual(retry.returncode, 0, retry.stderr)
+            result = json.loads(retry.stdout)
+            final = Path(result["final"])
+            self.assertTrue(result["handler_restored"])
+            self.assertFalse(result["report"]["runtime_active"])
+            self.assertFalse(result["report"]["full_tu15_parity"])
+            self.assertTrue(result["report"]["port_bundled_movies"]["complete"])
+            self.assertTrue(result["report"]["port_authored_prompts"]["complete"])
+            self.assertEqual(json.loads((final / "provenance.json").read_text()), result["report"])
+            self.assertFalse(list(prior.parent.glob(".staging-*")))
+            self.assertEqual(set(prior.parent.iterdir()), retained | {final})
+            for path in donor.rglob("*"):
+                if path.is_file():
+                    self.assertEqual(path.read_bytes(), (final / "halo2" / path.relative_to(donor)).read_bytes())
+            self.assertEqual(before, {p: (p.read_bytes(), p.stat().st_ino, p.stat().st_mtime_ns) for p in protected})
+
     def test_loading_preparation_uses_mcc_and_authored_files_without_vista_or_xbox(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -264,6 +439,7 @@ class TransactionTests(unittest.TestCase):
             root = Path(temp)
             donor = source(root / "donor")
             project = root / "port"
+            bundle_fixture(project)
             (project / "assets").mkdir(parents=True)
             registry = project / "assets/asset-sources.tsv"
             registry.write_bytes(b"previous working source")
@@ -279,11 +455,14 @@ class TransactionTests(unittest.TestCase):
             root = Path(temp)
             donor = source(root / "donor")
             project = root / "port"
+            bundle_fixture(project)
             with patch.object(preparation, "prepare_maps", return_value={"maps": 43}), patch.object(menu_assets, "prepare", return_value=dict(complete=True, frame_owners=648, unique_dds_pages=561, fonts={})), patch.object(loading_assets, "prepare", return_value=dict(complete=True, vista_executable_bank_imported=False)), patch.object(menu_inventory, "verify",
                     return_value=dict(complete=True, banks=287, frame_owners=648, unique_dds_pages=561, fonts={})):
                 final, report = preparation.prepare(project, donor, lambda _: None)
             self.assertFalse(report["runtime_active"])
             self.assertFalse(report["full_tu15_parity"])
+            self.assertTrue(report["port_bundled_movies"]["complete"])
+            self.assertTrue(report["port_authored_prompts"]["complete"])
             self.assertEqual(json.loads((final / "provenance.json").read_text()), report)
             self.assertFalse((project / "assets/asset-sources.tsv").exists())
             self.assertFalse(list((project / "assets/imported").glob(".staging-*")))
@@ -306,6 +485,7 @@ class TransactionTests(unittest.TestCase):
             root = Path(temp)
             donor = source(root / "donor")
             project = root / "port"
+            bundle_fixture(project)
             def update(*_):
                 (donor / "h2_maps_win64_dx11/new.map").write_bytes(b"new update")
                 return {}
@@ -321,6 +501,7 @@ class TransactionTests(unittest.TestCase):
             donor = source(root / "donor")
             with self.assertRaisesRegex(FormatError, "must be separate"):
                 preparation.prepare(donor, donor, lambda _: None)
+            bundle_fixture(root / "port")
             with patch.object(preparation.shutil, "disk_usage", return_value=shutil_usage(0)):
                 with self.assertRaisesRegex(FormatError, "free space"):
                     preparation.prepare(root / "port", donor, lambda _: None)
@@ -333,4 +514,7 @@ def shutil_usage(free):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    if len(sys.argv) == 5 and sys.argv[1] == "--import-transaction-worker":
+        import_transaction_worker(Path(sys.argv[2]), Path(sys.argv[3]), sys.argv[4])
+    else:
+        unittest.main()

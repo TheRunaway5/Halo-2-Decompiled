@@ -26,6 +26,17 @@ struct FontProfile {
     std::span<const FontKerning> kerning;
 };
 #include "gameplay_font_reference.inc"
+struct ActionButtonMetric {
+    unsigned character, record;
+    FontGlyph raw, authored;
+    FontGlyphSample sample;
+};
+struct ActionButtonProfile {
+    unsigned selector;
+    std::uint64_t fingerprint;
+    std::span<const ActionButtonMetric> metrics;
+};
+#include "mcc_action_button_metrics.inc"
 
 std::vector<std::string> table_names(const std::filesystem::path& directory) {
     std::ifstream file(directory/"font_table.txt");
@@ -154,5 +165,59 @@ void require_mcc_gameplay_font_sample(const GameplayFontSource& source,unsigned 
     const auto bytes=font_bytes(sample);
     if(bytes.size()!=owner.bytes || digest(bytes)!=owner.sha256)
         throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
+}
+namespace {
+std::size_t apply_authored_button_metrics(RetailFont& font,unsigned selector,
+                                        std::span<const ActionButtonProfile> profiles) {
+    const auto profile=std::find_if(profiles.begin(),profiles.end(),
+        [&](const auto& row){return row.selector==selector;});
+    if(profile==profiles.end() || font.file_fingerprint!=profile->fingerprint ||
+       font.glyph_record_indices.size()!=65536 || font.atlas.width!=2049 ||
+       !font.atlas.height || font.atlas.height>4096 || font.atlas.format!=11 ||
+       font.atlas.layers!=1 || font.atlas.depth || !font.atlas.mips.empty() ||
+       font.atlas.pixels.size()!=std::size_t(font.atlas.width)*font.atlas.height*4)
+        throw FormatError("Unqualified MCC action-button metric owner");
+    const auto matches=[](const FontGlyph& a,const FontGlyph& b) {
+        return a.width==b.width && a.height==b.height && a.advance==b.advance &&
+            a.bearing_x==b.bearing_x && a.bearing_y==b.bearing_y;
+    };
+    std::array<FontGlyph*,20> targets{};
+    bool raw=true,authored=true;
+    for(std::size_t i=0;i<profile->metrics.size();++i) {
+        const auto& row=profile->metrics[i];
+        const auto glyph=font.glyphs.find(row.character);
+        const auto sample=font.sampled_glyphs.find(row.character);
+        if(font.glyph_record_indices[row.character]!=row.record ||
+           std::count(font.glyph_record_indices.begin(),font.glyph_record_indices.end(),row.record)!=1 ||
+           glyph==font.glyphs.end() || sample==font.sampled_glyphs.end() ||
+           sample->second.x!=row.sample.x || sample->second.y!=row.sample.y ||
+           sample->second.width!=row.sample.width || sample->second.height!=row.sample.height ||
+           row.sample.x>font.atlas.width || row.sample.y>font.atlas.height ||
+           row.sample.width>font.atlas.width-row.sample.x ||
+           row.sample.height>font.atlas.height-row.sample.y)
+            throw FormatError("Unqualified MCC action-button glyph or authored sample");
+        targets[i]=&glyph->second;
+        raw&=matches(glyph->second,row.raw);
+        authored&=matches(glyph->second,row.authored);
+    }
+    if(!raw && !authored)throw FormatError("Partial or custom MCC action-button metric state");
+    if(authored)return 0;
+    // All map lookups, validation and possible throws precede these primitive
+    // assignments. Atlas coordinates and every sampled rectangle stay intact.
+    std::size_t changed{};
+    for(std::size_t i=0;i<profile->metrics.size();++i) {
+        auto& glyph=*targets[i];const auto& row=profile->metrics[i].authored;
+        changed+=!matches(glyph,row);
+        glyph.width=row.width;glyph.height=row.height;glyph.advance=row.advance;
+        glyph.bearing_x=row.bearing_x;glyph.bearing_y=row.bearing_y;
+    }
+    return changed;
+}
+} // namespace
+std::size_t apply_mcc_action_button_metrics(RetailFont& font,unsigned selector) {
+    return apply_authored_button_metrics(font,selector,action_button_profiles);
+}
+std::size_t apply_mcc_menu_button_metrics(RetailFont& font,unsigned selector) {
+    return apply_authored_button_metrics(font,selector,menu_button_profiles);
 }
 } // namespace halo2

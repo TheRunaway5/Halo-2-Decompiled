@@ -5,8 +5,9 @@ asset import, source-recovery and validation tools. The target is original
 Xbox **TU1.5 gameplay and visuals**, using installed **MCC Halo 2 Classic**
 content as the asset donor for normal setup.
 
-**The port is incomplete. MCC content can be imported, but Play remains disabled
-until native startup and full TU1.5 data conversion are ready.** Existing
+**The port is incomplete. MCC content can be imported, and validated builds
+expose an interim native Lockout test. MCC-only title/menu integration and full
+TU1.5 conversion/parity remain in progress.** Existing
 reference-backed subsystem builds demonstrate rendering, frontend, campaign
 components and local/network Slayer; they do not establish a finished MCC game.
 
@@ -102,12 +103,31 @@ discovery options and readiness checks.
 ### Build from source
 
 Required: CMake 3.24+, Ninja for the commands below, a C++20 compiler, Python
-3.11+, SDL2, Vulkan headers/loader, GLM, `glslangValidator`, zlib, pkg-config,
+3.11+, SDL2, Vulkan headers/loader, GLM, `glslangValidator`, SPIRV-Tools
+(`spirv-val`), zlib, pkg-config,
 libcurl 7.86+ with WebSocket support, OpenSSL Crypto, nlohmann-json 3.10+,
 libopus, and FFmpeg development libraries (`libavcodec`, `libavformat`,
 `libavutil`, `libswresample`, `libswscale`) with Bink and dedicated Xbox ADPCM
 decoding. Runtime rendering requires a Vulkan-capable GPU. The launcher setup
 and home windows also require Python Tk; `python3 -m tkinter` checks it.
+
+From a clone, run `./build-linux.sh`. It finds the repository from the script's
+location and supports paths containing spaces, so it can also be invoked from
+another working directory. Set `HALO2_BUILD_DIR` to choose a build directory,
+`HALO2_PYTHON` to choose Python, and `CMAKE_BUILD_PARALLEL_LEVEL` to limit jobs:
+
+```bash
+CMAKE_BUILD_PARALLEL_LEVEL=4 ./build-linux.sh
+```
+
+Successful links copy the latest local binaries and a hash manifest to
+`dist/builds/linux-x86_64/`; the original build tree and compiled shader bindings
+are retained. This folder contains local build outputs. Downloadable releases
+require the separate relocatable package and published release manifest.
+Linux arm64, Windows x86_64/arm64 and macOS arm64 output staging are skipped
+until those targets are supported. Disposable validation disables staging.
+See [binary builds and updates](docs/BINARY_UPDATES.md) for the output layout
+and release manifest used by the launcher's Update button.
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo
@@ -130,11 +150,11 @@ before making a movie-enabled release. A source-only Release build can select
 `-DHALO2_BUNDLE_MOVIES=OFF`. See [release movies](docs/RELEASE_MOVIES.md) for
 checksums, codecs and packaging.
 
-The launcher provides `--update` to download and build the current branch while
-preserving imported content and local changes. Logs remain in
-`launcher-update.log` and the selected build's `launcher-build.log`. A moved
-checkout preserves an incompatible build directory as `build.previous` and
-creates a fresh one. Runtime flags and direct reference-backed development
+The launcher provides `--update` to fetch verified precompiled binaries for the
+host platform, preserving imported content and local changes. It reports when
+no compatible published release is available. Source compilation remains an
+explicit action through `build-linux.sh`. See [binary updates](docs/BINARY_UPDATES.md)
+for release verification and logs. Runtime flags and direct reference-backed development
 commands are documented in [native systems and controls](docs/NATIVE_SYSTEMS.md)
 and [frontend inspection](docs/FRONTEND.md#controls-and-inspection).
 

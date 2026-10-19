@@ -1,6 +1,12 @@
 """Exercise actual MCC setup controls under a desktop or xvfb-run."""
 import os
+import contextlib
+import json
 from pathlib import Path
+import queue
+import shlex
+import signal
+import subprocess
 import sys
 import tempfile
 import threading
@@ -9,7 +15,291 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from setup_assets_ui import SourceSelector
+from setup_assets_ui import SetupProcess, SourceSelector
+
+
+TOOLS = Path(__file__).resolve().parents[1] / 'tools'
+
+
+class SetupFixture:
+    def setUp(self):
+        self.temporary = tempfile.TemporaryDirectory(prefix='halo2-owned-setup-',
+                                                     dir=os.environ.get('HALO2_TEST_SCRATCH'))
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name) / 'portable setup with spaces'
+        (self.root / 'tools').mkdir(parents=True)
+        (self.root / 'mode').write_text('wait')
+        (self.root / 'prior-cache').write_bytes(b'valid existing cache')
+        script = '''import json,os,signal,sys,threading,time
+from pathlib import Path
+sys.path.insert(0,TOOLS)
+import mcc_onboarding
+from setup_assets import main
+def operation(root, source=None, **kwargs):
+    root=Path(root); mode=(root/'mode').read_text()
+    (root/'child-info.json').write_text(json.dumps(dict(pid=os.getpid(), main_thread=threading.current_thread() is threading.main_thread(), source=str(source), argv=sys.argv)))
+    if mode=='fail':
+        print('p'*20000)
+        raise ValueError('tiny fixture import failed')
+    if mode=='quick':
+        print('tiny setup complete')
+        return
+    pending=root/'.owned-partial'; pending.write_bytes(b'partial')
+    if mode=='ignore': signal.signal(signal.SIGTERM,signal.SIG_IGN)
+    (root/'ready').touch()
+    print('tiny fixture copying', flush=True)
+    try:
+        while not (root/'release').exists(): time.sleep(.01)
+    finally:
+        pending.unlink(missing_ok=True)
+        (root/'cleaned').touch()
+mcc_onboarding.setup=operation
+mcc_onboarding.select=operation
+raise SystemExit(main())
+'''.replace('TOOLS', repr(str(TOOLS)))
+        (self.root / 'tools/setup_assets.py').write_text(script)
+        self.worker = SetupProcess(self.root, queue.Queue(), cleanup_timeout=2)
+        self.addCleanup(self.stop_worker)
+
+    def stop_worker(self):
+        with contextlib.suppress(RuntimeError):
+            self.worker.shutdown()
+
+    def wait_until(self, condition):
+        end = time.monotonic() + 10
+        while not condition() and time.monotonic() < end:
+            time.sleep(.01)
+        self.assertTrue(condition(), 'Owned setup did not reach its expected state')
+
+    def start_worker(self, mode='wait'):
+        (self.root / 'mode').write_text(mode)
+        self.worker.start(self.root / 'chosen MCC')
+        return self.worker.process
+
+    def terminal_event(self):
+        result = []
+        def finished():
+            self.worker.poll()
+            while not self.worker.events.empty():
+                row = self.worker.events.get_nowait()
+                self.assertLessEqual(len(row[1] or ''), 8300)
+                if row[0] in ('done', 'error'):
+                    result.append(row)
+            return bool(result)
+        self.wait_until(finished)
+        return result[-1]
+
+    def preserved(self):
+        self.assertEqual((self.root / 'prior-cache').read_bytes(), b'valid existing cache')
+        self.assertFalse((self.root / '.owned-partial').exists())
+        self.assertIsNone(self.worker.process)
+        self.assertIsNone(self.worker.reader)
+        self.assertEqual(self.worker.previous, {})
+
+
+class SetupProcessTests(SetupFixture, unittest.TestCase):
+    def test_child_runs_cli_main_thread_and_eof_cleans_then_reaps(self):
+        process = self.start_worker()
+        self.wait_until(lambda: (self.root / 'ready').exists())
+        info = json.loads((self.root / 'child-info.json').read_text())
+        self.assertTrue(info['main_thread'])
+        self.assertEqual(info['source'], str(self.root / 'chosen MCC'))
+        self.assertIn('--gui-owner', info['argv'])
+        self.assertNotIn('--interactive', info['argv'])
+        reader = self.worker.reader
+        self.worker.shutdown()
+        self.assertEqual(process.returncode, 143)
+        self.assertFalse(reader.is_alive())
+        self.assertTrue((self.root / 'cleaned').exists())
+        self.preserved()
+        with self.assertRaises(ProcessLookupError):
+            os.kill(process.pid, 0)
+
+    def test_failure_stream_is_bounded_and_retry_restores_custom_handlers(self):
+        old = {n: signal.getsignal(n) for n in (signal.SIGINT, signal.SIGTERM)}
+        handlers = {n: (lambda number, frame: None) for n in old}
+        try:
+            for n, handler in handlers.items(): signal.signal(n, handler)
+            self.start_worker('fail')
+            kind, detail = self.terminal_event()
+            self.assertEqual(kind, 'error')
+            self.assertIn('tiny fixture import failed', detail)
+            self.assertIn('exit 1', detail)
+            self.assertLessEqual(len(self.worker.tail), 8192)
+            self.assertTrue(all(signal.getsignal(n) is h for n, h in handlers.items()))
+            self.start_worker('quick')
+            self.assertEqual(self.terminal_event()[0], 'done')
+            self.assertTrue(all(signal.getsignal(n) is h for n, h in handlers.items()))
+            self.preserved()
+        finally:
+            self.stop_worker()
+            for n, handler in old.items(): signal.signal(n, handler)
+
+    def test_signal_between_creation_and_publication_cannot_orphan_child(self):
+        children = []
+        before = signal.getsignal(signal.SIGTERM)
+        def spawn(*args, **kwargs):
+            process = subprocess.Popen(*args, **kwargs)
+            children.append(process)
+            os.kill(os.getpid(), signal.SIGTERM)
+            return process
+        self.worker.popen = spawn
+        self.start_worker()
+        self.assertEqual(self.worker.stop_signal, signal.SIGTERM)
+        self.assertEqual(children[0].returncode, 143)
+        self.assertIs(signal.getsignal(signal.SIGTERM), before)
+        self.preserved()
+
+    def test_spawn_exception_restores_handlers_and_allows_retry(self):
+        before = {n: signal.getsignal(n) for n in (signal.SIGINT, signal.SIGTERM)}
+        def fail(*args, **kwargs): raise OSError('tiny spawn failure')
+        self.worker.popen = fail
+        with self.assertRaisesRegex(OSError, 'tiny spawn failure'):
+            self.start_worker()
+        self.assertEqual({n: signal.getsignal(n) for n in before}, before)
+        self.worker.popen = subprocess.Popen
+        self.start_worker('quick')
+        self.assertEqual(self.terminal_event()[0], 'done')
+        self.preserved()
+
+    def test_bundled_wrapper_and_relative_source_are_preserved(self):
+        wrapper = self.root / 'python/bin/python3'
+        wrapper.parent.mkdir(parents=True)
+        wrapper.write_text('#!/bin/sh\n: > ' + shlex.quote(str(self.root / 'wrapper-used')) +
+                           '\nexec ' + shlex.quote(sys.executable) + ' "$@"\n')
+        wrapper.chmod(0o700)
+        (self.root / 'mode').write_text('quick')
+        with contextlib.chdir(self.root):
+            self.worker.start(Path('relative MCC folder'))
+        self.assertEqual(self.terminal_event()[0], 'done')
+        self.assertTrue((self.root / 'wrapper-used').exists())
+        info = json.loads((self.root / 'child-info.json').read_text())
+        self.assertEqual(info['source'], str(self.root / 'relative MCC folder'))
+        self.preserved()
+
+    def test_forced_cleanup_is_explicit_and_does_not_delete_valid_cache(self):
+        self.worker.cleanup_timeout = .05
+        process = self.start_worker('ignore')
+        self.wait_until(lambda: (self.root / 'ready').exists())
+        self.wait_until(lambda: 'tiny fixture copying' in self.worker.tail)
+        with self.assertRaisesRegex(RuntimeError, 'cleanup could not be verified'):
+            self.worker.shutdown()
+        self.assertEqual(process.returncode, -signal.SIGKILL)
+        self.assertIsNone(self.worker.process)
+        self.assertEqual((self.root / 'prior-cache').read_bytes(), b'valid existing cache')
+        self.assertTrue((self.root / '.owned-partial').exists())
+
+    def test_owner_eof_before_cli_work_creates_no_partial_cache(self):
+        command = [sys.executable, '-B', str(self.root / 'tools/setup_assets.py'),
+                   '--root', str(self.root), '--gui-owner']
+        with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT) as process:
+            process.stdin.close()
+            self.assertEqual(process.wait(timeout=10), 143)
+        self.assertFalse((self.root / 'child-info.json').exists())
+        self.preserved()
+
+
+@unittest.skipUnless(os.environ.get('DISPLAY'), 'Tk display required (use xvfb-run)')
+class SetupGuiLifetimeTests(SetupFixture, unittest.TestCase):
+    def gui(self, action):
+        driver = self.root / 'gui-driver.py'
+        driver.write_text('''import json,os,signal,sys
+from pathlib import Path
+sys.path.insert(0,TOOLS)
+import setup_assets_ui as ui
+root=Path(sys.argv[1]); action=sys.argv[2]
+previous={n:signal.getsignal(n) for n in (signal.SIGINT,signal.SIGTERM)}
+if action=='spawn-death':
+    popen=ui.subprocess.Popen
+    def spawn(*args,**kwargs):
+        process=popen(*args,**kwargs)
+        (root/'spawned-pid').write_text(str(process.pid))
+        os.kill(os.getpid(),signal.SIGKILL)
+    ui.subprocess.Popen=spawn
+original=ui.SourceSelector.__init__
+def init(self,*args,**kwargs):
+    kwargs['auto_detect']=False
+    original(self,*args,**kwargs)
+    self.window.after(1,self.start)
+    if action in ('exception','destroy'):
+        def tick():
+            if not (root/'ready').exists(): self.window.after(10,tick); return
+            if action=='exception': raise RuntimeError('tiny Tk callback failure')
+            self.window.destroy()
+        self.window.after(10,tick)
+ui.SourceSelector.__init__=init
+try:
+    code=ui.run(root,root/'chosen MCC')
+except RuntimeError as error:
+    (root/'gui-error').write_text(str(error));code=1
+finally:
+    (root/'handlers-restored.json').write_text(json.dumps(all(signal.getsignal(n) is h for n,h in previous.items())))
+raise SystemExit(code)
+'''.replace('TOOLS', repr(str(TOOLS))))
+        process = subprocess.Popen([sys.executable, '-B', str(driver), str(self.root), action],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        self.addCleanup(self.stop_gui, process)
+        return process
+
+    def stop_gui(self, process):
+        if process.poll() is None:
+            process.terminate()
+            try: process.wait(timeout=10)
+            except subprocess.TimeoutExpired: process.kill(); process.wait()
+        if process.stderr: process.stderr.close()
+
+    def assert_child_stopped(self):
+        child = json.loads((self.root / 'child-info.json').read_text())['pid']
+        def stopped():
+            try:
+                # A dead GUI cannot reap its orphan; the OS reaper owns that.
+                return Path(f'/proc/{child}/stat').read_text().split()[2] == 'Z'
+            except FileNotFoundError: return True
+        self.wait_until(stopped)
+        self.assertTrue((self.root / 'cleaned').exists())
+        self.assertFalse((self.root / '.owned-partial').exists())
+        self.assertEqual((self.root / 'prior-cache').read_bytes(), b'valid existing cache')
+
+    def test_actual_gui_sigterm_waits_for_child_cleanup_and_restores_handlers(self):
+        process = self.gui('signal')
+        self.wait_until(lambda: (self.root / 'ready').exists())
+        process.send_signal(signal.SIGTERM)
+        self.assertEqual(process.wait(timeout=10), 143)
+        self.assertTrue(json.loads((self.root / 'handlers-restored.json').read_text()))
+        self.assert_child_stopped()
+
+    def test_killed_gui_owner_eof_stops_actual_cli_writer(self):
+        process = self.gui('signal')
+        self.wait_until(lambda: (self.root / 'ready').exists())
+        process.kill();process.wait(timeout=10)
+        self.assert_child_stopped()
+
+    def test_killed_gui_during_spawn_does_not_strand_unpublished_child(self):
+        process = self.gui('spawn-death')
+        self.assertEqual(process.wait(timeout=10), -signal.SIGKILL)
+        child = int((self.root / 'spawned-pid').read_text())
+        def stopped():
+            try: return Path(f'/proc/{child}/stat').read_text().split()[2] == 'Z'
+            except FileNotFoundError: return True
+        self.wait_until(stopped)
+        if (self.root / 'child-info.json').exists():
+            self.assertTrue((self.root / 'cleaned').exists())
+        self.assertFalse((self.root / '.owned-partial').exists())
+        self.assertEqual((self.root / 'prior-cache').read_bytes(), b'valid existing cache')
+
+    def test_tk_callback_exception_cleans_child_and_restores_handlers(self):
+        process = self.gui('exception')
+        self.assertEqual(process.wait(timeout=10), 1)
+        self.assertIn('tiny Tk callback failure', (self.root / 'gui-error').read_text())
+        self.assertTrue(json.loads((self.root / 'handlers-restored.json').read_text()))
+        self.assert_child_stopped()
+
+    def test_external_window_destroy_still_cleans_owned_child(self):
+        process = self.gui('destroy')
+        self.assertEqual(process.wait(timeout=10), 1)
+        self.assertTrue(json.loads((self.root / 'handlers-restored.json').read_text()))
+        self.assert_child_stopped()
 
 
 @unittest.skipUnless(os.environ.get('DISPLAY'), 'Tk display required (use xvfb-run)')

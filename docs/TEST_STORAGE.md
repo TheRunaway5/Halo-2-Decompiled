@@ -19,6 +19,16 @@ size of linked test programs. Use `--config Debug` when debugging requires
 symbols. Extra configure options use
 `--cmake-arg=-DOPTION=VALUE`.
 
+For launcher-only validation against an existing native runtime, pass
+`--cmake-arg=-DHALO2_BUILD_LAUNCHERS_WITH_NATIVE=OFF` and
+`--cmake-arg=-DHALO2_LAUNCHER_RUNTIME_DIR=/absolute/path/to/runtime-directory`.
+This builds the launcher targets without their default native-game dependency;
+normal source builds retain that dependency by default.
+
+Use `--test-jobs` to limit concurrent CTests independently of build `--jobs`,
+for example `--jobs 6 --test-jobs 2` for fixtures that own several native worlds.
+Without that option, both phases use `--jobs` as before.
+
 The private build directory, created under `.local/test-scratch` on disk,
 is removed after success, failure, or cancellation. Override its parent with
 `--scratch-root`; using the system `/tmp` can exhaust its small RAM filesystem.
@@ -37,6 +47,14 @@ under the report directory's `evidence` folder. This does not retain binaries,
 raw banks or the build tree.
 
 ## CTest scratch and one-off validation
+
+Live physics acceptance uses the prepared imported MCC cache through
+`tools/test_physics_multiplayer_visible_tu15.py --mcc-root PATH`. Xbox TU1.5
+execution and assets remain offline references. Runtime acceptance rejects
+Xbox/Vista cache inputs and keeps raw outputs under `HALO2_TEST_SCRATCH`.
+Use `--report-output PATH` for bounded results and add `--retain-video` only
+when retaining the requested visible proof. The enclosing `tools/run_test.py`
+removes the private outputs after success, failure, or cancellation.
 
 Every test registered by the main project runs under `tools/run_test.py`. The
 wrapper supplies unique `TMPDIR`, `TMP`, `TEMP`, and `HALO2_TEST_SCRATCH` values.

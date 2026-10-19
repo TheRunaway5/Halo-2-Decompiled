@@ -40,6 +40,11 @@ struct SourceAuthorityReceiverState {
     // during unvalidated replay, cancellation and native-only streams. Copies
     // remain historical evidence; use the live checkpoint API for adoption.
     std::optional<SourceAuthorityHostProof> host_proof;
+    // Exact delivered archive/replay cut that failed real decode/native
+    // validation, never an unscoped old diagnostic or export-copy failure.
+    // Historical until successful validation or this context retires; it
+    // cannot establish readiness, shrink membership or authorize a takeover.
+    std::optional<ValidatedAuthorityCut> rejected;
 };
 // Owning recovery input only. The source executor validates this exact cut and
 // its independent roster before export. It is not an election certificate or
@@ -83,6 +88,12 @@ public:
     // change, replacement or take_world(); never retain borrowers across update.
     const MultiplayerPreparedWorld *world()const;
     SourceMatchAuthority::Checkpoint checkpoint(const ValidatedAuthorityCut &expected)const;
+    // Exact currently validated paired value, without stopping receipt/replay.
+    // Rejects stale/foreign/unpaired cuts; no later world can be relabeled as
+    // expected. The owning result contains the validated host table, independent
+    // admissions and producer/recipient view mapping, but no executor borrower.
+    // It is historical evidence, not readiness, election or promotion authority.
+    SourceAuthorityRetainedWorld checkpoint_paired(const ValidatedAuthorityCut &expected)const;
     // Permanently stop taking new transfers. Already decoding/replaying input
     // drains through its normal complete validation before export. Null means
     // that work is still active; a quiescent missing/invalid world throws.
@@ -130,6 +141,10 @@ public:
     // does not freeze, promote or transfer the native executor. A certified
     // continuation must import this value into its own quiescent executor.
     std::future<SourceMatchAuthority::Checkpoint> checkpoint(ValidatedAuthorityCut);
+    // Nonterminal exact paired export on the worker's native executor. Shares
+    // the single outstanding-export slot with checkpoint/terminal retention;
+    // success leaves receiving, replay scheduling and later exports enabled.
+    std::future<SourceAuthorityRetainedWorld> checkpoint_paired(ValidatedAuthorityCut);
     // One-shot, mutually exclusive with checkpoint export. Stops new receives,
     // drains the authenticated in-flight batches and returns their final validated
     // world plus independent admissions for a later certified takeover. The

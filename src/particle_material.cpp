@@ -1,6 +1,8 @@
 #include "halo2/particle_material.hpp"
 #include "halo2/texture.hpp"
 #include <algorithm>
+#include <bit>
+#include <cmath>
 
 namespace halo2 {
 ParticleMaterial Cache::load_particle_material(std::uint32_t datum,unsigned layer,
@@ -104,7 +106,46 @@ ParticleMaterial Cache::load_particle_material(std::uint32_t datum,unsigned laye
     if(binding.external) {
       if(binding.external!=23 || binding.stage!=1 || binding.parameter!=255 || pass.program.words[54]!=0xc1u)
         throw FormatError("particle texture requires original external binding state");
-      const auto animation=read_shader_animation(b,pp.offset,metadata_magic_);
+      auto animation=read_shader_animation(b,pp.offset,metadata_magic_);
+      // MCC's D3D distortion definition retains its authored scalar but has
+      // no NV2A sampler animation bank. Project only the proved constant
+      // contract of the authenticated original template/pass. In particular,
+      // original18540 writes property6 twice and leaves SDK24 untouched.
+      // Reference: docs/MCC_OPENING_DECODER_20261019.md and the complete
+      // unchanged18540 replay in original-particle-sampler/report.json.
+      if(is_mcc() && !model && layer==15 && layer_pass==0 && implementation==0 &&
+          stem.name=="shaders\\shader_templates\\particle\\particle_alpha_blend_distortion" &&
+          spas.name=="shaders\\shader_passes\\transparent\\effect_shader_alphablend_distortion" &&
+          (stem.datum&0xffffu)<mcc_native_shaders_.size() && mcc_native_shaders_[stem.datum&0xffffu] &&
+          (spas.datum&0xffffu)<mcc_native_shaders_.size() && mcc_native_shaders_[spas.datum&0xffffu] &&
+          animation.lods.size()==1 && !animation.lods[0].available_layers &&
+          animation.layers.size()==25 && animation.passes.size()==1 &&
+          animation.implementations.size()==2 && animation.overlays.empty() &&
+          animation.references.empty() && animation.parameters.empty() && animation.mappings.empty()) {
+        const auto authored=metadata_block(root+0x14,40);
+        if(authored.count!=2)throw FormatError("MCC distortion authored parameter contract differs");
+        const auto bitmap=authored.offset,scalar=bitmap+40;
+        if(string_id(b.u32(bitmap))!="bump_map" || b.u16(bitmap+4)!=0 || b.u16(bitmap+6) ||
+            string_id(b.u32(scalar))!="distortion_scale" || b.u16(scalar+4)!=1 || b.u16(scalar+6) ||
+            b.u32(scalar+12)!=0xffffffffu || b.u32(bitmap+32) || b.u32(scalar+32) ||
+            !std::isfinite(b.f32(scalar+16)))
+          throw FormatError("MCC distortion requires its original constant parameter owner");
+        // The two original scalar curves are authored distortion_scale and
+        // zero; preserve their raw float words through the existing producer.
+        const auto constant=[](std::uint32_t value) {
+          ShaderOverlay overlay;overlay.period=1;
+          for(auto word:std::array<std::uint32_t,7>{1,value,value,0,0,0x3f800000u,0x3f800000u})
+            for(unsigned byte=0;byte<4;++byte)overlay.curve.push_back(std::byte(word>>(byte*8)));
+          return overlay;
+        };
+        animation.overlays={constant(b.u32(scalar+16)),constant(0)};
+        animation.references={{0,0},{1,0}};
+        animation.parameters={ShaderRange{0x200},ShaderRange{0x201}};
+        animation.mappings={{0x401,1,0},{0x501,1,1},{0x601,1,1},{0x601,1,0}};
+        result.sampler_writes=source_constant_particle_sampler_writes(animation,ShaderRange{0x800});
+        continue;
+      }
+
       if(animation.lods.empty() || layer>=32 || !(animation.lods[0].available_layers&(1u<<layer)))
         throw FormatError("particle sampler animation LOD/layer missing");
       const auto layers=animation.lods[0].layers;

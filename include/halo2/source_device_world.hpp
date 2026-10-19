@@ -163,6 +163,7 @@ public:
     float script_group_value(std::uint32_t group)const;
     bool script_group_set(std::uint32_t group,float value,bool immediate);
 private:
+    friend class Simulation;
     NativeAuthorityBoundary authority_;
     void script_immediate(SourceDeviceGroup &,float);
     const LevelContent *content_;

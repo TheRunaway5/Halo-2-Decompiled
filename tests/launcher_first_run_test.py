@@ -19,7 +19,8 @@ LAUNCHER = Path(sys.argv.pop(1)).resolve()
 REQUIRED = (
     'halo2/h2_maps_win64_dx11/mainmenu.map', 'halo2/h2_maps_win64_dx11/shared.map',
     'halo2/h2_maps_win64_dx11/single_player_shared.map', 'halo2/h2_maps_win64_dx11/lockout.map',
-    'halo2/h2_maps_win64_dx11/textures.dat', 'halo2/h2_fonts/font_table.txt',
+    'halo2/h2_maps_win64_dx11/textures.dat',
+    'halo2/h2_maps_win64_dx11/sounds_neutral.dat', 'halo2/h2_fonts/font_table.txt',
     'bitmap-resources.json', 'tag-conversion.json', 'loading/mcc-loading-assets.json',
 )
 
@@ -143,6 +144,76 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertEqual(args[args.index('--shared-maps') + 1], str(self.maps))
         self.assertEqual(before, (self.cache / 'provenance.json').read_bytes())
         self.assertIn('parity remain incomplete', result.stdout)
+
+    def frontend_capability(self):
+        binary = self.native_test_capability()
+        report = json.loads(binary.with_name(binary.name + '.native-test.json').read_text())
+        digest = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+        report.update(schema='H2_NATIVE_FRONTEND_TEST_V1', capability='mcc-native-frontend',
+                      map=dict(path='halo2/h2_maps_win64_dx11/mainmenu.map', sha256=digest(self.maps / 'mainmenu.map')),
+                      resources={name: digest(self.cache / name) for name in
+                                 ('halo2/h2_maps_win64_dx11/shared.map',
+                                  'halo2/h2_maps_win64_dx11/textures.dat',
+                                  'halo2/h2_maps_win64_dx11/sounds_neutral.dat',
+                                  'halo2/h2_fonts/font_table.txt')})
+        report['validation']['scope'] = 'mcc-native-title-menu'
+        prompt_names = ['manifest.json', 'prompt-source.tsv', 'prompts.tsv']
+        prompt_names += [f'atlases/{index}.dds' for index in range(6)]
+        for name in prompt_names:
+            path = self.cache / 'presentation/prompts' / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b'synthetic authored prompt owner')
+            report['resources'][path.relative_to(self.cache).as_posix()] = digest(path)
+        binary.with_name(binary.name + '.frontend-test.json').write_text(json.dumps(report))
+        return binary
+
+    def test_frontend_is_default_play_while_native_gameplay_test_remains_explicit(self):
+        self.ready_assets()
+        self.runtime()
+        self.frontend_capability()
+        before = (self.cache / 'provenance.json').read_bytes()
+        result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        args = self.call('runtime')['argv']
+        self.assertIn('--menu-screen', args)
+        self.assertEqual('--skip-intro' in args, 'Title' in LAUNCHER.name)
+        self.assertEqual(args[args.index('--menu-maps') + 1], str(self.maps))
+        self.assertNotIn('--multiplayer', args)
+        self.assertNotIn('--mcc-preview', args)
+        self.assertFalse((self.root / 'saves/native-mcc-test').exists())
+        result = self.run_launcher('--native-test', '--hidden', '--frames', '1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--multiplayer', self.call('runtime')['argv'])
+        self.assertNotIn('--menu-screen', self.call('runtime')['argv'])
+        self.assertEqual(before, (self.cache / 'provenance.json').read_bytes())
+        self.assertIn('Native MCC gameplay ready: no', self.run_launcher('--launcher-info').stdout)
+
+    def test_frontend_rejects_foreign_menu_cache_and_stale_validation_retains_test(self):
+        self.ready_assets()
+        self.runtime()
+        binary = self.frontend_capability()
+        foreign = self.root / 'vista-cache'
+        foreign.mkdir()
+        result = self.run_launcher('--launch-game', '--menu-maps', str(foreign))
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('selected imported MCC map cache', result.stderr)
+        self.assertFalse((self.root / 'runtime-call.json').exists())
+        for option in ('--menu-ui-assets', '--hud-ui-assets', '--pause-ui-assets'):
+            result = self.run_launcher('--launch-game', option, str(foreign))
+            self.assertEqual(result.returncode, 1)
+            self.assertFalse((self.root / 'runtime-call.json').exists())
+        ui = self.cache / 'ui'
+        ui.mkdir()
+        for option, valid in (('--menu-maps', self.maps), ('--menu-ui-assets', ui),
+                              ('--hud-ui-assets', ui), ('--pause-ui-assets', ui)):
+            result = self.run_launcher('--launch-game', option, str(valid), option, str(foreign))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn('only once', result.stderr)
+            self.assertFalse((self.root / 'runtime-call.json').exists())
+        binary.with_name(binary.name + '.frontend-test.json').unlink()
+        result = self.run_launcher('--launch-game', '--hidden', '--frames', '1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('--multiplayer', self.call('runtime')['argv'])
 
     def test_native_test_stale_hash_or_shader_retains_preview(self):
         self.ready_assets()
@@ -365,9 +436,12 @@ pathlib.Path('runtime-call.json').write_text(json.dumps(dict(argv=sys.argv[1:], 
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('--mcc-preview', self.call('runtime')['argv'])
         self.assertNotIn('Updating the runtime', result.stdout)
+        (self.root / 'tools/update_runtime.py').write_text('''import pathlib, sys
+pathlib.Path(sys.argv[sys.argv.index('--root')+1], 'updated').touch()
+''')
         result = self.run_launcher('--update')
-        self.assertEqual(result.returncode, 1)
-        self.assertIn('precompiled test package', result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.root / 'updated').is_file())
 
     def test_preview_rebuilds_a_runtime_that_rejects_the_preview_option(self):
         self.ready_assets()
@@ -440,6 +514,62 @@ pathlib.Path(sys.argv[sys.argv.index('--root')+1], 'updated').touch()
         result = self.run_launcher('--update')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((self.root / 'updated').exists())
+        self.assertFalse((self.root / 'setup-call.json').exists())
+
+    def prebuilt_selection(self):
+        binary = self.runtime()
+        release = self.root / 'bin/releases/123'
+        release.mkdir(parents=True)
+        selected = release / binary.name
+        shutil.copy2(binary, selected)
+        shutil.copytree(binary.parent / 'shaders', release / 'shaders')
+        (self.root / 'runtime-selection.json').write_text(json.dumps(dict(
+            schema='H2_PREBUILT_RUNTIME_SELECTION_V1', release_id='123',
+            runtime='bin/releases/123/halo2_native', runtime_sha256='1' * 64,
+            platform='linux-x86_64')))
+        # This recorder tests selection/routing only. The updater's own tests
+        # exercise actual manifest/hash verification before granting admission.
+        (self.root / 'tools/update_runtime.py').write_text('''import os, sys
+raise SystemExit(int(os.environ.get('H2_TEST_SELECTION_STATUS','0')))
+''')
+        return selected
+
+    def test_verified_binary_update_takes_precedence_without_changing_local_build(self):
+        self.ready_assets()
+        selected = self.prebuilt_selection()
+        original = (self.root / 'build/halo2_native').read_bytes()
+        info = self.run_launcher('--launcher-info')
+        self.assertEqual(info.returncode, 0, info.stderr)
+        self.assertIn('Runtime: ' + str(selected), info.stdout)
+        self.assertEqual(original, (self.root / 'build/halo2_native').read_bytes())
+        self.assertFalse((self.root / 'setup-call.json').exists())
+
+    def test_stale_or_escaping_prebuilt_selection_preserves_local_runtime(self):
+        self.ready_assets()
+        self.prebuilt_selection()
+        self.environment['H2_TEST_SELECTION_STATUS'] = '1'
+        info = self.run_launcher('--launcher-info')
+        self.assertIn('Runtime: ' + str(self.root / 'build/halo2_native'), info.stdout)
+        self.environment.pop('H2_TEST_SELECTION_STATUS')
+        path = self.root / 'runtime-selection.json'
+        report = json.loads(path.read_text())
+        for runtime in ('../foreign/halo2_native', 'build/halo2_native', '/tmp/halo2_native'):
+            report['runtime'] = runtime
+            path.write_text(json.dumps(report))
+            info = self.run_launcher('--launcher-info')
+            self.assertIn('Runtime: ' + str(self.root / 'build/halo2_native'), info.stdout)
+
+    def test_updated_launcher_is_forwarded_with_original_arguments(self):
+        self.ready_assets()
+        runtime = self.prebuilt_selection()
+        launcher = runtime.parent / ('Halo2-Title-Launcher' if 'Title' in LAUNCHER.name else 'Halo2-Launcher')
+        launcher.write_text('#!' + sys.executable + '\n' + '''import json, pathlib, sys
+(pathlib.Path(__file__).parents[3]/'forwarded.json').write_text(json.dumps(sys.argv[1:]))
+''')
+        launcher.chmod(0o755)
+        result = self.run_launcher('--launcher-info')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads((self.root / 'forwarded.json').read_text()), ['--launcher-info'])
         self.assertFalse((self.root / 'setup-call.json').exists())
 
 

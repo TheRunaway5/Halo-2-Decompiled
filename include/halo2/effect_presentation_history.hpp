@@ -14,6 +14,14 @@ struct EffectPresentationHistoryState {
     std::optional<std::uint32_t> newest_sequence;
 };
 struct EffectPresentationObservation {
+    struct SourceResources {
+        // Passive startup admission only. These values neither advance native
+        // producers nor advertise complete presentation/migration readiness.
+        bool migration_candidate{},particle_producer{},model_producer{};
+        std::size_t particle_materials{},first_person_systems{},world_systems{},model_light_sections{};
+        std::size_t materials_at_upload{},materials_now{};
+        bool operator==(const SourceResources &)const=default;
+    };
     EffectPresentationHistoryState history;
     std::optional<std::uint64_t> world_tick,muzzle_tick;
     std::optional<ValidatedAuthorityCut> bound;
@@ -21,6 +29,7 @@ struct EffectPresentationObservation {
     // This observes only that boundary, not full presentation/audio readiness.
     bool runtime_frontier_retained{},runtime_frontier_bound{};
     std::size_t pending_sounds{},pending_weapon_sounds{},pending_effect_sounds{};
+    SourceResources source_resources;
 };
 // Completed CPU presentation and exact accepted receipts on the game executor.
 // Capacity is a native retention policy, not an original Xbox constant or a
@@ -30,6 +39,7 @@ class EffectPresentationHistory {
 public:
     EffectPresentationHistory(EffectPresentationContinuity &,std::size_t capacity);
     EffectPresentationHistory(EffectPresentationContinuity &,NativeEffectSounds &,std::size_t capacity);
+    EffectPresentationHistory(EffectPresentationContinuity &,NativeEffectSounds &,const Simulation &,std::size_t capacity);
     EffectPresentationHistory(const EffectPresentationHistory &)=delete;
     EffectPresentationHistory &operator=(const EffectPresentationHistory &)=delete;
     // Admit from independent session state, never from a receipt. Retire old-
@@ -43,8 +53,10 @@ public:
     // or eviction occurs. Unadmitted/retired/reordered receipts and incomplete
     // cuts throw. Eviction never permits recapturing an old receipt later.
     bool remember(const MultiplayerSnapshotOrigin &);
-    // Capture both owners before one insertion/eviction. Rejection leaves the
-    // completed history untouched; duplicate receipts never recapture values.
+    // Capture both effect owners and retain the caller's completed replica
+    // before one insertion/eviction. Requires the Simulation-bound constructor;
+    // missing/foreign/different-receipt replicas fail before receipt tracking.
+    // Rejection leaves completed entries untouched; duplicates never recapture.
     bool remember(const MultiplayerSnapshotOrigin &,const MultiplayerRuntimeReceiptFrontier &);
     // Only independently natively validated paired evidence can bind a normal
     // receipt. Missing/evicted/wrong-connection snapshots return no checkpoint;
@@ -56,6 +68,7 @@ public:
         const ValidatedAuthorityCut &cut()const;
         const EffectPresentationContinuity::Checkpoint &effects()const;
         const MultiplayerSnapshotOrigin &origin()const;
+        const MultiplayerSnapshotProof &proof()const;
         const MultiplayerState &current()const;
         const MultiplayerState &previous()const;
         const MultiplayerRuntimeReceiptFrontier &frontier()const;
@@ -64,6 +77,22 @@ public:
         struct Data;std::shared_ptr<const Data> data_;
     };
     std::optional<RuntimeCheckpoint> bind_runtime(const SourceAuthorityHostProof &,const LanClient &)const;
+    // An early offer may precede native replay by more than the ordinary
+    // history window. Keep its exact receipt candidates, never a tick-only
+    // substitute. At most two owning reservations and capacity entries per
+    // reservation are admitted; overflow is explicit and cannot grow storage.
+    class RuntimeReservation {
+    public:
+        bool valid()const;
+        bool overflowed()const;
+        std::size_t retained()const;
+    private:
+        friend class EffectPresentationHistory;
+        struct Data;std::shared_ptr<Data> data_;
+    };
+    RuntimeReservation reserve_runtime(const AuthorityTransferContext &,const AuthorityCutSeal &);
+    std::optional<RuntimeCheckpoint> bind_runtime(const SourceAuthorityHostProof &,const LanClient &,
+        const RuntimeReservation &)const;
     EffectPresentationHistoryState state()const;
 private:
     void own()const;
@@ -75,9 +104,12 @@ private:
     };
     EffectPresentationContinuity &effects_;
     NativeEffectSounds *sounds_{};
+    const Simulation *replica_{};
     std::optional<MultiplayerSnapshotOrigin> runtime_current_,runtime_previous_;
     const std::thread::id executor_=std::this_thread::get_id();
     EffectPresentationHistoryState state_;
     std::deque<Entry> entries_;
+    const std::shared_ptr<const void> reservation_owner_=std::make_shared<unsigned char>(0);
+    std::vector<std::weak_ptr<RuntimeReservation::Data>> reservations_;
 };
 }

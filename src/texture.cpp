@@ -157,8 +157,9 @@ Texture prepare_signed_texture(Texture texture,std::uint32_t color_sign) {
     if(texture.format!=11 || texture.pixels.size()%4)
         throw FormatError("signed texture requires decoded RGBA8 texels");
     std::vector<std::byte> decoded(texture.pixels.size()*4);
+    const auto& source=std::as_const(texture).pixels;
     for(std::size_t at=0;at<texture.pixels.size();++at) {
-        const unsigned byte=std::to_integer<unsigned>(texture.pixels[at]);
+        const unsigned byte=std::to_integer<unsigned>(source[at]);
         const bool signed_channel=color_sign&(0x80000000u>>(at%4));
         // NVIDIA NV_texture_shader's 8-bit signed internal format uses
         // fixed-point byte/128: -128 is -1 and +127 is 0.9921875.
@@ -169,6 +170,10 @@ Texture prepare_signed_texture(Texture texture,std::uint32_t color_sign) {
     }
     for(auto &mip:texture.mips) {mip.offset*=4;mip.size*=4;}
     texture.pixels=std::move(decoded);texture.format=native_rgba32f;
+    // The new output buffer has never escaped this producer. Decoder-local
+    // writes are complete, so subsequent material/pass copies can share it.
+    // A later mutable access still detaches through TexturePixels::write().
+    texture.pixels.publish();
     return texture;
 }
 }

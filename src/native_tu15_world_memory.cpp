@@ -1,4 +1,7 @@
 #include "halo2/native_tu15_world_memory.hpp"
+#include "halo2/native_tu15_ctf_static_data.hpp"
+#include "halo2/native_tu15_physics_branch_data.hpp"
+#include "halo2/native_tu15_contrail_draw_data.hpp"
 #include "halo2/cache.hpp"
 #include "halo2/original_data.hpp"
 #include <bit>
@@ -34,6 +37,7 @@
 #include "halo2/source_input_startup_tu15.hpp"
 #include <algorithm>
 #include <set>
+#include <sstream>
 
 namespace halo2 {
 namespace {
@@ -86,6 +90,28 @@ void share_immutable_word(SourceRuntimeMemory& memory,std::uint32_t address,std:
     }catch(const std::out_of_range&){}
     memory.mount(address,bytes,SourceRuntimeMemory::Access::ReadOnly,owner);
 }
+template<std::size_t N>void share_immutable_words(SourceRuntimeMemory& memory,
+    std::uint32_t address,const std::array<std::uint32_t,N>& words,const char* owner) {
+    const auto bytes=encode(words);
+    try {
+        const auto old=memory.view(address,bytes.size());
+        if(!memory.is_read_only(address,bytes.size()) || !std::ranges::equal(old,bytes))
+            throw std::invalid_argument("Native model-render literal conflicts with its immutable owner");
+        return;
+    }catch(const std::out_of_range&){}
+    try {memory.mount(address,bytes,SourceRuntimeMemory::Access::ReadOnly,owner);}
+    catch(const std::invalid_argument&) {
+        for(const auto& region:memory.checkpoint().regions)
+            if(std::uint64_t(region.address)<std::uint64_t(address)+bytes.size() &&
+               std::uint64_t(address)<std::uint64_t(region.address)+region.bytes.size()) {
+                std::ostringstream message;message<<"Native model-render literal0x"<<std::hex<<address
+                    <<"+0x"<<bytes.size()<<" overlaps0x"<<region.address<<"+0x"<<region.bytes.size()
+                    <<" owner: "<<region.owner;
+                throw std::invalid_argument(message.str());
+            }
+        throw;
+    }
+}
 }
 void native_tu15_validate_type_runtime_restore(const SourceRuntimeMemory& current,
     const SourceRuntimeMemory::Checkpoint& incoming) {
@@ -105,6 +131,8 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     if(tick.address<0x60000000u || tick.address>0xfffffffcu || tick.owner.empty())
         throw std::invalid_argument("Native TU1.5 world requires named retained tick-count backing");
     auto memory=native_tu15_process_heap_memory();
+    mount_native_tu15_ctf_static_data(memory);
+    mount_native_tu15_contrail_draw_data(memory);
     mount_native_tu15_arena_data(memory);
     mount_native_tu15_static_data(memory);
     mount_native_tu15_level_handles_startup_data(memory);
@@ -351,6 +379,18 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // Its neighboring inputs4918E4/4918EC remain separate, unborrowed owners.
     memory.mount(0x4918e8u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold submitted lens-query gate word");
+    // Complete the five absent immutable literal operands in the admitted
+    // lens-query/draw closure (v794 offline TU1.5 and live owner audit).
+    // Preserve authored bits; no host recalculation or completed lens result.
+    for(const auto&[address,bits]:std::array{
+        std::pair{0x46a250u,0x4b7fffffu},std::pair{0x46a268u,0x3c008081u},
+        std::pair{0x46a384u,0x3c800000u},std::pair{0x46a51cu,0x3fb504f3u},
+        std::pair{0x46a9b4u,0x4f000000u}})
+        share_immutable_word(memory,address,bits,"native TU1.5 authored lens-query/draw scalar operand");
+    // Actual2F2B3 admits selectors0..4 before2F2C5 reads this complete
+    // inline .text table. Preserve original branch identities, not results.
+    memory.mount(0x2f5c8u,encode(std::array{0x2f5bau,0x2f2ccu,0x2f3e2u,0x2f3feu,0x2f50au}),
+        SourceRuntimeMemory::Access::ReadOnly,"native TU1.5 authored five-entry lens draw dispatch table");
     // Original132B0 copies exactlyA6 DWORDs from its real submitted frame
     // into this loader-zeroed record. Camera491E38 is its74-byte subrecord,
     // independently saved/restored by3BD4C/3BE4E. Preserve one complete
@@ -480,6 +520,13 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
             "native TU1.5 cold model-resource activation counter");
     memory.mount(0x4f2d80u,std::array<std::byte,1>{},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 cold model-resource activation byte");
+    // Original130F90 reads this authored writable .data setting during the
+    // complete130890 geometry-cache frame. Initial01 is pinned in v800;
+    // retain the warning policy and the independent cold activation gate.
+    // The renderer-cache-pool declaration already owns this exact byte.
+    // Validate that owner instead of mounting a second overlapping copy.
+    if(memory.view(0x48c754u,1).front()!=std::byte{1} || memory.is_read_only(0x48c754u,1))
+        throw std::invalid_argument("Native geometry-cache pressure policy differs from its renderer owner");
     // Actual2B520 clears the cached-render-state counter and exact C/1AA
     // DWORD scratch banks before marking its authored first -1 sentinel.
     memory.mount(0x4c6954u,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,
@@ -693,6 +740,19 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         "native TU1.5 authored game-engine tick scaling operand");
     memory.mount(0x474c78u,encode(std::array{0x44aafcu}),SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored player-effect initial vector binding");
+    // Actual1FEB9 selects this authored fallback when the screen vector
+    // equals its original zero operand. Keep both the pointer and vector.
+    memory.mount(0x474c80u,encode(std::array{0x44ab1cu}),SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored1FEB9 default screen-vector binding");
+    memory.mount(0x44ab1cu,encode(std::array{0u,0x3f800000u,0u}),SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored1FEB9 default screen-vector operand");
+    // Actual17C84C skips the alpha word of this complete authored RGBA
+    // record before copying its three RGB components into the lens input.
+    memory.mount(0x474c2cu,encode(std::array{0x44aad8u}),SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored17C84C default lens RGBA binding");
+    // RGB+4 already has its complete shared color/scale owner below.
+    memory.mount(0x44aad8u,encode(std::array{0x3f800000u}),
+        SourceRuntimeMemory::Access::ReadOnly,"native TU1.5 authored default lens RGBA alpha operand");
     // ActualD6D16 selects this authored color record, then skips its
     // alpha word and copies the same existing three-component black RGB.
     memory.mount(0x474c34u,encode(std::array{0x44aaf8u}),SourceRuntimeMemory::Access::ReadOnly,
@@ -1349,6 +1409,15 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         0x8u,0x1u,0x1d09b0u,0x1d0b70u,
         0x0u,0x0u,0x0u,0x0u}),SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored bounded resource recovery callback records");
+    // C3300 passes these five authored class tables to complete C2A80.
+    // Preserve the original operands; the live light owner computes all fades.
+    memory.mount(0x44a6d8u,encode(std::array<std::uint32_t,25>{
+        0x41a00000u,0x41700000u,0x41200000u,0x40a00000u,0u,
+        0x41700000u,0x41200000u,0x40e00000u,0x40400000u,0u,
+        0x40200000u,0x40000000u,0x3fc00000u,0x3f800000u,0x3f000000u,
+        0x40200000u,0x40000000u,0x3fc00000u,0x3f800000u,0x3f000000u,
+        0u,0u,0u,0u,0u}),SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored five effect-light class fade tables");
     share_immutable_word(memory,0x46a520u,0x7149f2cau,
         "native TU1.5 authored 24DCF3 object update comparison operand");
     share_immutable_word(memory,0x46a1bcu,0x37800000u,
@@ -1392,6 +1461,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // It is loader-zeroed .data tail storage.102A54 uses member4 at5020B8.
     memory.mount(0x5020b4u,std::array<std::byte,15>{},SourceRuntimeMemory::Access::ReadWrite,
         type_runtime_owner);
+    // Original1E7F18 reads these four authored .data bytes;1E7F1E
+    // publishes them into actor+418. Preserve the source operand and its
+    // writable section ownership; the actor constructor still makes its store.
+    memory.mount(0x47d6c0u,encode(std::array{0xffffffffu}),SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authored 1E7F18 actor initialization operand");
     memory.mount(0x47a2a8u,std::array{std::byte{1}},SourceRuntimeMemory::Access::ReadWrite,
         "native TU1.5 authored 18150A placement enabled policy byte");
     // The authored absent selection is overwritten by actual1816A0 before
@@ -1413,6 +1487,12 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     memory.mount(0x44eb30u,encode(std::array{0x42200000u,0x42dc0000u,0x3fc00000u,1u}),
         SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored 180C10 placement selector-zero parameters");
+    // Actual180C77/180C82 selects row1 in the MCC Cyclotron world. The
+    // complete sixteen-byte row is original TU1.5 .rdata, not a supplied
+    // placement result (offline audit: mcc-physics-frontier-v768).
+    memory.mount(0x44eb40u,encode(std::array{0x42200000u,0x42dc0000u,0x3fc00000u,1u}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored 180C10 placement selector-one parameters");
     // Actual180C77 selects row3 during the first Cairo outer step;
     // the same four-field stride is consumed by180C10/182BB0.
     memory.mount(0x44eb60u,encode(std::array{0x41200000u,0x41200000u,0x3fc00000u,0u}),
@@ -2064,6 +2144,11 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         for(std::size_t slot=0;slot<N;++slot)
             share_immutable_word(memory,address+std::uint32_t(slot*4),methods[slot],owner);
     };
+    // Original185111 publishes this two-method query on its actual stack.
+    // The next independently published interface begins45F8C8 (1848A8).
+    // Keep the complete table while sharing its already retained first word.
+    declare_dispatch(0x45f8c0u,std::array{0x1848a0u,0x185190u},
+        "native TU1.5 authored 185111 physical stack query identities");
     // Actual1CB914 installs the five-method primary interface below;
     // the following six/two-method base interfaces have independent
     // installers2E9C2F/2E9C36 and teardown restores1CC00F/1CC000.
@@ -2215,6 +2300,29 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         0x2527acu,0x2528b0u,0x252a12u,0x252b19u,0x252bd8u}),
         SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored 252480 selector branch identities");
+    // Complete16F150 and16F6A0 bound the signed selector+1 to0..3.
+    // Preserve their distinct authored table order, excluding nearby code.
+    // Original15CEF7 selects all seven branches through this authored table.
+    //15D4F0 reaches it while admitting the MCC Coagulation world; no branch
+    // result is supplied by the native data owner (offline CFG audit v780).
+    memory.mount(0x15cfa8u,encode(std::array{
+        0x15cefeu,0x15cf16u,0x15cf2eu,0x15cf46u,0x15cf5eu,0x15cf76u,0x15cf8eu}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored 15CEF7 seven-way configuration branch identities");
+    // Original1DFC2E selects six paths within complete1DFA80. The reached
+    // Cyclotron branch reads index4; retain the exact complete source table.
+    memory.mount(0x1e0184u,encode(std::array{
+        0x1dfc35u,0x1dfc9cu,0x1dfd9eu,0x1dff3eu,0x1dffb4u,0x1e001cu}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored 1DFC2E six-way physical branch identities");
+    memory.mount(0x16f33cu,encode(std::array{
+        0x16f247u,0x16f21bu,0x16f29cu,0x16f265u}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored16F150 four camera dispatch identities");
+    memory.mount(0x16fd30u,encode(std::array{
+        0x16f6f4u,0x16fa29u,0x16fbf2u,0x16fc79u}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored16F6A0 four camera dispatch identities");
     // Original16FD46..16FD55 sign-extends the authored selector, subtracts1
     // and bounds the result to0..3 before these four retained case targets.
     memory.mount(0x16fdf0u,encode(std::array{
@@ -2398,6 +2506,19 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         0x2f8090u,0x2f7b80u,0x2f7ab0u,0x2f7b10u,
         0x2f7a50u,0x2f7a20u,0x2e38c0u,0x2f7bf0u},
         "native TU1.5 authored 2F7D4E physical contact query typed dispatch identity");
+    // Actual2F0E21 installs this eight-method contact interface.2F7A9A
+    // dispatches slot4 during the MCC Lockout gravity-lift contact. The
+    // original following bytes are literal strings, outside this interface.
+    declare_dispatch(0x41ca9cu,std::array{
+        0x2fc540u,0x2f16f0u,0x2f13f0u,0x2f10b0u,
+        0x2f0f10u,0x2f0da0u,0x2e38c0u,0x2f1850u},
+        "native TU1.5 authored 2F0E21 physical contact typed dispatch identity");
+    // Original2F0F7E/2F1122 publish these distinct two-method stack query
+    // interfaces. Their following authored interfaces begin41CA94/41CA9C.
+    declare_dispatch(0x41ca8cu,std::array{0x2f0a50u,0x30ba80u},
+        "native TU1.5 authored 2F0F7E contact stack query identity");
+    declare_dispatch(0x41ca94u,std::array{0x2f0a20u,0x30ba90u},
+        "native TU1.5 authored 2F1122 contact stack query identity");
     declare_dispatch(0x41cce8u,std::array{
         0x2f81b0u,0x2f7ef0u,0x2f7f50u,0x2f80c0u,
         0x2f7fb0u,0x2f7a20u,0x325d80u,0x2f8010u},
@@ -2427,6 +2548,14 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         0x2e8d90u,0x2e90e0u,0x2e8dd0u,0x2e9140u,0x2e8d00u,0x2e8fe0u,
         0x2e8d20u,0x2e8d40u,0x2e8d70u,0xad740u
     },"native TU1.5 authored 2E8FD6 physical shape typed dispatch identity");
+    // Actual2E80EE installs this complete sixteen-method physical shape
+    // interface;31C92F dispatches its slot5. The distinct next interface at
+    //461460 is installed by2E5F88/2E8786 (offline original audit v779).
+    declare_dispatch(0x461420u,std::array{
+        0x24dc20u,0x2e1270u,0x2e12a0u,0x2e9250u,0x2e4d60u,0x31ede0u,
+        0x2e8120u,0x2e90e0u,0x2e81e0u,0x2e9140u,0x2e7d10u,0x306bb0u,
+        0x2e7d90u,0x3070f0u,0x2e7e10u,0x31d520u},
+        "native TU1.5 authored 2E80EE physical shape typed dispatch identity");
     // Actual2E88C8/2E87ED install this ten-method physical interface;
     // the following independent class starts4614B0.
     declare_dispatch(0x461488u,std::array{
@@ -2469,6 +2598,22 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         0x306760u,0x2e90e0u,0x306890u,0x2e9140u,0x306670u,0x306830u,
         0x306790u,0x3067d0u,0x306750u,0x1cb030u},
         "native TU1.5 authored canonical 1EE51F embedded shape typed dispatch identity");
+    // Actual20D837 binds every inline vehicle phantom shape to this
+    // twelve-method interface. The separately installed462090 bounds it.
+    declare_dispatch(0x462060u,std::array{
+        0x1f2c10u,0x2e1270u,0x2e12a0u,0x306a80u,0x2e4d60u,0x31cae0u,
+        0x306de0u,0x2e9400u,0x306bc0u,0x306ed0u,0x306b90u,0x306bb0u},
+        "native TU1.5 authored 20D837 inline physical shape typed dispatch identity");
+    // Original31E3BE installs eleven callable entries; the following word
+    // at41EA68 points into reflection data, outside executable code.320E81
+    // dispatches its final slot.31E3C4 installs the four-entry embedded
+    // interface too, bounded by the distinct31CE20 primary table41E7AC.
+    declare_dispatch(0x41ea3cu,std::array{
+        0x31cea0u,0x2e1270u,0x2e12a0u,0x31e1e0u,0x2e4d60u,0x31e2e0u,
+        0x31e2f0u,0x325d80u,0xa3850u,0x31e360u,0x31e330u},
+        "native TU1.5 authored 31E3BE physical typed dispatch identity");
+    declare_dispatch(0x41e79cu,std::array{0x31d700u,0x2e4d60u,0x325aa0u,0x2e4d60u},
+        "native TU1.5 authored 31E3C4 embedded physical callback identity");
     declare_dispatch(0x4620d0u,std::array{
         0x24dc20u,0x2e1270u,0x2e12a0u,0x2e91f0u,0x2e4d60u,0xab4b0u,
         0x1f61b0u,0x2e90e0u,0x1f6220u,0x2e9140u,0x1cb560u,0x1cb560u,
@@ -2667,6 +2812,50 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     memory.mount(0x158220u,encode(std::array<std::uint32_t,5>{
         0x15807du,0x15807du,0x1580d0u,0x158089u,0x1580dfu}),
         SourceRuntimeMemory::Access::ReadOnly,"native TU1.5 authored five camera mode dispatch targets");
+    // Absolute scalar operands of the authenticated vehicle body. Their
+    // actual TU1.5 instruction addresses, initial bits and section permissions
+    // are recorded in original-vehicle-render-operands.json.
+    for(const auto&[address,bits]:std::array{
+        std::pair{0x46a0d0u,0x3f800000u},
+        std::pair{0x46a0dcu,0xbf800000u},
+        std::pair{0x46a0e8u,0x0u},
+        std::pair{0x46a0ecu,0x38d1b717u},
+        std::pair{0x46a10cu,0x40c00000u},
+        std::pair{0x46a164u,0x3c8efa35u},
+        std::pair{0x46a2ecu,0x40490fdbu},
+        std::pair{0x46a488u,0xc0490fdbu},
+        std::pair{0x46a4c0u,0x3db851ecu},
+        std::pair{0x46a518u,0xbf490fdbu},
+        std::pair{0x46a550u,0x3f490fdbu},
+        std::pair{0x46a5f4u,0x3fa2f983u},
+        std::pair{0x46a5f8u,0x3ff5be0bu}})
+        share_immutable_word(memory,address,bits,"native TU1.5 authored vehicle scalar operand");
+    memory.mount(0x473e1cu,encode(std::array{0x3fc00000u,0x3fc00000u}),
+        SourceRuntimeMemory::Access::ReadWrite,"native TU1.5 authored writable vehicle scale operands");
+    memory.mount(0x473e34u,encode(std::array{0x3ecccccdu}),
+        SourceRuntimeMemory::Access::ReadWrite,"native TU1.5 authored writable vehicle clamp operand");
+    // Complete original vehicle FP arithmetic also reads these authored doubles.
+    memory.mount(0x46a600u,encode(std::array{0xa0000000u,0x3f91df46u}),
+        SourceRuntimeMemory::Access::ReadOnly,"native TU1.5 authored complete vehicle double operand");
+    memory.mount(0x46ab70u,encode(std::array{0x40000000u,0x3fd33333u}),
+        SourceRuntimeMemory::Access::ReadOnly,"native TU1.5 authored complete vehicle double operand");
+    // Actual F25D3/F25D6 bounds the authored vehicle kind to0..6.
+    // The retained body still executes all seven original branch targets.
+    memory.mount(0xf2bfcu,encode(std::array{0xf25dfu,0xf25f0u,0xf2649u,0xf2600u,0xf2610u,0xf2625u,0xf2635u}),
+        SourceRuntimeMemory::Access::ReadOnly,"native TU1.5 authored seven vehicle constructor dispatch targets");
+    // Only verified uncovered literal inputs of the admitted vehicle closure.
+#include "native_tu15_vehicle_closure_operands.inc"
+    // Admit shared words after the complete earlier owners have been mounted.
+    // Public HS squad placement retains the original difficulty/type switches;
+    // the shared arithmetic table must not acquire a second overlapping owner.
+#include "native_tu15_campaign_runtime_tables.inc"
+#include "native_tu15_weapon_runtime_tables.inc"
+    mount_native_tu15_physics_branch_data(memory);
+    // Authenticated22D78 MOVSS reads exactly this DWORD from TU1.5 .rdata.
+    // The original22CD0 PRT arithmetic and every produced result stay intact.
+    share_immutable_word(memory,0x46a680u,0x49800000u,
+        "native TU1.5 authored22CD0 PRT arithmetic scalar");
+#include "native_tu15_model_render_readonly_literals.inc"
     return memory;
 }
 }

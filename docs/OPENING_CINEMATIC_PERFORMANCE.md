@@ -1,5 +1,32 @@
 # Opening cinematic performance — 2026-10-19
 
+Playback/performance acceptance now requires the selected MCC preparation from
+`assets/mcc-source.tsv`, verified by `tools/preview_opening_cinematic.py` before
+launch. The earlier ISO-backed timings below remain historical measurements;
+they are not an MCC baseline or proof that the MCC opening meets its frame-time
+target. V757 fails before rendering in the older selected runtime's model
+projection. V758's separate `mulg` error comes from its test incorrectly using
+multiplayer content mode for the campaign, not from a demonstrated campaign
+conversion fault. V759 builds all current consumers together and checks the
+correct campaign mode before a bounded MCC startup. A complete MCC run with
+actual window bounds and frame-time percentiles remains required.
+
+V759's coherent current MCC client reproduces an actual pre-renderer6GiB
+memory failure. V762's249 samples place the growth in native anonymous memory
+after cache loading and before renderer creation; GPU utilization is not the
+cause of that startup failure. V763's allocation stacks reach effect-light
+material preload. Both uncached repeated MCC bitmap loads and deep copies of
+completed signed images have failing storage regressions, then pass after the
+shared-storage changes. V766 also passes existing texture/pass isolation and
+MCC model controls. V765 then passes all5 CTests and its actual MCC startup
+gets through material preload and renderer creation under the same6GiB/zero-swap
+limit. Its observed unit peak is4,073,857,024 bytes; native application stage
+marks put renderer creation at5.89..9.20 seconds. It reaches frame0, then stops
+at the old CPU bitmap DXT5-only guard before an accepted rendered frame.
+This verifies progress past the prior memory failure, not a full-run peak or
+FPS improvement. V768 refreshes the newer DXT1/DXT5 bridge and its actual MCC
+fixture while preserving both residency fixes. Full-cutscene pacing remains open.
+
 Performance is the first priority following the user's slideshow report. The
 remaining visual/audio reports are still open: fades, missing Arbiter “Pillar
 of Autumn” dialogue, flicker, planet/High Charity ordering, all-character shader

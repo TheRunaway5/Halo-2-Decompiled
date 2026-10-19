@@ -415,6 +415,57 @@ void asset_identity() {
   std::filesystem::remove(b / "maps/shared.map");
   rejects([&] { identity(b); }, "Missing shared game data silently fingerprinted");
 }
+void mcc_asset_identity() {
+  const auto root = std::filesystem::temp_directory_path() /
+      ("halo2-mcc-lan-data-" + std::to_string(
+          std::chrono::steady_clock::now().time_since_epoch().count()));
+  struct Cleanup {
+    std::filesystem::path path;
+    ~Cleanup() { std::error_code error; std::filesystem::remove_all(path, error); }
+  } cleanup{root};
+  auto write = [](const std::filesystem::path &path, const std::string &value) {
+    std::filesystem::create_directories(path.parent_path());
+    std::ofstream file(path, std::ios::binary); file << value;
+    if (!file) throw std::runtime_error("Could not write disposable MCC identity fixture");
+  };
+  // Format fixtures exercise identity only, without constructing a game world.
+  const std::string header("daeh\x0d\0\0\0", 8);
+  const auto a=root/"a/halo2", b=root/"relocated/halo2";
+  const auto maps=std::filesystem::path("h2_maps_win64_dx11");
+  for (const auto name : {"lockout.map", "mainmenu.map", "shared.map", "single_player_shared.map"})
+    write(a/maps/name, header+name);
+  for (const auto name : {"textures.dat", "sounds_en.dat", "sounds_neutral.dat", "sounds_remastered.dat"})
+    write(a/maps/name, name);
+  write(a/"h2_fonts/font_table.txt", "MCC font selector fixture");
+  write(a/"h2_fonts/font", "MCC font pixels fixture");
+  std::filesystem::create_directories(b.parent_path());
+  std::filesystem::copy(a,b,std::filesystem::copy_options::recursive);
+  const auto identity=[&](const auto &directory) {
+    return multiplayer_fingerprint(directory/maps/"lockout.map",directory/maps,0,3);
+  };
+  const auto expected=identity(a);
+  check(expected==identity(b),"Moving MCC data changed LAN identity");
+  check(expected!=multiplayer_fingerprint(a/maps/"lockout.map",a/maps,1,3),"MCC BSP excluded from LAN identity");
+  check(expected!=multiplayer_fingerprint(a/maps/"lockout.map",a/maps,0,4),"MCC starting weapon excluded from LAN identity");
+  for (const auto relative : {"h2_maps_win64_dx11/lockout.map", "h2_maps_win64_dx11/mainmenu.map",
+      "h2_maps_win64_dx11/shared.map", "h2_maps_win64_dx11/single_player_shared.map",
+      "h2_maps_win64_dx11/textures.dat", "h2_maps_win64_dx11/sounds_en.dat",
+      "h2_maps_win64_dx11/sounds_neutral.dat", "h2_maps_win64_dx11/sounds_remastered.dat",
+      "h2_fonts/font_table.txt", "h2_fonts/font"}) {
+    { std::ofstream file(b/relative,std::ios::binary|std::ios::app); file << '!'; }
+    check(expected!=identity(b),"Changed MCC data allowed matching LAN identity");
+    std::filesystem::copy_file(a/relative,b/relative,std::filesystem::copy_options::overwrite_existing);
+  }
+  write(b/"default.xbe","unrelated offline reference must not be read");
+  check(expected==identity(b),"MCC identity consumed an Xbox executable");
+  rejects([&]{multiplayer_fingerprint(a/maps/"lockout.map",a/maps,0,3,b/"default.xbe");},
+      "MCC LAN identity accepted injected original executable data");
+  write(b/maps/"shared.map",std::string("daeh\x08\0\0\0",8));
+  rejects([&]{identity(b);},"MCC LAN identity accepted mixed cache versions");
+  std::filesystem::copy_file(a/maps/"shared.map",b/maps/"shared.map",std::filesystem::copy_options::overwrite_existing);
+  std::filesystem::remove(b/maps/"textures.dat");
+  rejects([&]{identity(b);},"MCC LAN identity omitted required texture data");
+}
 void network_vehicle_intent() {
   const auto content=arena();const auto spawn=starts();
   MultiplayerMatch match(content,0,spawn,rules());LanHost host(match,0,789);
@@ -778,6 +829,11 @@ void retail(const std::filesystem::path &maps) {
 } // namespace
 int main(int argc, char **argv) {
   try {
+    if(argc==2 && std::string(argv[1])=="--asset-identity") {
+      asset_identity(); mcc_asset_identity();
+      std::cout<<"LAN identity authenticates relocated MCC caches, resources and fonts without an XBE\n";
+      return 0;
+    }
     if(argc==2 && std::string(argv[1])=="--vehicle-intent") {
       network_vehicle_intent();
       std::cout<<"Vehicle action and seat intent survives actual UDP without advancing physics\n";return 0;
@@ -811,6 +867,7 @@ int main(int argc, char **argv) {
     sneaking_presentation();
     rules_and_match();
     asset_identity();
+    mcc_asset_identity();
     network_vehicle_intent();
     network();
     network_snapshot_fragments();

@@ -8,6 +8,8 @@
 #include "halo2/frontend_text_style.hpp"
 #include "halo2/frontend_typewriter.hpp"
 #include "halo2/frontend_font_sampling.hpp"
+#include "halo2/gameplay_font_source.hpp"
+#include "mcc_frontend_string_ids.hpp"
 #include "halo2/frontend_emblem.hpp"
 #include "halo2/frontend_frame_texture.hpp"
 #include "halo2/frontend_frame_sampling.hpp"
@@ -145,6 +147,7 @@ struct FrontendPainter::Impl {
   std::map<const UiList *, std::vector<std::vector<unsigned>>> profile_emblem_materials;
   UiDraw output;
   FrontendCanvas canvas = frontend_canvas(640, 480);
+  bool imported_mcc_canvas{};
   float clan_width_extra() const { return canvas.surface_width / canvas.scale - 529; }
   float clan_footer_offset() const { return canvas.surface_height / canvas.scale - 420; }
   struct Hit {
@@ -238,6 +241,19 @@ struct FrontendPainter::Impl {
           frame_extensions.emplace(original, extensions);
         }
       }
+    // Imported MCC owns its authored twelve selectors in halo2/h2_fonts.
+    // The same imported source also identifies its PC-coordinate widget bank;
+    // keep that private to this painter, separate from Vista content routing.
+    const bool imported_mcc_fonts = directory.filename() == "h2_fonts" &&
+        directory.parent_path().filename() == "halo2";
+    const auto expected_fonts = imported_mcc_fonts
+        ? load_gameplay_font_source(directory).names.size()
+        : c.source_fonts.empty() ? 11u : 12u;
+    imported_mcc_canvas = imported_mcc_fonts;
+    const auto prompt_assets=font_prompt_asset_directory(directory,
+        sampled_fonts.empty()?std::filesystem::path{}:sampled_fonts.parent_path());
+    const bool native_prompt_metrics=imported_mcc_fonts && sampled_fonts.empty() &&
+        prompt_assets==directory.parent_path().parent_path()/"presentation/prompts";
     std::ifstream table(directory / "font_table.txt");
     if (!table)
       throw FormatError("missing retail font table");
@@ -250,7 +266,7 @@ struct FrontendPainter::Impl {
         continue;
       if (name.find_first_of("/\\") != std::string::npos || name == "..")
         throw FormatError("invalid retail font table name");
-      if (fonts.size() >= (c.source_fonts.empty() ? 11u : 12u))
+      if (fonts.size() >= expected_fonts)
         throw FormatError("excessive retail font count");
       auto font_path = directory / name;
       if (!std::filesystem::is_regular_file(font_path) && !c.source_fonts.empty()) {
@@ -268,8 +284,10 @@ struct FrontendPainter::Impl {
         if(mcc)apply_mcc_classic_font_sampling(fonts.back(),load_retail_font(sampled));
         else apply_retail_font_sampling(fonts.back(),load_retail_font(sampled));
       } else if(mcc)throw FormatError("Missing MCC Classic menu font owner");
-      if(!sampled_fonts.empty())
-        apply_vista_prompt_sampling(fonts.back(),sampled_fonts.parent_path(),unsigned(fonts.size()-1));
+      if(!prompt_assets.empty())
+        apply_vista_prompt_sampling(fonts.back(),prompt_assets,unsigned(fonts.size()-1));
+      if(native_prompt_metrics && (fonts.size()==2 || fonts.size()==8))
+        apply_mcc_menu_button_metrics(fonts.back(),unsigned(fonts.size()-1));
       // Original selectors may share a logical font but select different MCC
       // rasters. Their combined atlases must have distinct material owners.
       const auto key=mcc?name+"/"+sampled.filename().string():name;
@@ -283,7 +301,7 @@ struct FrontendPainter::Impl {
       }
       font_materials.push_back(unique.at(key));
     }
-    if (fonts.size() != (c.source_fonts.empty() ? 11u : 12u))
+    if (fonts.size() != expected_fonts)
       throw FormatError("incomplete retail font table");
     auto sampled_emblem = [&](Material material) {
       if (ui_assets.empty()) return material;
@@ -568,7 +586,7 @@ struct FrontendPainter::Impl {
          color, sprite.left + u, sprite.top + v,
          sprite.right + u, bottom_v);
     if (const auto edges = frame_extensions.find(material); edges != frame_extensions.end()) {
-      const float canvas_scale = content.source_fonts.empty() ? 1.f : .4f;
+      const float canvas_scale = content.source_fonts.empty() && !imported_mcc_canvas ? 1.f : .4f;
       const float scaled_width = width * sx * canvas_scale;
       const auto sampling=frontend_frame_sampling(320 + (x - 320) * canvas_scale,scaled_width,
           sprite.left+u,sprite.right+u,mesh.materials.at(material).diffuse.width);
@@ -1316,6 +1334,7 @@ struct FrontendPainter::Impl {
         const auto &strings = i == 2 ? thumbsticks : buttons;
         t.string = !control ? 0x07000001
                    : *control >= 0 && *control < 4 ? strings[unsigned(*control)] : 0;
+        t.string = detail::frontend_compiled_string_id(content, t.string).value_or(0xffffffffu);
       }
       if (lobby_policy && i == 0)
         t.flags = lobby_policy->status_warning ? t.flags | 4u : t.flags & ~4u;
@@ -1894,6 +1913,8 @@ struct FrontendPainter::Impl {
           vista->output.rendering_gaps.begin(),vista->output.rendering_gaps.end());
       return;
     }
+    const auto mcc_first_vertex = output.vertices.size(), mcc_first_hit = hits.size(),
+               mcc_first_scene = output.scenes.size();
     if (frame.screen == 167)
       keyboard_widgets.clear();
     const auto &s = content.screen(layout);
@@ -2014,7 +2035,7 @@ struct FrontendPainter::Impl {
       t.font = 1;
       t.color = content.color;
       t.bounds = content.header_bounds[1];
-      text(t, content.localized(s, 0x08001682), {}, 1, false, false, &frame, nullptr, interactive);
+      text(t, detail::frontend_compiled_localized(content, s, 0x08001682), {}, 1, false, false, &frame, nullptr, interactive);
     }
     if (frame.screen == 167 && !s.panes.empty()) {
       const auto first = output.vertices.size();
@@ -2022,6 +2043,28 @@ struct FrontendPainter::Impl {
       keyboard_widget(first, 0, 0,
           animation(s.panes.front().animation).position.z);
       keyboard_order();
+    }
+    if (imported_mcc_canvas && !state.online_clan_screen(frame) &&
+        !state.online_party_screen(frame) && !state.online_friends_screen(frame)) {
+      // MCC retains the PC widget coordinate bank. Reuse the same authored
+      // height/1200 projection as the separate PC content above, including
+      // pointer rectangles and model viewports. Native 640-unit social pages
+      // and every Xbox-source painter retain their existing coordinates.
+      constexpr float scale = 480.f / 1200.f;
+      for (auto i = mcc_first_vertex; i < output.vertices.size(); ++i) {
+        auto &p = output.vertices[i].position;
+        p.x = 320 + (p.x - 320) * scale;
+        p.y = 240 + (p.y - 240) * scale;
+      }
+      for (auto i = mcc_first_hit; i < hits.size(); ++i) {
+        auto &h = hits[i];
+        h.left = 320 + (h.left - 320) * scale;
+        h.right = 320 + (h.right - 320) * scale;
+        h.top = 240 + (h.top - 240) * scale;
+        h.bottom = 240 + (h.bottom - 240) * scale;
+      }
+      for (auto i = mcc_first_scene; i < output.scenes.size(); ++i)
+        output.scenes[i].vista_viewport = true;
     }
   }
   UiDraw draw(const MenuState &state, float elapsed, int pane_override,

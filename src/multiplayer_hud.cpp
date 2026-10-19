@@ -415,22 +415,26 @@ MultiplayerHud::MultiplayerHud(HudContent content,
   const auto font_source=load_gameplay_font_source(directory);
   const auto& names=font_source.names;
   const bool native_mcc_fonts=font_source.domain==GameplayFontDomain::Mcc;
+  const auto prompt_assets=font_prompt_asset_directory(font_source.directory,ui_assets);
+  const bool native_prompt_buttons=native_mcc_fonts && !prompt_assets.empty() &&
+      prompt_assets==font_source.directory.parent_path().parent_path()/"presentation/prompts";
   fonts_[0] = load_gameplay_font(font_source,6);
   fonts_[1] = load_gameplay_font(font_source,8);
   if(content_.action_messages.enabled && !hand_)for(unsigned i=0;i<2;++i){
     const auto selector=i?5:6;
     action_fonts_[i]=load_gameplay_font(font_source,selector);
     const auto sampled_font=hud_sampled_font_path(ui_assets,selector,names[selector]);
-    if(!ui_assets.empty() && std::filesystem::is_regular_file(sampled_font)) {
-      const auto sampled=load_retail_font(sampled_font);
+    const bool sampled_text=!ui_assets.empty() && std::filesystem::is_regular_file(sampled_font);
+    if(native_prompt_buttons || sampled_text) {
       // User selected high-resolution redraws for pickup/interact controls.
       // Keep Vista logical metrics; the optional overlay supplies sample pixels.
-      const auto button_source=hud_menu_asset_directory(ui_assets);
-      action_button_fonts_[i]=load_retail_font(hud_sampled_font_path(button_source,selector,names[selector]));
+      const auto button_source=native_prompt_buttons?font_source.directory:hud_menu_asset_directory(ui_assets);
+      action_button_fonts_[i]=load_retail_font(native_prompt_buttons?button_source/names[selector]:
+          hud_sampled_font_path(button_source,selector,names[selector]));
       auto &buttons=action_button_fonts_[i];
       // Use the selected redraw pack for action controls, while retaining
       // the original logical glyph metrics and live binding substitution.
-      apply_vista_prompt_sampling(buttons,ui_assets,selector);
+      apply_vista_prompt_sampling(buttons,prompt_assets,selector);
       // Vista names E132 keyboard_button_background0. The actual decoded
       // control/keycap glyphs retain their native RGB without HUD tinting.
       for(const auto c:{0xe100u,0xe101u,0xe102u,0xe103u,0xe104u,0xe105u,0xe106u,0xe107u,
@@ -441,20 +445,24 @@ MultiplayerHud::MultiplayerHud(HudContent content,
                 buttons.glyph_record_indices.at(c))!=1 || !buttons.glyphs.at(c).width)
           throw FormatError("Selected UI fonts lack authored Vista action button artwork");
       }
-      if(!native_mcc_fonts) {
-        if(is_mcc_classic_hud_pack(ui_assets))apply_mcc_classic_font_sampling(action_fonts_[i],sampled);
-        else apply_retail_font_sampling(action_fonts_[i],sampled);
-      } else {
-        if(!is_mcc_classic_hud_pack(ui_assets))throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
-        require_mcc_gameplay_font_sample(font_source,selector,sampled_font);
+      if(native_prompt_buttons)apply_mcc_action_button_metrics(buttons,selector);
+      if(sampled_text) {
+        const auto sampled=load_retail_font(sampled_font);
+        if(!native_mcc_fonts) {
+          if(is_mcc_classic_hud_pack(ui_assets))apply_mcc_classic_font_sampling(action_fonts_[i],sampled);
+          else apply_retail_font_sampling(action_fonts_[i],sampled);
+        } else {
+          if(!is_mcc_classic_hud_pack(ui_assets))throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
+          require_mcc_gameplay_font_sample(font_source,selector,sampled_font);
+        }
       }
-      apply_vista_prompt_sampling(action_fonts_[i],ui_assets,selector);
       action_button_materials_[i]=unsigned(mesh_.materials.size());
       mesh_.materials.push_back({"action-message/vista-buttons/font"+std::to_string(selector),buttons.atlas});
       auto &material=mesh_.materials.back();material.ui_full_surface=true;
       material.texture_states[0].address_u=material.texture_states[0].address_v=3;
       if(i==1)vista_action_buttons_=true;
     }
+    apply_vista_prompt_sampling(action_fonts_[i],prompt_assets,selector);
     action_materials_[i]=unsigned(mesh_.materials.size());
     mesh_.materials.push_back({"action-message/font"+std::to_string(selector),action_fonts_[i].atlas});
     auto &material=mesh_.materials.back();material.ui_full_surface=true;
@@ -499,9 +507,9 @@ MultiplayerHud::MultiplayerHud(HudContent content,
     if(image.name.starts_with("ui\\hud\\bitmaps\\new_hud\\crosshairs\\") && !sampled.contains(image.name))
       throw FormatError("Missing Vista crosshair artwork; run asset setup again: "+image.name);
   const auto sampled_offsets=load_hud_asset_sample_offsets(sampled,ui_assets);
-  if(!ui_assets.empty()) for(unsigned i=0;i<fonts_.size();++i) {
+  for(unsigned i=0;i<fonts_.size();++i) {
     const auto path=hud_sampled_font_path(ui_assets,i==0?6:8,names[i==0?6:8]);
-    if(std::filesystem::is_regular_file(path)) {
+    if(!ui_assets.empty() && std::filesystem::is_regular_file(path)) {
       const auto donor=ui_assets/"fonts-source"/names[i==0?6:8];
       if(!native_mcc_fonts) {
         if(mcc)apply_mcc_classic_font_sampling(fonts_[i],load_retail_font(path));
@@ -513,7 +521,7 @@ MultiplayerHud::MultiplayerHud(HudContent content,
         require_mcc_gameplay_font_sample(font_source,i==0?6:8,path);
       }
     }
-    apply_vista_prompt_sampling(fonts_[i],ui_assets,i==0?6:8);
+    apply_vista_prompt_sampling(fonts_[i],prompt_assets,i==0?6:8);
   }
   for (auto &view : materials_) {
     view.resize(content_.widgets.size());

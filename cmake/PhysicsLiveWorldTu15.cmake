@@ -144,6 +144,9 @@ target_sources(halo2_systems PRIVATE src/source_boot_smc_video_mode_input.cpp)
 target_sources(halo2_systems PRIVATE src/source_object_velocity_read_only_tu15.cpp)
 target_sources(halo2_systems PRIVATE src/source_runtime_dsp_section.cpp src/source_runtime_sound_output.cpp src/source_runtime_sound_sdk_resources.cpp src/source_sound_sdk_pool.cpp)
 target_sources(halo2_systems PRIVATE src/native_tu15_world_memory.cpp)
+target_sources(halo2_systems PRIVATE src/source_geometry_cache_frame_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/native_tu15_physics_branch_data.cpp)
+target_sources(halo2_systems PRIVATE src/native_tu15_ctf_static_data.cpp)
 target_sources(halo2_systems PRIVATE src/native_tu15_camera_packet_data.cpp)
 target_sources(halo2_systems PRIVATE src/native_tu15_prt_cache_data.cpp)
 target_sources(halo2_systems PRIVATE src/native_tu15_main_view_data.cpp)
@@ -401,6 +404,16 @@ target_sources(halo2_physics_world_runtime PRIVATE src/source_effect_particle_dr
 target_sources(halo2_physics_world_runtime PRIVATE src/source_ai_actor_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_ai_frame_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_campaign_runtime_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_ctf_activation_tu15_generated.cpp)
+target_sources(halo2_physics_world_runtime PRIVATE src/source_ctf_configuration_tu15_generated.cpp)
+if(MSVC)
+    set_source_files_properties(src/source_ctf_activation_tu15_generated.cpp
+        src/source_ctf_configuration_tu15_generated.cpp PROPERTIES COMPILE_OPTIONS /fp:strict)
+else()
+    set_source_files_properties(src/source_ctf_activation_tu15_generated.cpp
+        src/source_ctf_configuration_tu15_generated.cpp PROPERTIES
+        COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
+endif()
 target_sources(halo2_physics_world_runtime PRIVATE src/source_contrail_geometry_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_lens_flare_tu15_generated.cpp)
 target_sources(halo2_physics_world_runtime PRIVATE src/source_script_effect_tu15_generated.cpp)
@@ -630,9 +643,25 @@ if(BUILD_TESTING)
     add_executable(source_runtime_mcc_resources_tests tests/source_runtime_mcc_resources_tests.cpp)
     target_link_libraries(source_runtime_mcc_resources_tests PRIVATE halo2_systems)
     add_test(NAME native_mcc_resource_ownership COMMAND source_runtime_mcc_resources_tests)
+    add_executable(mcc_opening_geometry_cache_frame_tests tests/mcc_opening_geometry_cache_frame_tests.cpp)
+    target_link_libraries(mcc_opening_geometry_cache_frame_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_opening_geometry_cache_frame COMMAND mcc_opening_geometry_cache_frame_tests
+        "${HALO2_MCC_OPENING_MODEL_DONOR}" "${HALO2_TU15_GAMEPLAY_XBE}"
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/geometry_cache_frame_tu15.original.json")
+    set_tests_properties(mcc_opening_geometry_cache_frame PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 RUN_SERIAL TRUE)
+    add_executable(mcc_opening_sound_geometry_tests tests/mcc_opening_sound_geometry_tests.cpp)
+    target_link_libraries(mcc_opening_sound_geometry_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_opening_sound_geometry COMMAND mcc_opening_sound_geometry_tests
+        "${HALO2_MCC_OPENING_MODEL_DONOR}"
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/mcc_opening_facial_resource.original.json")
+    set_tests_properties(mcc_opening_sound_geometry PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180 RUN_SERIAL TRUE)
     add_executable(native_tu15_world_memory_tests tests/native_tu15_world_memory_tests.cpp)
     target_link_libraries(native_tu15_world_memory_tests PRIVATE halo2_systems)
     add_test(NAME native_tu15_world_memory_ownership COMMAND native_tu15_world_memory_tests)
+    add_executable(native_tu15_weapon_runtime_tables_tests tests/native_tu15_weapon_runtime_tables_tests.cpp)
+    target_link_libraries(native_tu15_weapon_runtime_tables_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_weapon_runtime_tables COMMAND native_tu15_weapon_runtime_tables_tests
+        "${PROJECT_SOURCE_DIR}/tests/fixtures/weapon_runtime_tables_tu15_original.json")
     add_executable(native_tu15_renderer_context_data_tests tests/native_tu15_renderer_context_data_tests.cpp)
     target_link_libraries(native_tu15_renderer_context_data_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_renderer_context_data_contract COMMAND native_tu15_renderer_context_data_tests)
@@ -845,24 +874,28 @@ if(BUILD_TESTING)
     target_link_libraries(capture_source_render_pose_tu15 PRIVATE halo2_systems)
     add_executable(capture_source_weapon_effect_events_tu15 tools/capture_source_weapon_effect_events_tu15.cpp)
     target_link_libraries(capture_source_weapon_effect_events_tu15 PRIVATE halo2_systems)
-    add_test(NAME native_tu15_unmapped_source_weapon_effects COMMAND capture_source_weapon_effect_events_tu15
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
-        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_BINARY_DIR}/source-unmapped-weapon-effects" 5 unmapped)
-    set_tests_properties(native_tu15_unmapped_source_weapon_effects PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-    add_test(NAME native_tu15_source_weapon_effect_locations_lan COMMAND capture_source_weapon_effect_events_tu15
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
-        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_BINARY_DIR}/source-network-weapon-effects" 5 network)
-    set_tests_properties(native_tu15_source_weapon_effect_locations_lan PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
-    add_test(NAME native_tu15_source_weapon_effect_events COMMAND capture_source_weapon_effect_events_tu15
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"
-        "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps"
-        "/home/eric/.local/share/halo2-native/imports/halo2-dlc-927a4b262a57/Halo 2 DLC/content/u5English/default.xbe"
-        "${CMAKE_CURRENT_BINARY_DIR}/source-weapon-effect-events")
-    set_tests_properties(native_tu15_source_weapon_effect_events PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 120)
+    add_test(NAME native_tu15_unmapped_source_weapon_effects COMMAND ${Python3_EXECUTABLE}
+        "${PROJECT_SOURCE_DIR}/tools/test_source_weapon_effects_mcc_tu15.py"
+        --root "${PROJECT_SOURCE_DIR}" --runtime "$<TARGET_FILE:capture_source_weapon_effect_events_tu15>"
+        --mode unmapped --report-output "${CMAKE_CURRENT_BINARY_DIR}/source-unmapped-weapon-effects.json")
+    set_tests_properties(native_tu15_unmapped_source_weapon_effects PROPERTIES TIMEOUT 180)
+    add_test(NAME native_tu15_source_weapon_effect_locations_lan COMMAND ${Python3_EXECUTABLE}
+        "${PROJECT_SOURCE_DIR}/tools/test_source_weapon_effects_mcc_tu15.py"
+        --root "${PROJECT_SOURCE_DIR}" --runtime "$<TARGET_FILE:capture_source_weapon_effect_events_tu15>"
+        --mode network --report-output "${CMAKE_CURRENT_BINARY_DIR}/source-network-weapon-effects.json")
+    set_tests_properties(native_tu15_source_weapon_effect_locations_lan PROPERTIES TIMEOUT 180)
+    add_test(NAME native_tu15_source_weapon_effect_events COMMAND ${Python3_EXECUTABLE}
+        "${PROJECT_SOURCE_DIR}/tools/test_source_weapon_effects_mcc_tu15.py"
+        --root "${PROJECT_SOURCE_DIR}" --runtime "$<TARGET_FILE:capture_source_weapon_effect_events_tu15>"
+        --mode direct --report-output "${CMAKE_CURRENT_BINARY_DIR}/source-weapon-effect-events.json")
+    set_tests_properties(native_tu15_source_weapon_effect_events PROPERTIES TIMEOUT 180)
+    add_test(NAME native_tu15_mcc_source_weapon_instant_charge COMMAND ${Python3_EXECUTABLE}
+        "${PROJECT_SOURCE_DIR}/tools/test_source_weapon_effects_mcc_tu15.py"
+        --root "${PROJECT_SOURCE_DIR}" --runtime "$<TARGET_FILE:capture_source_weapon_effect_events_tu15>"
+        --mode charge-instant --report-output "${CMAKE_CURRENT_BINARY_DIR}/source-weapon-instant-charge.json")
+    set_tests_properties(native_tu15_mcc_source_weapon_instant_charge PROPERTIES TIMEOUT 180)
+    add_test(NAME native_tu15_mcc_source_weapon_input_admission COMMAND ${Python3_EXECUTABLE}
+        "${PROJECT_SOURCE_DIR}/tests/test_source_weapon_effects_mcc_runner.py")
     target_link_libraries(capture_source_locomotion_tu15 PRIVATE halo2_systems)
     add_test(NAME native_tu15_elite_magnum_render_pose COMMAND capture_source_render_pose_tu15
         "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map"

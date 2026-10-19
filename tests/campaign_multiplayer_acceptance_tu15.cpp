@@ -154,13 +154,18 @@ struct Authority {
 };
 }
 int main(int argc,char **argv) {
- Json report{{"passed",false},{"acceptance_passed",false},{"reference","English TU1.5 only"},{"full_physics_parity",false},
+ Json report{{"passed",false},{"acceptance_passed",false},{"reference","English TU1.5 only"},{"runtime_cache_source","MCC"},{"full_physics_parity",false},
   {"scenario","lan-campaign-class3"},{"visible",true},{"stimulus","Declared cached-BSP initial starts, actual SDL player input, original C93D0/C92C0 NPC unit input; no supplied physical output"}};
  std::filesystem::path output;
  try {
-  require(argc==7,"Supply MAP SHARED_MAPS TU15_XBE UI OUTPUT SCENARIO");output=argv[5];std::filesystem::create_directories(output);
-  const auto original=OriginalData::load_xbe(argv[3]);require(original->image==OriginalData::Image::TitleUpdate15,"Campaign visible world requires TU1.5");
+  require(argc==7,"Supply MCC_MAP MCC_MAPS native-mcc MCC_ROOT OUTPUT SCENARIO");output=argv[5];std::filesystem::create_directories(output);
+  require(std::string_view(argv[3])=="native-mcc","Campaign physics acceptance requires prepared MCC runtime inputs");
+  const auto mcc_maps=std::filesystem::canonical(std::filesystem::path(argv[4])/"halo2/h2_maps_win64_dx11");
+  require(std::filesystem::canonical(argv[2])==mcc_maps && std::filesystem::canonical(argv[1]).parent_path()==mcc_maps,
+      "Campaign physics map is outside the selected prepared MCC cache");
+  const auto original=OriginalData::native_tu15();require(original->image==OriginalData::Image::TitleUpdate15,"Campaign visible world requires native TU1.5");
   Cache cache(argv[1],argv[2],original);
+  require(cache.is_mcc(),"Campaign physics acceptance requires an actual MCC cache");
   const auto bsp=std::getenv("HALO2_TU15_CAMPAIGN_BSP")?std::stoul(std::getenv("HALO2_TU15_CAMPAIGN_BSP")):0u;
   const auto selected=std::getenv("HALO2_TU15_CAMPAIGN_PLACEMENT")?std::stol(std::getenv("HALO2_TU15_CAMPAIGN_PLACEMENT")):68;
   const auto content=cache.load_content(bsp,false);
@@ -173,7 +178,7 @@ int main(int argc,char **argv) {
   report["authored_vehicle_placement"]=selected;report["content_placement_index"]=index;
   report["selected_vehicle_definition"]=placement->definition;report["selected_vehicle_name"]=target_tag->name;
   const auto starts=test::campaign_vehicle_observer_starts<3>(cache,content,bsp,*placement);
-  MultiplayerOptions host_options;host_options.map=argv[1];host_options.shared_maps=argv[2];host_options.gameplay_xbe=argv[3];host_options.bsp=bsp;
+  MultiplayerOptions host_options;host_options.map=argv[1];host_options.shared_maps=argv[2];host_options.bsp=bsp;
   host_options.campaign_difficulty=1;host_options.local_players=1;host_options.source_object_world=true;
   host_options.source_object_savegame_directory=output/"authority-storage";
   host_options.native_spawn_inputs.assign(starts.begin(),starts.end());
@@ -182,7 +187,7 @@ int main(int argc,char **argv) {
   report["stage"]="construct actual source authority, roster and authored vehicle";
   Authority authority(host_options,index,output);
   MultiplayerOptions client=host_options;client.source_object_world=false;client.source_object_savegame_directory.clear();client.native_spawn_inputs.clear();client.campaign_spawn_input={};
-  client.join="127.0.0.1:"+std::to_string(authority.port);client.local_players=2;client.width=960;client.height=540;client.ui_assets=argv[4];client.mute=true;
+  client.join="127.0.0.1:"+std::to_string(authority.port);client.local_players=2;client.width=960;client.height=540;client.mute=true;
   client.prepared_world=std::make_shared<MultiplayerPreparedWorld>(client);
   SDL_SetMainReady();client.desktop=std::make_shared<DesktopSession>();auto *window=client.desktop->window(960,540,false);
   SDL_SetWindowTitle(window,"TU1.5 class3 physics: two live multiplayer views");

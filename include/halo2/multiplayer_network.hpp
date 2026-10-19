@@ -22,6 +22,8 @@ LanSessionDescription query_lan_session(std::shared_ptr<MultiplayerDatagrams>,un
 // Paths themselves are excluded: identical imported data may live in different
 // directories on each computer. Every supported shared cache and font is part
 // of the identity, together with the BSP and selected starting weapon.
+// MCC v13 additionally identifies native TU1.5 gameplay and its actual resource
+// banks/h2_fonts; it never reads or accepts an original executable as input.
 std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,
                                      const std::filesystem::path &shared_maps,
                                      std::uint32_t bsp,
@@ -182,7 +184,15 @@ public:
   // without consuming the caller's prepared value; success is allocation-free.
   std::unique_ptr<PreparedRebind> prepare_rebind_host(const AuthorityTransferContext &previous,
       const AuthorityTransferContext &next,const AuthorityCutSeal &)const;
+  // Complete decoded-state counterpart: restore the exact historical receipt
+  // independently proven against this connection's paired native cut. Merely
+  // matching its tick cannot authorize rollback. Input/couch ownership stays
+  // live, while the enclosing adopter restores the matching scene/effect bank.
+  std::unique_ptr<PreparedRebind> prepare_rebind_host(const AuthorityTransferContext &previous,
+      const AuthorityTransferContext &next,const AuthorityCutSeal &,const MultiplayerSnapshotProof &)const;
   bool can_commit_rebind_host(const PreparedRebind &)const noexcept;
+  // Successful commit invalidates eligibility but leaves the caller's token
+  // owning retired receive/state storage. Destroy it after locked publication.
   bool commit_rebind_host(std::unique_ptr<PreparedRebind> &&)noexcept;
   // Caller first certifies next/cut and isolates the old transport generation.
   // Keeps all outgoing input/held/pulse counters and accepted couch IDs. The

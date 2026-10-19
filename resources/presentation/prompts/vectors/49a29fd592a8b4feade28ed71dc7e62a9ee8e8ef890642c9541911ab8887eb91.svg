@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="212" height="108" viewBox="0 0 53 27" version="1.1">
+  <title>Vista conduit-9 U+E133: rebuilt vector artwork</title>
+  <desc>Hand-authored button bodies, bevels, letter outlines and smooth gradients. Original glyphs supply placement and palette measurements only. No embedded image, font, autotrace or pixel-region paths.</desc>
+  <defs>
+    <mask id="key-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="53" height="27">
+      <rect width="53" height="27" fill="black" />
+      <rect id="key-face" width="53" height="27" fill="#333333" />
+      <path id="bevel-top" d="M0 0 H53 L48.73684210526316 4.973684210526316 H4.973684210526316 Z" fill="#444444" />
+      <path id="bevel-left" d="M0 0 H1.2789473684210526 V27 H0 Z" fill="#444444" />
+      <path id="bevel-right" d="M53 0 V27 L48.73684210526316 22.736842105263158 V4.2631578947368425 Z" fill="#777777" />
+      <path id="bevel-bottom" d="M1.2789473684210526 25.57894736842105 H48.73684210526316 L53 27 H1.2789473684210526 Z" fill="#777777" />
+      <path id="top-edge" d="M1.2789473684210526 0.7105263157894737 H53" fill="none" stroke="#888888" stroke-width="1.4210526315789473" />
+      <path id="right-edge" d="M52.28947368421053 0 V26.289473684210527" fill="none" stroke="#bbbbbb" stroke-width="1.4210526315789473" />
+      <path id="lower-edge" d="M1.2789473684210526 26.644736842105264 H48.73684210526316" fill="none" stroke="#444444" stroke-width="0.7105263157894737" />
+    </mask>
+  </defs>
+  <rect id="key-paint" width="53" height="27" fill="#6699cc" mask="url(#key-opacity)" />
+</svg>

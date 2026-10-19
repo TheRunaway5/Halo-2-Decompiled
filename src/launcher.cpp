@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -50,8 +51,37 @@ constexpr auto native_name = "halo2_native.exe";
 constexpr auto native_name = "halo2_native";
 #endif
 struct Installation {
-  fs::path root, runtime, build;
+  fs::path root, runtime, build, release_launcher;
 };
+int run_tool(std::vector<std::string> arguments);
+fs::path selected_prebuilt_runtime(const fs::path &root) {
+  const auto selection=root/"runtime-selection.json";
+  const auto helper=root/"tools/update_runtime.py";
+  if(!fs::is_regular_file(selection) || fs::is_symlink(selection) ||
+      fs::file_size(selection)>65536 || !fs::is_regular_file(helper))return {};
+  try {
+    std::ifstream stream(selection);
+    const auto report=nlohmann::json::parse(stream);
+    if(report.value("schema",std::string{})!="H2_PREBUILT_RUNTIME_SELECTION_V1")return {};
+    const fs::path relative=report.at("runtime").get<std::string>();
+    if(relative.is_absolute() || relative.lexically_normal()!=relative)return {};
+    const auto release=root/"bin/releases"/report.at("release_id").get<std::string>();
+    const auto runtime=root/relative;
+    if(runtime.parent_path()!=release || runtime.filename()!=native_name)return {};
+    auto owner=root;
+    for(const auto &part:relative) {
+      if(part==".." || part==".")return {};
+      owner/=part;
+      if(fs::is_symlink(owner))return {};
+    }
+    if(!fs::is_regular_file(runtime))return {};
+    // The update helper authenticates every installed manifest file and the
+    // host platform before the new release takes precedence over local builds.
+    if(run_tool({HALO2_PYTHON_EXECUTABLE,helper.string(),"--root",root.string(),
+                 "--verify-selection"})!=0)return {};
+    return fs::canonical(runtime);
+  } catch(const std::exception &) { return {}; }
+}
 bool current_build(const fs::path &root,const fs::path &build) {
   const auto cache=build/"CMakeCache.txt";
   if(!fs::exists(cache))return true;
@@ -79,8 +109,15 @@ Installation locate() {
   // parent_path() checks the project above a bin directory, retaining roots.
   if (directory.filename().empty() && directory != directory.root_path())
     directory = directory.parent_path();
-  const std::vector<fs::path> roots{directory, directory.parent_path(),
-                                    HALO2_PROJECT_DIR};
+  std::vector<fs::path> roots{directory, directory.parent_path()};
+  // Release-slot launchers live under bin/releases/<id> (or its onboarding
+  // directory), so find their owning installation after relocation too.
+  auto ancestor=directory.parent_path();
+  for(unsigned i=0;i<4 && ancestor!=ancestor.root_path();++i) {
+    ancestor=ancestor.parent_path();
+    roots.push_back(ancestor);
+  }
+  roots.emplace_back(HALO2_PROJECT_DIR);
   for (const auto &root : roots) {
     if (!fs::is_regular_file(root / "tools/setup_assets.py"))
       continue;
@@ -98,18 +135,24 @@ Installation locate() {
       if(build.is_relative())build=project/build;
       binaries.insert(binaries.begin() + 1, build / native_name);
     }
+    const auto selected=selected_prebuilt_runtime(project);
+    if(!selected.empty())binaries.insert(binaries.begin(),selected);
     for (const auto &binary : binaries) {
       if (!fs::is_regular_file(binary) || !current_build(project,binary.parent_path()))
         continue;
       const auto shader_dir = binary.parent_path() / "shaders";
-      const bool shaders =
+      const bool shaders = binary==selected ||
           std::all_of(std::begin(shader_names), std::end(shader_names),
                       [&](const char *name) {
                         return fs::is_regular_file(shader_dir / name);
                       });
-      if (shaders)
+      if (shaders) {
+        const auto launcher=selected.empty()?fs::path{}:
+            selected.parent_path()/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
         return {project, fs::canonical(binary),
-            fs::is_regular_file(binary.parent_path()/"CMakeCache.txt")?binary.parent_path():build};
+            fs::is_regular_file(binary.parent_path()/"CMakeCache.txt")?binary.parent_path():build,
+            binary==selected && fs::is_regular_file(launcher)?launcher:fs::path{}};
+      }
     }
     // First-run source selection also works before the runtime is built.
     return {project, {}, build};
@@ -237,6 +280,32 @@ bool native_gameplay_test_available(const Installation &installation,const Asset
   return run_tool({HALO2_PYTHON_EXECUTABLE,helper.string(),"--root",installation.root.string(),
       "--runtime",installation.runtime.string(),"--cache",sources.cache.string()})==0;
 }
+bool has_frontend_selection(const fs::path &root) {
+  const auto path=root/"frontend-runtime-selection.json";
+  return fs::exists(path) || fs::is_symlink(path);
+}
+fs::path frontend_runtime(const Installation &installation,const AssetSources &sources) {
+  const auto helper=installation.root/"tools/native_gameplay_test.py";
+  if(!sources.ready() || !fs::is_regular_file(helper))return {};
+  auto runtime=installation.runtime;
+  if(has_frontend_selection(installation.root)) {
+    // Python authenticates the complete bounded registry, direct path owners,
+    // runtime/capability hashes and existing frontend resource admission.
+    try {
+      const auto selection=installation.root/"frontend-runtime-selection.json";
+      if(fs::is_symlink(selection) || !fs::is_regular_file(selection) || fs::file_size(selection)>65536)return {};
+      std::ifstream stream(selection);
+      const auto report=nlohmann::json::parse(stream);
+      if(report.value("schema",std::string{})!="H2_LOCAL_FRONTEND_RUNTIME_SELECTION_V1")return {};
+      const fs::path relative=report.at("runtime").get<std::string>();
+      if(relative.empty() || relative.is_absolute() || relative.lexically_normal()!=relative)return {};
+      runtime=installation.root/relative;
+    } catch(const std::exception &) {return {};}
+  }
+  if(runtime.empty())return {};
+  return run_tool({HALO2_PYTHON_EXECUTABLE,helper.string(),"--root",installation.root.string(),
+      "--runtime",runtime.string(),"--cache",sources.cache.string(),"--frontend","--selected-frontend"})==0?runtime:fs::path{};
+}
 void native_test_arguments(std::vector<std::string> &arguments,const AssetSources &sources) {
   // This validation covers one local MCC Lockout source-object-world test.
   // Other gameplay modes/maps remain available through their existing routes
@@ -282,14 +351,33 @@ fs::path launcher_executable(const fs::path &root) {
 #endif
   return root/(title_first?"Halo2-Title-Launcher":"Halo2-Launcher");
 }
+std::optional<int> forward_to_release_launcher(const Installation &installation,
+                                              std::vector<std::string> arguments) {
+  if(installation.release_launcher.empty())return {};
+  fs::path current;
+#if defined(__linux__)
+  std::error_code error;
+  current=fs::read_symlink("/proc/self/exe",error);
+#elif defined(_WIN32)
+  std::vector<wchar_t> name(32768);
+  const auto size=GetModuleFileNameW(nullptr,name.data(),DWORD(name.size()));
+  if(size && size<name.size())current=fs::path(std::wstring(name.data(),size));
+#endif
+  if(current.empty() || fs::equivalent(current,installation.release_launcher))return {};
+  arguments.insert(arguments.begin(),installation.release_launcher.string());
+  return run_tool(std::move(arguments));
+}
 } // namespace
 
 int main(int argc, char **argv) {
   try {
     auto installation = locate();
+    if(!has_frontend_selection(installation.root))
+      if(const auto forwarded=forward_to_release_launcher(installation,
+          std::vector<std::string>(argv+1,argv+argc));forwarded)return *forwarded;
     std::vector<std::string> supplied;
     std::string mcc_source;
-    bool setup=false,setup_only=false,update=false,launch_game=false,prepare=false,preview=false;
+    bool setup=false,setup_only=false,update=false,launch_game=false,prepare=false,preview=false,native_requested=false;
     for(int i=1;i<argc;++i) {
       const std::string argument=argv[i];
       if(argument=="--setup" || argument=="--setup-only") {
@@ -305,6 +393,7 @@ int main(int argc, char **argv) {
       } else if(argument=="--update")update=true;
       else if(argument=="--launch-game")launch_game=true;
       else if(argument=="--preview-mcc")preview=true;
+      else if(argument=="--native-test") {native_requested=true;launch_game=true;}
       else if(argument=="--prepare-mcc-gameplay") {prepare=true;setup=true;setup_only=true;}
       else supplied.push_back(argument);
     }
@@ -317,10 +406,14 @@ int main(int argc, char **argv) {
       throw std::runtime_error("Use --preview-mcc [--map NAME] with preview options.");
     auto sources=read_sources(installation.root);
     bool native_test=native_gameplay_test_available(installation,sources);
+    auto frontend_owner=frontend_runtime(installation,sources);
+    bool frontend=!frontend_owner.empty();
     const bool help=has("--help") || has("-h");
     if(has("--launcher-info")) {
+      const bool stale_frontend=has_frontend_selection(installation.root) && !frontend;
       std::cout << "Project: " << installation.root.string() << '\n'
                 << "Runtime: " << (installation.runtime.empty()?"not built":installation.runtime.string()) << '\n'
+                << "Frontend runtime: " << (frontend_owner.empty()?"unavailable":frontend_owner.string()) << '\n'
                 << (title_first?"Default: title screen (skip boot intro) and menus\n":"Default: startup intro, title screen and menus\n")
                 << "Asset source: Halo MCC only\n"
                 << "MCC cache prepared: " << (sources.ready()?"yes":"no — scan MCC with --setup") << '\n'
@@ -328,9 +421,10 @@ int main(int argc, char **argv) {
                 << "MCC maps: " << (sources.ready()?sources.maps().string():"") << '\n'
                 << "Native MCC gameplay ready: " << (sources.playable?"yes":"no") << '\n'
                 << "Native MCC gameplay test: " << (native_test?"available (Lockout, retained object world)":"unavailable") << '\n'
-                << "Play: " << (sources.playable?"native gameplay":native_test?"native Lockout gameplay test":sources.ready()?"MCC content test build":"import MCC first") << '\n'
+                << "Native MCC frontend: " << (frontend?"available":"unavailable") << '\n'
+                << "Play: " << (stale_frontend?"unavailable (selected independent MCC frontend is unavailable or changed)":frontend?"MCC title screen and menus":sources.playable?"native gameplay":native_test?"native Lockout gameplay test":sources.ready()?"MCC content test build":"import MCC first") << '\n'
                 << "MCC content preview: " << (sources.ready()?"available":"import MCC first") << '\n'
-                << "Status: " << (!sources.problem.empty()?sources.problem:
+                << "Status: " << (stale_frontend?"The selected independent MCC menu runtime is unavailable or changed. Repair its selection to enable Play.":!sources.problem.empty()?sources.problem:
                     !sources.ready()?"MCC has not been imported yet. Run --setup.":
                     !sources.playable?(native_test?"Interim native gameplay test; full Xbox TU1.5 gameplay, visual and audio parity remain incomplete.":not_playable):"MCC detection and private-cache import selected") << '\n'
                 << "Shaders: existing native Vulkan shaders\n";
@@ -343,16 +437,15 @@ int main(int argc, char **argv) {
           "--prepare-mcc-gameplay [--mcc-source PATH] prepares and selects that cache, then exits.\n"
           "--launcher-info reports cache and native-gameplay readiness.\n"
           "An exact validated native-test build can expose local Lockout testing independently of full TU1.5 parity.\n"
+          "A separately validated MCC frontend opens the title and menus by default; --native-test opens Lockout.\n"
           "--preview-mcc [--map NAME] previews imported map assets with the existing renderer.\n"
-          "--update downloads changes and rebuilds; --launch-game skips the launcher home.\n"
-          "Without native-test validation, Play and --launch-game open the MCC content preview.\n";
+          "--update downloads verified prebuilt binaries for this platform; --launch-game skips the launcher home.\n"
+          "Without frontend or native-test validation, Play and --launch-game open the MCC content preview.\n";
       return 0;
     }
     if(update) {
-      if(fs::is_regular_file(installation.root/"PRECOMPILED_TEST_BUILD.json"))
-        throw std::runtime_error("This is a precompiled test package. Extract a newer test ZIP to update it.");
       if(setup || launch_game || !supplied.empty())
-        throw std::runtime_error("Use --update by itself to download changes and rebuild the game");
+        throw std::runtime_error("Use --update by itself to download the latest prebuilt game binaries");
       return run_tool({HALO2_PYTHON_EXECUTABLE,
           (installation.root/"tools/update_runtime.py").string(),"--root",
           installation.root.string(),"--build-dir",installation.build.string()});
@@ -362,6 +455,7 @@ int main(int argc, char **argv) {
       if(status)return status;
       sources=read_sources(installation.root);
       native_test=native_gameplay_test_available(installation,sources);
+      frontend_owner=frontend_runtime(installation,sources);frontend=!frontend_owner.empty();
       if(!sources.ready())throw std::runtime_error("MCC setup did not publish a complete private cache. "+sources.problem);
     }
     if(setup_only)return 0;
@@ -377,10 +471,22 @@ int main(int argc, char **argv) {
       if(status==20)return 0;
       if(status)return status;
       installation=locate();sources=read_sources(installation.root);
+      auto next=supplied;
+      next.insert(next.begin(),"--launch-game");
+      if(!has_frontend_selection(installation.root))
+        if(const auto forwarded=forward_to_release_launcher(installation,std::move(next));forwarded)return *forwarded;
       native_test=native_gameplay_test_available(installation,sources);
+      frontend_owner=frontend_runtime(installation,sources);frontend=!frontend_owner.empty();
     }
     if(!sources.ready())throw std::runtime_error("The MCC cache needs preparation. Run --setup. "+sources.problem);
-    if(!sources.playable && !preview) {
+    if(native_requested && (!native_test || preview))
+      throw std::runtime_error("The selected build has no validated native MCC Lockout test.");
+    const bool gameplay_requested=has("--multiplayer") || has("--play") || has("--campaign") ||
+        has("--simulate") || has("--host") || has("--join") || has("--dedicated");
+    const bool frontend_route=frontend && !preview && !native_requested && !gameplay_requested;
+    if(has_frontend_selection(installation.root) && !frontend && !preview && !native_requested && !gameplay_requested)
+      throw std::runtime_error("The selected independent MCC frontend is unavailable or changed. The native Lockout test remains available through --native-test.");
+    if(!sources.playable && !preview && !frontend_route) {
       if(native_test) {
         native_test_arguments(supplied,sources);
         std::cout<<"Launching interim native MCC Lockout gameplay test. Full Xbox TU1.5 gameplay, visual and audio parity remain incomplete.\n";
@@ -406,7 +512,9 @@ int main(int argc, char **argv) {
     const bool outdated_preview_runtime=preview && !precompiled && !installation.runtime.empty() && !runtime_supports_preview(installation.runtime);
     bool rebuilt=false;
     if(outdated_preview_runtime)std::cout<<"Updating the runtime for MCC content preview…\n"<<std::flush;
-    if(installation.runtime.empty() || fs::exists(update_pending) || outdated_preview_runtime) {
+    // A legacy source-update marker must not turn a binary update into a
+    // source rebuild. Explicit development builds remain a separate tool.
+    if((!frontend_route && installation.runtime.empty()) || outdated_preview_runtime) {
       if(precompiled)throw std::runtime_error("The precompiled runtime is missing or incomplete. Extract the complete test ZIP again.");
       const auto tool=installation.root/"tools/build_runtime.py";
       if(!fs::is_regular_file(tool))throw std::runtime_error("Automatic build tool is missing: "+tool.string());
@@ -416,18 +524,21 @@ int main(int argc, char **argv) {
       installation=locate();rebuilt=true;
       if(!installation.runtime.empty())fs::remove(update_pending);
     }
-    if(installation.runtime.empty())throw std::runtime_error(
+    if(!frontend_route && installation.runtime.empty())throw std::runtime_error(
         "The automatic build finished, but the runtime or required shaders are missing. See "+
         (installation.build/"launcher-build.log").string());
     if(preview && rebuilt && !runtime_supports_preview(installation.runtime))
       throw std::runtime_error("The built runtime does not support MCC content preview. Update the source and rebuild this installation.");
-    if(native_test && !sources.playable && !preview && !native_gameplay_test_available(installation,sources))
+    if(native_test && !sources.playable && !preview && !frontend_route && !native_gameplay_test_available(installation,sources))
       throw std::runtime_error("Native gameplay test validation changed. Relaunch to use the MCC content preview or validate the updated build.");
-    std::vector<std::string> arguments{installation.runtime.string()};
+    if(frontend_route && frontend_runtime(installation,sources)!=frontend_owner)
+      throw std::runtime_error("Independent MCC frontend validation changed before launch.");
+    const auto execution_runtime=frontend_route?frontend_owner:installation.runtime;
+    std::vector<std::string> arguments{execution_runtime.string()};
     if(preview) {
       arguments.push_back("--mcc-preview");
     }
-    const bool native_test_route=native_test && !sources.playable && !preview;
+    const bool native_test_route=native_test && !sources.playable && !preview && !frontend_route;
     if(native_test_route) {
       if(!has("--multiplayer"))arguments.push_back("--multiplayer");
       arguments.insert(arguments.end(),{"--mp-source-object-world",native_test_save_directory(installation.root).string()});
@@ -440,17 +551,39 @@ int main(int argc, char **argv) {
         has("--help") || has("-h") || has("--inspect") ||
         has("--inspect-systems") || has("--validate-maps") ||
         has("--validate-systems") || has("--decode-sound");
-    if (!custom) {
+    if (frontend_route && !has("--menu-screen") && !has("--menu-audit") &&
+        !has("--menu-sweep") && !has("--menu-movie")) {
+      arguments.insert(arguments.end(),{"--menu-screen","9"});
+      if(title_first && !has("--skip-intro"))arguments.push_back("--skip-intro");
+    } else if (!custom) {
       arguments.push_back("--menu-screen");
       arguments.push_back("9");
       if (title_first)
         arguments.push_back("--skip-intro");
     }
-    const bool menu_route = !custom || has("--menu") || has("--menu-screen") ||
+    const bool menu_route = frontend_route || !custom || has("--menu") || has("--menu-screen") ||
                             has("--menu-sweep") || has("--menu-audit") ||
                             has("--menu-maps") || has("--menu-movie");
     if(menu_route && !has("--menu-maps"))
       arguments.insert(arguments.end(),{"--menu-maps",sources.maps().string()});
+    if(menu_route && has("--menu-maps")) {
+      if(std::count(supplied.begin(),supplied.end(),"--menu-maps")!=1)
+        throw std::runtime_error("Specify --menu-maps only once for the selected imported MCC cache.");
+      const auto option=std::find(supplied.begin(),supplied.end(),"--menu-maps");
+      if(std::next(option)==supplied.end() || fs::canonical(*std::next(option))!=fs::canonical(sources.maps()))
+        throw std::runtime_error("The frontend requires the selected imported MCC map cache.");
+    }
+    if(frontend_route) {
+      for(const auto *name:{"--menu-ui-assets","--hud-ui-assets","--pause-ui-assets"}) {
+        const auto option=std::find(supplied.begin(),supplied.end(),name);
+        if(option==supplied.end())continue;
+        if(std::count(supplied.begin(),supplied.end(),name)!=1)
+          throw std::runtime_error(std::string("Specify ")+name+" only once for the selected imported MCC cache.");
+        if(std::next(option)==supplied.end() || std::next(option)->empty() ||
+            fs::canonical(*std::next(option))!=fs::canonical(sources.cache/"ui"))
+          throw std::runtime_error("The frontend UI assets must belong to the selected imported MCC cache.");
+      }
+    }
     if(!has("--map"))arguments.insert(arguments.end(),{"--map",(sources.maps()/"lockout.map").string()});
     if(!has("--shared-maps"))arguments.insert(arguments.end(),{"--shared-maps",sources.maps().string()});
     // Future decoded UI packs must be owned by this selected MCC import.
@@ -489,12 +622,12 @@ int main(int argc, char **argv) {
     std::cout.flush();
     std::cerr.flush();
 #ifdef _WIN32
-    const auto status = _spawnv(_P_WAIT, installation.runtime.string().c_str(),
+    const auto status = _spawnv(_P_WAIT, execution_runtime.string().c_str(),
                                 pointers.data());
     if (status != -1)
       return int(status);
 #else
-    execv(installation.runtime.c_str(), pointers.data());
+    execv(execution_runtime.c_str(), pointers.data());
 #endif
     throw std::runtime_error("Could not start the game: " +
                              std::string(std::strerror(errno)));

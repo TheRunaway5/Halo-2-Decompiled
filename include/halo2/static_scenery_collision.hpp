@@ -51,6 +51,7 @@ public:
   PreparedAuthority prepare_authority(const AuthorityCheckpoint &,const SceneObjects::AuthorityCheckpoint &);
   bool commit_authority(PreparedAuthority &&) noexcept;
 private:
+  friend class Simulation;
   NativeAuthorityBoundary authority_;
   const LevelContent* content_;
   using Owner=AuthorityOwner;

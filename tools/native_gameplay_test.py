@@ -16,6 +16,11 @@ import mmap
 import os
 from pathlib import Path, PurePosixPath
 import re
+import sys
+
+# The launcher may inherit PYTHONSAFEPATH or use -P; sibling helpers must still
+# resolve from this installed tool directory rather than the caller's CWD.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 SCHEMA = "H2_NATIVE_GAMEPLAY_TEST_V1"
 CAPABILITY = "mcc-lockout-source-object-world-test"
@@ -23,6 +28,10 @@ SCOPE = "mcc-lockout-native-gameplay-test"
 MAP = "halo2/h2_maps_win64_dx11/lockout.map"
 MESSAGE = ("Native Lockout gameplay test available. Xbox TU1.5 conversion "
            "and gameplay, visual and audio parity remain incomplete.")
+FRONTEND_SCHEMA = "H2_NATIVE_FRONTEND_TEST_V1"
+FRONTEND_CAPABILITY = "mcc-native-frontend"
+FRONTEND_SCOPE = "mcc-native-title-menu"
+FRONTEND_MAP = "halo2/h2_maps_win64_dx11/mainmenu.map"
 
 
 def _digest(value):
@@ -61,7 +70,7 @@ def _file_digest(path, *, embedded=None, exact=None, readonly_literal=False):
     return digest
 
 
-def _check(root, runtime, cache):
+def _check(root, runtime, cache, *, frontend=False):
     root, runtime, cache = Path(root).resolve(), Path(runtime), Path(cache)
     if not runtime.is_absolute() or runtime.is_symlink() or not os.access(runtime, os.X_OK):
         raise ValueError("Native-test executable requires its validated absolute owner")
@@ -71,14 +80,15 @@ def _check(root, runtime, cache):
     cache = cache.resolve(strict=True)
     if cache.parent != root / "assets/imported" or cache.name.startswith("."):
         raise ValueError("Native-test map requires the selected private cache")
-    sidecar = runtime.with_name(runtime.name + ".native-test.json")
+    sidecar = runtime.with_name(runtime.name + (".frontend-test.json" if frontend else ".native-test.json"))
     if sidecar.is_symlink() or not sidecar.is_file() or sidecar.stat().st_size > 65536:
         raise ValueError("No bounded native-test validation sidecar")
     report = json.loads(sidecar.read_text())
-    if (report.get("schema") != SCHEMA or report.get("capability") != CAPABILITY or
+    if (report.get("schema") != (FRONTEND_SCHEMA if frontend else SCHEMA) or
+            report.get("capability") != (FRONTEND_CAPABILITY if frontend else CAPABILITY) or
             report["validation"].get("passed") is not True or
-            report["validation"].get("scope") != SCOPE):
-        raise ValueError("No passed native Lockout test validation")
+            report["validation"].get("scope") != (FRONTEND_SCOPE if frontend else SCOPE)):
+        raise ValueError("No passed validation for this native capability")
     _digest(report["validation"]["report_sha256"])
     owner = report["runtime"]
     shaders = report["shaders"]
@@ -107,6 +117,26 @@ def _check(root, runtime, cache):
         directory, payload = root / PACKAGE_SHADERS, root / PACKAGE_PAYLOAD
         if payload.resolve(strict=True) != payload or not os.access(payload, os.X_OK):
             raise ValueError("Native package payload has no direct executable owner")
+        compiled = os.fsencode(relative_compiled_default(shaders["compiled_default"]))
+        readonly = True
+    elif shaders.get("binding") == "release-slot-compiled-default":
+        from update_runtime import SLOT_WRAPPER, selected_runtime
+        from packaged_shader_defaults import relative_compiled_default
+        if selected_runtime(root) != runtime or owner.get("path") != "halo2_native":
+            raise ValueError("Release capability requires the verified selected slot")
+        if (owner["payload"].get("path") != "bin/halo2_native.real" or
+                owner["loader"].get("path") != "lib/ld-linux-x86-64.so.2" or
+                shaders.get("directory") != "bin/shaders"):
+            raise ValueError("Release capability layout changed")
+        if _file_digest(runtime, exact=SLOT_WRAPPER) != _digest(owner["sha256"]):
+            raise ValueError("Release runtime wrapper changed")
+        slot = runtime.parent
+        loader, payload = slot / owner["loader"]["path"], slot / owner["payload"]["path"]
+        if (loader.resolve(strict=True) != loader or not os.access(loader, os.X_OK) or
+                _file_digest(loader) != _digest(owner["loader"]["sha256"]) or
+                payload.resolve(strict=True) != payload or not os.access(payload, os.X_OK)):
+            raise ValueError("Release runtime loader or payload changed")
+        directory = slot / "bin/shaders"
         compiled = os.fsencode(relative_compiled_default(shaders["compiled_default"]))
         readonly = True
     else:
@@ -138,11 +168,46 @@ def _check(root, runtime, cache):
     if _file_digest(payload, embedded=compiled, readonly_literal=readonly) != _digest(expected):
         raise ValueError("Native-test executable changed")
     bitmap = report["map"]
-    if bitmap.get("path") != MAP:
-        raise ValueError("This validation covers only MCC Lockout")
-    path = cache / MAP
+    expected_map = FRONTEND_MAP if frontend else MAP
+    if bitmap.get("path") != expected_map:
+        raise ValueError("This validation covers a different MCC map")
+    path = cache / expected_map
     if not path.resolve(strict=True).is_relative_to(cache) or _file_digest(path) != _digest(bitmap["sha256"]):
         raise ValueError("Native-test Lockout map changed")
+    if frontend:
+        resources = report["resources"]
+        required = {"halo2/h2_maps_win64_dx11/shared.map",
+                    "halo2/h2_maps_win64_dx11/textures.dat",
+                    "halo2/h2_maps_win64_dx11/sounds_neutral.dat",
+                    "halo2/h2_fonts/font_table.txt"}
+        prompts = cache / "presentation/prompts"
+        required.update("presentation/prompts/" + name for name in
+                        ("manifest.json", "prompt-source.tsv", "prompts.tsv"))
+        required.update(f"presentation/prompts/atlases/{index}.dds" for index in range(6))
+        required.update(p.relative_to(cache).as_posix() for p in prompts.rglob("*")
+                        if p.is_file() or p.is_symlink())
+        # Every imported font is part of frontend admission, including languages
+        # beyond the active selector. A receipt cannot silently omit a font.
+        fonts = cache / "halo2/h2_fonts"
+        required.update(p.relative_to(cache).as_posix() for p in fonts.rglob("*")
+                        if p.is_file() or p.is_symlink())
+        ui = cache / "ui"
+        if (ui / "pack.tsv").is_file():
+            required.update(p.relative_to(cache).as_posix() for p in ui.rglob("*")
+                            if p.is_file() or p.is_symlink())
+        if not isinstance(resources, dict) or not required <= resources.keys() or len(resources) > 1024:
+            raise ValueError("Frontend validation omits MCC resources")
+        for name, expected in resources.items():
+            relative = PurePosixPath(name)
+            if (relative.is_absolute() or str(relative) != name or "\\" in name or
+                    not relative.parts or
+                    (relative.parts[0] not in ("halo2", "ui") and
+                     not name.startswith("presentation/prompts/")) or
+                    any(part in (".", "..") for part in relative.parts)):
+                raise ValueError("Frontend resource escaped its MCC cache")
+            path = cache / name
+            if not path.resolve(strict=True).is_relative_to(cache) or _file_digest(path) != _digest(expected):
+                raise ValueError("Frontend MCC resource changed")
 
 
 def native_gameplay_test_available(root, runtime, cache):
@@ -152,7 +217,18 @@ def native_gameplay_test_available(root, runtime, cache):
     try:
         _check(root, runtime, cache)
         return True
-    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError):
+        return False
+
+
+def frontend_runtime_available(root, runtime, cache):
+    """Admit only the separately validated MCC title/menu capability."""
+    if runtime is None or cache is None:
+        return False
+    try:
+        _check(root, runtime, cache, frontend=True)
+        return True
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError):
         return False
 
 
@@ -161,8 +237,18 @@ def main():
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--runtime", type=Path, required=True)
     parser.add_argument("--cache", type=Path, required=True)
+    parser.add_argument("--frontend", action="store_true")
+    parser.add_argument("--selected-frontend", action="store_true",
+                        help="Check this exact owner against the optional independent frontend selection")
     args = parser.parse_args()
-    return 0 if native_gameplay_test_available(args.root, args.runtime, args.cache) else 1
+    if args.selected_frontend:
+        if not args.frontend:
+            parser.error("--selected-frontend requires --frontend")
+        from frontend_runtime_selection import selected_frontend_runtime
+        selected = selected_frontend_runtime(args.root, args.runtime, args.cache)
+        return 0 if selected is not None and selected == args.runtime.resolve() else 1
+    available = frontend_runtime_available if args.frontend else native_gameplay_test_available
+    return 0 if available(args.root, args.runtime, args.cache) else 1
 
 
 if __name__ == "__main__":

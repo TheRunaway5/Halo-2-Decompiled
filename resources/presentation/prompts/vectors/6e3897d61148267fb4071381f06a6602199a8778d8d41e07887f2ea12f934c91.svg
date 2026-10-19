@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="72" viewBox="0 0 16 18" version="1.1">
+  <title>Vista fixedsys-9 U+E103: rebuilt vector artwork</title>
+  <desc>Hand-authored button bodies, bevels, letter outlines and smooth gradients. Original glyphs supply placement and palette measurements only. No embedded image, font, autotrace or pixel-region paths.</desc>
+  <defs>
+    <clipPath id="button-edge">
+      <circle cx="16" cy="20" r="15.95" />
+    </clipPath>
+    <linearGradient id="button-body-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+      <stop offset="0" stop-color="#784e00" />
+      <stop offset="0.22" stop-color="#ad875e" />
+      <stop offset="0.52" stop-color="#a86802" />
+      <stop offset="0.78" stop-color="#d78100" />
+      <stop offset="1" stop-color="#f2a100" />
+    </linearGradient>
+    <linearGradient id="button-rim-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+      <stop offset="0" stop-color="#000000" />
+      <stop offset="0.4" stop-color="#7b0700" />
+      <stop offset="1" stop-color="#f48900" />
+    </linearGradient>
+    <radialGradient id="top-sheen-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(15.4 6.5) scale(11.9 6.2)">
+      <stop offset="0" stop-opacity="1" stop-color="#e0cfbd" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#e0cfbd" />
+      <stop offset="1" stop-opacity="0" stop-color="#e0cfbd" />
+    </radialGradient>
+    <radialGradient id="left-reflection-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(4.9 17) scale(2.4 8.5)">
+      <stop offset="0" stop-opacity="1" stop-color="#a35c06" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#a35c06" />
+      <stop offset="1" stop-opacity="0" stop-color="#a35c06" />
+    </radialGradient>
+    <linearGradient id="letter-shadow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+      <stop offset="0" stop-color="#b8a07d" />
+      <stop offset="1" stop-color="#a55f1a" />
+    </linearGradient>
+    <linearGradient id="letter-bevel-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+      <stop offset="0" stop-color="#ffe3de" />
+      <stop offset="1" stop-color="#fff492" />
+    </linearGradient>
+    <linearGradient id="letter-face-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="29">
+      <stop offset="0" stop-color="#fff3c7" />
+      <stop offset="0.5" stop-color="#fffcc9" />
+      <stop offset="1" stop-color="#fff5be" />
+    </linearGradient>
+  </defs>
+  <g id="face-button" transform="translate(0.0 0.0) scale(0.5)" clip-path="url(#button-edge)">
+    <circle id="button-body" cx="16" cy="20" r="15.7" fill="url(#button-body-paint)" stroke="url(#button-rim-paint)" stroke-width=".5" />
+    <ellipse id="top-sheen" cx="15.4" cy="6.5" rx="11.9" ry="6.2" fill="url(#top-sheen-paint)" />
+    <ellipse id="left-reflection" cx="4.9" cy="17" rx="2.4" ry="8.5" fill="url(#left-reflection-paint)" />
+    <path id="letter-raised-shadow" d="M5.9 12.3 H11.2 L16.4 19.4 L21.4 12.3 H26.1 L18.9 22.4 V29 H14 V22.4 Z" fill="url(#letter-shadow-paint)" stroke="url(#letter-shadow-paint)" stroke-width="1.65" stroke-linejoin="round" fill-rule="evenodd" transform="translate(.3 .7)" />
+    <path id="letter-bevel" d="M5.9 12.3 H11.2 L16.4 19.4 L21.4 12.3 H26.1 L18.9 22.4 V29 H14 V22.4 Z" fill="url(#letter-bevel-paint)" stroke="url(#letter-bevel-paint)" stroke-width=".7" stroke-linejoin="round" fill-rule="evenodd" />
+    <path id="letter-face" d="M5.9 12.3 H11.2 L16.4 19.4 L21.4 12.3 H26.1 L18.9 22.4 V29 H14 V22.4 Z" fill="url(#letter-face-paint)" fill-rule="evenodd" />
+  </g>
+</svg>

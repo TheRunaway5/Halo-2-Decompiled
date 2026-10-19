@@ -1,4 +1,5 @@
 #include "halo2/source_authority_receiver.hpp"
+#include "halo2/source_authority_publisher.hpp"
 #include "halo2/source_peer_host_takeover.hpp"
 #include "halo2/multiplayer_runtime_authority.hpp"
 #include "halo2/source_host_continuation_codec.hpp"
@@ -6,6 +7,9 @@
 #include "halo2/native_player_profile.hpp"
 #include "halo2/source_execution_lens.hpp"
 #include "halo2/effect_presentation_history.hpp"
+#include "halo2/source_foreground_world_handoff.hpp"
+#include "halo2/source_bsp_effect_lights.hpp"
+#include "halo2/model_selection.hpp"
 #include <nlohmann/json.hpp>
 #include <chrono>
 #include <cstdlib>
@@ -13,6 +17,7 @@
 #include <iostream>
 #include <thread>
 #include <deque>
+#include <set>
 
 using namespace halo2;
 using namespace std::chrono_literals;
@@ -140,6 +145,19 @@ int main(int argc,char **argv)try{
         memory.write(0x531fc0u,pending);
     });
     const auto paired=capture_source_host_continuation(*lan_host,before,1);
+    const std::array<unsigned,2> fanout_recipients{candidate,remote};
+    wait([&]{return std::ranges::all_of(fanout_recipients,[&](unsigned peer){
+        return sessions[old_host]->source_players_confirmed(peer)&&
+            sessions[old_host]->authority_replay_supported(peer)&&
+            sessions[old_host]->authority_host_continuation_supported(peer);});},
+        "Both actual recipients did not admit paired native/replay delivery");
+    // Capture before native recipient warmup and before the post-cut sends
+    // below. Recapturing the host table after warmup would import fixture idle
+    // time into its peers and change the migration/input survival control.
+    auto fanout_publisher=std::make_unique<SourceAuthorityPublisher>(*original,*lan_host,
+        sessions[old_host],fanout_recipients,60s);
+    check(fanout_publisher->capture()&&!fanout_publisher->capture(),
+        "Group publisher refused its cut or accepted overlapping capture");
     stage="encode native world";
     const auto complete=encode_source_authority(paired.world);
     // These two authenticated packets are produced after the sealed cut. The
@@ -190,11 +208,116 @@ int main(int argc,char **argv)try{
     const auto checkpoint=[&](auto ready){return receiver->checkpoint(ready);};
     wait([&]{if(receiver)receiver->warm();const auto s=state();check(s.error.empty(),s.error.c_str());return s.warmed&&s.workspace_warmed;},"Private recipient worlds did not warm");
     const std::array<unsigned,1> targets{candidate};
-    stage="encode and publish paired continuation";
-    auto seal=sessions[old_host]->publish_authority(before,original->execution_tick(),encode_source_host_continuation(paired),targets);
+    AuthorityCutSeal seal;
+    std::optional<SourceAuthorityPublisherGroupCut> completed_fanout;
+    {
+        stage="independent paired publisher fanout admission";
+        SourceAuthorityReceiver remote_receiver(remote_options,SourceAuthorityStreamMode::Replay,
+            std::make_shared<Clock>(),std::make_shared<Clock>());
+        wait([&]{remote_receiver.warm();const auto s=remote_receiver.state();check(s.error.empty(),s.error.c_str());
+            return s.warmed&&s.workspace_warmed;},"Independent second recipient worlds did not warm");
+        const auto recipients_mask=std::uint16_t((1u<<candidate)|(1u<<remote));
+        auto &publisher=*fanout_publisher;
+        stage="candidate native ACK with delayed second recipient";
+        wait([&]{publisher.update();update();const auto p=publisher.state();const auto c=state();
+            check(p.error.empty(),p.error.c_str());check(c.error.empty(),c.error.c_str());
+            if(p.pending_group){
+                check(p.pending_group->context==before&&p.pending_group->recipients==recipients_mask,
+                    "Pending group relabeled its context or independent recipient set");
+                seal=p.pending_group->seal;
+            }
+            return seal.id&&c.ready&&c.ready->seal==seal&&c.host_ready&&p.native_receipts==1&&
+                sessions[old_host]->authority_delivered(remote,before,seal);
+        },"First native recipient ACK or second peer byte delivery did not complete");
+        const auto candidate_only=publisher.state();
+        check(candidate_only.pending_group&&candidate_only.pending_group->seal==seal&&
+            candidate_only.pending_native_validated_peers==std::uint16_t(1u<<candidate)&&
+            !candidate_only.group_ready&&!candidate_only.ready&&candidate_only.validations==0&&
+            !remote_receiver.state().ready,
+            "One native ACK or a byte-complete second peer fabricated group readiness");
+        auto wrong_seal=seal;++wrong_seal.tick;
+        auto wrong_context=before;++wrong_context.membership_revision;
+        check(!sessions[candidate]->acknowledge_authority(before,wrong_seal)&&
+            !sessions[candidate]->acknowledge_authority(wrong_context,seal)&&
+            !sessions[old_host]->acknowledge_authority(before,seal)&&
+            !sessions[remote]->acknowledge_authority(before,seal)&&
+            sessions[candidate]->acknowledge_authority(before,seal)&&
+            sessions[candidate]->acknowledge_authority(before,seal),
+            "Group ACK controls accepted foreign/unvalidated evidence or rejected an exact duplicate");
+        publisher.update();
+        const auto after_duplicate=publisher.state();
+        check(after_duplicate.native_receipts==1&&after_duplicate.validations==0&&!after_duplicate.group_ready&&
+            after_duplicate.pending_group&&after_duplicate.pending_group->seal==seal&&
+            after_duplicate.pending_native_validated_peers==std::uint16_t(1u<<candidate),
+            "Duplicate/foreign ACKs completed or changed the delayed native group");
+        stage="independent second paired native validation";
+        wait([&]{remote_receiver.update();publisher.update();const auto r=remote_receiver.state();const auto p=publisher.state();
+            check(r.error.empty(),r.error.c_str());check(p.error.empty(),p.error.c_str());
+            return r.ready&&r.ready->seal==seal&&r.host_ready&&p.group_ready;
+        },"Independent second recipient did not validate the exact common paired seal");
+        const auto c=state(),r=remote_receiver.state();const auto p=publisher.state();
+        check(c.ready&&r.ready&&c.host_proof&&r.host_proof&&
+            c.ready->peer==candidate&&r.ready->peer==remote&&
+            c.ready->context==before&&r.ready->context==before&&c.ready->seal==seal&&r.ready->seal==seal&&
+            c.host_proof->cut().peer==candidate&&r.host_proof->cut().peer==remote&&
+            c.host_proof->prove_snapshot(*runtime.client(),candidate_origin).matches(candidate_origin)&&
+            r.host_proof->prove_snapshot(survivor,remote_origin).matches(remote_origin),
+            "Independent recipients did not each create native proof for their own accepted snapshot");
+        rejects([&]{c.host_proof->prove_snapshot(*runtime.client(),remote_origin);});
+        rejects([&]{r.host_proof->prove_snapshot(survivor,candidate_origin);});
+        check(p.group_ready&&p.group_ready->context==before&&p.group_ready->seal==seal&&
+            p.group_ready->recipients==recipients_mask&&!p.pending_group&&!p.ready&&
+            p.native_receipts==2&&p.validations==1&&p.publications==1&&p.host_ready,
+            "Group readiness omitted an actual recipient, counted duplicate receipts or fabricated a singleton peer");
+        const auto group_host=publisher.host_checkpoint(*p.group_ready);
+        check(runtime.client()->prove_snapshot(group_host,*c.ready,candidate_origin).matches(candidate_origin)&&
+            survivor.prove_snapshot(group_host,*r.ready,remote_origin).matches(remote_origin),
+            "Completed native group lost its host table's exact two accepted snapshots");
+        auto wrong_group=*p.group_ready;wrong_group.recipients=std::uint16_t(1u<<candidate);
+        rejects([&]{publisher.host_checkpoint(wrong_group);});
+        wrong_group=*p.group_ready;++wrong_group.seal.id;
+        rejects([&]{publisher.host_checkpoint(wrong_group);});
+        wrong_group=*p.group_ready;++wrong_group.context.epoch;
+        rejects([&]{publisher.host_checkpoint(wrong_group);});
+        {const auto remote_export=remote_receiver.checkpoint_paired(*r.ready);
+            check(remote_export.cut.peer==remote&&remote_export.cut.context==before&&remote_export.cut.seal==seal&&
+                remote_export.host&&remote_export.local_views==sessions[remote]->local_slots()&&
+                remote_export.producer_views==sessions[old_host]->local_slots()&&
+                remote_export.admissions.players==admitted&&encode_source_authority(remote_export.checkpoint)==complete&&
+                remote_receiver.state().ready&&remote_receiver.state().ready->seal==seal&&remote_receiver.world(),
+                "Nonterminal second-recipient export changed the cut, admissions, own views or live receiver");}
+        if(receiver){const auto candidate_export=receiver->checkpoint_paired(*c.ready);
+            check(candidate_export.cut.peer==candidate&&candidate_export.cut.seal==seal&&candidate_export.host&&
+                candidate_export.local_views==sessions[candidate]->local_slots()&&
+                encode_source_authority(candidate_export.checkpoint)==complete&&receiver->world()&&receiver->state().ready,
+                "Nonterminal first-recipient export stopped or relabeled its native owner");}
+        check(sessions[candidate]->acknowledge_authority(before,seal)&&sessions[remote]->acknowledge_authority(before,seal),
+            "Completed group rejected its exact duplicate recipient ACKs");
+        publisher.update();const auto stable=publisher.state();
+        check(stable.group_ready==p.group_ready&&stable.native_receipts==2&&stable.validations==1&&!stable.ready,
+            "Completed group recounted duplicate ACKs or lost its exact common seal");
+        completed_fanout=stable.group_ready;
+        stage="explicit completed fanout group cancellation";
+        check(stable.tracking_replay,"Completed group lost the live stream before its cancellation control");
+        const auto saved_host_bytes=LanHost::encode_continuation(group_host,{before,seal});
+        const auto before_cancel=original->execution_boundary();
+        check(stable.host_ready&&!stable.encoding&&!stable.awaiting_validation&&!stable.pending_group&&
+            !publisher.in_flight_cuts()&&
+            LanHost::encode_continuation(publisher.host_checkpoint(*completed_fanout),{before,seal})==saved_host_bytes,
+            "Completed group lost exact historical host bytes before explicit cancellation");
+        publisher.cancel();const auto cancelled=publisher.state();
+        check(!cancelled.group_ready&&!cancelled.host_ready&&!cancelled.ready&&!cancelled.pending_group&&
+            !cancelled.pending_native_validated_peers&&!cancelled.awaiting_validation&&!cancelled.tracking_replay&&
+            !cancelled.encoding&&!cancelled.queued_phases&&!cancelled.queued_bytes&&!publisher.in_flight_cuts()&&
+            cancelled.native_receipts==stable.native_receipts&&cancelled.validations==stable.validations&&
+            cancelled.publications==stable.publications&&original->execution_boundary()==before_cancel,
+            "Explicit group cancellation retained historical host eligibility or changed native/validation state");
+        rejects([&]{publisher.host_checkpoint(*completed_fanout);});
+        std::cout<<"PASS paired publisher fanout to two independent native receivers: common seal, each own accepted-snapshot proof, delayed native ACK gate, duplicate/foreign rejection, exact recipient mask and nonterminal paired export\n";
+        std::cout<<"PASS paired publisher explicit group cancellation: exact completed host bytes and counters, retired group eligibility, unchanged native boundary\n";
+    }
+    fanout_publisher.reset();
     stage="paired native validation";
-    wait([&]{update();const auto s=state();check(s.error.empty(),s.error.c_str());
-        return s.ready&&s.ready->seal==seal&&s.host_ready;},"Paired native UDP cut did not validate");
     auto ready=*state().ready;
     const auto first_host_proof=state().host_proof;
     check(first_host_proof&&first_host_proof->cut().peer==candidate&&first_host_proof->cut().context==before&&
@@ -207,6 +330,20 @@ int main(int argc,char **argv)try{
         rejects([&]{proof.prove_snapshot(survivor,candidate_origin);});
     };
     check_origins(*first_host_proof);
+    const auto adopt_replica=[](MultiplayerMatch &match,const MultiplayerSnapshotOrigin &origin){
+        const auto &accepted=origin.accepted_state();
+        check(accepted.source_scene_roots_authoritative,"Native receipt omitted its authoritative display scene");
+        match.replicate_devices(accepted.devices);
+        match.replicate_source_scene(accepted.source_scene_roots,accepted.source_body_poses);
+        match.replicate_prop_removals(accepted.prop_removals);
+        match.replicate_prop_regions(accepted.prop_regions);
+    };
+    adopt_replica(runtime.match(),remote_origin);
+    const auto foreign_remote_replica=runtime.match().replica_checkpoint(remote_origin);
+    adopt_replica(runtime.match(),candidate_origin);
+    adopt_replica(remote_runtime.match(),remote_origin);
+    const auto remote_replica=remote_runtime.match().replica_checkpoint(remote_origin);
+    const auto remote_cut_collision=&remote_runtime.match().simulation().collision();
     Mesh effect_mesh;std::uint32_t effect_primary=0x713719u,effect_auxiliary=0x511599u;
     const SourceEffectRandom effect_random{effect_primary,effect_auxiliary};
     NativeWorldEffects cpu_world(*runtime.world().cache,effect_mesh,runtime.match().simulation().collision(),effect_random);
@@ -216,15 +353,27 @@ int main(int argc,char **argv)try{
     EffectPresentationContinuity cpu_effects(cpu_muzzle,cpu_world,cpu_map,cpu_combat,effect_random);
     NativeEffectSounds pending_sounds(*runtime.world().cache);
     pending_sounds.spawn(0xe4e0036bu,0x71370009u,{1,2,3});
-    EffectPresentationHistory history(cpu_effects,pending_sounds,2),longer(cpu_effects,pending_sounds,4);
+    EffectPresentationHistory history(cpu_effects,pending_sounds,runtime.match().simulation(),2),
+        longer(cpu_effects,pending_sounds,runtime.match().simulation(),4);
     rejects([&]{EffectPresentationHistory invalid(cpu_effects,0);});
     rejects([&]{history.remember(candidate_origin);});
     history.context(before);longer.context(before);
     history.begin_runtime(*runtime.client());longer.begin_runtime(*runtime.client());
+    const auto reserved=history.reserve_runtime(before,ready.seal);
+    const auto same_reservation=history.reserve_runtime(before,ready.seal);
+    auto different_seal=ready.seal;++different_seal.id;
+    const auto other_reservation=history.reserve_runtime(before,different_seal);
+    const auto foreign_reservation=longer.reserve_runtime(before,ready.seal);
+    auto excess_seal=different_seal;++excess_seal.id;
+    rejects([&]{history.reserve_runtime(before,excess_seal);});
+    check(reserved.valid()&&reserved.retained()==0&&!reserved.overflowed(),
+        "Early common-cut reservation invented a foreground receipt");
     rejects([&]{history.remember(unbound_origin);});
     const auto effect_tick=*candidate_origin.tick();cpu_world.advance(effect_tick,tick_seconds);cpu_muzzle.advance(effect_tick,tick_seconds);
     const auto frontier_for=[&](const MultiplayerSnapshotOrigin &origin){
+        adopt_replica(runtime.match(),origin);
         MultiplayerRuntimeReceiptFrontier frontier;
+        frontier.replica=runtime.match().replica_checkpoint(origin);
         frontier.previous=candidate_origin;frontier.local_slots.assign(origin.local_slots().begin(),origin.local_slots().end());
         frontier.client_state_bound=frontier.joined=true;
         frontier.world_effect_tick=origin.tick();frontier.muzzle_pose_tick=origin.tick();
@@ -248,8 +397,15 @@ int main(int argc,char **argv)try{
     check(bound_effect&&bound_effect->cut().seal==ready.seal&&!history.bind(*first_host_proof,survivor),
         "History admitted a foreign connection or lost its exact paired native cut");
     const auto bound_runtime=history.bind_runtime(*first_host_proof,*runtime.client());
-    check(bound_runtime&&bound_runtime->origin().same(candidate_origin)&&bound_runtime->cut().seal==ready.seal&&
+    check(bound_runtime&&bound_runtime->origin().same(candidate_origin)&&bound_runtime->proof().matches(candidate_origin)&&
+        bound_runtime->frontier().replica.matches(candidate_origin)&&bound_runtime->cut().seal==ready.seal&&
         !history.bind_runtime(*first_host_proof,survivor),"Runtime frontier lost exact native receipt binding");
+    const auto reserved_runtime=history.bind_runtime(*first_host_proof,*runtime.client(),reserved);
+    check(reserved_runtime&&reserved_runtime->origin().same(candidate_origin)&&reserved.retained()==1&&
+        same_reservation.retained()==1&&!history.bind_runtime(*first_host_proof,survivor,reserved)&&
+        !history.bind_runtime(*first_host_proof,*runtime.client(),other_reservation)&&
+        !history.bind_runtime(*first_host_proof,*runtime.client(),foreign_reservation),
+        "Common reservation lost exact receipt/connection/seal/history ownership");
     // These are declared frontend boundary controls beside actual native
     // receipts, not a rendered or playing-audio adoption fixture.
     initial_frontier.sounds.clear();initial_frontier.firing_instances.clear();initial_frontier.local_slots.clear();
@@ -265,7 +421,28 @@ int main(int argc,char **argv)try{
             if(origin.tick()==effect_tick&&!origin.same(prior))next=origin;
             return next.context()==before;},"Later same-tick native receipt did not arrive");return next;};
     const auto later=fresh_receipt();
-    auto invalid_frontier=frontier_for(later);invalid_frontier.previous=remote_origin;
+    const auto before_replica_rejection=history.state();
+    auto invalid_frontier=frontier_for(later);invalid_frontier.replica={};
+    rejects([&]{history.remember(later,invalid_frontier);});
+    invalid_frontier=frontier_for(later);
+    adopt_replica(remote_runtime.match(),later);
+    invalid_frontier.replica=remote_runtime.match().replica_checkpoint(later);
+    check(invalid_frontier.replica.matches(later)&&!runtime.match().owns_replica_checkpoint(invalid_frontier.replica),
+        "Foreign replica control did not isolate the same receipt on a different owner");
+    rejects([&]{history.remember(later,invalid_frontier);});
+    invalid_frontier=frontier_for(later);invalid_frontier.replica=bound_runtime->frontier().replica;
+    check(runtime.match().owns_replica_checkpoint(invalid_frontier.replica)&&invalid_frontier.replica.tick()==later.tick()&&
+        !invalid_frontier.replica.matches(later),"Replica mismatch control did not preserve owner/tick while changing receipt");
+    rejects([&]{history.remember(later,invalid_frontier);});
+    const auto after_replica_rejection=history.state();
+    check(after_replica_rejection.captured==before_replica_rejection.captured&&
+        after_replica_rejection.evicted==before_replica_rejection.evicted&&
+        after_replica_rejection.retained==before_replica_rejection.retained&&
+        after_replica_rejection.newest_tick==before_replica_rejection.newest_tick&&
+        after_replica_rejection.newest_sequence==before_replica_rejection.newest_sequence&&
+        history.bind_runtime(*first_host_proof,*runtime.client()),
+        "Missing/foreign/different-receipt replica changed completed history");
+    invalid_frontier=frontier_for(later);invalid_frontier.previous=remote_origin;
     rejects([&]{history.remember(later,invalid_frontier);});
     invalid_frontier=frontier_for(later);invalid_frontier.local_slots.clear();
     rejects([&]{history.remember(later,invalid_frontier);});
@@ -286,6 +463,10 @@ int main(int argc,char **argv)try{
         "Evicted exact receipt was replaced by a different body/sequence at the same tick");
     check(!history.bind_runtime(*first_host_proof,*runtime.client())&&longer.bind_runtime(*first_host_proof,*runtime.client()),
         "Runtime history rebound an evicted cut to a same-tick replacement receipt");
+    const auto after_eviction=history.bind_runtime(*first_host_proof,*runtime.client(),reserved);
+    check(after_eviction&&after_eviction->origin().same(candidate_origin)&&reserved.retained()==2&&reserved.overflowed()&&
+        after_eviction->frontier().replica.matches(candidate_origin),
+        "Reserved exact receipt did not survive eviction/overflow with bounded storage");
     check(history.state().retained==2&&history.state().captured==3&&history.state().evicted==1,
         "Completed receipt history exceeded its explicit retention policy");
     rejects([&]{history.remember(candidate_origin);});
@@ -299,13 +480,21 @@ int main(int argc,char **argv)try{
         "Completed effect cut could not restore after later invalid work");
     bool foreign_history_rejected{};std::thread history_foreign([&]{try{history.state();}catch(const FormatError &){foreign_history_rejected=true;}});history_foreign.join();
     check(foreign_history_rejected,"History exported executor-local state to another thread");
+    bool foreign_reservation_rejected{};std::thread reservation_foreign([&]{try{reserved.valid();}
+        catch(const FormatError &){foreign_reservation_rejected=true;}});reservation_foreign.join();
+    check(foreign_reservation_rejected,"Reservation exported executor-local state to another thread");
     auto retired_context=before;++retired_context.epoch;history.context(retired_context);
     rejects([&]{history.remember(candidate_origin);});
     check(history.state().retained==0&&!history.bind(*first_host_proof,*runtime.client())&&bound_effect->cut().seal==ready.seal,
         "Context retirement retained stale history or invalidated the caller's owning checkpoint");
     check(!history.bind_runtime(*first_host_proof,*runtime.client())&&bound_runtime->current().tick==effect_tick&&
+        bound_runtime->proof().matches(candidate_origin)&&bound_runtime->frontier().replica.matches(candidate_origin)&&
         bound_runtime->frontier().pending_effect_sounds.pending_count()==1,
         "Context retirement discarded a caller-owned runtime cut or retained stale binding eligibility");
+    check(!reserved.valid()&&!history.bind_runtime(*first_host_proof,*runtime.client(),reserved)&&
+        reserved_runtime->proof().matches(candidate_origin),
+        "Context retirement rebound a stale reservation or discarded an owning checkpoint");
+    std::cout<<"PASS bounded early common-cut reservation: exact private proof, same-tick candidates, eviction/overflow, owner/executor/context rejection\n";
     std::cout<<"PASS atomic native receipt/runtime frontier: owned states/slots, full-salt bindings, deferred sound queues, exact proof, rejection/eviction/context controls\n";
     if(receiver)check(encode_source_authority(checkpoint(ready))==complete,"Native receiver differs from complete source world");
     // Same bytes and tick still count as unrecorded native mutation. A receipt
@@ -314,7 +503,12 @@ int main(int argc,char **argv)try{
     if(receiver){
         auto &bank=receiver->world()->source_objects->memory();const auto original_bytes=bank.view(0x4c65f0u,8);
         bank.write(0x4c65f0u,original_bytes);rejects([&]{checkpoint(ready);});
-        wait([&]{return !sessions[old_host]->validated_authority().empty();},"Original cut receipt did not reach its producer");
+        // The publisher is the sole receipt-queue consumer. Its completed
+        // group, checked above against both independent native ACKs, retains
+        // this producer observation after those queue entries are consumed.
+        check(completed_fanout&&completed_fanout->context==before&&completed_fanout->seal==seal&&
+            completed_fanout->recipients==std::uint16_t((1u<<candidate)|(1u<<remote)),
+            "Original exact paired cut did not reach both native recipients and its producer");
         auto repair=paired;repair.serial=2;
         seal=sessions[old_host]->publish_authority(before,original->execution_tick(),encode_source_host_continuation(repair),targets);
         wait([&]{update();const auto s=state();check(s.error.empty(),s.error.c_str());return s.ready&&s.ready->seal==seal&&s.host_ready;},
@@ -326,8 +520,13 @@ int main(int argc,char **argv)try{
         check_origins(*state().host_proof);check_origins(*first_host_proof);
     }
     const auto migration_effect_cut=longer.bind(*state().host_proof,*runtime.client());
-    check(migration_effect_cut&&migration_effect_cut->cut().seal==ready.seal,
+    const auto migration_runtime_cut=longer.bind_runtime(*state().host_proof,*runtime.client());
+    const auto migration_host_proof=state().host_proof;
+    const auto remote_proof=migration_host_proof->prove_snapshot(survivor,remote_origin);
+    check(migration_effect_cut&&migration_effect_cut->cut().seal==ready.seal&&migration_runtime_cut&&migration_runtime_cut->cut().seal==ready.seal,
         "Migration lost its exact receipt-bound effect cut before receiver retirement");
+    check(remote_proof.matches(remote_origin)&&remote_proof.cut().seal==ready.seal,
+        "Surviving client lost the exact migration seal or historical snapshot proof");
     PeerMigrationDecision invented;invented.previous=before;invented.value={candidate,seal};
     if(receiver)rejects([&]{receiver->prepare_peer_host_takeover(invented);});
     check(state().ready.has_value(),"Premature takeover consumed the validated native world");
@@ -342,6 +541,34 @@ int main(int argc,char **argv)try{
     }else wait([&]{retained=receiver->retain_validated_world();return bool(retained);},"Native receiver did not quiesce");
     check(retained->host.has_value(),"Actual retained native cut omitted its host sidecar");
     check_origins(*first_host_proof);
+    // The cut remains the authentic old receipt. Publish and adopt a genuinely
+    // newer completed native world so the survivor must roll its display and
+    // decoded-state banks back together, rather than merely change endpoints.
+    stage="advance actual survivor beyond retained native cut";
+    std::array<Controls,multiplayer_capacity> later_controls{};
+    for(const auto &p:roster)later_controls[p.slot].yaw=producer->match.unit(p.slot).yaw;
+    producer->match.step(later_controls);lan_host->broadcast();
+    MultiplayerSnapshotOrigin later_remote_origin,later_candidate_origin;
+    wait([&]{survivor.receive();runtime.client()->receive();
+        for(const auto &origin:survivor.received_origins())if(origin.tick()==effect_tick+1)later_remote_origin=origin;
+        for(const auto &origin:runtime.client()->received_origins())if(origin.tick()==effect_tick+1)later_candidate_origin=origin;
+        return later_remote_origin.context()==before&&later_candidate_origin.context()==before;
+    },"Later actual native receipts did not arrive before host shutdown");
+    adopt_replica(remote_runtime.match(),later_remote_origin);
+    check(remote_runtime.match().replica_checkpoint(later_remote_origin).matches(later_remote_origin)&&
+        !later_remote_origin.same(remote_origin)&&survivor.state_origin().same(later_remote_origin)&&
+        survivor.state().tick==effect_tick+1&&remote_replica.matches(remote_origin)&&remote_replica.tick()==effect_tick&&
+        remote_proof.matches(remote_origin),"Later survivor adoption lost or relabeled its retained native cut");
+    const auto remote_later_collision=&remote_runtime.match().simulation().collision();
+    const auto remote_later_scene=remote_runtime.match().simulation().scene().objects().data();
+    const auto remote_later_scene_count=remote_runtime.match().simulation().scene().objects().size();
+    const auto remote_later_groups=remote_runtime.match().simulation().devices().groups().data();
+    auto wrong_tick_frontier=frontier_for(later_candidate_origin);wrong_tick_frontier.replica=bound_runtime->frontier().replica;
+    const auto before_wrong_tick=longer.state();
+    check(wrong_tick_frontier.replica.tick()!=later_candidate_origin.tick(),"Replica wrong-tick control stayed at its cut");
+    rejects([&]{longer.remember(later_candidate_origin,wrong_tick_frontier);});
+    check(longer.state().captured==before_wrong_tick.captured&&longer.state().evicted==before_wrong_tick.evicted&&
+        longer.bind_runtime(*migration_host_proof,*runtime.client()),"Wrong-tick replica changed completed history or exact proof");
     stage="old host shutdown and peer agreement";
     lan_host.reset();original.reset();producer.reset();
     held_datagrams.reset();producer_options.online_match.reset();sessions[old_host].reset();
@@ -404,17 +631,63 @@ int main(int argc,char **argv)try{
     check(!runtime.promoted_camera()&&!runtime.local_input_pending(),"Staging exposed promoted camera/input ownership");
     check(!takeover&&runtime.pending_takeover()==staged&&&runtime.match()==resident_match&&runtime.client(),
         "Staging exposed a private native owner before adapter rebinding");
-    rejects([&]{remote_runtime.prepare_client_rebind();});rejects([&]{remote_runtime.activate_client_rebind();});
+    rejects([&]{remote_runtime.prepare_client_rebind();});
+    rejects([&]{remote_runtime.prepare_client_rebind(remote_proof,remote_origin,remote_replica);});
+    rejects([&]{remote_runtime.activate_client_rebind();});
     check(remote_frame->finish(),"Remote native frame did not close");remote_frame.reset();
+    remote_runtime.receive();
+    check(survivor.state_origin().same(later_remote_origin)&&survivor.state().tick==effect_tick+1,
+        "Draining the fenced survivor changed its last actual later receipt");
     const auto old_receive_count=survivor.received_states().size();
     auto old_prepared=survivor.prepare_rebind_host(remote_decision.previous,remote_decision.next,remote_decision.value.cut);
     check(!runtime.client()->commit_rebind_host(std::move(old_prepared))&&old_prepared&&survivor.can_commit_rebind_host(*old_prepared),
         "Foreign client consumed another native owner's prepared endpoint");
-    check(!remote_runtime.begin_frame()&&remote_runtime.prepare_client_rebind(),"Fenced survivor did not stage its local learned rebind");
-    check(remote_runtime.pending_client_rebind()==remote_decision&&remote_runtime.prepare_client_rebind()&&
+    check(!remote_runtime.begin_frame()&&remote_runtime.prepare_client_rebind(remote_proof,remote_origin,remote_replica),
+        "Fenced survivor did not stage its exact learned receipt/replica rebind");
+    check(remote_runtime.pending_client_rebind()==remote_decision&&
+        remote_runtime.prepare_client_rebind(remote_proof,remote_origin,remote_replica)&&
         remote_runtime.client()==&survivor&&&remote_runtime.match()==remote_match&&survivor.received_states().size()==old_receive_count&&
-        survivor.can_commit_rebind_host(*old_prepared),
+        survivor.can_commit_rebind_host(*old_prepared)&&survivor.state_origin().same(later_remote_origin)&&
+        &remote_runtime.match().simulation().collision()==remote_later_collision,
         "Staging changed the old client, world or accepted receive bank");
+    check(foreign_remote_replica.matches(remote_origin)&&!remote_runtime.match().owns_replica_checkpoint(foreign_remote_replica),
+        "Foreign pending-retry replica control did not isolate the exact receipt on another owner");
+    rejects([&]{remote_runtime.prepare_client_rebind(remote_proof,remote_origin,foreign_remote_replica);});
+    check(remote_runtime.pending_client_rebind()==remote_decision&&
+        remote_runtime.prepare_client_rebind(remote_proof,remote_origin,remote_replica)&&
+        survivor.can_commit_rebind_host(*old_prepared)&&survivor.state_origin().same(later_remote_origin)&&
+        &remote_runtime.match().simulation().collision()==remote_later_collision,
+        "Foreign exact-receipt retry consumed or replaced the valid staged client rebind");
+    rejects([&]{remote_runtime.match().replicate_devices(later_remote_origin.accepted_state().devices);});
+    check(remote_runtime.pending_client_rebind()==remote_decision&&
+        remote_runtime.prepare_client_rebind(remote_proof,remote_origin,remote_replica)&&
+        survivor.can_commit_rebind_host(*old_prepared)&&survivor.state_origin().same(later_remote_origin)&&
+        &remote_runtime.match().simulation().collision()==remote_later_collision&&
+        remote_runtime.match().simulation().scene().objects().data()==remote_later_scene&&
+        remote_runtime.match().simulation().devices().groups().data()==remote_later_groups,
+        "Rejected staged device mutation poisoned prepared or live replica owners");
+    check(remote_runtime.cancel_client_rebind()&&!remote_runtime.pending_client_rebind()&&
+        !remote_runtime.cancel_client_rebind()&&survivor.can_commit_rebind_host(*old_prepared)&&
+        survivor.state_origin().same(later_remote_origin)&&survivor.state().tick==effect_tick+1&&
+        survivor.received_states().size()==old_receive_count&&
+        &remote_runtime.match().simulation().collision()==remote_later_collision&&
+        remote_runtime.match().simulation().scene().objects().data()==remote_later_scene&&
+        remote_runtime.match().simulation().scene().objects().size()==remote_later_scene_count&&
+        remote_runtime.match().simulation().devices().groups().data()==remote_later_groups&&
+        remote_runtime.match().replica_checkpoint(later_remote_origin).matches(later_remote_origin)&&
+        sessions[remote]->phase()==OnlineMatchSession::Phase::Rebinding,
+        "Cancelling client rebind changed live receipt/replica storage or retained staged barriers");
+    check(remote_runtime.prepare_client_rebind(remote_proof,remote_origin,remote_replica)&&
+        remote_runtime.pending_client_rebind()==remote_decision&&
+        remote_runtime.prepare_client_rebind(remote_proof,remote_origin,remote_replica)&&
+        survivor.can_commit_rebind_host(*old_prepared),
+        "Cancelled certified client rebind could not stage the same exact cut again");
+    survivor.send(neutral);
+    check(remote_runtime.pending_client_rebind()==remote_decision&&
+        remote_runtime.prepare_client_rebind(remote_proof,remote_origin,remote_replica)&&
+        survivor.can_commit_rebind_host(*old_prepared)&&survivor.state_origin().same(later_remote_origin)&&
+        &remote_runtime.match().simulation().collision()==remote_later_collision,
+        "Live neutral survivor input invalidated the staged exact client rebind");
     runtime.receive();
     staged->refresh_local_input(*runtime.client());
     const auto carried=staged->local().received_presses,undelivered=staged->local().delivered_presses;
@@ -430,11 +703,52 @@ int main(int argc,char **argv)try{
     rejects([&]{staged->host().broadcast();});
     SourceMatchAuthority pending_native(staged->world().match,*staged->world().source_objects);
     const auto pending_boundary=pending_native.execution_boundary();
+    // Actual authored resources are prepared before the declared material
+    // freeze. No renderer/GPU readiness is inferred from this headless bank.
+    SourceWorldParticleDrawsTu15 source_particles(*runtime.world().cache,runtime.world().content.objects);
+    const auto live_effects=source_particles.preload_live_world(staged->world().source_objects->memory());
+    for(const auto effect:live_effects)(void)source_particles.preload_first_person(effect);
+    std::set<std::uint32_t> live_models;
+    for(const auto &object:staged->world().source_objects->live_objects()){
+        const auto model=runtime.world().cache->load_initial_model_definition(object.definition).render_model;
+        if(model!=null_datum)live_models.insert(model);
+    }
+    check(!live_models.empty(),"Foreground binding control has no actual native render model");
+    const std::vector<std::uint32_t> render_models(live_models.begin(),live_models.end());
+    const auto light_definitions=cpu_world.light_definitions();
+    SourceBspEffectLights resident_models(*runtime.world().cache,effect_mesh,0,light_definitions,render_models);
+    SourceBspEffectLights missing_models(*runtime.world().cache,effect_mesh,0,light_definitions);
+    const auto frozen_materials=effect_mesh.materials.size();
+    MultiplayerObjectRuntime *particle_route{},*model_route{};
+    unsigned old_collision_calls{};
+    const ParticleCollisionQuery old_collision=[&](auto,auto,auto)->std::optional<ParticleCollisionHit>{++old_collision_calls;return {};};
+    SourceForegroundWorldHandoff source_binding(runtime.world().cache,effect_mesh,source_particles,resident_models,
+        frozen_materials,{true,true},particle_route,model_route,old_collision,old_collision);
+    SourceForegroundWorldHandoff foreign_binding(runtime.world().cache,effect_mesh,source_particles,resident_models,
+        frozen_materials,{true,true},particle_route,model_route);
+    SourceForegroundWorldHandoff missing_binding(runtime.world().cache,effect_mesh,source_particles,missing_models,
+        frozen_materials,{true,true},particle_route,model_route);
+    rejects([&]{missing_binding.prepare_host(*staged,*migration_runtime_cut);});
+    {auto cancelled=source_binding.prepare_host(*staged,*migration_runtime_cut);
+        check(source_binding.ready(cancelled)&&!foreign_binding.ready(cancelled)&&!foreign_binding.commit(cancelled)&&
+            !particle_route&&!model_route&&!old_collision_calls,"Prepared source route changed owners or accepted a foreign binder");}
+    check(!particle_route&&!model_route&&pending_native.execution_boundary()==pending_boundary,
+        "Cancelled source resource/routing preparation changed native or foreground ownership");
+    auto source_handoff=source_binding.prepare_host(*staged,*migration_runtime_cut);
+    auto superseded_handoff=source_binding.prepare_host(*staged,*migration_runtime_cut);
+    particle_route=staged->world().source_objects.get();
+    check(!source_binding.ready(source_handoff)&&!source_binding.commit(source_handoff),"Changed source routing retained commit eligibility");
+    particle_route=nullptr;
+    check(source_binding.ready(source_handoff)&&bool(source_handoff.muzzle_collision())&&bool(source_handoff.world_collision())&&
+        !old_collision_calls&&pending_native.execution_boundary()==pending_boundary,
+        "Source foreground preflight invoked collision/native work or lost its unchanged retry");
     struct PresentationAdoption {
         MultiplayerRuntimeAuthority &runtime;EffectPresentationContinuity &effects;
         EffectPresentationContinuity::PreparedRestore prepared;ValidatedAuthorityCut cut;
+        SourceForegroundWorldHandoff &binding;SourceForegroundWorldHandoff::Prepared &source;
         unsigned calls{},published{};bool allow{},reentrancy_rejected{};
-    } presentation{runtime,cpu_effects,cpu_effects.prepare_restore(*migration_effect_cut,ready,{},{}),ready};
+    } presentation{runtime,cpu_effects,cpu_effects.prepare_restore(*migration_effect_cut,ready,
+        source_handoff.muzzle_collision(),source_handoff.world_collision()),ready,source_binding,source_handoff};
     const auto adopt_presentation=[](void *opaque)noexcept{
         auto &p=*static_cast<PresentationAdoption *>(opaque);++p.calls;
         if(!p.allow){
@@ -443,7 +757,8 @@ int main(int argc,char **argv)try{
             try{(void)p.runtime.world();}catch(const FormatError &){p.reentrancy_rejected=true;}
             return false;
         }
-        if(!p.effects.commit_restore(std::move(p.prepared),p.cut))return false;
+        if(!p.effects.restore_ready(p.prepared,p.cut)||!p.binding.ready(p.source))return false;
+        if(!p.effects.commit_restore(std::move(p.prepared),p.cut)||!p.binding.commit(p.source))std::terminate();
         ++p.published;return true;
     };
     check(!runtime.activate_takeover(adopt_presentation,&presentation)&&presentation.calls==1&&
@@ -462,6 +777,10 @@ int main(int argc,char **argv)try{
         "Native activation omitted/repeated prepared presentation or committed twice");
     check(!cpu_effects.restore_ready(presentation.prepared,ready)&&pending_native.execution_boundary()==pending_boundary,
         "Runtime presentation was not consumed once or changed the sealed native world");
+    check(particle_route==staged->world().source_objects.get()&&model_route==particle_route&&!source_binding.ready(source_handoff)&&
+        !source_binding.ready(superseded_handoff)&&!source_binding.commit(source_handoff)&&!old_collision_calls&&
+        effect_mesh.materials.size()==frozen_materials,"Source foreground routes were not published once with frozen resident resources");
+    std::cout<<"PASS actual source foreground world handoff: native effect/model residency, explicit collision queries, cancellation/foreign/stale-route refusal, coupled CPU effect publication and retained retired queries without native mutation\n";
     check(runtime.promoted_camera()==&staged->camera()&&runtime.local_input_pending(),"Runtime lost the restored local camera/input bank");
     check(!runtime.prepare_takeover(),"Active host prepared a second replacement");
     rejects([&]{runtime.continue_local_input(controls);});
@@ -470,11 +789,19 @@ int main(int argc,char **argv)try{
         "Runtime adoption changed immutable map resources or retained the old live Match");
     struct ClientPresentationAdoption {
         MultiplayerRuntimeAuthority &runtime;LanClient &client;LanClient::PreparedRebind &old;
+        const MultiplayerMatch &match;const MultiplayerSnapshotOrigin &later;
+        const CollisionWorld *collision;const SceneObjects::Object *scene;std::size_t scene_count;
+        const SourceDeviceGroup *groups;
         unsigned calls{},published{};bool allow{},reentrancy_rejected{},old_endpoint_observed{};
-    } client_presentation{remote_runtime,survivor,*old_prepared};
+    } client_presentation{remote_runtime,survivor,*old_prepared,remote_runtime.match(),later_remote_origin,
+        remote_later_collision,remote_later_scene,remote_later_scene_count,remote_later_groups};
     const auto adopt_client_presentation=[](void *opaque)noexcept{
         auto &p=*static_cast<ClientPresentationAdoption *>(opaque);++p.calls;
-        if(!p.client.can_commit_rebind_host(p.old))return false;
+        if(!p.client.can_commit_rebind_host(p.old)||!p.client.state_origin().same(p.later)||
+            p.client.state().tick!=*p.later.tick()||&p.match.simulation().collision()!=p.collision||
+            p.match.simulation().scene().objects().data()!=p.scene||
+            p.match.simulation().scene().objects().size()!=p.scene_count||
+            p.match.simulation().devices().groups().data()!=p.groups)return false;
         p.old_endpoint_observed=true;
         if(!p.allow){
             try{(void)p.runtime.world();}catch(const FormatError &){p.reentrancy_rejected=true;}
@@ -486,6 +813,10 @@ int main(int argc,char **argv)try{
         client_presentation.calls==1&&!client_presentation.published&&client_presentation.reentrancy_rejected&&
         client_presentation.old_endpoint_observed&&remote_runtime.pending_client_rebind()==remote_decision&&
         survivor.can_commit_rebind_host(*old_prepared)&&survivor.received_states().size()==old_receive_count&&
+        survivor.state_origin().same(later_remote_origin)&&survivor.state().tick==effect_tick+1&&
+        &remote_runtime.match().simulation().collision()==remote_later_collision&&
+        remote_runtime.match().simulation().scene().objects().data()==remote_later_scene&&
+        remote_runtime.match().simulation().devices().groups().data()==remote_later_groups&&
         remote_runtime.client()==&survivor&&&remote_runtime.match()==remote_match&&
         sessions[remote]->phase()==OnlineMatchSession::Phase::Rebinding,
         "Rejected client presentation changed endpoint/receive bank/world, consumed preparation or allowed reentrancy");
@@ -493,9 +824,15 @@ int main(int argc,char **argv)try{
     check(remote_runtime.activate_client_rebind(adopt_client_presentation,&client_presentation)&&
         client_presentation.calls==2&&client_presentation.published==1&&
         !remote_runtime.activate_client_rebind(adopt_client_presentation,&client_presentation)&&client_presentation.calls==2&&
-        !remote_runtime.pending_client_rebind()&&!remote_runtime.prepare_client_rebind()&&survivor.received_states().empty(),
+        !remote_runtime.pending_client_rebind()&&!remote_runtime.prepare_client_rebind()&&
+        !remote_runtime.cancel_client_rebind()&&survivor.received_states().empty(),
         "Existing native client did not commit exactly once and clear old receive assemblies");
     check(remote_runtime.client()==&survivor&&&remote_runtime.match()==remote_match,"Client rebind replaced its admitted native owner or resident world");
+    check(survivor.state().tick==effect_tick&&!survivor.state_origin().context()&&remote_proof.matches(remote_origin)&&
+        remote_runtime.match().replica_checkpoint(remote_origin).matches(remote_origin)&&
+        &remote_runtime.match().simulation().collision()==remote_cut_collision,
+        "Client rebind did not atomically restore its proven old receipt and complete exact replica/collision bank");
+    std::cout<<"PASS exact native client replica/receipt rollback before endpoint publication: later genuine tick, authenticated cut, scene/device/prop/collision banks, foreign retry rejection, live input, mutation barrier/cancellation/retry, refusal and same owner\n";
     rejects([&]{first_host_proof->prove_snapshot(survivor,remote_origin);});
     check(!survivor.can_commit_rebind_host(*old_prepared)&&!survivor.commit_rebind_host(std::move(old_prepared))&&old_prepared,
         "A stale prepared endpoint committed twice or was consumed on rejection");

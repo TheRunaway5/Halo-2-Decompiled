@@ -1,0 +1,53 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="88" height="100" viewBox="0 0 22 25" version="1.1">
+  <title>Vista conduit-9 U+E101: rebuilt vector artwork</title>
+  <desc>Hand-authored button bodies, bevels, letter outlines and smooth gradients. Original glyphs supply placement and palette measurements only. No embedded image, font, autotrace or pixel-region paths.</desc>
+  <defs>
+    <clipPath id="button-edge">
+      <circle cx="16" cy="20" r="15.95" />
+    </clipPath>
+    <linearGradient id="button-body-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+      <stop offset="0" stop-color="#bd787f" />
+      <stop offset="0.22" stop-color="#8a4344" />
+      <stop offset="0.52" stop-color="#862e2e" />
+      <stop offset="0.78" stop-color="#852a28" />
+      <stop offset="1" stop-color="#c75a5a" />
+    </linearGradient>
+    <linearGradient id="button-rim-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="4" y2="36">
+      <stop offset="0" stop-color="#000000" />
+      <stop offset="0.4" stop-color="#6a200c" />
+      <stop offset="1" stop-color="#c89572" />
+    </linearGradient>
+    <radialGradient id="top-sheen-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(15.4 6.5) scale(11.9 6.2)">
+      <stop offset="0" stop-opacity="1" stop-color="#dec6c5" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#dec6c5" />
+      <stop offset="1" stop-opacity="0" stop-color="#dec6c5" />
+    </radialGradient>
+    <radialGradient id="left-reflection-paint" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(4.9 17) scale(2.4 8.5)">
+      <stop offset="0" stop-opacity="1" stop-color="#8b3d3d" />
+      <stop offset="0.35" stop-opacity="0.9" stop-color="#8b3d3d" />
+      <stop offset="1" stop-opacity="0" stop-color="#8b3d3d" />
+    </radialGradient>
+    <linearGradient id="letter-shadow-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+      <stop offset="0" stop-color="#542f2e" />
+      <stop offset="1" stop-color="#986565" />
+    </linearGradient>
+    <linearGradient id="letter-bevel-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="30">
+      <stop offset="0" stop-color="#b38f8e" />
+      <stop offset="1" stop-color="#ee6465" />
+    </linearGradient>
+    <linearGradient id="letter-face-paint" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="10" y2="29">
+      <stop offset="0" stop-color="#f8e3e3" />
+      <stop offset="0.5" stop-color="#ffcfcf" />
+      <stop offset="1" stop-color="#fdd2d2" />
+    </linearGradient>
+  </defs>
+  <g id="face-button" transform="translate(0.0 0.25) scale(0.6875)" clip-path="url(#button-edge)">
+    <circle id="button-body" cx="16" cy="20" r="15.7" fill="url(#button-body-paint)" stroke="url(#button-rim-paint)" stroke-width=".5" />
+    <ellipse id="top-sheen" cx="15.4" cy="6.5" rx="11.9" ry="6.2" fill="url(#top-sheen-paint)" />
+    <ellipse id="left-reflection" cx="4.9" cy="17" rx="2.4" ry="8.5" fill="url(#left-reflection-paint)" />
+    <path id="letter-raised-shadow" d="M7.2 10 H19.7 C23.6 10 26 12.3 26 15.6 C26 17.5 24.7 19 22.7 19.8 C25 20.6 26.8 22.2 26.8 24.5 C26.8 27.2 23.5 28.7 20.1 28.7 H7.2 Z M11.2 13.9 V17.9 H19.7 C21.3 17.9 21.5 16.9 21.5 15.9 C21.5 14.8 20.9 13.9 19.7 13.9 Z M11.2 21.8 V26.1 H20 C21.5 26.1 22 25.2 22 24 C22 22.8 21.4 21.8 20 21.8 Z" fill="url(#letter-shadow-paint)" stroke="url(#letter-shadow-paint)" stroke-width="1.65" stroke-linejoin="round" fill-rule="evenodd" transform="translate(.3 .7)" />
+    <path id="letter-bevel" d="M7.2 10 H19.7 C23.6 10 26 12.3 26 15.6 C26 17.5 24.7 19 22.7 19.8 C25 20.6 26.8 22.2 26.8 24.5 C26.8 27.2 23.5 28.7 20.1 28.7 H7.2 Z M11.2 13.9 V17.9 H19.7 C21.3 17.9 21.5 16.9 21.5 15.9 C21.5 14.8 20.9 13.9 19.7 13.9 Z M11.2 21.8 V26.1 H20 C21.5 26.1 22 25.2 22 24 C22 22.8 21.4 21.8 20 21.8 Z" fill="url(#letter-bevel-paint)" stroke="url(#letter-bevel-paint)" stroke-width=".7" stroke-linejoin="round" fill-rule="evenodd" />
+    <path id="letter-face" d="M7.2 10 H19.7 C23.6 10 26 12.3 26 15.6 C26 17.5 24.7 19 22.7 19.8 C25 20.6 26.8 22.2 26.8 24.5 C26.8 27.2 23.5 28.7 20.1 28.7 H7.2 Z M11.2 13.9 V17.9 H19.7 C21.3 17.9 21.5 16.9 21.5 15.9 C21.5 14.8 20.9 13.9 19.7 13.9 Z M11.2 21.8 V26.1 H20 C21.5 26.1 22 25.2 22 24 C22 22.8 21.4 21.8 20 21.8 Z" fill="url(#letter-face-paint)" fill-rule="evenodd" />
+  </g>
+</svg>

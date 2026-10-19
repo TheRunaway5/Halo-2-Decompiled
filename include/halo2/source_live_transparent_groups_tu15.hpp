@@ -4,6 +4,9 @@
 #include <memory>
 namespace halo2 {
 class PhysicsLiveWorldTu15;
+// Complete owned 4C2AA8 queue after main40E80, before any drain/query reuse.
+std::vector<SourceTransparentCommand> source_live_transparent_queue_tu15(
+    PhysicsLiveWorldTu15 &);
 struct SourceLiveTransparentLayerTu15 {
     std::uint32_t layer{};
     // Original3BAA0 descriptors, including untouched retained bytes.

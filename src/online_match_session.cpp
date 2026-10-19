@@ -40,7 +40,7 @@ std::string digest(std::span<const std::byte> bytes) {
 }
 std::uint64_t transfer_time(){return std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now().time_since_epoch()).count();}
 AuthorityTransferLimits source_transfer_limits(){
-  AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_pipeline|authority_feature_source_host_continuation;
+  AuthorityTransferLimits limits;limits.features=authority_feature_source_replay|authority_feature_source_state|authority_feature_source_camera|authority_feature_source_lens_query|authority_feature_source_lens_draw|authority_feature_source_particle_collision|authority_feature_source_projectile_contacts|authority_feature_source_pipeline|authority_feature_source_host_continuation|authority_feature_source_common_cut;
   return limits;
 }
 }
@@ -62,6 +62,7 @@ struct OnlineMatchSession::Impl {
   AuthorityTransferDigest authority_session{};
   std::shared_ptr<PeerAuthorityTransfer> authority;
   std::shared_ptr<PeerSourceAdmissions> source_admissions;
+  std::shared_ptr<PeerCommonCutAgreement> common_cut;
   std::shared_ptr<PeerMeshQuality> mesh_quality;
   std::shared_ptr<PeerHostAgreement> agreement;
   std::optional<AuthorityTransferContext> agreement_context;
@@ -124,6 +125,22 @@ struct OnlineMatchSession::Impl {
     require(valid_world_digest(seal.digest));return seal;
   }
   bool epoch_packets()const{return supports_continuity||transport_options.peer_host_migration;}
+  // Session mutex is held. Capability Hello state persists through transport
+  // loss; direct readiness never removes a participant from this barrier.
+  bool common_supported()const{
+    if(!transport_options.direct_udp||!common_cut||!authority)return false;
+    const auto context=common_cut->context();if(authority->context()!=context)return false;
+    for(unsigned peer=0;peer<16;++peer)if(peer!=self&&(context.peers&(1u<<peer))&&
+        !authority->feature_supported(peer,authority_feature_source_common_cut))return false;
+    return true;
+  }
+  bool common_phase()const{return phase==Phase::Loading||phase==Phase::Running||phase==Phase::AwaitingWorld||phase==Phase::Migrating||phase==Phase::Rebinding;}
+  using CommonAction=bool(PeerCommonCutAgreement::*)(const PeerCommonCut &);
+  bool common_action(const PeerCommonCut &cut,CommonAction action){
+    std::lock_guard lock(mutex);
+    if(phase!=Phase::Running||!common_supported()||common_cut->context()!=cut.context)return false;
+    return ((*common_cut).*action)(cut);
+  }
   bool peer_handoff_phase()const{return peer_started&&(phase==Phase::Running||phase==Phase::AwaitingWorld||phase==Phase::Migrating||phase==Phase::Rebinding);}
   std::optional<unsigned> migration_candidate(std::uint64_t now)const{
     if(!peer_handoff_phase()||!agreement||!agreement_context||!mesh_quality||mesh_quality->context()!=*agreement_context)return {};
@@ -207,6 +224,7 @@ struct OnlineMatchSession::Impl {
       const AuthorityTransferContext context{authority_session,continuity_state.epoch,0,physical,host};
       authority=std::make_shared<PeerAuthorityTransfer>(self,context,source_transfer_limits());
       source_admissions=std::make_shared<PeerSourceAdmissions>(self,context,roster);
+      if(std::popcount(physical)>1)common_cut=std::make_shared<PeerCommonCutAgreement>(self,context);
       if(transport_options.peer_host_migration&&std::popcount(physical)>1){agreement_context=context;
         agreement=std::make_shared<PeerHostAgreement>(self,context,transfer_time());}
     }
@@ -234,6 +252,12 @@ struct OnlineMatchSession::Impl {
     continuation_outgoing.push_back(Json{{action,{{"epoch",seal.epoch},{"tick",seal.tick},{"digest",seal.digest}}}}.dump());
   }
   void datagram(unsigned source,std::span<const std::byte> packet,std::uint32_t epoch) {
+    if(PeerCommonCutAgreement::is_packet(packet)){
+      std::shared_ptr<PeerCommonCutAgreement> common;
+      {std::lock_guard lock(mutex);if(common_phase()&&common_supported())common=common_cut;}
+      if(common&&(!epoch_packets()||epoch==common->context().epoch))common->receive(source,packet,transfer_time());
+      return;
+    }
     if(PeerHostAgreement::is_packet(packet)){
       std::lock_guard lock(mutex);
       if(peer_handoff_phase()&&agreement_context&&epoch==agreement_context->epoch&&agreement){
@@ -368,6 +392,14 @@ struct OnlineMatchSession::Impl {
         {std::lock_guard lock(mutex);if(phase==Phase::Loading||phase==Phase::Running||phase==Phase::Migrating||phase==Phase::Rebinding)admissions=source_admissions;}
         if(admissions){const auto epoch=admissions->context().epoch;
           for(auto packet:admissions->poll(transfer_time(),2)){
+            if(epoch_packets()){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
+            direct->send(packet.bytes,packet.peer);
+          }
+        }
+        std::shared_ptr<PeerCommonCutAgreement> common;
+        {std::lock_guard lock(mutex);if(common_phase()&&common_supported())common=common_cut;}
+        if(common){const auto epoch=common->context().epoch;
+          for(auto packet:common->poll(transfer_time(),4)){
             if(epoch_packets()){std::vector<std::byte> prefix;put(prefix,epoch,4);packet.bytes.insert(packet.bytes.begin(),prefix.begin(),prefix.end());}
             direct->send(packet.bytes,packet.peer);
           }
@@ -693,15 +725,18 @@ bool OnlineMatchSession::finish_peer_migration(const PeerMigrationDecision &deci
   std::shared_ptr<PeerSourceAdmissions> admissions=PeerSourceAdmissions::resume_after_host_loss(s.self,decision.next,s.roster,*prior);
   std::shared_ptr<PeerMeshQuality> quality;
   std::shared_ptr<PeerHostAgreement> agreement;
+  std::shared_ptr<PeerCommonCutAgreement> common;
   if(std::popcount(decision.next.peers)>1){
     quality=std::make_shared<PeerMeshQuality>(s.self,decision.next);
     agreement=std::make_shared<PeerHostAgreement>(s.self,decision.next,transfer_time());
+    common=std::make_shared<PeerCommonCutAgreement>(s.self,decision.next);
   }
   std::uint16_t members{};
   for(const auto &p:s.roster)if(decision.next.peers&(1u<<online_admission_peer(p)))members|=std::uint16_t(1u<<p.slot);
   auto continuity_players=prior->players;
   if(commit&&!commit(native))return false;
   s.continuity_admissions=std::move(continuity_players);s.authority=std::move(transfer);s.source_admissions=std::move(admissions);s.mesh_quality=std::move(quality);
+  s.common_cut=std::move(common);
   s.agreement_history.push_back({*s.agreement_context,s.agreement});
   s.agreement=std::move(agreement);s.agreement_context=decision.next;s.peer_fenced=false;
   s.host=decision.next.host;s.continuity_state={decision.next.epoch,s.host,members,std::nullopt};s.voice_members=members;
@@ -759,6 +794,18 @@ std::vector<ValidatedAuthorityCut> OnlineMatchSession::validated_authority() {
   if(!transfer)return {};
   return transfer->validated_cuts();
 }
+std::optional<PeerCommonCutState> OnlineMatchSession::common_cut()const{
+  std::lock_guard lock(impl_->mutex);if(!impl_->common_supported())return {};
+  return impl_->common_cut->state();
+}
+bool OnlineMatchSession::offer_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::offer);}
+bool OnlineMatchSession::confirm_common_cut_native(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::confirm_native);}
+bool OnlineMatchSession::associate_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::associate);}
+bool OnlineMatchSession::apply_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::apply);}
+bool OnlineMatchSession::release_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::release);}
+bool OnlineMatchSession::reject_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::reject);}
+bool OnlineMatchSession::abort_common_cut(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::abort);}
+bool OnlineMatchSession::acknowledge_common_cut_abort(const PeerCommonCut &cut){return impl_->common_action(cut,&PeerCommonCutAgreement::acknowledge_abort);}
 void OnlineMatchSession::seal_world(std::uint64_t tick,const std::string &hash) {
   std::lock_guard lock(impl_->mutex);require(impl_->phase==Phase::Running && impl_->host==impl_->self);
   impl_->queue_world("world_seal",{impl_->continuity_state.epoch,tick,hash});

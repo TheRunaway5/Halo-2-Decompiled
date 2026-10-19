@@ -5,12 +5,14 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     // Check all exact owners before publishing any destination. In particular,
     // a foreign current-context word must not leave either old bank mounted.
     for(const auto& r:m.checkpoint().regions)
-        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,115>{{
-                {0x51df44u,4u},{0x556e18u,0x55c0u},{0x4cd3a0u,4u},{0x492348u,0x1cu},
+        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,122>{{
+                {0x4c6894u,192u},{0x51df44u,4u},{0x556e18u,0x55c0u},{0x4cd3a0u,4u},{0x492348u,0x1cu},
                 {0x4ce3f4u,4u},{0x4922a0u,4u},{0x474c04u,1u},{0x44a7ccu,72u},{0x1404f8u,20u},{0x474c94u,4u},
                 {0x474c8cu,4u},{0x44ab6cu,12u},{0x44ab4cu,12u},
-                {0x46a460u,4u},{0x46a79cu,4u},{0x46a7a0u,4u},{0x138be8u,4u},{0x45f2a6u,2u},{0x1d588u,4u},{0x1d5a7u,1u},
-                {0x40db3fu,1u},{0x45c4c8u,4u},{0x45f2b0u,2u},{0x46a24cu,4u},{0x46a258u,4u},{0x46a248u,4u},{0x46a7a4u,4u},{0x46a1ccu,4u},
+                {0x46a460u,4u},{0x46a79cu,4u},{0x46a7a0u,4u},{0x138be8u,4u},{0x45f290u,48u},{0x1d588u,4u},{0x1d5a7u,1u},
+                {0x1d574u,8u},{0x1d59eu,2u},{0x40db36u,2u},{0x138be4u,4u},
+                {0x1d580u,4u},{0x1d5a4u,1u},{0x40db3cu,1u},
+                {0x40db3fu,1u},{0x45c4c8u,4u},{0x46a24cu,4u},{0x46a258u,4u},{0x46a248u,4u},{0x46a7a4u,4u},{0x46a1ccu,4u},
                 {0x46a1c8u,4u},{0x46a1c4u,4u},{0x46a798u,4u},{0x4c6958u,850u*32u},{0x4cd3a4u,850u},
                 {0x4cd6f6u,850u},{0x4cda48u,192u*4u},{0x4cdd4cu,32u*36u},{0x4cd398u,4u},{0x4cd39cu,4u},
                 {0x4cdd48u,4u},{0x4ce1ccu,4u},{0x41c4e8u,4u},{0x2e6dfcu,92u},{0x2e6e58u,108u},
@@ -18,6 +20,10 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
             if(std::uint64_t(r.address)<std::uint64_t(address)+bytes&&
                std::uint64_t(r.address)+r.bytes.size()>address)
                 throw std::invalid_argument("Renderer constructor data conflicts with its exact owner");
+    // Complete30E10 bounds this original writable request list to16
+    // entries of object/marker/radius. The counter4C6954 already has an owner.
+    m.mount(0x4c6894u,std::array<std::byte,16u*12u>{},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 cold sixteen cinematic shadow request entries");
     m.mount(0x51df44,std::array<std::byte,4>{},SourceRuntimeMemory::Access::ReadWrite,"source renderer raw storage constructor binding");
     m.mount(0x556e18,std::vector<std::byte>(0x55c0),SourceRuntimeMemory::Access::ReadWrite,"source two renderer descriptor constructor destinations");
     // Exact writable loader-zero word. Actual13729/134C42 and existing
@@ -88,11 +94,17 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     m.mount(0x138be8,encode(std::array{0x13887cu}),SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored138C20 format11 direct bitmap decoder selector");
 
-    // Exact signed16 bit-depth cell read by genuine138510 at138544 for
-    // format11 direct sampling; no neighboring table bytes are mounted.
-    m.mount(0x45f2a6,std::array<std::byte,2>{std::byte{0x20},std::byte{0}},
+    // Original138780 bounds its decoder selector to24 formats at138786.
+    // Preserve the corresponding24 signed16 bit-depth inputs consumed by
+    // 138510/1385D0/1386E0/138C20/138F70. This replaces four isolated cells;
+    // it supplies neither a decoded pixel nor the following sentinel/text.
+    // Authenticated TU1.5 image21b207e7..., exact bytes45F290..45F2BF.
+    m.mount(0x45f290u,encode(std::array{
+        0x00080008u,0x00100008u,0x00000000u,0x00000010u,
+        0x00100010u,0x00200020u,0x00000000u,0x00080004u,
+        0x00080008u,0x00800008u,0x00300060u,0x00100010u}),
         SourceRuntimeMemory::Access::ReadOnly,
-        "native TU1.5 authored138510 format11 bitmap bit depth");
+        "native TU1.5 authored24-format bitmap bit-depth table");
 
     // Exact actual F7E500C9 complete1D2D0/1D490 constructor operands.
     // These embedded branch cells keep their original identities; no code
@@ -108,8 +120,25 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
         "native TU1.5 authored407C00 format15 cache bitmap flag");
     m.mount(0x45c4c8,encode(std::array{0x0fu}),SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored1301E0 bitmap format16 hardware format");
-    m.mount(0x45f2b0,std::array<std::byte,2>{std::byte{0x08},std::byte{0}},SourceRuntimeMemory::Access::ReadOnly,
-        "native TU1.5 authored138510 bitmap format16 block bit depth");
+    // Exact additional operands read by complete original D5610 for the
+    // MCC opening's XRGB/ARGB images. Original-raw-bitmap-proof.json records
+    // all64 complete calls; no sampled color or constructor return is supplied.
+    m.mount(0x1d574u,encode(std::array{0x1d4fdu,0x1d4f6u}),SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored raw bitmap constructor targets");
+    m.mount(0x1d59eu,std::array<std::byte,2>{std::byte{5},std::byte{6}},SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored raw bitmap constructor selectors");
+    m.mount(0x40db36u,std::array<std::byte,2>{std::byte{0xa1},std::byte{0xa1}},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authored raw D3D bitmap flags");
+    m.mount(0x138be4u,encode(std::array{0x13887cu}),SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored XRGB bitmap pixel dispatch");
+    // Complete D5610 on the MCC opening's DXT1 resource also uses the
+    // original format12 constructor selector, target, flags and bit depth.
+    m.mount(0x1d580,encode(std::array{0x1d504u}),SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored1D490 bitmap format12 constructor target");
+    m.mount(0x1d5a4,std::array<std::byte,1>{std::byte{0x08}},SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored1D490 bitmap format12 constructor selector");
+    m.mount(0x40db3c,std::array<std::byte,1>{std::byte{0x04}},SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 authored407C00 format12 cache bitmap flag");
 
     // Whole authenticatedD5700 has no children and five direct RO operands.
     // 46A0D0/46A25C already have exact owners; add only the three missing

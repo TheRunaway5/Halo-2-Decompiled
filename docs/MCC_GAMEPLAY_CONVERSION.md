@@ -20,6 +20,58 @@ path demonstrably depends on that behavior. Gameplay admission must be verified
 through the actual MCC-only launcher and game path. Converted definitions remain
 vanilla internal data, and the original Xbox/Vista inputs remain offline references.
 
+The current visible priority is default Play opening a native MCC title and
+menus, with the accepted Lockout test available separately. Frontend tests use
+the port-owned imported MCC cache, including its maps, fonts and bitmap
+resources; they must not substitute Xbox or Vista runtime inputs. The coherent
+V23 candidate passes title/profile/main/Settings/back navigation through the
+native renderer, actual X11 focus/keyboard/mouse input and unmuted menu audio.
+It also passes the bounded Lockout firing/look/movement regression. Its 325
+providers reuse the working development systems and preserve existing shaders.
+The earlier unmuted MenuMusic failure was a 280-versus-288-byte caller layout
+mismatch; recompiling that caller against its actual producer fixed the
+reproduction without changing the decoder or mixer algorithm. The launcher
+admits the frontend independently of full-game readiness only when the exact
+runtime and consumed MCC resources have a separate passed validation. Actual
+installed Play adoption is tracked in the current checklist.
+The user's October19 instruction makes the repo's bundled intro and credits
+movies explicit port-supplied inputs. Onboarding now copies and selects those
+movies with recorded provenance. Both are copied into the selected cache's
+`presentation/movies/` bank, with full source/destination hashes verified.
+Actual cached video and finite nonzero stereo audio decode pass. Runtime checks
+the small pinned manifest and file extents, avoiding a2.5GB startup hash scan.
+This does not introduce an Xbox ISO or Vista bank requirement, or change the
+original MCC file tree. V21 displayed the cached intro with sound; the normal
+launcher Play route is verified separately during adoption.
+The user's authored SVG button prompts and exported bitmap atlases are also
+required port-supplied artwork. Their exact82 masters/six atlases are restored
+under `resources/presentation/prompts`, authenticated against the earlier
+delivery. The selected cache now contains the nine verified runtime files at
+`presentation/prompts`, with portable binding and separate provenance. The
+existing sampler preserves ordinary MCC text, font ownership and active input
+bindings. Qualified menu selectors 1/7 and action selectors 5/6 project only
+the authenticated controls to their authored metrics. The menu correction
+restores 32x36 A/B ink instead of MCC's 44x50, preserving baselines and source
+anchors while restoring the profile's clipped BACK caption. Component tests,
+independent emitted geometry at 640x480/1280x720 and viewed actual native
+profile/Settings images pass. No external Vista font/cache installation or
+shader change is added. Full menu-tree and Xbox framebuffer parity remain
+separate acceptance gates.
+After complete fresh/reused import validation, the importer and runtime paths
+must be aligned to MCC's relative file and internal tag structure, including
+loose/mod `tags` and `data` trees. Required conversions must finish before
+publication at the normal vanilla paths. Existing caches need a verified
+migration or compatibility lookup. This ordered path-layout gate prepares for
+future Steam Workshop overlays; it does not add Workshop integration or an ISO
+import dependency now.
+
+Update now uses verified prebuilt platform release assets instead of Git pull
+and a source rebuild. The official repository currently has no published
+releases; this is reported without replacing the installed runtime. The root
+`build-linux.sh` remains the source-build entry point, with latest local Linux
+x86_64 binaries staged under `dist/builds/linux-x86_64/`. Unsupported platform
+outputs are skipped. See [binary builds and updates](BINARY_UPDATES.md).
+
 The final delivery step includes reclaiming storage from confirmed unused,
 reproducible test executables and temporary build outputs. Keep useful test
 source, validation evidence, reference assets, active process inputs, the current
@@ -209,6 +261,22 @@ removed. The required coherent client/input/reference tree is 132,437,304 bytes;
 the requested ZIP/checksum add 183,623,403 bytes. Historical cleanup and active
 conversion work remain separate.
 [Retained paths and storage closure](../.local/mcc-material-index-audit-20261019/closure-v1/validation.json).
+
+Source Cache loading now also restores 2,345 authenticated Chief footstep
+secondary references in 27 stock contexts, covering 90 named action/material
+classes. Untouched MCC, the prior narrow correction and the complete target
+have explicit full-owner states; custom or partial authoring stays unchanged.
+Normal Cache comparisons pass across all 43 selected maps. Actual native
+MaterialEffects reads verify every targeted direct action/key: classic primary
+identities stay exact, secondary results become null, and other selector results
+are unchanged. Complete unrelated backing bytes/directories and prior map
+corrections match baseline; all eight private modification/transition controls
+pass. The conversion addresses 18,760 bytes, with 18,759 unequal source bytes.
+Regular, ASan/UBSan and independent source/table review also pass. All generated
+probe/build/bank scratch is removed. This is vanilla internal publication and
+selector evidence; audible/sample equivalence and full gameplay parity remain
+open. V18 is still the published runtime; compatible successor delivery follows.
+[Actual Cache/selector acceptance](../.local/mcc-foot-table-key-audit-20261019/native-cache-preparation-v2/validation.json).
 
 V13 supersedes V11/V12's pipeline-registry lifetime implementation. A late-static
 device-owner control reproduced a crash; process-lifetime lookup state corrects

@@ -159,6 +159,7 @@ public:
   bool commit_authority(PreparedAuthority &&) noexcept;
 
 private:
+  friend class Simulation;
   struct AuthorityCalls {
     std::size_t depth{};
     std::uint64_t mutations{};

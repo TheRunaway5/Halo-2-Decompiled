@@ -13,6 +13,100 @@ TU1.5 remains the behavior reference; reference-only original-data fixtures do
 not count as MCC playback acceptance. Earlier ISO preview results remain
 historical evidence and do not establish MCC cutscene behavior.
 
+**2026-10-19 MCC location-title vertical wrapping: corrected; live preview pending.**
+The latest screenshot is reproduced from the selected MCC opening's literal
+two-record title bank: interpreting its225/1024/40/80 coordinates as Xbox
+rectangle edges gives width-944 and56 rows (v770). The original Xbox title
+records supply350/0/480/595. The font selector, justification, colors and all
+three fade/hold timings are byte-identical between those records; the MCC
+string IDs differ and remain MCC-owned. V771 compares both source banks and
+verifies the fixture against the actual selected MCC file. Both production
+title-loading seams now share a decoder which projects only this complete,
+byte-matched MCC opening bank to the original logical rectangle. Source cache
+bytes and MCC font artwork remain unchanged. Other maps, custom/changed banks
+and original inputs do not receive that projection.
+
+The regression passes in v772/v774, including72 independently changed-byte
+rejection controls and the original two-line/control/alignment checks. V773
+also exercises the actual CampaignTextRenderer with selected MCC fonts: both
+titles match the original rectangles over8 cases at640x480,1280x720,
+2560x1372 and2560x1084 (5520 glyph vertices). Pre-fix controls still distinguish
+the vertical column. These are metadata/glyph-renderer checks; a visible
+cutscene and final subtitle/AV parity remain open. The coherent v768 client
+instead exits before rendering with `Original runtime regions overlap`; its
+actual MCC DXT1 component check reproduces the same exception. No ISO/Vista
+preview is substituted. V768's retained diagnostic executable/shaders occupy
+93,906,239 bytes under
+`analysis/opening-cinematic-20261015/mcc-bitmap-bridge-native-v768/runtime`.
+Its private source/build tree and completed title-test/probe scratch are removed.
+
+V776 then links the coherent client and passes8/9 selected checks, including
+the actual MCC opening text loader/content agreement and DXT1 CPU bitmap
+constructor. The remaining world-memory check fails at the missing vehicle
+dispatch tableF2BFC. The real hidden MCC run successfully submits one frame
+after8.88 seconds with2,645,827,584-byte peak, under the unchanged6GiB/zero-swap
+bound. The visible PulseAudio v778 window is verified by PID and normal window
+state, but stops at tick698 with the same table's missingF2C10 read. Current
+source now supplies that table; its integration is included in the next build.
+V776's executable/shaders occupy93,921,879 bytes under
+`analysis/opening-cinematic-20261015/mcc-title-layout-native-v776/runtime`.
+V778 retains one1,780,319-byte2560x1378 early-space reference. This frame is too
+early for the title, so it establishes no visible title acceptance.
+
+**2026-10-19 High Charity/planet: reversed GPU order reproduced; fix under runtime validation.**
+Actual MCC command and main-unit captures (v783/v786) preserve the complete
+twelve-request source queue. Untouched TU1.5 sorting of those exact requests
+places Threshold before High Charity (v784/v789). The native ordinal sorter
+matches byte-derived original order, including equal-key permutation. Both
+original execution probes keep60MiB hard/64MiB measured/zero swap, the global
+lock and4GiB host reserve. V785 then observes the actual Vulkan draws: city
+slot14 precedes planet slot15, and both have depth writes disabled with LEQUAL
+and the same premultiplied blend state. This is a consumer-order defect.
+
+The new source-queue handoff retains the complete bank before query reuse.
+Forward-only single-part model draws join their full owner/definition and
+native ordinal/section/part/shader tokens, then move together according to the
+complete original sort. Unknown/incomplete/ambiguous joins do not apply a
+partial permutation. No city/planet-name branch or depth/asset adjustment is
+used. The real fixture fails on the prior14/15 sequence (v787), then passes
+with15/14 plus11 rejection controls (v788); title checks remain passing.
+Multi-part/group rendering and ordering against other effect/BSP owners remain
+separate work. V790 passes all11 selected CTests, including the exact MCC
+text/bitmap inputs, native memory ownership and the source ordering fixture.
+Its real hidden MCC startup submits a frame under6GiB/zero swap, with
+3,468,185,600-byte peak. The required retained diagnostic runtime and shaders
+occupy94,043,031 bytes under
+`analysis/opening-cinematic-20261015/mcc-space-order-native-v790/runtime`;
+its private source/build trees are removed.
+
+V793's actual GPU-order check stops before either matte is drawn, at an
+unbacked46A268 read. V794 identifies the actual2E520 lens-query consumer,
+separate from the new transparent handoff. Offline pinned TU1.5 inspection
+verifies the immutable .rdata word3C008081 at that exact address and its
+actual2E530/2E41A readers. A read-only live audit then compares all28 immutable
+literal lens-query/draw operands with the pinned original:23 match, five have
+no owner and none conflict. V795 supplies those five exact .rdata words plus
+ownership regressions. Its unit is frozen while just those two source files
+and their manifest hashes are amended, before either affected object exists;
+no ABI or unrelated snapshot source is changed. This covers literal operands,
+not every dynamic lens dependency. No result is supplied for the lens query.
+V795 then stops at a syntax error in the added table; the corrected production
+and ownership-test files both pass a direct compiler syntax check. V798 is
+the coherent replacement. V799 verifies nine completed scratch/build paths
+removed, retires seven completed owned units and checks V790's retained
+executable plus all93 shader hashes. The active replacement is untouched.
+V798 passes all11 selected checks, including the five exact lens operands,
+but actual frame0 stops in the newly connected130890 geometry-cache frame:
+130F90 reads an unbacked48C754 byte. V800 verifies authored01 in writable
+TU1.5 .data and the exact reader instructions. Production now owns that
+writable byte separately from the cold activation gate4F2D80; the original
+pressure policy is preserved. Both changed files pass direct syntax checks.
+V801 rebuilds and keeps its temporary source/build owned by run_test for up
+to15 minutes of same-cohort GPU/visible validation, with explicit release and
+normal cancellation cleanup. V798's required failure-reference runtime/shaders
+occupy94,212,239 bytes. Corrected GPU order/pixels, the visible title and
+complete-cutscene parity remain pending.
+
 V754's pending ISO-backed full build/probe was cancelled before its runtime
 probe started; its owned scratch/build tree is removed. Its probe helper now
 uses the same MCC source guard before any subsequent playback. V756's real MCC
@@ -30,6 +124,14 @@ the model stream checks. Its test now admits an explicit opening startup
 profile while preserving Lockout's original24-model/131-section assertions;
 no opening model or rendered-frame acceptance is claimed. These two failures
 do not yet distinguish a stale runtime from the current conversion frontier.
+Follow-up inspection identifies V758's `mulg` error as a test-mode mistake:
+its startup helper always called `load_content(0,true)`, selecting multiplayer
+spawn globals even for the opening campaign. The corrected test passes campaign
+mode for the explicitly admitted opening profile; Lockout retains multiplayer
+mode and its unchanged fixed inventory. This error is not evidence of a
+campaign conversion defect. V759 freezes all current consumers together and
+builds a native candidate plus this corrected MCC-only component check, before
+attempting a bounded real MCC campaign startup. No installed runtime is replaced.
 Use a deliberately selected candidate executable for an actual campaign test:
 
 ```sh
@@ -37,6 +139,66 @@ python3 tools/run_test.py --scratch-root .local/test-scratch -- \
   python3 tools/preview_opening_cinematic.py --runtime /absolute/path/to/halo2_native \
   --report analysis/opening-mcc-preview.json
 ```
+
+**2026-10-19 MCC startup memory: reproduced; shared-storage fixes under runtime validation.**
+V759 fully links a coherent current client and passes the corrected MCC
+campaign-mode model check. V760 independently runs that completed model reader:
+5 startup model owners/167 sections,6 skinned sections/4095 vertices,1936 checks
+and31 rejection controls. Source resources stay unchanged; this is not rendered
+character acceptance. V759's actual MCC startup then reaches the unchanged6GiB
+limit before producing a frame. V762 reproduces it with249 memory samples:
+the native process reaches about6GiB of anonymous memory after `cache_end` and
+before `renderer_begin`. File cache and GPU allocation do not explain that
+observed pre-renderer growth. V763's bounded allocation stacks reach BSP/model
+light-material preload and repeated MCC bitmap preparation.
+
+Two storage gaps have real failing regressions. The MCC path bypassed decoded
+bitmap residency, so repeat loads decoded independent storage; completed signed
+images also forced new allocations when light passes copied their materials.
+V764 observes both failures before their changes. Published MCC caches now use
+the existing full-handle/subresource/palette key and actual decoder on misses.
+MCC import-time bitmap reads remain uncached until all tag postprocessing has
+finished; Vista's donor route remains unchanged. Signed conversion uses const
+input reads and publishes only its newly completed private output. Later writes
+still detach, including previously exposed mutable pointers.
+
+V764's signed-image check now passes64 material copies,16 exact float words,
+mip metadata and mutation-isolation controls. V766 passes all5 focused completed
+component binaries from the V765 source cohort: actual MCC bitmap residency
+with invalid-index/stale-handle controls, signed storage, existing texture/pass
+isolation and the MCC startup model reader. The real bitmap fixture currently
+uses the4x4 default-multiplicative image; large-scene memory acceptance comes
+from the actual client run, not this small residency fixture. V765's full client
+and all5 CTests subsequently pass. Its actual MCC startup gets past the earlier
+memory failure, creates the renderer in9.20 native application seconds and
+reaches frame0. The runtime unit peaks at4,073,857,024 bytes under the same6GiB
+limit and zero swap. This is startup-stage progress, not a full-run peak or FPS
+claim. The frame then stops in3DAF0/D563B at the older private CPU bitmap
+constructor's DXT5-only guard. No frame is accepted as rendered. These are
+shared cache/material changes, not scene-name exceptions.
+
+The current worktree has a newer guarded DXT1/DXT5 constructor and an actual
+MCC opening rug fixture with complete original constructor/sample colors.
+Those landed after V765's frozen source copy. V768 freezes the current
+implementation with both residency fixes, adds that fixture to its selected
+CMake checks, and prepares another bounded MCC startup. Its unit is
+`halo2-opening-mcc-bitmap-bridge-build-v768.service`; revalidate the same handle
+before treating a slow observation as completion or restarting it.
+
+V761 retains one required pre-fix MCC diagnostic reference at
+`analysis/opening-cinematic-20261015/mcc-current-runtime-v761/runtime/`
+(93,324,855 bytes, including93 shader files). The existing guarded relocation
+changes only the exact read-only default shader-path extent; instruction and
+shader bytes stay unchanged. No game assets or build tree are copied, and no
+installed launcher is replaced. V759's private source/build tree is removed.
+V765 retains its second required candidate at
+`analysis/opening-cinematic-20261015/mcc-residency-native-v765/runtime/`
+(93,405,639 bytes), reproducing the next bitmap guard after passing the earlier
+memory failure. Both private build trees are removed. V767 verifies nine
+completed scratch paths absent, checks the V761 reference hashes and unloads
+seven completed owned units. The active successor's owned scratch is temporary
+work, not a retained build artifact. No MCC frame or full13-scene visual/audio
+acceptance is claimed yet.
 
 **2026-10-19 group metadata handoff: component progress; live acceptance pending.**
 The live group now owns the actual post-cull native unit/mask snapshot before

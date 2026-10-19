@@ -25,10 +25,21 @@ or one successful weapon sequence does not complete an entire weapon.
   All63 Xbox reference paths are present. This is directory identity coverage.
 - The previous four-frame BR/SMG/turret application result used the ISO cache;
   retain it as reference evidence. It is **not MCC runtime acceptance**.
-- The first MCC-only Release build passed. Native HUD/shared-copy checks and
-  one/four-player MCC simulations pass. Campaign `ai_place` fails at original
-  `1E7F18`, missing backing `47D6C0`; source submission and application acceptance
-  remain open. All owned source/build scratch is verified removed.
+- The latest MCC-only Release run (v8) passes nine of ten checks. Native actor
+  placement and held-weapon source submission now pass:2,358 vertices, three
+  source shader inputs and seven model rejection controls. The real application
+  now completes public HS `ai_place`, loads objective strings, initializes the
+  RTX 5080 renderer and runs frame-zero simulation. The node-map conversion
+  clears the original `23644`/address `0x2` failure in the actual application.
+  Both new prerequisites pass: 906 projected MCC node-map resources, all five
+  complete original hinge headers, and canonical delivery with 112,779 pointer
+  fields and 69,887,237 owned bytes verified. The application next stops in
+  original root `23670`, at `22D78`, on absent read-only operand `46A680`.
+  Its exact original four-byte input is restored. The actual cold factory now
+  matches all 95 fixed read-only operands from the compiled model-render module,
+  including 34 further restored operand extents. The independent indexed-table
+  bounds remain open. Completed run/probe scratch is removed; four submitted
+  application frames remain required.
 
 ## Fixed boundaries
 
@@ -59,21 +70,99 @@ or one successful weapon sequence does not complete an entire weapon.
 
 ## Resume in this order
 
-- [x] Finish the first MCC Release build and inspect each test outcome. Four
-  MCC startup/simulation checks and four offline reference checks pass; campaign
-  source submission fails and application acceptance does not run successfully.
-  Preserve that failure and the immutable source/MCC hashes.
-  [Results](../analysis/weapons-tu15-goal-20261013/weapon-mcc-native-release-validation-v1/release/tests.log).
+- [x] Finish the MCC Release builds and inspect each actual outcome. The latest
+  run (v8) builds successfully, passes nine checks and fails the actual
+  application after renderer/frame-zero simulation on an undeclared original
+  PRT constant. Retain genuine failures and exact source/input hashes.
+  [Latest results](../analysis/weapons-tu15-goal-20261013/weapon-mcc-native-release-validation-v8/release/tests.log).
 - [x] Verify native MCC map/HUD startup and actual shared-copy behavior without
   an Xbox executable world constructor. The real authored HUD address and704
   overlapping-copy cases pass; no source return or tag address is supplied.
   [Native HUD receipt](../analysis/weapons-tu15-goal-20261013/weapon-mcc-native-release-validation-v1/release/evidence/weapon-campaign-native-hud.json).
-- [ ] Resolve the actual MCC campaign `ai_place` failure: root `2097E0`, original
-  instruction `1E7F18`, missing runtime backing `47D6C0`. Identify the original
-  owner/initialization contract and reproduce it; do not inject the wanted result.
-- [ ] Verify actual MCC campaign AI-held weapon submission against independent
-  section/WORLD-pose/shader/lighting inputs, then the finite application path.
-  Require the real expected owners and definitions in every submitted frame.
+- [x] Restore the exact original `47D6C0 = FFFFFFFF` operand and writable
+  section ownership. The actual MCC rerun clears original `1E7F18` and reaches
+  the later descriptor read. This does not complete actor or weapon acceptance.
+- [x] Export and verify115 original AI descriptor interfaces:4,632 immutable
+  bytes,920 writable cache bytes with original-2/0 inputs, and71 separate real
+  mask constructors (213 source instructions). All constructor ABI/stores and
+  cache/literal access rules pass in an isolated native composition. This is
+  not yet MCC campaign acceptance. Probe binaries/scratch are removed.
+  [Native composition](../analysis/weapons-tu15-goal-20261013/ai-descriptor-native-composition-v2.json),
+  [source write ownership](../analysis/weapons-tu15-goal-20261013/ai-descriptor-source-ownership-v1.json).
+- [x] Complete the authenticated AI behavior descriptor backing reached by MCC
+  actor placement: root `2097E0`, instruction `1B0D0F`, descriptor `48AD60`,
+  missing callback slot `48AD78`. Preserve real callback fields, source branches
+  and constructor-owned mutable masks; no supplied callback/return value.
+  [Original descriptor](../analysis/weapons-tu15-goal-20261013/mcc-campaign-48ad78-original-frontier-v1.json),
+  [schema inventory](../analysis/weapons-tu15-goal-20261013/mcc-ai-descriptor-schema-inventory-v1.json).
+  The actual MCC v4 actor/source case now passes this former failure.
+- [x] Verify MCC campaign AI-held weapon source submission against independent
+  section/WORLD-pose/shader/lighting inputs. The real Johnson actor owns its
+  turret item;2,358 vertices, three source inputs and seven model rejection controls
+  pass. This uses MCC and native startup, with no rendered-frame claim.
+  [Source case](../analysis/weapons-tu15-goal-20261013/weapon-mcc-native-release-validation-v4/release/evidence/weapon-campaign-source-submission.json).
+- [x] Verify cold world-memory composition and shared campaign-table ownership.
+  V5 fails with overlapping regions before startup. The current factory differs
+  from the deleted v5 build input and declares shared table words after their
+  earlier complete owners. Validate that actual factory and preserve the
+  existing arithmetic-table owner; do not infer the exact frozen-v5 cause from
+  changed source. The actual current factory now passes all 18 original table
+  words and preserves that complete 24-byte owner across 2,761 cold regions.
+  This is cold composition evidence; MCC application acceptance stays open.
+  Probe scratch is removed. Keep the known-passing v4 actor/source evidence.
+  [Cold factory](../analysis/weapons-tu15-goal-20261013/campaign-table-native-cold-composition-v2.json).
+- [x] Identify the actual model/resource owner behind the `23644` failure.
+  The same MCC canonical allocation plan maps source section `91F94CDC` to
+  section 0 of `ss_exterior_gun_hinge`. Its node map is `[3, 9]`; all five
+  sections retain the same vertex counts and authored node maps in the paired
+  Xbox cache. The Xbox header is 112 bytes and MCC is 120 bytes, with the
+  type100/type104 node-map destination and count/pointer fields displaced.
+  This establishes ownership/layout; native publication also passes in v8.
+  [Owner](../analysis/weapons-tu15-goal-20261013/mcc-model-resource-owner-validation-v1/cmake/evidence/weapon-mcc-model-resource-owner.json),
+  [paired headers](../analysis/weapons-tu15-goal-20261013/mcc-gun-hinge-paired-model-header-v1.json).
+- [x] Validate the typed MCC node-map conversion through canonical metadata,
+  actual resource I/O and the unchanged original publisher/render consumers.
+  Preserve the raw MCC input, authored node bytes and all other resource bytes.
+  Check fragmented reads, aliases, malformed owners and all five paired original
+  headers; then rerun actual MCC rendering. Do not mount address2, skip the model
+  or supply a source return value.
+  The focused contract/actual-I/O checks now pass: 906 MCC node-map resources,
+  five complete paired headers and 23,676,834 checks, including unchanged other
+  resource bytes. The full MCC run now also requires the complete metadata
+  delivery regression. V8 traverses the real publisher/`235E0` consumer past
+  the former `23644` node-map failure. Full application frames remain open.
+  [Focused result](../analysis/weapons-tu15-goal-20261013/mcc-model-node-map-validation-v1/cmake/evidence/mcc-model-node-map.json),
+  [actual MCC delivery](../analysis/weapons-tu15-goal-20261013/weapon-mcc-native-release-validation-v8/release/evidence/weapon-mcc-runtime-delivery.json),
+  [actual application](../analysis/weapons-tu15-goal-20261013/weapon-mcc-native-release-validation-v8/release/evidence/weapon-campaign-application.json).
+- [ ] Finish the actual MCC application path through public HS `ai_place`.
+  V6/v7 now place the actor through the public route. The former missing table
+  word`209D04` at`2098A6` is cleared by all three original campaign-runtime CFG
+  tables (72 bytes total); source branches and indices are unchanged. All56
+  original selector/bounds cases pass. The objective-locale correction now
+  clears actual MCC startup, and the RTX 5080 renderer initializes. Latest
+  blocker: V8 clears `23644`, then root `23670` reaches `22D78` and reads the
+  undeclared constant `46A680`. Its original four read-only bytes (`00008049`)
+  and 34 other fixed operand extents are restored. The actual cold factory
+  verifies all 95 fixed inputs, with no missing, conflicting or fragmented
+  owner. The shared `48C754` policy keeps one renderer-cache-pool owner and its
+  original writable value1. Revalidate the actual application after these fixes.
+  Preserve the original PRT arithmetic and every source result. Require real
+  expected owners/definitions in all four submitted application frames. No
+  frames have passed yet.
+  [Original table](../analysis/weapons-tu15-goal-20261013/mcc-public-ai-place-table-frontier-v1.json),
+  [table export](../analysis/weapons-tu15-goal-20261013/campaign-runtime-tables-export-v1.json),
+  [locale diagnosis](../analysis/weapons-tu15-goal-20261013/mcc-pause-objective-locale-frontier-v1.json),
+  [resource preflight](../analysis/weapons-tu15-goal-20261013/mcc-pause-objective-resource-preflight-v3.json),
+  [original model-render frontier](../analysis/weapons-tu15-goal-20261013/mcc-model-render-23644-original-frontier-v2.json).
+- [x] Audit the current model-render module's fixed read-only program inputs
+  against the authenticated original image and actual cold factory. All 95
+  operand extents match. The live PRT input and ten further literal ranges
+  preserve original bits and arithmetic; source results are not supplied.
+  [Original inventory](../analysis/weapons-tu15-goal-20261013/model-render-original-readonly-operand-inventory-v2.json),
+  [actual cold census](../analysis/weapons-tu15-goal-20261013/model-render-native-cold-operand-census-v3.json).
+- [ ] Complete the independently bounded indexed read-only table inputs reached
+  by model/animation consumers. The fixed-input census excludes these 13 read
+  sites; preserve original index guards and establish actual table extents.
 - [ ] Establish the MCC camera/scene case and expand coverage to loose BR/SMG,
   fixed-turret items and per-instance baked/dynamic lighting. Do not transplant
   the historical ISO dress-cap camera or datum assertions as MCC evidence.
@@ -81,9 +170,20 @@ or one successful weapon sequence does not complete an entire weapon.
   reloads and authored sound events. The earlier ISO SMG firing case's zero
   authored sound submissions remains unresolved; nonzero callback PCM alone
   does not establish correct firing-sound identity, timing or ownership.
-- [ ] Review the three additional MCC paths (`smg_silenced`, `gpmg`, Falcon
-  `rpg`) for Xbox-scope applicability and actual ownership. Record the decision
-  and evidence; neither silently omit them nor invent Xbox behavior for them.
+- [x] Review the three additional MCC paths (`smg_silenced`, `gpmg`, Falcon
+  `rpg`) for Xbox-scope applicability and actual ownership. None appears in any
+  of the 41 owned original map/shared/menu directories. MCC owns their metadata
+  in both shared banks; the 25 multiplayer occurrences per path are nonresident
+  aliases. Preserve these MCC additions outside the original 63-weapon catalog;
+  their MCC gameplay remains unverified and no Xbox behavior is invented.
+  [Applicability and ownership](../analysis/weapons-tu15-goal-20261013/mcc-additional-weapons-original-directory-audit-v1.json).
+- [ ] Qualify the Xbox `highplains2.map` variant against MCC `highplains.map`.
+  Exact weapon/cache identity pairs match1,077 of1,110 reference contexts; all33
+  mismatches are the Xbox Highplains2 context. Their scenario paths also differ,
+  so a filename alias alone does not establish equivalence. Preserve both source
+  identities and verify the required import/conversion and map-specific operands.
+  [Context audit](../analysis/weapons-tu15-goal-20261013/mcc-weapon-context-coverage-v1.json),
+  [original/MCC identity](../analysis/weapons-tu15-goal-20261013/mcc-highplains-counterpart-identity-v1.json).
 - [ ] Continue the feature, visual and owner gates below across all63 reference
   weapon paths, fixing each reproduced discrepancy against its original owner.
 

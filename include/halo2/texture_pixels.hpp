@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 #include <initializer_list>
 #include <memory>
 #include <span>
@@ -7,6 +8,7 @@
 #include <vector>
 
 namespace halo2 {
+struct Texture;
 // Value-owned image bytes. Completed images share residency across material
 // copies; mutable access detaches first. Borrowed const views expire at the
 // next mutable access. A previously exposed mutable view forces an independent
@@ -22,6 +24,7 @@ class TexturePixels {
         exposed_=true;return *storage_;
     }
     friend class Cache;
+    friend Texture prepare_signed_texture(Texture,std::uint32_t);
     // Cache publishes only after decoder-local writable views have expired.
     void publish()noexcept {exposed_=false;}
 public:

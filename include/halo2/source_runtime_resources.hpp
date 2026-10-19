@@ -13,7 +13,8 @@ public:
         bool operator==(const Identity &) const = default;
     };
     // Bind actual private resident bytes (including balance writes) and pinned
-    // original shared-resource snapshots. Filesystem paths stay local. The
+    // original shared-resource snapshots. For MCC, resident also authenticates
+    // owned English facial-resource sectors. Filesystem paths stay local. The
     // Cache must outlive this owner and remain immutable after construction.
     explicit SourceRuntimeResources(const Cache &);
     // Canonical runtime descriptor addresses can differ from the Cache's

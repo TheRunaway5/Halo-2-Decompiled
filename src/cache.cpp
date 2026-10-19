@@ -115,7 +115,7 @@ Cache::Cache(const std::filesystem::path& path, const std::filesystem::path& sha
         storage_=decode_mcc_cache(cache_bytes());snapshot_.reset();
         source_file_size_=storage_.size();mcc_=true;
         if(!original_data_)original_data_=OriginalData::native_tu15();
-        initialize_mcc();return;
+        initialize_mcc();publish_mcc_bitmap_cache();return;
     }
     data.require(0, 2048);
     if (data.u32(0) != 0x68656164 || data.u32(2044) != 0x666f6f74 || data.u32(4) != 8)

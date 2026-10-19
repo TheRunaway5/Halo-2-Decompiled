@@ -106,7 +106,7 @@ def build_and_test(args):
         ('build', ['cmake', '--build', str(build), '--config', args.config,
                    '--parallel', str(args.jobs), '--target', *(args.target or ['halo2_tests'])]),
         ('tests', ['ctest', '--test-dir', str(build), '--build-config', args.config,
-                   '--output-on-failure', '--no-tests=error', '--parallel', str(args.jobs)]),
+                   '--output-on-failure', '--no-tests=error', '--parallel', str(args.test_jobs or args.jobs)]),
     ]
     if args.filter:
         commands[-1][1].extend(['--tests-regex', args.filter])
@@ -147,6 +147,8 @@ def main():
     parser.add_argument('--target', action='append', help='Build this target (repeatable)')
     parser.add_argument('--filter', help='CTest test-name regular expression')
     parser.add_argument('--jobs', type=int, default=2)
+    parser.add_argument('--test-jobs', type=int,
+                        help='Concurrent CTests (default: --jobs); lower for memory-heavy native worlds')
     parser.add_argument('--config', default='Release', help='Build configuration (default: Release)')
     parser.add_argument('--sanitizers', action='store_true')
     parser.add_argument('--cmake-arg', action='append', default=[])
@@ -157,6 +159,8 @@ def main():
     args = parser.parse_args()
     if args.jobs < 1:
         parser.error('--jobs must be positive')
+    if args.test_jobs is not None and args.test_jobs < 1:
+        parser.error('--test-jobs must be positive')
     for value in args.retain_report:
         path = Path(value)
         if path.is_absolute() or '..' in path.parts:

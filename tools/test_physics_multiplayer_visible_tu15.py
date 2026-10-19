@@ -3,7 +3,8 @@
 
 The native runner drives normal SDL input. Physics is never replaced with
 recorded state. Red/unavailable features remain nonzero results in the report.
-The pinned English TU1.5 executable is mandatory, including for LAN authority.
+Runtime assets come only from the selected prepared MCC cache. English Xbox
+TU1.5 source/execution remains the offline behavioral reference.
 """
 import argparse
 import ctypes
@@ -20,8 +21,9 @@ import tempfile
 import threading
 import time
 
+from physics_test_cache import runtime_cache, runtime_map, retain_results
+
 ROOT = Path(__file__).resolve().parents[1]
-TU15_SHA = "21b207e7efdacaf6124a0822837f8be570766a42505057f7fd2d2ba8f409c4fd"
 
 
 def digest(path):
@@ -117,9 +119,9 @@ def inspect_mirror(args):
 def run(args, scenario):
     out = args.output / scenario
     out.mkdir(parents=True, exist_ok=False)
-    map_path = args.map or args.maps / ("coagulation.map" if scenario in ("vehicle", "lan-vehicle") else "lockout.map")
-    command = [str(args.runtime), str(map_path), str(args.maps), str(args.xbe),
-               str(args.ui), str(out), scenario]
+    map_path = runtime_map(args.maps, args.map or args.maps / ("coagulation.map" if scenario in ("vehicle", "lan-vehicle") else "lockout.map"))
+    command = [str(args.runtime), str(map_path), str(args.maps), "native-mcc",
+               str(args.mcc_root), str(out), scenario]
     env = os.environ.copy()
     env["SDL_VIDEODRIVER"] = "x11"  # This visible window is the recorded X11 surface.
     started = time.monotonic()
@@ -128,6 +130,7 @@ def run(args, scenario):
     record_command = None
     record_log = None
     runtime_before = digest(args.runtime)
+    map_before = digest(map_path)
     runtime_executed = runtime_before
     mirror_checks = []
     mirror_errors = []
@@ -206,11 +209,17 @@ def run(args, scenario):
                 "mirror_checks": mirror_checks, "mirror_errors": mirror_errors,
                 "mirror_error_observations": mirror_error_observations,
                 "mirror_continuously_verified": bool(mirror_checks) and not mirror_errors,
-                "tu15_xbe_sha256": digest(args.xbe),
-                "map_sha256": digest(map_path), "visible_x11_window": window,
+                "runtime_cache_source": "MCC", "runtime_cache_inputs": args.cache_inputs,
+                "reference": "English Xbox TU1.5 offline behavior and visual authority",
+                "runtime_xbe": None, "xbox_vista_runtime_fallback_allowed": False,
+                "map_sha256": digest(map_path), "map_sha256_before": map_before,
+                "map_stable": map_before == digest(map_path), "visible_x11_window": window,
                 "record_command": record_command, "record_exit_code": record.returncode if record else None}
     if mirror_errors and exit_code == 0:
         manifest["native_exit_code"] = exit_code
+        exit_code = manifest["exit_code"] = 1
+    if not manifest["map_stable"] and exit_code == 0:
+        manifest["input_stability_error"] = "Prepared MCC map changed during the actual runtime test"
         exit_code = manifest["exit_code"] = 1
     # Preserve the actual native result even if the window closed before the
     # recorder obtained its first frame or a later media inspection fails.
@@ -260,19 +269,26 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--runtime", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--maps", type=Path, default=ROOT / "assets/disc/maps")
-    parser.add_argument("--xbe", type=Path, required=True)
-    parser.add_argument("--ui", type=Path, required=True)
-    parser.add_argument("--map", type=Path, help="Explicit original map for authored placement cases")
+    parser.add_argument("--mcc-root", type=Path, required=True, help="Prepared imported MCC cache; no Xbox/Vista runtime fallback")
+    parser.add_argument("--maps", type=Path, help="Optional exact maps directory inside the selected MCC cache")
+    parser.add_argument("--map", type=Path, help="Explicit map inside the selected prepared MCC cache")
+    parser.add_argument("--report-output", type=Path, help="Keep bounded reports outside disposable scratch")
+    parser.add_argument("--retain-video", action="store_true", help="Explicitly retain the unaltered recordings and selected frames with reports")
     parser.add_argument("--scenario", action="append", choices=["movement", "objects", "lift", "vehicle", "lan-movement", "lan-lift", "lan-vehicle", "lan-objects", "lan-campaign"])
     parser.add_argument("--record", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--visible-mirror-display", help="Desktop displaying an unaltered live mirror when input is isolated")
     parser.add_argument("--mirror-process-info", type=Path, help="Owned live capture/player process metadata")
     args = parser.parse_args()
-    for name in ("runtime", "output", "maps", "xbe", "ui"):
+    for name in ("runtime", "output", "mcc_root"):
         setattr(args, name, getattr(args, name).resolve())
-    if digest(args.xbe) != TU15_SHA:
-        raise SystemExit("Acceptance requires the pinned English TU1.5 executable")
+    args.maps, args.cache_inputs = runtime_cache(args.mcc_root, args.maps)
+    if args.map:
+        args.map = runtime_map(args.maps, args.map)
+    owned = os.environ.get("HALO2_TEST_SCRATCH")
+    if not owned or not args.output.is_relative_to(Path(owned).resolve()):
+        raise SystemExit("Run physics validation through tools/run_test.py with --output under HALO2_TEST_SCRATCH")
+    if args.retain_video and not args.report_output:
+        parser.error("--retain-video requires --report-output")
     if not os.environ.get("DISPLAY"):
         raise SystemExit("A native DISPLAY is required; visible proof needs a desktop window or an unaltered live desktop mirror")
     if args.record and (not shutil.which("ffmpeg") or not shutil.which("ffprobe")):
@@ -282,11 +298,15 @@ def main():
     # together. Hold this lock through native shutdown and recording cleanup.
     display_key=hashlib.sha256(os.environ["DISPLAY"].encode()).hexdigest()[:16]
     lock_path=Path(tempfile.gettempdir())/f"halo2-tu15-visible-{os.getuid()}-{display_key}.lock"
-    with lock_path.open("a") as display_lock:
-        fcntl.flock(display_lock,fcntl.LOCK_EX)
-        results = [run(args, name) for name in (args.scenario or ["movement", "objects", "lift", "vehicle", "lan-movement"])]
-    (args.output / "suite.json").write_text(json.dumps({"target": "English TU1.5", "results": results,
-        "full_physics_parity": False}, indent=2) + "\n")
+    try:
+        with lock_path.open("a") as display_lock:
+            fcntl.flock(display_lock,fcntl.LOCK_EX)
+            results = [run(args, name) for name in (args.scenario or ["movement", "objects", "lift", "vehicle", "lan-movement"])]
+        (args.output / "suite.json").write_text(json.dumps({"target": "English TU1.5", "runtime_cache_inputs": args.cache_inputs,
+            "results": results, "full_physics_parity": False}, indent=2) + "\n")
+    finally:
+        if args.report_output:
+            retain_results(args.output, args.report_output, video=args.retain_video)
     raise SystemExit(0 if all(row["exit_code"] == 0 for row in results) else 2)
 
 

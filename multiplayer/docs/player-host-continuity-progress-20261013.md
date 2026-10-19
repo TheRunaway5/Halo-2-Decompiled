@@ -5182,3 +5182,245 @@ match/postgame voice remain direct and player-hosted. U01/D01 now explicitly
 require MCC-derived Vista ONLINE/clan metadata/resources and selection; the
 [bounded UI wiring audit](../../.local/runtime-receipt-frontier-20261019/mcc-ui-wiring.md)
 found current catalogue/admission/selection gaps and does not close visual gates.
+
+## Passive source resources before renderer startup, 2026-10-19
+
+M02 now admits eligible direct TU1.5 clients' supported source particle and
+model-light resources before renderer construction. Weapon firing, barrel/parent
+ready and authored effect attachments are covered; FP and WORLD admission are
+independent so an unsupported camera bank cannot hide a supported one. The
+client's native particle/model producers remain dormant and its CPU effects stay
+active. Cache resource loading does not execute the native model builder, fill
+its 512-record cache, advance simulation or mutate a sealed candidate.
+
+The native build and both selected normal CTests pass. In the actual four-view
+direct ONLINE fixture, a separate host-side cache census before player admission
+matches every accepted client receipt: 49 particle materials, 105 first-person
+systems and 127 world systems. All 257 observations retain those counts, 125
+model-light sections and 58,342 renderer-uploaded mesh materials. Exact receipt
+history still captures 256 entries, initially awaits one proven predecessor,
+peaks at128 retained entries, binds two native cuts and renders 486 frames. No
+host migration is activated. Whole-fixture peak RSS is 7,707,204 KiB including
+native worlds/renderer; it does not accept history memory or sustained catch-up.
+
+The Backwash native fixture separately censuses 40 distinct authored references,
+including one null and five non-effect tags, from 36 firing, two ready and two
+attachment references. Supported banks contain 50
+materials, 105 FP and 128 WORLD systems. Repeated admission leaves resources and
+the native execution boundary unchanged, and the original 240-frame/14-draw,
+repeated-view, particle/RNG and bounded-queue controls still pass. These map counts
+are independent observations, not hard-coded cross-map equivalence. Five GCC
+C++20 syntax checks also pass. An initial syntax-helper selection failure found
+multiple compile-database variants; selecting the actual native/systems and each
+fixture's own target resolved it before any syntax compiler had run. Native test
+results were unaffected. No sanitizer claim is made for this milestone.
+
+Eight selected owner hashes match a complete 15,920-file frozen source cohort;
+13 later root changes are recorded and preserved, not overlaid into the build.
+Evidence: [verification.json](../../.local/source-candidate-residency-20261019/verification.json).
+The 97,373,024-byte private native executable has SHA-256
+`598c2cb0484225193ce38621d44f17fe3fe0c72c85da6126e1d9f9f9479dc3de`;
+it is removed, never installed or delivered. All recorded scratch/processes are
+absent after removing 35,112 generated files / 1,313,165,286 logical bytes
+(1,410,691,072 allocated). Six one-off helpers totaling 38,686 bytes are also
+retired after retaining bounded reports, commands, hashes and failure diagnostics.
+No large artifact is retained. Shared available space increases by 410,370,048
+bytes; concurrent activity/shared extents make that distinct from removed-file
+storage. Source tests, references, installed assets/launchers and unrelated work
+are preserved.
+
+M01 remains checked; M02 remains unchecked. Complete prepared borrower adoption,
+exact presentation/input/playing-audio histories, all-survivor readiness and
+actual windowed activation remain next, followed by memory/catch-up/timing,
+delivery, hardware and WAN acceptance. Default migration stays disabled. Gameplay
+and match/postgame voice remain direct and player-hosted. The user's MCC-only
+Vista ONLINE/clan asset requirement is recorded in U01/D01, including the existing
+runtime-pack/metadata/selector gaps; U02 retains widescreen and actual clan-screen
+dimensions. The full ONLINE goal remains active.
+
+## Exact surviving-client replica rollback, 2026-10-19
+
+M02 now has a transaction for an ordinary surviving client's actual display
+world. A same-owner opaque checkpoint retains accepted scene generations,
+roots/functions/WORLD poses, device groups/channels/events/replica clock, props,
+scenery collision and composed collision pointers. Typed receipt history retains
+that checkpoint and the authentic immutable proof. Preparation allocates/copies
+before staging owner mutation barriers. Publication swaps values and retains
+replaced storage until outside the session lock. It does not reuse an authoritative
+native checkpoint for a client that has no native executor.
+
+LanClient's exact rebind validates the actual connection/context/seal, native
+tick, body stamp and couch ownership; it restores the decoded cut and preserves
+outgoing input. The runtime prepares and preflights it with the display checkpoint.
+Foreign retry, cancellation and refused presentation publication preserve the
+later genuine live tick and old endpoint. Successful publication clears live
+old-generation receipt eligibility; the first real successor packet establishes
+the new one. Obsolete private preparations retire outside publication locks.
+
+The coherent native build and three normal CTests pass. Both original takeover
+variants test the new rollback and continue twelve actual native ticks/direct
+encoded voice packets; unchanged-world background heartbeats last 6000 and
+6002 ms. Two additional ASan/UBSan/leak CTests pass without suppressions with
+four core owners and two fixture TUs instrumented; other source/generated/native,
+renderer, codec, GUI and dependency interiors are uninstrumented. Sanitizer
+warm-ups are 6002 ms in both cases. Eight exact-target current-root GCC checks
+pass. All 23 selected hashes match the complete 15,936-file frozen cohort;
+16 later unrelated root changes are recorded and preserved, so this is not
+combined-current-release acceptance. Evidence:
+[verification.json](../../.local/client-replica-cut-20261019/verification.json).
+
+After finalization, concurrent MCC compatibility changes updated the network
+header and implementation (MCC-native fingerprint/resource/font inputs). The
+migration additions remain present. These edits are preserved and recorded in
+[post-finalization-drift.json](../../.local/client-replica-cut-20261019/post-finalization-drift.json);
+21 selected owners still match and two now differ. No combined-source native or
+sanitizer acceptance is inferred from the earlier frozen qualification.
+
+The actual direct four-view fixture accepts 257 receipts, captures 256, initially
+awaits one proven predecessor, peaks at 128 retained entries, binds two native
+cuts and renders 461 frames. Its independent authored census matches 49 particle
+materials, 105 FP and 127 WORLD systems; 125 model-light sections and 58,342 mesh
+materials stay stable with native producers dormant. Whole-process peak RSS is
+7,766,220 KiB including worlds/renderer, not an isolated history-byte or catch-up
+budget. The rendered fixture does not activate migration.
+
+The 97,440,696-byte native executable (SHA-256
+`c947c360780784e0e6d565089b61c790b513d184821fc4b375949da2444efb3f`)
+is hashed and removed, not installed. Both private workspaces are removed:
+35,194 recorded files / 1,631,359,895 logical bytes (1,730,371,584 allocated).
+All recorded owned paths/processes and finalizer scratch are absent; no large
+artifact is retained. Seven one-off helpers (109,825 bytes) are retired after
+preserving bounded commands, source hashes, reports and failure diagnostics;
+the regression fixture sources remain. Shared available space decreases by 1,771,118,592 bytes
+during cleanup; concurrent filesystem activity/shared extents prevent attributing
+that delta to this run. It is separate from removed-file size.
+
+M01 stays checked, M02 remains unchecked and default migration stays disabled.
+Complete presentation/input/playing-audio and world-borrower adoption remain
+open. The [next distribution/association plan](../../.local/client-replica-cut-20261019/common-cut-next-step.md)
+requires independent proof validation and pinned local receipt cuts on every
+surviving PC, distinct from complete owner readiness. It is planning evidence,
+not M06 acceptance. Physical gameplay/controllers/headsets, WAN, memory/catch-up
+and coherent delivery remain unqualified. Gameplay and match/postgame voice stay
+direct and player-hosted. U01/U02/D01 still require MCC-derived Vista ONLINE/clan
+assets, fresh MCC-only onboarding and correct widescreen/real clan-screen bounds.
+The full 46-item ONLINE goal remains active.
+
+## Independent paired-cut fanout and nonterminal exports, 2026-10-19
+
+The production player host now publishes one paired world/host chain to every
+accepted nonhost physical peer, including peers ineligible to host. Each exact
+authenticated peer/context/full-seal acknowledgement counts once; the group
+completes only when all fixed recipients validate. Its identity does not invent
+a peer ID. Group streams use one in-flight cut; existing singleton two-cut
+prefetch remains supported. Failed stream state discards the replay/delta base
+without relabeling historical completed group/host evidence. Cancellation or
+context replacement retires that evidence. Construction commits cached runtime
+recipients only after success so allocation/thread failures remain retryable.
+
+Receivers and workers now export the currently validated paired world, host
+table, independent admissions and producer/recipient views without stopping
+receipt/replay. Exact opaque proof, native boundary and admission/context checks
+reject stale, foreign or unpaired exports. Owning earlier values survive later
+replay and worker destruction; terminal retention remains usable.
+
+The coherent native build and all seven normal CTests pass. Both takeover
+variants use two independent receivers with one shared seal and each client's
+own authentic proof, delayed/duplicate/foreign ACK controls, exact masks and
+explicit cancellation. They preserve the original twelve native ticks/direct
+encoded voice packets, couch input and rollback controls. Warm-up observations
+are 6001/91 and 6004/79 ms (warm/publication), not migration latency acceptance.
+The paired-stream fixture exports at 70, continues to 72 real native phases,
+rejects the old request and later reconstructs/retains both owners. Singleton,
+foreground/background replay, in-flight retention and snapshot-origin tests also
+pass. Six exact-target GCC checks pass. No sanitizer/GPU/rendered migration or
+physical-controller/headset/WAN acceptance is claimed for this milestone.
+
+The initial phase passed six tests; its new fault injection wrongly assumed a
+native recording authority remained reusable after unwinding. Recording scope
+construction marks authority mutation and unwinding intentionally faults its
+boundary. The fixture correction removes that assumption, preserves production
+guards and tests explicit cancellation; the same private build then passes all
+seven tests. An initial audit separately finds two existing fixture logs under
+the private source snapshot. The corrected audit records only those exact bounded
+nonlink outputs (176 and 261 bytes) with hashes, keeping all code/build and link-set
+checks strict. Both test phases and the failed audit/diagnoses are retained.
+
+All twelve selected hashes match a complete 15,948-file current frozen cohort,
+including the previously preserved MCC-native fingerprint changes. Twenty-four
+later unrelated root changes are recorded and preserved rather than overlaid.
+Evidence: [verification.json](../../.local/common-cut-fanout-20261019/verification.json).
+The 97,957,520-byte private native executable has SHA-256
+`6a9866e90729e8952b961fe48c40d9534867463cdbfd002bfa6b9413fefde37d`;
+it is removed, not installed or delivered. All recorded paths/processes and the
+finalizer scratch are absent after removing 35,127 generated files /
+1,435,048,705 logical bytes (1,533,915,136 allocated). No large artifact is retained;
+original assets/references, launchers and unrelated work are preserved.
+
+M01 stays checked; M02-M07 remain open and the full goal stays active. The next
+[common-cut ownership barrier](../../.local/common-cut-fanout-20261019/next-common-cut.md)
+must pin exact native and foreground owners on every required survivor before
+commit/release. Native group acknowledgements do not establish complete owner
+readiness. Complete world/presentation/input/playing-audio adoption, sustainable
+catch-up/memory, rendered activation, coherent delivery and physical/WAN checks
+remain open. Default migration stays disabled. Gameplay and match/postgame voice
+remain direct and player-hosted. MCC-only Vista ONLINE/clan assets, fresh
+onboarding, widescreen and actual clan-screen dimensions remain required.
+
+## Owning common-cut agreement and repair, 2026-10-19
+
+The negotiated direct-peer common-cut barrier now uses fixed physical
+membership and exact context/seal identity. Each nonhost recipient owns its
+independently validated native world/host proof and matching foreground
+receipt/replica/effects/frontier before association. Commit requires every
+association plus native validation; apply/release require the corresponding
+complete local phase visibility. Release retires the prior pin outside the
+session lock. Pre-commit rejection/Abort preserves the committed pair and
+drains pending native exports before acknowledging retirement. The windowed
+observer keeps no extra persistent checkpoint alias and retrieves the exact
+learned recovery cut, without substituting the replay worker's newest world.
+
+The coherent native build and all seven unskipped focused CTests pass. The new
+three-session fixture admits twelve couch profiles and uses two independent
+receivers. Both exact pairs survive 334 real receipts with ordinary history and
+reservation capacity 128. A later native cut deliberately lacks both exact
+foreground bindings; Abort preserves the prior pair, a genuine source step
+produces a fresh repair, and two authenticated released rounds complete
+(cut 1 at tick 0, repair cut 3 at tick 1). Nine exact-target GCC syntax checks
+also pass; their bounded warning logs are retained. This milestone does not
+claim sanitizer, rendered/GPU migration, physical controller/headset or WAN
+acceptance. Complete prepared owners, sustainable byte/catch-up budgets,
+election readiness and live activation remain required.
+
+The first test phase exposed disk-only snapshot backing incorrectly placed on
+tmpfs. The storage-only retry preserved the same source and native binary; no
+native safety guard was relaxed. A subsequent fixture failure exposed an
+overstrict phase-observation expectation and an actually unbound later
+foreground cut. The corrected terminal owner check and explicit pre-commit
+repair path preserve real proof and authority checks. All phases, diagnostics,
+per-round manifests and the two declared source updates are retained.
+
+The full 16,048-file frozen source manifest and 314 reference links remain
+unchanged after qualification. Twenty selected implementation/test owners
+match the root; concurrent unrelated CMake additions and 37 total later root
+changes are preserved rather than overlaid. Qualification applies to the frozen
+cohort, not a combined current-root release. Evidence:
+[verification.json](../../.local/common-cut-pins-20261019/verification.json),
+[ownership review](../../.local/common-cut-pins-20261019/review.md) and
+[remaining transaction](../../.local/common-cut-pins-20261019/next-adoption.md).
+
+The 98,082,168-byte native executable (SHA-256
+`cc358f0eff61693217ca7456314c7aede3da2e2d72df59d6771e7822e91df3dc`)
+is hashed and removed, never installed. Both managed scratch trees and their
+owned processes are absent. The pre-cleanup inventory records 35,338 generated
+files / 1,501,269,967 logical bytes (1,523,519,488 allocated); compiler temporaries
+created afterward are also removed by the enclosing lifecycle. The one-off
+qualifier is retired after preserving its hash; regression test sources and
+small reports remain. No new large artifact is retained. Original references,
+launcher-selected runtimes and concurrent work are preserved.
+
+M01 remains checked; M02-M07 remain open and default migration stays disabled.
+The full 46-item ONLINE goal stays active. Gameplay and match/postgame voice
+remain direct and player-hosted. U01/U02/D01 require Vista ONLINE/clan banks
+from MCC-only onboarding, with correct widescreen and actual clan-screen bounds;
+this native-only milestone makes no UI acceptance claim.

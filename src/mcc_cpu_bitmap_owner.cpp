@@ -19,16 +19,18 @@ Owner project(const Tag&tag,unsigned frame,std::span<const std::byte> root,unsig
  const auto row=rows.subspan(std::size_t(frame)*168,168);const auto layout=project_mcc_lens_bitmap_layout(tag.handle(),frame,row,resource,texture);const Bytes d(row);
  if((d.u16(14)&0x18u)||!std::has_single_bit(resource.width)||!std::has_single_bit(resource.height))
   throw FormatError("CPU bitmap requires proved non-linear non-swizzled power-of-two storage");
- if(resource.format==16){
-  if(texture.format!=16||!(d.u16(14)&2u)||resource.levels[0].size()<texture.pixels.size()||!std::equal(texture.pixels.begin(),texture.pixels.end(),resource.levels[0].begin()))
-   throw FormatError("CPU bitmap requires the same retained encoded DXT5 resource/image");
- }else if(resource.format==11){
-  if(texture.format!=11||d.u16(14)!=0x201u||d.u16(20)!=0||resource.levels[0].size()!=std::size_t(resource.width)*resource.height*4)
-   throw FormatError("CPU bitmap requires proved complete raw BGRA format11 top-level storage");
-  const auto prepared=prepare_texture(Bytes(resource.levels[0]),resource.width,resource.height,11,false,0);
+ if(resource.format==14 || resource.format==16){
+  if(texture.format!=resource.format||!(d.u16(14)&2u)||resource.levels[0].size()<texture.pixels.size()||!std::equal(texture.pixels.begin(),texture.pixels.end(),resource.levels[0].begin()))
+   throw FormatError("CPU bitmap requires the same retained encoded DXT1/DXT5 resource/image");
+ }else if(resource.format==10 || resource.format==11){
+  std::size_t expected{};auto width=resource.width,height=resource.height;
+  for(unsigned level=0;level<=d.u16(20);++level){expected+=std::size_t(width)*height*4;width=std::max(1u,width/2u);height=std::max(1u,height/2u);}
+  if(texture.format!=11||d.u16(14)!=0x201u||resource.levels[0].size()!=expected)
+   throw FormatError("CPU bitmap requires proved complete raw XRGB/ARGB format10/11 mip storage");
+  const auto prepared=prepare_texture(Bytes(resource.levels[0]),resource.width,resource.height,resource.format,false,d.u16(20));
   if(prepared.pixels!=texture.pixels||prepared.mips.size()!=texture.mips.size()||!std::equal(prepared.mips.begin(),prepared.mips.end(),texture.mips.begin(),[](const auto&a,const auto&b){return a.width==b.width&&a.height==b.height&&a.offset==b.offset&&a.size==b.size&&a.depth==b.depth;}))
    throw FormatError("CPU bitmap raw BGRA owner differs from existing Cache RGBA preparation");
- }else throw FormatError("CPU bitmap format is outside proved DXT5/format11 domain");
+ }else throw FormatError("CPU bitmap format is outside proved DXT1/DXT5/format10/11 domain");
  Owner result{tag,frame,count,first,{root.begin(),root.end()},{rows.begin(),rows.end()},resource.levels[0],layout.common,
   {std::bit_cast<std::int16_t>(d.u16(4)),std::bit_cast<std::int16_t>(d.u16(6)),std::bit_cast<std::int16_t>(d.u16(12)),std::bit_cast<std::int16_t>(d.u16(20)),std::bit_cast<std::int8_t>(std::to_integer<std::uint8_t>(row[8])),d.u16(10),d.u16(14)}};
  (void)source_bitmap_pending_header(result.metadata,0,0);return result;

@@ -6,6 +6,7 @@
 #include "halo2/source_live_model_draws_tu15.hpp"
 #include "halo2/physics_world_runtime.hpp"
 #include "halo2/pstencil/point_caster.hpp"
+#include <cstddef>
 
 namespace halo2 {
 namespace pstencil {class SharedLightMaterials;}
@@ -78,6 +79,11 @@ public:
         SourceEffectLightModelViewTu15* models=nullptr,
         std::vector<pstencil::PointCaster>* point_casters=nullptr,std::uint32_t light_domain=0);
     const std::vector<std::string>& unavailable() const;
+    // Actual immutable model sections admitted before renderer construction.
+    std::size_t resident_model_sections()const noexcept;
+    bool resident_model_section(std::uint32_t render_model,unsigned section)const noexcept;
+    const Cache &resident_cache()const noexcept;
+    const Mesh &resident_mesh()const noexcept;
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;

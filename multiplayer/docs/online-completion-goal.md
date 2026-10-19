@@ -52,15 +52,30 @@ Checkoff rules:
 
 Current task: **M02**, prepare complete world-borrower adoption using the now
 qualified owning receipt, runtime/event frontier and deferred-cue history.
-M02 remains unchecked; retaining the input to adoption does not adopt the runtime.
+Passive particle/model-light resource admission before renderer startup is now
+qualified. Exact surviving-client decoded/scene/device/prop/collision rollback
+is also qualified against a retained authentic receipt; complete prepared
+adoption remains the current task. Independent paired-cut publication to every
+physical recipient and nonterminal exact receiver exports are now qualified;
+each recipient can now pin and agree its own exact native/foreground recovery
+cut, survive ordinary history eviction, and repair a rejected later cut while
+retaining the committed pair. Seven focused native/protocol tests and nine GCC
+checks qualify this headless/CPU prerequisite, not complete owner readiness.
+M02 remains unchecked; retaining resources and adoption inputs does not adopt
+the runtime.
 **M01** is checked below with its dated GPU/native evidence and verified cleanup. Next
 dependencies remain **M03–M06**, presentation/input/audio continuity, bounded
 retention and all-survivor readiness, followed by **M07**, the actual windowed
 migration path. Migration remains disabled by default until those prerequisites
 and the relevant network/voice gates pass. The [next production dependency](../../.local/runtime-receipt-frontier-20261019/next-adoption.md)
 and earlier [adoption inventory](../../.local/lens-deferred-retirement-20261019/next-adoption-inventory.md)
-record missing owners and dependency order; they are inspection evidence,
-not completed runtime adoption. U01/D01 separately track the MCC-only UI
+record missing owners and dependency order. The latest
+[remaining owner transaction](../../.local/common-cut-pins-20261019/next-adoption.md)
+identifies the complete presentation/input/playing-audio preparation and
+activation still required after common-cut pinning. The
+[qualification receipt](../../.local/common-cut-pins-20261019/verification.json)
+applies to its frozen source cohort; later unrelated root edits are preserved
+and do not inherit combined-release qualification. U01/D01 separately track the MCC-only UI
 metadata/resource-bank generation and selector wiring found in the latest audit.
 
 ### M — Host migration and disconnect survival
@@ -85,6 +100,15 @@ metadata/resource-bank generation and selector wiring found in the latest audit.
   proof-bound history entry. Six normal tests, four selected-owner sanitizer
   tests and nine compiler checks pass with verified cleanup; see the
   [receipt](../../.local/runtime-receipt-frontier-20261019/verification.json).
+  A subsequent prerequisite admits complete supported authored weapon particle
+  banks and model-light sections before renderer startup, while client native
+  producers stay dormant. Two native/rendered tests and five GCC checks pass;
+  the independent weapon census matches every accepted client receipt, with
+  verified scratch removal. See the [resource admission receipt](../../.local/source-candidate-residency-20261019/verification.json).
+  Exact surviving-client decoded and scene/device/prop/collision rollback now
+  passes three normal tests, two selected-owner sanitizer tests and eight GCC
+  checks, with verified scratch removal; see the
+  [client adoption receipt](../../.local/client-replica-cut-20261019/verification.json).
   Complete borrower/scene/HUD/input/playing-audio adoption remains open.
 - [ ] **M03 — Presentation continuity.** Complete exact scene/model/first-person,
   camera, pose, lighting, HUD, culling and active-effect history adoption.
@@ -99,6 +123,20 @@ metadata/resource-bank generation and selector wiring found in the latest audit.
 - [ ] **M06 — All-survivor readiness.** Advertise only actual complete native,
   presentation, input and audio readiness; agree membership/cut/epoch before
   promotion, preserve retry/cancellation, and reject stale or incomplete owners.
+  Prerequisite qualified 2026-10-19: one paired publisher now sends the same cut
+  to every accepted physical recipient; each independently validates/proves its
+  own receipt and can export its exact paired world without stopping replay.
+  Seven normal CTests, six GCC checks and verified scratch cleanup pass; see
+  the [fanout/export receipt](../../.local/common-cut-fanout-20261019/verification.json).
+  Further prerequisite qualified 2026-10-19: each physical recipient now stores
+  its own independently validated native proof and exact foreground receipt
+  before association. Fixed-membership commit/apply/release retains those
+  recovery owners; rejection/Abort of an unbound later cut preserves the prior
+  pair and permits a genuinely validated repair. Seven unskipped focused tests
+  and nine GCC checks pass with verified scratch removal; see the
+  [common-cut pin receipt](../../.local/common-cut-pins-20261019/verification.json).
+  This is headless native/CPU ownership evidence. The complete prepared
+  presentation/input/playing-audio barrier remains open; M06 stays unchecked.
 - [ ] **M07 — Windowed runtime activation.** Connect the complete prepared
   adoption to normal host promotion and client endpoint rebind. Demonstrate an
   actual rendered match continuing after host departure with surviving players
@@ -1141,3 +1179,74 @@ history/audio/input/readiness and windowed activation gates. Gameplay and
 match/postgame voice remain direct and player-hosted. The user's MCC-only Vista
 ONLINE/clan source requirement is recorded in U01/D01; the bounded UI audit found
 catalogue-to-runtime metadata/pack and painter-selection gaps, still unaccepted.
+
+## Exact surviving-client replica adoption — M02 partial, 2026-10-19
+
+A client now prepares its exact owning decoded state and accepted scene,
+device, prop and composed collision replica together before endpoint publication.
+Opaque proof, connection/context/cut/couch identity and same-owner receipt checks
+reject substituted banks. Preparation preserves the later live state; cancellation,
+foreign retry and refused presentation publication preserve it too. Successful
+publication restores the cut, keeps outgoing input ownership and retains replaced
+storage until outside the locked session publication. The first real successor
+packet establishes its own new-generation receipt.
+
+The coherent native build and three normal CTests pass, including both native
+takeover variants, decoded rollback and four-view rendered history. Two additional
+ASan/UBSan/leak CTests pass without suppressions; only four core owners and two
+fixture TUs are instrumented. Eight current-root GCC checks pass. The 23 selected
+owners match the complete 15,936-file frozen cohort; 16 later unrelated root
+changes are preserved. This does not qualify their combined release. Full results
+and cleanup: [verification.json](../../.local/client-replica-cut-20261019/verification.json).
+After finalization, concurrent MCC fingerprint changes landed in the two network
+owners. They are preserved and recorded in the
+[source-boundary receipt](../../.local/client-replica-cut-20261019/post-finalization-drift.json);
+this milestone qualifies its frozen cohort, not those later combined sources.
+
+Both private workspaces are removed: 35,194 recorded files / 1,631,359,895 logical
+bytes (1,730,371,584 allocated), with no binary/capture retained or installed.
+The four-view fixture renders 461 frames and retains 256 exact receipts across
+two native cuts without resource growth. Its whole-process peak RSS of
+7,766,220 KiB includes native worlds/renderer and is not a history-memory budget.
+No rendered migration is activated. M02-M07 remain open and default migration
+stays disabled. The [next proof-distribution dependency](../../.local/client-replica-cut-20261019/common-cut-next-step.md)
+requires independent validation and exact local association on every surviving
+PC, distinct from complete presentation/input/playing-audio readiness. Gameplay
+and match/postgame voice stay direct and player-hosted. U01/U02/D01 retain the
+MCC-only Vista UI source, fresh onboarding and actual widescreen/clan geometry
+requirements; this milestone makes no UI acceptance claim.
+
+## Independent paired-cut fanout and export — M02/M06 prerequisite, 2026-10-19
+
+The live runtime now uses every accepted nonhost physical peer as a paired-cut
+recipient, independently of QoS host eligibility. One recorder/encoder sends one
+seal; exact per-peer/context/full-seal acknowledgements complete the group only
+after every recipient validates. A collective acknowledgement has a distinct
+group identity. Singleton two-cut delivery remains supported. Failed successor
+streams discard their replay/delta base while retaining historical completed
+group/host evidence; explicit cancellation/context replacement retires it.
+Receivers and background workers export exact currently validated world/host/
+admission/view values without stopping replay. Stale or foreign requests reject.
+
+The coherent native build and seven normal CTests pass, including two independent
+receiver fanout/takeover variants, original twelve-tick/direct-voice controls,
+72-phase paired replay, legacy singleton/pipeline/retention and decoded-origin
+checks. Six current-root GCC checks pass. All twelve selected owners match the
+15,948-file frozen cohort; 24 unrelated later changes are preserved, not overlaid.
+The native binary is hashed and removed, never installed. All recorded scratch/
+processes and finalizer scratch are absent after removing 35,127 recorded files /
+1,435,048,705 logical bytes (1,533,915,136 allocated). No large artifact is retained.
+Evidence: [verification.json](../../.local/common-cut-fanout-20261019/verification.json).
+
+The initial fixture wrongly reused a deliberately faulted recording boundary;
+the correction preserves the native guard and tests explicit cancellation. Both
+phases/diagnostics remain recorded. A separate audit correction classifies exactly
+two small private fixture logs as outputs, preserving strict code/build hashes.
+No sanitizer, GPU/rendered migration, physical-device or WAN acceptance is claimed.
+Next is [pinning and agreeing the common cut](../../.local/common-cut-fanout-20261019/next-common-cut.md),
+alongside complete world/presentation/input/playing-audio adoption and bounded
+catch-up/memory. Historical group validation does not close M06 or enable default
+windowed migration. M01 stays checked; M02-M07 stay open and the full goal remains
+active. Gameplay and match/postgame voice remain direct and player-hosted. MCC-only
+Vista ONLINE/clan assets, fresh onboarding and real widescreen/clan dimensions
+remain required and unaccepted by this native-only milestone.

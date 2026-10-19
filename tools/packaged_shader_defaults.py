@@ -1,4 +1,4 @@
-"""Bounded Linux package relocation of the existing renderer's default path.
+"""Bounded Linux relocation of the existing renderer's default shader path.
 
 Only one authenticated byte extent inside allocated read-only ELF data may
 change. Instructions, file extent, shader bytes and runtime options remain
@@ -91,22 +91,43 @@ def readonly_literal_location(payload, literal):
     return owners[0]
 
 
-def relocate_compiled_shader_default(payload, original_directory):
-    """Return a complete staged postimage plus receipt; never mutate an input."""
+def relocate_compiled_shader_default(payload, original_directory, *, target_directory=None):
+    """Return a staged postimage; preserve instructions and the path field width.
+
+    Packages use the fixed relative layout. A local launcher may instead bind
+    a canonical owned directory without replacing another build's shader bank.
+    """
     directory = Path(original_directory)
     if not directory.is_absolute() or directory.resolve(strict=True) != directory:
         raise ValueError("Select the actual canonical compiled default shader directory")
     original = os.fsencode(directory)
     location = readonly_literal_location(payload, original)
-    relative = PACKAGE_SHADERS.encode()
-    padding = len(original) - len(relative)
-    if padding % 2:
-        relative = b"bin//shaders"
+    if target_directory is not None:
+        target = Path(target_directory)
+        if (not target.is_absolute() or target.is_symlink() or not target.is_dir() or
+                target.resolve(strict=True) != target):
+            raise ValueError("Local shader relocation requires its canonical directory owner")
+        relative = os.fsencode(target)
         padding = len(original) - len(relative)
-    if padding < 0:
-        raise ValueError("Compiled shader path is too short to relocate")
-    relative = b"./" * (padding // 2) + relative
-    relative_compiled_default(os.fsdecode(relative))
+        if padding < 0:
+            raise ValueError("Compiled shader path is too short to relocate")
+        # filesystem::path consumes this known-length field. Trailing directory
+        # separators preserve its width and resolve to the same canonical owner.
+        relative += b"/" * padding
+        if Path(os.fsdecode(relative)).resolve(strict=True) != target:
+            raise ValueError("Local shader relocation changed its directory owner")
+        output_directory = str(target)
+    else:
+        relative = PACKAGE_SHADERS.encode()
+        padding = len(original) - len(relative)
+        if padding % 2:
+            relative = b"bin//shaders"
+            padding = len(original) - len(relative)
+        if padding < 0:
+            raise ValueError("Compiled shader path is too short to relocate")
+        relative = b"./" * (padding // 2) + relative
+        relative_compiled_default(os.fsdecode(relative))
+        output_directory = PACKAGE_SHADERS
     if len(relative) != len(original):
         raise ValueError("Packaged shader default extent changed")
     start = location["offset"]
@@ -114,7 +135,7 @@ def relocate_compiled_shader_default(payload, original_directory):
     assert len(postimage) == len(payload)
     readonly_literal_location(postimage, relative)
     record = dict(location, original_directory=str(directory), compiled_default=os.fsdecode(relative),
-                  directory=PACKAGE_SHADERS, input_sha256=hashlib.sha256(payload).hexdigest(),
+                  directory=output_directory, input_sha256=hashlib.sha256(payload).hexdigest(),
                   output_sha256=hashlib.sha256(postimage).hexdigest(),
                   changed_bytes=sum(a != b for a, b in zip(original, relative)),
                   only_declared_readonly_literal_changed=True)

@@ -2,6 +2,7 @@
 #include "halo2/native_unit_interaction.hpp"
 #include "halo2/source_ai_squad_team.hpp"
 #include "halo2/content.hpp"
+#include "halo2/campaign_title.hpp"
 #include "halo2/fp_registration.hpp"
 #include "halo2/math.hpp"
 #include "halo2/model.hpp"
@@ -1263,13 +1264,9 @@ LevelContent Cache::load_content(std::size_t index, bool multiplayer, const Sour
     auto &points=out.command_points.emplace_back();
     for(const auto p:metadata_block_offsets(set+0x20,0x3c))points.push_back({point(data,p+0x20),std::int16_t(i16(data,p+0x2c)),std::int32_t(data.u32(p+0x30))});
   }
-  for(const auto p:metadata_block_offsets(s+0x1f0,0x24)) {
-    CampaignTitleDefinition title;title.text=data.u32(p);title.color=data.u32(p+0x10);title.shadow=data.u32(p+0x14);
-    for(unsigned i=0;i<4;++i)title.bounds[i]=std::int16_t(i16(data,p+4+i*2));
-    title.justification=std::int16_t(i16(data,p+0xc));title.font=std::int16_t(i16(data,p+0xe));
-    title.fade_in=real(data,p+0x18);title.up_time=real(data,p+0x1c);title.fade_out=real(data,p+0x20);
-    out.cinematic_titles.push_back(title);
-  }
+  const auto titles=metadata_block(s+0x1f0,0x24);
+  if(titles.count)out.cinematic_titles=read_campaign_titles(
+      data.slice(titles.offset,std::size_t(titles.count)*0x24),is_mcc(),scenario_);
   // Retain the complete donor syntax bank within its serialized16-bit datum
   // space. Signature-compatible builtins and external globals use the same
   // original indices as native gameplay. Inspection can retain additional

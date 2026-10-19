@@ -2,8 +2,10 @@
 #include "halo2/frontend.hpp"
 #include "halo2/frontend_online.hpp"
 #include "halo2/frontend_emblem.hpp"
+#include "halo2/gameplay_font_source.hpp"
 #include "halo2/source_game_variant.hpp"
 #include "halo2/texture.hpp"
+#include "mcc_frontend_string_ids.hpp"
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -107,6 +109,11 @@ std::string FrontendContent::localized(const UiScreen &screen,
 FrontendContent Cache::load_frontend() const {
   const Bytes bytes(cache_bytes());
   FrontendContent out;
+  if (is_mcc()) {
+    detail::validate_mcc_frontend_identifiers(*this);
+    out.source_fonts = gameplay_font_directory(*this);
+    (void)load_gameplay_font_source(out.source_fonts);
+  }
   auto tag = [&](std::uint32_t datum, const char *group) -> const Tag & {
     const auto* it = find_tag({datum});
     if (!it || it->group != group || !it->address)
@@ -359,7 +366,8 @@ FrontendContent Cache::load_frontend() const {
       0x240006dd, 0x1c0006de, 0x230006df, 0x1c0006e0, 0x1c0006e1,
       0x180006e2, 0x040006e3}};
   for (const auto id : key_ids) {
-    const auto found = key_list.find(id);
+    const auto mapped = detail::frontend_compiled_string_id(out, id);
+    const auto found = mapped ? key_list.find(*mapped) : key_list.end();
     out.button_keys.push_back(found == key_list.end() ? std::string{} : found->second);
   }
   for (auto p : metadata_block_offsets(g + 0x120, 44, 256))
@@ -422,7 +430,10 @@ FrontendContent Cache::load_frontend() const {
           l.position = point(bytes, a + 8);
           l.animation = bytes.u16(a + 12);
           l.delay = bytes.u16(a + 14);
-          if (l.skin >= out.skins.size() || !l.visible || l.visible > 128)
+          // MCC retains empty list definitions in its browser/about screens.
+          // Preserve the authored zero count; the painter already skips it.
+          if (l.skin >= out.skins.size() || l.visible > 128 ||
+              (!l.visible && (!is_mcc() || bytes.u32(a + 16))))
             throw FormatError("invalid UI list definition");
           for (auto item : metadata_block_offsets(a + 16, 20))
             l.labels.push_back(bytes.u32(item + 16));
@@ -520,9 +531,20 @@ FrontendContent Cache::load_frontend() const {
     const auto p = offset(datum, "bitm", 76);
     UiImage image;
     image.name = tag(datum, "bitm").name;
-    for (auto q : metadata_block_offsets(p + 68, 116, 256)) {
+    const auto frames = metadata_block_offsets(p + 68, is_mcc() ? 168 : 116, 256);
+    for (std::size_t frame = 0; frame < frames.size(); ++frame) {
+      const auto q = frames[frame];
       if (bytes.u16(q + 10) != 0)
         throw FormatError("UI bitmap is not two dimensional");
+      if (is_mcc()) {
+        // MCC owns tight texture partitions through its 168-byte descriptor;
+        // the Xbox raw-data words/pitch do not describe those resources.
+        auto texture = load_bitmap(datum, std::uint32_t(frame));
+        if (bytes.u16(q + 12) == 16)
+          texture = prepare_xemu_bc3_texture(texture);
+        image.images.push_back(std::move(texture));
+        continue;
+      }
       const auto raw = raw_data(bytes.u32(q + 28), bytes.u32(q + 52));
       image.images.push_back(
           prepare_ui_bitmap(Bytes(raw), bytes.u16(q + 4), bytes.u16(q + 6),

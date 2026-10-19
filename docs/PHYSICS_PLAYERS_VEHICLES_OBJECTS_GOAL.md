@@ -1,5 +1,136 @@
 # Player, vehicle and object physics: 1:1 port goal
 
+## October 19: required MCC runtime inputs and disposable tests
+
+Runtime physics acceptance now requires the existing prepared cache at
+`assets/imported/mcc-056309e12f444a3a8992c94f6fe32f0b`. Xbox TU1.5 remains
+the behavioral and visual authority through offline source/execution/reference
+checks. Runtime tests must not load an Xbox executable, disc maps, or Vista UI.
+The historical v299 source cohort and v734 runtime used those legacy runtime
+inputs; their recordings remain reference evidence, not current MCC runtime
+qualification. The queued v758 build/v760 live runs were stopped after this
+requirement was made explicit. Their private storage was removed; source edits
+and bounded results are preserved. Do not promote v734 as the current runtime.
+
+The original support controller readback is wired into the current root tests:
+actual owner at unit+448, PHYS body index at unit+40C, and the original rigid
+transform at unit+410. Offline actual captures show a 2.35-unit grounded carry
+after a lower-entry body handoff, while the phase0 BSP-floor-only entry remains
+red. The current MCC fixture compiles, but moving-support acceptance on MCC
+remains red at the native owners described below. Full player/vehicle/object
+TU1.5 parity is incomplete.
+
+Use `tools/run_tests.py` for disposable CMake builds and `tools/run_test.py`
+for each probe/capture. The visible physics wrapper requires `--mcc-root`,
+validates version13 cache headers and rejects maps outside the selected cache.
+Raw outputs stay in managed scratch. Keep bounded reports with
+`--report-output`; retain requested recordings explicitly with `--retain-video`.
+
+The current-root MCC fixture compiles in `mcc-physics-build-v763`; all nine
+actual visible MCC attempts in `mcc-physics-visible-v767` stop before gameplay.
+The failures expose the legacy LAN fingerprint's unconditional `default.xbe`
+dependency and a missing native placement-selector row at `44EB40`. Offline
+English TU1.5 audit `mcc-physics-frontier-v768` verifies both original consumers
+and the exact immutable sixteen-byte row. It is now mounted by the native world
+factory. LAN identity now uses native TU1.5 MCC identity, v13 shared caches,
+actual MCC texture/sound banks and `h2_fonts`, rejects mixed cache versions and
+explicit executable injection, and preserves relocation/content checks.
+`mcc-lan-identity-v769` records the exact production function failing before and
+passing after this fix. Managed current-source build `mcc-physics-build-v770`
+passes both linked regressions and exports the ordinary runtime. The private
+build/source trees are removed. Initial v771/v773 attempts fail in mirror setup
+before game execution because the one-off controller supplied an outdated X11
+authority path; their failure logs are preserved. Corrected visible rerun
+`mcc-physics-visible-v775` attempts all nine actual MCC cases with uninterrupted
+mirrors and removes its scratch. All nine remain red: player shape dispatch at
+`461420`, Coagulation configuration branches at `15CFA8`, gravity-lift contact
+dispatch at `41CA9C`, and Cyclotron physical branches at `1E0184`. Original
+constructors, callers, exact bytes and branch extents are audited in v779/v780;
+these four immutable owners and their factory regression checks are now wired.
+Managed build v781 stops on a font-variable name collision captured during
+concurrent source work; its private tree is removed and no v783/v784 game is
+run. The current source already corrects that name collision. Managed build
+v788 and fresh visible matrix v789/ordinary startup v790 are pending validation.
+
+Build v788 subsequently passes all three gates and removes its private tree.
+The full v789 MCC matrix advances to new failures: movement selector byte
+`115E1A`, inline vehicle shape interface `462060`, contact query interface
+`41CA8C`, and the physical interface at `41EA3C`. All nine attempts retain their
+actual errors and uninterrupted mirror receipts; none is accepted as physics
+parity. Ordinary v790 startup passes again (120 frames, 153 ticks, two players,
+no forbidden runtime files) and removes scratch. The MCC-only vehicle inventory
+finds 209 authored placements, including 47 class-3 placements, without a
+reference executable or injected tags.
+
+Offline v786/v792 audits find 104 proved branch/selector tables across the
+2,025-function compiled physics graph, with 66 tables/2,191 bytes absent from
+the v788 native factory. The native factory now mounts the complete proved
+3,541-byte profile through `native_tu15_physics_branch_data.cpp`. Its exporter
+authenticates the English TU1.5 executable and exact source graph, exports only
+bounded readonly branch data, and initially defers six traces with targets
+outside their recovered code. Existing readonly bytes must match; writable or
+conflicting owners are rejected before new data is published. Partial owners
+are preserved. Real production implementation controls pass in v798/v803.
+Audits v796/v797 additionally verify the newly reached interfaces and their
+constructor-installed siblings/embedded callbacks; these are wired into the
+factory and regression checks. Build v799 passes all three gates and removes
+its private tree. Live MCC matrix v800 now passes actual movement/crouch/jump:
+181 exact same-tick LAN comparisons, 294 submitted frames, 1.444256 units of
+travel, crouch1 and 2.940958 upward velocity. The unaltered recording is retained.
+Vehicle/object cases advance to `45F8C4`, the gravity lift to `461F78`, and
+Cyclotron to `41E484`; those eight cases remain red. Ordinary v801 passes
+120 frames/130 ticks/two players with no forbidden runtime inputs.
+
+Audit v807 identifies the six deferred cases as original literal null targets,
+not nonzero cross-function jumps. Export v811 now retains all118 readonly
+branch/selector tables (3,915 original bytes), including those null words and
+the two proven biased byte-table operands. Original null dispatch is not
+replaced with a successful callback. Audits v808-v810 additionally derive
+bounded code-reference prefixes from original readonly operands published by
+instruction sites in the compiled physics bodies. Export v812 wires140 such
+records (4,344 bytes); it does not infer complete C++ class layouts or callback
+implementation. The reached physical query at45F8C0 is separately declared
+from its original185111 constructor and neighboring interface boundary.
+Production sharing controls pass in v815. Build v813 stops at a duplicate
+geometry-cache policy owner at48C754; v814/v816 do not execute games. Its private
+source/build trees are removed, as verified in v817. The current source checks
+the existing writable renderer owner and original enabled value instead of
+mounting another copy. Frozen build v819 (four compiler jobs) and its queued
+live MCC matrix v820/ordinary startup v821 validate that integration. Full
+parity and vehicle-camera acceptance remain open.
+
+MCC context inventory v818 resolves all47 class-3 object and variant names
+against the original reference. Positions, flags and BSP policy correspond;
+cache-local name/StringID differences are retained in v805. Future inputs use
+actual MCC map paths and tag identities. This does not establish clear observer
+starts, activation, controller response or visible acceptance for those cases.
+
+Retirement v804 removes another 277,030,072 bytes of completed v770 test
+programs and duplicate shaders, preserving the exact source archive, reports,
+recordings, current v788 candidate and launcher-selected runtimes. The v788
+private build is removed, including at least 504,840,192 observed allocated
+file bytes; some exported files share those extents and concurrent filesystem
+activity prevents attributing a matching physical free-space increase.
+
+Retirement v823 removes 555,276,016 bytes of superseded v788 and failed v813
+test programs and identical shaders. The exact source archives (31,135,605 and
+31,336,006 bytes), pins, reports and recordings remain. The visibly tested v799
+baseline and all launcher-selected runtimes are preserved and rehashed. Its
+managed scratch is removed. The immediate volume free-space delta is
+123,457,536 bytes during concurrent builds, reported separately from removed
+file sizes.
+
+Ordinary current-candidate MCC startup v776 passes: 120 rendered frames,
+163 ticks, two players, 540 opened MCC files, 69 continuous mirror checks and
+zero Xbox/Vista runtime inputs. The actual two-view Lockout frame is manually
+reviewed in v785. This is startup evidence, not movement/vehicle/lift acceptance.
+Its scratch is removed. Retirement v777 removes 183,678,651 bytes of superseded
+v763 test programs, duplicate shaders and obsolete helpers; the exact source
+archive and failure results remain. Filesystem free-space deltas include
+concurrent work and do not equal that removed path size. The original v770
+bundle totaled308,133,642 bytes; its programs/shaders are now retired under
+v804, with exact source and results preserved.
+
 ## October 19: retained shader bundle and live team/world integration (WIP)
 
 Managed builds v722/v730 pass the actual authored child and coupled Match/world

@@ -5,6 +5,7 @@
 #include "frame_vertex_reuse.hpp"
 #include "frame_vertex_upload_plan.hpp"
 #include "material_descriptor_range.hpp"
+#include "material_fog_phase.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "halo2/renderer.hpp"
 #include "halo2/pstencil/light_response_material.hpp"
@@ -2041,28 +2042,7 @@ struct Renderer::Impl {
             // Retail 2BCD0 composites atmospheric fog before layer 15.
             // Blending alone cannot identify that layer: the carrier's
             // additive self-illumination belongs to layer 7, before fog.
-            bool late=material.forward_blend!=0;
-            if(material.forward_pass && !material.lods.empty()) {
-                if(material.selected_shader_lod>=material.lods.size())
-                    throw FormatError("fog scheduling shader LOD outside authored template");
-                const auto &lod=material.lods[material.selected_shader_lod];
-                if(material.forward_pass_index>=material.passes.size())
-                    throw FormatError("fog scheduling pass outside material");
-                const auto pass=material.passes[material.forward_pass_index].template_pass;
-                bool selected=false;
-                for(unsigned layer=0;layer<lod.layers.count() && layer<32;++layer) {
-                    if(!(lod.available_layers & (1u<<layer)))continue;
-                    const auto index=lod.layers.first()+layer;
-                    if(index>=material.layers.size())throw FormatError("fog scheduling layer outside template");
-                    const auto range=material.layers[index];
-                    if(pass>=range.first() && pass<range.first()+range.count()) {
-                        if(selected && late!=(layer==15))
-                            throw FormatError("fog scheduling pass belongs to incompatible layers");
-                        late=layer==15;selected=true;
-                    }
-                }
-            }
-            after_fog.push_back(late);
+            after_fog.push_back(detail::material_after_fog(material));
             projected_decal_layers.push_back(material.forward_vertex==11?material.forward_pass_index:~0u);
             if(!material.hud_pass && !material.light_volume_pass &&
                 (material.world_pass || material.forward_blend || material.accumulation_texture || material.environment_pass)) {
@@ -5881,10 +5861,10 @@ struct Renderer::Impl {
                 emit_bsp_draw(draw,draw.material,buffer,RendererBspDrawPhase::texture_mapping);
             }
         };
-        auto draw_overlays = [&](const std::vector<Draw>& list,bool before,VkBuffer buffer) {
+        auto draw_overlays = [&](const std::vector<Draw>& list,bool before,VkBuffer buffer,bool late=false) {
             vkCmdBindVertexBuffers(command,0,1,&buffer,&offset);
             for(const auto &draw:list)if(draw_visible(draw))for(const auto material:(before?world_before:world_after)[draw.material]) {
-                if(!layer_enabled(material))continue;
+                if((!before && after_fog[material]!=late) || !layer_enabled(material))continue;
                 emit_bsp_draw(draw,material,buffer,before?RendererBspDrawPhase::overlay_before:RendererBspDrawPhase::overlay_after);
             }
         };
@@ -5982,6 +5962,7 @@ struct Renderer::Impl {
             sky_raster=true;
             draw_dynamic(background_draws);
             draw_environment(background_draws);
+            draw_overlays(background_draws,false,debug_buffer,true);
             sky_raster=false;
             VkClearAttachment attachment{};
             attachment.aspectMask=VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -6101,6 +6082,10 @@ struct Renderer::Impl {
                 <<" duplicate_cpu_base=0 duplicate_cpu_fog=0\n";
 #endif
         if(atmosphere && !debug.empty())draw_dynamic(dynamic_draws,1);
+        // Layer15 children run after fog in authored order, including views
+        // without atmosphere. Layer8/7 children already ran before fog.
+        if(!full_surface_scene)draw_overlays(draws,false,vertex_buffer,true);
+        if(!debug.empty())draw_overlays(dynamic_draws,false,debug_buffer,true);
         if(!volume_draws.empty() || !particle_draws.empty()) {
             // Original captured glow groups occur after body/beam layer 15,
             // before the direct patchy-haze composition and bloom.
@@ -6177,6 +6162,7 @@ struct Renderer::Impl {
             vkCmdClearAttachments(command,1,&depth_clear,1,&area);
             draw_dynamic(foreground_draws);
             draw_environment(foreground_draws);
+            draw_overlays(foreground_draws,false,debug_buffer,true);
         }
         if(title_scene && bloom_threshold) {
             if(!can_capture)throw FormatError("title bloom requires swapchain transfer-source support");
@@ -6427,6 +6413,7 @@ struct Renderer::Impl {
                 if(!retain_world_history && !v.background.empty()) {
                     sky_raster=true;
                     draw_dynamic(view_background[i]);draw_environment(view_background[i]);
+                    draw_overlays(view_background[i],false,debug_buffer,true);
                     sky_raster=false;
                     vkCmdClearAttachments(command,1,&depth_clear,1,&area);
                 }
@@ -6634,6 +6621,7 @@ struct Renderer::Impl {
                     // for dedicated4C690 remains a separate source input.
                     sky_raster=true;
                     draw_dynamic(view_background[i]);draw_environment(view_background[i]);
+                    draw_overlays(view_background[i],false,debug_buffer,true);
                     sky_raster=false;
                 }
                 draw_decals(view_draws[i]);
@@ -6732,6 +6720,7 @@ struct Renderer::Impl {
                 // 2BCE0 -> 3C3C0 -> 2C340: independent water precedes the
                 // authored transparent queue (highest-LOD layer 15).
                 if(v.atmosphere)draw_dynamic(view_draws[i],1);
+                draw_overlays(view_draws[i],false,debug_buffer,true);
                 if(v.world_transparent || sorted_world_effects[i])draw_transparent(0);
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE
                 const auto &particle_range=view_particle_ranges[i];
@@ -6816,6 +6805,7 @@ struct Renderer::Impl {
                     }
                     if(!v.atmosphere)vkCmdClearAttachments(command,1,&depth_clear,1,&area);
                     draw_dynamic(view_foreground[i]);draw_environment(view_foreground[i]);
+                    draw_overlays(view_foreground[i],false,debug_buffer,true);
                     first_person_draw=false;
                 }
 #ifdef HALO2_PARTICLE_GRAPHICS_AVAILABLE

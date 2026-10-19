@@ -157,9 +157,11 @@ unsigned WorldProjection::first_row_for_canonical_root(TagHandle bitmap,unsigned
     auto& selected=staged?*staged:found->second;
     state.current(selected);
     require(selected.root==canonical_root,"Private inline CPU bitmap actual requested full salt has a different canonical root");
-    // D5610 constructs through 1D2D0; only the DXT5 constructed-row path
-    // is proved. Format11 remains valid for the separate direct D5506 path.
-    require(Bytes(selected.rows_bytes).u16(12)==16,"Private inline CPU bitmap constructor requires proved DXT5 format16");
+    // Complete original D5610/1D2D0 samples retain the same encoded DXT1
+    // and DXT5 storage. Complete original raw samples also prove formats10/11.
+    const auto format=Bytes(selected.rows_bytes).u16(12);
+    require(format==10 || format==11 || format==14 || format==16,
+        "Private inline CPU bitmap constructor requires proved raw10/11 or DXT14/16");
     const auto key=std::pair{bitmap.value,0u};
     auto known=state.frames.find(key);
     if(known==state.frames.end()){

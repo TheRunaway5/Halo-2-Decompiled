@@ -1,6 +1,9 @@
 #include "halo2/movie.hpp"
 #include <algorithm>
 #include <cmath>
+#include <fstream>
+#include <nlohmann/json.hpp>
+#include <openssl/evp.h>
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -14,6 +17,155 @@ void check(int code, const char *operation) {
   char message[AV_ERROR_MAX_STRING_SIZE];
   av_strerror(code, message, sizeof(message));
   throw FormatError(std::string(operation) + ": " + message);
+}
+
+using Json = nlohmann::json;
+constexpr const char *movie_schema = "H2_PORT_BUNDLED_MOVIES_V1";
+constexpr const char *source_schema = "halo2-upscaled-movies-v1";
+bool digest_string(const Json &value) {
+  return value.is_string() && value.get_ref<const std::string &>().size() == 64 &&
+         std::all_of(value.get_ref<const std::string &>().begin(),
+                     value.get_ref<const std::string &>().end(), [](char c) {
+                       return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+                     });
+}
+bool owned(const std::filesystem::path &path, bool directory = false) {
+  std::filesystem::path component;
+  for (const auto &part : std::filesystem::absolute(path).lexically_normal()) {
+    component /= part;
+    std::error_code error;
+    const auto state = std::filesystem::symlink_status(component, error);
+    if (error == std::errc::no_such_file_or_directory ||
+        state.type() == std::filesystem::file_type::not_found)
+      return false;
+    if (error || std::filesystem::is_symlink(state))
+      throw FormatError("movie path has no private owner: " + component.string());
+    if (component != std::filesystem::absolute(path).lexically_normal() &&
+        !std::filesystem::is_directory(state))
+      throw FormatError("invalid movie parent: " + component.string());
+  }
+  return directory ? std::filesystem::is_directory(path)
+                   : std::filesystem::is_regular_file(path);
+}
+std::string bounded_metadata(const std::filesystem::path &path,
+                             std::uintmax_t maximum) {
+  if (!owned(path))
+    throw FormatError("missing movie metadata: " + path.string());
+  const auto size = std::filesystem::file_size(path);
+  if (!size || size > maximum)
+    throw FormatError("invalid movie metadata extent");
+  std::ifstream input(path, std::ios::binary);
+  std::string text(std::size_t(size), '\0');
+  input.read(text.data(), std::streamsize(size));
+  if (!input || input.peek() != std::char_traits<char>::eof())
+    throw FormatError("movie metadata changed while reading");
+  return text;
+}
+Json metadata(const std::string &text) {
+  try {
+    const auto value = Json::parse(text);
+    if (!value.is_object())
+      throw FormatError("invalid movie metadata object");
+    return value;
+  } catch (const Json::exception &) {
+    throw FormatError("invalid movie metadata JSON");
+  }
+}
+std::string metadata_sha(const std::string &text) {
+  unsigned char digest[EVP_MAX_MD_SIZE];
+  unsigned size{};
+  if (EVP_Digest(text.data(), text.size(), digest, &size, EVP_sha256(), nullptr) != 1 || size != 32)
+    throw FormatError("cannot verify movie metadata SHA-256");
+  constexpr char hex[] = "0123456789abcdef";
+  std::string result;
+  for (unsigned i = 0; i < size; ++i) {
+    result += hex[digest[i] >> 4];
+    result += hex[digest[i] & 15];
+  }
+  return result;
+}
+void movie_record(const Json &row, bool role) {
+  if (!row.is_object() || row.size() != (role ? 3u : 2u) ||
+      !row.contains("bytes") || !row["bytes"].is_number_unsigned() ||
+      !row["bytes"].get<std::uint64_t>() ||
+      row["bytes"].get<std::uint64_t>() >= (std::uint64_t(1) << 63) ||
+      !row.contains("sha256") || !digest_string(row["sha256"]))
+    throw FormatError("invalid movie size/SHA-256 record");
+}
+void movie_roles(const Json &roles) {
+  if (!roles.is_object() || roles.size() != 2 || !roles.contains("intro") || !roles.contains("credits"))
+    throw FormatError("movie roles must be exactly intro and credits");
+  for (const std::string role : {"intro", "credits"}) {
+    const auto &row = roles[role];
+    movie_record(row, true);
+    if (row.value("path", std::string{}) != role + "_60.mp4")
+      throw FormatError("invalid relative movie role path");
+  }
+}
+std::filesystem::path role_file(const std::filesystem::path &bank,
+                                const Json &roles, const std::string &name) {
+  // Import/repair authenticates both complete payloads. Startup deliberately
+  // checks only this pinned metadata and both file extents; FFmpeg validates
+  // the stream on opening. It does not rehash 2.5 GB on every movie query.
+  for (const std::string role : {"intro", "credits"}) {
+    const auto file = bank / roles[role]["path"].get<std::string>();
+    if (!owned(file) || std::filesystem::file_size(file) != roles[role]["bytes"].get<std::uint64_t>())
+      throw FormatError("cached movie is missing or has changed extent: " + role);
+  }
+  return bank / roles[name]["path"].get<std::string>();
+}
+std::filesystem::path cached_movie(const std::filesystem::path &cache,
+                                   const std::string &name) {
+  if (!owned(cache / "provenance.json"))
+    return {};
+  const auto report = metadata(bounded_metadata(cache / "provenance.json", 4 * 1024 * 1024));
+  if (!report.contains("port_bundled_movies"))
+    return {};
+  const auto &entry = report["port_bundled_movies"];
+  if (report.value("schema", std::string{}) != "H2_MCC_TU15_PREPARATION_V1" ||
+      report.value("external_installation_requirement", std::string{}) != "Halo MCC only" ||
+      !entry.is_object() || entry.value("schema", std::string{}) != movie_schema ||
+      entry.value("complete", false) != true ||
+      entry.value("path", std::string{}) != "presentation/movies/manifest.json" ||
+      !entry.contains("sha256") || !digest_string(entry["sha256"]))
+    throw FormatError("invalid cached movie provenance");
+  const auto bank = cache / "presentation/movies";
+  const auto text = bounded_metadata(bank / "manifest.json", 64 * 1024);
+  if (metadata_sha(text) != entry["sha256"].get<std::string>())
+    throw FormatError("cached movie manifest SHA-256 differs");
+  const auto record = metadata(text);
+  if (record.value("schema", std::string{}) != movie_schema ||
+      record.value("source_schema", std::string{}) != source_schema ||
+      !record.value("complete", false) || !record.value("copied_without_transcoding", false) ||
+      record.value("attract_assigned", true) || record.value("external_vista_or_xbox_required", true) ||
+      !record.contains("source_manifest") || !record["source_manifest"].is_object() ||
+      record["source_manifest"].value("path", std::string{}) != "resources/movie-manifest.json" ||
+      !record["source_manifest"].contains("sha256") || !digest_string(record["source_manifest"]["sha256"]) ||
+      !record.contains("roles") || !entry.contains("roles") || record["roles"] != entry["roles"])
+    throw FormatError("invalid cached movie manifest");
+  movie_roles(record["roles"]);
+  return role_file(bank, record["roles"], name);
+}
+std::filesystem::path bundled_movie(const std::filesystem::path &bundle,
+                                    const std::string &name) {
+  if (bundle.empty() || !owned(bundle / "manifest.json") ||
+      !owned(bundle.parent_path() / "movie-manifest.json"))
+    return {};
+  const auto record = metadata(bounded_metadata(bundle / "manifest.json", 64 * 1024));
+  if (record != metadata(bounded_metadata(bundle.parent_path() / "movie-manifest.json", 64 * 1024)) ||
+      record.value("schema", std::string{}) != source_schema ||
+      !record.contains("files") || !record["files"].is_object() || record["files"].size() != 2)
+    throw FormatError("bundled movie source manifests disagree");
+  Json roles = Json::object();
+  for (const std::string role : {"intro", "credits"}) {
+    const auto file = role + "_60.mp4";
+    if (!record["files"].contains(file))
+      throw FormatError("bundled movie role is missing");
+    movie_record(record["files"][file], false);
+    roles[role] = record["files"][file];
+    roles[role]["path"] = file;
+  }
+  return role_file(bundle, roles, name);
 }
 } // namespace
 struct Movie::Impl {
@@ -170,6 +322,17 @@ std::filesystem::path frontend_movie_path(const std::filesystem::path &maps,
                                         const std::string &name) {
   if (name != "intro" && name != "credits" && name != "attract")
     throw FormatError("unknown frontend movie: " + name);
+  if (maps.filename() == "h2_maps_win64_dx11" && maps.parent_path().filename() == "halo2") {
+    if (name == "attract")
+      return {}; // No authenticated bundled/MCC attract role has been assigned.
+    try {
+      if (const auto cached = cached_movie(maps.parent_path().parent_path(), name); !cached.empty())
+        return cached;
+      return bundled_movie(bundle, name);
+    } catch (const Json::exception &) {
+      throw FormatError("invalid movie metadata field type");
+    }
+  }
   if (name != "attract") {
     const auto replacement = bundle / (name + "_60.mp4");
     if (!bundle.empty() && std::filesystem::is_regular_file(replacement))

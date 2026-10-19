@@ -1,6 +1,26 @@
 # Vista button prompts at 4K
 
-The active MCC HUD and menu packs use a separate, optional Vista control overlay
+October19 MCC-only onboarding uses the exact earlier authored artwork restored
+at `resources/presentation/prompts`. Its82 SVG masters and six DDS atlases
+match the sealed earlier delivery. The importer copies only the nine runtime
+manifest/binding/atlas files to the selected cache's `presentation/prompts`,
+retaining MCC's own fonts. The source masters stay in the portable bundle;
+neither a Vista installation nor its reference fonts are needed at runtime.
+Native menu/HUD sampling integration is tracked separately in
+[the current checklist](MCC_GAMEPLAY_GOAL_CHECKLIST.md).
+
+The imported MCC font retains its own ordinary text and layout. For the
+authenticated authored control bank, menu selectors 1/7 and action selectors
+5/6 use qualified control-only metric profiles. In particular, the menu's
+MCC A/B records are 44x50 while the custom artwork was authored for 32x36.
+Using 32x36 restores complete icons at the existing canvas scale and lets the
+profile SELECT/BACK caption fit its source pane. Baselines, right alignment,
+ordinary glyphs, kerning, sampled pixels and shaders remain unchanged. The
+component and independent emitted-geometry checks cover standard and
+widescreen views; actual native/launcher acceptance is recorded separately in
+the checklist. Explicit replacement font banks retain their own metrics.
+
+The earlier MCC HUD and menu packs used a separate, optional Vista control overlay
 from `assets/vista-prompts-svg-4k`. Its artwork is drawn from scratch as ordinary
 SVG shapes, outlined letters, bevels, reflections and gradients, then rendered
 directly by librsvg into lossless RGBA textures. No image generation, embedded

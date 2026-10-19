@@ -10,9 +10,11 @@ import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import select
 import struct
 import subprocess
 import sys
+import time
 
 from audit_rendering import FormatError
 from mcc_onboarding import selected
@@ -87,6 +89,8 @@ def main():
     parser.add_argument('--viewport', nargs=2, type=int, default=(1280, 720))
     parser.add_argument('--timeout', type=float, default=240)
     parser.add_argument('--report', type=Path)
+    parser.add_argument('--trace-startup', action='store_true',
+                        help='Retain bounded native output and existing startup-stage receipts')
     args = parser.parse_args()
     if 'HALO2_TEST_SCRATCH' not in os.environ:
         parser.error('Run this test through tools/run_test.py')
@@ -94,7 +98,13 @@ def main():
         parser.error('Invalid frame, viewport or timeout bound')
     if not args.check_inputs and args.runtime is None:
         parser.error('--runtime is required for campaign playback')
+    if args.trace_startup and args.report is None:
+        parser.error('--trace-startup requires an explicit small-report path')
     report = dict(passed=False, retained_large_artifacts=[], scratch=os.environ['HALO2_TEST_SCRATCH'])
+    def save():
+        if args.report:
+            args.report.parent.mkdir(parents=True, exist_ok=True)
+            args.report.write_text(json.dumps(report, indent=2) + '\n')
     status = 1
     try:
         report['mcc'] = opening_inputs()
@@ -107,10 +117,50 @@ def main():
             environment = {k: v for k, v in os.environ.items()
                            if not k.startswith('HALO2_') or k == 'HALO2_TEST_SCRATCH'}
             log = Path(os.environ['HALO2_TEST_SCRATCH']) / 'opening-native.log'
-            with log.open('w') as stream:
-                result = subprocess.run(report['command'], cwd=ROOT, env=environment,
-                                        stdout=stream, stderr=subprocess.STDOUT, timeout=args.timeout)
-            status = result.returncode
+            if args.trace_startup:
+                log = args.report.resolve().with_suffix('.native.log')
+                stages = args.report.resolve().with_suffix('.stages.jsonl')
+                if log.exists() or stages.exists():
+                    raise FormatError('Choose a fresh startup diagnostic report path')
+                environment['HALO2_TEST_CAMPAIGN_WEAPON_GPU_REPORT'] = str(stages)
+                report['diagnostics'] = dict(log=str(log), stages=str(stages), scope='Existing startup stages; no frame-time or parity claim')
+                save()
+                process = subprocess.Popen(report['command'], cwd=ROOT, env=environment,
+                                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                report['runtime_pid'] = process.pid
+                save()
+                started = time.monotonic()
+                tail = b''
+                try:
+                    while True:
+                        if time.monotonic() - started > args.timeout:
+                            raise subprocess.TimeoutExpired(report['command'], args.timeout)
+                        if select.select([process.stdout], [], [], .1)[0]:
+                            block = os.read(process.stdout.fileno(), 65536)
+                            if not block:
+                                break
+                            tail = (tail + block)[-65536:]
+                            log.write_bytes(tail)
+                        elif process.poll() is not None:
+                            break
+                    status = process.wait(timeout=5)
+                finally:
+                    if process.poll() is None:
+                        process.terminate()
+                        try:
+                            process.wait(timeout=5)
+                        except subprocess.TimeoutExpired:
+                            process.kill()
+                            process.wait()
+                    process.stdout.close()
+                if not log.exists():
+                    log.write_bytes(tail)
+            else:
+                save()
+                with log.open('w') as stream:
+                    result = subprocess.run(report['command'], cwd=ROOT, env=environment,
+                                            stdout=stream, stderr=subprocess.STDOUT, timeout=args.timeout)
+                status = result.returncode
             report['runtime_returncode'] = status
             # Keep bounded diagnostics, never the runtime or captures.
             with log.open('rb') as stream:
@@ -120,9 +170,7 @@ def main():
     except (OSError, ValueError, KeyError, subprocess.TimeoutExpired) as error:
         status = 1
         report['error'] = str(error)
-    if args.report:
-        args.report.parent.mkdir(parents=True, exist_ok=True)
-        args.report.write_text(json.dumps(report, indent=2) + '\n')
+    save()
     print(json.dumps(dict(passed=report['passed'], source=report.get('mcc', {}).get('source'),
                          map=report.get('mcc', {}).get('map'), error=report.get('error'),
                          report=str(args.report) if args.report else None)))

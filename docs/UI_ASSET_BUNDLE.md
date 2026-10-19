@@ -1,5 +1,14 @@
 # Local HUD, menu and prompt artwork
 
+Current MCC-only onboarding imports game artwork and fonts from MCC. The
+port-authored prompt exception is the authenticated91-file source bank at
+`resources/presentation/prompts`; only its nine runtime files enter the selected
+cache at `presentation/prompts`. This bank includes the earlier82 SVG masters
+and six exact bitmap atlases, with no reference fonts. Bundled intro/credits
+are the other explicit presentation exception. The combined local Vista/MCC
+bundle workflow below describes the older optional pack and is not a current
+MCC onboarding dependency.
+
 `resources/ui` is a local, optional bundle excluded by `.gitignore`. A Git
 checkout contains the import, redraw and verification tools, but no imported
 MCC/Vista artwork or fonts. The existing local bundle contains the complete

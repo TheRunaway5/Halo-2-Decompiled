@@ -19,7 +19,7 @@ PRIMARY_FONTS = ("conduit-12", "conduit-13", "conduit-9", "fixedsys-9",
                  "font_table.txt")
 
 
-def verify(halo2, inventory=INVENTORY, progress=lambda message: None):
+def verify(halo2, inventory=INVENTORY, progress=lambda message: None, catalog_projection=None):
     halo2 = Path(halo2)
     with Path(inventory).open(newline="", encoding="utf-8") as stream:
         rows = list(csv.DictReader(stream, delimiter="\t"))
@@ -40,12 +40,16 @@ def verify(halo2, inventory=INVENTORY, progress=lambda message: None):
             raise FormatError("Unsafe MCC menu cache name")
         by_cache[cache_name].append(row)
     pages, banks, decoded = [], set(), {}
+    projected, projected_seen = {}, set()
     maps = halo2 / "h2_maps_win64_dx11"
     with (maps / "textures.dat").open("rb") as textures:
         for filename, local in sorted(by_cache.items()):
             progress("Verifying copied Vista menu owners: " + filename)
             cache = MccCache(maps / filename)
             try:
+                if filename == 'mainmenu.map' and catalog_projection is not None:
+                    from mcc_menu_catalog_inventory import qualified_pages
+                    projected = qualified_pages(cache, catalog_projection)
                 tags = defaultdict(list)
                 for tag in cache.tags.values():
                     if tag["group"] == "bitm" and tag["offset"] is not None:
@@ -75,17 +79,27 @@ def verify(halo2, inventory=INVENTORY, progress=lambda message: None):
                     if identity not in decoded:
                         payload = texture_resource(textures, pointers[0], sizes[0])
                         dds, _ = dds_image(width, height, mips, fmt, payload)
-                        decoded[identity] = hashlib.sha256(dds).hexdigest()
-                    digest = decoded[identity]
-                    if digest != row["dds_sha256"]:
+                        decoded[identity] = (hashlib.sha256(dds).hexdigest(), hashlib.sha256(payload).hexdigest())
+                    digest, pixel_digest = decoded[identity]
+                    provenance = {}
+                    projection_key = (row['mcc_name'], ordinal)
+                    if filename == 'mainmenu.map' and projection_key in projected:
+                        from mcc_menu_catalog_inventory import projected_page
+                        provenance = projected_page(projected[projection_key], row, digest, pixel_digest)
+                        projected_seen.add(projection_key)
+                    elif digest != row["dds_sha256"]:
                         raise FormatError("Copied MCC menu DDS differs from verified inventory: " + row["mcc_name"])
                     banks.add(row["vista_name"])
-                    pages.append(dict(name=row["mcc_name"], frame=ordinal, cache=filename,
+                    page = dict(name=row["mcc_name"], frame=ordinal, cache=filename,
                         datum=f'{tag["datum"]:08x}', width=width, height=height,
                         dds_sha256=digest, source_comparison=row["status"],
-                        textures_dat_address=pointers[0] & 0x3fffffff))
+                        textures_dat_address=pointers[0] & 0x3fffffff)
+                    page.update(provenance)
+                    pages.append(page)
             finally:
                 cache.close()
+    if catalog_projection is not None and (not projected or projected_seen != set(projected)):
+        raise FormatError('MCC catalog inventory requires both verified projected preview pages')
     fonts = halo2 / "h2_fonts"
     for name in PRIMARY_FONTS:
         if not (fonts / name).is_file() or (fonts / name).is_symlink():

@@ -102,7 +102,18 @@ FrontendModelGrip Cache::load_frontend_model_grip_animation(std::uint32_t graph,
   const auto group=data.u32(clip+0x24),group_count=data.u32(root+0xac);
   if(group>=group_count || group_count>65536)throw FormatError("frontend grip resource group invalid");
   const auto groups=metadata_offset(data.u32(root+0xb0),group_count*20);
-  const auto raw=raw_data(data.u32(groups+group*20+8),data.u32(groups+group*20+4));
+  const auto pointer=data.u32(groups+group*20+8),bytes=data.u32(groups+group*20+4);
+  std::vector<std::byte> raw;
+  if(is_mcc()) {
+    // Match the ordinary animation reader's canonical graph owner; no file
+    // or resource-bank address is followed outside this normalized allocation.
+    const auto begin=metadata_offset(tag->address,tag->size);
+    if(!bytes || bytes>128*1024*1024 || pointer<begin || pointer-begin>tag->size ||
+        bytes>tag->size-(pointer-begin))
+      throw FormatError("Canonical MCC grip resource escapes its owned graph");
+    const auto bank=data.slice(pointer,bytes);
+    raw.assign(bank.begin(),bank.end());
+  } else raw=raw_data(pointer,bytes);
   const Bytes resource(raw);const auto offset=data.u32(clip+0x28),size=data.u32(clip+0x48);
   resource.require(offset,std::size_t(size)+mask_size*3);
   const auto codec=resource.slice(offset,size);const Bytes c(codec);

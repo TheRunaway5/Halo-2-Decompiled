@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -24,4 +25,14 @@ int gameplay_font_horizontal_offset(const GameplayFontSource&, unsigned selector
 // sample. Custom redraws require a separate, explicit projection owner.
 void require_mcc_gameplay_font_sample(const GameplayFontSource&,unsigned selector,
                                      const std::filesystem::path& sample);
+// Private dedicated action-button fonts only, after authenticated MCC source
+// selection and authored prompt sampling. Preflight every owner/record/metric
+// and sample before changing only the20 control metrics. Returns the number of
+// changed controls (zero for selector5 or a complete prior projection); an
+// unqualified or partial state throws without changing the font.
+std::size_t apply_mcc_action_button_metrics(RetailFont&,unsigned selector);
+// Default imported MCC menu prompt bank only. Selectors1/7 own the same exact
+// Conduit12 source and authored samples. Applies the same atomic/idempotent
+// finite control projection; ordinary text and every other selector stay intact.
+std::size_t apply_mcc_menu_button_metrics(RetailFont&,unsigned selector);
 }

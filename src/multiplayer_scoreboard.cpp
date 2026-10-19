@@ -124,8 +124,8 @@ MultiplayerScoreboard::MultiplayerScoreboard(const Cache &cache,
       if(!is_mcc_classic_hud_pack(ui_assets))throw FormatError("Custom MCC gameplay font redraw needs an explicit original-metric projection");
       require_mcc_gameplay_font_sample(font_source,6,sampled);
     }
-    apply_vista_prompt_sampling(font_,ui_assets,6);
   }
+  apply_vista_prompt_sampling(font_,font_prompt_asset_directory(font_source.directory,ui_assets),6);
   const auto solid=unsigned(mesh.materials.size());mesh.materials.push_back({});
   const auto font=unsigned(mesh.materials.size());mesh.materials.push_back({"scoreboard/font6",font_.atlas});
   mesh.materials[solid].ui_full_surface=true;mesh.materials[font].ui_full_surface=true;

@@ -4,17 +4,18 @@
 #include <stdexcept>
 #include <thread>
 #include <deque>
+#include <algorithm>
 
 namespace halo2 {
 namespace {
 using Clock=std::chrono::steady_clock;
 using ArchiveBytes=std::vector<std::byte>;
 void need(bool ok){if(!ok)throw std::invalid_argument("Invalid source authority publisher ownership or endpoint");}
-bool member(const AuthorityTransferContext &c,unsigned peer){return peer<16&&(c.peers&(1u<<peer));}
 std::uint64_t micros(Clock::time_point started){return std::chrono::duration_cast<std::chrono::microseconds>(Clock::now()-started).count();}
 }
 struct SourceAuthorityPublisher::Impl {
-    SourceMatchAuthority &authority;const std::shared_ptr<OnlineMatchSession> session;const unsigned target;
+    SourceMatchAuthority &authority;const std::shared_ptr<OnlineMatchSession> session;const std::vector<unsigned> targets;
+    const std::uint16_t recipients;
     const SourceAuthorityStreamMode mode;LanHost *host{};
     const std::chrono::milliseconds timeout;const std::thread::id executor=std::this_thread::get_id();
     std::optional<AuthorityTransferContext> context;std::optional<AuthorityArchiveImage> base;
@@ -22,7 +23,7 @@ struct SourceAuthorityPublisher::Impl {
     std::optional<LanHost::Continuation> validated_host;
     struct Pending {AuthorityTransferContext context;AuthorityCutSeal seal;std::optional<AuthorityArchiveImage> image;
         std::optional<SourceReplayBinding> replay;std::uint64_t phases{};Clock::time_point started;bool paired{};
-        std::optional<LanHost::Continuation> host;};
+        std::optional<LanHost::Continuation> host;std::uint16_t expected{},validated{};};
     std::deque<Pending> pending;
     std::optional<SourceReplayBinding> replay;
     std::optional<SourceMatchAuthority::ExecutionBoundary> recorded_boundary;
@@ -39,9 +40,13 @@ struct SourceAuthorityPublisher::Impl {
     std::uint64_t generation{};bool working{};std::optional<Job> job;std::optional<Result> result;
     // Join before destroying the captured value queue or any session borrower.
     std::jthread worker;
-    Impl(SourceMatchAuthority &a,std::shared_ptr<OnlineMatchSession> s,unsigned t,SourceAuthorityStreamMode m,std::chrono::milliseconds wait,LanHost *h=nullptr)
-        :authority(a),session(std::move(s)),target(t),mode(m),host(h),timeout(wait){
-        need(session&&session->direct_udp()&&target<16&&target!=session->self()&&wait>=std::chrono::seconds(1)&&wait<=std::chrono::minutes(5));
+    static std::uint16_t recipient_mask(std::span<const unsigned> peers){
+        need(!peers.empty()&&peers.size()<16);std::uint16_t mask{};
+        for(auto peer:peers){need(peer<16&&!(mask&(1u<<peer)));mask|=std::uint16_t(1u<<peer);}return mask;
+    }
+    Impl(SourceMatchAuthority &a,std::shared_ptr<OnlineMatchSession> s,std::span<const unsigned> t,SourceAuthorityStreamMode m,std::chrono::milliseconds wait,LanHost *h=nullptr)
+        :authority(a),session(std::move(s)),targets(t.begin(),t.end()),recipients(recipient_mask(t)),mode(m),host(h),timeout(wait){
+        need(session&&session->direct_udp()&&!(recipients&(1u<<session->self()))&&wait>=std::chrono::seconds(1)&&wait<=std::chrono::minutes(5));
         need(mode==SourceAuthorityStreamMode::Snapshots||mode==SourceAuthorityStreamMode::Replay);
         need(!host||source_host_continuation_owner(*host,authority));
         worker=std::jthread([this](std::stop_token stop){encode(stop);});
@@ -58,14 +63,24 @@ struct SourceAuthorityPublisher::Impl {
         phases.push_back({{before,after.tick,std::move(phase)},std::move(saved),size});queued_bytes+=size;recorded_boundary=after;
         ++stats.recorded_phases;
     }
-    void discard(){std::lock_guard lock(mutex);++generation;job.reset();result.reset();pending.clear();base.reset();replay.reset();
-        phases.clear();queued_bytes=0;recorded_boundary.reset();stats.ready.reset();validated_host.reset();stats.awaiting_validation=false;stats.host_ready=false;}
+    void discard(bool preserve_completed=false){std::lock_guard lock(mutex);++generation;job.reset();result.reset();pending.clear();base.reset();replay.reset();
+        phases.clear();queued_bytes=0;recorded_boundary.reset();stats.ready.reset();
+        if(!preserve_completed||targets.size()==1){stats.group_ready.reset();validated_host.reset();stats.host_ready=false;}
+        stats.pending_group.reset();stats.pending_native_validated_peers=0;stats.awaiting_validation=false;stats.held_group.reset();stats.validation_timed_out=false;}
+    void discard_stream(){
+        if(!stats.common_cut_barrier||!stats.held_group){discard(targets.size()>1);return;}
+        // A held historical cut is independent of the successor journal. A
+        // bounded recording/encoding failure may lose that journal, but must
+        // keep its exact pending ACKs/host value until explicit release/abort.
+        std::lock_guard lock(mutex);++generation;job.reset();result.reset();base.reset();replay.reset();
+        phases.clear();queued_bytes=0;recorded_boundary.reset();stats.awaiting_validation=!pending.empty();
+    }
     bool available()const{std::lock_guard lock(mutex);return !working&&!job&&!result;}
     bool active(const std::optional<AuthorityTransferContext> &c)const{
-        return c&&c->host==session->self()&&member(*c,target)&&session->phase()==OnlineMatchSession::Phase::Running&&
-            session->authority_supported(target)&&session->source_players_confirmed(target)&&
-            (mode!=SourceAuthorityStreamMode::Replay||session->authority_replay_supported(target))&&
-            (!host||session->authority_host_continuation_supported(target));
+        return c&&c->host==session->self()&&(c->peers&recipients)==recipients&&session->phase()==OnlineMatchSession::Phase::Running&&
+            std::ranges::all_of(targets,[&](unsigned peer){return session->authority_supported(peer)&&session->source_players_confirmed(peer)&&
+                (mode!=SourceAuthorityStreamMode::Replay||session->authority_replay_supported(peer))&&
+                (!host||session->authority_host_continuation_supported(peer));});
     }
     void encode(std::stop_token stop){
         while(!stop.stop_requested()){
@@ -101,13 +116,34 @@ struct SourceAuthorityPublisher::Impl {
 SourceAuthorityPublisher::SourceAuthorityPublisher(SourceMatchAuthority &a,std::shared_ptr<OnlineMatchSession> s,unsigned target,std::chrono::milliseconds timeout)
     :SourceAuthorityPublisher(a,std::move(s),target,SourceAuthorityStreamMode::Snapshots,timeout){}
 SourceAuthorityPublisher::SourceAuthorityPublisher(SourceMatchAuthority &a,std::shared_ptr<OnlineMatchSession> s,unsigned target,
-    SourceAuthorityStreamMode mode,std::chrono::milliseconds timeout):impl_(std::make_unique<Impl>(a,std::move(s),target,mode,timeout)){}
+    SourceAuthorityStreamMode mode,std::chrono::milliseconds timeout):impl_(std::make_unique<Impl>(a,std::move(s),std::array<unsigned,1>{target},mode,timeout)){}
 SourceAuthorityPublisher::~SourceAuthorityPublisher()=default;
 SourceAuthorityPublisher::SourceAuthorityPublisher(SourceMatchAuthority &a,LanHost &h,std::shared_ptr<OnlineMatchSession> s,
-    unsigned target,std::chrono::milliseconds timeout):impl_(std::make_unique<Impl>(a,std::move(s),target,SourceAuthorityStreamMode::Replay,timeout,&h)){}
+    unsigned target,std::chrono::milliseconds timeout):impl_(std::make_unique<Impl>(a,std::move(s),std::array<unsigned,1>{target},SourceAuthorityStreamMode::Replay,timeout,&h)){}
+SourceAuthorityPublisher::SourceAuthorityPublisher(SourceMatchAuthority &a,LanHost &h,std::shared_ptr<OnlineMatchSession> s,
+    std::span<const unsigned> targets,std::chrono::milliseconds timeout):impl_(std::make_unique<Impl>(a,std::move(s),targets,SourceAuthorityStreamMode::Replay,timeout,&h)){}
 void SourceAuthorityPublisher::cancel(){impl_->own();need(!impl_->frame_active);impl_->discard();impl_->context.reset();}
+void SourceAuthorityPublisher::set_common_cut_barrier(bool enabled){
+    auto &s=*impl_;s.own();need(!s.frame_active);
+    if(s.stats.common_cut_barrier==enabled)return;
+    need(!s.recorded_boundary&&s.pending.empty()&&!s.stats.held_group&&s.available());
+    s.stats.common_cut_barrier=enabled;
+}
+bool SourceAuthorityPublisher::release_common_cut(const SourceAuthorityPublisherGroupCut &expected){
+    auto &s=*impl_;s.own();need(!s.frame_active);
+    if(!s.stats.common_cut_barrier||s.stats.held_group!=expected||s.stats.group_ready!=expected||!s.pending.empty())return false;
+    s.stats.held_group.reset();return true;
+}
+bool SourceAuthorityPublisher::abort_common_cut(const SourceAuthorityPublisherGroupCut &expected){
+    auto &s=*impl_;s.own();need(!s.frame_active);
+    if(!s.stats.common_cut_barrier||s.stats.held_group!=expected)return false;
+    s.discard();return true;
+}
 SourceAuthorityPublisherState SourceAuthorityPublisher::state()const{
     impl_->own();auto stats=impl_->stats;stats.queued_phases=impl_->phases.size();stats.queued_bytes=impl_->queued_bytes;
+    if(!impl_->pending.empty()){const auto &pending=impl_->pending.front();
+        stats.pending_group=SourceAuthorityPublisherGroupCut{pending.context,pending.seal,pending.expected};
+        stats.pending_native_validated_peers=pending.validated;}
     stats.tracking_replay=impl_->recorded_boundary.has_value();std::lock_guard lock(impl_->mutex);stats.encoding=impl_->working||bool(impl_->job);return stats;
 }
 unsigned SourceAuthorityPublisher::in_flight_cuts()const{impl_->own();return unsigned(impl_->pending.size());}
@@ -116,49 +152,61 @@ LanHost::Continuation SourceAuthorityPublisher::host_checkpoint(const ValidatedA
         s.stats.ready->peer==expected.peer&&s.stats.ready->context==expected.context&&s.stats.ready->seal==expected.seal);
     return *s.validated_host;
 }
+LanHost::Continuation SourceAuthorityPublisher::host_checkpoint(const SourceAuthorityPublisherGroupCut &expected)const{
+    const auto &s=*impl_;s.own();need(s.stats.group_ready&&*s.stats.group_ready==expected&&s.stats.host_ready&&s.validated_host);
+    return *s.validated_host;
+}
 void SourceAuthorityPublisher::update(){
     auto &s=*impl_;s.own();need(!s.frame_active);const auto current=s.session->authority_context();
     if(current!=s.context){s.discard();s.context=current;}
     if(!s.active(current)){
         // A readiness loss invalidates this candidate, never room membership.
-        s.discard();return;
+        s.discard_stream();return;
     }
     if(s.recorded_boundary&&s.authority.execution_boundary()!=*s.recorded_boundary){
-        s.discard();s.stats.error="Unrecorded native work between replay phases";return;
+        s.discard_stream();s.stats.error="Unrecorded native work between replay phases";return;
     }
-    for(const auto &receipt:s.session->validated_authority())if(!s.pending.empty()&&receipt.peer==s.target&&receipt.context==s.pending.front().context&&receipt.seal==s.pending.front().seal){
+    for(const auto &receipt:s.session->validated_authority())if(!s.pending.empty()&&receipt.peer<16&&
+        (s.pending.front().expected&(1u<<receipt.peer))&&receipt.context==s.pending.front().context&&receipt.seal==s.pending.front().seal){
+        auto &pending=s.pending.front();const auto bit=std::uint16_t(1u<<receipt.peer);
+        if(pending.validated&bit)continue;
+        pending.validated|=bit;++s.stats.native_receipts;
+        if(pending.validated!=pending.expected)continue;
         if(s.pending.front().replay){s.stats.acknowledged_phases+=s.pending.front().phases;
         }else {need(s.pending.front().image.has_value()||s.pending.front().paired);s.base=s.pending.front().image;
             if(s.mode==SourceAuthorityStreamMode::Replay)s.replay=SourceReplayBinding{receipt.context,receipt.seal,receipt.seal,1};}
-        s.stats.ready=receipt;s.stats.host_ready=s.pending.front().paired;s.validated_host=std::move(s.pending.front().host);
+        if(s.targets.size()==1)s.stats.ready=receipt;
+        s.stats.group_ready=SourceAuthorityPublisherGroupCut{pending.context,pending.seal,pending.expected};
+        s.stats.host_ready=pending.paired;s.validated_host=std::move(pending.host);
         ++s.stats.validations;s.pending.pop_front();s.stats.awaiting_validation=!s.pending.empty();
     }
-    if(!s.pending.empty()&&Clock::now()-s.pending.front().started>s.timeout){s.discard();s.stats.error="Shadow executor validation timed out";return;}
-    const bool pipeline=s.session->authority_pipeline_supported(s.target);
+    if(!s.pending.empty()&&Clock::now()-s.pending.front().started>s.timeout){s.discard_stream();s.stats.validation_timed_out=true;s.stats.error="Shadow executor validation timed out";return;}
+    const bool pipeline=!s.stats.common_cut_barrier&&s.targets.size()==1&&s.session->authority_pipeline_supported(s.targets.front());
     const auto appendable=[&]{return pipeline&&s.pending.size()==1&&s.pending.back().replay&&
-        s.session->authority_delivered(s.target,s.pending.back().context,s.pending.back().seal);};
+        s.session->authority_delivered(s.targets.front(),s.pending.back().context,s.pending.back().seal);};
     std::optional<Impl::Result> output;
-    {std::lock_guard lock(s.mutex);if(s.result&&(s.pending.empty()||(s.result->replay&&appendable()))){output=std::move(s.result);s.result.reset();}}
+    {std::lock_guard lock(s.mutex);if(!s.stats.held_group&&s.result&&(s.pending.empty()||(s.result->replay&&appendable()))){output=std::move(s.result);s.result.reset();}}
     if(output&&output->generation==s.generation&&output->context==current){
     s.stats.encoding_microseconds=output->encoding_us;
-    if(!output->error.empty()){const auto error=output->error;s.discard();s.stats.error=error;return;}
+    if(!output->error.empty()){const auto error=output->error;s.discard_stream();s.stats.error=error;return;}
     try {
         need((s.pending.empty()||(output->replay&&appendable()))&&(output->image||output->replay||output->paired));
         if(output->replay)need(s.replay&&*s.replay==*output->replay);
-        const std::array<unsigned,1> targets{s.target};
         const auto bytes=output->payload.size();const auto seal=s.pending.empty()?
-            s.session->publish_authority(*current,output->tick,std::move(output->payload),targets):
-            s.session->publish_authority_ahead(*current,s.pending.back().seal,output->tick,std::move(output->payload),s.target);
-        s.pending.emplace_back(Impl::Pending{*current,seal,std::move(output->image),output->replay,output->phases,Clock::now(),output->paired,std::move(output->host)});
+            s.session->publish_authority(*current,output->tick,std::move(output->payload),s.targets):
+            s.session->publish_authority_ahead(*current,s.pending.back().seal,output->tick,std::move(output->payload),s.targets.front());
+        s.pending.emplace_back(Impl::Pending{*current,seal,std::move(output->image),output->replay,output->phases,Clock::now(),output->paired,std::move(output->host),s.recipients,0});
+        s.stats.validation_timed_out=false;
+        if(s.stats.common_cut_barrier)s.stats.held_group=SourceAuthorityPublisherGroupCut{*current,seal,s.recipients};
         // Advance only the sent chain here. Promotion readiness and the count
         // of validated phases advance solely on the ordered native receipt.
         if(output->replay){s.replay->previous=seal;s.replay->first_sequence+=output->phases;}
         ++s.stats.publications;if(output->replay)++s.stats.replay_batches;
         s.stats.awaiting_validation=true;s.stats.payload_bytes=bytes;if(!output->replay)s.stats.full_bytes=output->full_bytes;
         s.stats.delta=output->delta;s.stats.error.clear();
-    }catch(const std::exception &e){const std::string error=e.what();s.discard();s.stats.error=error;return;}
+    }catch(const std::exception &e){const std::string error=e.what();s.discard_stream();s.stats.error=error;return;}
     }
-    if(s.replay&&s.pending.size()<(pipeline?2u:1u)&&s.available()&&!s.phases.empty())try{
+    if(!s.stats.held_group&&s.replay&&s.pending.size()<(pipeline?2u:1u)&&s.available()&&!s.phases.empty())try{
         SourceReplayBatch batch{*s.replay,{}};std::uint64_t bytes{};
         std::optional<LanHost::Continuation> end_host;
         while(!s.phases.empty()&&batch.steps.size()<32){const auto size=s.phases.front().bytes;
@@ -166,10 +214,10 @@ void SourceAuthorityPublisher::update(){
             bytes+=size;s.queued_bytes-=size;end_host=std::move(s.phases.front().host);batch.steps.push_back(std::move(s.phases.front().step));s.phases.pop_front();}
         Impl::Job next;next.generation=s.generation;next.context=*current;next.replay=std::move(batch);next.host=std::move(end_host);
         {std::lock_guard lock(s.mutex);s.job=std::move(next);}s.condition.notify_one();
-    }catch(const std::exception &e){const std::string error=e.what();s.discard();s.stats.error=error;}
+    }catch(const std::exception &e){const std::string error=e.what();s.discard_stream();s.stats.error=error;}
 }
 bool SourceAuthorityPublisher::capture(){
-    auto &s=*impl_;s.own();update();if(!s.active(s.context)||!s.pending.empty()||!s.available())return false;
+    auto &s=*impl_;s.own();update();if(!s.active(s.context)||s.stats.held_group||!s.pending.empty()||!s.available())return false;
     try {
         const auto started=Clock::now();Impl::Job next;next.generation=s.generation;next.context=*s.context;
         if(s.host){need(s.stats.captures<UINT64_MAX);auto cut=capture_source_host_continuation(*s.host,*s.context,s.stats.captures+1);
@@ -201,23 +249,23 @@ bool SourceAuthorityPublisher::Frame::finish()noexcept{
     try{
         s.own();
         if(std::uncaught_exceptions()>impl_->exceptions){
-            impl_.reset();s.frame_active=false;s.discard();s.stats.error="Host frame interrupted";return false;
+            impl_.reset();s.frame_active=false;s.discard_stream();s.stats.error="Host frame interrupted";return false;
         }
         auto phase=impl_->recording.finish();s.append(impl_->before,std::move(phase));
         impl_.reset();s.frame_active=false;return true;
     }catch(const std::exception &e){
         impl_.reset();s.frame_active=false;
-        try{s.discard();s.stats.error=e.what();}catch(...){}
+        try{s.discard_stream();s.stats.error=e.what();}catch(...){}
     }catch(...){
         impl_.reset();s.frame_active=false;
-        try{s.discard();s.stats.error="Native frame recording failed";}catch(...){}
+        try{s.discard_stream();s.stats.error="Native frame recording failed";}catch(...){}
     }
     return false;
 }
 std::unique_ptr<SourceAuthorityPublisher::Frame> SourceAuthorityPublisher::record_frame(){
     auto &s=*impl_;s.own();need(!s.frame_active);
     try{update();if(!s.recorded_boundary)return {};return std::unique_ptr<Frame>(new Frame(*this));}
-    catch(const std::exception &e){try{s.discard();s.stats.error=e.what();}catch(...){}return {};}
-    catch(...){try{s.discard();s.stats.error="Native frame recording could not start";}catch(...){}return {};}
+    catch(const std::exception &e){try{s.discard_stream();s.stats.error=e.what();}catch(...){}return {};}
+    catch(...){try{s.discard_stream();s.stats.error="Native frame recording could not start";}catch(...){}return {};}
 }
 }

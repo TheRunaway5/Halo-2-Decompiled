@@ -26,6 +26,7 @@
 namespace halo2 {
 struct SourceBspEffectLights::Impl {
     const Cache& cache;
+    const Mesh& mesh_owner;
     pstencil::MaterialBank pstencil_materials;
     std::shared_ptr<pstencil::SharedLightMaterials> model_materials;
     std::size_t bsp_index;
@@ -74,7 +75,7 @@ struct SourceBspEffectLights::Impl {
 
     Impl(const Cache& c,Mesh& mesh,std::size_t index,std::span<const std::uint32_t> ids,std::span<const std::uint32_t> model_ids,
         std::shared_ptr<pstencil::SharedLightMaterials> shared)
-      :cache(c),pstencil_materials(c,mesh),model_materials(shared?std::move(shared):std::make_shared<pstencil::SharedLightMaterials>(c,mesh)),
+      :cache(c),mesh_owner(mesh),pstencil_materials(c,mesh),model_materials(shared?std::move(shared):std::make_shared<pstencil::SharedLightMaterials>(c,mesh)),
        bsp_index(index),bsp(c.load_source_bsp_admission(index)),
        store(std::shared_ptr<const Cache>(&c,[](const Cache*){}),{"shad","stem","spas","vrtx"}),metadata(store.providers()),
        clusters(bsp.clusters.size()),definitions(bsp.definitions.size()),instances(bsp.instances.size()),
@@ -232,6 +233,12 @@ SourceBspEffectLights::SourceBspEffectLights(const Cache& c,Mesh& mesh,std::size
     :impl_(std::make_unique<Impl>(c,mesh,bsp,ids,models,std::move(shared))){}
 SourceBspEffectLights::~SourceBspEffectLights()=default;
 const std::vector<std::string>& SourceBspEffectLights::unavailable() const{return impl_->unavailable;}
+std::size_t SourceBspEffectLights::resident_model_sections()const noexcept {return impl_->models.size();}
+bool SourceBspEffectLights::resident_model_section(std::uint32_t model,unsigned section)const noexcept {
+    return impl_->models.contains({model,section});
+}
+const Cache &SourceBspEffectLights::resident_cache()const noexcept {return impl_->cache;}
+const Mesh &SourceBspEffectLights::resident_mesh()const noexcept {return impl_->mesh_owner;}
 std::vector<EffectLightRawDraw> SourceBspEffectLights::draw(const SourceEffectLightView& lights,
     std::span<const WorldEffectLightReceiver> receivers,const SourceBspAdmission& main,
     const SourceViewProjectionBank& camera,const BspFogSample& fog,Vec3 eye,

@@ -152,6 +152,7 @@ public:
   bool commit_authority(PreparedAuthority &&) noexcept;
   bool replicated()const{return replica_;}
 private:
+  friend class Simulation;
   void apply_region_state(std::span<const PropRegionSnapshot>,bool replica);
   NativeAuthorityBoundary authority_;
   struct Prop {PropSandboxState state;const PropSandboxDefinition* definition{};

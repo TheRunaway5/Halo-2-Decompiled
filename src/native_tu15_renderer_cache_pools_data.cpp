@@ -47,6 +47,20 @@ void mount_native_tu15_renderer_cache_pools_data(SourceRuntimeMemory& memory) {
     for (const auto address : {0x4f2d34u, 0x4f2d6cu})
         memory.mount(address, std::array<std::byte, 4>{}, SourceRuntimeMemory::Access::ReadWrite,
             "TU1.5 renderer cache cold pool binding");
+    // Original130980 reads this policy and increments its failed-request
+    // counter. Both .data words are loader-zero, writable working storage.
+    memory.mount(0x4f2d74u, std::array<std::byte, 8>{}, SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 model resource request policy and failure counter");
+    // Complete130F90 reads the authored .data policy byte before any request
+    // guard. Its original initial value is enabled; retain writable ownership.
+    memory.mount(0x48c754u, std::array{std::byte{1}}, SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 geometry cache pressure policy enable byte");
+    // Original4057F0 reads this cold SDK pointer even for CPU resources whose
+    // own submitted-fence word is zero. Retain only its original null cell;
+    // no SDK device or GPU completion is fabricated. A nonzero fence still
+    // requires its actual device owner before the original dereference.
+    memory.mount(0x411568u, std::array<std::byte, 4>{}, SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 cold SDK device binding for native CPU resource queries");
     name(memory, 0x45f218, std::array<char, 20>{"xbox texture cache"});
     name(memory, 0x45f22c, std::array<char, 24>{"xbox predicted texture"});
     name(memory, 0x45f244, std::array<char, 16>{"xbox texture"});

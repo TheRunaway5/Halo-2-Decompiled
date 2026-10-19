@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/source_authority_receiver.hpp"
+#include "halo2/effect_presentation_history.hpp"
 #include <future>
 
 namespace halo2 {
@@ -17,6 +18,7 @@ struct SourceAuthorityRetainedWorld;
 // activation, and publish through its commit hook before the transport epoch.
 // Staging alone never changes the live world or session.
 class MultiplayerRuntimeAuthority {
+    struct Impl;
 public:
     MultiplayerRuntimeAuthority(const MultiplayerOptions &,
         std::shared_ptr<MultiplayerPreparedWorld>,std::unique_ptr<LanHost>,
@@ -56,6 +58,31 @@ public:
     void cancel_recovery();
     bool has_receiver()const;
     std::optional<SourceAuthorityReceiverState> shadow_state()const;
+    // One independently validated exact native export. Only this runtime can
+    // create a pin; it owns both replay/world and host proof beyond worker
+    // advancement/destruction, without retaining an executor borrower.
+    class NativeCutPin {
+    public:
+        const ValidatedAuthorityCut &cut()const;
+        const SourceAuthorityHostProof &host_proof()const;
+        const SourceAuthorityRetainedWorld &retained_world()const;
+    private:
+        friend struct MultiplayerRuntimeAuthority::Impl;
+        NativeCutPin(SourceAuthorityHostProof,std::shared_ptr<const SourceAuthorityRetainedWorld>);
+        SourceAuthorityHostProof proof_;
+        std::shared_ptr<const SourceAuthorityRetainedWorld> retained_;
+    };
+    std::shared_ptr<const NativeCutPin> pending_native_cut()const;
+    // Completed-frame association requires the privately bound foreground
+    // checkpoint for this exact stored native pin. Both owners are retained
+    // before publishing association. Commit/Apply/Release concern recovery-pin
+    // ownership only; they never activate a world or advertise full readiness.
+    bool associate_common_cut(const std::shared_ptr<const NativeCutPin> &,
+        const EffectPresentationHistory::RuntimeCheckpoint &);
+    // Committed and pending strong pairs live outside ordinary history
+    // eviction. Only the exact admitted generation/seal can retrieve one.
+    std::optional<EffectPresentationHistory::RuntimeCheckpoint> common_cut_checkpoint(
+        const AuthorityTransferContext &,const AuthorityCutSeal &)const;
     // The caller keeps ownership if staging is rejected. A pending takeover
     // remains private while audio retirement or adapter rebinding is incomplete.
     void stage_takeover(std::unique_ptr<SourcePeerHostTakeover> &&);
@@ -83,6 +110,15 @@ public:
     // changing its native endpoint. The same presentation hook runs before
     // native rebind and transport-epoch publication, under the same contract.
     bool prepare_client_rebind();
+    // Exact surviving-client state, scene/device/prop and composed collision
+    // counterpart. Snapshot proof and local replica checkpoint must name the
+    // same authentic receipt at the learned decision's cut. This stages both
+    // native owners together; presentation adoption remains separately required.
+    bool prepare_client_rebind(const MultiplayerSnapshotProof &,const MultiplayerSnapshotOrigin &,
+        const Simulation::ReplicaCheckpoint &);
+    // Discard only an unpublished client preparation, releasing its replica
+    // staging barrier outside session locks. Native state/endpoint stay live.
+    bool cancel_client_rebind();
     std::optional<PeerMigrationDecision> pending_client_rebind()const;
     bool activate_client_rebind(PresentationCommit=nullptr,void *owner=nullptr);
     // Promoted native camera bank; the ordinary initial role keeps its own
@@ -97,6 +133,8 @@ public:
     // without consuming another serial. Hardware resumes after the step.
     bool continue_local_input(std::array<Controls,multiplayer_capacity> &);
 private:
-    struct Impl;std::unique_ptr<Impl> impl_;
+    bool prepare_client_rebind_from(const MultiplayerSnapshotProof *,const MultiplayerSnapshotOrigin *,
+        const Simulation::ReplicaCheckpoint *);
+    std::unique_ptr<Impl> impl_;
 };
 }

@@ -4,6 +4,24 @@ Visual authority: **OG Xbox TU1.5 with original Xbox cache assets**. Vista is
 not an authority for gameplay materials, lighting, textures or effects. This
 work remains partial until matched original/native rendered frames pass.
 
+Native runtime validation now uses the selected MCC private cache and its
+shared resources, with Original graphics and native TU1.5 logic. Xbox cache
+censuses below describe the visual reference and historical component evidence;
+they do not qualify the new MCC runtime lane. The October19 retained-shader
+metadata regression passes on the actual MCC introduction cache. Full current
+startup, rendered campaign coverage and matched character frames remain open.
+
+The October19 Cortana repair now preserves the authored layer7/pass0,
+layer15/passes1,2,3 and independent layer17/pass4 composition for hair, body,
+arms, head, eyes and teeth. The NONE bitmap in the actual hair late pass resolves
+to the actual rasterizer default image using the original 16FC8 contract.
+Eight managed component checks pass, including the old-binder negative
+control, exact pass inputs/order and rejected-bind input preservation; whole
+renderer compilation passes too. Evidence is under
+`analysis/current-root-cutscene-20261019/character-late-layer-v1/component-source-v3/`.
+This is CPU binding/phase evidence. Live Vulkan ordering and matched original
+Cortana frames remain open, as do actor overrides and per-owner constants.
+
 ## Active campaign acceptance checklist — October16
 
 The user has made campaign the current implementation priority. The complete

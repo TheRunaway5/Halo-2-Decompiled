@@ -4,8 +4,10 @@
 #include "halo2/frontend_lobby_game.hpp"
 #include "halo2/frontend_lobby_setup.hpp"
 #include "halo2/frontend_lobby_maps.hpp"
+#include "halo2/frontend_multiplayer_maps.hpp"
 #include "halo2/frontend_lobby_ready.hpp"
 #include "halo2/native_player_profile.hpp"
+#include "mcc_frontend_string_ids.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -33,20 +35,19 @@ constexpr std::array<const char *, 15> campaign_files{
     "04b_floodlab",      "05a_deltaapproach",  "05b_deltatowers",
     "06a_sentinelwalls", "06b_floodzone",      "07a_highcharity",
     "08a_deltacliffs",   "07b_forerunnership", "08b_deltacontrol"};
-constexpr std::array<const char *, 12> multiplayer_names{
-    "Lockout",       "Ascension", "Midship",     "Beaver Creek",
-    "Burial Mounds", "Colossus",  "Ivory Tower", "Headlong",
-    "Waterworks",    "Zanzibar",  "Coagulation", "Foundation"};
-constexpr std::array<const char *, 12> multiplayer_files{
-    "lockout",       "ascension", "midship",     "beavercreek",
-    "burial_mounds", "colossus",  "cyclotron",   "headlong",
-    "waterworks",    "zanzibar",  "coagulation", "foundation"};
 constexpr std::array<unsigned, 7> engine_order{0, 3, 1, 2, 4, 5, 6};
 constexpr std::array<unsigned, 7> match_category{
     1, 2, 6, 3, 0, 8, 7}; // Indexed by actual engine type.
 constexpr std::array<unsigned, 7> game_category{14, 15, 19, 16, 13, 21, 20};
 constexpr std::array<unsigned, 7> team_category{32, 33, 37, 34, 31, 39, 38};
-std::string by_index(const UiScreen &screen, unsigned low) {
+std::string by_index(const FrontendContent &content, const UiScreen &screen, unsigned low) {
+  if (detail::mcc_frontend_content(content)) {
+    const auto id = detail::frontend_compiled_string_id(content, low);
+    if (id)
+      if (const auto found = screen.strings.find(*id); found != screen.strings.end())
+        return frontend_online_text(found->second);
+    return {};
+  }
   for (const auto &[id, text] : screen.strings)
     if ((id & 0xffff) == low)
       return frontend_online_text(text);
@@ -77,6 +78,8 @@ bool online_screen(unsigned screen) {
 MenuState::MenuState(const FrontendContent &content,
                      const std::filesystem::path &preferences)
     : content_(content), preferences_(preferences) {
+  map_ = frontend_multiplayer_initial_map(content_.multiplayer_maps,
+                                         content_.campaign_maps);
   if (!preferences.empty() && std::filesystem::exists(preferences) &&
       std::filesystem::file_size(preferences) < 256 * 1024) {
     std::ifstream file(preferences);
@@ -348,7 +351,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   f.screen = id;
   f.context = context;
   auto add = [&](unsigned low, int destination = -1, int value = 0) {
-    auto label = by_index(s, low);
+    auto label = by_index(content_, s, low);
     if (label.empty())
       throw FormatError("retail menu label missing on screen " +
                         std::to_string(id) + ": " + std::to_string(low));
@@ -495,9 +498,6 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
       f.entries.push_back({campaign_names[i], -2, int(i)});
     break;
   case 17:
-    for (unsigned i = 0; i < multiplayer_names.size(); ++i)
-      f.entries.push_back({multiplayer_names[i], -2, int(i)});
-    break;
   case 206: {
     // Native profiles have no imported campaign-completion keys. Original
     // new-profile keys are zero/NONE; Foundation's literal unlock flag applies.
@@ -505,9 +505,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
                                          frontend_lobby_new_profile_map_progress);
     for (const auto index : list.catalog_indices) {
       const auto &map = content_.multiplayer_maps[index];
-      const auto leaf = map.scenario_path.substr(map.scenario_path.find_last_of("\\/") + 1);
-      for (unsigned i = 0; i < multiplayer_files.size(); ++i)
-        if (leaf == multiplayer_files[i]) f.entries.push_back({map.name, -2, int(i)});
+      f.entries.push_back({map.name, -2, int(index)});
     }
     break;
   }
@@ -555,7 +553,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
                          : category >= 31 ? 2
                          : category >= 13 ? 3
                                           : 0;
-      f.title = by_index(s, 0x189e + group);
+      f.title = by_index(content_, s, 0x189e + group);
     }
     break;
   }
@@ -581,7 +579,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   case 23:
     if (const auto lobby = lobby_view())
       for (const auto &row : frontend_lobby_setup_rows(lobby->input.session_enum))
-        f.entries.push_back({content_.localized(s, row.label), row.destination, row.semantic});
+        f.entries.push_back({detail::frontend_compiled_localized(content_, s, row.label), row.destination, row.semantic});
     break;
   case 25:
     add(0x201, -2, 0);
@@ -589,7 +587,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     add(0x203, -2, 2);
     break;
   case 30:
-    f.entries = {{profile_name(), 14, 0}, {by_index(s, 0x28a), 10, 1}};
+    f.entries = {{profile_name(), 14, 0}, {by_index(content_, s, 0x28a), 10, 1}};
     break;
   case 20: {
     const std::string provider=discord_login_ && discord_login_->uses_steam()?"Steam":"Discord";
@@ -708,11 +706,11 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
         f.entries.push_back(
             {content_.localized(s, s.panes[0].buttons[i].text.string), -8,
              int(i)});
-    f.title = by_index(s, context == 2 || context == 6 ? 0x44c
+    f.title = by_index(content_, s, context == 2 || context == 6 ? 0x44c
                           : context == 3 ? 0x453
                           : context == 4 ? 0x455
                                          : 0x449);
-    f.description = by_index(s, context == 2 || context == 6 ? 0x44d
+    f.description = by_index(content_, s, context == 2 || context == 6 ? 0x44d
                                 : context == 3 ? 0x454
                                 : context == 4 ? 0x456
                                 : context == 1 ? 0x44b
@@ -970,8 +968,10 @@ FrontendLaunch MenuState::selected_multiplayer_configuration() const {
   if(mode_!=1 && mode_!=2)throw FormatError("Native multiplayer configuration requires its selected local mode");
   UiVariant variant{variant_name_,engine_,variant_values_};
   const auto rules=slayer_rules(variant,true);
-  if(rules.custom==CustomSlayer::none && (map_==2 || map_==8))throw FormatError("Midship and Waterworks start with energy weapons; their battery combat is unfinished. Choose an SMG-start map.");
-  FrontendLaunch result;result.map=std::string(multiplayer_files.at(map_))+".map";
+  FrontendLaunch result;
+  result.map=frontend_multiplayer_launch_file(content_.multiplayer_maps,map_);
+  const auto &map=content_.multiplayer_maps.at(map_);
+  if(rules.custom==CustomSlayer::none && frontend_multiplayer_energy_start(map))throw FormatError("Midship and Waterworks start with energy weapons; their battery combat is unfinished. Choose an SMG-start map.");
   result.multiplayer=true;
   const auto players=local_players();result.local_players=unsigned(players.size());
   if(mode_==1 && rules.custom==CustomSlayer::infection && players.size()<2)throw FormatError("Infection requires at least two local players or a System Link/ONLINE match.");
@@ -1755,7 +1755,7 @@ void MenuState::keyboard_labels() {
       id = ((keyboard_flags_ & 1) ? 0x4cf : 0x4ab) + i;
     else if (keyboard_flags_ & 3)
       id = i < 10 ? (keyboard_flags_ & 1 ? 0x487 : 0x463) + i : 0x491 + i - 10;
-    stack_.back().entries.at(i).label = by_index(screen, id);
+    stack_.back().entries.at(i).label = by_index(content_, screen, id);
   }
 }
 bool MenuState::keyboard_key_visible(unsigned key) const {
@@ -1930,10 +1930,9 @@ void MenuState::save() const {
 }
 const UiLobbyMap *MenuState::focused_lobby_map(const MenuFrame &frame) const {
   if (frame.screen != 206 || frame.selected >= frame.entries.size()) return nullptr;
-  const auto list = frontend_lobby_maps(content_.multiplayer_maps, content_.campaign_maps,
-                                       frontend_lobby_new_profile_map_progress);
-  const auto preview = frontend_lobby_map_preview(content_.multiplayer_maps, list, frame.selected);
-  return preview ? preview->map : nullptr;
+  const auto &entry = frame.entries[frame.selected];
+  return entry.destination == -2 && entry.value >= 0
+      ? frontend_multiplayer_map(content_.multiplayer_maps,unsigned(entry.value)) : nullptr;
 }
 std::optional<FrontendLobbyView> MenuState::lobby_view() const {
   if(mode_==3) {
@@ -1963,15 +1962,15 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
   view.engine = engine_;
   view.difficulty = difficulty_;
   const bool campaign = mode_ == 4;
-  const auto &maps = campaign ? content_.campaign_maps : content_.multiplayer_maps;
-  const std::string file = campaign ? campaign_files.at(level_) : multiplayer_files.at(map_);
-  for (const auto &map : maps) {
-    const auto slash = map.scenario_path.find_last_of("\\/");
-    if (map.scenario_path.substr(slash == std::string::npos ? 0 : slash + 1) == file) {
-      view.map = &map;
-      break;
+  if (campaign) {
+    for (const auto &map : content_.campaign_maps) {
+      const auto slash = map.scenario_path.find_last_of("\\/");
+      if (map.scenario_path.substr(slash == std::string::npos ? 0 : slash + 1) == campaign_files.at(level_)) {
+        view.map = &map;
+        break;
+      }
     }
-  }
+  } else view.map = frontend_multiplayer_map(content_.multiplayer_maps,map_);
   view.input.session_enum = frontend_lobby_session_enum({view.protocol, 1,
       campaign && view.map ? view.map->campaign_id : -1,
       frontend_lobby_variant_type(engine_), view.map != nullptr});
@@ -2057,8 +2056,9 @@ std::string MenuState::expand(const std::string &source) const {
           result += profile_name();
           break;
         case 0xe408:
-          result += mode_ == 0 || mode_ == 4 ? campaign_names.at(level_)
-                               : multiplayer_names.at(map_);
+          if (mode_ == 0 || mode_ == 4) result += campaign_names.at(level_);
+          else if (const auto map = frontend_multiplayer_map(content_.multiplayer_maps,map_))
+            result += map->name;
           break;
         case 0xe409:
         case 0xe40a:

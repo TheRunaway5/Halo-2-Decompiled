@@ -49,6 +49,40 @@ class PackagedShaderDefaultTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             relocate_compiled_shader_default(elf_with_readonly_literal(original, extra=original+b'\0'), self.directory)
 
+    def test_local_owner_keeps_known_length_binary_neighbors_and_existing_bank(self):
+        target = self.root / "local"
+        target.mkdir()
+        (self.directory / "preserved.spv").write_bytes(b"original bank")
+        (target / "preserved.spv").write_bytes(b"same shader")
+        original = os.fsencode(self.directory)
+        before = elf_with_readonly_literal(original, terminated=False)
+        after, receipt = relocate_compiled_shader_default(before, self.directory, target_directory=target)
+        start, size = receipt["offset"], receipt["bytes"]
+        self.assertEqual(before[:start], after[:start])
+        self.assertEqual(before[start+size:], after[start+size:])
+        self.assertEqual(len(before), len(after))
+        self.assertEqual(Path(receipt["compiled_default"]).resolve(), target)
+        self.assertEqual(receipt["directory"], str(target))
+        self.assertEqual(len(receipt["compiled_default"].encode()), len(original))
+        readonly_literal_location(after, receipt["compiled_default"].encode())
+        self.assertEqual((self.directory / "preserved.spv").read_bytes(), b"original bank")
+        self.assertEqual((target / "preserved.spv").read_bytes(), b"same shader")
+
+    def test_local_owner_rejects_alias_missing_relative_or_oversized_path(self):
+        target = self.root / "local"
+        target.mkdir()
+        alias = self.root / "alias"
+        alias.symlink_to(target, target_is_directory=True)
+        long = self.root / ("long" * 20)
+        long.mkdir()
+        payload = elf_with_readonly_literal(os.fsencode(self.directory))
+        for path in (alias, self.root / "missing", Path("relative"), long):
+            with self.subTest(path=path), self.assertRaises(ValueError):
+                relocate_compiled_shader_default(payload, self.directory, target_directory=path)
+        for flags in (0, 3, 6, 7):
+            with self.subTest(flags=flags), self.assertRaises(ValueError):
+                relocate_compiled_shader_default(elf_with_readonly_literal(os.fsencode(self.directory), flags=flags), self.directory, target_directory=target)
+
     def test_actual_known_length_constant_needs_no_terminator_and_keeps_binary_neighbor(self):
         original = os.fsencode(self.directory)
         before = elf_with_readonly_literal(original, terminated=False)

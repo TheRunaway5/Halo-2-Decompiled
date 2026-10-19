@@ -1,5 +1,7 @@
 #include "native_startup_memory_hints.hpp"
 #include "halo2/simulation.hpp"
+#include "halo2/multiplayer.hpp"
+#include "halo2/multiplayer_snapshot_origin.hpp"
 #include "halo2/source_script_sound_admission_tu15.hpp"
 #include "halo2/frontend_model_lighting.hpp"
 #include "halo2/render_interpolation.hpp"
@@ -29,7 +31,211 @@
 #include <iostream>
 #include <sstream>
 #include <set>
+#include <bit>
+#include <limits>
+#include <algorithm>
 namespace halo2 {
+namespace {
+bool replica_same(float a,float b){return std::bit_cast<std::uint32_t>(a)==std::bit_cast<std::uint32_t>(b);}
+bool replica_same(Vec3 a,Vec3 b){return replica_same(a.x,b.x)&&replica_same(a.y,b.y)&&replica_same(a.z,b.z);}
+bool replica_same(const Transform &a,const Transform &b){
+  if(!replica_same(a.scale,b.scale)||!replica_same(a.position,b.position))return false;
+  for(unsigned i=0;i<a.basis.size();++i)if(!replica_same(a.basis[i],b.basis[i]))return false;
+  return true;
+}
+bool replica_same(const SourceModelRegionBank &a,const SourceModelRegionBank &b){
+  return a.selection.variant_index==b.selection.variant_index&&a.selection.permutations==b.selection.permutations&&
+      a.selection.states==b.selection.states&&a.selection.unresolved_rng_regions==b.selection.unresolved_rng_regions&&
+      a.looping_effects==b.looping_effects;
+}
+bool replica_same(const SourceDeviceGroup &a,const SourceDeviceGroup &b){return replica_same(a.value,b.value)&&a.flags==b.flags;}
+bool replica_same(const SourceDeviceWorldOwner &a,const SourceDeviceWorldOwner &b){
+  return a.handle==b.handle&&a.placement==b.placement&&a.created_tick==b.created_tick&&
+      replica_same(a.motion.position,b.motion.position)&&replica_same(a.motion.position_velocity,b.motion.position_velocity)&&
+      replica_same(a.motion.power,b.motion.power)&&replica_same(a.motion.power_velocity,b.motion.power_velocity)&&
+      a.motion.flags==b.motion.flags&&a.motion.delay_ticks==b.motion.delay_ticks&&a.control_flags==b.control_flags&&
+      a.door.flags==b.door.flags&&a.door.open_ticks==b.door.open_ticks&&
+      replica_same(a.private_power,b.private_power)&&replica_same(a.private_position,b.private_position)&&
+      replica_same(a.root,b.root)&&a.bsp_hidden==b.bsp_hidden&&a.visible==b.visible;
+}
+bool replica_same(const PropRemoval &a,const PropRemoval &b){
+  return a.handle==b.handle&&a.placement==b.placement&&a.definition==b.definition&&a.effect==b.effect&&
+      a.event_tick==b.event_tick&&replica_same(a.effect_position,b.effect_position)&&replica_same(a.effect_forward,b.effect_forward);
+}
+}
+struct Simulation::ReplicaCheckpoint::Data {
+  const Simulation *owner{};
+  std::weak_ptr<const int> identity;
+  std::thread::id executor;
+  MultiplayerSnapshotOrigin origin;
+  std::size_t bsp{},scene_bsp{};
+  std::optional<std::size_t> pending_bsp;
+  std::uint64_t bsp_revision{};
+  std::shared_ptr<const BspWorld> world;
+  std::shared_ptr<const CollisionWorld> fixed,all;
+  std::vector<SceneObjects::Object> objects;
+  std::map<std::uint32_t,std::size_t> slots;
+  std::vector<std::uint32_t> names;
+  std::map<std::pair<std::uint32_t,std::uint32_t>,SceneObjects::AuthorityFunction> functions;
+  SourceDeviceWorld devices;
+  PropSandbox props;
+  StaticSceneryCollision scenery;
+  std::vector<PropRemoval> removals;
+  Data(const Simulation &s,const MultiplayerSnapshotOrigin &accepted):owner(&s),identity(s.replica_identity_),
+      executor(std::this_thread::get_id()),origin(accepted),bsp(s.bsp_),scene_bsp(s.scene_.bsp_),
+      pending_bsp(s.pending_bsp_),bsp_revision(s.bsp_revision_),world(s.world_),fixed(s.static_collision_),all(s.prop_collision_),
+      objects(s.scene_.objects_),slots(s.scene_.slots_),names(s.scene_.names_),functions(s.scene_.functions_),
+      devices(s.devices_),props(s.props_),scenery(s.scenery_collision_),removals(s.prop_removals_){}
+};
+bool Simulation::ReplicaCheckpoint::valid()const noexcept {
+  return data_&&!data_->identity.expired()&&data_->executor==std::this_thread::get_id();
+}
+std::optional<std::uint64_t> Simulation::ReplicaCheckpoint::tick()const noexcept {
+  return valid()?std::optional<std::uint64_t>(data_->origin.tick()):std::nullopt;
+}
+bool Simulation::ReplicaCheckpoint::matches(const MultiplayerSnapshotOrigin &origin)const noexcept {
+  return valid()&&data_->origin.same(origin);
+}
+bool Simulation::owns_replica_checkpoint(const ReplicaCheckpoint &saved)const noexcept {
+  return saved.valid()&&saved.data_->owner==this&&saved.data_->identity.lock()==replica_identity_&&
+      replica_executor_&&*replica_executor_==std::this_thread::get_id();
+}
+Simulation::ReplicaCheckpoint Simulation::replica_checkpoint(const MultiplayerSnapshotOrigin &origin)const {
+  if(replica_executor_&&*replica_executor_!=std::this_thread::get_id())
+    throw FormatError("Replica checkpoint belongs to another executor");
+  authority_calls_.capture();devices_.authority_.capture();props_.authority_.capture();scenery_collision_.authority_.capture();
+  const auto &scene_calls=scene_.authority_calls_;
+  if(scene_calls.depth||scene_calls.staging||scene_calls.fault||source_physics_movement_||
+      object_lifetimes_.pool().source_memory()||!scene_.source_replica_||scene_.source_owner_.create||
+      !devices_.replica_tick_||!props_.replica_||devices_.collision_dirty_||props_.collision_dirty_||
+      !world_||!static_collision_||!prop_collision_||!origin.context()||origin.local_slots().empty()||origin.local_slots().size()>4)
+    throw FormatError("Replica checkpoint requires a completed accepted display world and composed collision");
+  const auto &accepted=origin.accepted_state();
+  if(!origin.tick()||*origin.tick()!=accepted.tick||*devices_.replica_tick_!=accepted.devices.tick||
+      accepted.devices.tick!=accepted.tick||!accepted.source_scene_roots_authoritative||
+      devices_.groups_.size()!=accepted.devices.groups.size()||devices_.owners_.size()!=accepted.devices.owners.size()||
+      props_.props_.size()!=accepted.prop_regions.size()||prop_removals_.size()!=accepted.prop_removals.size())
+    throw FormatError("Replica checkpoint differs from its accepted receipt bank or clock");
+  for(std::size_t i=0;i<devices_.groups_.size();++i)if(!replica_same(devices_.groups_[i],accepted.devices.groups[i]))
+    throw FormatError("Replica checkpoint has a different accepted device group");
+  std::set<std::uint32_t> device_ids,region_ids;
+  for(const auto &entry:accepted.devices.owners){const auto found=devices_.owners_.find(entry.state.handle);
+    if(found==devices_.owners_.end()||!device_ids.insert(entry.state.handle).second||
+        entry.state.placement>=content_.objects.size()||content_.objects[entry.state.placement].definition!=entry.definition||
+        !replica_same(found->second,entry.state))throw FormatError("Replica checkpoint has a different accepted device generation or state");
+  }
+  for(const auto &entry:accepted.prop_regions){const auto found=props_.props_.find(entry.handle);
+    if(found==props_.props_.end()||!region_ids.insert(entry.handle).second||
+        found->second.state.placement!=entry.placement||found->second.state.definition!=entry.definition||
+        !replica_same(found->second.state.regions,entry.regions))
+      throw FormatError("Replica checkpoint has a different accepted prop region bank");
+  }
+  for(std::size_t i=0;i<prop_removals_.size();++i)if(!replica_same(prop_removals_[i],accepted.prop_removals[i]))
+    throw FormatError("Replica checkpoint has a different accepted prop retirement bank");
+  std::set<std::uint32_t> scene_ids;
+  for(const auto &root:accepted.source_scene_roots){
+    const bool removed=std::ranges::any_of(accepted.prop_removals,[&](const auto &row){return row.handle==root.object;});
+    if(removed)continue;
+    const auto found=scene_.slots_.find(root.object);
+    if(found==scene_.slots_.end()||!scene_ids.insert(root.object).second)
+      throw FormatError("Replica checkpoint lost or duplicated an accepted scene generation");
+    const auto &object=scene_.objects_.at(found->second);
+    if(object.handle!=root.object||object.placement!=root.placement||root.placement>=content_.objects.size()||
+        content_.objects[root.placement].definition!=root.definition||object.created_tick!=root.created_tick||
+        object.visible!=root.visible||!object.solved_transform||!replica_same(*object.solved_transform,root.transform)||
+        !object.solved_nodes||object.source_model_regions.has_value()!=root.model_regions.has_value()||
+        (root.model_regions&&!replica_same(*object.source_model_regions,*root.model_regions)))
+      throw FormatError("Replica checkpoint has a different accepted scene root or regions");
+    const auto pose=std::ranges::find(accepted.source_body_poses,root.object,&SourceWorldPose::object);
+    if(root.has_world_nodes){
+      if(pose==accepted.source_body_poses.end()||pose->nodes.size()!=object.solved_nodes->size())
+        throw FormatError("Replica checkpoint has a different accepted WORLD hierarchy");
+      for(std::size_t i=0;i<pose->nodes.size();++i)if(!replica_same(pose->nodes[i],(*object.solved_nodes)[i]))
+        throw FormatError("Replica checkpoint changed an accepted WORLD transform");
+    }else if(!object.solved_nodes->empty())throw FormatError("Replica checkpoint invented an accepted WORLD hierarchy");
+  }
+  if(scene_ids.size()!=scene_.slots_.size())throw FormatError("Replica checkpoint retained an unaccepted scene generation");
+  ReplicaCheckpoint result;result.data_=std::make_shared<const ReplicaCheckpoint::Data>(*this,origin);
+  replica_executor_=std::this_thread::get_id();return result;
+}
+struct Simulation::PreparedReplica::Impl {
+  Simulation *owner{};
+  std::weak_ptr<const int> identity;
+  std::thread::id executor;
+  std::unique_ptr<ReplicaCheckpoint::Data> values;
+  std::array<NativeAuthorityBoundary *,5> boundaries{};
+  std::array<std::uint64_t,5> revisions{};
+  std::uint64_t scene_revision{};
+  std::shared_ptr<const BspWorld> current_world;
+  std::shared_ptr<const CollisionWorld> current_fixed,current_all;
+  bool staged{},published{};
+  ~Impl(){
+    if(identity.expired())return;
+    if(executor!=std::this_thread::get_id())std::terminate();
+    if(!staged)return;
+    for(auto *boundary:boundaries)if(boundary)boundary->staging=false;
+    owner->scene_.authority_calls_.staging=false;
+  }
+};
+Simulation::PreparedReplica::PreparedReplica()=default;
+Simulation::PreparedReplica::~PreparedReplica()=default;
+Simulation::PreparedReplica::PreparedReplica(PreparedReplica &&) noexcept=default;
+Simulation::PreparedReplica &Simulation::PreparedReplica::operator=(PreparedReplica &&) noexcept=default;
+Simulation::PreparedReplica Simulation::prepare_replica(const ReplicaCheckpoint &saved){return prepare_replica(saved,nullptr);}
+Simulation::PreparedReplica Simulation::prepare_replica(const ReplicaCheckpoint &saved,NativeAuthorityBoundary *parent){
+  if(!owns_replica_checkpoint(saved))throw FormatError("Replica publication has a foreign, expired or wrong-executor checkpoint");
+  authority_calls_.capture();devices_.authority_.capture();props_.authority_.capture();scenery_collision_.authority_.capture();
+  if(parent)parent->capture();
+  const auto &scene_calls=scene_.authority_calls_;
+  if(scene_calls.depth||scene_calls.staging||scene_calls.fault||source_physics_movement_||
+      object_lifetimes_.pool().source_memory()||!scene_.source_replica_||!devices_.replicated()||!props_.replica_)
+    throw FormatError("Replica publication lost its completed display owner");
+  PreparedReplica result;result.impl_=std::make_unique<PreparedReplica::Impl>();auto &p=*result.impl_;
+  p.owner=this;p.identity=replica_identity_;p.executor=std::this_thread::get_id();
+  p.values=std::make_unique<ReplicaCheckpoint::Data>(*saved.data_);
+  p.boundaries={&authority_calls_,&devices_.authority_,&props_.authority_,&scenery_collision_.authority_,parent};
+  for(std::size_t i=0;i<p.boundaries.size();++i)if(p.boundaries[i]){
+    if(p.boundaries[i]->mutations==std::numeric_limits<std::uint64_t>::max())
+      throw FormatError("Replica publication exhausted its owner revision");
+    p.revisions[i]=p.boundaries[i]->mutations;
+  }
+  if(scene_calls.mutations==std::numeric_limits<std::uint64_t>::max())throw FormatError("Replica publication exhausted its scene revision");
+  p.scene_revision=scene_calls.mutations;p.current_world=world_;p.current_fixed=static_collision_;p.current_all=prop_collision_;
+  for(auto *boundary:p.boundaries)if(boundary)boundary->staging=true;
+  scene_.authority_calls_.staging=true;p.staged=true;return result;
+}
+bool Simulation::replica_ready(const PreparedReplica &prepared)const noexcept {
+  if(!prepared.impl_)return false;const auto &p=*prepared.impl_;
+  // Prepared values retain the checkpoint's identity independently of the
+  // historical receipt; readiness concerns the current owners being replaced.
+  if(p.owner!=this||!p.staged||p.published||p.executor!=std::this_thread::get_id()||p.identity.lock()!=replica_identity_||
+      !p.values||p.values->identity.lock()!=replica_identity_||!replica_executor_||*replica_executor_!=p.executor||
+      source_physics_movement_||object_lifetimes_.pool().source_memory()||!scene_.source_replica_||
+      !devices_.replicated()||!props_.replica_||world_!=p.current_world||static_collision_!=p.current_fixed||prop_collision_!=p.current_all)
+    return false;
+  for(std::size_t i=0;i<p.boundaries.size();++i)if(const auto *boundary=p.boundaries[i])
+    if(boundary->depth||!boundary->staging||boundary->fault||boundary->mutations!=p.revisions[i])return false;
+  const auto &scene_calls=scene_.authority_calls_;
+  return !scene_calls.depth&&scene_calls.staging&&!scene_calls.fault&&scene_calls.mutations==p.scene_revision;
+}
+bool Simulation::commit_replica(PreparedReplica &prepared)noexcept {
+  if(!replica_ready(prepared))return false;
+  auto &p=*prepared.impl_;auto &n=*p.values;
+  world_.swap(n.world);static_collision_.swap(n.fixed);prop_collision_.swap(n.all);
+  std::swap(bsp_,n.bsp);pending_bsp_.swap(n.pending_bsp);std::swap(bsp_revision_,n.bsp_revision);
+  scene_.objects_.swap(n.objects);scene_.slots_.swap(n.slots);scene_.names_.swap(n.names);scene_.functions_.swap(n.functions);
+  std::swap(scene_.bsp_,n.scene_bsp);
+  devices_.groups_.swap(n.devices.groups_);devices_.owners_.swap(n.devices.owners_);devices_.events_.swap(n.devices.events_);
+  devices_.triangles_.swap(n.devices.triangles_);devices_.collision_poses_.swap(n.devices.collision_poses_);
+  std::swap(devices_.collision_dirty_,n.devices.collision_dirty_);devices_.replica_tick_.swap(n.devices.replica_tick_);
+  props_.props_.swap(n.props.props_);props_.events_.swap(n.props.events_);
+  std::swap(props_.collision_dirty_,n.props.collision_dirty_);std::swap(props_.replica_,n.props.replica_);
+  scenery_collision_.owners_.swap(n.scenery.owners_);scenery_collision_.triangles_.swap(n.scenery.triangles_);
+  prop_removals_.swap(n.removals);
+  for(auto *boundary:p.boundaries)if(boundary){++boundary->mutations;boundary->staging=false;}
+  ++scene_.authority_calls_.mutations;scene_.authority_calls_.staging=false;
+  p.staged=false;p.published=true;return true;
+}
 std::uint32_t source_cinematic_emotion_name_tu15(const CinematicAnimationLoader* assets,std::uint32_t id) {
   if(!assets || !assets->assets)throw FormatError("Native emotion names require the retained cinematic Cache owner");
   return assets->assets->unit_emotion_name_tu15(id);

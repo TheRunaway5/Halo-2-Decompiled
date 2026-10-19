@@ -27,6 +27,22 @@ struct SourceTagMetadataStore::State {
       if (!tags.emplace(tag.datum, cache->load_source_tag_metadata(tag.datum)).second)
         throw FormatError("Duplicate resident source tag datum");
     }
+    // Moving a canonical MCC definition can leave literal forwarding pointers
+    // in other selected tags. These allocations retain their salted identity,
+    // but must never replace a canonical definition or resurrect an unresolved
+    // program. Admit their bytes only to the same bounded group-scoped reader.
+    for (const auto &tag : cache->retained_tag_allocations()) {
+      if (!groups.contains(tag.group))
+        continue;
+      const auto *current = cache->find_tag(tag.handle(), tag.type());
+      if (!current || current->group != tag.group || current->name != tag.name ||
+          !tag.address || !tag.size)
+        throw FormatError("Retained source tag allocation has no typed identity");
+      if (!tags.contains(tag.datum))
+        continue;
+      retained.emplace_back(tag.datum, tag.group, tag.address,
+                            cache->read_tag_bytes(tag.address, tag.size));
+    }
   }
   const SourceTagMetadata &definition(std::uint32_t datum) const {
     const auto found = tags.find(datum);
@@ -43,22 +59,27 @@ struct SourceTagMetadataStore::State {
   }
   std::span<const std::byte> read(std::uint32_t address, std::size_t bytes) const {
     const SourceTagMetadata *owner = nullptr;
-    for (const auto &[_, tag] : tags) {
+    const auto consider = [&](const SourceTagMetadata &tag) {
       if (address < tag.source_address())
-        continue;
+        return;
       const auto offset = std::uint64_t(address) - tag.source_address();
       if (offset > tag.size() || bytes > tag.size() - offset)
-        continue;
+        return;
       if (owner && bytes && (owner->source_address()!=tag.source_address() || owner->size()!=tag.size() || owner->group()!=tag.group()))
         throw FormatError("Ambiguous resident source tag backing");
       owner = &tag;
-    }
+    };
+    for (const auto &[_, tag] : tags)
+      consider(tag);
+    for (const auto &tag : retained)
+      consider(tag);
     if (!owner)
       throw FormatError("Source tag pointer escapes explicitly owned payloads");
     return owner->bytes_at(address, bytes);
   }
   std::shared_ptr<const Cache> cache;
   std::map<std::uint32_t, SourceTagMetadata> tags;
+  std::vector<SourceTagMetadata> retained;
 };
 
 SourceTagMetadataStore::SourceTagMetadataStore(

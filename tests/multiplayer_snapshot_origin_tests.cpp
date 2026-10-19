@@ -4,10 +4,16 @@
 #include "halo2/source_authority_codec.hpp"
 #include "halo2/source_authority_binding.hpp"
 #include "halo2/effect_presentation_continuity.hpp"
+#include "halo2/multiplayer_pose_continuity.hpp"
+#include "halo2/fp_replication.hpp"
 #include <openssl/sha.h>
 #include <algorithm>
+#include <bit>
+#include <cstring>
 #include <deque>
 #include <iostream>
+#include <thread>
+#include <utility>
 
 using namespace halo2;
 namespace {
@@ -33,6 +39,137 @@ SourcePlayerConfiguration profile(std::string_view name){const auto defaults=sou
 AuthorityTransferDigest hash(std::span<const std::byte> bytes){AuthorityTransferDigest out{};
     check(SHA256(reinterpret_cast<const unsigned char*>(bytes.data()),bytes.size(),reinterpret_cast<unsigned char*>(out.data())),"Cannot hash native cut");return out;}
 std::uint32_t sequence(const Bus::Packet &p){check(p.bytes.size()>=27,"Snapshot header is truncated");return Bytes(p.bytes).u32(23);}
+bool same_nodes(std::span<const Transform> a,std::span<const Transform> b){return a.size()==b.size()&&
+    (a.empty()||!std::memcmp(a.data(),b.data(),a.size_bytes()));}
+bool same_hand(const FirstPersonHandBinding &a,const FirstPersonHandBinding &b){return
+    a.flags==b.flags&&a.weapon==b.weapon&&a.weapon_node_count==b.weapon_node_count&&a.arms_node_count==b.arms_node_count&&
+    a.weapon_nodes==b.weapon_nodes&&a.arms_nodes==b.arms_nodes&&a.graph==b.graph&&a.animation_identifier==b.animation_identifier&&
+    a.channel_flags==b.channel_flags&&a.channel_options==b.channel_options&&std::bit_cast<std::uint32_t>(a.rate)==std::bit_cast<std::uint32_t>(b.rate)&&
+    std::bit_cast<std::uint32_t>(a.frame)==std::bit_cast<std::uint32_t>(b.frame)&&a.activity==b.activity&&a.channel_delay==b.channel_delay&&
+    a.events==b.events&&a.future_events==b.future_events&&a.dual_wield==b.dual_wield&&a.secondary_hand==b.secondary_hand&&a.fire_ticks==b.fire_ticks;}
+bool same_view(const FirstPersonViewBinding &a,const FirstPersonViewBinding &b){return a.unit==b.unit&&a.representation==b.representation&&
+    same_hand(a.hands[0],b.hands[0])&&same_hand(a.hands[1],b.hands[1]);}
+void pose_roundtrip(const Cache &cache,std::span<const SceneObjects::Object> early_scene,
+    std::span<const SceneObjects::Object> later_scene,const MultiplayerSnapshotOrigin &early,const MultiplayerSnapshotProof &early_proof,
+    const MultiplayerSnapshotProof &alternate_early_proof,const MultiplayerSnapshotOrigin &later,const MultiplayerSnapshotProof &later_proof){
+    check(later.tick()>early.tick()&&early.same_connection(later),"Pose restore requires two real received native ticks");
+    const auto &a=early.accepted_state(),&b=later.accepted_state();
+    std::optional<RenderModel> model;const SourceWorldPose *early_pose{},*later_pose{};std::uint32_t render_model{};
+    for(const auto &root:a.source_scene_roots){
+        const auto one=std::ranges::find_if(a.source_body_poses,[&](const auto &p){return p.object==root.object&&!p.nodes.empty();});
+        const auto two=std::ranges::find_if(b.source_body_poses,[&](const auto &p){return p.object==root.object&&!p.nodes.empty();});
+        if(one==a.source_body_poses.end()||two==b.source_body_poses.end())continue;
+        try{auto candidate=cache.load_model_hierarchy(root.definition);
+            if(candidate.bones.size()!=one->nodes.size()||candidate.bones.size()!=two->nodes.size())continue;
+            render_model=cache.load_initial_model_definition(root.definition).render_model;
+            model=std::move(candidate);early_pose=&*one;later_pose=&*two;break;
+        }catch(const FormatError &){} // Genuine non-model/unsupported authored owner; require a real supported bank below.
+    }
+    check(model&&early_pose&&later_pose&&render_model!=null_datum,"Real native receipts lack a supported authored completed WORLD hierarchy");
+    const auto key=std::pair{early_pose->object,render_model};
+    const MultiplayerPoseContinuity::FpPoseKey fp_key{early_pose->object,render_model,0};
+    check(cache.original_data()&&cache.original_data()->unit_constructor_tail_constants,"Pose transition control lacks original operands");
+    const auto &transition_constants=*cache.original_data()->unit_constructor_tail_constants;
+    std::vector<BonePose> bind_locals;for(const auto &bone:model->bones)bind_locals.push_back(bone.bind);
+    auto transition_locals=bind_locals;transition_locals.front().translation.x+=1;
+    MultiplayerPoseContinuity poses,foreign;
+    const auto populate=[&](MultiplayerPoseContinuity::Values &v,const MultiplayerSnapshotOrigin &origin,
+        std::span<const SceneObjects::Object> scene,bool first){
+        const auto &state=origin.accepted_state();
+        if(first){v.scene_interpolation.reset(*origin.tick(),scene);v.source_body_interpolation.reset(*origin.tick(),state.source_body_poses);}
+        else {v.scene_interpolation.capture(*origin.tick(),scene);v.source_body_interpolation.capture(*origin.tick(),state.source_body_poses);}
+        const auto &palette=first?early_pose->nodes:later_pose->nodes;
+        v.source_render_interpolation[key].capture(*origin.tick(),palette);
+        for(unsigned view=0;view<origin.local_slots().size();++view){const auto &p=state.players[origin.local_slots()[view]];
+            const auto representation=source_session_player_representation(p.source_configuration,state.source_game_type);
+            auto definition=cache.load_first_person_binding(p.weapon,representation);
+            observe_first_person_binding(v.client_fp_views[view],{p.source_player,p.source_unit,int(representation),{p.source_weapon,p.secondary_weapon.datum}},
+                [&](std::uint32_t weapon,std::int32_t)->const FirstPersonBindingDefinition *{return weapon==p.source_weapon?&definition:nullptr;});
+            v.client_fp_clock_available[view]=apply_replicated_first_person_clock(v.client_fp_origins[view],v.client_fp_views[view],p.first_person_clock,definition);
+            v.client_fp_reported_units[view]=p.source_unit;
+            // Explicit container roundtrip controls use a real completed
+            // WORLD palette in all four banks. This does not certify the
+            // native first-person producer or invent an authored FP pose.
+            v.source_fp_interpolation[view][fp_key].capture(*origin.tick(),palette);
+            v.source_fp_lifetimes[view]={p.source_unit,p.source_weapon,p.secondary_weapon.datum,p.source_parent,std::uint32_t(p.dead)};
+            const auto slot=origin.local_slots()[view];v.aim_alive[slot]=p.connected&&!p.dead;
+            if(first){
+                // Declared CPU-controller storage controls execute existing
+                // source arithmetic with imported operands and authored local
+                // bones; they are not a claim about this unit's live gait.
+                source_aim_blend_select(v.aim_blends[slot],true,30);source_aim_blend_select(v.body_aim_blends[slot],true,30);
+                v.body_transitions[slot].tick(0x0400000cu,false,bind_locals,transition_constants);
+                v.body_transitions[slot].tick(0x0a000014u,false,transition_locals,transition_constants);
+            }else v.body_transitions[slot].tick(0x0a000014u,false,transition_locals,transition_constants);
+            source_aim_blend_advance(v.aim_blends[slot]);source_aim_blend_advance(v.body_aim_blends[slot]);
+        }
+    };
+    auto &aliased_render=poses.state().source_render_interpolation;
+    populate(poses.state(),early,early_scene,true);
+    const auto initial=std::as_const(poses).state();
+    const auto snapshot=poses.capture(early);
+    check(snapshot.valid()&&snapshot.matches(early)&&!snapshot.matches(later)&&poses.owns_snapshot(snapshot)&&!foreign.owns_snapshot(snapshot),
+        "Pose snapshot lost exact receipt or stable local ownership");
+    rejects([&]{poses.capture(MultiplayerSnapshotOrigin{});});
+    rejects([&]{poses.prepare_restore(MultiplayerPoseContinuity::Snapshot{},early_proof);});
+    rejects([&]{poses.prepare_restore(snapshot,MultiplayerSnapshotProof{});});
+    rejects([&]{poses.prepare_restore(snapshot,later_proof);});
+    rejects([&]{foreign.prepare_restore(snapshot,early_proof);});
+    populate(poses.state(),later,later_scene,false);
+    check(poses.owns_snapshot(snapshot)&&std::as_const(poses).state().source_render_interpolation.at(key).paired(),
+        "A later real native tick expired the historical owner or failed to populate paired pose storage");
+    {auto cancelled=poses.prepare_restore(snapshot,early_proof);check(poses.ready(cancelled,early_proof),"Valid pose preparation refused");}
+    check(std::as_const(poses).state().source_render_interpolation.at(key).paired(),"Cancelling a pose preparation changed live history");
+    auto stale=poses.prepare_restore(snapshot,early_proof);
+    poses.mutating();aliased_render.at(key).capture_render(*later.tick(),later_pose->nodes);
+    check(!poses.ready(stale,early_proof)&&!poses.commit(stale),"Retained-alias mutation did not invalidate preparation");
+    auto accessed=poses.prepare_restore(snapshot,early_proof);(void)poses.state();
+    check(!poses.ready(accessed,early_proof)&&!poses.commit(accessed),"Mutable state admission left a stale pose token eligible");
+    auto prepared=poses.prepare_restore(snapshot,early_proof),competing=poses.prepare_restore(snapshot,early_proof);
+    check(alternate_early_proof.matches(early)&&alternate_early_proof.cut().seal!=early_proof.cut().seal&&
+        !poses.ready(prepared,alternate_early_proof)&&!poses.ready(prepared,later_proof)&&!foreign.ready(prepared,early_proof)&&!foreign.commit(prepared),
+        "Foreign owner or different exact native proof committed pose history");
+    std::exception_ptr error;std::thread other([&]{try{
+        check(!poses.owns_snapshot(snapshot)&&!poses.ready(prepared,early_proof)&&!poses.commit(prepared),"Foreign executor published pose history");
+        rejects([&]{poses.capture(early);});rejects([&]{poses.prepare_restore(snapshot,early_proof);});rejects([&]{(void)std::as_const(poses).state();});
+    }catch(...){error=std::current_exception();}});other.join();if(error)std::rethrow_exception(error);
+    const auto *retired=&std::as_const(poses).state().source_render_interpolation.at(key);
+    const auto old_live_nodes=retired->sample(*model,1);
+    check(poses.ready(prepared,early_proof)&&poses.commit(prepared),"Exact pose restoration failed after controls");
+    const auto &restored=std::as_const(poses).state();
+    check(&aliased_render==&restored.source_render_interpolation&&!restored.source_render_interpolation.at(key).paired()&&
+        same_nodes(restored.source_render_interpolation.at(key).sample(*model,1),early_pose->nodes)&&
+        same_nodes(restored.source_body_interpolation.sample(early_pose->object,1),early_pose->nodes)&&
+        same_nodes(retired->sample(*model,1),old_live_nodes),
+        "Pose commit reset/reconstructed endpoints, invalidated aliases or retired old containers inside publication");
+    check(!poses.ready(prepared,early_proof)&&!poses.commit(prepared)&&!poses.ready(competing,early_proof)&&!poses.commit(competing),
+        "Consumed or competing same-revision pose token committed twice");
+    for(unsigned view=0;view<early.local_slots().size();++view){check(
+        same_view(restored.client_fp_views[view],initial.client_fp_views[view])&&same_view(restored.client_fp_origins[view],initial.client_fp_origins[view])&&
+        restored.client_fp_clock_available[view]==initial.client_fp_clock_available[view]&&
+        restored.client_secondary_clock_available[view]==initial.client_secondary_clock_available[view]&&
+        restored.client_fp_reported_units[view]==initial.client_fp_reported_units[view]&&restored.source_fp_lifetimes[view]==initial.source_fp_lifetimes[view]&&
+        !restored.source_fp_interpolation[view].at(fp_key).paired()&&same_nodes(restored.source_fp_interpolation[view].at(fp_key).sample(*model,1),early_pose->nodes),
+        "Four-view FP restore lost salted bindings, clock/node/event words, lifetimes or owning palette storage");
+        const auto slot=early.local_slots()[view];
+        check(!std::memcmp(&restored.aim_blends[slot],&initial.aim_blends[slot],sizeof(FirstPersonAimBlend))&&
+            !std::memcmp(&restored.body_aim_blends[slot],&initial.body_aim_blends[slot],sizeof(FirstPersonAimBlend))&&
+            restored.aim_alive[slot]==initial.aim_alive[slot],"Pose restore lost live aim-controller fields");
+        auto expected=bind_locals,actual=bind_locals;initial.body_transitions[slot].apply(expected,.5f);restored.body_transitions[slot].apply(actual,.5f);
+        check(!std::memcmp(expected.data(),actual.data(),actual.size()*sizeof(BonePose)),"Pose restore lost original transition clock/current/saved local banks");
+    }
+    check(!early_scene.empty(),"Actual native scene interpolation control is empty");
+    const auto scene_owner=std::ranges::find_if(early_scene,[&](const auto &o){return o.handle!=null_datum&&o.visible&&!o.bsp_hidden&&
+        std::ranges::any_of(later_scene,[&](const auto &next){return next.handle==o.handle&&next.placement==o.placement&&next.created_tick==o.created_tick&&next.visible&&!next.bsp_hidden;});});
+    check(scene_owner!=early_scene.end(),"Actual scene endpoint has no surviving source lifetime");
+    const auto next_owner=std::ranges::find_if(later_scene,[&](const auto &o){return o.handle==scene_owner->handle;});
+    auto continued=restored.scene_interpolation;continued.capture(*later.tick(),later_scene);
+    auto query=*next_owner;query.position.x+=3;if(query.solved_transform)query.solved_transform->position.x+=3;
+    const auto before=scene_object_transform(*scene_owner),after=continued.sample(query,0);
+    check(!std::memcmp(&before,&after,sizeof(Transform)),"Restored scene history did not supply its owning previous endpoint to the next real native tick");
+    std::cout<<"PASS exact proof-bound local pose/FP history rollback: actual two native ticks, four couch views, owning WORLD/node/scene endpoints, salted clocks, aliases, cancellation/staleness/foreign executor, consumed and deferred retirement\n";
+    std::cout<<"LIMIT pose fixture uses real received native cuts and authored metadata; declared FP storage/CPU transition controls do not qualify native FP/locomotion, HUD, renderer or playing-audio adoption\n";
+}
 }
 int main(int argc,char **argv)try {
     if(argc!=3 || !std::filesystem::is_regular_file(argv[1]) || !std::filesystem::is_regular_file(argv[2]))return 77;
@@ -81,6 +218,9 @@ int main(int argc,char **argv)try {
     };
     const auto early_cut=native_cut(1);const auto early_host=host.checkpoint(binding);
     const auto early_proof=couch.prove_snapshot(early_host,early_cut,early);
+    const auto alternate_early_cut=native_cut(5);
+    const auto alternate_early_proof=couch.prove_snapshot(early_host,alternate_early_cut,early);
+    const std::vector<SceneObjects::Object> early_scene(world.match.simulation().scene().objects().begin(),world.match.simulation().scene().objects().end());
     rejects([&]{(void)couch.prove_snapshot(early_host,early_cut,unbound);});
     rejects([&]{(void)couch.prove_snapshot(early_host,early_cut,MultiplayerSnapshotOrigin{});});
     const auto encode_host=LanHost::encode_continuation(early_host,{context,early_cut.seal});
@@ -144,9 +284,32 @@ int main(int argc,char **argv)try {
     couch.receive();check(couch.received_states().empty() && couch.received_origins().empty()&&couch.state_origin().same(last_adopted),
         "Empty receive changed the last adopted receipt or retained per-poll rows");
     auto next=context;++next.epoch;++next.membership_revision;next.peers&=~1u;next.host=1;
-    auto prepared=other->prepare_rebind_host(context,next,latest_cut.seal);
+    const auto other_proof=other->prove_snapshot(latest_host,latest_cut,other_origin);
+    rejects([&]{(void)other->prepare_rebind_host(context,next,latest_cut.seal,MultiplayerSnapshotProof{});});
+    rejects([&]{(void)other->prepare_rebind_host(context,next,latest_cut.seal,proof);});
+    auto wrong_cut=latest_cut.seal;++wrong_cut.id;
+    rejects([&]{(void)other->prepare_rebind_host(context,next,wrong_cut,other_proof);});
+    // A later real source tick must be rolled back to the exact proven body,
+    // while the receipt itself keeps its original historical generation.
+    world.match.step(controls);host.broadcast();other->receive();
+    couch.receive();const auto later_pose_origin=couch.state_origin();
+    const auto later_pose_cut=native_cut(4);const auto later_pose_host=host.checkpoint(binding);
+    const auto later_pose_proof=couch.prove_snapshot(later_pose_host,later_pose_cut,later_pose_origin);
+    pose_roundtrip(*world.cache,early_scene,world.match.simulation().scene().objects(),early,early_proof,alternate_early_proof,later_pose_origin,later_pose_proof);
+    check(other->state().tick>tick&&other->state_origin().tick()==other->state().tick,
+        "Exact rebind rollback control never consumed a later native snapshot");
+    const auto later_tick=other->state().tick;
+    auto prepared=other->prepare_rebind_host(context,next,latest_cut.seal,other_proof);
+    check(other->state().tick==later_tick&&other->can_commit_rebind_host(*prepared),
+        "Preparing an exact client rollback changed the live decoded state");
     check(other->commit_rebind_host(std::move(prepared)),"Cannot exercise source-generation retirement");
-    check(!other->state_origin().tick()&&other->received_origins().empty(),"Rebinding retained an old-generation adopted receipt");
+    check(prepared&&!other->can_commit_rebind_host(*prepared)&&
+        !other->commit_rebind_host(std::move(prepared))&&prepared,
+        "Successful rebind discarded retired storage or a consumed token committed twice");
+    check(other->state().tick==tick&&other->state().players[5].source_configuration==other_origin.accepted_state().players[5].source_configuration&&
+        other->state().source_body_poses.size()==other_origin.accepted_state().source_body_poses.size()&&
+        !other->state_origin().tick()&&other->received_origins().empty()&&other->received_states().empty(),
+        "Exact rebind retained future decoded state or relabeled a predecessor receipt as a successor");
     rejects([&]{(void)other->prove_snapshot(latest_host,latest_cut,other_origin);});
     // Reuse real decoded snapshot bytes through the new logical endpoint.
     // This checks generation ownership, not replacement-host native proof.
@@ -168,5 +331,6 @@ int main(int argc,char **argv)try {
         other_origin.accepted_state().players[5].connected&&std::ranges::equal(other_origin.local_slots(),other_slots),
         "Client destruction discarded the receipt's owned decoded state or slots");
     std::cout<<"PASS exact native snapshot receipt/sidecar proof, owned decoded state/four couch slots through later batches and client destruction, same-tick late join, wrong body under matching sequence, stale/duplicate/foreign/unbound receipts, codec roundtrip/version and epoch retirement\n";
+    std::cout<<"PASS proof-bound decoded client rollback from a later native tick; rejected missing/foreign/wrong-cut proofs, retained consumed retirement token, unchanged couch ownership and authentic new-epoch first receive\n";
     std::cout<<"LIMIT logical endpoint adapter and locally validated native cuts; no DTLS/WAN/quorum or runtime/GPU migration; effect presenters are empty\n";
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

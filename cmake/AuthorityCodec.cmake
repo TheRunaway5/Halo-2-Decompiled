@@ -17,6 +17,9 @@ target_include_directories(halo2_authority_publisher PUBLIC include)
 target_link_libraries(halo2_authority_publisher PUBLIC halo2_authority_codec PRIVATE halo2_authority_delta Threads::Threads)
 add_library(halo2_authority_receiver STATIC src/source_authority_receiver.cpp)
 target_sources(halo2_authority_receiver PRIVATE src/effect_presentation_history.cpp)
+target_sources(halo2_systems PRIVATE src/multiplayer_pose_continuity.cpp)
+target_sources(halo2_authority_receiver PRIVATE src/multiplayer_receipt_continuity.cpp)
+target_sources(halo2_authority_receiver PRIVATE src/source_foreground_world_handoff.cpp)
 target_sources(halo2_authority_receiver PRIVATE src/source_peer_host_takeover.cpp)
 target_sources(halo2_authority_receiver PRIVATE src/multiplayer_runtime_authority.cpp)
 target_compile_features(halo2_authority_receiver PUBLIC cxx_std_20)
@@ -29,6 +32,13 @@ if(BUILD_TESTING)
     add_test(NAME source_peer_host_takeover_http COMMAND ${Python3_EXECUTABLE}
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_peer_host_takeover_http_test.py" $<TARGET_FILE:source_peer_host_takeover_tests>)
     set_tests_properties(source_peer_host_takeover_http PROPERTIES TIMEOUT 270 SKIP_RETURN_CODE 77)
+    add_executable(source_common_cut_runtime_tests tests/source_common_cut_runtime_tests.cpp)
+    target_link_libraries(source_common_cut_runtime_tests PRIVATE halo2_authority_receiver nlohmann_json::nlohmann_json)
+    add_test(NAME source_common_cut_runtime_http COMMAND ${Python3_EXECUTABLE}
+        "${CMAKE_CURRENT_SOURCE_DIR}/tests/source_common_cut_runtime_http_test.py" $<TARGET_FILE:source_common_cut_runtime_tests>
+        "${HALO2_TU15_GAMEPLAY_XBE}" "${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map")
+    set_tests_properties(source_common_cut_runtime_http PROPERTIES TIMEOUT 300 SKIP_RETURN_CODE 77
+        ENVIRONMENT "SDL_AUDIODRIVER=dummy;SDL_VIDEODRIVER=dummy")
     add_executable(source_replay_batch_tests tests/source_replay_batch_tests.cpp)
     target_link_libraries(source_replay_batch_tests PRIVATE halo2_authority_codec)
     add_test(NAME source_replay_batch COMMAND source_replay_batch_tests)

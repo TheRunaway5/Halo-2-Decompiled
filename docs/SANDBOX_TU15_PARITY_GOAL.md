@@ -4266,3 +4266,215 @@ owners and required actual native/launcher validation are in the checklist.
 Original lifecycle/menu-return, composed map/gameplay, every menu/map/mission,
 all 102 elements and all six gates remain open. Installed r6 does not contain
 source v508. This entry claims no new build, test, delivery or parity result.
+
+## Current-state checkpoint before r9 qualification, 2026-10-19
+
+The maintained [full-game checklist](FULL_GAME_LAUNCHER_CHECKLIST.md) now records
+the actual candidate outcome. r8 is **unselected and not installed**. Its v515
+build passed all six focused frontend CTests (1.26 seconds), the 84-definition /
+150-pane authored check, and complete before/after source/native-guard checks.
+v516 native smoke retains 39 passing cases, including 279 GPU capture rows, but
+the 40th attempted case genuinely fails Tombstone/highplains2 startup. Later real
+X11 idle/combat cases were not reached. These are bounded component results,
+not complete qualification, original visual/audio parity or launcher delivery.
+
+Exact reproduction is `work/sandbox-primary-v15/tombstone-r8-reproduction-v518.json`
+and its retained native log/receipt. Runtime SHA-256:
+`bb255d2739b35c890272a688ec0a5b8a25efc6fbd7d94cd538d8f9897ea6c0c5`.
+Actual root `1CC8D0` reaches the missing original owner `1F7330`, called at
+`1F7D4A`, return `1F7D4F`. G08/G10 now prioritize the controlled port of its whole
+224-instruction shape-reference/object-node matrix body and actual live entry /
+dispatch. Original ABI/callees remain mandatory. New compilation, independent
+checks and real Tombstone admission remain unverified at this checkpoint.
+
+Planned fresh r9 stages are v519 build, v520 native smoke and v521 installation;
+none has run at this checkpoint. Installed r6 and existing reference evidence
+remain preserved. The prepared post-install r8 updater was never executed and
+must not claim delivery. The earlier r8 full-tree fingerprint is now historical:
+the controlled code port and this docs-only checkpoint occur after qualification.
+Changed private documentation paths/hashes are recorded separately in
+`work/sandbox-primary-v15/current-goal-checkpoint-before-r9-v519.json`.
+
+Queued G02/G11 work is current-map MP screen195/C3h: authenticated TU1.5 factory
+`14A09B -> 14A0D9 -> 239104`, input `2390CA`, dispatch `2392B1`. v517 provides
+static correspondence only; actual retained UI/channel/session owners, input,
+Resume/cancel and disposal/return consumers remain required. Solo screen18
+`238B15 -> 238AC2`, global `51DF54`, dispatch `238A67` and `1285A0` effects stay
+separate. All G01-G14 gates and all 102 sandbox elements remain incomplete,
+with the original six acceptance gates and every menu/map/mission/local/split/
+LAN/render/PCM obligation preserved. No new large artifact is retained by this
+documentation checkpoint.
+
+## Current-state checkpoint before r10 qualification, 2026-10-19
+
+r9 is **unselected and not installed**. v519 passes all seven production-library
+CTests in 1.95 seconds, including whole `1F7330`: seven original CPU contexts,
+768 instructions, 1,248 byte stores, four natural returns and three stops before
+unsupplied external results. That component seam is resolved within those limits.
+The actual Tombstone process passes its former `1F7330` failure and initializes
+the GPU, then fails the next original shape-dispatch target `2F75F0`. It does
+not complete six gameplay frames or reach later menu/X11-input smoke.
+
+v520 retains 30 passing admission/cache cases and fails attempted case 31.
+Immutable `work/sandbox-primary-v15/xbox-menu-smoke-v520-first-attempt.json`, SHA-256
+`32ea30f68ffe4372116069b9038ec2e1ed0d7958195ef745234f98a84cea5142`;
+actual runtime SHA-256
+`e8920d27cd38863a0c7b3137eec6877a22065da29e952efd08594267388f486f`.
+Diagnostic site `2EF6BB` is retail; actual TU1.5 dispatcher calls at `2F317B`,
+returns `2F317D`, with actual retained shape vtable `461488`. The authenticated
+closure audit/listings are `work/sandbox-primary-v15/tombstone-callee-closure-v524.json`.
+G08/G10 prioritize this actual bounded closure and its shared/virtual owners,
+preserving original ABI and unknown boundaries. No empty virtual result is allowed.
+
+Planned r10: build v524, native smoke v525, installer v526; not run at this
+checkpoint. r6 remains selected; historical r8/r9 receipts and failures are
+preserved. Neither prepared post-install updater was executed. The prior r9
+complete-tree fingerprint becomes historical after the controlled closure port
+and this current-state documentation update. Exact changed private documentation
+paths/hashes are in `work/sandbox-primary-v15/current-goal-checkpoint-before-r10-v524.json`.
+
+The maintained checklist and its private copy retain all G01-G14 gates open,
+0/102 accepted elements and all six original acceptance gates. Queued MP195
+factory/list/input/lifecycle work remains static-only v517 evidence; solo pause
+stays separate. Full menus/maps/missions/local/split/LAN/original frames/PCM and
+historical MCPX/GP processing obligations remain. This docs checkpoint runs no
+new build/test/capture and retains no new large artifact.
+
+## Planned r10 map coverage amendment, 2026-10-19
+
+Before the new build, planned v525 smoke now covers actual six-frame native
+startup on **all 23 owned multiplayer maps**, 24 map/player cases including
+Lockout with four local players. Tombstone runs first, then Lockout one/four,
+Zanzibar, Desolation and the remaining canonical inventory. Require actual
+runtime frame/player summaries and executed inode hashes for every case.
+This plan is stronger than cache inspection; it still does not prove full map
+lifecycle/gameplay, original pixels/PCM or a playthrough. These cases and
+r10 v524/v525/v526 stages have not run at this checkpoint.
+
+Read-only native-bank metadata at the r9 failure:
+`work/sandbox-primary-v15/tombstone-r9-native-bank-v524.json`, SHA-256
+`51cd741aec12250e987c4bfe1b9480d178bb14dc232ed4d47782990c36bb7e4a`.
+It is native-only metadata, not original runtime execution or a supplied result.
+Authenticated source now follows `2F75F0` wrapper/child dispatch to `3040D0` and
+the published `41CC84` lifecycle. The missing bounded closure (ten bodies /
+292 sites) is being batched; no completed native port or validation is claimed.
+Frontend object-lifecycle work remains an independent check, not implied success.
+
+Both checklists retain all G01-G14 gates open, 0/102 accepted. Exact amendment
+documentation hashes: `work/sandbox-primary-v15/current-goal-coverage-amendment-before-r10-v524.json`.
+No post-install updater, new build/test/capture or large artifact is produced
+by this documentation amendment.
+
+## Pre-r10 source and coverage correction, 2026-10-19
+
+Correct the previous priority-map name: `cyclotron` is **Ivory Tower**;
+**Desolation** is `derelict`. The maintained checklist now uses the original
+inventory's titles; the earlier appended wording remains historical.
+
+Latest corrected independent missing closure is **23 bodies / 1,586 sites**,
+covering both published agent lifecycles, actual type20 helpers and nested
+type20/type23 dispatch `3040D0`. Native source is generated; original CPU,
+full production-library and actual live qualification are still pending.
+Evidence `work/sandbox-primary-v15/tombstone-child-convex-welder-lifecycle-v525.json`,
+SHA-256 `94a30251e62acc7ab5647ec6843da6ec4431e9fa0ec0b2d8e3548a9dcc8b2a51`.
+Corrected `tombstone-transform-wrapper-independent-v524.json`, SHA-256
+`9f16128ed2c4e4854a1700d49e9cb26286c03f5a55061aeb6bc95a02328d1de9`,
+supersedes the earlier revision with reversed registry columns. Use authenticated
+current ownership/entry evidence; no entry logic may be guessed from that error.
+
+Planned v525 adds 24 native frames, one per map/player case, and a review contact
+sheet in disposable scratch only. The 23-map/24-case startup plan and these
+captures have not run. G01-G14 remain open, 0/102 accepted; no new candidate
+delivery, original CPU/live result or retained large artifact is claimed.
+Documentation hash receipt:
+`work/sandbox-primary-v15/current-goal-source-correction-before-r10-v525.json`.
+
+## Final source checkpoint before r10 build, 2026-10-19
+
+Collision source port is complete and frozen: manifest
+`work/sandbox-primary-v15/tombstone-collision-dispatch-port-v527.json`, SHA-256
+`01b0b1d7f4d23dbbcd5327e4ffa103181abf0f72d506e5e02d1347b6ed0bbde6`.
+Independent bounded original CPU report v526, SHA-256
+`c112a8f896b65b3c70d0f38843386da24ac5ce38a7232907b79b793c731b89b5`,
+passes 35 cases/all 23 entries, covering 541/1,586 sites: 1,131 observations
+(1,129 executed instructions plus two pre-RDTSC stops), 2,163 byte writes,
+12 returns and 21 external plus two timestamp boundaries without supplied results.
+This is bounded standalone comparison, not full production-library/live proof.
+
+Disposable injected native-module diagnostic v527 completes six frames / 15
+ticks, report SHA-256
+`988f24f80ddc0ad22cbc5b099c6205612d1115123aa294590bb0223badffaba6`.
+It is DIAGNOSTIC ONLY, not untouched-r9 or fresh/uninjected-r10 acceptance;
+installed runtime and prior real failures remain unchanged. Ordinary r10 build,
+live startup on all 23 owned maps / 24 map-player cases, scratch-only frame /
+contact-sheet review and installation are still planned, not run.
+
+All 14 checklist gates stay open, 0/102 accepted, with full original scope and
+all six acceptance gates preserved. No post-install updater ran. Documentation
+hash receipt: `work/sandbox-primary-v15/current-goal-final-prebuild-r10-v527.json`.
+This checkpoint adds no new build/test/capture or large retained artifact.
+
+## User authority correction — MCC-only runtime assets, 2026-10-19
+
+The user's current instruction supersedes every earlier Xbox-asset runtime /
+delivery plan: **all runtime/menu/map tests use the port-owned imported/converted
+MCC cache**. Xbox ISO data is only for offline validation of converted MCC tags;
+Xbox/Vista reference banks, original XBE admission and MCPX material are not
+onboarding or runtime dependencies. The decompiled OG Halo 2/TU1.5 behavior,
+timing, precision and full one-to-one acceptance scope remain the target.
+
+The maintained [full-game checklist](FULL_GAME_LAUNCHER_CHECKLIST.md) now places
+the old Xbox priority/r10 plan behind an explicit supersession banner and marks
+all prior Xbox startup/smoke/visual evidence as historical reference/component
+evidence only. None passes MCC runtime or delivery acceptance. The canonical
+[MCC integration checklist](/home/eric/Developer/Halo-2-Decompiled/docs/MCC_GAMEPLAY_GOAL_CHECKLIST.md)
+is the active frontend/cache/gameplay dependency; reuse and update its checked
+milestones rather than copying/resetting them. Its validated native default test
+is Lockout. Bounded private frontend/unmuted/input progress and actual selected
+runtime publication are distinct; menu delivery is not declared accepted here.
+
+Current priority is that MCC path's actual frontend caller/integration and
+selected-runtime gates, followed by menus and every imported MCC campaign/MP map
+with cache/conversion/runtime hashes and opened-file provenance. Historical
+FECTL `0x88`, GP/EP and Xbox-authored shape dispatch are not current MCC launch
+blockers; reconstruct only a demonstrated dependency of the reused MCC path.
+
+The outer storage owner canceled r10 build session 28121 with exit 143 and
+verified `halo2-test-q5h6cwi5` scratch removed. No r10 candidate exists; no
+asset/source-backed tests, stage or installation completed. The v528 Xbox-r10
+post-install helper is retired and refuses execution; it was never applied.
+All G01-G14 gates remain open, 0/102 accepted, with all original six acceptance
+gates and menus/maps/missions/local/split/LAN/render/PCM scope preserved.
+Docs/provenance receipt: `work/sandbox-primary-v15/mcc-runtime-authority-correction-v529.json`.
+This update executes no game/test/import and retains no new large artifact.
+
+## v530 bounded MCC shortcut delivery, 2026-10-19
+
+Verified root `Halo2-Sandbox-Test` now selects the MCC helper, GUI label
+`MCC sandbox test  ›`. Installed `--check` passes: cache v13, native capability
+true, frontend false. Seven installed CLI guard/info cases and 18 existing real
+Tk launcher tests pass; unsupported source/runtime/map overrides reject and
+`--menu` refuses the unqualified frontend. Eight protected files remain exact,
+scratch root is empty and no new large artifact is retained. Receipt:
+`work/sandbox-primary-v15/mcc-sandbox-shortcut-delivery-v530.json`, SHA-256
+`2725075b6d56d4930b7c7f7ca40f15c95ff7126fed1d3fb54ec84c148f9c9736`, 5,270 bytes.
+
+The named shortcut-delivery subtask is checked in the canonical MCC checklist
+and both full-game ledgers. Earlier synthetic routing and direct six-hidden /
+muted-frame asset-source proof retain their separate bounds. Installed-shortcut
+through actual gameplay, visible/audio, menus, all-map lifecycle and full original
+parity are not established here. All G01-G14 gates remain open, 0/102 accepted.
+MCC-only runtime authority and ISO-only-for-offline-converted-tag-validation
+remain unchanged. This record repeats no tests or audits.
+
+
+2026-10-19 v532: goal service is active. Actual MCC menu catalogue integration passes48previews/40launch-header routes, with full-source/frozen-input ownership and no forbidden asset reads. The twelve-map hard limit is removed in source; selected renderer/launcher delivery,2blank DLC identities, energy-map gameplay, pause/sessionreturn and all102elements/sixgates remain open. See `work/sandbox-primary-v15/mcc-map-picker-integration-v532.json` (SHA4f983c985d3fba34f833cd04821340e82bd54cfb216dcc0dd340750e8887178c). NativeMCCcharge/release composition and whole CTF/Assault initializer ownership are now the parallel active frontiers.
+
+
+2026-10-19 v535: complete original CTF/Assault initializer closure is ported and production-registered. Three original CPU versions pass879 calls/293 normalized cases; optimized native, ASan/UBSan and focused CMake comparisons pass with5MCC marker inputs. Oracle/compiler/CMake scratch removed. Canonical MCC and both identical FULL checklists updated before dependent activation/objectbirth work. Objective flag/bomb logic gates marked partial only; all102 IDs/sixgates preserved,0accepted. Receipt `work/sandbox-primary-v15/ctf-initializer-milestone-v535.json`; no mode admission, selected-runtime change or full parity claim.
+
+
+2026-10-19 v542: complete original1030F0 programtables restored (26words/104B,8newimmutablewords,51originalselectors), coherent cold native comparison and actual MCC SMG pass. Strict charge advances past104698 through hold/release and141effectframes, then real2F8B27 needs vtable45F8B4; positivechargegraph absent/unverified. Current-rootcold executable passed on frozen inputs but aggregate sourceguard correctly detects concurrent changes. Canonical MCC and identical FULL checklists now track this single current charge frontier; all102IDs/sixgates preserved,0accepted. Receipt `work/sandbox-primary-v15/mcc-weapon-program-tables-progress-v542.json`. Scratch removed, no runtime install or new largeartifact.
+
+
+2026-10-19 v552: realprivate43-map MCC preparation/bitmap extraction/strict648-frame inventory/563-DDS+40-font assembly PASSED;14exactinstant-chargewords and6cataloguestores changed, distinctFloodlabtuplepreservedunqualified.4,332,372,016 generatedbytes removed, allselectedassets/source/launcherowners preserved. Combinednativechildstoppedbeforelink at copiedfactory extra-brace syntaxerror, sincecorrectedbyconcurrentowner; failedreceiptpreserved. RerunONLYnativeprobeusingfreshownedMCCcorecopies; doNOTrepeatpassedfullpreparation. Receipt `work/sandbox-primary-v15/mcc-private-preparation-milestone-v552.json`. NewCTFactivation278case/CMake qualificationv551 is separatelysource-only,actualsamebankfactorypending. Fullgame/102elements/sixgates remainunaccepted.

@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="152" viewBox="0 0 100 38" version="1.1">
+  <title>Vista conduit-12 U+E134: rebuilt vector artwork</title>
+  <desc>Hand-authored button bodies, bevels, letter outlines and smooth gradients. Original glyphs supply placement and palette measurements only. No embedded image, font, autotrace or pixel-region paths.</desc>
+  <defs>
+    <mask id="key-opacity" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="38">
+      <rect width="100" height="38" fill="black" />
+      <rect id="key-face" width="100" height="38" fill="#333333" />
+      <path id="bevel-top" d="M0 0 H100 L94.0 7.0 H7.0 Z" fill="#444444" />
+      <path id="bevel-left" d="M0 0 H1.8 V38 H0 Z" fill="#444444" />
+      <path id="bevel-right" d="M100 0 V38 L94.0 32.0 V6.0 Z" fill="#777777" />
+      <path id="bevel-bottom" d="M1.8 36.0 H94.0 L100 38 H1.8 Z" fill="#777777" />
+      <path id="top-edge" d="M1.8 1.0 H100" fill="none" stroke="#888888" stroke-width="2.0" />
+      <path id="right-edge" d="M99.0 0 V37.0" fill="none" stroke="#bbbbbb" stroke-width="2.0" />
+      <path id="lower-edge" d="M1.8 37.5 H94.0" fill="none" stroke="#444444" stroke-width="1.0" />
+    </mask>
+  </defs>
+  <rect id="key-paint" width="100" height="38" fill="#6699cc" mask="url(#key-opacity)" />
+</svg>

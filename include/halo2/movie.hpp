@@ -24,7 +24,9 @@ private:
   std::unique_ptr<Impl> impl_;
 };
 PcmSound decode_movie_audio(const std::filesystem::path &);
-// Prefer a bundled intro/credits, retaining the disc movie when absent.
+// Imported MCC: prefer the pinned cache bank, then the explicitly assigned
+// bundled intro/credits metadata. Empty means unavailable/unassigned (attract).
+// Legacy sources retain their original bundled/disc routing.
 std::filesystem::path frontend_movie_path(const std::filesystem::path &maps,
                                         const std::filesystem::path &bundle,
                                         const std::string &name);

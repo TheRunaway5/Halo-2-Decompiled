@@ -310,7 +310,7 @@ FrontendUiAssetPack load_ui_asset_library(const std::map<std::uint32_t,UiImage> 
 }
 FrontendUiAssetPack load_frontend_ui_assets(const FrontendContent &content,
                                            const std::filesystem::path &directory) {
-  if(!is_mcc_classic_menu_pack(directory))
+  if(content.source_fonts.filename()=="h2_fonts" || !is_mcc_classic_menu_pack(directory))
     return load_ui_asset_library(content.images,directory,"pack.tsv");
   const auto *manifest=content.source_fonts.empty()?"pack.tsv":
       content.gameplay_overlay?"pause.tsv":"vista.tsv";

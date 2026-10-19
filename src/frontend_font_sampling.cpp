@@ -166,6 +166,17 @@ std::filesystem::path hud_sampled_font_path(const std::filesystem::path &pack,
   return ui_sampled_font_path(pack,selector,original_name);
 }
 
+std::filesystem::path font_prompt_asset_directory(
+    const std::filesystem::path &font_directory,
+    const std::filesystem::path &explicit_pack) {
+  if(font_directory.filename()=="h2_fonts" &&
+      font_directory.parent_path().filename()=="halo2") {
+    const auto bank=font_directory.parent_path().parent_path()/"presentation/prompts";
+    if(std::filesystem::exists(bank/"prompt-source.tsv"))return bank;
+  }
+  return explicit_pack;
+}
+
 std::size_t apply_vista_prompt_sampling(RetailFont &font,
     const std::filesystem::path &pack,unsigned selector) {
   if(pack.empty() || !std::filesystem::exists(pack/"prompt-source.tsv"))return 0;
@@ -174,7 +185,8 @@ std::size_t apply_vista_prompt_sampling(RetailFont &font,
   if(!std::getline(binding,header) || header!="H2_VISTA_PROMPTS_V1" ||
       !std::getline(binding,directory) || directory.empty() || std::getline(binding,extra))
     throw FormatError("Invalid Vista prompt source binding");
-  const auto root=std::filesystem::canonical(directory);
+  const std::filesystem::path binding_directory(directory);
+  const auto root=std::filesystem::canonical(binding_directory.is_absolute()?binding_directory:pack/binding_directory);
   std::ifstream manifest(root/"prompts.tsv");
   if(!std::getline(manifest,header) || header!="H2_VISTA_PROMPT_RASTERS_V1" || selector>=12)
     throw FormatError("Invalid Vista prompt raster manifest");

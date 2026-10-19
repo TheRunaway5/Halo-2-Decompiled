@@ -18,6 +18,9 @@ import uuid
 
 from audit_rendering import FormatError, file_sha
 from mcc_content import MccCache, directory, discover, texture_resource
+from mcc_multiplayer_catalog import apply_catalog_plan, plan_catalog
+from mcc_instant_charge import apply_instant_charge_plan, plan_instant_charge
+from mcc_movies import _cancellation
 from vista_tag_conversion import TagGraph, TU15_SHA256, apply_combat, apply_netgame
 
 PROFILE = "H2_MCC_TU15_PREPARATION_V1"
@@ -122,8 +125,20 @@ def prepare_maps(maps, output, progress):
     if not paths or not (maps / "shared.map").is_file():
         raise FormatError("MCC maps/shared metadata is incomplete")
     before = {p.name: file_sha(p) for p in paths}
+    # Project the two complete, authored scenario catalog records before bitmap
+    # extraction so both the metadata and copied-pixel inventories describe the
+    # same destination previews. This runs only in the private import stage.
+    menu = MccCache(maps / "mainmenu.map")
+    try:
+        with (maps / "textures.dat").open("rb") as textures:
+            catalog_projection = apply_catalog_plan(menu, plan_catalog(menu, maps, textures))
+        if catalog_projection["changed_store_blocks"]:
+            save_changed_cache(menu)
+        catalog_projection["serialized_decoded_sha256"] = hashlib.sha256(menu.data).hexdigest()
+    finally:
+        menu.close()
     shared = MccCache(maps / "shared.map")
-    resources, banks, results, inventory = {}, [], [], []
+    resources, banks, results, inventory, instant_charge = {}, [], [], [], []
     (output / "bitmap-resources").mkdir()
     try:
         with (maps / "textures.dat").open("rb") as textures:
@@ -131,6 +146,16 @@ def prepare_maps(maps, output, progress):
                 progress(f"Reading MCC Classic tags, textures and bump resources: {path.name}")
                 cache = shared if path.name == "shared.map" else MccCache(path)
                 try:
+                    stores = list(catalog_projection["stores"]) if path.name == "mainmenu.map" else []
+                    charge_plan = plan_instant_charge(cache)
+                    charge_projection = apply_instant_charge_plan(cache, charge_plan)
+                    instant_charge.append(dict(map=path.name, **charge_projection))
+                    if charge_projection["changed_store_blocks"]:
+                        tag = cache.tags[charge_plan.datum]
+                        stores.append(dict(map=path.name, datum=f'{tag["datum"]:08x}', group="effe",
+                            tag=tag["name"], address=tag["address"], file_offset=charge_plan.offset,
+                            tag_offset=0, before=charge_plan.before.hex(), after=charge_plan.after.hex(),
+                            operation="whole-qualified-original-instant-charge-flags"))
                     inventory.append(dict(map=path.name, groups=dict(Counter(t["group"] for t in cache.tags.values())),
                         resident_tags=sum(bool(t["address"] and t["size"]) for t in cache.tags.values()),
                         tags=[dict(datum=f'{t["datum"]:08x}', group=t["group"], name=t["name"],
@@ -171,7 +196,7 @@ def prepare_maps(maps, output, progress):
                                 frame["partitions"].append(key)
                             row["frames"].append(frame)
                         banks.append(row)
-                    stores, map_id = [], None
+                    map_id = None
                     role = "resources"
                     if path.name not in ("shared.map", "single_player_shared.map"):
                         scenario, at = cache.tag(cache.u32(cache.index + 12), "scnr")
@@ -182,9 +207,9 @@ def prepare_maps(maps, output, progress):
                             graph = TagGraph(cache, shared)
                             map_id = apply_netgame(graph, scenario["address"])
                             apply_combat(graph, scenario["address"], graph.resolve(cache.u32(cache.index + 16), "matg"))
-                            stores = graph.stores
-                            if any(s["map"] == path.name and s["before"] != s["after"] for s in stores):
-                                save_changed_cache(cache)
+                            stores.extend(graph.stores)
+                    if cache is not shared and any(s["map"] == path.name and s["before"] != s["after"] for s in stores):
+                        save_changed_cache(cache)
                     results.append(dict(map=path.name, role=role, map_id=map_id,
                         stores=stores, changes=sum(s["before"] != s["after"] for s in stores)))
                 finally:
@@ -199,16 +224,20 @@ def prepare_maps(maps, output, progress):
         policy="Decoded source partitions with original records, dimensions, formats and mips; no resampling, normal renormalization or channel reinterpretation"))
     report = dict(profile=PROFILE, reference_xbe_sha256=TU15_SHA256,
         reference_xbe_used_as_runtime_input=False,
-        original_routines=["0011f060", "00165b30"], full_tu15_parity=False,
-        coverage="Recovered multiplayer netgame/combat postprocessors only; no full MCC-to-Xbox layout/semantic conversion",
+        original_routines=["0011f060", "00165b30", "001a5590"], full_tu15_parity=False,
+        multiplayer_catalog=catalog_projection,
+        instant_charge=instant_charge,
+        coverage="Recovered multiplayer netgame/combat postprocessors, two source-authored menu catalog projections and one whole-qualified instant-charge effect tuple; no full MCC-to-Xbox layout/semantic conversion",
         maps=[dict(**r, source_sha256=before[r["map"]], output_sha256=file_sha(maps / r["map"])) for r in results])
     write_json(output / "tag-conversion.json", report)
     return dict(maps=len(paths), multiplayer_maps=sum(r["role"] == "multiplayer" for r in results),
         ordered_stores=sum(len(r["stores"]) for r in results), changes=sum(r["changes"] for r in results),
         bitmap_banks=len(banks), bitmap_frames=sum(len(b["frames"]) for b in banks),
-        bitmap_partitions=len(resources), decoded_bitmap_bytes=sum(r["decoded_bytes"] for r in resources.values()))
+        bitmap_partitions=len(resources), decoded_bitmap_bytes=sum(r["decoded_bytes"] for r in resources.values()),
+        multiplayer_catalog=catalog_projection, instant_charge=instant_charge)
 
 
+@_cancellation()
 def prepare(root, mcc_source=None, progress=print):
     root = Path(root).resolve()
     source = directory(mcc_source) if mcc_source is not None else discover()
@@ -219,18 +248,21 @@ def prepare(root, mcc_source=None, progress=print):
     files, omitted = source_files(source)
     directories=source_directories(source)
     imports.mkdir(parents=True, exist_ok=True)
-    needed = sum(stat.st_size for _, stat in files)
+    from mcc_movies import required_bytes, prepare as prepare_movies
+    from mcc_prompts import required_bytes as prompt_bytes, prepare as prepare_prompts
+    needed = sum(stat.st_size for _, stat in files) + required_bytes(root) + prompt_bytes(root)
     if shutil.disk_usage(imports).free < needed + 2 * 1024**3:
         raise FormatError("Insufficient free space for MCC data and decoded bitmap cache")
     identifier = "mcc-" + uuid.uuid4().hex
     stage, final = imports / (".staging-" + identifier), imports / identifier
-    stage.mkdir()
     try:
+        stage.mkdir()
         progress(f"Found MCC Halo 2: {source}")
         record = copy_verified(source, stage / "halo2", files, progress)
         summary = prepare_maps(stage / "halo2/h2_maps_win64_dx11", stage, progress)
         from mcc_menu_inventory import verify as verify_menu_inventory
-        menu_inventory = verify_menu_inventory(stage / "halo2", progress=progress)
+        menu_inventory = verify_menu_inventory(stage / "halo2", progress=progress,
+            catalog_projection=summary.get("multiplayer_catalog"))
         write_json(stage / "vista-menu-inventory.json", menu_inventory)
         from mcc_menu_assets import prepare as prepare_menu_assets
         progress("Assembling verified MCC menu images and font ownership…")
@@ -238,6 +270,8 @@ def prepare(root, mcc_source=None, progress=print):
         from mcc_loading_assets import prepare as prepare_loading
         progress("Preparing MCC loading resources and retaining authored custom loading textures…")
         loading = prepare_loading(root, stage)
+        movies = prepare_movies(root, stage, progress=progress)
+        prompts = prepare_prompts(root, stage, progress=progress)
         from preserve_native_shaders import copy_selected as preserve_shaders
         progress("Preserving the selected existing native shader library…")
         shaders = preserve_shaders(root, stage)
@@ -258,6 +292,8 @@ def prepare(root, mcc_source=None, progress=print):
             reference_only_inputs=["OG Xbox Halo 2 ISO", "Xbox TU1.5 patch", "Vista executable loading bank"],
             runtime_active=False, full_tu15_parity=False, summary=summary, blockers=BLOCKERS,
             match_loading=loading,
+            port_bundled_movies=movies,
+            port_authored_prompts=prompts,
             menu_resources=dict(path="ui/mcc-menu-assets.json", complete=menu_assets["complete"],
                 frame_owners=menu_assets["frame_owners"], unique_dds_pages=menu_assets["unique_dds_pages"],
                 fonts=len(menu_assets["fonts"]), runtime_activation=False),

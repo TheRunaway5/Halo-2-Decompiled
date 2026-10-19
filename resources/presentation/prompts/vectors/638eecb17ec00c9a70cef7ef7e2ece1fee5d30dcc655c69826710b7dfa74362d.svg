@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="144" viewBox="0 0 32 36" version="1.1">
+  <title>Vista conduit-12 U+E13C: rebuilt vector artwork</title>
+  <desc>Hand-authored button bodies, bevels, letter outlines and smooth gradients. Original glyphs supply placement and palette measurements only. No embedded image, font, autotrace or pixel-region paths.</desc>
+  <defs>
+    <linearGradient id="outer-metal" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="6" y2="32">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="0.5" stop-color="#dbf1ff" />
+      <stop offset="1" stop-color="#ffffff" />
+    </linearGradient>
+    <linearGradient id="lock-gold" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="17" y2="26">
+      <stop offset="0" stop-color="#ffee55" />
+      <stop offset="1" stop-color="#ffcc66" />
+    </linearGradient>
+  </defs>
+  <g transform="scale(1.00000000 1.00000000)" id="lock-button">
+    <circle id="blue-inset" cx="16.5" cy="19" r="12" fill="#88bbff" fill-opacity="0.2" />
+    <circle id="outer-glow" cx="16.5" cy="19" r="12" fill="none" stroke="#99ccff" stroke-width="3" stroke-opacity="0.13333333333333333" />
+    <circle id="outer-ring" cx="16.5" cy="19" r="12" fill="none" stroke="url(#outer-metal)" stroke-width="1.05" stroke-opacity="0.67" />
+    <circle id="inner-metal-ring" cx="16.5" cy="19" r="9" fill="none" stroke="url(#outer-metal)" stroke-width=".7" stroke-opacity="0.45" />
+    <path id="shackle" d="M12.5 17 V14.5 C12.5 10.6 20 10.6 20 14.5 V17" fill="none" stroke="url(#lock-gold)" stroke-width="1.8" stroke-opacity="0.65" />
+    <rect id="lock-body" x="11.3" y="17.2" width="10.3" height="9" rx=".4" fill="url(#lock-gold)" fill-opacity="0.44" />
+    <path id="lock-left-bevel" d="M11.3 17.2 H12.3 V26.2 H11.3 Z" fill="#ffdd77" fill-opacity="0.15" />
+  </g>
+</svg>

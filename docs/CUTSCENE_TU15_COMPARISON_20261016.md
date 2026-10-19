@@ -32,6 +32,149 @@ The run made no cache changes; its scratch was removed. Small verification and
 cleanup receipts are in `analysis/current-root-cutscene-20261019/mcc-input-verification-{v2,terminal-v2}.json`.
 This verifies the test inputs, not native rendering or visual parity.
 
+The managed current-root native build and its incremental source refresh both
+passed the five cleanup/resource/lens controls, with no skipped tests and the
+required strict floating-point flags. The refreshed executable
+`8ecd6b4b19b81ff8d64d540d5767bf2015beaf76c12e8cdbe099d16548d055dd`
+then failed its first selected-MCC startup smoke before rendering:
+`Source tag pointer escapes explicitly owned payloads`. No READY runtime or
+new screenshot was accepted. The error, commands, source hashes and verified
+scratch removal are retained in
+`analysis/current-root-cutscene-20261019/cohort-v4/` and
+`analysis/current-root-cutscene-20261019/build-cohort-terminal-v4.json`.
+The temporary source/build/runtime tree was removed; its exact exclusive disk
+reclamation was not measured.
+
+The reduced authentic MCC Cache probe reproduced that same failure without a
+renderer or game World. The plasma-rifle gauge shader's 10-byte LOD read at
+`0x5274c` belongs to a retained `stem` allocation at `0x52674` (272 bytes).
+MCC shader conversion preserves this allocation before moving the canonical
+definition; the source metadata reader had retained only current definitions.
+The correction owns the selected retained payloads under their original salted
+datum, exact group and name. Canonical definitions, index addresses and tag
+counts remain current; bounds and ambiguous-owner rejection remain strict.
+
+The unchanged pointer walk now passes 1,607 reads across 264 shaders, all 182
+BSP materials and the model-directory prefix used by the campaign renderer.
+The red/green reports and cleanup receipts are retained in
+`analysis/current-root-cutscene-20261019/mcc-tag-owner-probe/`.
+The registered `mcc_source_tag_metadata_store` regression also passes on the
+actual selected introduction cache: 636 canonical tags, 434 retained payloads
+(2,380,640 bytes) and 81 excluded-group rejections. The same test against the
+whole previous reader fails with the original bounds error. Canonical
+definition/index/count, missing/overflow/outside reads and final-callback
+lifetime checks pass; this cache has no unresolved retained allocation, so that
+negative case is not claimed. All focused scratch/build trees were removed.
+This component result does not establish native startup or rendering. The
+fresh full native build and all five resource/lens controls now pass, as does
+the actual-MCC metadata regression in the same build. The compiled refresh-8
+snapshot was held unchanged for baseline captures, with its full source
+manifest and executable hash
+`9ab9e5ba20334410e5073b84eb685384f620304412587f4a0cbdf099e1caf291`.
+Concurrent checkout changes remain recorded separately; this snapshot does
+not qualify the latest-root delivery gate.
+
+The separate snapshot startup attempt stopped before launching native code
+because the selected cache's provenance record changed after the earlier
+input verification. Removing only the added `port_bundled_movies` metadata
+record reconstructs the prior provenance bytes exactly. The introduction
+map, executable, selection and conversion hashes remain unchanged. A narrow
+successor authenticates that movie-only change and is waiting for the runtime
+slot; no startup or screenshot was accepted. A second appended
+`port_authored_prompts` record was also authenticated by exact predecessor
+reconstruction; its declared prompt files were pinned explicitly. Receipts remain under
+`analysis/current-root-cutscene-20261019/cohort-v5r2/`.
+
+No pre-correction baseline was rendered. The reviewed MCC lens correction is now applied to the working checkout at
+both renderer-construction sites. It enables the existing source lens
+consumer, which already implements MCC bitmap layout projection, and adds
+query/final/completed counts to the optional frame trace. The frozen baseline
+source/build stayed unchanged during those admission attempts. The subsequent
+real candidate refresh stopped before configure when concurrent frontend
+edits tripped its mutable-checkout/copy equality assertion. Its outer tree
+was removed, the service has no children, and no World ran. The terminal
+receipt records 4,391,361,965 logical bytes and 4,502,708,224 `st_blocks` bytes
+before removal; these are not exclusive physical bytes. Concurrent disk
+activity prevents attributing the free-space delta to that cleanup.
+
+The v6 candidate build verifies its isolated source copy before and after
+compilation, records checkout drift separately and leaves latest-root delivery
+open. It combines the lens correction with the verified MCC startup data
+fixes. Actual candidate frames at both resolutions and submitted-flare
+validation remain required; source admission alone is not a visible result.
+Its native build and all 15 combined controls now pass with zero skipped
+tests. The executable is
+`03a8ee6dab5a7d5c874f7eec137bfb0a66d8d4c640c290ce2276a9ce69582ac6`
+(97,502,888 bytes), built from 16,269 copied files. Full owned source/vendor
+checks pass before and after compilation. The actual-cache tests cover 31
+lens images, five startup models with 167 sections and six skinned sections
+containing 4,095 vertices; those are layout/resource checks, not GPU parity.
+The recorded checkout drift is 32 changed and 26 added paths, so latest-root
+delivery remains open. The separate ordinary four-frame smoke now passes on
+the selected MCC cache in Original mode: native exit 0, four rendered frames
+on the RTX 5080 and zero script faults. All recorded inputs, copied source
+bytes and primary build status remain unchanged after execution. Its service
+and owned scratch are removed. Receipt `snapshot-smoke-v3/result.json`
+(`e5a0214f3784a2038fb557438d3a962c8370a4059eb915f2916c3a9196baf1b3`)
+and terminal `snapshot-smoke-v3-terminal.json` remain under
+`analysis/current-root-cutscene-20261019/cohort-v6/`. This is startup/render
+admission, not a cutscene screenshot or original-frame parity result.
+
+The actual 640×480 cutscene attempt then exited 1 after 49.42 seconds, before
+tick 450 and before retaining any PNG: `Required original runtime backing
+unavailable at0x46a268`. All recorded inputs, native shader-library files and
+compiled source bytes remain unchanged; memory/OOM counters are zero and peak
+memory is 7,450,943,488 bytes. Its service and scratch are removed. Report
+`candidate-mcc-640-v1.json` and terminal receipt remain in the same analysis
+directory. Current checkout already declares this word in its five-word lens
+operand block and checks it in `native_tu15_world_memory_tests`; the v6 frozen
+copy predates that block. Both query `2E530` and draw `2E41A` read this address,
+so the address-only failure does not establish which consumer threw. A fresh
+coherent build must include current cold-data coverage before capture retry.
+
+The v6 build has now finished through its managed lifecycle. Its exact owned
+source/build directory is absent, the service exited0 with no remaining
+children, and no large artifacts were retained. The removed files had
+645,296,128 bytes of exclusive Btrfs data extents; their 4,447,373,480 logical
+bytes include shared copies. Concurrent filesystem writes prevent attributing
+the observed free-space delta to this cleanup. References, launcher-selected
+runtimes and the five linked donor directories remain preserved. See
+`cohort-v6/retirement-terminal-v1.json` under the same evidence root.
+
+The successor v7 combined build now runs from a fresh frozen copy with
+16,380 files and 23 selected CTests, including current cold lens/contrail
+ownership, the original automatic-placement scan and actual MCC Cortana
+composition. Eight focused component checks already pass, including the
+old/new binder regression; these are not live frame evidence. The source copy
+is fixed before compilation and later checkout changes remain recorded
+separately. Build/test completion, a new actual startup smoke and both natural
+capture resolutions are still open.
+
+The current order is:
+
+- [x] Authenticate the selected MCC input and reproduce the shader-owner error.
+- [x] Correct retained ownership and pass the actual-cache red/green regression.
+- [x] Build the ownership correction and pass the five resource/lens controls
+  plus actual-MCC metadata regression in the prior compiled snapshot.
+- [x] Authenticate the two appended presentation metadata records and pin
+  their declared prompt assets.
+- [x] Apply the reviewed MCC lens-construction correction to the working checkout.
+- [x] Build the corrected candidate and pass all 15 controls in that same build.
+- [x] Pass the actual MCC startup smoke.
+- [ ] Share natural MCC candidate frames and verify the lens correction at
+  640×480 and 1280×960.
+- [ ] Capture and join the original TU1.5 final GPU target; compare camera,
+  effect phase and pixels before accepting visual parity.
+
+The source-only MCC effect audit also identifies explicit contrail/decal
+exclusions and missing campaign draw-list submission. Their metadata, native
+shader/declaration banks and source phase ownership still need qualification;
+removing the guards alone is insufficient. Contrail snapshot drawing also
+loads an XBE image, whereas this native-MCC lane must use the live native World
+overload. Decal drawing mutates source stamps and must retain original view
+and declined-draw ordering. These are remaining implementation work after
+lens validation, not completed effects in the selected MCC lane.
+
 ## October 18 continuation
 
 The current-root configure attempt for the two standalone activation/resource

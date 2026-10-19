@@ -1,5 +1,6 @@
 #include "halo2/mcc_sound_runtime_delivery.hpp"
 #include "halo2/mcc_sound_vanilla_reference.hpp"
+#include "halo2/mcc_sound_geometry.hpp"
 #include "mcc_sound_stored_time_apply.hpp"
 #include "mcc_sound_class_qualified.hpp"
 #include "mcc_sound_permutation_time_reference_profile.hpp"
@@ -335,6 +336,18 @@ MccSoundRuntimePlan plan_mcc_sound_runtime_delivery(const Cache& cache,std::uint
     mcc_sound_permutation_time_detail::apply(out,source,permutation_times);
     const auto stored=plan_mcc_sound_stored_times(cache,out,relocate);
     mcc_sound_stored_time_detail::apply(out,source,stored);
+    for(const auto& resource:plan_mcc_sound_geometry_resources(cache)) {
+        const auto owner=std::ranges::find(out.gestalts,resource.gestalt,&MccSoundRuntimeGestalt::owner);
+        if(owner==out.gestalts.end() || resource.index>=owner->count[10])
+            throw FormatError("MCC facial resource lost its merged native gestalt interval");
+        const auto row=std::uint64_t(out.blocks[10].address)+
+            (std::uint64_t(owner->first[10])+resource.index)*0x2cu;
+        if(row<out.address || row-out.address+0x2cu>out.bytes.size() ||
+           Bytes(out.bytes).u32(std::size_t(row-out.address)+8u)!=resource.source_file_offset ||
+           Bytes(out.bytes).u32(std::size_t(row-out.address)+12u)!=resource.declared_bytes)
+            throw FormatError("MCC facial resource differs from its exact native metadata preimage");
+        put(out.bytes,std::size_t(row-out.address)+8u,resource.encoded_offset);
+    }
     return out;
 }
 } // namespace halo2

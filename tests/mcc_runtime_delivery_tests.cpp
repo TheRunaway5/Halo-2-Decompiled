@@ -1,4 +1,5 @@
 #include "halo2/mcc_runtime_delivery.hpp"
+#include "halo2/mcc_model_node_map.hpp"
 #include "halo2/mcc_animation.hpp"
 #include "halo2/mcc_physics.hpp"
 #include "halo2/mcc_ordinary_pointer.hpp"
@@ -12,6 +13,7 @@
 #include <limits>
 #include <unordered_set>
 #include <type_traits>
+#include <sstream>
 
 namespace {
 using namespace halo2;
@@ -84,7 +86,7 @@ int main(int argc,char**argv)try{
     conflicting=empty_locations;conflicting[0]={0x1040,0x80100040u,0};
     check(relocate_mcc_runtime_address(conflicting,0x1040,0)==0x80100040u,"Owned empty endpoint alias changed");
     unsigned actual=0,issues=0;std::size_t verified_fields=0,verified_bytes=0;
-    if(argc==2){
+    if(argc>=2){
         Cache cache(argv[1]);const auto before=hash(cache.source_runtime_cache_bytes());
         unsigned sound_captures=0;
         std::optional<MccSoundRuntimePlan> captured_sound;
@@ -242,6 +244,13 @@ int main(int argc,char**argv)try{
             cache.find_tag({Bytes(projected_sound_globals).u32(0x20)},TagGroup::from_string("ugh!")),
             "Runtime Sound Globals refers to a different salted sound owner");
         for(unsigned n=0;n<projected_sound_globals.size();++n)patched.insert(sound_globals+n);
+        for(const auto& map:plan_mcc_model_node_maps(cache)) {
+            check(Bytes(cache.read_tag_bytes(map.descriptor_field,4)).u32(0)==0x00010068u,
+                "Source MCC node-map descriptor lost its original typed identity");
+            check(Bytes(read(plan.runtime_address(map.descriptor_field,4),4)).u32(0)==0x00010064u,
+                "Canonical node-map fixup destination differs from Xbox100/channel1");
+            for(unsigned n=0;n<4;++n)patched.insert(map.descriptor_field+n);
+        }
         for(const auto& range:plan.relocations())if(range.bytes) {
             const auto before_bytes=cache.read_tag_bytes(range.source,range.bytes);
             const auto after_bytes=read(range.target,range.bytes);
@@ -256,7 +265,10 @@ int main(int argc,char**argv)try{
         check(hash(cache.source_runtime_cache_bytes())==before,"Planner changed normalized Cache backing");
         actual=1;issues=unsigned(plan.issues().size());
     }
-    std::cout<<"{\"passed\":true,\"piecewise_address_controls\":129,\"real_MCC_cache_checks\":"<<actual
+    std::ostringstream report;
+    report<<"{\"passed\":true,\"piecewise_address_controls\":129,\"real_MCC_cache_checks\":"<<actual
         <<",\"schema_issues\":"<<issues<<",\"verified_pointer_fields\":"<<verified_fields
         <<",\"verified_owned_bytes\":"<<verified_bytes<<",\"owned_runtime_images_checked\":"<<(actual?"true":"false")<<"}\n";
+    if(argc==3){std::ofstream output(argv[2]);output<<report.str();check(bool(output),"MCC delivery report write failed");}
+    std::cout<<report.str();
 }catch(const std::exception&e){std::cerr<<e.what()<<'\n';return 1;}

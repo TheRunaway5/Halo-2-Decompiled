@@ -170,6 +170,7 @@ SourceCampaignViewFrameTu15 SourceCampaignViewTu15::collect(PhysicsLiveWorldTu15
         // real completed main handoff/cull, never a model-only boolean.
         auto commands=world.prepare_source_call();commands.gp[0]=0;world.run_actual(0x40e80u,commands);
         frame.main_commands_completed=true;
+        frame.transparent_commands=source_live_transparent_queue_tu15(world);
         frame.transparent_groups=source_live_transparent_groups_tu15(world);
         for(const auto &group:frame.transparent_groups)
             frame.transparent_group_parts.push_back(group_parts_.resolve(group,frame.base_draws));

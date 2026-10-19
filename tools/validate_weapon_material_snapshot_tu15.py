@@ -88,7 +88,8 @@ def main():
             (source/'tests'/path.name).symlink_to(path,target_is_directory=True)
     fixtures=source/'tests/fixtures';fixtures.mkdir()
     selected={'weapon_material_builtins_tu15.json','weapon_gauge_animation_tu15.json','weapon_heat_shader_original.tsv',
-        'weapon_primary_charge_tu15_original.json','retail_source_weapon_shader_input.tsv'}
+        'weapon_primary_charge_tu15_original.json','retail_source_weapon_shader_input.tsv','tu15_ai_behavior_descriptors.json',
+        'mcc_gun_hinge_node_map_tu15.json','native_tu15_vehicle_render_operands.original.inc'}
     for path in (ROOT/'tests/fixtures').iterdir():
         if path.name in selected:copy_file(path)
         else:(fixtures/path.name).symlink_to(path,target_is_directory=path.is_dir())
@@ -133,6 +134,34 @@ def main():
     tests=['original_weapon_heat_shader','original_tu15_weapon_primary_charge']
     targets=['weapon_heat_shader_tests','weapon_primary_charge_tu15_tests']
     component_tests=tests.copy();component_targets=targets.copy()
+    if args.campaign_native_hud:
+        tests.append('weapon_ai_descriptor_data');targets.append('ai_behavior_descriptor_data_tu15_tests')
+        tests.append('weapon_mcc_model_node_map');targets.append('mcc_model_node_map_tests')
+        tests.append('weapon_mcc_runtime_delivery');targets.append('mcc_runtime_delivery_tests')
+        tests.append('native_tu15_world_memory_ownership');targets.append('native_tu15_world_memory_tests')
+        with (source/'CMakeLists.txt').open('a') as stream:
+            stream.write('set_tests_properties(native_tu15_world_memory_ownership PROPERTIES FIXTURES_SETUP weapon_native_cold_ready)\n')
+            stream.write('''\nadd_executable(ai_behavior_descriptor_data_tu15_tests tests/ai_behavior_descriptor_data_tu15_tests.cpp)
+target_link_libraries(ai_behavior_descriptor_data_tu15_tests PRIVATE halo2_systems)
+add_test(NAME weapon_ai_descriptor_data COMMAND "${Python3_EXECUTABLE}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tools/run_test.py" -- "$<TARGET_FILE:ai_behavior_descriptor_data_tu15_tests>"
+    "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/tu15_ai_behavior_descriptors.json"
+    "${CMAKE_CURRENT_BINARY_DIR}/weapon-ai-descriptor-data.json")
+set_tests_properties(weapon_ai_descriptor_data PROPERTIES FIXTURES_SETUP weapon_ai_descriptor_ready TIMEOUT 60)
+''')
+            stream.write(f'''\nadd_test(NAME weapon_mcc_model_node_map COMMAND "${{Python3_EXECUTABLE}}"
+    "${{CMAKE_CURRENT_SOURCE_DIR}}/tools/run_test.py" -- "$<TARGET_FILE:mcc_model_node_map_tests>"
+    "{mcc_maps}/01b_spacestation.map"
+    "${{CMAKE_CURRENT_SOURCE_DIR}}/tests/fixtures/mcc_gun_hinge_node_map_tu15.json"
+    "${{CMAKE_CURRENT_BINARY_DIR}}/weapon-mcc-model-node-map.json")
+set_tests_properties(weapon_mcc_model_node_map PROPERTIES FIXTURES_SETUP weapon_model_node_map_ready
+    TIMEOUT 180 ENVIRONMENT "XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache")
+add_test(NAME weapon_mcc_runtime_delivery COMMAND "${{Python3_EXECUTABLE}}"
+    "${{CMAKE_CURRENT_SOURCE_DIR}}/tools/run_test.py" -- "$<TARGET_FILE:mcc_runtime_delivery_tests>"
+    "{mcc_maps}/01b_spacestation.map" "${{CMAKE_CURRENT_BINARY_DIR}}/weapon-mcc-runtime-delivery.json")
+set_tests_properties(weapon_mcc_runtime_delivery PROPERTIES FIXTURES_SETUP weapon_model_delivery_ready
+    TIMEOUT 180 ENVIRONMENT "XDG_CACHE_HOME=@HALO2_TEST_SCRATCH@/cache")
+''')
     if args.dual_world_poses:
         tests.append('native_source_scene_physics');targets.append('source_scene_physics_tests')
     if args.campaign_weapons:
@@ -144,6 +173,8 @@ def main():
 set_tests_properties(weapon_campaign_source_submission PROPERTIES TIMEOUT 900 RUN_SERIAL TRUE
     FIXTURES_SETUP weapon_campaign_source_ready
     ENVIRONMENT "HALO2_TEST_CAMPAIGN_WEAPON_REPORT=${{CMAKE_CURRENT_BINARY_DIR}}/weapon-campaign-source-submission.json")\n''')
+            if args.campaign_native_hud:
+                stream.write('set_tests_properties(weapon_campaign_source_submission PROPERTIES FIXTURES_REQUIRED "weapon_ai_descriptor_ready;weapon_model_node_map_ready;weapon_model_delivery_ready;weapon_native_cold_ready")\n')
     if args.campaign_scenery_lighting:
         tests.append('weapon_campaign_scenery_lighting')
         with (source/'CMakeLists.txt').open('a') as stream:
@@ -153,7 +184,7 @@ set_tests_properties(weapon_campaign_source_submission PROPERTIES TIMEOUT 900 RU
 set_tests_properties(weapon_campaign_scenery_lighting PROPERTIES TIMEOUT 300 RUN_SERIAL TRUE
     FIXTURES_SETUP weapon_campaign_scenery_ready
     ENVIRONMENT "HALO2_TEST_CAMPAIGN_SCENERY_REPORT=${{CMAKE_CURRENT_BINARY_DIR}}/weapon-campaign-scenery-lighting.json")\n''')
-    if args.campaign_copy_dispatch:
+    if args.campaign_copy_dispatch and not args.campaign_native_hud:
         tests.append('weapon_campaign_copy_dispatch')
         with (source/'CMakeLists.txt').open('a') as stream:
             stream.write(f'''\nadd_test(NAME weapon_campaign_copy_dispatch COMMAND "${{Python3_EXECUTABLE}}"
@@ -187,7 +218,7 @@ set_tests_properties(weapon_campaign_application PROPERTIES TIMEOUT 330 RUN_SERI
     FIXTURES_REQUIRED weapon_campaign_source_ready)\n''')
             if args.campaign_scenery_lighting:
                 stream.write('set_tests_properties(weapon_campaign_application PROPERTIES FIXTURES_REQUIRED weapon_campaign_scenery_ready)\n')
-            if args.campaign_copy_dispatch:
+            if args.campaign_copy_dispatch and not args.campaign_native_hud:
                 stream.write('set_property(TEST weapon_campaign_application APPEND PROPERTY FIXTURES_REQUIRED weapon_campaign_copy_ready)\n')
             if args.campaign_native_hud:
                 stream.write('set_property(TEST weapon_campaign_application APPEND PROPERTY FIXTURES_REQUIRED weapon_campaign_native_hud_ready)\n')
@@ -279,8 +310,11 @@ set_tests_properties({name} PROPERTIES TIMEOUT 120)\n''')
         if args.campaign_weapons and not sanitizer:command+=['--retain-report','weapon-campaign-source-submission.json']
         if args.campaign_weapon_application and not sanitizer:command+=['--retain-report','weapon-campaign-application.json']
         if args.campaign_scenery_lighting and not sanitizer:command+=['--retain-report','weapon-campaign-scenery-lighting.json']
-        if args.campaign_copy_dispatch and not sanitizer:command+=['--retain-report','weapon-campaign-copy-dispatch.json']
+        if args.campaign_copy_dispatch and not args.campaign_native_hud and not sanitizer:command+=['--retain-report','weapon-campaign-copy-dispatch.json']
         if args.campaign_native_hud and not sanitizer:command+=['--retain-report','weapon-campaign-native-hud.json']
+        if args.campaign_native_hud and not sanitizer:command+=['--retain-report','weapon-ai-descriptor-data.json']
+        if args.campaign_native_hud and not sanitizer:command+=['--retain-report','weapon-mcc-model-node-map.json']
+        if args.campaign_native_hud and not sanitizer:command+=['--retain-report','weapon-mcc-runtime-delivery.json']
         for target in (component_targets if sanitizer else targets)+(['halo2_native'] if args.application and not sanitizer else [])+(['native_covenant_weapon_runtime_tests'] if (args.live_gauge or args.live_firing) and not sanitizer else [])+(['native_weapon_runtime_tests'] if args.live_dual and not sanitizer else []):
             command+=['--target',target]
         if sanitizer:command+=['--sanitizers']

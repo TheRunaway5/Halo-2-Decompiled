@@ -373,6 +373,24 @@ def repair_shaders(root, *, progress=print):
     return repair_cache_shaders(Path(root), *value, progress=progress)
 
 
+def repair_movies(root, *, cache=None, progress=print):
+    """Resume only the bundled movie handoff; never reimport the MCC tree."""
+    value = selected(root) if cache is None else private_cache(root, cache)
+    if value is None:
+        raise FormatError('Import MCC before preparing bundled movies')
+    from mcc_movies import repair
+    return repair(root, value[0], progress=progress)
+
+
+def repair_prompts(root, *, cache=None, progress=print):
+    """Resume only the authored prompt bank; never reimport MCC data."""
+    value = selected(root) if cache is None else private_cache(root, cache)
+    if value is None:
+        raise FormatError('Import MCC before preparing authored button prompts')
+    from mcc_prompts import repair
+    return repair(root, value[0], progress=progress)
+
+
 def _needs_graphics_reimport(root, report):
     """Old completed copies remain usable; setup upgrades their correction set."""
     from mcc_bitmap_correction_bundle import BUNDLE_V2, PROFILES_V2
@@ -428,6 +446,8 @@ def setup(root, mcc_source=None, *, progress=print):
         from native_shader_bundle import BUNDLE
         if (root / BUNDLE).is_file() or (root / 'assets/native-shaders-source.tsv').is_file():
             cache, report = repair_cache_shaders(root, cache, report, progress=progress)
+        cache, report = repair_movies(root, cache=cache, progress=progress)
+        cache, report = repair_prompts(root, cache=cache, progress=progress)
         return select(root, cache, verify=False, progress=progress)
     cache, report = prepare(root, source, progress=progress)
     return select(root, cache, verify=False, progress=progress)

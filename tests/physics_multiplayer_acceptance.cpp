@@ -4,6 +4,7 @@
 #include "helpers/source_device_script_input_tu15.hpp"
 #include "helpers/live_phantom_original_capture_tu15.hpp"
 #include "helpers/live_physics_entry_capture_tu15.hpp"
+#include "helpers/original_support_carry_tu15.hpp"
 #include "halo2/source_physics_entry_observation.hpp"
 #include "source_device_snapshot_check.hpp"
 #include <atomic>
@@ -671,7 +672,7 @@ struct Host {
           if(!header || Bytes(memory.view(header+6,2)).u16(0)<0x44c)return;
           const auto body=Bytes(memory.view(header+8,4)).u32(0);
           if(!body)return;
-          for(auto offset:{0x394u,0x448u}) {
+          for(auto offset:{0x394u,0x40cu,0x448u}) {
             const auto address=body+offset;
             if(std::uint64_t(store.address)+store.written.size()<=address || store.address>=address+4u)continue;
             support_field_trace<<Json{{"tick",world.match.simulation().ticks()},{"unit",player.source_current_object},
@@ -1241,9 +1242,19 @@ struct Host {
             }
           }
           if(support_resumed)capture_world_requested.store(true);
+          const auto carrier_bodies=bodies(wheel_body);
+          Json matrix_words=Json::array();
+          for(unsigned i=0;i<13;++i)matrix_words.push_back(word(unit+0x410u+i*4u));
+          // Original 1FA1A0 stores owner and PHYS body index at controller
+          // +5C/+20. Its +24 matrix comes from original 1D8B90, not a guessed
+          // authored-node association. This is read-only post-step state.
+          Json support_controller{{"owner",word(unit+0x448u)},
+              {"body_index",std::bit_cast<std::int32_t>(word(unit+0x40cu))},
+              {"body_count",carrier_bodies.size()},{"matrix_words",std::move(matrix_words)}};
           support_samples.push_back({{"tick",state.tick},{"unit",player.source_current_object},{"wheel",*support_object},
               {"resumed",support_resumed},{"position",xyz(state.players[1].position)},{"velocity",xyz(state.players[1].velocity)},
-              {"carrier_bodies",bodies(wheel_body)},{"player_bodies",bodies(unit)},
+              {"carrier_bodies",carrier_bodies},{"player_bodies",bodies(unit)},
+              {"support_controller",std::move(support_controller)},
               {"contact_readback",std::move(contact_readback)},
               {"grounded",state.players[1].native_grounded},{"source_support_flags",flags},
               {"wheel_position_bits",Bytes(memory.view(wheel_body+0x140u,4)).u32(0)},
@@ -1361,7 +1372,8 @@ struct Host {
 };
 }
 int main(int argc,char **argv) try {
-  check(argc==7,"Supply MAP SHARED_MAPS TU15_XBE VISTA_UI OUTPUT_DIR movement|lift|vehicle|objects|lan-movement|lan-lift|lan-vehicle|lan-objects");
+  check(argc==7,"Supply MCC_MAP MCC_MAPS native-mcc MCC_ROOT OUTPUT_DIR movement|lift|vehicle|objects|lan-movement|lan-lift|lan-vehicle|lan-objects");
+  check(std::string_view(argv[3])=="native-mcc","Live physics acceptance requires the prepared MCC cache; Xbox executables and Vista UI are offline references");
   const std::string scenario=argv[6];const bool lan=scenario.starts_with("lan-"),
       lift=scenario=="lift"||scenario=="lan-lift",vehicle=scenario=="vehicle"||scenario=="lan-vehicle",objects=scenario=="objects"||scenario=="lan-objects";
   const auto vehicle_selection=std::getenv("HALO2_TU15_VEHICLE_NAME");
@@ -1432,7 +1444,12 @@ int main(int argc,char **argv) try {
   check(std::getenv("DISPLAY")||std::getenv("WAYLAND_DISPLAY"),"Visible desktop display is required");
   const std::filesystem::path output=argv[5];std::filesystem::create_directories(output);
   SDL_SetMainReady();SDL_SetHint(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0x0000/0x0000");
-  MultiplayerOptions o;o.map=argv[1];o.shared_maps=argv[2];o.gameplay_xbe=argv[3];o.ui_assets=argv[4];
+  MultiplayerOptions o;o.map=std::filesystem::canonical(argv[1]);o.shared_maps=std::filesystem::canonical(argv[2]);
+  const auto mcc_maps=std::filesystem::canonical(std::filesystem::path(argv[4])/"halo2/h2_maps_win64_dx11");
+  check(o.shared_maps==mcc_maps && o.map.parent_path()==mcc_maps,"Physics map is outside the selected prepared MCC cache");
+  {const Cache admitted(o.map,o.shared_maps);check(admitted.is_mcc(),"Live physics acceptance requires an actual MCC cache");}
+  // Native TU1.5 startup and HUD resource lookup consume the imported cache.
+  // No Xbox image constructor or Vista UI path is supplied at runtime.
   o.starting_weapon=vehicle_weapon_test?8:5;o.width=960;o.height=540;o.local_players=lan&&!vehicle&&!objects?1:2;o.mute=true;
   o.source_object_world=true;o.source_object_savegame_directory=output/"source-savegame";
   o.variant.values.set(2,0);o.variant.values.set(10,0); // Finite test lifecycle owns exit, not game-over.
@@ -1456,7 +1473,7 @@ int main(int argc,char **argv) try {
       o.variant.values.set(81u+classification-6u,vehicle_name=="h_turret_ap"?1:4);
     }
   }
-  Json report{{"scenario",scenario},{"reference","English TU1.5 only"},{"visible",true},
+  Json report{{"scenario",scenario},{"reference","English TU1.5 only"},{"runtime_cache_source","MCC"},{"visible",true},
       {"live_physics_parity",false},{"stimulus","SDL keyboard events; no supplied physics results"}};
   const bool prop_test=objects && std::getenv("HALO2_TU15_PROP_GRENADE");
   const bool recreate_test=lan && prop_test && std::getenv("HALO2_TU15_SCENE_RECREATE");
@@ -2876,8 +2893,20 @@ int main(int argc,char **argv) try {
   // exit uses SDL_QUIT because exact tick capture deliberately rejects LAN.
   if(!lan){o.capture_tick=vehicle?(long_vehicle_sequence?901:451):181;o.screenshot=output/"frame.ppm";}
   const int result=run_multiplayer(o);if(host)host->finish();trace.close();
-  if(support_test) {std::ofstream file(output/"authority-support-samples.json");file<<host->support_samples.dump(2)<<'\n';
-    check(bool(file),"Could not retain original rotating support observations");}
+  if(support_test) {
+    std::ofstream file(output/"authority-support-samples.json");file<<host->support_samples.dump(2)<<'\n';
+    check(bool(file),"Could not retain original rotating support observations");
+    // Retain compact actual controller evidence even when full unit/motion
+    // banks are discarded by the managed test-storage lifecycle.
+    Json compact=Json::array();
+    for(const auto &row:host->support_samples)if(row.contains("support_controller"))
+      compact.push_back({{"tick",row.at("tick")},{"unit",row.at("unit")},{"carrier",row.at("wheel")},
+          {"position",row.at("position")},{"grounded",row.at("grounded")},{"resumed",row.at("resumed")},
+          {"source_power_bits",row.at("wheel_power_bits")},{"source_phase_bits",row.at("wheel_position_bits")},
+          {"controller",row.at("support_controller")}});
+    std::ofstream controller_file(output/"authority-support-controller.json");controller_file<<compact.dump()<<'\n';
+    check(bool(controller_file),"Could not retain original support controller observations");
+  }
   if(script_test) {std::ofstream file(output/"authority-script-stages.json");file<<host->script_stages.dump(2)<<'\n';
     check(bool(file),"Could not retain actual visible script stages");}
   if(lan) {
@@ -3201,6 +3230,7 @@ int main(int argc,char **argv) try {
     const auto vector=[](const Json &v){return Vec3{v.at(0).get<float>(),v.at(1).get<float>(),v.at(2).get<float>()};};
     std::optional<Vec3> origin,local_origin;std::optional<float> initial_phase;
     unsigned static_supported{},moving_supported{};float carried{},wheel_motion{};
+    test::OriginalSupportCarryTu15 actual_carry(interaction_content.player.radius);
     for(const auto &row:host->support_samples) {
       // Worker teardown may execute further real frames after the visible
       // client's last input. Count only the observed visible interval.
@@ -3210,6 +3240,16 @@ int main(int argc,char **argv) try {
       const auto phase=std::bit_cast<float>(row.at("wheel_position_bits").get<std::uint32_t>());
       const auto power=std::bit_cast<float>(row.at("wheel_power_bits").get<std::uint32_t>());
       const bool grounded=row.at("grounded").get<bool>();
+      const auto &controller=row.at("support_controller"),&words=controller.at("matrix_words");
+      check(words.size()==13,"Incomplete original support transform");
+      const auto component=[&](unsigned n){return std::bit_cast<float>(words.at(n).get<std::uint32_t>());};
+      Transform support_transform;support_transform.scale=component(0);
+      for(unsigned axis=0;axis<3;++axis)support_transform.basis[axis]={component(1+axis*3),component(2+axis*3),component(3+axis*3)};
+      support_transform.position={component(10),component(11),component(12)};
+      actual_carry.observe({.tick=row.at("tick").get<std::uint32_t>(),.owner=controller.at("owner").get<std::uint32_t>(),
+          .carrier=row.at("wheel").get<std::uint32_t>(),.body_index=controller.at("body_index").get<std::int32_t>(),
+          .body_count=controller.at("body_count").get<unsigned>(),.resumed=row.at("resumed").get<bool>(),
+          .grounded=grounded,.power=power,.player_position=position,.support_transform=support_transform});
       const auto &basis=row.at("node_basis");const auto node=vector(row.at("node_position"));
       const auto scale=row.at("node_scale").get<float>();check(scale>0,"Original support node has invalid scale");
       if(!row.at("resumed").get<bool>()) {
@@ -3226,11 +3266,23 @@ int main(int argc,char **argv) try {
     }
     report["support_living_observation_last_tick"]=samples.back().at("authority_tick");
     report["released_support_unit_observations"]=std::count_if(host->support_samples.begin(),host->support_samples.end(),[](const auto &row){return row.value("released_player_body",false);});
-    report["paused_original_support_ticks"]=static_supported;
-    report["moving_original_support_ticks"]=moving_supported;
-    report["original_support_carried_distance"]=carried;report["original_wheel_position_delta"]=wheel_motion;
+    report["paused_grounded_ticks"]=actual_carry.paused_grounded_ticks;
+    report["paused_original_support_ticks"]=actual_carry.paused_actual_carrier_ticks;
+    report["moving_original_support_ticks"]=actual_carry.moving_ticks;
+    report["original_support_carried_distance"]=actual_carry.maximum_carried;
+    report["declared_node_moving_support_ticks"]=moving_supported;
+    report["declared_node_carried_distance"]=carried;
+    report["original_support_controller_body_carry"]=true;
+    report["original_support_relative_tolerance"]=interaction_content.player.radius;
+    Json segments=Json::array();for(const auto &segment:actual_carry.segments)
+      segments.push_back({{"owner",segment.owner},{"body_index",segment.body_index},
+          {"first_tick",segment.first_tick},{"last_tick",segment.last_tick},{"moving_ticks",segment.moving_ticks},
+          {"carried",segment.carried},{"expected_displacement",segment.expected_displacement},
+          {"maximum_relative_error",segment.maximum_relative_error}});
+    report["original_support_body_segments"]=segments;
+    report["original_wheel_position_delta"]=wheel_motion;
     report["original_support_resume_command"]=support_started;
-    passed&=support_started && static_supported>=5 && moving_supported>=5 && carried>.25f && wheel_motion>.01f && forward_commands==0 && jump_commands==0;
+    passed&=support_started && actual_carry.paused_grounded_ticks>=5 && actual_carry.moving_ticks>=5 && actual_carry.maximum_carried>.25f && wheel_motion>.01f && forward_commands==0 && jump_commands==0;
   } else if(script_test) {
     report["declared_device_script_started"]=script_started;
     report["device_script_stages"]=host->script_stages;

@@ -283,7 +283,9 @@ SourceRuntimeMemory::Checkpoint Backing::checkpoint_without_resources() const {
     if(physical.version!=1 || physical.allocations.size()!=impl_->frames.size())
         throw FormatError("CPU checkpoint physical ownership is incomplete");
     for(const auto&f:impl_->frames) {
-        if(f->owner.metadata.format!=11 && f->owner.metadata.format!=16)
+        // The complete D5610 constructor/sample closure is also proved on
+        // actual MCC DXT1 bytes; its aliases stay confined to dead stack.
+        if(f->owner.metadata.format!=10 && f->owner.metadata.format!=11 && f->owner.metadata.format!=14 && f->owner.metadata.format!=16)
             throw FormatError("CPU checkpoint source closure lacks its format proof");
         impl_->validate(*f,false);
         const auto allocation=std::ranges::find(physical.allocations,f->encoded,

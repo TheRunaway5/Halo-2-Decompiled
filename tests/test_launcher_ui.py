@@ -37,7 +37,7 @@ class LauncherHomeTests(unittest.TestCase):
             if not self.release.wait(5):
                 raise RuntimeError("Test update timed out")
             if self.failure:
-                raise RuntimeError("The compiler failed")
+                raise RuntimeError("The binary download failed")
             (root / "updated-runtime").touch()
 
         self.home = LauncherHome(self.window, self.root, self.root / "build", update, availability_function=lambda: None,
@@ -61,6 +61,20 @@ class LauncherHomeTests(unittest.TestCase):
             time.sleep(0.005)
         self.assertTrue(condition(), "Launcher did not reach the expected state")
 
+    def reopen_home(self, *, unavailable, frontend=False, native_test=False):
+        import tkinter as tk
+        update = self.home.update
+        self.home.close()
+        self.window = tk.Tk()
+        self.home = LauncherHome(self.window, self.root, update_function=update,
+                                 availability_function=lambda: unavailable,
+                                 frontend_function=lambda: frontend,
+                                 native_test_function=lambda: native_test,
+                                 preview_maps_function=lambda: {"lockout.map": self.preview_map},
+                                 preview_launch_function=lambda argv: self.preview_calls.append(argv),
+                                 sandbox_launch_function=lambda argv: self.sandbox_calls.append(argv))
+        self.window.update()
+
     def test_update_disables_actions_and_success_waits_for_play(self):
         self.home.update_button.invoke()
         self.wait_until(lambda: bool(self.calls))
@@ -79,14 +93,14 @@ class LauncherHomeTests(unittest.TestCase):
         self.assertTrue(self.home.closed)
         self.assertEqual(self.home.result, 0)
 
-    def test_failure_keeps_output_and_requires_a_successful_retry_before_play(self):
+    def test_failed_download_keeps_the_installed_build_available(self):
         self.failure = True
         self.release.set()
         self.home.update_button.invoke()
         self.wait_until(lambda: not self.home.working)
-        self.assertEqual(str(self.home.play_button.cget("state")), "disabled")
-        self.assertIn("The compiler failed", self.home.output.get("1.0", "end"))
-        self.home.play_button.invoke()
+        self.assertEqual(str(self.home.play_button.cget("state")), "normal")
+        self.assertIn("The binary download failed", self.home.output.get("1.0", "end"))
+        self.assertIn("installed build is available", self.home.status.cget("text"))
         self.assertFalse(self.home.closed)
         self.failure = False
         self.home.update_button.invoke()
@@ -152,6 +166,93 @@ class LauncherHomeTests(unittest.TestCase):
         self.assertEqual(self.home.result, CANCELLED)
         self.assertEqual(len(self.preview_calls), 1)
 
+    def test_mcc_frontend_play_and_separate_native_test_survive_update(self):
+        from mcc_onboarding import NOT_PLAYABLE
+        self.home.availability = lambda: NOT_PLAYABLE
+        self.home.frontend_available = lambda: True
+        self.home.native_test_available = lambda: True
+        self.release.set()
+        self.home.update_button.invoke()
+        self.wait_until(lambda: not self.home.working)
+        self.assertEqual(self.home.play_button.cget('text'), 'Play  ›')
+        self.assertIn('MCC title screen', self.home.status.cget('text'))
+        self.assertEqual(str(self.home.native_test_button.cget('state')), 'normal')
+        self.home.native_test_button.invoke()
+        self.assertEqual(self.preview_calls, [[str(self.root / 'Halo2-Launcher'), '--native-test']])
+        self.assertEqual(self.home.result, CANCELLED)
+
+    def test_stale_menu_selection_disables_ordinary_play_at_init_but_keeps_separate_actions(self):
+        from mcc_onboarding import NOT_PLAYABLE
+        (self.root / "frontend-runtime-selection.json").write_text('{}')
+        for action in ('native_test', 'sandbox', 'preview'):
+            with self.subTest(action=action):
+                self.preview_calls.clear()
+                self.sandbox_calls.clear()
+                self.reopen_home(unavailable=NOT_PLAYABLE, native_test=True)
+                self.assertTrue(self.home.frontend_stale)
+                self.assertEqual(str(self.home.play_button.cget('state')), 'disabled')
+                self.assertNotIn('native test', self.home.play_button.cget('text'))
+                self.assertIn('selected MCC menu runtime is unavailable or changed', self.home.status.cget('text'))
+                self.home.play_button.invoke()
+                self.assertFalse(self.home.closed)
+                for button in (self.home.native_test_button, self.home.sandbox_button, self.home.preview_button):
+                    self.assertEqual(str(button.cget('state')), 'normal')
+                getattr(self.home, action + '_button').invoke()
+                self.assertTrue(self.home.closed)
+                self.assertEqual(self.home.result, CANCELLED)
+                if action == 'native_test':
+                    self.assertEqual(self.preview_calls, [[str(self.root / 'Halo2-Launcher'), '--native-test']])
+                elif action == 'sandbox':
+                    self.assertEqual(self.sandbox_calls, [[str(self.sandbox_launcher)]])
+                else:
+                    self.assertEqual(self.preview_calls, [[str(self.root / 'Halo2-Launcher'), '--preview-mcc', '--map', str(self.preview_map)]])
+
+    def test_stale_menu_selection_after_update_blocks_play_even_with_native_or_preview_fallback(self):
+        from mcc_onboarding import NOT_PLAYABLE
+        (self.root / "frontend-runtime-selection.json").write_text('{}')
+        self.release.set()
+        for failed_update, native in ((False, True), (True, True), (False, False)):
+            with self.subTest(failed_update=failed_update, native=native):
+                self.failure = failed_update
+                self.reopen_home(unavailable=NOT_PLAYABLE, frontend=True, native_test=native)
+                self.assertEqual(str(self.home.play_button.cget('state')), 'normal')
+                self.home.frontend_available = lambda: False
+                self.home.update_button.invoke()
+                self.wait_until(lambda: not self.home.working)
+                self.assertTrue(self.home.frontend_stale)
+                self.assertEqual(str(self.home.play_button.cget('state')), 'disabled')
+                self.assertIn('selected MCC menu runtime is unavailable or changed', self.home.status.cget('text'))
+                self.assertEqual(str(self.home.native_test_button.cget('state')), 'normal' if native else 'disabled')
+                self.assertEqual(str(self.home.preview_button.cget('state')), 'normal')
+                self.assertEqual(str(self.home.sandbox_button.cget('state')), 'normal')
+                self.home.play_button.invoke()
+                self.assertFalse(self.home.closed)
+
+    def test_valid_menu_selection_remains_available_for_full_ready_cache_at_init_and_update(self):
+        (self.root / "frontend-runtime-selection.json").write_text('{}')
+        self.reopen_home(unavailable=None, frontend=True)
+        self.assertTrue(self.home.frontend)
+        self.assertFalse(self.home.frontend_stale)
+        self.assertEqual(str(self.home.play_button.cget('state')), 'normal')
+        self.assertIn('MCC title screen', self.home.status.cget('text'))
+        self.release.set()
+        self.home.update_button.invoke()
+        self.wait_until(lambda: not self.home.working)
+        self.assertTrue(self.home.frontend)
+        self.assertFalse(self.home.frontend_stale)
+        self.assertEqual(str(self.home.play_button.cget('state')), 'normal')
+        self.assertIn('MCC title screen', self.home.status.cget('text'))
+
+    def test_missing_menu_selection_preserves_native_test_play_fallback_at_init(self):
+        from mcc_onboarding import NOT_PLAYABLE
+        self.reopen_home(unavailable=NOT_PLAYABLE, native_test=True)
+        self.assertFalse(self.home.frontend_stale)
+        self.assertEqual(str(self.home.play_button.cget('state')), 'normal')
+        self.assertIn('native test', self.home.play_button.cget('text'))
+        self.home.play_button.invoke()
+        self.assertTrue(self.home.closed)
+        self.assertEqual(self.home.result, 0)
+
     def test_pointer_click_on_play_starts_game(self):
         button = self.home.play_button
         button.event_generate("<Enter>", x=10, y=10)
@@ -161,17 +262,31 @@ class LauncherHomeTests(unittest.TestCase):
         self.assertTrue(self.home.closed, "A real pointer click must hand off to the game")
         self.assertEqual(self.home.result, 0)
 
-    def test_reopening_an_incomplete_update_requires_retry(self):
+    def test_legacy_source_build_marker_does_not_disable_the_installed_build(self):
         import tkinter as tk
         self.home.close()
         (self.root / "launcher-update.pending").touch()
         self.window = tk.Tk()
-        self.home = LauncherHome(self.window, self.root)
+        self.home = LauncherHome(self.window, self.root, availability_function=lambda: None)
         self.window.update()
-        self.assertEqual(str(self.home.play_button.cget("state")), "disabled")
-        self.assertIn("Select Update", self.home.status.cget("text"))
+        self.assertEqual(str(self.home.play_button.cget("state")), "normal")
         self.home.play_button.invoke()
-        self.assertFalse(self.home.closed)
+        self.assertTrue(self.home.closed)
+
+    def test_precompiled_package_can_download_binary_updates(self):
+        import tkinter as tk
+        update = self.home.update
+        self.home.close()
+        (self.root / "PRECOMPILED_TEST_BUILD.json").write_text('{}')
+        self.window = tk.Tk()
+        self.home = LauncherHome(self.window, self.root, update_function=update,
+                                 availability_function=lambda: None)
+        self.window.update()
+        self.assertEqual(str(self.home.update_button.cget("state")), "normal")
+        self.release.set()
+        self.home.update_button.invoke()
+        self.wait_until(lambda: not self.home.working)
+        self.assertTrue((self.root / "updated-runtime").is_file())
 
     def test_controls_have_separate_hit_regions_and_fit_the_window(self):
         widgets = [self.home.status, self.home.output.master, self.home.bar,

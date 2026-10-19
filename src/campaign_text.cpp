@@ -1,4 +1,5 @@
 #include "halo2/campaign_text.hpp"
+#include "halo2/campaign_title.hpp"
 #include "halo2/campaign_text_layout.hpp"
 #include "halo2/frontend_font_sampling.hpp"
 #include "halo2/gameplay_font_source.hpp"
@@ -101,20 +102,7 @@ CampaignTextContent load_campaign_text(const Cache &cache,
     throw FormatError("Excessive cinematic titles");
   if (n) {
     const Bytes rows(scenario.bytes_at(s.u32(0x1f4), n * 0x24));
-    for (unsigned p = 0; p < n * 0x24; p += 0x24) {
-      CampaignTitleDefinition title;
-      title.text = rows.u32(p);
-      title.color = rows.u32(p + 0x10);
-      title.shadow = rows.u32(p + 0x14);
-      for (unsigned i = 0; i < 4; ++i)
-        title.bounds[i] = std::int16_t(rows.u16(p + 4 + i * 2));
-      title.justification = std::int16_t(rows.u16(p + 0xc));
-      title.font = std::int16_t(rows.u16(p + 0xe));
-      title.fade_in = rows.f32(p + 0x18);
-      title.up_time = rows.f32(p + 0x1c);
-      title.fade_out = rows.f32(p + 0x20);
-      result.titles.push_back(title);
-    }
+    result.titles = read_campaign_titles(rows.slice(0, rows.size()), cache.is_mcc(), cache.scenario());
   }
   for (unsigned i = 0; i < 4; ++i) {
     const auto datum = h.u32(0x44c + i * 8);

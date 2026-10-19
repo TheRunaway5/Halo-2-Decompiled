@@ -28,15 +28,27 @@ UiStrings load_campaign_pause_objectives(const Cache &cache,const std::filesyste
   const unsigned first=strings.u16(16),count=strings.u16(18),total=b.u32(0x190),size=b.u32(0x194);
   if(total>65536 || size>16*1024*1024 || first>total || count>total-first)
     throw FormatError("Campaign objective locale exceeds its source table");
-  std::ifstream file(map,std::ios::binary|std::ios::ate);const auto length=file.tellg();
-  const auto read=[&](std::uint32_t at,std::size_t n) {
-    if(length<0 || at>std::uint64_t(length) || n>std::uint64_t(length)-at)
-      throw FormatError("Campaign objective locale is outside the selected cache");
-    std::vector<std::byte> data(n);file.seekg(at);
-    if(!file.read(reinterpret_cast<char *>(data.data()),n))throw FormatError("Incomplete campaign objective locale");
-    return data;
-  };
-  const auto indices=read(b.u32(0x198)+first*8,count*8),text=read(b.u32(0x19c),size);
+  if(!count)return {};
+  std::vector<std::byte> indices,text;
+  if(cache.is_mcc()) {
+    // Version13 locale offsets address decoded resources. Preserve the
+    // encoded cache selector through the ordinary resource owner instead of
+    // seeking these logical offsets in the compressed physical map file.
+    const auto all=cache.load_source_runtime_resource(b.u32(0x198),total*8);
+    const auto selected=std::span<const std::byte>(all).subspan(first*8,count*8);
+    indices.assign(selected.begin(),selected.end());
+    text=cache.load_source_runtime_resource(b.u32(0x19c),size);
+  } else {
+    std::ifstream file(map,std::ios::binary|std::ios::ate);const auto length=file.tellg();
+    const auto read=[&](std::uint32_t at,std::size_t n) {
+      if(length<0 || at>std::uint64_t(length) || n>std::uint64_t(length)-at)
+        throw FormatError("Campaign objective locale is outside the selected cache");
+      std::vector<std::byte> data(n);file.seekg(at);
+      if(!file.read(reinterpret_cast<char *>(data.data()),n))throw FormatError("Incomplete campaign objective locale");
+      return data;
+    };
+    indices=read(b.u32(0x198)+first*8,count*8);text=read(b.u32(0x19c),size);
+  }
   UiStrings result;const Bytes rows(indices),locale(text);
   for(unsigned i=0;i<count;++i) {
     const auto at=rows.u32(i*8+4);if(at>=size)throw FormatError("Invalid campaign objective locale offset");

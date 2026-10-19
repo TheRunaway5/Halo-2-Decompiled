@@ -3,16 +3,19 @@
 from __future__ import annotations
 
 import argparse
-from contextlib import ExitStack
+from contextlib import ExitStack, contextmanager
 import json
 import mmap
 import os
+import select
+import signal
 from pathlib import Path, PurePosixPath
 import shutil
 import struct
 import subprocess
 import sys
 import tempfile
+import threading
 import uuid
 import zipfile
 
@@ -573,15 +576,49 @@ def repair_loading(root, progress=print):
     progress("Original Vista loading resources are ready.")
 
 
+@contextmanager
+def _gui_owner(enabled):
+    """An EOF-only parent pipe cancels the CLI in its main-thread scope."""
+    if not enabled:
+        yield
+        return
+    fd = sys.stdin.fileno()
+    stop = threading.Event()
+    def watch():
+        try:
+            while not stop.is_set():
+                if select.select([fd], [], [], .05)[0]:
+                    # The GUI writes no input. EOF or unexpected input means
+                    # ownership ended; all cache cleanup stays in main.
+                    os.read(fd, 1)
+                    break
+        except OSError:
+            pass
+        if not stop.is_set():
+            os.kill(os.getpid(), signal.SIGTERM)
+    if select.select([fd], [], [], 0)[0]:
+        raise SystemExit(143)
+    reader = threading.Thread(target=watch, daemon=True)
+    reader.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        reader.join()
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--interactive", action="store_true")
+    parser.add_argument("--gui-owner", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--mcc-root", type=Path, help="MCC installation or halo2 folder; otherwise scan installed game libraries")
     parser.add_argument("--use-cache", type=Path, help="verify and select an existing private MCC import")
     parser.add_argument("--prepare-mcc-gameplay", action="store_true",
         help="prepare and select the private MCC cache; does not declare incomplete conversion playable")
     args = parser.parse_args()
+    if args.gui_owner and args.interactive:
+        parser.error("--gui-owner is reserved for the noninteractive setup child")
     if args.use_cache and (args.interactive or args.mcc_root):
         parser.error("--use-cache takes a completed private MCC import by itself")
     if args.interactive:
@@ -592,11 +629,13 @@ def main():
             print(f"Cannot open MCC setup: {error}", file=sys.stderr)
             return 1
     try:
+        from mcc_movies import _cancellation
         import mcc_onboarding
-        if args.use_cache:
-            mcc_onboarding.select(args.root, args.use_cache)
-        else:
-            mcc_onboarding.setup(args.root, args.mcc_root)
+        with _cancellation(), _gui_owner(args.gui_owner):
+            if args.use_cache:
+                mcc_onboarding.select(args.root, args.use_cache)
+            else:
+                mcc_onboarding.setup(args.root, args.mcc_root)
         return 0
     except (OSError, ValueError, KeyError) as error:
         print(f"MCC import failed: {error}", file=sys.stderr)

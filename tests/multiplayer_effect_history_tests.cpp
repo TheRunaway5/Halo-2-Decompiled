@@ -5,6 +5,8 @@
 #include "halo2/effect_presentation_history.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "halo2/desktop_session.hpp"
+#include "halo2/source_world_particle_draws_tu15.hpp"
+#include "halo2/source_tag_metadata.hpp"
 #include <SDL.h>
 #include <nlohmann/json.hpp>
 #include <atomic>
@@ -13,6 +15,7 @@
 #include <future>
 #include <iostream>
 #include <set>
+#include <sstream>
 #include <thread>
 #if defined(__linux__)
 #include <sys/resource.h>
@@ -27,12 +30,64 @@ template<class F>void wait(F ready,const char *why){const auto until=std::chrono
 SourcePlayerConfiguration profile(std::string_view name){const auto defaults=source_default_player_configuration();
     std::array<std::uint8_t,9> colors;std::copy_n(defaults.begin()+0x40,colors.size(),colors.begin());
     return native_selected_player_configuration(name,colors,-1);}
+SourceWorldParticleDrawsTu15::ResourceState authored_weapon_particle_resources(MultiplayerPreparedWorld &world){
+    // Independently census real cache definitions before the host admits any
+    // player. This bank never prepares storage, publishes observers or draws.
+    SourceMatchAuthority authority(world.match,*world.source_objects);
+    const auto boundary=authority.execution_boundary();
+    SourceWorldParticleDrawsTu15 bank(*world.cache,world.content.objects);
+    std::set<std::uint32_t> effects;
+    const auto collect=[&](const WeaponDefinition &weapon){
+        for(const auto &row:weapon.firing_effects)effects.insert(row.effects.begin(),row.effects.end());
+        if(weapon.ready_effect!=null_datum)effects.insert(weapon.ready_effect);
+    };
+    for(const auto &[datum,weapon]:world.content.weapons){
+        collect(weapon);
+        for(const auto &barrel:weapon.barrel_views){
+            check(bool(barrel),"Independent weapon resource census lost its authored barrel view");collect(*barrel);
+        }
+        const auto metadata=world.cache->load_source_tag_metadata(datum);
+        const Bytes root(metadata.bytes_at(metadata.source_address(),0x9c));const auto count=root.u32(0x94);
+        std::optional<SourceTagMetadata> owner;
+        if(count){
+            const auto tag=world.cache->query_tag({.contains=TagAddressRange{root.u32(0x98),std::size_t(count)*0x18},.require_address=true});
+            check(tag,"Independent weapon attachment census has no resident metadata owner");
+            owner.emplace(world.cache->load_source_tag_metadata(tag->datum));
+        }
+        const Bytes attachments(count?owner->bytes_at(root.u32(0x98),std::size_t(count)*0x18):std::span<const std::byte>{});
+        for(unsigned row=0;row<count;++row){const auto at=row*0x18;
+            if(attachments.u32(at)==0x65666665u&&attachments.u32(at+4)!=null_datum)effects.insert(attachments.u32(at+4));}
+    }
+    unsigned fp_supported{},world_supported{},boundary_count{};std::vector<std::string> diagnostics;
+    const auto diagnose=[&](std::uint32_t effect,const char *pass,const FormatError &error){
+        ++boundary_count;
+        if(diagnostics.size()<16){std::ostringstream text;text<<std::hex<<effect<<std::dec<<' '<<pass<<": "<<error.what();
+            diagnostics.push_back(text.str().substr(0,240));}
+    };
+    for(const auto effect:effects){
+        if(effect==null_datum)continue;
+        const auto tag=world.cache->query_tag({.handle=TagHandle{effect},.require_address=true});
+        if(!tag||tag->group!="effe")continue;
+        try{fp_supported+=bank.preload_first_person(effect);}catch(const FormatError &error){diagnose(effect,"FP",error);}
+        try{world_supported+=bank.preload_world(effect);}catch(const FormatError &error){diagnose(effect,"WORLD",error);}
+    }
+    const auto resources=bank.resource_state();
+    check(fp_supported&&world_supported&&resources.materials&&resources.first_person_systems&&resources.world_systems,
+        "Independent authored census established no supported FP/WORLD weapon particle resources");
+    check(authority.execution_boundary()==boundary,"Independent passive weapon census changed the native host execution boundary");
+    std::cout<<"Independent authored weapon particle census: effects="<<effects.size()<<" fp_supported="<<fp_supported
+        <<" world_supported="<<world_supported<<" unsupported_boundary_calls="<<boundary_count<<'\n';
+    for(const auto &diagnostic:diagnostics)std::cout<<"RESOURCE BOUNDARY independent weapon "<<diagnostic<<'\n';
+    return resources;
+}
 // A real native authority on its own executor, with four host couch seats.
 // Simulation runs at30Hz; this fixture broadcasts at10Hz. No master gameplay
 // endpoint, fabricated native cut, clock or accepted snapshot is supplied.
 class Host {
     std::jthread worker_;
     std::exception_ptr error_;
+    // Written once before the ready promise, immutable for all client reads.
+    SourceWorldParticleDrawsTu15::ResourceState expected_particle_resources_{};
 public:
     std::atomic<unsigned> validated{};
     explicit Host(MultiplayerOptions options,std::uint64_t fingerprint) {
@@ -41,6 +96,7 @@ public:
             bool announced{};try {
                 const auto session=options.online_match;const auto &roster=session->roster();
                 MultiplayerPreparedWorld world(options);
+                expected_particle_resources_=authored_weapon_particle_resources(world);
                 const auto locals=session->local_slots();
                 for(unsigned view=0;view<locals.size();++view){const auto slot=locals[view];
                     check(world.match.join(roster[slot].name,-1,options.selected_profiles[view],slot)==slot,"Host source profile changed its admitted slot");}
@@ -78,6 +134,7 @@ public:
             }catch(...){if(!announced)ready.set_exception(std::current_exception());else error_=std::current_exception();}
         });future.get();
     }
+    SourceWorldParticleDrawsTu15::ResourceState expected_particle_resources()const noexcept{return expected_particle_resources_;}
     ~Host(){worker_.request_stop();if(worker_.joinable())worker_.join();}
     void finish(){worker_.request_stop();worker_.join();if(error_)std::rethrow_exception(error_);}
 };
@@ -113,14 +170,34 @@ int main(int argc,char **argv)try {
     auto server=options;server.online_match=host_session;
     for(auto slot:host_session->local_slots())server.selected_profiles.push_back(profile(roster[slot].name));
     Host host(server,fingerprint);
+    const auto expected_particles=host.expected_particle_resources();
     options.online_match=client_session;for(auto slot:client_session->local_slots())options.selected_profiles.push_back(profile(roster[slot].name));
     SDL_SetMainReady();SDL_SetHint(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT,"0x0000/0x0000");
     options.desktop=std::make_shared<DesktopSession>();options.desktop->window(options.width,options.height,false);
-    unsigned accepted{},captured{},draws{},awaiting_previous{},retained_receipts{};std::size_t maximum_retained{};
+    unsigned accepted{},resource_observations{},captured{},draws{},awaiting_previous{},retained_receipts{};std::size_t maximum_retained{};
+    std::optional<std::array<std::size_t,6>> source_resource_counts;
     std::set<std::uint64_t> bound_cuts;std::optional<ValidatedAuthorityCut> last_bound;bool quit{};
     const auto deadline=std::chrono::steady_clock::now()+180s;
     options.effect_history_observer=[&](const MultiplayerSnapshotOrigin &origin,const EffectPresentationObservation &effect){
         ++accepted;check(origin.context()==client_session->authority_context(),"Runtime receipt has a different independent authority context");
+        const auto &resources=effect.source_resources;
+        check(resources.migration_candidate,"Actual four-view ONLINE client did not admit passive migration-candidate resources");
+        check(!resources.particle_producer&&!resources.model_producer,
+            "Passive migration-candidate admission activated a native particle or model producer");
+        check(resources.particle_materials>0&&resources.first_person_systems>0&&resources.world_systems>0&&resources.model_light_sections>0,
+            "Passive migration-candidate resource admission omitted particle, first-person, world or model-light resources");
+        check(resources.particle_materials==expected_particles.materials&&
+            resources.first_person_systems==expected_particles.first_person_systems&&
+            resources.world_systems==expected_particles.world_systems,
+            "ONLINE client skipped supported authored weapon particle resources from the independent complete cache census");
+        check(resources.materials_now==resources.materials_at_upload,
+            "Migration-candidate material residency changed after renderer upload");
+        const std::array<std::size_t,6> counts{resources.particle_materials,resources.first_person_systems,resources.world_systems,
+            resources.model_light_sections,resources.materials_at_upload,resources.materials_now};
+        if(source_resource_counts)check(*source_resource_counts==counts,
+            "Passive migration-candidate resource counts changed across actual accepted receipts");
+        else source_resource_counts=counts;
+        ++resource_observations;
         check(effect.world_tick==origin.tick()&&effect.muzzle_tick==origin.tick(),"Runtime replaced an incomplete CPU effect tick");
         check(effect.history.context==origin.context()&&effect.history.retained<=effect.history.capacity&&effect.history.capacity==128,
             "Runtime history exceeded or bypassed its gated retention policy");
@@ -152,10 +229,19 @@ int main(int argc,char **argv)try {
         "Rendered native ONLINE history never associated two natively validated paired cuts");
     check(accepted==captured+awaiting_previous&&captured==retained_receipts&&captured>=256&&maximum_retained==128,
         "Runtime omitted complete receipt frontiers or never exercised two full history turnovers");
+    check(resource_observations==accepted&&source_resource_counts.has_value(),
+        "Passive migration-candidate resources were not verified for every actual accepted receipt");
     std::cout<<"PASS real local direct-DTLS ONLINE four-view runtime: accepted="<<accepted<<" captured="<<captured
         <<" awaiting_proven_previous="<<awaiting_previous<<" retained_peak="<<maximum_retained
         <<" bound_native_cuts="<<bound_cuts.size()<<" rendered_frames="<<draws<<'\n';
     std::cout<<"PASS actual windowed receipt/runtime/effects history: authentic state/slots and deferred queues retained in one entry; no migration activation\n";
+    const auto &resources=*source_resource_counts;
+    std::cout<<"PASS passive migration-candidate resources: observations="<<resource_observations
+        <<" particle_materials="<<resources[0]<<" first_person_systems="<<resources[1]<<" world_systems="<<resources[2]
+        <<" model_light_sections="<<resources[3]<<" materials_at_upload="<<resources[4]<<" materials_now="<<resources[5]
+        <<"; counts stable across all accepted receipts; native particle/model producers remained dormant; no migration activation\n";
+    std::cout<<"PASS complete authored weapon particle census matches ONLINE client: particle_materials="<<expected_particles.materials
+        <<" first_person_systems="<<expected_particles.first_person_systems<<" world_systems="<<expected_particles.world_systems<<'\n';
 #if defined(__linux__)
     rusage usage{};check(getrusage(RUSAGE_SELF,&usage)==0,"Cannot measure rendered native fixture process peak RSS");
     std::cout<<"OBSERVED whole fixture process peak_rss_kib="<<usage.ru_maxrss<<"; includes native worlds/renderer and is not isolated history memory\n";

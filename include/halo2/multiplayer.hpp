@@ -504,6 +504,22 @@ public:
   void replicate_prop_regions(std::span<const PropRegionSnapshot> rows) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_prop_regions(rows); }
   void replicate_source_scene(std::span<const SourceSceneRoot> roots,std::span<const SourceWorldPose> poses) {NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_source_scene(roots,poses); }
   void replicate_devices(const SourceDeviceWorldSnapshot &s){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;simulation_.replicate_devices(s);}
+  Simulation::ReplicaCheckpoint replica_checkpoint(const MultiplayerSnapshotOrigin &origin)const {
+    if(!source_replica_)throw FormatError("A local authority cannot export a display replica checkpoint");
+    authority_calls_.capture();return simulation_.replica_checkpoint(origin);
+  }
+  bool owns_replica_checkpoint(const Simulation::ReplicaCheckpoint &saved)const noexcept {
+    return simulation_.owns_replica_checkpoint(saved);
+  }
+  Simulation::PreparedReplica prepare_replica(const Simulation::ReplicaCheckpoint &saved) {
+    return simulation_.prepare_replica(saved,&authority_calls_);
+  }
+  bool replica_ready(const Simulation::PreparedReplica &prepared)const noexcept {
+    return simulation_.replica_ready(prepared);
+  }
+  bool commit_replica(Simulation::PreparedReplica &prepared)noexcept {
+    return simulation_.commit_replica(prepared);
+  }
   SourceControlActivation activate_admitted_control(std::uint32_t h){NativeAuthorityBoundary::Call active(authority_calls_);++authority_calls_.mutations;return simulation_.activate_admitted_control(h);}
 
 private:

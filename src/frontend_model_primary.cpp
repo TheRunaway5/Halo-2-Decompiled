@@ -99,7 +99,18 @@ FrontendModelPrimary Cache::load_frontend_model_primary_animation(std::uint32_t 
   const auto group=data.u32(at+0x24),groups=data.u32(root+0xac);
   if(group>=groups || groups>65536)throw FormatError("source primary resource group invalid");
   const auto table=metadata_offset(data.u32(root+0xb0),groups*20);
-  const auto resource=raw_data(data.u32(table+group*20+8),data.u32(table+group*20+4));
+  const auto pointer=data.u32(table+group*20+8),size=data.u32(table+group*20+4);
+  std::vector<std::byte> resource;
+  if(is_mcc()) {
+    // Canonical MCC groups own their bytes inside this appended graph, as in
+    // load_animation; they are not offsets in the original compressed file.
+    const auto begin=metadata_offset(tag->address,tag->size);
+    if(!size || size>128*1024*1024 || pointer<begin || pointer-begin>tag->size ||
+        size>tag->size-(pointer-begin))
+      throw FormatError("Canonical MCC primary resource escapes its owned graph");
+    const auto bytes=data.slice(pointer,size);
+    resource.assign(bytes.begin(),bytes.end());
+  } else resource=raw_data(pointer,size);
   const Bytes raw(resource);const auto start=data.u32(at+0x28);
   raw.require(start,std::size_t(ss)+as+sf+af);
   FrontendModelPrimary out;out.source_graph=graph;out.source_index=index;out.frame_count=data.u16(at+0x14);

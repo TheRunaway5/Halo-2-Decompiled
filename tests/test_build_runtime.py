@@ -26,6 +26,7 @@ class RuntimeBuildTests(unittest.TestCase):
             "cmake_minimum_required(VERSION 3.24)\nproject(LauncherFixture LANGUAGES NONE)\n"
             f"add_custom_target(halo2_launcher COMMAND ${{CMAKE_COMMAND}} -E {command})\n"
             "add_custom_target(halo2_title_launcher)\n"
+            "add_custom_target(halo2_onboarding)\n"
         )
 
     def run_build(self):
@@ -37,6 +38,7 @@ class RuntimeBuildTests(unittest.TestCase):
         log = (self.root / "build/launcher-build.log").read_text()
         self.assertIn("Configuring Halo 2", log)
         self.assertIn("halo2_title_launcher", log)
+        self.assertIn("halo2_onboarding", log)
         self.assertFalse((self.root / "build.previous").exists())
 
     def test_moved_checkout_preserves_old_build_and_creates_a_working_cache(self):

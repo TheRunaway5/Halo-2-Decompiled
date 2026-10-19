@@ -52,6 +52,7 @@ struct SourceCampaignViewFrameTu15 {
     std::set<std::uint32_t> drawn;
     std::vector<ParticleDraw> world_particles;
     std::vector<SourceLiveTransparentGroupTu15> transparent_groups;
+    std::vector<SourceTransparentCommand> transparent_commands;
     std::vector<SourceTransparentGroupParts> transparent_group_parts;
     std::vector<std::uint32_t> live_effect_definitions;
     unsigned source_particle_commands{};

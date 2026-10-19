@@ -4,6 +4,7 @@
 #include "halo2/mcc_ordinary_pointer.hpp"
 #include "halo2/mcc_sound_tag_layout.hpp"
 #include "halo2/mcc_sound_runtime_delivery.hpp"
+#include "halo2/mcc_model_node_map.hpp"
 #include <algorithm>
 #include <limits>
 #include <set>
@@ -368,6 +369,18 @@ MccRuntimeCacheDelivery MccRuntimeCacheDelivery::plan(const Cache& cache,std::ui
             throw FormatError("Canonical MCC Sound Globals has no owned runtime backing");
         std::copy(projected.begin(),projected.end(),
             out.metadata_.bytes.begin()+std::ptrdiff_t(target-out.metadata_.address));
+    }
+    // A resource type is its fixup destination in the resident geometry
+    // header. MCC104/channel1 owns the same authored node bytes as Xbox100;
+    // the I/O boundary projects its count/pointer fields before real22A680.
+    for(const auto& map:plan_mcc_model_node_maps(cache)) {
+        const auto target=translate(out.relocations_,map.descriptor_field,4,false);
+        if(target<out.metadata_.address || std::uint64_t(target)-out.metadata_.address+4>out.metadata_.bytes.size())
+            throw FormatError("MCC node-map descriptor escapes canonical metadata");
+        const auto offset=std::size_t(target-out.metadata_.address);
+        if(Bytes(out.metadata_.bytes).u32(offset)!=0x00010068u)
+            throw FormatError("MCC node-map descriptor differs from its typed preimage");
+        word(out.metadata_.bytes,offset,0x00010064u);
     }
     // Source sound consumers use the original eleven-block gestalt, not the
     // MCC codec/reflection/language descriptors. Keep the raw Cache and PCM
