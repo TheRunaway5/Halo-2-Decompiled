@@ -36,7 +36,7 @@ def export_profile(reference, reformation, comparison, output):
     return profile
 
 
-def apply_selected(root, pack):
+def apply_selected(root, pack, *, tag_revisions=None):
     from mcc_bitmap_correction_bundle import (BUNDLE_V2, PROFILES_V2, digest,
                                                reconstruct_v2)
     from mcc_bitmap_correction_bundle_v3 import (BUNDLE_V3, MAP_NAME, PROFILES_V3,
@@ -65,7 +65,13 @@ def apply_selected(root, pack):
     map_paths = [maps/name for name,_,_,_ in sources]
     bank_path = maps/"textures.dat"
     for name, expected, _, _ in sources:
-        if file_sha(maps/name)!=expected:
+        actual = file_sha(maps/name)
+        # The importer already projects gameplay tags before this pass. Accept
+        # that exact recorded transition from the pinned original MCC source;
+        # a stale output or unrelated original still fails before any writes.
+        # Bitmap descriptors and every donor/target mip remain checked below.
+        revision = tag_revisions.get(name) if isinstance(tag_revisions, dict) else None
+        if actual != expected and revision != dict(source_sha256=expected, output_sha256=actual):
             raise FormatError("MCC "+name+" source differs from the verified graphics correction revision")
     before = {p.name:file_sha(p) for p in (*map_paths,bank_path)}
     destination=pack/"graphics-corrections"

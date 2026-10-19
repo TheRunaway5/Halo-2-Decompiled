@@ -20,6 +20,26 @@ path demonstrably depends on that behavior. Gameplay admission must be verified
 through the actual MCC-only launcher and game path. Converted definitions remain
 vanilla internal data, and the original Xbox/Vista inputs remain offline references.
 
+The October19 late-import failure on `03b_newmombasa.map` was an ordering
+defect: the verified instant-charge tag projection runs before bitmap correction,
+so the private map no longer has its original compressed-file fingerprint.
+The graphics pass now accepts the exact source/output hash pair recorded in
+memory by the preceding tag pass, while still requiring the pinned original
+MCC source. Unknown donors and stale outputs fail before writes; all bitmap
+descriptors, complete donor/target mip hashes and delta guards remain required.
+The real MCC three-map correction replay passes all six profiles/48 mips and
+preserves the converted gameplay flag. See the
+[focused verification](../.local/mcc-graphics-import-order-20261019/verification.json)
+and [actual SSD import](../.local/mcc-graphics-import-order-20261019/full-import.json).
+The actual SSD setup now completes and selects its new 883-file/43-map cache;
+a second setup verifies every copied source/output hash and reuses it unchanged.
+Reuse also uncovered two damaged ranges in one private copied preload pack;
+524,288 bytes were restored from the authenticated installed original and the
+whole file passed disk readback before the successful reuse check. The origin
+of that isolated copy damage is undetermined. No MCC original or shader program
+was changed. This accepts the current stock import/reuse route; loose/mod
+conversion, complete gameplay parity and portable release delivery remain open.
+
 The current visible priority is default Play opening a native MCC title and
 menus, with the accepted Lockout test available separately. Frontend tests use
 the port-owned imported MCC cache, including its maps, fonts and bitmap

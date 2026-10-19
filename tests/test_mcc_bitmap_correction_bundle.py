@@ -270,6 +270,59 @@ class BitmapCorrectionAtomicApplicationTests(unittest.TestCase):
             cache.close()
         self.assertFalse(list((self.pack / "graphics-corrections").glob("*.rgba")))
 
+    def converted_metropolis(self):
+        """Model the earlier tag pass changing one word outside bitmap owners."""
+        source = sha(self.metropolis_path.read_bytes())
+        cache = MccCache(self.metropolis_path)
+        try:
+            struct.pack_into("<I", cache.data, 8000, 6)
+            from prepare_mcc_gameplay import save_changed_cache
+            save_changed_cache(cache)
+        finally:
+            cache.close()
+        return {self.metropolis_path.name: dict(source_sha256=source,
+            output_sha256=sha(self.metropolis_path.read_bytes()))}
+
+    def test_graphics_accepts_exact_recorded_tag_conversion_and_preserves_it(self):
+        revisions = self.converted_metropolis()
+        converted = self.metropolis_path.read_bytes()
+        report = graphics.apply_selected(self.root, self.pack, tag_revisions=revisions)
+        self.assertTrue(report["complete"])
+        change = next(row for row in report["changes"] if row["path"].endswith(self.metropolis_path.name))
+        self.assertEqual(change["donor_sha256"], revisions[self.metropolis_path.name]["output_sha256"])
+        cache = MccCache(self.metropolis_path)
+        try:
+            self.assertEqual(cache.u32(8000), 6)
+            expected = bytearray(converted)
+            for at in self.metropolis_frames:
+                for offset in (56, 80):
+                    expected[at + offset:at + offset + 4] = cache.data[at + offset:at + offset + 4]
+            self.assertEqual(cache.data[896:], expected[896:])
+        finally:
+            cache.close()
+
+    def test_tag_conversion_revision_cannot_authorize_wrong_donor_or_stale_output(self):
+        revisions = self.converted_metropolis()
+        exact = revisions[self.metropolis_path.name]
+        for row in (None, {}, dict(exact, source_sha256="0" * 64),
+                    dict(exact, output_sha256="0" * 64)):
+            before = [path.read_bytes() for path in (self.map_path, self.metropolis_path, self.bank_path)]
+            with self.subTest(revision=row), self.assertRaisesRegex(FormatError, "source differs"):
+                graphics.apply_selected(self.root, self.pack,
+                    tag_revisions={} if row is None else {self.metropolis_path.name: row})
+            self.assertEqual(before, [path.read_bytes() for path in (self.map_path, self.metropolis_path, self.bank_path)])
+        self.assertFalse((self.pack / "graphics-corrections").exists())
+
+    def test_recorded_tag_conversion_still_requires_every_original_bitmap_mip(self):
+        revisions = self.converted_metropolis()
+        data = bytearray(self.bank_path.read_bytes())
+        data[-1] ^= 1
+        self.bank_path.write_bytes(data)
+        before = [path.read_bytes() for path in (self.map_path, self.metropolis_path, self.bank_path)]
+        with self.assertRaisesRegex(FormatError, "donor mip"):
+            graphics.apply_selected(self.root, self.pack, tag_revisions=revisions)
+        self.assertEqual(before, [path.read_bytes() for path in (self.map_path, self.metropolis_path, self.bank_path)])
+
     def test_second_delta_failure_rejects_after_first_valid_reconstruction_without_writes(self):
         packed = bytearray(self.bundle_path.read_bytes())
         manifest = json.loads(self.bundle_path.with_suffix("").read_bytes())

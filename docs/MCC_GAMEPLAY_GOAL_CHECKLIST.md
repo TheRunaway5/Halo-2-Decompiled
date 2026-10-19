@@ -54,6 +54,48 @@ this frontend priority.
 The user's current sequence is prompt size/placement first, then default Play
 opening the title and menus. Keep the MCC cache and existing shaders selected.
 
+- [x] Reproduce and correct the late fresh-import graphics failure on
+  `03b_newmombasa.map`. The installed MCC source matches the pinned original;
+  the earlier verified instant-charge tag conversion changes its fingerprint.
+  Graphics now accepts only the original or the exact in-memory original/output
+  hash pair produced by that earlier pass. All bitmap descriptor, donor/target
+  mip and delta guards remain intact. The actual MCC reproduction now completes
+  all six corrections/48 mips and preserves the gameplay flag. All 72 focused
+  Python checks pass, including wrong/stale revisions and damaged donor mips;
+  independent review passes. The two changed importer tools are installed in
+  the user's SSD checkout. Actual correction scratch is removed.
+  [Actual MCC correction](../.local/mcc-graphics-import-order-20261019/actual-correction.json),
+  [Independent review](../.local/mcc-graphics-tag-revision-review-20261019/v1/review.json).
+- [x] Complete the actual SSD fresh setup/import with that fix and verify the
+  selected cache/provenance. The actual setup CLI exits zero after 883 copied
+  MCC files, 43 map conversions, both movies/custom prompts and all six graphics
+  corrections/48 mips. The graphics donor hash matches the preceding gameplay
+  conversion output. Setup selects
+  `assets/imported/mcc-8bfe3222bfc94b5ea5577f803f3ea9c5` in the SSD checkout.
+  Its unfinished stage and owned runner scratch are removed. MCC originals,
+  existing native runtime/shaders and unrelated checkouts are preserved.
+  Full gameplay/parity remains a separate goal gate.
+  [Actual fresh SSD import](../.local/mcc-graphics-import-order-20261019/full-import.json).
+- [x] Confirm the actual SSD setup reuses that completed cache after verifying
+  copied source/output hashes, without another copy or cache mutation.
+  The first reuse check found a genuine mismatch in two small ranges of the
+  private `preload/paks/shared.pck`; the installed original still matches its
+  provenance hash. Automatic recopy was cancelled and its owned 11,356,433,551
+  bytes removed. Only the demonstrated 524,288-byte ranges were restored from
+  the original. The complete 13,149,688,019-byte file now passes a full checksum
+  after flush and disk readback. The original and provenance remain unchanged;
+  the second actual setup CLI exits zero and verifies all 883 copied source/
+  output records, movies and custom prompts without copying again. The same
+  selection and all 45,122 cache files retain their sizes/mtimes. No new import
+  stage remains; runner scratch and diagnostic helpers are removed. Retain the
+  user-requested completed cache (36,494,063,454 bytes). The SSD launcher reports
+  the cache prepared but no built game runtime; native installation remains a
+  separate gate. This does not complete mod conversion or full gameplay parity.
+  [Copy diagnostics](../.local/mcc-graphics-import-order-20261019/shared-pack-durability.json),
+  [Exact copy repair](../.local/mcc-graphics-import-order-20261019/shared-pack-repair.json),
+  [Cancelled recopy cleanup](../.local/mcc-graphics-import-order-20261019/canceled-recopy-cleanup.json),
+  [Actual cache reuse](../.local/mcc-graphics-import-order-20261019/reuse.json).
+
 - [x] Measure the menu prompt mismatch against the authenticated custom-art
   source. Actual profile/main/Settings quads use selector 1 controls at 44x50
   logical pixels instead of 32x36. At the existing 0.4 canvas scale they render
@@ -154,6 +196,10 @@ opening the title and menus. Keep the MCC cache and existing shaders selected.
   The actual read-only failure/replacement control and four publication controls
   pass, with independent source review. Actual relocated native/Tk acceptance
   and verified ZIP publication remain open.
+  The later actual V4 attempt reached native/launcher checks but stopped at its
+  development-path dependency guard and published no ZIP. The next package
+  must also include the current tag-revision graphics/importer fix; the frozen
+  V23 tool bank predates it. Preserve the earlier failed receipts.
   [V3 failure closure](../.local/mcc-frontend-custom-prompts-20261019/delivery-v23-preparation-v3/failure-closure.json),
   [V4 controls](../.local/mcc-frontend-custom-prompts-20261019/delivery-v23-preparation-v4/publication-validation.json).
 - [x] Adopt the exact tested runtime after that reviewed source drift. V3

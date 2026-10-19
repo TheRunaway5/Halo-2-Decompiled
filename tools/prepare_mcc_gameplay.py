@@ -231,6 +231,8 @@ def prepare_maps(maps, output, progress):
         maps=[dict(**r, source_sha256=before[r["map"]], output_sha256=file_sha(maps / r["map"])) for r in results])
     write_json(output / "tag-conversion.json", report)
     return dict(maps=len(paths), multiplayer_maps=sum(r["role"] == "multiplayer" for r in results),
+        tag_revisions={r["map"]: dict(source_sha256=r["source_sha256"], output_sha256=r["output_sha256"])
+                       for r in report["maps"]},
         ordered_stores=sum(len(r["stores"]) for r in results), changes=sum(r["changes"] for r in results),
         bitmap_banks=len(banks), bitmap_frames=sum(len(b["frames"]) for b in banks),
         bitmap_partitions=len(resources), decoded_bitmap_bytes=sum(r["decoded_bytes"] for r in resources.values()),
@@ -277,7 +279,7 @@ def prepare(root, mcc_source=None, progress=print):
         shaders = preserve_shaders(root, stage)
         from mcc_graphics_corrections import apply_selected as restore_graphics
         progress("Applying verified graphics corrections…")
-        graphics = restore_graphics(root, stage)
+        graphics = restore_graphics(root, stage, tag_revisions=summary.get("tag_revisions"))
         # Refuse to publish an inconsistent mixed-version snapshot after a Steam
         # update changes the set, size or timestamp of any selected source file.
         now, omitted_now = source_files(source)
