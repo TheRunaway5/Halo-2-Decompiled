@@ -28,7 +28,7 @@ struct Program {
  Program(bool animation=false){
   std::vector<std::uint32_t> commands{call("cinematic_start"),call("camera_control",{literal(1,5)})};
   if(animation)commands.push_back(call("camera_set_animation_relative",{
-      literal(0xe9d90864u,36),literal(0x06001c9eu,11),literal(null_datum,45),literal(2,14)}));
+      literal(0xe9d90864u,36),literal(0x06001c9eu,11),literal(null_datum,50),literal(2,7)}));
   const auto root=call("begin",std::move(commands));p.scripts.push_back({"camera_frame_start",0,4,root});
  }
 };
@@ -88,7 +88,7 @@ void run(const char*xbe,const char*map,bool points,bool native_cold){
  auto&w=source->objects().tu15_world();auto&m=w.memory();
  const auto word=[&](auto at){return Bytes(m.view(at,4)).u32(0);};const auto users=word(0x4f54f0u);
  check(users&&word(users+12u)!=null_datum,"Camera frame has no actual registered native player");
- sim.start_level();sim.step({});check(sim.scripts().diagnostics().empty(),"Real camera-control host fixture faulted");check(sim.presentation().scripted&&sim.presentation().cinematic,"Camera host fixture did not admit source presentation");
+ sim.start_level();sim.step({});for(const auto &d:sim.scripts().diagnostics())std::cerr<<"SCRIPT "<<d<<'\n';check(sim.scripts().diagnostics().empty(),"Real camera-control host fixture faulted");check(sim.presentation().scripted&&sim.presentation().cinematic,"Camera host fixture did not admit source presentation");
  check(legacy_camera_loads==0,"Source camera cut redundantly decoded a second legacy camera clip");
  source_campaign_camera_field_of_view_tu15(w,60,0);
  if(points){source_campaign_camera_point_tu15(w,26,0);}

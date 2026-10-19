@@ -15,6 +15,8 @@ SourceCampaignModel::SourceCampaignModel(const Cache &cache,const ScenarioObject
 SourceCampaignModel::SourceCampaignModel(const Cache &cache,std::uint32_t definition,std::uint32_t variant)
     :definition_(definition),variant_(variant) {
     const auto initial=cache.load_initial_model_definition(definition_);
+    variant_names_.reserve(initial.variants.size());
+    for(const auto &entry:initial.variants)variant_names_.push_back(entry.name);
     render_model_=initial.render_model;
     if(render_model_==null_datum)throw FormatError("Campaign source model has no render-model definition");
     const auto palettes=cache.load_source_model_palette_definition(render_model_);

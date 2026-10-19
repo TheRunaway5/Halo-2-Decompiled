@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <deque>
 #include <iostream>
+#include <limits>
 #include <thread>
 
 using namespace halo2;
@@ -56,6 +57,7 @@ int main(int argc,char **argv)try{
   auto invalid_roster=roster;invalid_roster.back().slot=15;
   rejects([&]{remote.bind_continuity(before,5,invalid_roster);});
   remote.bind_continuity(before,5,roster);rejects([&]{remote.bind_continuity(before,5,roster);});
+  promoted->bind_continuity(before,1,roster);
   for(unsigned i=0;i<4;++i)local[i].yaw=producer.match.unit(i+1).yaw;
   for(unsigned i=0;i<3;++i)other[i].yaw=producer.match.unit(i+5).yaw;
   for(unsigned packet=0;packet<3;++packet){for(auto &c:local){c.grenade=c.melee=true;c.pickup=packet<2;c.pickup_milliseconds=250;}
@@ -72,7 +74,7 @@ int main(int argc,char **argv)try{
   // Save old-host snapshots as stale traffic. They must not publish after the
   // independently accepted host endpoint changes.
   host->broadcast();auto stale=bus->queues[5];bus->queues[5].clear();
-  promoted.reset();host.reset();bus->queues[0].clear();bus->queues[1].clear();
+  host.reset();bus->queues[0].clear();bus->queues[1].clear();
   std::exception_ptr failure;
   {std::jthread executor([&]{try{
     MultiplayerPreparedWorld target(options,std::nullopt,std::make_shared<FixedClock>());target.bind_source_local_views(target.local_slots);
@@ -95,6 +97,30 @@ int main(int argc,char **argv)try{
     rejects([&]{LanHost::resume_after_host_loss(target.match,endpoint,fingerprint,changed,received.host,before,after,admitted);});
     auto migrated=LanHost::resume_after_host_loss(target.match,endpoint,fingerprint,roster,received.host,before,after,admitted);
     check(migrated.host->peers()==1&&migrated.local.slots==std::vector<unsigned>({1,2,3,4}),"Role transition did not transfer the promoted four-seat bank");
+    const auto received_at_cut=migrated.local.received_presses,delivered_at_cut=migrated.local.delivered_presses;
+    promoted->merge_local_input(received.host,before,migrated.local);
+    promoted->merge_local_input(received.host,before,migrated.local);
+    check(migrated.local.received_presses==received_at_cut&&migrated.local.delivered_presses==delivered_at_cut,
+        "Already included local packet duplicated a delivered action");
+    auto wrong_context=before;++wrong_context.epoch;
+    rejects([&]{promoted->merge_local_input(received.host,wrong_context,migrated.local);});
+    rejects([&]{remote.merge_local_input(received.host,before,migrated.local);});
+    auto wrong_slots=migrated.local;wrong_slots.slots.front()=5;
+    rejects([&]{promoted->merge_local_input(received.host,before,wrong_slots);});
+    auto consumed=migrated.local;std::array<Controls,16> premature{};
+    LanHost::receive_local_continuation(consumed,premature);const auto consumed_serials=consumed.delivered_presses;
+    rejects([&]{promoted->merge_local_input(received.host,before,consumed);});
+    check(consumed.delivered_presses==consumed_serials&&migrated.local.received_presses==received_at_cut&&
+        migrated.local.delivered_presses==delivered_at_cut,"Rejected input merge mutated its supplied bank");
+    auto latest=local;for(auto &c:latest){c.grenade=c.melee=c.pickup=false;c.pickup_milliseconds=0;}
+    auto invalid_input=latest;invalid_input.front().forward=std::numeric_limits<float>::quiet_NaN();
+    promoted->send(invalid_input);
+    rejects([&]{promoted->merge_local_input(received.host,before,migrated.local);});
+    check(migrated.local.received_presses==received_at_cut&&migrated.local.delivered_presses==delivered_at_cut,
+        "Malformed owning input changed native delivery serials");
+    promoted->send(latest);promoted->merge_local_input(received.host,before,migrated.local);
+    check(migrated.local.received_presses==received_at_cut&&migrated.local.delivered_presses==delivered_at_cut,
+        "Valid recovery packet repeated earlier pulses");
     check(encode_source_authority(imported.checkpoint(old_binding))==rebound,"Host role transition mutated native simulation or local view state");
     check(migrated.local.camera.has_value(),"Promoted couch camera owner was lost");
     NativeVehicleCamera camera(*target.source_objects,*target.content.original_data);
@@ -123,6 +149,7 @@ int main(int argc,char **argv)try{
   }catch(...){failure=std::current_exception();}});}
   if(failure)std::rethrow_exception(failure);
   std::cout<<"PASS native host-loss role rebind: eight admitted players, four promoted local seats, three surviving client seats, preserved input pulses/cookies/snapshots/cameras, old endpoint rejection, rollback to accepted cut, native departure/results and twelve subsequent connected ticks\n";
+  std::cout<<"PASS promoted input rejects foreign owners, wrong contexts/slots, premature consumption and malformed owning packets; repeated included packets preserve delivery serials\n";
   std::cout<<"LIMIT sequential logical transport and explicitly supplied generation decision; no election, live DTLS epoch fence, runtime controller/headset or automatic migration acceptance\n";
   return 0;
 }catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

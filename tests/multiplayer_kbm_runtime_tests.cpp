@@ -130,6 +130,22 @@ int main(int argc, char **argv) {
       }
     };
     const int result = run_multiplayer(options);
+    if (const auto *path = std::getenv("HALO2_KBM_TRACE")) {
+      std::ofstream trace(path);
+      check(bool(trace), "Could not save real input observation");
+      trace << "step forward right yaw pitch jump crouch fire reload x y z vx vy vz player_crouch loaded reserve reload_seconds\n";
+      trace << std::setprecision(9);
+      for (unsigned step = 0; step < samples.size(); ++step) {
+        const auto &c = samples[step].controls;
+        const auto &p = samples[step].player;
+        trace << step << ' ' << c.forward << ' ' << c.right << ' ' << c.yaw << ' ' << c.pitch
+              << ' ' << c.jump << ' ' << c.crouch << ' ' << c.fire << ' ' << c.reload
+              << ' ' << p.position.x << ' ' << p.position.y << ' ' << p.position.z
+              << ' ' << p.velocity.x << ' ' << p.velocity.y << ' ' << p.velocity.z
+              << ' ' << p.crouch << ' ' << p.loaded << ' ' << p.reserve << ' ' << p.reload_seconds << '\n';
+      }
+      check(bool(trace), "Real input observation write failed");
+    }
     check(result == 0 && samples.size() >= 154, "Rendered runtime stopped before input verification");
     const auto sample = [&](unsigned tick) -> const Sample & { return samples.at(tick); };
     check(sample(2).controls.forward == 1 && sample(7).controls.forward == -1 &&
@@ -151,13 +167,25 @@ int main(int argc, char **argv) {
     for (unsigned tick = 56; tick < 61; ++tick)
       check(!sample(tick).controls.reload, "F still triggers live reload");
     unsigned reload_taps{};
-    bool reloading{}, reloaded{};
+    bool reloaded{};
+    const auto &before_reload=sample(60).player;
     for (unsigned tick = 61; tick <= 113; ++tick) {
       reload_taps += sample(tick).controls.reload;
-      reloading |= sample(tick).player.reload_seconds > 0;
-      reloaded |= sample(tick).player.loaded > sample(60).player.loaded;
+      const auto &player=sample(tick).player;
+      // Native equipment supplies the actual magazine/reserve bank. The
+      // separate C++ presentation timer is not a native reload acknowledgement.
+      check(player.weapon==before_reload.weapon&&
+          player.loaded+player.reserve==before_reload.loaded+before_reload.reserve,
+          "Reload changed the weapon or created/lost ammunition");
+      if(player.loaded>before_reload.loaded){
+        check(before_reload.reserve-player.reserve==player.loaded-before_reload.loaded,
+            "Reload did not transfer the exact reserve ammunition");
+        reloaded=true;
+      }
     }
-    check(reload_taps == 1 && reloading && reloaded, "Short R tap did not perform actual reload");
+    const auto reload_diagnostic=std::string("Short R tap did not perform actual reload: presses=")+std::to_string(reload_taps)+
+        " magazine_increased="+std::to_string(reloaded);
+    check(reload_taps == 1 && reloaded, reload_diagnostic.c_str());
     for (unsigned tick = 119; tick <= 121; ++tick)
       check(!sample(tick).controls.forward && !sample(tick).controls.fire && !sample(tick).controls.reload,
           "Focus loss/gain restored stale movement or shooting");
@@ -173,22 +201,6 @@ int main(int argc, char **argv) {
     for (unsigned tick = 148; tick < 154; ++tick)
       check(!sample(tick).controls.forward && !sample(tick).controls.fire,
             "Released input or reopened F1 leaked gameplay input");
-    if (const auto *path = std::getenv("HALO2_KBM_TRACE")) {
-      std::ofstream trace(path);
-      check(bool(trace), "Could not save real input observation");
-      trace << "step forward right yaw pitch jump crouch fire reload x y z vx vy vz player_crouch loaded reserve reload_seconds\n";
-      trace << std::setprecision(9);
-      for (unsigned step = 0; step < samples.size(); ++step) {
-        const auto &c = samples[step].controls;
-        const auto &p = samples[step].player;
-        trace << step << ' ' << c.forward << ' ' << c.right << ' ' << c.yaw << ' ' << c.pitch
-              << ' ' << c.jump << ' ' << c.crouch << ' ' << c.fire << ' ' << c.reload
-              << ' ' << p.position.x << ' ' << p.position.y << ' ' << p.position.z
-              << ' ' << p.velocity.x << ' ' << p.velocity.y << ' ' << p.velocity.z
-              << ' ' << p.crouch << ' ' << p.loaded << ' ' << p.reserve << ' ' << p.reload_seconds << '\n';
-      }
-      check(bool(trace), "Real input observation write failed");
-    }
     SDL_GameControllerClose(controller); SDL_JoystickClose(joystick);
     check(SDL_JoystickDetachVirtual(device) == 0, "Virtual controller did not detach");
     std::cout << "PASS: actual rendered multiplayer, 154+ observed simulation ticks, idle attached controller, "

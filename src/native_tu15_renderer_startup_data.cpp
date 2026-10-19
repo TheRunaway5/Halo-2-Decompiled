@@ -5,7 +5,7 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
     // Check all exact owners before publishing any destination. In particular,
     // a foreign current-context word must not leave either old bank mounted.
     for(const auto& r:m.checkpoint().regions)
-        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,102>{{
+        for(const auto [address,bytes]:std::array<std::pair<std::uint32_t,std::uint32_t>,110>{{
                 {0x51df44u,4u},{0x556e18u,0x55c0u},{0x4cd3a0u,4u},{0x492348u,0x1cu},
                 {0x4ce3f4u,4u},{0x4922a0u,4u},{0x474c04u,1u},{0x44a7ccu,72u},{0x1404f8u,20u},{0x474c94u,4u},
                 {0x474c8cu,4u},{0x44ab6cu,12u},{0x44ab4cu,12u},
@@ -14,7 +14,7 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
                 {0x46a1c8u,4u},{0x46a1c4u,4u},{0x46a798u,4u},{0x4c6958u,850u*32u},{0x4cd3a4u,850u},
                 {0x4cd6f6u,850u},{0x4cda48u,192u*4u},{0x4cdd4cu,32u*36u},{0x4cd398u,4u},{0x4cd39cu,4u},
                 {0x4cdd48u,4u},{0x4ce1ccu,4u},{0x41c4e8u,4u},{0x2e6dfcu,92u},{0x2e6e58u,108u},
-                {0x30987cu,80u},{0x3098ccu,108u},{0x309538u,88u},{0x309590u,108u},{0x515f18u,4u},{0x5332c8u,4u*0x484u},{0x474d0cu,4u},{0x474d14u,4u},{0x44ac5cu,12u},{0x46a45cu,4u},{0x46a4c0u,4u},{0x48c530u,0x88u},{0x48c5b8u,0xe4u},{0x4920dcu,1u},{0x4c6838u,1u},{0x4c6834u,4u},{0x4d1828u,4u},{0x492250u,4u},{0x4920e4u,4u},{0x4ecbd4u,1u},{0x46a218u,4u},{0x46a638u,4u},{0x449ea4u,4u},{0x46a26cu,4u},{0x46a498u,4u},{0x46a8dcu,4u},{0x2e78d8u,92u},{0x2e7934u,108u},{0x15e74u,24u},{0x15e8cu,11u},{0x46a6e4u,4u},{0x46a6e0u,4u},{0x44a8a0u,4u},{0x46aa30u,4u},{0x4d044u,20u},{0x4d058u,17u},{0x4d06cu,20u},{0x4d080u,20u},{0x1cb40u,16u},{0x4739c4u,1u},{0x492398u,20u},{0x46a104u,4u},{0x492295u,1u},{0x44a498u,4u},{0x5564c4u,8u},{0xf0d28u,31u},{0x16957bu,164u},{0xcc30cu,64u},{0x46a4bcu,4u},{0x46a4c8u,8u},{0xe9ba8u,12u},{0xe9bb6u,60u},{0xe9bf4u,72u},{0xe9c3eu,60u},{0x478ea8u,1024u},{0x48c7a4u,2u},{0x48c7a6u,1u},{0x48c7a7u,1u},{0x19b9f8u,164u}}})
+                {0x30987cu,80u},{0x3098ccu,108u},{0x309538u,88u},{0x309590u,108u},{0x515f18u,4u},{0x5332c8u,4u*0x484u},{0x474d0cu,4u},{0x474d14u,4u},{0x44ac5cu,12u},{0x46a45cu,4u},{0x46a4c0u,4u},{0x48c530u,0x88u},{0x48c5b8u,0xe4u},{0x4920dcu,1u},{0x4c6838u,1u},{0x4c6834u,4u},{0x4d1828u,4u},{0x492250u,4u},{0x4920e4u,4u},{0x4ecbd4u,1u},{0x46a218u,4u},{0x46a638u,4u},{0x449ea4u,4u},{0x46a26cu,4u},{0x46a498u,4u},{0x46a8dcu,4u},{0x2e78d8u,92u},{0x2e7934u,108u},{0x15e74u,24u},{0x15e8cu,11u},{0x46a6e4u,4u},{0x46a6e0u,4u},{0x44a8a0u,4u},{0x46aa30u,4u},{0x4d044u,20u},{0x4d058u,17u},{0x4d06cu,20u},{0x4d080u,20u},{0x1cb40u,16u},{0x4739c4u,1u},{0x492398u,20u},{0x46a104u,4u},{0x492295u,1u},{0x44a498u,4u},{0x5564c4u,8u},{0xf0d28u,31u},{0x16957bu,164u},{0xcc30cu,64u},{0x46a4bcu,4u},{0x46a4c8u,8u},{0xe9ba8u,12u},{0xe9bb6u,60u},{0xe9bf4u,72u},{0xe9c3eu,60u},{0x478ea8u,1024u},{0x48c7a4u,2u},{0x48c7a6u,1u},{0x48c7a7u,1u},{0x19b9f8u,164u},{0x41c4ccu,4u},{0x100d04u,28u},{0x100d20u,28u},{0x46a7d4u,4u},{0x18aefcu,32u},{0x2c2b30u,16u},{0x56e0e8u,4u},{0x46a784u,4u}}})
             if(std::uint64_t(r.address)<std::uint64_t(address)+bytes&&
                std::uint64_t(r.address)+r.bytes.size()>address)
                 throw std::invalid_argument("Renderer constructor data conflicts with its exact owner");
@@ -498,5 +498,53 @@ void mount_native_tu15_renderer_startup_data(SourceRuntimeMemory& m) {
         0x19b9c2u,0x19b9c8u,0x19b9ceu,0x19b9d4u,0x19b9dau,0x19b9e0u,0x19b9e6u,0x19b9ecu,
         0x19b9f2u}),SourceRuntimeMemory::Access::ReadOnly,
         "native TU1.5 authored19B8F0 bounded forty-one branch targets");
+    // Actual FFF44 subtracts this authored half-pi word after the existing
+    // native11F7E0 vector-angle producer. Reuse the exact by-value operand
+    // already used by the development projectile impact calculation.
+    m.mount(0x41c4ccu,encode(std::array<std::uint32_t,1>{0x3fc90fdbu}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authoredFFF44 projectile impact half-pi operand");
+    // Both complete FFA60 switch prefixes sign-extend the selected short,
+    // then unsigned-compare six before reading one of these seven targets.
+    // Publish only the authored target words; target code remains native.
+    m.mount(0x100d04u,encode(std::array<std::uint32_t,7>{
+        0x100118u,0x100129u,0x100130u,0x100137u,0x10013eu,0x100145u,0x100145u}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored100105 bounded projectile response targets");
+    m.mount(0x100d20u,encode(std::array<std::uint32_t,7>{
+        0x100c6cu,0x100c36u,0x100cf6u,0x100c9eu,0x100cf6u,0x100cf6u,0x100c36u}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored100C2F bounded projectile finalization targets");
+    // Mode one in10070C..100756 uses the exact authored multiplier already
+    // retained by the development projectile effect-scale calculation.
+    // Other modes and the native comparison/clamp instructions are unchanged.
+    m.mount(0x46a7d4u,encode(std::array<std::uint32_t,1>{0x3f22f983u}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored100722 projectile effect-scale multiplier");
+    // Complete18AE80 subtracts thirteen and unsigned-bounds seven before
+    // selecting one of these eight authored fallback targets. Keep target
+    // code native and exclude the preceding padding byte and following code.
+    m.mount(0x18aefcu,encode(std::array<std::uint32_t,8>{
+        0x18aee5u,0x18aeeau,0x18aeeau,0x18aed0u,
+        0x18aed0u,0x18aeeau,0x18aed7u,0x18aedeu}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored18AEC9 bounded category fallback targets");
+    // The complete2C2AD0 owner zero-extends its type word and unsigned-bounds
+    // three before dispatch. Preserve its real post-table continuation and
+    // native child calls; mount only the four authored target words.
+    m.mount(0x2c2b30u,encode(std::array<std::uint32_t,4>{
+        0x2c2adfu,0x2c2af4u,0x2c2b09u,0x2c2b1fu}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored2C2AD8 bounded particle motion targets");
+    // Persistent cold memory effect of the complete17-byte CRT3829C0:
+    // source46A1B8 is exactly3E2AAAAB, also used by the development collider.
+    // Materialize that field once; later writes and restored values stay mutable.
+    m.mount(0x56e0e8u,encode(std::array<std::uint32_t,1>{0x3e2aaaabu}),
+        SourceRuntimeMemory::Access::ReadWrite,
+        "native TU1.5 CRT3829C0 mutable particle collision fraction");
+    // The unchanged collision response already uses this exact .005f word.
+    m.mount(0x46a784u,encode(std::array<std::uint32_t,1>{0x3ba3d70au}),
+        SourceRuntimeMemory::Access::ReadOnly,
+        "native TU1.5 authored2C318D particle collision position offset");
 }
 }

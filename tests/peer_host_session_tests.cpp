@@ -15,6 +15,8 @@ using namespace std::chrono_literals;
 using Json=nlohmann::json;
 namespace {
 std::string stage="setup";
+struct CommitProbe {unsigned calls{};bool accept{};};
+bool commit_probe(void *opaque)noexcept{auto &probe=*static_cast<CommitProbe *>(opaque);++probe.calls;return probe.accept;}
 void check(bool ok,const char *why){if(!ok)throw std::runtime_error(why);}
 template<class F>void wait(F ready,const char *stage){const auto end=std::chrono::steady_clock::now()+25s;
     while(!ready()){check(std::chrono::steady_clock::now()<end,stage);std::this_thread::sleep_for(2ms);}}
@@ -77,9 +79,9 @@ int main(int argc,char **argv)try{
         std::array<std::optional<ValidatedAuthorityCut>,16> ready_cuts;
         for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=host&&(automatic||p==candidate)){
             ready_cuts[p]=ValidatedAuthorityCut{p,before,{7+round*16+p,100+round,8192,{std::byte(0x51+round+p)}}};
-            check(sessions[p]->prepare_peer_migration(*ready_cuts[p]),"Retained paired-cut fixture refused");
+            if(!automatic)check(sessions[p]->prepare_peer_migration(*ready_cuts[p]),"Retained paired-cut fixture refused");
         }
-        wait([&]{healthy();for(auto &s:sessions)if(s){const auto state=s->peer_migration();
+        if(!automatic)wait([&]{healthy();for(auto &s:sessions)if(s){const auto state=s->peer_migration();
             for(unsigned p=0;p<16;++p)if(ready_cuts[p]&&(!state||!state->ready[p]))return false;}return true;},"Ready cuts did not reach admitted peers");
         wait([&]{
             for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=host)sessions[host]->send(game(host,true),p);
@@ -100,31 +102,40 @@ int main(int argc,char **argv)try{
             // has expired. Full old membership must now be ineligible.
             std::this_thread::sleep_for(5100ms);
             check(sessions[proposer]->host_candidates().empty(),"Departed predecessor retained full-membership eligibility");
-            wait([&]{healthy();return bool(sessions[proposer]->migration_candidate());},"Fresh measured survivors did not qualify");
-            candidate=*sessions[proposer]->migration_candidate();
-            check(candidate!=host&&ready_cuts[candidate].has_value(),"Automatic preference selected an unready or departed PC");
+            for(auto &s:sessions)if(s)check(!s->peer_migration()->decision,"Automatic election invented native readiness");
+            // Readiness is withheld until the predecessor's measurements have
+            // expired. Session workers must now initiate and retry themselves.
+            for(unsigned p=0;p<16;++p)if(ready_cuts[p])
+                check(sessions[p]->prepare_peer_migration(*ready_cuts[p]),"Late retained paired-cut fixture refused");
         }
-        const auto retained=*ready_cuts[candidate];
         stage="peer election "+std::to_string(round+1);
-        check(automatic?sessions[proposer]->propose_peer_migration():sessions[candidate]->propose_peer_migration(candidate),"Survivor could not start agreement");
         wait([&]{healthy();for(auto &s:sessions)if(s){const auto state=s->peer_migration();if(!state||!state->decision)return false;}return true;},"Direct session majority timeout");
+        candidate=sessions[proposer]->peer_migration()->decision->value.host;
+        check(candidate<16&&candidate!=host&&ready_cuts[candidate],"Automatic election selected an unready or departed PC");
+        const auto retained=*ready_cuts[candidate];
         std::array<std::optional<PeerMigrationDecision>,16> decisions;
         for(unsigned p=0;p<16;++p)if(auto &s=sessions[p]){
             decisions[p]=s->peer_migration()->decision;const auto &d=*decisions[p];
             check(d.previous==before&&d.value.host==candidate&&d.value.cut==retained.seal&&d.next.epoch==before.epoch+1&&
                 d.next.peers==std::uint16_t(before.peers&~(1u<<host)),"Session decided another cut, generation or physical membership");
             check(s->phase()==(p==candidate?OnlineMatchSession::Phase::Migrating:OnlineMatchSession::Phase::Rebinding),"Media reopened before native role completion");
-            auto forged=d;++forged.next.epoch;check(!s->finish_peer_migration(forged),"Caller-invented certificate opened media");
+            auto forged=d;++forged.next.epoch;CommitProbe untrusted;
+            check(!s->finish_peer_migration(forged,commit_probe,&untrusted)&&!untrusted.calls,"Caller-invented certificate reached a native commit");
             std::vector<std::byte> bytes;unsigned from{};check(!s->receive(bytes,from)&&s->voice_packets().empty(),"Queued predecessor gameplay/voice survived its fence");}
-        stage="native completion barrier "+std::to_string(round+1);const auto successor=*decisions[candidate];
+        stage="native completion barrier "+std::to_string(round+1);const auto successor=*decisions[candidate];CommitProbe native;
         if(decoded_audio){
-            check(!sessions[candidate]->finish_peer_migration(successor),"Native role opened media while old device playback was in flight");
+            check(!sessions[candidate]->finish_peer_migration(successor,commit_probe,&native)&&!native.calls,"Native commit ran while old device playback was in flight");
             check(sessions[candidate]->phase()==OnlineMatchSession::Phase::Migrating,"Pending device retirement lost the native barrier");
             devices[candidate]->unblock_playback();
-            wait([&]{return sessions[candidate]->finish_peer_migration(successor);},"Candidate audio retirement did not acknowledge");
+            wait([&]{(void)sessions[candidate]->finish_peer_migration(successor,commit_probe,&native);return native.calls==1;},"Candidate audio retirement did not reach native commit");
             check(!devices[candidate]->snapshot().queued_audible&&!audio[candidate]->snapshot().talking[old_received[candidate]->source],
                 "New native generation retained old PCM or talker state");
-        }else check(sessions[candidate]->finish_peer_migration(successor),"Exact learned candidate decision could not commit");
+        }else check(!sessions[candidate]->finish_peer_migration(successor,commit_probe,&native)&&native.calls==1,"Failed native commit was ignored");
+        check(sessions[candidate]->phase()==OnlineMatchSession::Phase::Migrating&&sessions[candidate]->authority_context()==before,
+            "Failed native commit published a transport generation");
+        native.accept=true;
+        check(sessions[candidate]->finish_peer_migration(successor,commit_probe,&native)&&native.calls==2,"Exact native commit did not precede publication");
+        check(!sessions[candidate]->finish_peer_migration(successor,commit_probe,&native)&&native.calls==2,"Native commit ran twice for an old certificate");
         for(unsigned p=0;p<16;++p)if(sessions[p]&&p!=candidate){sessions[candidate]->send(game(candidate,true),p);
             if(!decoded_audio)sessions[candidate]->voice(p,GameVoiceFrame{candidate,++sequences[candidate],false,{1,1},{0x60}});}
         std::this_thread::sleep_for(100ms);
@@ -168,8 +179,7 @@ int main(int argc,char **argv)try{
         const ValidatedAuthorityCut cut{survivor,before,{73,123,8192,{std::byte{0x79}}}};
         check(sessions[survivor]->prepare_peer_migration(cut),"Sole survivor's retained cut refused");
         sessions[host].reset();
-        wait([&]{healthy();return sessions[survivor]->migration_candidate()==survivor;},"Sole survivor incorrectly required an inter-PC speed measurement");
-        check(sessions[survivor]->propose_peer_migration(),"Sole survivor could not propose its actual retained cut");
+        wait([&]{healthy();return bool(sessions[survivor]->peer_migration()->decision);},"Sole survivor did not automatically elect without invented speed measurements");
         const auto state=sessions[survivor]->peer_migration();
         check(state->decision&&state->decision->voters==(1u<<survivor)&&state->decision->value.cut==cut.seal,
             "Sole survivor changed the fixed physical quorum or cut");
@@ -179,11 +189,13 @@ int main(int argc,char **argv)try{
         history.push_back({{"host",host},{"epoch",next.epoch},{"physical_members",next.peers},{"seats",4}});
     }
     Json result{{"handoffs",history},{"native_cut_and_role_completion","declared fixture"},{"game_counts",games},{"voice_packet_counts",voices},
-        {"master_gameplay_relay",false},{"audible_devices",false},{"decoded_synthetic_audio",decoded_audio},{"automatic_measured_host_choice",automatic},{"automatic_rendered_runtime",false}};
+        {"master_gameplay_relay",false},{"audible_devices",false},{"decoded_synthetic_audio",decoded_audio},{"automatic_measured_host_choice",automatic},{"automatic_peer_proposals",true},{"native_commit_callback_guard",true},{"automatic_rendered_runtime",false}};
     {std::ofstream out(std::filesystem::path(argv[2]).parent_path()/"result.json");out<<result.dump(2);}
     std::cout<<"PASS four actual native session workers: two host socket/signaling losses, direct majority decisions, native-completion barriers, preserved 16 original allocation identities, 16/12/8 couch seats and resumed gameplay/encoded voice packets\n";
     if(decoded_audio)std::cout<<"PASS real Opus/PCM through queued synthetic devices: in-flight playback holds native completion, retired old audio queues, late microphone/received-batch rejection, preserved voice preferences, resumed decoded stereo and retained device ownership across both host losses\n";
     if(automatic)std::cout<<"PASS automatic ready-PC preference from reciprocal survivor measurements after predecessor telemetry expires across two host losses, then a sole physical survivor without invented speed/NAT metrics\n";
+    std::cout<<"PASS session-worker election initiation and paced retries without any positive caller proposal\n";
+    std::cout<<"PASS native commit admission/audio guards, refusal without epoch publication, one successful commit before publication and no repeated old-certificate commit\n";
     std::cout<<"LIMIT declared native cuts/role completion, fixture account verification, no rendered simulation, audible headset or WAN proof\n";
     return 0;
 }catch(const std::exception &e){std::cerr<<stage<<": "<<e.what()<<'\n';return 1;}

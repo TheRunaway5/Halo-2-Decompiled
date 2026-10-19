@@ -20,17 +20,22 @@ public:
     SourcePeerHostTakeover &operator=(const SourcePeerHostTakeover &)=delete;
     // Import an owning value exported by a now-quiescent replay executor.
     // Independent current session admissions, views and the local learned
-    // decision are checked before importing into this thread's private pair.
+    // decision are checked before importing into one private source world.
+    // Import first uses the producer's admitted views, then rebinds the actual
+    // recipient views before the private owner can be staged or published.
     // No executor, borrowed native pointer or hardware crosses this boundary.
     static std::unique_ptr<SourcePeerHostTakeover> prepare(const MultiplayerOptions &,
         const SourceAuthorityRetainedWorld &,const PeerMigrationDecision &,
-        std::shared_ptr<PhysicsLiveClockSource> candidate_clock={},
-        std::shared_ptr<PhysicsLiveClockSource> workspace_clock={});
+        std::shared_ptr<PhysicsLiveClockSource> candidate_clock={});
     const PeerMigrationDecision &decision()const;
     MultiplayerPreparedWorld &world();
     // Sending/receiving the native host is available only after activation.
     LanHost &host();
     LanHost::LocalContinuation &local();
+    // Refresh only the local pending input from the still-admitted old client.
+    // The sealed host bank authenticates its cookies, profiles and counters.
+    // Native world/camera state and already-delivered serials stay unchanged.
+    void refresh_local_input(const LanClient &);
     NativeVehicleCamera &camera();
     // Rechecks the still-current local decision and independent admissions.
     // False leaves the native owner private and session traffic fenced. A
@@ -38,7 +43,10 @@ public:
     // Retained voice may still be retiring old codec/device queues. Retry with
     // the same unmodified owner while its local decision remains current;
     // retirement performs no device I/O on this executor.
-    bool activate();
+    // Optional allocation-free native adoption runs before transport epoch
+    // publication, on this executor. It must not call the session; false must
+    // leave ownership unchanged. Old native owners retire after this returns.
+    bool activate(OnlineMatchSession::NativeCommit native_adopt=nullptr,void *owner=nullptr);
 private:
     friend class SourceAuthorityReceiver;
     SourcePeerHostTakeover(std::shared_ptr<OnlineMatchSession>,PeerMigrationDecision,
@@ -51,6 +59,7 @@ private:
     std::unique_ptr<MultiplayerPreparedWorld> world_;
     std::unique_ptr<LanHost> host_;
     LanHost::LocalContinuation local_;
+    LanHost::Continuation input_cut_;
     std::unique_ptr<NativeVehicleCamera> camera_;
     SourceMatchAuthority::ExecutionBoundary prepared_;
     bool active_{};

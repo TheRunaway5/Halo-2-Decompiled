@@ -52,6 +52,12 @@ public:
     // The caller chooses among ready candidates using measured survivor QoS.
     // A retry must carry the highest prior accepted value learned from promises.
     bool propose(unsigned candidate,std::uint64_t now_ms);
+    // Foreground-independent session pump. Starts/retries a proposal using the
+    // caller's measured, ready candidate; frequent calls do not reset an
+    // in-flight ballot. Fixed-electorate ordering staggers competing proposers,
+    // while new promises/votes defer retries. Duplicate traffic cannot keep a
+    // failed proposer alive. The 500ms suspicion threshold is unchanged.
+    bool drive(unsigned candidate,std::uint64_t now_ms);
     std::vector<AuthorityTransferPacket> poll(std::uint64_t now_ms,unsigned budget=4);
     bool receive(unsigned authenticated_peer,std::span<const std::byte>,std::uint64_t now_ms);
     PeerHostAgreementState state(std::uint64_t now_ms)const;

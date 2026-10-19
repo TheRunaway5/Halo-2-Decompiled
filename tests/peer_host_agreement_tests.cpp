@@ -24,8 +24,8 @@ struct Mesh {
     std::function<bool(const Packet &)> allowed=[](auto &){return true;};
     explicit Mesh(std::uint16_t mask=0x1111,unsigned host=0):ctx(context(mask)){ctx.host=host;for(unsigned p=0;p<16;++p)if(mask&(1u<<p))peers[p]=std::make_unique<PeerHostAgreement>(p,ctx,0);}
     void ready(unsigned p){check(peers[p]->publish_ready(cut(p,ctx)),"Complete native-ready fixture admission failed");}
-    void step(bool lossy=false){++now;
-        for(unsigned p=0;p<16;++p)if(peers[p])for(auto &out:peers[p]->poll(now,128)){
+    void step(bool lossy=false,unsigned budget=128){++now;
+        for(unsigned p=0;p<16;++p)if(peers[p])for(auto &out:peers[p]->poll(now,budget)){
             check(out.bytes.size()<=134,"Agreement packet exceeds its bounded datagram extent");
             Packet packet{p,out.peer,std::move(out.bytes)};if(!allowed(packet))continue;
             // Bound loss per route/type. A global every-fifth pattern alone
@@ -151,15 +151,59 @@ void schedules(){
     }
     std::cout<<"PASS 64 competing-proposer schedules with lost, duplicated/reordered traffic and stable-proposer recovery\n";
 }
+void automatic_schedule(){
+    PeerHostAgreement threshold_peer(4,context(),1000);
+    check(threshold_peer.publish_ready(cut(4,context())),"Automatic threshold fixture refused");
+    check(!threshold_peer.drive(4,1500)&&threshold_peer.drive(4,1501),"Automatic driver changed the strict 500ms threshold");
+    for(unsigned now=1502;now<2000;++now)check(!threshold_peer.drive(4,now),"Frequent service restarted an in-flight proposal");
+    threshold_peer.observe_host(2000);check(!threshold_peer.drive(4,2500),"Automatic driver ignored renewed host traffic");
+    check(threshold_peer.drive(4,2501),"Automatic driver did not recover after a temporary suspicion");
+    Mesh paced;paced.ready(8);paced.pump();const auto began=paced.now;std::array<unsigned,16> starts{};
+    paced.allowed=[&](const auto &p){return p.bytes[8]!=std::byte{4}||p.to!=4||paced.now-began>=400;};
+    for(unsigned i=0;i<800;++i){for(auto p:{4u,8u,12u})starts[p]+=paced.peers[p]->drive(8,paced.now);paced.step(true);}
+    paced.same(8);check(starts[4]==1&&starts[8]==0&&starts[12]==0,"Duplicate traffic or frequent polling restarted delayed phase1");
+    // A vanished coordinator's repeated old prepare must not postpone a
+    // successor forever. Its accepted value still has to win phase1.
+    Mesh interrupted;interrupted.ready(8);interrupted.ready(12);interrupted.pump();std::vector<Mesh::Packet> prepares;
+    interrupted.allowed=[&](const auto &p){if(p.from==4&&p.bytes[8]==std::byte{3})prepares.push_back(p);return p.bytes[8]!=std::byte{6};};
+    check(interrupted.peers[4]->drive(8,interrupted.now),"Automatic initial coordinator refused");interrupted.pump(300);
+    check(!prepares.empty(),"Automatic prepare fixture missing");
+    interrupted.peers[4].reset();interrupted.allowed=[](const auto &p){return p.from!=4&&p.to!=4;};
+    for(unsigned i=0;i<2500;++i){
+        for(const auto &p:prepares)if(interrupted.peers[p.to])interrupted.peers[p.to]->receive(p.from,p.bytes,interrupted.now);
+        for(auto p:{8u,12u})interrupted.peers[p]->drive(12,interrupted.now);
+        interrupted.step(true);
+    }
+    interrupted.same(8);
+    Mesh healthy;healthy.ready(8);healthy.pump();
+    for(unsigned i=0;i<2500;++i){for(auto p:{8u,12u})healthy.peers[p]->observe_host(healthy.now);
+        for(auto p:{4u,8u,12u})healthy.peers[p]->drive(8,healthy.now);healthy.step(true);}
+    for(auto &p:healthy.peers)if(p)check(!p->state(healthy.now).fenced&&!p->state(healthy.now).decision,"Automatic minority suspicion replaced a healthy host");
+    for(unsigned i=0;i<2500;++i){for(auto p:{4u,8u,12u})healthy.peers[p]->drive(8,healthy.now);healthy.step(true);}
+    healthy.same(8);
+    Mesh full(0xffff);full.ready(15);full.pump(1000);
+    for(unsigned i=0;i<4000;++i){for(unsigned p=1;p<16;++p)full.peers[p]->drive(15,full.now);full.step(true,4);}
+    full.same(15);
+    for(unsigned seed=0;seed<64;++seed){Mesh competing;std::mt19937 random(seed);for(auto p:{4u,8u,12u})competing.ready(p);competing.pump();
+        std::optional<PeerMigrationValue> chosen;
+        for(unsigned i=0;i<2500;++i){for(auto p:{4u,8u,12u})competing.peers[p]->drive(4*(1+random()%3),competing.now);
+            competing.step(true,4);for(auto &p:competing.peers)if(p)if(auto d=p->state(competing.now).decision){
+                if(chosen)check(*chosen==d->value,"Automatic competing drivers chose conflicting worlds");chosen=d->value;}}
+        check(chosen.has_value(),"Automatic drivers needed a manual stable proposer");competing.same(chosen->host);
+    }
+    std::cout<<"PASS automatic paced proposals, delayed promises, failed-proposer retry with duplicate prepares, prior accepted cut preservation and healthy-majority veto\n";
+    std::cout<<"PASS sixteen physical peers and 64 varying-preference schedules converge with bounded four-packet polls and no manual proposer\n";
+}
 void concurrent(){Mesh m;m.ready(4);m.pump();std::exception_ptr error;std::mutex mutex;
     const auto run=[&](auto work){try{for(unsigned i=0;i<10000;++i)work(i);}catch(...){std::lock_guard lock(mutex);error=std::current_exception();}};
     {std::jthread a([&]{run([&](unsigned i){m.peers[4]->observe_host(i);});});
      std::jthread b([&]{run([&](unsigned i){(void)m.peers[4]->state(i);});});
      std::jthread c([&]{run([&](unsigned i){(void)m.peers[4]->poll(i,4);});});
+     std::jthread driver([&]{run([&](unsigned i){(void)m.peers[4]->drive(4,i);});});
      std::jthread d([&]{run([&](unsigned i){m.peers[4]->receive(15,std::array<std::byte,7>{std::byte{0x48},std::byte{0x32},std::byte{0x4e},std::byte{0x32},std::byte{},std::byte{},std::byte{10}},i);});});}
     if(error)std::rethrow_exception(error);
     std::cout<<"PASS concurrent host observation, snapshots, bounded polling and untrusted receive\n";
 }
 }
-int main()try{threshold();ordinary();partitions();healthy_majority();prior_value();malformed();parser_corpus();duplicates();schedules();concurrent();return 0;}
+int main()try{threshold();ordinary();partitions();healthy_majority();prior_value();malformed();parser_corpus();duplicates();schedules();automatic_schedule();concurrent();return 0;}
 catch(const std::exception &e){std::cerr<<e.what()<<'\n';return 1;}

@@ -19,7 +19,17 @@ from original_xbox_pose_case import BASE, ROOT, sha
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--owner', choices=('gain', 'random-scalar', 'properties', 'random-short'), required=True)
+    specs = {
+        'gain': ('smg-original-sound-range-entry-v1',97,94,3,353,353,'sound_gain',False,None),
+        'random-scalar': ('smg-original-sound-secondary-entry-v1',35,33,2,33,32,'sound_random_scalar',False,0x127daa),
+        'properties': ('smg-original-sound-properties-entry-v1',61,61,0,189,188,'sound_properties',True,None),
+        'random-short': ('smg-original-sound-127e00-entry-v1',34,34,0,34,33,'sound_random_short',False,0x127e4b),
+        'range-selection': ('smg-original-sound-21f960-entry-v1',68,68,0,106,106,'sound_range_selection',False,None),
+        'permutation': ('smg-original-sound-21fa80-entry-v1',67,61,6,367,366,'sound_permutation',True,0x21fc5a),
+        'binding': ('smg-original-sound-12b1c0-entry-v1',22,22,0,54,54,'sound_binding',True,None),
+        'chunk-readiness': ('smg-original-sound-128970-entry-v1',114,101,0,187,180,'sound_chunk_readiness',True,None),
+    }
+    parser.add_argument('--owner', choices=tuple(specs), required=True)
     parser.add_argument('--binary', type=Path)
     parser.add_argument('--generated-source', type=Path)
     parser.add_argument('--output', type=Path)
@@ -29,13 +39,10 @@ def main():
     gain = args.owner == 'gain'
     properties = args.owner == 'properties'
     short = args.owner == 'random-short'
-    prefix = ('smg-original-sound-127e00-entry-v1' if short else 'smg-original-sound-properties-entry-v1' if properties else
-        'smg-original-sound-range-entry-v1' if gain else 'smg-original-sound-secondary-entry-v1')
+    readiness = args.owner == 'chunk-readiness'
+    prefix, fixtures, successes, faults, cfg, reached, stem, emulator_passed, unreachable = specs[args.owner]
     if not (BASE / prefix / 'report.json').exists():
         return 77
-    fixtures, successes, faults = (34, 34, 0) if short else (61, 61, 0) if properties else (97, 94, 3) if gain else (35, 33, 2)
-    cfg, reached = (34, 33) if short else (189, 188) if properties else (353, 353) if gain else (33, 32)
-    stem = 'sound_random_short' if short else 'sound_properties' if properties else 'sound_gain' if gain else 'sound_random_scalar'
     scratch = Path(os.environ['HALO2_TEST_SCRATCH'])
     output = args.output.absolute() if args.output else scratch / (stem + '-acceptance')
     output.mkdir(exist_ok=False)
@@ -62,18 +69,22 @@ def main():
         command += ['--binary', str(args.binary.absolute())]
     if args.generated_source:
         command += ['--generated-source', str(args.generated_source.absolute())]
-    run('emulator', command, 0 if properties else 1)
+    run('emulator', command, 0 if emulator_passed else 1)
     candidate = json.loads((output / 'independent-emulator/report.json').read_text())
-    assert candidate['passed'] == properties and candidate['fixtures'] == fixtures
+    assert candidate['passed'] == emulator_passed and candidate['fixtures'] == fixtures
     assert candidate['unique_original_instructions_executed'] == reached
-    if properties:
+    if readiness:
+        assert candidate['missing_original_instructions'] == [0x21f2a8,0x21f2ac,0x21f2b0,0x21f305,0x21f308,0x21f30a,0x21f30c]
+        assert candidate['allocation_and_scheduling_boundary_cases'] == 13
+        assert not candidate['all_original_instructions_covered']
+        assert not candidate['external_boundary_results_supplied']
+    elif properties:
         assert candidate['missing_original_instructions'] == [0x229110]
-    elif short:
-        assert candidate['missing_original_instructions'] == [0x127e4b]
-        assert candidate['proven_unreachable_instruction'] == 0x127e4b
-    elif not gain:
-        assert candidate['missing_original_instructions'] == [0x127daa]
-        assert candidate['proven_unreachable_instruction'] == 0x127daa
+    elif unreachable is not None:
+        assert candidate['missing_original_instructions'] == [unreachable]
+        assert candidate['proven_unreachable_instruction'] == unreachable
+    else:
+        assert not candidate['missing_original_instructions']
     for row in candidate['comparisons']:
         for key in ('returned', 'gp', 'xmm', 'trace', 'writes'):
             assert row['native'][key] == row['original'][key], (row['name'], key)
@@ -87,7 +98,10 @@ def main():
             '--candidate', str(output / 'independent-emulator'), '--output', str(output / name)], 0)
     host = json.loads((output / 'original-host/report.json').read_text())
     fault = json.loads((output / 'original-faults/report.json').read_text()) if faults else None
-    assert host['passed'] and host['actual_host_original_cases'] == successes
+    assert host['passed'] and host['actual_host_original_cases'] == (fixtures if readiness else successes)
+    if readiness:
+        assert host['original_completed_cases'] == successes and host['original_external_boundary_cases'] == 13
+        assert not host['external_allocation_or_scheduling_results_supplied']
     if faults:
         assert fault['passed'] and fault['actual_host_original_cases'] == faults
     for report in ([host, fault] if faults else [host]):
@@ -96,10 +110,12 @@ def main():
     result = dict(passed=True, owner=args.owner, fixtures=fixtures,
         original_host_successful_cases=successes, original_host_actual_SIGSEGV_cases=faults,
         complete_original_cfg_instructions=cfg, original_instructions_exercised=reached,
-        proven_unreachable_instruction=0x127e4b if short else 0x127daa if args.owner == 'random-scalar' else None,
-        unreachable_proof=candidate['unreachable_proof'] if args.owner in ('random-scalar','random-short') else None,
+        proven_unreachable_instruction=unreachable,
+        unreachable_proof=candidate['unreachable_proof'] if unreachable is not None else None,
         live_x87_result_bits_verified=80 if short else None,
         unexecuted_stable_snapshot_count_guard=0x229110 if properties else None,
+        original_host_external_boundary_cases=13 if readiness else 0,
+        unexecuted_external_callee_continuations=candidate['missing_original_instructions'] if readiness else [],
         declared_readonly_constant_control_cases=2 if gain else 0,
         diagnostic_controls_are_not_captured_gameplay_or_production_banks=True,
         independent_emulator_passed=candidate['passed'],

@@ -15,6 +15,9 @@ supporting evidence in this checklist before starting the next task or handing
 off. Record changed blockers and next steps at the same time. Leave unverified
 items unchecked.
 This requirement applies to work completed by the primary agent and subagents.
+Saving that checklist update is a required part of completing each task; do
+not defer it until the end of a session. For subagent work, the primary agent
+records the verified result here before starting dependent work.
 
 ## Working rules
 
@@ -33,7 +36,7 @@ This requirement applies to work completed by the primary agent and subagents.
 - Reconstruct Xbox hardware or startup initializers only for demonstrated
   dependencies of the reused gameplay path. Preserve unrelated dirty work.
 
-## Current priority: first complete native gameplay frame
+## Native gameplay frame compatibility
 
 Compatibility checks below distinguish the private native frame cohort from
 promoted product modules. Launcher delivery and full gameplay acceptance have
@@ -236,7 +239,7 @@ their own gates; passing a module test does not complete those gates.
 - [ ] Complete a visually valid native gameplay frame after source updates,
   including first-person geometry and HUD presentation. The bounded tick30
   capture below now passes after the class1 correction; remaining complete
-  material/scene validation and current-client adoption stay open.
+  material/scene validation stays open. Coherent V13 adoption is verified below.
 - [x] Resolve the combined V9 namespace admission failure through the normal
   Cache publication order. Stage the new HUD owners until after the existing
   shader/globals bootstrap, preserving the authenticated sound-class namespace.
@@ -344,6 +347,86 @@ Component evidence:
   Their source/header identities and retained object sizes are recorded; all
   compiler/test scratch is removed. Actual menu/loading rendering remains open.
   [Loading consumer build](../.local/mcc-native-client-20261018/mcc-loading-consumers-v1/build.json).
+- [x] Reproduce the remaining loading-presentation failure with the actual
+  five owned MCC inputs and unchanged presentation constructor. Input preparation
+  succeeds; construction rejects the unresolved required slot11 mask. All 314
+  cohort inputs/dependencies and source maps remain unchanged, with no reference
+  opens or retained test binaries. This CPU-only expected failure does not
+  complete a loading frame or establish an ambience producer.
+  [Actual missing-role reproduction](../.local/mcc-loading-production-20261018/investigation-v2/repro/actual-v1/validation.json).
+- [x] Trace the narrow MCC loading-asset candidates and menu-music ownership.
+  All 1,557 mainmenu owners, 16 candidate bitmap frames and 577 installed
+  prebuild/preload filenames are accounted for. The verified `wigl`/`lsnd`
+  references identify menu music; they do not establish loading ambience.
+  None of the tested images authenticates slot11. All three scratch trees are
+  removed. The actual loading producer/role mapping remains the next dependency.
+  [Asset-role investigation](../.local/mcc-loading-production-20261018/investigation-v2/assets/status.json).
+- [x] Reauthenticate the installed MCC DLL's complete legacy loading-bank
+  consumer: all four chained-unwind fragments cover 1,045 bytes and 224
+  instructions, with a real six-offset image loop for `loading_dx11.bin`.
+  Its loading-audio call targets a literal `RET 0` leaf. The named bank is
+  absent from the bounded 577-file inventory. These static facts do not prove
+  the active outer frontend path, image roles, or a replacement audio policy;
+  those bindings remain open. No product files or shaders change, and scratch
+  is removed.
+  [Current MCC loader authority](../.local/mcc-loading-production-20261018/investigation-v2/source/mcc-legacy-loader-primary.json).
+- [x] Inspect the actual outer loading GFX and installed pack indexes without
+  importing replacement content. The 6,352-byte GFX has 302 framed nested
+  records and two external image names; all 17 pack indexes identify the
+  small loading UIF/WLIB/SSL entries. These metadata references guide the
+  next producer investigation; they do not yet supply the mask or ambience.
+  [Outer loading metadata](../.local/mcc-loading-production-20261018/investigation-v2/source/adjacent-metadata.json).
+- [x] Identify the sixth legacy MCC image's actual masking role. The complete
+  loading thread/renderer and four child owners bind image5 to the destination
+  color/zero blend draw. Its genuine source is the sixth DDS extent in
+  `loading_dx11.bin`; no equivalent tag or available payload is established.
+  This identifies the required role without admitting a substitute. The mask,
+  independent ambience and production draw binding remain open.
+  [Producer and role seal](../.local/mcc-loading-production-20261018/investigation-v2/source/producer-role-seal.json).
+- [x] Qualify the installed MCC PCK block reader from its actual DLL consumers.
+  Its header, 32 KiB logical blocks, physical offsets and mode0 raw-DEFLATE
+  framing decode all 929 `cache.pck` blocks with matching checksums. The
+  30,439,696-byte logical stream contains the exact loading UIF/WLIB/SSL
+  resource names; no decoded stream is retained. Named resource extents and
+  roles still need their source-derived lookup schema. A real
+  `loading_screen_music` request is identified separately from the retired
+  legacy audio hook; its sound/event binding is not yet admitted.
+  [PCK reader authority](../.local/mcc-loading-production-20261018/pck-lookup-v1/first-block.json),
+  [Actual logical resource metadata](../.local/mcc-loading-production-20261018/pck-lookup-v1/cache-logical-metadata.json).
+- [x] Qualify the outer PCK resource header and its two actual resource extents
+  from the installed reader and registered classes. The header ends at logical
+  byte217; its cache block and SSL block extents are exact. Later loading-name
+  metadata lies outside those rows, so its neighboring integers are not
+  admitted as payload offsets. The inner-cache lookup remains the next step.
+  [Source-derived PCK header lookup](../.local/mcc-loading-production-20261018/pck-lookup-v1/pak-header-lookup.json).
+- [x] Extract the three named loading resources from the authenticated nested
+  cache lookup. All 13,661 entries resolve; the exact CSV lengths and hashes
+  identify 163 bytes across UIF/WLIB/SSL, using 27 physical blocks. Their
+  contents bind `hcex_loading_screen` and native `UiLoadingScreen`; they do
+  not contain a mask or music payload. The native implementation is the next
+  owner to trace. Scratch is removed and no decoded pack stream is retained.
+  [Actual named loading resources](../.local/mcc-loading-production-20261018/pck-lookup-v1/named-loading-resources.json).
+- [x] Qualify the actual shared-pack codec and metadata lookup. The installed
+  DLL selects a complete copy decoder for codec4; the source-derived lookup
+  resolves all 7,247 shared-pack rows without a loading-name or nested cache
+  match. Only metadata is read; no loading image or audio role is inferred.
+  [Codec4 authority](../.local/mcc-loading-production-20261018/pck-lookup-v1/codec4-qualified.json),
+  [Actual shared-pack lookup](../.local/mcc-loading-production-20261018/pck-lookup-v1/shared-loading-lookup-v2.json).
+- [x] Inventory the four specifically named outer UI texture packs by their
+  actual chunk metadata. The loading pack has 268 definitions; the other
+  packs have 306, 758 and 997. Neither external GFX image name is found.
+  Map pictures and named UI textures remain candidates until their real
+  rendering consumers establish a role; no pixel payload is copied.
+  [Outer UI texture metadata](../.local/mcc-loading-production-20261018/pck-lookup-v1/loading-texture-metadata.json).
+- [x] Qualify the actual outer MCC image-name lookup kernel and its source
+  registration. The complete conditional callback and name-hash consumer pass
+  101 genuine x64 CPU controls against all 256 CRC words. The two exact
+  external GFX name keys have no match in the four inventoried packs. The
+  specific tag-to-descriptor ingress, active GFx binding, mask and independent
+  ambience remain unproved; no image or audio substitute is admitted. Source,
+  metadata and CPU receipts are sealed with scratch removed and no retained
+  binaries, pixel banks or captures.
+  [Loading lookup source and CPU handoff](../.local/mcc-loading-production-20261018/pck-lookup-v1/handoff.json).
 - [ ] Verify fresh-machine detection and onboarding with only an installed MCC copy.
 - [ ] Verify complete required assets: textures, bump maps, models, audio,
   gameplay definitions, UI and loading presentation.
@@ -351,6 +434,26 @@ Component evidence:
 - [ ] Reconstruct the requested loading presentation from MCC and retained
   custom assets; remove dependence on the Vista loading bank.
 - [ ] Verify cache-only startup after import without access to the MCC source files.
+- [x] Establish a process-local read/execute confinement fixture for the cache
+  test. Six actual MCC/Original/XBE files open before restriction and return
+  `EACCES` after exec; an owned cache map and shader stay readable. Landlock
+  ABI10, no-new-privileges and closed inherited descriptors are verified;
+  allowlisted roots include only system paths and owned scratch. No global
+  permissions or directories change. This is the confinement primitive only,
+  not a game run or a filesystem-write/IPC security claim.
+  [Confinement controls](../.local/mcc-cache-only-containment-20261018/v1/primitive-validation.json).
+- [x] Run the actual portable version8 native Lockout test with original MCC
+  and Xbox inputs unreadable. It exits0 at 17 frames/30 neutral ticks after
+  133.73 seconds; the real frame is inspected. Six negative opens return
+  `EACCES` after inherited exec. All 107,868 runtime open attempts are audited:
+  no successful reads outside allowed roots and no original-source matches.
+  All map/resource containers come from the owned cache. Package checksums,
+  97 shaders, 25,004 cache source identities and original identities stay
+  unchanged. All processes and three scratch roots are gone; temporary cache
+  links, saves, binaries, trace and frame are removed. This proves only the
+  neutral test route; the full cache-only/campaign/UI/onboarding gate stays open.
+  [Contained actual gameplay](../.local/mcc-cache-only-containment-20261018/v1/validation.json),
+  [Cleanup and terminal process audit](../.local/mcc-cache-only-containment-20261018/v1/cleanup.json).
 - [ ] Verify the full launcher-to-gameplay path opens no Xbox, Vista or MCPX references.
 
 ## Converted vanilla gameplay and 64-bit integration
@@ -374,6 +477,40 @@ Component evidence:
 - [ ] Check final delivery compatibility with subsequent additive receiver and
   sound-I/O API/body work. The pinned earlier receiver/World bodies establish
   the private validation cohort; other active work remains preserved.
+- [x] Inventory current source/header drift beyond the narrow V13 boundaries.
+  All 314 coherent inputs and 44 narrow header entries still match. Of the
+  1,191 frozen include files, 13 differ, including one comment-only change;
+  nine changed sources from the 71-source ledger still supply selected objects.
+  Static review identifies voice-frame/packet, interpolation, sound-DMA and
+  voice-device virtual-interface risks. This inventory does not certify the
+  current bodies; paired layout checks and the minimal integration set remain open.
+  [Current compatibility inventory](../.local/mcc-current-compatibility-audit-20261018/v1/inventory.json).
+- [x] Measure the demonstrated current/frozen public layouts with paired tiny
+  probes. `GameVoiceFrame` grows 48→56 bytes, `MatchVoicePacket` 56→64,
+  `ModelNodeInterpolation` 176→184 and `SourceRuntimeSoundDmaResources` 240→264.
+  Pimpl owner sizes stay unchanged; additive methods alone do not establish
+  a layout break. These measurements identify actual mixing risks and do not
+  invalidate the internally consistent frozen V13 baseline. Minimal affected
+  consumer/provider integration remains open.
+  [Paired layout measurements](../.local/mcc-current-compatibility-audit-20261018/v1/layouts.json).
+- [x] Check actual selected providers against current-only APIs and layouts.
+  The coherent ELF lacks all 17 inspected new APIs while older positive
+  controls are present. The selected multiplayer object confirms the frozen
+  48/56/176-byte voice/packet/interpolation layouts. This establishes a current
+  feature/body delivery gap; compatible rebuild groups remain required before
+  adopting the new providers. The frozen test cohort remains internally consistent.
+  [Selected provider and layout evidence](../.local/mcc-current-compatibility-audit-20261018/v1/selected-providers.json).
+- [x] Seal the minimal current/frozen compatibility matrix. Six owners must
+  refresh together for the demonstrated public-layout changes: Main,
+  multiplayer runtime, game voice, online voice, online session and render
+  interpolation. A separate 16-file handwritten-body set includes current
+  World, whose eleven required sound providers are absent from the selected
+  ELF. Five already-current provider snapshots can be reused. All 314 frozen
+  inputs and 44 narrow pins remain exact; later additive header changes are
+  separately pinned. This identifies the integration work and does not close
+  the current-product compatibility gate. Tiny probes and audit scratch are removed.
+  [Compatibility matrix](../.local/mcc-current-compatibility-audit-20261018/v1/matrix.json),
+  [Audit cleanup](../.local/mcc-current-compatibility-audit-20261018/v1/cleanup.json).
 - [x] Validate schema3 authority encoding/decoding and rejection of unsupported
   schemas and malformed archives: 25 focused checks pass; archive framing is unchanged.
   [Codec evidence](../.local/mcc-authority-codec-schema3-20261018/v1/validation.json).
@@ -399,6 +536,18 @@ Component evidence:
 - [x] Preserve the existing 97 shader files in the current native rendering tests.
 - [ ] Finish graphical corrections using Reformation as a reference and Xbox
   TU1.5 as authority, including relevant bitmap/bump-map inconsistencies.
+- [x] Compare five additional locally resident bitmap pairs through the
+  coherent native decoder, compiling only the inspector entry point and
+  reusing 313 providers. Metropolis's `matte_grey_edge_dif`, `metal_slats_bump`
+  and `metal_slats_dif` have matching descriptors but different complete
+  seven/nine/seven-mip bytes. Its `ec_ocean_alpha` is already byte-identical;
+  no guessed pixel replacement is admitted. Sacred Icon's gradient has changed
+  dimensions/mip counts and needs a separate descriptor proof. All 314 inputs,
+  source maps, resource banks and shaders remain unchanged; temporary tool,
+  link map and pixels are removed. This is original retail-map source evidence,
+  not captured TU1.5 visual parity or a complete shared-resource inventory.
+  [Native bitmap comparison](../.local/mcc-graphics-restoration-audit-20261018/v1/validation.json),
+  [Bounded audit handoff and cleanup](../.local/mcc-graphics-restoration-audit-20261018/v1/handoff.json).
 - [ ] Validate complete rendered scenes against authenticated TU1.5 captures.
 - [x] Verify the reused MCC sound decoder and native SDL mixer produce genuine
   PCM on the pinned client providers. The actual SMG sound yields one 46,080-frame
@@ -713,6 +862,327 @@ Component evidence:
   are silent; no completed shot, firing image or sound is claimed. Authenticate
   the new immediate owner and existing scalar provider before any publication.
   [Classifier runtime regression](../.local/mcc-native-client-20261018/client-current-v8-fire-data-v7/audio-fire-v8-real-mcc/validation.json).
+- [x] Authenticate the newly reached angle-offset scalar and complete immediate
+  owner independently. A separate XBE parser and recursive decoder reproduce
+  all 1,194 `FFA60` instruction sites, including both guarded seven-entry
+  switches and all 26 direct numeric reads. `41C4CC` is exactly the read-only
+  binary32 word `3FC90FDB`, already used by the development projectile path;
+  its three-instruction consumer follows the genuine `11F7E0` call. This is
+  static authority only. The bounded native execution pairing and ordinary
+  publication follow below; an actual successful firing run remains open.
+  `46A7D4` is inventory-only.
+  [Immediate-owner inventory](../.local/mcc-native-audio-capture-audit-20261018/fire-angle-offset-proof-v1/inspection.json),
+  [Independent raw-owner review](../.local/mcc-native-audio-capture-audit-20261018/angle-offset-independent-review-v1/authority-review.json).
+- [x] Pair the unchanged three-instruction angle-offset consumer with Original
+  execution using a private four-byte read-only overlay. All 104 finite-domain
+  cases pass 312 instructions, both input flag seeds and four SSE rounding
+  modes, with exact GP, all XMM lanes, ordered reads/store, full stack, MXCSR
+  and measured x87 control/status. Flags are unchanged by the three operations;
+  empty x87 tags follow initialization with no x87 operation in this slice.
+  All 312 cohort inputs remain unchanged, no reference opens occur and scratch
+  is removed. This does not execute the complete owner, arbitrary float inputs
+  or a shot; ordinary publication follows below and actual firing integration
+  remains open.
+  [Original scalar consumer](../.local/mcc-native-audio-capture-audit-20261018/fire-angle-offset-proof-v1/primary.json),
+  [Private native pairing](../.local/mcc-native-audio-capture-audit-20261018/fire-angle-offset-proof-v1/native-validation.json).
+- [x] Publish the exact four-byte `41C4CC` operand through the ordinary data
+  factory. All 2,434 prior owners remain exact; the final factory has 2,435
+  regions and 479,712 bytes. All 104 finite-domain consumer cases and ten
+  ownership rejections plus a native pointer above 4 GiB pass. Independent
+  source/factory/object/dependency review passes, with no `46A7D4`, new math,
+  ABI, generated code or shader changes. The required 1,170,328-byte leaf is
+  retained; compiler/test scratch is removed. Actual coherent firing remains
+  the next gate.
+  [Ordinary scalar publication](../.local/mcc-native-audio-capture-audit-20261018/fire-angle-offset-product-v1/validation.json),
+  [Independent publication review](../.local/mcc-native-audio-capture-audit-20261018/angle-offset-independent-review-v1/product-review.json),
+  [Existing-provider qualification and cleanup](../.local/mcc-native-audio-capture-audit-20261018/fire-angle-offset-proof-v1/handoff.json).
+- [x] Link the reviewed data leaf into the current coherent V13 client. Only
+  the startup-data object changes; its other 313 providers, 43 MCC map files,
+  97 shaders and ordinary header dependencies stay pinned. The private ELF
+  and map are retained for actual firing validation; link scratch is removed.
+  The installed V13 and published version8 stay unchanged. Actual firing and
+  sound acceptance remain open.
+  [Coherent firing cohort](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v1/cohort.json),
+  [One-leaf link evidence](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v1/link-manifest.json).
+- [x] Verify the angle-offset read clears in the actual coherent firing run.
+  The ninth run advances through it to `100105`, reading `100D08` in
+  `FFA60`'s first guarded seven-entry dispatch table, then exits1 after
+  72.16 seconds. All 313 other providers, 43 map files and 97 shaders stay
+  pinned, with zero reference opens and removed scratch. The genuine callback
+  supplies 67,072 nonzero ambience frames; no completed shot, firing sound or
+  screenshot is claimed. Authenticate both full-owner dispatch tables and
+  the remaining effect-scale operand before the next runtime attempt.
+  [Coherent ninth firing result](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v1/audio-fire-v9-real-mcc/validation.json).
+- [x] Execute the complete Original local effect-scale selector and clamp
+  (`10070C..100756`): 504 finite-domain cases cover all signed16 mode classes,
+  threshold angles, preceding damage factors and both flag seeds in 3,648
+  instructions. No child or supplied result is used. The exact `46A7D4` word
+  already exists in the development effect-scale routine. Native pairing,
+  ordinary publication and full firing remain open.
+  [Original effect-scale proof](../.local/mcc-native-audio-capture-audit-20261018/fire-effect-scale-proof-v1/primary.json).
+- [x] Pair the complete bounded effect-scale segment with unchanged native
+  code and the selected development routine: all 504 cases/3,648 instructions,
+  84 scalar reads and the existing 924-case contact fixture pass their result,
+  GP/XMM/defined-flag/read/store/memory checks. Thirty-six strict emulator
+  MXCSR discrepancies remain preserved as RED evidence; exact execution of
+  the Original eight-byte `MULSS` on the host qualifies the missing sticky
+  precision flags for all 504 native cases. The test return lies outside those
+  eight bytes; no complete host segment or Xbox hardware claim is made. All
+  test scratch is removed. Independent raw-code and integer nearest-even FP
+  review passes. Original mode0 is unclamped; agreement with the development
+  helper is limited to the declared damage factors `[0,.25,1]`. Ordinary
+  operand publication remains open.
+  [Qualified native effect scale](../.local/mcc-native-audio-capture-audit-20261018/fire-effect-scale-proof-v1/qualified-validation.json),
+  [Independent effect-scale review](../.local/mcc-native-audio-capture-audit-20261018/effect-scale-independent-review-v1/review.json),
+  [Physical multiplication authority](../.local/mcc-native-audio-capture-audit-20261018/fire-effect-scale-proof-v1/host-multiply-validation.json).
+- [x] Prove both complete bounded `FFA60` dispatch prefixes against unchanged
+  native generated instructions and production WorldState/flags/memory helpers.
+  All 68 cases/244 instructions match GP, all XMM lanes, flags, target PC,
+  ordered reads and complete memory. Signed16 extension and unsigned `<=6`
+  guards bound both tables to seven 32-bit targets/28 bytes each; valid modes,
+  defaults and upper aliases are covered. Stops precede the genuine target
+  instructions; no target body, child or guest return is supplied. Only private
+  read-only overlays are used. All compiler/link scratch is removed, with no
+  retained binaries. Independent raw-XBE/guard/helper review reconstructs all
+  68 witnesses algebraically and passes; ordinary publication is next.
+  [Original dispatch authority](../.local/mcc-native-audio-capture-audit-20261018/fire-dispatch-owner-proof-v1/primary.json),
+  [Private native dispatch pairing](../.local/mcc-native-audio-capture-audit-20261018/fire-dispatch-owner-proof-v1/validation.json),
+  [Independent dispatch review](../.local/mcc-native-audio-capture-audit-20261018/fire-dispatch-owner-independent-review-v1/review.json),
+  [Dispatch proof cleanup](../.local/mcc-native-audio-capture-audit-20261018/fire-dispatch-owner-proof-v1/handoff.json).
+- [x] Publish and independently review the two dispatch tables and effect-scale
+  operand through the ordinary factory. Only three read-only owners/60 bytes
+  are added; all 2,435 previous tuples stay exact, yielding 2,438 owners and
+  479,772 bytes. Ordinary-provider checks pass 68 dispatch cases, 504 scale
+  cases, the prior 924-case fixture and 81 ownership controls: 77 rejections,
+  three native pointers above 4 GiB and one exact cross-owner read. All source
+  words match Original; dependencies, 314 prior inputs and strong exports stay
+  pinned. No arithmetic, ABI, generated code or shader changes. The required
+  1,194,984-byte data object is retained and all product/review scratch is gone.
+  Actual coherent firing and sound acceptance remain open.
+  [Combined ordinary publication](../.local/mcc-native-audio-capture-audit-20261018/fire-impact-closure-product-v1/validation.json),
+  [Independent combined review](../.local/mcc-native-audio-capture-audit-20261018/impact-closure-product-independent-review-v1/review.json),
+  [Publication handoff and cleanup](../.local/mcc-native-audio-capture-audit-20261018/fire-impact-closure-product-v1/handoff.json).
+- [x] Link the combined data closure into the next coherent V13 client.
+  Only the data leaf changes from the ninth-run cohort; 313 other providers,
+  all 43 map files and 97 shaders stay pinned. The required private ELF/map
+  are retained and link scratch is removed. Installed V13 and packaged
+  version8 remain unchanged; the actual tenth firing run is the next gate.
+  [Combined firing cohort](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v2/cohort.json),
+  [Combined one-leaf link](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v2/link-manifest.json).
+- [x] Verify the first dispatch table clears its actual firing boundary.
+  The tenth run consumes it and advances through genuine `1027D0`/`18B1D0`
+  effects to `18AEC9`, reading `18AF08` in the next bounded table, then exits1
+  after 52.20 seconds. The later second-table and effect-scale branches have
+  component proofs and remain unobserved in this runtime. All other providers,
+  maps, shaders and dependencies stay pinned, with zero reference opens and
+  removed scratch. Its 57,344 nonzero callback frames are unidentified ambience;
+  no completed shot, firing sound or screenshot is claimed.
+  [Actual tenth firing result](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v2/audio-fire-v10-real-mcc/validation.json).
+- [x] Execute the complete Original `18AE80` category/fallback leaf and exact
+  eight-entry table. All 336 whole-RET cases pass 10,343 instructions, covering
+  both category fields, empty/populated metadata, presence patterns, every
+  fallback selector, early failure and upper handle aliases. The 123-byte body
+  excludes its padding byte and has no child calls. Surviving development
+  oracle contracts supply input layouts; missing historical fixture files are
+  not claimed as rerun evidence. Publication and actual firing remain open.
+  [Original complete fallback leaf](../.local/mcc-native-audio-capture-audit-20261018/fire-effect-fallback-proof-v1/primary.json).
+- [x] Pair all 336 cases with the existing public native `18AE80` module and
+  the exact private 32-byte table. GP/XMM, defined flags, ordered reads/stores,
+  stack, registry, row data and floating-point state match. Only explicitly
+  proven observer preimage reads are normalized; the raw failures and diagnostic
+  are preserved. No child result is supplied, all 314 providers stay pinned,
+  no reference file opens and no large probe artifact remains. Independent
+  review and ordinary publication are the next gates.
+  [Public native fallback pairing](../.local/mcc-native-audio-capture-audit-20261018/fire-effect-fallback-proof-v1/native-validation.json),
+  [Qualified proof and cleanup](../.local/mcc-native-audio-capture-audit-20261018/fire-effect-fallback-proof-v1/handoff.json).
+- [x] Inventory the complete direct/tail effect-helper closure rooted at
+  `1027D0` and `18B1D0` in its two selected generated modules. All eight whole
+  functions and 526 instruction PCs are covered with no external or indirect
+  call boundary. Full byte-extent checks against the 2,438-owner factory find
+  only the missing `18AEFC` table's 32 immutable bytes. This is a static input
+  inventory, not execution or full firing acceptance; both inventory scratch
+  directories are verified absent.
+  [Bounded effect-helper inventory](../.local/mcc-native-audio-capture-audit-20261018/effect-helper-inventory-v1/inventory.json).
+- [x] Independently accept the whole fallback-leaf proof and helper inventory.
+  Raw Original bytes and an independent reconstruction match all 336 cases,
+  10,343 instruction PCs, 173 table reads and 945 register PUSH stores. Every
+  owned site and table index is covered; observer normalization is limited
+  to callback-proven preimage reads with the raw failures retained. The
+  eight-function closure and every prior factory tuple also match. The
+  exact 32-byte read-only table is eligible for ordinary publication;
+  product-provider tests and actual firing remain separate open gates.
+  [Independent fallback and closure review](../.local/mcc-native-audio-capture-audit-20261018/effect-fallback-independent-review-v1/review.json).
+- [x] Publish the exact 32-byte fallback table through the ordinary factory
+  and pass its provider fixtures. All 2,438 previous tuples remain exact,
+  yielding 2,439 regions/479,804 bytes. The same 336 whole-RET cases and 40
+  rejecting controls plus one native pointer above 4 GiB pass, including every
+  overlap byte, read-only/bounds guards and warm-state preservation. Only the
+  data leaf and bounded preflight change; no generated body, ABI or shader
+  changes. The required 1,206,112-byte object is retained and both scratch
+  directories are removed. Independent product acceptance and the next actual
+  firing run remain open; installed V13 and packaged version8 stay unchanged.
+  [Ordinary fallback provider](../.local/mcc-native-audio-capture-audit-20261018/fire-effect-fallback-product-v1/validation.json),
+  [Product handoff and cleanup](../.local/mcc-native-audio-capture-audit-20261018/fire-effect-fallback-product-v1/handoff.json).
+- [x] Independently accept the ordinary fallback-table publication. Source
+  normalization, all eight Original words, all 2,438 previous factory tuples,
+  the 2,439-region snapshot, object, dependencies, 314 prior inputs, exports
+  and exact control links match. The complete accepted execution/observer
+  loop is unchanged except ordinary-provider checks and labels. All 40
+  rejecting controls plus the native pointer case are accounted for; actual
+  firing remains unverified beyond the tenth run.
+  [Independent ordinary fallback review](../.local/mcc-native-audio-capture-audit-20261018/effect-fallback-product-independent-review-v1/review.json).
+- [x] Link the accepted fallback data leaf into coherent firing candidate v3.
+  The link succeeds with all 313 other providers, 43 maps and 97 shaders exact.
+  The required private ELF is 104,675,632 bytes and its map is 20,465,770 bytes;
+  installed V13 and published version8 remain unchanged. Actual eleventh firing
+  validation is the next gate.
+  [Coherent fallback-table candidate](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v3/cohort.json),
+  [Single-leaf link receipt](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v3/link-manifest.json).
+- [x] Verify the fallback table clears its actual firing boundary. The eleventh
+  coherent run advances beyond `18AEFC` to native root `179DF0`, then stops at
+  `2C2AD8` reading the next table at `2C2B30`, exiting1 after 53.60 seconds.
+  All 313 other providers, 43 maps, 97 shaders and dependencies remain exact,
+  with zero reference opens. Its 59,904 nonzero callback frames are unidentified
+  ambience; no completed shot, firing sound, screenshot or full run is claimed.
+  The complete new table owner and surrounding particle-frame dependencies
+  are the next compatibility work.
+  Link/runtime/sealer scratch, raw PCM, full syscall trace and temporary save
+  are removed; the requested 239,660-byte WAV and small diagnostics are retained.
+  [Actual eleventh firing result](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v3/audio-fire-v11-real-mcc/validation.json),
+  [Actual run handoff and cleanup](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v3/audio-fire-v11-real-mcc/handoff.json).
+- [x] Inventory the new particle-module direct/tail dependency closure from
+  `179DF0` and `2C2AD0`. All 50 reached whole functions and 3,686 instruction
+  sites match the unchanged Original CFGs. Its 62 external/indirect boundaries
+  are explicit and unexpanded. The only unowned fixed inputs are the 16-byte
+  read-only table at `2C2B30`, a separate four-byte read-only scalar at `46A784`,
+  and a mutable virtual-tail global at `56E0E8`. The latter is not admitted
+  as zero or any other runtime default. The 2,439-owner factory stays exact;
+  this scan admits no data and proves no new execution. Scratch is removed.
+  [Whole particle-module static inventory](../.local/mcc-native-audio-capture-audit-20261018/particle-frame-inventory-v1/inventory.json),
+  [Qualified inventory handoff](../.local/mcc-native-audio-capture-audit-20261018/particle-frame-inventory-v1/handoff.json).
+- [x] Execute untouched Original `2C2AD0` dispatch and declared no-active-instance
+  paths. All four table indices and unsigned rejection controls pass 32 prefix
+  cases; 52 whole-RET cases execute type0 with the real `176A40` child or reject
+  an out-of-range type. Together they execute 3,314 instructions with complete
+  input/output, reads, stores, stack and FP receipts. The full owned CFGs match
+  current generated sites. Historical particle-motion reports are reused as
+  context only: their absent memory banks prevent claiming a rerun. Native
+  pairing, active-instance/collision branches and ordinary publication remain open.
+  [Original particle dispatch and declared whole paths](../.local/mcc-native-audio-capture-audit-20261018/particle-dispatch-proof-v1/primary.json).
+- [x] Pair those 32 dispatch controls and 52 whole-RET paths with native
+  execution, reusing the existing public particle module for every whole path.
+  All 3,314 executed instructions, GP/XMM, defined flags, ordered reads/stores,
+  complete 1,024-byte stacks, input banks and FP state match Original. Every
+  dispatch index is read; only exact observer-proven preimage reads are
+  normalized. The private 16-byte table has a native pointer above 4 GiB.
+  All 314 prior providers stay exact, zero reference files open, and scratch
+  is removed. This proves the declared paths, not active collision or firing.
+  [Native particle dispatch and declared whole paths](../.local/mcc-native-audio-capture-audit-20261018/particle-dispatch-proof-v1/native-validation.json).
+- [x] Review the table with a separate raw-file and unsigned-algebra method.
+  All 32 prefix states/targets/flags/reads and 16 complete rejected paths are
+  independently reconstructed, and every target belongs to the owned CFG.
+  The 16 bytes are fully file-backed and read-only. The other 36 whole paths
+  retain their Original/native pairing and 1,008 exactly qualified observer
+  preimages. All providers/dependencies remain pinned. This is a second method
+  by the primary agent, not a second-agent review; active-particle/collision
+  and firing claims remain open. Exact ordinary table publication is eligible.
+  [Raw-file and algebraic table review](../.local/mcc-native-audio-capture-audit-20261018/particle-dispatch-proof-v1/review.json).
+- [x] Publish the exact 16-byte particle dispatch table through the ordinary
+  factory. A real old/new factory pair confirms every previous tuple is exact:
+  2,439 regions/479,804 bytes become 2,440/479,820 with one read-only owner.
+  The 32 dispatch controls, 52 whole paths and 24 rejection controls plus one
+  native pointer check pass, including all 16 overlap bytes, endpoints, exact
+  bounds, excluded padding/code and warm-state preservation. Only data and its
+  bounded preflight change. The required 1,214,872-byte data object is retained;
+  scratch executables, maps, raw snapshots and traces are removed.
+  [Ordinary particle dispatch provider](../.local/mcc-native-audio-capture-audit-20261018/particle-dispatch-product-v1/validation.json).
+- [x] Review the ordinary 16-byte projection with a separate inverse-source
+  and raw-file method. Removing only the new mount/preflight reproduces the
+  exact prior source; its four words match file-backed Original bytes. The
+  accepted execution/observer loops are otherwise byte-identical, all prior
+  providers/dependencies and exports match, and both native addresses and
+  factory bounds stay exact. Proof/product/review scratch is removed. This
+  primary-agent second-method review admits the bounded table; the next actual
+  firing run and full active-instance/collision behavior remain open.
+  [Ordinary particle product review and cleanup](../.local/mcc-native-audio-capture-audit-20261018/particle-dispatch-product-v1/review.json).
+- [x] Link the accepted 16-byte table into coherent firing candidate v4.
+  Only the data leaf changes; all 313 other providers, 43 maps, 97 shaders
+  and prior compatibility records stay pinned. The required private ELF is
+  104,679,728 bytes and its link map is 20,465,765 bytes. Link scratch is
+  removed; the installed V13 runtime and version8 ZIP remain unchanged.
+  Actual twelfth firing validation is the next gate.
+  [Coherent particle-table candidate](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v4/cohort.json),
+  [Single-leaf link receipt](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v4/link-manifest.json).
+- [x] Verify the particle table clears its actual firing boundary. The twelfth
+  run advances through tick markers 0/3/6/8/10 and records up to five world
+  and two first-person particle draw submissions. It then exits1 at `179DF0`
+  /`2C3098`, reading the unowned mutable `56E0E8` field, after 46.48 seconds.
+  This is submission evidence, not a captured firing frame or complete run.
+  The 51,200 finite nonzero callback frames remain unidentified audio. All
+  other providers, maps, shaders and dependencies stay exact; zero reference
+  files open. Raw PCM, trace, temporary save and link/runtime scratch are
+  removed, with the requested 204,844-byte WAV and small receipts retained.
+  [Actual twelfth firing result](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v4/audio-fire-v12-real-mcc/validation.json),
+  [Run progress and cleanup handoff](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v4/audio-fire-v12-real-mcc/handoff.json).
+- [x] Identify and execute the real collision-threshold initializer. Complete
+  `3829C0` is 17 bytes/three instructions and copies the existing read-only
+  `46A1B8` value `3E2AAAAB` into writable `56E0E8`; its genuine constructor-table
+  entry is `46DD64`. Sixteen Original whole-RET controls preserve the expected
+  GP/XMM/flags/stack/FP state and confirm the unconditional store. Four more
+  controls qualify the actual `46A784` scalar load. Both the exact `1/6`
+  threshold and `.005` collision offset already occur in the working development
+  collision implementation. The missing field is a cold-construction memory
+  bridge; its virtual loader zero is not its runtime default. Native ownership,
+  warm preservation and actual collision acceptance remain open.
+  [Original constructor and existing development constants](../.local/mcc-native-audio-capture-audit-20261018/collision-constructor-proof-v1/primary.json).
+- [x] Supply the authenticated collision defaults in the ordinary factory.
+  The four-byte mutable field reproduces the complete initializer's persistent
+  `1/6` memory effect; the four-byte `.005` word stays read-only. Existing
+  `46A1B8` is mounted later in the full factory, so its exact immutable bits
+  are materialized without moving, aliasing or changing that previous owner.
+  All 2,440 prior tuples stay exact, yielding 2,442 regions/479,828 bytes.
+  Eight foreign overlap bytes reject before writes; native pointers exceed
+  4 GiB, mutable writes preserve the shared source, and memory-subowner restore
+  plus warm counter/policy controls pass. Physics calculations and shaders are
+  unchanged. Required data object: 1,232,000 bytes; temporary probes are removed.
+  Product review and actual firing remain open; no original CRT caller CPU
+  context or whole-world restore claim is made.
+  [Ordinary collision-default compatibility](../.local/mcc-native-audio-capture-audit-20261018/collision-defaults-product-v1/validation.json).
+- [x] Review the eight-byte collision bridge using direct Original bytes,
+  inverse source normalization and the actual compiled control receipts.
+  Only the two mounts/preflight pairs change; all 2,440 prior tuples, existing
+  development collision source, 314 providers, dependencies and strong exports
+  stay exact. Twenty rejecting controls, two high native pointers, four mutable
+  write patterns and the quiescent memory-subowner restore pass. Proof/product
+  scratch is removed. This primary-agent second-method review admits the
+  persistent data bridge, not full CRT CPU context, whole-world restore or
+  complete collision/firing parity.
+  [Collision bridge review and cleanup](../.local/mcc-native-audio-capture-audit-20261018/collision-defaults-product-v1/review.json).
+- [x] Link the accepted collision defaults into coherent firing candidate v5.
+  All 313 other providers, 43 maps, 97 shaders and compatibility records stay
+  exact. The required private ELF is 104,679,728 bytes and its map is
+  20,465,798 bytes; link scratch is removed. Installed V13 and the published
+  version8 package remain unchanged. Actual thirteenth firing is the next gate.
+  [Coherent collision-default candidate](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v5/cohort.json),
+  [Single-leaf collision link receipt](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v5/link-manifest.json).
+- [x] Complete the actual bounded SMG firing run in coherent candidate v5.
+  Genuine fire-at-3/release-at-4 input completes tick60 with exit0 and 74
+  rendered frames. Ammo decreases from the neutral baseline's 60 to 59,
+  reserve stays 120, and two detonations are recorded. World/first-person
+  particle draw submissions reach seven/two. The captured image was viewed:
+  normal arms, SMG, HUD and clear left edge are present. The actual callback
+  stream contains 142,336 finite nonzero stereo frames; identifying the firing
+  sound and physical audibility remain unverified. All 313 other providers,
+  43 maps and 97 shaders stay exact, with zero original-reference opens.
+  Link, runtime, conversion and sealing scratch is removed; requested image
+  and audio evidence and the required coherent candidate remain. This proves
+  one bounded shot, not sustained firing, all weapons or complete parity.
+  Installed V13 and the version8 ZIP remain unchanged; refreshing the interim
+  launcher/package is next.
+  [Actual firing validation](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v5/audio-fire-v13-real-mcc/validation.json),
+  [Verified handoff and cleanup](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v5/audio-fire-v13-real-mcc/handoff.json),
+  [Actual firing image](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v5/audio-fire-v13-real-mcc/lockout-fire-tick60.png),
+  [Actual callback audio](../.local/mcc-native-client-20261018/client-current-v13-fire-data-v5/audio-fire-v13-real-mcc/native-gameplay-audio.wav).
 - [x] Execute the entire unchanged Original response evaluator and its real
   CRT helper on the physical host to qualify emulator floating-point reports.
   A disposable static 32-bit ELF retains all Original section bytes at their
@@ -816,6 +1286,24 @@ Component evidence:
   [Actual package validation](../.local/mcc-native-package-delivery-20261018/v2/run-v1/validation.json),
   [Corrected image](../dist/Halo2-MCC-Native-Test-Lockout-20261018-v8.png),
   [Actual callback audio](../dist/Halo2-MCC-Native-Test-Ambience-20261018-v8.wav).
+- [x] Publish compiled version9 with the accepted collision defaults and
+  passing bounded SMG firing path. The actual relocated package passes neutral
+  tick30, both launcher-info routes, the eight-frame launcher route, and an
+  unmuted fire-at-3/release-at-4 run through tick60: 74 frames, ammo 60 to 59,
+  two detonations and 156,672 finite nonzero callback frames. Every ZIP
+  checksum and extracted launcher check passes; no game data is distributed.
+  Captured opens contain no original-reference or external checkout dependency.
+  All 97 shaders, 314 providers, 43 maps and 25,004 source-cache identities are
+  preserved. Actual PNG was viewed; generated staging, trace, PCM and sealing
+  scratch is removed. Previous version8 artifacts stay unchanged. The README
+  records the bounded result and unfinished full readiness accurately. Local
+  installation of this candidate is next.
+  [Version9 compiled ZIP](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261018-v9.zip),
+  [SHA256](../dist/Halo2-MCC-Native-Test-Linux-x86_64-20261018-v9.zip.sha256),
+  [Actual package validation](../.local/mcc-native-package-delivery-20261018/v3/run-v1/validation.json),
+  [Verified handoff and cleanup](../.local/mcc-native-package-delivery-20261018/v3/handoff.json),
+  [Actual image](../dist/Halo2-MCC-Native-Test-Lockout-20261018-v9.png),
+  [Actual callback audio](../dist/Halo2-MCC-Native-Test-Firing-20261018-v9.wav).
 - [x] Finish the installed V13 launcher-route test and preserve rollback
   runtime, capability and existing save files. Both actual launcher-info routes
   select runtime `2151bd97...`, native test available and full readiness false;
@@ -824,6 +1312,18 @@ Component evidence:
   both save files are backed up; installed tests preserve existing save bytes.
   Generated capture/trace scratch is removed, with rollback copies retained.
   [Installed V13 validation](../.local/mcc-native-install-20261018/v2/validation.json).
+- [x] Install the exact accepted firing candidate behind both existing Play
+  routes. Both actual launcher-info checks select runtime `915a647c...`, admit
+  the native Lockout test and keep full readiness false; the actual installed
+  launcher renders eight frames with exit0. Both 4,239,360-byte existing save
+  files preserve hash `1292a582...`. All 314 providers, 43 maps, 97 shaders
+  and source-cache provenance remain exact, with zero reference opens.
+  Runtime, launchers, capability and save rollback copies total 113,601,200
+  bytes and are explicitly retained. Test/trace/capture and sealing scratch
+  is removed. This completes interim installation, not full save/lifecycle,
+  sustained firing, campaign or TU1.5 audiovisual acceptance.
+  [Installed firing-build validation](../.local/mcc-native-install-20261018/v3/validation.json),
+  [Verified selection, rollback and cleanup](../.local/mcc-native-install-20261018/v3/handoff.json).
 - [ ] Record and deliver the requested video with sound.
 - [ ] Report remaining limitations honestly; do not label partial tests full TU1.5 parity.
 
@@ -849,22 +1349,23 @@ logs and requested images; it does not complete the final cleanup gates.
 
 ## Next steps, in order
 
-1. Adopt and verify the bounded class1 correction in the coherent current
-   client and installed/package routes. Source promotion, all-section Cache
-   checks and both inspected tick30 images pass. V13 is installed and compiled
-   version8 is published. Verify the new firing scalar at `FFF44`/`41C4CC`
-   against complete owner `FFA60` and existing data providers. The reviewed
-   classifier and counter clear their actual runtime boundaries.
-   The reviewed response row3 clears its real
-   runtime boundary; existing-provider identity, complete Original/native
-   evaluator pairing, physical-host FP qualification and owner preservation pass.
-   Preserve earlier corrections
-   and combine the passing firing path with the
-   arm/HUD/namespace and looping-sound fixes. Verify audible output and remaining
-   material defects. Preserve the native source path and shaders.
+1. Implement and validate the three authenticated Metropolis bitmap
+   restorations as a separate V3 bundle, composing the immutable two-entry V2
+   Zanzibar bundle. Resolve all five local identities and complete mip/delta
+   inputs before any staged cache write. Prove exact native readback and
+   rejection before writes for malformed inputs, while preserving all other
+   map/DLC bindings and all existing shaders. The byte-identical ocean texture
+   needs no pixel correction; the Sacred Icon gradient needs separate
+   descriptor/resource evidence. Keep the now-installed firing candidate and
+   published version9 available as the interim test. Sound identity,
+   sustained/all-weapon firing and full audiovisual parity remain open.
 2. Wire the honest native-test launcher capability and MCC-only loading/menu
    asset handoffs beyond the now-published interim Lockout route. Verify a fresh
    MCC-only import, remaining loading/menu roles and mod-folder interoperability.
+   The loading-name kernel is sealed; tag1009-to-descriptor ingress, active
+   GFx image binding and the genuine `loading_screen_music` event/resource
+   binding remain open. The three new Metropolis corrections have source/mip
+   evidence and a V3 staging design, but no V3 product or delta is published.
 3. Validate the ordinary client and complete safe product/lifecycle integration.
 4. Continue the remaining onboarding, conversion, parity and delivery gates above.
 5. Perform the final cleanup and record the recovered storage.

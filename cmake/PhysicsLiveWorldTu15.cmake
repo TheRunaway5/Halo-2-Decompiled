@@ -28,25 +28,38 @@ target_sources(halo2_systems PRIVATE src/source_sound_listener_selection_tu15_ge
 target_sources(halo2_systems PRIVATE src/source_sound_gain_tu15_generated.cpp
     src/source_sound_random_scalar_tu15_generated.cpp src/source_sound_properties_tu15_generated.cpp
     src/source_sound_random_short_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/source_sound_range_selection_tu15_generated.cpp
+    src/source_sound_permutation_tu15_generated.cpp src/source_sound_binding_tu15_generated.cpp)
+target_sources(halo2_systems PRIVATE src/source_sound_chunk_readiness_tu15_generated.cpp)
 if(MSVC)
     set_source_files_properties(src/source_sound_listener_selection_tu15_generated.cpp
         src/source_sound_gain_tu15_generated.cpp src/source_sound_random_scalar_tu15_generated.cpp
         src/source_sound_properties_tu15_generated.cpp
         src/source_sound_random_short_tu15_generated.cpp
+        src/source_sound_range_selection_tu15_generated.cpp src/source_sound_permutation_tu15_generated.cpp
+        src/source_sound_binding_tu15_generated.cpp
+        src/source_sound_chunk_readiness_tu15_generated.cpp
         PROPERTIES COMPILE_OPTIONS "/fp:strict")
 else()
     set_source_files_properties(src/source_sound_listener_selection_tu15_generated.cpp
         src/source_sound_gain_tu15_generated.cpp src/source_sound_random_scalar_tu15_generated.cpp
         src/source_sound_properties_tu15_generated.cpp
         src/source_sound_random_short_tu15_generated.cpp
+        src/source_sound_range_selection_tu15_generated.cpp src/source_sound_permutation_tu15_generated.cpp
+        src/source_sound_binding_tu15_generated.cpp
+        src/source_sound_chunk_readiness_tu15_generated.cpp
         PROPERTIES COMPILE_OPTIONS "-fno-fast-math;-ffp-contract=off;-frounding-math")
 endif()
 if(BUILD_TESTING)
-    foreach(sound_owner IN ITEMS gain random_scalar properties random_short)
+    foreach(sound_owner IN ITEMS gain random_scalar properties random_short range_selection permutation binding chunk_readiness)
         if(sound_owner STREQUAL "random_scalar")
             set(sound_owner_argument "random-scalar")
         elseif(sound_owner STREQUAL "random_short")
             set(sound_owner_argument "random-short")
+        elseif(sound_owner STREQUAL "range_selection")
+            set(sound_owner_argument "range-selection")
+        elseif(sound_owner STREQUAL "chunk_readiness")
+            set(sound_owner_argument "chunk-readiness")
         else()
             set(sound_owner_argument "${sound_owner}")
         endif()

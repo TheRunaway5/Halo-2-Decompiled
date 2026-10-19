@@ -3895,3 +3895,263 @@ workspace, other private CMake trees and compiler scratch are gone. No new large
 artifacts remain. Windowed adoption, automatic scheduling/retry, false-alarm
 readiness lifecycle, additional agreed membership removal, default compatibility,
 after-match recovery, sustained memory, hardware/WAN and delivery remain open.
+
+## Retained local input and resident scene lifetimes, 2026-10-18
+
+The foreground authority now exposes its promoted native camera bank and owns
+retained local input delivery. An active native frame consumes the saved serials
+before new hardware admission. A repeated poll at the same simulation tick
+returns the same controls without consuming another serial; ownership clears
+only after the native step. A neutral retained bank still owns its first tick.
+The per-view renderer selects the promoted camera when present. The windowed
+input suspension/drain and full rendered adoption handler are not wired yet.
+
+The native fixture sends three real authenticated DTLS input packets containing
+switch-grenade pulses for four couch seats, consumes one normally before the
+paired cut, then retains two pending input ticks. Both same-executor and
+background-retention cases consume those ticks after exact activation, reject
+out-of-frame delivery and preserve serials on repeated same-tick polls. They
+continue twelve actual native ticks with an existing four-seat client and twelve
+encoded direct voice packets. Fresh hardware/controller and audible headset
+acceptance remain separate.
+
+Machines, props and scenery now support completed-frame presentation lifetime
+retirement. The operation invalidates handle, clock, pose, light, view and LOD
+history without reallocating resident material/geometry resources. Rebinding
+uses the actual current source object and region selection. The machine case
+rolls tick131 back to tick0 with the original salted handles and preserves
+authored permutations and material indices. Prop checks compare complete vertex
+streams across the existing map corpus. The animated scenery case rolls tick100
+back to tick0 and matches an independently prepared scene. These are CPU scene
+checks with original assets, not GPU image or full rendered takeover proof.
+
+Ten selected-owner ASan/UBSan/leak CTests pass, including those three scene cases,
+both native takeover paths, paired stream, role rebind, measured migration,
+encoded/decoded synthetic voice handoff and mesh quality. Native/generated,
+RTC and system interiors remain outside this instrumentation. The current-root
+runtime also passes syntax checks; the native/renderer tests use the coherent
+frozen ABI plus explicitly hashed current owner overlays. Critical current
+owner/test hashes and resident geometry/renderer dependencies match that cohort.
+
+The first configuration omitted a required peer-runtime test file. The next
+scene run exposed three original reference fixtures missing only from the
+private source copy. The final retry copied those unchanged inputs and passed
+all comparisons; bounded failure diagnostics remain alongside the final reports.
+Evidence: `.local/rendered-handoff-20261018/verification.json`.
+The outer supervisor removed 27,574 generated regular files totaling
+2,961,309,972 bytes, including its source copy/build/cache; all six recorded
+compiler scratch trees are absent. Original fixtures/assets, frozen source,
+selected runtimes and unrelated work remain intact. No new large artifacts
+are retained. Full windowed adoption, effects/GPU retirement, automatic
+scheduling/readiness lifecycle, memory/hardware/WAN, after-match recovery,
+default compatibility and delivery remain open. The full ONLINE goal is active.
+
+## Automatic session elections and paced retries, 2026-10-18
+
+The direct session's network worker now calls the agreement driver using its
+current measured, native-ready survivor preference. Frequent service calls do
+not restart an in-flight ballot. Fixed-electorate proposer order staggers initial
+attempts; retries wait for a bounded interval and genuine protocol progress.
+Repeated old prepare/promise/accepted messages do not keep a dead proposer alive.
+The existing two-phase agreement still preserves its highest accepted value,
+fixed physical majority, healthy-host veto and strict silence beyond 500 ms.
+The new retry timers are client policy, not claimed original Xbox constants.
+
+The session fixtures no longer make a positive proposal call. Ordinary and
+decoded-audio cases retain the healthy ready-host veto. The measured case holds
+readiness until predecessor telemetry expires, confirms that no native cut has
+been invented, then requires the worker to elect and later reach the sole-PC
+survivor. Native role completion remains declared fixture metadata in those
+transport cases. Each measured and audio case runs in three fresh TSan processes.
+
+Both actual twelve-player native cases now use that automatic election after
+the original host's real socket/session teardown. Their retained native cut is
+published only after teardown so long fixture-only validation pauses cannot
+elect prematurely during setup. Exact native staging/activation and client
+rebinding remain explicit completed-frame operations. Four promoted couch seats,
+an existing four-seat client, original allocation/result identities, retained
+input serials and camera state survive twelve further native ticks and twelve
+encoded direct voice packets. Readiness, foreground import, renderer/input/
+device adoption and activation are not yet an automatic runtime coordinator.
+
+Final checks: six broader compiled C/C++ ASan/UBSan/leak CTests, three broader
+compiled C/C++ TSan CTests, expanded agreement ASan/UBSan/leak and unsuppressed
+owner TSan checks, and seven selected-owner native CTests pass. Automatic unit
+coverage includes sixteen peers, 64 varying-preference schedules, four-packet
+polling budgets, delayed replies, failed proposers with replayed old prepares,
+accepted-value continuity and concurrent scheduling. Broader TSan excludes
+system-library internals; generated/native/RTC/system interiors remain outside
+the selected native instrumentation. The native cohort retains its coherent
+frozen ABI plus explicitly hashed current owners. The expanded agreement unit
+fixture is built separately from current root source.
+
+Evidence: `.local/automatic-election-20261018/verification.json`. The outer
+supervisor removed 27,199 generated regular files totaling 2,732,562,234 bytes,
+including its private source/build/cache. All six root build/scratch trees are
+also absent. Approximately 409 KB of bounded receipts, commands, source hashes
+and diagnostics remain, with no new large artifacts. Original assets, reference
+fixtures, frozen inputs, selected runtimes and unrelated work are preserved.
+Automatic native retention and false-alarm readiness lifecycle, full rendered
+adoption, further agreed membership changes, compatibility/default delivery,
+after-match repair, sustained memory, hardware/WAN and other ONLINE acceptance
+requirements remain open. The full goal stays active.
+
+## Native preparation and host/client publication, 2026-10-18
+
+The foreground runtime owns its replay/takeover gameplay selections without
+retaining presentation callbacks, desktop or prepared worlds. Its preparation
+method polls replay-worker retirement, reconstructs the owning value and stages
+the exact locally learned host decision once. Foreground reconstruction now
+imports the producer view bank into one private native world, validates full
+session admissions and selected recipient profiles, then binds recipient views.
+This is the existing qualified native role-rebind sequence; a second temporary
+import world is no longer needed. Construction is still synchronous and has no
+qualified frame-time or sustained-memory bound. Replay workers still use their
+separate candidate/workspace pair.
+
+Session completion now checks the certificate, admissions and audio retirement
+and allocates all successor owners before an optional native commit callback.
+Refusal leaves the transport context unchanged. Host activation moves the new
+world, authority and host role before publishing that context, while old client
+destruction occurs outside the session lock. The surviving client prepares an
+opaque endpoint change without changing its native role; it commits that change
+before transport publication and retains the same client, local slots, input
+serials and resident world. Old receive assemblies are cleared at commit.
+Stale/foreign prepared commits are rejected without consuming the preparation.
+Each runtime uses its own learned certificate; consensus requires the same
+world/cut/generation, not identical local ballot/voter receipt sets.
+
+Both runtime pause loops now stage these native roles. They still wait for
+rendered/input/device borrower adoption before activation. Actual native tests
+exercise pending idempotence, later menu selections, callback-borrower expiry,
+wrong profiles/views, refused adoption without epoch publication, stale/foreign
+endpoint preparation and restart of a survivor's failed old shadow. They retain
+four promoted local seats, an existing four-seat client, native allocation/PCR
+identities and saved input/camera state for twelve additional native ticks and
+twelve direct encoded voice packets. These are still explicit adapter-free
+activation tests, not a delivered windowed migration.
+
+Seven final selected-owner native ASan/UBSan/leak CTests pass, following two
+earlier passing incremental native cohorts. Three root C/C++ ASan/UBSan/leak
+session CTests pass. Two root C/C++ TSan CTests also pass, each measured/audio
+case repeated in three fresh processes with system-library internals excluded.
+Native/generated/RTC/system interiors remain outside the selected native-owner
+instrumentation. Three disposable current-root syntax checks pass, including
+the runtime loop integration. Selected current source hashes match the native
+cohort's pre-build manifest; the native ABI remains the coherent frozen base.
+
+Evidence: `.local/native-prepare-coordinator-20261018/verification.json`.
+After every final CMake/CTest step passed, the outer recipe terminated with143
+while awaiting finish. The supervisor removed its owned native workspace. Both
+root private build/scratch trees and all three compiler scratch trees are also
+absent. The optional final trace copy and byte-count measurement were not made;
+passing step reports, bounded test summaries and source hashes remain. No new
+large artifacts are retained. Original assets, references, frozen source,
+installed runtimes and unrelated work are preserved. Automatic readiness and
+false-alarm handling, complete rendered/input/HUD/effects/GPU adoption, runtime
+activation, broader modes/generations/PCR, timing/memory, hardware/WAN, default
+compatibility and delivery remain open. The full ONLINE goal stays active.
+
+The preceding input audit made this gap explicit: the promoted bank comes from the sealed
+host cut, while the old `LanClient` can own newer outgoing press counters.
+`LanClient::send` retains those counters, but current host activation retires
+the client without importing them. Existing native checks send their queued
+pulses before capture, so they do not establish post-cut local-command survival.
+Carry and validate the latest local input ownership before retirement, including
+held controls and completed interactions, and add a native delivery case before
+enabling ordinary migration.
+
+## Promoted input after the sealed cut, 2026-10-18
+
+The old native client now retains one latest owning encoded input packet. Before
+retirement, runtime activation merges it into the independently validated host
+bank after checking session/generation, endpoint, fingerprint, nonce/cookie,
+physical couch owner, selected profiles/teams and monotonic action serials.
+Parsing and every guard precede mutation. Delivered counters, native world and
+camera state are unchanged. The pending takeover retains its immutable sidecar
+until successful activation; repeated refresh and refused adoption do not consume
+or duplicate input. No native pointer, hardware owner or world crosses threads.
+
+Both actual twelve-player native tests now produce three pre-cut input pulses,
+consume one, seal the cut, then produce two more pulses plus changed movement,
+look/zoom and a completed interaction without another predecessor receive.
+Promotion delivers all four pending action ticks exactly once for every local
+seat, including one saved interaction duration/neutral target. Repeated polling
+within a native tick is idempotent; fresh input ownership returns only after the
+last carried tick is stepped. The existing four-seat client follows twelve more
+native ticks while twelve direct encoded voice packets arrive. The lower native
+role fixture rejects foreign contexts/owners, wrong slots, premature consumption
+and malformed owning packets without changing delivery state.
+
+Seven selected-owner native ASan/UBSan/leak CTests pass in 83.94 seconds. The
+cohort uses the frozen coherent native ABI with hashed current owners; original
+generated/native/RTC/system interiors remain uninstrumented. A separate disposable
+current-root syntax check passes, including the runtime loop. No new TSan or
+hardware/WAN claim is made for this step. Evidence:
+`.local/promoted-input-continuity-20261018/verification.json`.
+
+The successful supervisor disposed of 27,199 generated files and 2,738,244,560
+logical bytes of copied source/build/cache. Compiler and cleanup scratch are also
+absent. An audited 44 unused old test executables in `build-multiplayer` reclaimed
+5,703,429,208 more logical bytes. Both launchers select the preserved native
+runtime; no sources, libraries, assets/reference inputs, frozen evidence or
+concurrent work were removed. Only bounded reports remain, with no new retained
+large artifacts. The full goal stays active: actual hardware input pause/drain/
+release, full renderer/HUD/effects/interpolation/GPU/device adoption, readiness
+and false-alarm lifecycle, runtime activation, broader modes/generations/results,
+timing/memory, delivery and physical/WAN checks remain open. Default migration
+remains gated.
+
+## Windowed input ownership during migration, 2026-10-18
+
+The runtime now calls `continue_local_input()` before consuming fresh controls
+on every command tick. During retained delivery it uses that bank's movement,
+look, zoom and interaction target, excludes scripted/prompt replacement, and
+does not consume device-edge/hold queues. After the final carried native step,
+the inner catch-up loop stops; hardware ownership resumes on the next frame.
+The transport fence and input drain share one pause clock. SDL focus, device
+changes and exit events still run; relative mouse motion is discarded. Pads
+retain their old edge baseline and active hold elapsed time, while a changed
+controller instance clears only its own old hold. KBM tracks physical state
+without queuing paused taps, freezes existing durations, and delivers an old
+completion before a newly held request, including events between resume and
+the next command. These are native-adapter policies, not newly claimed original
+Xbox migration constants.
+
+The actual SDL event-queue suite passes 287 checks with the adapter and settings
+compiled directly under ASan/UBSan. This focused target no longer rebuilds the
+entire native world just to validate the device adapter. Current-root syntax
+passes separately. A full current-source freeze, followed by the latest adapter
+and fixture updates, compiled all dependencies and the windowed runtime. Its
+TU1.5 windowed normal-input case passes with 154 native command observations,
+an actual attached neutral virtual controller, movement/crouch/jump/fire, reload
+transfer, mouse look, focus and overlay checks. It is not a rendered migration
+test and does not qualify four physical controllers or headsets.
+
+One initial build ended with143 before linking; its owned tree was removed,
+without an established termination cause. The next full build linked; requested
+Khronos GPU validation could not run because the layer is unavailable. An
+explicit private CTest environment override then used normal Vulkan. That run
+exposed an old reload assertion against the separate C++ presentation timer.
+The preserved trace shows exactly one R press, magazine52 ->60 and reserve120
+->112 while that scalar stays0. The test now requires unchanged weapon identity,
+conserved total ammunition, exact reserve-to-magazine transfer and one R press.
+No gameplay reload state, timing or native owner was changed. Trace writing now
+precedes assertions so failed runtime checks retain bounded diagnostics.
+
+Final evidence: `.local/runtime-input-handoff-20261018/verification.json`.
+Selected device/fixture hashes match the successful windowed cohort. Current
+runtime input wiring matches its frozen translation unit; the only subsequent
+runtime difference is an unrelated concurrent material include, checked by the
+separate current-root syntax pass. The successful supervisor removed 34,345
+generated files totaling 1,063,983,811 logical bytes. Its source/build/cache,
+earlier interrupted workspace and adapter/compiler scratch are absent; only
+bounded traces, source hashes, recipes and diagnostics remain. Original/reference
+inputs, installed runtimes and unrelated work remain intact.
+
+The next full integration must still retire/rebind presentation, interpolation,
+HUD/effects/GPU query rings and device borrowers before activation. Automatic
+readiness retention/false-alarm lifetime, actual rendered migration, current-ABI
+native migration coverage, physical couch/headset/WAN and sustained timing/memory,
+default compatibility/delivery and other ONLINE requirements remain open. The
+full goal stays active and default migration remains gated.

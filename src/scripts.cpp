@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <bit>
 #include <cmath>
+#include <cstdlib>
+#include <iostream>
 #include <limits>
 #include <set>
 namespace halo2 {
@@ -411,6 +413,10 @@ void ScriptVm::update(Thread &thread, std::uint64_t tick) {
         if (thread.stack.size() >= 128)
           throw FormatError("script recursion limit");
         f.returned_call = true;
+        // Optional observation of authored static-call entry, before its
+        // frame is pushed. No source clock, wake or script value is changed.
+        if(std::getenv("HALO2_SCRIPT_CALL_TRACE"))
+          std::cout<<"Script call: tick="<<tick<<" name="<<f.name<<'\n';
         thread.stack.push_back(Frame{program_.scripts[n.opcode].root});
         continue;
       }

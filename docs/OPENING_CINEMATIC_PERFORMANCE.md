@@ -63,8 +63,53 @@ gaps by themselves. This probe still uses the unchanged historical executable.
 
 Every new CMake check uses `tools/run_tests.py`; one-off probes use
 `tools/run_test.py` and generated binaries/banks stay in owned scratch.
-Source comparisons retain60MiB hard/64MiB measured/zero swap; serial builds
-retain1GiB/zero swap; GPU previews retain3GiB/zero swap. Small logs, commands,
+Source comparisons retain60MiB hard/64MiB measured/zero swap. Earlier serial
+builds used1GiB/zero swap; the v586 delivery build uses2GiB/zero swap after
+measured compiler exhaustion. GPU previews retain3GiB/zero swap. Small logs, commands,
 hashes and reports remain. No new large binary, raw-bank, frame or video artifact
 is intentionally retained by these runs. Existing reference assets, frozen
 snapshots and installed runtimes remain untouched.
+
+The hidden v564 baseline uses the same diagnostic executable at1280x720 with
+Original graphics and dummy audio. Its first60 seconds have2278 frame rows;
+after the first10, median interval is22.68ms,95th percentile62.53ms and maximum
+180.46ms. Renderer CPU submission has median3.31ms/95th percentile10.17ms;
+these are not GPU timestamps. There are57 intervals above66.67ms and12 above
+100ms. A concurrent serial compile is disclosed. The bulk of interval cost
+is upstream of renderer submission in this sample; this does not identify
+every camera-cut stall. Small logs/TSV/report are in
+`analysis/opening-cinematic-20261015/cutscene-frame-baseline-v564`; its private
+scratch was removed and it retains no frame captures.
+
+The current changes retain completed NPC pose history across slow draws and
+avoid a second legacy camera-animation decode when the source observer owns
+the camera. Focused interpolation checks fail on the old history and pass
+with Clang/GCC (v562). Source-camera controls pass (v580); the coherent v586 runtime,
+clean candidate cadence and visible acceptance remain pending. Building this
+runtime also required partitioning the generated physics-support module's2025
+unchanged function bodies into32 translation units after the monolith hit
+the1GiB build cap. Compiler peak/linked-helper checks are v569/v570; no gameplay
+speedup follows from partitioning alone.
+
+The v571 build passed the32 physics partitions but later exhausted its1GiB
+limit in the authority archive serializer. Its reader and writer now compile
+separately without changing field traversal, public function bodies or the
+archive format. ClangO1 compiles both in14.8 seconds with972.3MiB peak (v578);
+the compile-only project's missing CTest registration remains a recorded runner
+failure, not a codec functional pass. Actual nested codec checks are part of
+v579. Failed runtime scratch was removed; no new runtime or video was delivered
+by v565/v571.
+
+The v579 build passed the serializer but hit the1GiB cap compiling the final
+multiplayer module. Normal ClangO1 compiles that unchanged module in11.75
+seconds under a2GiB bound, with1276220KiB compiler peak (v585). The delivery
+build now uses2GiB, one compiler job, zero swap and LLD. AGENTS.md specifies
+owned cleanup but no compiler RAM cap. Original-data comparison guards retain
+their existing60/64MiB limits. Compiler memory measurements are not game FPS.
+
+The real source-camera control v580 passes on00a/03b; restoring the duplicate
+legacy decode triggers the exact regression assertion under the same source
+comparison limits. Cinematic variant names are now retained with model
+resources instead of reparsing full definitions on every character draw. The
+current source variant index remains live. These remove known repeated work;
+clean candidate pacing and visible NPC/camera acceptance remain pending.

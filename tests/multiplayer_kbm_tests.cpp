@@ -340,6 +340,62 @@ int main() {
     queue.drain(adapter);
     check(adapter.snapshot().controls.forward == 1, "controller removal cleared keyboard hold");
 #endif
+    {
+      MultiplayerKbm paused(queue.id);
+      queue.key(SDL_SCANCODE_E,true);queue.drain(paused);
+      const auto started=queue.key_timestamp;
+      check(paused.consume(0,0,started+100).controls.pickup_milliseconds==100,
+          "Pre-pause interaction duration was not admitted");
+      queue.key(SDL_SCANCODE_Q,true);queue.key(SDL_SCANCODE_Q,false);queue.drain(paused);
+      paused.suspend(started+600);paused.suspend(started+900);
+      queue.key(SDL_SCANCODE_E,false);
+      queue.key(SDL_SCANCODE_Q,true);queue.key(SDL_SCANCODE_Q,false);
+      queue.key(SDL_SCANCODE_F,true);queue.key(SDL_SCANCODE_F,false);queue.wheel(0,1);
+      queue.key(SDL_SCANCODE_W,true);queue.key(SDL_SCANCODE_X,true);queue.drain(paused);
+      for(unsigned tick=0;tick<4;++tick){
+        check(neutral(paused.snapshot(1.25f,-.5f,started+1000+tick)),"Suspended snapshot admitted gameplay");
+        const auto blocked=paused.consume(1.25f,-.5f,started+1000+tick);
+        check(neutral(blocked)&&blocked.controls.yaw==1.25f&&blocked.controls.pitch==-.5f,
+            "Suspended tick consumed a completion or changed look");
+      }
+      paused.resume(started+10000);paused.resume(started+20000);
+      auto resumed=paused.consume(0,0,started+10000);
+      check(!paused.suspended()&&resumed.controls.forward==1&&!resumed.actions.grenade&&
+          !resumed.actions.melee&&!resumed.actions.switch_weapon,
+          "Paused taps leaked into resumed gameplay or held movement was lost");
+      check(resumed.controls.pickup&&resumed.controls.pickup_milliseconds==600,
+          "Old interaction release lost its frozen duration");
+      check(resumed.controls.dual_wield&&resumed.controls.dual_wield_milliseconds==0,
+          "New held interaction inherited elapsed pause time");
+      resumed=paused.consume(0,0,started+10025);
+      check(!resumed.controls.pickup&&!resumed.controls.pickup_milliseconds&&
+          resumed.controls.dual_wield_milliseconds==25,"Completion repeated or resumed hold clock changed");
+      paused.release();
+
+      queue.key(SDL_SCANCODE_E,true);queue.drain(paused);const auto restarted=queue.key_timestamp;
+      paused.consume(0,0,restarted+100);paused.suspend(restarted+400);
+      queue.key(SDL_SCANCODE_E,false);queue.key(SDL_SCANCODE_E,true);queue.drain(paused);
+      paused.resume(restarted+10000);
+      // Runtime polls events after resuming but before delivering a native
+      // command. An unrelated fresh key must not start the new hold early.
+      queue.key(SDL_SCANCODE_D,true);queue.drain(paused);
+      check(paused.consume(0,0,restarted+10000).controls.pickup_milliseconds==400,
+          "New physical hold overwrote an old suspended completion");
+      check(paused.consume(0,0,restarted+10025).controls.pickup_milliseconds==25,
+          "New hold did not start after delivery of the old completion");
+      paused.release();
+
+      queue.key(SDL_SCANCODE_E,true);queue.drain(paused);const auto held_start=queue.key_timestamp;
+      paused.consume(0,0,held_start+100);paused.suspend(held_start+500);
+      paused.resume(held_start+20000);
+      check(paused.snapshot(0,0,held_start+20025).controls.pickup_milliseconds==525,
+          "Unreleased hold included suspended wall time");
+      paused.suspend(held_start+21000);queue.focus(false);queue.focus(true);queue.drain(paused);
+      paused.resume(held_start+22000);
+      check(neutral(paused.consume(0,0,held_start+22001)),"Focus loss resurrected a suspended interaction");
+      NativeInteractionHold wrapped;wrapped.set(true,0xfffffff0u);wrapped.exclude_elapsed(32);
+      check(wrapped.sample(0x20u).second==16,"Suspended interaction clock failed across SDL rollover");
+    }
     std::cout << checks << " keyboard/mouse host checks passed through the actual SDL event queue; "
               << "action consumer gameplay is outside this adapter\n";
   } catch (const std::exception &error) { std::cerr << error.what() << '\n'; return 1; }

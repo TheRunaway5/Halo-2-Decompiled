@@ -26,7 +26,7 @@ bytes and original image/cache hashes are retained in
 `analysis/weapons-tu15-goal-20261013/authored-scope.json`. Its per-weapon feature
 and visual status remains unverified for all 63 definitions.
 
-`weapon-completion-matrix-v50.json` expands those same63 rows into630 explicit
+`weapon-completion-matrix-v54.json` expands those same63 rows into630 explicit
 completion gates, including owner/applicability audits and complete reference
 sequences. Bounded Hunter and Needler runtime evidence is attached to their
 tested Old Mombasa and Lockout definitions; it certifies neither a whole gate
@@ -2194,3 +2194,158 @@ certified weapons. See sound-properties-original-native-progress-v1.json,
 checkpoint-sound-properties-20261018.json and
 post-sound-properties-storage-audit-v1.json. The next127E00 body is recovered
 separately; it returns a live x87 value and still needs behavioral validation.
+
+## Original live x87 sound result (October18)
+
+The complete34-instruction127E00 signed-short interpolation is now wired into
+the world. Thirty-four cases match unchanged original host execution, including
+the exact80-bit live ST(0) result, stack depth/TOP, raw x87 status/control, MXCSR,
+GP/XMM values, defined flags, traces and ordered writes. Controls cover24/53/64-bit
+precision, four rounding modes, signed bounds, RNG edge seeds and empty-stack
+status/TOP values. The actual caller supplies the RNG address. No substitute
+seed or float32 return is introduced. Thirty-three original instructions execute;
+SHR EAX,16 followed by TEST makes JGE bypass127E4B. That instruction remains in
+the generated port. Raw emulator precision/C1 disagreements remain failed
+comparisons; original host execution agrees with native state.
+
+All eight focused sound CTests pass in Release and ASAN/UBSAN. Current world
+syntax is checked again after a separate build-partition change in the shared
+CMake file. Existing-library firing reaches128DCF->21F960 after36011 native
+observations, versus a36025-instruction original prefix, with equal GP/XMM,
+flags and MXCSR. Raw FP and canonical observer PC differences remain open.
+
+A fresh application build containing all four additional sound ports is live at
+checkpointv51. Its exact CMake process, private build and waiting application/
+firing follow-ups are recorded in checkpoint-sound-random-short-20261018.json.
+The firing adapter is a retained source snapshot. All completed validation scratch
+and publisher scratch are removed; only this active validation is preserved.
+No new large binaries, raw banks or frames are retained as evidence.
+
+Matrixv51 preserves63 paths,1110 rows,38 maps and630 gates, with zero fully
+certified weapons. See sound-random-short-original-native-progress-v1.json and
+post-sound-random-short-storage-audit-v1.json. The next21F960 range-selection
+candidate matches68 original host cases across all106 instructions; it has not
+yet been admitted to production.
+
+## Original range, permutation and chunk binding (October18)
+
+The21F960 range selector,21FA80 permutation composition and12B1C0 source binding
+are now wired into the world. Their eleven complete bodies contain527 original
+instructions. Actual host execution verifies151 successful cases and six real
+unmapped-read faults across526 instructions. The remaining21FC5A instruction is
+bypassed by the source SHR/TEST/JGE invariant and stays in the generated port.
+Preferred/nearest interval selection, cached choices, persistent used masks,
+weighted retries, forced choices, the original count32 shift behavior and chunk
+reference-byte updates match unchanged original execution. Controlled inputs
+remain separate from captured gameplay; no replacement records are supplied
+to production.
+
+All eleven focused sound CTests pass in Release and ASAN/UBSAN. Current world
+syntax and source hashes pass. The previous full application build, including
+the live x87 return, passed ten selected checks and completed120 ticks with both
+one and four local players. Nine source inventory changes across the shared
+build are recorded. Its build and both application/firing follow-ups are removed.
+That build predates these three new ports, which still require a full relink.
+All18 sound submissions remain unadmitted; no PCM or rendered-output proof is
+claimed from these checks.
+
+The full38-map metadata audit finds a maximum of32 permutations and12 referenced
+count32 definitions, with no invalid sound/range/class references. Those12
+definitions are marine_shortmove sounds; this is a general sound-domain audit,
+not a weapon dependency-closure claim. Existing-library firing now reaches
+128E5D->128970 after36388 native observations, versus a36402-instruction original
+prefix, with equal GP/XMM, flags and MXCSR. Full firing and raw FP/observer-PC
+parity remain open.
+
+All completed validation scratch and publisher scratch are removed. Small
+reports, commands, hashes and source evidence remain; no new large artifacts
+are retained. Matrixv52 preserves63 paths,1110 rows,38 maps and630 gates, with
+zero fully certified weapons. See sound-selection-original-native-progress-v1.json,
+checkpoint-sound-selection-20261018.json and
+post-sound-selection-storage-audit-v1.json. The next128970 body and its
+21F260/1293F0 callees are recovered separately and remain unported.
+
+## Original chunk readiness and captured firing return (October18)
+
+Original128970 readiness,1293F0 source pinning,21F260 cache-state selection and
+21F3B0 cache-entry retention are now generated from authenticated TU1.5 bytes.
+The four bodies contain187 instructions. Unchanged original host execution
+matches114 cases across180 instructions:101 completed calls and13 explicit
+allocation/scheduling stops. The seven unexecuted instructions follow those
+external callees; no replacement return is supplied to force their continuation.
+Release and ASAN/UBSAN checks pass. World dispatch uses the existing allocator
+and actual native resource-read owner. Its existing16E940 handle-lookup owner
+is also included in the firing diagnostic's dispatch.
+
+The existing-library replay now returns from the captured original1030F0 SMG
+firing call after51698 native instruction observations. All three retained
+spans, totaling40594 bytes of unit, weapon and complete first-person state,
+match the original capture. GP/XMM, flags and MXCSR also match. Raw x87 control
+still differs by reserved bit0x40 and status by precision flag0x20; neither is
+hidden by this bounded result. The captured plasma charge-start call also
+returns with matching owned spans. These are finite captured calls, not a
+complete firing/reload/playthrough or rendered-output certification.
+
+The SMG continuation performs the actual47616-byte sound-resource read and
+records the native completed receipt. This uses the declared synchronous native
+policy; it does not certify original Xbox queue timing or request identity.
+The independent original allocator-entry prefix matches GP/XMM, flags and
+MXCSR before this resource adaptation. Its raw FP and canonical observer-PC
+differences remain recorded. The fresh full application relink, all six selected
+checks and finite120-tick runs with one and four players pass. The fresh-library
+firing replay also returns with the same40594 owned bytes and captured GP/XMM,
+flags and MXCSR equal. Its complete47616-byte resource buffer matches both the
+original worker buffer and the authored shared.map range. SHA-256 proof is
+retained without another raw buffer copy. The selected source inventory records
+13 changes during the shared build; finalized port hashes remain equal.
+
+The passing firing replay starts from retained original initialized banks.
+Native live-world sound storage still stops before original224EC0 device
+activation, leaving its constructor's unactivated state and no driver. That
+420-instruction activation body is recovered, with its real SDK calls retained
+as the next audio boundary. Passing storage, submission-observation or captured
+firing checks does not establish live sound admission, DSP/PCM output or full
+weapon parity.
+
+All23 completed private validation directories and publisher scratch are removed.
+Small evidence remains in sound-chunk-readiness-original-native-progress-v1.json,
+fresh-native-sound-read-buffer-proof-v1.json and
+post-sound-chunk-readiness-storage-audit-v1.json. Matrixv53 preserves63 paths,
+1110 authored rows,38 maps and630 gates, with zero fully certified weapons.
+
+## Original host firing prefix and current first-person update (October18)
+
+Unchanged original1030F0 bytes now execute on the host through the real
+21F3B0 allocator boundary. The current native prefix matches all36550 instruction
+observations, all7151 ordered writes, GP/XMM, defined flags, raw x87 control and
+status, empty x87 stack and MXCSR. Seven explicit damage-owner observer ranges
+use independently authenticated correspondence across90 complete routines and
+8976 static instruction sites. Other observers keep their actual PCs; source
+arithmetic and public observer records are unchanged. The new diagnostic stop
+does not supply a callee return, and its full-call result remains failing.
+Default complete SMG firing still returns with40594 captured owned bytes equal.
+
+The previously observed14 extra emulator steps and two extra writes come from
+the CRT control-word guards at32CCFC and332133. The original host and native
+control word is027F; the independent emulator retains023F and takes the extra
+save/restore paths. Canonical observer renaming changes addresses, not instruction
+counts. The raw precision-status difference also matches unchanged original host
+execution. The initial failed emulator-trace assumption remains retained beside
+the stronger host comparison; native math was not adjusted to fit it. This is
+source-execution evidence on the host, with no physical Xbox certification.
+
+The current native168CA1 first-person firing update returns and matches the
+retained unchanged original host across27216 observations,21748 ordered write
+bytes,148 actual host estimate lanes and its complete33584-byte state. The
+original ammunition watchpoint records the Needler's30-to29 decrement, and the
+original map identifies its17-node weapon model and37-node Master Chief model.
+The emulator-captured state still differs by604 bytes. That discrepancy remains
+explicit; no rendered framebuffer, physical Xbox, live audio activation or
+DSP/PCM parity is claimed from these CPU comparisons.
+
+All recorded private probe directories and publisher scratch are removed. No new
+large binary, RAM bank or capture is retained. Small reports, traces, source hashes
+and correspondence remain in original-host-weapon-validation-progress-v1.json,
+checkpoint-original-host-weapon-validation-20261018.json and
+post-original-host-weapon-storage-audit-v1.json. Matrixv54 retains all63 weapons,
+1110 authored rows,38 maps and630 gates, with zero fully certified weapons.

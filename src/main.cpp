@@ -723,6 +723,7 @@ int main(int argc, char **argv) {
     std::uint32_t scripted_audio_random=multiplayer_options.session_random_seed.value_or(0x12345678u);
     std::unique_ptr<halo2::MultiplayerAudio> scripted_audio;
     std::map<halo2::MultiplayerAudio::Voice,halo2::MultiplayerAudioSubmission> scripted_speech;
+    std::map<halo2::MultiplayerAudio::Voice,std::int32_t> traced_scripted_voice_volumes;
     const auto campaign_source=[&](std::size_t selected) -> std::shared_ptr<halo2::CampaignSourceRuntime> {
       if(!play || !content || content->multiplayer_spawn ||
           cache.original_data()->image!=halo2::OriginalData::Image::TitleUpdate15)return {};
@@ -1361,13 +1362,30 @@ int main(int argc, char **argv) {
       for(auto it=scripted_speech.begin();it!=scripted_speech.end();) {
         const auto &cue=it->second;
         if(!simulation->object_lifetimes().contains(cue.owner)) {
+          traced_scripted_voice_volumes.erase(it->first);
           it=scripted_speech.erase(it);continue;
         }
         if(!scripted_audio->voice_active(it->first)) {
           halo2::source_unit_speech_stop_tu15(world,cue.owner,cue.sound);
+          traced_scripted_voice_volumes.erase(it->first);
           it=scripted_speech.erase(it);continue;
         }
         const auto consumed=scripted_audio->playback_position(it->first);
+        if(std::getenv("HALO2_SCRIPT_CALL_TRACE") && consumed.first_device_frame) {
+          const auto parameters=scripted_audio->voice_parameters(it->first);
+          const auto [entry,first]=traced_scripted_voice_volumes.try_emplace(it->first,
+              parameters.volume_hundredths_db);
+          if(first || entry->second!=parameters.volume_hundredths_db) {
+            std::cout<<"Script voice: tick="<<std::to_string(simulation->ticks())
+                <<" sound="<<std::to_string(cue.sound)<<" owner="<<std::to_string(cue.owner)
+                <<" voice="<<std::to_string(it->first)
+                <<" volume_hundredths_db="<<std::to_string(parameters.volume_hundredths_db)
+                <<" packet_frames="<<std::to_string(cue.frames)
+                <<" source_frames="<<std::to_string(consumed.source_frames)
+                <<" first_device_frame="<<std::to_string(*consumed.first_device_frame)<<'\n';
+            entry->second=parameters.volume_hundredths_db;
+          }
+        }
         if(consumed.first_device_frame)
           halo2::source_unit_speech_tu15(world,cue.owner,cue.sound,cue.pitch_range,
               cue.permutation,float(consumed.source_frames/48000.0));
@@ -1385,7 +1403,7 @@ int main(int argc, char **argv) {
       if (event.action == Event::Reset) {
         audio->stop();
         if(scripted_audio)scripted_audio->stop();
-        scripted_speech.clear();
+        scripted_speech.clear();traced_scripted_voice_volumes.clear();
         scripted_emitters.clear();
         if(scripted_audio)scripted_audio_timeline.anchor(simulation->ticks(),scripted_audio->presentation_frames());
         loops.clear();
@@ -1708,7 +1726,7 @@ int main(int argc, char **argv) {
         campaign_vehicle_camera.reset();
         if(audio)audio->stop();
         if(scripted_audio)scripted_audio->stop();
-        scripted_speech.clear();
+        scripted_speech.clear();traced_scripted_voice_volumes.clear();
         scripted_emitters.clear();
         scripted_audio_timeline.clear();
         loops.clear();impulses.clear();reported_faults=0;
@@ -2333,9 +2351,8 @@ int main(int argc, char **argv) {
                 vertices=v.source_cinematic_model->draw(object.handle,selected,
                     history.sample_render(v.source_cinematic_model->hierarchy(),fraction),shader,*character_shader_view);
               }
-              const auto initial=cache.load_initial_model_definition(placement.definition);
               const auto regions=source->object_model_regions(object.handle);
-              variant=regions.selection.variant_index<0?0u:initial.variants.at(unsigned(regions.selection.variant_index)).name;
+              variant=v.source_cinematic_model->variant_name(regions.selection.variant_index);
             } else {
               const auto nodes=object.solved_nodes?scene_interpolation.sample_nodes(object,fraction):
                   halo2::pose_model_nodes_world(v.model,root,animation?animation->clip.get():nullptr,object_time);
@@ -2767,7 +2784,7 @@ int main(int argc, char **argv) {
     std::cout << "Rendered " << frames << " frames\n";
     if(controller)SDL_GameControllerRumble(controller.get(),0,0,0);
     if (simulation)
-      std::cout << simulation->status() << '\n';
+      std::cout << simulation->status() << " level_finished=" << simulation->level_finished() << '\n';
     if (bsp_replay && (!replay_streamed || !replay_reverted ||
                       simulation->checkpoint_restores()!=1 || simulation->bsp_revision()!=2))
       throw halo2::FormatError("BSP replay did not complete streaming and restore");

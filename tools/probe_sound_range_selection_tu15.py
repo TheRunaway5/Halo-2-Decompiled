@@ -46,11 +46,7 @@ def defined_flag_mask(trace):
 
 
 def make_driver(scratch):
-    original=ROOT/'tests/source_sound_listener_selection_tu15_tests.cpp'
-    text=original.read_text().replace('#include "halo2/source_sound_listener_selection_tu15.hpp"',
-        '#include "halo2/physics_world_runtime.hpp"\nnamespace halo2 {void source_run_sound_range_selection_tu15(SourcePhysicsContactMemory &,std::uint32_t,SourcePhysicsWorldRuntimeAbi &,SourcePhysicsFactoryFloatingPoint,const SourcePhysicsWorldRuntimeServices &,const SourcePhysicsContactRecordObserver & = {});}')
-    text=text.replace('source_run_sound_listener_selection_tu15(', 'source_run_sound_range_selection_tu15(')
-    p=scratch/'probe.cpp';p.write_text(text);return p
+    return ROOT / 'tests/source_sound_range_selection_tu15_tests.cpp'
 
 
 def range_cases(memory,initial):
@@ -203,7 +199,7 @@ def main():
     (scratch / 'fixtures.json').write_text(json.dumps(dict(cpu=initial, fixtures=fixtures)) + '\n')
     shutil.copyfile(scratch / 'fixtures.json', output / 'declared-inputs.json')
     source = make_driver(scratch)
-    header = ROOT / 'include/halo2/physics_world_runtime.hpp'
+    header = ROOT / 'include/halo2/source_sound_range_selection_tu15.hpp'
     pins = {str(path): sha(path) for path in (source, generated, header)}
     binary = args.binary.absolute() if args.binary else scratch / 'gain'
     command = None

@@ -12,6 +12,7 @@ using Bytes=std::vector<std::byte>;
 enum Type:unsigned {Probe,Silence,Ready,Prepare,Promise,Accept,Accepted,Nack,types};
 constexpr unsigned kind=10,maximum_packet=134;
 constexpr std::uint64_t retry_ms=100,silence_ms=500;
+constexpr std::uint64_t proposal_retry_ms=1000,proposer_spacing_ms=50;
 void need(bool ok){if(!ok)throw std::invalid_argument("Invalid peer host agreement packet or context");}
 bool member(const AuthorityTransferContext &c,unsigned p){return p<16&&(c.peers&(1u<<p));}
 template<class T>bool nonzero(const T &v){return std::ranges::any_of(v,[](auto b){return b!=std::byte{};});}
@@ -61,12 +62,16 @@ struct PeerHostAgreement::Impl {
     enum Stage {Idle,Preparing,Accepting};Stage stage=Idle;
     PeerMigrationBallot proposal;std::optional<PeerMigrationValue> preferred,selected;
     std::optional<PeerMigrationDecision> decision;
+    std::optional<std::uint64_t> automatic_after;
     Impl(unsigned s,AuthorityTransferContext c,std::uint64_t now):self(s),context(c),
         electorate(c.host<16?std::uint16_t(c.peers&~(1u<<c.host)):0),majority(std::popcount(electorate)/2+1),host_at(now),clock(now){
         need(member(c,s)&&member(c,c.host)&&nonzero(c.session)&&std::popcount(c.peers)>=2&&c.epoch<UINT32_MAX&&c.membership_revision<UINT64_MAX);
     }
     bool voter(unsigned p)const{return p<16&&(electorate&(1u<<p));}
     void tick(std::uint64_t now){clock=std::max(clock,now);}
+    std::uint64_t later(std::uint64_t delay)const{return delay>UINT64_MAX-clock?UINT64_MAX:clock+delay;}
+    unsigned proposer_order()const{return std::popcount(unsigned(electorate)&((1u<<self)-1));}
+    void progress_seen(){automatic_after=later(proposal_retry_ms+proposer_order()*proposer_spacing_ms);}
     bool silent(std::uint64_t now)const{return self!=context.host&&(accepted||decision||std::max(clock,now)-host_at>silence_ms);}
     void valid(PeerMigrationBallot n)const{need(n.round&&voter(n.proposer));}
     void valid(const PeerMigrationValue &v)const{need(voter(v.host)&&v.cut.id&&v.cut.bytes&&v.cut.bytes<=64ull*1024*1024&&nonzero(v.cut.digest));}
@@ -80,6 +85,7 @@ struct PeerHostAgreement::Impl {
         if(learned[peer]){if(vote.ballot<learned[peer]->ballot)return;
             need(vote.ballot!=learned[peer]->ballot||vote.value==learned[peer]->value);}
         if(decision)need(vote.value==decision->value);
+        if(!learned[peer]||*learned[peer]!=vote)progress_seen();
         learned[peer]=vote;std::uint16_t votes{};
         for(unsigned p=0;p<16;++p)if(voter(p)&&learned[p]&&*learned[p]==vote)votes|=std::uint16_t(1u<<p);
         if(unsigned(std::popcount(votes))<majority)return;
@@ -89,6 +95,7 @@ struct PeerHostAgreement::Impl {
     void accept(PeerMigrationBallot n,const PeerMigrationValue &v){
         need(voter(self)&&silent(clock)&&n>=promised&&known(v)&&(!decision||decision->value==v));
         if(accepted&&accepted->ballot==n)need(accepted->value==v);
+        if(!accepted||accepted->ballot!=n)progress_seen();
         promised=n;highest_round=std::max(highest_round,n.round);accepted=Vote{n,v};learn(self,*accepted);
         broadcast(Accepted,[&](Bytes &b){ballot(b,n);value(b,v);});
     }
@@ -100,21 +107,28 @@ struct PeerHostAgreement::Impl {
             if(!highest||r->prior->ballot>highest->ballot)highest=r->prior;}}
         if(count<majority)return;
         const auto v=highest?highest->value:*preferred;if(!known(v))return;
-        selected=v;stage=Accepting;
+        selected=v;stage=Accepting;progress_seen();
         if(proposal>=promised&&silent(clock))accept(proposal,v);
         broadcast(Accept,[&](Bytes &b){ballot(b,proposal);value(b,v);});
     }
     void promise(unsigned to,PeerMigrationBallot n){
         if(n<promised){send(to,Nack,[&](Bytes &b){ballot(b,promised);});return;}
+        if(n>promised)progress_seen();
         promised=n;highest_round=std::max(highest_round,n.round);
         if(to==self){responses[self]=Response{accepted};progress();}
         else send(to,Promise,[&](Bytes &b){ballot(b,n);put(b,accepted.has_value(),1);
             if(accepted){ballot(b,accepted->ballot);value(b,accepted->value);}});
     }
+    bool propose(unsigned candidate){
+        if(!voter(self)||!silent(clock)||decision||!voter(candidate)||!ready[candidate]||highest_round==UINT64_MAX)return false;
+        proposal={++highest_round,self};preferred=PeerMigrationValue{candidate,*ready[candidate]};selected.reset();responses.fill({});stage=Preparing;
+        progress_seen();promise(self,proposal);broadcast(Prepare,[&](Bytes &b){ballot(b,proposal);});return true;
+    }
 };
 PeerHostAgreement::PeerHostAgreement(unsigned s,AuthorityTransferContext c,std::uint64_t now):impl_(std::make_unique<Impl>(s,c,now)){}
 PeerHostAgreement::~PeerHostAgreement()=default;
-void PeerHostAgreement::observe_host(std::uint64_t now){auto &s=*impl_;std::unique_lock lock(s.mutex);s.tick(now);s.host_at=s.clock;}
+void PeerHostAgreement::observe_host(std::uint64_t now){auto &s=*impl_;std::unique_lock lock(s.mutex);s.tick(now);s.host_at=s.clock;
+    if(!s.accepted&&!s.decision)s.automatic_after.reset();}
 bool PeerHostAgreement::publish_ready(const ValidatedAuthorityCut &cut){auto &s=*impl_;std::unique_lock lock(s.mutex);
     if(!s.voter(s.self)||cut.peer!=s.self||cut.context!=s.context)return false;
     const PeerMigrationValue v{s.self,cut.seal};s.valid(v);
@@ -122,9 +136,13 @@ bool PeerHostAgreement::publish_ready(const ValidatedAuthorityCut &cut){auto &s=
     s.ready[s.self]=cut.seal;s.broadcast(Ready,[&](Bytes &b){value(b,v);});s.progress();return true;
 }
 bool PeerHostAgreement::propose(unsigned candidate,std::uint64_t now){auto &s=*impl_;std::unique_lock lock(s.mutex);s.tick(now);
-    if(!s.voter(s.self)||!s.silent(s.clock)||s.decision||!s.voter(candidate)||!s.ready[candidate]||s.highest_round==UINT64_MAX)return false;
-    s.proposal={++s.highest_round,s.self};s.preferred=PeerMigrationValue{candidate,*s.ready[candidate]};s.selected.reset();s.responses.fill({});s.stage=Impl::Preparing;
-    s.promise(s.self,s.proposal);s.broadcast(Prepare,[&](Bytes &b){ballot(b,s.proposal);});return true;
+    return s.propose(candidate);
+}
+bool PeerHostAgreement::drive(unsigned candidate,std::uint64_t now){auto &s=*impl_;std::unique_lock lock(s.mutex);s.tick(now);
+    if(!s.voter(s.self)||!s.silent(s.clock)||s.decision||!s.voter(candidate)||!s.ready[candidate])return false;
+    if(!s.automatic_after)s.automatic_after=s.later(s.proposer_order()*proposer_spacing_ms);
+    if(s.clock<*s.automatic_after)return false;
+    return s.propose(candidate);
 }
 std::vector<AuthorityTransferPacket> PeerHostAgreement::poll(std::uint64_t now,unsigned budget){auto &s=*impl_;std::unique_lock lock(s.mutex);s.tick(now);
     if(!s.emitted||s.clock-s.retry_at>=retry_ms){s.emitted=true;s.retry_at=s.clock;
@@ -157,13 +175,13 @@ bool PeerHostAgreement::receive(unsigned peer,std::span<const std::byte> packet,
         else if(m.type==Ready){need(m.value->host==peer&&(!s.ready[peer]||*s.ready[peer]==m.value->cut));s.ready[peer]=m.value->cut;s.progress();}
         else if(m.type==Prepare){if(s.voter(s.self)&&s.silent(s.clock))s.promise(peer,m.ballot);}
         else if(m.type==Promise){need(s.voter(s.self));if(s.stage==Impl::Preparing&&m.ballot==s.proposal){
-            if(!s.responses[peer])s.responses[peer]=Impl::Response{m.prior};
+            if(!s.responses[peer]){s.responses[peer]=Impl::Response{m.prior};s.progress_seen();}
             s.progress();}}
         else if(m.type==Accept){if(s.voter(s.self)&&s.silent(s.clock)){
             if(m.ballot<s.promised)s.send(peer,Nack,[&](Bytes &b){ballot(b,s.promised);});
             else if(s.known(*m.value))s.accept(m.ballot,*m.value);}}
         else if(m.type==Accepted){s.learn(peer,Vote{m.ballot,*m.value});}
-        else if(m.type==Nack)s.highest_round=std::max(s.highest_round,m.ballot.round);
+        else if(m.type==Nack){if(m.ballot.round>s.highest_round)s.progress_seen();s.highest_round=std::max(s.highest_round,m.ballot.round);}
     }catch(const std::exception &){if(s.rejected<UINT64_MAX)++s.rejected;}
     return true;
 }

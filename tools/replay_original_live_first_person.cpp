@@ -13,6 +13,11 @@
 #include "halo2/source_sound_random_scalar_tu15.hpp"
 #include "halo2/source_sound_properties_tu15.hpp"
 #include "halo2/source_sound_random_short_tu15.hpp"
+#include "halo2/source_sound_range_selection_tu15.hpp"
+#include "halo2/source_sound_permutation_tu15.hpp"
+#include "halo2/source_sound_binding_tu15.hpp"
+#include "halo2/source_sound_chunk_readiness_tu15.hpp"
+#include "halo2/source_effect_particle_frame_tu15.hpp"
 #include "halo2/source_map_world_support_tu15.hpp"
 #include "halo2/source_campaign_audio_tu15.hpp"
 #include "halo2/source_runtime_resources.hpp"
@@ -21,6 +26,7 @@
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <cstring>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -28,6 +34,12 @@
 using J=nlohmann::json;
 using namespace halo2;
 namespace {
+struct ObserverDomainScope {
+    bool &domain;
+    bool previous;
+    ObserverDomainScope(bool &value,bool next):domain(value),previous(value){domain=next;}
+    ~ObserverDomainScope(){domain=previous;}
+};
 std::string hex(std::span<const std::byte> bytes) {
     constexpr char digits[]="0123456789abcdef";std::string out;out.reserve(bytes.size()*2);
     for(auto byte:bytes){const auto value=std::to_integer<unsigned>(byte);out+=digits[value>>4];out+=digits[value&15];}
@@ -71,6 +83,14 @@ int main(int argc,char** argv) {
         if(initial["x87_tag"]!=65535)throw std::runtime_error("Live original x87 stack requires a measured raw ABI owner");
         SourcePhysicsFactoryFloatingPoint fp{initial["x87_control"].get<std::uint16_t>(),initial["mxcsr"].get<std::uint32_t>()};abi.floating_point=fp;
         J instructions=J::array(),writes=J::array(),calls=J::array(),estimates=J::array();std::uint32_t last=0;
+        bool damage_observer_domain=false,prefix_stop_reached=false;
+        J canonical_damage_ranges=J::array();
+        std::uint32_t prefix_stop_target=0;
+        if(const auto text=std::getenv("HALO2_WEAPON_DIAGNOSTIC_STOP_TARGET")) {
+            const auto requested=std::stoull(text,nullptr,0);
+            if(!requested || requested>UINT32_MAX)throw std::runtime_error("Invalid declared weapon-prefix target");
+            prefix_stop_target=std::uint32_t(requested);
+        }
         std::unique_ptr<Cache> cache;
         std::unique_ptr<SourceRuntimeResources> resources;
         std::map<std::uint32_t,std::array<std::uint32_t,3>> resource_receipts;
@@ -81,10 +101,25 @@ int main(int argc,char** argv) {
             resources=std::make_unique<SourceRuntimeResources>(*cache);
         }
         SourcePhysicsWorldRuntimeServices services;
-        services.instruction=[&](auto pc){memory.instruction=last=pc;instructions.push_back(pc);};
+        services.instruction=[&](auto pc){
+            if(damage_observer_domain) {
+                const auto index=instructions.size();
+                if(canonical_damage_ranges.empty() || canonical_damage_ranges.back()["end"]!=index)
+                    canonical_damage_ranges.push_back({{"begin",index},{"end",index}});
+                canonical_damage_ranges.back()["end"]=index+1;
+            }
+            memory.instruction=last=pc;instructions.push_back(pc);
+        };
         services.reciprocal_sqrt=[&](auto word){const auto value=source_host_x86_rsqrtss_estimate(word);estimates.push_back({{"instruction",last},{"input",word},{"output",value}});return value;};
         services.required_owner=[&](auto& bank,const auto& call,auto& state,const auto& observe) {
+            // External owners use actual TU1.5 PCs unless their adapter below
+            // explicitly selects the authenticated canonical damage domain.
+            ObserverDomainScope external_domain(damage_observer_domain,false);
             calls.push_back({{"instruction",call.instruction},{"target",call.target},{"tail",call.tail}});
+            if(prefix_stop_target && call.target==prefix_stop_target) {
+                prefix_stop_reached=true;
+                throw std::runtime_error("Declared weapon-prefix stop before required callee");
+            }
             if(resources && call.instruction==0x21f4bdu) {
                 const SourceSoundCacheIoTu15Services io{
                     [&](auto encoded,auto size) {
@@ -109,6 +144,12 @@ int main(int argc,char** argv) {
             if(call.target==0x127d70u){source_run_sound_random_scalar_tu15(bank,call.target,state,fp,services,observe);return;}
             if(call.target==0x2290c0u){source_run_sound_properties_tu15(bank,call.target,state,fp,services,observe);return;}
             if(call.target==0x127e00u){source_run_sound_random_short_tu15(bank,call.target,state,fp,services,observe);return;}
+            if(call.target==0x21f960u){source_run_sound_range_selection_tu15(bank,call.target,state,fp,services,observe);return;}
+            if(call.target==0x21fa80u){source_run_sound_permutation_tu15(bank,call.target,state,fp,services,observe);return;}
+            if(call.target==0x12b1c0u){source_run_sound_binding_tu15(bank,call.target,state,fp,services,observe);return;}
+            if(call.target==0x128970u || call.target==0x1293f0u || call.target==0x21f3b0u){source_run_sound_chunk_readiness_tu15(bank,call.target,state,fp,services,observe);return;}
+            // Match the live world's existing data-array handle lookup owner.
+            if(call.target==0x16e940u){source_run_effect_particle_frame_tu15(bank,call.target,state,fp,services,observe);return;}
             if(source_campaign_audio_tu15_owns_entry(call.target)){source_run_campaign_audio_tu15(bank,call.target,state,fp,services,observe);return;}
             if(source_combat_action_tu15_owns_entry(call.target)){source_run_combat_action_tu15(bank,call.target,state,fp,services,observe);return;}
             if(source_death_cycle_runtime_tu15_owns_entry(call.target)){source_run_death_cycle_runtime_tu15(bank,call.target,state,fp,services,observe);return;}
@@ -117,7 +158,7 @@ int main(int argc,char** argv) {
             if(source_physics_live_support_tu15_owns_entry(call.target)){source_run_physics_live_support_tu15(bank,call.target,state,fp,services,observe);return;}
             for(const auto& entry:physics_live_entries_tu15::entries)if(entry.actual==call.target) {
                 using Module=physics_live_entries_tu15::Module;
-                if(entry.module==Module::Damage){source_run_damage_delivery_runtime(bank,entry.canonical,state,SourcePhysicsContactImage::TitleUpdate15,fp,services,observe);return;}
+                if(entry.module==Module::Damage){ObserverDomainScope canonical_domain(damage_observer_domain,true);source_run_damage_delivery_runtime(bank,entry.canonical,state,SourcePhysicsContactImage::TitleUpdate15,fp,services,observe);return;}
                 if(entry.module==Module::World){source_run_physics_world_runtime_selected_observations(bank,entry.canonical,state,SourcePhysicsContactImage::TitleUpdate15,fp,services,observe);return;}
                 if(entry.module==Module::Phantom){source_run_physics_phantom_world_tu15_runtime(bank,entry.canonical,state,fp,services,observe);return;}
             }
@@ -136,6 +177,9 @@ int main(int argc,char** argv) {
         if(abi.floating_point){cpu["x87_control"]=abi.floating_point->x87_control_word;cpu["mxcsr"]=abi.floating_point->mxcsr;}
         J report={{"returned",returned},{"error",failure},{"last_instruction",last},{"CPU",cpu},{"instructions",instructions},{"writes",writes},{"memory_writes",memory.writes},{"external_calls",calls},{"actual_host_CPU_estimates",estimates},{"supplied_gameplay_returns",J::array()}};
         report["actual_resource_reads"]=resource_reads;
+        report["canonical_damage_instruction_ranges"]=canonical_damage_ranges;
+        report["declared_prefix_stop_target"]=prefix_stop_target;
+        report["declared_prefix_stop_reached"]=prefix_stop_reached;
         report["native_completed_resource_receipts"]=J::array();
         for(const auto& [id,fields]:resource_receipts)
             report["native_completed_resource_receipts"].push_back({{"identity",id},{"descriptor",fields[0]},{"destination",fields[1]},{"bytes",fields[2]}});

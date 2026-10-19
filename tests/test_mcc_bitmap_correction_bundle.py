@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
 from audit_rendering import FormatError
 from mcc_bitmap_correction_bundle import BUNDLE, decode_delta, validate_profile
 import mcc_bitmap_correction_bundle as bundle
+import mcc_bitmap_correction_bundle_v3 as bundle_v3
 import mcc_graphics_corrections as graphics
 from mcc_content import MccCache, texture_resource
 
@@ -78,6 +79,14 @@ class BitmapCorrectionBundleTests(unittest.TestCase):
         self.assertEqual([p["profile"]["format"] for p in manifest["profiles"]], [11, 16])
         self.assertEqual(sum(p["delta_bytes"] for p in manifest["profiles"]), len(packed))
 
+    def test_shipped_v3_bundle_has_three_complete_metropolis_images(self):
+        root = Path(__file__).resolve().parents[1]
+        path, manifest, packed = bundle_v3.read_v3(root)
+        self.assertEqual(path, root / bundle_v3.BUNDLE_V3)
+        self.assertEqual(sum(p["profile"]["mip_count"] for p in manifest["profiles"]), 23)
+        self.assertEqual([p["profile"]["format"] for p in manifest["profiles"]], [16, 11, 16])
+        self.assertEqual(sum(p["delta_bytes"] for p in manifest["profiles"]), len(packed))
+
 
 class BitmapCorrectionAtomicApplicationTests(unittest.TestCase):
     """Real binary-cache parser, resource decoder and save seam; small pixel fixtures."""
@@ -135,6 +144,49 @@ class BitmapCorrectionAtomicApplicationTests(unittest.TestCase):
         self.bank_path.write_bytes(bank)
         patch.object(graphics, "SOURCE_MAP", sha(data)).start()
         bundle.create_v2(self.donors, self.targets, self.bundle_path)
+        self.metropolis_path = maps / bundle_v3.MAP_NAME
+        self.bundle_v3_path = self.root / bundle_v3.BUNDLE_V3
+        self.metropolis_profiles, self.metropolis_frames = [], []
+        self.metropolis_donors, self.metropolis_targets = {}, {}
+        data = bytearray(8192)
+        for at, value in ((0, 0x68656164), (4, 13), (8, len(data)), (16, 1024),
+                          (32, 3), (36, 2048), (40, 1024), (44, 3072),
+                          (720, 1024), (1024, 1056), (1032, 1056), (1048, 3)):
+            word(at, value)
+        names, bank = bytearray(), bytearray(self.bank_path.read_bytes())
+        for index, base in enumerate(bundle_v3.PROFILES_V3):
+            rgba = base["encoding"] == "rgba8"
+            donor = bytes((i * 13 + index + 9) % 256 for i in range(340 if rgba else 96))
+            target = bytes(x ^ (index + 0x37) for x in donor)
+            profile = dict(base, width=8, height=8, mip_count=4 if rgba else 3,
+                           pixel_bytes=len(donor), donor_sha256=sha(donor), target_sha256=sha(target))
+            self.metropolis_profiles.append(profile)
+            self.metropolis_donors[profile["tag"]] = donor
+            self.metropolis_targets[profile["tag"]] = target
+            word(3072 + 4 * index, len(names))
+            names.extend(profile["tag"].encode() + b"\0")
+            root, frame = 4096 + index * 256, 6000 + index * 168
+            self.metropolis_frames.append(frame)
+            struct.pack_into("<4I", data, 1056 + index * 16,
+                             int.from_bytes(b"bitm", "big"), 0xe1750000 + index, root, 256)
+            word(root + 68, 1)
+            word(root + 72, frame)
+            struct.pack_into("<HHBBHH", data, frame + 4,
+                             profile["width"], profile["height"], 1, 0, 0, profile["format"])
+            struct.pack_into("<H", data, frame + 20, profile["mip_count"] - 1)
+            native = bytearray(donor)
+            if rgba:
+                native[0::4], native[2::4] = native[2::4], native[0::4]
+            resource = struct.pack("<Ii", 1, -len(native)) + native
+            word(frame + 56, len(bank))
+            word(frame + 80, len(resource))
+            bank.extend(resource)
+        data[2048:2048 + len(names)] = names
+        self.metropolis_path.write_bytes(data)
+        self.bank_path.write_bytes(bank)
+        patch.object(bundle_v3, "SOURCE_MAP", sha(data)).start()
+        patch.object(bundle_v3, "PROFILES_V3", tuple(self.metropolis_profiles)).start()
+        bundle_v3.create_v3(self.metropolis_donors, self.metropolis_targets, self.bundle_v3_path)
 
     def change_manifest(self, change):
         path = self.bundle_path.with_suffix("")
@@ -143,18 +195,22 @@ class BitmapCorrectionAtomicApplicationTests(unittest.TestCase):
         path.write_text(json.dumps(manifest))
 
     def assert_rejected_without_writes(self, message):
-        before = [p.read_bytes() for p in (self.map_path, self.bank_path)]
+        paths = (self.map_path, self.metropolis_path, self.bank_path)
+        before = [p.read_bytes() for p in paths]
         with self.assertRaisesRegex(FormatError, message):
             graphics.apply_selected(self.root, self.pack)
-        self.assertEqual(before, [p.read_bytes() for p in (self.map_path, self.bank_path)])
+        self.assertEqual(before, [p.read_bytes() for p in paths])
         self.assertFalse((self.pack / "graphics-corrections").exists())
         self.assertFalse((self.pack / "graphics-conversion.json").exists())
 
-    def test_both_formats_and_all_mips_commit_with_only_two_resource_bindings_changed(self):
+    def test_both_maps_and_all_mips_commit_with_only_five_resource_bindings_changed(self):
         before_map, before_bank = self.map_path.read_bytes(), self.bank_path.read_bytes()
+        before_metropolis = self.metropolis_path.read_bytes()
         report = graphics.apply_selected(self.root, self.pack)
         self.assertTrue(report["complete"])
-        self.assertEqual(report["restored_mips"], 7)
+        self.assertEqual(report["restored_mips"], 17)
+        self.assertEqual(len(report["profiles"]), 5)
+        self.assertEqual(len(report["changes"]), 3)
         self.assertEqual(self.bank_path.read_bytes()[:len(before_bank)], before_bank)
         cache = MccCache(self.map_path)
         try:
@@ -170,6 +226,20 @@ class BitmapCorrectionAtomicApplicationTests(unittest.TestCase):
                     pixels[0::4], pixels[2::4] = pixels[2::4], pixels[0::4]
                 self.assertEqual(pixels, self.targets[profile["tag"]])
                 self.assertEqual(cache.u16(at + 12), profile["format"])
+            self.assertEqual(cache.data[896:], expected[896:])
+        finally:
+            cache.close()
+        cache = MccCache(self.metropolis_path)
+        try:
+            expected = bytearray(before_metropolis)
+            for profile, at in zip(self.metropolis_profiles, self.metropolis_frames, strict=True):
+                for offset in (56, 80):
+                    expected[at + offset:at + offset + 4] = cache.data[at + offset:at + offset + 4]
+                with self.bank_path.open("rb") as bank:
+                    pixels = bytearray(texture_resource(bank, cache.u32(at + 56), cache.u32(at + 80)))
+                if profile["encoding"] == "rgba8":
+                    pixels[0::4], pixels[2::4] = pixels[2::4], pixels[0::4]
+                self.assertEqual(pixels, self.metropolis_targets[profile["tag"]])
             self.assertEqual(cache.data[896:], expected[896:])
         finally:
             cache.close()
@@ -264,6 +334,43 @@ class BitmapCorrectionAtomicApplicationTests(unittest.TestCase):
         self.assertFalse(report["complete"])
         self.assertIn("v2", report["blocker"])
         self.assertEqual(before, self.bank_path.read_bytes())
+
+    def test_missing_v3_bundle_cannot_publish_zanzibar_only_as_complete(self):
+        self.bundle_v3_path.unlink()
+        paths = (self.map_path, self.metropolis_path, self.bank_path)
+        before = [p.read_bytes() for p in paths]
+        report = graphics.apply_selected(self.root, self.pack)
+        self.assertFalse(report["complete"])
+        self.assertIn("v3", report["blocker"])
+        self.assertEqual(before, [p.read_bytes() for p in paths])
+
+    def test_last_metropolis_delta_failure_rejects_both_maps_without_writes(self):
+        packed = bytearray(self.bundle_v3_path.read_bytes())
+        packed[-1] ^= 1
+        self.bundle_v3_path.write_bytes(packed)
+        manifest_path = self.bundle_v3_path.with_suffix("")
+        manifest = json.loads(manifest_path.read_bytes())
+        manifest["delta_sha256"] = sha(packed)
+        manifest_path.write_text(json.dumps(manifest))
+        self.assert_rejected_without_writes("delta fingerprint")
+
+    def test_metropolis_profile_overlap_target_mip_and_map_identity_reject(self):
+        path = self.bundle_v3_path.with_suffix("")
+        original = path.read_bytes()
+        cases = (
+            lambda m: m["profiles"][-1].update(delta_offset=0),
+            lambda m: m["profiles"][-1]["mips"].pop(),
+            lambda m: m["profiles"][-1]["target_mip_sha256"].__setitem__(-1, "0" * 64),
+            lambda m: m["profiles"][-1]["profile"].update(tag="unverified"),
+            lambda m: m.update(map="another.map"),
+        )
+        for change in cases:
+            manifest = json.loads(original)
+            change(manifest)
+            path.write_text(json.dumps(manifest))
+            with self.subTest(change=change):
+                self.assert_rejected_without_writes("owner|profile|target mip|identity")
+        path.write_bytes(original)
 
 
 if __name__ == "__main__":

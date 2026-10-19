@@ -26,6 +26,7 @@ std::uint64_t multiplayer_fingerprint(const std::filesystem::path &map,
                                      std::uint32_t bsp,
                                      std::uint32_t starting_weapon,
                                      const std::filesystem::path &gameplay_xbe = {});
+class LanClient;
 class LanHost {
 public:
   // TU1.5 peer-table operations run on their native world's executor. The
@@ -47,6 +48,7 @@ public:
     Continuation()=default;
   private:
     friend class LanHost;
+    friend class LanClient;
     struct Data;std::shared_ptr<const Data> data_;
   };
   // Owning input/connection/camera values at one completed TU1.5 world cut.
@@ -138,6 +140,32 @@ public:
   // completed. A cut or an unauthenticated datagram cannot change this context.
   void bind_continuity(const AuthorityTransferContext &,unsigned physical_self,
       std::span<const OnlineAdmission>);
+  // Before promotion retires this client, merge its latest owning input into
+  // the independently validated predecessor bank. Validates context, endpoint,
+  // fingerprint, cookies, couch slots/profiles and monotonic delivery serials.
+  // Uses the ordinary wire decoder; never consumes a delivered press, changes
+  // native world/camera state or accepts fresh hardware. Repeated calls are
+  // idempotent. Any rejection leaves the supplied bank unchanged.
+  void merge_local_input(const LanHost::Continuation &,const AuthorityTransferContext &,
+      LanHost::LocalContinuation &)const;
+  class PreparedRebind {
+  public:
+    ~PreparedRebind();
+    PreparedRebind(const PreparedRebind &)=delete;
+    PreparedRebind &operator=(const PreparedRebind &)=delete;
+  private:
+    friend class LanClient;
+    struct Impl;std::unique_ptr<Impl> impl_;
+    PreparedRebind();
+  };
+  // Preparation does not change the endpoint or receive baseline. This client
+  // must outlive the prepared value. Input sends may continue without losing
+  // held controls or pulse counters. Commit rejects another/stale native role
+  // without consuming the caller's prepared value; success is allocation-free.
+  std::unique_ptr<PreparedRebind> prepare_rebind_host(const AuthorityTransferContext &previous,
+      const AuthorityTransferContext &next,const AuthorityCutSeal &)const;
+  bool can_commit_rebind_host(const PreparedRebind &)const noexcept;
+  bool commit_rebind_host(std::unique_ptr<PreparedRebind> &&)noexcept;
   // Caller first certifies next/cut and isolates the old transport generation.
   // Keeps all outgoing input/held/pulse counters and accepted couch IDs. The
   // first complete new-host snapshot resets only the old receive baseline.

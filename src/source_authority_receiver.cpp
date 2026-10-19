@@ -22,11 +22,11 @@ public:
 };
 bool delta(std::span<const std::byte> p){constexpr std::array<std::byte,8> magic{std::byte{'H'},std::byte{'2'},std::byte{'D'},std::byte{'L'},std::byte{'T'},std::byte{'0'},std::byte{'0'},std::byte{'1'}};
     return p.size()>=magic.size()&&std::ranges::equal(p.first(magic.size()),magic);}
-MultiplayerOptions gameplay_options(const MultiplayerOptions &input){
+}
+MultiplayerOptions source_authority_options(const MultiplayerOptions &input){
     MultiplayerOptions out;out.online_match=input.online_match;out.map=input.map;out.shared_maps=input.shared_maps;out.gameplay_xbe=input.gameplay_xbe;
     out.bsp=input.bsp;out.variant=input.variant;out.starting_weapon=input.starting_weapon;out.session_random_seed=input.session_random_seed;
     out.local_players=input.local_players;out.selected_teams=input.selected_teams;out.selected_profiles=input.selected_profiles;return out;
-}
 }
 struct SourceAuthorityReceiver::Impl {
     const MultiplayerOptions options;const std::shared_ptr<OnlineMatchSession> session;
@@ -52,7 +52,7 @@ struct SourceAuthorityReceiver::Impl {
     std::optional<Job> job;std::optional<Result> result;
     std::jthread worker;
     Impl(const MultiplayerOptions &o,SourceAuthorityStreamMode m,std::shared_ptr<PhysicsLiveClockSource> c,std::shared_ptr<PhysicsLiveClockSource> w)
-        :options(gameplay_options(o)),session(options.online_match),mode(m),roster(session?session->roster():std::vector<OnlineAdmission>{}),
+        :options(source_authority_options(o)),session(options.online_match),mode(m),roster(session?session->roster():std::vector<OnlineAdmission>{}),
          locals(session?session->local_slots():std::vector<unsigned>{}),candidate_clock(std::move(c)),workspace_clock(std::move(w)) {
         need(session&&session->direct_udp()&&!locals.empty()&&locals.size()<=4&&locals.size()==options.local_players);
         need(mode==SourceAuthorityStreamMode::Snapshots||mode==SourceAuthorityStreamMode::Replay);
@@ -305,7 +305,7 @@ struct SourceAuthorityReplayWorker::Impl {
     bool cancelled{},stopped{},exporting{},retention_requested{},replay_paused{};
     std::jthread worker;
     Impl(const MultiplayerOptions &o,std::shared_ptr<PhysicsLiveClockSource> c,std::shared_ptr<PhysicsLiveClockSource> w)
-        :options(gameplay_options(o)),candidate_clock(std::move(c)),workspace_clock(std::move(w)),
+        :options(source_authority_options(o)),candidate_clock(std::move(c)),workspace_clock(std::move(w)),
          worker([this](std::stop_token stop){run(stop);}){}
     ~Impl(){cancel();if(worker.joinable())worker.join();}
     static std::exception_ptr unavailable(){return std::make_exception_ptr(std::runtime_error("Source replay export is unavailable, stale or cancelled"));}

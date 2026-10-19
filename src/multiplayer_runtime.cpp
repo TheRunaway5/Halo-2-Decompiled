@@ -29,6 +29,7 @@
 #include "halo2/multiplayer_world.hpp"
 #include "halo2/multiplayer_runtime_authority.hpp"
 #include "halo2/native_weapon_hud.hpp"
+#include "halo2/source_weapon_material_input.hpp"
 #include "halo2/gameplay_font_source.hpp"
 #include "halo2/native_locomotion.hpp"
 #include "halo2/native_unit_interaction.hpp"
@@ -430,7 +431,11 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     for (unsigned t = 0; !limit || t < limit;) {
       if(options.online_match){const auto phase=options.online_match->phase();
         if(phase==OnlineMatchSession::Phase::Failed){exit_reason=MultiplayerExitReason::online_disconnected;break;}
-        if(peer_handoff_paused(phase)){next=Clock::now();std::this_thread::sleep_for(std::chrono::milliseconds(2));continue;}
+        if(peer_handoff_paused(phase)){
+          if(phase==OnlineMatchSession::Phase::Migrating)authority.prepare_takeover();
+          else if(phase==OnlineMatchSession::Phase::Rebinding)authority.prepare_client_rebind();
+          next=Clock::now();std::this_thread::sleep_for(std::chrono::milliseconds(2));continue;
+        }
       }
       authority.service();
       auto source_frame=authority.begin_frame();
@@ -2477,6 +2482,32 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   bool postgame_published{};
   std::map<std::uint32_t,ModelWorldPoseCache> retained_world_weapon_poses;
   bool handoff_paused{};
+  std::optional<Uint32> handoff_input_paused_at;
+  std::array<SDL_JoystickID,4> handoff_pad_instances{-1,-1,-1,-1};
+  const auto suspend_handoff_input=[&] {
+    if(handoff_input_paused_at)return;
+    handoff_input_paused_at=SDL_GetTicks();keyboard.suspend(*handoff_input_paused_at);
+    for(unsigned view=0;view<options.local_players;++view){
+      auto *pad=selected_pad_for(view);
+      handoff_pad_instances[view]=pad?SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad)):-1;
+    }
+    // These device-edge queues have not been delivered to the native world.
+    // The admitted client's serialized bank independently owns carried input.
+    pad_pending={};pad_controls={};pad_zoom_pending={};death_cycle_pressed={};local={};
+  };
+  const auto resume_handoff_input=[&] {
+    if(!handoff_input_paused_at)return;
+    const auto now=SDL_GetTicks(),elapsed=now-*handoff_input_paused_at;
+    for(unsigned view=0;view<options.local_players;++view){
+      auto *pad=selected_pad_for(view);
+      const auto instance=pad?SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(pad)):-1;
+      if(instance==handoff_pad_instances[view])for(auto &hold:pad_holds[view])hold.exclude_elapsed(elapsed);
+      else{pad_holds[view]={};pad_previous[view]={};pad_zoom_held[view]=false;}
+    }
+    keyboard.resume(now);handoff_input_paused_at.reset();
+    auto_center={};prior_input_pitch=pitch;
+    int discard_x,discard_y;SDL_GetRelativeMouseState(&discard_x,&discard_y);
+  };
   while (running && (!options.frames || frames < options.frames)) {
     // No native frame/recording or presentation caller may run while the
     // session fences a predecessor generation. Keep only OS/device events
@@ -2486,6 +2517,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       if(peer_handoff_paused(phase)){
         if(!handoff_paused){
           authority.suspend_publication();
+          suspend_handoff_input();
           if(game_voice)game_voice->focus(false);
           for(auto *pad:platform.pads)send_controller_rumble(pad,{},false,false,true);
           handoff_paused=true;
@@ -2499,11 +2531,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           }
           else if(event.type==SDL_WINDOWEVENT&&event.window.event==SDL_WINDOWEVENT_SIZE_CHANGED)renderer.resized();
           else if(event.type==SDL_CONTROLLERDEVICEADDED||event.type==SDL_CONTROLLERDEVICEREMOVED)platform.refresh();
-          // Releases must still clear held inputs; fresh gameplay presses and
-          // relative mouse motion are not queued against a frozen world.
-          if(event.type==SDL_KEYUP||event.type==SDL_MOUSEBUTTONUP||event.type==SDL_WINDOWEVENT)keyboard.handle_event(event);
+          // Suspended admission tracks physical/focus changes without queuing
+          // fresh presses or inflating an old interaction's held duration.
+          keyboard.handle_event(event);
         }
         int discard_x,discard_y;SDL_GetRelativeMouseState(&discard_x,&discard_y);
+        if(running&&phase==OnlineMatchSession::Phase::Migrating)authority.prepare_takeover();
+        else if(running&&phase==OnlineMatchSession::Phase::Rebinding)authority.prepare_client_rebind();
         last=Clock::now();accumulator=0;SDL_Delay(2);continue;
       }
       if(handoff_paused){
@@ -2516,6 +2550,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     authority.service();
     auto source_frame=authority.begin_frame();
     if(!source_frame)continue;
+    if(authority.local_input_pending())suspend_handoff_input();
+    else resume_handoff_input();
     if(options.menu_audio_update)options.menu_audio_update();
     if(options.online_match) {
       const auto phase=options.online_match->phase();
@@ -2541,7 +2577,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     for(unsigned view=0;view<options.local_players;++view)if(auto *pad=selected_pad_for(view)) {
       const auto motors=rumble[view].evaluate(*rumble_tables);
       send_controller_rumble(pad,motors,platform.desktop->controller_settings.vibration,pause_menu && pause_menu->visible(),
-          SDL_GetWindowFlags(platform.window)&SDL_WINDOW_INPUT_FOCUS);
+          !handoff_input_paused_at && (SDL_GetWindowFlags(platform.window)&SDL_WINDOW_INPUT_FOCUS));
     }
     std::vector<SoundEvent> events;
     const auto now = Clock::now();
@@ -2608,7 +2644,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         renderer.resized();
       else if (e.type == SDL_CONTROLLERDEVICEADDED ||
                e.type == SDL_CONTROLLERDEVICEREMOVED) {
-        pad_holds={};
+        if(!handoff_input_paused_at)pad_holds={};
         platform.refresh();
         for(unsigned i=0;i<options.local_players;++i)prompt_gamepad[i]=selected_pad_for(i)!=nullptr;
       }
@@ -2616,7 +2652,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
                e.button.windowID == SDL_GetWindowID(platform.window) &&
                (e.button.button == SDL_BUTTON_LEFT || e.button.button == SDL_BUTTON_RIGHT))
         SDL_SetRelativeMouseMode(SDL_TRUE);
-      else if (e.type == SDL_MOUSEMOTION && e.motion.windowID == SDL_GetWindowID(platform.window) && SDL_GetRelativeMouseMode() && keyboard_view<options.local_players) {
+      else if (e.type == SDL_MOUSEMOTION && e.motion.windowID == SDL_GetWindowID(platform.window) && SDL_GetRelativeMouseMode() && keyboard_view<options.local_players && !handoff_input_paused_at) {
         // Native SDL look gain retains its existing sensitivity3 baseline.
         const auto &kbm=platform.desktop->keyboard_settings;
         const float gain=.0025f*float(kbm.sensitivity)/3.f;
@@ -2635,6 +2671,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     if(pause_menu && pause_menu->quit_requested()) {
       running=false;exit_reason=MultiplayerExitReason::escape;
     }
+    if(handoff_input_paused_at){int discard_x,discard_y;SDL_GetRelativeMouseState(&discard_x,&discard_y);}
     keyboard.settings(platform.desktop->keyboard_settings);
     if(game_voice) {
       game_voice->blocks(options.online_match->voice_blocks());
@@ -2712,6 +2749,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       local[i] = {};
       pad_controls[i] = {};
       death_cycle_pressed[i]=false;
+      if(handoff_input_paused_at)continue;
       if (i == keyboard_view) {
         local[i] = keyboard.snapshot(yaw[i], pitch[i]).controls;
         death_cycle_pressed[i]=local[i].jump && !keyboard_jump_held;
@@ -2938,8 +2976,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
     }
     while (accumulator >= tick_seconds) {
       if (options.capture_tick && current.tick >= options.capture_tick) break;
+      const bool carried_input=authority.continue_local_input(controls);
+      if(carried_input)for(unsigned view=0;view<ids.size();++view){
+        local[view]=controls[ids[view]];yaw[view]=local[view].yaw;pitch[view]=local[view].pitch;
+        view_zoom[view]=local[view].zoom;view_zoom_reset[view]=local[view].zoom_reset_serial;
+      }
       bool scoreboard_requested=false;
-      if (!options.replay && options.input_script.empty() && options.local_players) {
+      if (!carried_input && !options.replay && options.input_script.empty() && options.local_players) {
         // Consume taps only when delivering a simulation command. An idle
         // attached pad must not clear keyboard/mouse actions or movement.
         const auto input = keyboard.consume(keyboard_view<options.local_players?yaw[keyboard_view]:0.f,
@@ -2995,7 +3038,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         local[view].zoom=view_zoom[view];
         local[view].zoom_reset_serial=view_zoom_reset[view];
       }
-      if (!options.input_script.empty()) {
+      if (!carried_input && !options.input_script.empty()) {
         for (unsigned i = 0; i < options.local_players; ++i) {
           local[i] = {};
           local[i].yaw = yaw[i];
@@ -3011,7 +3054,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       }
       // Preserve the displayed source-selected vehicle action through delivery.
       // Authority must validate this intent rather than select a different seat.
-      for(unsigned view=0;view<ids.size();++view) {
+      if(!carried_input)for(unsigned view=0;view<ids.size();++view) {
         const auto &target=current.players[ids[view]].action_prompt.target;
         if(target.action==0 || (target.action>=4 && target.action<=6))
           local[view].vehicle_interaction_target=target.action?target:SourcePlayerActionTarget{};
@@ -3051,11 +3094,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       }
       if (options.input_observer)
         options.input_observer(steps, std::span(local).first(options.local_players), current);
-      for(auto &pending:pad_pending)pending={};
-      pad_zoom_pending={};
-      for(auto &holds:pad_holds)for(auto &hold:holds)hold.consume();
-      for(auto &pad:pad_controls)pad.pickup=pad.dual_wield=pad.switch_weapon=pad.grenade=pad.melee=pad.switch_grenade=false;
-      for(auto &command:local)command.pickup=command.dual_wield=command.switch_weapon=command.grenade=command.melee=command.switch_grenade=false;
+      if(!carried_input){
+        for(auto &pending:pad_pending)pending={};pad_zoom_pending={};
+        for(auto &holds:pad_holds)for(auto &hold:holds)hold.consume();
+        for(auto &pad:pad_controls)pad.pickup=pad.dual_wield=pad.switch_weapon=pad.grenade=pad.melee=pad.switch_grenade=false;
+        for(auto &command:local)command.pickup=command.dual_wield=command.switch_weapon=command.grenade=command.melee=command.switch_grenade=false;
+      }
       for(auto &player:rumble)player.advance(tick_seconds);
       accumulator -= tick_seconds;
       ++steps;
@@ -3064,6 +3108,9 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         exit_reason=MultiplayerExitReason::session_world_close;
         break;
       }
+      // Reacquire physical input on the next render frame. Never let another
+      // catch-up step in this frame turn the frozen device ledger into input.
+      if(carried_input&&!authority.local_input_pending())break;
     }
     if(!running)break; // The session owner has already requested world close.
     if(live_client() && joined) {
@@ -4645,17 +4692,13 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         const auto *definition=&weapon_shader_definitions.at(item.definition);
         const auto tables=cache.shader_function_tables();
         const ShaderInput owner_input=[&,item,definition,tables](std::uint32_t name) {
-          float value=0;
-          if(const auto source=source_weapon_shader_input(name,item.shader))value=*source;
-          else {
-            const bool ammunition_function=std::any_of(definition->functions.begin(),definition->functions.end(),
-                [&](const auto &f){return f.output==name && f.input==0x1200056au;});
-            if((name==0x1200056au || ammunition_function) && definition->magazines.size()==1) {
-              const std::array<SourceWeaponMagazineState,1> magazines{{{std::int16_t(item.loaded),std::int16_t(item.reserve)}}};
-              if(const auto source=source_weapon_magazine_shader_input(name,definition->magazines,
-                  magazines,definition->functions,*tables))value=source->value;
-            } else value=weapon_ammunition_input(name,item.loaded).value_or(0.f);
-          }
+          if(!name)return 0.f;
+          const std::array<SourceWeaponMagazineState,1> storage{{{std::int16_t(item.loaded),std::int16_t(item.reserve)}}};
+          const std::span<const SourceWeaponMagazineState> magazines=definition->magazines.size()==1?
+              std::span<const SourceWeaponMagazineState>(storage):std::span<const SourceWeaponMagazineState>{};
+          const auto source=source_weapon_material_input(name,item.shader,definition->magazines,
+              magazines,definition->functions,*tables,float(shader_time));
+          const float value=source?source->value:weapon_ammunition_input(name,item.loaded).value_or(0.f);
           if(options.world_weapon_shader_input_observer)
             options.world_weapon_shader_input_observer(item.handle,item.definition,name,value);
           return value;
@@ -5425,6 +5468,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       int ammunition=0;
       std::uint32_t material_weapon=null_datum,material_definition=null_datum;
       SourceWeaponShaderState shader_state;
+      std::optional<FunctionValue> primary_trigger;
       for(const auto &[representation,v]:species)
         for(unsigned i=0;i<ids.size();++i)
           for(unsigned hand=0;hand<2;++hand) {
@@ -5437,6 +5481,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               material_weapon=hand?player.secondary_weapon.datum:player.source_weapon;
               material_definition=representation.second;
               shader_state=hand?player.secondary_weapon.shader:player.weapon_shader;
+              primary_trigger.reset();
+              if(const auto weapon=content.weapons.find(material_definition);weapon!=content.weapons.end() && !weapon->second.triggers.empty()) {
+                const auto &trigger=hand?player.secondary_weapon.trigger:player.weapon_trigger;
+                primary_trigger=source_weapon_primary_charge(trigger.mode,trigger.ticks,
+                    weapon->second.triggers[0].charging_seconds,tick_seconds);
+              }
             }
           }
       for(const auto &[datum,body]:body_guns)for(unsigned i=0;i<object_slots;++i)
@@ -5448,6 +5498,12 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           material_weapon=hand?player.secondary_weapon.datum:player.source_weapon;
           material_definition=datum;
           shader_state=hand?player.secondary_weapon.shader:player.weapon_shader;
+          primary_trigger.reset();
+          if(const auto weapon=content.weapons.find(material_definition);weapon!=content.weapons.end() && !weapon->second.triggers.empty()) {
+            const auto &trigger=hand?player.secondary_weapon.trigger:player.weapon_trigger;
+            primary_trigger=source_weapon_primary_charge(trigger.mode,trigger.ticks,
+                weapon->second.triggers[0].charging_seconds,tick_seconds);
+          }
         }
       const SourceWorldWeaponDefinition *shader_definition=material_definition==null_datum?nullptr:
           &weapon_shader_definitions.at(material_definition);
@@ -5455,6 +5511,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
       if(shader_definition && shader_definition->magazines.size()==1)
         magazines.push_back({std::int16_t(ammunition),0});
       const ShaderInput input=[&](std::uint32_t name) {
+        if(!name)return 0.f;
         if(player_damage_owners[m]>=0) {
           const auto &owner=current.players[unsigned(player_damage_owners[m])];
           return damage_feedback_shader_input(owner.damage_feedback,owner.health,
@@ -5462,16 +5519,8 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
               *player_damage_function_tables,name,float(shader_time));
         }
         if(shader_definition) {
-          if(const auto value=source_weapon_shader_input(name,shader_state))return *value;
-          // Native combat currently owns magazine0 only. The recovered
-          // consumer admits that actual bank and its authored identity
-          // functions; unsupported heat/power producers remain separate.
-          const bool ammunition_function=std::any_of(shader_definition->functions.begin(),
-              shader_definition->functions.end(),[&](const auto &f){return f.output==name && f.input==0x1200056au;});
-          if((name==0x1200056au || ammunition_function) &&
-             shader_definition->magazines.size()==magazines.size())
-            if(const auto value=source_weapon_magazine_shader_input(name,shader_definition->magazines,
-                magazines,shader_definition->functions,*cache.shader_function_tables()))return value->value;
+          if(const auto value=source_weapon_material_input(name,shader_state,shader_definition->magazines,
+              magazines,shader_definition->functions,*cache.shader_function_tables(),float(shader_time),primary_trigger))return value->value;
         }
         return weapon_ammunition_input(name,ammunition).value_or(0.f);
       };

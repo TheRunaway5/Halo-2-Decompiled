@@ -16,8 +16,48 @@ The actual source observer already supplies scripted campaign rendering.
 `camera_set_animation[_relative]` now avoids also loading/decoding the unused
 legacy presentation camera clip. Source camera calls and authored timing
 remain intact. The actual source-camera fixture now counts legacy loader
-calls. The coherent v563 build and visible acceptance are still pending;
+calls. The coherent v586 build and visible acceptance are still pending;
 removing this duplicate work does not prove every reported camera pause gone.
+
+The serial1GiB build initially exhausted its memory limit compiling the20MB
+generated physics-support translation unit (v565). Its2025 recovered function
+bodies now compile in32 balanced translation units with shared helper state
+and unchanged instruction bodies. A Clang compile of two actual units peaked
+at352MiB (v570); cross-file calls and helper-local state match the monolithic
+reference with Clang and GCC (v569). All32 units have compiled in v571.
+This is a compiler-memory change, not additional recovered engine behavior.
+The original v565 failure and these bounded checks remain recorded separately.
+The v571 runtime build then hit its1GiB cap in the unrelated authority archive
+serializer. Its reader and writer now instantiate in separate translation
+units with unchanged public bodies and shared schema. Both compile at ClangO1
+under the same cap (v578,14.8 seconds,972.3MiB peak). That compile-only project
+registered no CTests, so its final runner status is a failure rather than a
+functional pass. The real nested codec round-trip check is included in v579.
+Both failed runtime builds removed their private source/build trees; neither
+delivered a new executable. The first camera control v576 also exposed an
+invalid test-only NONE literal (type45 truncated it to0xffff). It is corrected
+to object type50 with short type7 for the flag. Actual controls are v580.
+
+The v580 controls now pass: the corrected real00a/03b source-camera fixture
+passes under60MiB hard/64MiB measured/zero swap; restoring the old duplicate
+decode fails at the exact legacy-loader assertion. Its temporary binaries
+were removed. This proves the removed work, not complete hitch elimination.
+The v579 build passed the serializer and reached1402 objects, then exhausted
+its1GiB cap in `multiplayer_runtime.cpp`. ClangO0 and a bounded GCC probe also
+failed there. A ClangO1 compile under2GiB passes in11.75 seconds with
+1276220KiB compiler peak (v585); unchanged headers can also compile via a PCH
+within1GiB (v584). The earlier1GiB compiler cap was a build choice, not an
+AGENTS.md requirement. The v586 serial delivery build uses2GiB/zero swap and
+LLD; original-data comparison guards remain60/64MiB/zero swap. No source
+routine optimization or authored clock was lowered to obtain that build.
+
+The cinematic model resource now retains the immutable variant-name table
+already decoded during construction. Each draw still uses the current source
+variant index and the same negative-index/default and bounds behavior, without
+reparsing the entire model definition. Its v579 source amendment was pinned
+before both consumer translation units compiled; v586 includes it initially.
+End-to-end CPU pacing, NPC interpolation in a visible runtime and the audible
+Arbiter reply remain unverified/open.
 
 The last visible v543 log requests Arbiter's `x01_0030_der` / `E9E60871` at
 tick1113 and consumes its157850 PCM frames. Its emitter updates apply -3306

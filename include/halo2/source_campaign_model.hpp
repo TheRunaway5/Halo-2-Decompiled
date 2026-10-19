@@ -19,6 +19,11 @@ public:
     void prepare_materials(const Cache &,Mesh &destination);
     void rebase_materials(unsigned previous_geometry_count,unsigned next_geometry_count);
     const RenderModel &hierarchy()const{return *lods_[5];}
+    // Immutable tag names remain resident; the live source world still owns
+    // the selected index, including the negative/default selection.
+    std::uint32_t variant_name(std::int32_t index)const {
+        return index<0?0u:variant_names_.at(unsigned(index));
+    }
     // Ordered original section requests, including repeated sections. Empty
     // original admission remains empty; an unknown model/owner is an error.
     std::vector<Vertex> vertices(std::uint32_t owner,const SourceObjectDrawCollector &,
@@ -35,6 +40,7 @@ private:
     std::vector<Vertex> vertices(unsigned lod,std::span<const unsigned> sections,
         std::span<const Transform> rendered_world_nodes)const;
     std::uint32_t definition_{},variant_{},render_model_{};
+    std::vector<std::uint32_t> variant_names_;
     std::array<std::shared_ptr<const RenderModel>,6> lods_;
     std::array<std::vector<unsigned>,6> sections_;
     std::vector<unsigned> union_sections_;

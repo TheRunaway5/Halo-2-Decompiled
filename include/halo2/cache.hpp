@@ -1,6 +1,7 @@
 #pragma once
 #include "halo2/render_program.hpp"
 #include "halo2/shader_animation.hpp"
+#include "halo2/texture_pixels.hpp"
 #include "halo2/tags/directory.hpp"
 #include "halo2/tags/binary.hpp"
 #include <array>
@@ -141,7 +142,7 @@ struct TextureMip { std::uint32_t width{}, height{}; std::size_t offset{}, size{
 struct Texture {
     std::uint32_t width{}, height{};
     std::uint16_t format{}; // 11: RGBA8, 14/15/16: BC1/BC2/BC3.
-    std::vector<std::byte> pixels;
+    TexturePixels pixels;
     std::vector<TextureMip> mips; // Authored mip chain, contiguous in pixels; empty means one level.
     std::uint32_t layers = 1; // Six for +X/-X/+Y/-Y/+Z/-Z cubemaps; mips are face-major.
     std::uint32_t depth{}; // Zero: 2D/cube. Positive: authored volume, including 1x1x1.
@@ -638,6 +639,10 @@ public:
     FullScoreboardAssets load_full_scoreboard_assets() const;
     std::string describe() const;
 private:
+    struct BitmapCache;
+    static std::shared_ptr<BitmapCache> make_bitmap_cache();
+    void invalidate_bitmap_cache();
+    Texture load_bitmap_uncached(std::uint32_t,std::uint32_t,std::span<const std::byte>)const;
     HudContent load_hud(std::uint32_t biped,std::uint32_t weapon,std::uint32_t hud_definition) const;
     RenderModel load_model_with_initial_selection(std::uint32_t datum, bool textures,
         std::uint32_t variant, const SourceInitialModelSelection* selected,
@@ -655,6 +660,7 @@ private:
     std::vector<Spawn> spawns_;
     std::int64_t metadata_magic_{};
     mutable std::shared_ptr<const ShaderFunctionTables> function_tables_;
+    std::shared_ptr<BitmapCache> bitmap_cache_=make_bitmap_cache();
     mutable std::shared_ptr<const OriginalData> original_data_;
     std::size_t multiplayer_balance_writes_{};
     std::size_t multiplayer_netgame_writes_{};

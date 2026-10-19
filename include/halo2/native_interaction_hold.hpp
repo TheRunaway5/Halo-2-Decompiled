@@ -21,5 +21,10 @@ struct NativeInteractionHold {
     return {down || pending,down?std::uint16_t(std::min(now-began,65535u)):released_milliseconds};
   }
   void consume() {pending=false;released_milliseconds=0;}
+  // The device clock keeps advancing while native input ownership is paused.
+  // Rebase only an active hold; a completed duration is already immutable.
+  void exclude_elapsed(std::uint32_t milliseconds) noexcept {
+    if(down)began+=milliseconds;
+  }
 };
 }

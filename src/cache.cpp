@@ -98,6 +98,7 @@ std::span<const std::byte> Cache::cache_bytes() const {
     return snapshot_ ? snapshot_->bytes() : std::span<const std::byte>(storage_);
 }
 std::span<std::byte> Cache::mutable_cache_bytes() {
+    invalidate_bitmap_cache();
     return snapshot_ ? snapshot_->mutable_bytes() : std::span<std::byte>(storage_);
 }
 

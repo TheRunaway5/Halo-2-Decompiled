@@ -45,7 +45,7 @@ def main():
     args.additional_entries = args.manifest.with_name('sound-range-selection-callers.json')
     args.additional_entries.write_text(json.dumps(dict(original_sha256=NEW_PIN,
         call=0x128dcf, target=entry, instruction=caller.bytes.hex()), indent=2) + '\n')
-    generate(args, paired, runtime_header='halo2/physics_world_runtime.hpp')
+    generate(args, paired, runtime_header='halo2/source_sound_range_selection_tu15.hpp')
     generated = args.output.read_text().replace('source_run_physics_live_support_tu15',
         'source_run_sound_range_selection_tu15').replace('source_physics_live_support_tu15_owns_entry',
         'source_sound_range_selection_tu15_owns_entry')

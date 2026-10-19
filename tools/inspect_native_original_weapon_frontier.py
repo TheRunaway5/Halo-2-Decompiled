@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inspect a native firing continuation from unchanged original entry state.
+"""Inspect a native weapon/first-person continuation from original entry state.
 
 This diagnostic permits the declared synchronous native sound-resource policy.
 It does not equate that policy to the original queue, scheduler or device path.
@@ -24,6 +24,8 @@ def main():
     parser.add_argument('--library-build', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--extra-source', type=Path, action='append', default=[])
+    parser.add_argument('--stop-at', type=lambda value:int(value,0),
+        help='Stop before this actual required-callee target; supply no return and keep the full-call result failing')
     parser.add_argument('--replay-source', type=Path,
         help='Use an explicitly retained diagnostic adapter; default is the current production-owner adapter')
     parser.add_argument('--wait-for-application-link', type=int, default=0,
@@ -37,7 +39,7 @@ def main():
     (output / 'attempt.json').write_text(json.dumps(dict(runner_scratch=str(scratch))) + '\n')
     case = args.case.absolute()
     call = json.loads((case / 'call.json').read_text())
-    assert call['entry'] == 0x1030f0 and not call['guest_code_patches']
+    assert call['entry'] in (0x1030f0,0x168ca1) and not call['guest_code_patches']
     assert not call['guest_memory_writes'] and not call['guest_register_writes']
     initial = cpu(case, 'before')
     (scratch / 'cpu.json').write_text(json.dumps(initial) + '\n')
@@ -108,6 +110,10 @@ def main():
     (output / 'compile.log').write_text((compiled.stdout + compiled.stderr)[-65536:])
     assert compiled.returncode == 0, compiled.stderr[-3000:]
     environment = os.environ.copy()
+    environment.pop('HALO2_WEAPON_DIAGNOSTIC_STOP_TARGET', None)
+    if args.stop_at is not None:
+        assert 0 < args.stop_at <= 0xffffffff
+        environment['HALO2_WEAPON_DIAGNOSTIC_STOP_TARGET'] = hex(args.stop_at)
     environment['LD_LIBRARY_PATH'] = ':'.join(sorted({str(Path(copies.get(str(path), str(path))).parent) for path in files if '.so' in path.name}) + [environment.get('LD_LIBRARY_PATH', '')])
     run_command = [str(binary), str(scratch / 'cpu.json'), str(scratch / 'ram.bin'),
         str(scratch / 'native.json'), str(scratch / 'native-ram.bin'), hex(call['entry']),
@@ -115,11 +121,13 @@ def main():
     completed = subprocess.run(run_command, env=environment, capture_output=True, text=True, timeout=90)
     (output / 'run.log').write_text((completed.stdout + completed.stderr)[-65536:])
     native = json.loads((scratch / 'native.json').read_text())
+    if args.stop_at is not None:
+        assert native['declared_prefix_stop_target'] == args.stop_at
     comparisons = []
     with (scratch / 'native-ram.bin').open('rb') as file, mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ) as bank, physical_ram(case, 'after') as reference:
         actual = PageTableMemory(bank, initial)
         expected = PageTableMemory(reference, cpu(case, 'after'))
-        spans = [(row['name'], row['address'], row['bytes']) for row in call['observed_objects']]
+        spans = [(row['name'], row['address'], row['bytes']) for row in call.get('observed_objects',[])]
         fp = call['first_person_state']
         spans.append(('complete_first_person_state', fp['address'], fp['bytes']))
         for name, address, size in spans:
@@ -134,6 +142,8 @@ def main():
     for path in [source, *args.extra_source]:
         dependencies[str(path.absolute())] = sha(path)
     result = dict(passed=native['returned'] and all(row['equal'] for row in comparisons), diagnostic_completed=True,
+        original_entry=call['entry'], original_phase=call.get('phase'),
+        declared_prefix_stop=args.stop_at, declared_prefix_stop_reached=native.get('declared_prefix_stop_reached',False),
         full_native_call_returned=native['returned'], native_error=native['error'], last_instruction=native['last_instruction'],
         last_external_calls=native['external_calls'][-12:], native_instruction_count=len(native['instructions']),
         native_store_count=len(native['memory_writes']), comparisons=comparisons,

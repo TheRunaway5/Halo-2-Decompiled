@@ -7,6 +7,8 @@ agent and subagents. Whenever a task or acceptance gate is completed and
 verified, immediately update its checkbox and supporting evidence there before
 starting the next task or handing off. Record changed blockers and next steps,
 and leave unverified items unchecked.
+Saving that checklist update is part of completing each task, including
+verified subagent work; it must not be deferred until the end of a session.
 
 The current implementation priority is to reuse the working development-build
 loaders, gameplay, audio, renderer and startup systems. Changes must address a
@@ -25,12 +27,17 @@ coherent compiled modules, installed launcher runtimes and delivered releases.
 Record the removal inventory and recovered bytes after the gameplay work.
 
 Play now exposes the separately validated interim native Lockout test through
-both installed launchers and the version8 precompiled ZIP. The actual installed
+both installed launchers and the version9 precompiled ZIP. The actual installed
 and relocated launcher routes pass; full gameplay/conversion/parity flags remain
 false. Missing or stale native-test validation retains the MCC content viewer.
 The class1 world-weapon decompression defect is corrected and verified in
-actual neutral gameplay, including nonzero callback audio. Firing can still
-terminate the interim test; campaign, complete menus/loading and full
+actual neutral gameplay, including nonzero callback audio. Earlier V13 and
+version8 builds retained the firing-termination limitation. The updated installed
+build and version9 now pass actual launcher checks; the coherent and relocated
+package pass a bounded SMG shot through tick60 with ammo 60 to 59, 74 rendered
+frames and finite nonzero callback audio. Both existing save files are unchanged,
+and prior installed files are retained for rollback. Sound identity,
+sustained/all-weapon firing, campaign, complete menus/loading and full
 audiovisual parity remain unfinished.
 Precompiled packages contain the runtime, existing shaders and onboarding
 dependencies and never enter the source build/update path. Current delivery

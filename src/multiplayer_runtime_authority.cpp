@@ -18,11 +18,14 @@ void diagnostic(std::string &previous,std::string_view prefix,const std::string 
 struct MultiplayerRuntimeAuthority::Impl {
     const std::thread::id executor=std::this_thread::get_id();
     std::shared_ptr<OnlineMatchSession> online;
+    MultiplayerOptions recovery_options;
     // Keep asset references held by the renderer alive through a role change.
     std::shared_ptr<MultiplayerPreparedWorld> resident;
     std::unique_ptr<LanHost> initial_host;
     std::unique_ptr<LanClient> initial_client;
     std::unique_ptr<SourcePeerHostTakeover> active,pending;
+    struct ClientRebind {PeerMigrationDecision decision;std::unique_ptr<LanClient::PreparedRebind> native;};
+    std::optional<ClientRebind> pending_client;
     std::unique_ptr<SourceMatchAuthority> authority,pending_authority;
     std::unique_ptr<SourceAuthorityReplayWorker> receiver;
     std::unique_ptr<SourceAuthorityPublisher> publisher;
@@ -32,8 +35,9 @@ struct MultiplayerRuntimeAuthority::Impl {
     std::optional<AuthorityTransferContext> published_context,client_context,shadow_context;
     std::optional<unsigned> shadow_target;
     Clock::time_point capture_retry{};
+    Clock::time_point receiver_retry{};
     std::string admission_error,receiver_error,publication_error;
-    bool frame{},continuing_input{};
+    bool frame{},continuing_input{},recovery_enabled{},restart_receiver{};
     std::optional<std::uint64_t> continued_input_tick;
     std::array<Controls,4> continued_input;
     void own()const{need(executor==std::this_thread::get_id());}
@@ -77,8 +81,9 @@ MultiplayerRuntimeAuthority::MultiplayerRuntimeAuthority(const MultiplayerOption
     std::shared_ptr<MultiplayerPreparedWorld> world,std::unique_ptr<LanHost> host,std::unique_ptr<LanClient> client,
     std::unique_ptr<SourceAuthorityReplayWorker> receiver):impl_(std::make_unique<Impl>()){
     auto &s=*impl_;need(world&&world->matches(options)&&!(host&&client));
-    s.online=options.online_match;s.resident=std::move(world);
+    s.online=options.online_match;s.recovery_options=source_authority_options(options);s.resident=std::move(world);
     s.initial_host=std::move(host);s.initial_client=std::move(client);s.receiver=std::move(receiver);
+    s.recovery_enabled=bool(s.receiver);
     need(!s.receiver||(s.online&&s.initial_client));
     if(s.online&&s.initial_host&&s.world().source_objects&&s.world().source_objects->owns_physics())
         s.authority=std::make_unique<SourceMatchAuthority>(s.world().match,*s.world().source_objects);
@@ -109,6 +114,15 @@ void MultiplayerRuntimeAuthority::service(){
 }
 void MultiplayerRuntimeAuthority::receive(){
     auto &s=*impl_;s.own();
+    if(s.restart_receiver&&s.online&&s.client()&&s.online->phase()==OnlineMatchSession::Phase::Running){
+        if(s.receiver&&s.receiver->stopped())s.receiver.reset();
+        if(!s.receiver&&Clock::now()>=s.receiver_retry)try{
+            s.receiver=std::make_unique<SourceAuthorityReplayWorker>(s.recovery_options);s.restart_receiver=false;
+        }catch(const std::exception &error){
+            s.receiver_retry=Clock::now()+std::chrono::seconds(1);
+            diagnostic(s.receiver_error,"Source shadow restart unavailable: ",error.what());
+        }
+    }
     if(s.online&&s.client()&&s.client()->ready()&&!s.client_context&&s.online->direct_udp()){
         if(const auto context=s.online->authority_context())try{
             s.client()->bind_continuity(*context,s.online->self(),s.online->roster());s.client_context=context;
@@ -159,7 +173,7 @@ std::shared_ptr<const SourceAuthorityRetainedWorld> MultiplayerRuntimeAuthority:
 }
 void MultiplayerRuntimeAuthority::cancel_recovery(){auto &s=*impl_;s.quiescent();if(s.receiver)s.receiver->cancel();}
 void MultiplayerRuntimeAuthority::stage_takeover(std::unique_ptr<SourcePeerHostTakeover> &&candidate){
-    auto &s=*impl_;s.quiescent();need(candidate&&s.online&&!s.host()&&!s.pending&&!s.receiver);
+    auto &s=*impl_;s.quiescent();need(candidate&&s.online&&!s.host()&&!s.pending&&!s.pending_client&&!s.receiver);
     const auto state=s.online->peer_migration();
     need(state&&state->decision&&*state->decision==candidate->decision()&&s.online->self()==candidate->decision().value.host);
     auto &world=candidate->world();need(world.source_objects&&world.source_objects->owns_physics()&&
@@ -168,14 +182,60 @@ void MultiplayerRuntimeAuthority::stage_takeover(std::unique_ptr<SourcePeerHostT
     s.pending_authority=std::move(authority);s.pending=std::move(candidate);
 }
 SourcePeerHostTakeover *MultiplayerRuntimeAuthority::pending_takeover(){impl_->own();return impl_->pending.get();}
+bool MultiplayerRuntimeAuthority::prepare_takeover(std::shared_ptr<PhysicsLiveClockSource> clock){
+    auto &s=*impl_;s.quiescent();if(s.pending)return true;
+    if(!s.online||s.host()||!s.client()||s.online->phase()!=OnlineMatchSession::Phase::Migrating)return false;
+    const auto agreement=s.online->peer_migration();
+    if(!agreement||!agreement->decision||agreement->decision->value.host!=s.online->self())return false;
+    const auto retained=recover();if(!retained)return false;
+    auto candidate=SourcePeerHostTakeover::prepare(s.recovery_options,*retained,*agreement->decision,std::move(clock));
+    stage_takeover(std::move(candidate));return true;
+}
 bool MultiplayerRuntimeAuthority::activate_takeover(){
-    auto &s=*impl_;s.quiescent();if(!s.pending||!s.pending->activate())return false;
-    // All potentially throwing construction precedes the session's atomic
-    // generation publication. Retire old role owners before exposing the new one.
-    s.publisher.reset();s.initial_client.reset();s.initial_host.reset();s.authority=std::move(s.pending_authority);
-    s.active=std::move(s.pending);s.retained.reset();s.recovery.reset();
-    s.continuing_input=true;
-    s.published_context.reset();s.client_context.reset();s.shadow_context.reset();s.shadow_target.reset();s.capture_retry={};
+    auto &s=*impl_;s.quiescent();if(!s.pending)return false;
+    need(!s.active&&!s.authority&&!s.initial_host&&!s.publisher&&!s.pending_client&&s.pending_authority);
+    receive();need(bool(s.initial_client));s.pending->refresh_local_input(*s.initial_client);
+    struct Adoption {Impl &state;std::unique_ptr<LanClient> retired_client;};Adoption adoption{s,{}};
+    const auto commit=[](void *opaque)noexcept{
+        auto &a=*static_cast<Adoption *>(opaque);auto &state=a.state;
+        // Only move into empty owners under the session lock. Destruction of
+        // the old client can send a leave and must happen outside that lock.
+        a.retired_client=std::move(state.initial_client);
+        state.authority=std::move(state.pending_authority);state.active=std::move(state.pending);
+        state.continuing_input=true;state.continued_input_tick.reset();
+        state.published_context.reset();state.client_context.reset();state.shadow_context.reset();state.shadow_target.reset();state.capture_retry={};
+        return true;
+    };
+    auto *candidate=s.pending.get();if(!candidate->activate(commit,&adoption))return false;
+    s.retained.reset();s.recovery.reset();
+    return true;
+}
+bool MultiplayerRuntimeAuthority::prepare_client_rebind(){
+    auto &s=*impl_;s.quiescent();if(s.pending_client)return true;
+    if(!s.online||s.host()||!s.client()||s.pending||s.online->phase()!=OnlineMatchSession::Phase::Rebinding)return false;
+    receive();const auto agreement=s.online->peer_migration();
+    if(!agreement||!agreement->decision||agreement->decision->value.host==s.online->self())return false;
+    const auto &decision=*agreement->decision;need(s.client_context==decision.previous);
+    auto prepared=s.client()->prepare_rebind_host(decision.previous,decision.next,decision.value.cut);
+    s.pending_client=Impl::ClientRebind{decision,std::move(prepared)};return true;
+}
+std::optional<PeerMigrationDecision> MultiplayerRuntimeAuthority::pending_client_rebind()const{
+    auto &s=*impl_;s.own();return s.pending_client?std::optional(s.pending_client->decision):std::nullopt;
+}
+bool MultiplayerRuntimeAuthority::activate_client_rebind(){
+    auto &s=*impl_;s.quiescent();if(!s.pending_client)return false;
+    need(s.initial_client&&s.initial_client->can_commit_rebind_host(*s.pending_client->native));
+    const auto decision=s.pending_client->decision;
+    const auto commit=[](void *owner)noexcept{
+        auto &state=*static_cast<Impl *>(owner);
+        return state.initial_client->commit_rebind_host(std::move(state.pending_client->native));
+    };
+    if(!s.online->finish_peer_migration(decision,commit,&s))return false;
+    s.client_context=decision.next;
+    const bool retired=bool(s.recovery)||bool(s.retained)||bool(s.recovery_failure);
+    if(retired&&s.receiver)s.receiver->cancel();
+    s.restart_receiver=s.recovery_enabled&&retired;s.receiver_retry={};
+    s.recovery.reset();s.retained.reset();s.recovery_failure={};s.pending_client.reset();
     return true;
 }
 NativeVehicleCamera *MultiplayerRuntimeAuthority::promoted_camera(){

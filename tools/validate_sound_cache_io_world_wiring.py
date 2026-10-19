@@ -28,6 +28,10 @@ def main():
         ROOT/'src/source_sound_random_scalar_tu15_generated.cpp',ROOT/'include/halo2/source_sound_random_scalar_tu15.hpp',
         ROOT/'src/source_sound_properties_tu15_generated.cpp',ROOT/'include/halo2/source_sound_properties_tu15.hpp',
         ROOT/'src/source_sound_random_short_tu15_generated.cpp',ROOT/'include/halo2/source_sound_random_short_tu15.hpp',
+        ROOT/'src/source_sound_range_selection_tu15_generated.cpp',ROOT/'include/halo2/source_sound_range_selection_tu15.hpp',
+        ROOT/'src/source_sound_permutation_tu15_generated.cpp',ROOT/'include/halo2/source_sound_permutation_tu15.hpp',
+        ROOT/'src/source_sound_binding_tu15_generated.cpp',ROOT/'include/halo2/source_sound_binding_tu15.hpp',
+        ROOT/'src/source_sound_chunk_readiness_tu15_generated.cpp',ROOT/'include/halo2/source_sound_chunk_readiness_tu15.hpp',
         ROOT/'cmake/PhysicsLiveWorldTu15.cmake']
     pins={str(path):sha(path)for path in inputs}
     command=['c++',*values['CXX_DEFINES'],*values['CXX_INCLUDES'],*values['CXX_FLAGS'],'-fsyntax-only',str(source)]

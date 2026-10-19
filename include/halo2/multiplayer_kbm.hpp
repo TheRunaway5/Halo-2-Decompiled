@@ -4,6 +4,7 @@
 #include "halo2/native_interaction_hold.hpp"
 #include <SDL.h>
 #include <array>
+#include <optional>
 
 namespace halo2 {
 // Native host requests. These fields do not establish gameplay support for
@@ -30,6 +31,14 @@ public:
   // Release held inputs and queued presses when an overlay takes or returns
   // input ownership. This does not change window-focus admission.
   void release();
+  // During a native handoff, keep focus/physical key state current but admit
+  // no gameplay input or queued presses. Held interaction time is frozen;
+  // releases of pre-pause interactions retain their completed duration.
+  // New taps entirely within the pause are discarded. A newly held button
+  // starts at resume, without a synthetic press or elapsed pause duration.
+  void suspend(Uint32 milliseconds = SDL_GetTicks());
+  void resume(Uint32 milliseconds = SDL_GetTicks());
+  bool suspended()const noexcept {return suspended_at_.has_value();}
   void settings(const PcKeyboardSettings &value) {
     if(settings_!=value) {release();settings_=value;}
   }
@@ -38,12 +47,15 @@ private:
   Uint32 window_id_{};
   PcKeyboardSettings settings_;
   bool focused_ = true;
+  std::optional<Uint32> suspended_at_;
   NativeInteractionHold pickup_hold_,dual_hold_;
+  std::array<bool,2> resumed_interactions_{};
   std::array<bool, SDL_NUM_SCANCODES> keys_{};
   std::array<bool, 6> mouse_{};
   std::array<bool, pc_action_count> pressed_{};
   bool held(PcAction) const;
   void press(int binding);
+  void update_interactions(Uint32);
   bool own_window(Uint32 id) const { return !window_id_ || id == window_id_; }
 };
 } // namespace halo2

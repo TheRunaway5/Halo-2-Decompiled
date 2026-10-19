@@ -383,6 +383,8 @@ struct OnlineMatchSession::Impl {
         }
         {
           std::lock_guard lock(mutex);
+          const auto now=transfer_time();
+          if(const auto candidate=migration_candidate(now))agreement->drive(*candidate,now);
           // Retain the full bounded generation chain for a delayed learner.
           // All generations share one four-packet budget after gameplay/media.
           for(unsigned i=0;i<4&&peer_handoff_phase();++i){
@@ -674,6 +676,9 @@ bool OnlineMatchSession::propose_peer_migration(){
   const bool result=impl_->agreement->propose(*peer,now);impl_->fence_peer_generation();return result;
 }
 bool OnlineMatchSession::finish_peer_migration(const PeerMigrationDecision &decision){
+  return finish_peer_migration(decision,nullptr,nullptr);
+}
+bool OnlineMatchSession::finish_peer_migration(const PeerMigrationDecision &decision,NativeCommit commit,void *native){
   auto &s=*impl_;std::lock_guard lock(s.mutex);
   if(!s.peer_handoff_phase()||!s.agreement||!s.agreement_context||!s.authority||!s.source_admissions)return false;
   const auto learned=s.agreement->state(transfer_time()).decision;
@@ -694,7 +699,9 @@ bool OnlineMatchSession::finish_peer_migration(const PeerMigrationDecision &deci
   }
   std::uint16_t members{};
   for(const auto &p:s.roster)if(decision.next.peers&(1u<<online_admission_peer(p)))members|=std::uint16_t(1u<<p.slot);
-  s.continuity_admissions=prior->players;s.authority=std::move(transfer);s.source_admissions=std::move(admissions);s.mesh_quality=std::move(quality);
+  auto continuity_players=prior->players;
+  if(commit&&!commit(native))return false;
+  s.continuity_admissions=std::move(continuity_players);s.authority=std::move(transfer);s.source_admissions=std::move(admissions);s.mesh_quality=std::move(quality);
   s.agreement_history.push_back({*s.agreement_context,s.agreement});
   s.agreement=std::move(agreement);s.agreement_context=decision.next;s.peer_fenced=false;
   s.host=decision.next.host;s.continuity_state={decision.next.epoch,s.host,members,std::nullopt};s.voice_members=members;

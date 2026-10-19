@@ -58,8 +58,21 @@ public:
     // The caller keeps ownership if staging is rejected. A pending takeover
     // remains private while audio retirement or adapter rebinding is incomplete.
     void stage_takeover(std::unique_ptr<SourcePeerHostTakeover> &&);
+    // At a completed frame, retire the replay worker and prepare/stage this
+    // session's exact learned replacement from its retained owning value.
+    // False means not elected or still draining. True leaves one private
+    // pending owner for adapter rebinding and explicit activation. Repeated
+    // calls do not rebuild it. Native reconstruction itself is synchronous.
+    // Does not advertise readiness, elect a host or open gameplay/media.
+    bool prepare_takeover(std::shared_ptr<PhysicsLiveClockSource> = {});
     SourcePeerHostTakeover *pending_takeover();
     bool activate_takeover();
+    // Surviving client counterpart. Stage the locally learned decision without
+    // changing its native endpoint; retire presentation borrowers before
+    // activation. Native rebind commits before the session publishes its epoch.
+    bool prepare_client_rebind();
+    std::optional<PeerMigrationDecision> pending_client_rebind()const;
+    bool activate_client_rebind();
     // Promoted native camera bank; the ordinary initial role keeps its own
     // camera. The returned pointer stays executor-local and world-owned.
     NativeVehicleCamera *promoted_camera();

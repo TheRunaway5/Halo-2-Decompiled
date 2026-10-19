@@ -77,6 +77,10 @@ public:
   // Only the agreed predecessor host is excluded. A sole remaining PC needs
   // its own retained cut; no fabricated bandwidth/NAT value is substituted.
   std::optional<unsigned> migration_candidate()const;
+  // The direct-session worker drives measured proposals and paced retries
+  // automatically once native owners publish retained readiness. Explicit
+  // proposals remain available for diagnostics; they are not required by the
+  // ordinary gated path and must not be called once per render frame.
   // Same measured choice and proposal under one session-generation lock.
   // Preference cannot override an earlier accepted Paxos host/cut value.
   bool propose_peer_migration();
@@ -84,6 +88,12 @@ public:
   // Gameplay and voice stay fenced until then. Certificates supplied without
   // this endpoint's independently learned decision cannot unlock the channel.
   bool finish_peer_migration(const PeerMigrationDecision &);
+  // Runs on this caller's executor after decision/admission/audio validation
+  // and all successor allocations, before publishing the new transport epoch.
+  // The callback must not call this session. False must leave the native owner
+  // unchanged; a successful native commit must not allocate or throw.
+  using NativeCommit=bool(*)(void *)noexcept;
+  bool finish_peer_migration(const PeerMigrationDecision &,NativeCommit,void *);
   // Current host's native allocations, exchanged independently of world cuts
   // over direct encrypted peers and bound to the accepted couch roster.
   bool publish_source_players(const AuthorityTransferContext &,std::span<const SourcePlayerAdmission>);

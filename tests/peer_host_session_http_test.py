@@ -69,6 +69,8 @@ async def main():
                 assert not result['master_gameplay_relay']
                 assert result['decoded_synthetic_audio'] == bool(os.environ.get('HALO2_PEER_AUDIO_HANDOFF'))
                 assert result['automatic_measured_host_choice'] == bool(os.environ.get('HALO2_PEER_AUTO_SELECT'))
+                assert result['automatic_peer_proposals']
+                assert result['native_commit_callback_guard']
                 (output / 'results.json').write_text(json.dumps(result, indent=2) + '\n')
                 print('PASS real direct session handoffs, media barriers and physical/couch/identity continuity')
             finally:

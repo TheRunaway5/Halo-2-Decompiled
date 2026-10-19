@@ -1,11 +1,38 @@
 #include "halo2/multiplayer_kbm.hpp"
 
 namespace halo2 {
+void MultiplayerKbm::suspend(Uint32 milliseconds) {
+  if(suspended_at_)return;
+  suspended_at_=milliseconds;pressed_.fill(false);
+}
+void MultiplayerKbm::resume(Uint32 milliseconds) {
+  if(!suspended_at_)return;
+  const auto elapsed=milliseconds-*suspended_at_;
+  pickup_hold_.exclude_elapsed(elapsed);dual_hold_.exclude_elapsed(elapsed);
+  suspended_at_.reset();
+  resumed_interactions_={pickup_hold_.pending&&!pickup_hold_.down,dual_hold_.pending&&!dual_hold_.down};
+  // A completed old interaction is delivered before a newly held request.
+  // consume() starts that new hold only after delivering the saved completion.
+  if(!pickup_hold_.down&&!pickup_hold_.pending)pickup_hold_.set(held(PcAction::Pickup),milliseconds);
+  if(!dual_hold_.down&&!dual_hold_.pending)dual_hold_.set(held(PcAction::DualPickup),milliseconds);
+}
+void MultiplayerKbm::update_interactions(Uint32 milliseconds) {
+  const auto update=[&](NativeInteractionHold &hold,PcAction action,bool resumed) {
+    const bool down=held(action);
+    if(!suspended_at_){
+      if(!(resumed&&hold.pending&&!hold.down&&down))hold.set(down,milliseconds);
+    }
+    else if(hold.down&&!down)hold.set(false,*suspended_at_);
+  };
+  update(pickup_hold_,PcAction::Pickup,resumed_interactions_[0]);
+  update(dual_hold_,PcAction::DualPickup,resumed_interactions_[1]);
+}
 void MultiplayerKbm::release() {
   keys_.fill(false);
   mouse_.fill(false);
   pressed_.fill(false);
   pickup_hold_={};dual_hold_={};
+  resumed_interactions_={};
 }
 void MultiplayerKbm::press(int binding) {
   for (unsigned i = 0; i < pc_action_count; ++i)
@@ -51,30 +78,29 @@ void MultiplayerKbm::handle_event(const SDL_Event &event) {
     const bool down = event.type == SDL_KEYDOWN;
     if (down && event.key.repeat)
       return;
-    if (down && !keys_[key]) {
+    if (down && !keys_[key] && !suspended_at_) {
       press(key);
     }
     keys_[key] = down;
     const auto now=event.key.timestamp?event.key.timestamp:SDL_GetTicks();
-    pickup_hold_.set(held(PcAction::Pickup),now);
-    dual_hold_.set(held(PcAction::DualPickup),now);
+    update_interactions(now);
   } else if (event.type == SDL_MOUSEBUTTONDOWN ||
              event.type == SDL_MOUSEBUTTONUP) {
     if (!own_window(event.button.windowID) ||
         event.button.button >= mouse_.size())
       return;
     const bool down = event.type == SDL_MOUSEBUTTONDOWN;
-    if (down && !mouse_[event.button.button])
+    if (down && !mouse_[event.button.button] && !suspended_at_)
       press(pc_mouse_button(event.button.button));
     mouse_[event.button.button] = down;
     const auto now=event.button.timestamp?event.button.timestamp:SDL_GetTicks();
-    pickup_hold_.set(held(PcAction::Pickup),now);dual_hold_.set(held(PcAction::DualPickup),now);
+    update_interactions(now);
   } else if (event.type == SDL_MOUSEWHEEL && own_window(event.wheel.windowID)) {
     bool moved = event.wheel.x != 0 || event.wheel.y != 0;
 #if SDL_VERSION_ATLEAST(2, 0, 18)
     moved |= event.wheel.preciseX != 0 || event.wheel.preciseY != 0;
 #endif
-    if (moved)
+    if (moved && !suspended_at_)
       press(pc_wheel_up);
   }
 }
@@ -86,6 +112,7 @@ MultiplayerKbmInput MultiplayerKbm::snapshot(float yaw, float pitch,Uint32 milli
   auto &c = r.controls;
   c.yaw = yaw;
   c.pitch = pitch;
+  if(suspended_at_)return r;
   c.forward = float(held(PcAction::Forward)) - float(held(PcAction::Back));
   c.right = float(held(PcAction::Right)) - float(held(PcAction::Left));
   c.jump = active(PcAction::Jump);
@@ -114,8 +141,14 @@ MultiplayerKbmInput MultiplayerKbm::snapshot(float yaw, float pitch,Uint32 milli
 }
 MultiplayerKbmInput MultiplayerKbm::consume(float yaw, float pitch,Uint32 milliseconds) {
   const auto result = snapshot(yaw, pitch,milliseconds);
+  if(suspended_at_)return result;
   pressed_.fill(false);
   pickup_hold_.consume();dual_hold_.consume();
+  resumed_interactions_={};
+  // A physical press made during suspension cannot overwrite an older
+  // completed interaction. Start it after that completion's owning delivery.
+  if(!pickup_hold_.down)pickup_hold_.set(held(PcAction::Pickup),milliseconds);
+  if(!dual_hold_.down)dual_hold_.set(held(PcAction::DualPickup),milliseconds);
   return result;
 }
 } // namespace halo2

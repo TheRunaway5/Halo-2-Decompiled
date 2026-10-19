@@ -5,6 +5,9 @@
 #include <cmath>
 #include <fstream>
 #include <bit>
+#include <map>
+#include <mutex>
+#include <tuple>
 #include <zlib.h>
 
 namespace halo2 {
@@ -30,6 +33,15 @@ std::pair<std::size_t, std::size_t> checked_range(const Bytes &data,
   return {r.first(), r.count()};
 }
 } // namespace
+struct Cache::BitmapCache {
+  using Key=std::tuple<std::uint32_t,std::uint32_t,std::vector<std::byte>>;
+  std::mutex mutex;
+  std::map<Key,Texture> entries;
+};
+std::shared_ptr<Cache::BitmapCache> Cache::make_bitmap_cache(){return std::make_shared<BitmapCache>();}
+void Cache::invalidate_bitmap_cache(){
+  std::lock_guard lock(bitmap_cache_->mutex);bitmap_cache_->entries.clear();
+}
 std::uint32_t Cache::bitmap_count(std::uint32_t datum) const {
   const auto* tag = find_tag({datum}, tag_groups::bitmap);
   if(!tag || tag->size < 76)
@@ -39,6 +51,21 @@ std::uint32_t Cache::bitmap_count(std::uint32_t datum) const {
   return std::uint32_t(metadata_block(base+68, mcc_?168:116).count);
 }
 Texture Cache::load_bitmap(std::uint32_t datum, std::uint32_t index,
+                           std::span<const std::byte> palette) const {
+  // Native cache backing is immutable after construction/postprocessing.
+  // Preserve the separate PC/MCC import paths and their existing validation.
+  if(pc_geometry())return load_bitmap_uncached(datum,index,palette);
+  const BitmapCache::Key key{datum,index,{palette.begin(),palette.end()}};
+  {
+    std::lock_guard lock(bitmap_cache_->mutex);
+    if(const auto at=bitmap_cache_->entries.find(key);at!=bitmap_cache_->entries.end())return at->second;
+  }
+  auto decoded=load_bitmap_uncached(datum,index,palette);
+  decoded.pixels.publish();
+  std::lock_guard lock(bitmap_cache_->mutex);
+  return bitmap_cache_->entries.try_emplace(key,std::move(decoded)).first->second;
+}
+Texture Cache::load_bitmap_uncached(std::uint32_t datum, std::uint32_t index,
                            std::span<const std::byte> palette) const {
   if(mcc_)return load_mcc_bitmap(datum,index,palette);
   if(vista_) {

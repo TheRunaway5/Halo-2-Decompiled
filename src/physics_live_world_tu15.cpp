@@ -119,6 +119,10 @@
 #include "halo2/source_sound_random_scalar_tu15.hpp"
 #include "halo2/source_sound_properties_tu15.hpp"
 #include "halo2/source_sound_random_short_tu15.hpp"
+#include "halo2/source_sound_range_selection_tu15.hpp"
+#include "halo2/source_sound_permutation_tu15.hpp"
+#include "halo2/source_sound_binding_tu15.hpp"
+#include "halo2/source_sound_chunk_readiness_tu15.hpp"
 #include "halo2/source_boot_smc_video_mode_input.hpp"
 #include "halo2/source_sound_sdk_tu15.hpp"
 #include "halo2/weapon_effect.hpp"
@@ -1318,6 +1322,18 @@ struct PhysicsLiveWorldTu15::Impl {
         }
         if(c.target==0x127e00u) {
             source_run_sound_random_short_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x21f960u) {
+            source_run_sound_range_selection_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x21fa80u) {
+            source_run_sound_permutation_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x12b1c0u) {
+            source_run_sound_binding_tu15(m,c.target,a,fp,services(),o);return;
+        }
+        if(c.target==0x128970u || c.target==0x1293f0u || c.target==0x21f3b0u) {
+            source_run_sound_chunk_readiness_tu15(m,c.target,a,fp,services(),o);return;
         }
         if(source_sound_startup_tu15_owns_entry(c.target)) {
             source_run_sound_startup_tu15(m,c.target,a,fp,services(),o);return;

@@ -22,4 +22,8 @@ function(halo2_partition_native_translation target source count)
         COMMENT "Partitioning unchanged native bodies from ${stem}" VERBATIM)
     target_sources(${target} PRIVATE ${outputs})
     target_include_directories(${target} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src")
+    if(NOT MSVC)
+        set_property(SOURCE ${outputs} APPEND PROPERTY COMPILE_OPTIONS
+            -fno-fast-math -ffp-contract=off -frounding-math)
+    endif()
 endfunction()

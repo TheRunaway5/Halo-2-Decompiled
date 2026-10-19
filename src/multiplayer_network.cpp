@@ -20,6 +20,7 @@
 #include <limits>
 #include <mutex>
 #include <deque>
+#include <type_traits>
 #ifdef _WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -2121,6 +2122,7 @@ struct LanClient::Impl {
   std::array<std::optional<SourcePlayerConfiguration>,4> profiles;
   std::uint32_t sequence{};
   std::array<PressSerials,4> presses{};
+  Packet latest_input;
   std::array<std::array<bool,6>,4> held{};
   std::array<InteractionDurations,4> active_interactions{},completed_interactions{};
   std::array<VehicleIntent,4> completed_vehicle{};
@@ -2134,6 +2136,7 @@ struct LanClient::Impl {
   Clock::time_point last = Clock::now();
   std::optional<Clock::time_point> started;
   std::optional<AuthorityTransferContext> continuity;
+  std::uint64_t rebind_revision{};
   unsigned physical_self=16;
   std::optional<std::uint32_t> rebound_tick;
   Impl(std::string address, std::uint64_t f, unsigned n, std::span<const std::int8_t> teams,
@@ -2231,7 +2234,7 @@ void LanClient::send(std::span<const Controls> c) {
     v.held[view]=down;
     encode_control(p,c[view],v.presses[view],v.completed_interactions[view],v.completed_vehicle[view]);
   }
-  v.udp.send(p, v.host);
+  v.latest_input=std::move(p);v.udp.send(v.latest_input, v.host);
 }
 void LanClient::receive() {
   auto &v = *impl_;
@@ -2359,15 +2362,92 @@ void LanClient::bind_continuity(const AuthorityTransferContext &context,unsigned
       throw FormatError("Client continuity has a different physical couch-owner table");
     seen|=std::uint16_t(1u<<p.slot);physical|=std::uint16_t(1u<<owner);if(owner==self)slots.push_back(p.slot);}
   if(slots!=v.ids||(context.peers&~physical))throw FormatError("Client continuity differs from its accepted couch slots");
-  v.continuity=context;v.physical_self=self;
+  v.continuity=context;v.physical_self=self;++v.rebind_revision;
 }
-void LanClient::rebind_host(const AuthorityTransferContext &previous,const AuthorityTransferContext &next,const AuthorityCutSeal &cut){
+void LanClient::merge_local_input(const LanHost::Continuation &cut,const AuthorityTransferContext &previous,
+    LanHost::LocalContinuation &local)const{
+  static_assert(std::is_nothrow_copy_assignable_v<Controls>&&std::is_nothrow_copy_assignable_v<VehicleIntent>);
+  const auto &v=*impl_;
+  if(!cut.data_||!v.udp.relay||!v.connected||!v.continuity||*v.continuity!=previous||
+      v.physical_self>=16||v.physical_self==previous.host||!(previous.peers&(1u<<v.physical_self))||
+      ntohl(v.host.sin_addr.s_addr)!=previous.host+1||cut.data_->binding!=source_authority_binding(previous)||
+      cut.data_->fingerprint!=v.fingerprint)
+    throw FormatError("Promoted input has a different native connection or authority context");
+  const auto &peers=cut.data_->peers;
+  const auto found=std::ranges::find(peers,v.physical_self,&LanHost::Continuation::Data::Peer::endpoint);
+  if(found==peers.end()||found->nonce!=v.nonce||found->cookie!=v.cookie||found->ids!=v.ids||local.slots!=v.ids||
+      v.ids.empty()||v.ids.size()>4||v.count!=v.ids.size()||found->profiles.size()!=v.count||
+      found->selected_teams.size()!=v.count||!std::equal(found->profiles.begin(),found->profiles.end(),v.profiles.begin())||
+      !std::equal(found->selected_teams.begin(),found->selected_teams.end(),v.selected_teams.begin()))
+    throw FormatError("Promoted input changed its admitted couch owner, cookies or profile requests");
+  const auto &prior=*found;
+  for(unsigned view=0;view<v.count;++view)for(unsigned action=0;action<v.presses[view].size();++action)
+    if(local.delivered_presses[view][action]!=prior.delivered_presses[view][action]||
+        !(local.received_presses[view][action]==prior.received_presses[view][action]||
+          newer(local.received_presses[view][action],prior.received_presses[view][action])))
+      throw FormatError("Promoted input was consumed or rolled back before native activation");
+  if(v.latest_input.empty()){
+    if(prior.seen||v.sequence)throw FormatError("Promoted input lost its latest owning packet");
+    return;
+  }
+  Reader reader{v.latest_input};
+  if(reader.type()!=input||reader.get(8)!=v.nonce||reader.get(8)!=v.cookie)
+    throw FormatError("Promoted input packet has a different native connection");
+  const auto sequence=std::uint32_t(reader.get(4));const auto count=reader.get(1);
+  if(sequence!=v.sequence||count!=v.count||(prior.seen&&sequence!=prior.sequence&&!newer(sequence,prior.sequence)))
+    throw FormatError("Promoted input packet predates its owning client or saved host cut");
+  std::array<WireControl,4> decoded{};
+  for(unsigned view=0;view<count;++view)decoded[view]=decode_control(reader);
+  reader.end();
+  for(unsigned view=0;view<count;++view)for(unsigned action=0;action<decoded[view].presses.size();++action){
+    const auto incoming=decoded[view].presses[action],received=local.received_presses[view][action];
+    if(incoming!=v.presses[view][action]||!(incoming==received||newer(incoming,received))||
+        (prior.seen&&sequence==prior.sequence&&incoming!=prior.received_presses[view][action]))
+      throw FormatError("Promoted input packet has stale or inconsistent delivery serials");
+  }
+  if(prior.seen&&sequence==prior.sequence)return;
+  // Parsing and every independent ownership/serial check precede mutation.
+  // Keep delivered counters and native camera state at their accepted cut.
+  for(unsigned view=0;view<count;++view){
+    local.controls[view]=decoded[view].control;local.received_presses[view]=decoded[view].presses;
+    local.completed[view]=decoded[view].completed;local.completed_vehicle[view]=decoded[view].completed_vehicle;
+  }
+}
+struct LanClient::PreparedRebind::Impl {
+  const LanClient::Impl *owner{};
+  AuthorityTransferContext previous,next;
+  AuthorityCutSeal cut;
+  std::uint64_t revision{},nonce{},cookie{};
+  std::array<unsigned,4> slots{};unsigned count{};
+};
+LanClient::PreparedRebind::PreparedRebind():impl_(std::make_unique<Impl>()){}
+LanClient::PreparedRebind::~PreparedRebind()=default;
+std::unique_ptr<LanClient::PreparedRebind> LanClient::prepare_rebind_host(
+    const AuthorityTransferContext &previous,const AuthorityTransferContext &next,const AuthorityCutSeal &cut)const{
   auto &v=*impl_;host_loss_contexts(previous,next);
   if(!v.udp.relay||!v.connected||!v.continuity||*v.continuity!=previous||v.physical_self==next.host||
-      !(next.peers&(1u<<v.physical_self))||!cut.id||!cut.bytes||
+      !(next.peers&(1u<<v.physical_self))||v.ids.empty()||v.ids.size()>4||v.rebind_revision==UINT64_MAX||!cut.id||!cut.bytes||
       std::ranges::all_of(cut.digest,[](auto b){return b==std::byte{};}))
     throw FormatError("Client host rebind has a stale context, unadmitted role or missing accepted cut");
-  v.host.sin_addr.s_addr=htonl(next.host+1);v.continuity=next;v.assemblies.clear();v.received_states.clear();
-  v.rebound_tick=std::uint32_t(cut.tick);v.last=Clock::now();v.started.reset();v.attempts=0;v.error.clear();
+  auto prepared=std::unique_ptr<PreparedRebind>(new PreparedRebind);auto &p=*prepared->impl_;
+  p.owner=&v;p.previous=previous;p.next=next;p.cut=cut;p.revision=v.rebind_revision;p.nonce=v.nonce;p.cookie=v.cookie;
+  p.count=v.ids.size();std::copy(v.ids.begin(),v.ids.end(),p.slots.begin());return prepared;
+}
+bool LanClient::can_commit_rebind_host(const PreparedRebind &prepared)const noexcept{
+  const auto &v=*impl_;const auto &p=*prepared.impl_;
+  return p.owner==&v&&v.udp.relay&&v.connected&&v.continuity&&*v.continuity==p.previous&&
+      v.rebind_revision==p.revision&&v.rebind_revision<UINT64_MAX&&v.nonce==p.nonce&&v.cookie==p.cookie&&
+      v.ids.size()==p.count&&std::equal(v.ids.begin(),v.ids.end(),p.slots.begin());
+}
+bool LanClient::commit_rebind_host(std::unique_ptr<PreparedRebind> &&prepared)noexcept{
+  if(!prepared||!can_commit_rebind_host(*prepared))return false;
+  auto &v=*impl_;const auto &p=*prepared->impl_;
+  v.host.sin_addr.s_addr=htonl(p.next.host+1);v.continuity=p.next;v.assemblies.clear();v.received_states.clear();
+  v.rebound_tick=std::uint32_t(p.cut.tick);v.last=Clock::now();v.started.reset();v.attempts=0;v.error.clear();
+  ++v.rebind_revision;prepared.reset();return true;
+}
+void LanClient::rebind_host(const AuthorityTransferContext &previous,const AuthorityTransferContext &next,const AuthorityCutSeal &cut){
+  auto prepared=prepare_rebind_host(previous,next,cut);
+  if(!commit_rebind_host(std::move(prepared)))throw FormatError("Prepared native client rebind became stale");
 }
 } // namespace halo2

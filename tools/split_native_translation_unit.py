@@ -40,7 +40,7 @@ def split(source, directory, count):
     prefix, footer = text[:bodies[0].start()], text[bodies[-1].end():]
     if prefix.count('namespace {\n') != 1 or not footer.startswith('} // namespace\n'):
         raise ValueError('Unsupported native namespace boundary')
-    if re.search(r'^(?:static (?!void (?:run_|dispatch))|thread_local )', prefix, re.M):
+    if re.search(r'^(?:static (?!void (?:run_[0-9a-f]+|dispatch)\()|thread_local )', prefix, re.M):
         raise ValueError('Native partition has unowned namespace static state')
     module = 'native_split_' + re.sub(r'\W', '_', source.stem)
     prefix = prefix.replace('namespace {\n', 'namespace ' + module + ' {\n', 1)

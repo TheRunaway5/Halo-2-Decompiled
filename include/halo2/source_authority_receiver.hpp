@@ -8,6 +8,10 @@
 
 namespace halo2 {
 class SourcePeerHostTakeover;
+// Owning native replay/takeover recipe. Retains the admitted session and
+// gameplay selections, without copying renderer/device callbacks, desktop,
+// prepared worlds or other live presentation borrowers.
+MultiplayerOptions source_authority_options(const MultiplayerOptions &);
 struct SourceAuthorityReceiverState {
     bool decoding{},warmed{},workspace_warmed{};
     std::uint64_t received{},prepared{},decode_microseconds{},warm_microseconds{},prepare_microseconds{};
