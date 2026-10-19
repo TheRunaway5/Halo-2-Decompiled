@@ -5364,6 +5364,14 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/analysis/frontend/vista-settings-20261010/source/source.tsv
         ${CMAKE_CURRENT_BINARY_DIR}/vista-settings-test.cfg)
     set_tests_properties(retail_frontend_vista_settings PROPERTIES SKIP_RETURN_CODE 77)
+    set(HALO2_MCC_FRONTEND_TEST_CACHE "auto" CACHE PATH
+        "Imported MCC cache root for frontend submenu regression (auto uses assets/mcc-source.tsv)")
+    add_executable(frontend_mcc_submenus_tests tests/frontend_mcc_submenus_tests.cpp)
+    target_link_libraries(frontend_mcc_submenus_tests PRIVATE halo2_systems nlohmann_json::nlohmann_json)
+    add_test(NAME mcc_frontend_submenus COMMAND frontend_mcc_submenus_tests
+        "${HALO2_MCC_FRONTEND_TEST_CACHE}" ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_BINARY_DIR}/mcc-submenus.json)
+    set_tests_properties(mcc_frontend_submenus PROPERTIES SKIP_RETURN_CODE 77 TIMEOUT 180)
     add_executable(frontend_vista_transition_assets_tests tests/frontend_vista_transition_assets_tests.cpp)
     target_link_libraries(frontend_vista_transition_assets_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json OpenSSL::Crypto)
     add_test(NAME retail_frontend_vista_transition_assets COMMAND frontend_vista_transition_assets_tests

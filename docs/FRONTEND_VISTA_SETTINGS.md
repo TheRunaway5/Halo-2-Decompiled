@@ -1,17 +1,23 @@
 # Vista settings menus and native display controls
 
-The native frontend loads the supplied `Halo 2 Vista installer/maps/mainmenu.map`
-directly. **Settings** now uses the six-category PC hub: Player, Game Variants,
-Video, Audio, Network, and About. The PC background is imported too. Each
-category uses its original authored pane and illustration, including the
-monitor, speakers, globe/router, and Halo 2 logo.
+The MCC frontend loads the existing PC menu definitions from the selected
+imported `halo2/h2_maps_win64_dx11/mainmenu.map`. Fonts come from its sibling
+`halo2/h2_fonts` and bitmap resources from its MCC `textures.dat` partitions.
+No Vista installation, font bank or legacy texture pack is required.
+**Settings** uses the existing six-category PC hub: Player, Game Variants,
+Video, Audio, Network, and About. Each category retains its authored pane and
+illustration, including the monitor, speakers, globe/router, and Halo 2 logo.
 **Player Profile > Keyboard/Mouse** opens the PC keyboard settings;
 **Settings > Video** opens its video options. The original Xbox menus remain in
 their existing resource namespace. PC screen IDs use `0x10000 | source_id`, so
 shared IDs such as sensitivity screen 42 cannot displace the Xbox definition.
-Newly built launchers pass their imported Vista cache path automatically. The
-runtime also discovers the local reference cache beside the project. Installed launchers read both imported roots from `assets/asset-sources.tsv`;
-`--launcher-info` reports their selected runtime and asset paths.
+Compiled PC StringIDs are resolved by an exact unique symbol-name join into
+the MCC namespace. Authored MCC widget IDs and localized strings stay intact;
+the mapping contains identifiers, not a copied Vista runtime bank. Existing
+profile, video, audio, keyboard, split-screen and Online controllers are reused.
+Installed launchers select their imported MCC cache through
+`assets/mcc-source.tsv`; `--launcher-info` reports the selected runtime and paths.
+The older Vista loader remains available for offline reference validation.
 
 Custom keyboard and mouse bindings, secondary bindings, look sensitivity, and
 look inversion are saved per native profile and passed to the multiplayer

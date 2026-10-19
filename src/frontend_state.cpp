@@ -8,6 +8,7 @@
 #include "halo2/frontend_lobby_ready.hpp"
 #include "halo2/native_player_profile.hpp"
 #include "mcc_frontend_string_ids.hpp"
+#include "mcc_pc_frontend_string_ids.hpp"
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -373,7 +374,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
   case 19:
     add(0x196, 193);
     add(0x197, 60, 1);
-    if (content_.vista) f.entries.push_back({content_.vista->global_strings.at(0x0e000820), int(vista_menu(256)), 0});
+    if (content_.vista) f.entries.push_back({detail::frontend_pc_compiled_localized(*content_.vista, content_.vista->screen(19), 0x0e000820), int(vista_menu(256)), 0});
     break;
   case 10:
   case 193:
@@ -392,7 +393,7 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     add(0x301, 54);
     add(0x2f2, 58);
     add(0x2f1, 242);
-    if (content_.vista) f.entries.push_back({content_.vista->global_strings.at(0x16000853), int(vista_menu(258)), 0});
+    if (content_.vista) f.entries.push_back({detail::frontend_pc_compiled_localized(*content_.vista, content_.vista->screen(38), 0x16000853), int(vista_menu(258)), 0});
     break;
   case 39: {
     const std::array<unsigned, 6> ids{0x3dd, 0x3de, 0x3df, 0x3e0, 0x3e1, 0x3e2};
@@ -569,12 +570,21 @@ MenuFrame MenuState::build(unsigned id, unsigned context) const {
     break;
   case 14:
     if(mode_==3){populate_online_party(f);break;}
-    // The authored buttons provide the labels; their actions use retail order.
-    if (!s.panes.empty())
-      for (const auto &button : s.panes.front().buttons) {
+    // The native lobby policy owns Start and Setup. MCC's PC host pane also
+    // authors Find Game, Game Details and an empty service placeholder; those
+    // are not additional native Setup actions.
+    if (!s.panes.empty()) {
+      constexpr std::array<int,2> actions{-4,23};
+      const auto &buttons=s.panes.front().buttons;
+      if(buttons.size()<actions.size())
+        throw FormatError("Lobby definition is missing its native actions");
+      for (unsigned i=0;i<actions.size();++i) {
+        const auto &button=buttons[i];
         const auto label = content_.localized(s, button.text.string);
-        f.entries.push_back({label, f.entries.empty() ? -4 : 23, 0});
+        if(label.empty())throw FormatError("Lobby action has no source-owned label");
+        f.entries.push_back({label,actions[i],0});
       }
+    }
     break;
   case 23:
     if (const auto lobby = lobby_view())
@@ -902,6 +912,9 @@ std::uint64_t MenuState::open_vista_leave_task(std::uint32_t controller,
 void MenuState::set_vista_leave_task_status(std::uint64_t instance,std::uint32_t sid) {
   const auto it=std::find_if(stack_.begin(),stack_.end(),[&](const auto& f){return f.instance==instance && f.vista_leave_task;});
   if(it==stack_.end())throw FormatError("Vista Leave status requires its live task allocation");
+  const auto imported=detail::frontend_pc_compiled_string_id(*content_.vista,sid);
+  if(!imported)throw FormatError("PC Leave status has no imported identifier");
+  sid=*imported;
   if(!content_.vista->screens.at(182).strings.contains(sid))
     throw FormatError("Vista Leave status string is absent from its actual screen");
   if(it->vista_leave_task->status_string!=sid){it->vista_leave_task->status_string=sid;++revision;}
@@ -1112,7 +1125,7 @@ void MenuState::accept() {
       open(vista_menu(7));
       auto &f=stack_.back();f.title=d.title;f.description=d.message;
       if(action==-103) {
-        f.title=content_.vista->localized(content_.screen(vista_menu(18)),0x040002ed);
+        f.title=detail::frontend_pc_compiled_localized(*content_.vista, content_.screen(vista_menu(18)),0x040002ed);
         f.description="Quit the current game? Unsaved progress will be lost.";
       }
       f.entries={{action==-102?d.first:f.title,action==-102?-112:-113,0},{d.second,-104,0}};
@@ -2014,7 +2027,7 @@ std::optional<FrontendLobbyView> MenuState::lobby_view() const {
     std::map<unsigned,int> queries;
     for (unsigned id=0;id<112;++id)queries.emplace(id,source_game_variant_get(settings,int(id)));
     view.quick_options = frontend_lobby_quick_options(content_, engine_, queries,
-        content_.localized(content_.screens.at(14), 0x1a001820));
+        detail::frontend_compiled_localized(content_,content_.screens.at(14),0x1a001820));
   }
   return view;
 }
@@ -2066,13 +2079,13 @@ std::string MenuState::expand(const std::string &source) const {
           break;
         case 0xe41f:
           if (const auto lobby = lobby_view())
-            result += content_.localized(content_.screens.at(14),
+            result += detail::frontend_compiled_localized(content_,content_.screens.at(14),
                 frontend_lobby_protocol_string(lobby->input.session_enum));
           break;
         case 0xe425:
           if (const auto lobby = lobby_view()) {
             const auto id = frontend_lobby_player_count_string(lobby->input.player_count);
-            if (id) result += content_.localized(content_.screens.at(14), *id);
+            if (id) result += detail::frontend_compiled_localized(content_,content_.screens.at(14),*id);
           }
           break;
         case 0xe426:
@@ -2081,7 +2094,7 @@ std::string MenuState::expand(const std::string &source) const {
             result += code == 0xe426 ? lobby->map->name : lobby->map->description;
           break;
         case 0xe428:
-          result += content_.localized(content_.screens.at(14),
+          result += detail::frontend_compiled_localized(content_,content_.screens.at(14),
               frontend_lobby_difficulty_string(std::int16_t(difficulty_)));
           break;
         case 0xe413:

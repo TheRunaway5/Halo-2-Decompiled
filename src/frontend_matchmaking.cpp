@@ -1,4 +1,5 @@
 #include "halo2/frontend.hpp"
+#include "mcc_pc_frontend_string_ids.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/native_player_profile.hpp"
 #include <algorithm>
@@ -173,7 +174,7 @@ std::string MenuState::online_matchmaking_text(const MenuFrame &f, unsigned i) c
         // Native transport phases are a service boundary, not PC enum values.
         if (online_matchmaking_pane() == 2)
           return matchmaking_.status == OnlineMatchmakingStatus::Loading ? matchmaking_.message
-              : content_.vista->localized(screen, 0x0c00043d);
+              : detail::frontend_pc_compiled_localized(*content_.vista, screen, 0x0c00043d);
         return content_.vista->localized(screen, screen.panes.at(online_matchmaking_pane()).texts.at(0).string);
       }
       return matchmaking_.message.empty() ? "Connecting to matchmaking..." : matchmaking_.message;

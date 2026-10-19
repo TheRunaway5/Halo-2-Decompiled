@@ -1,4 +1,5 @@
 #include "halo2/native_vista_pcr.hpp"
+#include "mcc_pc_frontend_string_ids.hpp"
 #include "halo2/multiplayer.hpp"
 #include "halo2/full_scoreboard.hpp"
 #include <algorithm>
@@ -165,7 +166,7 @@ NativeVistaPcr::NativeVistaPcr(const MultiplayerMatch& match,unsigned slot,
   source_=vista_pcr_publish_consumed_snapshot(input);
   VistaPcrServices build;build.engine_present=publication.engine_present;build.team_play=false;
   build.score=[](std::int32_t value){return native_vista_pcr_format(u"%d",std::span(&value,1));};
-  build.placement=[&](std::int32_t value){return wide(pc.localized(pc.screens.at(16),native_vista_pcr_placement_key(value)));};
+  build.placement=[&](std::int32_t value){return wide(detail::frontend_pc_compiled_localized(pc,pc.screens.at(16),native_vista_pcr_placement_key(value)));};
   build.live_identity=[&](unsigned index)->std::optional<VistaLocalUserIdentity> {
     const auto& actual=match.player(index);
     if(!actual.connected || actual.source_datum==0xffffffffu)return {};
@@ -232,7 +233,7 @@ NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<Onlin
     return wide(name);
   };
   build.score=[](std::int32_t n){return native_vista_pcr_format(u"%d",std::span(&n,1));};
-  build.placement=[&](std::int32_t n){return wide(pc.localized(pc.screens.at(16),native_vista_pcr_placement_key(n)));};
+  build.placement=[&](std::int32_t n){return wide(detail::frontend_pc_compiled_localized(pc,pc.screens.at(16),native_vista_pcr_placement_key(n)));};
   // No retail Live achievement service exists for these native room keys.
   // The live-PC identity lookup is explicitly absent; display rows still use
   // the retained native keys through this adapter's appearance queries.
@@ -242,7 +243,7 @@ NativeVistaPcr::NativeVistaPcr(VistaPcrConsumedSnapshot source,std::vector<Onlin
 VistaPcrRowServices NativeVistaPcr::rows(unsigned screen) {
   (void)pc_content(content_,screen);VistaPcrRowServices out;
   out.selected_row=[this]{return selected_row_;};out.format=native_vista_pcr_format;
-  out.localized=[this,screen](std::uint32_t key){const auto& pc=pc_content(content_,screen);return wide(pc.localized(pc.screens.at(screen),key));};
+  out.localized=[this,screen](std::uint32_t key){const auto& pc=pc_content(content_,screen);return wide(detail::frontend_pc_compiled_localized(pc,pc.screens.at(screen),key));};
   out.team_color=[this](std::uint16_t team) {
     const auto color=vista_pcr_appearance_colors({},team,0,assets_)[0];
     return VistaPcrTeamColor{vista_pcr_profile_name_color(color,services_.floating_point),color};
@@ -261,8 +262,8 @@ VistaPcrPlayerPresentation NativeVistaPcr::appearance(unsigned row,unsigned scre
   for(const auto& bitmap:skin.bitmaps) {
     const auto image=pc.images.find(bitmap.datum);
     const bool present=image!=pc.images.end() && !image->second.images.empty();
-    if(bitmap.placeholder==0x14000698){assets.primary_bitmap_present=present;assets.primary_page_count=present?image->second.images.size():0;assets.previous_primary_frame=bitmap.frame;}
-    if(bitmap.placeholder==0x0900069a){assets.rank_bitmap_present=present;assets.rank_page_count=present?image->second.images.size():0;assets.previous_rank_frame=bitmap.frame;}
+    if(detail::frontend_pc_compiled_matches(pc,bitmap.placeholder,0x14000698)){assets.primary_bitmap_present=present;assets.primary_page_count=present?image->second.images.size():0;assets.previous_primary_frame=bitmap.frame;}
+    if(detail::frontend_pc_compiled_matches(pc,bitmap.placeholder,0x0900069a)){assets.rank_bitmap_present=present;assets.rank_page_count=present?image->second.images.size():0;assets.previous_rank_frame=bitmap.frame;}
   }
   const auto view=vista_pcr_player_presentation(*results_,row,assets,*this,services_.floating_point);
   return {view.appearance,view.team,view.rank_range,view.primary_color,view.name_color,

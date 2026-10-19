@@ -233,15 +233,19 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
       ?audio_state.desktop:std::make_shared<DesktopSession>();
   audio_state.desktop=desktop;
   auto vista_map=options.vista_settings;
-  if(vista_map.empty() && !cache.is_mcc())
-    vista_map=options.maps.parent_path().parent_path().parent_path()/
-        "Halo 2 Vista installer/maps/mainmenu.map";
+  if(vista_map.empty()) {
+    if(cache.is_mcc())
+      vista_map=options.maps/"mainmenu.map";
+    else
+      vista_map=options.maps.parent_path().parent_path().parent_path()/
+          "Halo 2 Vista installer/maps/mainmenu.map";
+  }
   if(initial_entry && std::filesystem::is_regular_file(vista_map)) {
     content.vista=load_vista_settings(vista_map);
     const FrontendExtensionCatalog catalog(content);
     for(const auto &[id,screen]:content.vista->screens)
       catalog.validate_definition({FrontendMenuSource::vista,std::uint16_t(id)},screen);
-    std::cout << "Vista settings: " << content.vista->screens.size()
+    std::cout << (cache.is_mcc()?"MCC PC menus: ":"Vista settings: ") << content.vista->screens.size()
               << " source-qualified definitions from " << vista_map << '\n';
   } else if(initial_entry && !options.vista_settings.empty())
     throw FormatError("requested Vista settings cache is unavailable");
@@ -876,7 +880,7 @@ std::optional<FrontendLaunch> run_frontend(const FrontendOptions &options) {
     if (!audio || !music_voices.empty())
       return;
     if (!menu_music) {
-      if(content.vista) {
+      if(content.vista && !cache.is_mcc()) {
         // Keep PC datums and WMA resource bytes in their actual cache owner;
         // the Xbox cache still owns every 3D backdrop asset and UI sound.
         Cache music_cache(vista_map,vista_map.parent_path());

@@ -51,8 +51,82 @@ Keep the accepted native Lockout test as a separate action. V19's accepted
 gameplay conversion/build is preserved; its remaining delivery work follows
 this frontend priority.
 
-The user's current sequence is prompt size/placement first, then default Play
-opening the title and menus. Keep the MCC cache and existing shaders selected.
+The user's current sequence is to carry the existing complete submenu work into
+MCC-only Play, including video settings, split screen and Online. Reuse the
+existing controls/layout/input implementation with MCC-owned definitions,
+fonts, artwork and identifiers. Keep the MCC cache and existing shaders selected.
+
+- [x] Adapt the existing PC menu metadata/resource loader and compiled PC
+  string identifiers to the imported MCC mainmenu cache. Preserve raw authored
+  MCC identifiers and source ownership; require no Vista runtime bank.
+  The actual imported MCC loader parses 39 existing PC screen definitions,
+  185 bitmap banks/545 pages and 3,174 locale IDs. All 7,669 compiled PC symbols
+  map uniquely by their exact names into the selected SSD MCC namespace.
+  Public layouts and existing shaders are unchanged. Unused all-zero MCC
+  material slots follow the existing MCC reader policy; nonempty references
+  remain checked. Component acceptance does not establish live menu parity.
+  [Loader evidence](../.local/mcc-submenu-adapter-20261019/handoff.json),
+  [Identifier evidence](../.local/mcc-frontend-string-inventory-20261019/pc-unique-v1/consumer-adaptation.json).
+- [x] Validate Settings, Video/Audio/Keyboard choices and confirmation/cancel,
+  split-screen sign-in/lobby, and Online sign-in/browser entry through the
+  existing state/painter controllers with actual imported MCC assets. Record
+  unavailable service/gameplay routes separately from working local menus.
+  The actual selected SSD MCC cache passes 226,286 checks across 30 drawn
+  screens in 4:3 and 16:9 using the exact V25c runtime providers. Tests cover
+  primary/secondary bindings and saved preferences, resolution confirmation,
+  cancel and the 16-second rollback, two local profiles/controller slots,
+  lobby/Setup and offline Online admission. MCC-only PC host extras no longer
+  become phantom Setup actions. The nested PC canvas receives its authored
+  projection once, including three independent authored bitmap extent checks.
+  No account login, network service or host display change
+  occurs in this CPU/state/painter gate; actual GPU/launcher checks follow.
+  [Selected-cohort regression](../.local/mcc-ui-submenu-reuse-20261019/cohort-regression.json).
+- [x] Build only the affected ABI-compatible frontend providers, validate
+  actual native input, rendering and sound, and install the qualified successor
+  in the SSD checkout. Recheck both launchers' actual Play flows with that
+  same selected cache; preserve the working V24 installation for rollback.
+  V25c reuses the selected development cohort and existing 97 shader files.
+  Actual GPU title/profile/keyboard editor/Settings/Video/Audio/Network/About/
+  Online sign-in/split-screen lobby/Setup navigation and finite nonzero mixer
+  audio pass. Normal and title-first launchers both pass actual no-argument
+  Tk Play clicks, including the cached intro/skip policy. The SSD now selects
+  `.local/f25/halo2_native`; `.local/f24` remains intact for rollback. The same
+  selected MCC cache is read without modification; no ISO or Vista cache opens
+  occur. The broader current-source CMake dependency build was cancelled after
+  configure; it is not reported as passed. The complete focused test instead
+  passes against the exact ABI-compatible providers used by this native build.
+  Full gameplay, live Online service operation and full-frame visual parity
+  remain separate gates. A PC-only lobby download caption is under source audit.
+  [Actual native and both Play flows](../.local/mcc-ui-submenu-reuse-20261019/native-acceptance.json),
+  [Test lifecycle and source pins](../.local/mcc-submenu-regression-20261019/validation.json).
+
+- [x] Diagnose the disabled Play button in the newly cloned SSD checkout.
+  Git tracked a local `.local/f24` frontend selection while ignoring the runtime
+  it selected. Both checkouts now ignore local runtime selection records and
+  stage only removal of that tracked record; the actual local files remain.
+  No readiness or capability guard is relaxed.
+- [x] Install the existing compiled V24 menu runtime and unchanged 97-file
+  shader bank in `/mnt/SSD4TB/Halo-2-Decompiled/.local/f24/`. Only its authenticated
+  read-only shader path field is rebound; instructions and shader bytes stay
+  exact. Actual native title/profile/create/confirm/main/Settings/back navigation
+  and finite nonzero mixer audio pass against the user's currently selected
+  `mcc-38f68db024074a628df2f2f1c1beca68` cache. That cache's changed menu/shared/
+  texture hashes are admitted by this new actual validation, never by copying
+  an old sidecar. The cache selection is preserved and no MCC copy is repeated.
+  [SSD native frontend acceptance](../.local/mcc-ssd-play-repair-20261019/direct-acceptance.json).
+- [x] Verify actual no-argument normal and title-first Tk Play in the SSD
+  installation, including cached intro/skip, menus and pointer Back; retain
+  the requested installed runtime and bounded references, then remove scratch.
+  Both actual installed Tk Play clicks pass and exit zero. Normal Play decodes
+  the exact cached intro with sound; title-first skips it. Title/profile/create/
+  confirm/main/Settings/back and a real mouse BACK click pass with finite
+  nonzero audio. Launcher info reports the selected frontend available and
+  Play opening MCC title/menus. Retain 107,082,886 bytes of installed runtime/
+  shaders/sidecar, the 243,856-byte title-first launcher and two required PNGs
+  totaling 319,363 bytes. Scratch and the one-off installer helper are removed.
+  The cache selection and existing ROOT installation remain intact. The
+  separate gameplay test/runtime and full parity remain unadmitted here.
+  [Completed SSD installation](../.local/mcc-ssd-play-repair-20261019/closure.json).
 
 - [x] Reproduce and correct the late fresh-import graphics failure on
   `03b_newmombasa.map`. The installed MCC source matches the pinned original;

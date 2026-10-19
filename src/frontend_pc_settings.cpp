@@ -1,4 +1,5 @@
 #include "halo2/frontend.hpp"
+#include "mcc_pc_frontend_string_ids.hpp"
 #include <SDL.h>
 #include <algorithm>
 #include <atomic>
@@ -16,11 +17,8 @@ constexpr std::uint32_t editor_labels[]{
     0x2300097f, 0x1e000868, 0x1d000869, 0x20000856, 0x1e00086b, 0x1c00086c,
     0x1600086d, 0x19000962, 0x1a000963, 0x1d00086e, 0x1b00086f, 0x28000978,
     0x1e00097e};
-std::string low_string(const UiScreen &screen, unsigned low) {
-  for (const auto &[id, text] : screen.strings)
-    if ((id & 0xffff) == low)
-      return text;
-  throw FormatError("missing source Vista settings label");
+std::string low_string(const FrontendContent &content, const UiScreen &screen, unsigned low) {
+  return detail::frontend_pc_compiled_low_localized(content, screen, low);
 }
 std::atomic<std::uint64_t> pc_instance{1ull << 63};
 } // namespace
@@ -98,7 +96,7 @@ void MenuState::set_pc_video_modes(
 }
 MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
   if (!content_.vista)
-    throw FormatError("Vista settings require the reference PC mainmenu.map");
+    throw FormatError("PC settings require their loaded mainmenu content");
   const auto &s = content_.screen(id);
   const auto local = vista_settings_kind(id);
   MenuFrame f;
@@ -107,7 +105,7 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
   f.instance = pc_instance.fetch_add(1);
   f.pane_created_clock = ui_clock_;
   auto add = [&](unsigned low, int target = -2, int value = 0) {
-    f.entries.push_back({low_string(s, low), target, value});
+    f.entries.push_back({low_string(*content_.vista, s, low), target, value});
   };
   switch (local) {
   case 7: case 8: break;
@@ -212,7 +210,7 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     for (auto sid : editor_labels) {
       const auto at =
           std::find(pc_action_labels.begin(), pc_action_labels.end(), sid);
-      f.entries.push_back({content_.vista->localized(s, sid), -2,
+      f.entries.push_back({detail::frontend_pc_compiled_localized(*content_.vista, s, sid), -2,
                            sid == 0x2100082e || sid == 0x1f00082f ||
                                    sid == 0x20000855 || sid == 0x20000856
                                ? -2
@@ -318,7 +316,7 @@ MenuFrame MenuState::build_pc(unsigned id, unsigned context) const {
     f.selected=pc_display_.safe_area;
     break;
   case 293:
-    f.entries.push_back({content_.vista->global_strings.at(0x02000f02), -2, 0});
+    f.entries.push_back({detail::frontend_pc_compiled_localized(*content_.vista, s, 0x02000f02), -2, 0});
     break;
   case 276:
     add(0x8a0, -2, 0);
@@ -350,34 +348,34 @@ std::string MenuState::pc_value_label(const MenuFrame &f, unsigned index,
   }
   if(is_vista_settings(f.screen,200)) {
     const auto c=controller_settings();const auto &screen=content_.screen(f.screen);
-    if(index==0)return low_string(content_.screen(vista_menu(41)),c.sticks==0?1:0x2f4+c.sticks);
-    if(index==1)return low_string(content_.screen(vista_menu(40)),c.buttons==0?1:0x3e3+c.buttons);
+    if(index==0)return low_string(*content_.vista, content_.screen(vista_menu(41)),c.sticks==0?1:0x2f4+c.sticks);
+    if(index==1)return low_string(*content_.vista, content_.screen(vista_menu(40)),c.buttons==0?1:0x3e3+c.buttons);
     if(index==2)return std::to_string(c.sensitivity);
-    if(index==3||index==4)return low_string(screen,(index==3?c.invert:c.auto_center)?0x308:0x309);
-    if(index==5)return low_string(content_.screen(vista_menu(183)),c.vibration?0x182:0x183);
+    if(index==3||index==4)return low_string(*content_.vista, screen,(index==3?c.invert:c.auto_center)?0x308:0x309);
+    if(index==5)return low_string(*content_.vista, content_.screen(vista_menu(183)),c.vibration?0x182:0x183);
   }
   if (is_vista_settings(f.screen, 258)) {
     if (index == 0)
-      return low_string(content_.screen(content_.gameplay_overlay?vista_menu(244):f.screen), 0x844);
+      return low_string(*content_.vista, content_.screen(content_.gameplay_overlay?vista_menu(244):f.screen), 0x844);
     if (index == 1)
       return std::to_string(k.sensitivity);
     if (index == 2)
-      return low_string(content_.screen(f.screen), k.invert ? 0x308 : 0x309);
-    if(index==3||index==4)return low_string(content_.screen(f.screen),(index==3?k.auto_center:k.dual_wield_invert)?0x308:0x309);
+      return low_string(*content_.vista, content_.screen(f.screen), k.invert ? 0x308 : 0x309);
+    if(index==3||index==4)return low_string(*content_.vista, content_.screen(f.screen),(index==3?k.auto_center:k.dual_wield_invert)?0x308:0x309);
   }
   if (is_vista_settings(f.screen, 256)) {
     if (index == 0)
-      return low_string(content_.screen(f.screen),
+      return low_string(*content_.vista, content_.screen(f.screen),
                         pc_fullscreen_ ? 0x8aa : 0x8ab);
     if (index == 1)
       return std::to_string(pc_width_) + " x " + std::to_string(pc_height_);
     const auto &s=content_.screen(f.screen);
     if(index==2)return pc_display_.internal_width ? std::to_string(pc_display_.internal_width)+" x "+std::to_string(pc_display_.internal_height) : "Match Screen";
-    if(index==3)return low_string(s,0x8ac+pc_display_.brightness);
-    if(index==4)return low_string(s,0x8b6+pc_display_.gamma);
-    if(index==5)return pc_display_.anti_aliasing ? (pc_display_.anti_aliasing==1 ? "2x SSAA" : "4x SSAA") : low_string(s,0x92b);
-    if(index==6)return low_string(s,0x95f+pc_display_.detail);
-    if(index==7)return low_string(content_.screen(vista_menu(285)),pc_display_.safe_area?0x182:0x183);
+    if(index==3)return low_string(*content_.vista, s,0x8ac+pc_display_.brightness);
+    if(index==4)return low_string(*content_.vista, s,0x8b6+pc_display_.gamma);
+    if(index==5)return pc_display_.anti_aliasing ? (pc_display_.anti_aliasing==1 ? "2x SSAA" : "4x SSAA") : low_string(*content_.vista, s,0x92b);
+    if(index==6)return low_string(*content_.vista, s,0x95f+pc_display_.detail);
+    if(index==7)return low_string(*content_.vista, content_.screen(vista_menu(285)),pc_display_.safe_area?0x182:0x183);
     if(index==8)return std::to_string(pc_display_.field_of_view);
     if(index==9)return std::to_string(pc_display_.vehicle_field_of_view);
     if(index==10)return pc_display_.crt_filter?"On":"Off";
@@ -385,9 +383,9 @@ std::string MenuState::pc_value_label(const MenuFrame &f, unsigned index,
     if(index==12)return pstencil::graphics_mode_name(pc_display_.graphics_mode);
   }
   if(is_vista_settings(f.screen, 257)) {
-    if(index==0)return pc_display_.volume ? std::to_string(pc_display_.volume) : low_string(content_.screen(f.screen),0x957);
-    if(index==1)return low_string(content_.screen(f.screen),0x87b+pc_display_.speakers);
-    if(index==2)return low_string(content_.screen(f.screen),pc_display_.subtitles==0?1:pc_display_.subtitles==1?0x182:0x183);
+    if(index==0)return pc_display_.volume ? std::to_string(pc_display_.volume) : low_string(*content_.vista, content_.screen(f.screen),0x957);
+    if(index==1)return low_string(*content_.vista, content_.screen(f.screen),0x87b+pc_display_.speakers);
+    if(index==2)return low_string(*content_.vista, content_.screen(f.screen),pc_display_.subtitles==0?1:pc_display_.subtitles==1?0x182:0x183);
   }
   return {};
 }
@@ -604,7 +602,7 @@ void MenuState::ui_clock(std::uint32_t value) {
     revert_pc_video();
     return;
   }
-  auto message = low_string(content_.screen(vista_menu(293)), 0x974);
+  auto message = low_string(*content_.vista, content_.screen(vista_menu(293)), 0x974);
   const std::string marker = "\xee\x92\x92"; // source U+E492
   if (const auto at = message.find(marker); at != std::string::npos)
     message.replace(at, marker.size(), std::to_string(remaining));

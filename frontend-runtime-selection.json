@@ -1,6 +1,0 @@
-{
-  "schema": "H2_LOCAL_FRONTEND_RUNTIME_SELECTION_V1",
-  "runtime": ".local/f24/halo2_native",
-  "runtime_sha256": "d8b6b0d4d450a72b210a8abb480879d3d1a12c59ce543d243da0df6d4533a6c3",
-  "capability_sha256": "56edc6fded0b0d4633f043566ada1d792a77323879935daf9c405578efd38be4"
-}

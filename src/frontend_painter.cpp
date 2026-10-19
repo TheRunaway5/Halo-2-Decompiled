@@ -10,6 +10,7 @@
 #include "halo2/frontend_font_sampling.hpp"
 #include "halo2/gameplay_font_source.hpp"
 #include "mcc_frontend_string_ids.hpp"
+#include "mcc_pc_frontend_string_ids.hpp"
 #include "halo2/frontend_emblem.hpp"
 #include "halo2/frontend_frame_texture.hpp"
 #include "halo2/frontend_frame_sampling.hpp"
@@ -148,6 +149,7 @@ struct FrontendPainter::Impl {
   UiDraw output;
   FrontendCanvas canvas = frontend_canvas(640, 480);
   bool imported_mcc_canvas{};
+  bool parent_projects_pc_canvas{};
   float clan_width_extra() const { return canvas.surface_width / canvas.scale - 529; }
   float clan_footer_offset() const { return canvas.surface_height / canvas.scale - 420; }
   struct Hit {
@@ -177,6 +179,17 @@ struct FrontendPainter::Impl {
   std::map<unsigned, FrontendExitAnimation> exit_animations;
   std::uint32_t exit_elapsed_ms{};
   bool drawing_exit{};
+  bool original_string_matches(std::uint32_t authored,std::uint32_t original) const {
+    const auto imported=detail::frontend_compiled_string_id(content,original);
+    return imported && authored==*imported;
+  }
+  std::string original_low_localized(const UiScreen &screen,std::uint32_t original) const {
+    if(detail::mcc_frontend_content(content))
+      return detail::frontend_compiled_localized(content,screen,original);
+    for(const auto &[id,label]:screen.strings)
+      if((id&0xffffu)==original)return label;
+    return {};
+  }
   static bool is_profile_skin(const UiSkin &skin) {
     return skin.name == "ui\\list_skins\\profile_picker\\profile_picker" ||
            skin.name == "ui\\list_skins\\profile_picker2\\profile_picker";
@@ -401,10 +414,15 @@ struct FrontendPainter::Impl {
       const auto sampled=mcc?load_frontend_ui_assets(*c.vista,sampled_fonts.parent_path()):FrontendUiAssetPack{};
       vista = std::make_unique<Impl>(*c.vista, c.vista->source_fonts, mesh,
                                     std::filesystem::path{}, sampled, mcc?sampled_fonts:std::filesystem::path{});
+      // This child emits the raw authored PC coordinates. Its parent owns
+      // the single height/1200 projection for vertices, hits and viewports.
+      vista->parent_projects_pc_canvas=true;
       vista->online_roster_fonts = this;
       for(const auto &[id,image]:c.vista->images)
         vista_art.emplace(image.name,vista->images.at(id));
-      if(separate_online) {
+      const bool same_mcc_bank=detail::mcc_frontend_content(c) &&
+          detail::mcc_frontend_content(*c.vista) && c.source_fonts==c.vista->source_fonts;
+      if(separate_online && !same_mcc_bank) {
         // The PC cache and imported bank share one source root. A selected
         // shell pack must not replace ONLINE/clan fonts or bitmap resources.
         const auto root=c.vista->source_fonts.parent_path().parent_path();
@@ -707,7 +725,7 @@ struct FrontendPainter::Impl {
     std::optional<FrontendPointerAction> prompt_action;
     // The title's authored Press Start caption is plain text (0E001811),
     // rather than a controller glyph. Keep its native target on that caption.
-    if (prompts && owner && owner->screen == 9 && t.string == 0x0e001811)
+    if (prompts && owner && owner->screen == 9 && original_string_matches(t.string,0x0e001811))
       prompt_action = FrontendPointerAction::Accept;
     auto action_for = [&](unsigned c) -> std::optional<FrontendPointerAction> {
       using Action = FrontendPointerAction;
@@ -915,17 +933,17 @@ struct FrontendPainter::Impl {
     for (auto b : skin.bitmaps) {
       // 24A09B -> 2AFEAE: Create New supplies value5e; each saved row
       // supplies its own profile appearance, independently of focus/sign-in.
-      if (b.placeholder == 0x0e00069b && !create)
+      if (original_string_matches(b.placeholder,0x0e00069b) && !create)
         continue;
-      if ((b.placeholder == 0x1400069a && !appearance) ||
-          b.placeholder == 0x0900069c)
+      if ((original_string_matches(b.placeholder,0x1400069a) && !appearance) ||
+          original_string_matches(b.placeholder,0x0900069c))
         continue;
       b.animation = 0;
       b.delay = 0;
       if (content.images.contains(b.datum) &&
           !content.images.at(b.datum).images.empty())
         b.position.y += content.images.at(b.datum).images.front().height;
-      if (b.placeholder == 0x1400069a) {
+      if (original_string_matches(b.placeholder,0x1400069a)) {
         const auto rgb = frontend_appearance_colors(
             *appearance, content.appearance_palette)[0];
         bitmap(b, p, opacity, 0, UiColor{1, rgb.x, rgb.y, rgb.z});
@@ -943,7 +961,7 @@ struct FrontendPainter::Impl {
     // original primary-color HSV conversion. Create New uses the outer field.
     if (appearance && !create)
       for (auto t : skin.texts)
-        if (t.string == 0x0b000698) {
+        if (original_string_matches(t.string,0x0b000698)) {
           const auto rgb = frontend_appearance_name_color(
               *appearance, content.appearance_palette);
           t.color = {1, rgb.x, rgb.y, rgb.z};
@@ -1022,7 +1040,7 @@ struct FrontendPainter::Impl {
         if(!owner.appearance)throw FormatError("Vista PCR has no consumed PC appearance owner");
         player=owner.appearance(index);
         for(unsigned i=0;i<fields->texts.size();++i)
-          if(fields->texts[i].string==0x0b000696 && i==0)
+          if(detail::frontend_pc_compiled_matches(content,fields->texts[i].string,0x0b000696) && i==0)
             texts[i].color=pcr_color(player->name_color);
       };
       vista_pcr_bind_row(VistaPcrPane(frame.context),row,*owner.results,services,owner.floating_point);
@@ -1054,12 +1072,13 @@ struct FrontendPainter::Impl {
         const auto &bitmap=fields->bitmaps[i];bool visible=bitmaps[i].visible;
         auto color=bitmaps[i].color;int image=bitmap.frame;
         if(player) {
-          switch(bitmap.placeholder) {
-          case 0x14000698:visible=player->primary_visible;image=int(player->primary_frame);color=pcr_color(player->primary_color);break;
-          case 0x0e000699:visible=player->secondary_visible;break;
-          case 0x0900069a:visible=player->rank_visible;image=int(player->rank_frame);break;
-          default:throw FormatError("Unbound Vista PCR player bitmap placeholder");
-          }
+          if(detail::frontend_pc_compiled_matches(content,bitmap.placeholder,0x14000698)) {
+            visible=player->primary_visible;image=int(player->primary_frame);color=pcr_color(player->primary_color);
+          } else if(detail::frontend_pc_compiled_matches(content,bitmap.placeholder,0x0e000699))
+            visible=player->secondary_visible;
+          else if(detail::frontend_pc_compiled_matches(content,bitmap.placeholder,0x0900069a)) {
+            visible=player->rank_visible;image=int(player->rank_frame);
+          } else throw FormatError("Unbound PC PCR player bitmap placeholder");
         } else if(bitmap.flags&2)image=row==frame.selected?0:row<frame.selected?1:2;
         if(visible)draw_bitmap(bitmap,field_origin,image,color);
       }
@@ -1295,6 +1314,12 @@ struct FrontendPainter::Impl {
                               appearance});
     }
     for (unsigned i = 0; i < pane.texts.size(); ++i) {
+      // The native Xbox lobby has no PC browser/download producer. Its MCC
+      // definition additionally authors this percent template; the recovered
+      // PC producer hides it at the quiescent 100% state as well.
+      if (frame.screen == 14 && lobby_policy && detail::mcc_frontend_content(content) &&
+          detail::frontend_pc_compiled_matches(content, pane.texts[i].string, 0x15000916))
+        continue;
       if ((frame.screen == 20 || frame.screen == 186) && i > 0) continue;
       if (pc_link && i != 0) continue;
       if (signin && (i >= signin->texts.size() || !signin->texts[i]))
@@ -1319,9 +1344,10 @@ struct FrontendPainter::Impl {
       if(frame.vista_pcr) {
         //40CE6A hides the reached empty-report field whenever the retained
         //signed PC player count is positive. PC185 has no such child.
-        if(t.string==0x1d001a71 && std::bit_cast<std::int32_t>(frame.vista_pcr->results->player_count)>0)continue;
+        if(detail::frontend_pc_compiled_matches(content,t.string,0x1d001a71) && std::bit_cast<std::int32_t>(frame.vista_pcr->results->player_count)>0)continue;
         const auto headings=vista_pcr_headings(VistaPcrPane(frame.context),frame.vista_pcr->results->variant);
-        if(i<headings.size() && headings[i])t.string=*headings[i];
+        if(i<headings.size() && headings[i])
+          t.string=detail::frontend_pc_compiled_string_id(content,*headings[i]).value_or(0xffffffffu);
       }
       if (frame.screen == 193 && (i == 2 || i == 3)) {
         // Original24A886 binds runtime text(6,4)/(6,5) from focused
@@ -1371,11 +1397,13 @@ struct FrontendPainter::Impl {
           t.bounds.bottom -= clan_footer_offset();
         }
       }
-      if(frame.screen==vista_menu(297) && (t.string&0xffff)==0x979)
-        value="Halo 2 Native\r\nVista settings assets: 11081.07.04.30.0934.main";
+      if(frame.screen==vista_menu(297) && detail::frontend_pc_compiled_low_matches(content,t.string,0x979))
+        value=detail::mcc_frontend_content(content)?"Halo 2 Native\r\nMCC Classic menu assets"
+            :"Halo 2 Native\r\nVista settings assets: 11081.07.04.30.0934.main";
       if(frame.screen==vista_menu(296) && i==0)value=frame.description;
       if (pc_link && i == 0)
-        value = content.vista->global_strings.at(frame.screen == 19 ? 0x210019e2u : 0x220019fcu);
+        value = detail::frontend_pc_compiled_localized(*content.vista,
+            content.vista->screen(frame.screen), frame.screen == 19 ? 0x210019e2u : 0x220019fcu);
       if (is_vista_settings(frame.screen, 253) && i == 0) value = frame.description;
       if (is_vista_settings(frame.screen, 243) && value.starts_with(" - ")) {
         // These source captions reserve their prefix for the live binding.
@@ -1389,26 +1417,26 @@ struct FrontendPainter::Impl {
         std::string binding = "Unavailable";
         if (frame.selected == 3)
           for (auto [sid, action] : captions)
-            if ((t.string & 0xffffu) == sid)
+            if (detail::frontend_pc_compiled_low_matches(content,t.string,sid))
               binding = pc_binding_name(state.pc_keyboard_settings().bindings[unsigned(action)]);
         value = binding + value;
       }
       if (focused_map && i == 0) value = focused_map->description;
       if (setup && i < setup->strings.size())
-        value = content.localized(screen, setup->strings[i]);
+        value = detail::frontend_compiled_localized(content,screen,setup->strings[i]);
       if (lobby_policy) {
         if (i == 0 && lobby_policy->status_string)
-          value = content.localized(screen, *lobby_policy->status_string);
+          value = detail::frontend_compiled_localized(content,screen,*lobby_policy->status_string);
         if (lobby_policy->privacy_text == i && lobby_policy->privacy_string)
-          value = content.localized(screen, *lobby_policy->privacy_string);
+          value = detail::frontend_compiled_localized(content,screen,*lobby_policy->privacy_string);
         if (lobby_policy->pane == 0 && i >= 4 && i <= 8)
           value = lobby->quick_options[i-4].value_or("");
         if (help.text_index == i && help.visible)
-          value = content.localized(screen, help.string_id);
+          value = detail::frontend_compiled_localized(content,screen,help.string_id);
       }
       if (signin) {
         if (signin->text_strings[i])
-          value = content.localized(screen, signin->text_strings[i]);
+          value = detail::frontend_compiled_localized(content,screen,signin->text_strings[i]);
         if(i<8 && i%2==0)for(const auto& player:state.local_players())
           if(player.controller==i/2)value=player.name;
       } else if (frame.screen == 167)
@@ -1507,13 +1535,13 @@ struct FrontendPainter::Impl {
             for (auto b : group.bitmaps) {
               bool visible = false;
               std::optional<UiColor> tint;
-              if (b.placeholder == 0x1400069a) {
+              if (original_string_matches(b.placeholder,0x1400069a)) {
                 visible = row.background_visible;
                 b.frame = int(row.background_frame);
                 tint = UiColor{1, row.primary_color.x, row.primary_color.y, row.primary_color.z};
-              } else if (b.placeholder == 0x0e00069b)
+              } else if (original_string_matches(b.placeholder,0x0e00069b))
                 visible = row.secondary_background_visible;
-              else if (b.placeholder == 0x0900069c) {
+              else if (original_string_matches(b.placeholder,0x0900069c)) {
                 visible = row.rank_visible;
                 b.frame = int(row.rank_frame);
               }
@@ -1523,7 +1551,7 @@ struct FrontendPainter::Impl {
               bitmap(b, origin, 1, 0, tint);
             }
             for (auto t : group.texts)
-              if (t.string == 0x0b000698) {
+              if (original_string_matches(t.string,0x0b000698)) {
                 t.color.red = row.name_color.x; t.color.green = row.name_color.y;
                 t.color.blue = row.name_color.z;
                 if(lobby->party_names) {
@@ -1535,7 +1563,7 @@ struct FrontendPainter::Impl {
                   t.bounds.right=std::min(t.bounds.right,
                       320-origin.x-key.position.x-(style.shadow?style.scale:0));
                 }
-                text(t, row.name_string ? content.localized(screen, *row.name_string) : row.name, origin);
+                text(t, row.name_string ? detail::frontend_compiled_localized(content,screen,*row.name_string) : row.name, origin);
               }
           });
         }
@@ -1548,7 +1576,7 @@ struct FrontendPainter::Impl {
             for (const auto &e : group.emblems)
               emblem(e, origin, state.appearance(), true);
             for (auto b : group.bitmaps)
-              if (b.placeholder == 0x1400069a) {
+              if (original_string_matches(b.placeholder,0x1400069a)) {
                 // 2AFEAE flags3 shows this bitmap, selects sequence0 and
                 // writes the raw primary from7F790. At equal depth/layer10,
                 // 2356D8 draws the bitmap before its name text child.
@@ -1560,7 +1588,7 @@ struct FrontendPainter::Impl {
                 bitmap(b, origin, 1, 0, UiColor{1, color.x, color.y, color.z});
               }
             for (auto t : group.texts)
-              if (t.string == 0x0b000698) {
+              if (original_string_matches(t.string,0x0b000698)) {
                 // 2C8D7C supplies flags3/name54E5E0 to 22F042 -> 2AFEAE.
                 const auto color = frontend_appearance_name_color(
                     state.appearance(), content.appearance_palette);
@@ -1583,7 +1611,7 @@ struct FrontendPainter::Impl {
               for (const auto &e : group.emblems)
                 emblem(e, origin, *appearance, true);
               for (auto t : group.texts)
-                if (t.string == 0x0b000698) {
+                if (original_string_matches(t.string,0x0b000698)) {
                   // 24A886 ->22F042 ->2AFEAE supplies the focused saved
                   // name/appearance (flags3); CreateNew has no name flag.
                   const auto rgb = frontend_appearance_name_color(
@@ -1599,7 +1627,7 @@ struct FrontendPainter::Impl {
               // placement. The single-image icons tag rejects sequence2
               // in2B01EB, so bitmap() independently resolves image0.
               for (auto b : group.bitmaps)
-                if (b.placeholder == 0x0e00069b) {
+                if (original_string_matches(b.placeholder,0x0e00069b)) {
                   if (content.images.contains(b.datum) &&
                       !content.images.at(b.datum).images.empty())
                     b.position.y += content.images.at(b.datum).images.front().height;
@@ -1752,12 +1780,7 @@ struct FrontendPainter::Impl {
               low = 0x36f + appearance.foreground;
             else if (index == 6 && appearance.background < 32)
               low = 0x3af + appearance.background;
-            value.clear();
-            for (const auto &[id, label] : screen.strings)
-              if ((id & 0xffff) == low) {
-                value = label;
-                break;
-              }
+            value=original_low_localized(screen,low);
           }
           // Vista6468BF supplies a zero list descriptor, so the original
           // 210 loader skips this authored roster. Its20-unit box cannot fit
@@ -2017,8 +2040,8 @@ struct FrontendPainter::Impl {
             host,details,frame.vista_pcr->rows.localized));
       };
       text(t, frame.vista_pcr?pcr_footer():state.expand(lobby
-          ? content.localized(s, frontend_lobby_presentation(lobby->input).subtitle_string)
-          : setup ? content.localized(s, frontend_lobby_setup_subtitle(setup->input.session_enum))
+          ? detail::frontend_compiled_localized(content,s,frontend_lobby_presentation(lobby->input).subtitle_string)
+          : setup ? detail::frontend_compiled_localized(content,s,frontend_lobby_setup_subtitle(setup->input.session_enum))
           : frame.screen == 219 && frame.context == 0 ? "\xee\x84\x80 SELECT  \xee\x84\x81 BACK  \xee\x84\x82 REFRESH"
           : frame.screen == 237 && frame.context == 0 ? "\xee\x84\x80 FIND MATCH  \xee\x84\x81 BACK"
           : frame.screen == 219 ? (frame.entries.size() == 1 && frame.entries.front().destination == -13
@@ -2044,7 +2067,7 @@ struct FrontendPainter::Impl {
           animation(s.panes.front().animation).position.z);
       keyboard_order();
     }
-    if (imported_mcc_canvas && !state.online_clan_screen(frame) &&
+    if (imported_mcc_canvas && !parent_projects_pc_canvas && !state.online_clan_screen(frame) &&
         !state.online_party_screen(frame) && !state.online_friends_screen(frame)) {
       // MCC retains the PC widget coordinate bank. Reuse the same authored
       // height/1200 projection as the separate PC content above, including

@@ -2,6 +2,9 @@
 #include "halo2/frontend_extension_catalog.hpp"
 #include "halo2/vista_lobby_metadata.hpp"
 #include "halo2/vista_widget_cache.hpp"
+#include "halo2/mcc_cache.hpp"
+#include "halo2/gameplay_font_source.hpp"
+#include "mcc_pc_frontend_string_ids.hpp"
 #include "halo2/texture.hpp"
 #include <algorithm>
 #include <bit>
@@ -17,6 +20,8 @@ struct PcCache {
   std::vector<std::byte> storage;
   Bytes bytes;
   std::size_t index{};
+  bool mcc{};
+  std::int64_t magic{};
   struct Tag {
     std::string group, name;
     std::size_t offset{}, size{};
@@ -32,22 +37,34 @@ struct PcCache {
     if (!file.read(reinterpret_cast<char *>(storage.data()), size))
       throw FormatError("incomplete Vista mainmenu cache");
     bytes = Bytes(storage);
-    if (bytes.u32(0) != 0x68656164 || bytes.u32(4) != 8 ||
-        bytes.u32(8) != storage.size() || bytes.u32(2044) != 0x666f6f74 ||
-        bytes.string(0x12c, 32) != "11081.07.04.30.0934.main")
+    mcc=bytes.u32(4)==13;
+    if(mcc) {
+      storage=decode_mcc_cache(storage);
+      bytes=Bytes(storage);
+      if(storage.size()>512*1024*1024)
+        throw FormatError("excessive MCC settings cache");
+    } else if (bytes.u32(0) != 0x68656164 || bytes.u32(4) != 8 ||
+               bytes.u32(8) != storage.size() || bytes.u32(2044) != 0x666f6f74 ||
+               bytes.string(0x12c, 32) != "11081.07.04.30.0934.main")
       throw FormatError("unsupported Vista settings cache");
     index = bytes.u32(16);
     bytes.require(index, 32);
+    magic=mcc?std::int64_t(bytes.u32(720))-index:-std::int64_t(index);
     const auto count = bytes.u32(index + 24);
-    if (!count || count > 65536 || count != bytes.u32(0x2cc))
+    if (!count || count > 65536 || count != bytes.u32(mcc?32:0x2cc))
       throw FormatError("invalid Vista tag count");
-    const auto table = pointer(bytes.u32(index + 8), count * 16);
-    const auto names = bytes.u32(0x2d0), names_size = bytes.u32(0x2d4);
-    const auto offsets = bytes.u32(0x2d8);
+    const auto header_magic=mcc?std::int64_t(bytes.u32(index))-index-32:magic;
+    const auto table = TagAddressSpace(bytes,header_magic).offset(bytes.u32(index+8),std::size_t(count)*16);
+    const auto names = bytes.u32(mcc?36:0x2d0), names_size = bytes.u32(mcc?40:0x2d4);
+    const auto offsets = bytes.u32(mcc?44:0x2d8);
     bytes.require(names, names_size);
     bytes.require(offsets, count * 4);
     for (unsigned i = 0; i < count; ++i) {
       const auto p = table + i * 16;
+      const auto datum=bytes.u32(p+4);
+      if(mcc && datum==null_datum)continue;
+      if(mcc && (datum&0xffffu)!=i)
+        throw FormatError("MCC settings datum disagrees with directory slot");
       const auto name = bytes.u32(offsets + i * 4);
       if (name >= names_size)
         throw FormatError("invalid Vista tag name");
@@ -59,14 +76,12 @@ struct PcCache {
               bytes.u32(p + 12)};
       if (bytes.u32(p + 8))
         tag.offset = pointer(bytes.u32(p + 8), tag.size);
-      if (!tags.emplace(bytes.u32(p + 4), std::move(tag)).second)
+      if (!tags.emplace(datum, std::move(tag)).second)
         throw FormatError("duplicate Vista tag datum");
     }
   }
   std::size_t pointer(std::uint32_t address, std::size_t size) const {
-    const auto p = index + std::size_t(address);
-    bytes.require(p, size);
-    return p;
+    return TagAddressSpace(bytes,magic).offset(address,size);
   }
   std::vector<std::byte> resource(std::uint32_t pointer,std::uint32_t size) const {
     if(!size || size>128*1024*1024)throw FormatError("invalid Vista UI resource size");
@@ -87,7 +102,8 @@ struct PcCache {
   const Tag &tag(std::uint32_t datum, const char *group) const {
     const auto it = tags.find(datum);
     if (it == tags.end() || it->second.group != group || !it->second.offset)
-      throw FormatError("invalid source-local Vista resource reference");
+      throw FormatError(std::string("invalid source-local PC resource reference: ")+group+
+          " datum "+std::to_string(datum));
     return it->second;
   }
   std::vector<std::size_t> block(std::size_t p, unsigned stride,
@@ -271,8 +287,27 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
   PcCache cache(map);
   const auto &b = cache.bytes;
   auto out = std::make_shared<FrontendContent>();
-  out->vista_widget_cache = std::make_shared<const VistaWidgetCacheBank>(cache.storage);
-  out->source_fonts = map.parent_path() / "fonts";
+  // The original PC source32 widget bank admits only its genuine v8 layout.
+  // MCC keeps its own v13 identities and is consumed by the same native UI.
+  if(!cache.mcc)
+    out->vista_widget_cache = std::make_shared<const VistaWidgetCacheBank>(cache.storage);
+  out->source_fonts = cache.mcc?map.parent_path().parent_path()/"h2_fonts":map.parent_path()/"fonts";
+  if(cache.mcc) {
+    (void)load_gameplay_font_source(out->source_fonts);
+    // These compiled PC constants have a different symbol namespace. Check
+    // the exact-name join against this v13 owner before using its mappings;
+    // authored widget and locale IDs are retained without aliases.
+    const auto count=b.u32(48),size=b.u32(56),indices=b.u32(60),strings=b.u32(52);
+    if(count>1000000)throw FormatError("excessive MCC settings identifier table");
+    b.require(indices,std::size_t(count)*4);b.require(strings,size);
+    for(const auto& row:detail::mcc_pc_frontend_string_identifiers) {
+      const auto index=StringId{row.mcc_id}.index();
+      if(index>=count)throw FormatError("MCC settings identifier outside table");
+      const auto offset=b.u32(indices+std::size_t(index)*4);
+      if(offset>=size || b.string(strings+offset,size-offset)!=row.name)
+        throw FormatError("MCC settings identifier namespace differs from its named profile");
+    }
+  }
   std::vector<std::pair<std::uint32_t, std::string>> locale;
   const auto &globals = cache.tag(b.u32(cache.index + 16), "matg");
   for (auto p : cache.block(globals.offset + 0x160, 12, 256)) {
@@ -353,8 +388,11 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
       const auto universal=cache.pointer(b.u32(mulg.offset+4),0x18);
       const auto names=string_list(b.u32(universal+0xc));
       // Unchanged PC4CBF9B ordinals; resolve only the actual team-name owner.
-      for(unsigned i=0;i<9;++i)if(const auto found=names.find(0x0100030au+i);found!=names.end())
-        out->vista_team_names[i]=found->second;
+      for(unsigned i=0;i<9;++i) {
+        const auto id=detail::frontend_pc_compiled_string_id(*out,0x0100030au+i);
+        if(id)if(const auto found=names.find(*id);found!=names.end())
+          out->vista_team_names[i]=found->second;
+      }
     }
   }
   std::set<std::uint32_t> images;
@@ -428,6 +466,11 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
       if (shader.size < 84)
         throw FormatError("truncated source-local Vista emblem shader");
       for (auto definition : cache.block(shader.offset + 32, 124, 16)) {
+        // MCC retains three platform slots with unused all-zero records.
+        // These own no template/image references; every nonempty slot still
+        // passes the same source-local group and bitmap dependency checks.
+        if(cache.mcc && std::ranges::all_of(b.slice(definition,124),
+            [](std::byte value){return value==std::byte{};}))continue;
         cache.tag(b.u32(definition), "stem");
         for (auto ref : cache.block(definition + 4, 12, 256))
           image_ref(b.u32(ref));
@@ -471,7 +514,8 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
       0x180006e0, 0x040006e1, 0x16000873, 0x19000874, 0x11000975};
   const auto prompts = string_list(b.u32(g + 0x144));
   for (auto id : prompt_ids) {
-    const auto found = prompts.find(id);
+    const auto mapped=detail::frontend_pc_compiled_string_id(*out,id);
+    const auto found = mapped?prompts.find(*mapped):prompts.end();
     out->button_keys.push_back(found == prompts.end() ? std::string{} : found->second);
   }
   // The source's animated bitmap/text children share the PC wigl tracks.
@@ -528,7 +572,8 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
           l.position = cache.point(a + 8);
           l.animation = b.u16(a + 12);
           l.delay = b.u16(a + 14);
-          if (l.skin >= out->skins.size() || (!l.visible && id != 297) || l.visible > 128)
+          if (l.skin >= out->skins.size() ||
+              (!l.visible && (cache.mcc?b.u32(a+16)!=0:id!=297)) || l.visible > 128)
             throw FormatError("invalid Vista list");
           for (auto v : cache.block(a + 16, 20))
             l.labels.push_back(b.u32(v + 16));
@@ -618,7 +663,7 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
     const auto &tag = cache.tag(datum, "bitm");
     UiImage image;
     image.name = tag.name;
-    for (auto p : cache.block(tag.offset + 0x44, 0x74, 256)) {
+    for (auto p : cache.block(tag.offset + 0x44, cache.mcc?168:0x74, 256)) {
       const unsigned w = b.u16(p + 4), h = b.u16(p + 6), fmt = b.u16(p + 12),
                      mips = b.u16(p + 20);
       if (!w || !h || w > 4096 || h > 4096 || b.u16(p + 10) ||
@@ -626,6 +671,16 @@ load_vista_ui(const std::filesystem::path &map, bool gameplay) {
           (b.u16(p + 14) & 8) ||
           mips >= unsigned(std::bit_width(std::max(w, h))))
         throw FormatError("invalid Vista UI image");
+      if(cache.mcc) {
+        if(p<tag.offset || p>std::uint64_t(tag.offset)+tag.size ||
+            168>std::uint64_t(tag.offset)+tag.size-p || b.u32(p+84) || b.u32(p+88))
+          throw FormatError("MCC settings bitmap descriptor escapes its owner or is split");
+        const auto raw=read_mcc_texture_partition(map.parent_path()/"textures.dat",b.u32(p+56),b.u32(p+80));
+        auto texture=prepare_texture(Bytes(raw),w,h,std::uint16_t(fmt),false,mips);
+        if(fmt==16)texture=prepare_xemu_bc3_texture(texture);
+        image.images.push_back(std::move(texture));
+        continue;
+      }
       if (fmt != 1 && fmt != 3 && fmt != 9 && fmt != 10 && fmt != 11 &&
           fmt != 14 && fmt != 15)
         throw FormatError("unsupported Vista UI format");

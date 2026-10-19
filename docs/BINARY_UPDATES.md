@@ -33,6 +33,14 @@ It does not pull source, invoke Git or compile the engine. The feed currently
 has no published releases; Update reports that and preserves the installed
 build. Source compilation remains available through the root script.
 
+`runtime-selection.json` and `frontend-runtime-selection.json` are local
+installation records and are ignored by Git. They bind exact runtime and
+capability hashes in the current checkout. A source clone does not include
+those compiled files; importing MCC prepares the asset cache only. Install a
+qualified precompiled runtime or build the source before selecting a runtime.
+Do not copy a development selection into another checkout without installing
+and validating its runtime, shader bank and cache resources there.
+
 A published release must include `halo2-runtime-update.json`, schema
 `H2_PREBUILT_RUNTIME_UPDATE_V1`, with the actual GitHub numeric `release_id`
 and a `platforms["linux-x86_64"]` entry. That entry specifies layout
