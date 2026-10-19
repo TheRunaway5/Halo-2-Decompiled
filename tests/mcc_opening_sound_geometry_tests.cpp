@@ -33,6 +33,11 @@ int main(int argc,char**argv)try {
         check(cold.is_read_only(at,expected.size())&&std::ranges::equal(cold.view(at,expected.size()),expected),
             "Complete original speech/facial module has a missing or changed immutable input");
     }
+    const auto& scratch=fixture.at("model_pose_scratch");
+    const auto scratch_address=scratch.at("address").get<unsigned>(),scratch_bytes=scratch.at("bytes").get<unsigned>();
+    check(!cold.is_read_only(scratch_address,scratch_bytes)&&
+        std::ranges::all_of(cold.view(scratch_address,scratch_bytes),[](auto b){return b==std::byte{};}),
+        "Original model-pose matrix scratch lacks its complete cold writable owner");
     const auto resources=plan_mcc_sound_geometry_resources(cache);
     SourceRuntimeResources io(cache);
     std::optional<MccSoundRuntimePlan> sound;

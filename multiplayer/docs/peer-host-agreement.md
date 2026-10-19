@@ -1208,3 +1208,35 @@ acceptance, and makes no sanitizer claim. Complete M02-M07 readiness remains
 open and default migration remains disabled. Gameplay and match/postgame voice
 remain direct and player-hosted; MCC-only Vista ONLINE/clan assets, widescreen
 layout and real clan-screen dimensions remain required.
+
+## Prepared local receipt/pose and source bindings, 2026-10-19
+
+The windowed history now retains actual owning local interpolation/FP/aim/
+transition state with the authentic receipt. One prepared subtransaction restores
+its exact decoded states, receipt/event/cue values, CPU effects and deferred
+sounds; another validates preexisting native model/particle residency and prepares
+target-world collision/routing. Their private paused-loop staging composes with
+paired lens preparation. Preflight guards owner/executor/revision/full cut;
+publication swaps retain replaced containers/callbacks for retirement afterward.
+These are preparation owners, not full renderer/input/playing-audio Ready.
+
+The frozen native build, eight unskipped native/rendered CTests, a separate real
+Backwash occupied-particle control and ten GCC checks pass. The initial common
+repair test exposed a real-step/time-gated-broadcast scheduling race; its corrected
+sequence delivers both authentic new-tick receipts before repaired publication,
+without changing proof/codec/authority guards. Source and reference links remain
+unchanged; unrelated root edits are preserved. Private builds/scratches/helpers
+are removed and no runtime is installed. See
+[verification.json](../../.local/foreground-receipt-adoption-20261019/verification.json).
+
+M06 additionally needs a [pre-decision complete-owner builder](../../.local/foreground-receipt-adoption-20261019/readiness-ordering.md):
+current recovery/takeover/foreground staging requires a learned decision, whereas
+candidate Ready is required before proposing/accepting that decision. Runtime's
+committed native/foreground pair is the actual earlier owner seam. Candidate
+Ready and majority acceptance also do not certify every survivor's complete
+adopter. Preserve the advertised exact cut and add the complete recipient barrier;
+never substitute common-cut association or post-decision staging for it.
+
+Complete M02-M07 remains open and default migration stays disabled. Direct
+player-hosted gameplay/voice, MCC-only Vista ONLINE/clan extraction and actual
+widescreen/clan-screen acceptance requirements remain intact.

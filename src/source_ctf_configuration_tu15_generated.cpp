@@ -344,11 +344,12 @@ std::uint32_t sign_extend(std::uint32_t x,unsigned n) {
     if(n==2)return std::uint32_t(std::int32_t(std::bit_cast<std::int16_t>(std::uint16_t(x))));
     throw std::runtime_error("Unverified contact sign-extension width");
 }
-std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x1u:return 0x1u;case 0x2u:return 0x2u;case 0x4u:return 0x4u;case 0x9u:return 0x9u;case 0x14u:return 0x14u;case 0x180u:return 0x180u;case 0x249440u:return 0x249440u;case 0x24b390u:return 0x24b390u;case 0x4f3218u:return 0x4f3218u;case 0x52d710u:return 0x52d710u;case 0xffffffffu:return 0xffffffffu;default:throw std::runtime_error("Unbound original contact executable address");}}
+std::uint32_t selected(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){case 0x1u:return 0x1u;case 0x2u:return 0x2u;case 0x4u:return 0x4u;case 0x8u:return 0x8u;case 0x9u:return 0x9u;case 0x12u:return 0x12u;case 0x14u:return 0x14u;case 0x180u:return 0x180u;case 0x1f4u:return 0x1f4u;case 0x164930u:return 0x164930u;case 0x249440u:return 0x249440u;case 0x24a6c0u:return 0x24a6c0u;case 0x24b390u:return 0x24b390u;case 0x4ecc20u:return 0x4ecc20u;case 0x4f3218u:return 0x4f3218u;case 0x52d710u:return 0x52d710u;case 0xffffffffu:return 0xffffffffu;default:throw std::runtime_error("Unbound original contact executable address");}}
 std::uint32_t canonical_branch(std::uint32_t p,SourcePhysicsContactImage image){if(image==SourcePhysicsContactImage::MapPack11)return p;switch(p){default:throw std::runtime_error("Unbound TU1.5 contact dispatch target");}}
 static void run_249440(WorldState &);
+static void run_24a6c0(WorldState &);
 static void run_24b390(WorldState &);
-static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){case 0x249440u:run_249440(s);return;case 0x24b390u:run_24b390(s);return;default:s.required(site,target,tail);return;}}
+static void dispatch(WorldState &s,std::uint32_t target,std::uint32_t site,bool tail){switch(target){case 0x249440u:run_249440(s);return;case 0x24a6c0u:run_24a6c0(s);return;case 0x24b390u:run_24b390(s);return;default:s.required(site,target,tail);return;}}
 static void run_249440(WorldState &s) {
 if(s.services.instruction){s.services.instruction(0x249440u);} s.set(1,r(s.memory,(0x4f3218u),4),4,0);
 if(s.services.instruction){s.services.instruction(0x249446u);} s.set(2,r(s.memory,(0x180u+s.gp[1]),4),4,0);
@@ -357,6 +358,18 @@ if(s.services.instruction){s.services.instruction(0x24944eu);} s.flags.minus(s.r
 if(s.services.instruction){s.services.instruction(0x249451u);} s.set(0,s.flags.zf,1,0);
 if(s.services.instruction){s.services.instruction(0x249454u);} s.set(0,(0x1u+s.gp[0]*8u),4,0);
 if(s.services.instruction){s.services.instruction(0x24945bu);} s.pop();s.gp[4]+=0u;return;
+throw std::runtime_error("Original solver fell outside authenticated CFG");
+}
+
+static void run_24a6c0(WorldState &s) {
+if(s.services.instruction){s.services.instruction(0x24a6c0u);} s.set(0,r(s.memory,(0x4ecc20u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x24a6c5u);} s.flags.logic((r(s.memory,(0x12u+s.gp[0]),1))&(0x8u),1);
+if(s.services.instruction){s.services.instruction(0x24a6c9u);} if(s.flags.zf)goto L24a6d5;
+if(s.services.instruction){s.services.instruction(0x24a6cbu);} s.set(1,0xffffffffu,4,0);
+if(s.services.instruction){s.services.instruction(0x24a6d0u);} dispatch(s,0x164930u,0x24a6d0u,true);return;
+L24a6d5: if(s.services.instruction){s.services.instruction(0x24a6d5u);} s.set(1,r(s.memory,(0x52d710u),4),4,0);
+if(s.services.instruction){s.services.instruction(0x24a6dbu);} s.set(0,r(s.memory,(0x1f4u+s.gp[1]),4),4,0);
+if(s.services.instruction){s.services.instruction(0x24a6e1u);} s.pop();s.gp[4]+=0u;return;
 throw std::runtime_error("Original solver fell outside authenticated CFG");
 }
 
@@ -383,6 +396,7 @@ void source_run_ctf_configuration_tu15(M &m,std::uint32_t entry,
     try {
         switch(entry) {
 case 0x249440u:run_249440(s);break;
+case 0x24a6c0u:run_24a6c0(s);break;
 case 0x24b390u:run_24b390(s);break;
 
         default:throw std::runtime_error("Required original contact entry unavailable");
@@ -390,5 +404,5 @@ case 0x24b390u:run_24b390(s);break;
     } catch(...) {abi=s.save();throw;}
     abi=s.save();
 }
-bool source_ctf_configuration_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x249440u:case 0x24b390u:return true;default:return false;}}
+bool source_ctf_configuration_tu15_owns_entry(std::uint32_t p) {switch(p){case 0x249440u:case 0x24a6c0u:case 0x24b390u:return true;default:return false;}}
 } // namespace halo2

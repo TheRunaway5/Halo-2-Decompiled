@@ -541,3 +541,27 @@ operands, bringing speech/phase coverage to17 words/68 bytes. Only46A5D0 is
 unowned. The exact original word is380A697B, used by ADDSS at1103B0. Its declared
 readonly scalar owner preserves the source fade calculation. The two original
 speech/facial normalization initializers already execute in native startup.
+
+
+Round49 passes35/35 and actual playback reaches scene05 tick1943. WholeBF640
+then faults on its real REP MOVSD destination4E57E8. This is a writable render
+pose matrix scratch, not a missing model or an output to fabricate. Original
+BF835/BF851 copy the same node count as32-byte orientations and52-byte matrices;
+BF83D's4E8BC0 orientation bank already has its255-node owner. The original render
+transform declaration also has255 entries. The corresponding13,260-byte matrix
+bank at4E57E8 is loader-zero and ends twelve alignment bytes before that separate
+orientation bank (`original-model-pose-scratch.json`). Only that bounded writable
+scratch is added. Original pose producers, copy instructions and facial/render
+overlays still compute and publish its contents; no captured matrix is mounted.
+
+
+Round50 reproduces the exact missing matrix bank via the native cold-factory
+regression. Subsequent complete-opening review also enables Vulkan core and
+synchronization validation. These readback/validation runs establish functional
+and visual diagnostics; their timings are excluded from clean performance claims.
+
+
+Round51 passes35/35 with the complete native matrix scratch,17 immutable
+speech/facial-phase operands, actual67 facial publishers and all prior MCC
+model/BSP/camera/fade/GPU/memory regressions. Its runtime is
+`288e822543274b8a004c55add0577ef0395e415a64dd951ed7e955aafbf6f27d`.

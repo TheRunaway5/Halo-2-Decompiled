@@ -61,6 +61,11 @@ void mount_native_tu15_renderer_cache_pools_data(SourceRuntimeMemory& memory) {
     // requires its actual device owner before the original dereference.
     memory.mount(0x411568u, std::array<std::byte, 4>{}, SourceRuntimeMemory::Access::ReadWrite,
         "TU1.5 cold SDK device binding for native CPU resource queries");
+    // Complete BF640 copies its matching255-node pose to two distinct banks:
+    // count*32 orientations at4E8BC0 (already owned) and count*52 matrices here.
+    // Source callbacks produce the matrices; retain only the loader-zero bank.
+    memory.mount(0x4e57e8u, std::array<std::byte,255u*52u>{}, SourceRuntimeMemory::Access::ReadWrite,
+        "TU1.5 cold BF640 render-pose matrix scratch");
     name(memory, 0x45f218, std::array<char, 20>{"xbox texture cache"});
     name(memory, 0x45f22c, std::array<char, 24>{"xbox predicted texture"});
     name(memory, 0x45f244, std::array<char, 16>{"xbox texture"});

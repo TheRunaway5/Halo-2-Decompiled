@@ -11,7 +11,9 @@ struct BranchTable {
 };
 #include "native_tu15_physics_branch_data.inc"
 #include "native_tu15_physics_callable_data.inc"
-constexpr std::array<std::span<const BranchTable>,2> table_sets{branch_tables,callable_tables};
+#include "native_tu15_physics_literal_data.inc"
+constexpr std::array<std::span<const BranchTable>,3> table_sets{
+    branch_tables,callable_tables,literal_tables};
 bool has_owner(const SourceRuntimeMemory& memory,std::uint32_t address) {
     // A zero-length view still resolves the region owner, including reserved
     // pages. The validation pass below must reject an uncommitted owner before

@@ -95,9 +95,26 @@ Production sharing controls pass in v815. Build v813 stops at a duplicate
 geometry-cache policy owner at48C754; v814/v816 do not execute games. Its private
 source/build trees are removed, as verified in v817. The current source checks
 the existing writable renderer owner and original enabled value instead of
-mounting another copy. Frozen build v819 (four compiler jobs) and its queued
-live MCC matrix v820/ordinary startup v821 validate that integration. Full
-parity and vehicle-camera acceptance remain open.
+mounting another copy. Frozen build v819 (four compiler jobs) passes all three
+gates and removes its private build/source trees. Live MCC matrix v820 passes
+movement again (181 exact LAN states,301 submitted frames), with uninterrupted
+mirrors for all nine cases. Vehicle/object cases reachF9083's absent46AAE8
+scalar, the gravity lift reachesE892C's46A1F4 scalar, and all five Cyclotron
+cases reach31D5A4's41E92C interface slot. Their actual errors are retained and
+their scratch is removed. Ordinary v821 passes120 frames/120 ticks/two players
+and its opened-file audit finds no Xbox/Vista runtime inputs. Full parity and
+vehicle-camera acceptance remain open.
+
+Original audits v825-v828 verify those arithmetic operands and31D68A's
+eleven-method41E910 prefix, reached through the existing compiled death/contact
+dependencies. Export v829 extends the code-reference profile to146 records /
+4,496 bytes. Export v830 adds147 fixed-readonly operand ranges /1,384 bytes,
+derived from2,568 authenticated reads in seven pinned native source bodies.
+Only original .text sites qualify;466 SDK sites, indexed extents, writable
+storage and intervening gaps are excluded. No callbacks, code, tags or produced
+state are invented. Shared owners still require exact readonly bytes. The
+production sharing controls pass in v831. Frozen build v832 and actual visible
+MCC matrix v833/ordinary startup v834 validate this new integration.
 
 MCC context inventory v818 resolves all47 class-3 object and variant names
 against the original reference. Positions, flags and BSP policy correspond;
@@ -119,6 +136,14 @@ baseline and all launcher-selected runtimes are preserved and rehashed. Its
 managed scratch is removed. The immediate volume free-space delta is
 123,457,536 bytes during concurrent builds, reported separately from removed
 file sizes.
+
+Retirement v836 removes another277,418,808 bytes of completed v799 test
+programs and identical shaders, retaining its exact source and recordings and
+the actual-tested v819 runtime. The immediate volume free-space delta is zero
+while other builds write; this is not reported as264.6MiB physically reclaimed.
+The v819 private tree is verified absent in v822, including491,999,232 observed
+allocated file bytes before automatic removal. Concurrent work again prevents
+attributing its net volume delta to that cleanup alone.
 
 Ordinary current-candidate MCC startup v776 passes: 120 rendered frames,
 163 ticks, two players, 540 opened MCC files, 69 continuous mirror checks and

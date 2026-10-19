@@ -29,6 +29,19 @@ int main()try {
     check(empty.checkpoint().regions==installed.regions,
         "Repeated physics installation replaced or duplicated owners");
 
+    SourceRuntimeMemory clock;
+    const std::array tick_binding{std::byte{0x00},std::byte{0x20},std::byte{0x21},std::byte{0x60}};
+    clock.mount(0x41b774u,tick_binding,SourceRuntimeMemory::Access::ReadOnly,
+        "retained runtime tick-count data import");
+    mount_native_tu15_physics_branch_data(clock);
+    check(std::ranges::equal(clock.view(0x41b774u,4),tick_binding),
+        "Physics literals replaced the actual relocated tick-count import with its file ordinal");
+    const auto clock_regions=clock.checkpoint().regions;
+    const auto clock_owner=std::ranges::find(clock_regions,0x41b774u,
+        &SourceRuntimeMemory::CheckpointRegion::address);
+    check(clock_owner!=clock_regions.end()&&clock_owner->owner=="retained runtime tick-count data import",
+        "Physics literals changed the tick-count import owner");
+
     SourceRuntimeMemory partial;
     partial.mount(selector_byte,std::array{std::byte{1}},SourceRuntimeMemory::Access::ReadOnly,
         "retained partial original movement selector");

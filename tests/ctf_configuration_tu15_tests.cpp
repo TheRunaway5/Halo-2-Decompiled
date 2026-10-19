@@ -1,4 +1,5 @@
 #include "halo2/source_ctf_configuration_tu15.hpp"
+#include "halo2/source_ctf_activation_tu15.hpp"
 #include <nlohmann/json.hpp>
 #include <openssl/sha.h>
 #include <algorithm>
@@ -67,6 +68,7 @@ Json execute(const Json& row,const Json& fixture) {
   std::function<void(std::uint32_t,SourcePhysicsWorldRuntimeAbi&)> dispatch;
   dispatch=[&](std::uint32_t entry,SourcePhysicsWorldRuntimeAbi& state) {
     if(source_ctf_configuration_tu15_owns_entry(entry))source_run_ctf_configuration_tu15(memory,entry,state,{0x27f,0x1f80},services);
+    else if(source_ctf_activation_tu15_owns_entry(entry))source_run_ctf_activation_tu15(memory,entry,state,{0x27f,0x1f80},services);
     else throw Missing{entry};
   };
   services.required_owner=[&](SourcePhysicsContactMemory&,const SourcePhysicsContactRuntimeCall& call,

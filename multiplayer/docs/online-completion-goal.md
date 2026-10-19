@@ -61,6 +61,11 @@ each recipient can now pin and agree its own exact native/foreground recovery
 cut, survive ordinary history eviction, and repair a rejected later cut while
 retaining the committed pair. Seven focused native/protocol tests and nine GCC
 checks qualify this headless/CPU prerequisite, not complete owner readiness.
+The next prerequisite now qualifies prepared restoration of the actual local
+pose/FP histories, runtime receipt values, CPU effects and deferred cues, plus
+incoming source-render routing/collision and paired lens staging. Eight native/
+rendered tests, a nonempty Backwash residency control and ten GCC checks pass;
+this remains private preparation without live migration or full readiness.
 M02 remains unchecked; retaining resources and adoption inputs does not adopt
 the runtime.
 **M01** is checked below with its dated GPU/native evidence and verified cleanup. Next
@@ -77,6 +82,12 @@ activation still required after common-cut pinning. The
 applies to its frozen source cohort; later unrelated root edits are preserved
 and do not inherit combined-release qualification. U01/D01 separately track the MCC-only UI
 metadata/resource-bank generation and selector wiring found in the latest audit.
+The [latest remaining owners](../../.local/foreground-receipt-adoption-20261019/remaining-owners.md)
+identify live scenery/prop/machine caches, locomotion, HUD/camera, hardware input
+and playing audio still required. The
+[readiness ordering dependency](../../.local/foreground-receipt-adoption-20261019/readiness-ordering.md)
+requires real pre-decision complete preparation from the committed pair;
+post-decision takeover staging cannot establish pre-election or all-survivor Ready.
 
 ### M — Host migration and disconnect survival
 
@@ -110,6 +121,16 @@ metadata/resource-bank generation and selector wiring found in the latest audit.
   checks, with verified scratch removal; see the
   [client adoption receipt](../../.local/client-replica-cut-20261019/verification.json).
   Complete borrower/scene/HUD/input/playing-audio adoption remains open.
+  Further prerequisite qualified 2026-10-19: exact pose/FP interpolation and
+  clocks, receipt values/current/previous state, deferred cues and CPU effects
+  now prepare and publish together with retained retirement storage. Incoming
+  native render routes/collision queries validate existing actual model/particle
+  residency before mutation; the windowed caller privately stages those owners
+  and paired lens preparation. Eight unskipped focused native/rendered tests,
+  a separate real 240-frame Backwash control and ten GCC checks pass. See the
+  [foreground preparation receipt](../../.local/foreground-receipt-adoption-20261019/verification.json).
+  Full live adoption, pre-election/all-survivor readiness, delivery and physical/
+  WAN validation remain open; this does not check M02 or enable migration.
 - [ ] **M03 — Presentation continuity.** Complete exact scene/model/first-person,
   camera, pose, lighting, HUD, culling and active-effect history adoption.
   Verify active gameplay across the handoff; cold reset component controls

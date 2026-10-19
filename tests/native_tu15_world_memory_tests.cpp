@@ -55,6 +55,11 @@ int main(int argc,char** argv)try {
             contrail_hash=(contrail_hash^std::to_integer<unsigned char>(byte))*1099511628211ull;
     }
     check(contrail_hash==0xcaf5ef873c341710ull,"Cold contrail blend data differs from33 original words");
+    // Independent original geometry-dispatch fixture/proof, not blend state.
+    constexpr std::array geometry_targets{0x430ceu,0x431c8u,0x431c8u,0x436dfu,0x432bdu};
+    check(memory.is_read_only(0x436f0u,20),"Cold contrail geometry dispatch lacks immutable coverage");
+    for(unsigned n=0;n<geometry_targets.size();++n)
+        check(word(memory,0x436f0u+n*4u)==geometry_targets[n],"Cold contrail geometry dispatch differs from five original words");
     for(const auto&[address,bytes,writable]:vehicle_closure_operands) {
         std::vector<std::byte> actual(bytes.size());memory.read(address,actual);
         check(std::ranges::equal(actual,std::as_bytes(bytes)),"Original vehicle closure input bytes differ");
@@ -173,6 +178,14 @@ int main(int argc,char** argv)try {
         0x323c10u,0x323c50u,0x323c50u,0x3238b0u,0x323900u,0x323950u,
         0x3239a0u,0x323b20u,0x3239f0u,0x323a00u,0x323a10u,0x323a70u,
         0x323c80u,0x323d10u,0x323d80u,0x323d50u,0x323e00u,0x324410u,0x323ab0u});
+    // Actual MCC v820 reached31D5A4's slot7 after original31D68A installed
+    // this interface. Offline v826 bounds its eleven methods before null.
+    dispatch(0x41e910u,std::array{
+        0x31cea0u,0x2e1270u,0x2e12a0u,0x31d410u,0x2e4d60u,0x31d510u,
+        0x31ede0u,0x31d710u,0x31d520u,0x31d930u,0x31d630u});
+    check(word(memory,0x46aae8u)==0x3fd55556u && memory.is_read_only(0x46aae8u,4) &&
+        word(memory,0x46a1f4u)==0x3f555555u && memory.is_read_only(0x46a1f4u,4),
+        "Original F9083/E892C fixed arithmetic inputs lack their exact readonly bytes");
     check(word(memory,0xe985cu)==0 && memory.is_read_only(0xe985cu,4),
         "Authored null branch identity was replaced or lacks readonly ownership");
     // The live movement failure read byte10 of original115BCF's selector,

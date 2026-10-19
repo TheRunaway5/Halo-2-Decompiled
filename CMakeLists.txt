@@ -5087,7 +5087,8 @@ if(BUILD_TESTING)
         add_test(NAME original_ctf_activation_tu15 COMMAND ctf_activation_tu15_tests
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/ctf_activation_original_tu15.json)
         add_executable(ctf_configuration_tu15_tests tests/ctf_configuration_tu15_tests.cpp
-            src/source_ctf_configuration_tu15_generated.cpp)
+            src/source_ctf_configuration_tu15_generated.cpp
+            src/source_ctf_activation_tu15_generated.cpp)
         target_include_directories(ctf_configuration_tu15_tests PRIVATE include ${HALO2_TEST_JSON_INCLUDE})
         target_link_libraries(ctf_configuration_tu15_tests PRIVATE OpenSSL::Crypto)
         if(MSVC)

@@ -2850,12 +2850,14 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
     // the shared arithmetic table must not acquire a second overlapping owner.
 #include "native_tu15_campaign_runtime_tables.inc"
 #include "native_tu15_weapon_runtime_tables.inc"
-    mount_native_tu15_physics_branch_data(memory);
     // Authenticated22D78 MOVSS reads exactly this DWORD from TU1.5 .rdata.
     // The original22CD0 PRT arithmetic and every produced result stay intact.
     share_immutable_word(memory,0x46a680u,0x49800000u,
         "native TU1.5 authored22CD0 PRT arithmetic scalar");
 #include "native_tu15_model_render_readonly_literals.inc"
+    // Share exact physics literals only after the named immutable providers
+    // have declared their owners; the profile validates before filling holes.
+    mount_native_tu15_physics_branch_data(memory);
     return memory;
 }
 }

@@ -19,7 +19,7 @@ from oracle_smg_firing_1_1 import ROOT,Xbe,_Code,_trace
 from research_mp_sandbox_update_functions import NEW_DEFAULT,NEW_PIN
 from generate_physics_live_support_tu15 import generate
 
-ENTRIES=(0x24b390,0x249440)
+ENTRIES=(0x24b390,0x249440,0x24a6c0)
 
 
 def sha(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
@@ -67,8 +67,8 @@ def main():
     report=json.loads(manifest.read_text())
     report.update(ctf_configuration_generator_sha256=sha(__file__),generated_cpp_sha256=sha(a.output),
         instruction_listings=listings,
-        existing_owner_reuse={},
-        unqualified_mode_paths='Only whole slot4 configuration predicate and slot0 source-kind getter; no callbacks, bank results or mode are supplied.',
+        existing_owner_reuse=dict(retained_team_rotation='00164930'),
+        unqualified_mode_paths='Only whole slot4 configuration predicate, slot0 source-kind getter and slot26 team selection. Real164930 remains an external native owner; no callbacks, bank results or mode are supplied.',
         typed_initializer_files_changed=False,gameplay_admission_changed=False,
         scope='Complete individually compiled original owners, not yet a composed native MCC object-birth or full game-mode acceptance.')
     manifest.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')

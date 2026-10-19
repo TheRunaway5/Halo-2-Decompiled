@@ -108,6 +108,17 @@ opening the title and menus. Keep the MCC cache and existing shaders selected.
   engine builds. Installed launchers remain pending that final adoption.
   [Actual V2 routes and cleanup](../.local/mcc-frontend-custom-prompts-20261019/root-play-installation-v2/actual-attempt-closure.json),
   [Reviewed source deltas](../.local/mcc-frontend-custom-prompts-20261019/root-play-installation-v2/root-drift-review.json).
+- [x] Adopt the exact tested runtime after that reviewed source drift. V3
+  reconstructs the same native SHA and unchanged 97-shader bank, retains the
+  actual V2 native acceptance, and passes fresh current-UI normal/title-first
+  Tk Play routes with sound. Normal Play uses the cached intro and a real
+  Settings B/BACK click; title-first skips the intro. Original runtime, saves,
+  cache, selectors and renderer workbench remain intact. Root verified the
+  inventory, viewed the fresh Settings image and confirmed scratch removal.
+  Retain the requested staged runtime/bank/sidecars (107,043,373 bytes) and
+  required reference PNGs (316,781 bytes). Final root launcher replacement is
+  authorized separately after this completed acceptance milestone.
+  [Accepted V3 adoption](../.local/mcc-frontend-custom-prompts-20261019/root-play-installation-v3/staged-validation.json).
 - [x] Qualify the final launch-test lifecycle before running that integration.
   The shared flow inherits the test runner's process group and isolates HOME,
   XDG, saves, GPU caches and raw audio. Exact descendant cleanup and forced
@@ -4099,3 +4110,17 @@ V24 retains111,479,920 bytes of requested executable/object inputs plus its smal
 - [x] Port and wire complete original24B390/249440 configuration owners: all18 instruction sites and576 cases compare full defined ABI, FP state and banks with optimized and sanitized native execution. The real MCC session now passes its class dispatch and249460 initializer, then reaches further callback24A6C0. Configuration, objective birth and lifecycle acceptance remain open. The old25-owner activation module stays unchanged.
 
 The successful private CMake tree is removed after retaining the requested small normal/title launcher successors and frozen source. No selector, root launcher, selected cache or runtime is installed by this checkpoint. The2,745,863-byte declared synthetic CTF configuration fixture is a required regression input, not a captured runtime bank. V24's passing native menu proof is reused for the pending frontend staging/delivery.
+
+
+### v577 qualified isolated frontend staging (2026-10-19)
+
+- [x] Stage and independently recheck the passed V24 frontend with its own97-file shader bank and complete52-resource MCC capability. The99-file F24 owner totals107,082,951 bytes. Only22 bytes inside the authenticated64-byte read-only shader-path field change; game instructions remain exact. The existing capability checker and every retained-file hash/size pass. All protected325 inputs, old cameraV3 runtime/106 shaders, installed launchers, selected cache/registry and absent-selector state remain unchanged. [Stage receipt](../work/sandbox-primary-v15/mcc-frontend-stage-v573.json).
+
+Owned staging scratch is removed. F24 is an explicitly retained requested working runtime; this filesystem milestone starts no game and publishes no selector. Actual normal/title launcher adoption and installed Play→native menu acceptance are the next separate delivery step. Basic menus/raw expanded catalogue only: two DLC placeholders, unfinished gameplay and full parity remain open.
+
+
+### v579 installed independent MCC title/menu route (2026-10-19)
+
+- [x] Install the qualified normal/title launcher pair and independent F24 frontend selection. Both actual installed `--launcher-info` calls identify cameraV3 for gameplay and F24 for Play/title/menus. The installed MCC sandbox `--check` passes both capabilities and still selects the exact original cameraV3 native-test owner. Selected cache/registry/provenance, sandbox wrapper, old runtime and all106 old shaders remain unchanged. Both prior launchers are retained under the explicit rollback owner. [Installation receipt](../work/sandbox-primary-v15/mcc-frontend-install-v578.json).
+
+This is local route installation/admission only; no game is executed by the installer. The actual installed six-frame CLI route and actual GUI Play-button→title handoff are being tested separately. F24's earlier818-frame menu/map-picker proof is reused. Full menus, two converted DLC catalogue records, all-map gameplay and full parity remain open. Installer scratch is removed; working installed launchers and436,224-byte rollback launcher pair are explicitly retained.

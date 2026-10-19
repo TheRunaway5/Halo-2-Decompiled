@@ -53,7 +53,7 @@ V776's executable/shaders occupy93,921,879 bytes under
 V778 retains one1,780,319-byte2560x1378 early-space reference. This frame is too
 early for the title, so it establishes no visible title acceptance.
 
-**2026-10-19 High Charity/planet: reversed GPU order reproduced; fix under runtime validation.**
+**2026-10-19 High Charity/planet: source and live GPU order corrected; visible validation pending.**
 Actual MCC command and main-unit captures (v783/v786) preserve the complete
 twelve-request source queue. Untouched TU1.5 sorting of those exact requests
 places Threshold before High Charity (v784/v789). The native ordinal sorter
@@ -106,6 +106,41 @@ to15 minutes of same-cohort GPU/visible validation, with explicit release and
 normal cancellation cleanup. V798's required failure-reference runtime/shaders
 occupy94,212,239 bytes. Corrected GPU order/pixels, the visible title and
 complete-cutscene parity remain pending.
+
+V801 catches duplicate48C754 ownership after the cache module independently
+supplies its exact owner. Current root keeps that cache-module owner. V803
+amends only the duplicate in the held snapshot, then passes all11 checks and
+real MCC startup (2,749,804,544-byte peak). Its later GPU probe reaches a
+missing411568 SDK cell. V804 verifies that this is writable loader-zero
+storage in the original D3D section tail; it is not a live device or GPU
+completion. V805 adopts only that current-root owner and its regression in
+the same snapshot, passes all11 checks and startup (2,723,971,072-byte peak).
+
+V806 now observes actual MCC Vulkan submission in the required order:
+Threshold object14, then High Charity object16. Both use the same pipeline,
+LEQUAL depth testing, disabled depth writes and unchanged premultiplied
+blend state. This closes the live submission-order gate, not a visible
+framebuffer or full-cutscene gate. V797's real PulseAudio window instead
+stops at tick93 on the missing2F5C8 lens draw dispatch table. V807 verifies
+its complete five targets and original selector0..4 bound. V808 adds only
+that immutable table and regression, passes11 checks and startup, then
+V810's visible run stops at missing492314 CPU texture-dimension storage.
+Its4,349-byte early capture is black before the reveal and proves no title
+or city/planet pixels. The original15-minute temporary-build hold ends and
+its owned source/build tree is removed.
+
+V811 verifies both original14370 producers and the two zero-initialized
+four-stage dimension destination banks. A focused build of the actual
+CPU-cache/memory code reproduces the same492314 failure. Supplying just
+these32 bytes in the sparse MCC lens CPU plan passes the regression:
+17 typed regions/1040 bytes, all four stage/axis writes, adjacent unknown
+gaps, readonly inputs and native64 checks. Actual bitmap dimensions still
+come from1438D/14394; no binding/image/readiness value is prepopulated.
+V813 is the coherent replacement with that test included. The title and
+visible overlap, all13 scenes and final AV/framebuffer parity remain open.
+The required V801/V803/V805/V808 diagnostic runtime/shader references are
+94,240,583/94,240,263/94,240,583/94,240,903 bytes respectively under their
+named analysis directories; none replaces an installed launcher runtime.
 
 V754's pending ISO-backed full build/probe was cancelled before its runtime
 probe started; its owned scratch/build tree is removed. Its probe helper now

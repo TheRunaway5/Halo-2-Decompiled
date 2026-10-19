@@ -5424,3 +5424,80 @@ The full 46-item ONLINE goal stays active. Gameplay and match/postgame voice
 remain direct and player-hosted. U01/U02/D01 require Vista ONLINE/clan banks
 from MCC-only onboarding, with correct widescreen and actual clan-screen bounds;
 this native-only milestone makes no UI acceptance claim.
+
+## Exact foreground receipt/pose preparation and source routing, 2026-10-19
+
+The windowed caller's real receipt serial/event/cue values now share one stable
+bank. Its actual scene/body/model interpolation, four-view first-person binding/
+clock/palette histories, aim blends and copyable body transitions have an owning
+receipt-bound snapshot. Preparation restores those existing histories with exact
+current/previous states, origins, CPU effects and deferred sounds. All child
+preflights precede noexcept publication; consumed tokens retain replaced storage
+until outside the session/native hook. Normal callers keep their field aliases
+and invalidate preparations before the next active frame's mutation batch.
+
+Incoming source-render routing builds target-world collision queries and checks
+actual cache/mesh identities, frozen material/resource banks, native effect/
+system residency and authored model sections without loading after GPU upload.
+The paused windowed path privately stages those bindings, receipt restoration
+and paired lens preparation. It publishes no full Ready and performs no live
+activation. Restored sound cues precede genuinely new host requests instead of
+being overwritten by the host sound drain.
+
+The coherent native build and all eight unskipped focused CTests pass, including
+the new proof-bound pose controls and composed receipt restoration, both real
+source-routing takeover cases, existing replay/retention/publisher controls and
+the four-view direct ONLINE render path. The latter accepts 259 receipts,
+captures 258, retains peak 128, binds two native cuts and submits 790 frames;
+49 particle materials, 105 FP/127 WORLD systems, 125 model-light sections and
+58,342 materials remain stable with client native producers dormant. Ten
+exact-target GCC checks pass. No sanitizer coverage is claimed for this milestone.
+
+The takeover fixture's particle scan need not encounter an occupied pool, so
+nonvacuous validation is separate. The expanded real Backwash fixture compiles
+with the frozen cohort's exact CMake flags/headers/libraries. Two occupied native
+effect definitions pass the admitted bank and reject an independently empty
+bank, preserving exact complete source memory, RNG/pools, native mutation/tick
+stamps and resource counts. Its original 240 frames/14 final draws pass. Private
+Match call counters remain private. The first extension's inaccessible-counter
+compile error and corrected public checks are preserved in the bounded report.
+
+The initial common-cut fixture exposes a scheduling race before receipt adoption:
+an actual step could skip its time-gated broadcast, then native repair captured
+tick 1 with a historical tick 0 snapshot stamp. Exact proof correctly refuses it.
+The fixture now always emits an advancing frame and waits for both genuinely
+captured new-tick receipts before resuming publication. No native/proof/codec
+guard changes; the corrected run still requires 334/334 receipts with capacity 128,
+an explicit rejected/aborted round, two released cuts 1@0 and 3@1, cancellation,
+foreign/stale/incorrect-seal/executor refusal and once-only composed restoration.
+
+The frozen 16,806-file cohort is unchanged apart from the declared fixture retry.
+Seventeen selected implementation/test owners match; concurrent unrelated CMake
+changes and 42 root differences at the source audit remain preserved. Two known
+fixture-generated stdout/stderr logs are classified separately; their aggregate
+output is retained, while individual hashes were not captured before cleanup.
+This qualifies the frozen cohort and expanded matching-library particle fixture,
+not a newly combined current-root release. Evidence:
+[verification.json](../../.local/foreground-receipt-adoption-20261019/verification.json),
+[ownership review](../../.local/foreground-receipt-adoption-20261019/ownership-review.md) and
+[remaining owners](../../.local/foreground-receipt-adoption-20261019/remaining-owners.md).
+
+The 98,365,264-byte native executable (SHA-256
+`0f6c57be8b50dc67b6786c7d23a1aa3adda39c4180f5d2e10780680480758662`)
+is removed, never installed. The main private inventory records 36,187 files /
+1,655,661,448 logical bytes (1,755,631,616 allocated), all removed with its build/
+cache/source tree. Both standalone compile/run scratches and the finalizer are
+also absent. Two one-off helpers retire after preserving commands/hashes/results;
+regression sources remain. No new large artifact is retained; original inputs,
+launcher-selected runtimes and unrelated work are preserved.
+
+M02-M07 remain unchecked. Live scenery/prop/machine caches, locomotion,
+HUD/camera, physical input and playing audio still need complete adoption.
+There is also a real [preparation-before-readiness dependency](../../.local/foreground-receipt-adoption-20261019/readiness-ordering.md):
+current takeover builders require a learned decision and cannot establish the
+readiness needed before election. A complete pre-decision builder must retain
+the exact committed native/foreground pair, with a distinct all-survivor barrier.
+Default migration remains disabled; physical/WAN acceptance and coherent delivery
+remain open. Direct player-hosted gameplay/voice and MCC-only Vista ONLINE/clan
+assets with correct widescreen/real clan dimensions remain required. The full
+46-item ONLINE goal stays active with only M01 checked.
