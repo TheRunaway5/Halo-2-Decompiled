@@ -883,6 +883,7 @@ int main(int argc, char **argv) {
     std::set<std::pair<std::uint32_t,unsigned>> reported_actor_unresident;
     std::unordered_map<std::uint64_t, Visual> object_visuals;
     std::unique_ptr<halo2::SourceCampaignWeapons> source_weapon_models;
+    const auto weapon_material_names=halo2::SourceWeaponMaterialNames::from_cache(cache);
     std::set<std::pair<std::uint32_t,std::uint32_t>> reported_weapon_overrides;
     std::optional<halo2::ObjectLightingDefinition> character_lighting_definition;
     std::optional<halo2::BspSurfaceLighting> character_surface_lighting;
@@ -2703,7 +2704,8 @@ int main(int argc, char **argv) {
             auto &material=mesh.materials[gun->material_base+i];
             halo2::animate_material_bitmaps(material,
                 float(render_tick)*halo2::tick_seconds,[&](std::uint32_t name) {
-                  return halo2::weapon_ammunition_input(name,state.loaded).value_or(0.f);
+                  const auto builtin=weapon_material_names.builtin(name);
+                  return builtin?halo2::weapon_ammunition_input(*builtin,state.loaded).value_or(0.f):0.f;
                 });
           }
           pstencil_campaign_materials.request(*renderer,mesh.materials);

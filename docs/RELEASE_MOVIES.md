@@ -8,12 +8,25 @@ aspect ratio with black bars when needed and downmixes audio into the existing
 48 kHz stereo mixer.
 
 The original files total 2,538,778,741 bytes (about 2.36 GiB).
-`resources/movie-manifest.json` pins their sizes and SHA-256 checksums. The
-large binary payloads in `resources/movies` are local release inputs excluded
-from Git, like the existing UI bundle. A source-only checkout needs those
-inputs before producing a release with movies.
+`resources/movie-manifest.json` and `resources/movies/manifest.json` pin their
+sizes and SHA-256 checksums. The two MP4 files are tracked with Git LFS; the
+manifests remain ordinary Git files. Install Git LFS before cloning or pulling,
+then fetch and verify the bundled files:
 
-Import the supplied movies once:
+```sh
+git lfs install --local
+git lfs pull --include="resources/movies/intro_60.mp4,resources/movies/credits_60.mp4"
+python3 tools/bundle_movies.py --verify
+```
+
+Git stores small pointers for the movies. Each local checkout also retains
+2,538,778,741 bytes in its Git LFS object store, in addition to the working
+copies. When publishing, use a normal Git push with the LFS pre-push hook
+installed so it uploads both movie objects. Other files in `resources/movies`
+remain ignored. The bundled movies are port-supplied assets; they do not need
+to be obtained from an MCC installation or an external Videos directory.
+
+To replace the bundled files from the supplied originals, import them once:
 
 ```sh
 python3 tools/bundle_movies.py --source "/home/eric/Videos/Halo 2 Movies"

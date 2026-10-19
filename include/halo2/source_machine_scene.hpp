@@ -44,6 +44,40 @@ public:
     SourceMachineScene &operator=(SourceMachineScene &&) noexcept;
     SourceMachineScene(const SourceMachineScene &)=delete;
     SourceMachineScene &operator=(const SourceMachineScene &)=delete;
+    class Checkpoint {
+    public:
+        bool valid()const noexcept;
+        std::uint64_t tick()const;
+    private:
+        friend class SourceMachineScene;
+        struct Data;std::shared_ptr<const Data> data_;
+    };
+    // Exact completed local presentation values, including posed geometry,
+    // view/LOD and lighting caches and the existing material PRT bank links.
+    // No controller runs or lifetime reset/reconstruction occurs. Snapshots
+    // stay eligible after later frames on this same resident scene/executor.
+    Checkpoint checkpoint()const;
+    // Identity ownership survives later frames; external material graph
+    // admission is checked separately by prepare_restore/restore_ready.
+    bool owns_checkpoint(const Checkpoint &)const noexcept;
+    class PreparedRestore {
+    public:
+        ~PreparedRestore();
+        PreparedRestore(PreparedRestore &&)noexcept;
+        PreparedRestore &operator=(PreparedRestore &&)noexcept;
+    private:
+        friend class SourceMachineScene;
+        PreparedRestore();struct Data;std::unique_ptr<Data> data_;
+    };
+    PreparedRestore prepare_restore(const Checkpoint &)const;
+    bool restore_ready(const PreparedRestore &)const noexcept;
+    // Keep the scene, resident Cache/CollisionWorld/Mesh and all borrowers
+    // quiescent through commit. This subowner does not restore material
+    // animation: a detached/replaced captured pass graph rejects preparation.
+    // Normal animation copy-on-write remains independent; only checkpoint/
+    // prepared tokens pin the captured graph. The token retains containers and
+    // coefficient-bank owners for retirement after the enclosing publication.
+    bool commit_restore(PreparedRestore &)noexcept;
     // Consume the caller's actual full handles and creation ticks. Placement
     // indices are global LevelContent::objects indices. Destroyed instances
     // stop submitting; a new generation resets private device state/cache.

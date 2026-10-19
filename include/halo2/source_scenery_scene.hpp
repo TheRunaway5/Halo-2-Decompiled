@@ -65,6 +65,37 @@ public:
     SourceSceneryScene &operator=(SourceSceneryScene &&) noexcept;
     SourceSceneryScene(const SourceSceneryScene &)=delete;
     SourceSceneryScene &operator=(const SourceSceneryScene &)=delete;
+    // Exact completed presentation state. Authored resident models/material
+    // slots and callback bindings stay in this scene; no lifetime is rebuilt.
+    // The caller separately owns any state reached through those callbacks.
+    class Checkpoint {
+    public:
+        bool valid() const noexcept;
+    private:
+        friend class SourceSceneryScene;
+        struct Data;
+        std::shared_ptr<const Data> data_;
+    };
+    Checkpoint checkpoint() const;
+    // Later scene frames preserve historical ownership. Rebinding one of the
+    // external services changes the binding identity and retires older cuts.
+    bool owns_checkpoint(const Checkpoint &) const noexcept;
+    class PreparedRestore {
+    public:
+        ~PreparedRestore();
+        PreparedRestore(PreparedRestore &&) noexcept;
+        PreparedRestore &operator=(PreparedRestore &&) noexcept;
+    private:
+        friend class SourceSceneryScene;
+        PreparedRestore();
+        struct Data;
+        std::unique_ptr<Data> data_;
+    };
+    PreparedRestore prepare_restore(const Checkpoint &) const;
+    bool restore_ready(const PreparedRestore &) const noexcept;
+    // Swaps completed values only. The caller retains the consumed token and
+    // its retired containers until its enclosing publication has ended.
+    bool commit_restore(PreparedRestore &) noexcept;
     // Prepared resources remain inactive until actual source lifetimes bind.
     void synchronize(const SceneObjects &,LifetimeSelection = {});
     // Completed-frame world adoption: invalidate cached lifetimes/clock/LOD,

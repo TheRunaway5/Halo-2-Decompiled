@@ -18,6 +18,10 @@
 #include <cstring>
 #include <cstdlib>
 #include <cfenv>
+#include <limits>
+#include <thread>
+#include <type_traits>
+#include <utility>
 #if defined(__SSE2__) || defined(_M_X64)
 #include <xmmintrin.h>
 #endif
@@ -58,6 +62,7 @@ struct SourcePropScene::Impl {
     };
     const Cache &cache;
     const CollisionWorld &collision;
+    Mesh &mesh;
     BspLighting lighting;
     BspSurfaceLighting surface;
     ObjectLightingDefinition conversion;
@@ -68,9 +73,73 @@ struct SourcePropScene::Impl {
     std::int32_t render_frame{};
     std::vector<Prop> props;
     std::set<std::size_t> prop_placements,nonrendered_placements;
+    const std::thread::id executor=std::this_thread::get_id();
+    const std::shared_ptr<const int> identity=std::make_shared<const int>(0);
+    std::uint64_t revision{},bindings{};
+    bool mutating{};
+
+    void own()const {
+        if(std::this_thread::get_id()!=executor)throw FormatError("Source prop scene crossed its executor");
+    }
+    struct Mutation {
+        Impl &state;
+        explicit Mutation(Impl &s,bool binding=false):state(s) {
+            s.own();
+            if(s.mutating||s.revision==std::numeric_limits<std::uint64_t>::max()||
+                (binding&&s.bindings==std::numeric_limits<std::uint64_t>::max()))
+                throw FormatError("Source prop scene mutation is reentrant or exhausted");
+            ++s.revision;if(binding)++s.bindings;s.mutating=true;
+        }
+        ~Mutation(){state.mutating=false;}
+    };
+    // update_banks changes only these immutable PRT bank links in the resident
+    // material passes. Copying Material would alias the mutable pass object.
+    struct MaterialBank {
+        unsigned material{};
+        std::shared_ptr<Material> pass;
+        std::shared_ptr<const VertexProgramBank> bank;
+    };
+    // Scalar schema only: retaining a pass shared_ptr here would change normal
+    // render-time copy-on-write decisions even when no checkpoint exists.
+    struct MaterialOwner {
+        unsigned material{};
+        std::uint32_t shader{};
+        bool environment{};
+        unsigned vertex{};
+    };
+    std::vector<MaterialOwner> resident_materials;
+    bool material_schema()const noexcept {
+        for(const auto &slot:resident_materials) {
+            if(slot.material>=mesh.materials.size())return false;
+            const auto &m=mesh.materials[slot.material];
+            if(m.source_shader_datum!=slot.shader||bool(m.environment_pass)!=slot.environment||
+                (m.environment_pass&&m.environment_pass->forward_vertex!=slot.vertex)||
+                (slot.environment&&slot.vertex==9&&!m.environment_pass->vertex_bank))return false;
+        }
+        return true;
+    }
+    std::vector<MaterialBank> material_banks()const {
+        if(!material_schema())throw FormatError("Source prop resident material schema changed");
+        std::vector<MaterialBank> out;
+        for(const auto &slot:resident_materials)if(slot.environment&&slot.vertex==9) {
+            const auto &material=mesh.materials[slot.material];
+            out.push_back({slot.material,material.environment_pass,material.environment_pass->vertex_bank});
+        }
+        return out;
+    }
+    bool material_owners(const std::vector<MaterialBank> &banks)const noexcept {
+        if(!material_schema())return false;
+        std::size_t n{};
+        for(const auto &slot:resident_materials)if(slot.environment&&slot.vertex==9) {
+            if(n>=banks.size()||banks[n].material!=slot.material||!banks[n].pass||
+                mesh.materials[slot.material].environment_pass!=banks[n].pass)return false;
+            ++n;
+        }
+        return n==banks.size();
+    }
 
     Impl(const Cache &c,std::span<const ScenarioObject> objects,std::size_t bsp,Mesh &mesh,const CollisionWorld &cw,bool region_union)
-        :cache(c),collision(cw),lighting(c.load_bsp_lighting(bsp)),surface(c.load_bsp_surface_lighting(bsp)),
+        :cache(c),collision(cw),mesh(mesh),lighting(c.load_bsp_lighting(bsp)),surface(c.load_bsp_surface_lighting(bsp)),
          conversion(c.load_object_lighting_definition()),sh(c.load_source_prt_lighting(bsp)) {
         for(std::size_t source_object=0;source_object<objects.size();++source_object){
             const auto&object=objects[source_object];
@@ -124,6 +193,11 @@ struct SourcePropScene::Impl {
             counts.union_prt_materials+=resident.union_prt_materials;
             counts.union_section_banks+=resident.union_section_banks;
             props.push_back(std::move(p));++counts.render_models;
+        }
+        for(const auto &p:props)for(unsigned n=0;n<p.geometry.material_count;++n) {
+            const auto slot=p.geometry.first_material+n;const auto &m=mesh.materials.at(slot);
+            resident_materials.push_back({slot,m.source_shader_datum,bool(m.environment_pass),
+                m.environment_pass?m.environment_pass->forward_vertex:0});
         }
     }
     static void pose(Prop&p){
@@ -244,11 +318,87 @@ struct SourcePropScene::Impl {
     }
 
 };
+struct SourcePropScene::Checkpoint::Data {
+    std::weak_ptr<const int> owner;
+    std::thread::id executor;
+    std::uint64_t bindings{};
+    const Mesh *mesh{};
+    std::int32_t render_frame{};
+    std::vector<Impl::Prop> props;
+    std::vector<Impl::MaterialBank> banks;
+};
+struct SourcePropScene::PreparedData {
+    std::shared_ptr<const int> owner;
+    std::thread::id executor;
+    std::uint64_t revision{},bindings{};
+    const Mesh *mesh{};
+    std::int32_t render_frame{};
+    std::vector<Impl::Prop> props;
+    std::vector<Impl::MaterialBank> banks;
+    std::vector<std::shared_ptr<const VertexProgramBank>> expected_banks;
+    bool consumed{};
+};
 SourcePropScene::SourcePropScene(const Cache&c,std::span<const ScenarioObject>objects,std::size_t bsp,Mesh&mesh,
     const CollisionWorld&collision,bool source_regions):impl_(std::make_unique<Impl>(c,objects,bsp,mesh,collision,source_regions)){}
 SourcePropScene::~SourcePropScene()=default;
+bool SourcePropScene::Checkpoint::valid()const noexcept {
+    return data_&&!data_->owner.expired()&&data_->executor==std::this_thread::get_id();
+}
+SourcePropScene::Checkpoint SourcePropScene::checkpoint()const {
+    if(!impl_)throw FormatError("Moved source prop scene has no presentation owner");
+    const auto &s=*impl_;s.own();
+    if(s.mutating)throw FormatError("Source prop checkpoint requires a completed presentation call");
+    Checkpoint out;out.data_=std::make_shared<const Checkpoint::Data>(Checkpoint::Data{
+        s.identity,s.executor,s.bindings,&s.mesh,s.render_frame,s.props,s.material_banks()});return out;
+}
+bool SourcePropScene::owns_checkpoint(const Checkpoint &checkpoint)const noexcept {
+    if(!impl_||!checkpoint.data_)return false;
+    const auto &s=*impl_;const auto &p=*checkpoint.data_;
+    return std::this_thread::get_id()==s.executor&&p.executor==s.executor&&p.owner.lock()==s.identity&&
+        p.bindings==s.bindings&&p.mesh==&s.mesh&&s.material_owners(p.banks);
+}
+SourcePropScene::PreparedRestore::PreparedRestore()=default;
+SourcePropScene::PreparedRestore::~PreparedRestore()=default;
+SourcePropScene::PreparedRestore::PreparedRestore(PreparedRestore &&)noexcept=default;
+SourcePropScene::PreparedRestore &SourcePropScene::PreparedRestore::operator=(PreparedRestore &&)noexcept=default;
+SourcePropScene::PreparedRestore SourcePropScene::prepare_restore(const Checkpoint &checkpoint)const {
+    if(!owns_checkpoint(checkpoint)||impl_->mutating||impl_->revision==std::numeric_limits<std::uint64_t>::max())
+        throw FormatError("Source prop restore lacks its completed owner, bindings or resident material passes");
+    const auto &s=*impl_;const auto &saved=*checkpoint.data_;
+    auto data=std::make_unique<PreparedData>(PreparedData{s.identity,s.executor,s.revision,s.bindings,
+        &s.mesh,saved.render_frame,saved.props,saved.banks,{},false});
+    data->expected_banks.reserve(data->banks.size());
+    for(const auto &bank:data->banks)data->expected_banks.push_back(bank.pass->vertex_bank);
+    PreparedRestore out;out.data_=std::move(data);return out;
+}
+bool SourcePropScene::restore_ready(const PreparedRestore &prepared)const noexcept {
+    if(!impl_||!prepared.data_)return false;
+    const auto &s=*impl_;const auto &p=*prepared.data_;
+    if(std::this_thread::get_id()!=s.executor||p.executor!=s.executor||p.owner!=s.identity||p.consumed||
+        s.mutating||p.revision!=s.revision||s.revision==std::numeric_limits<std::uint64_t>::max()||
+        p.bindings!=s.bindings||p.mesh!=&s.mesh||!s.material_owners(p.banks)||
+        p.expected_banks.size()!=p.banks.size())return false;
+    for(std::size_t n=0;n<p.banks.size();++n)if(p.banks[n].pass->vertex_bank!=p.expected_banks[n])return false;
+    return true;
+}
+bool SourcePropScene::commit_restore(PreparedRestore &prepared)noexcept {
+    if(!restore_ready(prepared))return false;
+    static_assert(std::is_nothrow_swappable_v<std::vector<Impl::Prop>>);
+    static_assert(std::is_nothrow_swappable_v<std::shared_ptr<const VertexProgramBank>>);
+    static_assert(std::is_nothrow_swappable_v<std::int32_t>);
+    auto &s=*impl_;auto &p=*prepared.data_;
+    for(std::size_t n=0;n<p.banks.size();++n) {
+        // Material alternatives may share one pass. Publish its bank once;
+        // repeating the swap would restore the discarded future on the alias.
+        bool first=true;for(std::size_t before=0;before<n;++before)if(p.banks[before].pass==p.banks[n].pass){first=false;break;}
+        if(first)p.banks[n].pass->vertex_bank.swap(p.banks[n].bank);
+    }
+    s.props.swap(p.props);std::swap(s.render_frame,p.render_frame);++s.revision;p.consumed=true;return true;
+}
 void SourcePropScene::reset_lifetimes() noexcept {
-    auto &s=*impl_;s.render_frame=0;
+    if(!impl_||std::this_thread::get_id()!=impl_->executor||impl_->mutating||
+        impl_->revision==std::numeric_limits<std::uint64_t>::max())return;
+    auto &s=*impl_;Impl::Mutation mutation(s);s.render_frame=0;
     for(auto &p:s.props){
         p.handle=0xffffffffu;p.created_tick=0;p.active=p.visible=false;
         p.posed_object.reset();p.posed_nodes.reset();p.solved_nodes.reset();
@@ -258,26 +408,29 @@ void SourcePropScene::reset_lifetimes() noexcept {
 }
 SourcePropScene::SourcePropScene(SourcePropScene&&)noexcept=default;
 SourcePropScene&SourcePropScene::operator=(SourcePropScene&&)noexcept=default;
-void SourcePropScene::synchronize(const SceneObjects&scene){impl_->synchronize(scene);}
-void SourcePropScene::observe_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)> observer){impl_->draw_observer=std::move(observer);}
-void SourcePropScene::region_state(std::function<const SourceInitialModelSelection *(std::uint32_t)> state){impl_->region_state=std::move(state);}
+void SourcePropScene::synchronize(const SceneObjects&scene){Impl::Mutation mutation(*impl_);impl_->synchronize(scene);}
+void SourcePropScene::observe_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>)> observer){Impl::Mutation mutation(*impl_,true);impl_->draw_observer=std::move(observer);}
+void SourcePropScene::region_state(std::function<const SourceInitialModelSelection *(std::uint32_t)> state){Impl::Mutation mutation(*impl_,true);impl_->region_state=std::move(state);}
 void SourcePropScene::interpolate(const SceneObjects &scene,const SceneInterpolation &history,float fraction){
+    Impl::Mutation mutation(*impl_);
     for(auto &p:impl_->props)if(p.active){
         const auto &object=scene.get(p.handle);
         p.object=history.sample(object,fraction);p.scale=p.object.scale;
         if(object.solved_nodes)p.solved_nodes=history.sample_nodes(object,fraction);
     }
 }
-void SourcePropScene::lighting_query_state(LightingQueryState state){impl_->lighting_state=std::move(state);}
-void SourcePropScene::update(std::int32_t frame,Vec3 eye,float scale,Mesh&mesh){impl_->update(frame,eye,scale,mesh);}
-void SourcePropScene::update_pose(std::int32_t frame,Mesh&mesh){impl_->update_pose(frame,mesh);}
+void SourcePropScene::lighting_query_state(LightingQueryState state){Impl::Mutation mutation(*impl_,true);impl_->lighting_state=std::move(state);}
+void SourcePropScene::update(std::int32_t frame,Vec3 eye,float scale,Mesh&mesh){Impl::Mutation mutation(*impl_);if(&mesh!=&impl_->mesh)throw FormatError("Source prop update has a foreign resident Mesh");impl_->update(frame,eye,scale,mesh);}
+void SourcePropScene::update_pose(std::int32_t frame,Mesh&mesh){Impl::Mutation mutation(*impl_);if(&mesh!=&impl_->mesh)throw FormatError("Source prop pose has a foreign resident Mesh");impl_->update_pose(frame,mesh);}
 void SourcePropScene::append(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings)const{
+    impl_->own();
     for(const auto&p:impl_->props)if(p.active && p.visible){const auto g=p.geometry.active_draw(5);
         out.insert(out.end(),g.vertices.begin(),g.vertices.end());
         if(g.ordinary_lighting)bindings.push_back({p.geometry.first_material,p.geometry.material_count,p.light.lighting});}
 }
 void SourcePropScene::append_view(std::vector<Vertex>&out,std::vector<ObjectLightingBinding>&bindings,
     const SourceObjectViewLod&view,std::vector<SourceObjectViewSelection>*selections){
+    Impl::Mutation mutation(*impl_);
     if(view.view_index>=4)throw FormatError("source prop view exceeds the original four views");
     for(auto&p:impl_->props)if(p.active && p.visible){
         if(const auto& source=p.source_views.at(view.view_index);source) {
@@ -300,18 +453,22 @@ void SourcePropScene::append_view(std::vector<Vertex>&out,std::vector<ObjectLigh
 }
 void SourcePropScene::observe_source_draws(std::function<void(unsigned,std::uint32_t,std::uint32_t,
     const ObjectLightingState&,bool,unsigned,std::span<const Vertex>)> observer) {
+    Impl::Mutation mutation(*impl_,true);
     impl_->source_draw_observer=std::move(observer);
 }
 std::vector<std::uint32_t> SourcePropScene::source_render_models()const {
+    impl_->own();
     std::set<std::uint32_t> models;
     for(const auto& prop:impl_->props)models.insert(prop.definition.render_model);
     return {models.begin(),models.end()};
 }
 void SourcePropScene::begin_source_frame() {
+    Impl::Mutation mutation(*impl_);
     for(auto& prop:impl_->props)for(auto& view:prop.source_views)view.reset();
 }
 bool SourcePropScene::retain_source_view(unsigned view,std::span<const SourceLiveModelBaseDrawTu15> draws,
     std::span<const Transform> nodes,const SourceModelShaderView& shader_view) {
+    Impl::Mutation mutation(*impl_);
     if(view>=4)throw FormatError("source prop view exceeds the original four views");
     if(draws.empty())return false;
     const auto owner=draws.front().object;
@@ -339,6 +496,7 @@ bool SourcePropScene::retain_source_view(unsigned view,std::span<const SourceLiv
     prop.source_views[view]=std::move(retained);return true;
 }
 void SourcePropScene::append_source_models(std::vector<ModelObjectDraw>& out,const SourceObjectViewLod& view) {
+    Impl::Mutation mutation(*impl_);
     for(auto& prop:impl_->props)if(prop.active && prop.visible) {
         auto& source=prop.source_views.at(view.view_index);if(!source)continue;
         if(source->submitted)throw FormatError("source prop base was submitted twice in one view");
@@ -355,8 +513,9 @@ void SourcePropScene::append_source_models(std::vector<ModelObjectDraw>& out,con
         source->submitted=true;
     }
 }
-const SourcePropSceneStats&SourcePropScene::stats()const{return impl_->counts;}
+const SourcePropSceneStats&SourcePropScene::stats()const{impl_->own();return impl_->counts;}
 std::vector<SourceSceneEffectOwner> SourcePropScene::effect_owners() const {
+    impl_->own();
     std::vector<SourceSceneEffectOwner> out;
     for(const auto &p:impl_->props)if(p.active && p.handle!=0xffffffffu)
         out.push_back({p.source_object,p.handle,p.created_tick,p.world_nodes,p.active_permutations,p.object.position});

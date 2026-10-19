@@ -5,3 +5,7 @@
 
 # Portable custom-variant release archives retain their exact bytes.
 releases/halo2-custom-slayer-*.zip binary
+
+# User-supplied bundled movies use Git LFS; manifests stay in ordinary Git.
+/resources/movies/intro_60.mp4 filter=lfs diff=lfs merge=lfs -text
+/resources/movies/credits_60.mp4 filter=lfs diff=lfs merge=lfs -text

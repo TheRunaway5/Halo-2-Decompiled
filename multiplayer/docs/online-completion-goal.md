@@ -47,8 +47,10 @@ Checkoff rules:
 - Reopen an affected item when later changes invalidate its evidence. Resolve
   missing original behavior with source/public evidence or an explicit user
   scope decision; do not silently substitute invented behavior or remove gates.
-- Preserve TU1.5 gameplay/network authority, Vista ONLINE/clan assets, direct
-  player-hosted gameplay/voice, guest privacy and test-storage cleanup throughout.
+- Preserve TU1.5 gameplay/network authority, MCC-extracted Vista ONLINE/clan
+  assets, direct player-hosted gameplay/voice, guest privacy and test-storage
+  cleanup throughout. Every ONLINE/clan UI acceptance check must use the same
+  MCC-only asset path required for fresh installs and releases.
 
 Current task: **M02**, prepare complete world-borrower adoption using the now
 qualified owning receipt, runtime/event frontier and deferred-cue history.
@@ -250,7 +252,8 @@ post-decision takeover staging cannot establish pre-election or all-survivor Rea
   records the current catalogue/metadata/painter gaps; it is not visual acceptance.
 - [ ] **U02 — Widescreen and real dimensions.** Regress actual clan/party/menu/
   PCR geometry, long/scrolled rosters, hit targets and controller navigation at
-  the supported aspect/scale matrix in the delivered build; verify on screen.
+  the supported aspect/scale matrix in the delivered build, using the
+  MCC-extracted Vista UI banks from U01; verify on screen.
 - [ ] **U03 — Remaining original rendering.** Finish source-supported Vista
   matchmaking progress-ring materials/animation, PCR emblem shaders and original
   clan-rank presentation within the real screen geometry.

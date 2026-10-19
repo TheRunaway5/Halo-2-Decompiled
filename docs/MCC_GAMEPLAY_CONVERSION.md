@@ -33,7 +33,12 @@ mismatch; recompiling that caller against its actual producer fixed the
 reproduction without changing the decoder or mixer algorithm. The launcher
 admits the frontend independently of full-game readiness only when the exact
 runtime and consumed MCC resources have a separate passed validation. Actual
-installed Play adoption is tracked in the current checklist.
+installed normal and title-first Tk Play clicks now pass the title/profile/
+create/confirm/main/Settings/back route, including a real mouse BACK click,
+finite nonzero audio and clean exits. The selected V24 frontend retains the
+corrected V23 prompt helpers while preserving the separate gameplay runtime and
+both existing shader banks. See the
+[installed Play receipt](../.local/mcc-frontend-custom-prompts-20261019/installed-play-validation-v1/closure.json).
 The user's October19 instruction makes the repo's bundled intro and credits
 movies explicit port-supplied inputs. Onboarding now copies and selects those
 movies with recorded provenance. Both are copied into the selected cache's
@@ -42,7 +47,7 @@ Actual cached video and finite nonzero stereo audio decode pass. Runtime checks
 the small pinned manifest and file extents, avoiding a2.5GB startup hash scan.
 This does not introduce an Xbox ISO or Vista bank requirement, or change the
 original MCC file tree. V21 displayed the cached intro with sound; the normal
-launcher Play route is verified separately during adoption.
+launcher Play route also uses the exact cached intro and passes a real skip.
 The user's authored SVG button prompts and exported bitmap atlases are also
 required port-supplied artwork. Their exact82 masters/six atlases are restored
 under `resources/presentation/prompts`, authenticated against the earlier

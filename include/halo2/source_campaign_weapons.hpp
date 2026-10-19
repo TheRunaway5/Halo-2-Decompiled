@@ -2,6 +2,7 @@
 #include "halo2/source_campaign_model.hpp"
 #include "halo2/model_node_interpolation.hpp"
 #include "halo2/source_netgame_weapon.hpp"
+#include "halo2/source_weapon_material_input.hpp"
 #include "halo2/object_lighting.hpp"
 #include "halo2/appearance.hpp"
 #include <map>
@@ -50,6 +51,7 @@ private:
         std::uint64_t tick{};
     };
     const Cache *cache_{};
+    SourceWeaponMaterialNames names_;
     std::shared_ptr<const ShaderFunctionTables> tables_;
     std::map<std::uint32_t,Resource> resources_;
     std::map<std::uint32_t,Pose> poses_;

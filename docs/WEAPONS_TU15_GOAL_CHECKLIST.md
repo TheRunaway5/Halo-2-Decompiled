@@ -26,8 +26,10 @@ or one successful weapon sequence does not complete an entire weapon.
 - The previous four-frame BR/SMG/turret application result used the ISO cache;
   retain it as reference evidence. It is **not MCC runtime acceptance**.
 - The latest MCC-only Release run (v9) passes nine of ten checks. Native actor
-  placement and held-weapon source submission now pass:2,358 vertices, three
-  source shader inputs and seven model rejection controls. The real application
+  placement and held-weapon geometry/light submission pass:2,358 vertices and
+  seven model rejection controls. Its three historical builtin queries used
+  Xbox IDs; actual MCC namespace acceptance is now a separate required check.
+  The real application
   now completes public HS `ai_place`, loads objective strings, initializes the
   RTX 5080 renderer and runs frame-zero simulation. The node-map conversion
   clears the original `23644`/address `0x2` failure in the actual application.
@@ -38,8 +40,10 @@ or one successful weapon sequence does not complete an entire weapon.
   turret-item, BR and SMG source models, then stops on material producer
   `17000578`: MCC's `primary_ammunition_tens`, whose Xbox ID is `1700056C`.
   Paired original/MCC string tables show that other built-ins also differ.
-  Preserve authored function identities and bind actual MCC names to the
-  original producers; the digit producer itself still needs implementation.
+  Authored function identities now remain unchanged while known MCC builtin
+  names bind to original producers. The digit reference passes131,116 original
+  calls, including all signed16 counts; the native fast reproducer passes.
+  Full MCC namespace, exhaustive native and application validation remain open.
   Separately, the axis lookup's two read sites pass original index bounds and
   native 36-byte ownership checks. All 24 original bitmap bit-depth fields are
   restored and pass focused controls; full MCC revalidation remains required.
@@ -85,9 +89,13 @@ or one successful weapon sequence does not complete an entire weapon.
   It reaches real turret-item, BR and SMG source models, then requests MCC
   `17000578` (`primary_ammunition_tens`). The original handler's ID is
   `1700056C`; the actual paired string tables show other built-in mismatches.
-  Bind the correct authored namespace without changing alias/function identity,
-  recover the complete original magazine-digit producer and test actual runtime
-  magazine states. Never substitute zero or reference-tag data. The shared
+  The namespace/digit fix is prepared. Original1046C0 verifies131,116 calls;
+  all65,536 signed counts are checked for both digits. The fast native tens
+  reproducer passes. The real source fixture now queries verified MCC symbols
+  and rejects foreign Xbox IDs; its previous three historical queries used
+  Xbox IDs. Run all12 checks and test actual runtime magazine states. V10 was
+  intentionally cancelled and cleaned when this fixture flaw was found; it
+  supplies no acceptance result. Never substitute zero or reference-tag data. The shared
   `48C754` policy retains its earlier renderer owner and writable value1.
   Require real expected owner/definition/constant/vertex bindings in all four
   submitted application frames; no frames have passed yet.
@@ -122,6 +130,14 @@ or one successful weapon sequence does not complete an entire weapon.
 
 ## Completed and bounded milestones
 
+- [x] Recover complete original1046C0 magazine-digit results for every signed16
+  count and empty/two-magazine controls. All131,116 calls use unchanged original
+  instructions and no supplied service/return. The5,137-byte reference fixture
+  retains the complete verified100-count cycle. Native full-domain/MCC acceptance
+  remains in the required12-check run; the fast native count36 reproducer passes.
+  [Original execution](../analysis/weapons-tu15-goal-20261013/weapon-ammunition-digits-original-v1.json),
+  [native red](../analysis/weapons-tu15-goal-20261013/weapon-material-digits-native-red-v1.json),
+  [native green](../analysis/weapons-tu15-goal-20261013/weapon-material-digits-native-green-v1.json).
 - [x] Finish the MCC Release builds and inspect each actual outcome. V9 builds,
   passes nine checks and clears both original render-input failures. The actual
   application next fails on the MCC ammunition-tens producer before submitting
@@ -205,7 +221,16 @@ or one successful weapon sequence does not complete an entire weapon.
   The next full MCC run also requires the current cold-world ownership test.
   [Original table and switch](../analysis/weapons-tu15-goal-20261013/model-render-bitmap-format-table-original-v1.json),
   [red](../analysis/weapons-tu15-goal-20261013/model-render-bitmap-table-native-red-v2.json),
-  [green](../analysis/weapons-tu15-goal-20261013/model-render-bitmap-table-native-green-v1.json).
+  [green](../analysis/weapons-tu15-goal-20261013/model-render-bitmap-table-native-green-v1.json),
+  [complete current cold factory](../analysis/weapons-tu15-goal-20261013/model-render-native-cold-inputs-v6.json).
+- [x] Preserve the actual relocated tick-count import while restoring physics
+  literals. The file ordinal `8000009C` at `41B774` is a loader binding, not a
+  fixed runtime literal. Excluding that one slot clears the actual cold-factory
+  conflict; the genuine ownership regression preserves its prior clock owner.
+  The current factory, all95 fixed render inputs, axis table and bitmap table
+  pass together with zero source drift. No source instructions/results change.
+  [Export correction](../analysis/weapons-tu15-goal-20261013/physics-literal-runtime-clock-exclusion-v1.json),
+  [coherent native validation](../analysis/weapons-tu15-goal-20261013/model-render-native-cold-inputs-v6.json).
 - [x] Review the three additional MCC paths (`smg_silenced`, `gpmg`, Falcon
   `rpg`) for Xbox-scope applicability and actual ownership. None appears in any
   of the 41 owned original map/shared/menu directories. MCC owns their metadata

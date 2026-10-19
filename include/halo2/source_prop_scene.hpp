@@ -43,6 +43,7 @@ std::optional<SourcePropLightingSphere> source_prop_physics_sphere(
 // before Renderer allocation; current root/lifetime state comes from the caller.
 // Physics, contact ownership and later animation controllers are separate services.
 class SourcePropScene {
+    struct PreparedData;
 public:
     using LightingQueryState=std::function<SourcePropQueryState(std::size_t source_object,
         std::uint32_t full_handle,const Transform &actual_world_node0,float object_scale)>;
@@ -53,6 +54,44 @@ public:
     SourcePropScene &operator=(SourcePropScene &&) noexcept;
     SourcePropScene(const SourcePropScene &)=delete;
     SourcePropScene &operator=(const SourcePropScene &)=delete;
+    // Exact completed local presentation state, including salted lifetimes,
+    // posed/selected geometry, light/query caches and retained source views.
+    // Resident Cache/Mesh/collision and callback owners remain here. The
+    // geometry value currently also copies its immutable CPU catalog; no
+    // material slot, native owner, resource or pose is reconstructed.
+    class Checkpoint {
+    public:
+        Checkpoint()=default;
+        bool valid()const noexcept;
+    private:
+        friend class SourcePropScene;
+        struct Data;
+        std::shared_ptr<const Data> data_;
+    };
+    class PreparedRestore {
+    public:
+        ~PreparedRestore();
+        PreparedRestore(PreparedRestore &&)noexcept;
+        PreparedRestore &operator=(PreparedRestore &&)noexcept;
+    private:
+        friend class SourcePropScene;
+        PreparedRestore();
+        std::unique_ptr<PreparedData> data_;
+    };
+    Checkpoint checkpoint()const;
+    // Later frames do not expire a checkpoint. Replacing any callback binding
+    // does: the captured values must not be paired with a different producer.
+    // PRT links pin their actual resident pass. Pass replacement/COW makes that
+    // older cut ineligible; a fresh capture follows the new pass. Restoring a
+    // complete material graph remains the enclosing material owner's task.
+    bool owns_checkpoint(const Checkpoint &)const noexcept;
+    PreparedRestore prepare_restore(const Checkpoint &)const;
+    bool restore_ready(const PreparedRestore &)const noexcept;
+    // Same executor, quiescent scene/callbacks and resident Mesh. Only swaps;
+    // the caller retains the consumed token after the enclosing publication
+    // lock. Previously exported ModelObjectDraw spans borrow scene storage:
+    // retire them before publication, or keep the token until they are gone.
+    bool commit_restore(PreparedRestore &)noexcept;
     void synchronize(const SceneObjects &);
     // Completed-frame world adoption: discard handle/pose/light/view history,
     // retaining the prepared geometry/material union. Re-synchronize and pose

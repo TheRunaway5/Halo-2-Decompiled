@@ -3,7 +3,8 @@
 
 Only original .text instruction sites in the pinned native physics bodies and
 their reached death/contact-action dependencies qualify. SDK sites, indexed
-operands, writable storage, gaps, tags and produced state are excluded.
+operands, loader-resolved clock imports, writable storage, gaps, tags and
+produced state are excluded.
 """
 import argparse
 import hashlib

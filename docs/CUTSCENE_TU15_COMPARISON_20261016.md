@@ -150,6 +150,21 @@ is fixed before compilation and later checkout changes remain recorded
 separately. Build/test completion, a new actual startup smoke and both natural
 capture resolutions are still open.
 
+The v7 configure and complete native/test-target build subsequently passed.
+Its actual test run passed21/23 checks: the two sparse callback/unsupported
+coordinate fixtures failed during fixture mounting with `Original runtime
+regions overlap`. Their declared original `492000..493000` bank intersects
+the newly owned width/height destinations at `492314` and `492324`; the
+fixture adapter only merged the older SDK ranges. This is a test-setup
+failure before the original kernels execute. Production memory bounds,
+original final banks and the exact unsupported-coordinate rejection remain
+required. No startup smoke or capture ran. The service has exited and its
+exact source/build scratch is absent, with no large artifacts retained.
+The immutable source, asset and vendor postchecks passed. Preserve the real
+21/23 result in `cohort-v7/cmake/` and terminal
+`build-cohort-terminal-v7r2.json`; a focused fixture correction must pass
+before another combined build.
+
 The current order is:
 
 - [x] Authenticate the selected MCC input and reproduce the shader-owner error.

@@ -25,11 +25,14 @@ struct TrackingMemory final:SourcePhysicsContactMemory {
  void mount(unsigned p,std::vector<std::byte> data,SourceRuntimeMemory::Access access,const char*name){
   std::size_t begin{};
   while(begin<data.size()){
-   if(sdk(p+begin)){const auto at=p+unsigned(begin);if(covered(at)){
+   // Fixture banks may also contain declared CPU destinations outside the
+   // legacy SDK windows. Initialize those exact owners instead of mounting
+   // a second overlapping bank; omitted SDK bytes must remain unbacked.
+   if(sdk(p+begin)||covered(p+begin)){const auto at=p+unsigned(begin);if(covered(at)){
      if(storage.is_read_only(at,1)){std::array<std::byte,1> got;storage.read(at,got);if(got[0]!=data[begin])throw std::runtime_error("Fixture differs from authenticated readonly cache/table input");}
      else storage.write(at,std::span<const std::byte>(data).subspan(begin,1));
     }else unbacked_initial.emplace(at,data[begin]);++begin;continue;}
-   std::size_t end=begin+1;while(end<data.size()&&!sdk(p+end))++end;
+   std::size_t end=begin+1;while(end<data.size()&&!sdk(p+end)&&!covered(p+end))++end;
    storage.mount(p+unsigned(begin),std::vector<std::byte>(data.begin()+begin,data.begin()+end),access,name);begin=end;
   }
  }

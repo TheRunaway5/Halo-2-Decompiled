@@ -15,8 +15,105 @@
 #include <cstdlib>
 #include <cstring>
 #include <map>
+#include <thread>
+#include <optional>
 using namespace halo2;
 namespace {
+void check(bool value,const char *why){if(!value)throw FormatError(why);}
+template<class F>void rejects(F &&call,const char *why){bool rejected=false;try{call();}catch(const FormatError &){rejected=true;}check(rejected,why);}
+bool same(std::span<const Vertex> a,std::span<const Vertex> b){return a.size()==b.size()&&(a.empty()||!std::memcmp(a.data(),b.data(),a.size_bytes()));}
+bool same(const std::vector<ObjectLightingBinding> &a,const std::vector<ObjectLightingBinding> &b){
+ if(a.size()!=b.size())return false;
+ for(std::size_t n=0;n<a.size();++n){
+  const auto x=a[n].state.source_values(),y=b[n].state.source_values();
+  if(a[n].first_material!=b[n].first_material||a[n].material_count!=b[n].material_count||std::memcmp(x.data(),y.data(),sizeof(x)))return false;
+ }return true;
+}
+void checkpoint_roundtrip(const Cache &cache,const LevelContent &content,const CollisionWorld &collision,
+ SourcePropScene &scene,const SceneObjects &objects,Mesh &mesh){
+ const auto material_count=mesh.materials.size();
+ SourcePropScene::Checkpoint saved;bool inspect_callback=true,callback_checked=false;unsigned callbacks{};
+ scene.observe_draws([&](unsigned,std::uint32_t,std::uint32_t,std::span<const Vertex>){
+  ++callbacks;if(!inspect_callback)return;inspect_callback=false;
+  rejects([&]{(void)scene.checkpoint();},"Prop callback captured an incomplete presentation call");
+  rejects([&]{(void)scene.prepare_restore(saved);},"Prop callback prepared an incomplete presentation call");
+  rejects([&]{scene.begin_source_frame();},"Prop callback admitted a reentrant mutation");
+  const auto occupied=scene.effect_owners().size();scene.reset_lifetimes();
+  check(scene.effect_owners().size()==occupied,"Reentrant noexcept prop reset changed active lifetimes");callback_checked=true;
+ });
+ scene.begin_source_frame();scene.update_pose(5,mesh);saved=scene.checkpoint();
+ SourceObjectViewLod view;view.input=[](std::size_t,std::uint32_t,Vec3,float){return SourceObjectLodInput{1,0x80000,0};};
+ std::vector<Vertex> view_vertices;std::vector<ObjectLightingBinding> view_light;
+ scene.append_view(view_vertices,view_light,view);
+ check(callback_checked&&!view_vertices.empty(),"Prop checkpoint callback control did not execute");
+ saved=scene.checkpoint();check(saved.valid()&&scene.owns_checkpoint(saved),"Completed prop checkpoint was not owned");
+ std::vector<Vertex> expected;std::vector<ObjectLightingBinding> expected_light;scene.append(expected,expected_light);
+ struct Owner {std::size_t placement;std::uint32_t object;std::uint64_t created;std::vector<Transform> nodes;std::vector<std::uint8_t> permutations;};
+ std::vector<Owner> owners;for(const auto &o:scene.effect_owners())owners.push_back({o.placement,o.object,o.created_tick,{o.nodes.begin(),o.nodes.end()},{o.permutations.begin(),o.permutations.end()}});
+ struct Bank {unsigned slot;std::shared_ptr<Material> pass;std::shared_ptr<const VertexProgramBank> bank;};
+ std::vector<Bank> banks;for(unsigned slot=0;slot<mesh.materials.size();++slot){
+  const auto &pass=mesh.materials[slot].environment_pass;if(pass&&pass->forward_vertex==9)banks.push_back({slot,pass,pass->vertex_bank});
+ }
+ check(!banks.empty(),"PRT prop checkpoint control lacks actual material banks");
+ {Mesh other_mesh;SourcePropScene other(cache,content.objects,0,other_mesh,collision);
+  check(!other.owns_checkpoint(saved),"Foreign prop scene owned another scene's checkpoint");
+  rejects([&]{(void)other.prepare_restore(saved);},"Foreign prop scene prepared another scene's checkpoint");
+  auto mine=scene.prepare_restore(saved);check(!other.restore_ready(mine)&&!other.commit_restore(mine)&&scene.restore_ready(mine),"Foreign prop scene committed another scene's preparation");
+ }
+ check(!scene.owns_checkpoint({}),"Missing prop checkpoint was owned");
+ auto changed=objects;const auto moving=std::find_if(changed.objects().begin(),changed.objects().end(),[&](const auto &o){return o.handle!=null_datum&&o.visible&&content.objects[o.placement].type==11;});
+ check(moving!=changed.objects().end(),"Prop checkpoint has no actual movable source owner");
+ auto &moved=changed.get(moving->handle);moved.position.x+=.375f;moved.rotation.z+=.25f;
+ scene.synchronize(changed);scene.update_pose(17,mesh);
+ std::vector<Vertex> future;std::vector<ObjectLightingBinding> future_light;scene.append(future,future_light);
+ check(!same(expected,future),"Prop checkpoint future control did not change the actual pose");
+ check(scene.owns_checkpoint(saved),"Later prop frames expired historical ownership");
+ const auto unchanged=[&]{std::vector<Vertex> actual;std::vector<ObjectLightingBinding> light;scene.append(actual,light);return same(future,actual)&&same(future_light,light);};
+ {auto cancelled=scene.prepare_restore(saved);check(scene.restore_ready(cancelled),"Prop restore cancellation control was not ready");}
+ check(unchanged(),"Cancelled prop restore changed the live pose/light bank");
+ auto stale=scene.prepare_restore(saved);scene.begin_source_frame();
+ check(!scene.restore_ready(stale)&&!scene.commit_restore(stale)&&unchanged(),"Mutated prop owner accepted a stale preparation");
+ auto prepared=scene.prepare_restore(saved);
+ bool foreign_ready=true,foreign_owned=true,foreign_capture=false;
+ std::thread observer([&]{foreign_ready=scene.restore_ready(prepared);foreign_owned=scene.owns_checkpoint(saved);scene.reset_lifetimes();try{(void)scene.checkpoint();}catch(const FormatError &){foreign_capture=true;}});observer.join();
+ check(!foreign_ready&&!foreign_owned&&foreign_capture&&scene.restore_ready(prepared)&&unchanged(),"Prop restore/reset admitted a foreign executor");
+ const auto old_bank=banks.front().pass->vertex_bank;
+ banks.front().pass->vertex_bank=banks.front().bank;
+ check(old_bank!=banks.front().bank&&!scene.restore_ready(prepared)&&!scene.commit_restore(prepared)&&unchanged(),"Changed external PRT bank escaped prop restore preflight");
+ banks.front().pass->vertex_bank=old_bank;
+ banks.front().pass->vertex_bank.reset();
+ check(!scene.restore_ready(prepared)&&!scene.commit_restore(prepared),"Missing external PRT bank escaped prop restore preflight");
+ rejects([&]{(void)scene.checkpoint();},"Fresh prop checkpoint accepted a missing original PRT bank");banks.front().pass->vertex_bank=old_bank;
+ auto &resident=mesh.materials[banks.front().slot];const auto old_pass=resident.environment_pass;
+ resident.environment_pass.reset();check(!scene.restore_ready(prepared)&&!scene.commit_restore(prepared)&&unchanged(),"Replaced resident PRT pass escaped prop restore preflight");resident.environment_pass=old_pass;
+ const auto before_commit=callbacks;
+ check(scene.restore_ready(prepared)&&scene.commit_restore(prepared)&&!scene.restore_ready(prepared)&&!scene.commit_restore(prepared),"Exact prop restore did not commit exactly once");
+ check(callbacks==before_commit&&mesh.materials.size()==material_count,"Prop restore invoked callbacks or changed material residency");
+ for(const auto &bank:banks)check(mesh.materials[bank.slot].environment_pass==bank.pass&&bank.pass->vertex_bank==bank.bank,"Prop restore lost the actual immutable PRT link");
+ std::vector<Vertex> restored;std::vector<ObjectLightingBinding> restored_light;scene.append(restored,restored_light);
+ check(same(expected,restored)&&same(expected_light,restored_light),"Prop restore changed exact posed geometry/light values");
+ const auto actual_owners=scene.effect_owners();check(actual_owners.size()==owners.size(),"Prop restore changed occupied source lifetimes");
+ for(std::size_t n=0;n<owners.size();++n){const auto &a=actual_owners[n];const auto &b=owners[n];
+  check(a.placement==b.placement&&a.object==b.object&&a.created_tick==b.created&&std::ranges::equal(a.permutations,b.permutations)&&a.nodes.size()==b.nodes.size()&&
+      (a.nodes.empty()||!std::memcmp(a.nodes.data(),b.nodes.data(),a.nodes.size_bytes())),"Prop restore changed full salts, nodes or region selections");
+ }
+ restored.clear();restored_light.clear();scene.append_view(restored,restored_light,view);
+ check(same(view_vertices,restored)&&same(view_light,restored_light),"Prop restore changed retained per-view selection/light output");
+ auto rebound=scene.prepare_restore(saved);scene.observe_draws({});
+ check(!scene.owns_checkpoint(saved)&&!scene.restore_ready(rebound)&&!scene.commit_restore(rebound),"Prop callback replacement kept an old cut eligible");
+ rejects([&]{(void)scene.prepare_restore(saved);},"Prop checkpoint crossed a replaced callback binding");
+ const auto before_cow=scene.checkpoint();auto cow_prepared=scene.prepare_restore(before_cow);
+ const auto lighting=std::find_if(expected_light.begin(),expected_light.end(),[&](const auto &binding){return banks.front().slot>=binding.first_material&&banks.front().slot-binding.first_material<binding.material_count;});
+ check(lighting!=expected_light.end(),"PRT COW control lost its actual object's lighting binding");
+ const auto pass_before_cow=resident.environment_pass.get();apply_object_lighting(resident,lighting->state);
+ check(resident.environment_pass.get()!=pass_before_cow&&!scene.owns_checkpoint(before_cow)&&
+     !scene.restore_ready(cow_prepared)&&!scene.commit_restore(cow_prepared),"Actual lighting COW kept a different historical material graph eligible");
+ scene.update_pose(18,mesh);restored.clear();restored_light.clear();scene.append_view(restored,restored_light,view);
+ check(same(view_vertices,restored),"Ordinary prop pose/draw failed after actual lighting COW");
+ const auto after_cow=scene.checkpoint();check(scene.owns_checkpoint(after_cow),"Fresh prop capture was permanently invalid after material COW");
+ auto fresh=scene.prepare_restore(after_cow);check(scene.restore_ready(fresh)&&scene.commit_restore(fresh),"Fresh actual material graph could not prepare/restore");
+ std::cout<<"PASS exact prop checkpoint: salted lifetimes, posed/view/light caches, PRT links, cancellation, stale/foreign/executor/callback guards\n";
+}
 void crane_bank(const Mesh &mesh,std::span<const Vertex> submitted){
  std::set<unsigned> used;for(const auto&v:submitted)used.insert(v.material);
  std::vector<std::pair<unsigned,std::uint32_t>> expected;
@@ -226,6 +323,7 @@ int main(int argc,char**argv){try{
    if(expected.size()!=world.size() || (!expected.empty() && std::memcmp(expected.data(),world.data(),expected.size()*sizeof(Vertex))))
     throw FormatError("restored static prop transform changed complete original geometry");
   }
+  if(std::string(names[i])=="zanzibar")checkpoint_roundtrip(cache,content,collision,scene,objects,mesh);
   const auto resident_materials=mesh.materials.size();
   std::map<std::size_t,std::vector<std::uint8_t>> retained_permutations;
   for(const auto &o:scene.effect_owners())retained_permutations[o.placement]={o.permutations.begin(),o.permutations.end()};

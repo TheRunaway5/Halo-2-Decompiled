@@ -739,6 +739,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
   };
   std::map<std::uint32_t,WeaponWorldVisual> body_guns;
   std::map<std::uint32_t,SourceWorldWeaponDefinition> weapon_shader_definitions;
+  const auto weapon_material_names=SourceWeaponMaterialNames::from_cache(cache);
   for(const auto &[datum,definition]:content.weapons)
     weapon_shader_definitions.emplace(datum,cache.load_source_world_weapon_definition(datum));
   unsigned object_slots=live_host() || live_client() ? multiplayer_capacity:
@@ -5011,7 +5012,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
           const std::span<const SourceWeaponMagazineState> magazines=definition->magazines.size()==1?
               std::span<const SourceWeaponMagazineState>(storage):std::span<const SourceWeaponMagazineState>{};
           const auto source=source_weapon_material_input(name,item.shader,definition->magazines,
-              magazines,definition->functions,*tables,float(shader_time));
+              magazines,definition->functions,*tables,float(shader_time),{},weapon_material_names);
           const float value=source?source->value:weapon_ammunition_input(name,item.loaded).value_or(0.f);
           if(options.world_weapon_shader_input_observer)
             options.world_weapon_shader_input_observer(item.handle,item.definition,name,value);
@@ -5839,7 +5840,7 @@ static int run_multiplayer_impl(const MultiplayerOptions &request,
         }
         if(shader_definition) {
           if(const auto value=source_weapon_material_input(name,shader_state,shader_definition->magazines,
-              magazines,shader_definition->functions,*cache.shader_function_tables(),float(shader_time),primary_trigger))return value->value;
+              magazines,shader_definition->functions,*cache.shader_function_tables(),float(shader_time),primary_trigger,weapon_material_names))return value->value;
         }
         return weapon_ammunition_input(name,ammunition).value_or(0.f);
       };

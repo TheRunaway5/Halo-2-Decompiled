@@ -94,16 +94,42 @@ int main(int argc,char**argv)try {
   check(rendered.empty(),"Rejected owner left hidden base geometry");
   check(scene.retain_source_view(0,base,nodes,shader),"Complete ordinary source owner was not retained");
   rejects([&]{scene.retain_source_view(0,base,nodes,shader);},"Duplicate source owner was retained");
+  const auto unsubmitted=scene.checkpoint();
   std::vector<Vertex> legacy;bindings.clear();
   rejects([&]{scene.append_view(legacy,bindings,view);},"Forgotten source base submission was hidden");
   scene.append_source_models(rendered,view);check(!rendered.empty(),"Retained source base produced no model draw");
+  const auto submitted=scene.checkpoint();
   rejects([&]{scene.append_source_models(rendered,view);},"Source base was submitted twice");
   const std::vector<Vertex> retained(rendered.front().vertices.begin(),rendered.front().vertices.end());
   source.begin_model_frame();check(equal(retained,rendered.front().vertices),"Producer arena reset changed the retained base");
+  {
+    auto restore=scene.prepare_restore(unsubmitted);
+    check(scene.restore_ready(restore)&&scene.commit_restore(restore)&&!scene.commit_restore(restore),
+        "Actual retained source view did not restore exactly once");
+    // These spans still borrow the replaced live vectors. The consumed token
+    // must retain them until all external draw consumers have retired.
+    check(equal(retained,rendered.front().vertices),"Consumed prop token released externally borrowed source geometry");
+    {auto cancelled=scene.prepare_restore(submitted);check(scene.restore_ready(cancelled),"Submitted-view cancellation control was not ready");}
+    std::vector<Vertex> missed;std::vector<ObjectLightingBinding> missed_bindings;
+    rejects([&]{scene.append_view(missed,missed_bindings,view);},"Cancellation changed the restored unsubmitted source view");
+    std::vector<ModelObjectDraw> restored;scene.append_source_models(restored,view);
+    check(restored.size()==rendered.size(),"Restored native source sections changed count");
+    for(std::size_t n=0;n<restored.size();++n)check(equal(rendered[n].vertices,restored[n].vertices),
+        "Restored native source section changed complete WORLD vertices");
+    auto restore_submitted=scene.prepare_restore(submitted);
+    check(scene.commit_restore(restore_submitted),"Actual submitted source view did not restore");
+    check(equal(retained,rendered.front().vertices)&&equal(retained,restored.front().vertices),
+        "Retired source-view spans did not survive both owning tokens");
+    std::vector<ModelObjectDraw> duplicate;
+    rejects([&]{scene.append_source_models(duplicate,view);},"Restored submitted flag admitted duplicate native geometry");
+    // Draw vectors retire before either token can release their storage.
+    rendered.clear();restored.clear();
+  }
   legacy.clear();bindings.clear();std::vector<SourceObjectViewSelection> legacy_owners;
   scene.append_view(legacy,bindings,view,&legacy_owners);
   check(std::none_of(legacy_owners.begin(),legacy_owners.end(),[&](const auto& selected){return selected.source_object==chosen->placement;}),"Source owner was also submitted by legacy geometry");
   rendered.clear();scene.begin_source_frame();legacy.clear();bindings.clear();scene.append_view(legacy,bindings,view);
   check(equal(before,legacy),"Source WORLD section selection mutated the legacy pose cache");
-  std::cout<<"PASS actual BLOC main selection, full identities, atomic rejection, owned lifetime, exactly-once submission and immutable legacy pose\n";return 0;
+  std::cout<<"PASS actual BLOC main selection, full identities, atomic rejection, owned lifetime, exactly-once submission and immutable legacy pose\n";
+  std::cout<<"PASS exact native prop retained-view checkpoint: original sections/submitted flags, cancellation and token-retained external spans\n";return 0;
 }catch(const std::exception& e){std::cerr<<e.what()<<'\n';return 1;}

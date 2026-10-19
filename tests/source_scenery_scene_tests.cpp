@@ -10,9 +10,12 @@
 #include "halo2/source_scenery_idle_phase.hpp"
 #include <algorithm>
 #include <bit>
+#include <cstring>
+#include <exception>
 #include <iostream>
 #include <map>
 #include <set>
+#include <thread>
 
 using namespace halo2;
 namespace {
@@ -308,6 +311,118 @@ void animation_input() {
     std::cout<<"SCEN presentation: actual Ascension teleporter geometry moves at four fractional samples across source loop wrap\n";
     std::cout<<"SCEN animation: two actual moving initial clips require explicit retained owner/time service\n";
 }
+void checkpoint_roundtrip() {
+    Cache cache("assets/disc/maps/ascension.map");const auto content=cache.load_content(0,true);
+    CollisionWorld collision(content.collision);Mesh mesh;SourceSceneryScene scene(cache,content.objects,0,mesh,collision);
+    SceneObjects objects(content,0);unsigned animation_calls{},query_calls{},birth_calls{},reentrant_calls{};
+    SourceSceneryScene::Checkpoint cut;const SourceSceneryScene::PreparedRestore *observed{};
+    const auto reentrant=[&]{
+        if(!observed)return;++reentrant_calls;bool capture_rejected{},prepare_rejected{};
+        try{(void)scene.checkpoint();}catch(const FormatError &){capture_rejected=true;}
+        try{(void)scene.prepare_restore(cut);}catch(const FormatError &){prepare_rejected=true;}
+        require(capture_rejected&&prepare_rejected&&!scene.restore_ready(*observed),
+            "SCEN callback admitted a checkpoint/preparation during an unfinished mutation");
+        // The existing noexcept lifetime reset must also decline reentry.
+        scene.reset_lifetimes();
+    };
+    scene.birth_query_capture([&](auto,auto,auto,auto,const auto &,auto){++birth_calls;});
+    scene.animation_frames([&](std::size_t index,std::uint32_t handle,std::uint64_t born,std::uint64_t tick,const AnimationClip &clip){
+        require(objects.get(handle).placement==index&&objects.get(handle).created_tick==born&&tick>=born,
+            "SCEN checkpoint controller lost its actual full lifetime");++animation_calls;
+        const auto definition=cache.load_source_scenery_idle_phase_definition(clip);
+        auto current=source_scenery_idle_phase_initial(definition,1.f/30.f),before=current;
+        for(std::uint64_t t=born;t<tick;++t){before=current;source_scenery_idle_phase_step(current,definition,1.f/30.f);}
+        return AnimationFrameWindow{before.frame,current.frame,.375f};
+    });
+    scene.lighting_query_state([&](std::size_t index,std::uint32_t handle,const Transform &node,float scale){
+        require(objects.get(handle).placement==index,"SCEN checkpoint query lost its actual full handle");
+        ++query_calls;reentrant();const auto sphere=source_shadow_sphere(
+            cache.load_object_shadow_definition(content.objects[index].definition),node,scale);
+        return SourceSceneryQueryState{sphere.center,sphere.radius,{},0,true};
+    });
+    scene.synchronize(objects);scene.update_pose(10,10,mesh);
+    struct Output {std::vector<Vertex> vertices;std::vector<ObjectLightingBinding> bindings;std::vector<SourceObjectViewSelection> draws;};
+    const auto draw=[&](unsigned mode,bool inspect=false){Output out;
+        for(unsigned view=0;view<4;++view){SourceObjectViewLod input{view,1,false,[&](std::size_t index,std::uint32_t,Vec3,float){
+                if(inspect)reentrant();float metric=0;
+                if(mode==1){const auto definition=cache.load_source_geometry_lod_definition(content.objects[index].definition);
+                    const auto &bank=definition.model_bank;
+                    const bool authored=definition.model_present&&bank[3]>0&&bank[3]>=bank[4]&&bank[4]>=bank[5]&&
+                        bank[5]>=bank[6]&&bank[6]>=bank[7]&&bank[8]==0;
+                    metric=authored?(bank[6]+bank[7])*.5f:3.f;
+                }else if(mode==2)metric=100000.f;
+                return SourceObjectLodInput{metric,mode==0?0x80000u:0u,0};}};
+            input.detail_policy=SourceGeometryLodPolicy{5,1,1,1,{}};
+            scene.append_view(out.vertices,out.bindings,input,&out.draws);
+        }return out;};
+    const auto equal_output=[&](const Output &a,const Output &b){
+        if(a.vertices.size()!=b.vertices.size()||a.bindings.size()!=b.bindings.size()||a.draws.size()!=b.draws.size())return false;
+        if(!a.vertices.empty()&&std::memcmp(a.vertices.data(),b.vertices.data(),a.vertices.size()*sizeof(Vertex)))return false;
+        for(std::size_t i=0;i<a.bindings.size();++i){const auto &x=a.bindings[i],&y=b.bindings[i];
+            if(x.first_material!=y.first_material||x.material_count!=y.material_count)return false;
+            const auto p=x.state.source_values(),q=y.state.source_values();if(std::memcmp(p.data(),q.data(),sizeof(p)))return false;}
+        for(std::size_t i=0;i<a.draws.size();++i){const auto &x=a.draws[i],&y=b.draws[i];
+            if(x.source_object!=y.source_object||x.lod!=y.lod||x.vertices!=y.vertices||
+                std::bit_cast<std::uint32_t>(x.transition)!=std::bit_cast<std::uint32_t>(y.transition)||
+                std::bit_cast<std::uint32_t>(x.source_distance)!=std::bit_cast<std::uint32_t>(y.source_distance))return false;}
+        return true;};
+    (void)draw(0);const auto expected=draw(1);cut=scene.checkpoint();
+    require(cut.valid()&&scene.owns_checkpoint(cut)&&!expected.vertices.empty()&&birth_calls&&query_calls,
+        "SCEN exact checkpoint lacks actual posed/submitted source lifetimes");
+    struct Owner {std::size_t placement;std::uint32_t handle;std::uint64_t birth;std::vector<Transform> nodes;std::vector<std::uint8_t> permutations;};
+    std::vector<Owner> expected_owners;
+    for(const auto &o:scene.effect_owners())expected_owners.push_back({o.placement,o.object,o.created_tick,
+        {o.nodes.begin(),o.nodes.end()},{o.permutations.begin(),o.permutations.end()}});
+    const auto material_count=mesh.materials.size();const auto *material_bank=mesh.materials.data();
+    scene.update_pose(100,31,mesh);(void)draw(2);const auto later=draw(1);
+    require(scene.owns_checkpoint(cut)&&!equal_output(later,expected),"SCEN historical checkpoint expired or later authored frame did not change");
+    bool hysteresis_control{};for(std::size_t i=0;i<expected.draws.size()&&i<later.draws.size();++i)
+        hysteresis_control|=expected.draws[i].source_object==later.draws[i].source_object&&expected.draws[i].lod!=later.draws[i].lod;
+    require(hysteresis_control,"SCEN authored four-view corpus did not exercise different retained LOD choices");
+    {auto cancelled=scene.prepare_restore(cut);require(scene.restore_ready(cancelled),"SCEN exact checkpoint did not prepare");}
+    require(equal_output(draw(1),later),"Cancelled SCEN preparation changed the live posed/query/LOD bank");
+    Mesh foreign_mesh;SourceSceneryScene foreign(cache,content.objects,0,foreign_mesh,collision);
+    bool rejected{};try{(void)foreign.prepare_restore(cut);}catch(const FormatError &){rejected=true;}
+    require(rejected&&!foreign.owns_checkpoint(cut),"SCEN checkpoint crossed a resident scene owner");
+    rejected=false;try{(void)scene.prepare_restore({});}catch(const FormatError &){rejected=true;}
+    require(rejected,"SCEN accepted an empty checkpoint");
+    auto stale=scene.prepare_restore(cut);rejected=false;
+    try{scene.update_pose(99,32,mesh);}catch(const FormatError &){rejected=true;}
+    require(rejected&&!scene.restore_ready(stale)&&!scene.commit_restore(stale)&&scene.owns_checkpoint(cut),
+        "Rejected SCEN clock mutation preserved preparation eligibility or retired historical ownership");
+    auto query_token=scene.prepare_restore(cut);observed=&query_token;scene.update_pose(100,32,mesh);(void)draw(1,true);observed=nullptr;
+    require(reentrant_calls&&!scene.restore_ready(query_token),"SCEN query/view callbacks did not exercise the active mutation barrier");
+    auto prepared=scene.prepare_restore(cut),competing=scene.prepare_restore(cut);
+    const auto retired_owners=scene.effect_owners();require(!retired_owners.empty()&&!retired_owners.front().nodes.empty(),"SCEN retired WORLD bank missing");
+    const auto retired_nodes=std::vector<Transform>(retired_owners.front().nodes.begin(),retired_owners.front().nodes.end());
+    std::exception_ptr thread_error;std::thread thread([&]{try{
+        require(!scene.owns_checkpoint(cut)&&!scene.restore_ready(prepared)&&!scene.commit_restore(prepared),"SCEN restore crossed its executor");
+        bool denied{};try{(void)scene.checkpoint();}catch(const FormatError &){denied=true;}require(denied,"SCEN foreign executor captured state");
+        denied=false;try{(void)scene.prepare_restore(cut);}catch(const FormatError &){denied=true;}require(denied,"SCEN foreign executor prepared state");
+        scene.reset_lifetimes();
+    }catch(...){thread_error=std::current_exception();}});thread.join();if(thread_error)std::rethrow_exception(thread_error);
+    const auto callbacks=std::array{animation_calls,query_calls,birth_calls};
+    require(scene.restore_ready(prepared)&&scene.commit_restore(prepared)&&!scene.restore_ready(prepared)&&
+        !scene.commit_restore(prepared)&&!scene.commit_restore(competing),"SCEN exact restore was not owner/revision-bound and single use");
+    require(callbacks==std::array{animation_calls,query_calls,birth_calls}&&mesh.materials.size()==material_count&&mesh.materials.data()==material_bank,
+        "SCEN commit invoked a source callback or replaced resident material resources");
+    require(!std::memcmp(retired_owners.front().nodes.data(),retired_nodes.data(),retired_nodes.size()*sizeof(Transform)),
+        "SCEN commit destroyed the caller token's retired WORLD containers");
+    const auto restored_owners=scene.effect_owners();require(restored_owners.size()==expected_owners.size(),"SCEN restored lifetime count changed");
+    for(std::size_t i=0;i<restored_owners.size();++i){const auto &o=restored_owners[i];const auto &e=expected_owners[i];
+        require(o.placement==e.placement&&o.object==e.handle&&o.created_tick==e.birth&&o.nodes.size()==e.nodes.size()&&
+            !std::memcmp(o.nodes.data(),e.nodes.data(),e.nodes.size()*sizeof(Transform))&&std::ranges::equal(o.permutations,e.permutations),
+            "SCEN restore changed full salted lifetime, regions or exact posed WORLD nodes");}
+    const auto reads=query_calls;require(equal_output(draw(1),expected)&&query_calls==reads,
+        "SCEN restore lost its six posed streams, four-view LOD history or retained query/lighting cache");
+    auto before_reset=scene.prepare_restore(cut);scene.reset_lifetimes();require(!scene.restore_ready(before_reset)&&draw(1).vertices.empty(),
+        "SCEN reset preserved stale preparation or active draws");
+    auto after_reset=scene.prepare_restore(cut);require(scene.commit_restore(after_reset)&&equal_output(draw(1),expected),
+        "Historical SCEN restore required cold reconstruction after lifetime retirement");
+    auto before_rebind=scene.prepare_restore(cut);scene.animation_time({});
+    require(!scene.owns_checkpoint(cut)&&!scene.restore_ready(before_rebind),"SCEN callback rebinding retained an incompatible checkpoint");
+    std::cout<<"PASS exact owning SCEN checkpoint: authored Ascension poses, full lifetimes/regions, four-view LOD/query/lighting, cancellation/staleness/reentry/executor and deferred retirement; resident resources unchanged\n";
+}
 }
 int main(int argc,char **argv) {
     try {
@@ -315,7 +430,7 @@ int main(int argc,char **argv) {
         const auto add=[&](const auto &path){const auto c=verify(path);total.models+=c.models;total.baked+=c.baked;
             total.dynamic+=c.dynamic;total.unresolved+=c.unresolved;total.streams+=c.streams;total.baked_vertices+=c.baked_vertices;total.idle+=c.idle;};
         if(argc==2)add(std::filesystem::path(argv[1]));else {
-            prepared_scenery_birth();lifetime_inputs();animation_input();
+            prepared_scenery_birth();lifetime_inputs();animation_input();checkpoint_roundtrip();
             for(const auto *map:{"ascension","beavercreek","burial_mounds","coagulation","colossus","cyclotron",
                 "foundation","headlong","lockout","midship","waterworks","zanzibar"})
                 add(std::filesystem::path("assets/disc/maps")/(std::string(map)+".map"));

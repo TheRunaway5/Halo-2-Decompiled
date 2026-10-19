@@ -1944,6 +1944,14 @@ if(BUILD_TESTING)
         halo2_snapshot_storage Threads::Threads nlohmann_json::nlohmann_json)
     add_test(NAME native_tu15_ctf_static_data COMMAND native_tu15_ctf_static_data_tests
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/ctf_static_original_tu15.json)
+    add_executable(native_tu15_player_result_data_tests
+        tests/native_tu15_player_result_data_tests.cpp
+        src/native_tu15_player_result_data.cpp src/source_runtime_memory.cpp)
+    target_include_directories(native_tu15_player_result_data_tests PRIVATE include)
+    target_link_libraries(native_tu15_player_result_data_tests PRIVATE
+        halo2_snapshot_storage Threads::Threads nlohmann_json::nlohmann_json)
+    add_test(NAME native_tu15_player_result_data COMMAND native_tu15_player_result_data_tests
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/player_result_original_tu15.json)
     target_include_directories(source_runtime_immutable_tests PRIVATE include)
     target_link_libraries(source_runtime_immutable_tests PRIVATE halo2_snapshot_storage Threads::Threads)
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -2437,6 +2445,8 @@ if(BUILD_TESTING)
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_frontend_runtime_selection.py)
     add_test(NAME mcc_sandbox_launcher COMMAND ${Python3_EXECUTABLE} -B
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mcc_sandbox_launcher.py)
+    add_test(NAME mcc_prepared_cache_delta COMMAND ${Python3_EXECUTABLE} -B
+        ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_mcc_prepared_cache_delta.py)
     add_test(NAME native_frontend_launcher_routing COMMAND ${Python3_EXECUTABLE} -B
         ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_frontend_launcher_routing.py
         --launcher $<TARGET_FILE:halo2_launcher>)
@@ -7607,6 +7617,10 @@ if(BUILD_TESTING)
         add_executable(weapon_display_tests tests/weapon_display_tests.cpp)
         add_executable(source_weapon_shader_input_tests tests/source_weapon_shader_input_tests.cpp)
         add_executable(source_weapon_material_input_tests EXCLUDE_FROM_ALL tests/source_weapon_material_input_tests.cpp)
+        add_executable(source_weapon_material_namespace_tests EXCLUDE_FROM_ALL tests/source_weapon_material_namespace_tests.cpp)
+        target_link_libraries(source_weapon_material_namespace_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
+        add_test(NAME original_tu15_weapon_ammunition_digits COMMAND source_weapon_material_namespace_tests
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/weapon_ammunition_digits_tu15.json)
         target_link_libraries(source_weapon_material_input_tests PRIVATE halo2_cache nlohmann_json::nlohmann_json)
         add_test(NAME original_tu15_weapon_material_inputs COMMAND source_weapon_material_input_tests
             ${CMAKE_CURRENT_SOURCE_DIR}/assets/disc/maps/lockout.map

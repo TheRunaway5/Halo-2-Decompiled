@@ -14,6 +14,7 @@
 #include <iostream>
 #include <set>
 #include <map>
+#include <thread>
 using namespace halo2;
 namespace {
 std::vector<Vertex> material_vertices(const std::vector<Vertex>&world,const ObjectLightingBinding &binding){
@@ -54,6 +55,12 @@ void triplicate_lifetimes(){
  for(const auto &o:scene.effect_owners())retained_permutations[o.placement]={o.permutations.begin(),o.permutations.end()};
  std::vector<Vertex> initial;std::vector<ObjectLightingBinding> bindings;scene.append(initial,bindings);
  if(bindings.size()!=7)throw FormatError("Triplicate source machine lifetime inventory");
+ const auto initial_portals=scene.portal_owners();
+ for(unsigned view=0;view<4;++view){std::vector<Vertex> draw;std::vector<ObjectLightingBinding> light;
+  scene.append_view(draw,light,SourceObjectViewLod{view,4,false,[](auto,auto,auto,auto){return SourceObjectLodInput{0,0x80000u,0};}});}
+ const auto exact=scene.checkpoint();
+ if(!exact.valid()||exact.tick()!=0||!scene.owns_checkpoint(exact))
+  throw FormatError("Machine checkpoint lost its actual same-owner completed cut");
  const auto east=material_vertices(initial,bindings[0]);
  scene.update(1,1,{},1,mesh);std::vector<Vertex> one;std::vector<ObjectLightingBinding> first;scene.append(one,first);
  const auto east_one=material_vertices(one,first[0]);
@@ -79,6 +86,52 @@ void triplicate_lifetimes(){
  if(alive.size()!=3)throw FormatError("source hidden machine submitted geometry");
  bool reversed=false;try{scene.update_pose(0,0,mesh);}catch(const FormatError&){reversed=true;}
  if(!reversed)throw FormatError("Unannounced machine clock rollback was accepted");
+ // The exact historical snapshot remains eligible after removal, recreation,
+ // hiding and131 later controller ticks. It restores the captured owners and
+ // caches themselves, independently of the current SceneObjects lifetimes.
+ Mesh foreign_mesh;SourceMachineScene foreign(cache,content.objects,0,foreign_mesh,collision);
+ if(foreign.owns_checkpoint(exact))throw FormatError("Foreign machine scene claimed a historical checkpoint");
+ bool foreign_rejected=false;try{(void)foreign.prepare_restore(exact);}catch(const FormatError&){foreign_rejected=true;}
+ if(!foreign_rejected)throw FormatError("Foreign machine scene prepared another resource owner's state");
+ std::vector<Vertex> later;std::vector<ObjectLightingBinding> later_light;scene.append(later,later_light);
+ {auto cancelled=scene.prepare_restore(exact);
+  if(!scene.restore_ready(cancelled)||foreign.restore_ready(cancelled)||foreign.commit_restore(cancelled))
+   throw FormatError("Prepared machine checkpoint lost same-owner cancellation/foreign guards");}
+ std::vector<Vertex> cancelled;std::vector<ObjectLightingBinding> cancelled_light;scene.append(cancelled,cancelled_light);
+ same_pose(later,cancelled);
+ if(scene.checkpoint().tick()!=131)throw FormatError("Cancelled machine restore changed the live controller clock");
+ auto stale=scene.prepare_restore(exact);scene.update_pose(131,133,mesh);
+ if(scene.restore_ready(stale)||scene.commit_restore(stale)||!scene.owns_checkpoint(exact))
+  throw FormatError("Later machine mutation kept a stale prepared token or retired the owning historical checkpoint");
+ auto prepared=scene.prepare_restore(exact);
+ bool thread_capture_rejected{},thread_prepare_rejected{},thread_ready{},thread_commit{},thread_owns{};
+ std::thread other([&]{
+  try{(void)scene.checkpoint();}catch(const FormatError&){thread_capture_rejected=true;}
+  try{(void)scene.prepare_restore(exact);}catch(const FormatError&){thread_prepare_rejected=true;}
+  thread_ready=scene.restore_ready(prepared);thread_commit=scene.commit_restore(prepared);thread_owns=scene.owns_checkpoint(exact);
+ });other.join();
+ if(!thread_capture_rejected||!thread_prepare_rejected||thread_ready||thread_commit||thread_owns||!scene.restore_ready(prepared))
+  throw FormatError("Foreign executor captured/published machine state or invalidated a quiescent local preparation");
+ if(!scene.commit_restore(prepared)||scene.restore_ready(prepared)||scene.commit_restore(prepared)||scene.checkpoint().tick()!=0)
+  throw FormatError("Exact machine restore did not publish its captured clock once");
+ std::vector<Vertex> restored;std::vector<ObjectLightingBinding> restored_light;scene.append(restored,restored_light);
+ same_pose(initial,restored);
+ if(restored_light.size()!=bindings.size()||mesh.materials.size()!=resident_materials)
+  throw FormatError("Exact machine restore changed resident material slots or lighting inventory");
+ for(unsigned i=0;i<bindings.size();++i)if(bindings[i].first_material!=restored_light[i].first_material||
+   bindings[i].material_count!=restored_light[i].material_count||bindings[i].state.source_values()!=restored_light[i].state.source_values())
+  throw FormatError("Exact machine restore reconstructed different completed lighting values");
+ const auto restored_portals=scene.portal_owners();
+ if(restored_portals.size()!=initial_portals.size())throw FormatError("Exact machine restore lost captured active portal owners");
+ for(unsigned i=0;i<initial_portals.size();++i){const auto &a=initial_portals[i],&b=restored_portals[i];
+  if(a.source_object!=b.source_object||a.created_tick!=b.created_tick||a.owner.handle!=b.owner.handle||
+    a.door.current_position!=b.door.current_position||a.door.group_position!=b.door.group_position||
+    a.door.device_flags!=b.door.device_flags||a.initialized_group_state_only!=b.initialized_group_state_only)
+   throw FormatError("Exact machine restore lost captured salted lifetimes or private device channels");
+ }
+ scene.update(1,1,{},1,mesh);restored.clear();restored_light.clear();scene.append(restored,restored_light);
+ same_pose(east_one,material_vertices(restored,bindings[0]));
+ std::cout<<"PASS exact machine presentation restore: historical salted lifetimes/private controller/pose/lighting, cancellation, stale token, foreign owner/executor, once-only publication and resident material slots\n";
  scene.reset_lifetimes();born.clear();alive.clear();scene.append(born,alive);
  if(!born.empty()||!alive.empty())throw FormatError("Retired machine lifetimes still submitted geometry");
  scene.synchronize(retained);scene.update_pose(0,0,mesh);scene.append(born,alive);
@@ -134,10 +187,49 @@ void reference_devices(){
  const auto selected=[&](const std::vector<Vertex>&world){std::vector<Vertex>out;for(const auto&v:world)
   if(mesh.materials[v.material].name==names[0] || mesh.materials[v.material].name==names[1])out.push_back(v);return out;};
  std::vector<Vertex>world;std::vector<ObjectLightingBinding>bindings;scene.append(world,bindings);const auto first=selected(world);
+ const auto exact=scene.checkpoint();
+ std::vector<std::pair<unsigned,std::shared_ptr<const VertexProgramBank>>> captured_banks;
+ for(unsigned i=0;i<mesh.materials.size();++i){const auto &pass=mesh.materials[i].environment_pass;
+  if(pass&&pass->forward_vertex==9)captured_banks.emplace_back(i,pass->vertex_bank);}
+ if(captured_banks.empty())throw FormatError("Exact machine bank fixture has no actual resident PRT link");
  scene.synchronize(objects);scene.update(30,30,reference.camera_position,1,mesh);
  world.clear();bindings.clear();scene.append(world,bindings);same_pose(first,selected(world));
  for(unsigned i=0;i<2;++i){const auto material=std::find_if(mesh.materials.begin(),mesh.materials.end(),[&](const auto&m){return m.name==names[i];});
   if(material->environment_pass->vertex_bank->constants!=initial[i])throw FormatError("diagnostic device advanced its frozen source image phase");}
+ std::vector<std::shared_ptr<const VertexProgramBank>> later_banks;
+ for(const auto &[slot,bank]:captured_banks)later_banks.push_back(mesh.materials[slot].environment_pass->vertex_bank);
+ if(later_banks.front()==captured_banks.front().second)
+  throw FormatError("Machine fixture did not generate a later actual PRT bank owner");
+ const std::weak_ptr<const VertexProgramBank> retired=later_banks.front();
+ {auto cancelled=scene.prepare_restore(exact);if(!scene.restore_ready(cancelled))throw FormatError("Actual PRT restore was not prepared");}
+ for(unsigned i=0;i<captured_banks.size();++i)if(mesh.materials[captured_banks[i].first].environment_pass->vertex_bank!=later_banks[i])
+  throw FormatError("Cancelled machine restore changed a live PRT link");
+ {auto prepared=scene.prepare_restore(exact),sibling=scene.prepare_restore(exact);
+  auto &pass=mesh.materials[captured_banks.front().first].environment_pass;
+  const auto live_pass=pass;pass.reset();
+  if(scene.restore_ready(prepared)||scene.commit_restore(prepared))throw FormatError("Replaced external material pass kept restore eligibility");
+  pass=live_pass;pass->vertex_bank=captured_banks.front().second;
+  if(scene.restore_ready(prepared)||scene.commit_restore(prepared))throw FormatError("Changed live PRT bank kept restore eligibility");
+  pass->vertex_bank=later_banks.front();later_banks.clear();
+  if(!scene.restore_ready(prepared)||!scene.commit_restore(prepared)||scene.restore_ready(sibling)||scene.commit_restore(sibling)||retired.expired())
+   throw FormatError("Machine PRT restore did not publish once and retain displaced immutable bank owners");
+  for(const auto &[slot,bank]:captured_banks)if(mesh.materials[slot].environment_pass->vertex_bank!=bank)
+   throw FormatError("Exact machine restore recomputed rather than restored a captured PRT link");
+ }
+ if(!retired.expired())throw FormatError("Machine restore retained displaced PRT bank owners after caller retirement");
+ if(scene.checkpoint().tick()!=0)throw FormatError("PRT scene restore lost its actual historical clock");
+ // The real lighting producer may detach a shared child through its normal
+ // COW rule. Scene methods accept that new graph, while this subowner refuses
+ // to restore an old graph without the separate material-animation owner.
+ const auto slot=captured_banks.front().first;
+ apply_object_lighting(mesh.materials[slot],bindings.front().state);
+ scene.update(1,1,reference.camera_position,1,mesh);world.clear();bindings.clear();scene.append(world,bindings);
+ bool graph_rejected=false;try{(void)scene.prepare_restore(exact);}catch(const FormatError&){graph_rejected=true;}
+ if(!graph_rejected||!scene.owns_checkpoint(exact))throw FormatError("Detached material graph bypassed its external owner boundary");
+ const auto current_cut=scene.checkpoint();auto current_restore=scene.prepare_restore(current_cut);
+ if(!scene.restore_ready(current_restore)||!scene.commit_restore(current_restore))
+  throw FormatError("Normal material COW prevented a new actual scene checkpoint from restoring");
+ std::cout<<"PASS exact machine PRT restore: actual captured immutable bank identity, external pass/bank refusal, cancellation, stale sibling, deferred retirement and normal lighting COW with explicit external graph boundary\n";
  std::cout<<"Source device image fixture: 2 matched placements, 314 consumed source bank words within measured bounds, frozen through synchronize/tick30\n";
 }
 void simulation_devices(){

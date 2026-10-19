@@ -12,7 +12,7 @@
 
 namespace halo2 {
 SourceCampaignWeapons::SourceCampaignWeapons(const Cache &cache,const LevelContent &content,Mesh &mesh)
-    :cache_(&cache),tables_(cache.shader_function_tables()) {
+    :cache_(&cache),names_(SourceWeaponMaterialNames::from_cache(cache)),tables_(cache.shader_function_tables()) {
     for(const auto &tag:cache.select_tags({.group=tag_groups::weapon,.require_address=true})) {
         auto definition=cache.load_source_world_weapon_definition(tag.datum);
         if(definition.render_model==null_datum)continue;
@@ -101,10 +101,10 @@ SourceCampaignWeaponFrame SourceCampaignWeapons::draw(MultiplayerObjectRuntime &
         }
         auto vertices=resource.model->draw(unit.object,std::span{&unit,1},rendered.at(unit.object),view);
         if(vertices.empty())continue;
-        auto input=[actual=inputs.at(unit.object),definition=resource.definition,tables=tables_,seconds](std::uint32_t name) {
+        auto input=[actual=inputs.at(unit.object),definition=resource.definition,tables=tables_,names=names_,seconds](std::uint32_t name) {
             if(!name)return 0.f;
             const auto value=source_weapon_material_input(name,actual.shader,definition.magazines,
-                actual.magazines,definition.functions,*tables,seconds,actual.primary);
+                actual.magazines,definition.functions,*tables,seconds,actual.primary,names);
             if(!value)throw FormatError("Campaign weapon material requires an unresolved original producer: "+std::to_string(name));
             return value->value;
         };

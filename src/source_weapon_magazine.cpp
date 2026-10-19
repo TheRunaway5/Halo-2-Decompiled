@@ -24,10 +24,28 @@ FunctionValue source_weapon_primary_ammunition(std::span<const SourceWeaponMagaz
     }
     return {value,value>0};
 }
+std::optional<FunctionValue> source_weapon_magazine_input(std::uint32_t name,
+    std::span<const SourceWeaponMagazineDefinition> d,std::span<const SourceWeaponMagazineState> s) {
+    if(name==0x1200056au)return source_weapon_primary_ammunition(d,s);
+    if(name!=0x1700056bu && name!=0x1700056cu)return {};
+    if(d.size()!=s.size())throw FormatError("source weapon magazine state does not match its authored bank");
+    float value=0.f;
+    if(!d.empty()) {
+        const int loaded=s[0].loaded;
+        // 104C38/104CB5 use signed division;104C9E..104CAD computes the
+        // same truncating division by10 for the tens input. Preserve the
+        // separate CVTSI2SS and MULSS against original46A178 (0x3DCCCCCD).
+        const int digit=name==0x1700056bu?loaded%10:(loaded/10)%10;
+        value=float(digit)*std::bit_cast<float>(0x3dcccccdu);
+        if(value<0.f)value=0.f;
+        else if(value>1.f)value=1.f;
+    }
+    return FunctionValue{value,value>0.f};
+}
 std::optional<FunctionValue> source_weapon_magazine_shader_input(std::uint32_t name,
     std::span<const SourceWeaponMagazineDefinition>d,std::span<const SourceWeaponMagazineState>s,
     std::span<const ObjectFunction>functions,const ShaderFunctionTables&tables){
-    if(name==0x1200056au)return source_weapon_primary_ammunition(d,s);
+    if(const auto direct=source_weapon_magazine_input(name,d,s))return direct;
     std::optional<FunctionValue> result;
     constexpr std::array<std::byte,20> identity{std::byte{0},std::byte{0},std::byte{0},std::byte{0},
         std::byte{0},std::byte{0},std::byte{0},std::byte{0},std::byte{0},std::byte{0},

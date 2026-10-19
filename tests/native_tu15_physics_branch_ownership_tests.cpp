@@ -25,6 +25,10 @@ int main()try {
     mount_native_tu15_physics_branch_data(empty);
     const auto installed=empty.checkpoint();
     check(!installed.regions.empty(),"Physics table installation published no owners");
+    bool supplied_clock=false;
+    try {(void)empty.view(0x41b774u,0);supplied_clock=true;}
+    catch(const std::out_of_range&) {}
+    check(!supplied_clock,"Physics literals fabricated a clock import without its runtime owner");
     mount_native_tu15_physics_branch_data(empty);
     check(empty.checkpoint().regions==installed.regions,
         "Repeated physics installation replaced or duplicated owners");

@@ -56,6 +56,12 @@ Use `--report-output PATH` for bounded results and add `--retain-video` only
 when retaining the requested visible proof. The enclosing `tools/run_test.py`
 removes the private outputs after success, failure, or cancellation.
 
+`tools/test_physics_multiplayer_vehicle_seats_tu15.py` uses the same
+`--mcc-root`, optional `--map`, scratch `--output`, bounded `--report-output`
+and explicit `--retain-video` contract. It records every requested seat case
+before returning a failing suite result; one red case does not hide the rest.
+Xbox executable and Vista UI arguments are not accepted by either live wrapper.
+
 Every test registered by the main project runs under `tools/run_test.py`. The
 wrapper supplies unique `TMPDIR`, `TMP`, `TEMP`, and `HALO2_TEST_SCRATCH` values.
 It preserves the test's original working directory, arguments, stdout/stderr,

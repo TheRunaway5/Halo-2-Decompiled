@@ -45,7 +45,7 @@ bytes and original image/cache hashes are retained in
 `analysis/weapons-tu15-goal-20261013/authored-scope.json`. Its per-weapon feature
 and visual status remains unverified for all 63 definitions.
 
-`weapon-completion-matrix-v75.json` expands those same63 rows into630 explicit
+`weapon-completion-matrix-v76.json` expands those same63 rows into630 explicit
 completion gates, including owner/applicability audits and complete reference
 sequences. Bounded Hunter and Needler runtime evidence is attached to their
 tested Old Mombasa and Lockout definitions; it certifies neither a whole gate
@@ -2881,3 +2881,28 @@ value1. Actual MCC application revalidation remains next, with four submitted
 frames and full visual/audio gates still open. Checkpoint75 retains the v8
 failure and preparation evidence; all completed owned scratch is removed and
 no new large artifacts are retained.
+
+The v9 MCC Release run passes nine of ten checks and clears the original PRT
+constant failure. Actual source-frame collection now reaches turret-item, BR
+and SMG models before failing on material input `17000578`. The actual MCC
+string table names it `primary_ammunition_tens`; the Xbox table and original
+`1046C0` handler use `1700056C`. Other built-ins also have different StringIDs.
+The material adapter must preserve authored aliases and bind the correct
+namespace to the original producers; the native source path also lacks the
+original magazine-digit producer. No frame has submitted and no weapon gate
+is certified. The failure and exact namespace correspondence are retained in
+`mcc-weapon-material-17000578-original-frontier-v1.json` and
+`mcc-weapon-material-string-id-correspondence-v1.json`.
+
+Original axis-index execution now bounds two indexed reads to six entries:
+1,000 complete `123210` executions return only axes0–2, and the current native
+factory matches the complete36-byte table. The original24-case bitmap decoder
+also establishes the supported bit-depth table: startup now owns its exact
+48 bytes, replacing four isolated cells. A red/green probe verifies all24
+fields and six access/boundary/atomic-overlap controls. The current factory
+passes all95 fixed inputs, the axis table and the bitmap table together.
+Its physics literal export excludes the existing runtime tick-count import
+binding; the original file ordinal cannot replace the relocated clock owner.
+The genuine physics ownership regression passes. All completed owned scratch
+is removed; no new large artifacts are retained. The next full MCC snapshot
+also requires the existing cold-world ownership regression, for11 checks.

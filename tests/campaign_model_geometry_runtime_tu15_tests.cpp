@@ -461,13 +461,26 @@ int cairo_armed(const Cache &cache,const std::filesystem::path &xbe) {
         if(!definition.magazines.empty() && definition.magazines[0].maximum_loaded)
             ammunition=std::clamp(float(std::bit_cast<std::int16_t>(Bytes(memory.view(b+0x22c,2)).u16(0)))/
                 float(definition.magazines[0].maximum_loaded),0.f,1.f);
-        if(std::bit_cast<std::uint32_t>(draw.input(0x1200056au))!=std::bit_cast<std::uint32_t>(ammunition) ||
-           draw.input(0x030005a6u)!=1.f || draw.input(0x040005a7u)!=0.f)
+        const auto ammunition_id=cache.is_mcc()?0x12000576u:0x1200056au;
+        const auto one_id=cache.is_mcc()?0x030005b2u:0x030005a6u;
+        const auto zero_id=cache.is_mcc()?0x040005b3u:0x040005a7u;
+        if(cache.string_id(ammunition_id)!="primary_ammunition" ||
+           cache.string_id(one_id)!="one" || cache.string_id(zero_id)!="zero")
+            throw FormatError("Campaign weapon fixture builtin identities differ from the actual cache namespace");
+        if(std::bit_cast<std::uint32_t>(draw.input(ammunition_id))!=std::bit_cast<std::uint32_t>(ammunition) ||
+           draw.input(one_id)!=1.f || draw.input(zero_id)!=0.f)
             throw FormatError("Campaign weapon shader input did not use actual source magazine/builtin state");
+        if(cache.is_mcc())for(const auto foreign:{0x1200056au,0x030005a6u,0x040005a7u}) {
+            bool rejected=false;
+            try{(void)draw.input(foreign);}catch(const FormatError&){rejected=true;}
+            if(!rejected)throw FormatError("MCC campaign material accepted an unbound Xbox builtin identifier");
+            report["material_namespace_rejection_controls"]=report.value("material_namespace_rejection_controls",0u)+1;
+        }
         weapon_inputs+=3;weapon_vertices+=unsigned(draw.vertices.size());submitted_owners.insert(draw.object);
         report["weapon_submissions"].push_back({{"object",draw.object},{"definition",draw.definition},
             {"ordinal",draw.ordinal},{"vertices",draw.vertices.size()},{"shader_inputs_verified",3},
-            {"source_lighting_words_equal",true},{"original_magazine_fraction",ammunition}});
+            {"source_lighting_words_equal",true},{"original_magazine_fraction",ammunition},
+            {"authored_builtin_ids",{ammunition_id,one_id,zero_id}}});
     }
     for(const auto &weapon:weapons)if(!submitted_owners.contains(weapon.object))
         throw FormatError("Campaign weapon submission omitted an actual original attached weapon");

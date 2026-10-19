@@ -14,8 +14,13 @@
 #include "halo2/math.hpp"
 #include <algorithm>
 #include <array>
+#include <limits>
 #include <map>
+#include <new>
 #include <set>
+#include <thread>
+#include <type_traits>
+#include <utility>
 
 namespace halo2 {
 struct SourceSceneryScene::Impl {
@@ -52,6 +57,78 @@ struct SourceSceneryScene::Impl {
         SourceSceneryQueryState query_state;
         bool query_state_valid{};
     };
+    // Only the values written after resident resource preparation. A cut must
+    // own all six posed streams and active collector lists, not just node0.
+    struct LodState {
+        std::vector<unsigned> active_sections;
+        std::vector<Vertex> vertices;
+    };
+    struct State {
+        std::uint32_t handle{};
+        std::uint64_t created_tick{};
+        bool active{},visible{};
+        SourceInitialModelSelection selection;
+        std::array<LodState,6> lods;
+        std::array<std::int8_t,4> previous_lod;
+        Transform root,node0;
+        std::vector<Transform> world_nodes;
+        std::optional<std::vector<Transform>> solved_nodes;
+        float scale{};
+        ObjectLightingCache light;
+        SourceSceneryQueryState query_state;
+        bool query_state_valid{};
+        explicit State(const Scenery &s):handle(s.handle),created_tick(s.created_tick),
+            active(s.active),visible(s.visible),selection(s.selection),previous_lod(s.previous_lod),
+            root(s.root),node0(s.node0),world_nodes(s.world_nodes),solved_nodes(s.solved_nodes),
+            scale(s.scale),light(s.light),query_state(s.query_state),query_state_valid(s.query_state_valid) {
+            for(unsigned i=0;i<lods.size();++i)lods[i]={s.lods[i].active_sections,s.lods[i].vertices};
+        }
+        void exchange(Scenery &s) noexcept {
+            static_assert(std::is_nothrow_swappable_v<SourceInitialModelSelection>);
+            static_assert(std::is_nothrow_swappable_v<ObjectLightingCache>);
+            using std::swap;
+            swap(handle,s.handle);swap(created_tick,s.created_tick);swap(active,s.active);swap(visible,s.visible);
+            swap(selection,s.selection);swap(previous_lod,s.previous_lod);swap(root,s.root);swap(node0,s.node0);
+            swap(world_nodes,s.world_nodes);swap(solved_nodes,s.solved_nodes);swap(scale,s.scale);
+            swap(light,s.light);swap(query_state,s.query_state);swap(query_state_valid,s.query_state_valid);
+            for(unsigned i=0;i<lods.size();++i){
+                lods[i].active_sections.swap(s.lods[i].active_sections);lods[i].vertices.swap(s.lods[i].vertices);
+            }
+        }
+    };
+    const std::thread::id executor=std::this_thread::get_id();
+    const std::shared_ptr<const void> owner=std::make_shared<const unsigned char>(0);
+    std::uint64_t revision{},bindings{};
+    bool busy{};
+    void own()const {
+        if(executor!=std::this_thread::get_id())throw FormatError("SCEN presentation crossed its executor");
+    }
+    bool try_mutating()noexcept {
+        if(executor!=std::this_thread::get_id()||busy||revision==std::numeric_limits<std::uint64_t>::max())return false;
+        ++revision;return true;
+    }
+    void mutating(){
+        own();if(revision==std::numeric_limits<std::uint64_t>::max())throw FormatError("SCEN presentation revision exhausted");
+        ++revision;if(busy)throw FormatError("SCEN presentation mutation is already active");
+    }
+    void completed()const {
+        own();if(busy)throw FormatError("SCEN checkpoint requires a completed presentation mutation");
+    }
+    struct Mutation {
+        Impl *state{};
+        explicit Mutation(Impl &s):state(&s){s.mutating();s.busy=true;}
+        Mutation(Impl &s,std::nothrow_t)noexcept {
+            if(s.try_mutating()){state=&s;s.busy=true;}
+        }
+        ~Mutation(){if(state)state->busy=false;}
+        Mutation(const Mutation &)=delete;
+        Mutation &operator=(const Mutation &)=delete;
+        explicit operator bool()const noexcept{return state;}
+    };
+    void rebind(){
+        if(bindings==std::numeric_limits<std::uint64_t>::max())throw FormatError("SCEN callback binding revision exhausted");
+        ++bindings;
+    }
     const Cache &cache;
     const CollisionWorld &collision;
     BspLighting lighting;
@@ -423,11 +500,63 @@ struct SourceSceneryScene::Impl {
         return vertices;
     }
 };
+struct SourceSceneryScene::Checkpoint::Data {
+    std::weak_ptr<const void> owner;
+    std::thread::id executor;
+    std::uint64_t bindings{},tick{};
+    std::int32_t render_frame{};
+    std::vector<Impl::State> scenery;
+};
+struct SourceSceneryScene::PreparedRestore::Data {
+    Checkpoint::Data replacement;
+    std::uint64_t revision{};
+    bool consumed{};
+};
+bool SourceSceneryScene::Checkpoint::valid()const noexcept {
+    return data_&&!data_->owner.expired();
+}
+SourceSceneryScene::Checkpoint SourceSceneryScene::checkpoint()const {
+    const auto &s=*impl_;s.completed();auto data=std::make_shared<Checkpoint::Data>();
+    data->owner=s.owner;data->executor=s.executor;data->bindings=s.bindings;
+    data->tick=s.tick;data->render_frame=s.render_frame;data->scenery.reserve(s.scenery.size());
+    for(const auto &object:s.scenery)data->scenery.emplace_back(object);
+    Checkpoint out;out.data_=std::move(data);return out;
+}
+bool SourceSceneryScene::owns_checkpoint(const Checkpoint &checkpoint)const noexcept {
+    return impl_&&impl_->executor==std::this_thread::get_id()&&checkpoint.data_&&
+        checkpoint.data_->owner.lock()==impl_->owner&&checkpoint.data_->executor==impl_->executor&&
+        checkpoint.data_->bindings==impl_->bindings&&checkpoint.data_->scenery.size()==impl_->scenery.size();
+}
+SourceSceneryScene::PreparedRestore::PreparedRestore()=default;
+SourceSceneryScene::PreparedRestore::~PreparedRestore()=default;
+SourceSceneryScene::PreparedRestore::PreparedRestore(PreparedRestore &&)noexcept=default;
+SourceSceneryScene::PreparedRestore &SourceSceneryScene::PreparedRestore::operator=(PreparedRestore &&)noexcept=default;
+SourceSceneryScene::PreparedRestore SourceSceneryScene::prepare_restore(const Checkpoint &checkpoint)const {
+    const auto &s=*impl_;s.completed();
+    if(!owns_checkpoint(checkpoint)||s.revision==std::numeric_limits<std::uint64_t>::max())
+        throw FormatError("SCEN checkpoint has a different resident owner or callback binding");
+    PreparedRestore out;out.data_=std::make_unique<PreparedRestore::Data>(PreparedRestore::Data{*checkpoint.data_,s.revision,false});
+    return out;
+}
+bool SourceSceneryScene::restore_ready(const PreparedRestore &prepared)const noexcept {
+    const auto *p=prepared.data_.get();return impl_&&impl_->executor==std::this_thread::get_id()&&!impl_->busy&&p&&!p->consumed&&
+        p->replacement.owner.lock()==impl_->owner&&p->replacement.executor==impl_->executor&&
+        p->replacement.bindings==impl_->bindings&&p->revision==impl_->revision&&
+        impl_->revision!=std::numeric_limits<std::uint64_t>::max()&&p->replacement.scenery.size()==impl_->scenery.size();
+}
+bool SourceSceneryScene::commit_restore(PreparedRestore &prepared)noexcept {
+    if(!restore_ready(prepared))return false;
+    auto &s=*impl_;auto &p=*prepared.data_;using std::swap;
+    swap(s.tick,p.replacement.tick);swap(s.render_frame,p.replacement.render_frame);
+    for(std::size_t i=0;i<s.scenery.size();++i)p.replacement.scenery[i].exchange(s.scenery[i]);
+    p.consumed=true;++s.revision;return true;
+}
 SourceSceneryScene::SourceSceneryScene(const Cache &c,std::span<const ScenarioObject>objects,std::size_t bsp,
     Mesh &mesh,const CollisionWorld &cw,InitialSelection selected,OmitUnresolvedSelection omit,bool region_union)
     :impl_(std::make_unique<Impl>(c,objects,bsp,mesh,cw,selected,omit,region_union)){}
 SourceSceneryScene::~SourceSceneryScene()=default;
 void SourceSceneryScene::reset_lifetimes() noexcept {
+    if(!impl_)return;Impl::Mutation mutation(*impl_,std::nothrow);if(!mutation)return;
     auto &s=*impl_;s.tick=0;s.render_frame=0;
     for(auto &o:s.scenery){
         o.handle=0xffffffffu;o.created_tick=0;o.active=o.visible=false;
@@ -437,25 +566,28 @@ void SourceSceneryScene::reset_lifetimes() noexcept {
 }
 SourceSceneryScene::SourceSceneryScene(SourceSceneryScene&&)noexcept=default;
 SourceSceneryScene&SourceSceneryScene::operator=(SourceSceneryScene&&)noexcept=default;
-void SourceSceneryScene::synchronize(const SceneObjects &scene,LifetimeSelection selected){impl_->synchronize(scene,selected);}
+void SourceSceneryScene::synchronize(const SceneObjects &scene,LifetimeSelection selected){Impl::Mutation mutation(*impl_);impl_->synchronize(scene,selected);}
 void SourceSceneryScene::interpolate(const SceneObjects &scene,const SceneInterpolation &history,float fraction){
+    Impl::Mutation mutation(*impl_);
     for(auto &s:impl_->scenery)if(s.active){
         const auto &object=scene.get(s.handle);
         s.root=history.sample(object,fraction);s.scale=s.root.scale;
         if(object.solved_nodes)s.solved_nodes=history.sample_nodes(object,fraction);
     }
 }
-void SourceSceneryScene::lighting_query_state(LightingQueryState state){impl_->query_state=std::move(state);}
-void SourceSceneryScene::animation_time(AnimationTime time){impl_->animation_time=std::move(time);}
-void SourceSceneryScene::animation_frame(AnimationFrame frame){impl_->animation_frame=std::move(frame);}
-void SourceSceneryScene::animation_frames(AnimationFrames frames){impl_->animation_frames=std::move(frames);}
+void SourceSceneryScene::lighting_query_state(LightingQueryState state){Impl::Mutation mutation(*impl_);impl_->rebind();impl_->query_state=std::move(state);}
+void SourceSceneryScene::animation_time(AnimationTime time){Impl::Mutation mutation(*impl_);impl_->rebind();impl_->animation_time=std::move(time);}
+void SourceSceneryScene::animation_frame(AnimationFrame frame){Impl::Mutation mutation(*impl_);impl_->rebind();impl_->animation_frame=std::move(frame);}
+void SourceSceneryScene::animation_frames(AnimationFrames frames){Impl::Mutation mutation(*impl_);impl_->rebind();impl_->animation_frames=std::move(frames);}
 void SourceSceneryScene::birth_query_capture(BirthQueryCapture capture){
+    Impl::Mutation mutation(*impl_);
     if(capture && std::any_of(impl_->scenery.begin(),impl_->scenery.end(),[](const auto &s){return s.handle!=0xffffffffu;}))
         throw FormatError("SCEN birth capture must register before lifetime synchronization");
-    impl_->birth_capture=std::move(capture);
+    impl_->rebind();impl_->birth_capture=std::move(capture);
 }
-void SourceSceneryScene::update_pose(std::uint64_t tick,std::int32_t frame,Mesh&){impl_->update_pose(tick,frame);}
+void SourceSceneryScene::update_pose(std::uint64_t tick,std::int32_t frame,Mesh&){Impl::Mutation mutation(*impl_);impl_->update_pose(tick,frame);}
 std::vector<SourceSceneEffectOwner> SourceSceneryScene::effect_owners() const {
+    impl_->own();
     std::vector<SourceSceneEffectOwner> out;
     for(const auto &s:impl_->scenery)if(s.active && s.handle!=0xffffffffu)
         out.push_back({s.source_object,s.handle,s.created_tick,s.world_nodes,s.selection.permutations,s.root.position});
@@ -463,6 +595,7 @@ std::vector<SourceSceneEffectOwner> SourceSceneryScene::effect_owners() const {
 }
 void SourceSceneryScene::append_view(std::vector<Vertex>&vertices,std::vector<ObjectLightingBinding>&bindings,
     const SourceObjectViewLod &view,std::vector<SourceObjectViewSelection>*selections) {
+    Impl::Mutation mutation(*impl_);
     for(auto &s:impl_->scenery)if(s.active && s.visible) {
         auto selected=impl_->select(s,view);const auto &g=s.lods[selected.lod];
         //4B5D0 evaluates the admitted owner's lighting cache before41040

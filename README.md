@@ -81,6 +81,10 @@ Classic content into a private cache, preserving the original installation.
 Later launches show cache and runtime status. Preparing content or updating the
 build does not bypass the unfinished gameplay requirements.
 
+The current validated Play route opens the native MCC title screen, profiles,
+main menu and Settings. The separate native gameplay test remains available;
+complete gameplay conversion and Xbox TU1.5 parity are still in progress.
+
 Terminal setup works without Tk; quote paths containing spaces:
 
 ```bash
@@ -144,9 +148,11 @@ readiness. The title-first launcher is configured to skip the boot intro once
 startup is available. Use an optimized build for runtime work; Debug asset
 preparation is substantially slower.
 
-Release builds bundle the locally supplied upscaled intro and credits. Stage
-them with `python3 tools/bundle_movies.py --source "/path/to/Halo 2 Movies"`
-before making a movie-enabled release. A source-only Release build can select
+The upscaled intro and credits are repository assets stored with Git LFS.
+Install Git LFS, then run `git lfs install` and `git lfs pull` in a clone before
+MCC setup or a movie-enabled build. Check the downloaded files with
+`python3 tools/bundle_movies.py --verify`. Precompiled release ZIPs include the
+real movies directly. A code-only Release build can select
 `-DHALO2_BUNDLE_MOVIES=OFF`. See [release movies](docs/RELEASE_MOVIES.md) for
 checksums, codecs and packaging.
 

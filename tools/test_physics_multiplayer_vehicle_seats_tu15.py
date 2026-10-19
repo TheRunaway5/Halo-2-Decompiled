@@ -13,6 +13,7 @@ import subprocess
 import sys
 import time
 from test_physics_multiplayer_visible_tu15 import inspect_mirror
+from physics_test_cache import runtime_cache, runtime_map, retain_results
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES = {
@@ -86,15 +87,32 @@ def stop_mirror(owned):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for field in ("runtime", "output", "xbe", "ui"):
+    for field in ("runtime", "output", "mcc-root"):
         parser.add_argument(f"--{field}", type=Path, required=True)
+    parser.add_argument("--maps", type=Path)
+    parser.add_argument("--map", type=Path)
+    parser.add_argument("--report-output", type=Path)
+    parser.add_argument("--retain-video", action="store_true")
     parser.add_argument("--case", action="append", choices=tuple(CASES))
     parser.add_argument("--visible-mirror-display")
     parser.add_argument("--mirror-process-info", type=Path)
     args = parser.parse_args()
     args.output = args.output.resolve()
+    owned = os.environ.get("HALO2_TEST_SCRATCH")
+    if not owned or not args.output.is_relative_to(Path(owned).resolve()):
+        parser.error("Run through tools/run_test.py with --output under HALO2_TEST_SCRATCH")
+    if args.retain_video and not args.report_output:
+        parser.error("--retain-video requires --report-output")
+    maps, cache_inputs = runtime_cache(args.mcc_root, args.maps)
+    selected_map = runtime_map(maps, args.map or maps / "coagulation.map")
+    if args.report_output:
+        args.report_output = args.report_output.resolve()
+        if args.report_output.is_relative_to(args.output) or args.output.is_relative_to(args.report_output):
+            parser.error("Retained reports must be separate from raw seat-test output")
+        args.report_output.mkdir(parents=True, exist_ok=False)
     args.output.mkdir(parents=True, exist_ok=True)
-    summary = {"reference": "English TU1.5 only", "full_physics_parity": False, "cases": []}
+    summary = {"reference": "English TU1.5 offline behavior and visuals", "runtime_cache_source": "MCC",
+               "runtime_cache_inputs": cache_inputs, "full_physics_parity": False, "cases": []}
     for name in args.case or CASES:
         vehicle, seat, child, moving = CASES[name]
         env = os.environ.copy()
@@ -108,9 +126,10 @@ def main():
         if moving:
             env["HALO2_TU15_SEAT_DRIVER"] = "1"
         out = args.output / name
+        out.mkdir(parents=True, exist_ok=False)
         command = [sys.executable, str(ROOT / "tools/test_physics_multiplayer_visible_tu15.py"),
                    "--runtime", str(args.runtime.resolve()), "--output", str(out),
-                   "--xbe", str(args.xbe.resolve()), "--ui", str(args.ui.resolve()),
+                   "--mcc-root", str(args.mcc_root.resolve()), "--map", str(selected_map),
                    "--scenario", "lan-vehicle"]
         owned_mirror = None
         if args.visible_mirror_display:
@@ -121,15 +140,18 @@ def main():
                         "--mirror-process-info", str(mirror_info.resolve())]
         print(f"START {name}", flush=True)
         try:
-            with (args.output / f"{name}.log").open("x") as log:
+            with (out / "wrapper.log").open("x") as log:
                 result = subprocess.run(command, cwd=ROOT, env=env, stdout=log, stderr=subprocess.STDOUT)
         finally:
             stop_mirror(owned_mirror)
+            if args.report_output:
+                retain_results(out, args.report_output / name, video=args.retain_video)
+        retained = args.report_output / name if args.report_output else out
         row = {"case": name, "exit_code": result.returncode,
-               "report": str(out / "lan-vehicle/report.json"),
-               "execution": str(out / "lan-vehicle/execution.json")}
-        if Path(row["report"]).exists():
-            report = json.loads(Path(row["report"]).read_text())
+               "report": str(retained / "lan-vehicle/report.json"),
+               "execution": str(retained / "lan-vehicle/execution.json")}
+        if (out / "lan-vehicle/report.json").exists():
+            report = json.loads((out / "lan-vehicle/report.json").read_text())
             for field in ("acceptance_passed", "exact_lan_snapshot_comparisons",
                           "source_seat_entered", "source_seat_exited", "source_seat_rejection_verified",
                           "companion_driver_entered", "companion_original_camera_frames",
@@ -145,16 +167,16 @@ def main():
             if result.returncode == 0 and not row["original_team_birth_verified"]:
                 row["exit_code"] = 2
                 row["failure"] = "Cooperative original unit birth did not retain the selected team"
-        if Path(row["execution"]).exists():
-            execution = json.loads(Path(row["execution"]).read_text())
+        if (out / "lan-vehicle/execution.json").exists():
+            execution = json.loads((out / "lan-vehicle/execution.json").read_text())
             row["mirror_continuously_verified"] = execution.get("mirror_continuously_verified", False)
             row["runtime_stable"] = execution["runtime_stable"]
         summary["cases"].append(row)
         (args.output / "seat-suite.json").write_text(json.dumps(summary, indent=2) + "\n")
+        if args.report_output:
+            (args.report_output / "seat-suite.json").write_text(json.dumps(summary, indent=2) + "\n")
         print(json.dumps(row), flush=True)
-        if row["exit_code"]:
-            return row["exit_code"]
-    return 0
+    return 0 if all(row["exit_code"] == 0 for row in summary["cases"]) else 2
 
 
 if __name__ == "__main__":

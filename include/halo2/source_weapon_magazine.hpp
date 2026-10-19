@@ -16,6 +16,10 @@ SourceWeaponMagazineState source_weapon_magazine_initial_state(const SourceWeapo
 // FF5F0 selector1200056A, magazine0. Missing magazines and capacity0 return0.
 FunctionValue source_weapon_primary_ammunition(std::span<const SourceWeaponMagazineDefinition>,
                                                std::span<const SourceWeaponMagazineState>);
+// Original1046C0 primary ammunition and decimal digits. Digits use the signed
+// magazine0 count, not capacity/reserve; missing magazines produce inactive0.
+std::optional<FunctionValue> source_weapon_magazine_input(std::uint32_t name,
+    std::span<const SourceWeaponMagazineDefinition>,std::span<const SourceWeaponMagazineState>);
 // Complete BAB40/BA8C0 slice for the supplied carbine's literal identity
 // function. Other requested authored functions retain an explicit boundary.
 std::optional<FunctionValue> source_weapon_magazine_shader_input(std::uint32_t name,

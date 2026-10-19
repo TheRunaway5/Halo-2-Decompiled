@@ -1,5 +1,6 @@
 #include "halo2/native_tu15_world_memory.hpp"
 #include "halo2/native_tu15_ctf_static_data.hpp"
+#include "halo2/native_tu15_player_result_data.hpp"
 #include "halo2/native_tu15_physics_branch_data.hpp"
 #include "halo2/native_tu15_contrail_draw_data.hpp"
 #include "halo2/cache.hpp"
@@ -132,6 +133,7 @@ SourceRuntimeMemory native_tu15_world_memory(const SourceRuntimeKernelTickCount&
         throw std::invalid_argument("Native TU1.5 world requires named retained tick-count backing");
     auto memory=native_tu15_process_heap_memory();
     mount_native_tu15_ctf_static_data(memory);
+    mount_native_tu15_player_result_data(memory);
     mount_native_tu15_contrail_draw_data(memory);
     mount_native_tu15_arena_data(memory);
     mount_native_tu15_static_data(memory);

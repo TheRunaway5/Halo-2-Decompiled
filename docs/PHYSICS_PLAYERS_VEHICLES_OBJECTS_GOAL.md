@@ -113,8 +113,16 @@ derived from2,568 authenticated reads in seven pinned native source bodies.
 Only original .text sites qualify;466 SDK sites, indexed extents, writable
 storage and intervening gaps are excluded. No callbacks, code, tags or produced
 state are invented. Shared owners still require exact readonly bytes. The
-production sharing controls pass in v831. Frozen build v832 and actual visible
-MCC matrix v833/ordinary startup v834 validate this new integration.
+production sharing controls pass in v831. Frozen build v832 rejects the export's
+raw41B774 kernel-clock ordinal because the actual world correctly owns a
+relocated clock binding there. Its private tree is removed; v833/v834 and the
+queued seat/Coagulation checks do not run games. Corrected export v840 excludes
+that loader-resolved input and retains146 ranges /1,380 bytes from2,567 fixed
+reads. The permanent ownership test in v841 checks both absence of a fabricated
+clock import and preservation of an already supplied clock owner, plus the
+existing atomic conflict/reservation controls. Build v842 includes that linked
+test and the full native factory; live matrix v843, ordinary v844 startup,
+MCC-only seat/camera CLI v846 and ordinary Coagulation v847 follow it in order.
 
 MCC context inventory v818 resolves all47 class-3 object and variant names
 against the original reference. Positions, flags and BSP policy correspond;
@@ -144,6 +152,13 @@ while other builds write; this is not reported as264.6MiB physically reclaimed.
 The v819 private tree is verified absent in v822, including491,999,232 observed
 allocated file bytes before automatic removal. Concurrent work again prevents
 attributing its net volume delta to that cleanup alone.
+
+The failed v832 private build is verified absent in v835, including953,278,464
+observed allocated file bytes; the simultaneous net volume change is
+115,179,520 bytes. Retirement v848 removes its unqualified executables and
+identical shaders (278,362,480 file bytes; immediate volume delta5,533,696),
+preserving its exact source archive and failure diagnostics, v819 and all active
+or launcher-selected runtimes.
 
 Ordinary current-candidate MCC startup v776 passes: 120 rendered frames,
 163 ticks, two players, 540 opened MCC files, 69 continuous mirror checks and

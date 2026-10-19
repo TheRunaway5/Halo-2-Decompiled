@@ -45,7 +45,8 @@ records the verified result here before starting dependent work.
 
 ## Current priority: MCC frontend and binary updates (October19)
 
-The next visible milestone is Play opening the title screen and working menus.
+Play now opens the validated title/profile/main/Settings route. The next delivery
+milestone is the compiled portable ZIP with the movies and custom prompt bank.
 Keep the accepted native Lockout test as a separate action. V19's accepted
 gameplay conversion/build is preserved; its remaining delivery work follows
 this frontend priority.
@@ -94,7 +95,7 @@ opening the title and menus. Keep the MCC cache and existing shaders selected.
   CPU and review scratch are removed. Native rendering acceptance follows.
   [Corrected CPU witness](../.local/mcc-frontend-custom-prompts-20261019/native-menu-metric-v1/cpu-handoff.json),
   [Independent geometry review](../.local/mcc-frontend-custom-prompts-20261019/menu-expected-geometry-v1/corrected-review.json).
-- [ ] After prompt acceptance, bind the passed native title/menu runtime to
+- [x] After prompt acceptance, bind the passed native title/menu runtime to
   the installed Play action and test the actual button-to-title-to-menu route.
   Preserve the separate native gameplay test and prior runtime for rollback.
   V2 actual direct-host menu/Lockout and both no-argument Tk Play routes all
@@ -105,9 +106,56 @@ opening the title and menus. Keep the MCC cache and existing shaders selected.
   Source review qualifies the absent-registry context. Adoption will reconstruct
   the exact tested native bytes, reuse those native results and verify fresh
   current-UI Play routes; unrelated live source edits must not trigger repeated
-  engine builds. Installed launchers remain pending that final adoption.
+  engine builds. The subsequent actual installed normal and title-first Tk Play
+  clicks both pass title/profile/create/confirm/main/Settings/back with finite
+  nonzero audio and clean exits. Normal Play uses the cached intro and a real
+  Settings B/BACK click. The independently selected V24 frontend preserves the
+  corrected prompt leaves and the existing gameplay runtime/106 shader files;
+  its own 97 shaders, cache, saves and selections remain unchanged. Both current
+  default-window images were reviewed. Scratch is removed; retain two required
+  reference PNGs totaling 319,740 bytes. This accepts the stated route, not the
+  full menu tree or complete gameplay/framebuffer parity.
+  [Installed Play acceptance](../.local/mcc-frontend-custom-prompts-20261019/installed-play-validation-v1/closure.json),
   [Actual V2 routes and cleanup](../.local/mcc-frontend-custom-prompts-20261019/root-play-installation-v2/actual-attempt-closure.json),
   [Reviewed source deltas](../.local/mcc-frontend-custom-prompts-20261019/root-play-installation-v2/root-drift-review.json).
+- [x] Restore the missing bundled movie bank in the user's SSD checkout.
+  The exact reported metadata error was reproduced: the entire
+  `resources/movies` directory was absent. Both original movies and the bank
+  manifest are now copied with full payload hashes verified and an atomic
+  no-replace directory publication. The tracked outer manifest is unchanged;
+  the actual target source-manifest check passes. Retain 2,538,779,177 bytes of
+  required assets; owned copy scratch is removed. Full fresh MCC import remains
+  a separate gate.
+  [Movie-bank repair](../.local/mcc-movie-clone-repair-20261019/repair.json).
+- [x] Verify the complete SSD presentation source preflight using that
+  checkout's actual importer helpers. Both movie manifests and extents pass;
+  the previous full movie hashes remain authoritative. All 91 custom prompt
+  files (19,865,846 bytes), including 82 SVG masters, authenticate successfully.
+  No import/cache or index changes occur; scratch and the one-off helper are
+  removed. This accepts presentation inputs, not a complete fresh MCC import.
+  [SSD presentation preflight](../.local/mcc-movie-clone-repair-20261019/presentation-preflight.json).
+- [x] Track both bundled movies with Git LFS and both manifests in normal Git;
+  verify small index pointers and authentic local payloads in both source
+  checkouts so the required movie bank can be pushed and fetched by clones.
+  Both ROOT and SSD checkouts stage exactly the two MP4s, bank manifest,
+  `.gitattributes`, `.gitignore` and release-movie instructions. Each MP4 index
+  blob is a 135-byte LFS pointer with the manifest's exact SHA/size; all four
+  local LFS payload objects pass full hashes. The already tracked outer
+  manifest stays unchanged. Local hooks/filters are installed without altering
+  unrelated index entries or non-LFS config. No commit or remote push occurs.
+  Retain 2,538,778,741 bytes of required LFS payloads per checkout, in addition
+  to the working assets; runner scratch is removed.
+  [LFS staging verification](../.local/mcc-movie-lfs-20261019/validation.json).
+- [ ] Publish the compiled portable V23 ZIP with both real movies, paired
+  manifests and the authenticated custom prompts. The first V3 attempt stopped
+  before native execution when replacing an inherited read-only helper file;
+  no ZIP was published and scratch is removed. Its RED receipt is retained.
+  V4 replaces only owned extracted helper files, preserving frozen inputs.
+  The actual read-only failure/replacement control and four publication controls
+  pass, with independent source review. Actual relocated native/Tk acceptance
+  and verified ZIP publication remain open.
+  [V3 failure closure](../.local/mcc-frontend-custom-prompts-20261019/delivery-v23-preparation-v3/failure-closure.json),
+  [V4 controls](../.local/mcc-frontend-custom-prompts-20261019/delivery-v23-preparation-v4/publication-validation.json).
 - [x] Adopt the exact tested runtime after that reviewed source drift. V3
   reconstructs the same native SHA and unchanged 97-shader bank, retains the
   actual V2 native acceptance, and passes fresh current-UI normal/title-first
@@ -742,19 +790,23 @@ checklist and its linked goal state when completing weapon milestones.
   [MCC startup checkpoint](../analysis/weapons-tu15-goal-20261013/checkpoint-weapon-mcc-native-startup-20261019.json).
 
 The [weapon checklist](WEAPONS_TU15_GOAL_CHECKLIST.md) records nine passing
-checks in the v8 native MCC snapshot:115-descriptor composition, actual
+checks in the v9 native MCC snapshot:115-descriptor composition, actual
 actor/held-weapon CPU submission, HUD/704 copies, both local-player simulations,
 two retained arithmetic comparisons, node-map projection and complete canonical
 metadata delivery. All three original campaign tables admit public HS placement;
 the objective-locale correction clears actual startup. The RTX 5080 renderer
 initializes and frame-zero simulation finishes. The actual node-map publisher
-and render consumer now clear `23644`/address `0x2`. The application next stops
-at original `22D78` on absent read-only operand `46A680`. Its exact bytes and
-34 further fixed operand extents are restored; a fresh cold factory verifies
-all95 fixed inputs. The separate13 indexed read sites remain open. Actual
-application revalidation follows; no MCC frame has submitted. Completed owned
-source/build/probe scratch is removed, with no new large artifacts retained.
-These component/source results do not close full weapon/visual gates.
+and render consumer clear `23644`/address `0x2`, and v9 also clears the PRT
+`22D78`/`46A680` failure. The application reaches actual turret-item, BR and
+SMG source models, then stops on MCC `17000578` (`primary_ammunition_tens`).
+Its Xbox ID is `1700056C`; paired tables also expose other builtin namespace
+differences. Correct name binding and the original digit producer remain open.
+The current cold factory verifies all95 fixed inputs, two axis-index sites and
+the complete24-format bit-depth table. The physics literal exporter preserves
+the existing relocated tick-count import; its ownership regression passes.
+Actual application revalidation follows with11 required checks; no MCC frame
+has submitted. Completed owned source/build/probe scratch is removed, with no
+new large artifacts retained. These results do not close full weapon/visual gates.
 
 ## Account usage instruction during this work
 
@@ -3994,7 +4046,8 @@ the behavior authority. Xbox/XBE/Vista banks are never runtime dependencies.
 ### v532 actual MCC catalogue/MenuState integration (2026-10-19)
 
 - [x] Verify actual MCC Cache → native profile/sign-in → Split Screen → map list → focused preview → accepted lobby identity → selected-cache launch routing. The native CPU test passes 48 previews and 40 launch/header routes across original and reversed 25-record catalogues; four blank-title and four existing energy-weapon rejections remain explicit. All316 parent link inputs and230 frozen dependency files match before/after. No Xbox/XBE/ISO/Vista assets are opened; owned scratch is removed and no executable or raw trace is retained. [Integration receipt](../work/sandbox-primary-v15/mcc-map-picker-integration-v532.json), SHA-256 `4f983c985d3fba34f833cd04821340e82bd54cfb216dcc0dd340750e8887178c`.
-- [ ] Qualify and deliver the changed frontend through the selected renderer/launcher. CPU map routing does not prove gameplay, displayed frames, audio, pause, source session return or full map parity. The two source identities and native CPU routes are resolved by v544 below; fresh-preparation inventory and selected delivery remain separate. No highplains/highplains2 alias or full-map equivalence is inferred.
+- [x] Deliver the basic frontend and expanded raw catalogue through the selected renderer/launcher. V24's actual818-frame menu/map-picker result and F24's actual installed Play-button/title handoff qualify this bounded delivery; see v574/v585. Gameplay, complete menus, pause, source session return and full map parity remain open.
+- [ ] Publish the two qualified DLC catalogue records/previews and instant-charge profiles coherently to a separate prepared MCC cache, qualify affected native paths and adopt that cache without changing unrelated inputs. The two authored identities/native CPU routes pass v544, and complete private preparation passes v552; reuse both. No highplains/highplains2 alias or full-map equivalence is inferred.
 
 
 ### v533 MCC source-world weapon composition (2026-10-19)
@@ -4124,3 +4177,36 @@ Owned staging scratch is removed. F24 is an explicitly retained requested workin
 - [x] Install the qualified normal/title launcher pair and independent F24 frontend selection. Both actual installed `--launcher-info` calls identify cameraV3 for gameplay and F24 for Play/title/menus. The installed MCC sandbox `--check` passes both capabilities and still selects the exact original cameraV3 native-test owner. Selected cache/registry/provenance, sandbox wrapper, old runtime and all106 old shaders remain unchanged. Both prior launchers are retained under the explicit rollback owner. [Installation receipt](../work/sandbox-primary-v15/mcc-frontend-install-v578.json).
 
 This is local route installation/admission only; no game is executed by the installer. The actual installed six-frame CLI route and actual GUI Play-button→title handoff are being tested separately. F24's earlier818-frame menu/map-picker proof is reused. Full menus, two converted DLC catalogue records, all-map gameplay and full parity remain open. Installer scratch is removed; working installed launchers and436,224-byte rollback launcher pair are explicitly retained.
+
+
+### v581 complete CTF configuration and genuine tail composition (2026-10-19)
+
+- [x] Extend the qualified configuration module with complete original24A6C0 and its genuine existing164930 tail owner. Optimized and ASan/UBSan execution each pass864 original/native full-ABI, defined-flags, FP-state, bank, store and trace comparisons; all26 production sites are observed. The focused production CMake test passes with the real activation module linked. Its old25-owner source remains exact;23/24 tail sites are reachable under the original fixedECX=-1 argument, with the independent whole-owner proof preserved. [Milestone](../work/sandbox-primary-v15/ctf-three-configuration-milestone-v581.json).
+
+All compiler/oracle/CMake scratch is removed. The retained fixture is declared synthetic regression evidence, never a runtime bank. Actual MCC session configuration/activation, objective birth and lifecycles remain the existing v535 gate, with no mode admission or whole-element acceptance. Continue the frozen current-World MCC probe; do not repeat passing initializer/static-data/configuration component tests.
+
+
+### v582 actual MCC CTF session configuration returns (2026-10-19)
+
+- [x] Run the genuine current World and complete configuration owners against imported MCC Lockout. All29 translation units compile/link; construction, map initialization and configure_session return, including actual CTF bank publication and source engine kind1. The698-open audit has zero forbidden/unknown assets or unmatched lines. All316 parent providers, frozen/current source and MCC guards pass. [Actual configured-session checkpoint](../work/sandbox-primary-v15/ctf-activation-port-20261019/ctf-configured-session-checkpoint.json).
+
+The next precondition remains unaccepted: the original occupied-team mask is0 because options-roster publication does not allocate the real player rows from which15ABC0 derives that mask. Use the genuine native player allocation/constructor lifecycle before first activation15AFB0; never seed the mask, fabricate handles or admit CTF/Assault early. Objective birth and complete rules remain v535. Scratch is removed; the119-file/2,346,364-byte source-only reproduction cohort is retained without binaries or raw runtime banks.
+
+
+### Current per-map acceptance ledger (2026-10-19)
+
+The [map ledger](../work/sandbox-primary-v15/mcc-map-acceptance-current.json) lists every literal imported MCC owner:15 campaign levels,25 multiplayer maps, mainmenu and two shared dependency banks. Each row keeps its provenance-derived cache hash, reusable preparation evidence, bounded native progress and unchecked lifecycle/presentation work. Dependency banks are not counted as playable levels. Import, content loading and private preparation do not accept whole maps. No test is repeated to create this ledger; G01-G14 and all102 whole-element acceptances remain open. Update the affected row when a new map lifecycle is actually qualified.
+
+
+### v583 actual installed MCC CLI title route (2026-10-19)
+
+- [x] Execute the installed regular launcher into the exact independently selected F24 runtime: title screen9 draws six hidden muted frontend frames and exits0. The1,868-open/29-trace audit has zero forbidden or unmatched inputs. Seven initially unclassified platform/SDK/native-variant paths are authenticated individually against their exact source, linked module or installed package owner, leaving zero unknowns. The original mechanical-red receipt is preserved; no CLI execution is repeated. [Exact-owner requalification](../work/sandbox-primary-v15/mcc-installed-play-owner-requalification-v582.json).
+
+All277 originally protected owners are rechecked unchanged and both scratch trees are removed, with no retained capture/binary. The original early audit stop skipped complete-cache post-metadata comparison and did not pre-pin the five extra files; neither stronger claim is made. The fresh no-argument GUI Play proof separately guards these exact additional owners and complete cache metadata. Actual button acceptance, full menu/game lifecycles and full parity remain open.
+
+
+### v585 actual installed Play-button delivery accepted (2026-10-19)
+
+- [x] Verify ordinary no-argument root launcher → real Tk Play click → independently selected F24 → cached intro → title screen9 → clean native window close. The actual run exits0 with18 frontend frames,38 traces and2,169 successful opens; there are zero forbidden, unknown or unmatched inputs. An independent reviewer checks the actual exec/argv and platform categories. All45,123 MCC file metadata records, protected runtime/shader banks, launchers/selection, extra configuration, installed saves and profiles stay exact. [Installed Play milestone](../work/sandbox-primary-v15/mcc-installed-play-milestone-v585.json).
+
+This completes bounded basic frontend delivery; reuse V24's earlier818-frame menu/map-picker qualification without repeating it. Complete menus/game return, converted DLC cache publication, gameplay/maps and OG/TU1.5 framebuffer/audio parity remain open. Normal startup includes cold initialization and the intro; this140.81-second proof is not a startup-performance claim. All three route-test scratch directories are removed; no new raw capture/binary is retained by the route probes. The milestone lists paths/sizes of the explicitly retained working F24/V24 inputs, compiled launchers, rollback and required picker reference.

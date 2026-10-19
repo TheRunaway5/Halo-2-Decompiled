@@ -41,6 +41,14 @@ std::vector<Region> mcc_cache_plan() {
     // CPU destinations receive actual14370 outputs, never prepared images.
     writable(0x492314,16,"native lens original four-stage bitmap width destinations");
     writable(0x492324,16,"native lens original four-stage bitmap height destinations");
+    // Actual145C1/145C7 publish two WORD dimensions for the resolved
+    // fallback binding. Preserve cold output storage, not chosen dimensions.
+    writable(0x56e9b8,4,"native lens original resolved fallback bitmap dimension outputs");
+    // Actual40A037 selects an authored filter word. The six original
+    // encodings are data, not nearby SDK branch targets or GPU readiness.
+    result.push_back({0x40dab0,SourceRuntimeMemory::Access::ReadOnly,
+        "native lens original SDK six-word texture filter encoding table",
+        encode(std::array<unsigned,6>{0x10000u,0x30000u,0x50000u,0x20000u,0x40000u,0x60000u})});
     // Actual lens uses the owned untransformed UV0 program/default sampler.
     // Whole409EE0 reads slot0 when its private TSS index at+70 is zero.
     // Preserve only that authenticated loader-zero entry; other indices and
